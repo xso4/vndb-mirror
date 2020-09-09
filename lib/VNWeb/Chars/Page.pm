@@ -213,7 +213,7 @@ sub chartable_ {
             tr_ class => 'nostripe', sub {
                 td_ colspan => 2, class => 'chardesc', sub {
                     h2_ 'Description';
-                    p_ sub { lit_ bb_format $c->{desc}, delspoil => $view->{spoilers} != 2, keepspoil => $view->{spoilers} == 2 };
+                    p_ sub { lit_ bb_format $c->{desc}, replacespoil => $view->{spoilers} != 2, keepspoil => $view->{spoilers} == 2 };
                 };
             } if $c->{desc};
         };
