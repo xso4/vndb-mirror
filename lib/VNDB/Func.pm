@@ -72,7 +72,7 @@ sub fil_serialize {
     my @v = ref $fil->{$_} ? @{$fil->{$_}} : ($fil->{$_});
     s/$e/_$fil_escape{$1}/g for(@v);
     $_.'-'.join '~', @v
-  } grep defined($fil->{$_}), keys %$fil;
+  } grep defined($fil->{$_}), sort keys %$fil;
 }
 
 

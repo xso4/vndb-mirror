@@ -40,6 +40,8 @@ sub filFetchDB {
 
   my $filters = fil_parse $overwrite // $pref, @{$filfields{$type}};
 
+  VNWeb::Filters::debug_validate($type, $filters);
+
   # compatibility
   my $compat = $self->filCompat($type, $filters);
   $self->authPref($prefname => fil_serialize $filters) if $compat && !defined $overwrite;
@@ -84,22 +86,7 @@ sub filFetchDB {
 # Compatibility with old filters. Modifies the filter in-place and returns the number of changes made.
 sub filCompat {
   my($self, $type, $fil) = @_;
-  my $mod = 0;
-
-  # older tag specification (by name rather than ID)
-  if($type eq 'vn' && ($fil->{taginc} || $fil->{tagexc})) {
-    my $tagfind = sub {
-      return map {
-        my $i = $self->dbTagGet(name => $_)->[0];
-        $i && $i->{searchable} ? $i->{id} : ();
-      } grep $_, ref $_[0] ? @{$_[0]} : ($_[0]||'')
-    };
-    $fil->{tag_inc} //= [ $tagfind->(delete $fil->{taginc}) ] if $fil->{taginc};
-    $fil->{tag_exc} //= [ $tagfind->(delete $fil->{tagexc}) ] if $fil->{tagexc};
-    $mod++;
-  }
-
-  $mod;
+  $type eq 'vn' ? VNWeb::Filters::filter_vn_compat($fil) : 0
 }
 
 
