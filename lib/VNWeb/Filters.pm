@@ -8,10 +8,10 @@ package VNWeb::Filters;
 use VNWeb::Prelude;
 
 my $VN = form_compile any => {
-    date_before => { required => 0, rdate => 1 },
-    date_after  => { required => 0, rdate => 1 },
+    date_before => { required => 0, uint => 1, range => [0, 99999999] }, # don't use 'rdate' validation here, the search form allows invalid dates
+    date_after  => { required => 0, uint => 1, range => [0, 99999999] }, # ^
     released    => { undefbool => 1 },
-    length      => { required => 0, enum => \%VN_LENGTH },
+    length      => { undefarray => { enum => \%VN_LENGTH } },
     hasani      => { undefbool => 1 },
     hasshot     => { undefbool => 1 },
     tag_inc     => { undefarray => { id => 1 } },
@@ -36,8 +36,8 @@ my $RELEASE = form_compile any => {
     freeware    => { undefbool => 1 },
     doujin      => { undefbool => 1 },
     uncensored  => { undefbool => 1 },
-    date_before => { required => 0, rdate => 1 },
-    date_after  => { required => 0, rdate => 1 },
+    date_before => { required => 0, range => [0, 99999999] }, # don't use 'rdate' validation here, the search form allows invalid dates
+    date_after  => { required => 0, range => [0, 99999999] }, # ^
     released    => { undefbool => 1 },
     minage      => { undefarray => { enum => \%AGE_RATING } },
     lang        => { undefarray => { enum => \%LANGUAGE } },
