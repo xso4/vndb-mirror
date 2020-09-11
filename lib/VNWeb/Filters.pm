@@ -43,10 +43,10 @@ my $RELEASE = form_compile any => {
     lang        => { undefarray => { enum => \%LANGUAGE } },
     olang       => { undefarray => { enum => \%LANGUAGE } },
     resolution  => { undefarray => {} },
-    plat        => { undefarray => { enum => \%PLATFORM } },
+    plat        => { undefarray => { enum => [ 'unk', keys %PLATFORM ] } },
     prod_inc    => { undefarray => { id => 1 } },
     prod_exc    => { undefarray => { id => 1 } },
-    med         => { undefarray => { enum => \%MEDIUM } },
+    med         => { undefarray => { enum => [ 'unk', keys %MEDIUM ] } },
     voiced      => { undefarray => { enum => \%VOICED } },
     ani_story   => { undefarray => { enum => \%ANIMATED } },
     ani_ero     => { undefarray => { enum => \%ANIMATED } },
@@ -54,8 +54,8 @@ my $RELEASE = form_compile any => {
 };
 
 my $CHAR = form_compile any => {
-    gender      => { required => 0, enum => \%GENDER },
-    bloodt      => { required => 0, enum => \%BLOOD_TYPE },
+    gender      => { undefarray => { enum => \%GENDER } },
+    bloodt      => { undefarray => { enum => \%BLOOD_TYPE } },
     bust_min    => { required => 0, uint => 1, range => [ 0, 32767 ] },
     bust_max    => { required => 0, uint => 1, range => [ 0, 32767 ] },
     waist_min   => { required => 0, uint => 1, range => [ 0, 32767 ] },
@@ -73,11 +73,11 @@ my $CHAR = form_compile any => {
     trait_inc   => { undefarray => { id => 1 } },
     trait_exc   => { undefarray => { id => 1 } },
     tagspoil    => { required => 0, default => 0, uint => 1, range => [0,2] },
-    role        => { required => 0, enum => \%CHAR_ROLE },
+    role        => { undefarray => { enum => \%CHAR_ROLE } },
 };
 
 my $STAFF = form_compile any => {
-    gender      => { required => 0, enum => [qw[unknown m f]] },
+    gender      => { undefarray => { enum => [qw[unknown m f]] } },
     role        => { undefarray => { enum => [ 'seiyuu', keys %CREDIT_TYPE ] } },
     truename    => { undefbool => 1 },
     lang        => { undefarray => { enum => \%LANGUAGE } },
