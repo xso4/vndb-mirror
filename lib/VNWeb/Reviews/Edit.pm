@@ -20,7 +20,7 @@ my $FORM_IN  = form_compile in  => $FORM;
 my $FORM_OUT = form_compile out => $FORM;
 
 
-sub throttled { tuwf->dbVali('SELECT COUNT(*) FROM reviews WHERE uid =', \auth->uid, 'AND date > NOW()-interval \'1 day\'') > 0 }
+sub throttled { tuwf->dbVali('SELECT COUNT(*) FROM reviews WHERE uid =', \auth->uid, 'AND date > NOW()-', \'18 hours', '::interval') > 0 }
 
 
 TUWF::get qr{/$RE{vid}/addreview}, sub {
