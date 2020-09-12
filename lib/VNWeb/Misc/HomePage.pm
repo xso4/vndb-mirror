@@ -35,7 +35,7 @@ sub screens_ {
     p_ class => 'screenshots', sub {
         a_ href => "/v$_->{vid}", title => $_->{title}, sub {
             my($w, $h) = imgsize $_->{width}, $_->{height}, tuwf->{scr_size}->@*;
-            img_ src => tuwf->imgurl($_->{id}), alt => $_->{title}, width => $w, height => $h;
+            img_ src => tuwf->imgurl($_->{id}, 1), alt => $_->{title}, width => $w, height => $h;
         } for @$lst;
     }
 }
