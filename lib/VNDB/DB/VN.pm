@@ -9,7 +9,7 @@ use POSIX 'strftime';
 use Exporter 'import';
 use VNDB::Func 'normalize_query', 'gtintype';
 
-our @EXPORT = qw|dbVNGet dbVNGetRev dbScreenshotRandom|;
+our @EXPORT = qw|dbVNGet dbVNGetRev|;
 
 
 # Options: id, char, search, gtin, length, lang, olang, plat, tag_inc, tag_exc, tagspoil,
@@ -251,47 +251,6 @@ sub _enrich {
   )}, $r) if $what =~ /vnlist/ && $self->authInfo->{id};
 
   return wantarray ? ($r, $np) : $r;
-}
-
-
-
-# Fetch random VN + screenshots
-# if any arguments are given, it will return one random screenshot for each VN
-sub dbScreenshotRandom {
-  my($self, @vids) = @_;
-  if(!@vids) {
-    my $where = q{c_weight > 0 and vndbid_type(id) = 'sf' and c_sexual_avg < 0.4 and c_violence_avg < 0.4};
-    state $stats ||= $self->dbRow("SELECT count(*) as total, count(*) filter(where $where) as subset from images");
-    my $sample = 100*List::Util::min(1, (1000 / $stats->{subset}) * ($stats->{total} / $stats->{subset}));
-    return $self->dbAll(q{
-        SELECT vndbid_num(i.id) AS scr, i.width, i.height, v.id AS vid, v.title
-          FROM (
-            SELECT id, width, height
-              FROM images TABLESAMPLE SYSTEM (?)
-             WHERE c_weight > 0 and vndbid_type(id) = 'sf' and c_sexual_avg < 0.4 and c_violence_avg < 0.4
-             ORDER BY random()
-             LIMIT 4
-          ) i(id)
-          JOIN vn_screenshots vs ON vs.scr = i.id
-          JOIN vn v ON v.id = vs.id
-         WHERE NOT v.hidden
-         ORDER BY random()
-         LIMIT 4
-    }, $sample);
-  }
-
-  # this query is faster than it looks
-  return $self->dbAll(join(' UNION ALL ', map
-    q|SELECT vndbid_num(vs.scr) AS scr, vs.width, vs.height, v.id AS vid, v.title, RANDOM() AS position
-        FROM (
-         SELECT vs2.id, vs2.scr, s.width, s.height
-           FROM vn_screenshots vs2
-           JOIN images s ON s.id = vs2.scr
-          WHERE vs2.id = ? AND s.c_sexual_avg < 0.4 AND s.c_violence_avg < 0.4
-          ORDER BY RANDOM() LIMIT 1
-        ) vs
-        JOIN vn v ON v.id = vs.id
-     |, @vids).' ORDER BY position', @vids);
 }
 
 
