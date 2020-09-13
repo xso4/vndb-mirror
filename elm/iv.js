@@ -24,6 +24,8 @@ var ivimg;
 var ivfull;
 var ivnext;
 var ivprev;
+var ivhovernext;
+var ivhoverprev;
 var ivload;
 var ivflag;
 
@@ -61,6 +63,16 @@ function create_div() {
     ivnext.onclick = show;
     ivnext.textContent = 'next »';
     ivlinks.appendChild(ivnext);
+
+    ivhoverprev = document.createElement('a');
+    ivhoverprev.onclick = show;
+    ivhoverprev.className = "left-pane";
+    ivimg.appendChild(ivhoverprev);
+
+    ivhovernext = document.createElement('a');
+    ivhovernext.onclick = show;
+    ivhovernext.className = "right-pane";
+    ivimg.appendChild(ivhovernext);
 
     ivflag = document.createElement('a');
     ivlinks.appendChild(ivflag);
@@ -137,13 +149,15 @@ function show(ev) {
     imgh = Math.floor(opt[0].split('x')[1]);
 
     create_div();
+    var imgs = ivimg.getElementsByTagName("img")
+    if (imgs.length !== 0)
+        ivimg.getElementsByTagName("img")[0].remove()
 
     var img = document.createElement('img');
     img.src = u;
     ivfull.href = u;
     img.onclick = ivClose;
     img.onload = function() { ivload.style.display = 'none' };
-    ivimg.textContent = '';
     ivimg.appendChild(img);
 
     var flag = opt[2] ? opt[2].match(/^([0-2])([0-2])([0-9]+)$/) : null;
@@ -161,6 +175,8 @@ function show(ev) {
     ivload.style.display = 'block';
     fixnav(ivprev, opt[1], idx, -1);
     fixnav(ivnext, opt[1], idx, 1);
+    fixnav(ivhoverprev, opt[1], idx, -1);
+    fixnav(ivhovernext, opt[1], idx, 1);
     resize();
 
     document.addEventListener('click', ivClose);
@@ -180,7 +196,9 @@ window.ivClose = function(ev) {
     document.removeEventListener('keydown', keydown);
     window.removeEventListener('resize', resize);
     ivparent.style.display = 'none';
-    ivimg.textContent = '';
+    var imgs = ivimg.getElementsByTagName("img")
+    if (imgs.length !== 0)
+        ivimg.getElementsByTagName("img")[0].remove()
     return false;
 };
 

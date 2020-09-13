@@ -1016,6 +1016,34 @@ div#iv_view {
 .ivview     { position: fixed; background: $boxbg$; border: 2px solid $border$; padding: 5px; text-align: center }
 .ivview img { cursor: pointer }
 .ivview > div:nth-child(1) { position: absolute; left: 48%; top: 48%; width: 30px; height: 30px }
+.ivview > div:nth-child(2) { position: relative }
+.ivview > div:nth-child(2) .left-pane { 
+  position: absolute;
+  border: none;
+  height: 100%;
+  width: 25%;
+  top: 0;
+  transition: opacity 0.25s ease-in-out;
+  opacity: 0;
+  background: linear-gradient(90deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%);
+}
+.ivview > div:nth-child(2) .left-pane:hover {
+  opacity: 1;
+}
+.ivview > div:nth-child(2) .right-pane { 
+  position: absolute;
+  border: none;
+  height: 100%;
+  width: 25%;
+  top: 0;
+  right: 0;
+  transition: opacity 0.25s ease-in-out;
+  opacity: 0;
+  background: linear-gradient(270deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%);
+}
+.ivview > div:nth-child(2) .right-pane:hover {
+  opacity: 1;
+}
 .ivview > div:nth-child(3) { width: 100%; display: flex }
 .ivview > div:nth-child(3) > a { flex: 1; text-align: left; border: 0; font-weight: bold; font-size: 14px; white-space: nowrap }
 .ivview > div:nth-child(3) > a:nth-child(2) { text-align: right; padding-right: 5px }
