@@ -133,21 +133,23 @@ sub random_vns_ {
 sub releases_ {
     my($released) = @_;
 
-    # XXX This query is kinda slow, an index on releases.released would probably help.
     my $filt = auth->pref('filter_release') && eval { filter_parse r => auth->pref('filter_release') };
+    $filt = { $filt ? %$filt : (), date_before => undef, date_after => undef, released => $released?1:0 };
+
+    # XXX This query is kinda slow, an index on releases.released would probably help.
     my $lst = tuwf->dbAlli('
         SELECT id, title, original, released
           FROM releases r
          WHERE NOT hidden AND released', $released ? '<=' : '>', \strftime('%Y%m%d', gmtime), '
-           AND ', filter_release_query($filt||{}), '
+           AND ', filter_release_query($filt), '
          ORDER BY released', $released ? 'DESC' : '', ', id LIMIT 10'
     );
     enrich_flatten plat => id => id => 'SELECT id, platform FROM releases_platforms WHERE id IN', $lst;
     enrich_flatten lang => id => id => 'SELECT id, lang     FROM releases_lang      WHERE id IN', $lst;
 
     h1_ sub {
-        a_ href => '/r?fil=released-0;o=a;s=released', 'Upcoming Releases' if !$released;
-        a_ href => '/r?fil=released-1;o=d;s=released', 'Just Released' if $released;
+        a_ href => '/r?fil='.VNDB::Func::fil_serialize($filt).';o=a;s=released', 'Upcoming Releases' if !$released;
+        a_ href => '/r?fil='.VNDB::Func::fil_serialize($filt).';o=d;s=released', 'Just Released' if $released;
     };
     ul_ sub {
         li_ sub {
