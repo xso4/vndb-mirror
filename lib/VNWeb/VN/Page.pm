@@ -398,8 +398,12 @@ sub tabs_ {
         ul_ sub {
             li_ class => ($tab eq ''        ? ' tabselected' : ''), sub { a_ href => "/v$v->{id}#main", name => 'main', 'main' } if $chars || $reviews;
             li_ class => ($tab eq 'chars'   ? ' tabselected' : ''), sub { a_ href => "/v$v->{id}/chars#chars", name => 'chars', "characters ($chars)" } if $chars;
-            li_ class => ($tab eq 'minireviews'?' tabselected':''), sub { a_ href => "/v$v->{id}/minireviews#review", name => 'review', "mini reviews ($reviews->{mini})" } if $reviews->{mini};
-            li_ class => ($tab eq 'reviews' ? ' tabselected' : ''), sub { a_ href => "/v$v->{id}/reviews#review", name => 'review', "full reviews ($reviews->{full})" } if $reviews->{full};
+            if($reviews->{mini} > 4 || $tab eq 'minireviews' || $tab eq 'fullreviews') {
+                li_ class => ($tab eq 'minireviews'?' tabselected' : ''), sub { a_ href => "/v$v->{id}/minireviews#review", name => 'review', "mini reviews ($reviews->{mini})" } if $reviews->{mini};
+                li_ class => ($tab eq 'fullreviews'?' tabselected' : ''), sub { a_ href => "/v$v->{id}/fullreviews#review", name => 'review', "full reviews ($reviews->{full})" } if $reviews->{full};
+            } elsif($reviews->{mini} || $reviews->{full}) {
+                li_ class => ($tab =~ /reviews/ ?' tabselected':''),      sub { a_ href => "/v$v->{id}/reviews#review", name => 'review', sprintf 'reviews (%d)', $reviews->{mini}+$reviews->{full} };
+            }
         };
         ul_ sub {
             if(auth && canvote $v) {
