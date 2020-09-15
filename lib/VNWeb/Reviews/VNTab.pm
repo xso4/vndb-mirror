@@ -19,6 +19,7 @@ sub reviews_ {
           WhERE NOT r.c_flagged AND r.vid =', \$v->{id}, 'AND', ($mini ? 'NOT' : ''), 'r.isfull
           ORDER BY r.c_up-r.c_down DESC'
     );
+    return if !@$lst;
 
     div_ class => 'mainbox', sub {
         h1_ $mini ? 'Mini reviews' : 'Full reviews';
