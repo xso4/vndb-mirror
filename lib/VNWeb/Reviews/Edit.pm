@@ -20,7 +20,7 @@ my $FORM_IN  = form_compile in  => $FORM;
 my $FORM_OUT = form_compile out => $FORM;
 
 
-sub throttled { tuwf->dbVali('SELECT COUNT(*) FROM reviews WHERE uid =', \auth->uid, 'AND date > NOW()-', \'18 hours', '::interval') > 0 }
+sub throttled { tuwf->dbVali('SELECT COUNT(*) FROM reviews WHERE uid =', \auth->uid, 'AND date > date_trunc(\'day\', NOW())') >= 5 }
 
 
 TUWF::get qr{/$RE{vid}/addreview}, sub {
@@ -35,7 +35,7 @@ TUWF::get qr{/$RE{vid}/addreview}, sub {
         if(throttled) {
             div_ class => 'mainbox', sub {
                 h1_ 'Throttled';
-                p_ 'You can only submit 1 review per day. Check back later!';
+                p_ 'You can only submit 5 reviews per day. Check back later!';
             };
         } else {
             elm_ 'Reviews.Edit' => $FORM_OUT, { elm_empty($FORM_OUT)->%*, vid => $v->{id}, vntitle => $v->{title}, releases => releases_by_vn $v->{id} };
