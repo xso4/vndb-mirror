@@ -11,6 +11,7 @@ sub feed {
     my($path, $title, $data) = @_;
     my $base = tuwf->reqBaseURI();
 
+    tuwf->resHeader('Content-Type', 'application/atom+xml; charset=UTF-8');
     xml;
     tag feed => xmlns => 'http://www.w3.org/2005/Atom', 'xml:lang' => 'en', 'xml:base' => "$base/", sub {
         tag title => $title;
