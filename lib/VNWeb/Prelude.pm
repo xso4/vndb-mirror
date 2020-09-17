@@ -8,7 +8,7 @@
 #  use Exporter 'import';
 #  use Time::HiRes 'time';
 #  use List::Util 'min', 'max', 'sum';
-#  use POSIX 'ceil', 'floor';
+#  use POSIX 'ceil', 'floor', 'strftime';
 #
 #  use VNDBUtil;
 #  use VNDB::BBCode;
@@ -53,7 +53,7 @@ sub import {
     use Exporter 'import';
     use Time::HiRes 'time';
     use List::Util 'min', 'max', 'sum';
-    use POSIX 'ceil', 'floor';
+    use POSIX 'ceil', 'floor', 'strftime';
 
     use VNDBUtil;
     use VNDB::BBCode;

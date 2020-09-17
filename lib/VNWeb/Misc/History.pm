@@ -3,7 +3,7 @@ package VNWeb::Misc::History;
 use VNWeb::Prelude;
 
 
-# Also used by Misc::HomePage
+# Also used by Misc::HomePage and Misc::Feeds
 sub fetch {
     my($type, $id, $filt, $opt) = @_;
 

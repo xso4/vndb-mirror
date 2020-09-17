@@ -3,7 +3,6 @@ package VNWeb::ULists::Main;
 use VNWeb::Prelude;
 use VNWeb::ULists::Lib;
 use VNWeb::Releases::Lib;
-use POSIX 'strftime';
 
 
 sub opt {

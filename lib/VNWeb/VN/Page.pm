@@ -4,7 +4,6 @@ use VNWeb::Prelude;
 use VNWeb::Releases::Lib;
 use VNWeb::Images::Lib qw/image_flagging_display image_ enrich_image_obj/;
 use VNDB::Func 'fmtrating';
-use POSIX 'strftime';
 
 
 # Enrich everything necessary to at least render infobox_().

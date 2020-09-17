@@ -6,7 +6,6 @@ package VNWeb::Filters;
 # we'll need to support these filters for the forseeable future.
 
 use VNWeb::Prelude;
-use POSIX 'strftime';
 use Exporter 'import';
 
 our @EXPORT = qw/filter_parse filter_vn_query filter_release_query/;

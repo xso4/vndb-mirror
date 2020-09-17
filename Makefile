@@ -24,7 +24,7 @@
 
 ALL_KEEP=\
 	static/ch static/cv static/sf static/st \
-	data/log static/f www www/feeds www/api \
+	data/log static/f www www/api \
 	data/conf.pl \
 	www/robots.txt static/robots.txt
 
@@ -64,7 +64,7 @@ static/ch static/cv static/sf static/st:
 	mkdir -p $@;
 	for i in $$(seq -w 0 1 99); do mkdir -p "$@/$$i"; done
 
-data/log www www/feeds www/api static/f:
+data/log www www/api static/f:
 	mkdir -p $@
 
 data/conf.pl:

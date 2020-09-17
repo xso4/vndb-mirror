@@ -38,7 +38,6 @@ my $config = {
 
     Multi => {
         Core        => {},
-        Feed        => {},
         Maintenance => {},
     },
 };

@@ -3,7 +3,6 @@ package VNWeb::Misc::HomePage;
 use VNWeb::Prelude;
 use VNWeb::Filters;
 use VNWeb::Discussions::Lib 'enrich_boards';
-use POSIX 'strftime';
 
 
 sub screens_ {
