@@ -61,18 +61,24 @@ CREATE OR REPLACE FUNCTION update_vncache(integer) RETURNS void AS $$
       GROUP BY rv.vid
     ), 0),
     c_olang = ARRAY(
-      SELECT lang
-        FROM releases_lang
-       WHERE id = (
-        SELECT r.id
-          FROM releases_vn rv
-          JOIN releases r ON rv.id = r.id
-         WHERE r.released > 0
-           AND NOT r.hidden
-           AND rv.vid = $1
-         ORDER BY r.released
-         LIMIT 1
-       )
+      SELECT rl.lang
+        FROM releases_lang rl
+        JOIN releases r ON r.id = rl.id
+        JOIN releases_vn rv ON r.id = rv.id
+       WHERE rv.vid = $1
+         AND NOT r.hidden
+         AND r.released > 0
+         AND NOT EXISTS(
+            SELECT 1
+              FROM releases r2
+              JOIN releases_vn rv2 ON r2.id = rv2.id
+             WHERE rv2.vid = $1
+               AND NOT r2.hidden
+               AND r2.released > 0
+               AND r2.released < r.released
+         )
+       GROUP BY rl.lang
+       ORDER BY rl.lang
     ),
     c_languages = ARRAY(
       SELECT rl.lang
