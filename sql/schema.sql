@@ -511,7 +511,8 @@ CREATE TABLE reviews (
   c_count smallint NOT NULL DEFAULT 0,
   c_lastnum smallint,
   isfull  boolean NOT NULL,
-  c_flagged boolean NOT NULL DEFAULT false
+  c_flagged boolean NOT NULL DEFAULT false,
+  locked  boolean NOT NULL DEFAULT false
 );
 
 -- reviews_posts

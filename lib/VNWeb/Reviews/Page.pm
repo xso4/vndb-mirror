@@ -12,7 +12,7 @@ my $COMMENT = form_compile any => {
 
 elm_api ReviewsComment => undef, $COMMENT, sub {
     my($data) = @_;
-    my $w = tuwf->dbRowi('SELECT id, false AS locked FROM reviews WHERE id =', \$data->{id});
+    my $w = tuwf->dbRowi('SELECT id, locked FROM reviews WHERE id =', \$data->{id});
     return tuwf->resNotFound if !$w->{id};
     return elm_Unauth if !can_edit t => $w;
 
@@ -51,10 +51,14 @@ sub review_ {
                 my($date, $lastmod) = map $_&&fmtdate($_,'compact'), $w->@{'date', 'lastmod'};
                 txt_ " on $date";
                 b_ class => 'grayedout', " last updated on $lastmod" if $lastmod && $date ne $lastmod;
+                br_ if $w->{c_flagged} || $w->{locked};
                 if($w->{c_flagged}) {
                     br_;
-                    br_;
                     b_ class => 'grayedout', 'Flagged: this review is below the voting threshold and not visible on the VN page.';
+                }
+                if($w->{locked}) {
+                    br_;
+                    b_ class => 'grayedout', 'Locked: commenting on this review has been disabled.';
                 }
             }
         };
@@ -81,7 +85,7 @@ sub review_ {
 TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
     my($id, $sep, $num) = (tuwf->capture('id'), tuwf->capture('sep')||'', tuwf->capture('num'));
     my $w = tuwf->dbRowi(
-        'SELECT r.id, r.vid, r.rid, r.isfull, r.text, r.spoiler, COALESCE(c.count,0) AS count, r.c_flagged, r.c_up, r.c_down, uv.vote, rm.id IS NULL AS can
+        'SELECT r.id, r.vid, r.rid, r.isfull, r.text, r.spoiler, r.locked, COALESCE(c.count,0) AS count, r.c_flagged, r.c_up, r.c_down, uv.vote, rm.id IS NULL AS can
               , v.title, rel.title AS rtitle, rel.original AS roriginal, rel.type AS rtype, rv.vote AS my, COALESCE(rv.overrule,false) AS overrule
               , ', sql_user(), ',', sql_totime('r.date'), 'AS date,', sql_totime('r.lastmod'), 'AS lastmod
            FROM reviews r
@@ -135,7 +139,7 @@ TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
         } else {
             div_ id => 'threadstart', '';
         }
-        elm_ 'Reviews.Comment' => $COMMENT, { id => $w->{id}, msg => '' } if $w->{count} <= $page*25 && can_edit t => {%$w,locked=>0};
+        elm_ 'Reviews.Comment' => $COMMENT, { id => $w->{id}, msg => '' } if $w->{count} <= $page*25 && can_edit t => $w;
     };
 };
 

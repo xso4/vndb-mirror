@@ -30,11 +30,13 @@ type alias Model =
   , vntitle     : String
   , rid         : Maybe Int
   , spoiler     : Bool
+  , locked      : Bool
   , isfull      : Bool
   , text        : TP.Model
   , releases    : List GRE.RecvReleases
   , delete      : Bool
   , delState    : Api.State
+  , mod         : Bool
   }
 
 
@@ -46,11 +48,13 @@ init d =
   , vntitle     = d.vntitle
   , rid         = d.rid
   , spoiler     = d.spoiler
+  , locked      = d.locked
   , isfull      = d.isfull
   , text        = TP.bbcode d.text
   , releases    = d.releases
   , delete      = False
   , delState    = Api.Normal
+  , mod         = d.mod
   }
 
 
@@ -60,6 +64,7 @@ encode m =
   , vid         = m.vid
   , rid         = m.rid
   , spoiler     = m.spoiler
+  , locked      = m.locked
   , isfull      = m.isfull
   , text        = m.text.data
   }
@@ -69,6 +74,7 @@ type Msg
   = Release (Maybe Int)
   | Full Bool
   | Spoiler Bool
+  | Locked Bool
   | Text TP.Msg
   | Submit
   | Submitted GApi.Response
@@ -83,6 +89,7 @@ update msg model =
     Release i  -> ({ model | rid      = i }, Cmd.none)
     Full b     -> ({ model | isfull   = b }, Cmd.none)
     Spoiler b  -> ({ model | spoiler  = b }, Cmd.none)
+    Locked b   -> ({ model | locked   = b }, Cmd.none)
     Text m     -> let (nm,nc) = TP.update m model.text in ({ model | text = nm }, Cmd.map Text nc)
 
     Submit -> ({ model | state = Api.Loading }, GRE.send (encode model) Submitted)
@@ -143,6 +150,8 @@ view model =
         , br [] []
         , b [ class "grayedout" ] [ text "You do not have to check this option if all spoilers in your review are marked with [spoiler] tags." ]
         ]
+      , if not model.mod then text "" else
+        formField "" [ label [] [ inputCheck "" model.locked Locked, text " Locked for commenting." ] ]
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "" ] ]
       , formField "text::Review"
         [ TP.view "sum" model.text Text 700 ([rows (if model.isfull then 30 else 10), cols 50] ++ GRE.valText)
