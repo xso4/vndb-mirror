@@ -170,7 +170,7 @@ sub reviews_ {
           FROM reviews w
           JOIN vn v ON v.id = w.vid
           LEFT JOIN users u ON u.id = w.uid
-         WHERE ', $full ? '' : 'NOT', 'w.isfull
+         WHERE NOT w.c_flagged AND', $full ? '' : 'NOT', 'w.isfull
          ORDER BY w.id DESC LIMIT 10'
     );
     h1_ sub {
@@ -194,6 +194,7 @@ sub recent_comments_ {
           JOIN reviews_posts wp ON wp.id = w.id AND wp.num = w.c_lastnum
           JOIN vn v ON v.id = w.vid
           LEFT JOIN users u ON u.id = wp.uid
+         WHERE NOT w.c_flagged
          ORDER BY wp.date DESC LIMIT 10'
     );
     h1_ sub {
