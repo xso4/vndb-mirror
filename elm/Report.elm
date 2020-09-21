@@ -69,7 +69,7 @@ reasons =
   , { label  = "Unmarked spoilers"
     , vis    = vis
     , submit = True
-    , msg    = \o -> if editable o then [] else
+    , msg    = \o -> if not (editable o) then [] else
         [ text "VNDB is an open wiki, it is often easier if you removed the spoilers yourself by "
         , a [ href ("/" ++ o ++ "/edit") ] [ text " editing the entry" ]
         , text ". You likely know more about this entry than our moderators, after all. "
