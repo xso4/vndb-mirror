@@ -23,18 +23,6 @@ elm_api Images => $SEND, { excl_voted => { anybool => 1 } }, sub {
 
     state $stats = tuwf->dbRowi('SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE c_weight > 0) AS referenced FROM images');
 
-    # Return an empty set when the user has voted on >90% of the (referenced) images.
-    # Limiting the number of images a user can vote on has two effects:
-    # - When the user has voted on everything, they'd be able to immediately
-    #   vote on newly added images, meaning they can be used to influence votes
-    #   from multiple accounts.
-    # - When a user has voted on a lot of images, the algorithm to select new
-    #   images to vote on will become too slow (need to sample everything to
-    #   find an unvoted image) or may randomly not return images (depending on
-    #   the initial table sample).
-    # (Note: c_imgvotes also counts votes on unreferenced images, so this limit may be a little too strict)
-    return elm_ImageResult [] if $data->{excl_voted} && my_votes() > $stats->{referenced}*0.90;
-
     # Performing a proper weighted sampling on the entire images table is way
     # too slow, so we do a TABLESAMPLE to first randomly select a number of
     # rows and then get a weighted sampling from that. The TABLESAMPLE fraction
