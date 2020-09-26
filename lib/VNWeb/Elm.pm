@@ -438,7 +438,7 @@ sub write_extlinks {
           , patt  : List String
           }
 
-        reg r = Maybe.withDefault Regex.never (Regex.fromStringWith {caseInsensitive=True, multiline=False} r)
+        reg r = Maybe.withDefault Regex.never (Regex.fromStringWith {caseInsensitive=False, multiline=False} r)
         delidx n l = List.take n l ++ List.drop (n+1) l
         toint v = Maybe.withDefault 0 (String.toInt v)
 
