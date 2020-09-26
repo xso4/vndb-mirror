@@ -125,10 +125,11 @@ inputTextArea nam val onch attrs = textarea (
     , onInput onch
     , rows 4
     , cols 50
+    , value val
     ]
     ++ attrs
     ++ (if nam == "" then [] else [ id nam, name nam ])
-  ) [ text val ]
+  ) []
 
 
 inputCheck : String -> Bool -> (Bool -> m) -> Html m

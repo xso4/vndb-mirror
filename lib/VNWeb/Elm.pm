@@ -51,6 +51,10 @@ our %apis = (
     BadCurPass     => [], # Current password is incorrect when changing password
     MailChange     => [], # A confirmation mail has been sent to change a user's email address
     ImgFormat      => [], # Unrecognized image format
+    DupNames       => [ { aoh => { # Duplicate names/aliases (for tags & traits)
+        id       => { id => 1 },
+        name     => {},
+    } } ],
     Releases       => [ { aoh => { # Response to 'Release'
         id       => { id => 1 },
         title    => {},
@@ -416,6 +420,7 @@ sub write_types {
     $data .= def creditTypes=> 'List (String, String)' => list map tuple(string $_, string $CREDIT_TYPE{$_}), keys %CREDIT_TYPE;
     $data .= def producerRelations=> 'List (String, String)' => list map tuple(string $_, string $PRODUCER_RELATION{$_}{txt}), keys %PRODUCER_RELATION;
     $data .= def producerTypes=> 'List (String, String)' => list map tuple(string $_, string $PRODUCER_TYPE{$_}), keys %PRODUCER_TYPE;
+    $data .= def tagCategories=> 'List (String, String)' => list map tuple(string $_, string $TAG_CATEGORY{$_}), keys %TAG_CATEGORY;
     $data .= def curYear    => Int => (gmtime)[5]+1900;
 
     write_module Types => $data;

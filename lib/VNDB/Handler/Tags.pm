@@ -11,9 +11,9 @@ use VNDB::Types;
 
 TUWF::register(
   qr{g([1-9]\d*)},          \&tagpage,
-  qr{g([1-9]\d*)/(edit)},   \&tagedit,
-  qr{g([1-9]\d*)/(add)},    \&tagedit,
-  qr{g/new},                \&tagedit,
+  qr{old/g([1-9]\d*)/(edit)},   \&tagedit,
+  qr{old/g([1-9]\d*)/(add)},    \&tagedit,
+  qr{old/g/new},                \&tagedit,
   qr{g/list},               \&taglist,
   qr{u([1-9]\d*)/tags},     \&usertags,
   qr{g},                    \&tagindex,
@@ -249,7 +249,7 @@ sub tagedit {
     end;
   }
 
-  $self->htmlForm({ frm => $frm, action => $par ? "/g$par->{id}/add" : $tag ? "/g$tag/edit" : '/g/new' }, 'tagedit' => [ $title,
+  $self->htmlForm({ frm => $frm, action => $par ? "/old/g$par->{id}/add" : $tag ? "/old/g$tag/edit" : '/old/g/new' }, 'tagedit' => [ $title,
     [ input    => short => 'name',     name => 'Primary name' ],
     $self->authCan('tagmod') ? (
       $tag ?

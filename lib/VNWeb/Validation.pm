@@ -182,6 +182,10 @@ sub validate_dbid {
 #     Otherwise, checks if the user can edit the review.
 #       Requires the 'uid' field.
 #
+#   g/i:
+#     If no 'id' field, checks if the user can create a new tag/trait.
+#     Otherwise, checks if the user can edit the entry.
+#
 #   'dbentry_type's:
 #     If no 'id' field, checks whether the user can create a new entry.
 #     Otherwise, requires 'entry_hidden' and 'entry_locked' fields.
@@ -212,6 +216,10 @@ sub can_edit {
         return 1 if auth->permBoardmod;
         return auth->permReview if !$entry->{id};
         return auth && auth->uid == $entry->{user_id};
+    }
+
+    if($type eq 'g' || $type eq 'i') {
+        return auth && (auth->permTagmod || !$entry->{id});
     }
 
     die "Can't do authorization test when entry_hidden/entry_locked fields aren't present"
