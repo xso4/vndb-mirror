@@ -67,6 +67,19 @@ TUWF::get qr{/(?:$RE{gid}/add|g/new)}, sub {
     }
 
     framework_ title => 'Submit a new tag', sub {
+        div_ class => 'mainbox', sub {
+            h1_ 'Requesting new tag';
+            div_ class => 'notice', sub {
+                h2_ 'Your tag must be approved';
+                p_ sub {
+                    txt_ 'All tags have to be approved by a moderator, so it can take a while before it will show up in the tag list'
+                       .' or on visual novel pages. You can still vote on the tag even if it has not been approved yet.';
+                    br_;
+                    br_;
+                    txt_ 'Make sure you\'ve read the '; a_ href => '/d10', 'guidelines'; txt_ ' to increase the chances of getting your tag accepted.';
+                }
+            }
+        } if !auth->permTagmod;
         elm_ TagEdit => $FORM_OUT, $e;
     };
 };
