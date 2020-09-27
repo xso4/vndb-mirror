@@ -11,7 +11,6 @@ use VNDB::Types;
 
 TUWF::register(
   qr{g([1-9]\d*)},          \&tagpage,
-  qr{g/list},               \&taglist,
   qr{u([1-9]\d*)/tags},     \&usertags,
   qr{g},                    \&tagindex,
   qr{g/debug},              \&fulltree,
@@ -140,74 +139,6 @@ sub tagpage {
   }
 
   $self->htmlFooter(pref_code => 1);
-}
-
-
-sub taglist {
-  my $self = shift;
-
-  my $f = $self->formValidate(
-    { get => 's', required => 0, default => 'name', enum => ['added', 'name'] },
-    { get => 'o', required => 0, default => 'a', enum => ['a', 'd'] },
-    { get => 'p', required => 0, default => 1, template => 'page' },
-    { get => 't', required => 0, default => -1, enum => [ -1..2 ] },
-    { get => 'q', required => 0, default => '' },
-  );
-  return $self->resNotFound if $f->{_err};
-
-  my($t, $np) = $self->dbTagGet(
-    sort => $f->{s}, reverse => $f->{o} eq 'd',
-    page => $f->{p},
-    results => 50,
-    state => $f->{t},
-    search => $f->{q}
-  );
-
-  $self->htmlHeader(title => 'Browse tags');
-  div class => 'mainbox';
-   h1 'Browse tags';
-   form action => '/g/list', 'accept-charset' => 'UTF-8', method => 'get';
-    input type => 'hidden', name => 't', value => $f->{t};
-    $self->htmlSearchBox('g', $f->{q});
-   end;
-   p class => 'browseopts';
-    a href => "/g/list?q=$f->{q};t=-1", $f->{t} == -1 ? (class => 'optselected') : (), 'All';
-    a href => "/g/list?q=$f->{q};t=0", $f->{t} == 0 ? (class => 'optselected') : (), 'Awaiting moderation';
-    a href => "/g/list?q=$f->{q};t=1", $f->{t} == 1 ? (class => 'optselected') : (), 'Deleted';
-    a href => "/g/list?q=$f->{q};t=2", $f->{t} == 2 ? (class => 'optselected') : (), 'Accepted';
-   end;
-   if(!@$t) {
-     p 'No results found';
-   }
-  end 'div';
-  if(@$t) {
-    $self->htmlBrowse(
-      class    => 'taglist',
-      options  => $f,
-      nextpage => $np,
-      items    => $t,
-      pageurl  => "/g/list?t=$f->{t};q=$f->{q};s=$f->{s};o=$f->{o}",
-      sorturl  => "/g/list?t=$f->{t};q=$f->{q}",
-      header   => [
-        [ 'Created', 'added' ],
-        [ 'Tag',  'name'  ],
-      ],
-      row => sub {
-        my($s, $n, $l) = @_;
-        Tr;
-         td class => 'tc1', fmtage $l->{added};
-         td class => 'tc3';
-          a href => "/g$l->{id}", $l->{name};
-          if($f->{t} == -1) {
-            b class => 'grayedout', ' awaiting moderation' if $l->{state} == 0;
-            b class => 'grayedout', ' deleted' if $l->{state} == 1;
-          }
-         end;
-        end 'tr';
-      }
-    );
-  }
-  $self->htmlFooter;
 }
 
 

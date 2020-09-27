@@ -310,7 +310,7 @@ sub traitlist {
   end 'div';
   if(@$t) {
     $self->htmlBrowse(
-      class    => 'taglist',
+      class    => 'traitlist',
       options  => $f,
       nextpage => $np,
       items    => $t,

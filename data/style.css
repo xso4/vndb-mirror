@@ -899,9 +899,16 @@ div.uposts td.tc4 b { margin-left: 10px }
 .tagvnlist .tc6 { text-align: right; padding-right: 10px; }
 
 
-/***** Tag/trait list (/g/list, /i/list) *****/
+/***** Tag list (/g/list) *****/
 
-.browse.taglist .tc1 { width: 100px; white-space: nowrap }
+.browse.taglist .tc1 { width: 120px; white-space: nowrap }
+.browse.taglist .tc2 { width: 50px; white-space: nowrap }
+.browse.taglist tbody .tc3 a { margin-right: 10px }
+
+
+/***** Trait list (/i/list) *****/
+
+.browse.traitlist .tc1 { width: 120px; white-space: nowrap }
 
 
 /***** Tag links *****/
