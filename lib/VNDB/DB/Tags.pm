@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use Exporter 'import';
 
-our @EXPORT = qw|dbTagGet dbTTTree dbTagEdit dbTagAdd dbTagMerge dbTagStats dbTagWipeVotes|;
+our @EXPORT = qw|dbTagGet dbTTTree dbTagStats|;
 
 
 # %options->{ id noid name search state searchable applicable page results what sort reverse  }
@@ -123,53 +123,6 @@ sub dbTTTree {
 }
 
 
-# args: tag id, %options->{ columns in the tags table + parents + aliases }
-sub dbTagEdit {
-  my($self, $id, %o) = @_;
-
-  $self->dbExec('UPDATE tags !H WHERE id = ?', {
-    $o{upddate} ? ('added = NOW()' => 1) : (),
-    map exists($o{$_}) ? ("$_ = ?" => $o{$_}) : (), qw|name searchable applicable description state cat defaultspoil|
-  }, $id);
-  if($o{aliases}) {
-    $self->dbExec('DELETE FROM tags_aliases WHERE tag = ?', $id);
-    $self->dbExec('INSERT INTO tags_aliases (tag, alias) VALUES (?, ?)', $id, $_) for (@{$o{aliases}});
-  }
-  if($o{parents}) {
-    $self->dbExec('DELETE FROM tags_parents WHERE tag = ?', $id);
-    $self->dbExec('INSERT INTO tags_parents (tag, parent) VALUES (?, ?)', $id, $_) for(@{$o{parents}});
-  }
-}
-
-
-# same args as dbTagEdit, without the first tag id
-# returns the id of the new tag
-sub dbTagAdd {
-  my($self, %o) = @_;
-  my $id = $self->dbRow('INSERT INTO tags (name, searchable, applicable, description, state, cat, defaultspoil, addedby) VALUES (!l, ?) RETURNING id',
-    [ map $o{$_}, qw|name searchable applicable description state cat defaultspoil| ], $o{addedby}||$self->authInfo->{id}
-  )->{id};
-  $self->dbExec('INSERT INTO tags_parents (tag, parent) VALUES (?, ?)', $id, $_) for(@{$o{parents}});
-  $self->dbExec('INSERT INTO tags_aliases (tag, alias) VALUES (?, ?)', $id, $_) for (@{$o{aliases}});
-  return $id;
-}
-
-
-sub dbTagMerge {
-  my($self, $id, @merge) = @_;
-  $self->dbExec(q|
-    DELETE FROM tags_vn tv
-          WHERE tag IN(!l)
-            AND EXISTS(SELECT 1 FROM tags_vn ti WHERE ti.tag = ? AND ti.uid = tv.uid AND ti.vid = tv.vid)|, \@merge, $id);
-  $self->dbExec('UPDATE tags_vn SET tag = ? WHERE tag IN(!l)', $id, \@merge);
-  $self->dbExec('UPDATE tags_aliases SET tag = ? WHERE tag IN(!l)', $id, \@merge);
-  $self->dbExec('INSERT INTO tags_aliases (tag, alias) VALUES (?, ?)', $id, $_->{name})
-    for (@{$self->dbAll('SELECT name FROM tags WHERE id IN(!l)', \@merge)});
-  $self->dbExec('DELETE FROM tags_parents WHERE tag IN(!l)', \@merge);
-  $self->dbExec('DELETE FROM tags WHERE id IN(!l)', \@merge);
-}
-
-
 # Fetch all tags related to a VN
 # Argument: %options->{ vid minrating state results what page sort reverse }
 # sort: name, rating
@@ -203,12 +156,6 @@ sub dbTagStats {
   );
 
   return wantarray ? ($r, $np) : $r;
-}
-
-
-# Deletes all votes on a tag.
-sub dbTagWipeVotes {
-  $_[0]->dbExec('DELETE FROM tags_vn WHERE tag = ?', $_[1])
 }
 
 1;
