@@ -38,6 +38,9 @@ type alias Model =
   , parents      : List GTE.RecvParents
   , parentAdd    : A.Model GApi.ApiTagResult
   , addedby      : String
+  , wipevotes    : Bool
+  , merge        : List GTE.RecvParents
+  , mergeAdd     : A.Model GApi.ApiTagResult
   , canMod       : Bool
   , dupNames     : List GApi.ApiDupNames
   }
@@ -58,6 +61,9 @@ init d =
   , parents      = d.parents
   , parentAdd    = A.init ""
   , addedby      = d.addedby
+  , wipevotes    = False
+  , merge        = []
+  , mergeAdd     = A.init ""
   , canMod       = d.can_mod
   , dupNames     = []
   }
@@ -75,6 +81,9 @@ isValid model = not (List.any (findDup model >> List.isEmpty >> not) (model.name
 parentConfig : A.Config Msg GApi.ApiTagResult
 parentConfig = { wrap = ParentSearch, id = "parentadd", source = A.tagSource }
 
+mergeConfig : A.Config Msg GApi.ApiTagResult
+mergeConfig = { wrap = MergeSearch, id = "mergeadd", source = A.tagSource }
+
 
 encode : Model -> GTE.Send
 encode m =
@@ -88,6 +97,8 @@ encode m =
   , applicable   = m.applicable
   , defaultspoil = m.defaultspoil
   , parents      = List.map (\l -> {id=l.id}) m.parents
+  , wipevotes    = m.wipevotes
+  , merge        = List.map (\l -> {id=l.id}) m.merge
   }
 
 
@@ -103,6 +114,9 @@ type Msg
   | Description TP.Msg
   | ParentDel Int
   | ParentSearch (A.Msg GApi.ApiTagResult)
+  | WipeVotes Bool
+  | MergeDel Int
+  | MergeSearch (A.Msg GApi.ApiTagResult)
   | Submit
   | Submitted (GApi.Response)
 
@@ -118,6 +132,7 @@ update msg model =
     Applicable b  -> ({ model | applicable = b }, Cmd.none)
     Cat s         -> ({ model | cat = s }, Cmd.none)
     DefaultSpoil n-> ({ model | defaultspoil = n }, Cmd.none)
+    WipeVotes b   -> ({ model | wipevotes = b }, Cmd.none)
     Description m -> let (nm,nc) = TP.update m model.description in ({ model | description = nm }, Cmd.map Description nc)
 
     ParentDel i   -> ({ model | parents = delidx i model.parents }, Cmd.none)
@@ -129,6 +144,13 @@ update msg model =
           if List.any (\e -> e.id == p.id) model.parents
           then ({ model | parentAdd = nm }, c)
           else ({ model | parentAdd = A.clear nm "", parents = model.parents ++ [{ id = p.id, name = p.name}] }, c)
+
+    MergeDel i   -> ({ model | merge = delidx i model.merge }, Cmd.none)
+    MergeSearch m ->
+      let (nm, c, res) = A.update mergeConfig m model.mergeAdd
+      in case res of
+        Nothing -> ({ model | mergeAdd = nm }, c)
+        Just p  -> ({ model | mergeAdd = A.clear nm "", merge = model.merge ++ [{ id = p.id, name = p.name}] }, c)
 
     Submit -> ({ model | formstate = Api.Loading }, GTE.send (encode model) Submitted)
     Submitted (GApi.DupNames l) -> ({ model | dupNames = l, formstate = Api.Normal }, Cmd.none)
@@ -190,6 +212,25 @@ view model =
             ]
           ) model.parents
         , A.view parentConfig model.parentAdd [placeholder "Add parent tag..."]
+        ]
+      ]
+      ++ if not model.canMod || model.id == Nothing then [] else
+      [ tr [ class "newpart" ] [ td [ colspan 2 ] [ text "DANGER ZONE" ] ]
+      , formField ""
+        [ inputCheck "" model.wipevotes WipeVotes
+        , text " Delete all direct votes on this tag. WARNING: cannot be undone!", br [] []
+        , b [ class "grayedout" ] [ text "Does not affect votes on child tags. Old votes may still show up for 24 hours due to database caching." ]
+        ]
+      , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "" ] ]
+      , formField "Merge votes"
+        [ text "All direct votes on the listed tags will be moved to this tag. WARNING: cannot be undone!", br [] []
+        , table [ class "compact" ] <| List.indexedMap (\i p -> tr []
+            [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| "g" ++ String.fromInt p.id ++ ":" ] ]
+            , td [] [ a [ href <| "/g" ++ String.fromInt p.id ] [ text p.name ] ]
+            , td [] [ inputButton "remove" (MergeDel i) [] ]
+            ]
+          ) model.merge
+        , A.view mergeConfig model.mergeAdd [placeholder "Add tag to merge..."]
         ]
       ]
     ]

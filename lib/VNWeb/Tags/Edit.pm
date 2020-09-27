@@ -18,7 +18,8 @@ my $FORM = {
         id          => { id => 1 },
         name        => { _when => 'out' },
     } },
-    # TODO: delete/merge/wipevotes
+    wipevotes    => { _when => 'in', anybool => 1 },
+    merge        => { _when => 'in', aoh => { id => { id => 1 } } },
 
     addedby      => { _when => 'out' },
     can_mod      => { _when => 'out', anybool => 1 },
@@ -111,6 +112,29 @@ elm_api TagEdit => $FORM_OUT, $FORM_IN, sub {
 
     tuwf->dbExeci('DELETE FROM tags_parents WHERE tag =', \$id);
     tuwf->dbExeci('INSERT INTO tags_parents (tag,parent) VALUES(', \$id, ',', \$_->{id}, ')') for $data->{parents}->@*;
+
+    auth->audit(undef, 'tag edit', "g$id") if $id; # Since we don't have edit histories for tags yet.
+
+    if(auth->permTagmod && $data->{wipevotes}) {
+        my $num = tuwf->dbExeci('DELETE FROM tags_vn WHERE tag =', \$id);
+        auth->audit(undef, 'tag wipe', "Wiped $num votes on g$id");
+    }
+
+    if(auth->permTagmod && $data->{merge}->@*) {
+        my @merge = map $_->{id}, $data->{merge}->@*;
+        # Bugs:
+        # - Arbitrarily takes one vote if there are duplicates, should ideally try to merge them instead.
+        # - The 'ignore' flag will be inconsistent if set and the same VN has been voted on for multiple tags.
+        my $mov = tuwf->dbExeci('
+            INSERT INTO tags_vn (tag,vid,uid,vote,spoiler,date,ignore,notes)
+                 SELECT ', \$id, ',vid,uid,vote,spoiler,date,ignore,notes
+                   FROM tags_vn WHERE tag IN', \@merge, '
+                     ON CONFLICT (tag,vid,uid) DO NOTHING'
+        );
+        my $del = tuwf->dbExeci('DELETE FROM tags_vn tv WHERE tag IN', \@merge);
+        my $lst = join ',', map "g$_", @merge;
+        auth->audit(undef, 'tag merge', "Moved $mov/$del votes from $lst to g$id");
+    }
 
     elm_Redirect "/g$id";
 };
