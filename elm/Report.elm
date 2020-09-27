@@ -56,7 +56,7 @@ reasons =
     , submit = True
     , msg    = nomsg
     }
-  , { label  = "Off-topic / wrong board"
+  , { label  = "Off-topic"
     , vis    = objtype "tw"
     , submit = True
     , msg    = nomsg
@@ -78,6 +78,11 @@ reasons =
         , a [ href "/t/db" ] [ text "discussion board" ]
         , text " so that others may be able to help you."
         ]
+    }
+  , { label  = "Unmarked or improperly flagged NSFW image"
+    , vis    = objtype "vc"
+    , submit = True
+    , msg    = nomsg
     }
   , { label  = "Incorrect information"
     , vis    = editable
