@@ -86,7 +86,7 @@ TUWF::get qr{/(?:$RE{iid}/add|i/new)}, sub {
 elm_api TraitEdit => $FORM_OUT, $FORM_IN, sub {
     my($data) = @_;
     my $id = delete $data->{id};
-    my $e = !$id ? {} : tuwf->dbRowi('SELECT id, addedby FROM traits WHERE id =', \$id);
+    my $e = !$id ? {} : tuwf->dbRowi('SELECT id, addedby, state FROM traits WHERE id =', \$id);
     return tuwf->resNotFound if $id && !$e->{id};
     return elm_Unauth if !can_edit i => $e;
 
@@ -126,6 +126,7 @@ elm_api TraitEdit => $FORM_OUT, $FORM_IN, sub {
     my %set = map +($_,$data->{$_}), qw/name alias description state addedby sexual defaultspoil searchable applicable order/;
     $set{'"group"'} = delete $set{group};
     $set{'"order"'} = delete $set{order};
+    $set{added} = sql 'NOW()' if $id && $data->{state} == 2 && $e->{state} != 2;
     tuwf->dbExeci('UPDATE traits SET', \%set, 'WHERE id =', \$id) if $id;
     $id = tuwf->dbVali('INSERT INTO traits', \%set, 'RETURNING id') if !$id;
 

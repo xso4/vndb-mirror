@@ -103,8 +103,7 @@ encode m =
 
 
 type Msg
-  = Noop
-  | Name String
+  = Name String
   | Aliases String
   | State Int
   | Searchable Bool
@@ -124,7 +123,6 @@ type Msg
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    Noop          -> (model, Cmd.none)
     Name s        -> ({ model | name = s }, Cmd.none)
     Aliases s     -> ({ model | aliases = String.replace "," "\n" s }, Cmd.none)
     State n       -> ({ model | state = n }, Cmd.none)

@@ -88,10 +88,9 @@ TUWF::get qr{/(?:$RE{gid}/add|g/new)}, sub {
 elm_api TagEdit => $FORM_OUT, $FORM_IN, sub {
     my($data) = @_;
     my $id = delete $data->{id};
-    my $g = !$id ? {} : tuwf->dbRowi('SELECT id, addedby FROM tags WHERE id =', \$id);
+    my $g = !$id ? {} : tuwf->dbRowi('SELECT id, addedby, state FROM tags WHERE id =', \$id);
     return tuwf->resNotFound if $id && !$g->{id};
     return elm_Unauth if !can_edit g => $g;
-
 
     $data->{addedby} = $g->{addedby} // auth->uid;
     if(!auth->permTagmod) {
@@ -117,6 +116,7 @@ elm_api TagEdit => $FORM_OUT, $FORM_IN, sub {
     }, map $_->{id}, $data->{parents}->@*;
 
     my %set = map +($_,$data->{$_}), qw/name description state addedby cat defaultspoil searchable applicable/;
+    $set{added} = sql 'NOW()' if $id && $data->{state} == 2 && $g->{state} != 2;
     tuwf->dbExeci('UPDATE tags SET', \%set, 'WHERE id =', \$id) if $id;
     $id = tuwf->dbVali('INSERT INTO tags', \%set, 'RETURNING id') if !$id;
 
