@@ -10,7 +10,7 @@ use strict;
 use warnings;
 use Exporter 'import';
 
-our @EXPORT = qw|dbTraitGet dbTraitEdit dbTraitAdd|;
+our @EXPORT = qw|dbTraitGet|;
 
 
 # Options: id noid search name state searchable applicable what results page sort reverse
@@ -79,33 +79,6 @@ sub dbTraitGet {
   }
 
   return wantarray ? ($r, $np) : $r;
-}
-
-
-# args: trait id, %options->{ columns in the traits table + parents }
-sub dbTraitEdit {
-  my($self, $id, %o) = @_;
-
-  $self->dbExec('UPDATE traits !H WHERE id = ?', {
-    $o{upddate} ? ('added = NOW()' => 1) : (),
-    map exists($o{$_}) ? ("\"$_\" = ?" => $o{$_}) : (), qw|name searchable applicable description state alias group order sexual defaultspoil|
-  }, $id);
-  if($o{parents}) {
-    $self->dbExec('DELETE FROM traits_parents WHERE trait = ?', $id);
-    $self->dbExec('INSERT INTO traits_parents (trait, parent) VALUES (?, ?)', $id, $_) for(@{$o{parents}});
-  }
-}
-
-
-# same args as dbTraitEdit, without the first trait id
-# returns the id of the new trait
-sub dbTraitAdd {
-  my($self, %o) = @_;
-  my $id = $self->dbRow('INSERT INTO traits (name, searchable, applicable, description, state, alias, "group", "order", sexual, defaultspoil, addedby) VALUES (!l, ?) RETURNING id',
-    [ map $o{$_}, qw|name searchable applicable description state alias group order sexual defaultspoil| ], $o{addedby}||$self->authInfo->{id}
-  )->{id};
-  $self->dbExec('INSERT INTO traits_parents (trait, parent) VALUES (?, ?)', $id, $_) for(@{$o{parents}});
-  return $id;
 }
 
 

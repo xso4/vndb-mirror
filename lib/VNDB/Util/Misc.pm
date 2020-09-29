@@ -7,9 +7,8 @@ use Exporter 'import';
 use TUWF ':html';
 use VNDB::Func;
 use VNDB::Types;
-use VNDB::BBCode;
 
-our @EXPORT = qw|filFetchDB filCompat bbSubstLinks|;
+our @EXPORT = qw|filFetchDB filCompat|;
 
 
 our %filfields = (
@@ -87,12 +86,6 @@ sub filFetchDB {
 sub filCompat {
   my($self, $type, $fil) = @_;
   $type eq 'vn' ? VNWeb::Filters::filter_vn_compat($fil) : 0
-}
-
-
-
-sub bbSubstLinks {
-  shift; bb_subst_links @_;
 }
 
 
