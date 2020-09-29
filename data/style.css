@@ -906,11 +906,6 @@ div.uposts td.tc4 b { margin-left: 10px }
 .browse.taglist tbody .tc3 a { margin-right: 10px }
 
 
-/***** Trait list (/i/list) *****/
-
-.browse.traitlist .tc1 { width: 120px; white-space: nowrap }
-
-
 /***** Tag links *****/
 
 .browse.taglinks .tc1 { width: 70px }

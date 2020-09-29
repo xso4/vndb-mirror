@@ -9,7 +9,6 @@ use VNDB::Func;
 
 TUWF::register(
   qr{i([1-9]\d*)},        \&traitpage,
-  qr{i/list},             \&traitlist,
   qr{i},                  \&traitindex,
   qr{xml/traits\.xml},    \&traitxml,
 );
@@ -127,77 +126,6 @@ sub traitpage {
     @$chars && $self->charBrowseTable($chars, $np, $f, "/i$trait?m=$f->{m};fil=$f->{fil}");
   }
 
-  $self->htmlFooter;
-}
-
-
-sub traitlist {
-  my $self = shift;
-
-  my $f = $self->formValidate(
-    { get => 's', required => 0, default => 'name', enum => ['added', 'name'] },
-    { get => 'o', required => 0, default => 'a', enum => ['a', 'd'] },
-    { get => 'p', required => 0, default => 1, template => 'page' },
-    { get => 't', required => 0, default => -1, enum => [ -1..2 ] },
-    { get => 'q', required => 0, default => '' },
-  );
-  return $self->resNotFound if $f->{_err};
-
-  my($t, $np) = $self->dbTraitGet(
-    sort => $f->{s}, reverse => $f->{o} eq 'd',
-    page => $f->{p},
-    results => 50,
-    state => $f->{t},
-    search => $f->{q}
-  );
-
-  $self->htmlHeader(title => 'Browse traits');
-  div class => 'mainbox';
-   h1 'Browse traits';
-   form action => '/i/list', 'accept-charset' => 'UTF-8', method => 'get';
-    input type => 'hidden', name => 't', value => $f->{t};
-    $self->htmlSearchBox('i', $f->{q});
-   end;
-   p class => 'browseopts';
-    a href => "/i/list?q=$f->{q};t=-1", $f->{t} == -1 ? (class => 'optselected') : (), 'All';
-    a href => "/i/list?q=$f->{q};t=0", $f->{t} == 0 ? (class => 'optselected') : (), 'Awaiting moderation';
-    a href => "/i/list?q=$f->{q};t=1", $f->{t} == 1 ? (class => 'optselected') : (), 'Deleted';
-    a href => "/i/list?q=$f->{q};t=2", $f->{t} == 2 ? (class => 'optselected') : (), 'Accepted';
-   end;
-   if(!@$t) {
-     p 'No results found';
-   }
-  end 'div';
-  if(@$t) {
-    $self->htmlBrowse(
-      class    => 'traitlist',
-      options  => $f,
-      nextpage => $np,
-      items    => $t,
-      pageurl  => "/i/list?t=$f->{t};q=$f->{q};s=$f->{s};o=$f->{o}",
-      sorturl  => "/i/list?t=$f->{t};q=$f->{q}",
-      header   => [
-        [ 'Created', 'added' ],
-        [ 'Trait',  'name'  ],
-      ],
-      row => sub {
-        my($s, $n, $l) = @_;
-        Tr;
-         td class => 'tc1', fmtage $l->{added};
-         td class => 'tc3';
-          if($l->{group}) {
-            b class => 'grayedout', $l->{groupname}.' / ';
-          }
-          a href => "/i$l->{id}", $l->{name};
-          if($f->{t} == -1) {
-            b class => 'grayedout', ' awaiting moderation' if $l->{state} == 0;
-            b class => 'grayedout', ' deleted' if $l->{state} == 1;
-          }
-         end;
-        end 'tr';
-      }
-    );
-  }
   $self->htmlFooter;
 }
 
