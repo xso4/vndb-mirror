@@ -11,8 +11,6 @@ use VNDB::Types;
 
 TUWF::register(
   qr{g([1-9]\d*)},          \&tagpage,
-  qr{u([1-9]\d*)/tags},     \&usertags,
-  qr{g},                    \&tagindex,
   qr{g/debug},              \&fulltree,
   qr{xml/tags\.xml},        \&tagxml,
 );
@@ -139,83 +137,6 @@ sub tagpage {
   }
 
   $self->htmlFooter(pref_code => 1);
-}
-
-
-sub tagindex {
-  my $self = shift;
-
-  $self->htmlHeader(title => 'Tag index');
-  div class => 'mainbox';
-   a class => 'addnew', href => "/g/new", 'Create new tag' if $self->authCan('tag');
-   h1 'Search tags';
-   form action => '/g/list', 'accept-charset' => 'UTF-8', method => 'get';
-    $self->htmlSearchBox('g', '');
-   end;
-  end;
-
-  my $t = $self->dbTTTree(tag => 0, 2);
-  childtags($self, 'Tag tree', 'g', {childs => $t});
-
-  table class => 'mainbox threelayout';
-   Tr;
-
-    # Recently added
-    td;
-     a class => 'right', href => '/g/list', 'Browse all tags';
-     my $r = $self->dbTagGet(sort => 'added', reverse => 1, results => 10, state => 2);
-     h1 'Recently added';
-     ul;
-      for (@$r) {
-        li;
-         txt fmtage $_->{added};
-         txt ' ';
-         a href => "/g$_->{id}", $_->{name};
-        end;
-      }
-     end;
-    end;
-
-    # Popular
-    td;
-     a class => 'addnew', href => "/g/links", 'Recently tagged';
-     $r = $self->dbTagGet(sort => 'items', reverse => 1, searchable => 1, applicable => 1, results => 10);
-     h1 'Popular tags';
-     ul;
-      for (@$r) {
-        li;
-         a href => "/g$_->{id}", $_->{name};
-         txt " ($_->{c_items})";
-        end;
-      }
-     end;
-    end;
-
-    # Moderation queue
-    td;
-     h1 'Awaiting moderation';
-     $r = $self->dbTagGet(state => 0, sort => 'added', reverse => 1, results => 10);
-     ul;
-      li 'Moderation queue empty! yay!' if !@$r;
-      for (@$r) {
-        li;
-         txt fmtage $_->{added};
-         txt ' ';
-         a href => "/g$_->{id}", $_->{name};
-        end;
-      }
-      li;
-       br;
-       a href => '/g/list?t=0;o=d;s=added', 'Moderation queue';
-       txt ' - ';
-       a href => '/g/list?t=1;o=d;s=added', 'Denied tags';
-      end;
-     end;
-    end;
-
-   end 'tr';
-  end 'table';
-  $self->htmlFooter;
 }
 
 
