@@ -1,7 +1,7 @@
-package VNWeb::Tags::Index;
+package VNWeb::TT::Index;
 
 use VNWeb::Prelude;
-use VNWeb::Tags::Lib 'enrich_group';
+use VNWeb::TT::Lib 'enrich_group';
 
 
 sub tree_ {

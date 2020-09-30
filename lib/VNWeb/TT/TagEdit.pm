@@ -1,4 +1,4 @@
-package VNWeb::Tags::Edit;
+package VNWeb::TT::TagEdit;
 
 use VNWeb::Prelude;
 

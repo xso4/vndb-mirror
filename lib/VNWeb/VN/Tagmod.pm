@@ -1,7 +1,6 @@
 package VNWeb::VN::Tagmod;
 
 use VNWeb::Prelude;
-use VNWeb::Tags::Lib;
 
 
 my $FORM = {

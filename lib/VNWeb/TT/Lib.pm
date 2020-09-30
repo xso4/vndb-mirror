@@ -1,4 +1,4 @@
-package VNWeb::Tags::Lib;
+package VNWeb::TT::Lib;
 
 use VNWeb::Prelude;
 use Exporter 'import';

@@ -1,4 +1,4 @@
-package VNWeb::Traits::Edit;
+package VNWeb::TT::TraitEdit;
 
 use VNWeb::Prelude;
 

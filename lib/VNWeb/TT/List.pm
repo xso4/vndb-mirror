@@ -1,9 +1,7 @@
-# XXX: Also used for the trait listing
-
-package VNWeb::Tags::List;
+package VNWeb::TT::List;
 
 use VNWeb::Prelude;
-use VNWeb::Tags::Lib 'enrich_group';
+use VNWeb::TT::Lib 'enrich_group';
 
 
 sub listing_ {

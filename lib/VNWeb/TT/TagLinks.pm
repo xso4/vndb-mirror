@@ -1,7 +1,7 @@
-package VNWeb::Tags::Links;
+package VNWeb::TT::TagLinks;
 
 use VNWeb::Prelude;
-use VNWeb::Tags::Lib;
+use VNWeb::TT::Lib;
 
 
 sub listing_ {
