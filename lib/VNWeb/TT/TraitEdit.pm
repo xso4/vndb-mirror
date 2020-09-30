@@ -123,9 +123,9 @@ elm_api TraitEdit => $FORM_OUT, $FORM_IN, sub {
     );
     return elm_DupNames $dups if @$dups;
 
-    my %set = map +($_,$data->{$_}), qw/name alias description state addedby sexual defaultspoil searchable applicable order/;
-    $set{'"group"'} = delete $set{group};
-    $set{'"order"'} = delete $set{order};
+    my %set = map +($_,$data->{$_}), qw/name alias description state addedby sexual defaultspoil searchable applicable/;
+    $set{'"group"'} = $data->{group};
+    $set{'"order"'} = $data->{order};
     $set{added} = sql 'NOW()' if $id && $data->{state} == 2 && $e->{state} != 2;
     tuwf->dbExeci('UPDATE traits SET', \%set, 'WHERE id =', \$id) if $id;
     $id = tuwf->dbVali('INSERT INTO traits', \%set, 'RETURNING id') if !$id;
