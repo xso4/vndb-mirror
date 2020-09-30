@@ -9,7 +9,6 @@ use VNDB::Func;
 
 TUWF::register(
   qr{i([1-9]\d*)},        \&traitpage,
-  qr{i},                  \&traitindex,
   qr{xml/traits\.xml},    \&traitxml,
 );
 
@@ -126,85 +125,6 @@ sub traitpage {
     @$chars && $self->charBrowseTable($chars, $np, $f, "/i$trait?m=$f->{m};fil=$f->{fil}");
   }
 
-  $self->htmlFooter;
-}
-
-
-sub traitindex {
-  my $self = shift;
-
-  $self->htmlHeader(title => 'Trait index');
-  div class => 'mainbox';
-   a class => 'addnew', href => "/i/new", 'Create new trait' if $self->authCan('edit');
-   h1 'Search traits';
-   form action => '/i/list', 'accept-charset' => 'UTF-8', method => 'get';
-    $self->htmlSearchBox('i', '');
-   end;
-  end;
-
-  my $t = $self->dbTTTree(trait => 0, 2);
-  childtags($self, 'Trait tree', 'i', {childs => $t}, 'order');
-
-  table class => 'mainbox threelayout';
-   Tr;
-
-    # Recently added
-    td;
-     a class => 'right', href => '/i/list', 'Browse all traits';
-     my $r = $self->dbTraitGet(sort => 'added', reverse => 1, results => 10);
-     h1 'Recently added';
-     ul;
-      for (@$r) {
-        li;
-         txt fmtage $_->{added};
-         txt ' ';
-         b class => 'grayedout', $_->{groupname}.' / ' if $_->{group};
-         a href => "/i$_->{id}", $_->{name};
-        end;
-      }
-     end;
-    end;
-
-    # Popular
-    td;
-     h1 'Popular traits';
-     ul;
-      $r = $self->dbTraitGet(sort => 'items', reverse => 1, results => 10);
-      for (@$r) {
-        li;
-         b class => 'grayedout', $_->{groupname}.' / ' if $_->{group};
-         a href => "/i$_->{id}", $_->{name};
-         txt " ($_->{c_items})";
-        end;
-      }
-     end;
-    end;
-
-    # Moderation queue
-    td;
-     h1 'Awaiting moderation';
-     $r = $self->dbTraitGet(state => 0, sort => 'added', reverse => 1, results => 10);
-     ul;
-      li 'Moderation queue empty! yay!' if !@$r;
-      for (@$r) {
-        li;
-         txt fmtage $_->{added};
-         txt ' ';
-         b class => 'grayedout', $_->{groupname}.' / ' if $_->{group};
-         a href => "/i$_->{id}", $_->{name};
-        end;
-      }
-      li;
-       br;
-       a href => '/i/list?t=0;o=d;s=added', 'Moderation queue';
-       txt ' - ';
-       a href => '/i/list?t=1;o=d;s=added', 'Denied traits';
-      end;
-     end;
-    end;
-
-   end 'tr';
-  end 'table';
   $self->htmlFooter;
 }
 

@@ -3,6 +3,7 @@
 package VNWeb::Tags::List;
 
 use VNWeb::Prelude;
+use VNWeb::Tags::Lib 'enrich_group';
 
 
 sub listing_ {
@@ -70,7 +71,7 @@ TUWF::get qr{/(?<type>[gi])/list}, sub {
          ORDER BY', {qw|added id  name name  items c_items|}->{$opt->{s}}, {qw|a ASC d DESC|}->{$opt->{o}}, ', id'
     );
 
-    enrich_merge id => 'SELECT t.id, g.name AS "group" FROM traits t JOIN traits g ON g.id = t."group" WHERE t.id IN', $list if $type eq 'i';
+    enrich_group $type, $list;
 
     framework_ title => "Browse $table", index => 1, sub {
         div_ class => 'mainbox', sub {
