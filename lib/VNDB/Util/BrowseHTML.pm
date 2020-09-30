@@ -151,7 +151,7 @@ sub htmlBrowseVN {
       Tr;
        if($tagscore) {
          td class => 'tc_s';
-          VNWeb::Tags::Lib::tagscore_($l->{tagscore});
+          VNWeb::TT::Lib::tagscore_($l->{tagscore});
          end;
        }
        td class => $tagscore ? 'tc_t' : 'tc1';
