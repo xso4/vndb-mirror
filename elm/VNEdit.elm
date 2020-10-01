@@ -65,6 +65,7 @@ type alias Model =
   , seiyuuSearch: A.Model GApi.ApiStaffResult
   , seiyuuDef   : Int -- character id for newly added seiyuu
   , screenshots : List (Int,Img.Image,Maybe Int) -- internal id, img, rel
+  , scrQueue    : List File
   , scrUplRel   : Maybe Int
   , scrUplNum   : Maybe Int
   , scrId       : Int -- latest used internal id
@@ -99,6 +100,7 @@ init d =
   , seiyuuSearch= A.init ""
   , seiyuuDef   = Maybe.withDefault 0 <| List.head <| List.map (\c -> c.id) d.chars
   , screenshots = List.indexedMap (\n i -> (n, Img.info (Just i.info), i.rid)) d.screenshots
+  , scrQueue    = []
   , scrUplRel   = Nothing
   , scrUplNum   = Nothing
   , scrId       = 100
@@ -184,6 +186,19 @@ type Msg
   | DupResults GApi.Response
 
 
+scrProcessQueue : (Model, Cmd Msg) -> (Model, Cmd Msg)
+scrProcessQueue (model, msg) =
+  case model.scrQueue of
+    (f::fl) ->
+      if List.any (\(_,i,_) -> i.imgState == Img.Loading) model.screenshots
+      then (model, msg)
+      else
+        let (im,ic) = Img.upload Api.Sf f
+        in ( { model | scrQueue = fl, scrId = model.scrId + 1, screenshots = model.screenshots ++ [(model.scrId, im, model.scrUplRel)] }
+           , Cmd.batch [ msg, Cmd.map (ScrMsg model.scrId) ic ] )
+    _ -> (model, msg)
+
+
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
@@ -248,20 +263,13 @@ update msg model =
     ScrUpl f1 fl ->
       if 1 + List.length fl > 10 - List.length model.screenshots
       then ({ model | scrUplNum = Just (1 + List.length fl) }, Cmd.none)
-      else
-        let imgs = List.map (Img.upload Api.Sf) (f1::fl)
-        in ( { model
-             | scrId = model.scrId + 100
-             , scrUplNum = Nothing
-             , screenshots = model.screenshots ++ List.indexedMap (\n (i,_) -> (model.scrId+n,i,model.scrUplRel)) imgs
-             }
-           , List.indexedMap (\n (_,c) -> Cmd.map (ScrMsg (model.scrId+n)) c) imgs |> Cmd.batch)
+      else scrProcessQueue ({ model | scrQueue = (f1::fl), scrUplNum = Nothing }, Cmd.none)
     ScrMsg id m ->
       let f (i,s,r) =
             if i /= id then ((i,s,r), Cmd.none)
             else let (nm,nc) = Img.update m s in ((i,nm,r), Cmd.map (ScrMsg id) nc)
           lst = List.map f model.screenshots
-      in ({ model | screenshots = List.map Tuple.first lst }, Cmd.batch (ivRefresh True :: List.map Tuple.second lst))
+      in scrProcessQueue ({ model | screenshots = List.map Tuple.first lst }, Cmd.batch (ivRefresh True :: List.map Tuple.second lst))
     ScrRel n s -> ({ model | screenshots = List.map (\(i,img,r) -> if i == n then (i,img,s) else (i,img,r)) model.screenshots }, Cmd.none)
     ScrDel n   -> ({ model | screenshots = List.filter (\(i,_,_) -> i /= n) model.screenshots }, ivRefresh True)
 
@@ -293,6 +301,7 @@ isValid model = not
   || relAlias model /= Nothing
   || not (Img.isValid model.image)
   || List.any (\(_,i,r) -> r == Nothing || not (Img.isValid i)) model.screenshots
+  || not (List.isEmpty model.scrQueue)
   || hasDuplicates (List.map (\s -> (s.aid, s.role)) model.staff)
   || hasDuplicates (List.map (\s -> (s.aid, s.cid)) model.seiyuu)
   )
@@ -531,7 +540,13 @@ view model =
         add =
           let free = 10 - List.length model.screenshots
           in
-          if free <= 0
+          if not (List.isEmpty model.scrQueue)
+          then [ b [] [ text "Uploading screenshots" ]
+               , br [] []
+               , text <| (String.fromInt (List.length model.scrQueue)) ++ " remaining... "
+               , span [ class "spinner" ] []
+               ]
+          else if free <= 0
           then [ b [] [ text "Enough screenshots" ]
                , br [] []
                , text "The limit of 10 screenshots per visual novel has been reached. If you want to add a new screenshot, please remove an existing one first."
