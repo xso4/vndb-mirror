@@ -1,0 +1,42 @@
+package VNWeb::Misc::Redirects;
+
+use VNWeb::Prelude;
+use VNWeb::Filters;
+
+
+# VNDB URLs don't have a trailing /, redirect if we get one.
+TUWF::get qr{(/.+?)/+}, sub { tuwf->resRedirect(tuwf->capture(1).tuwf->reqQuery(), 'perm') };
+
+# These two are ancient.
+TUWF::get qr{/notes}, sub { tuwf->resRedirect('/d8', 'perm') };
+TUWF::get qr{/faq},   sub { tuwf->resRedirect('/d6', 'perm') };
+
+TUWF::get qr{/p},        sub { tuwf->resRedirect('/p/all'.tuwf->reqQuery(), 'perm') };
+TUWF::get qr{/v},        sub { tuwf->resRedirect('/v/all'.tuwf->reqQuery(), 'perm') };
+TUWF::get qr{/v/search}, sub { tuwf->resRedirect('/v/all'.tuwf->reqQuery(), 'perm') };
+
+TUWF::get qr{/u/list(/[a-z0]|/all)?}, sub { tuwf->resRedirect('/u'.(tuwf->capture(1)//'/all'), 'perm') };
+
+TUWF::get qr{/$RE{uid}/tags},  sub { tuwf->resRedirect('/g/links?u='.tuwf->capture('id'), 'perm') };
+
+TUWF::get qr{/$RE{vid}/staff}, sub { tuwf->resRedirect(sprintf '/v%s#staff',       tuwf->capture('id')) };
+TUWF::get qr{/$RE{vid}/stats}, sub { tuwf->resRedirect(sprintf '/v%s#stats',       tuwf->capture('id')) };
+TUWF::get qr{/$RE{vid}/scr},   sub { tuwf->resRedirect(sprintf '/v%s#screenshots', tuwf->capture('id')) };
+
+
+TUWF::get qr{/v/rand}, sub {
+    state $stats  ||= tuwf->dbRowi('SELECT COUNT(*) AS total, COUNT(*) FILTER(WHERE NOT hidden) AS subset FROM vn');
+    state $sample ||= 100*min 1, (100 / $stats->{subset}) * ($stats->{total} / $stats->{subset});
+
+    my $filt = auth->pref('filter_vn') && eval { filter_parse v => auth->pref('filter_vn') };
+    my $vn = tuwf->dbVali('
+        SELECT id
+          FROM vn v', $filt ? '' : ('TABLESAMPLE SYSTEM (', \$sample, ')'), '
+         WHERE NOT hidden AND', filter_vn_query($filt||{}), '
+         ORDER BY random() LIMIT 1'
+    );
+    return tuwf->resNotFound if !$vn;
+    tuwf->resRedirect("/v$vn", 'temp');
+};
+
+1;

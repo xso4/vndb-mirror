@@ -495,7 +495,7 @@ sub staff_ {
         @$c = sort { $a->[1] <=> $b->[1] } @$c;
     }
 
-    div_ class => 'mainbox', 'data-mainbox-summarize' => 200, sub {
+    div_ class => 'mainbox', id => 'staff', 'data-mainbox-summarize' => 200, sub {
         h1_ 'Staff';
         div_ class => sprintf('vnstaff vnstaff-%d', scalar @$_), sub {
             ul_ sub {
@@ -622,7 +622,7 @@ sub stats_ {
         } if $v->{c_votecount};
     }
 
-    div_ class => 'mainbox', sub {
+    div_ class => 'mainbox', id => 'stats', sub {
         h1_ 'User stats';
         if(!@$stats) {
             p_ 'Nobody has voted on this visual novel yet...';

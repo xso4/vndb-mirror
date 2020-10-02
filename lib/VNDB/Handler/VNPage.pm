@@ -9,16 +9,8 @@ use VNDB::Types;
 
 
 TUWF::register(
-  qr{v/rand}                        => \&rand,
   qr{v([1-9]\d*)/releases}          => \&releases,
-  qr{v([1-9]\d*)/staff}             => sub { $_[0]->resRedirect("/v$_[1]#staff") },
 );
-
-
-sub rand {
-  my $self = shift;
-  $self->resRedirect('/v'.$self->filFetchDB(vn => undef, undef, {results => 1, sort => 'rand'})->[0]{id}, 'temp');
-}
 
 
 # Description of each column, field:

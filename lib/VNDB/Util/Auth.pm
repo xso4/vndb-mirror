@@ -10,56 +10,8 @@ use VNWeb::Auth;
 
 
 our @EXPORT = qw|
-  authInit authLogin authLogout authInfo authCan authSetPass authAdminSetPass
-  authResetPass authIsValidToken authGetCode authCheckCode authPref
+  authInfo authCan authGetCode authCheckCode authPref
 |;
-
-
-# login, arguments: user, password, url-to-redirect-to-on-success
-# returns 1 on success (redirected), 0 otherwise (no reply sent)
-sub authLogin {
-  my(undef, $user, $pass, $to) = @_;
-  my $success = auth->login($user, $pass);
-  tuwf->resRedirect($to, 'post') if $success;
-  $success
-}
-
-# clears authentication cookie and redirects to /
-sub authLogout {
-  auth->logout;
-  tuwf->resRedirect('/', 'temp');
-}
-
-
-# Replaces the user's password with a random token that can be used to reset the password.
-sub authResetPass {
-  my(undef, $mail) = @_;
-  auth->resetpass($mail)
-}
-
-
-sub authIsValidToken {
-  my(undef, $uid, $token) = @_;
-  auth->isvalidtoken($uid, $token)
-}
-
-
-# uid, new_pass, url_to_redir_to, 'token'|'pass', $token_or_pass
-# Changes the user's password, invalidates all existing sessions, creates a new
-# session and redirects.
-sub authSetPass {
-  my(undef, $uid, $pass, $redir, $oldtype, $oldpass) = @_;
-
-  my $success = auth->setpass($uid, $oldtype eq 'token' ? $oldpass : undef, $oldtype eq 'pass' ? $oldpass : undef, $pass);
-  tuwf->resRedirect($redir, 'post') if $success;
-  $success
-}
-
-
-sub authAdminSetPass {
-  my(undef, $uid, $pass) = @_;
-  auth->admin_setpass($uid, $pass);
-}
 
 
 sub authInfo {
