@@ -168,7 +168,6 @@ viewTag t sel vid mod =
         [ onMouseOver (SetSel t.id Note)
         , onMouseOut (SetSel 0 NoSel)
         , onClickD (SetSel t.id NoteSet)
-        , title <| if t.notes == "" then "set note" else t.notes
         , style "opacity" <| if t.notes == "" then "0.5" else "1.0"
         ] [ text "💬" ]
       ]
