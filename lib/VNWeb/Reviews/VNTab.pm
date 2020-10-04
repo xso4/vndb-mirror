@@ -43,7 +43,7 @@ sub reviews_ {
                         txt_ '>';
                     };
                     my $html = reviews_format $r, maxlength => $mini ? undef : 700;
-                    $html .= '...' if !$mini;
+                    $html .= xml_string sub { txt_ '... '; a_ href => "/$r->{id}#review", ' Read more »' } if !$mini;
                     if($r->{spoiler}) {
                         label_ class => 'review_spoil', sub {
                             input_ type => 'checkbox', class => 'visuallyhidden', (auth->pref('spoilers')||0) == 2 ? ('checked', 'checked') : (), undef;
@@ -55,7 +55,6 @@ sub reviews_ {
                     }
                 };
                 div_ sub {
-                    a_ href => "/$r->{id}#review", 'Full review »' if !$mini;
                     a_ href => "/$r->{id}#threadstart", $r->{c_count} == 1 ? '1 comment' : "$r->{c_count} comments";
                     reviews_vote_ $r;
                 };
