@@ -73,14 +73,14 @@ sub listing_ {
             my $lid = $l->{iid}.($l->{num}?'.'.$l->{num}:'');
             my $url = "/u$id/notify/$l->{id}/$lid";
             td_ class => 'tc1', sub { input_ type => 'checkbox', name => 'notifysel', value => $l->{id}; };
-            td_ class => 'tc2', $ntypes{$l->{ntype}};
+            td_ class => 'tc2', sub { join_ \&br_, sub { txt_ $ntypes{$_} }, $l->{ntype}->@* };
             td_ class => 'tc3', fmtage $l->{date};
             td_ class => 'tc4', sub { a_ href => $url, $lid };
             td_ class => 'tc5', sub {
                 a_ href => $url, sub {
                     txt_ $l->{iid} =~ /^w/ ? ($l->{num} ? 'Comment on ' : 'Review of ') :
                          $l->{iid} =~ /^t/ ? ($l->{num} == 1 ? 'New thread ' : 'Reply to ') : 'Edit of ';
-                    i_ $l->{c_title};
+                    i_ $l->{title};
                     txt_ ' by ';
                     i_ user_displayname $l;
                 };
@@ -109,17 +109,16 @@ TUWF::get qr{/$RE{uid}/notifies}, sub {
     )->data;
 
     my $where = sql_and(
-        sql('uid =', \$id),
-        $opt->{r} ? () : 'read IS NULL'
+        sql('n.uid =', \$id),
+        $opt->{r} ? () : 'n.read IS NULL'
     );
-    my $count = tuwf->dbVali('SELECT count(*) FROM notifications WHERE', $where);
+    my $count = tuwf->dbVali('SELECT count(*) FROM notifications n WHERE', $where);
     my $list = tuwf->dbPagei({ results => 25, page => $opt->{p} },
-       'SELECT n.id, n.ntype, n.iid, n.num, n.c_title
+       'SELECT n.id, n.ntype::text[] AS ntype, n.iid, n.num, t.title, ', sql_user(), '
              , ', sql_totime('n.date'), ' as date
              , ', sql_totime('n.read'), ' as read
-             , ', sql_user(),
-         'FROM notifications n
-          LEFT JOIN users u ON u.id = n.c_byuser
+          FROM notifications n, item_info(n.iid, n.num) t
+          LEFT JOIN users u ON u.id = t.uid
          WHERE ', $where,
         'ORDER BY n.id', $opt->{r} ? 'DESC' : 'ASC'
     );

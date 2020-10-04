@@ -353,6 +353,38 @@ CREATE OR REPLACE FUNCTION ulist_labels_create(integer) RETURNS void AS $$
 $$ LANGUAGE SQL;
 
 
+-- Returns the title and (where applicable) uid of the user who created the thing for almost every supported vndbid + num.
+-- While a function like this would be super useful in many places, it's too slow to be used in large or popular listings.
+-- A VIEW that can be joined would offer much better optimization possibilities, but I've not managed to write that in a performant way yet.
+-- A MATERIALIZED VIEW would likely be the fastest approach, but keeping that up-to-date seems like a pain.
+--
+-- Not currently supported: i#, g#, u#, ch#, cv#, sf#
+CREATE OR REPLACE FUNCTION item_info(id vndbid, num int) RETURNS TABLE(title text, uid int) AS $$
+  -- x#.#
+            SELECT v.title,  h.requester FROM changes h JOIN vn_hist v        ON h.id = v.chid WHERE h.type = 'v' AND vndbid_type($1) = 'v' AND h.itemid = vndbid_num($1) AND $2 IS NOT NULL AND h.rev = $2
+  UNION ALL SELECT r.title,  h.requester FROM changes h JOIN releases_hist r  ON h.id = r.chid WHERE h.type = 'r' AND vndbid_type($1) = 'r' AND h.itemid = vndbid_num($1) AND $2 IS NOT NULL AND h.rev = $2
+  UNION ALL SELECT p.name,   h.requester FROM changes h JOIN producers_hist p ON h.id = p.chid WHERE h.type = 'p' AND vndbid_type($1) = 'p' AND h.itemid = vndbid_num($1) AND $2 IS NOT NULL AND h.rev = $2
+  UNION ALL SELECT c.name,   h.requester FROM changes h JOIN chars_hist c     ON h.id = c.chid WHERE h.type = 'c' AND vndbid_type($1) = 'c' AND h.itemid = vndbid_num($1) AND $2 IS NOT NULL AND h.rev = $2
+  UNION ALL SELECT d.title,  h.requester FROM changes h JOIN docs_hist d      ON h.id = d.chid WHERE h.type = 'd' AND vndbid_type($1) = 'd' AND h.itemid = vndbid_num($1) AND $2 IS NOT NULL AND h.rev = $2
+  UNION ALL SELECT sa.name,  h.requester FROM changes h JOIN staff_hist s     ON h.id = s.chid JOIN staff_alias_hist sa ON sa.chid = s.chid AND sa.aid = s.aid WHERE h.type = 's' AND vndbid_type($1) = 's' AND h.itemid = vndbid_num($1) AND $2 IS NOT NULL AND h.rev = $2
+  -- x#
+  UNION ALL SELECT title,   NULL   FROM vn        WHERE vndbid_type($1) = 'v' AND id = vndbid_num($1) AND $2 IS NULL
+  UNION ALL SELECT title,   NULL   FROM releases  WHERE vndbid_type($1) = 'r' AND id = vndbid_num($1) AND $2 IS NULL
+  UNION ALL SELECT name,    NULL   FROM producers WHERE vndbid_type($1) = 'p' AND id = vndbid_num($1) AND $2 IS NULL
+  UNION ALL SELECT name,    NULL   FROM chars     WHERE vndbid_type($1) = 'c' AND id = vndbid_num($1) AND $2 IS NULL
+  UNION ALL SELECT title,   NULL   FROM docs      WHERE vndbid_type($1) = 'd' AND id = vndbid_num($1) AND $2 IS NULL
+  UNION ALL SELECT sa.name, NULL   FROM staff s JOIN staff_alias sa ON sa.aid = s.aid WHERE vndbid_type($1) = 's' AND s.id = vndbid_num($1) AND $2 IS NOT NULL AND $2 IS NULL
+  -- t#
+  UNION ALL SELECT title,   NULL   FROM threads WHERE vndbid_type($1) = 't' AND id = $1 AND $2 IS NULL
+  -- t#.#
+  UNION ALL SELECT t.title, tp.uid FROM threads t JOIN threads_posts tp ON tp.tid = t.id WHERE vndbid_type($1) = 't' AND t.id = $1 AND $2 IS NOT NULL AND tp.num = $2
+  -- w#
+  UNION ALL SELECT v.title, w.uid  FROM reviews w JOIN vn v ON v.id = w.vid WHERE vndbid_type($1) = 'w' AND w.id = $1 AND $2 IS NULL
+  -- w#.#
+  UNION ALL SELECT v.title, wp.uid FROM reviews w JOIN vn v ON v.id = w.vid JOIN reviews_posts wp ON wp.id = w.id WHERE vndbid_type($1) = 'w' AND w.id = $1 AND $2 IS NOT NULL AND wp.num = $2
+$$ LANGUAGE SQL ROWS 1;
+
+
 
 
 ----------------------------------------------------------
@@ -473,23 +505,9 @@ BEGIN
     PERFORM traits_chars_calc(xedit.itemid);
   END IF;
 
-  -- Call notify_dbdel() if an entry has been deleted
-  -- Call notify_listdel() if a vn/release entry has been deleted
-  IF xoldchid IS NOT NULL
-     AND EXISTS(SELECT 1 FROM changes WHERE id = xoldchid AND NOT ihid)
-     AND EXISTS(SELECT 1 FROM changes WHERE id = xedit.chid AND ihid)
-  THEN
-    PERFORM notify_dbdel(xtype, xedit);
-    IF xtype = 'v' OR xtype = 'r' THEN
-      PERFORM notify_listdel(xtype, xedit);
-    END IF;
-  END IF;
-
-  -- Call notify_dbedit() if a non-hidden entry has been edited
-  IF xoldchid IS NOT NULL AND EXISTS(SELECT 1 FROM changes WHERE id = xedit.chid AND NOT ihid)
-  THEN
-    PERFORM notify_dbedit(xtype, xedit);
-  END IF;
+  -- Create edit notifications
+  INSERT INTO notifications (uid, ntype, iid, num)
+       SELECT n.uid, n.ntype, n.iid, n.num FROM changes c, notify(vndbid(c.type::text, c.itemid), c.rev, c.requester) n WHERE c.id = xedit.chid;
 
   -- Make sure all visual novels linked to a release have a corresponding entry
   -- in ulist_vns for users who have the release in rlists. This is action (3) in
@@ -522,70 +540,83 @@ $$ LANGUAGE plpgsql;
 ----------------------------------------------------------
 
 
--- called when an entry has been deleted
-CREATE OR REPLACE FUNCTION notify_dbdel(xtype dbentry_type, xedit edit_rettype) RETURNS void AS $$
-  INSERT INTO notifications (ntype, uid, iid, num, c_title, c_byuser)
-    SELECT DISTINCT 'dbdel'::notification_ntype, h.requester, vndbid(xtype::text, xedit.itemid), xedit.rev, x.title, h2.requester
-      FROM changes h
-      -- join info about the deletion itself
-      JOIN changes h2 ON h2.id = xedit.chid
-      -- Fetch the latest name/title of the entry
-      -- this method may look a bit unintuitive, but it's way faster than doing LEFT JOINs
-      JOIN (  SELECT v.title FROM vn v WHERE xtype = 'v' AND v.id = xedit.itemid
-        UNION SELECT r.title FROM releases r WHERE xtype = 'r' AND r.id = xedit.itemid
-        UNION SELECT p.name  FROM producers p WHERE xtype = 'p' AND p.id = xedit.itemid
-        UNION SELECT c.name  FROM chars c WHERE xtype = 'c' AND c.id = xedit.itemid
-        UNION SELECT d.title FROM docs d WHERE xtype = 'd' AND d.id = xedit.itemid
-        UNION SELECT sa.name FROM staff s JOIN staff_alias sa ON sa.aid = s.aid WHERE xtype = 's' AND s.id = xedit.itemid
-      ) x(title) ON true
-     WHERE h.type = xtype AND h.itemid = xedit.itemid
-       AND h.requester <> 1 -- exclude Multi
-       AND h.requester <> h2.requester; -- exclude the user who deleted the entry
-$$ LANGUAGE sql;
+-- Called after a certain event has occurred (new edit, post, etc).
+--  'iid' and 'num' identify the item that has been created.
+--  'uid' indicates who created the item, providing an easy method of not creating a notification for that user.
+--     (can technically be fetched with a DB lookup, too)
+--
+-- TODO: Don't create a notification if the user still has an unread notification on the same item, but lower 'num'?
+CREATE OR REPLACE FUNCTION notify(iid vndbid, num integer, uid integer) RETURNS TABLE (uid integer, ntype notification_ntype[], iid vndbid, num int) AS $$
+  SELECT uid, array_agg(ntype), $1, $2
+    FROM (
 
+      -- pm
+      SELECT 'pm'::notification_ntype, tb.iid
+        FROM threads_boards tb
+       WHERE vndbid_type($1) = 't' AND tb.tid = $1 AND tb.type = 'u'
 
+      -- dbdel
+      UNION
+      SELECT 'dbdel', c_all.requester
+        FROM changes c_cur, changes c_all, changes c_pre
+       WHERE c_cur.type = vndbid_type($1)::dbentry_type AND c_cur.itemid = vndbid_num($1) AND c_cur.rev = $2   -- Current edit
+         AND c_pre.type = vndbid_type($1)::dbentry_type AND c_pre.itemid = vndbid_num($1) AND c_pre.rev = $2-1 -- Previous edit, to check if .ihid changed
+         AND c_all.type = vndbid_type($1)::dbentry_type AND c_all.itemid = vndbid_num($1) -- All edits on this entry, to see whom to notify
+         AND c_cur.ihid AND NOT c_pre.ihid
+         AND $2 > 1 AND vndbid_type($1) IN('v', 'r', 'p', 'c', 's', 'd')
 
--- Called when a non-deleted item has been edited.
-CREATE OR REPLACE FUNCTION notify_dbedit(xtype dbentry_type, xedit edit_rettype) RETURNS void AS $$
-  INSERT INTO notifications (ntype, uid, iid, num, c_title, c_byuser)
-    SELECT DISTINCT 'dbedit'::notification_ntype, h.requester, vndbid(xtype::text, xedit.itemid), xedit.rev, x.title, h2.requester
-      FROM changes h
-      -- join info about the edit itself
-      JOIN changes h2 ON h2.id = xedit.chid
-      -- Fetch the latest name/title of the entry
-      JOIN (  SELECT v.title FROM vn v WHERE xtype = 'v' AND v.id = xedit.itemid
-        UNION SELECT r.title FROM releases r WHERE xtype = 'r' AND r.id = xedit.itemid
-        UNION SELECT p.name  FROM producers p WHERE xtype = 'p' AND p.id = xedit.itemid
-        UNION SELECT c.name  FROM chars c WHERE xtype = 'c' AND c.id = xedit.itemid
-        UNION SELECT d.title FROM docs d WHERE xtype = 'd' AND d.id = xedit.itemid
-        UNION SELECT sa.name FROM staff s JOIN staff_alias sa ON sa.aid = s.aid WHERE xtype = 's' AND s.id = xedit.itemid
-      ) x(title) ON true
-     WHERE h.type = xtype AND h.itemid = xedit.itemid
-       AND h.requester <> h2.requester -- exclude the user who edited the entry
-       AND h2.requester <> 1 -- exclude edits by Multi
-       -- exclude users who don't want this notify
-       AND EXISTS(SELECT 1 FROM users u WHERE u.id = h.requester AND notify_dbedit);
-$$ LANGUAGE sql;
+      -- listdel
+      UNION
+      SELECT 'listdel', u.uid
+        FROM changes c_cur, changes c_pre,
+             ( SELECT uid FROM ulist_vns WHERE vndbid_type($1) = 'v' AND vid = vndbid_num($1) -- TODO: Could use an index on ulist_vns.vid
+               UNION ALL
+               SELECT uid FROM rlists    WHERE vndbid_type($1) = 'r' AND rid = vndbid_num($1) -- TODO: Could also use an index, but the rlists table isn't that large so it's still okay
+             ) u(uid)
+       WHERE c_cur.type = vndbid_type($1)::dbentry_type AND c_cur.itemid = vndbid_num($1) AND c_cur.rev = $2   -- Current edit
+         AND c_pre.type = vndbid_type($1)::dbentry_type AND c_pre.itemid = vndbid_num($1) AND c_pre.rev = $2-1 -- Previous edit, to check if .ihid changed
+         AND c_cur.ihid AND NOT c_pre.ihid
+         AND $2 > 1 AND vndbid_type($1) IN('v','r')
 
+      -- dbedit
+      UNION
+      SELECT 'dbedit', c_all.requester
+        FROM changes c_cur, changes c_all
+        JOIN users u ON u.id = c_all.requester
+       WHERE c_cur.type = vndbid_type($1)::dbentry_type AND c_cur.itemid = vndbid_num($1) AND c_cur.rev = $2
+         AND c_all.type = vndbid_type($1)::dbentry_type AND c_all.itemid = vndbid_num($1)
+         AND $2 > 1 AND vndbid_type($1) IN('v', 'r', 'p', 'c', 's', 'd')
+         AND c_cur.requester <> 1 -- exclude edits by Multi
+         AND u.notify_dbedit
 
+      -- announce
+      UNION
+      SELECT 'announce', u.id
+        FROM threads t
+        JOIN threads_boards tb ON tb.tid = t.id
+        JOIN users u ON u.notify_announce
+       WHERE vndbid_type($1) = 't' AND $2 = 1 AND t.id = $1 AND tb.type = 'an'
 
--- called when a VN/release entry has been deleted
-CREATE OR REPLACE FUNCTION notify_listdel(xtype dbentry_type, xedit edit_rettype) RETURNS void AS $$
-  INSERT INTO notifications (ntype, uid, iid, num, c_title, c_byuser)
-    SELECT DISTINCT 'listdel'::notification_ntype, u.uid, vndbid(xtype::text, xedit.itemid), xedit.rev, x.title, c.requester
-      -- look for users who should get this notify
-      FROM (
-              SELECT uid FROM ulist_vns WHERE xtype = 'v' AND vid = xedit.itemid
-        UNION SELECT uid FROM rlists    WHERE xtype = 'r' AND rid = xedit.itemid
-      ) u
-      -- fetch info about this edit
-      JOIN changes c ON c.id = xedit.chid
-      JOIN (
-              SELECT title FROM vn       WHERE xtype = 'v' AND id = xedit.itemid
-        UNION SELECT title FROM releases WHERE xtype = 'r' AND id = xedit.itemid
-      ) x ON true
-     WHERE c.requester <> u.uid;
-$$ LANGUAGE sql;
+      -- post
+      -- TODO: Should this also include comments on reviews the user has commented on?
+      UNION
+      SELECT 'post', u.id
+        FROM threads t, threads_posts tp
+        JOIN users u ON tp.uid = u.id
+       WHERE t.id = $1 AND tp.tid = $1 AND vndbid_type($1) = 't' AND $2 > 1 AND NOT t.private AND NOT t.hidden AND u.notify_post
+
+      -- comment
+      UNION
+      SELECT 'comment', u.id
+        FROM reviews w
+        JOIN users u ON w.uid = u.id
+       WHERE w.id = $1 AND vndbid_type($1) = 'w' AND $2 IS NOT NULL AND u.notify_comment
+
+    ) AS noti(ntype, uid)
+   WHERE uid <> $3
+     AND uid <> 1 -- No announcements for Multi
+   GROUP BY uid;
+$$ LANGUAGE SQL;
 
 
 

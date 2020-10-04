@@ -251,11 +251,9 @@ CREATE TABLE notifications (
   uid      integer NOT NULL,
   date     timestamptz NOT NULL DEFAULT NOW(),
   read     timestamptz,
-  ntype    notification_ntype NOT NULL,
+  ntype    notification_ntype[] NOT NULL,
   iid      vndbid NOT NULL,
-  num      integer,
-  c_title  text NOT NULL,
-  c_byuser integer
+  num      integer
 );
 
 -- producers
