@@ -256,6 +256,20 @@ CREATE TRIGGER notify_comment AFTER INSERT ON reviews_posts FOR EACH ROW EXECUTE
 
 
 
+-- Create notifications for new reviews.
+
+CREATE OR REPLACE FUNCTION notify_review() RETURNS trigger AS $$
+BEGIN
+  INSERT INTO notifications (uid, ntype, iid, num) SELECT uid, ntype, iid, num FROM notify(NEW.id, NULL, NEW.uid) n;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER notify_review AFTER INSERT ON reviews FOR EACH ROW EXECUTE PROCEDURE notify_review();
+
+
+
+
 -- Update threads.c_count and c_lastnum
 
 CREATE OR REPLACE FUNCTION update_threads_cache() RETURNS trigger AS $$

@@ -3,13 +3,16 @@ package VNWeb::User::Notifications;
 use VNWeb::Prelude;
 
 my %ntypes = (
-    pm       => 'Private Message',
-    dbdel    => 'Entry you contributed to has been deleted',
-    listdel  => 'VN in your list has been deleted',
-    dbedit   => 'Entry you contributed to has been edited',
-    announce => 'Site announcement',
-    post     => 'Reply to a thread you\'ve posted in',
-    comment  => 'Comment on your review',
+    pm        => 'Private Message',
+    dbdel     => 'Entry you contributed to has been deleted',
+    listdel   => 'VN in your list has been deleted',
+    dbedit    => 'Entry you contributed to has been edited',
+    announce  => 'Site announcement',
+    post      => 'Reply to a thread you posted in',
+    comment   => 'Comment on your review',
+    subpost   => 'Reply to a thread you subscribed to',
+    subedit   => 'Entry you subscribed to has been edited',
+    subreview => 'New review for a VN you subscribed to',
 );
 
 
@@ -73,7 +76,14 @@ sub listing_ {
             my $lid = $l->{iid}.($l->{num}?'.'.$l->{num}:'');
             my $url = "/u$id/notify/$l->{id}/$lid";
             td_ class => 'tc1', sub { input_ type => 'checkbox', name => 'notifysel', value => $l->{id}; };
-            td_ class => 'tc2', sub { join_ \&br_, sub { txt_ $ntypes{$_} }, $l->{ntype}->@* };
+            td_ class => 'tc2', sub {
+                # Hide some not very interesting overlapping notification types
+                my %t = map +($_,1), $l->{ntype}->@*;
+                delete $t{subpost} if $t{post} || $t{comment};
+                delete $t{subedit} if $t{dbedit};
+                delete $t{dbedit} if $t{dbdel};
+                join_ \&br_, sub { txt_ $ntypes{$_} }, sort keys %t;
+            };
             td_ class => 'tc3', fmtage $l->{date};
             td_ class => 'tc4', sub { a_ href => $url, $lid };
             td_ class => 'tc5', sub {

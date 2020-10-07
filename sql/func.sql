@@ -554,6 +554,7 @@ CREATE OR REPLACE FUNCTION notify(iid vndbid, num integer, uid integer) RETURNS 
       SELECT 'pm'::notification_ntype, tb.iid
         FROM threads_boards tb
        WHERE vndbid_type($1) = 't' AND tb.tid = $1 AND tb.type = 'u'
+         AND NOT EXISTS(SELECT 1 FROM notification_subs ns WHERE ns.iid = $1 AND ns.uid = tb.iid AND ns.subnum = false)
 
       -- dbdel
       UNION
@@ -580,14 +581,22 @@ CREATE OR REPLACE FUNCTION notify(iid vndbid, num integer, uid integer) RETURNS 
 
       -- dbedit
       UNION
-      SELECT 'dbedit', c_all.requester
-        FROM changes c_cur, changes c_all
-        JOIN users u ON u.id = c_all.requester
-       WHERE c_cur.type = vndbid_type($1)::dbentry_type AND c_cur.itemid = vndbid_num($1) AND c_cur.rev = $2
-         AND c_all.type = vndbid_type($1)::dbentry_type AND c_all.itemid = vndbid_num($1)
+      SELECT 'dbedit', c.requester
+        FROM changes c
+        JOIN users u ON u.id = c.requester
+       WHERE c.type = vndbid_type($1)::dbentry_type AND c.itemid = vndbid_num($1)
          AND $2 > 1 AND vndbid_type($1) IN('v', 'r', 'p', 'c', 's', 'd')
-         AND c_cur.requester <> 1 -- exclude edits by Multi
+         AND $3 <> 1 -- Exclude edits by Multi
          AND u.notify_dbedit
+         AND NOT EXISTS(SELECT 1 FROM notification_subs ns WHERE ns.iid = $1 AND ns.uid = c.requester AND ns.subnum = false)
+
+      -- subedit
+      UNION
+      SELECT 'subedit', ns.uid
+        FROM notification_subs ns
+       WHERE $2 > 1 AND vndbid_type($1) IN('v', 'r', 'p', 'c', 's', 'd')
+         AND $3 <> 1 -- Exclude edits by Multi
+         AND ns.iid = $1 AND ns.subnum
 
       -- announce
       UNION
@@ -597,13 +606,33 @@ CREATE OR REPLACE FUNCTION notify(iid vndbid, num integer, uid integer) RETURNS 
         JOIN users u ON u.notify_announce
        WHERE vndbid_type($1) = 't' AND $2 = 1 AND t.id = $1 AND tb.type = 'an'
 
-      -- post
-      -- TODO: Should this also include comments on reviews the user has commented on?
+      -- post (threads_posts)
       UNION
       SELECT 'post', u.id
         FROM threads t, threads_posts tp
         JOIN users u ON tp.uid = u.id
        WHERE t.id = $1 AND tp.tid = $1 AND vndbid_type($1) = 't' AND $2 > 1 AND NOT t.private AND NOT t.hidden AND u.notify_post
+         AND NOT EXISTS(SELECT 1 FROM notification_subs ns WHERE ns.iid = $1 AND ns.uid = tp.uid AND ns.subnum = false)
+
+      -- post (reviews_posts)
+      UNION
+      SELECT 'post', u.id
+        FROM reviews_posts wp
+        JOIN users u ON wp.uid = u.id
+       WHERE wp.id = $1 AND vndbid_type($1) = 'w' AND $2 IS NOT NULL AND u.notify_post
+         AND NOT EXISTS(SELECT 1 FROM notification_subs ns WHERE ns.iid = $1 AND ns.uid = wp.uid AND ns.subnum = false)
+
+      -- subpost (threads_posts)
+      UNION
+      SELECT 'subpost', ns.uid
+        FROM threads t, notification_subs ns
+       WHERE t.id = $1 AND ns.iid = $1 AND vndbid_type($1) = 't' AND $2 > 1 AND NOT t.private AND NOT t.hidden AND ns.subnum
+
+      -- subpost (reviews_posts)
+      UNION
+      SELECT 'subpost', ns.uid
+        FROM notification_subs ns
+       WHERE ns.iid = $1 AND vndbid_type($1) = 'w' AND $2 IS NOT NULL AND ns.subnum
 
       -- comment
       UNION
@@ -611,6 +640,13 @@ CREATE OR REPLACE FUNCTION notify(iid vndbid, num integer, uid integer) RETURNS 
         FROM reviews w
         JOIN users u ON w.uid = u.id
        WHERE w.id = $1 AND vndbid_type($1) = 'w' AND $2 IS NOT NULL AND u.notify_comment
+         AND NOT EXISTS(SELECT 1 FROM notification_subs ns WHERE ns.iid = $1 AND ns.uid = w.uid AND NOT ns.subnum)
+
+      -- subreview
+      UNION
+      SELECT 'subreview', ns.uid
+        FROM reviews w, notification_subs ns
+       WHERE w.id = $1 AND vndbid_type($1) = 'w' AND $2 IS NULL AND ns.iid = vndbid('v', w.vid) AND ns.subreview
 
     ) AS noti(ntype, uid)
    WHERE uid <> $3

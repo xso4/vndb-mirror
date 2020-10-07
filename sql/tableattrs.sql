@@ -18,6 +18,7 @@ ALTER TABLE chars_vns_hist           ADD CONSTRAINT chars_vns_hist_vid_fkey     
 ALTER TABLE chars_vns_hist           ADD CONSTRAINT chars_vns_hist_rid_fkey            FOREIGN KEY (rid)       REFERENCES releases      (id);
 ALTER TABLE image_votes              ADD CONSTRAINT image_votes_id_fkey                FOREIGN KEY (id)        REFERENCES images        (id) ON DELETE CASCADE;
 ALTER TABLE image_votes              ADD CONSTRAINT image_votes_uid_fkey               FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE SET DEFAULT;
+ALTER TABLE notification_subs        ADD CONSTRAINT notification_subs_uid_fkey         FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE CASCADE;
 ALTER TABLE notifications            ADD CONSTRAINT notifications_uid_fkey             FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE CASCADE;
 ALTER TABLE producers                ADD CONSTRAINT producers_l_wikidata_fkey          FOREIGN KEY (l_wikidata)REFERENCES wikidata      (id);
 ALTER TABLE producers_hist           ADD CONSTRAINT producers_chid_id_fkey             FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
