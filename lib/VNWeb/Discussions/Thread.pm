@@ -192,10 +192,7 @@ TUWF::get qr{/$RE{tid}(?:(?<sep>[\./])$RE{num})?}, sub {
           GROUP BY tpo.id, tpo.option, tpm.optid'
     );
 
-    # Mark a notification for this thread as read, if there is one.
-    tuwf->dbExeci(
-        'UPDATE notifications SET read = NOW() WHERE uid =', \auth->uid, 'AND iid =', \$id, 'AND read IS NULL'
-    ) if auth && $t->{count} <= $page*25;
+    auth->notiRead($id, [ map $_->{num}, $posts->@* ]) if @$posts;
 
     framework_ title => $t->{title}, $num ? (js => 1, pagevars => {sethash=>$num}) : (), sub {
         metabox_ $t;

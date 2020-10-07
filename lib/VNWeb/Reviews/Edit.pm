@@ -101,6 +101,7 @@ elm_api ReviewsDelete => undef, { id => { vndbid => 'w' } }, sub {
     my $review = tuwf->dbRowi('SELECT id, uid AS user_id FROM reviews WHERE id =', \$data->{id});
     return elm_Unauth if !can_edit w => $review;
     auth->audit($review->{user_id}, 'review delete', "deleted $review->{id}");
+    tuwf->dbExeci('DELETE FROM notifications WHERE iid =', \$data->{id});
     tuwf->dbExeci('DELETE FROM reviews WHERE id =', \$data->{id});
     elm_Success
 };

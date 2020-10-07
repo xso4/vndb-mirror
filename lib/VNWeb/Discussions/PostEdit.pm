@@ -44,11 +44,12 @@ elm_api DiscussionsPostEdit => $FORM_OUT, $FORM_IN, sub {
     return tuwf->resNotFound if !$t->{id};
     return elm_Unauth if !can_edit t => $t;
 
+    tuwf->dbExeci(q{DELETE FROM notifications WHERE iid =}, \$id, 'AND num =', \$num) if auth->permBoardmod && ($data->{delete} || $data->{hidden});
+
     if($data->{delete} && auth->permBoardmod) {
         auth->audit($t->{user_id}, 'post delete', "deleted $id.$num");
         tuwf->dbExeci('DELETE FROM threads_posts WHERE tid =', \$id, 'AND num =', \$num);
         tuwf->dbExeci('DELETE FROM reviews_posts WHERE  id =', \$id, 'AND num =', \$num);
-        tuwf->dbExeci(q{DELETE FROM notifications WHERE iid =}, \$id, 'AND num =', \$num);
         return elm_Redirect "/$id";
     }
     auth->audit($t->{user_id}, 'post edit', "edited $id.$num") if $t->{user_id} != auth->uid;

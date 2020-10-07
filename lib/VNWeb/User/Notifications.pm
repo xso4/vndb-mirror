@@ -3,7 +3,7 @@ package VNWeb::User::Notifications;
 use VNWeb::Prelude;
 
 my %ntypes = (
-    pm        => 'Private Message',
+    pm        => 'Message on your board',
     dbdel     => 'Entry you contributed to has been deleted',
     listdel   => 'VN in your list has been deleted',
     dbedit    => 'Entry you contributed to has been edited',
@@ -74,20 +74,20 @@ sub listing_ {
         tr_ $_->{read} ? () : (class => 'unread'), sub {
             my $l = $_;
             my $lid = $l->{iid}.($l->{num}?'.'.$l->{num}:'');
-            my $url = "/u$id/notify/$l->{id}/$lid";
             td_ class => 'tc1', sub { input_ type => 'checkbox', name => 'notifysel', value => $l->{id}; };
             td_ class => 'tc2', sub {
                 # Hide some not very interesting overlapping notification types
                 my %t = map +($_,1), $l->{ntype}->@*;
-                delete $t{subpost} if $t{post} || $t{comment};
+                delete $t{subpost} if $t{post} || $t{comment} || $t{pm};
+                delete $t{post}    if $t{pm};
                 delete $t{subedit} if $t{dbedit};
                 delete $t{dbedit} if $t{dbdel};
                 join_ \&br_, sub { txt_ $ntypes{$_} }, sort keys %t;
             };
             td_ class => 'tc3', fmtage $l->{date};
-            td_ class => 'tc4', sub { a_ href => $url, $lid };
+            td_ class => 'tc4', sub { a_ href => "/$lid", $lid };
             td_ class => 'tc5', sub {
-                a_ href => $url, sub {
+                a_ href => "/$lid", sub {
                     txt_ $l->{iid} =~ /^w/ ? ($l->{num} ? 'Comment on ' : 'Review of ') :
                          $l->{iid} =~ /^t/ ? ($l->{num} == 1 ? 'New thread ' : 'Reply to ') : 'Edit of ';
                     i_ $l->{title};
@@ -190,11 +190,19 @@ TUWF::post qr{/$RE{uid}/notify_update}, sub {
 };
 
 
+# XXX: Not currently used anymore, just visiting the destination pages will mark the relevant notifications as read
+# (but that's subject to change in the future, so let's keep this around)
 TUWF::get qr{/$RE{uid}/notify/$RE{num}/(?<lid>[a-z0-9\.]+)}, sub {
     my $id = tuwf->capture('id');
     return tuwf->resNotFound if !auth || $id != auth->uid;
     tuwf->dbExeci('UPDATE notifications SET read = NOW() WHERE read IS NULL AND uid =', \$id, ' AND id =', \tuwf->capture('num'));
     tuwf->resRedirect('/'.tuwf->capture('lid'), 'temp');
+};
+
+
+# It's a bit annoying to add auth->notiRead() to each revision page, so do that in bulk with a simple hook.
+TUWF::hook before => sub {
+    auth->notiRead($+{vndbid}, $+{rev}) if auth && tuwf->reqPath() =~ qr{^/(?<vndbid>[vrpcsd]$RE{num})\.(?<rev>$RE{num})$};
 };
 
 1;

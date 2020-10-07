@@ -287,6 +287,17 @@ sub prefSet {
 }
 
 
+# Mark any notifications for a particular item for the current user as read.
+# Arguments: $vndbid, $num||[@nums]||<missing>
+sub notiRead {
+    my($self, $id, $num) = @_;
+    tuwf->dbExeci('
+        UPDATE notifications SET read = NOW() WHERE read IS NULL AND uid =', \$self->uid, 'AND iid =', \$id,
+        @_ == 2 ? () : !defined $num ? 'AND num IS NULL' : !ref $num ? sql 'AND num =', \$num : sql 'AND num IN', $num
+    ) if $self->uid;
+}
+
+
 # Add an entry to the audit log.
 sub audit {
     my($self, $affected_uid, $action, $detail) = @_;

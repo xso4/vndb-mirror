@@ -119,7 +119,7 @@ CREATE        INDEX chars_vns_vid          ON chars_vns (vid);
 CREATE        INDEX chars_image            ON chars (image);
 CREATE UNIQUE INDEX image_votes_pkey       ON image_votes (uid, id);
 CREATE        INDEX image_votes_id         ON image_votes (id);
-CREATE        INDEX notifications_uid      ON notifications (uid);
+CREATE        INDEX notifications_uid_iid  ON notifications (uid,iid);
 CREATE        INDEX releases_producers_pid ON releases_producers (pid);
 CREATE        INDEX releases_vn_vid        ON releases_vn (vid);
 CREATE        INDEX reports_new            ON reports (date) WHERE status = 'new';

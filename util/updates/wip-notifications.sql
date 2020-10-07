@@ -13,6 +13,19 @@ ALTER TABLE notifications ALTER COLUMN ntype TYPE notification_ntype[] USING ARR
 ALTER TABLE notifications DROP COLUMN c_title;
 ALTER TABLE notifications DROP COLUMN c_byuser;
 
+DROP INDEX notifications_uid;
+CREATE        INDEX notifications_uid_iid  ON notifications (uid,iid);
+
+-- Merge duplicate notifications (dbdel & listdel could cause duplicates)
+UPDATE notifications n SET ntype = ntype || ARRAY['dbdel'::notification_ntype]
+ WHERE ntype = ARRAY['listdel'::notification_ntype]
+   AND EXISTS(SELECT 1 FROM notifications m WHERE m.id <> n.id AND m.uid = n.uid AND m.iid = n.iid AND m.num IS NOT DISTINCT FROM n.num AND m.ntype = ARRAY['dbdel'::notification_ntype]);
+DELETE FROM notifications n
+ WHERE ntype = ARRAY['dbdel'::notification_ntype]
+   AND EXISTS(SELECT 1 FROM notifications m WHERE m.id <> n.id AND m.uid = n.uid AND m.iid = n.iid AND m.num IS NOT DISTINCT FROM n.num AND m.ntype = ARRAY['listdel'::notification_ntype,'dbdel']);
+-- For some reason a few notifications from 2014 were duplicated, let's just get rid of those.
+DELETE FROM notifications n WHERE EXISTS(SELECT 1 FROM notifications m WHERE m.id <> n.id AND m.uid = n.uid AND m.iid = n.iid AND m.num IS NOT DISTINCT FROM n.num AND m.id > n.id);
+
 -- Subscriptions
 ALTER TYPE notification_ntype ADD VALUE 'subpost' AFTER 'comment';
 ALTER TYPE notification_ntype ADD VALUE 'subedit' AFTER 'subpost';
