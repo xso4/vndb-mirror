@@ -1,4 +1,4 @@
-module Lib.DropDown exposing (Config, init, sub, toggle, view)
+module Lib.DropDown exposing (Config, init, sub, toggle, view, onClickOutside)
 
 import Browser.Events as E
 import Json.Decode as JD

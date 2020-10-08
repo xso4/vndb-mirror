@@ -109,6 +109,10 @@ sub listing_ {
 }
 
 
+# Redirect so that elm/Subscribe.elm can link to this page without knowing our uid.
+TUWF::get qr{/u/notifies}, sub { auth ? tuwf->resRedirect('/u'.auth->uid.'/notifies') : tuwf->resNotFound };
+
+
 TUWF::get qr{/$RE{uid}/notifies}, sub {
     my $id = tuwf->capture('id');
     return tuwf->resNotFound if !auth || $id != auth->uid;
@@ -200,9 +204,36 @@ TUWF::get qr{/$RE{uid}/notify/$RE{num}/(?<lid>[a-z0-9\.]+)}, sub {
 };
 
 
+
 # It's a bit annoying to add auth->notiRead() to each revision page, so do that in bulk with a simple hook.
 TUWF::hook before => sub {
     auth->notiRead($+{vndbid}, $+{rev}) if auth && tuwf->reqPath() =~ qr{^/(?<vndbid>[vrpcsd]$RE{num})\.(?<rev>$RE{num})$};
+};
+
+
+
+
+our $SUB = form_compile any => {
+    id        => { vndbid => [qw|t w v r p c s d|] },
+    subnum    => { required => 0, jsonbool => 1 },
+    subreview => { anybool => 1 },
+    noti      => { uint => 1 }, # Whether the user already gets 'subnum' notifications for this entry (see HTML.pm for possible values)
+};
+
+elm_api Subscribe => undef, $SUB, sub {
+    my($data) = @_;
+
+    delete $data->{noti};
+    $data->{subnum} = $data->{subnum}?1:0 if defined $data->{subnum}; # 'jsonbool' isn't understood by SQL
+    $data->{subreview} = 0 if $data->{id} !~ /^v/;
+
+    my %where = (iid => delete $data->{id}, uid => auth->uid);
+    if(!defined $data->{subnum} && !$data->{subreview}) {
+        tuwf->dbExeci('DELETE FROM notification_subs WHERE', \%where);
+    } else {
+        tuwf->dbExeci('INSERT INTO notification_subs', {%where, %$data}, 'ON CONFLICT (iid,uid) DO UPDATE SET', $data);
+    }
+    elm_Success
 };
 
 1;

@@ -336,6 +336,38 @@ sub _footer_ {
 }
 
 
+sub _maintabs_subscribe_ {
+    my($o, $id) = @_;
+    return if !auth || $id !~ /^[twvrpcsd]/;
+
+    my $noti =
+        $id =~ /^t/ ? tuwf->dbVali('SELECT SUM(x) FROM (
+                 SELECT 1 FROM threads_posts tp, users u WHERE u.id =', \auth->uid, 'AND tp.uid =', \auth->uid, 'AND tp.tid =', \$id, ' AND u.notify_post
+           UNION SELECT 1+1 FROM threads_boards tb WHERE tb.tid =', \$id, 'AND tb.type = \'u\' AND tb.iid =', \auth->uid, '
+           ) x(x)')
+
+      : $id =~ /^w/ ? (auth->pref('notify_post') || auth->pref('notify_comment')) && tuwf->dbVali('SELECT SUM(x) FROM (
+                 SELECT 1 FROM reviews_posts wp, users u WHERE u.id =', \auth->uid, 'AND wp.uid =', \auth->uid, 'AND wp.id =', \$id, 'AND u.notify_post
+           UNION SELECT 1+1 FROM reviews w, users u WHERE u.id =', \auth->uid, 'AND w.uid =', \auth->uid, 'AND w.id =', \$id, 'AND u.notify_comment
+           ) x(x)')
+
+      : auth->pref('notify_dbedit') && tuwf->dbVali('SELECT 1 FROM changes WHERE type = vndbid_type(', \$id, ')::dbentry_type AND itemid = vndbid_num(', \$id, ') AND requester =', \auth->uid);
+
+    my $sub = tuwf->dbRowi('SELECT subnum, subreview FROM notification_subs WHERE uid =', \auth->uid, 'AND iid =', \$id);
+
+    li_ id => 'subscribe', sub {
+        elm_ Subscribe => $VNWeb::User::Notifications::SUB, {
+            id        => $id,
+            noti      => $noti||0,
+            subnum    => $sub->{subnum},
+            subreview => $sub->{subreview}||0,
+        }, sub {
+            a_ href => '#', class => ($noti && (!defined $sub->{subnum} || $sub->{subnum})) || $sub->{subnum} || $sub->{subreview} ? 'active' : 'inactive', '🔔';
+        };
+    };
+}
+
+
 sub _maintabs_ {
     my $opt = shift;
     my($t, $o, $sel) = @{$opt}{qw/type dbobj tab/};
@@ -353,13 +385,13 @@ sub _maintabs_ {
 
     div_ class => 'maintabs right', sub {
         ul_ sub {
-            t '' => "/$id", $id;
+            t '' => "/$id", $id if $t ne 't';
 
             t rg => "/$id/rg", 'relations'
                 if $t =~ /[vp]/ && tuwf->dbVali('SELECT 1 FROM', $t eq 'v' ? 'vn_relations' : 'producers_relations', 'WHERE id =', \$o->{id}, 'LIMIT 1');
 
             t releases => "/$id/releases", 'releases' if $t eq 'v';
-            t edit => "/$id/edit", 'edit' if can_edit $t, $o;
+            t edit => "/$id/edit", 'edit' if $t ne 't' && can_edit $t, $o;
             t copy => "/$id/copy", 'copy' if $t =~ /[rc]/ && can_edit $t, $o;
             t tagmod => "/$id/tagmod", 'modify tags' if $t eq 'v' && auth->permTag && !$o->{entry_hidden};
 
@@ -381,6 +413,7 @@ sub _maintabs_ {
             };
 
             t hist => "/$id/hist", 'history' if $t =~ /[uvrpcsd]/;
+            _maintabs_subscribe_ $o, $id;
         }
     }
 }
