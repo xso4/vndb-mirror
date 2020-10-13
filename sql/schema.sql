@@ -57,7 +57,7 @@ CREATE TYPE edit_rettype      AS (itemid integer, chid integer, rev integer);
 CREATE TYPE gender            AS ENUM ('unknown', 'm', 'f', 'b');
 CREATE TYPE language          AS ENUM ('ar', 'bg', 'ca', 'cs', 'da', 'de', 'el', 'en', 'eo', 'es', 'fi', 'fr', 'gd', 'he', 'hr', 'hu', 'id', 'it', 'ja', 'ko', 'mk', 'ms', 'lt', 'lv', 'nl', 'no', 'pl', 'pt-pt', 'pt-br', 'ro', 'ru', 'sk', 'sl', 'sv', 'ta', 'th', 'tr', 'uk', 'vi', 'zh');
 CREATE TYPE medium            AS ENUM ('cd', 'dvd', 'gdr', 'blr', 'flp', 'mrt', 'mem', 'umd', 'nod', 'in', 'otc');
-CREATE TYPE notification_ntype AS ENUM ('pm', 'dbdel', 'listdel', 'dbedit', 'announce', 'post', 'comment', 'subpost', 'subedit', 'subreview');
+CREATE TYPE notification_ntype AS ENUM ('pm', 'dbdel', 'listdel', 'dbedit', 'announce', 'post', 'comment', 'subpost', 'subedit', 'subreview', 'subapply');
 CREATE TYPE platform          AS ENUM ('win', 'dos', 'lin', 'mac', 'ios', 'and', 'dvd', 'bdp', 'fmt', 'gba', 'gbc', 'msx', 'nds', 'nes', 'p88', 'p98', 'pce', 'pcf', 'psp', 'ps1', 'ps2', 'ps3', 'ps4', 'psv', 'drc', 'sat', 'sfc', 'swi', 'wii', 'wiu', 'n3d', 'x68', 'xb1', 'xb3', 'xbo', 'web', 'oth');
 CREATE TYPE producer_type     AS ENUM ('co', 'in', 'ng');
 CREATE TYPE producer_relation AS ENUM ('old', 'new', 'sub', 'par', 'imp', 'ipa', 'spa', 'ori');
@@ -255,7 +255,8 @@ CREATE TABLE notification_subs (
   --   true  = Default behavior + get subedit/subpost notifications for this entry.
   --   false = Disable all affected ntypes for this entry.
   subnum      boolean,
-  subreview   boolean NOT NULL DEFAULT false,
+  subreview   boolean NOT NULL DEFAULT false, -- VNs
+  subapply    boolean NOT NULL DEFAULT false, -- Traits
   PRIMARY KEY(iid,uid)
 );
 

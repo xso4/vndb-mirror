@@ -338,7 +338,7 @@ sub _footer_ {
 
 sub _maintabs_subscribe_ {
     my($o, $id) = @_;
-    return if !auth || $id !~ /^[twvrpcsd]/;
+    return if !auth || $id !~ /^[twvrpcsdi]/;
 
     my $noti =
         $id =~ /^t/ ? tuwf->dbVali('SELECT SUM(x) FROM (
@@ -351,9 +351,10 @@ sub _maintabs_subscribe_ {
            UNION SELECT 1+1 FROM reviews w, users u WHERE u.id =', \auth->uid, 'AND w.uid =', \auth->uid, 'AND w.id =', \$id, 'AND u.notify_comment
            ) x(x)')
 
-      : auth->pref('notify_dbedit') && tuwf->dbVali('SELECT 1 FROM changes WHERE type = vndbid_type(', \$id, ')::dbentry_type AND itemid = vndbid_num(', \$id, ') AND requester =', \auth->uid);
+      : $id =~ /^[vrpcsd]/ && auth->pref('notify_dbedit') && tuwf->dbVali('
+           SELECT 1 FROM changes WHERE type = vndbid_type(', \$id, ')::dbentry_type AND itemid = vndbid_num(', \$id, ') AND requester =', \auth->uid);
 
-    my $sub = tuwf->dbRowi('SELECT subnum, subreview FROM notification_subs WHERE uid =', \auth->uid, 'AND iid =', \$id);
+    my $sub = tuwf->dbRowi('SELECT subnum, subreview, subapply FROM notification_subs WHERE uid =', \auth->uid, 'AND iid =', \$id);
 
     li_ id => 'subscribe', sub {
         elm_ Subscribe => $VNWeb::User::Notifications::SUB, {
@@ -361,8 +362,9 @@ sub _maintabs_subscribe_ {
             noti      => $noti||0,
             subnum    => $sub->{subnum},
             subreview => $sub->{subreview}||0,
+            subapply  => $sub->{subapply}||0,
         }, sub {
-            a_ href => '#', class => ($noti && (!defined $sub->{subnum} || $sub->{subnum})) || $sub->{subnum} || $sub->{subreview} ? 'active' : 'inactive', '🔔';
+            a_ href => '#', class => ($noti && (!defined $sub->{subnum} || $sub->{subnum})) || $sub->{subnum} || $sub->{subreview} || $sub->{subapply} ? 'active' : 'inactive', '🔔';
         };
     };
 }
@@ -459,6 +461,17 @@ sub _hidden_msg_ {
 }
 
 
+sub _scripts_ {
+    my($o) = @_;
+    script_ type => 'application/json', id => 'pagevars', sub {
+        # Escaping rules for a JSON <script> context are kinda weird, but more efficient than regular xml_escape().
+        lit_(JSON::XS->new->canonical->encode(tuwf->req->{pagevars}) =~ s{</}{<\\/}rg =~ s/<!--/<\\u0021--/rg);
+    } if keys tuwf->req->{pagevars}->%*;
+    script_ type => 'application/javascript', src => config->{url_static}.'/f/elm.js?'.config->{version}, '' if tuwf->req->{pagevars}{elm};
+    script_ type => 'application/javascript', src => config->{url_static}.'/f/plain.js?'.config->{version}, '' if $o->{js} || tuwf->req->{pagevars}{elm};
+}
+
+
 # Options:
 #   title      => $title
 #   index      => 1/0, default 0
@@ -489,12 +502,7 @@ sub framework_ {
                 $cont->() unless $o{hiddenmsg} && _hidden_msg_ \%o;
                 div_ id => 'footer', \&_footer_;
             };
-            script_ type => 'application/json', id => 'pagevars', sub {
-                # Escaping rules for a JSON <script> context are kinda weird, but more efficient than regular xml_escape().
-                lit_(JSON::XS->new->canonical->encode(tuwf->req->{pagevars}) =~ s{</}{<\\/}rg =~ s/<!--/<\\u0021--/rg);
-            } if keys tuwf->req->{pagevars}->%*;
-            script_ type => 'application/javascript', src => config->{url_static}.'/f/elm.js?'.config->{version}, '' if tuwf->req->{pagevars}{elm};
-            script_ type => 'application/javascript', src => config->{url_static}.'/f/plain.js?'.config->{version}, '' if $o{js} || tuwf->req->{pagevars}{elm};
+            _scripts_ \%o;
         }
     }
 }

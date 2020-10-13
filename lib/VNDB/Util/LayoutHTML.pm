@@ -35,6 +35,7 @@ sub htmlFooter { # %options => { pref_code => 1 }
     noscript id => 'pref_code', title => $self->authGetCode('/xml/prefs.xml'), ''
       if $o{pref_code} && $self->authInfo->{id};
     script type => 'text/javascript', src => $self->{url_static}.'/f/vndb.js?'.$self->{version}, '';
+    VNWeb::HTML::_scripts_({});
    end 'body';
   end 'html';
 }

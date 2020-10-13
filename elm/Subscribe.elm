@@ -29,6 +29,7 @@ type Msg
   = Opened Bool
   | SubNum Bool Bool
   | SubReview Bool
+  | SubApply Bool
   | Submitted GApi.Response
 
 
@@ -41,6 +42,7 @@ update msg model =
     Opened b    -> ({ model | opened = b }, Cmd.none)
     SubNum v b  -> save { dat | subnum = if b then Just v else Nothing }
     SubReview b -> save { dat | subreview = b }
+    SubApply b  -> save { dat | subapply = b }
     Submitted e -> ({ model | state = if e == GApi.Success then Api.Normal else Api.Error e }, Cmd.none)
 
 
@@ -52,7 +54,9 @@ view model =
     msg txt = p [] [ text txt, text " These can be disabled globally in your ", a [ href "/u/notifies" ] [ text "notification settings" ], text "." ]
   in
   div []
-  [ a [ href "#", onClickD (Opened (not model.opened)), class (if (dat.noti > 0 && dat.subnum /= Just False) || dat.subnum == Just True || dat.subreview then "active" else "inactive") ] [ text "🔔" ]
+  [ a [ href "#", onClickD (Opened (not model.opened))
+      , class (if (dat.noti > 0 && dat.subnum /= Just False) || dat.subnum == Just True || dat.subreview || dat.subapply then "active" else "inactive")
+      ] [ text "🔔" ]
   , if not model.opened then text ""
     else div [] [ div []
     [ h4 []
@@ -76,7 +80,7 @@ view model =
           "w" -> text " Disable notifications only for this review."
           _   -> text " Disable edit notifications only for this entry."
       ]
-    , label []
+    , if t == "i" then text "" else label []
       [ inputCheck "" (dat.subnum == Just True) (SubNum True)
       , case t of
           "t" -> text " Enable notifications for new replies"
@@ -86,6 +90,8 @@ view model =
       ]
     , if t /= "v" then text "" else
       label [] [ inputCheck "" dat.subreview SubReview, text " Enable notifications for new reviews." ]
+    , if t /= "i" then text "" else
+      label [] [ inputCheck "" dat.subapply SubApply, text " Enable notifications when this trait is applied or removed from a character." ]
     , case model.state of
         Api.Error e -> b [ class "standout" ] [ br [] [], text (Api.showResponse e) ]
         _ -> text ""

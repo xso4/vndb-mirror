@@ -544,8 +544,6 @@ $$ LANGUAGE plpgsql;
 --  'iid' and 'num' identify the item that has been created.
 --  'uid' indicates who created the item, providing an easy method of not creating a notification for that user.
 --     (can technically be fetched with a DB lookup, too)
---
--- TODO: Don't create a notification if the user still has an unread notification on the same item, but lower 'num'?
 CREATE OR REPLACE FUNCTION notify(iid vndbid, num integer, uid integer) RETURNS TABLE (uid integer, ntype notification_ntype[], iid vndbid, num int) AS $$
   SELECT uid, array_agg(ntype), $1, $2
     FROM (
@@ -647,6 +645,17 @@ CREATE OR REPLACE FUNCTION notify(iid vndbid, num integer, uid integer) RETURNS 
       SELECT 'subreview', ns.uid
         FROM reviews w, notification_subs ns
        WHERE w.id = $1 AND vndbid_type($1) = 'w' AND $2 IS NULL AND ns.iid = vndbid('v', w.vid) AND ns.subreview
+
+      -- subapply
+      UNION
+      SELECT 'subapply', uid
+        FROM notification_subs
+       WHERE subapply AND vndbid_type($1) = 'c' AND $2 IS NOT NULL
+         AND iid IN(
+              WITH new(tid) AS (SELECT vndbid('i', tid) FROM chars_traits_hist WHERE chid = (SELECT id FROM changes WHERE type = 'c' AND itemid = vndbid_num($1) AND rev = $2)),
+                   old(tid) AS (SELECT vndbid('i', tid) FROM chars_traits_hist WHERE chid = (SELECT id FROM changes WHERE type = 'c' AND itemid = vndbid_num($1) AND $2 > 1 AND rev = $2-1))
+              (SELECT tid FROM old EXCEPT SELECT tid FROM new) UNION (SELECT tid FROM new EXCEPT SELECT tid FROM old)
+            )
 
     ) AS noti(ntype, uid)
    WHERE uid <> $3

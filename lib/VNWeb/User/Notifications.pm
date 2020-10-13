@@ -13,6 +13,7 @@ my %ntypes = (
     subpost   => 'Reply to a thread you subscribed to',
     subedit   => 'Entry you subscribed to has been edited',
     subreview => 'New review for a VN you subscribed to',
+    subapply  => 'Trait you subscribed to has been (un)applied',
 );
 
 
@@ -214,9 +215,10 @@ TUWF::hook before => sub {
 
 
 our $SUB = form_compile any => {
-    id        => { vndbid => [qw|t w v r p c s d|] },
+    id        => { vndbid => [qw|t w v r p c s d i|] },
     subnum    => { required => 0, jsonbool => 1 },
     subreview => { anybool => 1 },
+    subapply  => { anybool => 1 },
     noti      => { uint => 1 }, # Whether the user already gets 'subnum' notifications for this entry (see HTML.pm for possible values)
 };
 
@@ -228,7 +230,7 @@ elm_api Subscribe => undef, $SUB, sub {
     $data->{subreview} = 0 if $data->{id} !~ /^v/;
 
     my %where = (iid => delete $data->{id}, uid => auth->uid);
-    if(!defined $data->{subnum} && !$data->{subreview}) {
+    if(!defined $data->{subnum} && !$data->{subreview} && !$data->{subapply}) {
         tuwf->dbExeci('DELETE FROM notification_subs WHERE', \%where);
     } else {
         tuwf->dbExeci('INSERT INTO notification_subs', {%where, %$data}, 'ON CONFLICT (iid,uid) DO UPDATE SET', $data);
