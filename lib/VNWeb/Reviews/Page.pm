@@ -46,7 +46,7 @@ sub review_ {
         tr_ sub {
             td_ 'By';
             td_ sub {
-                b_ style => 'float: right', 'Vote: '.fmtvote($w->{vote}) if $w->{vote};
+                b_ style => 'float: right; padding-left: 25px', 'Vote: '.fmtvote($w->{vote}) if $w->{vote};
                 user_ $w;
                 my($date, $lastmod) = map $_&&fmtdate($_,'compact'), $w->@{'date', 'lastmod'};
                 txt_ " on $date";
