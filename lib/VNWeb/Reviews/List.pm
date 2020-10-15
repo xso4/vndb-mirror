@@ -27,7 +27,7 @@ sub tablebox_ {
                 td_ class => 'tc3', fmtvote $_->{vote};
                 td_ class => 'tc4', $_->{isfull} ? 'Full' : 'Mini';
                 td_ class => 'tc5', sub { a_ href => "/$_->{id}", $_->{title}; b_ class => 'grayedout', ' (flagged)' if $_->{c_flagged} };
-                td_ class => 'tc6', sprintf '👍 %d 👎 %d', $_->{c_up}, $_->{c_down} if auth->isMod;
+                td_ class => 'tc6', sprintf '👍 %.2f 👎 %.2f', $_->{c_up}/100, $_->{c_down}/100 if auth->isMod;
                 td_ class => 'tc7', $_->{c_count};
                 td_ class => 'tc8', $_->{c_lastnum} ? sub {
                     user_ $_, 'lu_';

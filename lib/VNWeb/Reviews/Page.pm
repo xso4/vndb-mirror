@@ -94,7 +94,7 @@ TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
            LEFT JOIN users u ON u.id = r.uid
            LEFT JOIN ulist_vns uv ON uv.uid = r.uid AND uv.vid = r.vid
            LEFT JOIN (SELECT id, COUNT(*) FROM reviews_posts GROUP BY id) AS c(id,count) ON c.id = r.id
-           LEFT JOIN reviews_votes rv ON rv.id = r.id AND rv.uid =', \auth->uid, '
+           LEFT JOIN reviews_votes rv ON rv.id = r.id AND', auth ? ('rv.uid =', \auth->uid) : ('rv.ip =', \tuwf->reqIP()), '
            LEFT JOIN reviews rm ON rm.vid = r.vid AND rm.uid =', \auth->uid, '
           WHERE r.id =', \$id
     );

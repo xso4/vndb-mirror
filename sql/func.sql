@@ -188,15 +188,10 @@ END; $$ LANGUAGE plpgsql;
 -- Update reviews.c_up, c_down and c_flagged
 CREATE OR REPLACE FUNCTION update_reviews_votes_cache(vndbid) RETURNS void AS $$
 BEGIN
-  WITH stats(id,up,down,flag) AS (
+  WITH stats(id,up,down) AS (
     SELECT r.id
-         , COUNT(*) FILTER(WHERE rv.vote AND NOT u.ign_votes AND r2.id IS NULL)
-         , COUNT(*) FILTER(WHERE NOT rv.vote AND NOT u.ign_votes AND r2.id IS NULL)
-           -- flag score = up-down < -10, overrule votes count for 10000 (this algorithm is subject to tuning)
-         , COALESCE(
-            SUM((CASE WHEN rv.vote THEN 1 ELSE -1 END)*(CASE WHEN rv.overrule THEN 10000 ELSE 1 END))
-            FILTER(WHERE NOT u.ign_votes AND (r2.id IS NULL OR rv.overrule)),
-           0) < -1000
+         , COALESCE(SUM(CASE WHEN rv.overrule THEN 100000 WHEN rv.ip IS NULL THEN 100 ELSE 1 END) FILTER(WHERE     rv.vote AND NOT u.ign_votes AND r2.id IS NULL), 0)
+         , COALESCE(SUM(CASE WHEN rv.overrule THEN 100000 WHEN rv.ip IS NULL THEN 100 ELSE 1 END) FILTER(WHERE NOT rv.vote AND NOT u.ign_votes AND r2.id IS NULL), 0)
       FROM reviews r
       LEFT JOIN reviews_votes rv ON rv.id = r.id
       LEFT JOIN users u ON u.id = rv.uid
@@ -204,8 +199,8 @@ BEGIN
      WHERE $1 IS NULL OR r.id = $1
      GROUP BY r.id
   )
-  UPDATE reviews SET c_up = up, c_down = down, c_flagged = flag
-    FROM stats WHERE reviews.id = stats.id AND (reviews.c_up,reviews.c_down,reviews.c_flagged) <> (stats.up,stats.down,stats.flag);
+  UPDATE reviews SET c_up = up, c_down = down, c_flagged = up-down<-10000
+    FROM stats WHERE reviews.id = stats.id AND (c_up,c_down,c_flagged) <> (up,down,up-down<10000);
 END; $$ LANGUAGE plpgsql;
 
 

@@ -7,8 +7,8 @@ our @EXPORT = qw/reviews_vote_ reviews_format/;
 sub reviews_vote_ {
     my($w) = @_;
     span_ sub {
-        elm_ 'Reviews.Vote' => $VNWeb::Reviews::Elm::VOTE_OUT, {%$w, mod => auth->permBoardmod} if auth && ($w->{can} || auth->permBoardmod);
-        b_ class => 'grayedout', sprintf ' %d/%d', $w->{c_up}, $w->{c_down} if auth->permBoardmod;
+        elm_ 'Reviews.Vote' => $VNWeb::Reviews::Elm::VOTE_OUT, {%$w, mod => auth->permBoardmod||0} if $w->{can} || auth->permBoardmod;
+        b_ class => 'grayedout', sprintf ' %.2f/%.2f', $w->{c_up}/100, $w->{c_down}/100 if auth->permBoardmod;
     }
 }
 

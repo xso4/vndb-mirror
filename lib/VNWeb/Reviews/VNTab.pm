@@ -14,7 +14,7 @@ sub reviews_ {
            FROM reviews r
            LEFT JOIN users u ON r.uid = u.id
            LEFT JOIN ulist_vns uv ON uv.uid = r.uid AND uv.vid = r.vid
-           LEFT JOIN reviews_votes rv ON rv.uid =', \auth->uid, ' AND rv.id = r.id
+           LEFT JOIN reviews_votes rv ON rv.id = r.id AND', auth ? ('rv.uid =', \auth->uid) : ('rv.ip =', \tuwf->reqIP()), '
            LEFT JOIN reviews rm ON rm.vid = r.vid AND rm.uid =', \auth->uid, '
           WhERE NOT r.c_flagged AND r.vid =', \$v->{id}, 'AND', ($mini ? 'NOT' : ''), 'r.isfull
           ORDER BY r.c_up-r.c_down DESC'

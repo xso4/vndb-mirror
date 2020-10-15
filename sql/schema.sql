@@ -546,7 +546,8 @@ CREATE TABLE reviews_votes (
   uid     int,
   date    timestamptz NOT NULL,
   vote    boolean NOT NULL, -- true = upvote, false = downvote
-  overrule boolean NOT NULL DEFAULT false
+  overrule boolean NOT NULL DEFAULT false,
+  ip      inet -- Only for anonymous votes
 );
 
 -- rlists
