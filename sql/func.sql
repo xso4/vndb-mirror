@@ -170,8 +170,10 @@ BEGIN
              ELSE 0 END AS weight
         FROM (
             SELECT i.id, count(iv.id) AS votecount
-                 , avg(sexual)   FILTER(WHERE NOT iv.ignore) AS sexual_avg,   stddev_pop(sexual)   FILTER(WHERE NOT iv.ignore) AS sexual_stddev
-                 , avg(violence) FILTER(WHERE NOT iv.ignore) AS violence_avg, stddev_pop(violence) FILTER(WHERE NOT iv.ignore) AS violence_stddev
+                 , greatest(avg(sexual)   FILTER(WHERE NOT iv.ignore), max(sexual)   FILTER(WHERE u.perm_imgmod)) AS sexual_avg
+                 , greatest(avg(violence) FILTER(WHERE NOT iv.ignore), max(violence) FILTER(WHERE u.perm_imgmod)) AS violence_avg
+                 , stddev_pop(sexual)   FILTER(WHERE NOT iv.ignore) AS sexual_stddev
+                 , stddev_pop(violence) FILTER(WHERE NOT iv.ignore) AS violence_stddev
               FROM images i
               LEFT JOIN image_votes iv ON iv.id = i.id
               LEFT JOIN users u ON u.id = iv.uid
