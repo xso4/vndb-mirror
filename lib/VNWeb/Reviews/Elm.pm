@@ -14,7 +14,7 @@ our $VOTE_OUT = form_compile out => $VOTE;
 
 elm_api ReviewsVote => $VOTE_OUT, $VOTE_IN, sub {
     my($data) = @_;
-    my %id = (auth ? (uid => auth->uid) : (ip => tuwf->reqIP()), id => $data->{id});
+    my %id = (auth ? (uid => auth->uid) : (ip => norm_ip tuwf->reqIP), id => $data->{id});
     my %val = (vote => $data->{my}?1:0, overrule => auth->permBoardmod ? $data->{overrule}?1:0 : 0, date => sql 'NOW()');
     tuwf->dbExeci(
         defined $data->{my}
