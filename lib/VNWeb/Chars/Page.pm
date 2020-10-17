@@ -78,7 +78,7 @@ sub _rev_ {
         [ b_day      => 'Birthday/day',  empty => 0 ],
         [ s_bust     => 'Bust',          empty => 0 ],
         [ s_waist    => 'Waist',         empty => 0 ],
-        [ s_hip      => 'Hip',           empty => 0 ],
+        [ s_hip      => 'Hips',          empty => 0 ],
         [ height     => 'Height',        empty => 0 ],
         [ weight     => 'Weight',        ],
         [ bloodt     => 'Blood type',    fmt => \%BLOOD_TYPE ],
