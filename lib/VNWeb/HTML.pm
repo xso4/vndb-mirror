@@ -468,7 +468,7 @@ sub _scripts_ {
         lit_(JSON::XS->new->canonical->encode(tuwf->req->{pagevars}) =~ s{</}{<\\/}rg =~ s/<!--/<\\u0021--/rg);
     } if keys tuwf->req->{pagevars}->%*;
     script_ type => 'application/javascript', src => config->{url_static}.'/f/elm.js?'.config->{version}, '' if tuwf->req->{pagevars}{elm};
-    script_ type => 'application/javascript', src => config->{url_static}.'/f/plain.js?'.config->{version}, '' if $o->{js} || tuwf->req->{pagevars}{elm};
+    script_ type => 'application/javascript', src => config->{url_static}.'/f/plain.js?'.config->{version}, '' if tuwf->req->{js} || tuwf->req->{pagevars}{elm};
 }
 
 
@@ -490,6 +490,7 @@ sub framework_ {
     my $cont = pop;
     my %o = @_;
     tuwf->req->{pagevars} = { $o{pagevars}->%* } if $o{pagevars};
+    tuwf->req->{js} ||= $o{js};
 
     html_ lang => 'en', sub {
         head_ sub { _head_ \%o };
@@ -787,6 +788,7 @@ sub sortable_ {
 
 sub searchbox_ {
       my($sel, $value) = @_;
+      tuwf->req->{js} = 1;
       fieldset_ class => 'search', sub {
           p_ id => 'searchtabs', sub {
               a_ href => '/v/all', $sel eq 'v' ? (class => 'sel') : (), 'Visual novels';
