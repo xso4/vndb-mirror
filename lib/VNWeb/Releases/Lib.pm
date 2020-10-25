@@ -52,13 +52,15 @@ sub release_extlinks_ {
                 abbr_ class => 'icons external', title => 'External link', '';
             };
             div_ sub {
-                ul_ sub {
-                    li_ sub {
-                        a_ href => $_->[1], sub {
-                            span_ $_->[2] if length $_->[2];
-                            txt_ $_->[0];
-                        }
-                    } for $r->{extlinks}->@*;
+                div_ sub {
+                    ul_ sub {
+                        li_ sub {
+                            a_ href => $_->[1], sub {
+                                span_ $_->[2] if length $_->[2];
+                                txt_ $_->[0];
+                            }
+                        } for $r->{extlinks}->@*;
+                    }
                 }
             }
         }

@@ -74,24 +74,26 @@ div.warning h2, div.notice h2 { font-size: 13px; font-weight: bold; margin: 0; }
 .elm_dd > a:hover > span:last-child > i,
 .elm_dd > a:focus > span:last-child > i { visibility: visible }
 .elm_dd > div { position: relative; float: right; width: 0; height: 0 }
-.elm_dd > div > ul { position: absolute; right: -10px; top: 0; border: 1px solid $border$; background-color: $secbg$; z-index: 1000; list-style-type: none; margin: 0; padding: 0; max-width: 400px; overflow: hidden }
+.elm_dd > div > div { position: absolute; right: -10px; top: 0; border: 1px solid $border$; background-color: $secbg$; z-index: 1000; margin: 0; padding: 0; max-width: 400px }
 .elm_dd.search > div { float: left }
-.elm_dd.search > div > ul { right: auto; left: 0; top: 23px }
-.elm_dd > div > ul li { white-space: nowrap }
-.elm_dd > div > ul li a { display: block; border: 0; padding: 3px 5px 3px 3px }
-.elm_dd > div > ul li a.active,
-.elm_dd > div > ul li a:hover  { background: $boxbg$ }
-.elm_dd > div > ul li p { white-space: normal; padding: 3px 5px 3px 3px }
-.elm_dd > div > ul li.separator { margin-bottom: 22px }
+.elm_dd.search ul { right: auto; left: 0; top: 23px }
+.elm_dd ul { width: 100%; list-style-type: none; margin: 0; padding: 0 }
+.elm_dd ul li { white-space: nowrap }
+.elm_dd ul li a { display: block; border: 0; padding: 3px 5px 3px 3px }
+.elm_dd ul li a.active,
+.elm_dd ul li a:hover  { background: $boxbg$ }
+.elm_dd ul li p { white-space: normal; padding: 3px 5px 3px 3px }
+.elm_dd ul li.separator { margin-bottom: 22px }
+
 .maintabs .elm_dd > a { box-sizing: border-box; height: 21px; padding: 1px 15px 0 7px; border: 1px solid $border$; border-bottom: none; background-color: $tabbg$; color: $maintext$ }
-.elm_votedd .elm_dd > div > ul li { text-align: left }
+.elm_votedd .elm_dd ul li { text-align: left }
 .elm_dd_input .elm_dd > a { background-color: $secbg$; color: $maintext$; border: 1px solid $secborder$; font: 14px "Tahoma", "Arial", sans-serif; padding: 1px 15px 1px 2px; margin: -1px }
 .elm_dd_noarrow .elm_dd > a { padding-right: 0 }
 .elm_dd_noarrow .elm_dd > a > span:last-child { display: none }
 .elm_dd_hover .elm_dd > div { display: none }
 .elm_dd_hover .elm_dd:hover > div { display: block }
 .elm_dd_left .elm_dd > div { float: left }
-.elm_dd_left .elm_dd > div > ul { right: 0; top: -20px }
+.elm_dd_left .elm_dd > div > div { right: 0; top: -20px }
 .elm_dd_relextlink .elm_dd > a { padding-left: 4px; color: $link$ }
 .elm_dd_relextlink ul a { text-align: right }
 .elm_dd_relextlink ul span { color: $maintext$; padding-right: 10px }
@@ -1105,6 +1107,15 @@ p.filselect {
 }
 p.filselect a { margin: 0 5px }
 p.filselect i { font-style: normal }
+
+
+
+
+/****** Advanced Search *******/
+
+.advsearch { width: 90%; margin: 0 5%; }
+.advsearch .quickselect { width: 100%; display: flex; justify-content: center }
+.advsearch .quickselect > * { margin: 5px; width: 150px }
 
 
 
