@@ -57,13 +57,14 @@ elm_api UListManageLabels => undef, $LABELS, sub {
     my @delete_all     = map $_->{id}, grep $_->{delete} == 3, @delete;
 
     # delete vns with: (a label in option 3) OR ((a label in option 2) AND (no labels other than in option 1 or 2))
-    my @where =
+    my @where = (
         @delete_all ? sql('vid IN(SELECT vid FROM ulist_vns_labels WHERE uid =', \$uid, 'AND lbl IN', \@delete_all, ')') : (),
         @delete_empty ? sql(
                 'vid IN(SELECT vid FROM ulist_vns_labels WHERE uid =', \$uid, 'AND lbl IN', \@delete_empty, ')',
-            'AND NOT EXISTS(SELECT 1 FROM ulist_vns_labels WHERE uid =', \$uid, 'AND lbl NOT IN(', [ @delete_lblonly, @delete_empty ], '))'
-        ) : ();
-    tuwf->dbExeci('DELETE FROM ulist_vns WHERE uid =', \$uid, 'AND (', sql_or(@where), ')') if @where;
+            'AND NOT EXISTS(SELECT 1 FROM ulist_vns_labels uvl WHERE uvl.vid = uv.vid AND uid =', \$uid, 'AND lbl NOT IN', [ @delete_lblonly, @delete_empty ], ')'
+        ) : ()
+    );
+    tuwf->dbExeci('DELETE FROM ulist_vns uv WHERE uid =', \$uid, 'AND (', sql_or(@where), ')') if @where;
 
     # (This will also delete all relevant vn<->label rows from ulist_vns_labels)
     tuwf->dbExeci('DELETE FROM ulist_labels WHERE uid =', \$uid, 'AND id IN', [ map $_->{id}, @delete ]) if @delete;
