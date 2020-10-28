@@ -76,7 +76,7 @@ div.warning h2, div.notice h2 { font-size: 13px; font-weight: bold; margin: 0; }
 .elm_dd > div { position: relative; float: right; width: 0; height: 0 }
 .elm_dd > div > div { position: absolute; right: -10px; top: 0; border: 1px solid $border$; background-color: $secbg$; z-index: 1000; margin: 0; padding: 0; max-width: 400px }
 .elm_dd.search > div { float: left }
-.elm_dd.search ul { right: auto; left: 0; top: 23px }
+.elm_dd.search > div > div { right: auto; left: 0; top: 23px }
 .elm_dd ul { width: 100%; list-style-type: none; margin: 0; padding: 0 }
 .elm_dd ul li { white-space: nowrap }
 .elm_dd ul li a { display: block; border: 0; padding: 3px 5px 3px 3px }
