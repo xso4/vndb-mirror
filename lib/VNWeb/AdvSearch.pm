@@ -1,6 +1,7 @@
 package VNWeb::AdvSearch;
 
 use v5.26;
+use warnings;
 use TUWF;
 use Exporter 'import';
 use VNWeb::DB;
@@ -120,7 +121,7 @@ sub coerce_for_json {
         coerce_for_json($t, $_) for @$q[1..$#$q];
     } else {
         my $f = $fields{$t}{$q->[0]};
-        $f->{int} ? $q->[2]*1 : ref $f->{value} ? "$q->[2]" : coerce_for_json($t, $q->[2]);
+        ()= $f->{int} ? $q->[2]*1 : ref $f->{value} ? "$q->[2]" : coerce_for_json($t, $q->[2]);
     }
     $q
 }
