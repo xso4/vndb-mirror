@@ -82,6 +82,7 @@ type SetMsg a
   = SetSel a Bool
   | SetNeg Bool
   | SetAnd Bool
+  | SetSingle Bool
   | SetMode -- Toggle between single / multi (or) / multi (and)
 
 
@@ -92,10 +93,11 @@ setInit = { sel = Set.empty, single = True, and = False, neg = False, last = Set
 setUpdate : SetMsg comparable -> SetModel comparable -> SetModel comparable
 setUpdate msg model =
   case msg of
-    SetSel v b -> { model | last = Set.empty, sel = if not b then Set.remove v model.sel else if model.single then Set.fromList [v] else Set.insert v model.sel }
-    SetNeg b   -> { model | neg = b }
-    SetAnd b   -> { model | and = b }
-    SetMode    ->
+    SetSel v b  -> { model | last = Set.empty, sel = if not b then Set.remove v model.sel else if model.single then Set.fromList [v] else Set.insert v model.sel }
+    SetNeg b    -> { model | neg = b }
+    SetAnd b    -> { model | and = b }
+    SetSingle b -> { model | single = b }
+    SetMode     ->
       let m = { model | single = not model.single && model.and, and = not model.single && not model.and }
       in  { m | sel = if m.single then Set.fromList <| List.take 1 <| Set.toList m.sel
                       else if model.single && not m.single && not (Set.isEmpty model.last) then m.last
