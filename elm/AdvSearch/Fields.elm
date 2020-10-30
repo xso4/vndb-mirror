@@ -15,17 +15,21 @@ import AdvSearch.Query exposing (..)
 -- TODO: Actual field implementations should be moved into a separate module
 
 langView orig model =
-  let lbl = if orig then "Orig language" else "Language"
+  let tprefix = if orig then "O " else "L "
+      prefix = tprefix ++ if model.neg then "¬" else ""
   in
-  ( case Set.size model.sel of
-      0 -> b [ class "grayedout" ] [ text lbl ]
-      1 -> text <| Maybe.withDefault "" <| lookup (Set.toList model.sel |> List.head |> Maybe.withDefault "") GT.languages
-      n -> text <| lbl ++ " (" ++ String.fromInt n ++ ")"
+  ( case Set.toList model.sel of
+      []  -> b [ class "grayedout" ] [ text <| if orig then "Orig language" else "Language" ]
+      [v] -> span [ class "nowrap" ] [ text prefix, langIcon v, text <| Maybe.withDefault "" (lookup v GT.languages) ]
+      l   -> span [ class "nowrap" ] <| text prefix :: text (if model.and then "∀ " else "∃ ") :: List.intersperse (text "") (List.map langIcon l)
   , \() ->
-    [ div [ class "advopts" ]
-      [ a [ href "#", onClickD (if orig then SetSingle (not model.single) else SetMode) ]
-        [ text <| "Mode:" ++ if model.single then "single" else if model.and then "and" else "or" ]
-      , linkRadio model.neg SetNeg [ text "invert" ]
+    [ div [ class "advheader" ]
+      [ h3 [] [ text <| if orig then "Language the visual novel has been originally written in." else "Language(s) in which the visual novel is available." ]
+      , div [ class "opts" ]
+        [ a [ href "#", onClickD (if orig then SetSingle (not model.single) else SetMode) ]
+          [ text <| "Mode:" ++ if model.single then "single" else if model.and then "all" else "any" ]
+        , linkRadio model.neg SetNeg [ text "invert" ]
+        ]
       ]
     , ul [ style "columns" "2"] <| List.map (\(l,t) -> li [] [ linkRadio (Set.member l model.sel) (SetSel l) [ langIcon l, text t ] ]) GT.languages
     ]

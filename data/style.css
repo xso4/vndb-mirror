@@ -71,6 +71,7 @@ div.warning h2, div.notice h2 { font-size: 13px; font-weight: bold; margin: 0; }
 .elm_dd > a { color: $maintext$; display: block; border: none; padding-right: 15px; position: relative }
 .elm_dd > a > span:last-child { position: absolute; right: 5px; top: 0; width: 16px; text-align: right; display: block }
 .elm_dd > a > span:last-child i { visibility: hidden; font-style: normal }
+.elm_dd > a .nowrap { display: block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .elm_dd > a:hover > span:last-child > i,
 .elm_dd > a:focus > span:last-child > i { visibility: visible }
 .elm_dd > div { position: relative; float: right; width: 0; height: 0 }
@@ -1116,8 +1117,10 @@ p.filselect i { font-style: normal }
 .advsearch { width: 90%; margin: 0 5%; }
 .advsearch .quickselect { width: 100%; display: flex; justify-content: center }
 .advsearch .quickselect > * { margin: 5px; width: 150px }
-.advsearch .advopts { box-sizing: border-box; background-color: $_blendbg$; padding: 3px; width: 100%; display: flex; justify-content: space-between }
-.advsearch .advopts > * { margin: 0 }
+.advsearch .advheader { box-sizing: border-box; background-color: $_blendbg$; padding: 3px; width: 100% }
+.advsearch .advheader > h3 { text-align: center; font-weight: bold; font-size: inherit }
+.advsearch .advheader .opts { display: flex; justify-content: space-between }
+.advsearch .advheader .opts > * { margin: 0 }
 
 
 
