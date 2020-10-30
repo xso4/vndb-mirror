@@ -65,9 +65,10 @@ sub f {
     $fields{$t}{$n} = \%f;
 }
 
-f 'v', 'lang',  { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_languages && ARRAY', \$_, '::language[]' };
-f 'v', 'olang', { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_olang     && ARRAY', \$_, '::language[]' };
-f 'v', 'plat',  { enum => \%PLATFORM }, '=' => sub { sql 'v.c_platforms && ARRAY', \$_, '::platform[]' };
+f 'v', 'lang',     { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_languages && ARRAY', \$_, '::language[]' };
+f 'v', 'olang',    { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_olang     && ARRAY', \$_, '::language[]' };
+f 'v', 'platform', { enum => \%PLATFORM }, '=' => sub { sql 'v.c_platforms && ARRAY', \$_, '::platform[]' };
+f 'v', 'length',   { uint => 1, enum => \%VN_LENGTH }, '=' => sub { sql 'v.length =', \$_ };
 
 
 
@@ -121,7 +122,7 @@ sub coerce_for_json {
         coerce_for_json($t, $_) for @$q[1..$#$q];
     } else {
         my $f = $fields{$t}{$q->[0]};
-        ()= $f->{int} ? $q->[2]*1 : ref $f->{value} ? "$q->[2]" : coerce_for_json($t, $q->[2]);
+        $q->[2] = $f->{int} ? int $q->[2] : ref $f->{value} ? "$q->[2]" : coerce_for_json($t, $q->[2]);
     }
     $q
 }

@@ -2,50 +2,11 @@ module AdvSearch.Fields exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Set
 import Array as A
 import Lib.DropDown as DD
 import Lib.Api as Api
-import Lib.Html exposing (..)
-import Lib.Util exposing (..)
-import Gen.Types as GT
+import AdvSearch.Set as AS
 import AdvSearch.Query exposing (..)
-
-
--- TODO: Actual field implementations should be moved into a separate module
-
-langView orig model =
-  let tprefix = if orig then "O " else "L "
-      prefix = tprefix ++ if model.neg then "¬" else ""
-  in
-  ( case Set.toList model.sel of
-      []  -> b [ class "grayedout" ] [ text <| if orig then "Orig language" else "Language" ]
-      [v] -> span [ class "nowrap" ] [ text prefix, langIcon v, text <| Maybe.withDefault "" (lookup v GT.languages) ]
-      l   -> span [ class "nowrap" ] <| text prefix :: text (if model.and then "∀ " else "∃ ") :: List.intersperse (text "") (List.map langIcon l)
-  , \() ->
-    [ div [ class "advheader" ]
-      [ h3 [] [ text <| if orig then "Language the visual novel has been originally written in." else "Language(s) in which the visual novel is available." ]
-      , div [ class "opts" ]
-        [ a [ href "#", onClickD (if orig then SetSingle (not model.single) else SetMode) ]
-          [ text <| "Mode:" ++ if model.single then "single" else if model.and then "all" else "any" ]
-        , linkRadio model.neg SetNeg [ text "invert" ]
-        ]
-      ]
-    , ul [ style "columns" "2"] <| List.map (\(l,t) -> li [] [ linkRadio (Set.member l model.sel) (SetSel l) [ langIcon l, text t ] ]) GT.languages
-    ]
-  )
-
-langFromQuery = setFromQuery (\q ->
-  case q of
-    QStr "lang" op v -> Just (op, v)
-    _ -> Nothing)
-
-olangFromQuery = setFromQuery (\q ->
-  case q of
-    QStr "olang" op v -> Just (op, v)
-    _ -> Nothing)
-
-
 
 
 -- Generic field abstraction.
@@ -60,13 +21,17 @@ type alias Field = (Int, DD.Config FieldMsg, FieldModel) -- The Int is the index
 
 type FieldModel
   = FMCustom Query -- A read-only placeholder for Query values that failed to parse into a Field
-  | FMLang (SetModel String)
-  | FMOLang (SetModel String)
+  | FMLang     (AS.Model String)
+  | FMOLang    (AS.Model String)
+  | FMPlatform (AS.Model String)
+  | FMLength   (AS.Model Int)
 
 type FieldMsg
-  = FSCustom () -- Not actually used at the moment
-  | FSLang (SetMsg String)
-  | FSOLang (SetMsg String)
+  = FSCustom   () -- Not actually used at the moment
+  | FSLang     (AS.Msg String)
+  | FSOLang    (AS.Msg String)
+  | FSPlatform (AS.Msg String)
+  | FSLength   (AS.Msg Int)
   | FToggle Bool
 
 type FieldType = V
@@ -85,9 +50,11 @@ fields : A.Array FieldDesc
 fields =
   let f ftype title quick wrap init fromq = { ftype = ftype, title = title, quick = quick, init = wrap init, fromQuery = Maybe.map wrap << fromq }
   in A.fromList
-  --  T TITLE               QUICK     WRAP      INIT     FROM_QUERY
-  [ f V "Language"          (Just 1)  FMLang    setInit  langFromQuery
-  , f V "Original language" (Just 2)  FMOLang   setInit  olangFromQuery
+  --  T TITLE               QUICK     WRAP        INIT     FROM_QUERY
+  [ f V "Language"          (Just 1)  FMLang      AS.init  AS.langFromQuery
+  , f V "Original language" (Just 2)  FMOLang     AS.init  AS.olangFromQuery
+  , f V "Platform"          (Just 3)  FMPlatform  AS.init  AS.platformFromQuery
+  , f V "Length"            (Just 4)  FMLength    AS.init  AS.lengthFromQuery
   -- Custom field not included, that's only ever initialized in fqueryFromQuery
   ]
 
@@ -97,8 +64,10 @@ fieldUpdate : FieldMsg -> Field -> (Field, Cmd FieldMsg)
 fieldUpdate msg_ (num, dd, model) =
   let map1 f m = ((num, dd, (f m)), Cmd.none)
   in case (msg_, model) of
-      (FSLang  msg, FMLang  m) -> map1 FMLang  (setUpdate msg m)
-      (FSOLang msg, FMOLang m) -> map1 FMOLang (setUpdate msg m)
+      (FSLang  msg,    FMLang  m)    -> map1 FMLang     (AS.update msg m)
+      (FSOLang msg,    FMOLang m)    -> map1 FMOLang    (AS.update msg m)
+      (FSPlatform msg, FMPlatform m) -> map1 FMPlatform (AS.update msg m)
+      (FSLength msg,   FMLength m)   -> map1 FMLength   (AS.update msg m)
       (FToggle b, _) -> ((num, DD.toggle dd b, model), Cmd.none)
       _ -> ((num, dd, model), Cmd.none)
 
@@ -107,17 +76,21 @@ fieldView : Field -> Html FieldMsg
 fieldView (_, dd, model) =
   let v f (lbl,cont) = div [ class "elm_dd_input" ] [ DD.view dd Api.Normal (Html.map f lbl) <| \() -> List.map (Html.map f) (cont ()) ]
   in case model of
-      FMCustom m -> v FSCustom (text "Unrecognized query", \() -> [text ""]) -- TODO: Display the Query
-      FMLang  m -> v FSLang  (langView False m)
-      FMOLang m -> v FSOLang (langView True  m)
+      FMCustom m   -> v FSCustom   (text "Unrecognized query", \() -> [text ""]) -- TODO: Display the Query
+      FMLang  m    -> v FSLang     (AS.langView False m)
+      FMOLang m    -> v FSOLang    (AS.langView True  m)
+      FMPlatform m -> v FSPlatform (AS.platformView m)
+      FMLength m   -> v FSLength   (AS.lengthView m)
 
 
 fieldToQuery : Field -> Maybe Query
 fieldToQuery (_, _, model) =
   case model of
-    FMCustom m -> Just m
-    FMLang  m -> setToQuery (QStr "lang" ) m
-    FMOLang m -> setToQuery (QStr "olang") m
+    FMCustom m   -> Just m
+    FMLang  m    -> AS.toQuery (QStr "lang" ) m
+    FMOLang m    -> AS.toQuery (QStr "olang") m
+    FMPlatform m -> AS.toQuery (QStr "platform") m
+    FMLength m   -> AS.toQuery (QInt "length") m
 
 
 fieldInit : Int -> Int -> Field
