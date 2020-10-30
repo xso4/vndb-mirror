@@ -3,6 +3,7 @@ module AdvSearch.Fields exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Set
+import Array as A
 import Lib.DropDown as DD
 import Lib.Api as Api
 import Lib.Html exposing (..)
@@ -44,14 +45,14 @@ olangFromQuery = setFromQuery (\q ->
 
 
 -- Generic field abstraction.
--- (this is where typeclasses would been *awesome*)
+-- (this is where typeclasses would have been *awesome*)
 --
 -- The following functions and definitions are only intended to provide field
 -- listings and function dispatchers, if the implementation of anything in here
 -- is longer than a single line, it should get its own definition near where
 -- the rest of that field is defined.
 
-type alias Field = (DD.Config FieldMsg, FieldModel)
+type alias Field = (Int, DD.Config FieldMsg, FieldModel) -- The Int is the index into 'fields'
 
 type FieldModel
   = FMCustom Query -- A read-only placeholder for Query values that failed to parse into a Field
@@ -64,20 +65,42 @@ type FieldMsg
   | FSOLang (SetMsg String)
   | FToggle Bool
 
+type FieldType = V
+
+type alias FieldDesc =
+  { ftype     : FieldType
+  , title     : String                     -- How it's listed in the advanced search field selection menu (must be unique for the given ftype).
+  , quick     : Maybe Int                  -- Whether it should be included in the quick search mode and in which order.
+  , init      : FieldModel                 -- How to initialize an empty field
+  , fromQuery : Query -> Maybe FieldModel  -- How to initialize the field from a query
+  }
+
+
+-- XXX: Should this be lazily initialized instead? May impact JS load time like this.
+fields : A.Array FieldDesc
+fields =
+  let f ftype title quick wrap init fromq = { ftype = ftype, title = title, quick = quick, init = wrap init, fromQuery = Maybe.map wrap << fromq }
+  in A.fromList
+  --  T TITLE               QUICK     WRAP      INIT     FROM_QUERY
+  [ f V "Language"          (Just 1)  FMLang    setInit  langFromQuery
+  , f V "Original language" (Just 2)  FMOLang   setInit  olangFromQuery
+  -- Custom field not included, that's only ever initialized in fqueryFromQuery
+  ]
+
 
 -- XXX: This needs a 'data' argument for global data such as a tag info cache
 fieldUpdate : FieldMsg -> Field -> (Field, Cmd FieldMsg)
-fieldUpdate msg_ (dd, model) =
-  let map1 f m = ((dd, (f m)), Cmd.none)
+fieldUpdate msg_ (num, dd, model) =
+  let map1 f m = ((num, dd, (f m)), Cmd.none)
   in case (msg_, model) of
       (FSLang  msg, FMLang  m) -> map1 FMLang  (setUpdate msg m)
       (FSOLang msg, FMOLang m) -> map1 FMOLang (setUpdate msg m)
-      (FToggle b, _) -> ((DD.toggle dd b, model), Cmd.none)
-      _ -> ((dd, model), Cmd.none)
+      (FToggle b, _) -> ((num, DD.toggle dd b, model), Cmd.none)
+      _ -> ((num, dd, model), Cmd.none)
 
 
 fieldView : Field -> Html FieldMsg
-fieldView (dd, model) =
+fieldView (_, dd, model) =
   let v f (lbl,cont) = div [ class "elm_dd_input" ] [ DD.view dd Api.Normal (Html.map f lbl) <| \() -> List.map (Html.map f) (cont ()) ]
   in case model of
       FMCustom m -> v FSCustom (text "Unrecognized query", \() -> [text ""]) -- TODO: Display the Query
@@ -86,28 +109,29 @@ fieldView (dd, model) =
 
 
 fieldToQuery : Field -> Maybe Query
-fieldToQuery (_, model) =
+fieldToQuery (_, _, model) =
   case model of
     FMCustom m -> Just m
     FMLang  m -> setToQuery (QStr "lang" ) m
     FMOLang m -> setToQuery (QStr "olang") m
 
 
-fieldFromQueryList =
-  let f wrap conv = \q -> Maybe.map wrap (conv q)
-  in [ f FMLang  langFromQuery
-     , f FMOLang olangFromQuery
-     ]
+fieldInit : Int -> Int -> Field
+fieldInit n ddid =
+  case A.get n fields of
+    Just f -> (n, DD.init ("advsearch_field" ++ String.fromInt ddid) FToggle, f.init)
+    Nothing -> (-1, DD.init "" FToggle, FMCustom (QAnd [])) -- Shouldn't happen.
 
-fieldFromQuery : Int -> Query -> Maybe Field
-fieldFromQuery ddid q =
-  let match lst =
-        case lst of
-          [] -> Nothing
-          (x::xs) -> case x q of
-                      Just m -> Just (DD.init ("advsearch_field" ++ String.fromInt ddid) FToggle, m)
-                      Nothing -> match xs
-  in match fieldFromQueryList
+
+fieldFromQuery : FieldType -> Int -> Query -> Maybe Field
+fieldFromQuery ftype ddid q =
+  Tuple.first <| A.foldl (\f a ->
+    let inc = Tuple.mapSecond (\n -> n+1) a
+    in if Tuple.first a /= Nothing || f.ftype /= ftype then inc
+       else case f.fromQuery q of
+             Nothing -> inc
+             Just m -> (Just (Tuple.second a, DD.init ("advsearch_field" ++ String.fromInt ddid) FToggle, m), 0)
+  ) (Nothing,0) fields
 
 
 
@@ -151,16 +175,16 @@ fqueryToQuery fq =
 
 
 -- This algorithm is kind of slow. It walks the Query tree and tries every possible Field for each Query found.
-fqueryFromQuery : Int -> Query -> (Int, FQuery)
-fqueryFromQuery ddid q =
-  let lst wrap l = Tuple.mapSecond wrap <| List.foldr (\oq (did,nl) -> let (ndid, fq) = fqueryFromQuery did oq in (ndid, fq::nl)) (ddid,[]) l
-  in case fieldFromQuery ddid q of
+fqueryFromQuery : FieldType -> Int -> Query -> (Int, FQuery)
+fqueryFromQuery ftype ddid q =
+  let lst wrap l = Tuple.mapSecond wrap <| List.foldr (\oq (did,nl) -> let (ndid, fq) = fqueryFromQuery ftype did oq in (ndid, fq::nl)) (ddid,[]) l
+  in case fieldFromQuery ftype ddid q of
       Just fq -> (ddid+1, FField fq)
       Nothing ->
         case q of
           QAnd l -> lst FAnd l
           QOr  l -> lst FOr  l
-          _      -> (ddid+1, FField (DD.init ("advsearch_field" ++ String.fromInt ddid) FToggle, FMCustom q))
+          _      -> (ddid+1, FField (-1, DD.init ("advsearch_field" ++ String.fromInt ddid) FToggle, FMCustom q))
 
 
 -- Update a node at the given path (unused)
@@ -194,8 +218,8 @@ fqueryGet path q =
     [] -> Just q
     x::xs ->
       case q of
-        FAnd l -> List.drop x l |> List.head |> Maybe.andThen (fqueryGet path)
-        FOr  l -> List.drop x l |> List.head |> Maybe.andThen (fqueryGet path)
+        FAnd l -> List.drop x l |> List.head |> Maybe.andThen (fqueryGet xs)
+        FOr  l -> List.drop x l |> List.head |> Maybe.andThen (fqueryGet xs)
         _ -> Nothing
 
 
@@ -204,4 +228,4 @@ fquerySub path wrap q =
   case q of
     FAnd l -> Sub.batch <| List.indexedMap (\i -> fquerySub (i::path) wrap) l
     FOr  l -> Sub.batch <| List.indexedMap (\i -> fquerySub (i::path) wrap) l
-    FField f -> Sub.map (wrap (List.reverse path)) <| DD.sub <| Tuple.first f
+    FField (_,dd,_) -> Sub.map (wrap (List.reverse path)) (DD.sub dd)
