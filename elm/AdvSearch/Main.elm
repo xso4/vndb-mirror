@@ -101,7 +101,4 @@ view model = div [ class "advsearch" ]
     --, input [ type_ "button", class "submit", value "Advanced mode" ] [] -- TODO: Advanced mode where you can construct arbitrary queries.
     [ input [ type_ "submit", class "submit", value "Search" ] []
     ]
-  , pre []
-    [ text <| Maybe.withDefault "" <| Maybe.map (\v -> JE.encode 2 (encodeQuery v)) (fqueryToQuery model.query)
-    ]
   ]
