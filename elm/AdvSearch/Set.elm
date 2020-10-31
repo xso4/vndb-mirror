@@ -136,7 +136,9 @@ platformView model =
       [ h3 [] [ text "Platforms for which the visual novel is available." ]
       , opts model True
       ]
-    , ul [ style "columns" "2"] <| List.map (\(p,t) -> li [] [ linkRadio (Set.member p model.sel) (Sel p) [ platformIcon p, text t ] ]) GT.platforms
+    , ul [ style "columns" "2"] <| List.map (\(p,t) ->
+        li [classList [("separator", p == "web")]] [ linkRadio (Set.member p model.sel) (Sel p) [ platformIcon p, text t ] ]
+      ) GT.platforms
     ]
   )
 
@@ -157,7 +159,8 @@ lengthView model =
       l   -> span [] [ lblPrefix model, text <| "Length (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
     [ div [ class "advheader" ]
-      [ opts model False ]
+      [ h3 [] [ text "Length" ]
+      , opts model False ]
     , ul [] <| List.map (\(l,t) -> li [] [ linkRadio (Set.member l model.sel) (Sel l) [ text t ] ]) GT.vnLengths
     ]
   )
