@@ -63,3 +63,11 @@ decodeQuery = JD.index 0 JD.string |> JD.andThen (\s ->
       , JD.map2 (QQuery s) (JD.index 1 decodeOp) (JD.index 2 decodeQuery)
       ]
    )
+
+
+
+-- Global data that's passed around for Fields
+-- (defined here because everything imports this module)
+type alias Data =
+  { objid   : Int -- Incremental integer for global identifiers
+  }

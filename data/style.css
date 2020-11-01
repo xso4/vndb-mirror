@@ -1114,9 +1114,9 @@ p.filselect i { font-style: normal }
 
 /****** Advanced Search *******/
 
-.advsearch { max-width: 800px; margin: 0 auto }
-.advsearch .quickselect { width: 100%; display: flex; flex-wrap: wrap }
-.advsearch .quickselect > * { margin: 5px; width: 150px }
+.advsearch { max-width: 800px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: center }
+.advsearch .advrow { display: flex; flex-wrap: wrap }
+.advsearch .advrow > * { margin: 5px; width: 150px }
 .advsearch .advheader { box-sizing: border-box; background-color: $_blendbg$; padding: 3px; width: 100%; margin-bottom: 2px }
 .advsearch .advheader > h3 { text-align: center; font-weight: bold; font-size: inherit; margin-bottom: 3px }
 .advsearch .advheader .opts { display: flex; justify-content: space-between }

@@ -25,8 +25,8 @@ type Msg a
   | Mode -- Toggle between single / multi (or) / multi (and)
 
 
-init : Model a
-init = { sel = Set.empty, single = True, and = False, neg = False, last = Set.empty }
+init : Data -> (Data, Model a)
+init dat = (dat, { sel = Set.empty, single = True, and = False, neg = False, last = Set.empty })
 
 
 update : Msg comparable -> Model comparable -> Model comparable
@@ -61,20 +61,20 @@ toQuery f m =
 --   setFromQuery (\q -> case q of
 --                         QStr "lang" op v -> Just (op, v)
 --                         _ -> Nothing) model
-fromQuery : (Query -> Maybe (Op,comparable)) -> Query -> Maybe (Model comparable)
-fromQuery f q =
+fromQuery : (Query -> Maybe (Op,comparable)) -> Data -> Query -> Maybe (Data, Model comparable)
+fromQuery f dat q =
   let single and qs = f qs |> Maybe.andThen (\(op,v) ->
         if op /= Ne && op /= Eq
         then Nothing
-        else Just { sel = Set.fromList [v], and = xor and (op == Ne), neg = (op == Ne), single = True, last = Set.empty })
+        else Just (dat, { sel = Set.fromList [v], and = xor and (op == Ne), neg = (op == Ne), single = True, last = Set.empty }))
       lst mm xqs =
         case (mm, xqs) of
           (Nothing, _) -> Nothing
           (_, [])      -> mm
-          (Just m, x :: xs) -> f x |> Maybe.andThen (\(op,v) ->
+          (Just (_,m), x :: xs) -> f x |> Maybe.andThen (\(op,v) ->
             if (op /= Ne && op /= Eq) || (op == Ne) /= m.neg
             then Nothing
-            else lst (Just {m | single = False, sel = Set.insert v m.sel}) xs)
+            else lst (Just (dat, {m | single = False, sel = Set.insert v m.sel})) xs)
   in case q of
       QAnd (x::xs) -> lst (single True  x) xs
       QOr  (x::xs) -> lst (single False x) xs
@@ -100,8 +100,8 @@ langView orig model =
   in
   ( case Set.toList model.sel of
       []  -> b [ class "grayedout" ] [ text <| if orig then "Orig language" else "Language" ]
-      [v] -> span [ class "nowrap" ] [ lblPrefix model, langIcon v, text <| Maybe.withDefault "" (lookup v GT.languages) ]
-      l   -> span [ class "nowrap" ] <| lblPrefix model :: List.intersperse (text "") (List.map langIcon l)
+      [v] -> span [ class "nowrap" ] [ text tprefix, lblPrefix model, langIcon v, text <| Maybe.withDefault "" (lookup v GT.languages) ]
+      l   -> span [ class "nowrap" ] <| text tprefix :: lblPrefix model :: List.intersperse (text "") (List.map langIcon l)
   , \() ->
     [ div [ class "advheader" ]
       [ h3 [] [ text <| if orig then "Language the visual novel has been originally written in." else "Language(s) in which the visual novel is available." ]
