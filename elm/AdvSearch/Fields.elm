@@ -27,6 +27,7 @@ type NestMsg
   = NAddToggle Bool
   | NAdd Int
   | NField Int FieldMsg
+  | NType NestType Bool
 
 
 nestInit : NestType -> FieldType -> Data -> (Data, NestModel)
@@ -51,6 +52,7 @@ nestUpdate dat msg model =
         Just f ->
           let (ndat, nf, nc) = fieldUpdate dat m f
           in (ndat, { model | fields = modidx n (always nf) model.fields }, Cmd.map (NField n) nc)
+    NType n _ -> (dat, { model | ntype = n }, Cmd.none)
 
 
 nestToQuery : NestModel -> Maybe Query
@@ -74,9 +76,16 @@ nestFromQuery ntype ftype dat q =
        _ -> Nothing
 
 
--- TODO: Dropdown to display & switch between and/or
+nestFieldView : Field -> Html FieldMsg
+nestFieldView (fid, fdd, fm) =
+  let (flbl, fcont, fbody) = fieldView (fid,fdd,fm)
+  in div [ class "advnest" ]
+     [ div [ class "elm_dd_input", style "width" "40px" ] [ DD.view fdd Api.Normal flbl fcont ]
+     , fbody ]
+
+
 -- TODO: Buttons to move and remove fields
-nestView : NestModel -> Html NestMsg
+nestView : NestModel -> (Html NestMsg, () -> List (Html NestMsg), Html NestMsg)
 nestView model =
   let
     isNest (_,(_,_,f)) =
@@ -86,13 +95,17 @@ nestView model =
     list   = List.indexedMap (\a b -> (a,b)) model.fields
     nests  = List.filter isNest list
     plains = List.filter (not << isNest) list
-    plainsV = List.map (\(i,f) -> Html.map (NField i) (fieldView f)) plains
+
+    pView (fid, fdd, fm) =
+      let (flbl, fcont, fbody) = fieldView (fid,fdd,fm)
+      in div [ class "elm_dd_input" ] [ DD.view fdd Api.Normal flbl fcont ]
+    pViews = List.map (\(i,f) -> Html.map (NField i) (pView f)) plains
+    nViews = List.map (\(i,f) -> Html.map (NField i) (nestFieldView f)) nests
 
     add =
-      div [ class "elm_dd_input elm_dd_noarrow", style "width" "13px" ]
+      div [ class "elm_dd_input elm_dd_noarrow" ]
       [ DD.view model.add Api.Normal (text "+") <| \() ->
-        [ div [ class "advheader" ]
-          [ h3 [] [ text "Add filter" ] ]
+        [ div [ class "advheader" ] [ h3 [] [ text "Add filter" ] ]
         , ul [] <|
           List.map (\(n,f) ->
             if f.ftype /= model.ftype || f.title == "" then text ""
@@ -101,15 +114,19 @@ nestView model =
         ]
       ]
 
-    sel = div [] [ text <| if model.ntype == NAnd then "And" else "Or" ]
-  in
-  div [ class "advnest" ]
-  [ sel
-  , div []
-    <| div [ class "advrow" ] (if List.isEmpty nests then plainsV ++ [add] else plainsV)
-    :: List.map (\(i,f) -> Html.map (NField i) (fieldView f)) nests
-    ++ (if List.isEmpty nests then [] else [add])
-  ]
+    lbl = text <| if model.ntype == NAnd then "And" else "Or"
+    cont () =
+      [ ul []
+        [ li [] [ linkRadio (model.ntype == NAnd) (NType NAnd) [ text "And" ] ]
+        , li [] [ linkRadio (model.ntype == NOr ) (NType NOr ) [ text "Or"  ] ]
+        ]
+      ]
+    body =
+      div []
+        <| div [ class "advrow" ] (pViews ++ if List.isEmpty nests then [add] else [])
+        :: nViews
+        ++ (if List.isEmpty nests then [] else [add])
+  in (lbl, cont, body)
 
 
 
@@ -183,9 +200,11 @@ fieldUpdate : Data -> FieldMsg -> Field -> (Data, Field, Cmd FieldMsg)
 fieldUpdate dat msg_ (num, dd, model) =
   let maps f m = (dat, (num, dd, (f m)), Cmd.none)              -- Simple version: update function returns a Model
       mapf fm fc (d,m,c) = (d, (num, dd, (fm m)), Cmd.map fc c) -- Full version: update function returns (Data, Model, Cmd)
+      mapc fm fc (d,m,c) = (d, (num, DD.toggle dd False, (fm m)), Cmd.map fc c) -- Full version that also closes the DD (Ugly hack...)
   in case (msg_, model) of
+      (FSNest (NType a b), FMNest m) -> mapc FMNest FSNest (nestUpdate dat (NType a b) m)
       (FSNest msg,     FMNest m)     -> mapf FMNest FSNest (nestUpdate dat msg m)
-      (FSLang  msg,    FMLang  m)    -> maps FMLang     (AS.update msg m)
+      (FSLang msg,     FMLang m)     -> maps FMLang     (AS.update msg m)
       (FSOLang msg,    FMOLang m)    -> maps FMOLang    (AS.update msg m)
       (FSPlatform msg, FMPlatform m) -> maps FMPlatform (AS.update msg m)
       (FSLength msg,   FMLength m)   -> maps FMLength   (AS.update msg m)
@@ -193,16 +212,17 @@ fieldUpdate dat msg_ (num, dd, model) =
       _ -> (dat, (num, dd, model), Cmd.none)
 
 
-fieldView : Field -> Html FieldMsg
+fieldView : Field -> (Html FieldMsg, () -> List (Html FieldMsg), Html FieldMsg)
 fieldView (_, dd, model) =
-  let v f (lbl,cont) = div [ class "elm_dd_input" ] [ DD.view dd Api.Normal (Html.map f lbl) <| \() -> List.map (Html.map f) (cont ()) ]
+  let vf f (lbl,cont,body) = (Html.map f lbl, \() -> List.map (Html.map f) (cont ()), Html.map f body)
+      vs f (lbl,cont) = vf f (lbl,cont,text "")
   in case model of
-      FMCustom m   -> v FSCustom   (text "Unrecognized query", \() -> [text ""]) -- TODO: Display the Query
-      FMNest m     -> Html.map FSNest (nestView m)
-      FMLang  m    -> v FSLang     (AS.langView False m)
-      FMOLang m    -> v FSOLang    (AS.langView True  m)
-      FMPlatform m -> v FSPlatform (AS.platformView m)
-      FMLength m   -> v FSLength   (AS.lengthView m)
+      FMCustom m   -> vs FSCustom   (text "Unrecognized query", \() -> [text ""]) -- TODO: Display the Query
+      FMNest m     -> vf FSNest     (nestView m)
+      FMLang  m    -> vs FSLang     (AS.langView False m)
+      FMOLang m    -> vs FSOLang    (AS.langView True  m)
+      FMPlatform m -> vs FSPlatform (AS.platformView m)
+      FMLength m   -> vs FSLength   (AS.lengthView m)
 
 
 fieldToQuery : Field -> Maybe Query
