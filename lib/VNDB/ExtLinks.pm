@@ -97,9 +97,9 @@ our %LINKS = (
                       , regex => qr{([a-z0-9_-]+\.itch\.io/[a-z0-9_-]+)}
                       , patt  => 'https://<artist>.itch.io/<product>' },
         l_denpa    => { label => 'Denpasoft'
-                      , fmt   => 'https://denpasoft.com/products/%s'
+                      , fmt   => 'https://denpasoft.com/product/%s'
                       , fmt2  => config->{denpa_url}
-                      , regex => qr{(?:www\.)?denpasoft\.com/products/([a-z0-9-]+).*} },
+                      , regex => qr{(?:www\.)?denpasoft\.com/products?/([a-z0-9-]+).*} },
         l_jlist    => { label => 'J-List'
                       , fmt   => 'https://www.jlist.com/%s'
                       , fmt2  => sub { config->{ shift->{l_jlist_jbox} ? 'jbox_url' : 'jlist_url' } }
