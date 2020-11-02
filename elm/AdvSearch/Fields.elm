@@ -4,6 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Array as A
 import Lib.Util exposing (..)
+import Lib.Html exposing (..)
 import Lib.DropDown as DD
 import Lib.Api as Api
 import AdvSearch.Set as AS
@@ -24,6 +25,7 @@ type alias NestModel =
 
 type NestMsg
   = NAddToggle Bool
+  | NAdd Int
   | NField Int FieldMsg
 
 
@@ -40,6 +42,9 @@ nestUpdate : Data -> NestMsg -> NestModel -> (Data, NestModel, Cmd NestMsg)
 nestUpdate dat msg model =
   case msg of
     NAddToggle b -> (dat, { model | add = DD.toggle model.add b }, Cmd.none)
+    NAdd n ->
+      let (ndat,f) = fieldInit n dat
+      in (ndat, { model | add = DD.toggle model.add False, fields = model.fields ++ [f] }, Cmd.none)
     NField n m ->
       case List.head (List.drop n model.fields) of
         Nothing -> (dat, model, Cmd.none)
@@ -69,13 +74,42 @@ nestFromQuery ntype ftype dat q =
        _ -> Nothing
 
 
+-- TODO: Dropdown to display & switch between and/or
+-- TODO: Buttons to move and remove fields
 nestView : NestModel -> Html NestMsg
 nestView model =
-  -- TODO: Dropdown to switch between and/or
-  -- TODO: Button to add more fields
-  -- TODO: Buttons to move and remove fields
-  -- TODO: Use a multi-row layout if there are nested filters
-  div [ class "advrow" ] <| List.indexedMap (\i f -> Html.map (NField i) (fieldView f)) model.fields
+  let
+    isNest (_,(_,_,f)) =
+     case f of
+       FMNest _ -> True
+       _ -> False
+    list   = List.indexedMap (\a b -> (a,b)) model.fields
+    nests  = List.filter isNest list
+    plains = List.filter (not << isNest) list
+    plainsV = List.map (\(i,f) -> Html.map (NField i) (fieldView f)) plains
+
+    add =
+      div [ class "elm_dd_input elm_dd_noarrow", style "width" "13px" ]
+      [ DD.view model.add Api.Normal (text "+") <| \() ->
+        [ div [ class "advheader" ]
+          [ h3 [] [ text "Add filter" ] ]
+        , ul [] <|
+          List.map (\(n,f) ->
+            if f.ftype /= model.ftype || f.title == "" then text ""
+            else li [] [ a [ href "#", onClickD (NAdd n)] [ text f.title ] ]
+          ) <| A.toIndexedList fields
+        ]
+      ]
+
+    sel = div [] [ text <| if model.ntype == NAnd then "And" else "Or" ]
+  in
+  div [ class "advnest" ]
+  [ sel
+  , div []
+    <| div [ class "advrow" ] (if List.isEmpty nests then plainsV ++ [add] else plainsV)
+    :: List.map (\(i,f) -> Html.map (NField i) (fieldView f)) nests
+    ++ (if List.isEmpty nests then [] else [add])
+  ]
 
 
 

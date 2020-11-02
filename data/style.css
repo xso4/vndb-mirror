@@ -1115,6 +1115,9 @@ p.filselect i { font-style: normal }
 /****** Advanced Search *******/
 
 .advsearch { max-width: 800px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: center }
+.advsearch .advnest { display: flex }
+.advsearch .advnest > div:nth-child(1) { width: 30px }
+.advsearch .advnest > div:nth-child(2) { border-left: 1px dashed $border$ }
 .advsearch .advrow { display: flex; flex-wrap: wrap }
 .advsearch .advrow > * { margin: 5px; width: 150px }
 .advsearch .advheader { box-sizing: border-box; background-color: $_blendbg$; padding: 3px; width: 100%; margin-bottom: 2px }
