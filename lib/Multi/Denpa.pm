@@ -10,7 +10,7 @@ use VNDB::ExtLinks ();
 
 my %C = (
   clean_timeout => 48*3600,
-  check_timeout => 15*60,
+  check_timeout => 10*60,
 );
 
 
@@ -37,14 +37,14 @@ sub run {
 sub data {
   my($time, $id, $body, $hdr) = @_;
   my $prefix = sprintf '[%.1fs] %s', $time, $id;
-  return AE::log warn => "$prefix ERROR: $hdr->{Status} $hdr->{Reason}" if $hdr->{Status} !~ /^2/;
+  return AE::log warn => "$prefix ERROR: $hdr->{Status} $hdr->{Reason}" if $hdr->{Status} !~ /^[2|404]/;
 
   my $listprice    = $body =~ m{<meta property="product:price:amount" content="([^"]+)"} && $1;
   my $currency     = $body =~ m{<meta property="product:price:currency" content="([^"]+)"} && $1;
   my $availability = $body =~ m{<meta property="product:availability" content="([^"]+)"} && $1;
   my $sku          = $body =~ m{<meta property="product:retailer_item_id" content="([^"]+)"} ? $1 : '';
 
-  if(!$listprice || !$availability || $availability ne 'instock') {
+  if($hdr->{Status} eq '404' || !$listprice || !$availability || $availability ne 'instock') {
     pg_cmd q{UPDATE shop_denpa SET deadsince = COALESCE(deadsince, NOW()), lastfetch = NOW() WHERE id = $1}, [ $id ];
     AE::log info => "$prefix not found or not in stock.";
 
