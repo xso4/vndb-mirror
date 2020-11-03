@@ -4,16 +4,11 @@ use strict;
 use warnings;
 use Multi::Core;
 use AnyEvent::HTTP;
-use JSON::XS 'decode_json';
-use MIME::Base64 'encode_base64';
 use VNDB::Config;
-use TUWF::Misc 'uri_escape';
+use VNDB::ExtLinks ();
 
 
 my %C = (
-  api  => '',
-  user => '',
-  pass => '',
   clean_timeout => 48*3600,
   check_timeout => 15*60,
 );
@@ -44,24 +39,20 @@ sub data {
   my $prefix = sprintf '[%.1fs] %s', $time, $id;
   return AE::log warn => "$prefix ERROR: $hdr->{Status} $hdr->{Reason}" if $hdr->{Status} !~ /^2/;
 
-  my $data = eval { decode_json $body };
-  if(!$data) {
-    AE::log warn => "$prefix Error decoding JSON: $@";
-    return;
-  }
+  my $listprice    = $body =~ m{<meta property="product:price:amount" content="([^"]+)"} && $1;
+  my $currency     = $body =~ m{<meta property="product:price:currency" content="([^"]+)"} && $1;
+  my $availability = $body =~ m{<meta property="product:availability" content="([^"]+)"} && $1;
+  my $sku          = $body =~ m{<meta property="product:retailer_item_id" content="([^"]+)"} ? $1 : '';
 
-  my($prod) = $data->{products}->@*;
-
-  if(!$prod || !$prod->{published_at}) {
+  if(!$listprice || !$availability || $availability ne 'instock') {
     pg_cmd q{UPDATE shop_denpa SET deadsince = COALESCE(deadsince, NOW()), lastfetch = NOW() WHERE id = $1}, [ $id ];
-    AE::log info => "$prefix not found.";
+    AE::log info => "$prefix not found or not in stock.";
 
   } else {
-    my $price = 'US$ '.$prod->{variants}[0]{price};
-    $price = 'free' if $price eq 'US$ 0.00';
+    my $price = $listprice eq '0.00' ? 'free' : ($currency eq 'USD' ? 'US$' : $currency).' '.$listprice;
     pg_cmd 'UPDATE shop_denpa SET deadsince = NULL, lastfetch = NOW(), sku = $2, price = $3 WHERE id = $1',
-      [ $prod->{handle}, $prod->{variants}[0]{sku}, $price ];
-    AE::log debug => "$prefix for $price at $prod->{variants}[0]{sku}";
+      [ $id, $sku, $price ];
+    AE::log debug => "$prefix for $price at $sku";
   }
 }
 
@@ -73,9 +64,8 @@ sub sync {
 
     my $id = $res->value(0,0);
     my $ts = AE::now;
-    my $code = encode_base64("$C{user}:$C{pass}", '');
-    http_get $C{api}.'?handle='.uri_escape($id),
-      headers => {'User-Agent' => $C{ua}, Authorization => "Basic $code"},
+    http_get sprintf($VNDB::ExtLinks::LINKS{r}{l_denpa}{fmt}, $id),
+      headers => {'User-Agent' => $C{ua}},
       timeout => 60,
       sub { data(AE::now-$ts, $id, @_) };
   };
