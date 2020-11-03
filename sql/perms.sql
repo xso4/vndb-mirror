@@ -172,8 +172,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON ulist_labels             TO vndb_multi;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ulist_vns                TO vndb_multi;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ulist_vns_labels         TO vndb_multi;
 
-GRANT SELECT (id, username, registered, ign_votes, email_confirmed, notify_dbedit, notify_announce, notify_post, notify_comment, c_vns, c_wish, c_votes, c_changes, c_imgvotes, c_tags, perm_imgvote),
-      UPDATE (                                                                                                                   c_vns, c_wish, c_votes, c_changes, c_imgvotes, c_tags              ) ON users TO vndb_multi;
+GRANT SELECT (id, username, registered, ign_votes, email_confirmed, notify_dbedit, notify_announce, notify_post, notify_comment, c_vns, c_wish, c_votes, c_changes, c_imgvotes, c_tags, perm_imgvote, perm_imgmod),
+      UPDATE (                                                                                                                   c_vns, c_wish, c_votes, c_changes, c_imgvotes, c_tags                           ) ON users TO vndb_multi;
 GRANT                         DELETE ON users                    TO vndb_multi;
 
 GRANT SELECT,         UPDATE         ON vn                       TO vndb_multi;
