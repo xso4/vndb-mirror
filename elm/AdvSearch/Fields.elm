@@ -12,6 +12,7 @@ import AdvSearch.Query exposing (..)
 
 
 -- "Nested" fields are a container for other fields.
+-- The code for nested fields is tightly coupled with the generic 'Field' abstraction below.
 
 type NestType = NAnd | NOr
 
@@ -46,6 +47,12 @@ nestUpdate dat msg model =
     NAdd n ->
       let (ndat,f) = fieldInit n dat
       in (ndat, { model | add = DD.toggle model.add False, fields = model.fields ++ [f] }, Cmd.none)
+    NField n FDel -> (dat, { model | fields = delidx n model.fields }, Cmd.none)
+    NField n FMoveSub ->
+      let (ndat,subm) = nestInit (if model.ntype == NAnd then NOr else NAnd) model.ftype dat
+          subfields = List.drop n model.fields |> List.take 1 |> List.map (\(fid,fdd,fm) -> (fid, DD.toggle fdd False, fm))
+          (ndat2,subf) = fieldCreate -1 (ndat, FMNest { subm | fields = subfields })
+      in (ndat2, { model | fields = modidx n (always subf) model.fields }, Cmd.none)
     NField n m ->
       case List.head (List.drop n model.fields) of
         Nothing -> (dat, model, Cmd.none)
@@ -76,17 +83,14 @@ nestFromQuery ntype ftype dat q =
        _ -> Nothing
 
 
-nestFieldView : Field -> Html FieldMsg
-nestFieldView (fid, fdd, fm) =
-  let (flbl, fcont, fbody) = fieldView (fid,fdd,fm)
-  in div [ class "advnest" ]
-     [ div [ class "elm_dd_input", style "width" "40px" ] [ DD.view fdd Api.Normal flbl fcont ]
-     , fbody ]
+nestFieldView : Int -> Field -> Html FieldMsg
+nestFieldView level f =
+  let (fddv, fbody) = fieldView level f
+  in  div [ class "advnest" ] [ fddv, fbody ]
 
 
--- TODO: Buttons to move and remove fields
-nestView : NestModel -> (Html NestMsg, () -> List (Html NestMsg), Html NestMsg)
-nestView model =
+nestView : Int -> NestModel -> (Html NestMsg, () -> List (Html NestMsg), Html NestMsg)
+nestView level model =
   let
     isNest (_,(_,_,f)) =
      case f of
@@ -96,11 +100,8 @@ nestView model =
     nests  = List.filter isNest list
     plains = List.filter (not << isNest) list
 
-    pView (fid, fdd, fm) =
-      let (flbl, fcont, fbody) = fieldView (fid,fdd,fm)
-      in div [ class "elm_dd_input" ] [ DD.view fdd Api.Normal flbl fcont ]
-    pViews = List.map (\(i,f) -> Html.map (NField i) (pView f)) plains
-    nViews = List.map (\(i,f) -> Html.map (NField i) (nestFieldView f)) nests
+    pViews = List.map (\(i,f) -> Html.map (NField i) (Tuple.first (fieldView (level+2) f))) plains
+    nViews = List.map (\(i,f) -> Html.map (NField i) (nestFieldView (level+1) f)) nests
 
     add =
       div [ class "elm_dd_input elm_dd_noarrow" ]
@@ -158,6 +159,9 @@ type FieldMsg
   | FSPlatform (AS.Msg String)
   | FSLength   (AS.Msg Int)
   | FToggle Bool
+  | FDel       -- intercepted in nestUpdate
+  | FMoveSub   -- intercepted in nestUpdate
+  | FMovePar
 
 type FieldType = V
 
@@ -198,10 +202,27 @@ fields =
 
 fieldUpdate : Data -> FieldMsg -> Field -> (Data, Field, Cmd FieldMsg)
 fieldUpdate dat msg_ (num, dd, model) =
-  let maps f m = (dat, (num, dd, (f m)), Cmd.none)              -- Simple version: update function returns a Model
-      mapf fm fc (d,m,c) = (d, (num, dd, (fm m)), Cmd.map fc c) -- Full version: update function returns (Data, Model, Cmd)
-      mapc fm fc (d,m,c) = (d, (num, DD.toggle dd False, (fm m)), Cmd.map fc c) -- Full version that also closes the DD (Ugly hack...)
+  let maps f m = (dat, (num, dd, f m), Cmd.none)              -- Simple version: update function returns a Model
+      mapf fm fc (d,m,c) = (d, (num, dd, fm m), Cmd.map fc c) -- Full version: update function returns (Data, Model, Cmd)
+      mapc fm fc (d,m,c) = (d, (num, DD.toggle dd False, fm m), Cmd.map fc c) -- Full version that also closes the DD (Ugly hack...)
+      noop = (dat, (num, dd, model), Cmd.none)
   in case (msg_, model) of
+      -- Move to parent node is tricky, needs to be intercepted at this point so that we can access the parent NestModel.
+      (FSNest (NField parentNum (FSNest (NField fieldNum FMovePar))), FMNest grandModel) ->
+        case List.head <| List.drop parentNum grandModel.fields of
+          Just (_,_,FMNest parentModel) ->
+            let fieldField = List.drop fieldNum parentModel.fields |> List.take 1
+                newFields = List.map (\(fid,fdd,fm) -> (fid, DD.toggle fdd False, fm)) fieldField
+                newParentModel = { parentModel | fields = delidx fieldNum parentModel.fields }
+                newGrandFields =
+                  (if List.isEmpty newParentModel.fields
+                   then delidx parentNum grandModel.fields
+                   else modidx parentNum (\(pid,pdd,_) -> (pid,pdd,FMNest newParentModel)) grandModel.fields
+                  ) ++ newFields
+                newGrandModel = { grandModel | fields = newGrandFields }
+            in (dat, (num,dd,FMNest newGrandModel), Cmd.none)
+          _ -> noop
+
       (FSNest (NType a b), FMNest m) -> mapc FMNest FSNest (nestUpdate dat (NType a b) m)
       (FSNest msg,     FMNest m)     -> mapf FMNest FSNest (nestUpdate dat msg m)
       (FSLang msg,     FMLang m)     -> maps FMLang     (AS.update msg m)
@@ -209,16 +230,28 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSPlatform msg, FMPlatform m) -> maps FMPlatform (AS.update msg m)
       (FSLength msg,   FMLength m)   -> maps FMLength   (AS.update msg m)
       (FToggle b, _) -> (dat, (num, DD.toggle dd b, model), Cmd.none)
-      _ -> (dat, (num, dd, model), Cmd.none)
+      _ -> noop
 
 
-fieldView : Field -> (Html FieldMsg, () -> List (Html FieldMsg), Html FieldMsg)
-fieldView (_, dd, model) =
-  let vf f (lbl,cont,body) = (Html.map f lbl, \() -> List.map (Html.map f) (cont ()), Html.map f body)
+fieldView : Int -> Field -> (Html FieldMsg, Html FieldMsg)
+fieldView level (_, dd, model) =
+  let ddv lbl cont = div [ class "elm_dd_input" ]
+        [ DD.view dd Api.Normal lbl <| \() ->
+            div [ class "advbut" ]
+            [ if level == 0
+              then b [ title "Can't delete the top-level filter" ] [ text "⊗" ]
+              else a [ href "#", onClickD FDel, title "Delete this filter" ] [ text "⊗" ]
+            , if level <= 1
+              then b [ title "Can't move this filter to parent branch" ] [ text "↰" ]
+              else a [ href "#", onClickD FMovePar, title "Move this filter to parent branch" ] [ text "↰" ]
+            , a [ href "#", onClickD FMoveSub, title "Create new branch for this filter" ] [ text "↳" ]
+            ] :: cont ()
+        ]
+      vf f (lbl,cont,body) = (ddv (Html.map f lbl) (\() -> List.map (Html.map f) (cont ())), Html.map f body)
       vs f (lbl,cont) = vf f (lbl,cont,text "")
   in case model of
       FMCustom m   -> vs FSCustom   (text "Unrecognized query", \() -> [text ""]) -- TODO: Display the Query
-      FMNest m     -> vf FSNest     (nestView m)
+      FMNest m     -> vf FSNest     (nestView level m)
       FMLang  m    -> vs FSLang     (AS.langView False m)
       FMOLang m    -> vs FSOLang    (AS.langView True  m)
       FMPlatform m -> vs FSPlatform (AS.platformView m)
