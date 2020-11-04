@@ -159,7 +159,7 @@ lengthView model =
       l   -> span [] [ lblPrefix model, text <| "Length (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
     [ div [ class "advheader" ]
-      [ h3 [] [ text "Length" ]
+      [ h3 [] [ text "Estimated play time" ]
       , opts model False ]
     , ul [] <| List.map (\(l,t) -> li [] [ linkRadio (Set.member l model.sel) (Sel l) [ text t ] ]) GT.vnLengths
     ]

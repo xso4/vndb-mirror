@@ -244,7 +244,9 @@ fieldView level (_, dd, model) =
             , if level <= 1
               then b [ title "Can't move this filter to parent branch" ] [ text "↰" ]
               else a [ href "#", onClickD FMovePar, title "Move this filter to parent branch" ] [ text "↰" ]
-            , a [ href "#", onClickD FMoveSub, title "Create new branch for this filter" ] [ text "↳" ]
+            , if level == 0
+              then b [ title "Can't move this filter into a subbranch" ] [ text "↳" ]
+              else a [ href "#", onClickD FMoveSub, title "Create new branch for this filter" ] [ text "↳" ]
             ] :: cont ()
         ]
       vf f (lbl,cont,body) = (ddv (Html.map f lbl) (\() -> List.map (Html.map f) (cont ())), Html.map f body)
