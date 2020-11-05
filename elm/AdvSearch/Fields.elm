@@ -14,7 +14,7 @@ import AdvSearch.Query exposing (..)
 -- "Nested" fields are a container for other fields.
 -- The code for nested fields is tightly coupled with the generic 'Field' abstraction below.
 
-type NestType = NAnd | NOr
+type NestType = NAnd | NOr | NRel | NRelNeg
 
 type alias NestModel =
   { ntype  : NestType
@@ -31,13 +31,27 @@ type NestMsg
   | NType NestType Bool
 
 
-nestInit : NestType -> FieldType -> Data -> (Data, NestModel)
-nestInit n f dat = ({dat | objid = dat.objid+1 },
-  { ntype  = n
-  , ftype  = f
-  , fields = []
-  , add    = DD.init ("advsearch_field"++String.fromInt dat.objid) NAddToggle
-  })
+nestInit : NestType -> FieldType -> List Field -> Data -> (Data, NestModel)
+nestInit ntype ftype list dat =
+  let
+    -- Make sure that subtype nesting always has an and/or field
+    addNest ndat mod =
+      let (ndat2,f) = fieldCreate -1 (Tuple.mapSecond FMNest (nestInit NAnd mod.ftype mod.fields ndat))
+      in  (ndat2, { mod | fields = [f] })
+    ensureNest (ndat,mod) =
+      case (ntype, mod.fields) of
+        (NAnd, _) -> (ndat,mod)
+        (NOr, _) -> (ndat,mod)
+        (_, [(_,_,FMNest m)]) -> if m.ntype == NAnd || m.ntype == NOr then (ndat,mod) else addNest ndat mod
+        _ -> addNest ndat mod
+  in ensureNest
+    ( { dat | objid = dat.objid+1 }
+    , { ntype  = ntype
+      , ftype  = ftype
+      , fields = list
+      , add    = DD.init ("advsearch_field"++String.fromInt dat.objid) NAddToggle
+      }
+    )
 
 
 nestUpdate : Data -> NestMsg -> NestModel -> (Data, NestModel, Cmd NestMsg)
@@ -49,9 +63,9 @@ nestUpdate dat msg model =
       in (ndat, { model | add = DD.toggle model.add False, fields = model.fields ++ [f] }, Cmd.none)
     NField n FDel -> (dat, { model | fields = delidx n model.fields }, Cmd.none)
     NField n FMoveSub ->
-      let (ndat,subm) = nestInit (if model.ntype == NAnd then NOr else NAnd) model.ftype dat
-          subfields = List.drop n model.fields |> List.take 1 |> List.map (\(fid,fdd,fm) -> (fid, DD.toggle fdd False, fm))
-          (ndat2,subf) = fieldCreate -1 (ndat, FMNest { subm | fields = subfields })
+      let subfields = List.drop n model.fields |> List.take 1 |> List.map (\(fid,fdd,fm) -> (fid, DD.toggle fdd False, fm))
+          (ndat,subm) = nestInit (if model.ntype == NAnd then NOr else NAnd) model.ftype subfields dat
+          (ndat2,subf) = fieldCreate -1 (ndat, FMNest subm)
       in (ndat2, { model | fields = modidx n (always subf) model.fields }, Cmd.none)
     NField n m ->
       case List.head (List.drop n model.fields) of
@@ -65,21 +79,30 @@ nestUpdate dat msg model =
 nestToQuery : NestModel -> Maybe Query
 nestToQuery model =
   case (model.ntype, List.filterMap fieldToQuery model.fields) of
-    (_,    [] ) -> Nothing
-    (_,    [x]) -> Just x
-    (NAnd, xs ) -> Just (QAnd xs)
-    (NOr,  xs ) -> Just (QOr xs)
+    (_,       [] ) -> Nothing
+    (NRel,    [x]) -> Just (QQuery "release" Eq x)
+    (NRelNeg, [x]) -> Just (QQuery "release" Ne x)
+    (_,       [x]) -> Just x
+    (NAnd,    xs ) -> Just (QAnd xs)
+    (NOr,     xs ) -> Just (QOr xs)
+    _              -> Nothing
 
 
 nestFromQuery : NestType -> FieldType -> Data -> Query -> Maybe (Data, NestModel)
 nestFromQuery ntype ftype dat q =
-  let init l =
-        let (ndat,m) = nestInit ntype ftype dat
-            (ndat2,fl) = List.foldr (\f (d,a) -> let (nd,fm) = fieldFromQuery ftype d f in (nd,(fm::a))) (ndat,[]) l
-        in Just (ndat2, { m | fields = fl })
-  in case (ntype, q) of
-       (NAnd, QAnd l) -> init l
-       (NOr,  QOr  l) -> init l
+  let init nt ft l =
+        let (ndat,fl) = List.foldr (\f (d,a) -> let (nd,fm) = fieldFromQuery ft d f in (nd,(fm::a))) (dat,[]) l
+        in nestInit nt ft fl ndat
+
+      initSub op nt ntNeg ft val =
+        case op of
+          Eq -> Just (init nt    ft [val])
+          Ne -> Just (init ntNeg ft [val])
+          _ -> Nothing
+  in case (ftype, ntype, q) of
+       (V, NRel, QQuery "release" op r) -> initSub op NRel NRelNeg R r
+       (_, NAnd, QAnd l) -> Just (init NAnd ftype l)
+       (_, NOr,  QOr  l) -> Just (init NOr  ftype l)
        _ -> Nothing
 
 
@@ -99,11 +122,13 @@ nestView level model =
     list   = List.indexedMap (\a b -> (a,b)) model.fields
     nests  = List.filter isNest list
     plains = List.filter (not << isNest) list
+    subtype = model.ntype /= NAnd && model.ntype /= NOr
 
-    pViews = List.map (\(i,f) -> Html.map (NField i) (Tuple.first (fieldView (level+2) f))) plains
-    nViews = List.map (\(i,f) -> Html.map (NField i) (nestFieldView (level+1) f)) nests
+    pViews = List.map (\(i,f) -> Html.map (NField i) (Tuple.first (fieldView (if subtype then 0 else level+1) f))) plains
+    nViews = List.map (\(i,f) -> Html.map (NField i) (nestFieldView (if subtype then 0 else level+1) f)) nests
 
     add =
+      if model.ntype /= NAnd && model.ntype /= NOr then text "" else
       div [ class "elm_dd_input elm_dd_noarrow" ]
       [ DD.view model.add Api.Normal (text "+") <| \() ->
         [ div [ class "advheader" ] [ h3 [] [ text "Add filter" ] ]
@@ -115,12 +140,22 @@ nestView level model =
         ]
       ]
 
-    lbl = text <| if model.ntype == NAnd then "And" else "Or"
+    lbl = text <|
+      case model.ntype of
+        NAnd    -> "And"
+        NOr     -> "Or"
+        NRel    -> "Rel"
+        NRelNeg -> "¬Rel"
+
     cont () =
-      [ ul []
-        [ li [] [ linkRadio (model.ntype == NAnd) (NType NAnd) [ text "And" ] ]
-        , li [] [ linkRadio (model.ntype == NOr ) (NType NOr ) [ text "Or"  ] ]
-        ]
+      [ ul [] <|
+        if model.ntype == NAnd || model.ntype == NOr
+        then [ li [] [ linkRadio (model.ntype == NAnd) (NType NAnd) [ text "And" ] ]
+             , li [] [ linkRadio (model.ntype == NOr ) (NType NOr ) [ text "Or"  ] ]
+             ]
+        else [ li [] [ linkRadio (model.ntype == NRel)    (NType NRel)    [ text "Has a release that matches these filters" ] ]
+             , li [] [ linkRadio (model.ntype == NRelNeg) (NType NRelNeg) [ text "Does not have a release that matches these filters" ] ]
+             ]
       ]
     body =
       div []
@@ -163,7 +198,7 @@ type FieldMsg
   | FMoveSub   -- intercepted in nestUpdate
   | FMovePar
 
-type FieldType = V
+type FieldType = V | R
 
 type alias FieldDesc =
   { ftype     : FieldType
@@ -189,14 +224,17 @@ fields =
   -- into Fields, so "catch all" fields must be listed first. In particular,
   -- FMNest with and/or should go before everything else.
 
-  --  T TITLE               QUICK     WRAP        INIT               FROM_QUERY
-  [ f V "And"               Nothing   FMNest      (nestInit NAnd V)  (nestFromQuery NAnd V)
-  , f V "Or"                Nothing   FMNest      (nestInit NOr  V)  (nestFromQuery NOr  V)
+  --  T TITLE               QUICK     WRAP        INIT                  FROM_QUERY
+  [ f V "And"               Nothing   FMNest      (nestInit NAnd V [])  (nestFromQuery NAnd V)
+  , f V "Or"                Nothing   FMNest      (nestInit NOr  V [])  (nestFromQuery NOr  V)
 
-  , f V "Language"          (Just 1)  FMLang      AS.init            AS.langFromQuery
-  , f V "Original language" (Just 2)  FMOLang     AS.init            AS.olangFromQuery
-  , f V "Platform"          (Just 3)  FMPlatform  AS.init            AS.platformFromQuery
-  , f V "Length"            (Just 4)  FMLength    AS.init            AS.lengthFromQuery
+  , f V "Language"          (Just 1)  FMLang      AS.init               AS.langFromQuery
+  , f V "Original language" (Just 2)  FMOLang     AS.init               AS.olangFromQuery
+  , f V "Platform"          (Just 3)  FMPlatform  AS.init               AS.platformFromQuery
+  , f V "Length"            (Just 4)  FMLength    AS.init               AS.lengthFromQuery
+  , f V "Release"           Nothing   FMNest      (nestInit NRel R [])  (nestFromQuery NRel V)
+
+  , f R "Language"          (Just 1)  FMLang      AS.init               AS.langFromQuery
   ]
 
 

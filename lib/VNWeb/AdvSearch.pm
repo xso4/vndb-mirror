@@ -61,15 +61,17 @@ sub f {
         op    => \%op,
     );
     $f{op}{'!='} = sub { sql 'NOT (', $f{op}{'='}->(@_), ')' } if $f{op}{'='} && !$f{op}{'!='};
-    $f{int} = $f{value} && ($f{value}->analyze->{type} eq 'int' || $f{value}->analyze->{type} eq 'bool');
+    $f{int} = ref $f{value} && ($f{value}->analyze->{type} eq 'int' || $f{value}->analyze->{type} eq 'bool');
     $fields{$t}{$n} = \%f;
 }
 
-f 'v', 'lang',     { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_languages && ARRAY', \$_, '::language[]' };
-f 'v', 'olang',    { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_olang     && ARRAY', \$_, '::language[]' };
-f 'v', 'platform', { enum => \%PLATFORM }, '=' => sub { sql 'v.c_platforms && ARRAY', \$_, '::platform[]' };
-f 'v', 'length',   { uint => 1, enum => \%VN_LENGTH }, '=' => sub { sql 'v.length =', \$_ };
+f v => 'lang',     { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_languages && ARRAY', \$_, '::language[]' };
+f v => 'olang',    { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_olang     && ARRAY', \$_, '::language[]' };
+f v => 'platform', { enum => \%PLATFORM }, '=' => sub { sql 'v.c_platforms && ARRAY', \$_, '::platform[]' };
+f v => 'length',   { uint => 1, enum => \%VN_LENGTH }, '=' => sub { sql 'v.length =', \$_ };
+f v => 'release',  'r', '=' => sub { sql 'id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE', $_, ')' };
 
+f r => 'lang',     { enum => \%LANGUAGE }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_lang WHERE lang =', \$_, ')' };
 
 
 sub validate {

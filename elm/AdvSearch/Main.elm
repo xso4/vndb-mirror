@@ -66,9 +66,10 @@ init arg =
       (ndat, query) = JD.decodeValue decodeQuery arg |> Result.toMaybe |> Maybe.withDefault (QAnd []) |> fieldFromQuery V dat
 
       -- We always want the top-level query to be a Nest type.
+      addtoplvl = let (_,m) = fieldCreate -1 (Tuple.mapSecond FMNest (nestInit NAnd V [query] ndat)) in m
       nquery = case query of
-                (_,_,FMNest _) -> query
-                _ -> let (_,m) = fieldCreate -1 (Tuple.mapSecond (\nm -> FMNest {nm|fields=[query]}) (nestInit NAnd V ndat)) in m
+                (_,_,FMNest m) -> if m.ntype == NAnd || m.ntype == NOr then query else addtoplvl
+                _ -> addtoplvl
 
       -- Is this a "simple" query? i.e. one that consists of at most a single level of nesting
       isSimple = case nquery of
@@ -79,7 +80,7 @@ init arg =
 
       model = { query = nquery
               , ftype = V
-              , data  = { ndat | objid = ndat.objid + 2 } -- +2 for the creation of nQuery
+              , data  = { ndat | objid = ndat.objid + 5 } -- +5 for the creation of nQuery
               }
   in if isSimple then normalize model else model
 
