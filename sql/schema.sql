@@ -919,7 +919,7 @@ CREATE TABLE users (
   max_sexual      smallint NOT NULL DEFAULT 0,
   max_violence    smallint NOT NULL DEFAULT 0,
   last_reports    timestamptz, -- For mods: Most recent activity seen on the reports listing
-  perm_review     boolean NOT NULL DEFAULT false, -- TODO: DEFAULT true when out of beta.
+  perm_review     boolean NOT NULL DEFAULT true,
   notify_post     boolean NOT NULL DEFAULT true,
   notify_comment  boolean NOT NULL DEFAULT true
 );
