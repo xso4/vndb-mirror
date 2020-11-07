@@ -5,14 +5,16 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Browser
 import Set
+import Dict
 import Array as A
 import Json.Encode as JE
 import Json.Decode as JD
+import Gen.Api as GApi
 import AdvSearch.Query exposing (..)
 import AdvSearch.Fields exposing (..)
 
 
-main : Program JE.Value Model Msg
+main : Program Recv Model Msg
 main = Browser.element
   { init   = \e -> (init e, Cmd.none)
   , view   = view
@@ -20,6 +22,11 @@ main = Browser.element
   , subscriptions = \m -> Sub.map Field (fieldSub m.query)
   }
 
+type alias Recv =
+  { query     : JE.Value
+  , ftype     : String
+  , producers : List GApi.ApiProducerResult
+  }
 
 type alias Model =
   { query : Field
@@ -60,10 +67,14 @@ normalize model =
       _ -> model
 
 
-init : JE.Value -> Model
+init : Recv -> Model
 init arg =
-  let dat = { objid = 0 }
-      (ndat, query) = JD.decodeValue decodeQuery arg |> Result.toMaybe |> Maybe.withDefault (QAnd []) |> fieldFromQuery V dat
+  let dat = { objid     = 0
+            , level     = 0
+            , producers = Dict.fromList <| List.map (\p -> (p.id,p)) <| arg.producers
+            }
+
+      (ndat, query) = JD.decodeValue decodeQuery arg.query |> Result.toMaybe |> Maybe.withDefault (QAnd []) |> fieldFromQuery V dat
 
       -- We always want the top-level query to be a Nest type.
       addtoplvl = let (_,m) = fieldCreate -1 (Tuple.mapSecond FMNest (nestInit NAnd V [query] ndat)) in m
@@ -79,7 +90,7 @@ init arg =
                   _ -> True
 
       model = { query = nquery
-              , ftype = V
+              , ftype = if arg.ftype == "v" then V else R
               , data  = { ndat | objid = ndat.objid + 5 } -- +5 for the creation of nQuery
               }
   in if isSimple then normalize model else model
@@ -96,6 +107,6 @@ update msg model =
 view : Model -> Html Msg
 view model = div [ class "advsearch" ]
   [ input [ type_ "hidden", id "f", name "f", value <| Maybe.withDefault "" <| Maybe.map (\v -> JE.encode 0 (encodeQuery v)) (fieldToQuery model.query) ] []
-  , Html.map Field (nestFieldView 0 model.query)
+  , Html.map Field (nestFieldView model.data model.query)
   , input [ type_ "submit", class "submit", value "Search" ] []
   ]

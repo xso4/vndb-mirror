@@ -61,6 +61,7 @@ sub f {
         op    => \%op,
     );
     $f{op}{'!='} = sub { sql 'NOT (', $f{op}{'='}->(@_), ')' } if $f{op}{'='} && !$f{op}{'!='};
+    $f{vndbid} = ref $v eq 'HASH' && $v->{vndbid} && !ref $v->{vndbid} && $v->{vndbid};
     $f{int} = ref $f{value} && ($f{value}->analyze->{type} eq 'int' || $f{value}->analyze->{type} eq 'bool');
     $fields{$t}{$n} = \%f;
 }
@@ -69,9 +70,13 @@ f v => 'lang',     { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_languages && AR
 f v => 'olang',    { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_olang     && ARRAY', \$_, '::language[]' };
 f v => 'platform', { enum => \%PLATFORM }, '=' => sub { sql 'v.c_platforms && ARRAY', \$_, '::platform[]' };
 f v => 'length',   { uint => 1, enum => \%VN_LENGTH }, '=' => sub { sql 'v.length =', \$_ };
-f v => 'release',  'r', '=' => sub { sql 'id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE', $_, ')' };
+f v => 'developer',{ vndbid => 'p' }, '=' => sub {
+    sql 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id JOIN releases_producers rp ON rp.id = r.id WHERE NOT r.hidden AND rp.pid = vndbid_num(', \$_, ') AND rp.developer)' };
+f v => 'release',  'r', '=' => sub { sql 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE', $_, ')' };
+
 
 f r => 'lang',     { enum => \%LANGUAGE }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_lang WHERE lang =', \$_, ')' };
+f r => 'developer',{ vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE developer AND pid = vndbid_num(', \$_, '))' };
 
 
 sub validate {
@@ -124,14 +129,44 @@ sub coerce_for_json {
         coerce_for_json($t, $_) for @$q[1..$#$q];
     } else {
         my $f = $fields{$t}{$q->[0]};
-        $q->[2] = $f->{int} ? int $q->[2] : ref $f->{value} ? "$q->[2]" : coerce_for_json($t, $q->[2]);
+        # VNDBIDs are represented as ints for Elm
+        $q->[2] = $f->{vndbid} ? int ($q->[2] =~ s/^$f->{vndbid}//rg)
+             :    $f->{int}    ? int $q->[2]
+             : ref $f->{value} ? "$q->[2]" : coerce_for_json($f->{value}, $q->[2]);
     }
     $q
 }
 
+
+sub extract_ids {
+    my($t,$q,$ids) = @_;
+    if($q->[0] eq 'and' || $q->[0] eq 'or') {
+        extract_ids($t, $_, $ids) for @$q[1..$#$q];
+    } else {
+        my $f = $fields{$t}{$q->[0]};
+        $ids->{$q->[2]} = 1 if $f->{vndbid};
+        extract_ids($f->{value}, $q->[2], $ids) if !ref $f->{value};
+    }
+}
+
+
 sub as_elm_ {
     my($t, $q) = @_;
-    elm_ 'AdvSearch.Main', 'raw', $q && coerce_for_json($t, $q);
+
+    my(%o,%ids);
+    extract_ids($t, $q, \%ids) if $q;
+    $o{producers} = [ map +{id => $_=~s/^p//rg}, grep /^p/, keys %ids ];
+    enrich_merge id => 'SELECT id, name, original, hidden FROM producers WHERE id IN', $o{producers};
+
+    $o{ftype} = $t;
+    $o{query} = $q && coerce_for_json($t, $q);
+
+    state $schema ||= tuwf->compile({ type => 'hash', keys => {
+        ftype     => {},
+        query     => { type => 'array' },
+        producers => $VNWeb::Elm::apis{ProducerResult}[0],
+    }});
+    elm_ 'AdvSearch.Main', $schema, \%o;
 }
 
 1;

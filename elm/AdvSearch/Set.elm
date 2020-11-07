@@ -84,9 +84,12 @@ fromQuery f dat q =
 lblPrefix m = text <| (if m.neg then "¬" else "") ++ (if m.single || Set.size m.sel == 1 then "" else if m.and then "∀ " else "∃ ")
 
 
-opts m canAnd = div [ class "opts" ]
-  [ a [ href "#", onClickD (if canAnd then Mode else Single (not m.single)) ]
-    [ text <| "Mode:" ++ if m.single then "single" else if m.and then "all" else "any" ]
+opts m canAnd canSingle = div [ class "opts" ]
+  [ a
+    [ href "#"
+    , onClickD (if canAnd && canSingle then Mode else if canSingle then Single (not m.single) else And (not m.and))
+    , title <| if m.single then "Single-selection mode" else if m.and then "Entry must match all selected items" else "Entry must match at least one item"
+    ] [ text <| "Mode:" ++ if m.single then "single" else if m.and then "all" else "any" ]
   , linkRadio m.neg Neg [ text "invert" ]
   ]
 
@@ -105,7 +108,7 @@ langView orig model =
   , \() ->
     [ div [ class "advheader" ]
       [ h3 [] [ text <| if orig then "Language the visual novel has been originally written in." else "Language(s) in which the visual novel is available." ]
-      , opts model (not orig)
+      , opts model (not orig) True
       ]
     , ul [ style "columns" "2"] <| List.map (\(l,t) -> li [] [ linkRadio (Set.member l model.sel) (Sel l) [ langIcon l, text t ] ]) GT.languages
     ]
@@ -134,7 +137,7 @@ platformView model =
   , \() ->
     [ div [ class "advheader" ]
       [ h3 [] [ text "Platforms for which the visual novel is available." ]
-      , opts model True
+      , opts model True True
       ]
     , ul [ style "columns" "2"] <| List.map (\(p,t) ->
         li [classList [("separator", p == "web")]] [ linkRadio (Set.member p model.sel) (Sel p) [ platformIcon p, text t ] ]
@@ -159,8 +162,8 @@ lengthView model =
       l   -> span [] [ lblPrefix model, text <| "Length (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
     [ div [ class "advheader" ]
-      [ h3 [] [ text "Estimated play time" ]
-      , opts model False ]
+      [ h3 [] [ text "Length (estimated play time)" ]
+      , opts model False True ]
     , ul [] <| List.map (\(l,t) -> li [] [ linkRadio (Set.member l model.sel) (Sel l) [ text t ] ]) GT.vnLengths
     ]
   )

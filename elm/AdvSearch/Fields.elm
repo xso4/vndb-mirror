@@ -8,6 +8,7 @@ import Lib.Html exposing (..)
 import Lib.DropDown as DD
 import Lib.Api as Api
 import AdvSearch.Set as AS
+import AdvSearch.Producers as AP
 import AdvSearch.Query exposing (..)
 
 
@@ -106,14 +107,14 @@ nestFromQuery ntype ftype dat q =
        _ -> Nothing
 
 
-nestFieldView : Int -> Field -> Html FieldMsg
-nestFieldView level f =
-  let (fddv, fbody) = fieldView level f
+nestFieldView : Data -> Field -> Html FieldMsg
+nestFieldView dat f =
+  let (fddv, fbody) = fieldView dat f
   in  div [ class "advnest" ] [ fddv, fbody ]
 
 
-nestView : Int -> NestModel -> (Html NestMsg, () -> List (Html NestMsg), Html NestMsg)
-nestView level model =
+nestView : Data -> NestModel -> (Html NestMsg, () -> List (Html NestMsg), Html NestMsg)
+nestView dat model =
   let
     isNest (_,(_,_,f)) =
      case f of
@@ -124,8 +125,8 @@ nestView level model =
     plains = List.filter (not << isNest) list
     subtype = model.ntype /= NAnd && model.ntype /= NOr
 
-    pViews = List.map (\(i,f) -> Html.map (NField i) (Tuple.first (fieldView (if subtype then 0 else level+1) f))) plains
-    nViews = List.map (\(i,f) -> Html.map (NField i) (nestFieldView (if subtype then 0 else level+1) f)) nests
+    pViews = List.map (\(i,f) -> Html.map (NField i) (Tuple.first (fieldView { dat | level = if subtype then 0 else dat.level+1 } f))) plains
+    nViews = List.map (\(i,f) -> Html.map (NField i) (nestFieldView { dat | level = if subtype then 0 else dat.level+1 } f)) nests
 
     add =
       if model.ntype /= NAnd && model.ntype /= NOr then text "" else
@@ -150,8 +151,8 @@ nestView level model =
     cont () =
       [ ul [] <|
         if model.ntype == NAnd || model.ntype == NOr
-        then [ li [] [ linkRadio (model.ntype == NAnd) (NType NAnd) [ text "And" ] ]
-             , li [] [ linkRadio (model.ntype == NOr ) (NType NOr ) [ text "Or"  ] ]
+        then [ li [] [ linkRadio (model.ntype == NAnd) (NType NAnd) [ text "And: All filters must match" ] ]
+             , li [] [ linkRadio (model.ntype == NOr ) (NType NOr ) [ text "Or: At least one filter must match"  ] ]
              ]
         else [ li [] [ linkRadio (model.ntype == NRel)    (NType NRel)    [ text "Has a release that matches these filters" ] ]
              , li [] [ linkRadio (model.ntype == NRelNeg) (NType NRelNeg) [ text "Does not have a release that matches these filters" ] ]
@@ -185,6 +186,7 @@ type FieldModel
   | FMOLang    (AS.Model String)
   | FMPlatform (AS.Model String)
   | FMLength   (AS.Model Int)
+  | FMDeveloper AP.Model
 
 type FieldMsg
   = FSCustom   () -- Not actually used at the moment
@@ -193,6 +195,7 @@ type FieldMsg
   | FSOLang    (AS.Msg String)
   | FSPlatform (AS.Msg String)
   | FSLength   (AS.Msg Int)
+  | FSDeveloper AP.Msg
   | FToggle Bool
   | FDel       -- intercepted in nestUpdate
   | FMoveSub   -- intercepted in nestUpdate
@@ -232,9 +235,11 @@ fields =
   , f V "Original language" (Just 2)  FMOLang     AS.init               AS.olangFromQuery
   , f V "Platform"          (Just 3)  FMPlatform  AS.init               AS.platformFromQuery
   , f V "Length"            (Just 4)  FMLength    AS.init               AS.lengthFromQuery
+  , f V "Developer"         Nothing   FMDeveloper AP.init               AP.devFromQuery
   , f V "Release"           Nothing   FMNest      (nestInit NRel R [])  (nestFromQuery NRel V)
 
   , f R "Language"          (Just 1)  FMLang      AS.init               AS.langFromQuery
+  , f R "Developer"         Nothing   FMDeveloper AP.init               AP.devFromQuery
   ]
 
 
@@ -267,22 +272,23 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSOLang msg,    FMOLang m)    -> maps FMOLang    (AS.update msg m)
       (FSPlatform msg, FMPlatform m) -> maps FMPlatform (AS.update msg m)
       (FSLength msg,   FMLength m)   -> maps FMLength   (AS.update msg m)
+      (FSDeveloper msg,FMDeveloper m)-> mapf FMDeveloper FSDeveloper (AP.update dat msg m)
       (FToggle b, _) -> (dat, (num, DD.toggle dd b, model), Cmd.none)
       _ -> noop
 
 
-fieldView : Int -> Field -> (Html FieldMsg, Html FieldMsg)
-fieldView level (_, dd, model) =
+fieldView : Data -> Field -> (Html FieldMsg, Html FieldMsg)
+fieldView dat (_, dd, model) =
   let ddv lbl cont = div [ class "elm_dd_input" ]
         [ DD.view dd Api.Normal lbl <| \() ->
             div [ class "advbut" ]
-            [ if level == 0
+            [ if dat.level == 0
               then b [ title "Can't delete the top-level filter" ] [ text "⊗" ]
               else a [ href "#", onClickD FDel, title "Delete this filter" ] [ text "⊗" ]
-            , if level <= 1
+            , if dat.level <= 1
               then b [ title "Can't move this filter to parent branch" ] [ text "↰" ]
               else a [ href "#", onClickD FMovePar, title "Move this filter to parent branch" ] [ text "↰" ]
-            , if level == 0
+            , if dat.level == 0
               then b [ title "Can't move this filter into a subbranch" ] [ text "↳" ]
               else a [ href "#", onClickD FMoveSub, title "Create new branch for this filter" ] [ text "↳" ]
             ] :: cont ()
@@ -291,11 +297,12 @@ fieldView level (_, dd, model) =
       vs f (lbl,cont) = vf f (lbl,cont,text "")
   in case model of
       FMCustom m   -> vs FSCustom   (text "Unrecognized query", \() -> [text ""]) -- TODO: Display the Query
-      FMNest m     -> vf FSNest     (nestView level m)
+      FMNest m     -> vf FSNest     (nestView dat m)
       FMLang  m    -> vs FSLang     (AS.langView False m)
       FMOLang m    -> vs FSOLang    (AS.langView True  m)
       FMPlatform m -> vs FSPlatform (AS.platformView m)
       FMLength m   -> vs FSLength   (AS.lengthView m)
+      FMDeveloper m-> vs FSDeveloper(AP.devView dat m)
 
 
 fieldToQuery : Field -> Maybe Query
@@ -307,6 +314,7 @@ fieldToQuery (_, _, model) =
     FMOLang m    -> AS.toQuery (QStr "olang") m
     FMPlatform m -> AS.toQuery (QStr "platform") m
     FMLength m   -> AS.toQuery (QInt "length") m
+    FMDeveloper m-> AP.toQuery (QInt "developer") m
 
 
 fieldCreate : Int -> (Data,FieldModel) -> (Data,Field)

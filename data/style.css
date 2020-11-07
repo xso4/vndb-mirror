@@ -159,7 +159,7 @@ input.text, input.submit, select, textarea {
 form, fieldset           { border: 0; display: block }
 legend                   { display: none; }
 optgroup option          { padding-left: 10px; font-style: normal; }
-input.submit             { background: $boxbg$; padding: 1px 5px; }
+input.submit             { background: $boxbg$; padding: 1px 5px; cursor: pointer }
 input.text, select       { width: 200px; }
 input[type=number]       { -moz-appearance:textfield }
 input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0 }

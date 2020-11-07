@@ -2,6 +2,8 @@ module AdvSearch.Query exposing (..)
 
 import Json.Encode as JE
 import Json.Decode as JD
+import Dict
+import Gen.Api as GApi
 
 -- Generic dynamically typed representation of a query.
 -- Used only as an intermediate format to help with encoding/decoding.
@@ -69,5 +71,7 @@ decodeQuery = JD.index 0 JD.string |> JD.andThen (\s ->
 -- Global data that's passed around for Fields
 -- (defined here because everything imports this module)
 type alias Data =
-  { objid   : Int -- Incremental integer for global identifiers
+  { objid     : Int -- Incremental integer for global identifiers
+  , level     : Int -- Nesting level of the field being processed
+  , producers : Dict.Dict Int GApi.ApiProducerResult
   }
