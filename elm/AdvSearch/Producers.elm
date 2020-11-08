@@ -73,7 +73,8 @@ devView dat model =
   ( case Set.toList model.sel.sel of
       []  -> b [ class "grayedout" ] [ text "Developer" ]
       [s] -> span [ class "nowrap" ]
-             [ b [ class "grayedout" ] [ text <| "p" ++ String.fromInt s ++ ":" ]
+             [ S.lblPrefix model.sel
+             , b [ class "grayedout" ] [ text <| "p" ++ String.fromInt s ++ ":" ]
              , Dict.get s dat.producers |> Maybe.map (\p -> p.name) |> Maybe.withDefault "" |> text
              ]
       l   -> span [] [ S.lblPrefix model.sel, text <| "Developers (" ++ String.fromInt (List.length l) ++ ")" ]

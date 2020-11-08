@@ -10,6 +10,7 @@ import Array as A
 import Json.Encode as JE
 import Json.Decode as JD
 import Gen.Api as GApi
+import Gen.AdvSearch as GAdv
 import AdvSearch.Query exposing (..)
 import AdvSearch.Fields exposing (..)
 
@@ -24,13 +25,13 @@ main = Browser.element
 
 type alias Recv =
   { query     : JE.Value
-  , ftype     : String
+  , qtype     : String
   , producers : List GApi.ApiProducerResult
   }
 
 type alias Model =
   { query : Field
-  , ftype : FieldType
+  , qtype : GAdv.QType
   , data  : Data
   }
 
@@ -43,7 +44,7 @@ normalize : Model -> Model
 normalize model =
   let present = List.foldl (\(n,_,_) a -> Set.insert n a) Set.empty
       defaults pres = A.foldl (\f (al,dat,an) ->
-          if f.ftype == model.ftype && f.quick /= Nothing && not (Set.member an pres)
+          if f.qtype == model.qtype && f.quick /= Nothing && not (Set.member an pres)
           then let (ndat, nf) = fieldInit an dat
                in (nf::al, ndat, an+1)
           else (al,dat,an+1)
@@ -73,11 +74,12 @@ init arg =
             , level     = 0
             , producers = Dict.fromList <| List.map (\p -> (p.id,p)) <| arg.producers
             }
+      qtype = if arg.qtype == "v" then GAdv.V else GAdv.R
 
-      (ndat, query) = JD.decodeValue decodeQuery arg.query |> Result.toMaybe |> Maybe.withDefault (QAnd []) |> fieldFromQuery V dat
+      (ndat, query) = JD.decodeValue decodeQuery arg.query |> Result.toMaybe |> Maybe.withDefault (QAnd []) |> fieldFromQuery qtype dat
 
       -- We always want the top-level query to be a Nest type.
-      addtoplvl = let (_,m) = fieldCreate -1 (Tuple.mapSecond FMNest (nestInit NAnd V [query] ndat)) in m
+      addtoplvl = let (_,m) = fieldCreate -1 (Tuple.mapSecond FMNest (nestInit NAnd qtype [query] ndat)) in m
       nquery = case query of
                 (_,_,FMNest m) -> if m.ntype == NAnd || m.ntype == NOr then query else addtoplvl
                 _ -> addtoplvl
@@ -90,7 +92,7 @@ init arg =
                   _ -> True
 
       model = { query = nquery
-              , ftype = if arg.ftype == "v" then V else R
+              , qtype = qtype
               , data  = { ndat | objid = ndat.objid + 5 } -- +5 for the creation of nQuery
               }
   in if isSimple then normalize model else model
@@ -106,7 +108,7 @@ update msg model =
 
 view : Model -> Html Msg
 view model = div [ class "advsearch" ]
-  [ input [ type_ "hidden", id "f", name "f", value <| Maybe.withDefault "" <| Maybe.map (\v -> JE.encode 0 (encodeQuery v)) (fieldToQuery model.query) ] []
+  [ input [ type_ "hidden", id "f", name "f", value <| Maybe.withDefault "" <| Maybe.map (encQuery model.qtype) (fieldToQuery model.query) ] []
   , Html.map Field (nestFieldView model.data model.query)
   , input [ type_ "submit", class "submit", value "Search" ] []
   ]

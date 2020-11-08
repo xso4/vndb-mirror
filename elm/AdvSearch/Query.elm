@@ -4,6 +4,7 @@ import Json.Encode as JE
 import Json.Decode as JD
 import Dict
 import Gen.Api as GApi
+import Gen.AdvSearch as GAdv
 
 -- Generic dynamically typed representation of a query.
 -- Used only as an intermediate format to help with encoding/decoding.
@@ -65,6 +66,66 @@ decodeQuery = JD.index 0 JD.string |> JD.andThen (\s ->
       , JD.map2 (QQuery s) (JD.index 1 decodeOp) (JD.index 2 decodeQuery)
       ]
    )
+
+
+
+
+-- Encode a Query to the compact query format. See lib/VNWeb/AdvSearch.pm for details.
+
+encIntAlpha : Int -> String
+encIntAlpha n = String.slice n (n+1) "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-"
+
+encIntRaw : Int -> Int -> String
+encIntRaw len n = (if len > 1 then encIntRaw (len-1) (n//64) else "") ++ encIntAlpha (modBy 64 n)
+
+encInt : Int -> Maybe String
+encInt n = if n <           0 then Nothing
+      else if n <          49 then Just <| encIntAlpha n
+      else if n <         689 then Just <| encIntAlpha (49 + (n-49)//64) ++ encIntAlpha (modBy 64 (n-49))
+      else if n <        4785 then Just <| "X" ++ encIntRaw 2 (n-689)
+      else if n <      266929 then Just <| "Y" ++ encIntRaw 3 (n-4785)
+      else if n <    17044145 then Just <| "Z" ++ encIntRaw 4 (n-266929)
+      else if n <  1090785969 then Just <| "-" ++ encIntRaw 5 (n-17044145)
+      else if n < 69810262705 then Just <| "_" ++ encIntRaw 6 (n-1090785969)
+      else Nothing
+
+
+encStrMap : Dict.Dict Char String
+encStrMap = Dict.fromList <| List.indexedMap (\n c -> (c,"_"++Maybe.withDefault "" (encInt n))) <| String.toList " !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
+
+encStr : String -> String
+encStr = String.foldl (\c s -> s ++ Maybe.withDefault (String.fromChar c) (Dict.get c encStrMap)) ""
+
+
+-- XXX: Queries with unknown fields or invalid value types are silently discarded
+encQuery : GAdv.QType -> Query -> String
+encQuery qt query =
+  let fint n = Maybe.withDefault "" (encInt n)
+      lst n l =
+        let nl = List.map (encQuery qt) l |> List.filter (\s -> s /= "")
+        in if List.isEmpty nl then "" else fint n ++ fint (List.length nl) ++ String.concat nl
+      fieldByName n = List.filter (\f -> f.qtype == qt && f.name == n) GAdv.fields |> List.head
+      encOp o =
+        case o of
+          Eq -> 0
+          Ne -> 1
+          Ge -> 2
+          Le -> 3
+      encTypeOp o t = Maybe.withDefault "" <| encInt <| encOp o + 4*t
+      encStrField o v f = let s = encStr v in fint f.num ++ encTypeOp o (String.length s + 9) ++ s
+  in case query of
+      QAnd l -> lst 0 l
+      QOr l  -> lst 1 l
+      QInt n o v -> fieldByName n |> Maybe.map (\f ->
+        case encInt v of -- Integers that can't be represented in encoded form will be encoded as strings
+          Just s -> fint f.num ++ encTypeOp o 0 ++ s
+          Nothing -> encStrField o (String.fromInt v) f) |> Maybe.withDefault ""
+      QStr n o v -> fieldByName n |> Maybe.map (encStrField o v) |> Maybe.withDefault ""
+      QQuery n o q -> fieldByName n |> Maybe.andThen (\f ->
+        case f.vtype of
+          GAdv.QVQuery t -> Just (fint f.num ++ encTypeOp o 1 ++ encQuery t q)
+          _ -> Nothing) |> Maybe.withDefault ""
+
 
 
 

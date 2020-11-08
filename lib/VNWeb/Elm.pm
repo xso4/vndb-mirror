@@ -477,11 +477,40 @@ sub write_extlinks {
 }
 
 
+sub write_advsearch {
+    my $data =<<~'_';
+        type QType = V | R
+        type QVType = QVInt | QVStr | QVQuery QType
+
+        type alias QField =
+          { qtype : QType
+          , name  : String
+          , num   : Int
+          , vtype : QVType
+          }
+        _
+
+    $data .= def fields => "List QField" => list map {
+        my($t, $n, $f) = @$_;
+        '{ '.join("\n  , ",
+            'qtype = '.uc($t),
+            'name  = '.string($n),
+            'num   = '.$f->{num},
+            'vtype = '.($f->{vndbid}||$f->{int} ? 'QVInt' : !ref $f->{value} ? 'QVQuery '.uc($f->{value}) : 'QVStr')
+        )."\n  }";
+    } map { my $t=$_; map [$t,$_,$VNWeb::AdvSearch::FIELDS{$t}{$_}], sort keys $VNWeb::AdvSearch::FIELDS{$t}->%* } sort keys %VNWeb::AdvSearch::FIELDS;
+
+    write_module AdvSearch => $data;
+}
+
+
+
 if(tuwf->{elmgen}) {
     mkdir config->{root}.'/elm/Gen';
     write_api;
     write_types;
     write_extlinks;
+    write_advsearch;
     open my $F, '>', config->{root}.'/elm/Gen/.generated';
     print $F scalar gmtime;
 }

@@ -7,6 +7,7 @@ import Lib.Util exposing (..)
 import Lib.Html exposing (..)
 import Lib.DropDown as DD
 import Lib.Api as Api
+import Gen.AdvSearch as GAdv
 import AdvSearch.Set as AS
 import AdvSearch.Producers as AP
 import AdvSearch.Query exposing (..)
@@ -19,7 +20,7 @@ type NestType = NAnd | NOr | NRel | NRelNeg
 
 type alias NestModel =
   { ntype  : NestType
-  , ftype  : FieldType
+  , qtype  : GAdv.QType
   , fields : List Field
   , add    : DD.Config NestMsg
   }
@@ -32,12 +33,12 @@ type NestMsg
   | NType NestType Bool
 
 
-nestInit : NestType -> FieldType -> List Field -> Data -> (Data, NestModel)
-nestInit ntype ftype list dat =
+nestInit : NestType -> GAdv.QType -> List Field -> Data -> (Data, NestModel)
+nestInit ntype qtype list dat =
   let
     -- Make sure that subtype nesting always has an and/or field
     addNest ndat mod =
-      let (ndat2,f) = fieldCreate -1 (Tuple.mapSecond FMNest (nestInit NAnd mod.ftype mod.fields ndat))
+      let (ndat2,f) = fieldCreate -1 (Tuple.mapSecond FMNest (nestInit NAnd mod.qtype mod.fields ndat))
       in  (ndat2, { mod | fields = [f] })
     ensureNest (ndat,mod) =
       case (ntype, mod.fields) of
@@ -48,7 +49,7 @@ nestInit ntype ftype list dat =
   in ensureNest
     ( { dat | objid = dat.objid+1 }
     , { ntype  = ntype
-      , ftype  = ftype
+      , qtype  = qtype
       , fields = list
       , add    = DD.init ("advsearch_field"++String.fromInt dat.objid) NAddToggle
       }
@@ -65,7 +66,7 @@ nestUpdate dat msg model =
     NField n FDel -> (dat, { model | fields = delidx n model.fields }, Cmd.none)
     NField n FMoveSub ->
       let subfields = List.drop n model.fields |> List.take 1 |> List.map (\(fid,fdd,fm) -> (fid, DD.toggle fdd False, fm))
-          (ndat,subm) = nestInit (if model.ntype == NAnd then NOr else NAnd) model.ftype subfields dat
+          (ndat,subm) = nestInit (if model.ntype == NAnd then NOr else NAnd) model.qtype subfields dat
           (ndat2,subf) = fieldCreate -1 (ndat, FMNest subm)
       in (ndat2, { model | fields = modidx n (always subf) model.fields }, Cmd.none)
     NField n m ->
@@ -89,21 +90,21 @@ nestToQuery model =
     _              -> Nothing
 
 
-nestFromQuery : NestType -> FieldType -> Data -> Query -> Maybe (Data, NestModel)
-nestFromQuery ntype ftype dat q =
-  let init nt ft l =
-        let (ndat,fl) = List.foldr (\f (d,a) -> let (nd,fm) = fieldFromQuery ft d f in (nd,(fm::a))) (dat,[]) l
-        in nestInit nt ft fl ndat
+nestFromQuery : NestType -> GAdv.QType -> Data -> Query -> Maybe (Data, NestModel)
+nestFromQuery ntype qtype dat q =
+  let init nt qt l =
+        let (ndat,fl) = List.foldr (\f (d,a) -> let (nd,fm) = fieldFromQuery qt d f in (nd,(fm::a))) (dat,[]) l
+        in nestInit nt qt fl ndat
 
-      initSub op nt ntNeg ft val =
+      initSub op nt ntNeg qt val =
         case op of
-          Eq -> Just (init nt    ft [val])
-          Ne -> Just (init ntNeg ft [val])
+          Eq -> Just (init nt    qt [val])
+          Ne -> Just (init ntNeg qt [val])
           _ -> Nothing
-  in case (ftype, ntype, q) of
-       (V, NRel, QQuery "release" op r) -> initSub op NRel NRelNeg R r
-       (_, NAnd, QAnd l) -> Just (init NAnd ftype l)
-       (_, NOr,  QOr  l) -> Just (init NOr  ftype l)
+  in case (qtype, ntype, q) of
+       (GAdv.V, NRel, QQuery "release" op r) -> initSub op NRel NRelNeg GAdv.R r
+       (_,      NAnd, QAnd l) -> Just (init NAnd qtype l)
+       (_,      NOr,  QOr  l) -> Just (init NOr  qtype l)
        _ -> Nothing
 
 
@@ -135,7 +136,7 @@ nestView dat model =
         [ div [ class "advheader" ] [ h3 [] [ text "Add filter" ] ]
         , ul [] <|
           List.map (\(n,f) ->
-            if f.ftype /= model.ftype || f.title == "" then text ""
+            if f.qtype /= model.qtype || f.title == "" then text ""
             else li [] [ a [ href "#", onClickD (NAdd n)] [ text f.title ] ]
           ) <| A.toIndexedList fields
         ]
@@ -201,10 +202,8 @@ type FieldMsg
   | FMoveSub   -- intercepted in nestUpdate
   | FMovePar
 
-type FieldType = V | R
-
 type alias FieldDesc =
-  { ftype     : FieldType
+  { qtype     : GAdv.QType
   , title     : String                     -- How it's listed in the field selection menu.
   , quick     : Maybe Int                  -- Whether it should be included in the default set of fields ("quick mode") and in which order.
   , init      : Data -> (Data, FieldModel) -- How to initialize an empty field
@@ -215,8 +214,8 @@ type alias FieldDesc =
 -- XXX: Should this be lazily initialized instead? May impact JS load time like this.
 fields : A.Array FieldDesc
 fields =
-  let f ftype title quick wrap init fromq =
-        { ftype     = ftype
+  let f qtype title quick wrap init fromq =
+        { qtype     = qtype
         , title     = title
         , quick     = quick
         , init      = \d -> (Tuple.mapSecond wrap (init d))
@@ -227,19 +226,19 @@ fields =
   -- into Fields, so "catch all" fields must be listed first. In particular,
   -- FMNest with and/or should go before everything else.
 
-  --  T TITLE               QUICK     WRAP        INIT                  FROM_QUERY
-  [ f V "And"               Nothing   FMNest      (nestInit NAnd V [])  (nestFromQuery NAnd V)
-  , f V "Or"                Nothing   FMNest      (nestInit NOr  V [])  (nestFromQuery NOr  V)
+  --  T      TITLE               QUICK     WRAP        INIT                  FROM_QUERY
+  [ f GAdv.V "And"               Nothing   FMNest      (nestInit NAnd GAdv.V [])  (nestFromQuery NAnd GAdv.V)
+  , f GAdv.V "Or"                Nothing   FMNest      (nestInit NOr  GAdv.V [])  (nestFromQuery NOr  GAdv.V)
 
-  , f V "Language"          (Just 1)  FMLang      AS.init               AS.langFromQuery
-  , f V "Original language" (Just 2)  FMOLang     AS.init               AS.olangFromQuery
-  , f V "Platform"          (Just 3)  FMPlatform  AS.init               AS.platformFromQuery
-  , f V "Length"            (Just 4)  FMLength    AS.init               AS.lengthFromQuery
-  , f V "Developer"         Nothing   FMDeveloper AP.init               AP.devFromQuery
-  , f V "Release"           Nothing   FMNest      (nestInit NRel R [])  (nestFromQuery NRel V)
+  , f GAdv.V "Language"          (Just 1)  FMLang      AS.init                    AS.langFromQuery
+  , f GAdv.V "Original language" (Just 2)  FMOLang     AS.init                    AS.olangFromQuery
+  , f GAdv.V "Platform"          (Just 3)  FMPlatform  AS.init                    AS.platformFromQuery
+  , f GAdv.V "Length"            (Just 4)  FMLength    AS.init                    AS.lengthFromQuery
+  , f GAdv.V "Developer"         Nothing   FMDeveloper AP.init                    AP.devFromQuery
+  , f GAdv.V "Release"           Nothing   FMNest      (nestInit NRel GAdv.R [])  (nestFromQuery NRel GAdv.V)
 
-  , f R "Language"          (Just 1)  FMLang      AS.init               AS.langFromQuery
-  , f R "Developer"         Nothing   FMDeveloper AP.init               AP.devFromQuery
+  , f GAdv.R "Language"          (Just 1)  FMLang      AS.init                    AS.langFromQuery
+  , f GAdv.R "Developer"         Nothing   FMDeveloper AP.init                    AP.devFromQuery
   ]
 
 
@@ -331,11 +330,11 @@ fieldInit n dat =
     Nothing -> fieldCreate -1 (dat, FMCustom (QAnd [])) -- Shouldn't happen.
 
 
-fieldFromQuery : FieldType -> Data -> Query -> (Data,Field)
-fieldFromQuery ftype dat q =
+fieldFromQuery : GAdv.QType -> Data -> Query -> (Data,Field)
+fieldFromQuery qtype dat q =
   let (field, _) =
         A.foldr (\f (af,n) ->
-          case (if af /= Nothing || f.ftype /= ftype then Nothing else f.fromQuery dat q) of
+          case (if af /= Nothing || f.qtype /= qtype then Nothing else f.fromQuery dat q) of
             Nothing -> (af,n-1)
             Just ret -> (Just (fieldCreate n ret), 0)
         ) (Nothing,A.length fields-1) fields
