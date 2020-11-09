@@ -6,7 +6,7 @@ use VNWeb::Images::Lib qw/image_flagging_display image_ enrich_image_obj/;
 use VNDB::Func 'fmtrating';
 
 
-# Enrich everything necessary to at least render infobox_().
+# Enrich everything necessary to at least render infobox_() and tabs_().
 # Also used by Chars::VNTab & Reviews::VNTab
 sub enrich_vn {
     my($v) = @_;
@@ -27,6 +27,8 @@ sub enrich_vn {
          WHERE NOT r.hidden AND rv.vid =', \$v->{id}
     );
     enrich_extlinks r => $v->{releases};
+
+    $v->{reviews} = tuwf->dbRowi('SELECT COUNT(*) FILTER(WHERE isfull) AS full, COUNT(*) FILTER(WHERE NOT isfull) AS mini, COUNT(*) AS total FROM reviews WHERE NOT c_flagged AND vid =', \$v->{id});
 }
 
 
@@ -390,19 +392,18 @@ sub infobox_ {
 sub tabs_ {
     my($v, $tab) = @_;
     my $chars = tuwf->dbVali('SELECT COUNT(DISTINCT c.id) FROM chars c JOIN chars_vns cv ON cv.id = c.id WHERE NOT c.hidden AND cv.vid =', \$v->{id});
-    my $reviews = tuwf->dbRowi('SELECT COUNT(*) FILTER(WHERE isfull) AS full, COUNT(*) FILTER(WHERE NOT isfull) AS mini FROM reviews WHERE NOT c_flagged AND vid =', \$v->{id});
 
-    return if !$chars && !$reviews->{full} && !$reviews->{mini} && !auth->permEdit && !auth->permReview;
+    return if !$chars && !$v->{reviews}{full} && !$v->{reviews}{mini} && !auth->permEdit && !auth->permReview;
     $tab ||= '';
     div_ class => 'maintabs', sub {
         ul_ sub {
-            li_ class => ($tab eq ''        ? ' tabselected' : ''), sub { a_ href => "/v$v->{id}#main", name => 'main', 'main' } if $chars || $reviews;
+            li_ class => ($tab eq ''        ? ' tabselected' : ''), sub { a_ href => "/v$v->{id}#main", name => 'main', 'main' } if $chars || $v->{reviews}{total};
             li_ class => ($tab eq 'chars'   ? ' tabselected' : ''), sub { a_ href => "/v$v->{id}/chars#chars", name => 'chars', "characters ($chars)" } if $chars;
-            if($reviews->{mini} > 4 || $tab eq 'minireviews' || $tab eq 'fullreviews') {
-                li_ class => ($tab eq 'minireviews'?' tabselected' : ''), sub { a_ href => "/v$v->{id}/minireviews#review", name => 'review', "mini reviews ($reviews->{mini})" } if $reviews->{mini};
-                li_ class => ($tab eq 'fullreviews'?' tabselected' : ''), sub { a_ href => "/v$v->{id}/fullreviews#review", name => 'review', "full reviews ($reviews->{full})" } if $reviews->{full};
-            } elsif($reviews->{mini} || $reviews->{full}) {
-                li_ class => ($tab =~ /reviews/ ?' tabselected':''),      sub { a_ href => "/v$v->{id}/reviews#review", name => 'review', sprintf 'reviews (%d)', $reviews->{mini}+$reviews->{full} };
+            if($v->{reviews}{mini} > 4 || $tab eq 'minireviews' || $tab eq 'fullreviews') {
+                li_ class => ($tab eq 'minireviews'?' tabselected' : ''), sub { a_ href => "/v$v->{id}/minireviews#review", name => 'review', "mini reviews ($v->{reviews}{mini})" } if $v->{reviews}{mini};
+                li_ class => ($tab eq 'fullreviews'?' tabselected' : ''), sub { a_ href => "/v$v->{id}/fullreviews#review", name => 'review', "full reviews ($v->{reviews}{full})" } if $v->{reviews}{full};
+            } elsif($v->{reviews}{mini} || $v->{reviews}{full}) {
+                li_ class => ($tab =~ /reviews/ ?' tabselected':''),      sub { a_ href => "/v$v->{id}/reviews#review", name => 'review', sprintf 'reviews (%d)', $v->{reviews}{total} };
             }
         };
         ul_ sub {
@@ -576,7 +577,7 @@ sub stats_ {
           WHERE uv.vid =', \$v->{id}, 'AND uv.vote IS NOT NULL
             AND NOT EXISTS(SELECT 1 FROM users u WHERE u.id = uv.uid AND u.ign_votes)
           ORDER BY uv.vote_date DESC
-          LIMIT', \8
+          LIMIT', \7
     );
 
     my $rank = $v->{c_votecount} && tuwf->dbRowi('SELECT c_rating, c_popularity, c_pop_rank, c_rat_rank FROM vn v WHERE id =', \$v->{id});
@@ -605,6 +606,9 @@ sub stats_ {
                     txt_ ')';
                 }
             } } };
+            tfoot_ sub { tr_ sub { td_ colspan => 3, sub {
+                a_ href => "/v$v->{id}/reviews#review", sprintf'%d review%s »', $v->{reviews}{total}, $v->{reviews}{total}==1?'':'s';
+            } } } if $v->{reviews}{total};
             tr_ sub {
                 td_ sub {
                     b_ class => 'grayedout', 'hidden' if $_->{hide_list};
