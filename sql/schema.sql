@@ -226,7 +226,8 @@ CREATE TABLE images (
   c_sexual_stddev   float, -- [pub]
   c_violence_avg    float, -- [pub]
   c_violence_stddev float, -- [pub]
-  c_weight          float NOT NULL DEFAULT 0 -- [pub]
+  c_weight          float NOT NULL DEFAULT 0, -- [pub]
+  c_uids            integer[] NOT NULL DEFAULT '{}'
 );
 
 -- image_votes

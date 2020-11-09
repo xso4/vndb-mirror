@@ -158,7 +158,7 @@ CREATE OR REPLACE FUNCTION update_images_cache(vndbid) RETURNS void AS $$
 BEGIN
   UPDATE images
      SET c_votecount = votecount, c_sexual_avg = sexual_avg, c_sexual_stddev = sexual_stddev
-       , c_violence_avg = violence_avg, c_violence_stddev = violence_stddev, c_weight = weight
+       , c_violence_avg = violence_avg, c_violence_stddev = violence_stddev, c_weight = weight, c_uids = uids
     FROM (
       SELECT s.*,
              CASE WHEN EXISTS(
@@ -174,6 +174,7 @@ BEGIN
                  , greatest(avg(violence) FILTER(WHERE NOT iv.ignore), max(violence) FILTER(WHERE u.perm_imgmod)) AS violence_avg
                  , stddev_pop(sexual)   FILTER(WHERE NOT iv.ignore) AS sexual_stddev
                  , stddev_pop(violence) FILTER(WHERE NOT iv.ignore) AS violence_stddev
+                 , coalesce(array_agg(u.id) FILTER(WHERE u.id IS NOT NULL), '{}') AS uids
               FROM images i
               LEFT JOIN image_votes iv ON iv.id = i.id
               LEFT JOIN users u ON u.id = iv.uid

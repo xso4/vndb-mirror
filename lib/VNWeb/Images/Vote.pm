@@ -30,14 +30,22 @@ elm_api Images => $SEND, { excl_voted => { anybool => 1 } }, sub {
     # hopefully enough to get a good (weighted) sample and should have a good
     # chance at selecting images even when the user has voted on 90%.
     #
-    # Performance can be further improved by adding a 'images.c_uids integer[]'
-    # cache to filter out already voted images faster.
-    my $tablesample = 100 * min 1, (5000 / $stats->{referenced}) * ($stats->{total} / $stats->{referenced});
+    # TABLESAMPLE is not used if there are only few images to select from, i.e.
+    # when the user has already voted on 99% of all images. Finding all
+    # applicable images in that case is slow, but at least there aren't many
+    # rows for the final ORDER BY.
+    my $tablesample =
+        !$data->{excl_voted} || tuwf->dbVali('SELECT c_imgvotes FROM users WHERE id =', \auth->uid) < $stats->{referenced}*0.99
+        ? 100 * min 1, (5000 / $stats->{referenced}) * ($stats->{total} / $stats->{referenced})
+        : 100;
+
+    # NOTE: Elm assumes that, if it receives less than 30 images, we've reached
+    # the end of the list and will not attempt to load more.
     my $l = tuwf->dbAlli('
         SELECT id
-          FROM images i TABLESAMPLE SYSTEM (', \$tablesample, ')
+          FROM images TABLESAMPLE SYSTEM (', \$tablesample, ')
          WHERE c_weight > 0',
-            $data->{excl_voted} ? ('AND NOT EXISTS(SELECT 1 FROM image_votes iv WHERE iv.id = i.id AND iv.uid =', \auth->uid, ')') : (), '
+            $data->{excl_voted} ? ('AND NOT (c_uids && ARRAY[', \auth->uid, '::int])') : (), '
          ORDER BY random() ^ (1.0/c_weight) DESC
          LIMIT', \30
     );

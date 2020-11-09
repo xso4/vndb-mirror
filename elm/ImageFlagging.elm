@@ -47,8 +47,9 @@ type alias Model =
   , changes   : Dict.Dict String GIV.SendVotes
   , saved     : Bool
   , saveTimer : Bool
-  , loadState : Api.State
   , saveState : Api.State
+  , loadState : Api.State
+  , loadDone  : Bool -- If we have received the last batch of images
   , pWidth    : Int
   , pHeight   : Int
   }
@@ -71,6 +72,7 @@ init d =
   , saveTimer = False
   , saveState = Api.Normal
   , loadState = Api.Normal
+  , loadDone  = False
   , pWidth    = d.pWidth
   , pHeight   = d.pHeight
   }
@@ -132,7 +134,7 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   let -- Load more images if we're about to run out
       load (m,c) =
-        if not m.single && m.loadState /= Api.Loading && Array.length m.images - m.index <= 3
+        if not m.loadDone && not m.single && m.loadState /= Api.Loading && Array.length m.images - m.index <= 3
         then ({ m | loadState = Api.Loading }, Cmd.batch [ c, GI.send { excl_voted = m.exclVoted } Load ])
         else (m,c)
       -- Start a timer to save changes
@@ -158,7 +160,7 @@ update msg model =
     Desc s v -> ({ model | desc = (s,v) }, Cmd.none)
 
     Load (GApi.ImageResult l) ->
-      let nm = { model | loadState = Api.Normal, images = Array.append model.images (Array.fromList l) }
+      let nm = { model | loadState = Api.Normal, loadDone = List.length l < 30, images = Array.append model.images (Array.fromList l) }
           nc = if nm.index < 1000 then nm
                else { nm | index = nm.index - 100, images = Array.slice 100 (Array.length nm.images) nm.images }
       in pre (nc, Cmd.none)
