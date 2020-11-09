@@ -98,7 +98,8 @@ sub rev_ {
             txt_ ' [';
             a_ href => "/img/$_->{scr}{id}", image_flagging_display $_->{scr};
             txt_ '] ';
-            b_ class => 'grayedout', sprintf 'old flag: %s', $_->{nsfw} ? 'NSFW' : 'Safe';
+            # The old NSFW flag has been removed around 2020-07-14, so not relevant for edits made later on.
+            b_ class => 'grayedout', sprintf 'old flag: %s', $_->{nsfw} ? 'NSFW' : 'Safe' if $_[0]{rev_added} < 1594684800;
         }],
         [ image       => 'Image',         fmt => sub { image_ $_ } ],
         [ img_nsfw    => 'Image NSFW (unused)', fmt => sub { txt_ $_ ? 'Not safe' : 'Safe' } ],
