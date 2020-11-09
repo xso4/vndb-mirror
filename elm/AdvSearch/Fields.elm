@@ -7,7 +7,7 @@ import Lib.Util exposing (..)
 import Lib.Html exposing (..)
 import Lib.DropDown as DD
 import Lib.Api as Api
-import Gen.AdvSearch as GAdv
+import Gen.AdvSearch exposing (QType(..))
 import AdvSearch.Set as AS
 import AdvSearch.Producers as AP
 import AdvSearch.Query exposing (..)
@@ -20,7 +20,7 @@ type NestType = NAnd | NOr | NRel | NRelNeg
 
 type alias NestModel =
   { ntype  : NestType
-  , qtype  : GAdv.QType
+  , qtype  : QType
   , fields : List Field
   , add    : DD.Config NestMsg
   }
@@ -33,7 +33,7 @@ type NestMsg
   | NType NestType Bool
 
 
-nestInit : NestType -> GAdv.QType -> List Field -> Data -> (Data, NestModel)
+nestInit : NestType -> QType -> List Field -> Data -> (Data, NestModel)
 nestInit ntype qtype list dat =
   let
     -- Make sure that subtype nesting always has an and/or field
@@ -90,7 +90,7 @@ nestToQuery model =
     _              -> Nothing
 
 
-nestFromQuery : NestType -> GAdv.QType -> Data -> Query -> Maybe (Data, NestModel)
+nestFromQuery : NestType -> QType -> Data -> Query -> Maybe (Data, NestModel)
 nestFromQuery ntype qtype dat q =
   let init nt qt l =
         let (ndat,fl) = List.foldr (\f (d,a) -> let (nd,fm) = fieldFromQuery qt d f in (nd,(fm::a))) (dat,[]) l
@@ -102,9 +102,9 @@ nestFromQuery ntype qtype dat q =
           Ne -> Just (init ntNeg qt [val])
           _ -> Nothing
   in case (qtype, ntype, q) of
-       (GAdv.V, NRel, QQuery "release" op r) -> initSub op NRel NRelNeg GAdv.R r
-       (_,      NAnd, QAnd l) -> Just (init NAnd qtype l)
-       (_,      NOr,  QOr  l) -> Just (init NOr  qtype l)
+       (V, NRel, QQuery "release" op r) -> initSub op NRel NRelNeg R r
+       (_, NAnd, QAnd l) -> Just (init NAnd qtype l)
+       (_, NOr,  QOr  l) -> Just (init NOr  qtype l)
        _ -> Nothing
 
 
@@ -203,7 +203,7 @@ type FieldMsg
   | FMovePar
 
 type alias FieldDesc =
-  { qtype     : GAdv.QType
+  { qtype     : QType
   , title     : String                     -- How it's listed in the field selection menu.
   , quick     : Maybe Int                  -- Whether it should be included in the default set of fields ("quick mode") and in which order.
   , init      : Data -> (Data, FieldModel) -- How to initialize an empty field
@@ -226,19 +226,22 @@ fields =
   -- into Fields, so "catch all" fields must be listed first. In particular,
   -- FMNest with and/or should go before everything else.
 
-  --  T      TITLE               QUICK     WRAP        INIT                  FROM_QUERY
-  [ f GAdv.V "And"               Nothing   FMNest      (nestInit NAnd GAdv.V [])  (nestFromQuery NAnd GAdv.V)
-  , f GAdv.V "Or"                Nothing   FMNest      (nestInit NOr  GAdv.V [])  (nestFromQuery NOr  GAdv.V)
+  --  T TITLE               QUICK     WRAP        INIT                  FROM_QUERY
+  [ f V "And"               Nothing   FMNest      (nestInit NAnd V [])  (nestFromQuery NAnd V)
+  , f V "Or"                Nothing   FMNest      (nestInit NOr  V [])  (nestFromQuery NOr  V)
+  , f R "And"               Nothing   FMNest      (nestInit NAnd R [])  (nestFromQuery NAnd R)
+  , f R "Or"                Nothing   FMNest      (nestInit NOr  R [])  (nestFromQuery NOr  R)
 
-  , f GAdv.V "Language"          (Just 1)  FMLang      AS.init                    AS.langFromQuery
-  , f GAdv.V "Original language" (Just 2)  FMOLang     AS.init                    AS.olangFromQuery
-  , f GAdv.V "Platform"          (Just 3)  FMPlatform  AS.init                    AS.platformFromQuery
-  , f GAdv.V "Length"            (Just 4)  FMLength    AS.init                    AS.lengthFromQuery
-  , f GAdv.V "Developer"         Nothing   FMDeveloper AP.init                    AP.devFromQuery
-  , f GAdv.V "Release"           Nothing   FMNest      (nestInit NRel GAdv.R [])  (nestFromQuery NRel GAdv.V)
+  , f V "Language"          (Just 1)  FMLang      AS.init               AS.langFromQuery
+  , f V "Original language" (Just 2)  FMOLang     AS.init               AS.olangFromQuery
+  , f V "Platform"          (Just 3)  FMPlatform  AS.init               AS.platformFromQuery
+  , f V "Length"            (Just 4)  FMLength    AS.init               AS.lengthFromQuery
+  , f V "Developer"         Nothing   FMDeveloper AP.init               AP.devFromQuery
+  , f V "Release"           Nothing   FMNest      (nestInit NRel R [])  (nestFromQuery NRel V)
 
-  , f GAdv.R "Language"          (Just 1)  FMLang      AS.init                    AS.langFromQuery
-  , f GAdv.R "Developer"         Nothing   FMDeveloper AP.init                    AP.devFromQuery
+  , f R "Language"          (Just 1)  FMLang      AS.init               AS.langFromQuery
+  , f R "Platform"          (Just 2)  FMPlatform  AS.init               AS.platformFromQuery
+  , f R "Developer"         Nothing   FMDeveloper AP.init               AP.devFromQuery
   ]
 
 
@@ -330,7 +333,7 @@ fieldInit n dat =
     Nothing -> fieldCreate -1 (dat, FMCustom (QAnd [])) -- Shouldn't happen.
 
 
-fieldFromQuery : GAdv.QType -> Data -> Query -> (Data,Field)
+fieldFromQuery : QType -> Data -> Query -> (Data,Field)
 fieldFromQuery qtype dat q =
   let (field, _) =
         A.foldr (\f (af,n) ->

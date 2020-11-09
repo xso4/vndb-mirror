@@ -10,7 +10,7 @@ import Array as A
 import Json.Encode as JE
 import Json.Decode as JD
 import Gen.Api as GApi
-import Gen.AdvSearch as GAdv
+import Gen.AdvSearch exposing (QType(..))
 import AdvSearch.Query exposing (..)
 import AdvSearch.Fields exposing (..)
 
@@ -31,7 +31,7 @@ type alias Recv =
 
 type alias Model =
   { query : Field
-  , qtype : GAdv.QType
+  , qtype : QType
   , data  : Data
   }
 
@@ -74,7 +74,7 @@ init arg =
             , level     = 0
             , producers = Dict.fromList <| List.map (\p -> (p.id,p)) <| arg.producers
             }
-      qtype = if arg.qtype == "v" then GAdv.V else GAdv.R
+      qtype = if arg.qtype == "v" then V else R
 
       (ndat, query) = JD.decodeValue decodeQuery arg.query |> Result.toMaybe |> Maybe.withDefault (QAnd []) |> fieldFromQuery qtype dat
 

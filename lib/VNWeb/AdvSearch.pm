@@ -28,14 +28,14 @@ our @EXPORT = qw/ as_tosql as_elm_ /;
 #
 #   [ 'and'
 #   , [ 'or'    # No support for array values, so IN() queries need explicit ORs.
-#     , [ '=', 'lang', 'en' ]
-#     , [ '=', 'lang', 'de' ]
-#     , [ '=', 'lang', 'fr' ]
+#     , [ 'lang', '=', 'en' ]
+#     , [ 'lang', '=', 'de' ]
+#     , [ 'lang', '=', 'fr' ]
 #     ]
-#   , [ '!=', 'olang', 'ja' ]
-#   , [ '=', 'char', [ 'and' # VN has a char that matches the given query
-#       , [ '>=', 'bust', 40 ]
-#       , [ '<=', 'bust', 100 ]
+#   , [ 'olang', '!=', 'ja' ]
+#   , [ 'char', '=', [ 'and' # VN has a character that matches the given query
+#       , [ 'bust', '>=', 40 ]
+#       , [ 'bust', '<=', 100 ]
 #       ]
 #     ]
 #   ]
@@ -191,6 +191,7 @@ f v => 50 => 'release',  'r', '=' => sub { sql 'v.id IN(SELECT rv.vid FROM relea
 
 
 f r =>  2 => 'lang',     { enum => \%LANGUAGE }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_lang WHERE lang =', \$_, ')' };
+f r =>  4 => 'platform', { enum => \%PLATFORM }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_platforms WHERE platform =', \$_, ')' };
 f r =>  3 => 'developer',{ vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE developer AND pid = vndbid_num(', \$_, '))' };
 
 
