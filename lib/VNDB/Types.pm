@@ -26,6 +26,7 @@ hash LANGUAGE =>
     en => 'English',
     eo => 'Esperanto',
     es => 'Spanish',
+    fa => 'Persian',
     fi => 'Finnish',
     fr => 'French',
     gd => 'Scottish Gaelic',
