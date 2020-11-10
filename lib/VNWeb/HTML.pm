@@ -553,7 +553,7 @@ sub _revision_fmtcol_ {
     my sub sep_ { b_ class => 'standout', '<...>' }; # Context separator
 
     td_ class => 'tcval', sub {
-        i_ '[empty]' if ($i == 1 && !grep $_->[0] ne '+', @$l) || ($i == 2 && !grep $_->[0] ne '-', @$l);
+        i_ '[empty]' if @$l > 1 && (($i == 1 && !grep $_->[0] ne '+', @$l) || ($i == 2 && !grep $_->[0] ne '-', @$l));
         join_ $opt->{join}||\&br_, sub {
             my($ch, $old, $new, $diff) = @$_;
             my $val = $_->[$i];
