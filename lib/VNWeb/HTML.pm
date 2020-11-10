@@ -553,6 +553,7 @@ sub _revision_fmtcol_ {
     my sub sep_ { b_ class => 'standout', '<...>' }; # Context separator
 
     td_ class => 'tcval', sub {
+        i_ '[empty]' if ($i == 1 && !grep $_->[0] ne '+', @$l) || ($i == 2 && !grep $_->[0] ne '-', @$l);
         join_ $opt->{join}||\&br_, sub {
             my($ch, $old, $new, $diff) = @$_;
             my $val = $_->[$i];
@@ -582,10 +583,13 @@ sub _revision_fmtcol_ {
                 }
 
             } elsif(@$l > 1 && $i == 2 && ($ch eq '+' || $ch eq 'c')) {
-                b_ class => 'diff_add', sub { _revision_fmtval_ $opt, $val, $obj }
+                b_ class => 'diff_add', '+ ';
+                _revision_fmtval_ $opt, $val, $obj;
             } elsif(@$l > 1 && $i == 1 && ($ch eq '-' || $ch eq 'c')) {
-                b_ class => 'diff_del', sub { _revision_fmtval_ $opt, $val, $obj }
-            } elsif($ch eq 'c' || $ch eq 'u' || @$l == 1) {
+                b_ class => 'diff_del', '− ';
+                _revision_fmtval_ $opt, $val, $obj;
+            } elsif($ch eq 'u' || @$l == 1) {
+                b_ class => 'grayedout', '= ' if @$l != 1;
                 _revision_fmtval_ $opt, $val, $obj;
             }
         }, @$l;
