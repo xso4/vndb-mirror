@@ -583,13 +583,10 @@ sub _revision_fmtcol_ {
                 }
 
             } elsif(@$l > 1 && $i == 2 && ($ch eq '+' || $ch eq 'c')) {
-                b_ class => 'diff_add', '+ ';
-                _revision_fmtval_ $opt, $val, $obj;
+                b_ class => 'diff_add', sub { _revision_fmtval_ $opt, $val, $obj };
             } elsif(@$l > 1 && $i == 1 && ($ch eq '-' || $ch eq 'c')) {
-                b_ class => 'diff_del', '− ';
-                _revision_fmtval_ $opt, $val, $obj;
+                b_ class => 'diff_del', sub { _revision_fmtval_ $opt, $val, $obj };
             } elsif($ch eq 'u' || @$l == 1) {
-                b_ class => 'grayedout', '= ' if @$l != 1;
                 _revision_fmtval_ $opt, $val, $obj;
             }
         }, @$l;
