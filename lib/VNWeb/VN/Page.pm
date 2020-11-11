@@ -137,7 +137,7 @@ sub infobox_producers_ {
     my($v) = @_;
 
     my $p = tuwf->dbAlli('
-        SELECT p.id, p.name, p.original, rl.lang, bool_or(rp.developer) as developer, bool_or(rp.publisher) as publisher
+        SELECT p.id, p.name, p.original, rl.lang, bool_or(rp.developer) as developer, bool_or(rp.publisher) as publisher, min(r.type) as type
           FROM releases_vn rv
           JOIN releases r ON r.id = rv.id
           JOIN releases_lang rl ON rl.id = rv.id
@@ -149,8 +149,9 @@ sub infobox_producers_ {
     ');
     return if !@$p;
 
+    my $hasfull = grep $_->{type} eq 'complete', @$p;
     my %dev;
-    my @dev = grep $_->{developer} && !$dev{$_->{id}}++, @$p;
+    my @dev = grep $_->{developer} && (!$hasfull || $_->{type} ne 'trial') && !$dev{$_->{id}}++, @$p;
 
     tr_ sub {
         td_ 'Developer';
@@ -160,7 +161,7 @@ sub infobox_producers_ {
     } if @dev;
 
     my(%lang, @lang, $lang);
-    for(grep $_->{publisher}, @$p) {
+    for(grep $_->{publisher} && (!$hasfull || $_->{type} ne 'trial'), @$p) {
         push @lang, $_->{lang} if !$lang{$_->{lang}};
         push $lang{$_->{lang}}->@*, $_;
     }
