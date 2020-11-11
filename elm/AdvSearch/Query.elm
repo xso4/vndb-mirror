@@ -4,17 +4,18 @@ import Json.Encode as JE
 import Json.Decode as JD
 import Dict
 import Gen.Api as GApi
-import Gen.AdvSearch as GAdv
 
 -- Generic dynamically typed representation of a query.
 -- Used only as an intermediate format to help with encoding/decoding.
+-- Corresponds to the compact JSON encoding, i.e. with field names and VNDBIDs encoded and integers.
+type QType = V | R
 type Op = Eq | Ne | Ge | Le
 type Query
   = QAnd (List Query)
   | QOr (List Query)
-  | QInt String Op Int
-  | QStr String Op String
-  | QQuery String Op Query
+  | QInt Int Op Int
+  | QStr Int Op String
+  | QQuery Int Op Query
 
 
 encodeOp : Op -> JE.Value
@@ -28,11 +29,11 @@ encodeOp o = JE.string <|
 encodeQuery : Query -> JE.Value
 encodeQuery q =
   case q of
-    QAnd l -> JE.list identity (JE.string "and" :: List.map encodeQuery l)
-    QOr  l -> JE.list identity (JE.string "or"  :: List.map encodeQuery l)
-    QInt   s o a -> JE.list identity [JE.string s, encodeOp o, JE.int a]
-    QStr   s o a -> JE.list identity [JE.string s, encodeOp o, JE.string a]
-    QQuery s o a -> JE.list identity [JE.string s, encodeOp o, encodeQuery a]
+    QAnd l -> JE.list identity (JE.int 0 :: List.map encodeQuery l)
+    QOr  l -> JE.list identity (JE.int 1 :: List.map encodeQuery l)
+    QInt   s o a -> JE.list identity [JE.int s, encodeOp o, JE.int a]
+    QStr   s o a -> JE.list identity [JE.int s, encodeOp o, JE.string a]
+    QQuery s o a -> JE.list identity [JE.int s, encodeOp o, encodeQuery a]
 
 
 
@@ -56,10 +57,10 @@ decodeOp = JD.string |> JD.andThen (\s ->
     _    -> JD.fail "Invalid operator")
 
 decodeQuery : JD.Decoder Query
-decodeQuery = JD.index 0 JD.string |> JD.andThen (\s ->
+decodeQuery = JD.index 0 JD.int |> JD.andThen (\s ->
    case s of
-     "and" -> JD.map QAnd decodeQList
-     "or"  -> JD.map QOr decodeQList
+     0 -> JD.map QAnd decodeQList
+     1 -> JD.map QOr decodeQList
      _ -> JD.oneOf
       [ JD.map2 (QInt s  ) (JD.index 1 decodeOp) (JD.index 2 JD.int)
       , JD.map2 (QStr s  ) (JD.index 1 decodeOp) (JD.index 2 JD.string)
@@ -85,8 +86,8 @@ encInt n = if n <           0 then Nothing
       else if n <        4785 then Just <| "X" ++ encIntRaw 2 (n-689)
       else if n <      266929 then Just <| "Y" ++ encIntRaw 3 (n-4785)
       else if n <    17044145 then Just <| "Z" ++ encIntRaw 4 (n-266929)
-      else if n <  1090785969 then Just <| "-" ++ encIntRaw 5 (n-17044145)
-      else if n < 69810262705 then Just <| "_" ++ encIntRaw 6 (n-1090785969)
+      else if n <  1090785969 then Just <| "_" ++ encIntRaw 5 (n-17044145)
+      else if n < 69810262705 then Just <| "-" ++ encIntRaw 6 (n-1090785969)
       else Nothing
 
 
@@ -97,14 +98,10 @@ encStr : String -> String
 encStr = String.foldl (\c s -> s ++ Maybe.withDefault (String.fromChar c) (Dict.get c encStrMap)) ""
 
 
--- XXX: Queries with unknown fields or invalid value types are silently discarded
-encQuery : GAdv.QType -> Query -> String
-encQuery qt query =
+encQuery : Query -> String
+encQuery query =
   let fint n = Maybe.withDefault "" (encInt n)
-      lst n l =
-        let nl = List.map (encQuery qt) l |> List.filter (\s -> s /= "")
-        in if List.isEmpty nl then "" else fint n ++ fint (List.length nl) ++ String.concat nl
-      fieldByName n = List.filter (\f -> f.qtype == qt && f.name == n) GAdv.fields |> List.head
+      lst n l = let nl = List.map encQuery l in fint n ++ fint (List.length nl) ++ String.concat nl
       encOp o =
         case o of
           Eq -> 0
@@ -112,20 +109,16 @@ encQuery qt query =
           Ge -> 2
           Le -> 3
       encTypeOp o t = Maybe.withDefault "" <| encInt <| encOp o + 4*t
-      encStrField o v f = let s = encStr v in fint f.num ++ encTypeOp o (String.length s + 9) ++ s
+      encStrField n o v = let s = encStr v in fint n ++ encTypeOp o (String.length s + 9) ++ s
   in case query of
       QAnd l -> lst 0 l
       QOr l  -> lst 1 l
-      QInt n o v -> fieldByName n |> Maybe.map (\f ->
+      QInt n o v ->
         case encInt v of -- Integers that can't be represented in encoded form will be encoded as strings
-          Just s -> fint f.num ++ encTypeOp o 0 ++ s
-          Nothing -> encStrField o (String.fromInt v) f) |> Maybe.withDefault ""
-      QStr n o v -> fieldByName n |> Maybe.map (encStrField o v) |> Maybe.withDefault ""
-      QQuery n o q -> fieldByName n |> Maybe.andThen (\f ->
-        case f.vtype of
-          GAdv.QVQuery t -> Just (fint f.num ++ encTypeOp o 1 ++ encQuery t q)
-          _ -> Nothing) |> Maybe.withDefault ""
-
+          Just s  -> fint n ++ encTypeOp o 0 ++ s
+          Nothing -> encStrField n o (String.fromInt v)
+      QStr n o v -> encStrField n o v
+      QQuery n o q -> fint n ++ encTypeOp o 1 ++ encQuery q
 
 
 

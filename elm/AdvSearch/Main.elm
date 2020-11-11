@@ -10,7 +10,6 @@ import Array as A
 import Json.Encode as JE
 import Json.Decode as JD
 import Gen.Api as GApi
-import Gen.AdvSearch exposing (QType(..))
 import AdvSearch.Query exposing (..)
 import AdvSearch.Fields exposing (..)
 
@@ -108,7 +107,7 @@ update msg model =
 
 view : Model -> Html Msg
 view model = div [ class "advsearch" ]
-  [ input [ type_ "hidden", id "f", name "f", value <| Maybe.withDefault "" <| Maybe.map (encQuery model.qtype) (fieldToQuery model.query) ] []
+  [ input [ type_ "hidden", id "f", name "f", value <| Maybe.withDefault "" <| Maybe.map encQuery (fieldToQuery model.query) ] []
   , Html.map Field (nestFieldView model.data model.query)
   , input [ type_ "submit", class "submit", value "Search" ] []
   ]

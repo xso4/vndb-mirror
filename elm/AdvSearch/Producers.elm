@@ -64,7 +64,7 @@ fromQuery f dat q =
 
 devFromQuery = fromQuery (\q ->
   case q of
-    QInt "developer" op v -> Just (op, v)
+    QInt 6 op v -> Just (op, v)
     _ -> Nothing)
 
 

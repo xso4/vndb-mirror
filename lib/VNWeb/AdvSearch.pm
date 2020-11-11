@@ -1,21 +1,27 @@
 package VNWeb::AdvSearch;
 
+# This module comes with query definitions and helper functions to handle
+# advanced search queries. Usage is as follows:
+#
+# my $q = tuwf->validate(get => f => { advsearch => 'v' })->data;
+#
+# $q->sql_where;  # Returns an SQL condition for use in a where clause.
+# $q->elm_;       # Instantiate an Elm widget
+
+
 use v5.26;
 use warnings;
+use B;
 use TUWF;
-use Exporter 'import';
 use VNWeb::DB;
 use VNWeb::Validation;
-use VNWeb::HTML;
 use VNDB::Types;
-
-our @EXPORT = qw/ as_tosql as_elm_ /;
 
 
 # Search query (JSON):
 #
 #   $Query      = $Combinator || $Predicate
-#   $Combinator = [ 'and'||'or', $Query, .. ]
+#   $Combinator = [ 'and'||'or'||0||1, $Query, .. ]
 #   $Predicate  = [ $Field, $Op, $Value ]
 #   $Op         = '=', '!=', '>=', '<='
 #   $Value      = $integer || $string || $Query
@@ -24,7 +30,7 @@ our @EXPORT = qw/ as_tosql as_elm_ /;
 #   $Field can be referred to by name or number, the latter is used for the
 #   compact encoding.
 #
-# e.g.
+# e.g. normalized JSON form:
 #
 #   [ 'and'
 #   , [ 'or'    # No support for array values, so IN() queries need explicit ORs.
@@ -122,14 +128,20 @@ our @EXPORT = qw/ as_tosql as_elm_ /;
 #   $Type. Type=9 is used for the empty string, Type=10 for strings of length
 #   1, etc. String lengths up to 3 can be represented by a single $TypedOp
 #   character.
-#
-# (Only a decoder is implemented for now, encoding is done in Elm)
+
 
 my @alpha = (0..9, 'a'..'z', 'A'..'Z', '_', '-');
 my %alpha = map +($alpha[$_],$_), 0..$#alpha;
-my @escape = split //, " !\"#\$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
 
-sub dec_int {
+# Assumption: @escape has less than 49 characters.
+my @escape = split //, " !\"#\$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
+my %escape = map +($escape[$_],$alpha[$_]), 0..$#escape;
+my $escape_re = qr{([${\quotemeta join '', @escape}])};
+
+sub _unescape_str { $_[0] =~ s{_(.)}{ $escape[$alpha{$1} // return] // return }reg }
+sub _escape_str { $_[0] =~ s/$escape_re/_$escape{$1}/rg }
+
+sub _dec_int {
     my($s, $i) = @_;
     my $c1 = ($alpha{substr $s, $$i++, 1} // return);
     return $c1 if $c1 < 49;
@@ -139,20 +151,45 @@ sub dec_int {
     $n + (689, 4785, 266929, 17044145, 1090785969)[$c1-59]
 }
 
-# Assumption: @escape has less than 49 characters.
-sub unescape_str { $_[0] =~ s{_(.)}{ $escape[$alpha{$1} // return] // return }reg }
-
-sub dec_query {
+sub _dec_query {
     my($s, $i) = @_;
-    my $c1 = dec_int($s, $i) // return;
-    my $c2 = dec_int($s, $i) // return;
-    return [ $c1 ? 'or' : 'and', map +(dec_query($s, $i) // return), 1..$c2 ] if $c1 <= 1;
+    my $c1 = _dec_int($s, $i) // return;
+    my $c2 = _dec_int($s, $i) // return;
+    return [ $c1, map +(_dec_query($s, $i) // return), 1..$c2 ] if $c1 <= 1;
     my($op, $type) = ($c2 % 4, int ($c2 / 4));
     [ $c1, ('=','!=', '>=', '<=')[$op],
-        $type == 0 ? (dec_int($s, $i) // return) :
-        $type == 1 ? (dec_query($s, $i) // return) :
-        $type >= 9 ? do { my $v = unescape_str(substr $s, $$i, $type-9) // return; $$i += $type-9; $v } : undef ];
+        $type == 0 ? (_dec_int($s, $i) // return) :
+        $type == 1 ? (_dec_query($s, $i) // return) :
+        $type >= 9 ? do { my $v = _unescape_str(substr $s, $$i, $type-9) // return; $$i += $type-9; $v } : undef ];
 }
+
+sub _enc_int {
+    my($n) = @_;
+    return if $n < 0;
+    return $alpha[$n] if $n < 49;
+    return $alpha[49 + int(($n-49)/64)] . $alpha[($n-49)%64] if $n < 689;
+    sub r { ($_[0] > 1 ? r($_[0]-1,int $_[1]/64) : '').$alpha[$_[1]%64] }
+    return 'X'.r 2, $n -        689 if $n <        4785;
+    return 'Y'.r 3, $n -       4785 if $n <      266929;
+    return 'Z'.r 4, $n -     266929 if $n <    17044145;
+    return '_'.r 5, $n -   17044145 if $n <  1090785969;
+    return '-'.r 6, $n - 1090785969 if $n < 69810262705;
+}
+
+# Assumes that the query is already in compact JSON form.
+sub _enc_query {
+    my($q) = @_;
+    return ($alpha[$q->[0]])._enc_int($#$q).join '', map _enc_query($_), @$q[1..$#$q] if $q->[0] <= 1;
+    my sub r { _enc_int($q->[0])._enc_int({qw/= 0 != 1 >= 2 <= 3/}->{$q->[1]} + 4*$_[0]) }
+    return r(1)._enc_query($q->[2]) if ref $q->[2];
+    if(!(B::svref_2object(\$q->[2])->FLAGS & B::SVp_POK)) {
+        my $s = _enc_int $q->[2];
+        return r(0).$s if defined $s;
+    }
+    my $esc = _escape_str $q->[2];
+    r(9+length $esc).$esc;
+}
+
 
 
 
@@ -165,7 +202,7 @@ sub dec_query {
 #   $op=>$sql  -> Operator definitions and sql() generation functions.
 #
 #   An implementation for the '!=' operator will be supplied automatically if it's not explicitely defined.
-our(%FIELDS, %NUMFIELDS);
+my(%FIELDS, %NUMFIELDS);
 sub f {
     my($t, $num, $n, $v, %op) = @_;
     my %f = (
@@ -192,11 +229,11 @@ f v => 50 => 'release',  'r', '=' => sub { sql 'v.id IN(SELECT rv.vid FROM relea
 
 f r =>  2 => 'lang',     { enum => \%LANGUAGE }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_lang WHERE lang =', \$_, ')' };
 f r =>  4 => 'platform', { enum => \%PLATFORM }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_platforms WHERE platform =', \$_, ')' };
-f r =>  3 => 'developer',{ vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE developer AND pid = vndbid_num(', \$_, '))' };
+f r =>  6 => 'developer',{ vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE developer AND pid = vndbid_num(', \$_, '))' };
 
 
 
-sub validate {
+sub _validate {
     my($t, $q) = @_;
     return { msg => 'Invalid query' } if ref $q ne 'ARRAY' || @$q < 2 || !defined $q->[0] || ref $q->[0];
 
@@ -207,7 +244,7 @@ sub validate {
     # combinator
     if($q->[0] eq 'and' || $q->[0] eq 'or') {
         for(@$q[1..$#$q]) {
-            my $r = validate($t, $_);
+            my $r = _validate($t, $_);
             return $r if !$r || ref $r;
         }
         return 1;
@@ -218,7 +255,7 @@ sub validate {
     my $f = $FIELDS{$t}{$q->[0]};
     return { msg => 'Unknown field', field => $q->[0] } if !$f;
     return { msg => 'Invalid operator', field => $q->[0], op => $q->[1] } if !$f->{op}{$q->[1]};
-    return validate($f->{value}, $q->[2]) if !ref $f->{value};
+    return _validate($f->{value}, $q->[2]) if !ref $f->{value};
     my $r = $f->{value}->validate($q->[2]);
     return { msg => 'Invalid value', field => $q->[0], value => $q->[2], error => $r->err } if $r->err;
     $q->[2] = $r->data;
@@ -227,72 +264,94 @@ sub validate {
 
 
 # 'advsearch' validation, accepts either a compact encoded string, JSON string or an already decoded array.
-TUWF::set('custom_validations')->{advsearch} = sub { my($t) = @_; +{ required => 0, type => 'any', func => sub {
+TUWF::set('custom_validations')->{advsearch} = sub { my($t) = @_; +{ required => 0, type => 'any', default => bless({type=>$t}, __PACKAGE__), func => sub {
     return { msg => 'Invalid JSON', error => $@ =~ s{[\s\r\n]* at /[^ ]+ line.*$}{}smr } if !ref $_[0] && $_[0] =~ /^\[/ && !eval { $_[0] = JSON::XS->new->decode($_[0]); 1 };
     if(!ref $_[0]) {
         my($v,$i) = ($_[0],0);
-        return { msg => 'Invalid compact encoded form', character_index => $i } if !($_[0] = dec_query($v, \$i));
+        return { msg => 'Invalid compact encoded form', character_index => $i } if !($_[0] = _dec_query($v, \$i));
         return { msg => 'Trailing garbage' } if $i != length $v;
     }
-    validate($t, @_)
+    my $v = _validate($t, @_);
+    $_[0] = bless { type => $t, query => $_[0] }, __PACKAGE__ if $v;
+    $v
 } } };
 
 
-sub as_tosql {
+sub _sql_where {
     my($t, $q) = @_;
-    return sql_and map as_tosql($t, $_), @$q[1..$#$q] if $q->[0] eq 'and';
-    return sql_or  map as_tosql($t, $_), @$q[1..$#$q] if $q->[0] eq 'or';
+    return sql_and map _sql_where($t, $_), @$q[1..$#$q] if $q->[0] eq 'and';
+    return sql_or  map _sql_where($t, $_), @$q[1..$#$q] if $q->[0] eq 'or';
 
     my $f = $FIELDS{$t}{$q->[0]};
-    local $_ = ref $f->{value} ? $q->[2] : as_tosql($f->{value}, $q->[2]);
+    local $_ = ref $f->{value} ? $q->[2] : _sql_where($f->{value}, $q->[2]);
     $f->{op}{$q->[1]}->();
 }
 
 
-sub coerce_for_json {
-    my($t, $q) = @_;
-    if($q->[0] eq 'and' || $q->[0] eq 'or') {
-        coerce_for_json($t, $_) for @$q[1..$#$q];
-    } else {
-        my $f = $FIELDS{$t}{$q->[0]};
-        # VNDBIDs are represented as ints for Elm
-        $q->[2] = $f->{vndbid} ? int ($q->[2] =~ s/^$f->{vndbid}//rg)
-             :    $f->{int}    ? int $q->[2]
-             : ref $f->{value} ? "$q->[2]" : coerce_for_json($f->{value}, $q->[2]);
-    }
-    $q
+sub sql_where {
+    my($self) = @_;
+    $self->{query} ? _sql_where($self->{type}, $self->{query}) : '1=1';
 }
 
 
-sub extract_ids {
+sub _compact_json {
+    my($t, $q) = @_;
+    return [ $q->[0] eq 'and' ? 0 : 1, map _compact_json($t, $_), @$q[1..$#$q] ] if $q->[0] eq 'and' || $q->[0] eq 'or';
+
+    my $f = $FIELDS{$t}{$q->[0]};
+    [ int $f->{num}, $q->[1],
+        # VNDBIDs are represented as ints in compact form
+             $f->{vndbid} ? int ($q->[2] =~ s/^$f->{vndbid}//rg)
+        :    $f->{int}    ? int $q->[2]
+        : ref $f->{value} ? "$q->[2]" : _compact_json($f->{value}, $q->[2])
+    ]
+}
+
+
+sub compact_json {
+    my($self) = @_;
+    $self->{compact} //= $self->{query} && _compact_json($self->{type}, $self->{query});
+    $self->{compact};
+}
+
+
+sub _extract_ids {
     my($t,$q,$ids) = @_;
     if($q->[0] eq 'and' || $q->[0] eq 'or') {
-        extract_ids($t, $_, $ids) for @$q[1..$#$q];
+        _extract_ids($t, $_, $ids) for @$q[1..$#$q];
     } else {
         my $f = $FIELDS{$t}{$q->[0]};
         $ids->{$q->[2]} = 1 if $f->{vndbid};
-        extract_ids($f->{value}, $q->[2], $ids) if !ref $f->{value};
+        _extract_ids($f->{value}, $q->[2], $ids) if !ref $f->{value};
     }
 }
 
 
-sub as_elm_ {
-    my($t, $q) = @_;
+sub elm_ {
+    my($self) = @_;
 
     my(%o,%ids);
-    extract_ids($t, $q, \%ids) if $q;
+    _extract_ids($self->{type}, $self->{query}, \%ids) if $self->{query};
     $o{producers} = [ map +{id => $_=~s/^p//rg}, grep /^p/, keys %ids ];
     enrich_merge id => 'SELECT id, name, original, hidden FROM producers WHERE id IN', $o{producers};
 
-    $o{qtype} = $t;
-    $o{query} = $q && coerce_for_json($t, $q);
+    $o{qtype} = $self->{type};
+    $o{query} = $self->compact_json;
 
     state $schema ||= tuwf->compile({ type => 'hash', keys => {
         qtype     => {},
-        query     => { type => 'array' },
+        query     => { type => 'array', required => 0 },
         producers => $VNWeb::Elm::apis{ProducerResult}[0],
     }});
-    elm_ 'AdvSearch.Main', $schema, \%o;
+    VNWeb::HTML::elm_ 'AdvSearch.Main', $schema, \%o;
+}
+
+
+sub query_encode {
+    my($self) = @_;
+    return if !$self->{query};
+    $self->{query_encode} //= _enc_query $self->compact_json;
+    $self->{query_encode};
 }
 
 1;

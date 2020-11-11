@@ -309,11 +309,12 @@ sub form_compare {
 }
 
 
-# Encode query parameters. Takes a hash or hashref with key/values, supports array values.
+# Encode query parameters. Takes a hash or hashref with key/values, supports array values and objects that implement query_encode().
 sub query_encode {
     my $o = @_ == 1 ? $_[0] : {@_};
     return join '&', map {
         my($k, $v) = ($_, $o->{$_});
+        $v = $v->query_encode() if ref $v && ref $v ne 'ARRAY';
         !defined $v ? () : ref $v ? map "$k=".uri_escape($_), sort @$v : "$k=".uri_escape($v)
     } sort keys %$o;
 }

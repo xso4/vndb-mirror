@@ -7,8 +7,6 @@ use VNWeb::AdvSearch;
 sub listing_ {
     my($opt, $list, $count) = @_;
 
-    # TODO: query_encode() should recognize and encode the search query automatically.
-    $opt->{f} = JSON::XS->new->encode($opt->{f}) if $opt->{f};
     my sub url { '?'.query_encode %$opt, @_ }
 
     paginate_ \&url, $opt->{p}, [$count, 50], 't';
@@ -55,9 +53,8 @@ TUWF::get qr{/experimental/v}, sub {
     )->data;
 
     my $where = sql_and
-        'NOT v.hidden',
-        $opt->{q} ? map sql('v.c_search LIKE', \"%$_%"), normalize_query $opt->{q} : (),
-        $opt->{f} ? as_tosql(v => $opt->{f}) : ();
+        'NOT v.hidden', $opt->{f}->sql_where(),
+        $opt->{q} ? map sql('v.c_search LIKE', \"%$_%"), normalize_query $opt->{q} : ();
 
     my $time = time;
     my $count = tuwf->dbVali('SELECT count(*) FROM vn v WHERE', $where);
@@ -100,7 +97,7 @@ TUWF::get qr{/experimental/v}, sub {
             br_;
             form_ action => '/experimental/v', method => 'get', sub {
                 searchbox_ v => $opt->{q};
-                as_elm_ v => $opt->{f};
+                $opt->{f}->elm_;
             };
             p_ class => 'center', sprintf '%d results in %.3fs', $count, $time;
         };

@@ -7,7 +7,6 @@ import Lib.Util exposing (..)
 import Lib.Html exposing (..)
 import Lib.DropDown as DD
 import Lib.Api as Api
-import Gen.AdvSearch exposing (QType(..))
 import AdvSearch.Set as AS
 import AdvSearch.Producers as AP
 import AdvSearch.Query exposing (..)
@@ -82,8 +81,8 @@ nestToQuery : NestModel -> Maybe Query
 nestToQuery model =
   case (model.ntype, List.filterMap fieldToQuery model.fields) of
     (_,       [] ) -> Nothing
-    (NRel,    [x]) -> Just (QQuery "release" Eq x)
-    (NRelNeg, [x]) -> Just (QQuery "release" Ne x)
+    (NRel,    [x]) -> Just (QQuery 50 Eq x)
+    (NRelNeg, [x]) -> Just (QQuery 50 Ne x)
     (_,       [x]) -> Just x
     (NAnd,    xs ) -> Just (QAnd xs)
     (NOr,     xs ) -> Just (QOr xs)
@@ -102,7 +101,7 @@ nestFromQuery ntype qtype dat q =
           Ne -> Just (init ntNeg qt [val])
           _ -> Nothing
   in case (qtype, ntype, q) of
-       (V, NRel, QQuery "release" op r) -> initSub op NRel NRelNeg R r
+       (V, NRel, QQuery 50 op r) -> initSub op NRel NRelNeg R r
        (_, NAnd, QAnd l) -> Just (init NAnd qtype l)
        (_, NOr,  QOr  l) -> Just (init NOr  qtype l)
        _ -> Nothing
@@ -312,11 +311,11 @@ fieldToQuery (_, _, model) =
   case model of
     FMCustom m   -> Just m
     FMNest m     -> nestToQuery m
-    FMLang  m    -> AS.toQuery (QStr "lang" ) m
-    FMOLang m    -> AS.toQuery (QStr "olang") m
-    FMPlatform m -> AS.toQuery (QStr "platform") m
-    FMLength m   -> AS.toQuery (QInt "length") m
-    FMDeveloper m-> AP.toQuery (QInt "developer") m
+    FMLang  m    -> AS.toQuery (QStr 2) m
+    FMOLang m    -> AS.toQuery (QStr 3) m
+    FMPlatform m -> AS.toQuery (QStr 4) m
+    FMLength m   -> AS.toQuery (QInt 5) m
+    FMDeveloper m-> AP.toQuery (QInt 6) m
 
 
 fieldCreate : Int -> (Data,FieldModel) -> (Data,Field)
