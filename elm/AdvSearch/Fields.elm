@@ -9,6 +9,7 @@ import Lib.DropDown as DD
 import Lib.Api as Api
 import AdvSearch.Set as AS
 import AdvSearch.Producers as AP
+import AdvSearch.RDate as AR
 import AdvSearch.Query exposing (..)
 
 
@@ -187,6 +188,7 @@ type FieldModel
   | FMPlatform (AS.Model String)
   | FMLength   (AS.Model Int)
   | FMDeveloper AP.Model
+  | FMRDate    AR.Model
 
 type FieldMsg
   = FSCustom   () -- Not actually used at the moment
@@ -196,6 +198,7 @@ type FieldMsg
   | FSPlatform (AS.Msg String)
   | FSLength   (AS.Msg Int)
   | FSDeveloper AP.Msg
+  | FSRDate    AR.Msg
   | FToggle Bool
   | FDel       -- intercepted in nestUpdate
   | FMoveSub   -- intercepted in nestUpdate
@@ -237,10 +240,12 @@ fields =
   , f V "Length"            (Just 4)  FMLength    AS.init               AS.lengthFromQuery
   , f V "Developer"         Nothing   FMDeveloper AP.init               AP.devFromQuery
   , f V "Release"           Nothing   FMNest      (nestInit NRel R [])  (nestFromQuery NRel V)
+  , f V "Release date"      Nothing   FMRDate     AR.init               AR.fromQuery
 
   , f R "Language"          (Just 1)  FMLang      AS.init               AS.langFromQuery
   , f R "Platform"          (Just 2)  FMPlatform  AS.init               AS.platformFromQuery
   , f R "Developer"         Nothing   FMDeveloper AP.init               AP.devFromQuery
+  , f R "Release date"      Nothing   FMRDate     AR.init               AR.fromQuery
   ]
 
 
@@ -274,6 +279,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSPlatform msg, FMPlatform m) -> maps FMPlatform (AS.update msg m)
       (FSLength msg,   FMLength m)   -> maps FMLength   (AS.update msg m)
       (FSDeveloper msg,FMDeveloper m)-> mapf FMDeveloper FSDeveloper (AP.update dat msg m)
+      (FSRDate msg,    FMRDate m)    -> maps FMRDate    (AR.update msg m)
       (FToggle b, _) -> (dat, (num, DD.toggle dd b, model), Cmd.none)
       _ -> noop
 
@@ -304,6 +310,7 @@ fieldView dat (_, dd, model) =
       FMPlatform m -> vs FSPlatform (AS.platformView m)
       FMLength m   -> vs FSLength   (AS.lengthView m)
       FMDeveloper m-> vs FSDeveloper(AP.devView dat m)
+      FMRDate m    -> vs FSRDate    (AR.view m)
 
 
 fieldToQuery : Field -> Maybe Query
@@ -316,6 +323,7 @@ fieldToQuery (_, _, model) =
     FMPlatform m -> AS.toQuery (QStr 4) m
     FMLength m   -> AS.toQuery (QInt 5) m
     FMDeveloper m-> AP.toQuery (QInt 6) m
+    FMRDate m    -> AR.toQuery m
 
 
 fieldCreate : Int -> (Data,FieldModel) -> (Data,Field)

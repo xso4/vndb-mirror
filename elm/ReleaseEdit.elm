@@ -345,7 +345,7 @@ viewGen model =
   , formField "" [ label [] [ inputCheck "" model.freeware Freeware, text " Freeware (i.e. available at no cost)" ] ]
   , if model.patch then text "" else
     formField "" [ label [] [ inputCheck "" model.doujin   Doujin  , text " Doujin (self-published, not by a company)" ] ]
-  , formField "Release date" [ D.view model.released False Released, text " Leave month or day blank if they are unknown." ]
+  , formField "Release date" [ D.view model.released False False Released, text " Leave month or day blank if they are unknown." ]
 
   , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Format" ] ]
   , formField "Language(s)"

@@ -40,6 +40,7 @@ TUWF::set custom_validations => {
     language    => { enum => \%LANGUAGE },
     gtin        => { required => 0, default => 0, func => sub { $_[0] = 0 if !length $_[0]; $_[0] eq 0 || gtintype($_[0]) } },
     rdate       => { uint => 1, func => \&_validate_rdate },
+    fuzzyrdate  => { func => \&_validate_fuzzyrdate },
     # A tri-state bool, returns undef if not present or empty, normalizes to 0/1 otherwise
     undefbool   => { required => 0, default => undef, func => sub { $_[0] = $_[0] ? 1 : 0; 1 } },
     # An array that may be either missing (returns undef), a single scalar (returns single-element array) or a proper array
@@ -75,6 +76,15 @@ sub _validate_rdate {
     return 0 if $y && $m != 99 && (!$m || $m > 12);
     return 0 if $y && $d != 99 && !eval { timegm(0, 0, 0, $d, $m-1, $y) };
     return 1;
+}
+
+
+sub _validate_fuzzyrdate {
+    $_[0] = 0 if $_[0] =~ /^unknown$/;
+    $_[0] = 1 if $_[0] =~ /^today$/;
+    $_[0] = 99999999 if $_[0] =~ /^tba$/;
+    return 1 if $_[0] eq 1;
+    VNWeb::Validation::_validate_rdate($_[0]);
 }
 
 

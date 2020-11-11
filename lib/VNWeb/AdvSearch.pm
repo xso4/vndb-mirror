@@ -12,6 +12,7 @@ package VNWeb::AdvSearch;
 use v5.26;
 use warnings;
 use B;
+use POSIX 'strftime';
 use TUWF;
 use VNWeb::DB;
 use VNWeb::Validation;
@@ -23,7 +24,7 @@ use VNDB::Types;
 #   $Query      = $Combinator || $Predicate
 #   $Combinator = [ 'and'||'or'||0||1, $Query, .. ]
 #   $Predicate  = [ $Field, $Op, $Value ]
-#   $Op         = '=', '!=', '>=', '<='
+#   $Op         = '=', '!=', '>=', '>', '<=', '<'
 #   $Value      = $integer || $string || $Query
 #
 #   Accepted values for $Op and $Value depend on $Field.
@@ -95,9 +96,8 @@ use VNDB::Types;
 #
 #     "a b-c"   -> "a_0b_dc"
 #
-#   Strings are not self-delimiting, so their length must be encoded
-#   separately (though '-' does not occur in encoded strings, so that could be
-#   used as delimiter in the future).
+#   The end of a string can either be indicated with a '-' character, or the
+#   length of the string can be encoded in a preceding field.
 #
 # QUERY ENCODING
 #
@@ -116,18 +116,17 @@ use VNDB::Types;
 #   A Query must either be self-delimiting or encode its own length, so that
 #   these can be directly concatenated.
 #
-#     $Op         = '=' => 0, '!=' => 1, '>=' => 2, '<=' => 3
-#     $Type       = integer => 0, query => 1,   n>=9 => string with length n-9
-#     $TypedOp    = Int( $Type*4 + $Op )
-#     $Value      = Int($integer) | Escape($string) | $Query
+#     $Op         = '=' => 0, '!=' => 1, '>=' => 2, '>' => 3, '<=' => 4, '<' => 5
+#     $Type       = integer => 0, query => 1, string2 => 2, string3 => 3, stringn => 4
+#     $TypedOp    = Int( $Type*8 + $Op )
+#     $Value      = Int($integer) | Escape($string2) | Escape($string3) | Escape($stringn) '-' | $Query
 #
 #   The encoded field number of a Predicate is followed by a single encoded
 #   integer that covers both the operator and the type of the value. This
-#   encoding leaves no room for additional operators, but does have room for 7
-#   more types. The (escaped) length of string arguments is encoded in the
-#   $Type. Type=9 is used for the empty string, Type=10 for strings of length
-#   1, etc. String lengths up to 3 can be represented by a single $TypedOp
-#   character.
+#   encoding leaves room for 2 additional operators. There are 3 different
+#   string types: string2 and string3 are fixed-length strings of 2 and 3
+#   characters, respectively, and $stringn is an arbitrary-length string that
+#   ends with the '-' character.
 
 
 my @alpha = (0..9, 'a'..'z', 'A'..'Z', '_', '-');
@@ -138,8 +137,19 @@ my @escape = split //, " !\"#\$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
 my %escape = map +($escape[$_],$alpha[$_]), 0..$#escape;
 my $escape_re = qr{([${\quotemeta join '', @escape}])};
 
+my @ops = qw/= != >= > <= </;
+my %ops = map +($ops[$_],$_), 0..$#ops;
+
 sub _unescape_str { $_[0] =~ s{_(.)}{ $escape[$alpha{$1} // return] // return }reg }
 sub _escape_str { $_[0] =~ s/$escape_re/_$escape{$1}/rg }
+
+# Read a '-'-delimited string.
+sub _dec_str {
+    my($s, $i) = @_;
+    my $start = $$i;
+    $$i >= length $s and return while substr($s, $$i++, 1) ne '-';
+    _unescape_str substr $s, $start, $$i-$start-1;
+}
 
 sub _dec_int {
     my($s, $i) = @_;
@@ -156,11 +166,13 @@ sub _dec_query {
     my $c1 = _dec_int($s, $i) // return;
     my $c2 = _dec_int($s, $i) // return;
     return [ $c1, map +(_dec_query($s, $i) // return), 1..$c2 ] if $c1 <= 1;
-    my($op, $type) = ($c2 % 4, int ($c2 / 4));
-    [ $c1, ('=','!=', '>=', '<=')[$op],
+    my($op, $type) = ($c2 % 8, int ($c2 / 8));
+    [ $c1, $ops[$op],
         $type == 0 ? (_dec_int($s, $i) // return) :
         $type == 1 ? (_dec_query($s, $i) // return) :
-        $type >= 9 ? do { my $v = _unescape_str(substr $s, $$i, $type-9) // return; $$i += $type-9; $v } : undef ];
+        $type == 2 ? do { my $v = _unescape_str(substr $s, $$i, 2) // return; $$i += 2; $v } :
+        $type == 3 ? do { my $v = _unescape_str(substr $s, $$i, 3) // return; $$i += 3; $v } :
+        $type == 4 ? (_dec_str($s, $i) // return) : undef ]
 }
 
 sub _enc_int {
@@ -180,14 +192,16 @@ sub _enc_int {
 sub _enc_query {
     my($q) = @_;
     return ($alpha[$q->[0]])._enc_int($#$q).join '', map _enc_query($_), @$q[1..$#$q] if $q->[0] <= 1;
-    my sub r { _enc_int($q->[0])._enc_int({qw/= 0 != 1 >= 2 <= 3/}->{$q->[1]} + 4*$_[0]) }
+    my sub r { _enc_int($q->[0])._enc_int($ops{$q->[1]} + 8*$_[0]) }
     return r(1)._enc_query($q->[2]) if ref $q->[2];
     if(!(B::svref_2object(\$q->[2])->FLAGS & B::SVp_POK)) {
         my $s = _enc_int $q->[2];
         return r(0).$s if defined $s;
     }
     my $esc = _escape_str $q->[2];
-    r(9+length $esc).$esc;
+    return r(2).$esc if length $esc == 2;
+    return r(3).$esc if length $esc == 3;
+    r(4).$esc.'-';
 }
 
 
@@ -199,20 +213,22 @@ sub _enc_query {
 #   $num       -> Numeric identifier for compact encoding, must be >= 2 and same requirements as $name.
 #                 Fields that don't occur often should use numbers above 50, for better encoding of common fields.
 #   $value     -> TUWF::Validate schema for value validation, or $query_type to accept a nested query.
-#   $op=>$sql  -> Operator definitions and sql() generation functions.
+#   %options:
+#       $op    -> Operator definitions and sql() generation functions.
+#       sql    -> sql() generation function that is called for all operators.
 #
 #   An implementation for the '!=' operator will be supplied automatically if it's not explicitely defined.
 my(%FIELDS, %NUMFIELDS);
 sub f {
-    my($t, $num, $n, $v, %op) = @_;
+    my($t, $num, $n, $v, @opts) = @_;
     my %f = (
         num   => $num,
         value => ref $v eq 'HASH' ? tuwf->compile($v) : $v,
-        op    => \%op,
+        @opts,
     );
-    $f{op}{'!='} = sub { sql 'NOT (', $f{op}{'='}->(@_), ')' } if $f{op}{'='} && !$f{op}{'!='};
+    $f{'!='} = sub { sql 'NOT (', $f{'='}->(@_), ')' } if $f{'='} && !$f{'!='};
     $f{vndbid} = ref $v eq 'HASH' && $v->{vndbid} && !ref $v->{vndbid} && $v->{vndbid};
-    $f{int} = ref $f{value} && ($f{value}->analyze->{type} eq 'int' || $f{value}->analyze->{type} eq 'bool');
+    $f{int} = ref $f{value} && ($v->{fuzzyrdate} || $f{value}->analyze->{type} eq 'int' || $f{value}->analyze->{type} eq 'bool');
     $FIELDS{$t}{$n} = \%f;
     $NUMFIELDS{$t}{$num} = $n;
 }
@@ -222,14 +238,19 @@ f v =>  2 => 'lang',     { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_languages
 f v =>  3 => 'olang',    { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_olang     && ARRAY', \$_, '::language[]' };
 f v =>  4 => 'platform', { enum => \%PLATFORM }, '=' => sub { sql 'v.c_platforms && ARRAY', \$_, '::platform[]' };
 f v =>  5 => 'length',   { uint => 1, enum => \%VN_LENGTH }, '=' => sub { sql 'v.length =', \$_ };
-f v =>  6 => 'developer',{ vndbid => 'p' }, '=' => sub {
-    sql 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id JOIN releases_producers rp ON rp.id = r.id WHERE NOT r.hidden AND rp.pid = vndbid_num(', \$_, ') AND rp.developer)' };
-f v => 50 => 'release',  'r', '=' => sub { sql 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE', $_, ')' };
+f v =>  7 => 'released', { fuzzyrdate => 1 }, sql => sub { sql 'v.c_released', $_[0], \($_ == 1 ? strftime('%Y%m%d', gmtime) : $_) };
+
+f v =>  6 => 'developer',{ vndbid => 'p' },
+    '=' => sub { sql 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id JOIN releases_producers rp ON rp.id = r.id
+                               WHERE NOT r.hidden AND rp.pid = vndbid_num(', \$_, ') AND rp.developer)' };
+
+f v => 50 => 'release',  'r', '=' => sub { sql 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE NOT r.hidden AND', $_, ')' };
 
 
 f r =>  2 => 'lang',     { enum => \%LANGUAGE }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_lang WHERE lang =', \$_, ')' };
 f r =>  4 => 'platform', { enum => \%PLATFORM }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_platforms WHERE platform =', \$_, ')' };
 f r =>  6 => 'developer',{ vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE developer AND pid = vndbid_num(', \$_, '))' };
+f r =>  7 => 'released', { fuzzyrdate => 1 }, sql => sub { sql 'r.released', $_[0], \($_ == 1 ? strftime('%Y%m%d', gmtime) : $_) };
 
 
 
@@ -254,7 +275,7 @@ sub _validate {
     return { msg => 'Invalid predicate' } if @$q != 3 || !defined $q->[1] || ref $q->[1];
     my $f = $FIELDS{$t}{$q->[0]};
     return { msg => 'Unknown field', field => $q->[0] } if !$f;
-    return { msg => 'Invalid operator', field => $q->[0], op => $q->[1] } if !$f->{op}{$q->[1]};
+    return { msg => 'Invalid operator', field => $q->[0], op => $q->[1] } if !defined $ops{$q->[1]} || (!$f->{$q->[1]} && !$f->{sql});
     return _validate($f->{value}, $q->[2]) if !ref $f->{value};
     my $r = $f->{value}->validate($q->[2]);
     return { msg => 'Invalid value', field => $q->[0], value => $q->[2], error => $r->err } if $r->err;
@@ -283,8 +304,9 @@ sub _sql_where {
     return sql_or  map _sql_where($t, $_), @$q[1..$#$q] if $q->[0] eq 'or';
 
     my $f = $FIELDS{$t}{$q->[0]};
+    my $func = $f->{$q->[1]} || $f->{sql};
     local $_ = ref $f->{value} ? $q->[2] : _sql_where($f->{value}, $q->[2]);
-    $f->{op}{$q->[1]}->();
+    $func->($q->[1]);
 }
 
 

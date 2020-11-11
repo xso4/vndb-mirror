@@ -1,8 +1,9 @@
 -- Utility module and UI widget for handling release dates.
 --
--- Release dates are integers with the following format: 0 or yyyymmdd
+-- Release dates are integers with the following format: 0, 1 or yyyymmdd
 -- Special values
---   0        -> unknown
+--          0 -> unknown
+--          1 -> "today" (only used as filter)
 --   99999999 -> TBA
 --   yyyy9999 -> year known, month & day unknown
 --   yyyymm99 -> year & month known, day unknown
@@ -47,15 +48,17 @@ fromDate d =
 
 normalize : RDateComp -> RDateComp
 normalize r =
-       if r.y == 0    then { y = 0,    m = 0,  d = 0  }
+       if r.y == 0    then { y = 0,    m = 0,  d = clamp 0 1 r.y }
   else if r.y == 9999 then { y = 9999, m = 99, d = 99 }
-  else if r.m == 99   then { y = r.y,  m = 99, d = 99 }
+  else if r.m == 0 || r.m == 99 then { y = r.y,  m = 99, d = 99 }
+  else if r.d == 0 then { r | d = 99 }
   else r
 
 
 format : RDateComp -> String
 format date =
   case (date.y, date.m, date.d) of
+    (   0,  0,  1) -> "today"
     (   0,  _,  _) -> "unknown"
     (9999,  _,  _) -> "TBA"
     (   y, 99, 99) -> String.fromInt y
@@ -76,13 +79,14 @@ display today d =
 -- longer valid results in an invalid RDate. It also causes the "-day-" option
 -- to be selected (which is good), so I don't expect that many people will try
 -- to submit the form without changing it.
-view : RDate -> Bool -> (RDate -> msg) -> Html msg
-view ro permitUnknown msg =
+view : RDate -> Bool -> Bool -> (RDate -> msg) -> Html msg
+view ro permitUnknown permitToday msg =
   let r = expand ro
       range from to f = List.range from to |> List.map (\n -> (f n |> normalize |> compact, String.fromInt n))
-      yl = (if permitUnknown then [(0, "Unknown")] else [])
-           ++ [(99999999, "TBA")]
-           ++ List.reverse (range 1980 (GT.curYear + 5) (\n -> {r|y=n}))
+      yl = (if permitToday   then [(1, "Today"  )] else [])
+        ++ (if permitUnknown then [(0, "Unknown")] else [])
+        ++ [(99999999, "TBA")]
+        ++ List.reverse (range 1980 (GT.curYear + 5) (\n -> {r|y=n}))
       ml = ({r|m=99} |> normalize |> compact, "- month -") :: range 1 12 (\n -> {r|m=n})
       maxDay = Date.fromCalendarDate r.y (Date.numberToMonth r.m) 1 |> Date.add Date.Months 1 |> Date.add Date.Days -1 |> Date.day
       dl = ({r|d=99} |> normalize |> compact, "- day -") :: range 1 maxDay (\n -> {r|d=n})

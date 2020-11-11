@@ -9,7 +9,7 @@ import Gen.Api as GApi
 -- Used only as an intermediate format to help with encoding/decoding.
 -- Corresponds to the compact JSON encoding, i.e. with field names and VNDBIDs encoded and integers.
 type QType = V | R
-type Op = Eq | Ne | Ge | Le
+type Op = Eq | Ne | Ge | Gt | Le | Lt
 type Query
   = QAnd (List Query)
   | QOr (List Query)
@@ -24,7 +24,9 @@ encodeOp o = JE.string <|
     Eq -> "="
     Ne -> "!="
     Ge -> ">="
+    Gt -> ">"
     Le -> "<="
+    Lt -> "<"
 
 encodeQuery : Query -> JE.Value
 encodeQuery q =
@@ -53,7 +55,9 @@ decodeOp = JD.string |> JD.andThen (\s ->
     "="  -> JD.succeed Eq
     "!=" -> JD.succeed Ne
     ">=" -> JD.succeed Ge
+    ">"  -> JD.succeed Gt
     "<=" -> JD.succeed Le
+    "<"  -> JD.succeed Lt
     _    -> JD.fail "Invalid operator")
 
 decodeQuery : JD.Decoder Query
@@ -107,9 +111,17 @@ encQuery query =
           Eq -> 0
           Ne -> 1
           Ge -> 2
-          Le -> 3
-      encTypeOp o t = Maybe.withDefault "" <| encInt <| encOp o + 4*t
-      encStrField n o v = let s = encStr v in fint n ++ encTypeOp o (String.length s + 9) ++ s
+          Gt -> 3
+          Le -> 4
+          Lt -> 5
+      encTypeOp o t = Maybe.withDefault "" <| encInt <| encOp o + 8*t
+      encStrField n o v =
+        let s = encStr v
+            f l = fint n ++ encTypeOp o l ++ s
+        in case String.length s of
+                  2 -> f 2
+                  3 -> f 3
+                  l -> f 4 ++ "-"
   in case query of
       QAnd l -> lst 0 l
       QOr l  -> lst 1 l
@@ -120,6 +132,16 @@ encQuery query =
       QStr n o v -> encStrField n o v
       QQuery n o q -> fint n ++ encTypeOp o 1 ++ encQuery q
 
+
+showOp : Op -> String
+showOp op =
+  case op of
+    Eq -> "="
+    Ne -> "≠"
+    Le -> "≤"
+    Lt -> "<"
+    Ge -> "≥"
+    Gt -> ">"
 
 
 -- Global data that's passed around for Fields

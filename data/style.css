@@ -1126,8 +1126,9 @@ p.filselect i { font-style: normal }
 .advsearch .advbut > b { color: $grayedout$; font-style: normal }
 .advsearch .advheader { box-sizing: border-box; background-color: $_blendbg$; padding: 3px; width: 100%; margin-bottom: 2px }
 .advsearch .advheader > h3 { text-align: center; font-weight: bold; font-size: inherit; margin-bottom: 3px }
-.advsearch .advheader .opts { display: flex; justify-content: space-between }
+.advsearch .advheader .opts { display: flex; justify-content: space-between; align-items: flex-end }
 .advsearch .advheader .opts > * { margin: 0 }
+.advsearch .advheader .opselect > * { display: inline-block; font-size: 18px; padding: 0 5px }
 .advsearch input.submit { margin-top: 5px }
 
 
