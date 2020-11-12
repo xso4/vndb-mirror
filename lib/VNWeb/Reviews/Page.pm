@@ -51,7 +51,7 @@ sub review_ {
                 my($date, $lastmod) = map $_&&fmtdate($_,'compact'), $w->@{'date', 'lastmod'};
                 txt_ " on $date";
                 b_ class => 'grayedout', " last updated on $lastmod" if $lastmod && $date ne $lastmod;
-                br_ if $w->{c_flagged} || $w->{locked};
+                br_ if $w->{c_flagged} || $w->{locked} || ($w->{spoiler} && (auth->pref('spoilers')||0) == 2);
                 if($w->{c_flagged}) {
                     br_;
                     b_ class => 'grayedout', 'Flagged: this review is below the voting threshold and not visible on the VN page.';
@@ -59,6 +59,10 @@ sub review_ {
                 if($w->{locked}) {
                     br_;
                     b_ class => 'grayedout', 'Locked: commenting on this review has been disabled.';
+                }
+                if($w->{spoiler} && (auth->pref('spoilers')||0) == 2) {
+                    br_;
+                    b_ 'This review contains spoilers.';
                 }
             }
         };

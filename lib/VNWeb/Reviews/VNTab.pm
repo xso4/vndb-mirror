@@ -28,7 +28,10 @@ sub reviews_ {
             article_ class => 'reviewbox', sub {
                 my $r = $_;
                 div_ sub {
-                    span_ sub { txt_ 'By '; user_ $r; txt_ ' on '.fmtdate $r->{date}, 'compact' };
+                    span_ sub {
+                        txt_ 'By '; user_ $r; txt_ ' on '.fmtdate $r->{date}, 'compact';
+                        b_ class => 'grayedout', ' contains spoilers' if $r->{spoiler} && (auth->pref('spoilers')||0) == 2;
+                    };
                     a_ href => "/r$r->{rid}", "r$r->{rid}" if $r->{rid};
                     span_ "Vote: ".fmtvote($r->{vote}) if $r->{vote};
                 };
