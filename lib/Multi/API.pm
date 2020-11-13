@@ -828,7 +828,7 @@ my %GET_CHARACTER = (
   },
   flags  => {
     basic => {
-      select => 'c.name, c.original, c.gender, c.bloodt, c.b_day, c.b_month',
+      select => 'c.name, c.original, c.gender, c.spoil_gender, c.bloodt, c.b_day, c.b_month',
       proc => sub {
         $_[0]{original} ||= undef;
         $_[0]{gender}   = undef if $_[0]{gender} eq 'unknown';
@@ -837,18 +837,20 @@ my %GET_CHARACTER = (
       },
     },
     details => {
-      select => 'c.alias AS aliases, vndbid_num(c.image) as image, i.c_sexual_avg, i.c_violence_avg, i.c_votecount, c."desc" AS description',
+      select => 'c.alias AS aliases, vndbid_num(c.image) as image, i.c_sexual_avg, i.c_violence_avg, i.c_votecount, c."desc" AS description, c.age',
       proc => sub {
         $_[0]{aliases}     ||= undef;
         $_[0]{description} ||= undef;
         $_[0]{image}       = $_[0]{image} ? sprintf '%s/ch/%02d/%d.jpg', config->{url_static}, $_[0]{image}%100, $_[0]{image} : undef;
         $_[0]{image_flagging} = image_flagging $_[0]{image}, $_[0];
+        $_[0]{age}*=1 if defined $_[0]{age};
       },
     },
     meas => {
-      select => 'c.s_bust AS bust, c.s_waist AS waist, c.s_hip AS hip, c.height, c.weight',
+      select => 'c.s_bust AS bust, c.s_waist AS waist, c.s_hip AS hip, c.height, c.weight, c.cup_size',
       proc => sub {
         $_[0]{$_} = $_[0]{$_} ? $_[0]{$_}*1 : undef for(qw|bust waist hip height weight|);
+        $_[0]{cup_size} ||= undef;
       },
     },
     traits => {
