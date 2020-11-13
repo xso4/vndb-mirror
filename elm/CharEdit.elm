@@ -8,8 +8,11 @@ import Browser
 import Browser.Navigation exposing (load)
 import Dict
 import Set
+import Task
+import Process
 import File exposing (File)
 import File.Select as FSel
+import Lib.Ffi as Ffi
 import Lib.Util exposing (..)
 import Lib.Html exposing (..)
 import Lib.TextPreview as TP
@@ -43,6 +46,7 @@ type Tab
 type alias Model =
   { state       : Api.State
   , tab         : Tab
+  , invalidDis  : Bool
   , editsum     : Editsum.Model
   , name        : String
   , original    : String
@@ -82,6 +86,7 @@ init : GCE.Recv -> Model
 init d =
   { state       = Api.Normal
   , tab         = General
+  , invalidDis  = False
   , editsum     = { authmod = d.authmod, editsum = TP.bbcode d.editsum, locked = d.locked, hidden = d.hidden }
   , name        = d.name
   , original    = d.original
@@ -158,6 +163,8 @@ vnConfig = { wrap = VnSearch, id = "vnadd", source = A.vnSource }
 type Msg
   = Editsum Editsum.Msg
   | Tab Tab
+  | Invalid Tab
+  | InvalidEnable
   | Submit
   | Submitted GApi.Response
   | Name String
@@ -201,6 +208,9 @@ update msg model =
   case msg of
     Editsum m  -> let (nm,nc) = Editsum.update m model.editsum in ({ model | editsum = nm }, Cmd.map Editsum nc)
     Tab t      -> ({ model | tab = t }, Cmd.none)
+    Invalid t  -> if model.invalidDis || model.tab == All || model.tab == t then (model, Cmd.none) else
+                  ({ model | tab = t, invalidDis = True }, Task.attempt (always InvalidEnable) (Ffi.elemCall "reportValidity" "mainform" |> Task.andThen (\_ -> Process.sleep 100)))
+    InvalidEnable -> ({ model | invalidDis = False }, Cmd.none)
     Name s     -> ({ model | name = s }, Cmd.none)
     Original s -> ({ model | original = s }, Cmd.none)
     Alias s    -> ({ model | alias = s }, Cmd.none)
@@ -289,19 +299,20 @@ view : Model -> Html Msg
 view model =
   let
     geninfo =
-      [ formField "name::Name (romaji)" [ inputText "name" model.name Name GCE.valName ]
+      [ formField "name::Name (romaji)" [ inputText "name" model.name Name (onInvalid (Invalid General) :: GCE.valName) ]
       , formField "original::Original name"
-        [ inputText "original" model.original Original GCE.valOriginal
+        [ inputText "original" model.original Original (onInvalid (Invalid General) :: GCE.valOriginal)
         , if model.name /= "" && model.name == model.original
           then b [ class "standout" ] [ br [] [], text "Should not be the same as the Name (romaji). Leave blank is the original name is already in the latin alphabet" ]
           else text ""
         ]
       , formField "alias::Aliases"
-        [ inputTextArea "alias" model.alias Alias (rows 3 :: GCE.valAlias)
+        [ inputTextArea "alias" model.alias Alias (rows 3 :: onInvalid (Invalid General) :: GCE.valAlias)
         , br [] []
         , text "(Un)official aliases, separated by a newline. Must not include spoilers!"
         ]
-      , formField "desc::Description" [ TP.view "desc" model.desc Desc 600 (style "height" "150px" :: GCE.valDesc) [ b [ class "standout" ] [ text "English please!" ] ] ]
+      , formField "desc::Description" [ TP.view "desc" model.desc Desc 600 (style "height" "150px" :: onInvalid (Invalid General) :: GCE.valDesc)
+        [ b [ class "standout" ] [ text "English please!" ] ] ]
       , formField "bmonth::Birthday"
         [ inputSelect "bmonth" model.bMonth BMonth [style "width" "128px"]
           [ ( 0, "Unknown")
@@ -321,7 +332,7 @@ view model =
         , if model.bMonth == 0 then text ""
           else inputSelect "" model.bDay BDay [style "width" "70px"] <| List.map (\i -> (i, String.fromInt i)) <| List.range 1 31
         ]
-      , formField "age::Age"       [ inputNumber "age" model.age Age GCE.valAge, text " years" ]
+      , formField "age::Age" [ inputNumber "age" model.age Age (onInvalid (Invalid General) :: GCE.valAge), text " years" ]
 
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Body" ] ]
       , formField "gender::Sex"
@@ -338,13 +349,13 @@ view model =
               , inputSelect "" gen (\s -> SpoilGender (Just s)) [] GT.genders
               ]
         ]
-      , formField "sbust::Bust"    [ inputNumber "sbust"  (if model.sBust  == 0 then Nothing else Just model.sBust ) SBust  GCE.valS_Bust, text " cm" ]
-      , formField "swaist::Waist"  [ inputNumber "swiast" (if model.sWaist == 0 then Nothing else Just model.sWaist) SWaist GCE.valS_Waist,text " cm" ]
-      , formField "ship::Hips"     [ inputNumber "ship"   (if model.sHip   == 0 then Nothing else Just model.sHip  ) SHip   GCE.valS_Hip,  text " cm" ]
-      , formField "height::Height" [ inputNumber "height" (if model.height == 0 then Nothing else Just model.height) Height GCE.valHeight, text " cm" ]
-      , formField "weight::Weight" [ inputNumber "weight" model.weight Weight GCE.valWeight, text " kg" ]
-      , formField "bloodt::Blood type" [ inputSelect "bloodt"  model.bloodt  BloodT  [] GT.bloodTypes ]
-      , formField "cupsize::Cup size"  [ inputSelect "cupsize" model.cupSize CupSize [] GT.cupSizes ]
+      , formField "sbust::Bust"    [ inputNumber "sbust"  (if model.sBust  == 0 then Nothing else Just model.sBust ) SBust  (onInvalid (Invalid General) :: GCE.valS_Bust), text " cm" ]
+      , formField "swaist::Waist"  [ inputNumber "swiast" (if model.sWaist == 0 then Nothing else Just model.sWaist) SWaist (onInvalid (Invalid General) :: GCE.valS_Waist),text " cm" ]
+      , formField "ship::Hips"     [ inputNumber "ship"   (if model.sHip   == 0 then Nothing else Just model.sHip  ) SHip   (onInvalid (Invalid General) :: GCE.valS_Hip),  text " cm" ]
+      , formField "height::Height" [ inputNumber "height" (if model.height == 0 then Nothing else Just model.height) Height (onInvalid (Invalid General) :: GCE.valHeight), text " cm" ]
+      , formField "weight::Weight" [ inputNumber "weight" model.weight Weight (onInvalid (Invalid General) :: GCE.valWeight), text " kg" ]
+      , formField "bloodt::Blood type" [ inputSelect "bloodt"  model.bloodt  BloodT  [onInvalid (Invalid General)] GT.bloodTypes ]
+      , formField "cupsize::Cup size"  [ inputSelect "cupsize" model.cupSize CupSize [onInvalid (Invalid General)] GT.cupSizes ]
 
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Instance" ] ]
       ] ++ if model.mainRef
@@ -370,7 +381,7 @@ view model =
       [ td [] [ Img.viewImg model.image ]
       , td []
         [ h2 [] [ text "Image ID" ]
-        , input ([ type_ "text", class "text", tabindex 10, value (Maybe.withDefault "" model.image.id), onInputValidation ImageSet ] ++ GCE.valImage) []
+        , input ([ type_ "text", class "text", tabindex 10, value (Maybe.withDefault "" model.image.id), onInvalid (Invalid Image), onInputValidation ImageSet ] ++ GCE.valImage) []
         , br [] []
         , text "Use an image that already exists on the server or empty to remove the current image."
         , br_ 2
@@ -378,13 +389,13 @@ view model =
         , inputButton "Browse image" ImageSelect []
         , br [] []
         , text "Image must be in JPEG or PNG format and at most 10 MiB. Images larger than 256x300 will automatically be resized."
-        , case Img.viewVote model.image of
+        , case Img.viewVote model.image ImageMsg (Invalid Image) of
             Nothing -> text ""
             Just v ->
               div []
               [ br [] []
               , text "Please flag this image: (see the ", a [ href "/d19" ] [ text "image flagging guidelines" ], text " for guidance)"
-              , Html.map ImageMsg v
+              , v
               ]
         ]
       ] ]
@@ -483,7 +494,7 @@ view model =
         [ ("add", tr [] [ td [ colspan 4 ] [ br_ 1, A.view vnConfig model.vnSearch [placeholder "Add visual novel..."] ] ]) ]
 
   in
-  form_ Submit (model.state == Api.Loading)
+  form_ "mainform" Submit (model.state == Api.Loading)
   [ div [ class "maintabs left" ]
     [ ul []
       [ li [ classList [("tabselected", model.tab == General)] ] [ a [ href "#", onClickD (Tab General) ] [ text "General info" ] ]

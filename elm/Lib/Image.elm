@@ -143,14 +143,15 @@ viewImg image =
       ]
 
 
-viewVote : Image -> Maybe (Html Msg)
-viewVote model =
+viewVote : Image -> (Msg -> a) -> a -> Maybe (Html a)
+viewVote model wrap msg =
   let
     rad i sex val = input
       [ type_ "radio"
       , tabindex 10
       , required True
-      , onCheck <| (if sex then MySex else MyVio) val
+      , onInvalid msg
+      , onCheck <| \b -> wrap <| (if sex then MySex else MyVio) val b
       , checked <| (if sex then i.my_sexual else i.my_violence) == Just val
       , name <| "imgvote-" ++ (if sex then "sex" else "vio") ++ "-" ++ Maybe.withDefault "" model.id
       ] []

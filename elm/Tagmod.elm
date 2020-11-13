@@ -248,7 +248,7 @@ viewFoot state changed add addMsg =
 -- The table has a lot of interactivity, the use of Html.Lazy is absolutely necessary for good responsiveness.
 view : Model -> Html Msg
 view model =
-  form_ Submit (model.state == Api.Loading)
+  form_ "" Submit (model.state == Api.Loading)
     [ div [ class "mainbox" ]
       [ h1 [] [ text <| "Edit tags for " ++ model.title ]
       , p []

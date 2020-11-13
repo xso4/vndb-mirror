@@ -25,6 +25,8 @@ onInputValidation msg = custom "input" <|
           targetValue
           (JD.at ["target", "validity", "valid"] JD.bool)
 
+onInvalid : msg -> Attribute msg
+onInvalid msg = on "invalid" (JD.succeed msg)
 
 -- Multi-<br> (ugly but oh, so, convenient)
 br_ : Int -> Html m
@@ -33,9 +35,9 @@ br_ n = if n == 1 then br [] [] else span [] <| List.repeat n <| br [] []
 
 -- Quick short-hand way of creating a form that can be disabled.
 -- Usage:
---   form_ Submit_msg (state == Disabled) [contents]
-form_ : msg -> Bool -> List (Html msg) -> Html msg
-form_ sub dis cont = Html.form [ onSubmit sub ]
+--   form_ id Submit_msg (state == Disabled) [contents]
+form_ : String -> msg -> Bool -> List (Html msg) -> Html msg
+form_ s sub dis cont = Html.form [ id s, onSubmit sub ]
   [ fieldset [disabled dis] cont ]
 
 
@@ -155,14 +157,14 @@ inputRadio nam val onch = input (
 
 
 -- Same as an inputText, but formats/parses an integer as Q###
-inputWikidata : String -> Maybe Int -> (Maybe Int -> m) -> Html m
-inputWikidata nam val onch =
+inputWikidata : String -> Maybe Int -> (Maybe Int -> m) -> List (Attribute m) -> Html m
+inputWikidata nam val onch attr =
   inputText nam
             (case val of
               Nothing -> ""
               Just v  -> "Q" ++ String.fromInt v)
             (\v -> onch <| if v == "" then Nothing else String.toInt <| if String.startsWith "Q" v then String.dropLeft 1 v else v)
-            [ pattern "^Q?[1-9][0-9]{0,8}$" ]
+            (pattern "^Q?[1-9][0-9]{0,8}$" :: attr)
 
 
 -- Similar to inputCheck and inputRadio with a label, except this is just a link.

@@ -266,7 +266,7 @@ view model =
       , formField "css::Custom CSS" [ inputTextArea "css" m.customcss (Prefs << Css) ([ rows 5, cols 60 ] ++ GUE.valPrefsCustomcss) ]
       ]
 
-  in form_ Submit (model.state == Api.Loading)
+  in form_ "" Submit (model.state == Api.Loading)
     [ div [ class "mainbox" ]
       [ h1 [] [ text model.title ]
       , table [ class "formtable" ] <|

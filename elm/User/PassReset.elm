@@ -59,7 +59,7 @@ view model =
       [ p [] [ text "Your password has been reset and instructions to set a new one should reach your mailbox in a few minutes." ] ]
     ]
   else
-    form_ Submit (model.state == Api.Loading)
+    form_ "" Submit (model.state == Api.Loading)
     [ div [ class "mainbox" ]
       [ h1 [] [ text "Forgot Password" ]
       , p []

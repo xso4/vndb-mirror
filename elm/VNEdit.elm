@@ -8,8 +8,11 @@ import Browser
 import Browser.Navigation exposing (load)
 import Dict
 import Set
+import Task
+import Process
 import File exposing (File)
 import File.Select as FSel
+import Lib.Ffi as Ffi
 import Lib.Util exposing (..)
 import Lib.Html exposing (..)
 import Lib.TextPreview as TP
@@ -46,6 +49,7 @@ type Tab
 type alias Model =
   { state       : Api.State
   , tab         : Tab
+  , invalidDis  : Bool
   , editsum     : Editsum.Model
   , title       : String
   , original    : String
@@ -81,6 +85,7 @@ init : GVE.Recv -> Model
 init d =
   { state       = Api.Normal
   , tab         = General
+  , invalidDis  = False
   , editsum     = { authmod = d.authmod, editsum = TP.bbcode d.editsum, locked = d.locked, hidden = d.hidden }
   , title       = d.title
   , original    = d.original
@@ -148,6 +153,8 @@ seiyuuConfig = { wrap = SeiyuuSearch, id = "seiyuuadd", source = A.staffSource }
 type Msg
   = Editsum Editsum.Msg
   | Tab Tab
+  | Invalid Tab
+  | InvalidEnable
   | Submit
   | Submitted GApi.Response
   | Title String
@@ -204,6 +211,9 @@ update msg model =
   case msg of
     Editsum m  -> let (nm,nc) = Editsum.update m model.editsum in ({ model | editsum = nm }, Cmd.map Editsum nc)
     Tab t      -> ({ model | tab = t }, Cmd.none)
+    Invalid t  -> if model.invalidDis || model.tab == All || model.tab == t then (model, Cmd.none) else
+                  ({ model | tab = t, invalidDis = True }, Task.attempt (always InvalidEnable) (Ffi.elemCall "reportValidity" "mainform" |> Task.andThen (\_ -> Process.sleep 100)))
+    InvalidEnable -> ({ model | invalidDis = False }, Cmd.none)
     Title s    -> ({ model | title    = s, dupVNs = [] }, Cmd.none)
     Original s -> ({ model | original = s, dupVNs = [] }, Cmd.none)
     Alias s    -> ({ model | alias    = s, dupVNs = [] }, Cmd.none)
@@ -312,13 +322,13 @@ view model =
   let
     titles =
       [ formField "title::Title (romaji)"
-        [ inputText "title" model.title Title (style "width" "500px" :: GVE.valTitle)
+        [ inputText "title" model.title Title (style "width" "500px" :: onInvalid (Invalid General) :: GVE.valTitle)
         , if containsNonLatin model.title
           then b [ class "standout" ] [ br [] [], text "This title field should only contain latin-alphabet characters, please put the \"actual\" title in the field below and the romanization above." ]
           else text ""
         ]
       , formField "original::Original title"
-        [ inputText "original" model.original Original (style "width" "500px" :: GVE.valOriginal)
+        [ inputText "original" model.original Original (style "width" "500px" :: onInvalid (Invalid General) :: GVE.valOriginal)
         , if model.title /= "" && model.title == model.original
           then b [ class "standout" ] [ br [] [], text "Should not be the same as the Title (romaji). Leave blank is the original title is already in the latin alphabet" ]
           else if model.original /= "" && String.toLower model.title /= String.toLower model.original && not (containsNonLatin model.original)
@@ -326,7 +336,7 @@ view model =
           else text ""
         ]
       , formField "alias::Aliases"
-        [ inputTextArea "alias" model.alias Alias (rows 3 :: GVE.valAlias)
+        [ inputTextArea "alias" model.alias Alias (rows 3 :: onInvalid (Invalid General) :: GVE.valAlias)
         , br [] []
         , if hasDuplicates <| String.lines <| String.toLower model.alias
           then b [ class "standout" ] [ text "List contains duplicate aliases.", br [] [] ]
@@ -348,12 +358,12 @@ view model =
 
     geninfo = titles ++
       [ formField "desc::Description"
-        [ TP.view "desc" model.desc Desc 600 (style "height" "180px" :: GVE.valDesc) [ b [ class "standout" ] [ text "English please!" ] ]
+        [ TP.view "desc" model.desc Desc 600 (style "height" "180px" :: onInvalid (Invalid General) :: GVE.valDesc) [ b [ class "standout" ] [ text "English please!" ] ]
         , text "Short description of the main story. Please do not include spoilers, and don't forget to list the source in case you didn't write the description yourself."
         ]
       , formField "length::Length" [ inputSelect "length" model.length Length [] GT.vnLengths ]
-      , formField "l_wikidata::Wikidata ID" [ inputWikidata "l_wikidata" model.lWikidata LWikidata ]
-      , formField "l_renai::Renai.us link" [ text "http://renai.us/game/", inputText "l_renai" model.lRenai LRenai [], text ".shtml" ]
+      , formField "l_wikidata::Wikidata ID" [ inputWikidata "l_wikidata" model.lWikidata LWikidata [onInvalid (Invalid General)] ]
+      , formField "l_renai::Renai.us link" [ text "http://renai.us/game/", inputText "l_renai" model.lRenai LRenai (onInvalid (Invalid General) :: GVE.valL_Renai), text ".shtml" ]
 
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Database relations" ] ]
       , formField "Related VNs"
@@ -390,7 +400,7 @@ view model =
       [ td [] [ Img.viewImg model.image ]
       , td []
         [ h2 [] [ text "Image ID" ]
-        , input ([ type_ "text", class "text", tabindex 10, value (Maybe.withDefault "" model.image.id), onInputValidation ImageSet ] ++ GVE.valImage) []
+        , input ([ type_ "text", class "text", tabindex 10, value (Maybe.withDefault "" model.image.id), onInputValidation ImageSet, onInvalid (Invalid Image) ] ++ GVE.valImage) []
         , br [] []
         , text "Use an image that already exists on the server or empty to remove the current image."
         , br_ 2
@@ -398,13 +408,13 @@ view model =
         , inputButton "Browse image" ImageSelect []
         , br [] []
         , text "Preferably the cover of the CD/DVD/package. Image must be in JPEG or PNG format and at most 10 MiB. Images larger than 256x400 will automatically be resized."
-        , case Img.viewVote model.image of
+        , case Img.viewVote model.image ImageMsg (Invalid Image) of
             Nothing -> text ""
             Just v ->
               div []
               [ br [] []
               , text "Please flag this image: (see the ", a [ href "/d19" ] [ text "image flagging guidelines" ], text " for guidance)"
-              , Html.map ImageMsg v
+              , v
               ]
         ]
       ] ]
@@ -442,7 +452,7 @@ view model =
           [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| "s" ++ String.fromInt s.id ++ ":" ] ]
           , td [] [ a [ href <| "/s" ++ String.fromInt s.id ] [ text s.name ] ]
           , td [] [ inputSelect "" s.role (StaffRole n) [style "width" "150px" ] GT.creditTypes ]
-          , td [] [ inputText "" s.note (StaffNote n) (style "width" "300px" :: GVE.valStaffNote) ]
+          , td [] [ inputText "" s.note (StaffNote n) (style "width" "300px" :: onInvalid (Invalid Staff) :: GVE.valStaffNote) ]
           , td [] [ inputButton "remove" (StaffDel n) [] ]
           ]
       in table [] <| head ++ [ foot ] ++ List.indexedMap item model.staff
@@ -481,7 +491,7 @@ view model =
           , td []
             [ b [ class "grayedout" ] [ text <| "s" ++ String.fromInt s.id ++ ":" ]
             , a [ href <| "/s" ++ String.fromInt s.id ] [ text s.name ] ]
-          , td [] [ inputText "" s.note (SeiyuuNote n) (style "width" "300px" :: GVE.valSeiyuuNote) ]
+          , td [] [ inputText "" s.note (SeiyuuNote n) (style "width" "300px" :: onInvalid (Invalid Cast) :: GVE.valSeiyuuNote) ]
           , td [] [ inputButton "remove" (SeiyuuDel n) [] ]
           ]
       in
@@ -508,7 +518,7 @@ view model =
               dimstr (x,y) = String.fromInt x ++ "x" ++ String.fromInt y
           in
           [ td [] [ Img.viewImg i ]
-          , td [] [ Img.viewVote i |> Maybe.map (Html.map (ScrMsg id)) |> Maybe.withDefault (text "") ]
+          , td [] [ Img.viewVote i (ScrMsg id) (Invalid Screenshots) |> Maybe.withDefault (text "") ]
           , td []
             [ b [] [ text <| "Screenshot #" ++ String.fromInt (n+1) ]
             , text " (", a [ href "#", onClickD (ScrDel id) ] [ text "remove" ], text ")"
@@ -591,7 +601,7 @@ view model =
           ]
 
     newform () =
-      form_ DupSubmit (model.state == Api.Loading)
+      form_ "" DupSubmit (model.state == Api.Loading)
       [ div [ class "mainbox" ] [ h1 [] [ text "Add a new visual novel" ], table [ class "formtable" ] titles ]
       , div [ class "mainbox" ]
         [ if List.isEmpty model.dupVNs then text "" else
@@ -611,7 +621,7 @@ view model =
       ]
 
     fullform () =
-      form_ Submit (model.state == Api.Loading)
+      form_ "mainform" Submit (model.state == Api.Loading)
       [ div [ class "maintabs left" ]
         [ ul []
           [ li [ classList [("tabselected", model.tab == General    )] ] [ a [ href "#", onClickD (Tab General    ) ] [ text "General info" ] ]

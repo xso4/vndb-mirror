@@ -58,7 +58,7 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-  form_ Submit (model.state == Api.Loading)
+  form_ "" Submit (model.state == Api.Loading)
   [ div [ class "mainbox" ] <| [
     if model.old
     then

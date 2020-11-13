@@ -79,7 +79,7 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-  form_ Submit (model.state == Api.Loading)
+  form_ "" Submit (model.state == Api.Loading)
   [ div [ class "mainbox" ]
     [ h1 [] [ text "Edit post" ]
     , table [ class "formtable" ] <|

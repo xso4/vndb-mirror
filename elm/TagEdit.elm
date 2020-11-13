@@ -158,7 +158,7 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-  form_ Submit (model.formstate == Api.Loading)
+  form_ "" Submit (model.formstate == Api.Loading)
   [ div [ class "mainbox" ]
     [ h1 [] [ text <| if model.id == Nothing then "Submit new tag" else "Edit tag" ]
     , table [ class "formtable" ] <|

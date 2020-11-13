@@ -177,7 +177,7 @@ view model =
       ++ titles ++
       [ formField "lang::Primary language" [ inputSelect "lang" model.lang Lang [] GT.languages ]
       , formField "website::Website" [ inputText "website" model.website Website GPE.valWebsite ]
-      , formField "l_wikidata::Wikidata ID" [ inputWikidata "l_wikidata" model.lWikidata LWikidata ]
+      , formField "l_wikidata::Wikidata ID" [ inputWikidata "l_wikidata" model.lWikidata LWikidata [] ]
       , formField "desc::Description"
         [ TP.view "desc" model.desc Desc 600 (style "height" "180px" :: GPE.valDesc) [ b [ class "standout" ] [ text "English please!" ] ] ]
 
@@ -200,7 +200,7 @@ view model =
       ]
 
     newform () =
-      form_ DupSubmit (model.state == Api.Loading)
+      form_ "" DupSubmit (model.state == Api.Loading)
       [ div [ class "mainbox" ] [ h1 [] [ text "Add a new producer" ], table [ class "formtable" ] titles ]
       , div [ class "mainbox" ]
         [ if List.isEmpty model.dupProds then text "" else
@@ -220,7 +220,7 @@ view model =
       ]
 
     fullform () =
-      form_ Submit (model.state == Api.Loading)
+      form_ "" Submit (model.state == Api.Loading)
       [ div [ class "mainbox" ] [ h1 [] [ text "Edit producer" ], table [ class "formtable" ] geninfo ]
       , div [ class "mainbox" ] [ fieldset [ class "submit" ]
           [ Html.map Editsum (Editsum.view model.editsum)

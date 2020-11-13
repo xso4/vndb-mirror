@@ -109,7 +109,7 @@ view model =
         else text ""
       ]
   in
-  form_ Submit (model.state == Api.Loading)
+  form_ "" Submit (model.state == Api.Loading)
   [ div [ class "mainbox" ]
     [ h1 [] [ text model.data.question ]
     , table [ class "votebooth" ]

@@ -56,7 +56,7 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-  form_ Submit (model.state == Api.Loading)
+  form_ "" Submit (model.state == Api.Loading)
   [ div [ classList [("savedefault", True), ("hidden", model.hid)] ]
     [ b [] [ text "Save as default" ]
     , br [] []

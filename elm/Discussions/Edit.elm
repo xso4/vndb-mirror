@@ -204,7 +204,7 @@ view model =
 
 
   in
-  form_ Submit (model.state == Api.Loading)
+  form_ "" Submit (model.state == Api.Loading)
   [ div [ class "mainbox" ]
     [ h1 [] [ text <| if model.tid == Nothing then "Create new thread" else "Edit thread" ]
     , table [ class "formtable" ] <|

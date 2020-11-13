@@ -66,7 +66,7 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-  form_ Submit (model.state == Api.Loading)
+  form_ "" Submit (model.state == Api.Loading)
   [ div [ class "mainbox" ]
     [ h1 [] [ text "Set your password" ]
     , p [] [ text "Now you can set a password for your account. You will be logged in automatically after your password has been saved." ]

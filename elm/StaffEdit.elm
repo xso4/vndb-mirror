@@ -178,7 +178,7 @@ view model =
       ]
 
   in
-    form_ Submit (model.state == Api.Loading)
+    form_ "" Submit (model.state == Api.Loading)
     [ div [ class "mainbox staffedit" ]
       [ h1 [] [ text "General info" ]
       , table [ class "formtable" ]
@@ -191,7 +191,7 @@ view model =
           ] ]
         , formField "lang::Primary Language" [ inputSelect "lang" model.lang Lang [] GT.languages ]
         , formField "l_site::Official page" [ inputText "l_site" model.l_site Website (style "width" "400px" :: GSE.valL_Site) ]
-        , formField "l_wikidata::Wikidata ID" [ inputWikidata "l_wikidata" model.l_wikidata LWikidata ]
+        , formField "l_wikidata::Wikidata ID" [ inputWikidata "l_wikidata" model.l_wikidata LWikidata [] ]
         , formField "l_twitter::Twitter username" [ inputText "l_twitter" model.l_twitter LTwitter GSE.valL_Twitter ]
         , formField "l_anidb::AniDB Creator ID" [ inputText "l_anidb" (Maybe.withDefault "" (Maybe.map String.fromInt model.l_anidb)) LAnidb GSE.valL_Anidb ]
         , formField "l_pixiv::Pixiv ID" [ inputText "l_pixiv" (if model.l_pixiv == 0 then "" else String.fromInt model.l_pixiv) LPixiv GSE.valL_Pixiv ]

@@ -110,7 +110,7 @@ view model =
       maxChars = if model.isfull then 100000 else 800
       len      = String.length model.text.data
   in
-  form_ Submit (model.state == Api.Loading)
+  form_ "" Submit (model.state == Api.Loading)
   [ div [ class "mainbox" ]
     [ h1 [] [ text <| if model.id == Nothing then "Submit a review" else "Edit review" ]
     , p [] [ b [] [ text "Rules" ] ]

@@ -70,7 +70,7 @@ view model =
       [ p [] [ text "Your account has been created! In a few minutes, you should receive an email with instructions to set your password." ] ]
     ]
   else
-    form_ Submit (model.state == Api.Loading)
+    form_ "" Submit (model.state == Api.Loading)
     [ div [ class "mainbox" ]
       [ h1 [] [ text "Create an account" ]
       , table [ class "formtable" ]
