@@ -247,7 +247,7 @@ sub infobox_tags_ {
     my($v) = @_;
     my $rating = 'avg(CASE WHEN tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) THEN NULL ELSE tv.vote END)';
     my $tags = tuwf->dbAlli("
-        SELECT t.id, t.name, t.cat, count(*) as cnt, $rating as rating
+        SELECT t.id, t.name, t.cat, $rating as rating
              , coalesce(avg(CASE WHEN tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) THEN NULL ELSE tv.spoiler END), t.defaultspoil) as spoiler
           FROM tags t
           JOIN tags_vn tv ON tv.tag = t.id
@@ -333,7 +333,7 @@ sub infobox_useroptions_ {
 
 # Also used by Chars::VNTab & Reviews::VNTab
 sub infobox_ {
-    my($v) = @_;
+    my($v, $notags) = @_;
     div_ class => 'mainbox', sub {
         itemmsg_ v => $v;
         h1_ $v->{title};
@@ -384,7 +384,7 @@ sub infobox_ {
             }
         };
         div_ class => 'clearfloat', style => 'height: 5px', ''; # otherwise the tabs below aren't positioned correctly
-        infobox_tags_ $v;
+        infobox_tags_ $v unless $notags;
     }
 }
 
@@ -398,7 +398,8 @@ sub tabs_ {
     $tab ||= '';
     div_ class => 'maintabs', sub {
         ul_ sub {
-            li_ class => ($tab eq ''        ? ' tabselected' : ''), sub { a_ href => "/v$v->{id}#main", name => 'main', 'main' } if $chars || $v->{reviews}{total};
+            li_ class => ($tab eq ''        ? ' tabselected' : ''), sub { a_ href => "/v$v->{id}#main", name => 'main', 'main' };
+            li_ class => ($tab eq 'tags'    ? ' tabselected' : ''), sub { a_ href => "/v$v->{id}/tags#tags", name => 'tags', 'tags' };
             li_ class => ($tab eq 'chars'   ? ' tabselected' : ''), sub { a_ href => "/v$v->{id}/chars#chars", name => 'chars', "characters ($chars)" } if $chars;
             if($v->{reviews}{mini} > 4 || $tab eq 'minireviews' || $tab eq 'fullreviews') {
                 li_ class => ($tab eq 'minireviews'?' tabselected' : ''), sub { a_ href => "/v$v->{id}/minireviews#review", name => 'review', "mini reviews ($v->{reviews}{mini})" } if $v->{reviews}{mini};
@@ -704,6 +705,90 @@ sub screenshots_ {
 }
 
 
+sub tags_ {
+    my($v) = @_;
+    # TODO: Needs index on tags_vn_inherity.vid - or we could calculate the inherited scores here.
+    # (Could totally re-use the data from infobox_tags_() and do the calculation in Perl, but the exact algorithm is finicky)
+    my %tags = map +($_->{id},$_), tuwf->dbAlli("
+        SELECT t.id, t.name, t.cat, tvi.rating, tvi.spoiler
+          FROM tags t
+          JOIN tags_vn_inherit tvi ON tvi.tag = t.id
+         WHERE t.state = 1+1 AND tvi.vid =", \$v->{id}
+    )->@*;
+
+    if(!%tags) {
+        div_ class => 'mainbox', sub {
+            h1_ 'Tags';
+            p_ 'This VN has no tags assigned to it (yet).';
+        };
+        return;
+    }
+
+    my $parents = tuwf->dbAlli("
+        WITH RECURSIVE parents (tag, child) AS (
+          SELECT tag::int, NULL::int FROM (VALUES", sql_join(',', map sql('(',\$_,')'), keys %tags), ") AS x(tag)
+          UNION
+          SELECT tp.parent, tp.tag FROM tags_parents tp, parents a WHERE a.tag = tp.tag
+        ) SELECT * FROM parents WHERE child IS NOT NULL"
+    );
+
+    for(@$parents) {
+        $tags{$_->{tag}} ||= { id => $_->{tag} };
+        push $tags{$_->{tag}}{childs}->@*, $_->{child};
+        $tags{$_->{child}}{notroot} = 1;
+    }
+    enrich_merge id => 'SELECT id, name, cat FROM tags WHERE id IN', grep !$_->{name}, values %tags;
+    my @roots = sort { $a->{name} cmp $b->{name} } grep !$_->{notroot}, values %tags;
+
+    # Have to do our own spoiler calculation for parent tags, as we also display parents that aren't in tags_vn_inherited.
+    my sub minspoil {
+        return if !$_[0]{childs};
+        __SUB__->($tags{$_}) for $_[0]{childs}->@*;
+        $_[0]{minspoil} = min map +($tags{$_}{minspoil}//$tags{$_}{spoiler}), $_[0]{childs}->@*;
+    }
+    minspoil $_ for @roots;
+
+    # TODO: Gray-out tags that do not have direct votes
+    my $view = viewget;
+    my sub rec {
+        my($lvl, $t) = @_;
+        return if max($t->{minspoil}||0, $t->{spoiler}||0) > $view->{spoilers};
+        li_ class => "tagvnlist-top", sub {
+            h3_ sub { a_ href => "/g$t->{id}", $t->{name} }
+        } if !$lvl;
+
+        li_ sub {
+            VNWeb::TT::Lib::tagscore_($t->{rating}) if $t->{rating};
+            div_ class => 'tagscore', '' if !$t->{rating};
+            b_ class => 'grayedout', '━━'x($lvl-1);
+            txt_ ' ' if $lvl > 1;
+            a_ href => "/g$t->{id}", $t->{rating} ? () : (class => 'parent'), $t->{name};
+            spoil_ $t->{spoiler} if defined $t->{spoiler};
+        } if $lvl;
+
+        if($t->{childs}) {
+            __SUB__->($lvl+1, $_) for sort { $a->{name} cmp $b->{name} } map $tags{$_}, $t->{childs}->@*;
+        }
+    }
+
+    div_ class => 'mainbox', sub {
+        my $max_spoil = max map $_->{spoiler}||0, values %tags;
+        p_ class => 'mainopts', sub {
+            if($max_spoil) {
+                a_ mkclass(checked => $view->{spoilers} == 0), href => '?view='.viewset(spoilers=>0).'#tags', 'Hide spoilers';
+                a_ mkclass(checked => $view->{spoilers} == 1), href => '?view='.viewset(spoilers=>1).'#tags', 'Show minor spoilers';
+                a_ mkclass(standout =>$view->{spoilers} == 2), href => '?view='.viewset(spoilers=>2).'#tags', 'Spoil me!' if $max_spoil == 2;
+            }
+        } if $max_spoil;
+
+        h1_ 'Tags';
+        ul_ class => 'vntaglist', sub {
+            rec 0, $_ for @roots;
+        };
+    };
+}
+
+
 TUWF::get qr{/$RE{vrev}}, sub {
     my $v = db_entry v => tuwf->capture('id'), tuwf->capture('rev');
     return tuwf->resNotFound if !$v;
@@ -720,6 +805,21 @@ TUWF::get qr{/$RE{vrev}}, sub {
         charsum_ $v;
         stats_ $v;
         screenshots_ $v;
+    };
+};
+
+
+TUWF::get qr{/$RE{vid}/tags}, sub {
+    my $v = db_entry v => tuwf->capture('id');
+    return tuwf->resNotFound if !$v;
+
+    enrich_vn $v;
+
+    framework_ title => $v->{title}, index => 1, type => 'v', dbobj => $v, hiddenmsg => 1,
+    sub {
+        infobox_ $v, 1;
+        tabs_ $v, 'tags';
+        tags_ $v;
     };
 };
 

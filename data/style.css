@@ -533,6 +533,17 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $bo
 .reviewbox .myvote { font-weight: bold; text-decoration: underline }
 
 
+
+/***** VN tags tab (/v+/tags) *******/
+
+.vntaglist { list-style-type: none; column-width: 400px }
+.vntaglist li.tagvnlist-top:not(:first-child) { margin-top: 30px }
+.vntaglist h3 a { color: $maintext$ }
+.vntaglist li { list-style-type: none; padding-right: 30px }
+.vntaglist li .tagscore { margin-right: 10px }
+
+
+
 /***** Vote stats ****/
 
 .votestats           { width: 630px; margin: 0 auto; }
