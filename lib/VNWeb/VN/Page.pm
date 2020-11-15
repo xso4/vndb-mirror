@@ -29,6 +29,19 @@ sub enrich_vn {
     enrich_extlinks r => $v->{releases};
 
     $v->{reviews} = tuwf->dbRowi('SELECT COUNT(*) FILTER(WHERE isfull) AS full, COUNT(*) FILTER(WHERE NOT isfull) AS mini, COUNT(*) AS total FROM reviews WHERE NOT c_flagged AND vid =', \$v->{id});
+
+    my $rating = 'avg(CASE WHEN tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) THEN NULL ELSE tv.vote END)';
+    $v->{tags} = tuwf->dbAlli("
+        SELECT t.id, t.name, t.cat, $rating as rating
+             , coalesce(avg(CASE WHEN tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) THEN NULL ELSE tv.spoiler END), t.defaultspoil) as spoiler
+          FROM tags t
+          JOIN tags_vn tv ON tv.tag = t.id
+          LEFT JOIN users u ON u.id = tv.uid
+         WHERE t.state = 1+1 AND tv.vid =", \$v->{id}, "
+         GROUP BY t.id, t.name, t.cat
+        HAVING $rating > 0
+         ORDER BY rating DESC"
+    );
 }
 
 
@@ -245,22 +258,8 @@ sub infobox_anime_ {
 
 sub infobox_tags_ {
     my($v) = @_;
-    my $rating = 'avg(CASE WHEN tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) THEN NULL ELSE tv.vote END)';
-    my $tags = tuwf->dbAlli("
-        SELECT t.id, t.name, t.cat, $rating as rating
-             , coalesce(avg(CASE WHEN tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) THEN NULL ELSE tv.spoiler END), t.defaultspoil) as spoiler
-          FROM tags t
-          JOIN tags_vn tv ON tv.tag = t.id
-          LEFT JOIN users u ON u.id = tv.uid
-         WHERE t.state = 1+1 AND tv.vid =", \$v->{id}, "
-         GROUP BY t.id, t.name, t.cat
-        HAVING $rating > 0
-         ORDER BY rating DESC"
-    );
-    return if !@$tags;
-
     div_ id => 'tagops', sub {
-        debug_ $tags;
+        debug_ $v->{tags};
         for (keys %TAG_CATEGORY) {
             input_ id => "cat_$_", type => 'checkbox', class => 'visuallyhidden',
                 (auth ? auth->pref("tags_$_") : $_ ne 'ero') ? (checked => 'checked') : ();
@@ -292,7 +291,7 @@ sub infobox_tags_ {
                     spoil_ $spoil;
                     b_ class => 'grayedout', sprintf ' %.1f', $_->{rating};
                 }
-            }, @$tags;
+            }, $v->{tags}->@*;
         }
     }
 }
@@ -384,7 +383,7 @@ sub infobox_ {
             }
         };
         div_ class => 'clearfloat', style => 'height: 5px', ''; # otherwise the tabs below aren't positioned correctly
-        infobox_tags_ $v unless $notags;
+        infobox_tags_ $v if $v->{tags}->@* && !$notags;
     }
 }
 
@@ -707,16 +706,7 @@ sub screenshots_ {
 
 sub tags_ {
     my($v) = @_;
-    # TODO: Needs index on tags_vn_inherity.vid - or we could calculate the inherited scores here.
-    # (Could totally re-use the data from infobox_tags_() and do the calculation in Perl, but the exact algorithm is finicky)
-    my %tags = map +($_->{id},$_), tuwf->dbAlli("
-        SELECT t.id, t.name, t.cat, tvi.rating, tvi.spoiler
-          FROM tags t
-          JOIN tags_vn_inherit tvi ON tvi.tag = t.id
-         WHERE t.state = 1+1 AND tvi.vid =", \$v->{id}
-    )->@*;
-
-    if(!%tags) {
+    if(!$v->{tags}->@*) {
         div_ class => 'mainbox', sub {
             h1_ 'Tags';
             p_ 'This VN has no tags assigned to it (yet).';
@@ -724,6 +714,7 @@ sub tags_ {
         return;
     }
 
+    my %tags = map +($_->{id},$_), $v->{tags}->@*;
     my $parents = tuwf->dbAlli("
         WITH RECURSIVE parents (tag, child) AS (
           SELECT tag::int, NULL::int FROM (VALUES", sql_join(',', map sql('(',\$_,')'), keys %tags), ") AS x(tag)
@@ -740,30 +731,31 @@ sub tags_ {
     enrich_merge id => 'SELECT id, name, cat FROM tags WHERE id IN', grep !$_->{name}, values %tags;
     my @roots = sort { $a->{name} cmp $b->{name} } grep !$_->{notroot}, values %tags;
 
-    # Have to do our own spoiler calculation for parent tags, as we also display parents that aren't in tags_vn_inherited.
-    my sub minspoil {
-        return if !$_[0]{childs};
-        __SUB__->($tags{$_}) for $_[0]{childs}->@*;
-        $_[0]{minspoil} = min map +($tags{$_}{minspoil}//$tags{$_}{spoiler}), $_[0]{childs}->@*;
+    # Calculate rating and spoiler for parent tags.
+    my sub scores {
+        my($t) = @_;
+        return if !$t->{childs};
+        __SUB__->($tags{$_}) for $t->{childs}->@*;
+        $t->{inherited} = 1 if !defined $t->{rating};
+        $t->{spoiler} //= min map $tags{$_}{spoiler}, $t->{childs}->@*;
+        $t->{rating} //= sum(map $tags{$_}{rating}, $t->{childs}->@*) / $t->{childs}->@*;
     }
-    minspoil $_ for @roots;
+    scores $_ for @roots;
+    $_->{spoiler} = $_->{spoiler} > 1.3 ? 2 : $_->{spoiler} > 0.4 ? 1 : 0 for values %tags;
 
-    # TODO: Gray-out tags that do not have direct votes
     my $view = viewget;
     my sub rec {
         my($lvl, $t) = @_;
-        return if max($t->{minspoil}||0, $t->{spoiler}||0) > $view->{spoilers};
+        return if $t->{spoiler} > $view->{spoilers};
         li_ class => "tagvnlist-top", sub {
             h3_ sub { a_ href => "/g$t->{id}", $t->{name} }
         } if !$lvl;
 
         li_ sub {
-            VNWeb::TT::Lib::tagscore_($t->{rating}) if $t->{rating};
-            div_ class => 'tagscore', '' if !$t->{rating};
-            b_ class => 'grayedout', '━━'x($lvl-1);
-            txt_ ' ' if $lvl > 1;
+            VNWeb::TT::Lib::tagscore_($t->{rating}, $t->{inherited});
+            b_ class => 'grayedout', '━━'x($lvl-1).' ';
             a_ href => "/g$t->{id}", $t->{rating} ? () : (class => 'parent'), $t->{name};
-            spoil_ $t->{spoiler} if defined $t->{spoiler};
+            spoil_ $t->{spoiler};
         } if $lvl;
 
         if($t->{childs}) {
@@ -772,7 +764,7 @@ sub tags_ {
     }
 
     div_ class => 'mainbox', sub {
-        my $max_spoil = max map $_->{spoiler}||0, values %tags;
+        my $max_spoil = max map $_->{spoiler}, values %tags;
         p_ class => 'mainopts', sub {
             if($max_spoil) {
                 a_ mkclass(checked => $view->{spoilers} == 0), href => '?view='.viewset(spoilers=>0).'#tags', 'Hide spoilers';
@@ -785,6 +777,7 @@ sub tags_ {
         ul_ class => 'vntaglist', sub {
             rec 0, $_ for @roots;
         };
+        debug_ \%tags;
     };
 }
 
