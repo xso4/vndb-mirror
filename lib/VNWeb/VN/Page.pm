@@ -751,9 +751,9 @@ sub tags_ {
             h3_ sub { a_ href => "/g$t->{id}", $t->{name} }
         } if !$lvl;
 
-        li_ sub {
+        li_ $lvl == 1 ? (class => 'tagvnlist-parent') : $t->{inherited} ? (class => 'tagvnlist-inherited') : (), sub {
             VNWeb::TT::Lib::tagscore_($t->{rating}, $t->{inherited});
-            b_ class => 'grayedout', '━━'x($lvl-1).' ';
+            b_ class => 'grayedout', '━━'x($lvl-1).' ' if $lvl > 1;
             a_ href => "/g$t->{id}", $t->{rating} ? () : (class => 'parent'), $t->{name};
             spoil_ $t->{spoiler};
         } if $lvl;

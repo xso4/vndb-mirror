@@ -538,6 +538,10 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $bo
 
 .vntaglist { list-style-type: none; column-width: 400px }
 .vntaglist li.tagvnlist-top:not(:first-child) { margin-top: 30px }
+.vntaglist li.tagvnlist-parent { margin: 5px 0 3px 0 }
+.vntaglist li.tagvnlist-parent a { color: $maintext$; font-weight: bold }
+.vntaglist li.tagvnlist-inherited a { color: $grayedout$ }
+.vntaglist li:not(.tagvnlist-inherited) b.grayedout { color: $link$ }
 .vntaglist h3 a { color: $maintext$ }
 .vntaglist li { list-style-type: none; padding-right: 30px }
 .vntaglist li .tagscore { margin-right: 10px }
