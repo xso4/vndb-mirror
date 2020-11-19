@@ -369,7 +369,8 @@ CREATE TABLE releases ( -- dbentry_type=r
   l_gamejolt integer NOT NULL DEFAULT 0, -- [pub]
   l_nutaku   text NOT NULL DEFAULT '', -- [pub]
   reso_x     smallint NOT NULL DEFAULT 0, -- [pub] When reso_x is 0, reso_y is either 0 for 'unknown' or 1 for 'non-standard'.
-  reso_y     smallint NOT NULL DEFAULT 0 -- [pub]
+  reso_y     smallint NOT NULL DEFAULT 0, -- [pub]
+  official   boolean NOT NULL DEFAULT TRUE -- [pub]
 );
 
 -- releases_hist
@@ -414,7 +415,8 @@ CREATE TABLE releases_hist (
   l_gamejolt integer NOT NULL DEFAULT 0,
   l_nutaku   text NOT NULL DEFAULT '',
   reso_x     smallint NOT NULL DEFAULT 0,
-  reso_y     smallint NOT NULL DEFAULT 0
+  reso_y     smallint NOT NULL DEFAULT 0,
+  official   boolean NOT NULL DEFAULT TRUE
 );
 
 -- releases_lang

@@ -24,6 +24,7 @@ sub _rev_ {
     revision_ r => $r, \&enrich_item,
         [ vn         => 'Relations', fmt => sub { a_ href => "/v$_->{vid}", title => $_->{original}||$_->{title}, $_->{title} } ],
         [ type       => 'Type' ],
+        [ official   => 'Official',        fmt => 'bool' ],
         [ patch      => 'Patch',           fmt => 'bool' ],
         [ freeware   => 'Freeware',        fmt => 'bool' ],
         [ doujin     => 'Doujin',          fmt => 'bool' ],
@@ -82,6 +83,7 @@ sub _infotable_ {
                 abbr_ class => "icons rt$r->{type}", title => $r->{type}, ' ';
                 txt_ ' '.$RELEASE_TYPE{$r->{type}};
                 txt_ ', patch' if $r->{patch};
+                txt_ ', unofficial' if !$r->{official};
             }
         };
 

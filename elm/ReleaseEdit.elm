@@ -35,6 +35,7 @@ type alias Model =
   , title      : String
   , original   : String
   , rtype      : String
+  , official   : Bool
   , patch      : Bool
   , freeware   : Bool
   , doujin     : Bool
@@ -124,6 +125,7 @@ init d =
   , title      = d.title
   , original   = d.original
   , rtype      = d.rtype
+  , official   = d.official
   , patch      = d.patch
   , freeware   = d.freeware
   , doujin     = d.doujin
@@ -168,6 +170,7 @@ encode model =
   , title       = model.title
   , original    = model.original
   , rtype       = model.rtype
+  , official    = model.official
   , patch       = model.patch
   , freeware    = model.freeware
   , doujin      = model.doujin
@@ -205,6 +208,7 @@ type Msg
   = Title String
   | Original String
   | RType String
+  | Official Bool
   | Patch Bool
   | Freeware Bool
   | Doujin Bool
@@ -244,6 +248,7 @@ update msg model =
     Title s    -> ({ model | title    = s }, Cmd.none)
     Original s -> ({ model | original = s }, Cmd.none)
     RType s    -> ({ model | rtype    = s }, Cmd.none)
+    Official b -> ({ model | official = b }, Cmd.none)
     Patch b    -> ({ model | patch    = b }, Cmd.none)
     Freeware b -> ({ model | freeware = b }, Cmd.none)
     Doujin b   -> ({ model | doujin   = b }, Cmd.none)
@@ -341,6 +346,7 @@ viewGen model =
   , tr [ class "newpart" ] [ td [] [] ]
   , formField "rtype::Type" [ inputSelect "rtype" model.rtype RType [] GT.releaseTypes ]
   , formField "minage::Age rating" [ inputSelect "minage" model.minage Minage [] GT.ageRatings, text " (*)" ]
+  , formField "" [ label [] [ inputCheck "" model.official Official, text " Official (i.e. sanctioned by the original developer, not fan-made)" ] ]
   , formField "" [ label [] [ inputCheck "" model.patch    Patch   , text " This release is a patch to another release.", text " (*)" ] ]
   , formField "" [ label [] [ inputCheck "" model.freeware Freeware, text " Freeware (i.e. available at no cost)" ] ]
   , if model.patch then text "" else

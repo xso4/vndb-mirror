@@ -8,6 +8,7 @@ my $FORM = {
     title      => { maxlength => 300 },
     original   => { required => 0, default => '', maxlength => 250 },
     rtype      => { default => 'complete', enum => \%RELEASE_TYPE },
+    official   => { anybool => 1 },
     patch      => { anybool => 1 },
     freeware   => { anybool => 1 },
     doujin     => { anybool => 1 },
@@ -114,6 +115,7 @@ TUWF::get qr{/$RE{vid}/add}, sub {
         title    => $v->{title},
         original => $v->{original},
         vn       => [{vid => $v->{id}, title => $v->{title}}],
+        official => 1,
     };
     enrich_form $e;
 

@@ -150,7 +150,7 @@ sub infobox_producers_ {
     my($v) = @_;
 
     my $p = tuwf->dbAlli('
-        SELECT p.id, p.name, p.original, rl.lang, bool_or(rp.developer) as developer, bool_or(rp.publisher) as publisher, min(r.type) as type
+        SELECT p.id, p.name, p.original, rl.lang, bool_or(rp.developer) as developer, bool_or(rp.publisher) as publisher, min(r.type) as type, bool_or(r.official) as official
           FROM releases_vn rv
           JOIN releases r ON r.id = rv.id
           JOIN releases_lang rl ON rl.id = rv.id
@@ -158,7 +158,7 @@ sub infobox_producers_ {
           JOIN producers p ON p.id = rp.pid
          WHERE NOT r.hidden AND rv.vid =', \$v->{id}, '
          GROUP BY p.id, p.name, p.original, rl.lang
-         ORDER BY MIN(r.released), p.name
+         ORDER BY NOT bool_or(r.official), MIN(r.released), p.name
     ');
     return if !@$p;
 
@@ -184,7 +184,7 @@ sub infobox_producers_ {
         td_ sub {
             join_ \&br_, sub {
                 abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '';
-                join_ ' & ', sub { a_ href => "/p$_->{id}", title => $_->{original}||$_->{name}, $_->{name} }, $lang{$_}->@*;
+                join_ ' & ', sub { a_ href => "/p$_->{id}", $_->{official} ? () : (class => 'grayedout'), title => $_->{original}||$_->{name}, $_->{name} }, $lang{$_}->@*;
             }, @lang;
         }
     } if keys %lang;

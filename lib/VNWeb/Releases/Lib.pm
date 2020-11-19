@@ -26,7 +26,7 @@ sub releases_by_vn {
 # Assumption: Each release already has id, type, patch, released, gtin and enrich_extlinks().
 sub enrich_release {
     my($r) = @_;
-    enrich_merge id => 'SELECT id, title, original, notes, minage, freeware, doujin, reso_x, reso_y, voiced, ani_story, ani_ero, uncensored FROM releases WHERE id IN', $r;
+    enrich_merge id => 'SELECT id, title, original, notes, minage, official, freeware, doujin, reso_x, reso_y, voiced, ani_story, ani_ero, uncensored FROM releases WHERE id IN', $r;
     enrich_merge id => sql('SELECT rid as id, status as rlist_status FROM rlists WHERE uid =', \auth->uid, 'AND rid IN'), $r if auth;
     enrich_flatten lang => id => id => sub { sql 'SELECT id, lang FROM releases_lang WHERE id IN', $_, 'ORDER BY id, lang' }, $r;
     enrich_flatten platforms => id => id => sub { sql 'SELECT id, platform FROM releases_platforms WHERE id IN', $_, 'ORDER BY id, platform' }, $r;
@@ -109,7 +109,8 @@ sub release_row_ {
         };
         td_ class => 'tc4', sub {
             a_ href => "/r$r->{id}", title => $r->{original}||$r->{title}, $r->{title};
-            b_ class => 'grayedout', ' (patch)' if $r->{patch};
+            my $note = join ' ', $r->{official} ? () : 'unofficial', $r->{patch} ? 'patch' : ();
+            b_ class => 'grayedout', " ($note)" if $note;
         };
         td_ class => 'tc_icons', sub { icons_ $r };
         td_ class => 'tc_prod', join ' & ', $r->{publisher} ? 'Pub' : (), $r->{developer} ? 'Dev' : () if $prodpage;
