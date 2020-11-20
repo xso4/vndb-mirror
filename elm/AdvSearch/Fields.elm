@@ -9,6 +9,7 @@ import Lib.DropDown as DD
 import Lib.Api as Api
 import AdvSearch.Set as AS
 import AdvSearch.Producers as AP
+import AdvSearch.Tags as AG
 import AdvSearch.RDate as AR
 import AdvSearch.Query exposing (..)
 
@@ -189,6 +190,7 @@ type FieldModel
   | FMLength   (AS.Model Int)
   | FMDeveloper AP.Model
   | FMRDate    AR.Model
+  | FMTag      AG.Model
 
 type FieldMsg
   = FSCustom   () -- Not actually used at the moment
@@ -199,6 +201,7 @@ type FieldMsg
   | FSLength   (AS.Msg Int)
   | FSDeveloper AP.Msg
   | FSRDate    AR.Msg
+  | FSTag      AG.Msg
   | FToggle Bool
   | FDel       -- intercepted in nestUpdate
   | FMoveSub   -- intercepted in nestUpdate
@@ -237,7 +240,11 @@ fields =
   , f V "Language"          (Just 1)  FMLang      AS.init               AS.langFromQuery
   , f V "Original language" (Just 2)  FMOLang     AS.init               AS.olangFromQuery
   , f V "Platform"          (Just 3)  FMPlatform  AS.init               AS.platformFromQuery
-  , f V "Length"            (Just 4)  FMLength    AS.init               AS.lengthFromQuery
+  , f V "Tags"              (Just 4)  FMTag       AG.init               (AG.fromQuery -1)
+  , f V ""                  Nothing   FMTag       AG.init               (AG.fromQuery 0)
+  , f V ""                  Nothing   FMTag       AG.init               (AG.fromQuery 1)
+  , f V ""                  Nothing   FMTag       AG.init               (AG.fromQuery 2)
+  , f V "Length"            Nothing   FMLength    AS.init               AS.lengthFromQuery
   , f V "Developer"         Nothing   FMDeveloper AP.init               AP.devFromQuery
   , f V "Release"           Nothing   FMNest      (nestInit NRel R [])  (nestFromQuery NRel V)
   , f V "Release date"      Nothing   FMRDate     AR.init               AR.fromQuery
@@ -280,6 +287,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSLength msg,   FMLength m)   -> maps FMLength   (AS.update msg m)
       (FSDeveloper msg,FMDeveloper m)-> mapf FMDeveloper FSDeveloper (AP.update dat msg m)
       (FSRDate msg,    FMRDate m)    -> maps FMRDate    (AR.update msg m)
+      (FSTag msg,      FMTag m)      -> mapf FMTag FSTag  (AG.update dat msg m)
       (FToggle b, _) -> (dat, (num, DD.toggle dd b, model), Cmd.none)
       _ -> noop
 
@@ -311,6 +319,7 @@ fieldView dat (_, dd, model) =
       FMLength m   -> vs FSLength   (AS.lengthView m)
       FMDeveloper m-> vs FSDeveloper(AP.devView dat m)
       FMRDate m    -> vs FSRDate    (AR.view m)
+      FMTag m      -> vs FSTag      (AG.view dat m)
 
 
 fieldToQuery : Field -> Maybe Query
@@ -324,6 +333,7 @@ fieldToQuery (_, _, model) =
     FMLength m   -> AS.toQuery (QInt 5) m
     FMDeveloper m-> AP.toQuery (QInt 6) m
     FMRDate m    -> AR.toQuery m
+    FMTag m      -> AG.toQuery m
 
 
 fieldCreate : Int -> (Data,FieldModel) -> (Data,Field)

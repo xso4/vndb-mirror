@@ -84,12 +84,14 @@ fromQuery f dat q =
 lblPrefix m = text <| (if m.neg then "¬" else "") ++ (if m.single || Set.size m.sel == 1 then "" else if m.and then "∀ " else "∃ ")
 
 
-opts m canAnd canSingle = div [ class "opts" ]
-  [ a
-    [ href "#"
+optsMode m canAnd canSingle =
+  a [ href "#"
     , onClickD (if canAnd && canSingle then Mode else if canSingle then Single (not m.single) else And (not m.and))
     , title <| if m.single then "Single-selection mode" else if m.and then "Entry must match all selected items" else "Entry must match at least one item"
     ] [ text <| "Mode:" ++ if m.single then "single" else if m.and then "all" else "any" ]
+
+opts m canAnd canSingle = div [ class "opts" ]
+  [ optsMode m canAnd canSingle
   , linkRadio m.neg Neg [ text "invert" ]
   ]
 

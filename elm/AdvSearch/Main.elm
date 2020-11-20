@@ -23,9 +23,11 @@ main = Browser.element
   }
 
 type alias Recv =
-  { query     : JE.Value
-  , qtype     : String
-  , producers : List GApi.ApiProducerResult
+  { query        : JE.Value
+  , qtype        : String
+  , defaultSpoil : Int
+  , producers    : List GApi.ApiProducerResult
+  , tags         : List GApi.ApiTagResult
   }
 
 type alias Model =
@@ -69,9 +71,11 @@ normalize model =
 
 init : Recv -> Model
 init arg =
-  let dat = { objid     = 0
-            , level     = 0
-            , producers = Dict.fromList <| List.map (\p -> (p.id,p)) <| arg.producers
+  let dat = { objid        = 0
+            , level        = 0
+            , defaultSpoil = arg.defaultSpoil
+            , producers    = Dict.fromList <| List.map (\p -> (p.id,p)) <| arg.producers
+            , tags         = Dict.fromList <| List.map (\t -> (t.id,t)) <| arg.tags
             }
       qtype = if arg.qtype == "v" then V else R
 

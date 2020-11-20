@@ -16,6 +16,8 @@ type Query
   | QInt Int Op Int
   | QStr Int Op String
   | QQuery Int Op Query
+  | QTuple Int Op Int Int
+  | QTriple Int Op Int Int Int
 
 
 encodeOp : Op -> JE.Value
@@ -36,6 +38,8 @@ encodeQuery q =
     QInt   s o a -> JE.list identity [JE.int s, encodeOp o, JE.int a]
     QStr   s o a -> JE.list identity [JE.int s, encodeOp o, JE.string a]
     QQuery s o a -> JE.list identity [JE.int s, encodeOp o, encodeQuery a]
+    QTuple  s o a b   -> JE.list identity [JE.int s, encodeOp o, JE.int a, JE.int b]
+    QTriple s o a b c -> JE.list identity [JE.int s, encodeOp o, JE.int a, JE.int b, JE.int c]
 
 
 
@@ -69,6 +73,8 @@ decodeQuery = JD.index 0 JD.int |> JD.andThen (\s ->
       [ JD.map2 (QInt s  ) (JD.index 1 decodeOp) (JD.index 2 JD.int)
       , JD.map2 (QStr s  ) (JD.index 1 decodeOp) (JD.index 2 JD.string)
       , JD.map2 (QQuery s) (JD.index 1 decodeOp) (JD.index 2 decodeQuery)
+      , JD.map2 (\o (a,b,c) -> QTriple s o a b c) (JD.index 1 decodeOp) <| JD.index 2 <| JD.map3 (\a b c -> (a,b,c)) (JD.index 0 JD.int) (JD.index 1 JD.int) (JD.index 2 JD.int)
+      , JD.map2 (\o (a,b  ) -> QTuple  s o a b  ) (JD.index 1 decodeOp) <| JD.index 2 <| JD.map2 (\a b   -> (a,b  )) (JD.index 0 JD.int) (JD.index 1 JD.int)
       ]
    )
 
@@ -114,7 +120,7 @@ encQuery query =
           Gt -> 3
           Le -> 4
           Lt -> 5
-      encTypeOp o t = Maybe.withDefault "" <| encInt <| encOp o + 8*t
+      encTypeOp o t = fint (encOp o + 8*t)
       encStrField n o v =
         let s = encStr v
             f l = fint n ++ encTypeOp o l ++ s
@@ -131,6 +137,8 @@ encQuery query =
           Nothing -> encStrField n o (String.fromInt v)
       QStr n o v -> encStrField n o v
       QQuery n o q -> fint n ++ encTypeOp o 1 ++ encQuery q
+      QTuple n o a b -> fint n ++ encTypeOp o 5 ++ fint a ++ fint b
+      QTriple n o a b c -> fint n ++ encTypeOp o 6 ++ fint a ++ fint b ++ fint c
 
 
 showOp : Op -> String
@@ -147,7 +155,9 @@ showOp op =
 -- Global data that's passed around for Fields
 -- (defined here because everything imports this module)
 type alias Data =
-  { objid     : Int -- Incremental integer for global identifiers
-  , level     : Int -- Nesting level of the field being processed
-  , producers : Dict.Dict Int GApi.ApiProducerResult
+  { objid        : Int -- Incremental integer for global identifiers
+  , level        : Int -- Nesting level of the field being processed
+  , defaultSpoil : Int
+  , producers    : Dict.Dict Int GApi.ApiProducerResult
+  , tags         : Dict.Dict Int GApi.ApiTagResult
   }

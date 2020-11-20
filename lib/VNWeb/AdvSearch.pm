@@ -14,6 +14,7 @@ use warnings;
 use B;
 use POSIX 'strftime';
 use TUWF;
+use VNWeb::Auth;
 use VNWeb::DB;
 use VNWeb::Validation;
 use VNDB::Types;
@@ -25,11 +26,17 @@ use VNDB::Types;
 #   $Combinator = [ 'and'||'or'||0||1, $Query, .. ]
 #   $Predicate  = [ $Field, $Op, $Value ]
 #   $Op         = '=', '!=', '>=', '>', '<=', '<'
-#   $Value      = $integer || $string || $Query
+#   $Tuple      = [ $string || $integer, $integer ]
+#   $Triple     = [ $string || $integer, $integer, $integer ]
+#   $Value      = $integer || $string || $Query || $Tuple | $Triple
 #
 #   Accepted values for $Op and $Value depend on $Field.
 #   $Field can be referred to by name or number, the latter is used for the
 #   compact encoding.
+#
+#   $Tuple and $Triple are special and used by a few filters; the first value
+#   may be a VNDBID or an integer, the second and third values must be plain
+#   integers so that they can be differentiated from a $Query.
 #
 # e.g. normalized JSON form:
 #
@@ -117,9 +124,15 @@ use VNDB::Types;
 #   these can be directly concatenated.
 #
 #     $Op         = '=' => 0, '!=' => 1, '>=' => 2, '>' => 3, '<=' => 4, '<' => 5
-#     $Type       = integer => 0, query => 1, string2 => 2, string3 => 3, stringn => 4
+#     $Type       = integer => 0, query => 1, string2 => 2, string3 => 3, stringn => 4, Tuple => 5, Triple => 6
 #     $TypedOp    = Int( $Type*8 + $Op )
-#     $Value      = Int($integer) | Escape($string2) | Escape($string3) | Escape($stringn) '-' | $Query
+#     $Tuple      = Int($first) Int($second)
+#     $Triple     = Int($first) Int($second) Int($third)
+#     $Value      = Int($integer)
+#                 | Escape($string2) | Escape($string3) | Escape($stringn) '-'
+#                 | $Query
+#                 | $Tuple
+#                 | $Triple
 #
 #   The encoded field number of a Predicate is followed by a single encoded
 #   integer that covers both the operator and the type of the value. This
@@ -172,7 +185,9 @@ sub _dec_query {
         $type == 1 ? (_dec_query($s, $i) // return) :
         $type == 2 ? do { my $v = _unescape_str(substr $s, $$i, 2) // return; $$i += 2; $v } :
         $type == 3 ? do { my $v = _unescape_str(substr $s, $$i, 3) // return; $$i += 3; $v } :
-        $type == 4 ? (_dec_str($s, $i) // return) : undef ]
+        $type == 4 ? (_dec_str($s, $i) // return) :
+        $type == 5 ? [ _dec_int($s, $i) // return, _dec_int($s, $i) // return ] :
+        $type == 6 ? [ _dec_int($s, $i) // return, _dec_int($s, $i) // return, _dec_int($s, $i) // return ] : undef ]
 }
 
 sub _enc_int {
@@ -188,11 +203,16 @@ sub _enc_int {
     return '-'.r 6, $n - 1090785969 if $n < 69810262705;
 }
 
+sub _is_tuple  { ref $_[0] eq 'ARRAY' && $_[0]->@* == 2 && (local $_ = $_[0][1]) =~ /^[0-9]+$/ }
+sub _is_triple { ref $_[0] eq 'ARRAY' && $_[0]->@* == 3 && (local $_ = $_[0][1]) =~ /^[0-9]+$/ }
+
 # Assumes that the query is already in compact JSON form.
 sub _enc_query {
     my($q) = @_;
     return ($alpha[$q->[0]])._enc_int($#$q).join '', map _enc_query($_), @$q[1..$#$q] if $q->[0] <= 1;
     my sub r { _enc_int($q->[0])._enc_int($ops{$q->[1]} + 8*$_[0]) }
+    return r(5)._enc_int($q->[2][0])._enc_int($q->[2][1]) if _is_tuple $q->[2];
+    return r(6)._enc_int($q->[2][0])._enc_int($q->[2][1])._enc_int($q->[2][2]) if _is_triple $q->[2];
     return r(1)._enc_query($q->[2]) if ref $q->[2];
     if(!(B::svref_2object(\$q->[2])->FLAGS & B::SVp_POK)) {
         my $s = _enc_int $q->[2];
@@ -244,6 +264,9 @@ f v =>  6 => 'developer',{ vndbid => 'p' },
     '=' => sub { sql 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id JOIN releases_producers rp ON rp.id = r.id
                                WHERE NOT r.hidden AND rp.pid = vndbid_num(', \$_, ') AND rp.developer)' };
 
+f v =>  8 => 'tag',      { type => 'any', func => \&_validate_tag },
+    '=' => sub { sql 'v.id IN(SELECT vid FROM tags_vn_inherit WHERE tag = vndbid_num(', \$_->[0], ') AND spoiler <=', \$_->[1], 'AND rating >=', \$_->[2], ')' };
+
 f v => 50 => 'release',  'r', '=' => sub { sql 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE NOT r.hidden AND', $_, ')' };
 
 
@@ -252,6 +275,18 @@ f r =>  4 => 'platform', { enum => \%PLATFORM }, '=' => sub { sql 'r.id IN(SELEC
 f r =>  6 => 'developer',{ vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE developer AND pid = vndbid_num(', \$_, '))' };
 f r =>  7 => 'released', { fuzzyrdate => 1 }, sql => sub { sql 'r.released', $_[0], \($_ == 1 ? strftime('%Y%m%d', gmtime) : $_) };
 
+
+
+# XXX: Accepts either $tag or [$tag, $maxspoil, $minlevel], normalizes to the latter
+sub _validate_tag {
+    $_[0] = [$_[0],0,0] if ref $_[0] ne 'ARRAY';
+    my $v = tuwf->compile({ vndbid => 'g' })->validate($_[0][0]);
+    return 0 if $v->err;
+    $_[0][0] = $v->data;
+    return 0 if !defined $_[0][1] || ref $_[0][1] || $_[0][1] !~ /^[0-2]$/;
+    return 0 if !defined $_[0][2] || ref $_[0][2] || $_[0][2] !~ /^[0-3]$/;
+    1
+}
 
 
 sub _validate {
@@ -312,7 +347,7 @@ sub _sql_where {
 
 sub sql_where {
     my($self) = @_;
-    $self->{query} ? _sql_where($self->{type}, $self->{query}) : '1=1';
+    $self->{query} ? _sql_where $self->{type}, $self->{query} : '1=1';
 }
 
 
@@ -322,10 +357,11 @@ sub _compact_json {
 
     my $f = $FIELDS{$t}{$q->[0]};
     [ int $f->{num}, $q->[1],
-        # VNDBIDs are represented as ints in compact form
-             $f->{vndbid} ? int ($q->[2] =~ s/^$f->{vndbid}//rg)
-        :    $f->{int}    ? int $q->[2]
-        : ref $f->{value} ? "$q->[2]" : _compact_json($f->{value}, $q->[2])
+          _is_tuple( $q->[2]) ? [ int($q->[2][0] =~ s/^[a-z]//rg), int($q->[2][1]) ]
+        : _is_triple($q->[2]) ? [ int($q->[2][0] =~ s/^[a-z]//rg), int($q->[2][1]), int($q->[2][2]) ]
+        : $f->{vndbid}       ? int ($q->[2] =~ s/^$f->{vndbid}//rg)
+        : $f->{int}          ? int $q->[2]
+        : ref $f->{value}    ? "$q->[2]" : _compact_json($f->{value}, $q->[2])
     ]
 }
 
@@ -344,6 +380,7 @@ sub _extract_ids {
     } else {
         my $f = $FIELDS{$t}{$q->[0]};
         $ids->{$q->[2]} = 1 if $f->{vndbid};
+        $ids->{$q->[2][0]} = 1 if _is_tuple($q->[2]) || _is_triple($q->[2]);
         _extract_ids($f->{value}, $q->[2], $ids) if !ref $f->{value};
     }
 }
@@ -354,16 +391,23 @@ sub elm_ {
 
     my(%o,%ids);
     _extract_ids($self->{type}, $self->{query}, \%ids) if $self->{query};
+
     $o{producers} = [ map +{id => $_=~s/^p//rg}, grep /^p/, keys %ids ];
     enrich_merge id => 'SELECT id, name, original, hidden FROM producers WHERE id IN', $o{producers};
 
+    $o{tags} = [ map +{id => $_=~s/^g//rg}, grep /^g/, keys %ids ];
+    enrich_merge id => 'SELECT id, name, searchable, applicable, state FROM tags WHERE id IN', $o{tags};
+
     $o{qtype} = $self->{type};
     $o{query} = $self->compact_json;
+    $o{defaultSpoil} = auth->pref('spoilers')||0;
 
     state $schema ||= tuwf->compile({ type => 'hash', keys => {
-        qtype     => {},
-        query     => { type => 'array', required => 0 },
-        producers => $VNWeb::Elm::apis{ProducerResult}[0],
+        qtype        => {},
+        query        => { type => 'array', required => 0 },
+        defaultSpoil => { uint => 1 },
+        producers    => $VNWeb::Elm::apis{ProducerResult}[0],
+        tags         => $VNWeb::Elm::apis{TagResult}[0],
     }});
     VNWeb::HTML::elm_ 'AdvSearch.Main', $schema, \%o;
 }
