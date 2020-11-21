@@ -341,6 +341,6 @@ view cfg model attrs =
 
   in div [ class "elm_dd", class "search", style "width" "300px" ]
     [ div [ classList [("hidden", not visible)] ] [ div [] [ Keyed.node "ul" [] <| msg ++ List.map item model.results ] ]
-    , input
+    , Html.form [] [ input ]
     , span [ class "spinner", classList [("hidden", not model.loading)] ] []
     ]
