@@ -285,6 +285,7 @@ isValid model = not
   (  (model.name /= "" && model.name == model.original)
   || hasDuplicates (List.map (\v -> (v.vid, Maybe.withDefault 0 v.rid)) model.vns)
   || not (Img.isValid model.image)
+  || (model.mainHas && model.main /= Nothing && model.main == model.id)
   )
 
 
@@ -370,6 +371,7 @@ view model =
           [ text "Selected character: "
           , b [ class "grayedout" ] [ text <| "c" ++ String.fromInt m ++ ": " ]
           , a [ href <| "/c" ++ String.fromInt m ] [ text model.mainName ]
+          , if Just m == model.id then b [ class "standout" ] [ br [] [], text "A character can't be an instance of itself. Please select another character or disable the above checkbox to remove the instance." ] else text ""
           ]) model.main
         , br [] []
         , A.view mainConfig model.mainSearch [placeholder "Set character..."]
