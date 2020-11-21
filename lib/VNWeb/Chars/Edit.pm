@@ -69,7 +69,7 @@ TUWF::get qr{/$RE{crev}/(?<action>edit|copy)} => sub {
     $e->{main_ref} = tuwf->dbVali('SELECT 1 FROM chars WHERE main =', \$e->{id})||0;
 
     enrich_merge tid => 'SELECT t.id AS tid, t.name, t.applicable, g.name AS group, g.order AS order, false AS new FROM traits t LEFT JOIN traits g ON g.id = t.group WHERE t.id IN', $e->{traits};
-    $e->{traits} = [ sort { ($a->{order}//99) <=> ($b->{order}//99) || $a->{name} cmp $b->{name} } $e->{traits}->@* ];
+    $e->{traits} = [ sort { ($a->{order}//99) <=> ($b->{order}//99) || $a->{name} cmp $b->{name} } grep !$copy || $_->{applicable}, $e->{traits}->@* ];
 
     enrich_merge vid => 'SELECT id AS vid, title FROM vn WHERE id IN', $e->{vns};
     $e->{vns} = [ sort { $a->{title} cmp $b->{title} || $a->{vid} <=> $b->{vid} || ($a->{rid}||0) <=> ($b->{rid}||0) } $e->{vns}->@* ];
