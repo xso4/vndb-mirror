@@ -7,7 +7,7 @@ import Gen.Api as GApi
 
 -- Generic dynamically typed representation of a query.
 -- Used only as an intermediate format to help with encoding/decoding.
--- Corresponds to the compact JSON encoding, i.e. with field names and VNDBIDs encoded and integers.
+-- Corresponds to the compact JSON form.
 type QType = V | R
 type Op = Eq | Ne | Ge | Gt | Le | Lt
 type Query
@@ -17,7 +17,6 @@ type Query
   | QStr Int Op String
   | QQuery Int Op Query
   | QTuple Int Op Int Int
-  | QTriple Int Op Int Int Int
 
 
 encodeOp : Op -> JE.Value
@@ -39,7 +38,6 @@ encodeQuery q =
     QStr   s o a -> JE.list identity [JE.int s, encodeOp o, JE.string a]
     QQuery s o a -> JE.list identity [JE.int s, encodeOp o, encodeQuery a]
     QTuple  s o a b   -> JE.list identity [JE.int s, encodeOp o, JE.int a, JE.int b]
-    QTriple s o a b c -> JE.list identity [JE.int s, encodeOp o, JE.int a, JE.int b, JE.int c]
 
 
 
@@ -73,8 +71,7 @@ decodeQuery = JD.index 0 JD.int |> JD.andThen (\s ->
       [ JD.map2 (QInt s  ) (JD.index 1 decodeOp) (JD.index 2 JD.int)
       , JD.map2 (QStr s  ) (JD.index 1 decodeOp) (JD.index 2 JD.string)
       , JD.map2 (QQuery s) (JD.index 1 decodeOp) (JD.index 2 decodeQuery)
-      , JD.map2 (\o (a,b,c) -> QTriple s o a b c) (JD.index 1 decodeOp) <| JD.index 2 <| JD.map3 (\a b c -> (a,b,c)) (JD.index 0 JD.int) (JD.index 1 JD.int) (JD.index 2 JD.int)
-      , JD.map2 (\o (a,b  ) -> QTuple  s o a b  ) (JD.index 1 decodeOp) <| JD.index 2 <| JD.map2 (\a b   -> (a,b  )) (JD.index 0 JD.int) (JD.index 1 JD.int)
+      , JD.map2 (\o (a,b) -> QTuple s o a b) (JD.index 1 decodeOp) <| JD.index 2 <| JD.map2 (\a b -> (a,b)) (JD.index 0 JD.int) (JD.index 1 JD.int)
       ]
    )
 
@@ -138,7 +135,6 @@ encQuery query =
       QStr n o v -> encStrField n o v
       QQuery n o q -> fint n ++ encTypeOp o 1 ++ encQuery q
       QTuple n o a b -> fint n ++ encTypeOp o 5 ++ fint a ++ fint b
-      QTriple n o a b c -> fint n ++ encTypeOp o 6 ++ fint a ++ fint b ++ fint c
 
 
 showOp : Op -> String

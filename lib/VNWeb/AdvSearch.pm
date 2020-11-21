@@ -20,52 +20,90 @@ use VNWeb::Validation;
 use VNDB::Types;
 
 
-# Search query (JSON):
-#
-#   $Query      = $Combinator || $Predicate
-#   $Combinator = [ 'and'||'or'||0||1, $Query, .. ]
-#   $Predicate  = [ $Field, $Op, $Value ]
-#   $Op         = '=', '!=', '>=', '>', '<=', '<'
-#   $Tuple      = [ $string || $integer, $integer ]
-#   $Triple     = [ $string || $integer, $integer, $integer ]
-#   $Value      = $integer || $string || $Query || $Tuple | $Triple
-#
-#   Accepted values for $Op and $Value depend on $Field.
-#   $Field can be referred to by name or number, the latter is used for the
-#   compact encoding.
-#
-#   $Tuple and $Triple are special and used by a few filters; the first value
-#   may be a VNDBID or an integer, the second and third values must be plain
-#   integers so that they can be differentiated from a $Query.
-#
-# e.g. normalized JSON form:
-#
-#   [ 'and'
-#   , [ 'or'    # No support for array values, so IN() queries need explicit ORs.
-#     , [ 'lang', '=', 'en' ]
-#     , [ 'lang', '=', 'de' ]
-#     , [ 'lang', '=', 'fr' ]
-#     ]
-#   , [ 'olang', '!=', 'ja' ]
-#   , [ 'char', '=', [ 'and' # VN has a character that matches the given query
-#       , [ 'bust', '>=', 40 ]
-#       , [ 'bust', '<=', 100 ]
-#       ]
-#     ]
-#   ]
-#
 # Search queries should be seen as some kind of low-level assembly for
 # generating complex queries, they're designed to be simple to implement,
 # powerful, extendable and stable. They're also a pain to work with, but that
 # comes with the trade-off.
-
-
-# Compact search query encoding:
 #
+# A search query can be expressed in three different representations.
+#
+# Normalized JSON form:
+#
+#   $Query      = $Combinator || $Predicate
+#   $Combinator = [ 'and'||'or', $Query, .. ]
+#   $Predicate  = [ $Field, $Op, $Value ]
+#   $Op         = '=', '!=', '>=', '>', '<=', '<'
+#   $Field      = $string
+#   $Value      = $Query || $field_specific_json_value
+#
+#   This representation is used internally and can be exposed as an API.
+#   Eventually.
+#
+#   Example:
+#
+#     [ 'and'
+#     , [ 'or'    # No support for array values, so IN() queries need explicit ORs.
+#       , [ 'lang', '=', 'en' ]
+#       , [ 'lang', '=', 'de' ]
+#       , [ 'lang', '=', 'fr' ]
+#       ]
+#     , [ 'olang', '!=', 'ja' ]
+#     , [ 'release', '=', [ 'and' # VN has a release that matches the given query
+#         , [ 'released', '>=', '2020-01-01' ]
+#         , [ 'developer', '=', 'p30' ]
+#         ]
+#       ]
+#     ]
+#
+# Compact JSON form:
+#
+#   $Query      = $Combinator || $Predicate
+#   $Combinator = [ 0||1, $Query, .. ]
+#   $Predicate  = [ $Field, $Op, $Value ]
+#   $Op         = '=', '!=', '>=', '>', '<=', '<'
+#   $Field      = $integer
+#   $Tuple      = [ $integer, $integer ]
+#   $Value      = $integer || $string || $Query || $Tuple
+#
+#   Compact JSON form uses integers to represent field names and 'and'/'or'.
+#   The field numbers are specific to the query type (e.g. visual novel and
+#   release queries). The accepted forms of $Value are much more limited and
+#   conversion of values between compact and normalized form is
+#   field-dependent.
+#
+#   This representation is used as an intermediate format between the
+#   normalized JSON form and the compact encoded form. Conversion between
+#   normalized JSON and compact JSON form requires knowledge about all fields
+#   and their accepted values, while conversion between compact JSON form and
+#   compact encoded form can be done mechanically. This is the reason why Elm
+#   works with the compact JSON form.
+#
+#   Same example:
+#
+#     [ 0
+#     , [ 1
+#       , [ 2, '=', 'de' ]
+#       , [ 2, '=', 'en' ]
+#       , [ 2, '=', 'fr' ]
+#       ]
+#     , [ 3, '!=', 'ja' ]
+#     , [ 50, '=', [ 0
+#         , [ 7, '>=', 20200101 ]
+#         , [ 6, '=', 30 ]
+#         ]
+#       ]
+#     ]
+#
+# Compact encoded form:
+#
+#   Alternative and more compact representation of the compact JSON form.
 #   Intended for use in a URL query string, used characters: [0-9a-zA-Z_-]
 #   (plus any unicode characters that may be present in string fields).
 #   Not intended to be easy to parse or work with, optimized for short length.
 #
+#   Same example: 03132gde2gen2gfr3hjaN180272_0c2vQ60u
+
+
 # INTEGER ENCODING
 #
 #   Positive integers are encoded in such a way that the first character
@@ -124,15 +162,13 @@ use VNDB::Types;
 #   these can be directly concatenated.
 #
 #     $Op         = '=' => 0, '!=' => 1, '>=' => 2, '>' => 3, '<=' => 4, '<' => 5
-#     $Type       = integer => 0, query => 1, string2 => 2, string3 => 3, stringn => 4, Tuple => 5, Triple => 6
+#     $Type       = integer => 0, query => 1, string2 => 2, string3 => 3, stringn => 4, Tuple => 5
 #     $TypedOp    = Int( $Type*8 + $Op )
 #     $Tuple      = Int($first) Int($second)
-#     $Triple     = Int($first) Int($second) Int($third)
 #     $Value      = Int($integer)
 #                 | Escape($string2) | Escape($string3) | Escape($stringn) '-'
 #                 | $Query
 #                 | $Tuple
-#                 | $Triple
 #
 #   The encoded field number of a Predicate is followed by a single encoded
 #   integer that covers both the operator and the type of the value. This
@@ -186,8 +222,7 @@ sub _dec_query {
         $type == 2 ? do { my $v = _unescape_str(substr $s, $$i, 2) // return; $$i += 2; $v } :
         $type == 3 ? do { my $v = _unescape_str(substr $s, $$i, 3) // return; $$i += 3; $v } :
         $type == 4 ? (_dec_str($s, $i) // return) :
-        $type == 5 ? [ _dec_int($s, $i) // return, _dec_int($s, $i) // return ] :
-        $type == 6 ? [ _dec_int($s, $i) // return, _dec_int($s, $i) // return, _dec_int($s, $i) // return ] : undef ]
+        $type == 5 ? [ _dec_int($s, $i) // return, _dec_int($s, $i) // return ] : undef ]
 }
 
 sub _enc_int {
@@ -204,7 +239,6 @@ sub _enc_int {
 }
 
 sub _is_tuple  { ref $_[0] eq 'ARRAY' && $_[0]->@* == 2 && (local $_ = $_[0][1]) =~ /^[0-9]+$/ }
-sub _is_triple { ref $_[0] eq 'ARRAY' && $_[0]->@* == 3 && (local $_ = $_[0][1]) =~ /^[0-9]+$/ }
 
 # Assumes that the query is already in compact JSON form.
 sub _enc_query {
@@ -212,7 +246,6 @@ sub _enc_query {
     return ($alpha[$q->[0]])._enc_int($#$q).join '', map _enc_query($_), @$q[1..$#$q] if $q->[0] <= 1;
     my sub r { _enc_int($q->[0])._enc_int($ops{$q->[1]} + 8*$_[0]) }
     return r(5)._enc_int($q->[2][0])._enc_int($q->[2][1]) if _is_tuple $q->[2];
-    return r(6)._enc_int($q->[2][0])._enc_int($q->[2][1])._enc_int($q->[2][2]) if _is_triple $q->[2];
     return r(1)._enc_query($q->[2]) if ref $q->[2];
     if(!(B::svref_2object(\$q->[2])->FLAGS & B::SVp_POK)) {
         my $s = _enc_int $q->[2];
@@ -236,6 +269,7 @@ sub _enc_query {
 #   %options:
 #       $op    -> Operator definitions and sql() generation functions.
 #       sql    -> sql() generation function that is called for all operators.
+#       compact -> Function to convert a value from normalized JSON form into compact JSON form.
 #
 #   An implementation for the '!=' operator will be supplied automatically if it's not explicitely defined.
 my(%FIELDS, %NUMFIELDS);
@@ -265,6 +299,7 @@ f v =>  6 => 'developer',{ vndbid => 'p' },
                                WHERE NOT r.hidden AND rp.pid = vndbid_num(', \$_, ') AND rp.developer)' };
 
 f v =>  8 => 'tag',      { type => 'any', func => \&_validate_tag },
+    compact => sub { my $id = ($_->[0] =~ s/^g//r)*1; $_->[1] == 0 && $_->[2] == 0 ? $id : [ $id, int($_->[2]*5)*3 + $_->[1] ] },
     '=' => sub { sql 'v.id IN(SELECT vid FROM tags_vn_inherit WHERE tag = vndbid_num(', \$_->[0], ') AND spoiler <=', \$_->[1], 'AND rating >=', \$_->[2], ')' };
 
 f v => 50 => 'release',  'r', '=' => sub { sql 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE NOT r.hidden AND', $_, ')' };
@@ -277,14 +312,20 @@ f r =>  7 => 'released', { fuzzyrdate => 1 }, sql => sub { sql 'r.released', $_[
 
 
 
-# XXX: Accepts either $tag or [$tag, $maxspoil, $minlevel], normalizes to the latter
+# Accepts either $tag or [$tag, int($minlevel*5)*3+$maxspoil] (for compact form) or [$tag, $maxspoil, $minlevel]. Normalizes to the latter.
 sub _validate_tag {
-    $_[0] = [$_[0],0,0] if ref $_[0] ne 'ARRAY';
+    $_[0] = [$_[0],0,0] if ref $_[0] ne 'ARRAY'; # just a tag id
     my $v = tuwf->compile({ vndbid => 'g' })->validate($_[0][0]);
     return 0 if $v->err;
     $_[0][0] = $v->data;
+    if($_[0]->@* == 2) { # compact form
+        return 0 if !defined $_[0][1] || ref $_[0][1] || $_[0][1] !~ /^[0-9]+$/;
+        ($_[0][1],$_[0][2]) = ($_[0][1]%3, int($_[0][1]/3)/5);
+    }
+    # normalized form
+    return 0 if $_[0]->@* != 3;
     return 0 if !defined $_[0][1] || ref $_[0][1] || $_[0][1] !~ /^[0-2]$/;
-    return 0 if !defined $_[0][2] || ref $_[0][2] || $_[0][2] !~ /^[0-3]$/;
+    return 0 if !defined $_[0][2] || ref $_[0][2] || $_[0][2] !~ /^(?:[0-2](?:\.[0-9]+)?|3(?:\.0+)?)$/;
     1
 }
 
@@ -357,11 +398,11 @@ sub _compact_json {
 
     my $f = $FIELDS{$t}{$q->[0]};
     [ int $f->{num}, $q->[1],
-          _is_tuple( $q->[2]) ? [ int($q->[2][0] =~ s/^[a-z]//rg), int($q->[2][1]) ]
-        : _is_triple($q->[2]) ? [ int($q->[2][0] =~ s/^[a-z]//rg), int($q->[2][1]), int($q->[2][2]) ]
-        : $f->{vndbid}       ? int ($q->[2] =~ s/^$f->{vndbid}//rg)
-        : $f->{int}          ? int $q->[2]
-        : ref $f->{value}    ? "$q->[2]" : _compact_json($f->{value}, $q->[2])
+          $f->{compact}       ? do { local $_ = $q->[2]; $f->{compact}->($_) }
+        : _is_tuple( $q->[2]) ? [ int($q->[2][0] =~ s/^[a-z]//rg), int($q->[2][1]) ]
+        : $f->{vndbid}        ? int ($q->[2] =~ s/^$f->{vndbid}//rg)
+        : $f->{int}           ? int $q->[2]
+        : ref $f->{value}     ? "$q->[2]" : _compact_json($f->{value}, $q->[2])
     ]
 }
 
@@ -380,7 +421,7 @@ sub _extract_ids {
     } else {
         my $f = $FIELDS{$t}{$q->[0]};
         $ids->{$q->[2]} = 1 if $f->{vndbid};
-        $ids->{$q->[2][0]} = 1 if _is_tuple($q->[2]) || _is_triple($q->[2]);
+        $ids->{$q->[2][0]} = 1 if ref $f->{value} && ref $q->[2] eq 'ARRAY'; # Ugly heuristic, may have false positives
         _extract_ids($f->{value}, $q->[2], $ids) if !ref $f->{value};
     }
 }

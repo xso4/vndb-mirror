@@ -55,12 +55,12 @@ update dat msg model =
             , c )
 
 
-toQuery m = S.toQuery (\o (t,l) -> if m.spoiler == 0 && l == 0 then QInt 8 o t else QTriple 8 o t m.spoiler l) m.sel
+toQuery m = S.toQuery (\o (t,l) -> if m.spoiler == 0 && l == 0 then QInt 8 o t else QTuple 8 o t (l*3+m.spoiler)) m.sel
 
 fromQuery spoil dat q =
   let f qr = case qr of
               QInt 8 op t -> if spoil == 0 then Just (op, (t,0)) else Nothing
-              QTriple 8 op t s l -> if s == spoil then Just (op, (t,l)) else Nothing
+              QTuple 8 op t v -> if modBy 3 v == spoil then Just (op, (t,v//3)) else Nothing
               _ -> Nothing
   in
   S.fromQuery f dat q |> Maybe.map (\(ndat,sel) ->
@@ -96,11 +96,10 @@ view dat model =
     , ul [] <| List.map (\(t,l) ->
         li []
         [ inputButton "X" (Sel (S.Sel (t,l) False)) []
-        , inputSelect "" l (Level (t,l)) [style "width" "60px"]
-          [ (0, "any")
-          , (1, "*")
-          , (2, "**")
-          , (3, "***") ]
+        , inputSelect "" l (Level (t,l)) [style "width" "60px"] <|
+          (0, "any")
+          :: List.map (\i -> (i, String.fromInt (i//5) ++ "." ++ String.fromInt (2*(modBy 5 i)) ++ "+")) (List.range 1 14)
+          ++ [(15, "3.0")]
         , b [ class "grayedout" ] [ text <| " g" ++ String.fromInt t ++ ": " ]
         , Dict.get t dat.tags |> Maybe.map (\e -> e.name) |> Maybe.withDefault "" |> text
         ]
