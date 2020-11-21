@@ -85,7 +85,8 @@ view model =
           List.map (\op ->
             if model.op == op then b [] [ text (showOp op) ] else a [ href "#", onClickD (MOp op True) ] [ text (showOp op) ]
           ) [Eq, Ne, Ge, Gt, Le, Lt]
-        , linkRadio model.fuzzy Fuzzy [ span [ title
+        , if (R.expand model.date).d /= 99 then text "" else
+          linkRadio model.fuzzy Fuzzy [ span [ title
             <| "Without fuzzy matching, partial dates will always match after the last date of the chosen time period, "
             ++ "e.g. \"< 2010-10\" would also match anything released in 2010-10 and \"= 2010-10\" would only match releases for which we don't know the exact date."
             ++ "\n\nFuzzy match will adjust the query to do what you mean."
