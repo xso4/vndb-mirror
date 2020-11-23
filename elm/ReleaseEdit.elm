@@ -346,7 +346,7 @@ viewGen model =
   , tr [ class "newpart" ] [ td [] [] ]
   , formField "rtype::Type" [ inputSelect "rtype" model.rtype RType [] GT.releaseTypes ]
   , formField "minage::Age rating" [ inputSelect "minage" model.minage Minage [] GT.ageRatings, text " (*)" ]
-  , formField "" [ label [] [ inputCheck "" model.official Official, text " Official (i.e. sanctioned by the original developer, not fan-made)" ] ]
+  , formField "" [ label [] [ inputCheck "" model.official Official, text " Official (i.e. sanctioned by the original developer of the visual novel)" ] ]
   , formField "" [ label [] [ inputCheck "" model.patch    Patch   , text " This release is a patch to another release.", text " (*)" ] ]
   , formField "" [ label [] [ inputCheck "" model.freeware Freeware, text " Freeware (i.e. available at no cost)" ] ]
   , if model.patch then text "" else
