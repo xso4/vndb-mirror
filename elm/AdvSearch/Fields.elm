@@ -10,7 +10,8 @@ import Lib.Api as Api
 import AdvSearch.Set as AS
 import AdvSearch.Producers as AP
 import AdvSearch.Tags as AG
-import AdvSearch.RDate as AR
+import AdvSearch.RDate as AD
+import AdvSearch.Range as AR
 import AdvSearch.Query exposing (..)
 
 
@@ -201,8 +202,18 @@ type FieldModel
   | FMBlood    (AS.Model String)
   | FMSexChar  (AS.Model String)
   | FMSexSpoil (AS.Model String)
+  | FMHeight   (AR.Model Int)
+  | FMWeight   (AR.Model Int)
+  | FMBust     (AR.Model Int)
+  | FMWaist    (AR.Model Int)
+  | FMHips     (AR.Model Int)
+  | FMCup      (AR.Model String)
+  | FMAge      (AR.Model Int)
+  | FMPopularity (AR.Model Int)
+  | FMRating     (AR.Model Int)
+  | FMVotecount  (AR.Model Int)
   | FMDeveloper AP.Model
-  | FMRDate    AR.Model
+  | FMRDate    AD.Model
   | FMTag      AG.Model
 
 type FieldMsg
@@ -216,8 +227,18 @@ type FieldMsg
   | FSBlood    (AS.Msg String)
   | FSSexChar  (AS.Msg String)
   | FSSexSpoil (AS.Msg String)
+  | FSHeight   AR.Msg
+  | FSWeight   AR.Msg
+  | FSBust     AR.Msg
+  | FSWaist    AR.Msg
+  | FSHips     AR.Msg
+  | FSCup      AR.Msg
+  | FSAge      AR.Msg
+  | FSPopularity AR.Msg
+  | FSRating     AR.Msg
+  | FSVotecount  AR.Msg
   | FSDeveloper AP.Msg
-  | FSRDate    AR.Msg
+  | FSRDate    AD.Msg
   | FSTag      AG.Msg
   | FToggle Bool
   | FDel       -- intercepted in nestUpdate
@@ -265,19 +286,29 @@ fields =
   , f V ""                  Nothing   FMTag       AG.init               (AG.fromQuery 2)
   , f V "Length"            Nothing   FMLength    AS.init               AS.lengthFromQuery
   , f V "Developer"         Nothing   FMDeveloper AP.init               AP.devFromQuery
-  , f V "Release date"      Nothing   FMRDate     AR.init               AR.fromQuery
+  , f V "Release date"      Nothing   FMRDate     AD.init               AD.fromQuery
+  , f V "Popularity"        Nothing   FMPopularity AR.popularityInit    AR.popularityFromQuery
+  , f V "Rating"            Nothing   FMRating    AR.ratingInit         AR.ratingFromQuery
+  , f V "Number of votes"   Nothing   FMVotecount AR.votecountInit      AR.votecountFromQuery
   , f V "Release"           Nothing   FMNest      (nestInit NRel  R []) (nestFromQuery NRel  V)
   , f V "Character"         Nothing   FMNest      (nestInit NChar C []) (nestFromQuery NChar V)
 
   , f R "Language"          (Just 1)  FMLang      AS.init               AS.langFromQuery
   , f R "Platform"          (Just 2)  FMPlatform  AS.init               AS.platformFromQuery
   , f R "Developer"         Nothing   FMDeveloper AP.init               AP.devFromQuery
-  , f R "Release date"      Nothing   FMRDate     AR.init               AR.fromQuery
+  , f R "Release date"      Nothing   FMRDate     AD.init               AD.fromQuery
 
   , f C "Role"              (Just 1)  FMRole      AS.init               AS.roleFromQuery
-  , f C "Blood type"        Nothing   FMBlood     AS.init               AS.bloodFromQuery
+  , f C "Age"               Nothing   FMAge       AR.ageInit            AR.ageFromQuery
   , f C "Sex"               (Just 2)  FMSexChar   AS.init               (AS.sexFromQuery AS.SexChar)
   , f C "Sex (spoiler)"     Nothing   FMSexSpoil  AS.init               (AS.sexFromQuery AS.SexSpoil)
+  , f C "Blood type"        Nothing   FMBlood     AS.init               AS.bloodFromQuery
+  , f C "Height"            Nothing   FMHeight    AR.heightInit         AR.heightFromQuery
+  , f C "Weight"            Nothing   FMWeight    AR.weightInit         AR.weightFromQuery
+  , f C "Bust"              Nothing   FMBust      AR.bustInit           AR.bustFromQuery
+  , f C "Waist"             Nothing   FMWaist     AR.waistInit          AR.waistFromQuery
+  , f C "Hips"              Nothing   FMHips      AR.hipsInit           AR.hipsFromQuery
+  , f C "Cup size"          Nothing   FMCup       AR.cupInit            AR.cupFromQuery
   ]
 
 
@@ -314,8 +345,18 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSBlood msg,    FMBlood m)    -> maps FMBlood    (AS.update msg m)
       (FSSexChar msg,  FMSexChar m)  -> maps FMSexChar  (AS.update msg m)
       (FSSexSpoil msg, FMSexSpoil m) -> maps FMSexSpoil (AS.update msg m)
+      (FSHeight msg,   FMHeight m)   -> maps FMHeight   (AR.update msg m)
+      (FSWeight msg,   FMWeight m)   -> maps FMWeight   (AR.update msg m)
+      (FSBust msg,     FMBust m)     -> maps FMBust     (AR.update msg m)
+      (FSWaist msg,    FMWaist m)    -> maps FMWaist    (AR.update msg m)
+      (FSHips msg,     FMHips m)     -> maps FMHips     (AR.update msg m)
+      (FSCup msg,      FMCup m)      -> maps FMCup      (AR.update msg m)
+      (FSAge msg,      FMAge m)      -> maps FMAge      (AR.update msg m)
+      (FSPopularity msg,FMPopularity m)->maps FMPopularity (AR.update msg m)
+      (FSRating msg,   FMRating m)   -> maps FMRating    (AR.update msg m)
+      (FSVotecount msg,FMVotecount m)-> maps FMVotecount (AR.update msg m)
       (FSDeveloper msg,FMDeveloper m)-> mapf FMDeveloper FSDeveloper (AP.update dat msg m)
-      (FSRDate msg,    FMRDate m)    -> maps FMRDate    (AR.update msg m)
+      (FSRDate msg,    FMRDate m)    -> maps FMRDate    (AD.update msg m)
       (FSTag msg,      FMTag m)      -> mapf FMTag FSTag  (AG.update dat msg m)
       (FToggle b, _) -> (dat, (num, DD.toggle dd b, model), Cmd.none)
       _ -> noop
@@ -350,8 +391,18 @@ fieldView dat (_, dd, model) =
       FMBlood m    -> vs FSBlood    (AS.bloodView m)
       FMSexChar m  -> vs FSSexChar  (AS.sexView AS.SexChar m)
       FMSexSpoil m -> vs FSSexSpoil (AS.sexView AS.SexSpoil m)
+      FMHeight m   -> vs FSHeight   (AR.heightView m)
+      FMWeight m   -> vs FSWeight   (AR.weightView m)
+      FMBust m     -> vs FSBust     (AR.bustView m)
+      FMWaist m    -> vs FSWaist    (AR.waistView m)
+      FMHips m     -> vs FSHips     (AR.hipsView m)
+      FMCup m      -> vs FSCup      (AR.cupView m)
+      FMAge m      -> vs FSAge      (AR.ageView m)
+      FMPopularity m->vs FSPopularity(AR.popularityView m)
+      FMRating m   -> vs FSRating   (AR.ratingView m)
+      FMVotecount m-> vs FSVotecount(AR.votecountView m)
       FMDeveloper m-> vs FSDeveloper(AP.devView dat m)
-      FMRDate m    -> vs FSRDate    (AR.view m)
+      FMRDate m    -> vs FSRDate    (AD.view m)
       FMTag m      -> vs FSTag      (AG.view dat m)
 
 
@@ -368,8 +419,18 @@ fieldToQuery (_, _, model) =
     FMBlood m    -> AS.toQuery (QStr 3) m
     FMSexChar m  -> AS.toQuery (QStr 4) m
     FMSexSpoil m -> AS.toQuery (QStr 5) m
+    FMHeight m   -> AR.toQuery (QInt 6) m
+    FMWeight m   -> AR.toQuery (QInt 7) m
+    FMBust m     -> AR.toQuery (QInt 8) m
+    FMWaist m    -> AR.toQuery (QInt 9) m
+    FMHips m     -> AR.toQuery (QInt 10) m
+    FMCup m      -> AR.toQuery (QStr 11) m
+    FMAge m      -> AR.toQuery (QInt 12) m
+    FMPopularity m->AR.toQuery (QInt 9) m
+    FMRating m   -> AR.toQuery (QInt 10) m
+    FMVotecount m-> AR.toQuery (QInt 11) m
     FMDeveloper m-> AP.toQuery (QInt 6) m
-    FMRDate m    -> AR.toQuery m
+    FMRDate m    -> AD.toQuery m
     FMTag m      -> AG.toQuery m
 
 

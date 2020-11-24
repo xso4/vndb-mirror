@@ -289,11 +289,14 @@ sub f {
 
 
 
-f v =>  2 => 'lang',     { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_languages && ARRAY', \$_, '::language[]' };
-f v =>  3 => 'olang',    { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_olang     && ARRAY', \$_, '::language[]' };
-f v =>  4 => 'platform', { enum => \%PLATFORM }, '=' => sub { sql 'v.c_platforms && ARRAY', \$_, '::platform[]' };
-f v =>  5 => 'length',   { uint => 1, enum => \%VN_LENGTH }, '=' => sub { sql 'v.length =', \$_ };
-f v =>  7 => 'released', { fuzzyrdate => 1 }, sql => sub { sql 'v.c_released', $_[0], \($_ == 1 ? strftime('%Y%m%d', gmtime) : $_) };
+f v =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_languages && ARRAY', \$_, '::language[]' };
+f v =>  3 => 'olang',     { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_olang     && ARRAY', \$_, '::language[]' };
+f v =>  4 => 'platform',  { enum => \%PLATFORM }, '=' => sub { sql 'v.c_platforms && ARRAY', \$_, '::platform[]' };
+f v =>  5 => 'length',    { uint => 1, enum => \%VN_LENGTH }, '=' => sub { sql 'v.length =', \$_ };
+f v =>  7 => 'released',  { fuzzyrdate => 1 }, sql => sub { sql 'v.c_released', $_[0], \($_ == 1 ? strftime('%Y%m%d', gmtime) : $_) };
+f v =>  9 => 'popularity',{ uint => 1, range => [ 0,  100] }, sql => sub { sql 'v.c_popularity', $_[0], \($_/100) };
+f v => 10 => 'rating',    { uint => 1, range => [10,  100] }, sql => sub { sql 'v.c_rating <> 0 AND v.c_rating', $_[0], \$_ };
+f v => 11 => 'vote-count',{ uint => 1, range => [ 0,1<<30] }, sql => sub { sql 'v.c_votecount', $_[0], \$_ };
 
 f v =>  6 => 'developer',{ vndbid => 'p' },
     '=' => sub { sql 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id JOIN releases_producers rp ON rp.id = r.id
@@ -315,10 +318,17 @@ f r =>  7 => 'released', { fuzzyrdate => 1 }, sql => sub { sql 'r.released', $_[
 
 
 
-f c =>  2 => 'role',       { enum => \%CHAR_ROLE  }, '=', sub { sql 'cv.role =', \$_ }; # TODO: SQL is different when not used as a subquery in VN search
-f c =>  3 => 'blood-type', { enum => \%BLOOD_TYPE }, '=', sub { sql 'c.bloodt =', \$_ };
-f c =>  4 => 'sex',        { enum => \%GENDER }, '=', sub { sql 'c.gender =', \$_ };
-f c =>  5 => 'sex-spoil',  { enum => \%GENDER }, '=', sub { sql 'c.spoil_gender =', \$_ }; # TODO: Some way to search for NULL (separate "has-sex-spoil" filter?)
+f c =>  2 => 'role',       { enum => \%CHAR_ROLE  }, '=' => sub { sql 'cv.role =', \$_ }; # TODO: SQL is different when not used as a subquery in VN search
+f c =>  3 => 'blood-type', { enum => \%BLOOD_TYPE }, '=' => sub { sql 'c.bloodt =', \$_ };
+f c =>  4 => 'sex',        { enum => \%GENDER },     '=' => sub { sql 'c.gender =', \$_ };
+f c =>  5 => 'sex-spoil',  { enum => \%GENDER },     '=' => sub { sql 'c.spoil_gender =', \$_ }; # TODO: Some way to search for NULL (separate "has-sex-spoil" filter?)
+f c =>  6 => 'height',     { uint => 1, max => 32767 }, sql => sub { sql 'c.height  <> 0 AND c.height',  $_[0], \$_ };
+f c =>  7 => 'weight',     { uint => 1, max => 32767 }, sql => sub { sql                    'c.weight',  $_[0], \$_ };
+f c =>  8 => 'bust',       { uint => 1, max => 32767 }, sql => sub { sql 'c.s_bust  <> 0 AND c.s_bust',  $_[0], \$_ };
+f c =>  9 => 'waist',      { uint => 1, max => 32767 }, sql => sub { sql 'c.s_waist <> 0 AND c.s_waist', $_[0], \$_ };
+f c => 10 => 'hips',       { uint => 1, max => 32767 }, sql => sub { sql 'c.s_hip   <> 0 AND c.s_hip',   $_[0], \$_ };
+f c => 11 => 'cup',        { enum => \%CUP_SIZE },      sql => sub { sql 'c.cup_size <> \'\' AND c.cup_size', $_[0], \$_ };
+f c => 12 => 'age',        { uint => 1, max => 32767 }, sql => sub { sql 'c.age     <> 0 AND c.age',     $_[0], \$_ };
 
 
 
