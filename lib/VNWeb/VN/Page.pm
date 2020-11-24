@@ -9,13 +9,16 @@ use VNDB::Func 'fmtrating';
 # Enrich everything necessary to at least render infobox_() and tabs_().
 # Also used by Chars::VNTab & Reviews::VNTab
 sub enrich_vn {
-    my($v) = @_;
+    my($v, $revonly) = @_;
     enrich_merge id => 'SELECT id, c_votecount, c_olang::text[] AS c_olang FROM vn WHERE id IN', $v;
     enrich_merge vid => 'SELECT id AS vid, title, original FROM vn WHERE id IN', $v->{relations};
     enrich_merge aid => 'SELECT id AS aid, title_romaji, title_kanji, year, type, ann_id, lastfetch FROM anime WHERE id IN', $v->{anime};
     enrich_extlinks v => $v;
     enrich_image_obj image => $v;
     enrich_image_obj scr => $v->{screenshots};
+
+    # The queries below are not relevant for revisions
+    return if $revonly;
 
     # This fetches rather more information than necessary for infobox_(), but it'll have to do.
     # (And we'll need it for the releases tab anyway)
@@ -47,8 +50,8 @@ sub enrich_vn {
 
 # Enrich everything necessary for rev_() (includes enrich_vn())
 sub enrich_item {
-    my($v) = @_;
-    enrich_vn $v;
+    my($v, $full) = @_;
+    enrich_vn $v, !$full;
     enrich_merge aid => 'SELECT id AS sid, aid, name, original FROM staff_alias WHERE aid IN', $v->{staff}, $v->{seiyuu};
     enrich_merge cid => 'SELECT id AS cid, name AS char_name, original AS char_original FROM chars WHERE id IN', $v->{seiyuu};
 
@@ -786,7 +789,7 @@ TUWF::get qr{/$RE{vrev}}, sub {
     my $v = db_entry v => tuwf->capture('id'), tuwf->capture('rev');
     return tuwf->resNotFound if !$v;
 
-    enrich_item $v;
+    enrich_item $v, 1;
 
     framework_ title => $v->{title}, index => !tuwf->capture('rev'), type => 'v', dbobj => $v, hiddenmsg => 1, js => 1, og => og($v),
     sub {
