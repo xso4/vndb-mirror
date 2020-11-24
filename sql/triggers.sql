@@ -315,7 +315,7 @@ END
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER image_votes_cache1 AFTER INSERT OR DELETE ON image_votes FOR EACH ROW EXECUTE PROCEDURE update_images_cache();
-CREATE TRIGGER image_votes_cache2 AFTER UPDATE ON image_votes FOR EACH ROW WHEN ((OLD.id, OLD.sexual, OLD.violence, OLD.ignore) IS DISTINCT FROM (NEW.id, NEW.sexual, NEW.violence, NEW.ignore)) EXECUTE PROCEDURE update_images_cache();
+CREATE TRIGGER image_votes_cache2 AFTER UPDATE ON image_votes FOR EACH ROW WHEN (OLD.id <> NEW.id OR (OLD.sexual, OLD.violence, OLD.ignore) IS DISTINCT FROM (NEW.sexual, NEW.violence, NEW.ignore)) EXECUTE PROCEDURE update_images_cache();
 
 
 
