@@ -8,7 +8,7 @@ import Gen.Api as GApi
 -- Generic dynamically typed representation of a query.
 -- Used only as an intermediate format to help with encoding/decoding.
 -- Corresponds to the compact JSON form.
-type QType = V | R
+type QType = V | R | C
 type Op = Eq | Ne | Ge | Gt | Le | Lt
 type Query
   = QAnd (List Query)

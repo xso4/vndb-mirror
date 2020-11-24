@@ -17,7 +17,7 @@ import AdvSearch.Query exposing (..)
 -- "Nested" fields are a container for other fields.
 -- The code for nested fields is tightly coupled with the generic 'Field' abstraction below.
 
-type NestType = NAnd | NOr | NRel | NRelNeg
+type NestType = NAnd | NOr | NRel | NRelNeg | NChar | NCharNeg
 
 type alias NestModel =
   { ntype  : NestType
@@ -85,6 +85,8 @@ nestToQuery model =
     (_,       [] ) -> Nothing
     (NRel,    [x]) -> Just (QQuery 50 Eq x)
     (NRelNeg, [x]) -> Just (QQuery 50 Ne x)
+    (NChar,   [x]) -> Just (QQuery 51 Eq x)
+    (NCharNeg,[x]) -> Just (QQuery 51 Ne x)
     (_,       [x]) -> Just x
     (NAnd,    xs ) -> Just (QAnd xs)
     (NOr,     xs ) -> Just (QOr xs)
@@ -103,7 +105,8 @@ nestFromQuery ntype qtype dat q =
           Ne -> Just (init ntNeg qt [val])
           _ -> Nothing
   in case (qtype, ntype, q) of
-       (V, NRel, QQuery 50 op r) -> initSub op NRel NRelNeg R r
+       (V, NRel,  QQuery 50 op r) -> initSub op NRel  NRelNeg  R r
+       (V, NChar, QQuery 51 op r) -> initSub op NChar NCharNeg C r
        (_, NAnd, QAnd l) -> Just (init NAnd qtype l)
        (_, NOr,  QOr  l) -> Just (init NOr  qtype l)
        _ -> Nothing
@@ -149,6 +152,8 @@ nestView dat model =
         NOr     -> "Or"
         NRel    -> "Rel"
         NRelNeg -> "¬Rel"
+        NChar   -> "Char"
+        NCharNeg-> "¬Char"
 
     cont () =
       [ ul [] <|
@@ -156,8 +161,12 @@ nestView dat model =
         then [ li [] [ linkRadio (model.ntype == NAnd) (NType NAnd) [ text "And: All filters must match" ] ]
              , li [] [ linkRadio (model.ntype == NOr ) (NType NOr ) [ text "Or: At least one filter must match"  ] ]
              ]
-        else [ li [] [ linkRadio (model.ntype == NRel)    (NType NRel)    [ text "Has a release that matches these filters" ] ]
+        else if model.ntype == NRel || model.ntype == NRelNeg
+        then [ li [] [ linkRadio (model.ntype == NRel)    (NType NRel)    [ text "Has a release that matches these filters" ] ]
              , li [] [ linkRadio (model.ntype == NRelNeg) (NType NRelNeg) [ text "Does not have a release that matches these filters" ] ]
+             ]
+        else [ li [] [ linkRadio (model.ntype == NChar)    (NType NChar)    [ text "Has a character that matches these filters" ] ]
+             , li [] [ linkRadio (model.ntype == NCharNeg) (NType NCharNeg) [ text "Does not have a character that matches these filters" ] ]
              ]
       ]
     body =
@@ -188,6 +197,10 @@ type FieldModel
   | FMOLang    (AS.Model String)
   | FMPlatform (AS.Model String)
   | FMLength   (AS.Model Int)
+  | FMRole     (AS.Model String)
+  | FMBlood    (AS.Model String)
+  | FMSexChar  (AS.Model String)
+  | FMSexSpoil (AS.Model String)
   | FMDeveloper AP.Model
   | FMRDate    AR.Model
   | FMTag      AG.Model
@@ -199,6 +212,10 @@ type FieldMsg
   | FSOLang    (AS.Msg String)
   | FSPlatform (AS.Msg String)
   | FSLength   (AS.Msg Int)
+  | FSRole     (AS.Msg String)
+  | FSBlood    (AS.Msg String)
+  | FSSexChar  (AS.Msg String)
+  | FSSexSpoil (AS.Msg String)
   | FSDeveloper AP.Msg
   | FSRDate    AR.Msg
   | FSTag      AG.Msg
@@ -236,6 +253,8 @@ fields =
   , f V "Or"                Nothing   FMNest      (nestInit NOr  V [])  (nestFromQuery NOr  V)
   , f R "And"               Nothing   FMNest      (nestInit NAnd R [])  (nestFromQuery NAnd R)
   , f R "Or"                Nothing   FMNest      (nestInit NOr  R [])  (nestFromQuery NOr  R)
+  , f C "And"               Nothing   FMNest      (nestInit NAnd C [])  (nestFromQuery NAnd C)
+  , f C "Or"                Nothing   FMNest      (nestInit NOr  C [])  (nestFromQuery NOr  C)
 
   , f V "Language"          (Just 1)  FMLang      AS.init               AS.langFromQuery
   , f V "Original language" (Just 2)  FMOLang     AS.init               AS.olangFromQuery
@@ -246,13 +265,19 @@ fields =
   , f V ""                  Nothing   FMTag       AG.init               (AG.fromQuery 2)
   , f V "Length"            Nothing   FMLength    AS.init               AS.lengthFromQuery
   , f V "Developer"         Nothing   FMDeveloper AP.init               AP.devFromQuery
-  , f V "Release"           Nothing   FMNest      (nestInit NRel R [])  (nestFromQuery NRel V)
   , f V "Release date"      Nothing   FMRDate     AR.init               AR.fromQuery
+  , f V "Release"           Nothing   FMNest      (nestInit NRel  R []) (nestFromQuery NRel  V)
+  , f V "Character"         Nothing   FMNest      (nestInit NChar C []) (nestFromQuery NChar V)
 
   , f R "Language"          (Just 1)  FMLang      AS.init               AS.langFromQuery
   , f R "Platform"          (Just 2)  FMPlatform  AS.init               AS.platformFromQuery
   , f R "Developer"         Nothing   FMDeveloper AP.init               AP.devFromQuery
   , f R "Release date"      Nothing   FMRDate     AR.init               AR.fromQuery
+
+  , f C "Role"              (Just 1)  FMRole      AS.init               AS.roleFromQuery
+  , f C "Blood type"        Nothing   FMBlood     AS.init               AS.bloodFromQuery
+  , f C "Sex"               (Just 2)  FMSexChar   AS.init               (AS.sexFromQuery AS.SexChar)
+  , f C "Sex (spoiler)"     Nothing   FMSexSpoil  AS.init               (AS.sexFromQuery AS.SexSpoil)
   ]
 
 
@@ -285,6 +310,10 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSOLang msg,    FMOLang m)    -> maps FMOLang    (AS.update msg m)
       (FSPlatform msg, FMPlatform m) -> maps FMPlatform (AS.update msg m)
       (FSLength msg,   FMLength m)   -> maps FMLength   (AS.update msg m)
+      (FSRole msg,     FMRole m)     -> maps FMRole     (AS.update msg m)
+      (FSBlood msg,    FMBlood m)    -> maps FMBlood    (AS.update msg m)
+      (FSSexChar msg,  FMSexChar m)  -> maps FMSexChar  (AS.update msg m)
+      (FSSexSpoil msg, FMSexSpoil m) -> maps FMSexSpoil (AS.update msg m)
       (FSDeveloper msg,FMDeveloper m)-> mapf FMDeveloper FSDeveloper (AP.update dat msg m)
       (FSRDate msg,    FMRDate m)    -> maps FMRDate    (AR.update msg m)
       (FSTag msg,      FMTag m)      -> mapf FMTag FSTag  (AG.update dat msg m)
@@ -317,6 +346,10 @@ fieldView dat (_, dd, model) =
       FMOLang m    -> vs FSOLang    (AS.langView True  m)
       FMPlatform m -> vs FSPlatform (AS.platformView m)
       FMLength m   -> vs FSLength   (AS.lengthView m)
+      FMRole m     -> vs FSRole     (AS.roleView m)
+      FMBlood m    -> vs FSBlood    (AS.bloodView m)
+      FMSexChar m  -> vs FSSexChar  (AS.sexView AS.SexChar m)
+      FMSexSpoil m -> vs FSSexSpoil (AS.sexView AS.SexSpoil m)
       FMDeveloper m-> vs FSDeveloper(AP.devView dat m)
       FMRDate m    -> vs FSRDate    (AR.view m)
       FMTag m      -> vs FSTag      (AG.view dat m)
@@ -331,6 +364,10 @@ fieldToQuery (_, _, model) =
     FMOLang m    -> AS.toQuery (QStr 3) m
     FMPlatform m -> AS.toQuery (QStr 4) m
     FMLength m   -> AS.toQuery (QInt 5) m
+    FMRole m     -> AS.toQuery (QStr 2) m
+    FMBlood m    -> AS.toQuery (QStr 3) m
+    FMSexChar m  -> AS.toQuery (QStr 4) m
+    FMSexSpoil m -> AS.toQuery (QStr 5) m
     FMDeveloper m-> AP.toQuery (QInt 6) m
     FMRDate m    -> AR.toQuery m
     FMTag m      -> AG.toQuery m

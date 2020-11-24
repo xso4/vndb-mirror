@@ -288,6 +288,7 @@ sub f {
 }
 
 
+
 f v =>  2 => 'lang',     { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_languages && ARRAY', \$_, '::language[]' };
 f v =>  3 => 'olang',    { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_olang     && ARRAY', \$_, '::language[]' };
 f v =>  4 => 'platform', { enum => \%PLATFORM }, '=' => sub { sql 'v.c_platforms && ARRAY', \$_, '::platform[]' };
@@ -303,12 +304,22 @@ f v =>  8 => 'tag',      { type => 'any', func => \&_validate_tag },
     '=' => sub { sql 'v.id IN(SELECT vid FROM tags_vn_inherit WHERE tag = vndbid_num(', \$_->[0], ') AND spoiler <=', \$_->[1], 'AND rating >=', \$_->[2], ')' };
 
 f v => 50 => 'release',  'r', '=' => sub { sql 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE NOT r.hidden AND', $_, ')' };
+f v => 51 => 'character','c', '=' => sub { sql 'v.id IN(SELECT cv.vid FROM chars c JOIN chars_vns cv ON cv.id = c.id WHERE NOT c.hidden AND', $_, ')' }; # TODO: Spoiler setting?
+
 
 
 f r =>  2 => 'lang',     { enum => \%LANGUAGE }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_lang WHERE lang =', \$_, ')' };
 f r =>  4 => 'platform', { enum => \%PLATFORM }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_platforms WHERE platform =', \$_, ')' };
 f r =>  6 => 'developer',{ vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE developer AND pid = vndbid_num(', \$_, '))' };
 f r =>  7 => 'released', { fuzzyrdate => 1 }, sql => sub { sql 'r.released', $_[0], \($_ == 1 ? strftime('%Y%m%d', gmtime) : $_) };
+
+
+
+f c =>  2 => 'role',       { enum => \%CHAR_ROLE  }, '=', sub { sql 'cv.role =', \$_ }; # TODO: SQL is different when not used as a subquery in VN search
+f c =>  3 => 'blood-type', { enum => \%BLOOD_TYPE }, '=', sub { sql 'c.bloodt =', \$_ };
+f c =>  4 => 'sex',        { enum => \%GENDER }, '=', sub { sql 'c.gender =', \$_ };
+f c =>  5 => 'sex-spoil',  { enum => \%GENDER }, '=', sub { sql 'c.spoil_gender =', \$_ }; # TODO: Some way to search for NULL (separate "has-sex-spoil" filter?)
+
 
 
 

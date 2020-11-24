@@ -174,3 +174,84 @@ lengthFromQuery = fromQuery (\q ->
   case q of
     QInt 5 op v -> Just (op, v)
     _ -> Nothing)
+
+
+
+
+-- Character role
+
+roleView model =
+  ( case Set.toList model.sel of
+      []  -> b [ class "grayedout" ] [ text "Role" ]
+      [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" (lookup v GT.charRoles) ]
+      l   -> span [] [ lblPrefix model, text <| "Role (" ++ String.fromInt (List.length l) ++ ")" ]
+  , \() ->
+    [ div [ class "advheader" ]
+      [ h3 [] [ text "Role" ]
+      , opts model True True ]
+    , ul [] <| List.map (\(l,t) -> li [] [ linkRadio (Set.member l model.sel) (Sel l) [ text t ] ]) GT.charRoles
+    ]
+  )
+
+roleFromQuery = fromQuery (\q ->
+  case q of
+    QStr 2 op v -> Just (op, v)
+    _ -> Nothing)
+
+
+
+
+-- Blood type
+
+bloodView model =
+  ( case Set.toList model.sel of
+      []  -> b [ class "grayedout" ] [ text "Blood type" ]
+      [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| "Blood type " ++ Maybe.withDefault "" (lookup v GT.bloodTypes) ]
+      l   -> span [] [ lblPrefix model, text <| "Blood type (" ++ String.fromInt (List.length l) ++ ")" ]
+  , \() ->
+    [ div [ class "advheader" ]
+      [ h3 [] [ text "Blood type" ]
+      , opts model False True ]
+    , ul [] <| List.map (\(l,t) -> li [] [ linkRadio (Set.member l model.sel) (Sel l) [ text t ] ]) GT.bloodTypes
+    ]
+  )
+
+bloodFromQuery = fromQuery (\q ->
+  case q of
+    QStr 3 op v -> Just (op, v)
+    _ -> Nothing)
+
+
+
+
+-- Sex / gender
+
+type SexType
+  = SexChar   -- chars sex
+  | SexSpoil  -- chars sex-spoil
+  | SexGender -- staff gender
+
+sexView stype model =
+  let lbl = case stype of
+              SexChar -> "Sex"
+              SexSpoil -> "Spoiler-sex"
+              SexGender -> "Gender"
+  in
+  ( case Set.toList model.sel of
+      []  -> b [ class "grayedout" ] [ text lbl ]
+      [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| lbl ++ ": " ++ Maybe.withDefault "" (lookup v GT.genders) ]
+      l   -> span [] [ lblPrefix model, text <| lbl ++ " (" ++ String.fromInt (List.length l) ++ ")" ]
+  , \() ->
+    [ div [ class "advheader" ]
+      [ h3 [] [ text lbl ]
+      , opts model False True ]
+    , ul [] <| List.map (\(l,t) -> if stype == SexGender && l == "b" then text "" else li [] [ linkRadio (Set.member l model.sel) (Sel l) [ text t ] ]) GT.genders
+    ]
+  )
+
+sexFromQuery stype = fromQuery (\q ->
+  case (stype, q) of
+    (SexChar,  QStr 4 op v) -> Just (op, v)
+    (SexSpoil, QStr 5 op v) -> Just (op, v)
+    -- TODO: SexGender
+    _ -> Nothing)
