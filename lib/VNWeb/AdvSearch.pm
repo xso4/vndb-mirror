@@ -272,6 +272,7 @@ sub _enc_query {
 #       compact -> Function to convert a value from normalized JSON form into compact JSON form.
 #
 #   An implementation for the '!=' operator will be supplied automatically if it's not explicitely defined.
+#   NOTE: That implementation does NOT work for NULL values.
 my(%FIELDS, %NUMFIELDS);
 sub f {
     my($t, $num, $n, $v, @opts) = @_;
@@ -321,7 +322,7 @@ f r =>  7 => 'released', { fuzzyrdate => 1 }, sql => sub { sql 'r.released', $_[
 f c =>  2 => 'role',       { enum => \%CHAR_ROLE  }, '=' => sub { sql 'cv.role =', \$_ }; # TODO: SQL is different when not used as a subquery in VN search
 f c =>  3 => 'blood-type', { enum => \%BLOOD_TYPE }, '=' => sub { sql 'c.bloodt =', \$_ };
 f c =>  4 => 'sex',        { enum => \%GENDER },     '=' => sub { sql 'c.gender =', \$_ };
-f c =>  5 => 'sex-spoil',  { enum => \%GENDER },     '=' => sub { sql 'c.spoil_gender =', \$_ }; # TODO: Some way to search for NULL (separate "has-sex-spoil" filter?)
+f c =>  5 => 'sex-spoil',  { enum => \%GENDER },     '=' => sub { sql '(c.gender =', \$_, 'AND c.spoil_gender IS NULL) OR c.spoil_gender IS NOT DISTINCT FROM', \$_ };
 f c =>  6 => 'height',     { uint => 1, max => 32767 }, sql => sub { sql 'c.height  <> 0 AND c.height',  $_[0], \$_ };
 f c =>  7 => 'weight',     { uint => 1, max => 32767 }, sql => sub { sql                    'c.weight',  $_[0], \$_ };
 f c =>  8 => 'bust',       { uint => 1, max => 32767 }, sql => sub { sql 'c.s_bust  <> 0 AND c.s_bust',  $_[0], \$_ };
