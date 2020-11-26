@@ -128,7 +128,10 @@ nestFromQuery ntype qtype dat q =
 nestFieldView : Data -> Field -> Html FieldMsg
 nestFieldView dat f =
   let (fddv, fbody) = fieldView dat f
-  in  div [ class "advnest" ] [ fddv, fbody ]
+      showDd = case f of
+                (_,_,FMNest m) -> (m.ntype /= NAnd && m.ntype /= NOr) || List.length m.fields > 1
+                _ -> False
+  in if showDd then div [ class "advnest" ] [ fddv, fbody ] else fbody
 
 
 nestView : Data -> NestModel -> (Html NestMsg, () -> List (Html NestMsg), Html NestMsg)
