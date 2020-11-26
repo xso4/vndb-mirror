@@ -21,16 +21,18 @@ import AdvSearch.Query exposing (..)
 type NestType = NAnd | NOr | NRel | NRelNeg | NChar | NCharNeg
 
 type alias NestModel =
-  { ntype  : NestType
-  , qtype  : QType
-  , fields : List Field
-  , add    : DD.Config NestMsg
+  { ntype   : NestType
+  , qtype   : QType
+  , fields  : List Field
+  , add     : DD.Config NestMsg
+  , addtype : QType
   }
 
 
 type NestMsg
   = NAddToggle Bool
   | NAdd Int
+  | NAddType QType
   | NField Int FieldMsg
   | NType NestType Bool
 
@@ -50,10 +52,11 @@ nestInit ntype qtype list dat =
         _ -> addNest ndat mod
   in ensureNest
     ( { dat | objid = dat.objid+1 }
-    , { ntype  = ntype
-      , qtype  = qtype
-      , fields = list
-      , add    = DD.init ("advsearch_field"++String.fromInt dat.objid) NAddToggle
+    , { ntype   = ntype
+      , qtype   = qtype
+      , fields  = list
+      , add     = DD.init ("advsearch_field"++String.fromInt dat.objid) NAddToggle
+      , addtype = qtype
       }
     )
 
@@ -61,10 +64,19 @@ nestInit ntype qtype list dat =
 nestUpdate : Data -> NestMsg -> NestModel -> (Data, NestModel, Cmd NestMsg)
 nestUpdate dat msg model =
   case msg of
-    NAddToggle b -> (dat, { model | add = DD.toggle model.add b }, Cmd.none)
+    NAddToggle b -> (dat, { model | add = DD.toggle model.add b, addtype = model.qtype }, Cmd.none)
     NAdd n ->
       let (ndat,f) = fieldInit n dat
-      in (ndat, { model | add = DD.toggle model.add False, fields = model.fields ++ [f] }, Cmd.none)
+          (ndat2,f2) =
+            if model.qtype == model.addtype then (ndat, f) else
+            let nt = case model.addtype of
+                      R -> NRel
+                      C -> NChar
+                      _ -> NAnd
+                (nd,subm) = nestInit nt model.addtype [f] ndat
+            in fieldCreate -1 (nd, FMNest subm)
+      in (ndat2, { model | add = DD.toggle model.add False, addtype = model.qtype, fields = model.fields ++ [f2] }, Cmd.none)
+    NAddType t -> (dat, { model | addtype = t }, Cmd.none)
     NField n FDel -> (dat, { model | fields = delidx n model.fields }, Cmd.none)
     NField n FMoveSub ->
       let subfields = List.drop n model.fields |> List.take 1 |> List.map (\(fid,fdd,fm) -> (fid, DD.toggle fdd False, fm))
@@ -138,10 +150,22 @@ nestView dat model =
       if model.ntype /= NAnd && model.ntype /= NOr then text "" else
       div [ class "elm_dd_input elm_dd_noarrow" ]
       [ DD.view model.add Api.Normal (text "+") <| \() ->
-        [ div [ class "advheader" ] [ h3 [] [ text "Add filter" ] ]
+        [ div [ class "advheader", style "width" "200px" ]
+          [ h3 [] [ text "Add filter" ]
+          , div [ class "opts" ] <|
+            let opts = case model.qtype of
+                        V -> [ V, R, C ]
+                        C -> []
+                        R -> []
+                f t = case t of
+                       V -> "VN"
+                       R -> "Release"
+                       C -> "Character"
+            in List.map (\t -> if t == model.addtype then b [] [ text (f t) ] else a [ href "#", onClickD (NAddType t) ] [ text (f t) ]) opts
+          ]
         , ul [] <|
           List.map (\(n,f) ->
-            if f.qtype /= model.qtype || f.title == "" then text ""
+            if f.qtype /= model.addtype || f.title == "" then text ""
             else li [] [ a [ href "#", onClickD (NAdd n)] [ text f.title ] ]
           ) <| A.toIndexedList fields
         ]
@@ -270,12 +294,12 @@ fields =
   -- FMNest with and/or should go before everything else.
 
   --  T TITLE               QUICK     WRAP        INIT                  FROM_QUERY
-  [ f V "And"               Nothing   FMNest      (nestInit NAnd V [])  (nestFromQuery NAnd V)
-  , f V "Or"                Nothing   FMNest      (nestInit NOr  V [])  (nestFromQuery NOr  V)
-  , f R "And"               Nothing   FMNest      (nestInit NAnd R [])  (nestFromQuery NAnd R)
-  , f R "Or"                Nothing   FMNest      (nestInit NOr  R [])  (nestFromQuery NOr  R)
-  , f C "And"               Nothing   FMNest      (nestInit NAnd C [])  (nestFromQuery NAnd C)
-  , f C "Or"                Nothing   FMNest      (nestInit NOr  C [])  (nestFromQuery NOr  C)
+  [ f V ""                  Nothing   FMNest      (nestInit NAnd V [])  (nestFromQuery NAnd V)
+  , f V ""                  Nothing   FMNest      (nestInit NOr  V [])  (nestFromQuery NOr  V)
+  , f R ""                  Nothing   FMNest      (nestInit NAnd R [])  (nestFromQuery NAnd R)
+  , f R ""                  Nothing   FMNest      (nestInit NOr  R [])  (nestFromQuery NOr  R)
+  , f C ""                  Nothing   FMNest      (nestInit NAnd C [])  (nestFromQuery NAnd C)
+  , f C ""                  Nothing   FMNest      (nestInit NOr  C [])  (nestFromQuery NOr  C)
 
   , f V "Language"          (Just 1)  FMLang      AS.init               AS.langFromQuery
   , f V "Original language" (Just 2)  FMOLang     AS.init               AS.olangFromQuery
@@ -290,8 +314,8 @@ fields =
   , f V "Popularity"        Nothing   FMPopularity AR.popularityInit    AR.popularityFromQuery
   , f V "Rating"            Nothing   FMRating    AR.ratingInit         AR.ratingFromQuery
   , f V "Number of votes"   Nothing   FMVotecount AR.votecountInit      AR.votecountFromQuery
-  , f V "Release"           Nothing   FMNest      (nestInit NRel  R []) (nestFromQuery NRel  V)
-  , f V "Character"         Nothing   FMNest      (nestInit NChar C []) (nestFromQuery NChar V)
+  , f V ""                  Nothing   FMNest      (nestInit NRel  R []) (nestFromQuery NRel  V)
+  , f V ""                  Nothing   FMNest      (nestInit NChar C []) (nestFromQuery NChar V)
 
   , f R "Language"          (Just 1)  FMLang      AS.init               AS.langFromQuery
   , f R "Platform"          (Just 2)  FMPlatform  AS.init               AS.platformFromQuery
