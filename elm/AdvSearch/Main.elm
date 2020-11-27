@@ -114,6 +114,6 @@ update msg model =
 view : Model -> Html Msg
 view model = div [ class "advsearch" ]
   [ input [ type_ "hidden", id "f", name "f", value <| Maybe.withDefault "" <| Maybe.map encQuery (fieldToQuery model.query) ] []
-  , Html.map Field (nestFieldView model.data model.query)
+  , Html.map Field (fieldView model.data model.query)
   , input [ type_ "submit", class "submit", value "Search" ] []
   ]

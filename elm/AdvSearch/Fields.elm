@@ -126,34 +126,25 @@ nestFromQuery ntype qtype dat q =
        _ -> Nothing
 
 
-nestFieldView : Data -> Field -> Html FieldMsg
-nestFieldView dat f =
-  let (fddv, fbody) = fieldView dat f
-      showDd = case f of
-                (_,_,FMNest m) -> (m.ntype /= NAnd && m.ntype /= NOr) || List.length m.fields > 1
-                _ -> False
-  in if showDd then div [ class "advnest" ] [ fddv, fbody ] else fbody
-
-
-nestView : Data -> NestModel -> (Html NestMsg, () -> List (Html NestMsg), Html NestMsg)
-nestView dat model =
+nestView : Data -> DD.Config FieldMsg -> NestModel -> Html FieldMsg
+nestView dat dd model =
   let
-    isNest (_,(_,_,f)) =
+    genFields match = List.filterMap identity <| List.indexedMap (\i f ->
+        if match f
+        then Just <| Html.map (FSNest << NField i) <| fieldView { dat | level = if model.ntype /= NAnd && model.ntype /= NOr then 0 else dat.level+1 } f
+        else Nothing
+      ) model.fields
+    isNest (_,_,f) =
      case f of
        FMNest _ -> True
        _ -> False
-    list   = List.indexedMap (\a b -> (a,b)) model.fields
-    nests  = List.filter isNest list
-    plains = List.filter (not << isNest) list
-    subtype = model.ntype /= NAnd && model.ntype /= NOr
-
-    pViews = List.map (\(i,f) -> Html.map (NField i) (Tuple.first (fieldView { dat | level = if subtype then 0 else dat.level+1 } f))) plains
-    nViews = List.map (\(i,f) -> Html.map (NField i) (nestFieldView { dat | level = if subtype then 0 else dat.level+1 } f)) nests
+    nests  = genFields isNest
+    plains = genFields (not << isNest)
 
     add =
       if model.ntype /= NAnd && model.ntype /= NOr then text "" else
       div [ class "elm_dd_input elm_dd_noarrow" ]
-      [ DD.view model.add Api.Normal (text "+") <| \() ->
+      [ Html.map FSNest <| DD.view model.add Api.Normal (text "+") <| \() ->
         [ div [ class "advheader", style "width" "200px" ]
           [ h3 [] [ text "Add filter" ]
           , div [ class "opts" ] <|
@@ -187,23 +178,28 @@ nestView dat model =
     cont () =
       [ ul [] <|
         if model.ntype == NAnd || model.ntype == NOr
-        then [ li [] [ linkRadio (model.ntype == NAnd) (NType NAnd) [ text "And: All filters must match" ] ]
-             , li [] [ linkRadio (model.ntype == NOr ) (NType NOr ) [ text "Or: At least one filter must match"  ] ]
+        then [ li [] [ linkRadio (model.ntype == NAnd) (FSNest << NType NAnd) [ text "And: All filters must match" ] ]
+             , li [] [ linkRadio (model.ntype == NOr ) (FSNest << NType NOr ) [ text "Or: At least one filter must match"  ] ]
              ]
         else if model.ntype == NRel || model.ntype == NRelNeg
-        then [ li [] [ linkRadio (model.ntype == NRel)    (NType NRel)    [ text "Has a release that matches these filters" ] ]
-             , li [] [ linkRadio (model.ntype == NRelNeg) (NType NRelNeg) [ text "Does not have a release that matches these filters" ] ]
+        then [ li [] [ linkRadio (model.ntype == NRel)    (FSNest << NType NRel)    [ text "Has a release that matches these filters" ] ]
+             , li [] [ linkRadio (model.ntype == NRelNeg) (FSNest << NType NRelNeg) [ text "Does not have a release that matches these filters" ] ]
              ]
-        else [ li [] [ linkRadio (model.ntype == NChar)    (NType NChar)    [ text "Has a character that matches these filters" ] ]
-             , li [] [ linkRadio (model.ntype == NCharNeg) (NType NCharNeg) [ text "Does not have a character that matches these filters" ] ]
+        else [ li [] [ linkRadio (model.ntype == NChar)    (FSNest << NType NChar)    [ text "Has a character that matches these filters" ] ]
+             , li [] [ linkRadio (model.ntype == NCharNeg) (FSNest << NType NCharNeg) [ text "Does not have a character that matches these filters" ] ]
              ]
       ]
+
     body =
       div []
-        <| div [ class "advrow" ] (pViews ++ if List.isEmpty nests then [add] else [])
-        :: nViews
+        <| div [ class "advrow" ] (plains ++ if List.isEmpty nests then [add] else [])
+        :: nests
         ++ (if List.isEmpty nests then [] else [add])
-  in (lbl, cont, body)
+
+  in
+      if (model.ntype /= NAnd && model.ntype /= NOr) || List.length model.fields > 1
+      then div [ class "advnest" ] [ fieldViewDd dat dd lbl cont, body ]
+      else body
 
 
 
@@ -397,49 +393,51 @@ fieldUpdate dat msg_ (num, dd, model) =
       _ -> noop
 
 
-fieldView : Data -> Field -> (Html FieldMsg, Html FieldMsg)
+fieldViewDd : Data -> DD.Config FieldMsg -> Html FieldMsg -> (() -> List (Html FieldMsg)) -> Html FieldMsg
+fieldViewDd dat dd lbl cont =
+  div [ class "elm_dd_input" ]
+  [ DD.view dd Api.Normal lbl <| \() ->
+      div [ class "advbut" ]
+      [ if dat.level == 0
+        then b [ title "Can't delete the top-level filter" ] [ text "⊗" ]
+        else a [ href "#", onClickD FDel, title "Delete this filter" ] [ text "⊗" ]
+      , if dat.level <= 1
+        then b [ title "Can't move this filter to parent branch" ] [ text "↰" ]
+        else a [ href "#", onClickD FMovePar, title "Move this filter to parent branch" ] [ text "↰" ]
+      , if dat.level == 0
+        then b [ title "Can't move this filter into a subbranch" ] [ text "↳" ]
+        else a [ href "#", onClickD FMoveSub, title "Create new branch for this filter" ] [ text "↳" ]
+      ] :: cont ()
+  ]
+
+fieldView : Data -> Field -> Html FieldMsg
 fieldView dat (_, dd, model) =
-  let ddv lbl cont = div [ class "elm_dd_input" ]
-        [ DD.view dd Api.Normal lbl <| \() ->
-            div [ class "advbut" ]
-            [ if dat.level == 0
-              then b [ title "Can't delete the top-level filter" ] [ text "⊗" ]
-              else a [ href "#", onClickD FDel, title "Delete this filter" ] [ text "⊗" ]
-            , if dat.level <= 1
-              then b [ title "Can't move this filter to parent branch" ] [ text "↰" ]
-              else a [ href "#", onClickD FMovePar, title "Move this filter to parent branch" ] [ text "↰" ]
-            , if dat.level == 0
-              then b [ title "Can't move this filter into a subbranch" ] [ text "↳" ]
-              else a [ href "#", onClickD FMoveSub, title "Create new branch for this filter" ] [ text "↳" ]
-            ] :: cont ()
-        ]
-      vf f (lbl,cont,body) = (ddv (Html.map f lbl) (\() -> List.map (Html.map f) (cont ())), Html.map f body)
-      vs f (lbl,cont) = vf f (lbl,cont,text "")
+  let f wrap (lbl,cont) = fieldViewDd dat dd (Html.map wrap lbl) <| \() -> List.map (Html.map wrap) (cont ())
   in case model of
-      FMCustom m   -> vs FSCustom   (text "Unrecognized query", \() -> [text ""]) -- TODO: Display the Query
-      FMNest m     -> vf FSNest     (nestView dat m)
-      FMLang  m    -> vs FSLang     (AS.langView False m)
-      FMOLang m    -> vs FSOLang    (AS.langView True  m)
-      FMPlatform m -> vs FSPlatform (AS.platformView m)
-      FMLength m   -> vs FSLength   (AS.lengthView m)
-      FMRole m     -> vs FSRole     (AS.roleView m)
-      FMBlood m    -> vs FSBlood    (AS.bloodView m)
-      FMSexChar m  -> vs FSSexChar  (AS.sexView AS.SexChar m)
-      FMSexSpoil m -> vs FSSexSpoil (AS.sexView AS.SexSpoil m)
-      FMHeight m   -> vs FSHeight   (AR.heightView m)
-      FMWeight m   -> vs FSWeight   (AR.weightView m)
-      FMBust m     -> vs FSBust     (AR.bustView m)
-      FMWaist m    -> vs FSWaist    (AR.waistView m)
-      FMHips m     -> vs FSHips     (AR.hipsView m)
-      FMCup m      -> vs FSCup      (AR.cupView m)
-      FMAge m      -> vs FSAge      (AR.ageView m)
-      FMPopularity m->vs FSPopularity(AR.popularityView m)
-      FMRating m   -> vs FSRating   (AR.ratingView m)
-      FMVotecount m-> vs FSVotecount(AR.votecountView m)
-      FMDeveloper m-> vs FSDeveloper(AP.devView dat m)
-      FMRDate m    -> vs FSRDate    (AD.view m)
-      FMTag m      -> vs FSTag      (AG.view dat m)
-      FMTrait m    -> vs FSTrait    (AI.view dat m)
+      FMCustom m     -> f FSCustom     (text "Unrecognized query", \() -> [text ""]) -- TODO: Display the Query
+      FMLang  m      -> f FSLang       (AS.langView False m)
+      FMOLang m      -> f FSOLang      (AS.langView True  m)
+      FMPlatform m   -> f FSPlatform   (AS.platformView m)
+      FMLength m     -> f FSLength     (AS.lengthView m)
+      FMRole m       -> f FSRole       (AS.roleView m)
+      FMBlood m      -> f FSBlood      (AS.bloodView m)
+      FMSexChar m    -> f FSSexChar    (AS.sexView AS.SexChar m)
+      FMSexSpoil m   -> f FSSexSpoil   (AS.sexView AS.SexSpoil m)
+      FMHeight m     -> f FSHeight     (AR.heightView m)
+      FMWeight m     -> f FSWeight     (AR.weightView m)
+      FMBust m       -> f FSBust       (AR.bustView m)
+      FMWaist m      -> f FSWaist      (AR.waistView m)
+      FMHips m       -> f FSHips       (AR.hipsView m)
+      FMCup m        -> f FSCup        (AR.cupView m)
+      FMAge m        -> f FSAge        (AR.ageView m)
+      FMPopularity m -> f FSPopularity (AR.popularityView m)
+      FMRating m     -> f FSRating     (AR.ratingView m)
+      FMVotecount m  -> f FSVotecount  (AR.votecountView m)
+      FMDeveloper m  -> f FSDeveloper  (AP.devView dat m)
+      FMRDate m      -> f FSRDate      (AD.view m)
+      FMTag m        -> f FSTag        (AG.view dat m)
+      FMTrait m      -> f FSTrait      (AI.view dat m)
+      FMNest m       -> nestView dat dd m
 
 
 fieldToQuery : Field -> Maybe Query
