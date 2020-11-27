@@ -10,6 +10,7 @@ import Lib.Api as Api
 import AdvSearch.Set as AS
 import AdvSearch.Producers as AP
 import AdvSearch.Tags as AG
+import AdvSearch.Traits as AI
 import AdvSearch.RDate as AD
 import AdvSearch.Range as AR
 import AdvSearch.Query exposing (..)
@@ -242,6 +243,7 @@ type FieldModel
   | FMDeveloper AP.Model
   | FMRDate    AD.Model
   | FMTag      AG.Model
+  | FMTrait    AI.Model
 
 type FieldMsg
   = FSCustom   () -- Not actually used at the moment
@@ -267,6 +269,7 @@ type FieldMsg
   | FSDeveloper AP.Msg
   | FSRDate    AD.Msg
   | FSTag      AG.Msg
+  | FSTrait    AI.Msg
   | FToggle Bool
   | FDel       -- intercepted in nestUpdate
   | FMoveSub   -- intercepted in nestUpdate
@@ -329,6 +332,10 @@ fields =
   , f C "Age"               Nothing   FMAge       AR.ageInit            AR.ageFromQuery
   , f C "Sex"               (Just 2)  FMSexChar   AS.init               (AS.sexFromQuery AS.SexChar)
   , f C "Sex (spoiler)"     Nothing   FMSexSpoil  AS.init               (AS.sexFromQuery AS.SexSpoil)
+  , f C "Traits"            (Just 3)  FMTrait     AI.init               (AI.fromQuery -1)
+  , f C ""                  Nothing   FMTrait     AI.init               (AI.fromQuery 0)
+  , f C ""                  Nothing   FMTrait     AI.init               (AI.fromQuery 1)
+  , f C ""                  Nothing   FMTrait     AI.init               (AI.fromQuery 2)
   , f C "Blood type"        Nothing   FMBlood     AS.init               AS.bloodFromQuery
   , f C "Height"            Nothing   FMHeight    AR.heightInit         AR.heightFromQuery
   , f C "Weight"            Nothing   FMWeight    AR.weightInit         AR.weightFromQuery
@@ -384,7 +391,8 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSVotecount msg,FMVotecount m)-> maps FMVotecount (AR.update msg m)
       (FSDeveloper msg,FMDeveloper m)-> mapf FMDeveloper FSDeveloper (AP.update dat msg m)
       (FSRDate msg,    FMRDate m)    -> maps FMRDate    (AD.update msg m)
-      (FSTag msg,      FMTag m)      -> mapf FMTag FSTag  (AG.update dat msg m)
+      (FSTag msg,      FMTag m)      -> mapf FMTag FSTag     (AG.update dat msg m)
+      (FSTrait msg,    FMTrait m)    -> mapf FMTrait FSTrait (AI.update dat msg m)
       (FToggle b, _) -> (dat, (num, DD.toggle dd b, model), Cmd.none)
       _ -> noop
 
@@ -431,6 +439,7 @@ fieldView dat (_, dd, model) =
       FMDeveloper m-> vs FSDeveloper(AP.devView dat m)
       FMRDate m    -> vs FSRDate    (AD.view m)
       FMTag m      -> vs FSTag      (AG.view dat m)
+      FMTrait m    -> vs FSTrait    (AI.view dat m)
 
 
 fieldToQuery : Field -> Maybe Query
@@ -459,6 +468,7 @@ fieldToQuery (_, _, model) =
     FMDeveloper m-> AP.toQuery (QInt 6) m
     FMRDate m    -> AD.toQuery m
     FMTag m      -> AG.toQuery m
+    FMTrait m    -> AI.toQuery m
 
 
 fieldCreate : Int -> (Data,FieldModel) -> (Data,Field)

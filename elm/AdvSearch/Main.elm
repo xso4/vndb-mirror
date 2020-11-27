@@ -28,6 +28,7 @@ type alias Recv =
   , defaultSpoil : Int
   , producers    : List GApi.ApiProducerResult
   , tags         : List GApi.ApiTagResult
+  , traits       : List GApi.ApiTraitResult
   }
 
 type alias Model =
@@ -76,6 +77,7 @@ init arg =
             , defaultSpoil = arg.defaultSpoil
             , producers    = Dict.fromList <| List.map (\p -> (p.id,p)) <| arg.producers
             , tags         = Dict.fromList <| List.map (\t -> (t.id,t)) <| arg.tags
+            , traits       = Dict.fromList <| List.map (\t -> (t.id,t)) <| arg.traits
             }
       qtype = if arg.qtype == "v" then V else R
 

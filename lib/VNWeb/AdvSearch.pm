@@ -330,6 +330,9 @@ f c =>  9 => 'waist',      { uint => 1, max => 32767 }, sql => sub { sql 'c.s_wa
 f c => 10 => 'hips',       { uint => 1, max => 32767 }, sql => sub { sql 'c.s_hip   <> 0 AND c.s_hip',   $_[0], \$_ };
 f c => 11 => 'cup',        { enum => \%CUP_SIZE },      sql => sub { sql 'c.cup_size <> \'\' AND c.cup_size', $_[0], \$_ };
 f c => 12 => 'age',        { uint => 1, max => 32767 }, sql => sub { sql 'c.age     <> 0 AND c.age',     $_[0], \$_ };
+f c => 13 => 'trait',      { type => 'any', func => \&_validate_trait },
+    compact => sub { my $id = ($_->[0] =~ s/^i//r)*1; $_->[1] == 0 ? $id : [ $id, int $_->[1] ] },
+    '=' => sub { sql 'c.id IN(SELECT cid FROM traits_chars WHERE tid = vndbid_num(', \$_->[0], ') AND spoil <=', \$_->[1], ')' };
 
 
 
@@ -349,6 +352,16 @@ sub _validate_tag {
     return 0 if !defined $_[0][1] || ref $_[0][1] || $_[0][1] !~ /^[0-2]$/;
     return 0 if !defined $_[0][2] || ref $_[0][2] || $_[0][2] !~ /^(?:[0-2](?:\.[0-9]+)?|3(?:\.0+)?)$/;
     1
+}
+
+
+# Accepts either $trait or [$trait, $maxspoil]. Normalizes to the latter.
+sub _validate_trait {
+    $_[0] = [$_[0],0] if ref $_[0] ne 'ARRAY'; # just a trait id
+    my $v = tuwf->compile({ vndbid => 'i' })->validate($_[0][0]);
+    return 0 if $v->err;
+    $_[0][0] = $v->data;
+    $_[0]->@* == 2 && defined $_[0][1] && !ref $_[0][1] && $_[0][1] =~ /^[0-2]$/
 }
 
 
@@ -461,6 +474,10 @@ sub elm_ {
     $o{tags} = [ map +{id => $_=~s/^g//rg}, grep /^g/, keys %ids ];
     enrich_merge id => 'SELECT id, name, searchable, applicable, state FROM tags WHERE id IN', $o{tags};
 
+    $o{traits} = [ map +{id => $_=~s/^i//rg}, grep /^i/, keys %ids ];
+    enrich_merge id => 'SELECT t.id, t.name, t.searchable, t.applicable, t.defaultspoil, t.state, g.id AS group_id, g.name AS group_name
+                          FROM traits t LEFT JOIN traits g ON g.id = t.group WHERE t.id IN', $o{traits};
+
     $o{qtype} = $self->{type};
     $o{query} = $self->compact_json;
     $o{defaultSpoil} = auth->pref('spoilers')||0;
@@ -471,6 +488,7 @@ sub elm_ {
         defaultSpoil => { uint => 1 },
         producers    => $VNWeb::Elm::apis{ProducerResult}[0],
         tags         => $VNWeb::Elm::apis{TagResult}[0],
+        traits       => $VNWeb::Elm::apis{TraitResult}[0],
     }});
     VNWeb::HTML::elm_ 'AdvSearch.Main', $schema, \%o;
 }

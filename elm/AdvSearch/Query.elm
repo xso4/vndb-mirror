@@ -156,4 +156,5 @@ type alias Data =
   , defaultSpoil : Int
   , producers    : Dict.Dict Int GApi.ApiProducerResult
   , tags         : Dict.Dict Int GApi.ApiTagResult
+  , traits       : Dict.Dict Int GApi.ApiTraitResult
   }
