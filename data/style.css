@@ -89,6 +89,7 @@ div.warning h2, div.notice h2 { font-size: 13px; font-weight: bold; margin: 0; }
 .maintabs .elm_dd > a { box-sizing: border-box; height: 21px; padding: 1px 15px 0 7px; border: 1px solid $border$; border-bottom: none; background-color: $tabbg$; color: $maintext$ }
 .elm_votedd .elm_dd ul li { text-align: left }
 .elm_dd_input .elm_dd > a { background-color: $secbg$; color: $maintext$; border: 1px solid $secborder$; font: 14px "Tahoma", "Arial", sans-serif; padding: 1px 15px 1px 2px; margin: -1px }
+.elm_dd_input.elm_dd_noarrow .elm_dd > a { padding-right: 2px }
 .elm_dd_noarrow .elm_dd > a { padding-right: 0 }
 .elm_dd_noarrow .elm_dd > a > span:last-child { display: none }
 .elm_dd_hover .elm_dd > div { display: none }
@@ -1130,12 +1131,13 @@ p.filselect i { font-style: normal }
 /****** Advanced Search *******/
 
 .advsearch { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center }
-.advsearch .advnest { display: flex }
-.advsearch .advnest > div:nth-child(1) { flex: 0 0 45px; }
-.advsearch .advnest > div:nth-child(2) { flex: 1; border-left: 1px dashed $border$ }
-.advsearch .elm_dd_input { margin: 5px; width: 150px }
-.advsearch .elm_dd_input.elm_dd_noarrow { width: 13px }
-.advsearch .advrow { display: flex; flex-wrap: wrap }
+.advsearch .advrow > div:first-child { width: auto }
+.advsearch .advnest > tr > td { padding: 0 2px }
+.advsearch .advnest > tr > td:first-child { text-align: right; white-space: nowrap; border-right: 1px dashed $border$ }
+.advsearch .advnest > tr > td:first-child > div { width: auto }
+.advsearch .advnest > tr > td:first-child > b { display: block; margin: 6px 3px 0 0 }
+.advsearch .elm_dd_input { display: inline-block; margin: 5px 4px; width: 150px; vertical-align: middle }
+.advsearch .elm_dd_input.short { width: auto }
 .advsearch .advbut { width: 100%; background-color: $_blendbg$; text-align: right; white-space: nowrap }
 .advsearch .advbut > * { display: inline-block; box-sizing: border-box; height: 20px; padding: 3px 5px 0 2px; cursor: pointer; border-bottom: none; font-size: 16px }
 .advsearch .advbut > b { color: $grayedout$; font-style: normal }
