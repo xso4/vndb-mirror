@@ -8,7 +8,7 @@ import Lib.Autocomplete as A
 import Lib.Html exposing (..)
 import Lib.Util exposing (..)
 import Gen.Api as GApi
-import AdvSearch.Query exposing (..)
+import AdvSearch.Lib exposing (..)
 import AdvSearch.Set as S
 
 

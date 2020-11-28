@@ -15,7 +15,7 @@ import AdvSearch.Traits as AI
 import AdvSearch.RDate as AD
 import AdvSearch.Range as AR
 import AdvSearch.Resolution as AE
-import AdvSearch.Query exposing (..)
+import AdvSearch.Lib exposing (..)
 
 
 -- "Nested" fields are a container for other fields.
@@ -274,7 +274,7 @@ type FieldMsg
 type alias FieldDesc =
   { qtype     : QType
   , title     : String                     -- How it's listed in the field selection menu.
-  , quick     : Maybe Int                  -- Whether it should be included in the default set of fields ("quick mode") and in which order.
+  , quick     : Int                        -- Whether it should be included in the default set of fields (>0) ("quick mode") and in which order.
   , init      : Data -> (Data, FieldModel) -- How to initialize an empty field
   , fromQuery : Data -> Query -> Maybe (Data, FieldModel)  -- How to initialize the field from a query
   }
@@ -295,48 +295,48 @@ fields =
   -- into Fields, so "catch all" fields must be listed first. In particular,
   -- FMNest with qtype == ptype go before everything else.
 
-  --  T TITLE               QUICK     WRAP        INIT                  FROM_QUERY
-  [ f V ""                  Nothing   FMNest      (nestInit True V V [])(nestFromQuery V V) -- and/or's
-  , f R ""                  Nothing   FMNest      (nestInit True V R [])(nestFromQuery R R)
-  , f C ""                  Nothing   FMNest      (nestInit True C C [])(nestFromQuery C C)
+  --  T TITLE            QUICK  WRAP          INIT                    FROM_QUERY
+  [ f V ""                   0  FMNest        (nestInit True V V [])  (nestFromQuery V V) -- and/or's
+  , f R ""                   0  FMNest        (nestInit True V R [])  (nestFromQuery R R)
+  , f C ""                   0  FMNest        (nestInit True C C [])  (nestFromQuery C C)
 
-  , f V "Language"          (Just 1)  FMLang      AS.init               AS.langFromQuery
-  , f V "Original language" (Just 2)  FMOLang     AS.init               AS.olangFromQuery
-  , f V "Platform"          (Just 3)  FMPlatform  AS.init               AS.platformFromQuery
-  , f V "Tags"              (Just 4)  FMTag       AG.init               (AG.fromQuery -1)
-  , f V ""                  Nothing   FMTag       AG.init               (AG.fromQuery 0)
-  , f V ""                  Nothing   FMTag       AG.init               (AG.fromQuery 1)
-  , f V ""                  Nothing   FMTag       AG.init               (AG.fromQuery 2)
-  , f V "Length"            Nothing   FMLength    AS.init               AS.lengthFromQuery
-  , f V "Developer"         Nothing   FMDeveloper AP.init               AP.devFromQuery
-  , f V "Release date"      Nothing   FMRDate     AD.init               AD.fromQuery
-  , f V "Popularity"        Nothing   FMPopularity AR.popularityInit    AR.popularityFromQuery
-  , f V "Rating"            Nothing   FMRating    AR.ratingInit         AR.ratingFromQuery
-  , f V "Number of votes"   Nothing   FMVotecount AR.votecountInit      AR.votecountFromQuery
-  , f V ""                  Nothing   FMNest      (nestInit True V R [])(nestFromQuery V R) -- release subtype
-  , f V ""                  Nothing   FMNest      (nestInit True V C [])(nestFromQuery V C) -- character subtype
+  , f V "Language"           1  FMLang        AS.init                 AS.langFromQuery
+  , f V "Original language"  2  FMOLang       AS.init                 AS.olangFromQuery
+  , f V "Platform"           3  FMPlatform    AS.init                 AS.platformFromQuery
+  , f V "Tags"               4  FMTag         AG.init                 (AG.fromQuery -1)
+  , f V ""                   0  FMTag         AG.init                 (AG.fromQuery 0)
+  , f V ""                   0  FMTag         AG.init                 (AG.fromQuery 1)
+  , f V ""                   0  FMTag         AG.init                 (AG.fromQuery 2)
+  , f V "Length"             0  FMLength      AS.init                 AS.lengthFromQuery
+  , f V "Developer"          0  FMDeveloper   AP.init                 AP.devFromQuery
+  , f V "Release date"       0  FMRDate       AD.init                 AD.fromQuery
+  , f V "Popularity"         0  FMPopularity  AR.popularityInit       AR.popularityFromQuery
+  , f V "Rating"             0  FMRating      AR.ratingInit           AR.ratingFromQuery
+  , f V "Number of votes"    0  FMVotecount   AR.votecountInit        AR.votecountFromQuery
+  , f V ""                   0  FMNest        (nestInit True V R [])  (nestFromQuery V R) -- release subtype
+  , f V ""                   0  FMNest        (nestInit True V C [])  (nestFromQuery V C) -- character subtype
 
-  , f R "Language"          (Just 1)  FMLang      AS.init               AS.langFromQuery
-  , f R "Platform"          (Just 2)  FMPlatform  AS.init               AS.platformFromQuery
-  , f R "Developer"         Nothing   FMDeveloper AP.init               AP.devFromQuery
-  , f R "Release date"      Nothing   FMRDate     AD.init               AD.fromQuery
-  , f R "Resolution"        Nothing   FMResolution AE.init              AE.fromQuery
+  , f R "Language"           1  FMLang        AS.init                 AS.langFromQuery
+  , f R "Platform"           2  FMPlatform    AS.init                 AS.platformFromQuery
+  , f R "Developer"          0  FMDeveloper   AP.init                 AP.devFromQuery
+  , f R "Release date"       0  FMRDate       AD.init                 AD.fromQuery
+  , f R "Resolution"         0  FMResolution  AE.init                 AE.fromQuery
 
-  , f C "Role"              (Just 1)  FMRole      AS.init               AS.roleFromQuery
-  , f C "Age"               Nothing   FMAge       AR.ageInit            AR.ageFromQuery
-  , f C "Sex"               (Just 2)  FMSexChar   AS.init               (AS.sexFromQuery AS.SexChar)
-  , f C "Sex (spoiler)"     Nothing   FMSexSpoil  AS.init               (AS.sexFromQuery AS.SexSpoil)
-  , f C "Traits"            (Just 3)  FMTrait     AI.init               (AI.fromQuery -1)
-  , f C ""                  Nothing   FMTrait     AI.init               (AI.fromQuery 0)
-  , f C ""                  Nothing   FMTrait     AI.init               (AI.fromQuery 1)
-  , f C ""                  Nothing   FMTrait     AI.init               (AI.fromQuery 2)
-  , f C "Blood type"        Nothing   FMBlood     AS.init               AS.bloodFromQuery
-  , f C "Height"            Nothing   FMHeight    AR.heightInit         AR.heightFromQuery
-  , f C "Weight"            Nothing   FMWeight    AR.weightInit         AR.weightFromQuery
-  , f C "Bust"              Nothing   FMBust      AR.bustInit           AR.bustFromQuery
-  , f C "Waist"             Nothing   FMWaist     AR.waistInit          AR.waistFromQuery
-  , f C "Hips"              Nothing   FMHips      AR.hipsInit           AR.hipsFromQuery
-  , f C "Cup size"          Nothing   FMCup       AR.cupInit            AR.cupFromQuery
+  , f C "Role"               1  FMRole        AS.init                 AS.roleFromQuery
+  , f C "Age"                0  FMAge         AR.ageInit              AR.ageFromQuery
+  , f C "Sex"                2  FMSexChar     AS.init                 (AS.sexFromQuery AS.SexChar)
+  , f C "Sex (spoiler)"      0  FMSexSpoil    AS.init                 (AS.sexFromQuery AS.SexSpoil)
+  , f C "Traits"             3  FMTrait       AI.init                 (AI.fromQuery -1)
+  , f C ""                   0  FMTrait       AI.init                 (AI.fromQuery 0)
+  , f C ""                   0  FMTrait       AI.init                 (AI.fromQuery 1)
+  , f C ""                   0  FMTrait       AI.init                 (AI.fromQuery 2)
+  , f C "Blood type"         0  FMBlood       AS.init                 AS.bloodFromQuery
+  , f C "Height"             0  FMHeight      AR.heightInit           AR.heightFromQuery
+  , f C "Weight"             0  FMWeight      AR.weightInit           AR.weightFromQuery
+  , f C "Bust"               0  FMBust        AR.bustInit             AR.bustFromQuery
+  , f C "Waist"              0  FMWaist       AR.waistInit            AR.waistFromQuery
+  , f C "Hips"               0  FMHips        AR.hipsInit             AR.hipsFromQuery
+  , f C "Cup size"           0  FMCup         AR.cupInit              AR.cupFromQuery
   ]
 
 

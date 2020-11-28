@@ -10,7 +10,7 @@ import Array as A
 import Json.Encode as JE
 import Json.Decode as JD
 import Gen.Api as GApi
-import AdvSearch.Query exposing (..)
+import AdvSearch.Lib exposing (..)
 import AdvSearch.Fields exposing (..)
 
 
@@ -46,7 +46,7 @@ normalize : Model -> Model
 normalize model =
   let present = List.foldl (\(n,_,_) a -> Set.insert n a) Set.empty
       defaults pres = A.foldl (\f (al,dat,an) ->
-          if f.qtype == model.qtype && f.quick /= Nothing && not (Set.member an pres)
+          if f.qtype == model.qtype && f.quick /= 0 && not (Set.member an pres)
           then let (ndat, nf) = fieldInit an dat
                in (nf::al, ndat, an+1)
           else (al,dat,an+1)
@@ -56,8 +56,8 @@ normalize model =
             bq = fieldToQuery (bn,bdd,bm) /= Nothing
             af = A.get an fields
             bf = A.get bn fields
-            ao = Maybe.andThen (\d -> d.quick) af |> Maybe.withDefault 9999
-            bo = Maybe.andThen (\d -> d.quick) bf |> Maybe.withDefault 9999
+            ao = Maybe.andThen (\d -> if d.quick == 0 then Nothing else Just d.quick) af |> Maybe.withDefault 9999
+            bo = Maybe.andThen (\d -> if d.quick == 0 then Nothing else Just d.quick) bf |> Maybe.withDefault 9999
             at = Maybe.map (\d -> d.title) af |> Maybe.withDefault ""
             bt = Maybe.map (\d -> d.title) bf |> Maybe.withDefault ""
         in if aq && not bq then LT else if not aq && bq then GT

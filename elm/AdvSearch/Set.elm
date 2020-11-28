@@ -6,7 +6,7 @@ import Set
 import Lib.Html exposing (..)
 import Lib.Util exposing (..)
 import Gen.Types as GT
-import AdvSearch.Query exposing (..)
+import AdvSearch.Lib exposing (..)
 
 
 type alias Model a =

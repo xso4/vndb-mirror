@@ -1,4 +1,4 @@
-module AdvSearch.Query exposing (..)
+module AdvSearch.Lib exposing (..)
 
 import Json.Encode as JE
 import Json.Decode as JD
@@ -160,7 +160,6 @@ inputOp onlyEq val msg =
 
 
 -- Global data that's passed around for Fields
--- (defined here because everything imports this module)
 type alias Data =
   { objid        : Int -- Incremental integer for global identifiers
   , level        : Int -- Nesting level of the field being processed

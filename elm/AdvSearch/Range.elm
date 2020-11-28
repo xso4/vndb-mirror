@@ -8,7 +8,7 @@ import Lib.Util exposing (..)
 import Array
 import Lib.Ffi as Ffi
 import Gen.Types as GT
-import AdvSearch.Query exposing (..)
+import AdvSearch.Lib exposing (..)
 
 
 type alias Model a =

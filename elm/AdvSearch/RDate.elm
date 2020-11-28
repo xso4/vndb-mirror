@@ -4,7 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Lib.Html exposing (..)
 import Lib.RDate as R
-import AdvSearch.Query exposing (..)
+import AdvSearch.Lib exposing (..)
 
 
 type alias Model =
