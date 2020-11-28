@@ -12,6 +12,7 @@ module Lib.Autocomplete exposing
   , staffSource
   , charSource
   , animeSource
+  , resolutionSource
   , init
   , clear
   , refocus
@@ -41,6 +42,7 @@ import Gen.Producers as GP
 import Gen.Staff as GS
 import Gen.Chars as GC
 import Gen.Anime as GA
+import Gen.Resolutions as GR
 
 
 type alias Config m a =
@@ -56,6 +58,8 @@ type alias Config m a =
 type SearchSource m a
     -- API endpoint to query for completion results + Function to decode results from the API
   = Endpoint (String -> (GApi.Response -> m) -> Cmd m) (GApi.Response -> Maybe (List a))
+    -- API endpoint that returns the full list of possible results + Function to decode results from the API + Function to match results against a query
+  | LazyList ((GApi.Response -> m) -> Cmd m) (GApi.Response -> Maybe (List a)) (String -> List a -> List a)
     -- Pure function for instant completion results
   | Func (String -> List a)
 
@@ -195,10 +199,24 @@ animeSource =
   }
 
 
+resolutionSource : SourceConfig m GApi.ApiResolutions
+resolutionSource =
+  { source  = LazyList
+                (GR.send {})
+                (\x -> case x of
+                        GApi.Resolutions e -> Just e
+                        _ -> Nothing)
+                (\s l -> List.filter (\v -> String.contains (String.toLower s) (String.toLower v.resolution)) l |> List.take 10)
+  , view    = \i -> [ text i.resolution, b [ class "grayedout" ] [ text <| " (" ++ String.fromInt i.count ++ ")" ] ]
+  , key     = \i -> i.resolution
+  }
+
+
 type alias Model a =
   { visible  : Bool
   , value    : String
   , results  : List a
+  , all      : Maybe (List a) -- Used by LazyList
   , sel      : String
   , default  : String
   , loading  : Bool
@@ -211,6 +229,7 @@ init s =
   { visible  = False
   , value    = s
   , results  = []
+  , all      = Nothing
   , sel      = ""
   , default  = s
   , loading  = False
@@ -281,26 +300,34 @@ update cfg msg model =
     Key _           -> mod model
 
     Input s ->
+      let m = { model | value = s, default = "" }
+      in
       if String.trim s == ""
-      then mod { model | value = s, default = "", loading = False, results = [] }
-      else case cfg.source.source of
+      then mod { m | loading = False, results = [] }
+      else case (cfg.source.source) of
         Endpoint _ _ ->
-          ( { model | value = s, default = "", loading = True,  wait = model.wait + 1 }
+          ( { m | loading = True,  wait = model.wait + 1 }
           , Task.perform (always <| cfg.wrap <| Search <| model.wait + 1) (Process.sleep 500)
           , Nothing )
-        Func f -> mod { model | value = s, default = "", results = f s }
+        LazyList e _ f ->
+          case (model.loading, model.all) of
+            (_, Just l) -> mod { m | results = f s l }
+            (True, _) -> mod m
+            (False, _) -> ({ m | loading = True }, e (cfg.wrap << Results ""), Nothing)
+        Func f -> mod { m | results = f s }
 
     Search i ->
       if model.value == "" || model.wait /= i
       then mod model
       else case cfg.source.source of
         Endpoint e _ -> (model, e model.value (cfg.wrap << Results model.value), Nothing)
+        LazyList _ _ _ -> mod model
         Func _ -> mod model
 
     Results s r -> mod <|
-      if s /= model.value then model -- Discard stale results
-      else case cfg.source.source of
-        Endpoint _ d -> { model | loading = False, results = d r |> Maybe.withDefault [] }
+      case cfg.source.source of
+        Endpoint _ d -> if s /= model.value then model else { model | loading = False, results = d r |> Maybe.withDefault [] }
+        LazyList _ d f -> let all = d r in { model | loading = False, all = all, results = Maybe.map (\l -> f model.value l) all |> Maybe.withDefault [] }
         Func _ -> model
 
 

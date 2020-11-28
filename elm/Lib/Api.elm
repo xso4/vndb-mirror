@@ -47,6 +47,7 @@ showResponse res =
     ImgFormat                       -> "Unrecognized image format, only JPEG and PNG are accepted."
     DupNames _                      -> "Name or alias already in the database."
     Releases _                      -> unexp
+    Resolutions _                   -> unexp
     BoardResult _                   -> unexp
     TagResult _                     -> unexp
     TraitResult _                   -> unexp

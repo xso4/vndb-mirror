@@ -350,10 +350,10 @@ fieldUpdate dat msg_ (num, dd, model) =
       -- Called when opening a dropdown, can be used to focus an input element
       focus =
         case model of
-          FMTag        m -> Cmd.map FSTag       (A.refocus m.conf)
-          FMTrait      m -> Cmd.map FSTrait     (A.refocus m.conf)
-          FMDeveloper  m -> Cmd.map FSDeveloper (A.refocus m.conf)
-          FMResolution m -> Cmd.none -- TODO: Focus input field
+          FMTag        m -> Cmd.map FSTag        (A.refocus m.conf)
+          FMTrait      m -> Cmd.map FSTrait      (A.refocus m.conf)
+          FMDeveloper  m -> Cmd.map FSDeveloper  (A.refocus m.conf)
+          FMResolution m -> Cmd.map FSResolution (A.refocus m.conf)
           _ -> Cmd.none
   in case (msg_, model) of
       -- Move to parent node is tricky, needs to be intercepted at this point so that we can access the parent NestModel.
@@ -395,7 +395,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSVotecount msg,FMVotecount m)-> maps FMVotecount (AR.update msg m)
       (FSDeveloper msg,FMDeveloper m)-> mapf FMDeveloper FSDeveloper (AP.update dat msg m)
       (FSRDate msg,    FMRDate m)    -> maps FMRDate    (AD.update msg m)
-      (FSResolution msg,FMResolution m)->maps FMResolution (AE.update msg m)
+      (FSResolution msg,FMResolution m)->mapf FMResolution FSResolution (AE.update dat msg m)
       (FSTag msg,      FMTag m)      -> mapf FMTag FSTag     (AG.update dat msg m)
       (FSTrait msg,    FMTrait m)    -> mapf FMTrait FSTrait (AI.update dat msg m)
       (FToggle b, _) -> (dat, (num, DD.toggle dd b, model), if b then focus else Cmd.none)

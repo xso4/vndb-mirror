@@ -66,6 +66,10 @@ our %apis = (
         lang     => { type => 'array', values => {} },
         platforms=> { type => 'array', values => {} },
     } } ],
+    Resolutions    => [ { aoh => { # Response to 'Resolutions'
+        resolution   => {},
+        count        => { uint => 1 },
+    } } ],
     BoardResult    => [ { aoh => { # Response to 'Boards'
         btype    => {},
         iid      => { required => 0, default => 0, id => 1 },
