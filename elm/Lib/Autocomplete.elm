@@ -13,6 +13,7 @@ module Lib.Autocomplete exposing
   , charSource
   , animeSource
   , resolutionSource
+  , engineSource
   , init
   , clear
   , refocus
@@ -43,6 +44,7 @@ import Gen.Staff as GS
 import Gen.Chars as GC
 import Gen.Anime as GA
 import Gen.Resolutions as GR
+import Gen.Engines as GE
 
 
 type alias Config m a =
@@ -209,6 +211,19 @@ resolutionSource =
                 (\s l -> List.filter (\v -> String.contains (String.toLower s) (String.toLower v.resolution)) l |> List.take 10)
   , view    = \i -> [ text i.resolution, b [ class "grayedout" ] [ text <| " (" ++ String.fromInt i.count ++ ")" ] ]
   , key     = \i -> i.resolution
+  }
+
+
+engineSource : SourceConfig m GApi.ApiEngines
+engineSource =
+  { source  = LazyList
+                (GE.send {})
+                (\x -> case x of
+                        GApi.Engines e -> Just e
+                        _ -> Nothing)
+                (\s l -> List.filter (\v -> String.contains (String.toLower s) (String.toLower v.engine)) l |> List.take 10)
+  , view    = \i -> [ text i.engine, b [ class "grayedout" ] [ text <| " (" ++ String.fromInt i.count ++ ")" ] ]
+  , key     = \i -> i.engine
   }
 
 

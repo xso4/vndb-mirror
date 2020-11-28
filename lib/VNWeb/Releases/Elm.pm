@@ -18,4 +18,12 @@ elm_api Resolutions => undef, {}, sub {
     })->@* ];
 };
 
+
+elm_api Engines => undef, {}, sub {
+    elm_Engines tuwf->dbAlli(q{
+        SELECT engine, count(*) AS count FROM releases WHERE NOT hidden AND engine <> ''
+         GROUP BY engine ORDER BY count(*) DESC, engine
+    });
+};
+
 1;

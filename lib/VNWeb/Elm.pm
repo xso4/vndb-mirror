@@ -70,6 +70,10 @@ our %apis = (
         resolution   => {},
         count        => { uint => 1 },
     } } ],
+    Engines        => [ { aoh => { # Response to 'Engines'
+        engine   => {},
+        count    => { uint => 1 },
+    } } ],
     BoardResult    => [ { aoh => { # Response to 'Boards'
         btype    => {},
         iid      => { required => 0, default => 0, id => 1 },

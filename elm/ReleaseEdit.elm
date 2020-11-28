@@ -52,14 +52,12 @@ type alias Model =
   , uncensored : Bool
   , resoX      : Int
   , resoY      : Int
-  , resoConf   : A.Config Msg GRE.RecvResolutions
-  , reso       : A.Model GRE.RecvResolutions
+  , reso       : A.Model GApi.ApiResolutions
   , voiced     : Int
   , ani_story  : Int
   , ani_ero    : Int
   , website    : String
-  , engineConf : A.Config Msg GRE.RecvEngines
-  , engine     : A.Model GRE.RecvEngines
+  , engine     : A.Model GApi.ApiEngines
   , extlinks   : EL.Model GRE.RecvExtlinks
   , vn         : List GRE.RecvVn
   , vnAdd      : A.Model GApi.ApiVNResult
@@ -70,29 +68,6 @@ type alias Model =
   , id         : Maybe Int
   }
 
-
-engineConf : List GRE.RecvEngines -> A.Config Msg GRE.RecvEngines
-engineConf lst =
-  { wrap   = Engine
-  , id = "engine"
-  , source =
-    { source = A.Func (\s -> List.filter (\e -> String.contains (String.toLower s) (String.toLower e.engine)) lst |> List.take 10)
-    , view   = \i -> [ text i.engine, b [ class "grayedout" ] [ text <| " (" ++ String.fromInt i.count ++ ")" ] ]
-    , key    = \i -> i.engine
-    }
-  }
-
-
-resoConf : List GRE.RecvResolutions -> A.Config Msg GRE.RecvResolutions
-resoConf lst =
-  { wrap   = Resolution
-  , id = "resolution"
-  , source =
-    { source = A.Func (\s -> List.filter (\e -> String.contains (String.toLower s) (String.toLower e.resolution)) lst |> List.take 10)
-    , view   = \i -> [ text i.resolution, b [ class "grayedout" ] [ text <| " (" ++ String.fromInt i.count ++ ")" ] ]
-    , key    = \i -> i.resolution
-    }
-  }
 
 init : GRE.Recv -> Model
 init d =
@@ -117,13 +92,11 @@ init d =
   , uncensored = d.uncensored
   , resoX      = d.reso_x
   , resoY      = d.reso_y
-  , resoConf   = resoConf d.resolutions
   , reso       = A.init (resoFmt True d.reso_x d.reso_y)
   , voiced     = d.voiced
   , ani_story  = d.ani_story
   , ani_ero    = d.ani_ero
   , website    = d.website
-  , engineConf = engineConf d.engines
   , engine     = A.init d.engine
   , extlinks   = EL.new d.extlinks GEL.releaseSites
   , vn         = d.vn
@@ -176,6 +149,12 @@ vnConfig = { wrap = VNSearch, id = "vnadd", source = A.vnSource }
 producerConfig : A.Config Msg GApi.ApiProducerResult
 producerConfig = { wrap = ProdSearch, id = "prodadd", source = A.producerSource }
 
+resoConfig : A.Config Msg GApi.ApiResolutions
+resoConfig = { wrap = Resolution, id = "resolution", source = A.resolutionSource }
+
+engineConfig : A.Config Msg GApi.ApiEngines
+engineConfig = { wrap = Engine, id = "engine", source = A.engineSource }
+
 sub : Model -> Sub Msg
 sub m = Sub.batch [ DD.sub m.langDd, DD.sub m.platDd ]
 
@@ -199,12 +178,12 @@ type Msg
   | Released D.RDate
   | Minage Int
   | Uncensored Bool
-  | Resolution (A.Msg GRE.RecvResolutions)
+  | Resolution (A.Msg GApi.ApiResolutions)
   | Voiced Int
   | AniStory Int
   | AniEro Int
   | Website String
-  | Engine (A.Msg GRE.RecvEngines)
+  | Engine (A.Msg GApi.ApiEngines)
   | ExtLinks (EL.Msg GRE.RecvExtlinks)
   | VNDel Int
   | VNSearch (A.Msg GApi.ApiVNResult)
@@ -240,7 +219,7 @@ update msg model =
     Minage i   -> ({ model | minage = i }, Cmd.none)
     Uncensored b->({ model | uncensored = b }, Cmd.none)
     Resolution m->
-      let (nm, c, en) = A.update model.resoConf m model.reso
+      let (nm, c, en) = A.update resoConfig m model.reso
           nmod = { model | reso = Maybe.withDefault nm <| Maybe.map (\e -> A.clear nm e.resolution) en }
           n2mod = case resoParse True nmod.reso.value of
             Just (x,y) -> { nmod | resoX = x, resoY = y }
@@ -251,7 +230,7 @@ update msg model =
     AniEro i   -> ({ model | ani_ero = i }, Cmd.none)
     Website s  -> ({ model | website = s }, Cmd.none)
     Engine m   ->
-      let (nm, c, en) = A.update model.engineConf m model.engine
+      let (nm, c, en) = A.update engineConfig m model.engine
           nmod = case en of
             Just e  -> A.clear nm e.engine
             Nothing -> nm
@@ -358,10 +337,10 @@ viewGen model =
     ]
 
   , if model.patch then text "" else
-    formField "engine::Engine" [ A.view model.engineConf model.engine [] ]
+    formField "engine::Engine" [ A.view engineConfig model.engine [] ]
   , if model.patch then text "" else
     formField "resolution::Resolution"
-    [ A.view model.resoConf model.reso []
+    [ A.view resoConfig model.reso []
     , if resoParse True model.reso.value == Nothing then b [ class "standout" ] [ text " Invalid resolution" ] else text ""
     ]
   , if model.patch then text "" else

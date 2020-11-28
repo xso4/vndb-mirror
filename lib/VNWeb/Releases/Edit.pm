@@ -45,14 +45,6 @@ my $FORM = {
     hidden     => { anybool => 1 },
     locked     => { anybool => 1 },
 
-    engines    => { _when => 'out', aoh => {
-        engine => {},
-        count  => { uint => 1 },
-    } },
-    resolutions=> { _when => 'out', aoh => {
-        resolution => {},
-        count      => { uint => 1 },
-    } },
     authmod    => { _when => 'out', anybool => 1 },
     editsum    => { _when => 'in out', editsum => 1 },
 };
@@ -63,19 +55,6 @@ my $FORM_CMP = form_compile cmp => $FORM;
 
 sub to_extlinks { $_[0]{extlinks} = { map +($_, delete $_[0]{$_}), grep /^l_/, keys $_[0]->%* } }
 
-sub enrich_form {
-    my($e) = @_;
-    $e->{authmod} = auth->permDbmod;
-    $e->{engines} = tuwf->dbAlli(q{
-        SELECT engine, count(*) AS count FROM releases WHERE NOT hidden AND engine <> ''
-         GROUP BY engine ORDER BY count(*) DESC, engine
-    });
-    $e->{resolutions} = [ map +{ resolution => resolution($_), count => $_->{count} }, tuwf->dbAlli(q{
-        SELECT reso_x, reso_y, count(*) AS count FROM releases WHERE NOT hidden AND NOT (reso_x = 0 AND reso_y = 0)
-         GROUP BY reso_x, reso_y ORDER BY count(*) DESC
-    })->@* ];
-}
-
 
 TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
     my $e = db_entry r => tuwf->capture('id'), tuwf->capture('rev') or return tuwf->resNotFound;
@@ -84,8 +63,8 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
 
     $e->{rtype} = delete $e->{type};
     $e->{editsum} = $copy ? "Copied from r$e->{id}.$e->{chrev}" : $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision r$e->{id}.$e->{chrev}";
+    $e->{authmod} = auth->permDbmod;
 
-    enrich_form $e;
     to_extlinks $e;
 
     enrich_merge vid => 'SELECT id AS vid, title FROM vn WHERE id IN', $e->{vn};
@@ -117,7 +96,7 @@ TUWF::get qr{/$RE{vid}/add}, sub {
         vn       => [{vid => $v->{id}, title => $v->{title}}],
         official => 1,
     };
-    enrich_form $e;
+    $e->{authmod} = auth->permDbmod;
 
     framework_ title => "Add release to $v->{title}",
     sub {

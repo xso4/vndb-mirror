@@ -48,6 +48,7 @@ showResponse res =
     DupNames _                      -> "Name or alias already in the database."
     Releases _                      -> unexp
     Resolutions _                   -> unexp
+    Engines _                       -> unexp
     BoardResult _                   -> unexp
     TagResult _                     -> unexp
     TraitResult _                   -> unexp
