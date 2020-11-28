@@ -2,6 +2,9 @@ module AdvSearch.Query exposing (..)
 
 import Json.Encode as JE
 import Json.Decode as JD
+import Html
+import Html.Attributes
+import Lib.Html
 import Dict
 import Gen.Api as GApi
 
@@ -146,6 +149,14 @@ showOp op =
     Lt -> "<"
     Ge -> "≥"
     Gt -> ">"
+
+
+inputOp : Bool -> Op -> (Op -> a) -> Html.Html a
+inputOp onlyEq val msg =
+  Html.div [ Html.Attributes.class "opselect" ] <|
+    List.map (\op ->
+      if val == op then Html.b [] [ Html.text (showOp op) ] else Html.a [ Html.Attributes.href "#", Lib.Html.onClickD (msg op) ] [ Html.text (showOp op) ]
+    ) <| if onlyEq then [Eq, Ne] else [Eq, Ne, Ge, Gt, Le, Lt]
 
 
 -- Global data that's passed around for Fields

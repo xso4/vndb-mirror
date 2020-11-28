@@ -94,31 +94,6 @@ resoConf lst =
     }
   }
 
-resoFmt : Int -> Int -> String
-resoFmt x y =
-  case (x,y) of
-    (0,0) -> ""
-    (0,1) -> "Non-standard"
-    _ -> String.fromInt x ++ "x" ++ String.fromInt y
-
-resoParse : String -> Maybe (Int, Int)
-resoParse s =
-  let t =  String.replace "*" "x" s
-        |> String.replace "×" "x"
-        |> String.replace " " ""
-        |> String.replace "\t" ""
-        |> String.toLower |> String.trim
-  in
-  case (t, String.split "x" t) of
-    ("", _) -> Just (0,0)
-    ("non-standard", _) -> Just (0,1)
-    (_, [sx,sy]) ->
-      case (String.toInt sx, String.toInt sy) of
-        (Just ix, Just iy) -> if ix < 1 || ix > 32767 || iy < 1 || iy > 32767 then Nothing else Just (ix,iy)
-        _ -> Nothing
-    _ -> Nothing
-
-
 init : GRE.Recv -> Model
 init d =
   { state      = Api.Normal
@@ -143,7 +118,7 @@ init d =
   , resoX      = d.reso_x
   , resoY      = d.reso_y
   , resoConf   = resoConf d.resolutions
-  , reso       = A.init (resoFmt d.reso_x d.reso_y)
+  , reso       = A.init (resoFmt True d.reso_x d.reso_y)
   , voiced     = d.voiced
   , ani_story  = d.ani_story
   , ani_ero    = d.ani_ero
@@ -267,7 +242,7 @@ update msg model =
     Resolution m->
       let (nm, c, en) = A.update model.resoConf m model.reso
           nmod = { model | reso = Maybe.withDefault nm <| Maybe.map (\e -> A.clear nm e.resolution) en }
-          n2mod = case resoParse nmod.reso.value of
+          n2mod = case resoParse True nmod.reso.value of
             Just (x,y) -> { nmod | resoX = x, resoY = y }
             Nothing -> nmod
       in (n2mod, c)
@@ -319,7 +294,7 @@ isValid model = not
   || hasDuplicates (List.map (\m -> (m.medium, m.qty)) model.media)
   || not model.gtinValid
   || List.isEmpty model.vn
-  || resoParse model.reso.value == Nothing
+  || resoParse True model.reso.value == Nothing
   )
 
 
@@ -387,7 +362,7 @@ viewGen model =
   , if model.patch then text "" else
     formField "resolution::Resolution"
     [ A.view model.resoConf model.reso []
-    , if resoParse model.reso.value == Nothing then b [ class "standout" ] [ text " Invalid resolution" ] else text ""
+    , if resoParse True model.reso.value == Nothing then b [ class "standout" ] [ text " Invalid resolution" ] else text ""
     ]
   , if model.patch then text "" else
     formField "voiced::Voiced" [ inputSelect "voiced" model.voiced Voiced [] GT.voiced ]

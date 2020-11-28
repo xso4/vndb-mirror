@@ -14,6 +14,7 @@ import AdvSearch.Tags as AG
 import AdvSearch.Traits as AI
 import AdvSearch.RDate as AD
 import AdvSearch.Range as AR
+import AdvSearch.Resolution as AE
 import AdvSearch.Query exposing (..)
 
 
@@ -213,56 +214,58 @@ nestView dat dd model =
 type alias Field = (Int, DD.Config FieldMsg, FieldModel) -- The Int is the index into 'fields'
 
 type FieldModel
-  = FMCustom   Query -- A read-only placeholder for Query values that failed to parse into a Field
-  | FMNest     NestModel
-  | FMLang     (AS.Model String)
-  | FMOLang    (AS.Model String)
-  | FMPlatform (AS.Model String)
-  | FMLength   (AS.Model Int)
-  | FMRole     (AS.Model String)
-  | FMBlood    (AS.Model String)
-  | FMSexChar  (AS.Model String)
-  | FMSexSpoil (AS.Model String)
-  | FMHeight   (AR.Model Int)
-  | FMWeight   (AR.Model Int)
-  | FMBust     (AR.Model Int)
-  | FMWaist    (AR.Model Int)
-  | FMHips     (AR.Model Int)
-  | FMCup      (AR.Model String)
-  | FMAge      (AR.Model Int)
+  = FMCustom     Query -- A read-only placeholder for Query values that failed to parse into a Field
+  | FMNest       NestModel
+  | FMLang       (AS.Model String)
+  | FMOLang      (AS.Model String)
+  | FMPlatform   (AS.Model String)
+  | FMLength     (AS.Model Int)
+  | FMRole       (AS.Model String)
+  | FMBlood      (AS.Model String)
+  | FMSexChar    (AS.Model String)
+  | FMSexSpoil   (AS.Model String)
+  | FMHeight     (AR.Model Int)
+  | FMWeight     (AR.Model Int)
+  | FMBust       (AR.Model Int)
+  | FMWaist      (AR.Model Int)
+  | FMHips       (AR.Model Int)
+  | FMCup        (AR.Model String)
+  | FMAge        (AR.Model Int)
   | FMPopularity (AR.Model Int)
   | FMRating     (AR.Model Int)
   | FMVotecount  (AR.Model Int)
-  | FMDeveloper AP.Model
-  | FMRDate    AD.Model
-  | FMTag      AG.Model
-  | FMTrait    AI.Model
+  | FMDeveloper  AP.Model
+  | FMRDate      AD.Model
+  | FMResolution AE.Model
+  | FMTag        AG.Model
+  | FMTrait      AI.Model
 
 type FieldMsg
-  = FSCustom   () -- Not actually used at the moment
-  | FSNest     NestMsg
-  | FSLang     (AS.Msg String)
-  | FSOLang    (AS.Msg String)
-  | FSPlatform (AS.Msg String)
-  | FSLength   (AS.Msg Int)
-  | FSRole     (AS.Msg String)
-  | FSBlood    (AS.Msg String)
-  | FSSexChar  (AS.Msg String)
-  | FSSexSpoil (AS.Msg String)
-  | FSHeight   AR.Msg
-  | FSWeight   AR.Msg
-  | FSBust     AR.Msg
-  | FSWaist    AR.Msg
-  | FSHips     AR.Msg
-  | FSCup      AR.Msg
-  | FSAge      AR.Msg
+  = FSCustom     () -- Not actually used at the moment
+  | FSNest       NestMsg
+  | FSLang       (AS.Msg String)
+  | FSOLang      (AS.Msg String)
+  | FSPlatform   (AS.Msg String)
+  | FSLength     (AS.Msg Int)
+  | FSRole       (AS.Msg String)
+  | FSBlood      (AS.Msg String)
+  | FSSexChar    (AS.Msg String)
+  | FSSexSpoil   (AS.Msg String)
+  | FSHeight     AR.Msg
+  | FSWeight     AR.Msg
+  | FSBust       AR.Msg
+  | FSWaist      AR.Msg
+  | FSHips       AR.Msg
+  | FSCup        AR.Msg
+  | FSAge        AR.Msg
   | FSPopularity AR.Msg
   | FSRating     AR.Msg
   | FSVotecount  AR.Msg
-  | FSDeveloper AP.Msg
-  | FSRDate    AD.Msg
-  | FSTag      AG.Msg
-  | FSTrait    AI.Msg
+  | FSDeveloper  AP.Msg
+  | FSRDate      AD.Msg
+  | FSResolution AE.Msg
+  | FSTag        AG.Msg
+  | FSTrait      AI.Msg
   | FToggle Bool
   | FDel       -- intercepted in nestUpdate
   | FMoveSub   -- intercepted in nestUpdate
@@ -317,6 +320,7 @@ fields =
   , f R "Platform"          (Just 2)  FMPlatform  AS.init               AS.platformFromQuery
   , f R "Developer"         Nothing   FMDeveloper AP.init               AP.devFromQuery
   , f R "Release date"      Nothing   FMRDate     AD.init               AD.fromQuery
+  , f R "Resolution"        Nothing   FMResolution AE.init              AE.fromQuery
 
   , f C "Role"              (Just 1)  FMRole      AS.init               AS.roleFromQuery
   , f C "Age"               Nothing   FMAge       AR.ageInit            AR.ageFromQuery
@@ -346,9 +350,10 @@ fieldUpdate dat msg_ (num, dd, model) =
       -- Called when opening a dropdown, can be used to focus an input element
       focus =
         case model of
-          FMTag       m -> Cmd.map FSTag       (A.refocus m.conf)
-          FMTrait     m -> Cmd.map FSTrait     (A.refocus m.conf)
-          FMDeveloper m -> Cmd.map FSDeveloper (A.refocus m.conf)
+          FMTag        m -> Cmd.map FSTag       (A.refocus m.conf)
+          FMTrait      m -> Cmd.map FSTrait     (A.refocus m.conf)
+          FMDeveloper  m -> Cmd.map FSDeveloper (A.refocus m.conf)
+          FMResolution m -> Cmd.none -- TODO: Focus input field
           _ -> Cmd.none
   in case (msg_, model) of
       -- Move to parent node is tricky, needs to be intercepted at this point so that we can access the parent NestModel.
@@ -390,6 +395,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSVotecount msg,FMVotecount m)-> maps FMVotecount (AR.update msg m)
       (FSDeveloper msg,FMDeveloper m)-> mapf FMDeveloper FSDeveloper (AP.update dat msg m)
       (FSRDate msg,    FMRDate m)    -> maps FMRDate    (AD.update msg m)
+      (FSResolution msg,FMResolution m)->maps FMResolution (AE.update msg m)
       (FSTag msg,      FMTag m)      -> mapf FMTag FSTag     (AG.update dat msg m)
       (FSTrait msg,    FMTrait m)    -> mapf FMTrait FSTrait (AI.update dat msg m)
       (FToggle b, _) -> (dat, (num, DD.toggle dd b, model), if b then focus else Cmd.none)
@@ -438,6 +444,7 @@ fieldView dat (_, dd, model) =
       FMVotecount m  -> f FSVotecount  (AR.votecountView m)
       FMDeveloper m  -> f FSDeveloper  (AP.devView dat m)
       FMRDate m      -> f FSRDate      (AD.view m)
+      FMResolution m -> f FSResolution (AE.view m)
       FMTag m        -> f FSTag        (AG.view dat m)
       FMTrait m      -> f FSTrait      (AI.view dat m)
       FMNest m       -> nestView dat dd m
@@ -468,6 +475,7 @@ fieldToQuery (_, _, model) =
     FMVotecount m-> AR.toQuery (QInt 11) m
     FMDeveloper m-> AP.toQuery (QInt 6) m
     FMRDate m    -> AD.toQuery m
+    FMResolution m-> AE.toQuery m
     FMTag m      -> AG.toQuery m
     FMTrait m    -> AI.toQuery m
 

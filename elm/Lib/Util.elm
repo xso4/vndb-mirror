@@ -81,3 +81,31 @@ containsJapanese = Regex.contains jap_
 
 containsNonLatin : String -> Bool
 containsNonLatin = Regex.contains nonlatin_
+
+
+-- Format a release resolution, first argument indicates whether empty string is to be used for "unknown"
+resoFmt : Bool -> Int -> Int -> String
+resoFmt empty x y =
+  case (x,y) of
+    (0,0) -> if empty then "" else "Unknown"
+    (0,1) -> "Non-standard"
+    _ -> String.fromInt x ++ "x" ++ String.fromInt y
+
+-- Inverse of resoFmt
+resoParse : Bool -> String -> Maybe (Int, Int)
+resoParse empty s =
+  let t =  String.replace "*" "x" s
+        |> String.replace "×" "x"
+        |> String.replace " " ""
+        |> String.replace "\t" ""
+        |> String.toLower |> String.trim
+  in
+  case (t, String.split "x" t) of
+    ("", _) -> if empty then Just (0,0) else Nothing
+    ("unknown", _) -> Just (0,0)
+    ("non-standard", _) -> Just (0,1)
+    (_, [sx,sy]) ->
+      case (String.toInt sx, String.toInt sy) of
+        (Just ix, Just iy) -> if ix < 1 || ix > 32767 || iy < 1 || iy > 32767 then Nothing else Just (ix,iy)
+        _ -> Nothing
+    _ -> Nothing

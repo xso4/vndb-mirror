@@ -13,6 +13,7 @@ use v5.26;
 use warnings;
 use B;
 use POSIX 'strftime';
+use List::Util 'max';
 use TUWF;
 use VNWeb::Auth;
 use VNWeb::DB;
@@ -316,6 +317,10 @@ f r =>  2 => 'lang',     { enum => \%LANGUAGE }, '=' => sub { sql 'r.id IN(SELEC
 f r =>  4 => 'platform', { enum => \%PLATFORM }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_platforms WHERE platform =', \$_, ')' };
 f r =>  6 => 'developer',{ vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE developer AND pid = vndbid_num(', \$_, '))' };
 f r =>  7 => 'released', { fuzzyrdate => 1 }, sql => sub { sql 'r.released', $_[0], \($_ == 1 ? strftime('%Y%m%d', gmtime) : $_) };
+f r =>  8 => 'resolution',        { type => 'array', length => 2, values => { uint => 1, max => 32767 } },
+    sql => sub { sql 'r.reso_x', $_[0], \$_->[0], 'AND r.reso_y', $_[0], \$_->[1], $_->[0] ? 'AND r.reso_x > 0' : () };
+f r =>  9 => 'resolution-aspect', { type => 'array', length => 2, values => { uint => 1, max => 32767 } },
+    sql => sub { sql 'r.reso_x', $_[0], \$_->[0], 'AND r.reso_y', $_[0], \$_->[1], 'AND r.reso_x*1000/GREATEST(1, r.reso_y) =', \(int ($_->[0]*1000/max(1,$_->[1]))), $_->[0] ? 'AND r.reso_x > 0' : () };
 
 
 

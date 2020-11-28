@@ -19,15 +19,15 @@ type alias Model a =
 
 
 type Msg
-  = MOp Op Bool
+  = MOp Op
   | Val String
 
 
 update : Msg -> Model a -> Model a
 update msg model =
   case msg of
-    MOp o _ -> { model | op = o }
-    Val n   -> { model | val = Maybe.withDefault 0 (String.toInt n) }
+    MOp o -> { model | op = o }
+    Val n -> { model | val = Maybe.withDefault 0 (String.toInt n) }
 
 fromQuery : (Data, Model comparable) -> Op -> comparable -> Maybe (Data, Model comparable)
 fromQuery (dat,m) op v = Array.foldl (\v2 (i,r) -> (i+1, if v2 == v then Just i else r)) (0,Nothing) m.lst |> Tuple.second |> Maybe.map (\i -> (dat,{ m | val = i, op = op }))
@@ -43,12 +43,7 @@ view lbl fmt model =
   , \() ->
     [ div [ class "advheader", style "width" "290px" ]
       [ h3 [] [ text lbl ]
-      , div [ class "opts" ]
-        [ div [ class "opselect" ] <|
-          List.map (\op ->
-            if model.op == op then b [] [ text (showOp op) ] else a [ href "#", onClickD (MOp op True) ] [ text (showOp op) ]
-          ) [Eq, Ne, Ge, Gt, Le, Lt]
-        ]
+      , div [ class "opts" ] [ inputOp False model.op MOp ]
       ]
     , div [ style "display" "flex", style "justify-content" "space-between", style "margin-top" "5px" ]
       [ b [ class "grayedout" ] [ text (val 0) ]

@@ -15,17 +15,21 @@ type alias Model =
 
 
 type Msg
-  = MOp Op Bool
+  = MOp Op
   | Fuzzy Bool
   | Date R.RDate
+
+
+onlyEq : Int -> Bool
+onlyEq d = d == 99999999 || d == 0
 
 
 update : Msg -> Model -> Model
 update msg model =
   case msg of
-    MOp o _ -> { model | op = o }
+    MOp o   -> { model | op = o }
     Fuzzy f -> { model | fuzzy = f }
-    Date d  -> { model | date = d }
+    Date d  -> { model | op = if onlyEq d && model.op /= Eq && model.op /= Ne then Eq else model.op, date = d }
 
 
 init : Data -> (Data, Model)
@@ -81,11 +85,8 @@ view model =
     [ div [ class "advheader", style "width" "290px" ]
       [ h3 [] [ text "Release date" ]
       , div [ class "opts" ]
-        [ div [ class "opselect" ] <|
-          List.map (\op ->
-            if model.op == op then b [] [ text (showOp op) ] else a [ href "#", onClickD (MOp op True) ] [ text (showOp op) ]
-          ) [Eq, Ne, Ge, Gt, Le, Lt]
-        , if (R.expand model.date).d /= 99 then text "" else
+        [ inputOp (onlyEq model.date) model.op MOp
+        , if (R.expand model.date).d /= 99 || model.date == 99999999 then text "" else
           linkRadio model.fuzzy Fuzzy [ span [ title
             <| "Without fuzzy matching, partial dates will always match after the last date of the chosen time period, "
             ++ "e.g. \"< 2010-10\" would also match anything released in 2010-10 and \"= 2010-10\" would only match releases for which we don't know the exact date."
