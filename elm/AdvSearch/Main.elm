@@ -86,7 +86,7 @@ init arg =
       -- We always want the top-level query to be a Nest type.
       addtoplvl = let (_,m) = fieldCreate -1 (Tuple.mapSecond FMNest (nestInit True qtype qtype [query] ndat)) in m
       nquery = case query of
-                (_,_,FMNest m) -> query
+                (_,_,FMNest m) -> if m.qtype == qtype then query else addtoplvl
                 _ -> addtoplvl
 
       -- Is this a "simple" query? i.e. one that consists of at most a single level of nesting
