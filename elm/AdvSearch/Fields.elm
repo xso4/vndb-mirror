@@ -2,11 +2,12 @@ module AdvSearch.Fields exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Array as A
+import Array
 import Lib.Util exposing (..)
 import Lib.Html exposing (..)
 import Lib.DropDown as DD
 import Lib.Api as Api
+import Lib.Autocomplete as A
 import AdvSearch.Set as AS
 import AdvSearch.Producers as AP
 import AdvSearch.Tags as AG
@@ -156,7 +157,7 @@ nestView dat dd model =
           List.map (\(n,f) ->
             if f.qtype /= model.addtype || f.title == "" then text ""
             else li [] [ a [ href "#", onClickD (FSNest <| NAdd n)] [ text f.title ] ]
-          ) <| A.toIndexedList fields
+          ) <| Array.toIndexedList fields
         ]
       ]
 
@@ -277,7 +278,7 @@ type alias FieldDesc =
 
 
 -- XXX: Should this be lazily initialized instead? May impact JS load time like this.
-fields : A.Array FieldDesc
+fields : Array.Array FieldDesc
 fields =
   let f qtype title quick wrap init fromq =
         { qtype     = qtype
@@ -286,7 +287,7 @@ fields =
         , init      = \d -> (Tuple.mapSecond wrap (init d))
         , fromQuery = \d q -> Maybe.map (Tuple.mapSecond wrap) (fromq d q)
         }
-  in A.fromList
+  in Array.fromList
   -- IMPORTANT: This list is processed in reverse order when reading a Query
   -- into Fields, so "catch all" fields must be listed first. In particular,
   -- FMNest with qtype == ptype go before everything else.
@@ -341,6 +342,14 @@ fieldUpdate dat msg_ (num, dd, model) =
       mapf fm fc (d,m,c) = (d, (num, dd, fm m), Cmd.map fc c) -- Full version: update function returns (Data, Model, Cmd)
       mapc fm fc (d,m,c) = (d, (num, DD.toggle dd False, fm m), Cmd.map fc c) -- Full version that also closes the DD (Ugly hack...)
       noop = (dat, (num, dd, model), Cmd.none)
+
+      -- Called when opening a dropdown, can be used to focus an input element
+      focus =
+        case model of
+          FMTag       m -> Cmd.map FSTag       (A.refocus m.conf)
+          FMTrait     m -> Cmd.map FSTrait     (A.refocus m.conf)
+          FMDeveloper m -> Cmd.map FSDeveloper (A.refocus m.conf)
+          _ -> Cmd.none
   in case (msg_, model) of
       -- Move to parent node is tricky, needs to be intercepted at this point so that we can access the parent NestModel.
       (FSNest (NField parentNum (FSNest (NField fieldNum FMovePar))), FMNest grandModel) ->
@@ -383,7 +392,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSRDate msg,    FMRDate m)    -> maps FMRDate    (AD.update msg m)
       (FSTag msg,      FMTag m)      -> mapf FMTag FSTag     (AG.update dat msg m)
       (FSTrait msg,    FMTrait m)    -> mapf FMTrait FSTrait (AI.update dat msg m)
-      (FToggle b, _) -> (dat, (num, DD.toggle dd b, model), Cmd.none)
+      (FToggle b, _) -> (dat, (num, DD.toggle dd b, model), if b then focus else Cmd.none)
       _ -> noop
 
 
@@ -472,7 +481,7 @@ fieldCreate fid (dat,fm) =
 
 fieldInit : Int -> Data -> (Data,Field)
 fieldInit n dat =
-  case A.get n fields of
+  case Array.get n fields of
     Just f -> fieldCreate n (f.init dat)
     Nothing -> fieldCreate -1 (dat, FMCustom (QAnd [])) -- Shouldn't happen.
 
@@ -480,11 +489,11 @@ fieldInit n dat =
 fieldFromQuery : QType -> Data -> Query -> (Data,Field)
 fieldFromQuery qtype dat q =
   let (field, _) =
-        A.foldr (\f (af,n) ->
+        Array.foldr (\f (af,n) ->
           case (if af /= Nothing || f.qtype /= qtype then Nothing else f.fromQuery dat q) of
             Nothing -> (af,n-1)
             Just ret -> (Just (fieldCreate n ret), 0)
-        ) (Nothing,A.length fields-1) fields
+        ) (Nothing,Array.length fields-1) fields
   in case field of
       Just ret -> ret
       Nothing -> fieldCreate -1 (dat, FMCustom q)

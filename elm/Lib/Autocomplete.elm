@@ -14,6 +14,7 @@ module Lib.Autocomplete exposing
   , animeSource
   , init
   , clear
+  , refocus
   , update
   , view
   )
@@ -252,26 +253,26 @@ select cfg offset model =
     { model | sel = Maybe.withDefault "" <| Maybe.map cfg.source.key <| get nextsel }
 
 
+-- Blur and focus the input on enter.
+refocus : Config m a -> Cmd m
+refocus cfg = Dom.blur cfg.id
+       |> Task.andThen (always (Dom.focus cfg.id))
+       |> Task.attempt (always (cfg.wrap Noop))
+
+
 update : Config m a -> Msg a -> Model a -> (Model a, Cmd m, Maybe a)
 update cfg msg model =
   let
     mod m = (m, Cmd.none, Nothing)
-    -- Ugly hack: blur and focus the input on enter. This does two things:
-    -- 1. If the user clicked on an entry (resulting in the 'Enter' message),
-    --    then this will cause the input to be focussed again. This is
-    --    convenient when adding multiple entries.
-    refocus = Dom.blur cfg.id
-           |> Task.andThen (always (Dom.focus cfg.id))
-           |> Task.attempt (always (cfg.wrap Noop))
   in
   case msg of
     Noop    -> mod model
     Blur    -> mod { model | visible = False }
     Focus   -> mod { model | loading = False, visible = True }
     Sel s   -> mod { model | sel = s }
-    Enter r -> (model, refocus, Just r)
+    Enter r -> (model, refocus cfg, Just r)
 
-    Key "Enter"     -> (model, refocus,
+    Key "Enter"     -> (model, refocus cfg,
       case List.filter (\i -> cfg.source.key i == model.sel) model.results |> List.head of
         Just x -> Just x
         Nothing -> List.head model.results)
