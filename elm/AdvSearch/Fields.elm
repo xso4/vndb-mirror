@@ -104,25 +104,24 @@ nestToQuery model =
 
 nestFromQuery : QType -> QType -> Data -> Query -> Maybe (Data, NestModel)
 nestFromQuery ptype qtype dat q =
-  let init and neg l =
+  let init and l =
         let (ndat,fl) = List.foldr (\f (d,a) -> let (nd,fm) = fieldFromQuery qtype d f in (nd,(fm::a))) (dat,[]) l
-            (ndat2,m) = nestInit and ptype qtype fl ndat
-        in (ndat2, { m | neg = neg })
+        in nestInit and ptype qtype fl ndat
 
-      initSub op val =
-        case (op, val) of
-          (Eq, QAnd l) -> Just (init True  False l)
-          (Ne, QAnd l) -> Just (init True  True  l)
-          (Eq, QOr  l) -> Just (init False False l)
-          (Ne, QOr  l) -> Just (init False True  l)
-          (Eq,      x) -> Just (init True  False [x])
-          (Ne,      x) -> Just (init True  True  [x])
-          _ -> Nothing
+      initSub op val = if op /= Eq && op /= Ne then Nothing else Just <|
+        let (ndat,f) = fieldFromQuery qtype dat val
+            (ndat2,m) = nestInit True ptype qtype [f] ndat
+            -- If there is only a single nested query and it's an and/or nest, merge it into this node.
+            m2 = case m.fields of
+                  [(_,_,FMNest cm)] -> if cm.ptype == cm.qtype then { m | fields = cm.fields, and = cm.and } else m
+                  _ -> m
+        in (ndat2, { m2 | neg = op == Ne })
+
   in case (ptype, qtype, q) of
        (V, R, QQuery 50 op r) -> initSub op r
        (V, C, QQuery 51 op r) -> initSub op r
-       (_, _, QAnd l) -> if ptype == qtype then Just (init True  False l) else Nothing
-       (_, _, QOr  l) -> if ptype == qtype then Just (init False False l) else Nothing
+       (_, _, QAnd l) -> if ptype == qtype then Just (init True  l) else Nothing
+       (_, _, QOr  l) -> if ptype == qtype then Just (init False l) else Nothing
        _ -> Nothing
 
 
