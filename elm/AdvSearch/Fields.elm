@@ -188,15 +188,22 @@ nestView dat dd model =
       then fieldViewDd dat dd andlbl andcont
       else fieldViewDd dat dd neglbl negcont
 
-    initialdd = if model.ptype == model.qtype || List.length model.fields == 1 then [ ourdd, add ] else [ ourdd, and, add ]
+    initialdd = if model.ptype == model.qtype || List.length model.fields == 1 then [ ourdd ] else [ ourdd, and ]
 
   in
     if hasNest
     then table [ class "advnest" ] <| List.indexedMap (\i f -> tr []
-          [ td [] <| if i == 0 then initialdd else [ b [ class "grayedout" ] [ andlbl ] ]
+          [ td [] <| if i == 0 then initialdd else []
+          , td [ class (if i == 0 then "start" else "mid") ] [ div [] [], span [] [] ]
           , td [] [ f ]
           ]) filters
-    else div [ class "advrow" ] (initialdd ++ [b [ class "grayedout" ] [ text " → " ]] ++ filters)
+          ++ [ tr []
+               [ td [] []
+               , td [ class "end" ] [ div [] [], span [] [] ]
+               , td [] [ add ]
+               ]
+             ]
+    else div [ class "advrow" ] (initialdd ++ [b [ class "grayedout" ] [ text " → " ]] ++ filters ++ [add])
 
 
 
