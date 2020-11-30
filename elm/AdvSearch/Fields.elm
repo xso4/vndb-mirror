@@ -369,11 +369,11 @@ fieldUpdate dat msg_ (num, dd, model) =
             let fieldField = List.drop fieldNum parentModel.fields |> List.take 1
                 newFields = List.map (\(fid,fdd,fm) -> (fid, DD.toggle fdd False, fm)) fieldField
                 newParentModel = { parentModel | fields = delidx fieldNum parentModel.fields }
+                addGrandFields = List.take parentNum grandModel.fields ++ newFields ++ List.drop parentNum grandModel.fields
                 newGrandFields =
-                  (if List.isEmpty newParentModel.fields
-                   then delidx parentNum grandModel.fields
-                   else modidx parentNum (\(pid,pdd,_) -> (pid,pdd,FMNest newParentModel)) grandModel.fields
-                  ) ++ newFields
+                  if List.isEmpty newParentModel.fields
+                  then delidx (parentNum+1) addGrandFields
+                  else modidx (parentNum+1) (\(pid,pdd,_) -> (pid,pdd,FMNest newParentModel)) addGrandFields
                 newGrandModel = { grandModel | fields = newGrandFields }
             in (dat, (num,dd,FMNest newGrandModel), Cmd.none)
           _ -> noop
