@@ -268,9 +268,14 @@ sub _enc_query {
 #                 Fields that don't occur often should use numbers above 50, for better encoding of common fields.
 #   $value     -> TUWF::Validate schema for value validation, or $query_type to accept a nested query.
 #   %options:
-#       $op    -> Operator definitions and sql() generation functions.
-#       sql    -> sql() generation function that is called for all operators.
-#       compact -> Function to convert a value from normalized JSON form into compact JSON form.
+#       $op      -> Operator definitions and sql() generation functions.
+#       sql      -> sql() generation function that is called for all operators.
+#       sql_list -> Alternative to the '=' and '!=' $op definitions to optimize lists of (in)equality queries.
+#                   sql() generation function that is called with the following arguments:
+#                   - negate, 1/0 - whether the entire query should be negated
+#                   - all, 1/0 - whether all values must match, 1=all, 0=any
+#                   - arrayref of values to compare for equality
+#       compact  -> Function to convert a value from normalized JSON form into compact JSON form.
 #
 #   An implementation for the '!=' operator will be supplied automatically if it's not explicitely defined.
 #   NOTE: That implementation does NOT work for NULL values.
@@ -282,6 +287,8 @@ sub f {
         value => ref $v eq 'HASH' ? tuwf->compile($v) : $v,
         @opts,
     );
+    $f{'='}  = sub { $f{sql_list}->(0,0,[$_]) } if !$f{'='}  && $f{sql_list};
+    $f{'!='} = sub { $f{sql_list}->(1,0,[$_]) } if !$f{'!='} && $f{sql_list};
     $f{'!='} = sub { sql 'NOT (', $f{'='}->(@_), ')' } if $f{'='} && !$f{'!='};
     $f{vndbid} = ref $v eq 'HASH' && $v->{vndbid} && !ref $v->{vndbid} && $v->{vndbid};
     $f{int} = ref $f{value} && ($v->{fuzzyrdate} || $f{value}->analyze->{type} eq 'int' || $f{value}->analyze->{type} eq 'bool');
@@ -306,7 +313,7 @@ f v =>  6 => 'developer',{ vndbid => 'p' },
 
 f v =>  8 => 'tag',      { type => 'any', func => \&_validate_tag },
     compact => sub { my $id = ($_->[0] =~ s/^g//r)*1; $_->[1] == 0 && $_->[2] == 0 ? $id : [ $id, int($_->[2]*5)*3 + $_->[1] ] },
-    '=' => sub { sql 'v.id IN(SELECT vid FROM tags_vn_inherit WHERE tag = vndbid_num(', \$_->[0], ') AND spoiler <=', \$_->[1], 'AND rating >=', \$_->[2], ')' };
+    sql_list => \&_sql_where_tag;
 
 f v => 50 => 'release',  'r', '=' => sub { sql 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE NOT r.hidden AND', $_, ')' };
 f v => 51 => 'character','c', '=' => sub { sql 'v.id IN(SELECT cv.vid FROM chars c JOIN chars_vns cv ON cv.id = c.id WHERE NOT c.hidden AND', $_, ')' }; # TODO: Spoiler setting?
@@ -337,7 +344,7 @@ f c => 11 => 'cup',        { enum => \%CUP_SIZE },      sql => sub { sql 'c.cup_
 f c => 12 => 'age',        { uint => 1, max => 32767 }, sql => sub { sql 'c.age     <> 0 AND c.age',     $_[0], \$_ };
 f c => 13 => 'trait',      { type => 'any', func => \&_validate_trait },
     compact => sub { my $id = ($_->[0] =~ s/^i//r)*1; $_->[1] == 0 ? $id : [ $id, int $_->[1] ] },
-    '=' => sub { sql 'c.id IN(SELECT cid FROM traits_chars WHERE tid = vndbid_num(', \$_->[0], ') AND spoil <=', \$_->[1], ')' };
+    sql_list => \&_sql_where_trait;
 
 
 
@@ -414,10 +421,84 @@ TUWF::set('custom_validations')->{advsearch} = sub { my($t) = @_; +{ required =>
 } } };
 
 
+
+# "Canonicalize"/simplify a query (in Normalized JSON form):
+# - Merges nested and/or's where possible
+# - Removes duplicate filters where possible
+# - Sorts fields and values, for deterministic processing
+#
+# This function is unaware of the behavior of individual filters, so it can't
+# currently simplify a query like "(a < 10) and (a < 9)" into "a < 9".
+#
+# The returned query is suitable for generating SQL and comparison of different
+# queries, but should not be given to the Elm UI as it changes the way fields
+# are merged.
+sub _canon {
+    my($t, $q) = @_;
+    return [ $q->[0], $q->[1], _canon($_->{value}, $q->[2]) ] if (local $_ = $FIELDS{$t}{$q->[0]}) && !ref $_->{value};
+    return $q if $q->[0] ne 'or' && $q->[0] ne 'and';
+    my @l = map _canon($t, $_), @$q[1..$#$q];
+    @l = map $_->[0] eq $q->[0] ? @$_[1..$#$_] : $_, @l; # Merge nested and/or's
+    return $l[0] if @l == 1; # and/or with a single field -> flatten
+
+    sub _stringify { ref $_[0] ? join ':', map _stringify($_), $_[0]->@* : $_[0] }
+    my %l = map +(_stringify($_),$_), @l;
+    [ $q->[0], map $l{$_}, sort keys %l ]
+}
+
+
+# sql_list function for tags
+sub _sql_where_tag {
+    my($neg, $all, $val) = @_;
+    my %f; # spoiler -> rating -> list
+    my @l;
+    push $f{$_->[1]}{$_->[2]}->@*, $_->[0] for @$val;
+    for my $s (keys %f) {
+        for my $r (keys $f{$s}->%*) {
+            push @l, sql('spoiler <=', \$s, 'AND rating >=', \$r, 'AND tag IN', [ map s/^.//r, $f{$s}{$r}->@* ]);
+        }
+    }
+    sql 'v.id', $neg ? 'NOT' : (), 'IN(SELECT vid FROM tags_vn_inherit WHERE', sql_or(@l), $all && @$val > 1 ? ('GROUP BY vid HAVING COUNT(tag) =', \scalar @$val) : (), ')'
+}
+
+sub _sql_where_trait {
+    my($neg, $all, $val) = @_;
+    my %f; # spoiler -> list
+    my @l;
+    push $f{$_->[1]}->@*, $_->[0] for @$val;
+    for my $s (keys %f) {
+        push @l, sql('spoil <=', \$s, 'AND tid IN', [ map s/^.//r, $f{$s}->@* ]);
+    }
+    sql 'c.id', $neg ? 'NOT' : (), 'IN(SELECT cid FROM traits_chars WHERE', sql_or(@l), $all && @$val > 1 ? ('GROUP BY cid HAVING COUNT(tid) =', \scalar @$val) : (), ')'
+}
+
+
 sub _sql_where {
     my($t, $q) = @_;
-    return sql_and map _sql_where($t, $_), @$q[1..$#$q] if $q->[0] eq 'and';
-    return sql_or  map _sql_where($t, $_), @$q[1..$#$q] if $q->[0] eq 'or';
+
+    if($q->[0] eq 'and' || $q->[0] eq 'or') {
+        my %f; # For sql_list; field -> op -> list of values
+        my @l; # Remaining non-batched queries
+        for my $cq (@$q[1..$#$q]) {
+            my $cf = $FIELDS{$t}{$cq->[0]};
+            if($cf && $cf->{sql_list} && ($cq->[1] eq '=' || $cq->[1] eq '!=')) {
+                push $f{$cq->[0]}{$cq->[1]}->@*, $cq->[2];
+            } else {
+                push @l, _sql_where($t, $cq);
+            }
+        }
+
+        for my $field (keys %f) {
+            for my $op (keys $f{$field}->%*) {
+                push @l, $FIELDS{$t}{$field}{sql_list}->(
+                    $q->[0] eq 'and' ? ($op eq '=' ? (0, 1) : (1, 0)) : $op eq '=' ? (0, 0) : (1, 1),
+                    $f{$field}{$op}
+                )
+            }
+        }
+
+        return $q->[0] eq 'and' ? sql_and @l : sql_or @l;
+    }
 
     my $f = $FIELDS{$t}{$q->[0]};
     my $func = $f->{$q->[1]} || $f->{sql};
@@ -428,7 +509,7 @@ sub _sql_where {
 
 sub sql_where {
     my($self) = @_;
-    $self->{query} ? _sql_where $self->{type}, $self->{query} : '1=1';
+    $self->{query} ? _sql_where $self->{type}, _canon $self->{type}, $self->{query} : '1=1';
 }
 
 
