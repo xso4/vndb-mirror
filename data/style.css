@@ -1131,7 +1131,9 @@ p.filselect i { font-style: normal }
 /****** Advanced Search *******/
 
 .advsearch { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center }
-.advsearch .advrow > div:first-child { width: auto }
+.advsearch .advrow > tr > td { padding: 0 2px }
+.advsearch .advrow > tr > td:first-child { text-align: right; white-space: nowrap; }
+.advsearch .advrow > tr > td:first-child > div { width: auto }
 .advsearch .advnest > tr > td { padding: 0 2px }
 .advsearch .advnest > tr > td:first-child { text-align: right; white-space: nowrap; }
 .advsearch .advnest > tr > td:first-child > div { width: auto }

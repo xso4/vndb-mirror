@@ -203,7 +203,9 @@ nestView dat dd model =
                , td [] [ add ]
                ]
              ]
-    else div [ class "advrow" ] (initialdd ++ [b [ class "grayedout" ] [ text " → " ]] ++ filters ++ [add])
+    else table [ class "advrow" ] [ tr []
+         [ td [] (initialdd ++ [b [ class "grayedout" ] [ text " → " ]])
+         , td [] (filters ++ [add]) ] ]
 
 
 
