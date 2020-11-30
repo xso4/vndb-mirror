@@ -50,11 +50,14 @@ TUWF::get qr{/experimental/v}, sub {
         f => { advsearch => 'v' },
         s => { onerror => 'title', enum => [qw/title rel pop rating/] },
         o => { onerror => 'a', enum => ['a','d'] },
+        ch=> { onerror => undef, enum => ['0', 'a'..'z'] },
     )->data;
 
     my $where = sql_and
         'NOT v.hidden', $opt->{f}->sql_where(),
-        $opt->{q} ? map sql('v.c_search LIKE', \"%$_%"), normalize_query $opt->{q} : ();
+        $opt->{q} ? map sql('v.c_search LIKE', \"%$_%"), normalize_query $opt->{q} : (),
+        defined($opt->{ch}) && $opt->{ch} ? sql('LOWER(SUBSTR(v.title, 1, 1)) =', \$opt->{ch}) : (),
+        defined($opt->{ch}) && !$opt->{ch} ? sql('(ASCII(v.title) <', \97, 'OR ASCII(v.title) >', \122, ') AND (ASCII(v.title) <', \65, 'OR ASCII(v.title) >', \90, ')') : ();
 
     my $time = time;
     my $count = tuwf->dbVali('SELECT count(*) FROM vn v WHERE', $where);
@@ -97,6 +100,10 @@ TUWF::get qr{/experimental/v}, sub {
             br_;
             form_ action => '/experimental/v', method => 'get', sub {
                 searchbox_ v => $opt->{q};
+                p_ class => 'browseopts', sub {
+                    button_ type => 'submit', name => 'ch', value => ($_//''), ($_//'') eq ($opt->{ch}//'') ? (class => 'optselected') : (), !defined $_ ? 'ALL' : $_ ? uc $_ : '#'
+                        for (undef, 'a'..'z', 0);
+                };
                 $opt->{f}->elm_;
             };
             p_ class => 'center', sprintf '%d results in %.3fs', $count, $time;

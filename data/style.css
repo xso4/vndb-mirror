@@ -149,7 +149,7 @@ pre {
 
 /***** general form markup *****/
 
-input.text, input.submit, select, textarea {
+input.text, input.submit, select, textarea, button {
   background-color: $secbg$;
   color: $maintext$;
   border: 1px solid $secborder$;
@@ -160,7 +160,7 @@ input.text, input.submit, select, textarea {
 form, fieldset           { border: 0; display: block }
 legend                   { display: none; }
 optgroup option          { padding-left: 10px; font-style: normal; }
-input.submit             { background: $boxbg$; padding: 1px 5px; cursor: pointer }
+input.submit, button     { background: $boxbg$; padding: 1px 5px; cursor: pointer }
 input.text, select       { width: 200px; }
 input[type=number]       { -moz-appearance:textfield }
 input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0 }
@@ -348,7 +348,7 @@ a.feed                  { float: right }
 
 /***** Browsing ******/
 
-.browseopts a {
+.browseopts a, .browseopts button {
   padding: 1px 3px;
   color: $maintext$;
   border: 1px solid $border$;
@@ -357,8 +357,9 @@ a.feed                  { float: right }
 }
 p.browseopts                    { text-align: center; padding: 2px; }
 span.browseopts                 { text-align: center; padding: 10px; display: inline-block }
-.browseopts a.optselected,
-.browseopts a:hover             { border: 0; padding: 2px 4px; }
+.browseopts .optselected,
+.browseopts a:hover,
+.browseopts button:hover        { border: 0; padding: 2px 4px; }
 div.mainbox.browse              { padding: 0; }
 div.mainbox.browse table        { width: 100%; }
 div.mainbox.browse table td.tc1 { padding-left: 25px; }
@@ -1155,7 +1156,7 @@ p.filselect i { font-style: normal }
 .advsearch .advbut > b { color: $grayedout$; font-style: normal }
 .advsearch .advheader { box-sizing: border-box; background-color: $_blendbg$; padding: 3px; width: 100%; margin-bottom: 2px }
 .advsearch .advheader > h3 { text-align: center; font-weight: bold; font-size: inherit; margin-bottom: 3px }
-.advsearch .advheader .opts { display: flex; justify-content: space-between; align-items: flex-end }
+.advsearch .advheader .opts { display: flex; justify-content: space-between; align-items: flex-end; min-width: 170px }
 .advsearch .advheader .opts > * { margin: 0; white-space: nowrap }
 .advsearch .advheader .opselect > * { display: inline-block; font-size: 18px; padding: 0 5px }
 .advsearch input.submit { margin-top: 5px }
