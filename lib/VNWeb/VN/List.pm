@@ -50,8 +50,9 @@ TUWF::get qr{/experimental/v}, sub {
         f => { advsearch => 'v' },
         s => { onerror => 'title', enum => [qw/title rel pop rating/] },
         o => { onerror => 'a', enum => ['a','d'] },
-        ch=> { onerror => undef, enum => ['0', 'a'..'z'] },
+        ch=> { onerror => [], type => 'array', scalar => 1, values => { onerror => undef, enum => ['0', 'a'..'z'] } },
     )->data;
+    $opt->{ch} = $opt->{ch}[0];
 
     my $where = sql_and
         'NOT v.hidden', $opt->{f}->sql_where(),
@@ -104,6 +105,9 @@ TUWF::get qr{/experimental/v}, sub {
                     button_ type => 'submit', name => 'ch', value => ($_//''), ($_//'') eq ($opt->{ch}//'') ? (class => 'optselected') : (), !defined $_ ? 'ALL' : $_ ? uc $_ : '#'
                         for (undef, 'a'..'z', 0);
                 };
+                input_ type => 'hidden', name => 'o', value => $opt->{o};
+                input_ type => 'hidden', name => 's', value => $opt->{s};
+                input_ type => 'hidden', name => 'ch', value => $opt->{ch}//'';
                 $opt->{f}->elm_;
             };
             p_ class => 'center', sprintf '%d results in %.3fs', $count, $time;
