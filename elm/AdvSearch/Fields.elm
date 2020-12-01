@@ -471,16 +471,16 @@ fieldToQuery (_, _, model) =
     FMBlood m    -> AS.toQuery (QStr 3) m
     FMSexChar m  -> AS.toQuery (QStr 4) m
     FMSexSpoil m -> AS.toQuery (QStr 5) m
-    FMHeight m   -> AR.toQuery (QInt 6) m
-    FMWeight m   -> AR.toQuery (QInt 7) m
-    FMBust m     -> AR.toQuery (QInt 8) m
-    FMWaist m    -> AR.toQuery (QInt 9) m
-    FMHips m     -> AR.toQuery (QInt 10) m
-    FMCup m      -> AR.toQuery (QStr 11) m
-    FMAge m      -> AR.toQuery (QInt 12) m
-    FMPopularity m->AR.toQuery (QInt 9) m
-    FMRating m   -> AR.toQuery (QInt 10) m
-    FMVotecount m-> AR.toQuery (QInt 11) m
+    FMHeight m   -> AR.toQuery (QInt 6) (QStr 6) m
+    FMWeight m   -> AR.toQuery (QInt 7) (QStr 7) m
+    FMBust m     -> AR.toQuery (QInt 8) (QStr 8) m
+    FMWaist m    -> AR.toQuery (QInt 9) (QStr 9) m
+    FMHips m     -> AR.toQuery (QInt 10) (QStr 10) m
+    FMCup m      -> AR.toQuery (QStr 11) (QStr 11) m
+    FMAge m      -> AR.toQuery (QInt 12) (QStr 12) m
+    FMPopularity m->AR.toQuery (QInt 9) (QStr 9) m
+    FMRating m   -> AR.toQuery (QInt 10) (QStr 10) m
+    FMVotecount m-> AR.toQuery (QInt 11) (QStr 11) m
     FMDeveloper m-> AP.toQuery (QInt 6) m
     FMRDate m    -> AD.toQuery m
     FMResolution m-> AE.toQuery m

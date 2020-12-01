@@ -335,13 +335,20 @@ f c =>  2 => 'role',       { enum => \%CHAR_ROLE  }, '=' => sub { sql 'cv.role =
 f c =>  3 => 'blood-type', { enum => \%BLOOD_TYPE }, '=' => sub { sql 'c.bloodt =', \$_ };
 f c =>  4 => 'sex',        { enum => \%GENDER },     '=' => sub { sql 'c.gender =', \$_ };
 f c =>  5 => 'sex-spoil',  { enum => \%GENDER },     '=' => sub { sql '(c.gender =', \$_, 'AND c.spoil_gender IS NULL) OR c.spoil_gender IS NOT DISTINCT FROM', \$_ };
-f c =>  6 => 'height',     { uint => 1, max => 32767 }, sql => sub { sql 'c.height  <> 0 AND c.height',  $_[0], \$_ };
-f c =>  7 => 'weight',     { uint => 1, max => 32767 }, sql => sub { sql                    'c.weight',  $_[0], \$_ };
-f c =>  8 => 'bust',       { uint => 1, max => 32767 }, sql => sub { sql 'c.s_bust  <> 0 AND c.s_bust',  $_[0], \$_ };
-f c =>  9 => 'waist',      { uint => 1, max => 32767 }, sql => sub { sql 'c.s_waist <> 0 AND c.s_waist', $_[0], \$_ };
-f c => 10 => 'hips',       { uint => 1, max => 32767 }, sql => sub { sql 'c.s_hip   <> 0 AND c.s_hip',   $_[0], \$_ };
-f c => 11 => 'cup',        { enum => \%CUP_SIZE },      sql => sub { sql 'c.cup_size <> \'\' AND c.cup_size', $_[0], \$_ };
-f c => 12 => 'age',        { uint => 1, max => 32767 }, sql => sub { sql 'c.age     <> 0 AND c.age',     $_[0], \$_ };
+f c =>  6 => 'height',     { required => 0, default => undef, uint => 1, max => 32767 },
+    sql => sub { !defined $_ ? sql 'c.height', $_[0], 0 : sql 'c.height <> 0 AND c.height', $_[0], \$_ };
+f c =>  7 => 'weight',     { required => 0, default => undef, uint => 1, max => 32767 },
+    sql => sub { !defined $_ ? sql('c.weight IS', $_[0] eq '=' ? '' : 'NOT', 'NULL') : sql 'c.weight', $_[0], \$_ };
+f c =>  8 => 'bust',       { required => 0, default => undef, uint => 1, max => 32767 },
+    sql => sub { !defined $_ ? sql 'c.s_bust', $_[0], 0 : sql 'c.s_bust <> 0 AND c.s_bust', $_[0], \$_ };
+f c =>  9 => 'waist',      { required => 0, default => undef, uint => 1, max => 32767 },
+    sql => sub { !defined $_ ? sql 'c.s_waist', $_[0], 0 : sql 'c.s_waist <> 0 AND c.s_waist', $_[0], \$_ };
+f c => 10 => 'hips',       { required => 0, default => undef, uint => 1, max => 32767 },
+    sql => sub { !defined $_ ? sql 'c.s_hip', $_[0], 0 : sql 'c.s_hip <> 0 AND c.s_hip', $_[0], \$_ };
+f c => 11 => 'cup',        { required => 0, default => undef, enum => \%CUP_SIZE },
+    sql => sub { !defined $_ ? sql 'c.cup_size', $_[0], "''" : sql 'c.cup_size <> \'\' AND c.cup_size', $_[0], \$_ };
+f c => 12 => 'age',        { required => 0, default => undef, uint => 1, max => 32767 },
+    sql => sub { !defined $_ ? sql('c.age IS', $_[0] eq '=' ? '' : 'NOT', 'NULL') : sql 'c.age', $_[0], \$_ };
 f c => 13 => 'trait',      { type => 'any', func => \&_validate_trait },
     compact => sub { my $id = ($_->[0] =~ s/^i//r)*1; $_->[1] == 0 ? $id : [ $id, int $_->[1] ] },
     sql_list => \&_sql_where_trait;
@@ -441,7 +448,7 @@ sub _canon {
     @l = map $_->[0] eq $q->[0] ? @$_[1..$#$_] : $_, @l; # Merge nested and/or's
     return $l[0] if @l == 1; # and/or with a single field -> flatten
 
-    sub _stringify { ref $_[0] ? join ':', map _stringify($_), $_[0]->@* : $_[0] }
+    sub _stringify { ref $_[0] ? join ':', map _stringify($_//''), $_[0]->@* : $_[0] }
     my %l = map +(_stringify($_),$_), @l;
     [ $q->[0], map $l{$_}, sort keys %l ]
 }
@@ -520,6 +527,7 @@ sub _compact_json {
     my $f = $FIELDS{$t}{$q->[0]};
     [ int $f->{num}, $q->[1],
           $f->{compact}       ? do { local $_ = $q->[2]; $f->{compact}->($_) }
+        : !defined $q->[2]    ? ''
         : _is_tuple( $q->[2]) ? [ int($q->[2][0] =~ s/^[a-z]//rg), int($q->[2][1]) ]
         : $f->{vndbid}        ? int ($q->[2] =~ s/^$f->{vndbid}//rg)
         : $f->{int}           ? int $q->[2]
