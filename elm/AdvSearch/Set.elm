@@ -334,3 +334,26 @@ animatedFromQuery story = fromQuery (\q ->
     QInt 13 op v -> if not story then Just (op, v) else Nothing
     QInt 14 op v -> if     story then Just (op, v) else Nothing
     _ -> Nothing)
+
+
+
+
+-- Release type
+
+rtypeView model =
+  ( case Set.toList model.sel of
+      []  -> b [ class "grayedout" ] [ text "Type" ]
+      [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" (lookup v GT.releaseTypes) ]
+      l   -> span [ class "nowrap" ] [ lblPrefix model, text <| "Types (" ++ String.fromInt (List.length l) ++ ")" ]
+  , \() ->
+    [ div [ class "advheader" ]
+      [ h3 [] [ text "Release type" ]
+      , opts model False True ]
+    , ul [] <| List.map (\(k,l) -> li [] [ linkRadio (Set.member k model.sel) (Sel k) [ text l ] ]) GT.releaseTypes
+    ]
+  )
+
+rtypeFromQuery = fromQuery (\q ->
+  case q of
+    QStr 16 op v -> Just (op, v)
+    _ -> Nothing)

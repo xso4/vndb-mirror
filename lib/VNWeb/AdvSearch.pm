@@ -306,6 +306,10 @@ f v =>  7 => 'released',  { fuzzyrdate => 1 }, sql => sub { sql 'v.c_released', 
 f v =>  9 => 'popularity',{ uint => 1, range => [ 0,  100] }, sql => sub { sql 'v.c_popularity', $_[0], \($_/100) };
 f v => 10 => 'rating',    { uint => 1, range => [10,  100] }, sql => sub { sql 'v.c_rating <> 0 AND v.c_rating', $_[0], \$_ };
 f v => 11 => 'vote-count',{ uint => 1, range => [ 0,1<<30] }, sql => sub { sql 'v.c_votecount', $_[0], \$_ };
+f v => 61 => 'has-description', { uint => 1, range => [1,1] }, '=' => sub { 'v."desc" <> \'\'' };
+f v => 62 => 'has-anime',       { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM vn_anime va WHERE va.id = v.id)' };
+f v => 63 => 'has-screenshot',  { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM vn_screenshots vs WHERE vs.id = v.id)' };
+f v => 64 => 'has-review',      { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM reviews r WHERE r.vid = v.id AND NOT r.c_flagged)' };
 
 f v =>  6 => 'developer',{ vndbid => 'p' },
     '=' => sub { sql 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id JOIN releases_producers rp ON rp.id = r.id
@@ -325,17 +329,23 @@ f r =>  4 => 'platform', { enum => \%PLATFORM }, '=' => sub { sql 'r.id IN(SELEC
 f r =>  6 => 'developer',{ vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE developer AND pid = vndbid_num(', \$_, '))' };
 f r =>  7 => 'released', { fuzzyrdate => 1 }, sql => sub { sql 'r.released', $_[0], \($_ == 1 ? strftime('%Y%m%d', gmtime) : $_) };
 f r =>  8 => 'resolution',        { type => 'array', length => 2, values => { uint => 1, max => 32767 } },
-    sql => sub { sql 'r.reso_x', $_[0], \$_->[0], 'AND r.reso_y', $_[0], \$_->[1], $_->[0] ? 'AND r.reso_x > 0' : () };
+    sql => sub { sql 'NOT r.patch AND r.reso_x', $_[0], \$_->[0], 'AND r.reso_y', $_[0], \$_->[1], $_->[0] ? 'AND r.reso_x > 0' : () };
 f r =>  9 => 'resolution-aspect', { type => 'array', length => 2, values => { uint => 1, max => 32767 } },
-    sql => sub { sql 'r.reso_x', $_[0], \$_->[0], 'AND r.reso_y', $_[0], \$_->[1], 'AND r.reso_x*1000/GREATEST(1, r.reso_y) =', \(int ($_->[0]*1000/max(1,$_->[1]))), $_->[0] ? 'AND r.reso_x > 0' : () };
+    sql => sub { sql 'NOT r.patch AND r.reso_x', $_[0], \$_->[0], 'AND r.reso_y', $_[0], \$_->[1], 'AND r.reso_x*1000/GREATEST(1, r.reso_y) =', \(int ($_->[0]*1000/max(1,$_->[1]))), $_->[0] ? 'AND r.reso_x > 0' : () };
 f r => 10 => 'minage',   { required => 0, default => undef, uint => 1, enum => \%AGE_RATING },
     sql => sub { !defined $_ ? sql 'r.minage', $_[0], -1 : sql 'r.minage <> -1 AND r.minage', $_[0], \$_ };
 f r => 11 => 'medium',   { required => 0, default => undef, enum => \%MEDIUM },
     '=' => sub { !defined $_ ? 'NOT EXISTS(SELECT 1 FROM releases_media rm WHERE rm.id = r.id)' : sql 'EXISTS(SELECT 1 FROM releases_media rm WHERE rm.id = r.id AND rm.medium =', \$_, ')' };
-f r => 12 => 'voiced',   { uint => 1, enum => \%VOICED }, '=' => sub { sql 'r.voiced =', \$_ };
-f r => 13 => 'animation-ero',   { uint => 1, enum => \%ANIMATED }, '=' => sub { sql 'r.ani_ero =', \$_ };
-f r => 14 => 'animation-story', { uint => 1, enum => \%ANIMATED }, '=' => sub { sql 'r.ani_story =', \$_ };
+f r => 12 => 'voiced',   { uint => 1, enum => \%VOICED }, '=' => sub { sql 'NOT r.patch AND r.voiced =', \$_ };
+f r => 13 => 'animation-ero',   { uint => 1, enum => \%ANIMATED }, '=' => sub { sql 'NOT r.patch AND r.ani_ero =', \$_ };
+f r => 14 => 'animation-story', { uint => 1, enum => \%ANIMATED }, '=' => sub { sql 'NOT r.patch AND r.ani_story =', \$_ };
 f r => 15 => 'engine',   { required => 0, default => '' }, '=' => sub { sql 'r.engine =', \$_ };
+f r => 16 => 'rtype',    { enum => \%RELEASE_TYPE }, '=' => sub { sql 'r.type =', \$_ };
+f r => 61 => 'patch',    { uint => 1, range => [1,1] }, '=' => sub { 'r.patch' };
+f r => 62 => 'freeware', { uint => 1, range => [1,1] }, '=' => sub { 'r.freeware' };
+f r => 63 => 'doujin',   { uint => 1, range => [1,1] }, '=' => sub { 'r.doujin' };
+f r => 64 => 'uncensored',{uint => 1, range => [1,1] }, '=' => sub { 'r.uncensored' };
+f r => 65 => 'official', { uint => 1, range => [1,1] }, '=' => sub { 'r.official' };
 
 
 

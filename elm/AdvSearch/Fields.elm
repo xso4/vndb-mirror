@@ -222,9 +222,15 @@ nestView dat dd model =
 
 type alias Field = (Int, DD.Config FieldMsg, FieldModel) -- The Int is the index into 'fields'
 
+type alias ListModel =
+  { val : Int
+  , lst : List (Query, String)
+  }
+
 type FieldModel
   = FMCustom     Query -- A read-only placeholder for Query values that failed to parse into a Field
   | FMNest       NestModel
+  | FMList       ListModel
   | FMLang       (AS.Model String)
   | FMOLang      (AS.Model String)
   | FMPlatform   (AS.Model String)
@@ -237,6 +243,7 @@ type FieldModel
   | FMVoiced     (AS.Model Int)
   | FMAniEro     (AS.Model Int)
   | FMAniStory   (AS.Model Int)
+  | FMRType      (AS.Model String)
   | FMHeight     (AR.Model Int)
   | FMWeight     (AR.Model Int)
   | FMBust       (AR.Model Int)
@@ -258,6 +265,7 @@ type FieldModel
 type FieldMsg
   = FSCustom     () -- Not actually used at the moment
   | FSNest       NestMsg
+  | FSList       Int
   | FSLang       (AS.Msg String)
   | FSOLang      (AS.Msg String)
   | FSPlatform   (AS.Msg String)
@@ -270,6 +278,7 @@ type FieldMsg
   | FSVoiced     (AS.Msg Int)
   | FSAniEro     (AS.Msg Int)
   | FSAniStory   (AS.Msg Int)
+  | FSRType      (AS.Msg String)
   | FSHeight     AR.Msg
   | FSWeight     AR.Msg
   | FSBust       AR.Msg
@@ -311,6 +320,10 @@ fields =
         , init      = \d -> (Tuple.mapSecond wrap (init d))
         , fromQuery = \d q -> Maybe.map (Tuple.mapSecond wrap) (fromq d q)
         }
+      -- List type queries are fully defined here for convenience
+      l qtype title quick lst =
+        f qtype title quick FMList (\d -> (d, { val = 0, lst = lst }))
+          (\d q -> List.indexedMap (\n (k,v) -> (n,k,v)) lst |> List.filter (\(n,k,_) -> k == q) |> List.head |> Maybe.map (\(n,_,_) -> (d, { val = n, lst = lst })))
   in Array.fromList
   -- IMPORTANT: This list is processed in reverse order when reading a Query
   -- into Fields, so "catch all" fields must be listed first. In particular,
@@ -334,11 +347,21 @@ fields =
   , f V "Popularity"         0  FMPopularity  AR.popularityInit       AR.popularityFromQuery
   , f V "Rating"             0  FMRating      AR.ratingInit           AR.ratingFromQuery
   , f V "Number of votes"    0  FMVotecount   AR.votecountInit        AR.votecountFromQuery
+  , l V "Has description"    0 [(QInt 61 Eq 1, "Has description"),    (QInt 61 Ne 1, "No description")]
+  , l V "Has anime"          0 [(QInt 62 Eq 1, "Has anime relation"), (QInt 62 Ne 1, "No anime relation")]
+  , l V "Has screenshot"     0 [(QInt 63 Eq 1, "Has screenshot(s)"),  (QInt 63 Ne 1, "No screenshot(s)")]
+  , l V "Has review"         0 [(QInt 64 Eq 1, "Has review(s)"),      (QInt 64 Ne 1, "No review(s)")]
   , f V ""                   0  FMNest        (nestInit True V R [])  (nestFromQuery V R) -- release subtype
   , f V ""                   0  FMNest        (nestInit True V C [])  (nestFromQuery V C) -- character subtype
 
   , f R "Language"           1  FMLang        AS.init                 AS.langFromQuery
   , f R "Platform"           2  FMPlatform    AS.init                 AS.platformFromQuery
+  , f R "Type"               3  FMRType       AS.init                 AS.rtypeFromQuery
+  , l R "Patch"              0 [(QInt 61 Eq 1, "Patch to another release"),(QInt 61 Ne 1, "Standalone release")]
+  , l R "Freeware"           0 [(QInt 62 Eq 1, "Freeware"),                (QInt 62 Ne 1, "Non-free")]
+  , l R "Self-published"     0 [(QInt 63 Eq 1, "Self-published"),          (QInt 63 Ne 1, "Commercially published")]
+  , l R "Uncensored"         0 [(QInt 64 Eq 1, "Uncensored (no mosaic)"),  (QInt 64 Ne 1, "Censored (or no erotic content to censor)")]
+  , l R "Official"           0 [(QInt 65 Eq 1, "Official"),                (QInt 65 Ne 1, "Unofficial")]
   , f R "Developer"          0  FMDeveloper   AP.init                 AP.devFromQuery
   , f R "Release date"       0  FMRDate       AD.init                 AD.fromQuery
   , f R "Resolution"         0  FMResolution  AE.init                 AE.fromQuery
@@ -403,6 +426,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSNest (NAnd a b), FMNest m)  -> mapc FMNest FSNest (nestUpdate dat (NAnd a b) m)
       (FSNest (NNeg a b), FMNest m)  -> mapc FMNest FSNest (nestUpdate dat (NNeg a b) m)
       (FSNest msg,     FMNest m)     -> mapf FMNest FSNest (nestUpdate dat msg m)
+      (FSList msg,     FMList m)     -> (dat, (num,DD.toggle dd False,FMList { m | val = msg }), Cmd.none)
       (FSLang msg,     FMLang m)     -> maps FMLang     (AS.update msg m)
       (FSOLang msg,    FMOLang m)    -> maps FMOLang    (AS.update msg m)
       (FSPlatform msg, FMPlatform m) -> maps FMPlatform (AS.update msg m)
@@ -415,6 +439,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSVoiced msg,   FMVoiced m)   -> maps FMVoiced   (AS.update msg m)
       (FSAniEro msg,   FMAniEro m)   -> maps FMAniEro   (AS.update msg m)
       (FSAniStory msg, FMAniStory m) -> maps FMAniStory (AS.update msg m)
+      (FSRType  msg,   FMRType m)    -> maps FMRType    (AS.update msg m)
       (FSHeight msg,   FMHeight m)   -> maps FMHeight   (AR.update msg m)
       (FSWeight msg,   FMWeight m)   -> maps FMWeight   (AR.update msg m)
       (FSBust msg,     FMBust m)     -> maps FMBust     (AR.update msg m)
@@ -456,8 +481,12 @@ fieldViewDd dat dd lbl cont =
 fieldView : Data -> Field -> Html FieldMsg
 fieldView dat (_, dd, model) =
   let f wrap (lbl,cont) = fieldViewDd dat dd (Html.map wrap lbl) <| \() -> List.map (Html.map wrap) (cont ())
+      l m = ( span [ class "nowrap" ] [ text <| Maybe.withDefault "" <| Maybe.map Tuple.second <| List.head <| List.drop m.val m.lst ]
+            , \() -> [ ul [] <| List.indexedMap (\n (_,v) -> li [] [ linkRadio (n == m.val) (\_ -> n) [ text v ] ]) m.lst ]
+            )
   in case model of
       FMCustom m     -> f FSCustom     (text "Unrecognized query", \() -> [text ""]) -- TODO: Display the Query
+      FMList m       -> f FSList       (l m)
       FMLang  m      -> f FSLang       (AS.langView False m)
       FMOLang m      -> f FSOLang      (AS.langView True  m)
       FMPlatform m   -> f FSPlatform   (AS.platformView m)
@@ -470,6 +499,7 @@ fieldView dat (_, dd, model) =
       FMVoiced m     -> f FSVoiced     (AS.voicedView m)
       FMAniEro m     -> f FSAniEro     (AS.animatedView False m)
       FMAniStory m   -> f FSAniStory   (AS.animatedView True m)
+      FMRType m      -> f FSRType      (AS.rtypeView m)
       FMHeight m     -> f FSHeight     (AR.heightView m)
       FMWeight m     -> f FSWeight     (AR.weightView m)
       FMBust m       -> f FSBust       (AR.bustView m)
@@ -494,6 +524,7 @@ fieldToQuery : Field -> Maybe Query
 fieldToQuery (_, _, model) =
   case model of
     FMCustom m   -> Just m
+    FMList m     -> List.drop m.val m.lst |> List.head |> Maybe.map Tuple.first
     FMNest m     -> nestToQuery m
     FMLang  m    -> AS.toQuery (QStr 2) m
     FMOLang m    -> AS.toQuery (QStr 3) m
@@ -507,6 +538,7 @@ fieldToQuery (_, _, model) =
     FMVoiced m   -> AS.toQuery (QInt 12) m
     FMAniEro m   -> AS.toQuery (QInt 13) m
     FMAniStory m -> AS.toQuery (QInt 14) m
+    FMRType m    -> AS.toQuery (QStr 16) m
     FMHeight m   -> AR.toQuery (QInt 6) (QStr 6) m
     FMWeight m   -> AR.toQuery (QInt 7) (QStr 7) m
     FMBust m     -> AR.toQuery (QInt 8) (QStr 8) m
