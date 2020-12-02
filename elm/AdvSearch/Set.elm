@@ -255,3 +255,81 @@ sexFromQuery stype = fromQuery (\q ->
     (SexSpoil, QStr 5 op v) -> Just (op, v)
     -- TODO: SexGender
     _ -> Nothing)
+
+
+
+
+-- Release medium
+
+mediumView model =
+  ( case Set.toList model.sel of
+      []  -> b [ class "grayedout" ] [ text "Medium" ]
+      [v] -> span [ class "nowrap" ]
+             [ lblPrefix model
+             , text <| if v == "" then "Medium: Unknown" else
+                       Maybe.withDefault "" <| List.head <| List.filterMap (\(k,l,_) -> if v == k then Just l else Nothing) GT.media
+             ]
+      l   -> span [] [ lblPrefix model, text <| "Media (" ++ String.fromInt (List.length l) ++ ")" ]
+  , \() ->
+    [ div [ class "advheader" ]
+      [ h3 [] [ text "Medium" ]
+      , opts model True True ]
+    , ul [] <| List.map
+               (\(k,l,_) -> li [] [ linkRadio (Set.member k model.sel) (Sel k) [ text l ] ])
+               (("", "Unknown", True) :: GT.media)
+    ]
+  )
+
+mediumFromQuery = fromQuery (\q ->
+  case q of
+    QStr 11 op v -> Just (op, v)
+    _ -> Nothing)
+
+
+
+
+-- Release voiced
+
+voicedView model =
+  ( case Set.toList model.sel of
+      []  -> b [ class "grayedout" ] [ text "Voiced" ]
+      [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" (lookup v GT.voiced) ]
+      l   -> span [] [ lblPrefix model, text <| "Voiced (" ++ String.fromInt (List.length l) ++ ")" ]
+  , \() ->
+    [ div [ class "advheader" ]
+      [ h3 [] [ text "Voiced" ]
+      , opts model False True ]
+    , ul [] <| List.map (\(k,l) -> li [] [ linkRadio (Set.member k model.sel) (Sel k) [ text l ] ]) GT.voiced
+    ]
+  )
+
+voicedFromQuery = fromQuery (\q ->
+  case q of
+    QInt 12 op v -> Just (op, v)
+    _ -> Nothing)
+
+
+
+
+-- Release animation
+
+animatedView story model =
+  let lbl = (if story then "Story" else "Ero") ++ " animation"
+  in
+  ( case Set.toList model.sel of
+      []  -> b [ class "grayedout" ] [ text lbl ]
+      [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| (if story then "S " else "E ") ++ Maybe.withDefault "" (lookup v GT.animated) ]
+      l   -> span [ class "nowrap" ] [ lblPrefix model, text <| lbl ++ " (" ++ String.fromInt (List.length l) ++ ")" ]
+  , \() ->
+    [ div [ class "advheader" ]
+      [ h3 [] [ text lbl ]
+      , opts model False True ]
+    , ul [] <| List.map (\(k,l) -> li [] [ linkRadio (Set.member k model.sel) (Sel k) [ text l ] ]) GT.animated
+    ]
+  )
+
+animatedFromQuery story = fromQuery (\q ->
+  case q of
+    QInt 13 op v -> if not story then Just (op, v) else Nothing
+    QInt 14 op v -> if     story then Just (op, v) else Nothing
+    _ -> Nothing)

@@ -232,6 +232,10 @@ type FieldModel
   | FMBlood      (AS.Model String)
   | FMSexChar    (AS.Model String)
   | FMSexSpoil   (AS.Model String)
+  | FMMedium     (AS.Model String)
+  | FMVoiced     (AS.Model Int)
+  | FMAniEro     (AS.Model Int)
+  | FMAniStory   (AS.Model Int)
   | FMHeight     (AR.Model Int)
   | FMWeight     (AR.Model Int)
   | FMBust       (AR.Model Int)
@@ -242,6 +246,7 @@ type FieldModel
   | FMPopularity (AR.Model Int)
   | FMRating     (AR.Model Int)
   | FMVotecount  (AR.Model Int)
+  | FMMinAge     (AR.Model Int)
   | FMDeveloper  AP.Model
   | FMRDate      AD.Model
   | FMResolution AE.Model
@@ -259,6 +264,10 @@ type FieldMsg
   | FSBlood      (AS.Msg String)
   | FSSexChar    (AS.Msg String)
   | FSSexSpoil   (AS.Msg String)
+  | FSMedium     (AS.Msg String)
+  | FSVoiced     (AS.Msg Int)
+  | FSAniEro     (AS.Msg Int)
+  | FSAniStory   (AS.Msg Int)
   | FSHeight     AR.Msg
   | FSWeight     AR.Msg
   | FSBust       AR.Msg
@@ -269,6 +278,7 @@ type FieldMsg
   | FSPopularity AR.Msg
   | FSRating     AR.Msg
   | FSVotecount  AR.Msg
+  | FSMinAge     AR.Msg
   | FSDeveloper  AP.Msg
   | FSRDate      AD.Msg
   | FSResolution AE.Msg
@@ -329,6 +339,11 @@ fields =
   , f R "Developer"          0  FMDeveloper   AP.init                 AP.devFromQuery
   , f R "Release date"       0  FMRDate       AD.init                 AD.fromQuery
   , f R "Resolution"         0  FMResolution  AE.init                 AE.fromQuery
+  , f R "Age rating"         0  FMMinAge      AR.minageInit           AR.minageFromQuery
+  , f R "Medium"             0  FMMedium      AS.init                 AS.mediumFromQuery
+  , f R "Voiced"             0  FMVoiced      AS.init                 AS.voicedFromQuery
+  , f R "Ero animation "     0  FMAniEro      AS.init                 (AS.animatedFromQuery False)
+  , f R "Story animation"    0  FMAniStory    AS.init                 (AS.animatedFromQuery True)
 
   , f C "Role"               1  FMRole        AS.init                 AS.roleFromQuery
   , f C "Age"                0  FMAge         AR.ageInit              AR.ageFromQuery
@@ -391,6 +406,10 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSBlood msg,    FMBlood m)    -> maps FMBlood    (AS.update msg m)
       (FSSexChar msg,  FMSexChar m)  -> maps FMSexChar  (AS.update msg m)
       (FSSexSpoil msg, FMSexSpoil m) -> maps FMSexSpoil (AS.update msg m)
+      (FSMedium msg,   FMMedium m)   -> maps FMMedium   (AS.update msg m)
+      (FSVoiced msg,   FMVoiced m)   -> maps FMVoiced   (AS.update msg m)
+      (FSAniEro msg,   FMAniEro m)   -> maps FMAniEro   (AS.update msg m)
+      (FSAniStory msg, FMAniStory m) -> maps FMAniStory (AS.update msg m)
       (FSHeight msg,   FMHeight m)   -> maps FMHeight   (AR.update msg m)
       (FSWeight msg,   FMWeight m)   -> maps FMWeight   (AR.update msg m)
       (FSBust msg,     FMBust m)     -> maps FMBust     (AR.update msg m)
@@ -401,6 +420,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSPopularity msg,FMPopularity m)->maps FMPopularity (AR.update msg m)
       (FSRating msg,   FMRating m)   -> maps FMRating    (AR.update msg m)
       (FSVotecount msg,FMVotecount m)-> maps FMVotecount (AR.update msg m)
+      (FSMinAge msg   ,FMMinAge m)   -> maps FMMinAge   (AR.update msg m)
       (FSDeveloper msg,FMDeveloper m)-> mapf FMDeveloper FSDeveloper (AP.update dat msg m)
       (FSRDate msg,    FMRDate m)    -> maps FMRDate    (AD.update msg m)
       (FSResolution msg,FMResolution m)->mapf FMResolution FSResolution (AE.update dat msg m)
@@ -440,6 +460,10 @@ fieldView dat (_, dd, model) =
       FMBlood m      -> f FSBlood      (AS.bloodView m)
       FMSexChar m    -> f FSSexChar    (AS.sexView AS.SexChar m)
       FMSexSpoil m   -> f FSSexSpoil   (AS.sexView AS.SexSpoil m)
+      FMMedium m     -> f FSMedium     (AS.mediumView m)
+      FMVoiced m     -> f FSVoiced     (AS.voicedView m)
+      FMAniEro m     -> f FSAniEro     (AS.animatedView False m)
+      FMAniStory m   -> f FSAniStory   (AS.animatedView True m)
       FMHeight m     -> f FSHeight     (AR.heightView m)
       FMWeight m     -> f FSWeight     (AR.weightView m)
       FMBust m       -> f FSBust       (AR.bustView m)
@@ -450,6 +474,7 @@ fieldView dat (_, dd, model) =
       FMPopularity m -> f FSPopularity (AR.popularityView m)
       FMRating m     -> f FSRating     (AR.ratingView m)
       FMVotecount m  -> f FSVotecount  (AR.votecountView m)
+      FMMinAge m     -> f FSMinAge     (AR.minageView m)
       FMDeveloper m  -> f FSDeveloper  (AP.devView dat m)
       FMRDate m      -> f FSRDate      (AD.view m)
       FMResolution m -> f FSResolution (AE.view m)
@@ -471,6 +496,10 @@ fieldToQuery (_, _, model) =
     FMBlood m    -> AS.toQuery (QStr 3) m
     FMSexChar m  -> AS.toQuery (QStr 4) m
     FMSexSpoil m -> AS.toQuery (QStr 5) m
+    FMMedium m   -> AS.toQuery (QStr 11) m
+    FMVoiced m   -> AS.toQuery (QInt 12) m
+    FMAniEro m   -> AS.toQuery (QInt 13) m
+    FMAniStory m -> AS.toQuery (QInt 14) m
     FMHeight m   -> AR.toQuery (QInt 6) (QStr 6) m
     FMWeight m   -> AR.toQuery (QInt 7) (QStr 7) m
     FMBust m     -> AR.toQuery (QInt 8) (QStr 8) m
@@ -481,6 +510,7 @@ fieldToQuery (_, _, model) =
     FMPopularity m->AR.toQuery (QInt 9) (QStr 9) m
     FMRating m   -> AR.toQuery (QInt 10) (QStr 10) m
     FMVotecount m-> AR.toQuery (QInt 11) (QStr 11) m
+    FMMinAge m   -> AR.toQuery (QInt 10) (QStr 10) m
     FMDeveloper m-> AP.toQuery (QInt 6) m
     FMRDate m    -> AD.toQuery m
     FMResolution m-> AE.toQuery m

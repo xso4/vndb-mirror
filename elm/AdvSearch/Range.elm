@@ -200,3 +200,16 @@ votecountFromQuery d q =
     _ -> Nothing
 
 votecountView = view False "# Votes" String.fromInt
+
+
+
+
+minageInit dat = (dat, { op = Lt, val = 13, unk = False, lst = Array.fromList <| List.map Tuple.first <| List.drop 1 GT.ageRatings })
+
+minageFromQuery d q =
+  case q of
+    QInt 10 op v -> fromQuery (minageInit d) op v
+    QStr 10 op "" -> fromQueryUnk (minageInit d) op
+    _ -> Nothing
+
+minageView = view True "Age rating" <| \v -> Maybe.withDefault "" <| List.head <| String.split " (" <| Maybe.withDefault "" <| lookup v GT.ageRatings

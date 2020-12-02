@@ -328,6 +328,13 @@ f r =>  8 => 'resolution',        { type => 'array', length => 2, values => { ui
     sql => sub { sql 'r.reso_x', $_[0], \$_->[0], 'AND r.reso_y', $_[0], \$_->[1], $_->[0] ? 'AND r.reso_x > 0' : () };
 f r =>  9 => 'resolution-aspect', { type => 'array', length => 2, values => { uint => 1, max => 32767 } },
     sql => sub { sql 'r.reso_x', $_[0], \$_->[0], 'AND r.reso_y', $_[0], \$_->[1], 'AND r.reso_x*1000/GREATEST(1, r.reso_y) =', \(int ($_->[0]*1000/max(1,$_->[1]))), $_->[0] ? 'AND r.reso_x > 0' : () };
+f r => 10 => 'minage',   { required => 0, default => undef, uint => 1, enum => \%AGE_RATING },
+    sql => sub { !defined $_ ? sql 'r.minage', $_[0], -1 : sql 'r.minage <> -1 AND r.minage', $_[0], \$_ };
+f r => 11 => 'medium',   { required => 0, default => undef, enum => \%MEDIUM },
+    '=' => sub { !defined $_ ? 'NOT EXISTS(SELECT 1 FROM releases_media rm WHERE rm.id = r.id)' : sql 'EXISTS(SELECT 1 FROM releases_media rm WHERE rm.id = r.id AND rm.medium =', \$_, ')' };
+f r => 12 => 'voiced',   { uint => 1, enum => \%VOICED }, '=' => sub { sql 'r.voiced =', \$_ };
+f r => 13 => 'animation-ero',   { uint => 1, enum => \%ANIMATED }, '=' => sub { sql 'r.ani_ero =', \$_ };
+f r => 14 => 'animation-story', { uint => 1, enum => \%ANIMATED }, '=' => sub { sql 'r.ani_story =', \$_ };
 
 
 
