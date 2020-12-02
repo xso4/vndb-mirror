@@ -335,6 +335,7 @@ f r => 11 => 'medium',   { required => 0, default => undef, enum => \%MEDIUM },
 f r => 12 => 'voiced',   { uint => 1, enum => \%VOICED }, '=' => sub { sql 'r.voiced =', \$_ };
 f r => 13 => 'animation-ero',   { uint => 1, enum => \%ANIMATED }, '=' => sub { sql 'r.ani_ero =', \$_ };
 f r => 14 => 'animation-story', { uint => 1, enum => \%ANIMATED }, '=' => sub { sql 'r.ani_story =', \$_ };
+f r => 15 => 'engine',   { required => 0, default => '' }, '=' => sub { sql 'r.engine =', \$_ };
 
 
 

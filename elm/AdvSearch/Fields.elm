@@ -15,6 +15,7 @@ import AdvSearch.Traits as AI
 import AdvSearch.RDate as AD
 import AdvSearch.Range as AR
 import AdvSearch.Resolution as AE
+import AdvSearch.Engine as AEng
 import AdvSearch.Lib exposing (..)
 
 
@@ -250,6 +251,7 @@ type FieldModel
   | FMDeveloper  AP.Model
   | FMRDate      AD.Model
   | FMResolution AE.Model
+  | FMEngine     AEng.Model
   | FMTag        AG.Model
   | FMTrait      AI.Model
 
@@ -282,6 +284,7 @@ type FieldMsg
   | FSDeveloper  AP.Msg
   | FSRDate      AD.Msg
   | FSResolution AE.Msg
+  | FSEngine     AEng.Msg
   | FSTag        AG.Msg
   | FSTrait      AI.Msg
   | FToggle Bool
@@ -344,6 +347,7 @@ fields =
   , f R "Voiced"             0  FMVoiced      AS.init                 AS.voicedFromQuery
   , f R "Ero animation "     0  FMAniEro      AS.init                 (AS.animatedFromQuery False)
   , f R "Story animation"    0  FMAniStory    AS.init                 (AS.animatedFromQuery True)
+  , f R "Engine"             0  FMEngine      AEng.init               AEng.fromQuery
 
   , f C "Role"               1  FMRole        AS.init                 AS.roleFromQuery
   , f C "Age"                0  FMAge         AR.ageInit              AR.ageFromQuery
@@ -377,6 +381,7 @@ fieldUpdate dat msg_ (num, dd, model) =
           FMTrait      m -> Cmd.map FSTrait      (A.refocus m.conf)
           FMDeveloper  m -> Cmd.map FSDeveloper  (A.refocus m.conf)
           FMResolution m -> Cmd.map FSResolution (A.refocus m.conf)
+          FMEngine     m -> Cmd.map FSEngine     (A.refocus m.conf)
           _ -> Cmd.none
   in case (msg_, model) of
       -- Move to parent node is tricky, needs to be intercepted at this point so that we can access the parent NestModel.
@@ -424,6 +429,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSDeveloper msg,FMDeveloper m)-> mapf FMDeveloper FSDeveloper (AP.update dat msg m)
       (FSRDate msg,    FMRDate m)    -> maps FMRDate    (AD.update msg m)
       (FSResolution msg,FMResolution m)->mapf FMResolution FSResolution (AE.update dat msg m)
+      (FSEngine msg,   FMEngine m)   -> mapf FMEngine FSEngine (AEng.update dat msg m)
       (FSTag msg,      FMTag m)      -> mapf FMTag FSTag     (AG.update dat msg m)
       (FSTrait msg,    FMTrait m)    -> mapf FMTrait FSTrait (AI.update dat msg m)
       (FToggle b, _) -> (dat, (num, DD.toggle dd b, model), if b then focus else Cmd.none)
@@ -478,6 +484,7 @@ fieldView dat (_, dd, model) =
       FMDeveloper m  -> f FSDeveloper  (AP.devView dat m)
       FMRDate m      -> f FSRDate      (AD.view m)
       FMResolution m -> f FSResolution (AE.view m)
+      FMEngine m     -> f FSEngine     (AEng.view m)
       FMTag m        -> f FSTag        (AG.view dat m)
       FMTrait m      -> f FSTrait      (AI.view dat m)
       FMNest m       -> nestView dat dd m
@@ -514,6 +521,7 @@ fieldToQuery (_, _, model) =
     FMDeveloper m-> AP.toQuery (QInt 6) m
     FMRDate m    -> AD.toQuery m
     FMResolution m-> AE.toQuery m
+    FMEngine m   -> AEng.toQuery m
     FMTag m      -> AG.toQuery m
     FMTrait m    -> AI.toQuery m
 

@@ -85,6 +85,7 @@ lblPrefix m = text <| (if m.neg then "¬" else "") ++ (if m.single || Set.size m
 
 
 optsMode m canAnd canSingle =
+  if not canAnd && not canSingle then span [] [] else
   a [ href "#"
     , onClickD (if canAnd && canSingle then Mode else if canSingle then Single (not m.single) else And (not m.and))
     , title <| if m.single then "Single-selection mode" else if m.and then "Entry must match all selected items" else "Entry must match at least one item"
