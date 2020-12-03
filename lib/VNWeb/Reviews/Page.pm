@@ -126,6 +126,8 @@ TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
     auth->notiRead($id, undef);
     auth->notiRead($id, [ map $_->{num}, $posts->@* ]) if @$posts;
 
+    my $newreview = auth && auth->uid == $w->{user_id} && tuwf->reqGet('submit');
+
     my $title = "Review of $w->{title}";
     framework_ title => $title, index => 1, type => 'w', dbobj => $w,
         $num||$page>1 ? (pagevars => {sethash=>$num?$num:'threadstart'}) : (),
@@ -133,6 +135,10 @@ TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
         div_ class => 'mainbox', sub {
             itemmsg_ w => $w;
             h1_ $title;
+            div_ class => 'notice', sub {
+                b_ 'Review has been successfully submitted! ';
+                a_ href => "/$w->{id}", "dismiss";
+            } if $newreview;
             review_ $w;
         };
         if(grep !$_->{hidden}, @$posts) {
@@ -141,7 +147,7 @@ TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
         } else {
             div_ id => 'threadstart', '';
         }
-        elm_ 'Reviews.Comment' => $COMMENT, { id => $w->{id}, msg => '' } if $w->{count} <= $page*25 && can_edit t => $w;
+        elm_ 'Reviews.Comment' => $COMMENT, { id => $w->{id}, msg => '' } if !$newreview && $w->{count} <= $page*25 && can_edit t => $w;
     };
 };
 

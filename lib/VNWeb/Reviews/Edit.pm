@@ -92,7 +92,7 @@ elm_api ReviewsEdit => $FORM_OUT, $FORM_IN, sub {
         $id = tuwf->dbVali('INSERT INTO reviews', $data, 'RETURNING id');
     }
 
-    elm_Redirect "/$id"
+    elm_Redirect "/$id".($data->{uid}?'?submit=1':'')
 };
 
 
