@@ -141,7 +141,7 @@ nestView dat dd model =
     add =
       div [ class "elm_dd_input elm_dd_noarrow short" ]
       [ DD.view model.addDd Api.Normal (text "+") <| \() ->
-        [ div [ class "advheader", style "width" "200px" ]
+        [ div [ class "advheader", style "min-width" "200px" ]
           [ h3 [] [ text "Add filter" ]
           , div [ class "opts" ] <|
             let opts = case model.qtype of
@@ -154,11 +154,12 @@ nestView dat dd model =
                        C -> "Character"
             in List.map (\t -> if t == model.addtype then b [] [ text (f t) ] else a [ href "#", onClickD (FSNest <| NAddType t) ] [ text (f t) ]) opts
           ]
-        , ul [] <|
-          List.map (\(n,f) ->
-            if f.qtype /= model.addtype || f.title == "" then text ""
-            else li [] [ a [ href "#", onClickD (FSNest <| NAdd n)] [ text f.title ] ]
-          ) <| Array.toIndexedList fields
+        , let lst = Array.toIndexedList fields |> List.filter (\(_,f) -> f.qtype == model.addtype && f.title /= "")
+          in ul (if List.length lst > 6 then [ style "columns" "2" ] else []) <|
+              List.map (\(n,f) ->
+                if f.qtype /= model.addtype || f.title == "" then text ""
+                else li [] [ a [ href "#", onClickD (FSNest <| NAdd n)] [ text f.title ] ]
+              ) lst
         ]
       ]
 
