@@ -346,6 +346,10 @@ p.screenshots           { text-align: center; margin-top: 10px; padding: 0; heig
 p.screenshots img       { margin: 2px; }
 li.announcement         { margin-bottom: 3px; margin-top: 3px }
 li.announcement a       { font-weight: bold; font-size: 15px; color: $maintext$ }
+.homepage > div { overflow: hidden }
+.homepage li { display: flex; line-height: 1.2 }
+.homepage li span { white-space: nowrap; padding-right: 4px }
+.homepage li span:first-child { overflow: hidden; text-overflow: ellipsis }
 
 
 

@@ -48,10 +48,14 @@ sub recent_changes_ {
     };
     ul_ sub {
         li_ sub {
-            txt_ "$_->{type}:";
-            a_ href => "/$_->{type}$_->{itemid}.$_->{rev}", title => $_->{original}||$_->{title}, shorten $_->{title}, 33;
-            lit_ " by ";
-            user_ $_;
+            span_ sub {
+                txt_ "$_->{type}:";
+                a_ href => "/$_->{type}$_->{itemid}.$_->{rev}", title => $_->{original}||$_->{title}, $_->{title};
+            };
+            span_ sub {
+                lit_ " by ";
+                user_ $_;
+            }
         } for @$lst;
     };
 }
@@ -81,7 +85,7 @@ sub recent_db_posts_ {
     p_ class => 'mainopts', sub {
         a_ href => '/t/an', 'Announcements';
         b_ class => 'grayedout', '&';
-        a_ href => '/t/db', 'VNDB Discussions';
+        a_ href => '/t/db', 'VNDB';
     };
     h1_ sub {
         txt_ 'DB Discussions';
@@ -92,10 +96,14 @@ sub recent_db_posts_ {
         } for @$an;
         li_ sub {
             my $boards = join ', ', map $BOARD_TYPE{$_->{btype}}{txt}.($_->{iid}?' > '.$_->{title}:''), $_->{boards}->@*;
-            txt_ fmtage($_->{date}).' ';
-            a_ href => "/$_->{id}.$_->{num}#last", title => "Posted in $boards", shorten $_->{title}, 25;
-            lit_ ' by ';
-            user_ $_;
+            span_ sub {
+                txt_ fmtage($_->{date}).' ';
+                a_ href => "/$_->{id}.$_->{num}#last", title => "Posted in $boards", $_->{title};
+            };
+            span_ sub {
+                lit_ ' by ';
+                user_ $_;
+            }
         } for @$lst;
     };
 }
@@ -137,11 +145,15 @@ sub recent_vn_posts_ {
     };
     ul_ sub {
         li_ sub {
-            my $boards = join ', ', map $BOARD_TYPE{$_->{btype}}{txt}.($_->{iid}?' > '.$_->{title}:''), $_->{boards}->@*;
-            txt_ fmtage($_->{date}).' ';
-            a_ href => "/$_->{id}.$_->{num}#last", title => $boards ? "Posted in $boards" : 'Review', shorten $_->{title}, 25;
-            lit_ ' by ';
-            user_ $_;
+            span_ sub {
+                my $boards = join ', ', map $BOARD_TYPE{$_->{btype}}{txt}.($_->{iid}?' > '.$_->{title}:''), $_->{boards}->@*;
+                txt_ fmtage($_->{date}).' ';
+                a_ href => "/$_->{id}.$_->{num}#last", title => $boards ? "Posted in $boards" : 'Review', $_->{title};
+            };
+            span_ sub {
+                lit_ ' by ';
+                user_ $_;
+            }
         } for @$lst;
     };
 }
@@ -171,12 +183,14 @@ sub releases_ {
     };
     ul_ sub {
         li_ sub {
-            rdate_ $_->{released};
-            txt_ ' ';
-            abbr_ class => "icons $_", title => $PLATFORM{$_}, '' for $_->{plat}->@*;
-            abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for $_->{lang}->@*;
-            txt_ ' ';
-            a_ href => "/r$_->{id}", title => $_->{original}||$_->{title}, shorten $_->{title}, 30;
+            span_ sub {
+                rdate_ $_->{released};
+                txt_ ' ';
+                abbr_ class => "icons $_", title => $PLATFORM{$_}, '' for $_->{plat}->@*;
+                abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for $_->{lang}->@*;
+                txt_ ' ';
+                a_ href => "/r$_->{id}", title => $_->{original}||$_->{title}, $_->{title};
+            }
         } for @$lst;
     };
 }
@@ -196,11 +210,15 @@ sub reviews_ {
     };
     ul_ sub {
         li_ sub {
-            txt_ fmtage($_->{date}).' ';
-            b_ class => 'grayedout', $_->{isfull} ? ' Full ' : ' Mini ';
-            a_ href => "/$_->{id}", title => $_->{title}, shorten $_->{title}, 25;
-            lit_ ' by ';
-            user_ $_;
+            span_ sub {
+                txt_ fmtage($_->{date}).' ';
+                b_ class => 'grayedout', $_->{isfull} ? ' Full ' : ' Mini ';
+                a_ href => "/$_->{id}", title => $_->{title}, $_->{title};
+            };
+            span_ sub {
+                lit_ 'by ';
+                user_ $_;
+            }
         } for @$lst;
     }
 }
@@ -227,12 +245,12 @@ TUWF::get qr{/}, sub {
             };
             screens_;
         };
-        div_ class => 'threelayout', sub {
+        div_ class => 'homepage threelayout', sub {
             div_ \&recent_changes_;
             div_ \&recent_db_posts_;
             div_ \&recent_vn_posts_;
         };
-        div_ class => 'threelayout', sub {
+        div_ class => 'homepage threelayout', sub {
             div_ sub { reviews_ };
             div_ sub { releases_ 0 };
             div_ sub { releases_ 1 };
