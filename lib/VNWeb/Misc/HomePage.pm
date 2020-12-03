@@ -57,44 +57,39 @@ sub recent_changes_ {
 }
 
 
-sub announcements_ {
-    my $lst = tuwf->dbAlli('
-        SELECT t.id, t.title, substring(tp.msg, 1, 100+100+100) AS msg
+sub recent_db_posts_ {
+    my $an = tuwf->dbAlli('
+        SELECT t.id, t.title,', sql_totime('tp.date'), 'AS date
           FROM threads t
           JOIN threads_boards tb ON tb.tid = t.id AND tb.type = \'an\'
           JOIN threads_posts tp ON tp.tid = t.id AND tp.num = 1
-         WHERE NOT t.hidden AND NOT t.private
+         WHERE NOT t.hidden AND NOT t.private AND tp.date >', sql_fromtime(time-2*30*24*3600), '
          ORDER BY tb.tid DESC
          LIMIT 1+1'
     );
-    h1_ sub {
-        a_ href => '/t/an', 'Announcements'; txt_ ' ';
-        a_ href => '/feeds/announcements.atom', sub { abbr_ class => 'icons feed', title => 'Atom Feed', '' };
-    };
-    for (@$lst) {
-        h2_ sub { a_ href => "/$_->{id}", $_->{title} };
-        p_ sub { lit_ bb_format $_->{msg}, maxlength => 150, inline => 1 };
-    }
-}
-
-
-sub recent_posts_ {
     my $lst = tuwf->dbAlli('
         SELECT t.id, t.title, tp.num,', sql_totime('tp.date'), 'AS date, ', sql_user(), '
           FROM threads t
           JOIN threads_posts tp ON tp.tid = t.id AND tp.num = t.c_lastnum
           LEFT JOIN users u ON tp.uid = u.id
-         WHERE NOT EXISTS(SELECT 1 FROM threads_boards tb WHERE tb.tid = t.id AND tb.type = \'u\')
+         WHERE EXISTS(SELECT 1 FROM threads_boards tb WHERE tb.tid = t.id AND tb.type IN(\'db\',\'an\'))
            AND NOT t.hidden AND NOT t.private
          ORDER BY tp.date DESC
-         LIMIT 10'
+         LIMIT', \(10-@$an)
     );
     enrich_boards undef, $lst;
+    p_ class => 'mainopts', sub {
+        a_ href => '/t/an', 'Announcements';
+        b_ class => 'grayedout', '&';
+        a_ href => '/t/db', 'VNDB Discussions';
+    };
     h1_ sub {
-        a_ href => '/t/all', 'Recent Posts'; txt_ ' ';
-        a_ href => '/feeds/posts.atom', sub { abbr_ class => 'icons feed', title => 'Atom Feed', ''; };
+        txt_ 'DB Discussions';
     };
     ul_ sub {
+        li_ class => 'announcement', sub {
+            a_ href => "/$_->{id}", $_->{title};
+        } for @$an;
         li_ sub {
             my $boards = join ', ', map $BOARD_TYPE{$_->{btype}}{txt}.($_->{iid}?' > '.$_->{title}:''), $_->{boards}->@*;
             txt_ fmtage($_->{date}).' ';
@@ -106,27 +101,51 @@ sub recent_posts_ {
 }
 
 
-sub random_vns_ {
-    state $stats  ||= tuwf->dbRowi('SELECT COUNT(*) AS total, COUNT(*) FILTER(WHERE NOT hidden) AS subset FROM vn');
-    state $sample ||= 100*min 1, (100 / $stats->{subset}) * ($stats->{total} / $stats->{subset});
-
-    my $filt = auth->pref('filter_vn') && eval { filter_parse v => auth->pref('filter_vn') };
+sub recent_vn_posts_ {
     my $lst = tuwf->dbAlli('
-        SELECT id, title, original
-          FROM vn v', $filt ? '' : ('TABLESAMPLE SYSTEM (', \$sample, ')'), '
-         WHERE NOT hidden AND', filter_vn_query($filt||{}), '
-         ORDER BY random() LIMIT 10'
+        WITH tposts (id,title,num,date,uid) AS (
+            SELECT t.id, t.title, tp.num, tp.date, tp.uid
+              FROM threads t
+              JOIN threads_posts tp ON tp.tid = t.id AND tp.num = t.c_lastnum
+             WHERE EXISTS(SELECT 1 FROM threads_boards tb WHERE tb.tid = t.id AND tb.type IN(\'v\',\'p\'))
+               AND NOT t.hidden AND NOT t.private
+             ORDER BY tp.date DESC LIMIT 10
+        ), wposts (id,title,num,date,uid) AS (
+            SELECT w.id, v.title, wp.num, wp.date, wp.uid
+              FROM reviews w
+              JOIN reviews_posts wp ON wp.id = w.id AND wp.num = w.c_lastnum
+              JOIN vn v ON v.id = w.vid
+              LEFT JOIN users u ON wp.uid = u.id
+             WHERE NOT w.c_flagged AND NOT wp.hidden
+             ORDER BY wp.date DESC LIMIT 10
+        ) SELECT x.id, x.num, x.title,', sql_totime('x.date'), 'AS date, ', sql_user(), '
+            FROM (SELECT * FROM tposts UNION ALL SELECT * FROM wposts) x
+            LEFT JOIN users u ON u.id = x.uid
+           ORDER BY date DESC
+           LIMIT 10'
     );
-
+    enrich_boards undef, $lst;
+    p_ class => 'mainopts', sub {
+        a_ href => '/t/v', 'VNs';
+        b_ class => 'grayedout', '&';
+        a_ href => '/t/p', 'Producers';
+        b_ class => 'grayedout', '&';
+        a_ href => '/w?o=d&s=lastpost', 'Reviews';
+    };
     h1_ sub {
-        a_ href => '/v/rand', 'Random visual novels';
+        a_ href => '/t/all', 'VN Discussions';
     };
     ul_ sub {
         li_ sub {
-            a_ href => "/v$_->{id}", title => $_->{original}||$_->{title}, shorten $_->{title}, 40;
+            my $boards = join ', ', map $BOARD_TYPE{$_->{btype}}{txt}.($_->{iid}?' > '.$_->{title}:''), $_->{boards}->@*;
+            txt_ fmtage($_->{date}).' ';
+            a_ href => "/$_->{id}.$_->{num}#last", title => $boards ? "Posted in $boards" : 'Review', shorten $_->{title}, 25;
+            lit_ ' by ';
+            user_ $_;
         } for @$lst;
-    }
+    };
 }
+
 
 
 sub releases_ {
@@ -164,50 +183,26 @@ sub releases_ {
 
 
 sub reviews_ {
-    my($full) = @_;
     my $lst = tuwf->dbAlli('
-        SELECT w.id, v.title,', sql_user(), ',', sql_totime('w.date'), 'AS date
+        SELECT w.id, v.title, w.isfull, ', sql_user(), ',', sql_totime('w.date'), 'AS date
           FROM reviews w
           JOIN vn v ON v.id = w.vid
           LEFT JOIN users u ON u.id = w.uid
-         WHERE NOT w.c_flagged AND', $full ? '' : 'NOT', 'w.isfull
+         WHERE NOT w.c_flagged
          ORDER BY w.id DESC LIMIT 10'
     );
     h1_ sub {
-        a_ href => '/w', $full ? 'Latest Full Reviews' : 'Latest Mini Reviews';
+        a_ href => '/w', 'Latest Reviews';
     };
     ul_ sub {
         li_ sub {
             txt_ fmtage($_->{date}).' ';
+            b_ class => 'grayedout', $_->{isfull} ? ' Full ' : ' Mini ';
             a_ href => "/$_->{id}", title => $_->{title}, shorten $_->{title}, 25;
             lit_ ' by ';
             user_ $_;
         } for @$lst;
     }
-}
-
-
-sub recent_comments_ {
-    my $lst = tuwf->dbAlli('
-        SELECT w.id, wp.num, v.title,', sql_user(), ',', sql_totime('wp.date'), 'AS date
-          FROM reviews w
-          JOIN reviews_posts wp ON wp.id = w.id AND wp.num = w.c_lastnum
-          JOIN vn v ON v.id = w.vid
-          LEFT JOIN users u ON u.id = wp.uid
-         WHERE NOT w.c_flagged
-         ORDER BY wp.date DESC LIMIT 10'
-    );
-    h1_ sub {
-        a_ href => '/w?s=lastpost', 'Recent Review Comments';
-    };
-    ul_ sub {
-        li_ sub {
-            txt_ fmtage($_->{date}).' ';
-            a_ href => "/$_->{id}.$_->{num}#last", title => $_->{title}, shorten $_->{title}, 25;
-            lit_ ' by ';
-            user_ $_;
-        } for @$lst;
-    };
 }
 
 
@@ -232,22 +227,15 @@ TUWF::get qr{/}, sub {
             };
             screens_;
         };
-        table_ class => 'mainbox threelayout', sub {
-            tr_ sub {
-                td_ \&recent_changes_;
-                td_ \&announcements_;
-                td_ \&recent_posts_;
-            };
-            tr_ sub {
-                td_ \&random_vns_;
-                td_ sub { releases_ 0 };
-                td_ sub { releases_ 1 };
-            };
-            tr_ sub {
-                td_ sub { reviews_ 0 };
-                td_ sub { reviews_ 1 };
-                td_ \&recent_comments_;
-            };
+        div_ class => 'threelayout', sub {
+            div_ \&recent_changes_;
+            div_ \&recent_db_posts_;
+            div_ \&recent_vn_posts_;
+        };
+        div_ class => 'threelayout', sub {
+            div_ sub { reviews_ };
+            div_ sub { releases_ 0 };
+            div_ sub { releases_ 1 };
         };
     };
 };
