@@ -119,14 +119,11 @@ TUWF::get qr{/(?<type>[gi])}, sub {
             };
         };
         tree_ $type;
-        table_ class => 'mainbox threelayout', sub {
-            tr_ sub {
-                td_ sub { recent_ $type };
-                td_ sub { popular_ $type };
-                td_ sub { moderation_ $type };
-            };
+        div_ class => 'threelayout', sub {
+            div_ sub { recent_ $type };
+            div_ sub { popular_ $type };
+            div_ sub { moderation_ $type };
         };
-
     };
 };
 
