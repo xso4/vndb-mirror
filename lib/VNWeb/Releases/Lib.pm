@@ -87,9 +87,10 @@ sub release_row_ {
         icon_ 'doujin', 'Doujin' if !$r->{patch} && $r->{doujin};
         icon_ 'commercial', 'Commercial' if !$r->{patch} && !$r->{doujin};
         if($r->{reso_y}) {
-            my $type = $r->{reso_y} == 1 ? 'custom' : $r->{reso_x} / $r->{reso_y} > 4/3 ? '16-9' : '4-3';
+            my $ratio = $r->{reso_x} / $r->{reso_y};
+            my $type = $ratio == 4/3 ? '4-3' : $ratio == 16/9 ? '16-9' : 'custom';
             # Ugly workaround: PC-98 has non-square pixels, thus not widescreen
-            $type = '4-3' if $type eq '16-9' && grep $_ eq 'p98', $r->{platforms}->@*;
+            $type = '4-3' if $ratio > 4/3 && grep $_ eq 'p98', $r->{platforms}->@*;
             icon_ "resolution_$type", resolution $r;
         }
         icon_ $MEDIUM{ $r->{media}[0]{medium} }{icon}, join ', ', map fmtmedia($_->{medium}, $_->{qty}), $r->{media}->@* if $r->{media}->@*;
