@@ -750,7 +750,7 @@ table.aliases td.key { padding: 0 5px 0 0; width: auto }
 
 div.charsum_list { text-align: center }
 div.charsum_list .name { white-space: nowrap; display: flex; justify-content: space-between }
-div.charsum_list .name span { overflow-x: hidden; text-overflow: ellipsis; }
+div.charsum_list .name span { overflow: hidden; text-overflow: ellipsis }
 div.charsum_list .name a { font-weight: bold }
 div.charsum_list .actor { border-top: 1px solid $border$; padding-top: 3px }
 div.charsum_list .actor b.grayedout { margin-left: 10px }
