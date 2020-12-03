@@ -745,9 +745,9 @@ table.aliases td.key { padding: 0 5px 0 0; width: auto }
 @media(min-width:1250px) { .vnstaff-2{display:none} .vnstaff-3{display:none} .vnstaff-4{display:flex} }
 
 div.charsum_list { text-align: center }
-div.charsum_list .name { white-space: nowrap; }
-div.charsum_list .name  a { font-weight: bold }
-div.charsum_list .name  i { float: right }
+div.charsum_list .name { white-space: nowrap; display: flex; justify-content: space-between }
+div.charsum_list .name span { overflow-x: hidden; text-overflow: ellipsis; }
+div.charsum_list .name a { font-weight: bold }
 div.charsum_list .actor { border-top: 1px solid $border$; padding-top: 3px }
 div.charsum_list .actor b.grayedout { margin-left: 10px }
 div.charsum_list .charsum_bubble {

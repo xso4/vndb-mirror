@@ -540,9 +540,11 @@ sub charsum_ {
         div_ class => 'charsum_list', sub {
             div_ class => 'charsum_bubble', sub {
                 div_ class => 'name', sub {
+                    span_ sub {
+                        abbr_ class => "icons gen $_->{gender}", title => $GENDER{$_->{gender}}, '' if $_->{gender} ne 'unknown';
+                        a_ href => "/c$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
+                    };
                     i_ $CHAR_ROLE{$_->{role}}{txt};
-                    abbr_ class => "icons gen $_->{gender}", title => $GENDER{$_->{gender}}, '' if $_->{gender} ne 'unknown';
-                    a_ href => "/c$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
                 };
                 div_ class => 'actor', sub {
                     txt_ 'Voiced by';
