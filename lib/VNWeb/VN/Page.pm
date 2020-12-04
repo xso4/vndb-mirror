@@ -583,7 +583,7 @@ sub stats_ {
           WHERE uv.vid =', \$v->{id}, 'AND uv.vote IS NOT NULL
             AND NOT EXISTS(SELECT 1 FROM users u WHERE u.id = uv.uid AND u.ign_votes)
           ORDER BY uv.vote_date DESC
-          LIMIT', \7
+          LIMIT', \($v->{reviews}{total} ? 7 : 8)
     );
 
     my $rank = $v->{c_votecount} && tuwf->dbRowi('SELECT c_rating, c_popularity, c_pop_rank, c_rat_rank FROM vn v WHERE id =', \$v->{id});
