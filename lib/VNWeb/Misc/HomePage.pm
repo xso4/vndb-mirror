@@ -115,7 +115,7 @@ sub recent_vn_posts_ {
             SELECT t.id, t.title, tp.num, tp.date, tp.uid
               FROM threads t
               JOIN threads_posts tp ON tp.tid = t.id AND tp.num = t.c_lastnum
-             WHERE EXISTS(SELECT 1 FROM threads_boards tb WHERE tb.tid = t.id AND tb.type IN(\'v\',\'p\'))
+             WHERE EXISTS(SELECT 1 FROM threads_boards tb WHERE tb.tid = t.id AND tb.type IN(\'v\',\'p\',\'ge\'))
                AND NOT t.hidden AND NOT t.private
              ORDER BY tp.date DESC LIMIT 10
         ), wposts (id,title,num,date,uid) AS (
@@ -134,9 +134,7 @@ sub recent_vn_posts_ {
     );
     enrich_boards undef, $lst;
     p_ class => 'mainopts', sub {
-        a_ href => '/t/v', 'VNs';
-        b_ class => 'grayedout', '&';
-        a_ href => '/t/p', 'Producers';
+        a_ href => '/t/all', 'Forums';
         b_ class => 'grayedout', '&';
         a_ href => '/w?o=d&s=lastpost', 'Reviews';
     };
