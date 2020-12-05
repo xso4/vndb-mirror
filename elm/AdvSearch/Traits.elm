@@ -63,7 +63,7 @@ fromQuery spoil dat q =
   in
   S.fromQuery f dat q |> Maybe.map (\(ndat,sel) ->
     ( { ndat | objid = ndat.objid+1 }
-    , { sel     = { sel | single = False }
+    , { sel     = { sel | single = False, and = sel.and || Set.size sel.sel == 1 }
       , conf    = { wrap = Search, id = "advsearch_trait" ++ String.fromInt ndat.objid, source = A.traitSource }
       , search  = A.init ""
       , spoiler = spoil

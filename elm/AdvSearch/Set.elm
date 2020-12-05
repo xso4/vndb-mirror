@@ -63,22 +63,22 @@ toQuery f m =
 --                         _ -> Nothing) model
 fromQuery : (Query -> Maybe (Op,comparable)) -> Data -> Query -> Maybe (Data, Model comparable)
 fromQuery f dat q =
-  let single and qs = f qs |> Maybe.andThen (\(op,v) ->
+  let single qs = f qs |> Maybe.andThen (\(op,v) ->
         if op /= Ne && op /= Eq
         then Nothing
-        else Just (dat, { sel = Set.fromList [v], and = xor and (op == Ne), neg = (op == Ne), single = True, last = Set.empty }))
-      lst mm xqs =
+        else Just (dat, { sel = Set.fromList [v], and = False, neg = (op == Ne), single = True, last = Set.empty }))
+      lst and mm xqs =
         case (mm, xqs) of
           (Nothing, _) -> Nothing
           (_, [])      -> mm
           (Just (_,m), x :: xs) -> f x |> Maybe.andThen (\(op,v) ->
             if (op /= Ne && op /= Eq) || (op == Ne) /= m.neg
             then Nothing
-            else lst (Just (dat, {m | single = False, sel = Set.insert v m.sel})) xs)
+            else lst and (Just (dat, {m | and = xor and (op == Ne), single = False, sel = Set.insert v m.sel})) xs)
   in case q of
-      QAnd (x::xs) -> lst (single True  x) xs
-      QOr  (x::xs) -> lst (single False x) xs
-      _ -> single False q
+      QAnd (x::xs) -> lst True  (single x) xs
+      QOr  (x::xs) -> lst False (single x) xs
+      _ -> single q
 
 
 lblPrefix m = text <| (if m.neg then "¬" else "") ++ (if m.single || Set.size m.sel == 1 then "" else if m.and then "∀ " else "∃ ")
