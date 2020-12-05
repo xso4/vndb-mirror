@@ -324,8 +324,18 @@ f v => 51 => 'character','c', '=' => sub { sql 'v.id IN(SELECT cv.vid FROM chars
 
 
 
-f r =>  2 => 'lang',     { enum => \%LANGUAGE }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_lang WHERE lang =', \$_, ')' };
-f r =>  4 => 'platform', { enum => \%PLATFORM }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_platforms WHERE platform =', \$_, ')' };
+f r =>  2 => 'lang',     { enum => \%LANGUAGE },
+    sql_list => sub {
+        my($neg, $all, $val) = @_;
+        sql 'r.id', $neg ? 'NOT' : '', 'IN(SELECT id FROM releases_lang WHERE lang IN', $val, $all && @$val > 1 ? ('GROUP BY id HAVING COUNT(lang) =', \scalar @$val) : (), ')';
+    };
+
+f r =>  4 => 'platform', { enum => \%PLATFORM },
+    sql_list => sub {
+        my($neg, $all, $val) = @_;
+        sql 'r.id', $neg ? 'NOT' : '', 'IN(SELECT id FROM releases_platforms WHERE platform IN', $val, $all && @$val > 1 ? ('GROUP BY id HAVING COUNT(platform) =', \scalar @$val) : (), ')';
+    };
+
 f r =>  6 => 'developer',{ vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE developer AND pid = vndbid_num(', \$_, '))' };
 f r =>  7 => 'released', { fuzzyrdate => 1 }, sql => sub { sql 'r.released', $_[0], \($_ == 1 ? strftime('%Y%m%d', gmtime) : $_) };
 f r =>  8 => 'resolution',        { type => 'array', length => 2, values => { uint => 1, max => 32767 } },
@@ -480,7 +490,10 @@ sub _sql_where_tag {
     push $f{$_->[1]}{$_->[2]}->@*, $_->[0] for @$val;
     for my $s (keys %f) {
         for my $r (keys $f{$s}->%*) {
-            push @l, sql('spoiler <=', \$s, 'AND rating >=', \$r, 'AND tag IN', [ map s/^.//r, $f{$s}{$r}->@* ]);
+            push @l, sql_and
+                $s < 2 ? sql('spoiler <=', \$s) : (),
+                $r > 0 ? sql('rating >=', \$r) : (),
+                sql('tag IN', [ map s/^.//r, $f{$s}{$r}->@* ]);
         }
     }
     sql 'v.id', $neg ? 'NOT' : (), 'IN(SELECT vid FROM tags_vn_inherit WHERE', sql_or(@l), $all && @$val > 1 ? ('GROUP BY vid HAVING COUNT(tag) =', \scalar @$val) : (), ')'
@@ -492,7 +505,9 @@ sub _sql_where_trait {
     my @l;
     push $f{$_->[1]}->@*, $_->[0] for @$val;
     for my $s (keys %f) {
-        push @l, sql('spoil <=', \$s, 'AND tid IN', [ map s/^.//r, $f{$s}->@* ]);
+        push @l, sql_and
+            $s < 2 ? sql('spoil <=', \$s) : (),
+            sql('tid IN', [ map s/^.//r, $f{$s}->@* ]);
     }
     sql 'c.id', $neg ? 'NOT' : (), 'IN(SELECT cid FROM traits_chars WHERE', sql_or(@l), $all && @$val > 1 ? ('GROUP BY cid HAVING COUNT(tid) =', \scalar @$val) : (), ')'
 }
