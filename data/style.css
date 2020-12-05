@@ -348,8 +348,8 @@ li.announcement         { margin-bottom: 3px; margin-top: 3px }
 li.announcement a       { font-weight: bold; font-size: 15px; color: $maintext$ }
 .homepage h1 { margin-bottom: 5px }
 .homepage > div { overflow: hidden }
-.homepage li { display: flex; line-height: 1.2 }
-.homepage li span { white-space: nowrap; padding-right: 4px; padding-bottom: 1px }
+.homepage li { display: flex; line-height: 1.1 }
+.homepage li span { white-space: nowrap; padding-right: 4px; padding-bottom: 3px }
 .homepage li span:first-child { overflow: hidden; text-overflow: ellipsis }
 
 
