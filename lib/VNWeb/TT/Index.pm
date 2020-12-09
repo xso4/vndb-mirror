@@ -111,7 +111,7 @@ TUWF::get qr{/(?<type>[gi])}, sub {
     framework_ title => $type eq 'g' ? 'Tag index' : 'Trait index', index => 1, sub {
         div_ class => 'mainbox', sub {
             p_ class => 'mainopts', sub {
-                a_ href => "/$type/new", 'Create a new'.($type eq 'g' ? 'tag' : 'trait') if can_edit $type => {};
+                a_ href => "/$type/new", 'Create a new '.($type eq 'g' ? 'tag' : 'trait') if can_edit $type => {};
             };
             h1_ $type eq 'g' ? 'Search tags' : 'Search traits';
             form_ action => "/$type/list", sub {
