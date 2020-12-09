@@ -234,7 +234,8 @@ type FieldModel
   | FMList       ListModel
   | FMLang       (AS.Model String)
   | FMOLang      (AS.Model String)
-  | FMPlatform   (AS.Model String)
+  | FMRPlatform  (AS.Model String)
+  | FMVPlatform  (AS.Model String)
   | FMLength     (AS.Model Int)
   | FMRole       (AS.Model String)
   | FMBlood      (AS.Model String)
@@ -270,7 +271,8 @@ type FieldMsg
   | FSList       Int
   | FSLang       (AS.Msg String)
   | FSOLang      (AS.Msg String)
-  | FSPlatform   (AS.Msg String)
+  | FSRPlatform  (AS.Msg String)
+  | FSVPlatform  (AS.Msg String)
   | FSLength     (AS.Msg Int)
   | FSRole       (AS.Msg String)
   | FSBlood      (AS.Msg String)
@@ -339,7 +341,7 @@ fields =
 
   , f V "Language"           1  FMLang        AS.init                 AS.langFromQuery
   , f V "Original language"  2  FMOLang       AS.init                 AS.olangFromQuery
-  , f V "Platform"           3  FMPlatform    AS.init                 AS.platformFromQuery
+  , f V "Platform"           3  FMVPlatform   AS.init                 AS.platformFromQuery
   , f V "Tags"               4  FMTag         AG.init                 (AG.fromQuery -1)
   , f V ""                   0  FMTag         AG.init                 (AG.fromQuery 0)
   , f V ""                   0  FMTag         AG.init                 (AG.fromQuery 1)
@@ -359,7 +361,7 @@ fields =
   , f V ""                   0  FMNest        (nestInit True V C [])  (nestFromQuery V C) -- character subtype
 
   , f R "Language"           1  FMLang        AS.init                 AS.langFromQuery
-  , f R "Platform"           2  FMPlatform    AS.init                 AS.platformFromQuery
+  , f R "Platform"           2  FMRPlatform   AS.init                 AS.platformFromQuery
   , f R "Type"               3  FMRType       AS.init                 AS.rtypeFromQuery
   , l R "Patch"              0 [(QInt 61 Eq 1, "Patch to another release"),(QInt 61 Ne 1, "Standalone release")]
   , l R "Freeware"           0 [(QInt 62 Eq 1, "Freeware"),                (QInt 62 Ne 1, "Non-free")]
@@ -433,7 +435,8 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSList msg,     FMList m)     -> (dat, (num,DD.toggle dd False,FMList { m | val = msg }), Cmd.none)
       (FSLang msg,     FMLang m)     -> maps FMLang     (AS.update msg m)
       (FSOLang msg,    FMOLang m)    -> maps FMOLang    (AS.update msg m)
-      (FSPlatform msg, FMPlatform m) -> maps FMPlatform (AS.update msg m)
+      (FSRPlatform msg,FMRPlatform m)-> maps FMRPlatform(AS.update msg m)
+      (FSVPlatform msg,FMVPlatform m)-> maps FMVPlatform(AS.update msg m)
       (FSLength msg,   FMLength m)   -> maps FMLength   (AS.update msg m)
       (FSRole msg,     FMRole m)     -> maps FMRole     (AS.update msg m)
       (FSBlood msg,    FMBlood m)    -> maps FMBlood    (AS.update msg m)
@@ -494,7 +497,8 @@ fieldView dat (_, dd, model) =
       FMList m       -> f FSList       (l m)
       FMLang  m      -> f FSLang       (AS.langView False m)
       FMOLang m      -> f FSOLang      (AS.langView True  m)
-      FMPlatform m   -> f FSPlatform   (AS.platformView m)
+      FMVPlatform m  -> f FSVPlatform  (AS.platformView False m)
+      FMRPlatform m  -> f FSRPlatform  (AS.platformView True m)
       FMLength m     -> f FSLength     (AS.lengthView m)
       FMRole m       -> f FSRole       (AS.roleView m)
       FMBlood m      -> f FSBlood      (AS.bloodView m)
@@ -534,7 +538,8 @@ fieldToQuery dat (_, _, model) =
     FMNest m     -> nestToQuery dat m
     FMLang  m    -> AS.toQuery (QStr 2) m
     FMOLang m    -> AS.toQuery (QStr 3) m
-    FMPlatform m -> AS.toQuery (QStr 4) m
+    FMRPlatform m-> AS.toQuery (QStr 4) m
+    FMVPlatform m-> AS.toQuery (QStr 4) m
     FMLength m   -> AS.toQuery (QInt 5) m
     FMRole m     -> AS.toQuery (QStr 2) m
     FMBlood m    -> AS.toQuery (QStr 3) m

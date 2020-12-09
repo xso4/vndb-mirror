@@ -337,9 +337,11 @@ f r =>  2 => 'lang',     { enum => \%LANGUAGE },
         sql 'r.id', $neg ? 'NOT' : '', 'IN(SELECT id FROM releases_lang WHERE lang IN', $val, $all && @$val > 1 ? ('GROUP BY id HAVING COUNT(lang) =', \scalar @$val) : (), ')';
     };
 
-f r =>  4 => 'platform', { enum => \%PLATFORM },
+f r =>  4 => 'platform', { required => 0, default => undef, enum => \%PLATFORM },
+    sql_list_grp => sub { defined $_ },
     sql_list => sub {
         my($neg, $all, $val) = @_;
+        return sql $neg ? '' : 'NOT', 'EXISTS(SELECT 1 FROM releases_platforms WHERE id = r.id)' if !defined $val->[0];
         sql 'r.id', $neg ? 'NOT' : '', 'IN(SELECT id FROM releases_platforms WHERE platform IN', $val, $all && @$val > 1 ? ('GROUP BY id HAVING COUNT(platform) =', \scalar @$val) : (), ')';
     };
 
