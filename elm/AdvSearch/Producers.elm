@@ -84,7 +84,7 @@ devView dat model =
       , Html.map Sel (S.opts model.sel True False)
       ]
     , ul [] <| List.map (\s ->
-        li []
+        li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ]
         [ inputButton "X" (Sel (S.Sel s False)) []
         , b [ class "grayedout" ] [ text <| " p" ++ String.fromInt s ++ ": " ]
         , Dict.get s dat.producers |> Maybe.map (\p -> p.name) |> Maybe.withDefault "" |> text

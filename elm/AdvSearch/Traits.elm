@@ -92,7 +92,7 @@ view dat model =
         ]
       ]
     , ul [] <| List.map (\t ->
-        li []
+        li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ]
         [ inputButton "X" (Sel (S.Sel t False)) []
         , b [ class "grayedout" ] [ text <| " g" ++ String.fromInt t ++ ": " ]
         , Dict.get t dat.traits |> Maybe.map (\e -> span []

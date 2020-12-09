@@ -94,7 +94,7 @@ view dat model =
         ]
       ]
     , ul [] <| List.map (\(t,l) ->
-        li []
+        li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ]
         [ inputButton "X" (Sel (S.Sel (t,l) False)) []
         , inputSelect "" l (Level (t,l)) [style "width" "60px"] <|
           (0, "any")
