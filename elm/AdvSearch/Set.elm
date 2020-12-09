@@ -357,3 +357,28 @@ rtypeFromQuery = fromQuery (\q ->
   case q of
     QStr 16 op v -> Just (op, v)
     _ -> Nothing)
+
+
+
+
+-- Labels
+-- TODO: Do something with labels from other users - if only to display them correctly.
+
+labelView dat model =
+  ( case Set.toList model.sel of
+      []  -> b [ class "grayedout" ] [ text "Labels" ]
+      [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" (lookup v dat.labels) ]
+      l   -> span [ class "nowrap" ] [ lblPrefix model, text <| "Labels (" ++ String.fromInt (List.length l) ++ ")" ]
+  , \() ->
+    [ div [ class "advheader" ]
+      [ h3 [] [ text "VN labels" ]
+      , opts model True True ]
+    , ul [] <| List.map (\(k,l) -> li [] [ linkRadio (Set.member k model.sel) (Sel k) [ text l ] ]) dat.labels
+    ]
+  )
+
+labelFromQuery dat q =
+  fromQuery (\qs ->
+    case qs of
+      QTuple 12 op uid l -> if Just uid == dat.uid then Just (op, l) else Nothing
+      _ -> Nothing) dat q

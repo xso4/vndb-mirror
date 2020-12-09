@@ -163,6 +163,8 @@ inputOp onlyEq val msg =
 type alias Data =
   { objid        : Int -- Incremental integer for global identifiers
   , level        : Int -- Nesting level of the field being processed
+  , uid          : Maybe Int
+  , labels       : List (Int, String)
   , defaultSpoil : Int
   , producers    : Dict.Dict Int GApi.ApiProducerResult
   , tags         : Dict.Dict Int GApi.ApiTagResult

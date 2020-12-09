@@ -25,6 +25,8 @@ main = Browser.element
 type alias Recv =
   { query        : JE.Value
   , qtype        : String
+  , uid          : Maybe Int
+  , labels       : List { id: Int, label: String }
   , defaultSpoil : Int
   , producers    : List GApi.ApiProducerResult
   , tags         : List GApi.ApiTagResult
@@ -52,8 +54,8 @@ normalize model =
           else (al,dat,an+1)
         ) ([],model.data,0) fields
       cmp (an,add,am) (bn,bdd,bm) = -- Sort active filters before empty ones, then order by 'quick', fallback to title
-        let aq = fieldToQuery (an,add,am) /= Nothing
-            bq = fieldToQuery (bn,bdd,bm) /= Nothing
+        let aq = fieldToQuery model.data (an,add,am) /= Nothing
+            bq = fieldToQuery model.data (bn,bdd,bm) /= Nothing
             af = A.get an fields
             bf = A.get bn fields
             ao = Maybe.andThen (\d -> if d.quick == 0 then Nothing else Just d.quick) af |> Maybe.withDefault 9999
@@ -74,6 +76,8 @@ init : Recv -> Model
 init arg =
   let dat = { objid        = 0
             , level        = 0
+            , uid          = arg.uid
+            , labels       = (0, "Unlabeled") :: List.map (\e -> (e.id, e.label)) arg.labels
             , defaultSpoil = arg.defaultSpoil
             , producers    = Dict.fromList <| List.map (\p -> (p.id,p)) <| arg.producers
             , tags         = Dict.fromList <| List.map (\t -> (t.id,t)) <| arg.tags
@@ -113,7 +117,7 @@ update msg model =
 
 view : Model -> Html Msg
 view model = div [ class "advsearch" ]
-  [ input [ type_ "hidden", id "f", name "f", value <| Maybe.withDefault "" <| Maybe.map encQuery (fieldToQuery model.query) ] []
+  [ input [ type_ "hidden", id "f", name "f", value <| Maybe.withDefault "" <| Maybe.map encQuery (fieldToQuery model.data model.query) ] []
   , Html.map Field (fieldView model.data model.query)
   , input [ type_ "submit", class "submit", value "Search" ] []
   ]

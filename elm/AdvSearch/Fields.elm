@@ -88,12 +88,12 @@ nestUpdate dat msg model =
     NNeg b _ -> (dat, { model | neg = b }, Cmd.none)
 
 
-nestToQuery : NestModel -> Maybe Query
-nestToQuery model =
+nestToQuery : Data -> NestModel -> Maybe Query
+nestToQuery dat model =
   let op  = if model.neg then Ne   else Eq
       com = if model.and then QAnd else QOr
       wrap f =
-        case List.filterMap fieldToQuery model.fields of
+        case List.filterMap (fieldToQuery dat) model.fields of
           []  -> Nothing
           [x] -> Just (f x)
           xs  -> Just (f (com xs))
@@ -157,7 +157,7 @@ nestView dat dd model =
         , let lst = Array.toIndexedList fields |> List.filter (\(_,f) -> f.qtype == model.addtype && f.title /= "")
           in ul (if List.length lst > 6 then [ style "columns" "2" ] else []) <|
               List.map (\(n,f) ->
-                if f.qtype /= model.addtype || f.title == "" then text ""
+                if f.qtype /= model.addtype || f.title == "" || (dat.uid == Nothing && f.title == "My Labels") then text ""
                 else li [] [ a [ href "#", onClickD (FSNest <| NAdd n)] [ text f.title ] ]
               ) lst
         ]
@@ -245,6 +245,7 @@ type FieldModel
   | FMAniEro     (AS.Model Int)
   | FMAniStory   (AS.Model Int)
   | FMRType      (AS.Model String)
+  | FMLabel      (AS.Model Int)
   | FMHeight     (AR.Model Int)
   | FMWeight     (AR.Model Int)
   | FMBust       (AR.Model Int)
@@ -280,6 +281,7 @@ type FieldMsg
   | FSAniEro     (AS.Msg Int)
   | FSAniStory   (AS.Msg Int)
   | FSRType      (AS.Msg String)
+  | FSLabel      (AS.Msg Int)
   | FSHeight     AR.Msg
   | FSWeight     AR.Msg
   | FSBust       AR.Msg
@@ -342,6 +344,7 @@ fields =
   , f V ""                   0  FMTag         AG.init                 (AG.fromQuery 0)
   , f V ""                   0  FMTag         AG.init                 (AG.fromQuery 1)
   , f V ""                   0  FMTag         AG.init                 (AG.fromQuery 2)
+  , f V "My Labels"          0  FMLabel       AS.init                 AS.labelFromQuery
   , f V "Length"             0  FMLength      AS.init                 AS.lengthFromQuery
   , f V "Developer"          0  FMDeveloper   AP.init                 AP.devFromQuery
   , f V "Release date"       0  FMRDate       AD.init                 AD.fromQuery
@@ -441,6 +444,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSAniEro msg,   FMAniEro m)   -> maps FMAniEro   (AS.update msg m)
       (FSAniStory msg, FMAniStory m) -> maps FMAniStory (AS.update msg m)
       (FSRType  msg,   FMRType m)    -> maps FMRType    (AS.update msg m)
+      (FSLabel  msg,   FMLabel m)    -> maps FMLabel    (AS.update msg m)
       (FSHeight msg,   FMHeight m)   -> maps FMHeight   (AR.update msg m)
       (FSWeight msg,   FMWeight m)   -> maps FMWeight   (AR.update msg m)
       (FSBust msg,     FMBust m)     -> maps FMBust     (AR.update msg m)
@@ -501,6 +505,7 @@ fieldView dat (_, dd, model) =
       FMAniEro m     -> f FSAniEro     (AS.animatedView False m)
       FMAniStory m   -> f FSAniStory   (AS.animatedView True m)
       FMRType m      -> f FSRType      (AS.rtypeView m)
+      FMLabel m      -> f FSLabel      (AS.labelView dat m)
       FMHeight m     -> f FSHeight     (AR.heightView m)
       FMWeight m     -> f FSWeight     (AR.weightView m)
       FMBust m       -> f FSBust       (AR.bustView m)
@@ -521,12 +526,12 @@ fieldView dat (_, dd, model) =
       FMNest m       -> nestView dat dd m
 
 
-fieldToQuery : Field -> Maybe Query
-fieldToQuery (_, _, model) =
+fieldToQuery : Data -> Field -> Maybe Query
+fieldToQuery dat (_, _, model) =
   case model of
     FMCustom m   -> Just m
     FMList m     -> List.drop m.val m.lst |> List.head |> Maybe.map Tuple.first
-    FMNest m     -> nestToQuery m
+    FMNest m     -> nestToQuery dat m
     FMLang  m    -> AS.toQuery (QStr 2) m
     FMOLang m    -> AS.toQuery (QStr 3) m
     FMPlatform m -> AS.toQuery (QStr 4) m
@@ -540,6 +545,7 @@ fieldToQuery (_, _, model) =
     FMAniEro m   -> AS.toQuery (QInt 13) m
     FMAniStory m -> AS.toQuery (QInt 14) m
     FMRType m    -> AS.toQuery (QStr 16) m
+    FMLabel m    -> AS.toQuery (\op v -> QTuple 12 op (Maybe.withDefault 0 dat.uid) v) m
     FMHeight m   -> AR.toQuery (QInt 6) (QStr 6) m
     FMWeight m   -> AR.toQuery (QInt 7) (QStr 7) m
     FMBust m     -> AR.toQuery (QInt 8) (QStr 8) m

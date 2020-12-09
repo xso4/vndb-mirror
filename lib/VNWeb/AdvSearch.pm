@@ -275,6 +275,9 @@ sub _enc_query {
 #                   - negate, 1/0 - whether the entire query should be negated
 #                   - all, 1/0 - whether all values must match, 1=all, 0=any
 #                   - arrayref of values to compare for equality
+#       sql_list_grp -> When using sql_list, a subroutine that returns a grouping identifier for the given value.
+#                       Only values with the same group identifier will be given to a single sql_list call.
+#                       May return to disable sql_list support for specific values.
 #       compact  -> Function to convert a value from normalized JSON form into compact JSON form.
 #
 #   An implementation for the '!=' operator will be supplied automatically if it's not explicitely defined.
@@ -318,6 +321,10 @@ f v =>  6 => 'developer',{ vndbid => 'p' },
 f v =>  8 => 'tag',      { type => 'any', func => \&_validate_tag },
     compact => sub { my $id = ($_->[0] =~ s/^g//r)*1; $_->[1] == 0 && $_->[2] == 0 ? $id : [ $id, int($_->[2]*5)*3 + $_->[1] ] },
     sql_list => \&_sql_where_tag;
+
+f v => 12 => 'label',    { type => 'any', func => \&_validate_label },
+    compact => sub { [ ($_->[0] =~ s/^u//r)*1, $_->[1]*1 ] },
+    sql_list => \&_sql_where_label, sql_list_grp => sub { $_->[1] == 0 ? undef : $_->[0] };
 
 f v => 50 => 'release',  'r', '=' => sub { sql 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE NOT r.hidden AND', $_, ')' };
 f v => 51 => 'character','c', '=' => sub { sql 'v.id IN(SELECT cv.vid FROM chars c JOIN chars_vns cv ON cv.id = c.id WHERE NOT c.hidden AND', $_, ')' }; # TODO: Spoiler setting?
@@ -409,6 +416,16 @@ sub _validate_trait {
     return 0 if $v->err;
     $_[0][0] = $v->data;
     $_[0]->@* == 2 && defined $_[0][1] && !ref $_[0][1] && $_[0][1] =~ /^[0-2]$/
+}
+
+
+# Accepts either $label or [$uid, $label]. Normalizes to the latter. $label=0 is used for 'Unlabeled'.
+sub _validate_label {
+    $_[0] = [auth->uid(), $_[0]] if ref $_[0] ne 'ARRAY';
+    my $v = tuwf->compile({ vndbid => 'u' })->validate($_[0][0]);
+    return 0 if $v->err;
+    $_[0][0] = $v->data;
+    $_[0]->@* == 2 && defined $_[0][1] && !ref $_[0][1] && $_[0][1] =~ /^(?:0|[1-9][0-9]{0,5})$/
 }
 
 
@@ -513,16 +530,45 @@ sub _sql_where_trait {
 }
 
 
+# Assumption: All labels in a group are for the same uid and label==0 has its own group.
+sub _sql_where_label {
+    my($neg, $all, $val) = @_;
+    my $uid = $val->[0][0] =~ s/^u//r;
+    my $own = VNWeb::ULists::Lib::ulists_own($uid);
+    my @lbl = map $_->[1], @$val;
+
+    # Unlabeled (implies that it's on the list, so "Unlabeled || !Unlabeled" actually means "On my list")
+    if($lbl[0] == 0) {
+        return '1=0' if !$own;
+        return sql $neg ? '' : ('EXISTS(SELECT 1 FROM ulist_vns WHERE vid = v.id AND uid =', \$uid, ') AND NOT'),
+            'EXISTS(SELECT 1 FROM ulist_vns_labels WHERE vid = v.id AND uid =', \$uid, 'AND lbl <>', \7, ')';
+    }
+
+    # Simple, stupid and safe: Don't attempt to query anything if there's a private label.
+    # This can be improved to allow querying/displaying results that *are* visible, but it's more complex and not that often needed.
+    if(!$own) {
+        tuwf->req->{lblvis}{$uid} ||= { map +($_->{id},1), tuwf->dbAlli('SELECT id FROM ulist_labels WHERE NOT private AND uid =', \$uid)->@* };
+        my $vis = tuwf->req->{lblvis}{$uid};
+        return '1=0' if grep !$vis->{$_}, @lbl;
+    }
+
+    sql 'v.id', $neg ? 'NOT' : (), 'IN(SELECT vid FROM ulist_vns_labels WHERE uid =', \$uid, 'AND lbl IN', \@lbl, $all && @lbl > 1 ? ('GROUP BY vid HAVING COUNT(lbl) =', \scalar @lbl) : (), ')'
+}
+
+
 sub _sql_where {
     my($t, $q) = @_;
 
     if($q->[0] eq 'and' || $q->[0] eq 'or') {
-        my %f; # For sql_list; field -> op -> list of values
+        my %f; # For sql_list; field -> op -> group -> list of values
         my @l; # Remaining non-batched queries
         for my $cq (@$q[1..$#$q]) {
             my $cf = $FIELDS{$t}{$cq->[0]};
-            if($cf && $cf->{sql_list} && ($cq->[1] eq '=' || $cq->[1] eq '!=')) {
-                push $f{$cq->[0]}{$cq->[1]}->@*, $cq->[2];
+            my $grp = !$cf || !$cf->{sql_list} || ($cq->[1] ne '=' && $cq->[1] ne '!=') ? undef
+                : !$cf->{sql_list_grp} ? ''
+                : do { local $_ = $cq->[2]; $cf->{sql_list_grp}->($_) };
+            if(defined $grp) {
+                push $f{$cq->[0]}{$cq->[1]}{$grp}->@*, $cq->[2];
             } else {
                 push @l, _sql_where($t, $cq);
             }
@@ -532,8 +578,8 @@ sub _sql_where {
             for my $op (keys $f{$field}->%*) {
                 push @l, $FIELDS{$t}{$field}{sql_list}->(
                     $q->[0] eq 'and' ? ($op eq '=' ? (0, 1) : (1, 0)) : $op eq '=' ? (0, 0) : (1, 1),
-                    $f{$field}{$op}
-                )
+                    $_
+                ) for values $f{$field}{$op}->%*;
             }
         }
 
@@ -605,13 +651,17 @@ sub elm_ {
     enrich_merge id => 'SELECT t.id, t.name, t.searchable, t.applicable, t.defaultspoil, t.state, g.id AS group_id, g.name AS group_name
                           FROM traits t LEFT JOIN traits g ON g.id = t.group WHERE t.id IN', $o{traits};
 
-    $o{qtype} = $self->{type};
-    $o{query} = $self->compact_json;
+    $o{qtype}  = $self->{type};
+    $o{query}  = $self->compact_json;
+    $o{uid}    = auth->uid;
+    $o{labels} = auth ? tuwf->dbAlli('SELECT id, label FROM ulist_labels WHERE uid =', \auth->uid, 'ORDER BY CASE WHEN id < 10 THEN id ELSE 10 END, label') : [];
     $o{defaultSpoil} = auth->pref('spoilers')||0;
 
     state $schema ||= tuwf->compile({ type => 'hash', keys => {
         qtype        => {},
         query        => { type => 'array', required => 0 },
+        uid          => { uint => 1, required => 0 },
+        labels       => { aoh => { id => { uint => 1 }, label => {} } },
         defaultSpoil => { uint => 1 },
         producers    => $VNWeb::Elm::apis{ProducerResult}[0],
         tags         => $VNWeb::Elm::apis{TagResult}[0],
