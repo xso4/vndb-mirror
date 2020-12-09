@@ -134,10 +134,11 @@ olangFromQuery = fromQuery (\q ->
 
 platformView unk model =
   let lst = if unk then ("", "Unknown") :: GT.platforms else GT.platforms
+      fmt p t = [ if p == "" then text "" else platformIcon p, text t ]
   in
   ( case Set.toList model.sel of
       []  -> b [ class "grayedout" ] [ text "Platform" ]
-      [v] -> span [ class "nowrap" ] [ lblPrefix model, platformIcon v, text <| Maybe.withDefault "" (lookup v lst) ]
+      [v] -> span [ class "nowrap" ] <| lblPrefix model :: fmt v (Maybe.withDefault "" (lookup v lst))
       l   -> span [ class "nowrap" ] <| lblPrefix model :: List.intersperse (text "") (List.map langIcon l)
   , \() ->
     [ div [ class "advheader" ]
@@ -145,7 +146,7 @@ platformView unk model =
       , opts model True True
       ]
     , ul [ style "columns" "2"] <| List.map (\(p,t) ->
-        li [classList [("separator", p == "web")]] [ linkRadio (Set.member p model.sel) (Sel p) [ platformIcon p, text t ] ]
+        li [classList [("separator", p == "web")]] [ linkRadio (Set.member p model.sel) (Sel p) (fmt p t) ]
       ) lst
     ]
   )
