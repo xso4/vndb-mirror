@@ -230,35 +230,40 @@ bloodFromQuery = fromQuery (\q ->
 
 -- Sex / gender
 
-type SexType
-  = SexChar   -- chars sex
-  | SexSpoil  -- chars sex-spoil
-  | SexGender -- staff gender
+type alias SexModel = (Bool, Model String)
 
-sexView stype model =
-  let lbl = case stype of
-              SexChar -> "Sex"
-              SexSpoil -> "Spoiler-sex"
-              SexGender -> "Gender"
-  in
+type SexMsg = SexSpoil | SexSel (Msg String)
+
+sexInit spoil dat = init dat |> Tuple.mapSecond (\m -> (spoil,m))
+
+sexFromQuery spoil dat qf = Maybe.map (Tuple.mapSecond (\m -> (spoil,m))) <| fromQuery (\q ->
+  case (spoil, q) of
+    (False, QStr 4 op v) -> Just (op, v)
+    (True,  QStr 5 op v) -> Just (op, v)
+    _ -> Nothing) dat qf
+
+sexUpdate msg (spoil,model) =
+  case msg of
+    SexSpoil -> (not spoil, model)
+    SexSel m -> (spoil, update m model)
+
+sexView (spoil,model) =
   ( case Set.toList model.sel of
-      []  -> b [ class "grayedout" ] [ text lbl ]
-      [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| lbl ++ ": " ++ Maybe.withDefault "" (lookup v GT.genders) ]
-      l   -> span [] [ lblPrefix model, text <| lbl ++ " (" ++ String.fromInt (List.length l) ++ ")" ]
+      []  -> b [ class "grayedout" ] [ text "Sex" ]
+      [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| "Sex: " ++ Maybe.withDefault "" (lookup v GT.genders) ]
+      l   -> span [] [ lblPrefix model, text <| "Sex (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
-    [ div [ class "advheader" ]
-      [ h3 [] [ text lbl ]
-      , opts model False True ]
-    , ul [] <| List.map (\(l,t) -> if stype == SexGender && l == "b" then text "" else li [] [ linkRadio (Set.member l model.sel) (Sel l) [ text t ] ]) GT.genders
+    [ div [ class "advheader", style "width" "280px" ]
+      [ h3 [] [ text "Sex" ]
+      , div [ class "opts" ]
+        [ Html.map SexSel (optsMode model False True)
+        , a [ href "#", onClickD SexSpoil ] [ text <| if spoil then "spoilers" else "no spoilers" ]
+        , linkRadio model.neg (SexSel << Neg) [ text "invert" ]
+        ]
+      ]
+    , ul [] <| List.map (\(l,t) -> li [] [ linkRadio (Set.member l model.sel) (SexSel << Sel l) [ text t ] ]) GT.genders
     ]
   )
-
-sexFromQuery stype = fromQuery (\q ->
-  case (stype, q) of
-    (SexChar,  QStr 4 op v) -> Just (op, v)
-    (SexSpoil, QStr 5 op v) -> Just (op, v)
-    -- TODO: SexGender
-    _ -> Nothing)
 
 
 

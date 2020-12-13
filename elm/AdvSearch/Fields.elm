@@ -239,8 +239,7 @@ type FieldModel
   | FMLength     (AS.Model Int)
   | FMRole       (AS.Model String)
   | FMBlood      (AS.Model String)
-  | FMSexChar    (AS.Model String)
-  | FMSexSpoil   (AS.Model String)
+  | FMSex        (AS.SexModel)
   | FMMedium     (AS.Model String)
   | FMVoiced     (AS.Model Int)
   | FMAniEro     (AS.Model Int)
@@ -276,8 +275,7 @@ type FieldMsg
   | FSLength     (AS.Msg Int)
   | FSRole       (AS.Msg String)
   | FSBlood      (AS.Msg String)
-  | FSSexChar    (AS.Msg String)
-  | FSSexSpoil   (AS.Msg String)
+  | FSSex        AS.SexMsg
   | FSMedium     (AS.Msg String)
   | FSVoiced     (AS.Msg Int)
   | FSAniEro     (AS.Msg Int)
@@ -380,8 +378,8 @@ fields =
 
   , f C "Role"               1  FMRole        AS.init                 AS.roleFromQuery
   , f C "Age"                0  FMAge         AR.ageInit              AR.ageFromQuery
-  , f C "Sex"                2  FMSexChar     AS.init                 (AS.sexFromQuery AS.SexChar)
-  , f C "Sex (spoiler)"      0  FMSexSpoil    AS.init                 (AS.sexFromQuery AS.SexSpoil)
+  , f C "Sex"                2  FMSex         (AS.sexInit False)      (AS.sexFromQuery False)
+  , f C ""                   0  FMSex         (AS.sexInit True)       (AS.sexFromQuery True)
   , f C "Traits"             3  FMTrait       AI.init                 (AI.fromQuery -1)
   , f C ""                   0  FMTrait       AI.init                 (AI.fromQuery 0)
   , f C ""                   0  FMTrait       AI.init                 (AI.fromQuery 1)
@@ -440,8 +438,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSLength msg,   FMLength m)   -> maps FMLength   (AS.update msg m)
       (FSRole msg,     FMRole m)     -> maps FMRole     (AS.update msg m)
       (FSBlood msg,    FMBlood m)    -> maps FMBlood    (AS.update msg m)
-      (FSSexChar msg,  FMSexChar m)  -> maps FMSexChar  (AS.update msg m)
-      (FSSexSpoil msg, FMSexSpoil m) -> maps FMSexSpoil (AS.update msg m)
+      (FSSex msg,      FMSex m)      -> maps FMSex      (AS.sexUpdate msg m)
       (FSMedium msg,   FMMedium m)   -> maps FMMedium   (AS.update msg m)
       (FSVoiced msg,   FMVoiced m)   -> maps FMVoiced   (AS.update msg m)
       (FSAniEro msg,   FMAniEro m)   -> maps FMAniEro   (AS.update msg m)
@@ -502,8 +499,7 @@ fieldView dat (_, dd, model) =
       FMLength m     -> f FSLength     (AS.lengthView m)
       FMRole m       -> f FSRole       (AS.roleView m)
       FMBlood m      -> f FSBlood      (AS.bloodView m)
-      FMSexChar m    -> f FSSexChar    (AS.sexView AS.SexChar m)
-      FMSexSpoil m   -> f FSSexSpoil   (AS.sexView AS.SexSpoil m)
+      FMSex m        -> f FSSex        (AS.sexView m)
       FMMedium m     -> f FSMedium     (AS.mediumView m)
       FMVoiced m     -> f FSVoiced     (AS.voicedView m)
       FMAniEro m     -> f FSAniEro     (AS.animatedView False m)
@@ -543,8 +539,7 @@ fieldToQuery dat (_, _, model) =
     FMLength m   -> AS.toQuery (QInt 5) m
     FMRole m     -> AS.toQuery (QStr 2) m
     FMBlood m    -> AS.toQuery (QStr 3) m
-    FMSexChar m  -> AS.toQuery (QStr 4) m
-    FMSexSpoil m -> AS.toQuery (QStr 5) m
+    FMSex (s,m)  -> AS.toQuery (QStr (if s then 5 else 4)) m
     FMMedium m   -> AS.toQuery (QStr 11) m
     FMVoiced m   -> AS.toQuery (QInt 12) m
     FMAniEro m   -> AS.toQuery (QInt 13) m
