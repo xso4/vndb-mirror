@@ -11,7 +11,7 @@ import Gen.Api as GApi
 -- Generic dynamically typed representation of a query.
 -- Used only as an intermediate format to help with encoding/decoding.
 -- Corresponds to the compact JSON form.
-type QType = V | R | C
+type QType = V | R | C | S
 type Op = Eq | Ne | Ge | Gt | Le | Lt
 type Query
   = QAnd (List Query)
@@ -167,6 +167,7 @@ type alias Data =
   , labels       : List (Int, String)
   , defaultSpoil : Int
   , producers    : Dict.Dict Int GApi.ApiProducerResult
+  , staff        : Dict.Dict Int GApi.ApiStaffResult
   , tags         : Dict.Dict Int GApi.ApiTagResult
   , traits       : Dict.Dict Int GApi.ApiTraitResult
   }

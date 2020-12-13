@@ -328,6 +328,7 @@ f v => 12 => 'label',    { type => 'any', func => \&_validate_label },
 
 f v => 50 => 'release',  'r', '=' => sub { sql 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE NOT r.hidden AND', $_, ')' };
 f v => 51 => 'character','c', '=' => sub { sql 'v.id IN(SELECT cv.vid FROM chars c JOIN chars_vns cv ON cv.id = c.id WHERE NOT c.hidden AND', $_, ')' }; # TODO: Spoiler setting?
+f v => 52 => 'staff',    's', '=' => sub { sql 'v.id IN(SELECT vs.id FROM vn_staff vs JOIN staff_alias sa ON sa.aid = vs.aid JOIN staff s ON s.id = sa.id WHERE NOT s.hidden AND', $_, ')' };
 
 
 
@@ -390,6 +391,15 @@ f c => 12 => 'age',        { required => 0, default => undef, uint => 1, max => 
 f c => 13 => 'trait',      { type => 'any', func => \&_validate_trait },
     compact => sub { my $id = ($_->[0] =~ s/^i//r)*1; $_->[1] == 0 ? $id : [ $id, int $_->[1] ] },
     sql_list => \&_sql_where_trait;
+
+# TODO: SQL is different when not used as a subquery in VN search (no vs.id comparison)
+f c => 52 => 'seiyuu',    's', '=' => sub { sql 'c.id IN(SELECT vs.cid FROM vn_seiyuu vs JOIN staff_alias sa ON sa.aid = vs.aid JOIN staff s ON s.id = sa.id WHERE NOT s.hidden AND vs.id = v.id AND', $_, ')' };
+
+
+
+f s =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 's.lang =', \$_ };
+f s =>  3 => 'id',        { vndbid => 's' }, '=' => sub { sql 's.id = vndbid_num(', \$_, ')' };
+f s =>  4 => 'gender',    { enum => \%GENDER }, '=' => sub { sql 's.gender =', \$_ };
 
 
 
@@ -647,6 +657,9 @@ sub elm_ {
     $o{producers} = [ map +{id => $_=~s/^p//rg}, grep /^p/, keys %ids ];
     enrich_merge id => 'SELECT id, name, original, hidden FROM producers WHERE id IN', $o{producers};
 
+    $o{staff} = [ map +{id => $_=~s/^s//rg}, grep /^s/, keys %ids ];
+    enrich_merge id => 'SELECT s.id, sa.aid, sa.name, sa.original FROM staff s JOIN staff_alias sa ON sa.aid = s.aid WHERE s.id IN', $o{staff};
+
     $o{tags} = [ map +{id => $_=~s/^g//rg}, grep /^g/, keys %ids ];
     enrich_merge id => 'SELECT id, name, searchable, applicable, state FROM tags WHERE id IN', $o{tags};
 
@@ -667,6 +680,7 @@ sub elm_ {
         labels       => { aoh => { id => { uint => 1 }, label => {} } },
         defaultSpoil => { uint => 1 },
         producers    => $VNWeb::Elm::apis{ProducerResult}[0],
+        staff        => $VNWeb::Elm::apis{StaffResult}[0],
         tags         => $VNWeb::Elm::apis{TagResult}[0],
         traits       => $VNWeb::Elm::apis{TraitResult}[0],
     }});

@@ -228,7 +228,7 @@ bloodFromQuery = fromQuery (\q ->
 
 
 
--- Sex / gender
+-- Character sex
 
 type alias SexModel = (Bool, Model String)
 
@@ -264,6 +264,29 @@ sexView (spoil,model) =
     , ul [] <| List.map (\(l,t) -> li [] [ linkRadio (Set.member l model.sel) (SexSel << Sel l) [ text t ] ]) GT.genders
     ]
   )
+
+
+
+
+-- Staff gender
+
+genderView model =
+  ( case Set.toList model.sel of
+      []  -> b [ class "grayedout" ] [ text "Gender" ]
+      [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" (lookup v GT.genders) ]
+      l   -> span [] [ lblPrefix model, text <| "Gender (" ++ String.fromInt (List.length l) ++ ")" ]
+  , \() ->
+    [ div [ class "advheader" ]
+      [ h3 [] [ text "Gender" ]
+      , opts model False True ]
+    , ul [] <| List.map (\(k,l) -> li [] [ if k == "b" then text "" else linkRadio (Set.member k model.sel) (Sel k) [ text l ] ]) GT.genders
+    ]
+  )
+
+genderFromQuery = fromQuery (\q ->
+  case q of
+    QStr 4 op v -> Just (op, v)
+    _ -> Nothing)
 
 
 

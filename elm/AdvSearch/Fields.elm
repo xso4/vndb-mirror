@@ -10,6 +10,7 @@ import Lib.Api as Api
 import Lib.Autocomplete as A
 import AdvSearch.Set as AS
 import AdvSearch.Producers as AP
+import AdvSearch.Staff as AT
 import AdvSearch.Tags as AG
 import AdvSearch.Traits as AI
 import AdvSearch.RDate as AD
@@ -100,6 +101,8 @@ nestToQuery dat model =
   in case (model.ptype, model.qtype) of
       (V,  R) -> wrap (QQuery 50 op)
       (V,  C) -> wrap (QQuery 51 op)
+      (V,  S) -> wrap (QQuery 52 op)
+      (C,  S) -> wrap (QQuery 52 op)
       _       -> wrap identity
 
 
@@ -121,6 +124,8 @@ nestFromQuery ptype qtype dat q =
   in case (ptype, qtype, q) of
        (V, R, QQuery 50 op r) -> initSub op r
        (V, C, QQuery 51 op r) -> initSub op r
+       (V, S, QQuery 52 op r) -> initSub op r
+       (C, S, QQuery 52 op r) -> initSub op r
        (_, _, QAnd l) -> if ptype == qtype then Just (init True  l) else Nothing
        (_, _, QOr  l) -> if ptype == qtype then Just (init False l) else Nothing
        _ -> Nothing
@@ -145,13 +150,15 @@ nestView dat dd model =
           [ h3 [] [ text "Add filter" ]
           , div [ class "opts" ] <|
             let opts = case model.qtype of
-                        V -> [ V, R, C ]
-                        C -> []
+                        V -> [ V, R, C, S ]
+                        C -> [ C, S ]
                         R -> []
+                        S -> []
                 f t = case t of
                        V -> "VN"
                        R -> "Release"
                        C -> "Character"
+                       S -> if model.ptype == C then "Seiyuu" else "Staff"
             in List.map (\t -> if t == model.addtype then b [] [ text (f t) ] else a [ href "#", onClickD (FSNest <| NAddType t) ] [ text (f t) ]) opts
           ]
         , let lst = Array.toIndexedList fields |> List.filter (\(_,f) -> f.qtype == model.addtype && f.title /= "")
@@ -174,16 +181,24 @@ nestView dat dd model =
 
     negcont () =
       let (a,b) =
-            case model.qtype of
-              C -> ("Has a character that matches these filters", "Does not have a character that matches these filters")
-              R -> ("Has a release that matches these filters", "Does not have a release that matches these filters")
+            case (model.ptype, model.qtype) of
+              (_, C) -> ("Has a character that matches these filters", "Does not have a character that matches these filters")
+              (_, R) -> ("Has a release that matches these filters", "Does not have a release that matches these filters")
+              (V, S) -> ("Has staff that matches these filters", "Does not have staff that matches these filters")
+              (C, S) -> ("Has a voice actor that matches these filters", "Does not have a voice actor that matches these filters")
               _ -> ("","")
       in [ ul []
         [ li [] [ linkRadio (not model.neg) (FSNest << NNeg False) [ text a ] ]
         , li [] [ linkRadio (    model.neg) (FSNest << NNeg True ) [ text b ] ]
         ] ]
 
-    neglbl = text <| (if model.neg then "¬" else "") ++ if model.qtype == C then "Char" else "Rel"
+    neglbl = text <| (if model.neg then "¬" else "") ++
+      case (model.ptype, model.qtype) of
+        (_, C) -> "Char"
+        (_, R) -> "Rel"
+        (V, S) -> "Staff"
+        (C, S) -> "Seiyuu"
+        _ -> ""
 
     ourdd =
       if model.qtype == model.ptype
@@ -240,6 +255,7 @@ type FieldModel
   | FMRole       (AS.Model String)
   | FMBlood      (AS.Model String)
   | FMSex        (AS.SexModel)
+  | FMGender     (AS.Model String)
   | FMMedium     (AS.Model String)
   | FMVoiced     (AS.Model Int)
   | FMAniEro     (AS.Model Int)
@@ -259,6 +275,7 @@ type FieldModel
   | FMMinAge     (AR.Model Int)
   | FMDeveloper  AP.Model
   | FMProducer   AP.Model
+  | FMStaff      AT.Model
   | FMRDate      AD.Model
   | FMResolution AE.Model
   | FMEngine     AEng.Model
@@ -277,6 +294,7 @@ type FieldMsg
   | FSRole       (AS.Msg String)
   | FSBlood      (AS.Msg String)
   | FSSex        AS.SexMsg
+  | FSGender     (AS.Msg String)
   | FSMedium     (AS.Msg String)
   | FSVoiced     (AS.Msg Int)
   | FSAniEro     (AS.Msg Int)
@@ -296,6 +314,7 @@ type FieldMsg
   | FSMinAge     AR.Msg
   | FSDeveloper  AP.Msg
   | FSProducer   AP.Msg
+  | FSStaff      AT.Msg
   | FSRDate      AD.Msg
   | FSResolution AE.Msg
   | FSEngine     AEng.Msg
@@ -329,6 +348,8 @@ fields =
       l qtype title quick lst =
         f qtype title quick FMList (\d -> (d, { val = 0, lst = lst }))
           (\d q -> List.indexedMap (\n (k,v) -> (n,k,v)) lst |> List.filter (\(n,k,_) -> k == q) |> List.head |> Maybe.map (\(n,_,_) -> (d, { val = n, lst = lst })))
+
+      staffInit t dat = let (ndat, n) = fieldCreate -1 (Tuple.mapSecond FMStaff (AT.init dat)) in nestInit True t S [n] ndat
   in Array.fromList
   -- IMPORTANT: This list is processed in reverse order when reading a Query
   -- into Fields, so "catch all" fields must be listed first. In particular,
@@ -338,6 +359,7 @@ fields =
   [ f V ""                   0  FMNest        (nestInit True V V [])  (nestFromQuery V V) -- and/or's
   , f R ""                   0  FMNest        (nestInit True V R [])  (nestFromQuery R R)
   , f C ""                   0  FMNest        (nestInit True C C [])  (nestFromQuery C C)
+  , f S ""                   0  FMNest        (nestInit True S S [])  (nestFromQuery S S)
 
   , f V "Language"           1  FMLang        AS.init                 AS.langFromQuery
   , f V "Original language"  2  FMOLang       AS.init                 AS.olangFromQuery
@@ -349,6 +371,7 @@ fields =
   , f V "My Labels"          0  FMLabel       AS.init                 AS.labelFromQuery
   , f V "Length"             0  FMLength      AS.init                 AS.lengthFromQuery
   , f V "Developer"          0  FMDeveloper   AP.init                 (AP.fromQuery False)
+  , f V "Staff"              0  FMNest        (staffInit V)           (nestFromQuery V S)
   , f V "Release date"       0  FMRDate       AD.init                 AD.fromQuery
   , f V "Popularity"         0  FMPopularity  AR.popularityInit       AR.popularityFromQuery
   , f V "Rating"             0  FMRating      AR.ratingInit           AR.ratingFromQuery
@@ -394,6 +417,11 @@ fields =
   , f C "Waist"              0  FMWaist       AR.waistInit            AR.waistFromQuery
   , f C "Hips"               0  FMHips        AR.hipsInit             AR.hipsFromQuery
   , f C "Cup size"           0  FMCup         AR.cupInit              AR.cupFromQuery
+  , f C "Seiyuu"             0  FMNest        (staffInit C)           (nestFromQuery C S) -- seiyuu subtype
+
+  , f S "ID"                 0  FMStaff       AT.init                 AT.fromQuery
+  , f S "Language"           1  FMLang        AS.init                 AS.langFromQuery
+  , f S "Gender"             2  FMGender      AS.init                 AS.genderFromQuery
   ]
 
 
@@ -411,6 +439,7 @@ fieldUpdate dat msg_ (num, dd, model) =
           FMTrait      m -> Cmd.map FSTrait      (A.refocus m.conf)
           FMDeveloper  m -> Cmd.map FSDeveloper  (A.refocus m.conf)
           FMProducer   m -> Cmd.map FSProducer   (A.refocus m.conf)
+          FMStaff      m -> Cmd.map FSStaff      (A.refocus m.conf)
           FMResolution m -> Cmd.map FSResolution (A.refocus m.conf)
           FMEngine     m -> Cmd.map FSEngine     (A.refocus m.conf)
           _ -> Cmd.none
@@ -443,6 +472,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSRole msg,     FMRole m)     -> maps FMRole     (AS.update msg m)
       (FSBlood msg,    FMBlood m)    -> maps FMBlood    (AS.update msg m)
       (FSSex msg,      FMSex m)      -> maps FMSex      (AS.sexUpdate msg m)
+      (FSGender msg,   FMGender m)   -> maps FMGender   (AS.update msg m)
       (FSMedium msg,   FMMedium m)   -> maps FMMedium   (AS.update msg m)
       (FSVoiced msg,   FMVoiced m)   -> maps FMVoiced   (AS.update msg m)
       (FSAniEro msg,   FMAniEro m)   -> maps FMAniEro   (AS.update msg m)
@@ -461,7 +491,8 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSVotecount msg,FMVotecount m)-> maps FMVotecount (AR.update msg m)
       (FSMinAge msg   ,FMMinAge m)   -> maps FMMinAge   (AR.update msg m)
       (FSDeveloper msg,FMDeveloper m)-> mapf FMDeveloper FSDeveloper (AP.update dat msg m)
-      (FSProducer msg, FMProducer m) -> mapf FMProducer  FSProducer (AP.update dat msg m)
+      (FSProducer msg, FMProducer m) -> mapf FMProducer  FSProducer  (AP.update dat msg m)
+      (FSStaff msg,    FMStaff m)    -> mapf FMStaff     FSStaff     (AT.update dat msg m)
       (FSRDate msg,    FMRDate m)    -> maps FMRDate    (AD.update msg m)
       (FSResolution msg,FMResolution m)->mapf FMResolution FSResolution (AE.update dat msg m)
       (FSEngine msg,   FMEngine m)   -> mapf FMEngine FSEngine (AEng.update dat msg m)
@@ -505,6 +536,7 @@ fieldView dat (_, dd, model) =
       FMRole m       -> f FSRole       (AS.roleView m)
       FMBlood m      -> f FSBlood      (AS.bloodView m)
       FMSex m        -> f FSSex        (AS.sexView m)
+      FMGender m     -> f FSGender     (AS.genderView m)
       FMMedium m     -> f FSMedium     (AS.mediumView m)
       FMVoiced m     -> f FSVoiced     (AS.voicedView m)
       FMAniEro m     -> f FSAniEro     (AS.animatedView False m)
@@ -524,6 +556,7 @@ fieldView dat (_, dd, model) =
       FMMinAge m     -> f FSMinAge     (AR.minageView m)
       FMDeveloper m  -> f FSDeveloper  (AP.view False dat m)
       FMProducer m   -> f FSProducer   (AP.view True dat m)
+      FMStaff m      -> f FSStaff      (AT.view dat m)
       FMRDate m      -> f FSRDate      (AD.view m)
       FMResolution m -> f FSResolution (AE.view m)
       FMEngine m     -> f FSEngine     (AEng.view m)
@@ -546,6 +579,7 @@ fieldToQuery dat (_, _, model) =
     FMRole m     -> AS.toQuery (QStr 2) m
     FMBlood m    -> AS.toQuery (QStr 3) m
     FMSex (s,m)  -> AS.toQuery (QStr (if s then 5 else 4)) m
+    FMGender m   -> AS.toQuery (QStr 4) m
     FMMedium m   -> AS.toQuery (QStr 11) m
     FMVoiced m   -> AS.toQuery (QInt 12) m
     FMAniEro m   -> AS.toQuery (QInt 13) m
@@ -565,6 +599,7 @@ fieldToQuery dat (_, _, model) =
     FMMinAge m   -> AR.toQuery (QInt 10) (QStr 10) m
     FMDeveloper m-> AP.toQuery False m
     FMProducer m -> AP.toQuery True m
+    FMStaff m    -> AT.toQuery m
     FMRDate m    -> AD.toQuery m
     FMResolution m-> AE.toQuery m
     FMEngine m   -> AEng.toQuery m

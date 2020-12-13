@@ -29,6 +29,7 @@ type alias Recv =
   , labels       : List { id: Int, label: String }
   , defaultSpoil : Int
   , producers    : List GApi.ApiProducerResult
+  , staff        : List GApi.ApiStaffResult
   , tags         : List GApi.ApiTagResult
   , traits       : List GApi.ApiTraitResult
   }
@@ -80,6 +81,7 @@ init arg =
             , labels       = (0, "Unlabeled") :: List.map (\e -> (e.id, e.label)) arg.labels
             , defaultSpoil = arg.defaultSpoil
             , producers    = Dict.fromList <| List.map (\p -> (p.id,p)) <| arg.producers
+            , staff        = Dict.fromList <| List.map (\s -> (s.id,s)) <| arg.staff
             , tags         = Dict.fromList <| List.map (\t -> (t.id,t)) <| arg.tags
             , traits       = Dict.fromList <| List.map (\t -> (t.id,t)) <| arg.traits
             }
