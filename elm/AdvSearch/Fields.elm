@@ -258,6 +258,7 @@ type FieldModel
   | FMVotecount  (AR.Model Int)
   | FMMinAge     (AR.Model Int)
   | FMDeveloper  AP.Model
+  | FMProducer   AP.Model
   | FMRDate      AD.Model
   | FMResolution AE.Model
   | FMEngine     AEng.Model
@@ -294,6 +295,7 @@ type FieldMsg
   | FSVotecount  AR.Msg
   | FSMinAge     AR.Msg
   | FSDeveloper  AP.Msg
+  | FSProducer   AP.Msg
   | FSRDate      AD.Msg
   | FSResolution AE.Msg
   | FSEngine     AEng.Msg
@@ -346,7 +348,7 @@ fields =
   , f V ""                   0  FMTag         AG.init                 (AG.fromQuery 2)
   , f V "My Labels"          0  FMLabel       AS.init                 AS.labelFromQuery
   , f V "Length"             0  FMLength      AS.init                 AS.lengthFromQuery
-  , f V "Developer"          0  FMDeveloper   AP.init                 AP.devFromQuery
+  , f V "Developer"          0  FMDeveloper   AP.init                 (AP.fromQuery False)
   , f V "Release date"       0  FMRDate       AD.init                 AD.fromQuery
   , f V "Popularity"         0  FMPopularity  AR.popularityInit       AR.popularityFromQuery
   , f V "Rating"             0  FMRating      AR.ratingInit           AR.ratingFromQuery
@@ -366,7 +368,8 @@ fields =
   , l R "Self-published"     0 [(QInt 63 Eq 1, "Self-published"),          (QInt 63 Ne 1, "Commercially published")]
   , l R "Uncensored"         0 [(QInt 64 Eq 1, "Uncensored (no mosaic)"),  (QInt 64 Ne 1, "Censored (or no erotic content to censor)")]
   , l R "Official"           0 [(QInt 65 Eq 1, "Official"),                (QInt 65 Ne 1, "Unofficial")]
-  , f R "Developer"          0  FMDeveloper   AP.init                 AP.devFromQuery
+  , f R "Developer"          0  FMDeveloper   AP.init                 (AP.fromQuery False)
+  , f R "Producer"           0  FMProducer    AP.init                 (AP.fromQuery True)
   , f R "Release date"       0  FMRDate       AD.init                 AD.fromQuery
   , f R "Resolution"         0  FMResolution  AE.init                 AE.fromQuery
   , f R "Age rating"         0  FMMinAge      AR.minageInit           AR.minageFromQuery
@@ -407,6 +410,7 @@ fieldUpdate dat msg_ (num, dd, model) =
           FMTag        m -> Cmd.map FSTag        (A.refocus m.conf)
           FMTrait      m -> Cmd.map FSTrait      (A.refocus m.conf)
           FMDeveloper  m -> Cmd.map FSDeveloper  (A.refocus m.conf)
+          FMProducer   m -> Cmd.map FSProducer   (A.refocus m.conf)
           FMResolution m -> Cmd.map FSResolution (A.refocus m.conf)
           FMEngine     m -> Cmd.map FSEngine     (A.refocus m.conf)
           _ -> Cmd.none
@@ -457,6 +461,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSVotecount msg,FMVotecount m)-> maps FMVotecount (AR.update msg m)
       (FSMinAge msg   ,FMMinAge m)   -> maps FMMinAge   (AR.update msg m)
       (FSDeveloper msg,FMDeveloper m)-> mapf FMDeveloper FSDeveloper (AP.update dat msg m)
+      (FSProducer msg, FMProducer m) -> mapf FMProducer  FSProducer (AP.update dat msg m)
       (FSRDate msg,    FMRDate m)    -> maps FMRDate    (AD.update msg m)
       (FSResolution msg,FMResolution m)->mapf FMResolution FSResolution (AE.update dat msg m)
       (FSEngine msg,   FMEngine m)   -> mapf FMEngine FSEngine (AEng.update dat msg m)
@@ -517,7 +522,8 @@ fieldView dat (_, dd, model) =
       FMRating m     -> f FSRating     (AR.ratingView m)
       FMVotecount m  -> f FSVotecount  (AR.votecountView m)
       FMMinAge m     -> f FSMinAge     (AR.minageView m)
-      FMDeveloper m  -> f FSDeveloper  (AP.devView dat m)
+      FMDeveloper m  -> f FSDeveloper  (AP.view False dat m)
+      FMProducer m   -> f FSProducer   (AP.view True dat m)
       FMRDate m      -> f FSRDate      (AD.view m)
       FMResolution m -> f FSResolution (AE.view m)
       FMEngine m     -> f FSEngine     (AEng.view m)
@@ -557,7 +563,8 @@ fieldToQuery dat (_, _, model) =
     FMRating m   -> AR.toQuery (QInt 10) (QStr 10) m
     FMVotecount m-> AR.toQuery (QInt 11) (QStr 11) m
     FMMinAge m   -> AR.toQuery (QInt 10) (QStr 10) m
-    FMDeveloper m-> AP.toQuery (QInt 6) m
+    FMDeveloper m-> AP.toQuery False m
+    FMProducer m -> AP.toQuery True m
     FMRDate m    -> AD.toQuery m
     FMResolution m-> AE.toQuery m
     FMEngine m   -> AEng.toQuery m

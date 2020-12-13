@@ -50,10 +50,14 @@ update dat msg model =
                  , c )
 
 
-toQuery f m = S.toQuery f m.sel
+toQuery prod m = S.toQuery (QInt (if prod then 17 else 6)) m.sel
 
-fromQuery f dat q =
-  S.fromQuery f dat q |> Maybe.map (\(ndat,sel) ->
+fromQuery prod dat qf = S.fromQuery (\q ->
+  case (prod, q) of
+    (False, QInt 6  op v) -> Just (op, v)
+    (True,  QInt 17 op v) -> Just (op, v)
+    _ -> Nothing) dat qf
+  |> Maybe.map (\(ndat,sel) ->
     ( { ndat | objid = ndat.objid+1 }
     , { sel    = { sel | single = False }
       , conf   = { wrap = Search, id = "advsearch_prod" ++ String.fromInt ndat.objid, source = A.producerSource }
@@ -62,25 +66,22 @@ fromQuery f dat q =
     ))
 
 
-devFromQuery = fromQuery (\q ->
-  case q of
-    QInt 6 op v -> Just (op, v)
-    _ -> Nothing)
 
-
-devView : Data -> Model -> (Html Msg, () -> List (Html Msg))
-devView dat model =
+view : Bool -> Data -> Model -> (Html Msg, () -> List (Html Msg))
+view prod dat model =
+  let lbl = if prod then "Producer" else "Developer"
+  in
   ( case Set.toList model.sel.sel of
-      []  -> b [ class "grayedout" ] [ text "Developer" ]
+      []  -> b [ class "grayedout" ] [ text lbl ]
       [s] -> span [ class "nowrap" ]
              [ S.lblPrefix model.sel
              , b [ class "grayedout" ] [ text <| "p" ++ String.fromInt s ++ ":" ]
              , Dict.get s dat.producers |> Maybe.map (\p -> p.name) |> Maybe.withDefault "" |> text
              ]
-      l   -> span [] [ S.lblPrefix model.sel, text <| "Developers (" ++ String.fromInt (List.length l) ++ ")" ]
+      l   -> span [] [ S.lblPrefix model.sel, text <| lbl ++ " (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
     [ div [ class "advheader" ]
-      [ h3 [] [ text "Developer" ]
+      [ h3 [] [ text lbl ]
       , Html.map Sel (S.opts model.sel True False)
       ]
     , ul [] <| List.map (\s ->
