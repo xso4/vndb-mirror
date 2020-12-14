@@ -107,6 +107,18 @@ our %LINKS = (
         l_jastusa  => { label => 'JAST USA'
                       , fmt   => 'https://jastusa.com/%s'
                       , regex => qr{(?:www\.)?jastusa\.com/([a-z0-9-]+)} },
+        l_googplay => { label => 'Google Play'
+                      , fmt   => 'https://play.google.com/store/apps/details?id=%s'
+                      , regex => qr{play\.google\.com/store/apps/details\?id=([^/&\?]+)(?:&.*)?} },
+        l_appstore => { label => 'App Store'
+                      , fmt   => 'https://apps.apple.com/app/id%d'
+                      , regex => qr{(?:itunes|apps)\.apple\.com/(?:[^/]+/)?app/(?:[^/]+/)?id([0-9]+)([/\?].*)?} },
+        l_animateg => { label => 'Animate Games'
+                      , fmt   => 'https://www.animategames.jp/home/detail/%d'
+                      , regex => qr{(?:www\.)?animategames\.jp/home/detail/([0-9]+)} },
+        l_freem    => { label => 'Freem!'
+                      , fmt   => 'https://www.freem.ne.jp/win/game/%d'
+                      , regex => qr{(?:www\.)?freem\.ne\.jp/win/game/([0-9]+)} },
         l_gyutto   => { label => 'Gyutto'
                       , fmt   => 'https://gyutto.com/i/item%d'
                       , regex => qr{(?:www\.)?gyutto\.com/(?:.+\/)?i/item([0-9]+).*} },
@@ -259,6 +271,10 @@ sub enrich_extlinks {
             l 'l_denpa', $obj->{l_denpa_price};
             l 'l_jlist', $obj->{l_jlist_price};
             l 'l_jastusa';
+            l 'l_appstore';
+            l 'l_googplay';
+            l 'l_animateg';
+            l 'l_freem';
             l 'l_gyutto';
             l 'l_digiket';
             l 'l_melon';
