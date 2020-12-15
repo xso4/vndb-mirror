@@ -158,7 +158,7 @@ nestView dat dd model =
                        V -> "VN"
                        R -> "Release"
                        C -> "Character"
-                       S -> if model.ptype == C then "Seiyuu" else "Staff"
+                       S -> if model.qtype == C then "Seiyuu" else "Staff"
             in List.map (\t -> if t == model.addtype then b [] [ text (f t) ] else a [ href "#", onClickD (FSNest <| NAddType t) ] [ text (f t) ]) opts
           ]
         , let lst = Array.toIndexedList fields |> List.filter (\(_,f) -> f.qtype == model.addtype && f.title /= "")

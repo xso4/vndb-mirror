@@ -392,8 +392,9 @@ f c => 13 => 'trait',      { type => 'any', func => \&_validate_trait },
     compact => sub { my $id = ($_->[0] =~ s/^i//r)*1; $_->[1] == 0 ? $id : [ $id, int $_->[1] ] },
     sql_list => \&_sql_where_trait;
 
-# TODO: SQL is different when not used as a subquery in VN search (no vs.id comparison)
-f c => 52 => 'seiyuu',    's', '=' => sub { sql 'c.id IN(SELECT vs.cid FROM vn_seiyuu vs JOIN staff_alias sa ON sa.aid = vs.aid JOIN staff s ON s.id = sa.id WHERE NOT s.hidden AND vs.id = v.id AND', $_, ')' };
+# XXX: When this field is nested inside a VN query, it may match seiyuu linked to other VNs.
+# This can be trivially fixed by adding an (AND vs.id = v.id) clause, but that results in extremely slow queries that I've no clue how to optimize.
+f c => 52 => 'seiyuu',    's', '=' => sub { sql 'c.id IN(SELECT vs.cid FROM vn_seiyuu vs JOIN staff_alias sa ON sa.aid = vs.aid JOIN staff s ON s.id = sa.id WHERE NOT s.hidden AND', $_, ')' };
 
 
 
