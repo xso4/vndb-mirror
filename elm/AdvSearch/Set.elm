@@ -413,3 +413,28 @@ labelFromQuery dat q =
     case qs of
       QTuple 12 op uid l -> if Just uid == dat.uid then Just (op, l) else Nothing
       _ -> Nothing) dat q
+
+
+
+
+-- Staff role
+
+sroleView model =
+  let lst = ("seiyuu","Voice actor") :: GT.creditTypes
+  in
+  ( case Set.toList model.sel of
+      []  -> b [ class "grayedout" ] [ text "Role" ]
+      [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" <| lookup v lst ]
+      l   -> span [ class "nowrap" ] [ lblPrefix model, text <| "Roles (" ++ String.fromInt (List.length l) ++ ")" ]
+  , \() ->
+    [ div [ class "advheader" ]
+      [ h3 [] [ text "Role" ]
+      , opts model True True ]
+    , ul [] <| List.map (\(k,l) -> li [] [ linkRadio (Set.member k model.sel) (Sel k) [ text l ] ]) lst
+    ]
+  )
+
+sroleFromQuery = fromQuery (\q ->
+  case q of
+    QStr 5 op v -> Just (op, v)
+    _ -> Nothing)

@@ -262,6 +262,7 @@ type FieldModel
   | FMAniStory   (AS.Model Int)
   | FMRType      (AS.Model String)
   | FMLabel      (AS.Model Int)
+  | FMSRole      (AS.Model String)
   | FMHeight     (AR.Model Int)
   | FMWeight     (AR.Model Int)
   | FMBust       (AR.Model Int)
@@ -301,6 +302,7 @@ type FieldMsg
   | FSAniStory   (AS.Msg Int)
   | FSRType      (AS.Msg String)
   | FSLabel      (AS.Msg Int)
+  | FSSRole      (AS.Msg String)
   | FSHeight     AR.Msg
   | FSWeight     AR.Msg
   | FSBust       AR.Msg
@@ -422,6 +424,7 @@ fields =
   , f S "Name"               0  FMStaff       AT.init                 AT.fromQuery
   , f S "Language"           1  FMLang        AS.init                 AS.langFromQuery
   , f S "Gender"             2  FMGender      AS.init                 AS.genderFromQuery
+  , f S "Role"               3  FMSRole       AS.init                 AS.sroleFromQuery
   ]
 
 
@@ -479,6 +482,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSAniStory msg, FMAniStory m) -> maps FMAniStory (AS.update msg m)
       (FSRType  msg,   FMRType m)    -> maps FMRType    (AS.update msg m)
       (FSLabel  msg,   FMLabel m)    -> maps FMLabel    (AS.update msg m)
+      (FSSRole  msg,   FMSRole m)    -> maps FMSRole    (AS.update msg m)
       (FSHeight msg,   FMHeight m)   -> maps FMHeight   (AR.update msg m)
       (FSWeight msg,   FMWeight m)   -> maps FMWeight   (AR.update msg m)
       (FSBust msg,     FMBust m)     -> maps FMBust     (AR.update msg m)
@@ -543,6 +547,7 @@ fieldView dat (_, dd, model) =
       FMAniStory m   -> f FSAniStory   (AS.animatedView True m)
       FMRType m      -> f FSRType      (AS.rtypeView m)
       FMLabel m      -> f FSLabel      (AS.labelView dat m)
+      FMSRole m      -> f FSSRole      (AS.sroleView m)
       FMHeight m     -> f FSHeight     (AR.heightView m)
       FMWeight m     -> f FSWeight     (AR.weightView m)
       FMBust m       -> f FSBust       (AR.bustView m)
@@ -586,6 +591,7 @@ fieldToQuery dat (_, _, model) =
     FMAniStory m -> AS.toQuery (QInt 14) m
     FMRType m    -> AS.toQuery (QStr 16) m
     FMLabel m    -> AS.toQuery (\op v -> QTuple 12 op (Maybe.withDefault 0 dat.uid) v) m
+    FMSRole m    -> AS.toQuery (QStr 5) m
     FMHeight m   -> AR.toQuery (QInt 6) (QStr 6) m
     FMWeight m   -> AR.toQuery (QInt 7) (QStr 7) m
     FMBust m     -> AR.toQuery (QInt 8) (QStr 8) m

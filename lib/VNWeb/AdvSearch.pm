@@ -299,6 +299,7 @@ sub f {
     $NUMFIELDS{$t}{$num} = $n;
 }
 
+my @TYPE; # stack of query types, $TYPE[0] is the top-level query, $TYPE[$#TYPE] the query currently being processed.
 
 
 f v =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_languages && ARRAY', \$_, '::language[]' };
@@ -398,9 +399,24 @@ f c => 52 => 'seiyuu',    's', '=' => sub { sql 'c.id IN(SELECT vs.cid FROM vn_s
 
 
 
+# Staff filters need both 'staff s' and 'staff_alias sa' - aliases are treated as separate rows.
 f s =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 's.lang =', \$_ };
 f s =>  3 => 'id',        { vndbid => 's' }, '=' => sub { sql 's.id = vndbid_num(', \$_, ')' };
 f s =>  4 => 'gender',    { enum => \%GENDER }, '=' => sub { sql 's.gender =', \$_ };
+f s =>  5 => 'role',      { enum => [ 'seiyuu', keys %CREDIT_TYPE ] },
+    sql_list_grp => sub { $_ eq 'seiyuu' ? undef : '' },
+    sql_list => sub {
+        my($neg, $all, $val) = @_;
+        my @grp = $all && @$val > 1 ? ('GROUP BY vs.aid HAVING COUNT(vs.role) =', \scalar @$val) : ();
+        if($#TYPE && $TYPE[$#TYPE-1] eq 'v') {
+            return sql $neg ? 'NOT' : '', 'EXISTS(SELECT 1 FROM vn_seiyuu vs WHERE vs.id = v.id AND vs.aid = sa.aid)' if $val->[0] eq 'seiyuu';
+            #return sql 'vs.role IN', $val if !@grp && !$neg; # Shortcut referencing the vn_staff table we're already querying
+            sql 'sa.aid', $neg ? 'NOT' : '', 'IN(SELECT vs.aid FROM vn_staff vs WHERE vs.id = v.id AND vs.role IN', $val, @grp, ')';
+        } else {
+            return sql $neg ? 'NOT' : '', 'EXISTS(SELECT 1 FROM vn_seiyuu vs JOIN vn v ON v.id = vs.id WHERE NOT v.hidden AND vs.aid = sa.aid)' if $val->[0] eq 'seiyuu';
+            sql 'sa.aid', $neg ? 'NOT' : '', 'IN(SELECT vs.aid FROM vn_staff vs JOIN vn v ON v.id = vs.id WHERE NOT v.hidden AND vs.role IN', $val, @grp, ')';
+        }
+    };
 
 
 
@@ -602,13 +618,19 @@ sub _sql_where {
 
     my $f = $FIELDS{$t}{$q->[0]};
     my $func = $f->{$q->[1]} || $f->{sql};
-    local $_ = ref $f->{value} ? $q->[2] : _sql_where($f->{value}, $q->[2]);
-    $func->($q->[1]);
+    local $_ = ref $f->{value} ? $q->[2] : do {
+        push @TYPE, $f->{value};
+        my $v = _sql_where($f->{value}, $q->[2]);
+        pop @TYPE;
+        $v;
+    };
+    sql '(', $func->($q->[1]), ')';
 }
 
 
 sub sql_where {
     my($self) = @_;
+    @TYPE = ($self->{type});
     $self->{query} ? _sql_where $self->{type}, _canon $self->{type}, $self->{query} : '1=1';
 }
 
