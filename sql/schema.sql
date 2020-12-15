@@ -374,7 +374,9 @@ CREATE TABLE releases ( -- dbentry_type=r
   l_animateg integer NOT NULL DEFAULT 0, -- [pub]
   l_freem    integer NOT NULL DEFAULT 0, -- [pub]
   l_appstore bigint NOT NULL DEFAULT 0, -- [pub]
-  l_googplay text NOT NULL DEFAULT '' -- [pub]
+  l_googplay text NOT NULL DEFAULT '', -- [pub]
+  l_fakku    text NOT NULL DEFAULT '', -- [pub]
+  l_novelgam integer NOT NULL DEFAULT 0 -- [pub]
 );
 
 -- releases_hist
@@ -424,7 +426,9 @@ CREATE TABLE releases_hist (
   l_animateg integer NOT NULL DEFAULT 0,
   l_freem    integer NOT NULL DEFAULT 0,
   l_appstore bigint NOT NULL DEFAULT 0,
-  l_googplay text NOT NULL DEFAULT ''
+  l_googplay text NOT NULL DEFAULT '',
+  l_fakku    text NOT NULL DEFAULT '',
+  l_novelgam integer NOT NULL DEFAULT 0
 );
 
 -- releases_lang

@@ -107,6 +107,9 @@ our %LINKS = (
         l_jastusa  => { label => 'JAST USA'
                       , fmt   => 'https://jastusa.com/%s'
                       , regex => qr{(?:www\.)?jastusa\.com/([a-z0-9-]+)} },
+        l_fakku    => { label => 'Fakku'
+                      , fmt   => 'https://www.fakku.net/games/%s'
+                      , regex => qr{(?:www\.)?fakku\.(?:net|com)/games/([^/]+)(?:[/\?].*)?} },
         l_googplay => { label => 'Google Play'
                       , fmt   => 'https://play.google.com/store/apps/details?id=%s'
                       , regex => qr{play\.google\.com/store/apps/details\?id=([^/&\?]+)(?:&.*)?} },
@@ -119,9 +122,12 @@ our %LINKS = (
         l_freem    => { label => 'Freem!'
                       , fmt   => 'https://www.freem.ne.jp/win/game/%d'
                       , regex => qr{(?:www\.)?freem\.ne\.jp/win/game/([0-9]+)} },
+        l_novelgam => { label => 'NovelGame'
+                      , fmt   => 'https://novelgame.jp/games/show/%d'
+                      , regex => qr{(?:www\.)?novelgame\.jp/games/show/([0-9]+)} },
         l_gyutto   => { label => 'Gyutto'
                       , fmt   => 'https://gyutto.com/i/item%d'
-                      , regex => qr{(?:www\.)?gyutto\.com/(?:.+\/)?i/item([0-9]+).*} },
+                      , regex => qr{(?:www\.)?gyutto\.(?:com|jp|me)/(?:.+\/)?i/item([0-9]+).*} },
         l_digiket  => { label => 'Digiket'
                       , fmt   => 'https://www.digiket.com/work/show/_data/ID=ITM%07d/'
                       , regex => qr{(?:www\.)?digiket\.com/.*ITM([0-9]{7}).*} },
@@ -271,10 +277,12 @@ sub enrich_extlinks {
             l 'l_denpa', $obj->{l_denpa_price};
             l 'l_jlist', $obj->{l_jlist_price};
             l 'l_jastusa';
+            l 'l_fakku';
             l 'l_appstore';
             l 'l_googplay';
             l 'l_animateg';
             l 'l_freem';
+            l 'l_novelgam';
             l 'l_gyutto';
             l 'l_digiket';
             l 'l_melon';
