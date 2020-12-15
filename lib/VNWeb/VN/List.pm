@@ -61,27 +61,38 @@ TUWF::get qr{/experimental/v}, sub {
         defined($opt->{ch}) && !$opt->{ch} ? sql('(ASCII(v.title) <', \97, 'OR ASCII(v.title) >', \122, ') AND (ASCII(v.title) <', \65, 'OR ASCII(v.title) >', \90, ')') : ();
 
     my $time = time;
-    my $count = tuwf->dbVali('SELECT count(*) FROM vn v WHERE', $where);
-    my $list = $count && tuwf->dbPagei({results => 50, page => $opt->{p}}, '
-        SELECT v.id, v.title, v.original, v.c_released, v.c_popularity, v.c_votecount, v.c_rating, v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang
-             , vl.userlist_all, vl.userlist_obtained
-          FROM vn v
-          LEFT JOIN (
-                 SELECT irv.vid, COUNT(*) AS userlist_all
-                      , SUM(CASE WHEN irl.status = 1+1 THEN 1 ELSE 0 END) AS userlist_obtained
-                   FROM rlists irl
-                   JOIN releases_vn irv ON irv.id = irl.rid
-                  WHERE irl.uid =', \auth->uid, '
-                  GROUP BY irv.vid
-               ) AS vl ON vl.vid = v.id
-         WHERE', $where, '
-         ORDER BY', sprintf {
-             title  => 'v.title %s',
-             rel    => 'v.c_released %s, v.title',
-             pop    => 'v.c_popularity %s NULLS LAST, v.title',
-             rating => 'v.c_rating %s NULLS LAST, v.title'
-         }->{$opt->{s}}, $opt->{o} eq 'a' ? 'ASC' : 'DESC'
-    );
+    my($count, $list);
+    tuwf->dbh->pg_savepoint('filter'); # Savepoint to reset our transaction in case the query timed out.
+    eval {
+        $count = tuwf->dbVali('SELECT count(*) FROM vn v WHERE', $where);
+        $list = $count && tuwf->dbPagei({results => 50, page => $opt->{p}}, '
+            SELECT v.id, v.title, v.original, v.c_released, v.c_popularity, v.c_votecount, v.c_rating, v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang
+                 , vl.userlist_all, vl.userlist_obtained
+              FROM vn v
+              LEFT JOIN (
+                     SELECT irv.vid, COUNT(*) AS userlist_all
+                          , SUM(CASE WHEN irl.status = 1+1 THEN 1 ELSE 0 END) AS userlist_obtained
+                       FROM rlists irl
+                       JOIN releases_vn irv ON irv.id = irl.rid
+                      WHERE irl.uid =', \auth->uid, '
+                      GROUP BY irv.vid
+                   ) AS vl ON vl.vid = v.id
+             WHERE', $where, '
+             ORDER BY', sprintf {
+                 title  => 'v.title %s',
+                 rel    => 'v.c_released %s, v.title',
+                 pop    => 'v.c_popularity %s NULLS LAST, v.title',
+                 rating => 'v.c_rating %s NULLS LAST, v.title'
+             }->{$opt->{s}}, $opt->{o} eq 'a' ? 'ASC' : 'DESC'
+        );
+    };
+    tuwf->dbh->pg_rollback_to('filter');
+    if(!defined $list && $@ =~ /canceling statement due to statement timeout/) {
+        warn "Query timed out\n";
+        ($count, $list) = (undef, []);
+    }
+    die $@ if !defined $list;
+
     enrich_flatten vnlist_labels => id => vid => sub { sql '
         SELECT uvl.vid, ul.label
           FROM ulist_vns_labels uvl
@@ -110,7 +121,15 @@ TUWF::get qr{/experimental/v}, sub {
                 input_ type => 'hidden', name => 'ch', value => $opt->{ch}//'';
                 $opt->{f}->elm_;
             };
-            p_ class => 'center', sprintf '%d results in %.3fs', $count, $time;
+            p_ class => 'center', sprintf '%d results in %.3fs', $count, $time if defined $count;
+            div_ class => 'warning', sub {
+                h2_ 'ERROR: Query timed out.';
+                p_ q{
+                  This usually happens when your combination of filters is too complex for the server to handle.
+                  This may also happen when the server is overloaded with other work, but that's much less common.
+                  You can adjust your filters or try again later.
+                };
+            } if !defined $count;
         };
         listing_ $opt, $list, $count if $count;
     };
