@@ -419,7 +419,7 @@ fields =
   , f C "Cup size"           0  FMCup         AR.cupInit              AR.cupFromQuery
   , f C "Seiyuu"             0  FMNest        (staffInit C)           (nestFromQuery C S) -- seiyuu subtype
 
-  , f S "ID"                 0  FMStaff       AT.init                 AT.fromQuery
+  , f S "Name"               0  FMStaff       AT.init                 AT.fromQuery
   , f S "Language"           1  FMLang        AS.init                 AS.langFromQuery
   , f S "Gender"             2  FMGender      AS.init                 AS.genderFromQuery
   ]

@@ -69,13 +69,13 @@ fromQuery dat qf = S.fromQuery (\q ->
 view : Data -> Model -> (Html Msg, () -> List (Html Msg))
 view dat model =
   ( case Set.toList model.sel.sel of
-      []  -> b [ class "grayedout" ] [ text "ID" ]
+      []  -> b [ class "grayedout" ] [ text "Name" ]
       [s] -> span [ class "nowrap" ]
              [ S.lblPrefix model.sel
              , b [ class "grayedout" ] [ text <| "s" ++ String.fromInt s ++ ":" ]
              , Dict.get s dat.staff |> Maybe.map (\e -> e.name) |> Maybe.withDefault "" |> text
              ]
-      l   -> span [] [ S.lblPrefix model.sel, text <| "IDs (" ++ String.fromInt (List.length l) ++ ")" ]
+      l   -> span [] [ S.lblPrefix model.sel, text <| "Names (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
     [ div [ class "advheader" ]
       [ h3 [] [ text "Staff identifier" ]
@@ -89,5 +89,6 @@ view dat model =
         ]
       ) (Set.toList model.sel.sel)
     , A.view model.conf model.search [ placeholder "Search..." ]
+    , b [ class "grayedout" ] [ text "All aliases of the selected staff entries are searched, not just the names you specified." ]
     ]
   )
