@@ -81,12 +81,12 @@ our %LINKS = (
                       , regex => qr{(?:www\.)?(?:store\.steampowered\.com/app/([0-9]+)(?:/.*)?|steamcommunity\.com/(?:app|games)/([0-9]+)(?:/.*)?|steamdb\.info/app/([0-9]+)(?:/.*)?)} },
         l_dlsite   => { label => 'DLsite (jpn)'
                       , fmt   => 'https://www.dlsite.com/home/work/=/product_id/%s.html'
-                      , fmt2  => sub { sprintf config->{dlsite_url}, shift->{l_dlsite_shop}||'home' }
+                      , fmt2  => sub { config->{dlsite_url} && sprintf config->{dlsite_url}, shift->{l_dlsite_shop}||'home' }
                       , regex => qr{(?:www\.)?dlsite\.com/.*/(?:dlaf/=/link/work/aid/.*/id|work/=/product_id)/([VR]J[0-9]{6}).*}
                       , patt  => 'https://www.dlsite.com/<store>/work/=/product_id/<VJ or RJ-code>' },
         l_dlsiteen => { label => 'DLsite (eng)'
                       , fmt   => 'https://www.dlsite.com/eng/work/=/product_id/%s.html'
-                      , fmt2  => sub { sprintf config->{dlsite_url}, shift->{l_dlsiteen_shop}||'eng' }
+                      , fmt2  => sub { config->{dlsite_url} && sprintf config->{dlsite_url}, shift->{l_dlsiteen_shop}||'eng' }
                       , regex => qr{(?:www\.)?dlsite\.com/.*/(?:dlaf/=/link/work/aid/.*/id|work/=/product_id)/([VR]E[0-9]{6}).*}
                       , patt  => 'https://www.dlsite.com/<store>/work/=/product_id/<VE or RE-code>' },
         l_gog      => { label => 'GOG'
@@ -241,7 +241,7 @@ sub enrich_extlinks {
         my sub l {
             my($f, $price) = @_;
             my($v, $fmt, $fmt2, $label) = ($obj->{$f}, $l->{$f} ? @{$l->{$f}}{'fmt', 'fmt2', 'label'} : ());
-            push @links, map [ $label, sprintf(ref $fmt2 ? $fmt2->($obj) : $fmt2 || $fmt, $_), $price ], ref $v ? @$v : $v ? $v : ()
+            push @links, map [ $label, sprintf((ref $fmt2 ? $fmt2->($obj) : $fmt2) || $fmt, $_), $price ], ref $v ? @$v : $v ? $v : ()
         }
 
         l 'l_site';

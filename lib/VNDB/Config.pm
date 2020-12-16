@@ -29,13 +29,6 @@ my $config = {
     graphviz_path     => '/usr/bin/dot',
     trace_log         => 0,
 
-    dlsite_url   => 'https://www.dlsite.com/%s/work/=/product_id/%%s.html',
-    denpa_url    => 'https://denpasoft.com/product/%s/',
-    jlist_url    => 'https://www.jlist.com/%s',
-    jbox_url     => 'https://www.jbox.com/%s',
-    mg_r18_url   => 'https://www.mangagamer.com/r18/detail.php?product_code=%d',
-    mg_main_url  => 'https://www.mangagamer.com/detail.php?product_code=%d',
-
     Multi => {
         Core        => {},
         Maintenance => {},
