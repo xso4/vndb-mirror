@@ -1,14 +1,13 @@
 package VNWeb::Filters;
 
-# This module implements validating and querying the search filters. I'm not
-# sure yet if this filter system will continue to exist in this form or if
-# there will be a better advanced search system to replace it, but either way
-# we'll need to support these filters for the forseeable future.
+# This module implements validating and querying the old search filters. These
+# filters are replaced with the new AdvSearch framework and this code only
+# exists to convert old URLs.
 
 use VNWeb::Prelude;
 use Exporter 'import';
 
-our @EXPORT = qw/filter_parse filter_vn_query filter_release_query/;
+our @EXPORT = qw/filter_parse filter_vn_query filter_release_query filter_vn_adv filter_release_adv filter_char_adv/;
 
 
 my $VN = form_compile any => {
@@ -123,11 +122,12 @@ sub filter_vn_compat {
 # Throws error on failure.
 sub filter_parse {
     my($type, $str) = @_;
+    return {} if !$str;
     my $s = {v => $VN, r => $RELEASE, c => $CHAR, s => $STAFF}->{$type};
     my $data = ref $str ? $str : $str =~ /^{/ ? JSON::XS->new->decode($str) : VNDB::Func::fil_parse $str, keys $s->{known_keys}->%*;
     die "Invalid filter data: $str\n" if !$data;
     my $f = $s->validate($data)->data;
-    filter_vn_compat $f if $type eq 'vn';
+    filter_vn_compat $f if $type eq 'v';
     $f
 }
 
@@ -190,6 +190,86 @@ sub filter_release_query {
     defined $fil->{ani_story}   ? sql 'NOT r.patch AND r.ani_story IN', $fil->{ani_story} : (),
     defined $fil->{ani_ero}     ? sql 'NOT r.patch AND r.ani_ero   IN', $fil->{ani_ero}   : (),
     defined $fil->{engine}      ? sql 'r.engine =', \$fil->{engine} : (),
+}
+
+
+sub filter_vn_adv {
+    my($fil) = @_;
+    [ 'and',
+    defined $fil->{date_before} ? [ 'released', '<=', $fil->{date_before} ] : (),
+    defined $fil->{date_after}  ? [ 'released', '>=', $fil->{date_after} ] : (),
+    defined $fil->{released}    ? [ 'released', $fil->{released} ? '<=' : '>', 1 ] : (),
+    defined $fil->{length}      ? map [ 'length', '=', $_ ], $fil->{length}->@* : (),
+    defined $fil->{hasani}      ? [ 'has-anime', $fil->{hasani} ? '=' : '!=', 1 ] : (),
+    defined $fil->{hasshot}     ? [ 'has-screenshot', $fil->{hasshot} ? '=' : '!=', 1 ] : (),
+    defined $fil->{tag_inc}     ? [ 'and', map [ 'tag', '=',  [ $_, $fil->{tagspoil}, 0 ] ], $fil->{tag_inc}->@* ] : (),
+    defined $fil->{tag_exc}     ? [ 'and', map [ 'tag', '!=', [ $_, 2, 0 ] ], $fil->{tag_exc}->@* ] : (),
+    defined $fil->{lang}        ? [ 'or', map [ 'lang',     '=', $_ ], $fil->{lang}->@* ] : (),
+    defined $fil->{olang}       ? [ 'or', map [ 'olang',    '=', $_ ], $fil->{olang}->@* ] : (),
+    defined $fil->{plat}        ? [ 'or', map [ 'platform', '=', $_ ], $fil->{plat}->@* ] : (),
+    defined $fil->{staff_inc}   ? [ 'staff', '=',  [ 'or', map [ 'id', '=', $_ ], $fil->{staff_inc} ] ] : (),
+    defined $fil->{staff_exc}   ? [ 'staff', '!=', [ 'or', map [ 'id', '=', $_ ], $fil->{staff_exc} ] ] : (),
+    auth ? (
+        defined $fil->{ul_notblack}   ? [ 'label', '!=', 6 ] : (),
+        defined $fil->{ul_onwish}     ? [ 'label', $fil->{ul_onwish} ? '=' : '!=', 5 ] : (),
+        defined $fil->{ul_voted}      ? [ 'label', $fil->{ul_voted}  ? '=' : '!=', 7 ] : (),
+        # XXX: "Not on list" can't be represented in the same way with an AdvSearch query, so it's instead taken to mean "not assigned any of the built-in labels"
+        defined $fil->{ul_onlist}     ? [$fil->{ul_onlist} ? ('or', [ 'label', '=', 0 ], [ 'label', '!=', 0 ]) : ('and', map [ 'label', '!=', $_ ], 1..7)] : (),
+    ) : ()
+    ]
+}
+
+
+sub filter_release_adv {
+    my($fil) = @_;
+    [ 'and',
+    defined $fil->{type}        ? [ 'rtype', '=', $fil->{type} ] : (),
+    defined $fil->{patch}       ? [ 'patch',      $fil->{patch}      ? '=' : '!=', 1 ] : (),
+    defined $fil->{freeware}    ? [ 'freeware',   $fil->{freeware}   ? '=' : '!=', 1 ] : (),
+    defined $fil->{doujin}      ? [ 'doujin',     $fil->{doujin}     ? '=' : '!=', 1 ] : (),
+    defined $fil->{uncensored}  ? [ 'uncensored', $fil->{uncensored} ? '=' : '!=', 1 ] : (),
+    defined $fil->{date_before} ? [ 'released', '<=', $fil->{date_before} ] : (),
+    defined $fil->{date_after}  ? [ 'released', '>=', $fil->{date_after}  ] : (),
+    defined $fil->{released}    ? [ 'released', $fil->{released} ? '<=' : '>', 1 ] : (),
+    defined $fil->{minage}      ? [ 'or', map [ 'minage', '=', $_ ], $fil->{minage}->@* ] : (),
+    defined $fil->{lang}        ? [ 'or', map [ 'lang', '=', $_ ], $fil->{lang}->@* ] : (),
+    defined $fil->{olang}       ? () : (), # TODO: This isn't supported (yet? it's more like a VN filter).
+    defined $fil->{resolution}  ? [ 'or', map [ 'resolution', '=', $_ eq 'unknown' ? [0,0] : $_ eq 'nonstandard' ? [0,1] : [split /x/] ], $fil->{resolution}->@* ] : (),
+    defined $fil->{plat}        ? [ 'or', map [ 'platform', '=', $_ eq 'unk' ? '' : $_ ], $fil->{plat}->@* ] : (),
+    defined $fil->{prod_inc}    ? [ 'or', map [ 'producer', '=', $_ ], $fil->{prod_inc}->@* ] : (),
+    defined $fil->{prod_exc}    ? [ 'and', map [ 'producer', '!=', $_ ], $fil->{prod_exc}->@* ] : (),
+    defined $fil->{med}         ? [ 'or', map [ 'medium', '=', $_ eq 'unk' ? '' : $_ ], $fil->{med}->@* ] : (),
+    defined $fil->{voiced}      ? [ 'or', map [ 'voiced', '=', $_ ], $fil->{voiced}->@* ] : (),
+    defined $fil->{ani_story}   ? [ 'or', map [ 'animation-story', '=', $_ ], $fil->{ani_story}->@* ] : (),
+    defined $fil->{ani_ero}     ? [ 'or', map [ 'animation-ero',   '=', $_ ], $fil->{ani_ero}->@* ]  : (),
+    defined $fil->{engine}      ? [ 'or', map [ 'engine', '=', $_ ], $fil->{engine}->@* ] : (),
+    ]
+}
+
+
+sub filter_char_adv {
+    my($fil) = @_;
+    [ 'and',
+    defined $fil->{gender}     ? [ 'or', map [ 'sex', '=', $_ ], $fil->{gender}->@* ] : (),
+    defined $fil->{bloodt}     ? [ 'or', map [ 'blood-type', '=', $_ ], $fil->{bloodt}->@* ] : (),
+    defined $fil->{bust_min}   ? [ 'bust',   '>=', $fil->{bust_min}   ] : (),
+    defined $fil->{bust_max}   ? [ 'bust',   '<=', $fil->{bust_max}   ] : (),
+    defined $fil->{waist_min}  ? [ 'waist',  '>=', $fil->{waist_min}  ] : (),
+    defined $fil->{waist_max}  ? [ 'waist',  '<=', $fil->{waist_max}  ] : (),
+    defined $fil->{hip_min}    ? [ 'hips',   '>=', $fil->{hip_min}    ] : (),
+    defined $fil->{hip_max}    ? [ 'hips',   '<=', $fil->{hip_max}    ] : (),
+    defined $fil->{height_min} ? [ 'height', '>=', $fil->{height_min} ] : (),
+    defined $fil->{height_max} ? [ 'height', '<=', $fil->{height_max} ] : (),
+    defined $fil->{weight_min} ? [ 'weight', '>=', $fil->{weight_min} ] : (),
+    defined $fil->{weight_max} ? [ 'weight', '<=', $fil->{weight_max} ] : (),
+    defined $fil->{cup_min}    ? [ 'cup',    '>=', $fil->{cup_min}    ] : (),
+    defined $fil->{cup_max}    ? [ 'cup',    '<=', $fil->{cup_max}    ] : (),
+    defined $fil->{va_inc}     ? [ 'seiyuu', '=',  [ 'or', map [ 'id', '=', $_ ], $fil->{va_inc}->@* ] ] : (),
+    defined $fil->{va_exc}     ? [ 'seiyuu', '!=', [ 'or', map [ 'id', '=', $_ ], $fil->{va_exc}->@* ] ] : (),
+    defined $fil->{trait_inc}  ? [ 'and', map [ 'trait', '=',  [ $_, $fil->{tagspoil} ] ], $fil->{trait_inc}->@* ] : (),
+    defined $fil->{trait_exc}  ? [ 'and', map [ 'trait', '!=', [ $_, 2 ] ], $fil->{trait_exc}->@* ] : (),
+    defined $fil->{role}       ? [ 'or', map [ 'role', '=', $_ ], $fil->{role}->@* ] : (),
+    ]
 }
 
 1;

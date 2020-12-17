@@ -2,6 +2,7 @@ package VNWeb::VN::List;
 
 use VNWeb::Prelude;
 use VNWeb::AdvSearch;
+use VNWeb::Filters;
 
 
 sub listing_ {
@@ -45,14 +46,39 @@ sub listing_ {
 
 TUWF::get qr{/experimental/v}, sub {
     my $opt = tuwf->validate(get =>
-        q => { onerror => '' },
+        q => { onerror => undef },
+        sq=> { onerror => undef },
         p => { upage => 1 },
         f => { advsearch => 'v' },
         s => { onerror => 'title', enum => [qw/title rel pop rating/] },
         o => { onerror => 'a', enum => ['a','d'] },
         ch=> { onerror => [], type => 'array', scalar => 1, values => { onerror => undef, enum => ['0', 'a'..'z'] } },
+        fil  => { required => 0 },
+        rfil => { required => 0 },
+        cfil => { required => 0 },
     )->data;
+    $opt->{q} //= $opt->{sq};
     $opt->{ch} = $opt->{ch}[0];
+
+    # URL compatibility with old filters
+    if(!$opt->{f}->{query} && ($opt->{fil} || $opt->{rfil} || $opt->{cfil})) {
+        my $q = eval {
+            my $fil  = filter_vn_adv      filter_parse v => $opt->{fil};
+            my $rfil = filter_release_adv filter_parse r => $opt->{rfil};
+            my $cfil = filter_char_adv    filter_parse c => $opt->{cfil};
+            my @q = (
+                $fil && @$fil > 1 ? $fil : (),
+                $rfil && @$rfil > 1 ? [ 'release', '=', $rfil ] : (),
+                $cfil && @$cfil > 1 ? [ 'character', '=', $cfil ] : (),
+            );
+            tuwf->compile({ advsearch => 'v' })->validate(@q > 1 ? ['and',@q] : @q)->data;
+        };
+        if(!$q) {
+            warn "Filter compatibility conversion failed\n$@";
+        } else {
+            return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode(%$opt, fil => undef, rfil => undef, cfil => undef, f => $q), 'temp');
+        }
+    }
 
     my $where = sql_and
         'NOT v.hidden', $opt->{f}->sql_where(),
@@ -111,7 +137,7 @@ TUWF::get qr{/experimental/v}, sub {
             };
             br_;
             form_ action => '/experimental/v', method => 'get', sub {
-                searchbox_ v => $opt->{q};
+                searchbox_ v => $opt->{q}//'';
                 p_ class => 'browseopts', sub {
                     button_ type => 'submit', name => 'ch', value => ($_//''), ($_//'') eq ($opt->{ch}//'') ? (class => 'optselected') : (), !defined $_ ? 'ALL' : $_ ? uc $_ : '#'
                         for (undef, 'a'..'z', 0);
