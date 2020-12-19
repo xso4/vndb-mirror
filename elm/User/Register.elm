@@ -8,6 +8,7 @@ import Lib.Api as Api
 import Gen.Api as GApi
 import Gen.UserRegister as GUR
 import Lib.Html exposing (..)
+import Lib.Util exposing (..)
 
 
 main : Program () Model Msg
@@ -82,6 +83,15 @@ view model =
           ]
         , formField "email::E-Mail"
           [ inputText "email" model.email EMail GUR.valEmail
+          , case shittyMailProvider model.email of
+              Nothing -> text ""
+              Just n -> span []
+                [ br [] []
+                , b [ class "standout" ] [ text "WARNING: " ]
+                , text (n ++ " is known to silently drop emails from VNDB. If you have an address at another provider, you may want to use that."
+                          ++ " If you want to keep using this provider, please kindly tell them to stop blocking VNDB. Thanks.")
+                , br [] []
+                ]
           , br_ 1
           , text "Your email address will only be used in case you lose your password. "
           , text "We will never send spam or newsletters unless you explicitly ask us for it or we get hacked."

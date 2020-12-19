@@ -8,6 +8,7 @@ import Lib.Api as Api
 import Gen.Api as GApi
 import Gen.UserPassReset as GUPR
 import Lib.Html exposing (..)
+import Lib.Util exposing (..)
 
 
 main : Program () Model Msg
@@ -68,7 +69,16 @@ view model =
         , text " and we'll send you instructions to set a new password within a few minutes!"
         ]
       , table [ class "formtable" ]
-        [ formField "email::E-Mail" [ inputText "email" model.email EMail GUPR.valEmail ]
+        [ formField "email::E-Mail"
+          [ inputText "email" model.email EMail GUPR.valEmail
+          , case shittyMailProvider model.email of
+              Nothing -> text ""
+              Just n -> span []
+                [ br [] []
+                , b [ class "standout" ] [ text "WARNING: " ]
+                , text (n ++ " is known to silently drop emails from VNDB. If your password reset email does not arrive in a few hours, please send a mail to contact@vndb.org.")
+                ]
+          ]
         ]
       ]
     , div [ class "mainbox" ]
