@@ -40,7 +40,7 @@ sub listing_ {
                     a_ href => $url->(v => $i->{vid}, p=>undef), class => 'setfil', '> ' if !defined $opt->{v};
                     a_ href => "/v$i->{vid}", shorten $i->{title}, 50;
                 };
-                td_ class => 'tc7', $i->{notes};
+                td_ class => 'tc7', sub { lit_ bb_format $i->{notes}, inline => 1 };
             } for @$lst;
         };
     };
