@@ -410,7 +410,7 @@ f s =>  5 => 'role',      { enum => [ 'seiyuu', keys %CREDIT_TYPE ] },
         my @grp = $all && @$val > 1 ? ('GROUP BY vs.aid HAVING COUNT(vs.role) =', \scalar @$val) : ();
         if($#TYPE && $TYPE[$#TYPE-1] eq 'v') {
             return sql $neg ? 'NOT' : '', 'EXISTS(SELECT 1 FROM vn_seiyuu vs WHERE vs.id = v.id AND vs.aid = sa.aid)' if $val->[0] eq 'seiyuu';
-            #return sql 'vs.role IN', $val if !@grp && !$neg; # Shortcut referencing the vn_staff table we're already querying
+            return sql 'vs.role IN', $val if !@grp && !$neg; # Shortcut referencing the vn_staff table we're already querying
             sql 'sa.aid', $neg ? 'NOT' : '', 'IN(SELECT vs.aid FROM vn_staff vs WHERE vs.id = v.id AND vs.role IN', $val, @grp, ')';
         } else {
             return sql $neg ? 'NOT' : '', 'EXISTS(SELECT 1 FROM vn_seiyuu vs JOIN vn v ON v.id = vs.id WHERE NOT v.hidden AND vs.aid = sa.aid)' if $val->[0] eq 'seiyuu';
