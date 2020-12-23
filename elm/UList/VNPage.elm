@@ -117,6 +117,15 @@ isPublic model =
 
 view : Model -> Html Msg
 view model =
+  let canVote = model.flags.canvote || (Maybe.withDefault "-" model.flags.vote /= "-")
+      notesBut =
+        [ a [ href "#", onClickD NotesToggle ] [ text "💬" ]
+        , span [ class "spinner", classList [("hidden", model.notesState /= Api.Loading)] ] []
+        , case model.notesState of
+            Api.Error e -> b [ class "standout" ] [ text <| Api.showResponse e ]
+            _ -> text ""
+        ]
+  in
   div [ class "ulistvn elm_dd_input" ]
   [ span [] <|
     case (model.state, model.del, model.onlist) of
@@ -137,20 +146,18 @@ view model =
   , table [ style "margin" "4px 0 0 0" ]
     [ tr [ class "odd" ]
       [ td [ class "key" ] [ text "My labels" ]
-      , td [ colspan 2 ] [ Html.map Labels (LE.view model.labels "- select label -") ]
+      , td [ colspan (if canVote then 2 else 1) ] [ Html.map Labels (LE.view model.labels "- select label -") ]
+      , if canVote then text "" else td [] notesBut
       ]
-    , if model.flags.canvote || (Maybe.withDefault "-" model.flags.vote /= "-")
+    , if canVote
       then tr [ class "nostripe compact" ]
            [ td [] [ text "My vote" ]
            , td [ style "width" "80px" ] [ Html.map Vote (VE.view model.vote "- vote -") ]
-           , td []
-             [ a [ href "#", onClickD NotesToggle ] [ text "💬" ]
-             , span [ class "spinner", classList [("hidden", model.notesState /= Api.Loading)] ] []
-             , case (model.notesState, model.vote.vote /= Nothing && model.flags.canreview, model.flags.review) of
-                 (Api.Error e, _, _) -> b [ class "standout" ] [ text <| Api.showResponse e ]
-                 (_, False, _)  -> text ""
-                 (_, True, Nothing) -> a [ href ("/v" ++ String.fromInt model.flags.vid ++ "/addreview") ] [ text " write a review »" ]
-                 (_, True, Just w)  -> a [ href ("/" ++ w ++ "/edit") ] [ text " edit review »" ]
+           , td [] <| notesBut ++
+             [ case (model.vote.vote /= Nothing && model.flags.canreview, model.flags.review) of
+                 (False, _)  -> text ""
+                 (True, Nothing) -> a [ href ("/v" ++ String.fromInt model.flags.vid ++ "/addreview") ] [ text " write a review »" ]
+                 (True, Just w)  -> a [ href ("/" ++ w ++ "/edit") ] [ text " edit review »" ]
              ]
            ]
       else text ""
