@@ -8,6 +8,12 @@ use Time::HiRes 'time';
 
 $|=1; # Disable buffering on STDOUT, otherwise vndb-dev-server.pl won't pick up our readyness notification.
 
+# Force the pure-perl AnyEvent backend; More lightweight and we don't need the
+# performance of EV. Fixes an issue with subprocess spawning under TUWF's
+# built-in web server that I haven't been able to track down.
+BEGIN { $ENV{PERL_ANYEVENT_MODEL} = 'Perl'; }
+
+
 my $ROOT;
 BEGIN { ($ROOT = abs_path $0) =~ s{/util/vndb\.pl$}{}; }
 

@@ -49,6 +49,8 @@ Global requirements:
 - PostgreSQL 10+ (including development files)
 - Perl 5.26+
 - Elm 0.19.1
+- Graphviz
+- ImageMagick
 
 **Perl modules** (core modules are not listed):
 
@@ -61,7 +63,6 @@ General:
 - Image::Magick
 - JSON::XS
 - PerlIO::gzip
-- graphviz (/usr/bin/dot is used by default)
 
 util/vndb.pl (the web backend):
 - Algorithm::Diff::XS

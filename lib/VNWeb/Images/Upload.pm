@@ -2,24 +2,7 @@ package VNWeb::Misc::ImageUpload;
 
 use VNWeb::Prelude;
 use VNWeb::Images::Lib;
-use Image::Magick;
-
-sub save_img {
-    my($im, $id, $thumb, $ow, $oh, $pw, $ph) = @_;
-
-    if($pw) {
-        my($nw, $nh) = imgsize($ow, $oh, $pw, $ph);
-        if($ow != $nw || $oh != $nh) {
-            $im->GaussianBlur(geometry => '0.5x0.5');
-            $im->Resize(width => $nw, height => $nh);
-            $im->UnsharpMask(radius => 0, sigma => 0.75, amount => 0.75, threshold => 0.008);
-        }
-    }
-
-    my $fn = tuwf->imgpath($id, $thumb);
-    $im->Write($fn) && die "Error saving $fn: $!\n";
-    chmod 0666, $fn;
-}
+use AnyEvent::Util;
 
 
 TUWF::post qr{/elm/ImageUpload.json}, sub {
@@ -33,28 +16,48 @@ TUWF::post qr{/elm/ImageUpload.json}, sub {
     my $imgdata = tuwf->reqUploadRaw('img');
     return elm_ImgFormat if $imgdata !~ /^(\xff\xd8|\x89\x50)/; # JPG or PNG header
 
-    my $im = Image::Magick->new;
-    $im->BlobToImage($imgdata);
-    $im->Set(magick => 'JPEG');
-    $im->Set(background => '#ffffff');
-    $im->Set(alpha => 'Remove');
-    $im->Set(quality => 90);
-
-    my($ow, $oh) = ($im->Get('width'), $im->Get('height'));
-    return elm_ImgFormat if !$ow || !$oh;
-    my($nw, $nh) =
-        $type eq 'ch' ? imgsize $ow, $oh, tuwf->{ch_size}->@* :
-        $type eq 'cv' ? imgsize $ow, $oh, tuwf->{cv_size}->@* : ($ow, $oh);
-
     my $seq = {qw/sf screenshots_seq cv covers_seq ch charimg_seq/}->{$type}||die;
     my $id = tuwf->dbVali('INSERT INTO images', {
         id     => sql_func(vndbid => \$type, sql(sql_func(nextval => \$seq), '::int')),
-        width  => $nw,
-        height => $nh
+        width  => 0,
+        height => 0
     }, 'RETURNING id');
 
-    save_img $im, $id, 0, $ow, $oh, $nw, $nh;
-    save_img $im, $id, 1, $nw, $nh, tuwf->{scr_size}->@* if $type eq 'sf';
+    my $fn0 = tuwf->imgpath($id, 0);
+    my $fn1 = tuwf->imgpath($id, 1);
+    my $fntmp = "$fn0.tmp";
+
+    sub resize { (-resize => "$_[0][0]x$_[0][1]>", -print => 'r:%wx%h') }
+    my @unsharp = (-unsharp => '0x0.75+0.75+0.008');
+    my @cmd = (
+        config->{convert_path}, '-',
+        '-strip', -define => 'filter:Lagrange',
+        -background => '#fff', -alpha => 'Remove',
+        -format => 'jpg', -quality => 90,
+        -print => 'o:%wx%h',
+        $type eq 'ch' ? (resize(tuwf->{ch_size}), -write => $fn0, @unsharp, $fntmp) :
+        $type eq 'cv' ? (resize(tuwf->{cv_size}), -write => $fn0, @unsharp, $fntmp) :
+        $type eq 'sf' ? (-write => $fn0, resize(tuwf->{scr_size}), @unsharp, $fn1) : die
+    );
+
+    my $e = run_cmd(\@cmd, '<', \$imgdata, '>', \my $out, '2>', \my $err)->recv;
+    warn "convert STDERR: $err\n" if $err;
+    if($e || $out !~ /^o:([0-9]+)x([0-9]+)r:([0-9]+)x([0-9]+)/) {
+        warn "convert STDOUT: $out\n" if $out;
+        warn "Failed to run convert\n";
+        unlink $fn0;
+        unlink $fn1;
+        unlink $fntmp;
+        return elm_ImgFormat;
+    }
+    my($ow,$oh,$rw,$rh) = ($1,$2, $type eq 'sf' ? ($1,$2) : ($3,$4));
+    tuwf->dbExeci('UPDATE images SET', { width => $rw, height => $rh }, 'WHERE id =', \$id);
+
+    rename $fntmp, $fn0 if $ow*$oh > $rw*$rh; # Use the -unsharp'ened image if we did a resize
+    unlink $fntmp;
+
+    chmod 0666, $fn0;
+    chmod 0666, $fn1;
 
     my $l = [{id => $id}];
     enrich_image 1, $l;

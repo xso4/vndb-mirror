@@ -27,6 +27,7 @@ my $config = {
     board_edit_time   => 7*24*3600, # Time after which posts become immutable
     poll_options      => 20, # max number of options in discussion board polls
     graphviz_path     => '/usr/bin/dot',
+    convert_path      => '/usr/bin/convert',
     trace_log         => 0,
 
     Multi => {
