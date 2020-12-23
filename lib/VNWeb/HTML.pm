@@ -316,22 +316,21 @@ sub _footer_ {
 
     if(tuwf->debug) {
         lit_ ' | ';
+        a_ href => '#', onclick => 'document.getElementById(\'pagedebuginfo\').style.display=\'block\';return false', 'debug';
+        lit_ ' | ';
+        debug_ tuwf->req->{pagevars};
+        br_;
         tuwf->dbCommit; # Hack to measure the commit time
 
-        my $sql = uri_escape join "\n", map {
+        my $sql = join "\n", map {
             my($sql, $params, $time) = @$_;
             sprintf "  [%6.2fms] %s | %s", $time*1000, $sql,
             join ', ', map "$_:".DBI::neat($params->{$_}),
             sort { $a =~ /^[0-9]+$/ && $b =~ /^[0-9]+$/ ? $a <=> $b : $a cmp $b }
             keys %$params;
         } tuwf->{_TUWF}{DB}{queries}->@*;
-        a_ href => 'data:text/plain,'.$sql, 'SQL';
-        lit_ ' | ';
-
-        my $modules = uri_escape join "\n", sort keys %INC;
-        a_ href => 'data:text/plain,'.$modules, 'Modules';
-        lit_ ' | ';
-        debug_ tuwf->req->{pagevars};
+        my $modules = join "\n", sort keys %INC;
+        pre_ id => 'pagedebuginfo', style => 'text-align: left; display: none; color: black; background: white', "SQL:\n$sql\n\nMODULES:\n$modules";
     }
 }
 
