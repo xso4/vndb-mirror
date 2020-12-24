@@ -316,21 +316,26 @@ sub _footer_ {
 
     if(tuwf->debug) {
         lit_ ' | ';
-        a_ href => '#', onclick => 'document.getElementById(\'pagedebuginfo\').style.display=\'block\';return false', 'debug';
+        a_ href => '#', onclick => 'document.getElementById(\'pagedebuginfo\').classList.toggle(\'hidden\');return false', 'debug';
         lit_ ' | ';
         debug_ tuwf->req->{pagevars};
         br_;
         tuwf->dbCommit; # Hack to measure the commit time
 
-        my $sql = join "\n", map {
+        my(@sql_r, @sql_i) = @_;
+        for (tuwf->{_TUWF}{DB}{queries}->@*) {
             my($sql, $params, $time) = @$_;
-            sprintf "  [%6.2fms] %s | %s", $time*1000, $sql,
-            join ', ', map "$_:".DBI::neat($params->{$_}),
-            sort { $a =~ /^[0-9]+$/ && $b =~ /^[0-9]+$/ ? $a <=> $b : $a cmp $b }
-            keys %$params;
-        } tuwf->{_TUWF}{DB}{queries}->@*;
+            my @params = sort { $a =~ /^[0-9]+$/ && $b =~ /^[0-9]+$/ ? $a <=> $b : $a cmp $b } keys %$params;
+            my $prefix = sprintf "  [%6.2fms] ", $time*1000;
+            push @sql_r, sprintf "%s%s | %s", $prefix, $sql, join ', ', map "$_:".DBI::neat($params->{$_}), @params;
+            my $i=1;
+            push @sql_i, $prefix.($sql =~ s/\?/tuwf->dbh->quote($params->{$i++})/egr);
+        }
+        my $sql_r = join "\n", @sql_r;
+        my $sql_i = join "\n", @sql_i;
         my $modules = join "\n", sort keys %INC;
-        pre_ id => 'pagedebuginfo', style => 'text-align: left; display: none; color: black; background: white', "SQL:\n$sql\n\nMODULES:\n$modules";
+        pre_ id => 'pagedebuginfo', class => 'hidden', style => 'text-align: left; color: black; background: white',
+            "SQL (with placeholders):\n$sql_r\n\nSQL (interpolated, possibly buggy):\n$sql_i\n\nMODULES:\n$modules";
     }
 }
 
