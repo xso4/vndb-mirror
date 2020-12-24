@@ -25,7 +25,7 @@ TUWF::post qr{/elm/ImageUpload.json}, sub {
 
     my $fn0 = tuwf->imgpath($id, 0);
     my $fn1 = tuwf->imgpath($id, 1);
-    my $fntmp = "$fn0.tmp";
+    my $fntmp = "$fn0-tmp.jpg";
 
     sub resize { (-resize => "$_[0][0]x$_[0][1]>", -print => 'r:%wx%h') }
     my @unsharp = (-unsharp => '0x0.75+0.75+0.008');
@@ -33,8 +33,7 @@ TUWF::post qr{/elm/ImageUpload.json}, sub {
         config->{convert_path}, '-',
         '-strip', -define => 'filter:Lagrange',
         -background => '#fff', -alpha => 'Remove',
-        -format => 'jpg', -quality => 90,
-        -print => 'o:%wx%h',
+        -quality => 90, -print => 'o:%wx%h',
         $type eq 'ch' ? (resize(tuwf->{ch_size}), -write => $fn0, @unsharp, $fntmp) :
         $type eq 'cv' ? (resize(tuwf->{cv_size}), -write => $fn0, @unsharp, $fntmp) :
         $type eq 'sf' ? (-write => $fn0, resize(tuwf->{scr_size}), @unsharp, $fn1) : die
