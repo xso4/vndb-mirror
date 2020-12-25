@@ -52,7 +52,7 @@ sub auth {
 # have a lot of influence in this)
 TUWF::set log_format => sub {
     my(undef, $uri, $msg) = @_;
-    sprintf "[%s] %s %s: %s\n", scalar localtime(), $uri, auth ? 'u'.auth->uid : '-', $msg;
+    sprintf "[%s] %s %s: %s\n", scalar localtime(), $uri, tuwf->req && auth ? 'u'.auth->uid : '-', $msg;
 };
 
 
