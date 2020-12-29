@@ -101,7 +101,7 @@ view dat model =
           :: List.map (\i -> (i, String.fromInt (i//5) ++ "." ++ String.fromInt (2*(modBy 5 i)) ++ "+")) (List.range 1 14)
           ++ [(15, "3.0")]
         , b [ class "grayedout" ] [ text <| " g" ++ String.fromInt t ++ ": " ]
-        , Dict.get t dat.tags |> Maybe.map (\e -> e.name) |> Maybe.withDefault "" |> text
+        , Dict.get t dat.tags |> Maybe.map (\e -> a [ href ("/g" ++ String.fromInt t), target "_blank", style "display" "inline" ] [ text e.name ]) |> Maybe.withDefault (text "")
         ]
       ) (Set.toList model.sel.sel)
     , A.view model.conf model.search [ placeholder "Search..." ]

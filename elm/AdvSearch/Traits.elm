@@ -94,10 +94,10 @@ view dat model =
     , ul [] <| List.map (\t ->
         li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ]
         [ inputButton "X" (Sel (S.Sel t False)) []
-        , b [ class "grayedout" ] [ text <| " g" ++ String.fromInt t ++ ": " ]
+        , b [ class "grayedout" ] [ text <| " i" ++ String.fromInt t ++ ": " ]
         , Dict.get t dat.traits |> Maybe.map (\e -> span []
           [ Maybe.withDefault (text "") <| Maybe.map (\g -> b [ class "grayedout" ] [ text (g ++ " / ") ]) e.group_name
-          , text e.name ]) |> Maybe.withDefault (text "")
+          , a [ href ("/i" ++ String.fromInt t), target "_blank", style "display" "inline" ] [ text e.name ] ]) |> Maybe.withDefault (text "")
         ]
       ) (Set.toList model.sel.sel)
     , A.view model.conf model.search [ placeholder "Search..." ]
