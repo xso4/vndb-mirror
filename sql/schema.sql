@@ -320,8 +320,8 @@ CREATE TABLE producers_relations_hist (
 
 -- quotes
 CREATE TABLE quotes (
-  vid integer NOT NULL,
-  quote varchar(250) NOT NULL,
+  vid integer NOT NULL, -- [pub]
+  quote varchar(250) NOT NULL, -- [pub]
   PRIMARY KEY(vid, quote)
 );
 
