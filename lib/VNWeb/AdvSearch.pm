@@ -315,7 +315,7 @@ f v => 62 => 'has-anime',       { uint => 1, range => [1,1] }, '=' => sub { 'EXI
 f v => 63 => 'has-screenshot',  { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM vn_screenshots vs WHERE vs.id = v.id)' };
 f v => 64 => 'has-review',      { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM reviews r WHERE r.vid = v.id AND NOT r.c_flagged)' };
 
-f v =>  6 => 'developer',{ vndbid => 'p' },
+f v =>  6 => 'developer-id',{ vndbid => 'p' },
     '=' => sub { sql 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id JOIN releases_producers rp ON rp.id = r.id
                                WHERE NOT r.hidden AND rp.pid = vndbid_num(', \$_, ') AND rp.developer)' };
 
@@ -347,8 +347,8 @@ f r =>  4 => 'platform', { required => 0, default => undef, enum => \%PLATFORM }
         sql 'r.id', $neg ? 'NOT' : '', 'IN(SELECT id FROM releases_platforms WHERE platform IN', $val, $all && @$val > 1 ? ('GROUP BY id HAVING COUNT(platform) =', \scalar @$val) : (), ')';
     };
 
-f r =>  6 => 'developer',{ vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE developer AND pid = vndbid_num(', \$_, '))' };
-f r => 17 => 'producer', { vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE pid = vndbid_num(', \$_, '))' };
+f r =>  6 => 'developer-id',{ vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE developer AND pid = vndbid_num(', \$_, '))' };
+f r => 17 => 'producer-id', { vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE pid = vndbid_num(', \$_, '))' };
 f r =>  7 => 'released', { fuzzyrdate => 1 }, sql => sub { sql 'r.released', $_[0], \($_ == 1 ? strftime('%Y%m%d', gmtime) : $_) };
 f r =>  8 => 'resolution',        { type => 'array', length => 2, values => { uint => 1, max => 32767 } },
     sql => sub { sql 'NOT r.patch AND r.reso_x', $_[0], \$_->[0], 'AND r.reso_y', $_[0], \$_->[1], $_->[0] ? 'AND r.reso_x > 0' : () };
