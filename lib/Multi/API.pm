@@ -1032,6 +1032,24 @@ my %GET_STAFF = (
 );
 
 
+my %GET_QUOTE = (
+  sql     => "SELECT %s FROM quotes q JOIN vn v ON v.id = q.vid WHERE NOT v.hidden AND (%s) %s",
+  select  => "v.id, v.title, q.quote",
+  proc    => sub {
+    $_[0]{id}*=1;
+  },
+  sortdef => 'random',
+  sorts   => { id => 'q.vid %s', random => 'RANDOM()' },
+  flags   => { basic => {} },
+  filters => {
+    id => [
+      [ 'int' => 'q.vid :op: :value:', {qw|= =  != <>  > >  >= >=  < <  <= <=|}, range => [1,1e6] ],
+      [ inta  => 'q.vid :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, join => ',', range => [1,1e6] ],
+    ]
+  },
+);
+
+
 # All user ID filters consider uid=0 to be the logged in user. Needs a special processing function to handle that.
 sub subst_user_id { my($id, $c) = @_; !$id && !$c->{uid} ? \'Not logged in.' : $id || $c->{uid} }
 
@@ -1205,6 +1223,7 @@ my %GET = (
   producer  => \%GET_PRODUCER,
   character => \%GET_CHARACTER,
   staff     => \%GET_STAFF,
+  quote     => \%GET_QUOTE,
   user      => \%GET_USER,
   votelist  => \%GET_VOTELIST,
   vnlist    => \%GET_VNLIST,
