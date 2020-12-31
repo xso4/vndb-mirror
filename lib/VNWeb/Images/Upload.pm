@@ -39,10 +39,10 @@ TUWF::post qr{/elm/ImageUpload.json}, sub {
         $type eq 'sf' ? (-write => $fn0, resize(tuwf->{scr_size}), @unsharp, $fn1) : die
     );
 
-    my $e = run_cmd(\@cmd, '<', \$imgdata, '>', \my $out, '2>', \my $err)->recv;
-    warn "convert STDERR: $err\n" if $err;
-    if($e || $out !~ /^o:([0-9]+)x([0-9]+)r:([0-9]+)x([0-9]+)/) {
-        warn "convert STDOUT: $out\n" if $out;
+    run_cmd(\@cmd, '<', \$imgdata, '>', \my $out, '2>', \my $err)->recv;
+    warn "convert STDERR: $err" if $err;
+    if(!-f $fn0 || $out !~ /^o:([0-9]+)x([0-9]+)r:([0-9]+)x([0-9]+)/) {
+        warn "convert STDOUT: $out" if $out;
         warn "Failed to run convert\n";
         unlink $fn0;
         unlink $fn1;
