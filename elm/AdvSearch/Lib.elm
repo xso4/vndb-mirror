@@ -140,6 +140,14 @@ encQuery query =
       QTuple n o a b -> fint n ++ encTypeOp o 5 ++ fint a ++ fint b
 
 
+showQType : QType -> String
+showQType q =
+  case q of
+    V -> "v"
+    R -> "r"
+    C -> "c"
+    S -> "s"
+
 showOp : Op -> String
 showOp op =
   case op of

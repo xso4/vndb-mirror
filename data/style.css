@@ -88,7 +88,8 @@ div.warning h2, div.notice h2 { font-size: 13px; font-weight: bold; margin: 0; }
 
 .maintabs .elm_dd > a { box-sizing: border-box; height: 21px; padding: 1px 15px 0 7px; border: 1px solid $border$; border-bottom: none; background-color: $tabbg$; color: $maintext$ }
 .elm_votedd .elm_dd ul li { text-align: left }
-.elm_dd_input .elm_dd > a { background-color: $secbg$; color: $maintext$; border: 1px solid $secborder$; font: 14px "Tahoma", "Arial", sans-serif; padding: 1px 15px 1px 2px; margin: -1px }
+.elm_dd_input  .elm_dd > a { background-color: $secbg$; color: $maintext$; border: 1px solid $secborder$; font: 14px "Tahoma", "Arial", sans-serif; padding: 1px 15px 1px 2px; margin: -1px }
+.elm_dd_button .elm_dd > a { background-color: $boxbg$; color: $maintext$; border: 1px solid $secborder$; font: 14px "Tahoma", "Arial", sans-serif; padding: 1px 15px 1px 5px; margin: -1px }
 .elm_dd_input.elm_dd_noarrow .elm_dd > a { padding-right: 2px }
 .elm_dd_noarrow .elm_dd > a { padding-right: 0 }
 .elm_dd_noarrow .elm_dd > a > span:last-child { display: none }
@@ -1168,7 +1169,9 @@ p.filselect i { font-style: normal }
 .advsearch .advheader .opts { display: flex; justify-content: space-between; align-items: flex-end; min-width: 170px }
 .advsearch .advheader .opts > * { margin: 0; white-space: nowrap }
 .advsearch .advheader .opselect > * { display: inline-block; font-size: 18px; padding: 0 5px }
-.advsearch input.submit { margin-top: 5px }
+
+.advsearch .optbuttons { margin-top: 5px }
+.advsearch .optbuttons > .elm_dd_button { margin-top: 5px; margin-right: 10px; width: 120px; display: inline-block; }
 
 
 

@@ -155,6 +155,16 @@ our %apis = (
         } },
     } } ],
 );
+# (These references to other API results cause redundant Elm code - can be deduplicated)
+$apis{AdvSearchQuery} = [ { type => 'hash', keys => { # Response to 'AdvSearchLoad'
+        qtype        => {},
+        query        => { type => 'any' },
+        producers    => $apis{ProducerResult}[0],
+        staff        => $apis{StaffResult}[0],
+        tags         => $apis{TagResult}[0],
+        traits       => $apis{TraitResult}[0],
+        anime        => $apis{AnimeResult}[0],
+} } ],
 
 
 # Compile %apis into a %schema and generate the elm_Response() functions
@@ -196,6 +206,7 @@ sub def_type {
     $data .= def_type($name . to_camel($_), $obj->{keys}{$_}{values} || bless { $obj->{keys}{$_}->%*, required => 1 }, ref $obj->{keys}{$_} ) for @keys;
 
     $data .= sprintf "\ntype alias %s = %s\n\n", $name, $obj->elm_type(
+        any => 'JE.Value',
         keys => +{ map {
             my $t = $obj->{keys}{$_};
             my $n = $name . to_camel($_);
@@ -235,7 +246,7 @@ sub def_validation {
 # Generate an Elm JSON encoder taking a corresponding def_type() as input
 sub encoder {
     my($name, $type, $obj) = @_;
-    def $name, "$type -> JE.Value", $obj->elm_encoder(json_encode => 'JE.');
+    def $name, "$type -> JE.Value", $obj->elm_encoder(any => ' ', json_encode => 'JE.');
 }
 
 

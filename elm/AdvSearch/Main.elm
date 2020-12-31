@@ -6,10 +6,19 @@ import Html.Events exposing (..)
 import Browser
 import Set
 import Dict
-import Array as A
+import Task
+import Browser.Dom as Dom
+import Array as Array
 import Json.Encode as JE
 import Json.Decode as JD
 import Gen.Api as GApi
+import Gen.AdvSearchSave as GASS
+import Gen.AdvSearchDel  as GASD
+import Gen.AdvSearchLoad as GASL
+import Lib.Html exposing (..)
+import Lib.Api as Api
+import Lib.DropDown as DD
+import Lib.Autocomplete as A
 import AdvSearch.Lib exposing (..)
 import AdvSearch.Fields exposing (..)
 
@@ -19,59 +28,107 @@ main = Browser.element
   { init   = \e -> (init e, Cmd.none)
   , view   = view
   , update = update
-  , subscriptions = \m -> Sub.map Field (fieldSub m.query)
+  , subscriptions = \m -> Sub.batch [ DD.sub m.saveDd, Sub.map Field (fieldSub m.query) ]
   }
 
+type alias SQuery = { name: String, query: String }
 type alias Recv =
-  { query        : JE.Value
-  , qtype        : String
-  , uid          : Maybe Int
+  { uid          : Maybe Int
   , labels       : List { id: Int, label: String }
   , defaultSpoil : Int
-  , producers    : List GApi.ApiProducerResult
-  , staff        : List GApi.ApiStaffResult
-  , tags         : List GApi.ApiTagResult
-  , traits       : List GApi.ApiTraitResult
-  , anime        : List GApi.ApiAnimeResult
+  , saved        : List SQuery
+  , query        : GApi.ApiAdvSearchQuery
   }
 
 type alias Model =
-  { query : Field
-  , qtype : QType
-  , data  : Data
+  { query      : Field
+  , qtype      : QType
+  , data       : Data
+  , saved      : List SQuery
+  , saveState  : Api.State
+  , saveDd     : DD.Config Msg
+  , saveAct    : Int
+  , saveName   : String
+  , saveDel    : Set.Set String
   }
 
 type Msg
-  = Field FieldMsg
+  = Noop
+  | Field FieldMsg
+  | SaveToggle Bool
+  | SaveAct Int
+  | SaveName String
+  | SaveSave
+  | SaveSaved SQuery GApi.Response
+  | SaveLoad String
+  | SaveLoaded GApi.Response
+  | SaveDelSel String
+  | SaveDel
+  | SaveDeleted (Set.Set String) GApi.Response
 
 
 -- Add default set of fields (if they aren't present yet) and sort the list
-normalize : Model -> Model
-normalize model =
+normalize : QType -> Field -> Data -> (Field, Data)
+normalize qtype query odat =
   let present = List.foldl (\(n,_,_) a -> Set.insert n a) Set.empty
-      defaults pres = A.foldl (\f (al,dat,an) ->
-          if f.qtype == model.qtype && f.quick /= 0 && not (Set.member an pres)
+      defaults pres = Array.foldl (\f (al,dat,an) ->
+          if f.qtype == qtype && f.quick /= 0 && not (Set.member an pres)
           then let (ndat, nf) = fieldInit an dat
                in (nf::al, ndat, an+1)
           else (al,dat,an+1)
-        ) ([],model.data,0) fields
+        ) ([],odat,0) fields
       cmp (an,add,am) (bn,bdd,bm) = -- Sort active filters before empty ones, then order by 'quick', fallback to title
-        let aq = fieldToQuery model.data (an,add,am) /= Nothing
-            bq = fieldToQuery model.data (bn,bdd,bm) /= Nothing
-            af = A.get an fields
-            bf = A.get bn fields
+        let aq = fieldToQuery odat (an,add,am) /= Nothing
+            bq = fieldToQuery odat (bn,bdd,bm) /= Nothing
+            af = Array.get an fields
+            bf = Array.get bn fields
             ao = Maybe.andThen (\d -> if d.quick == 0 then Nothing else Just d.quick) af |> Maybe.withDefault 9999
             bo = Maybe.andThen (\d -> if d.quick == 0 then Nothing else Just d.quick) bf |> Maybe.withDefault 9999
             at = Maybe.map (\d -> d.title) af |> Maybe.withDefault ""
             bt = Maybe.map (\d -> d.title) bf |> Maybe.withDefault ""
         in if aq && not bq then LT else if not aq && bq then GT
            else if ao /= bo then compare ao bo else compare at bt
-  in case model.query of
+  in case query of
       (qid, qdd, FMNest qm) ->
-        let (nl, dat, _) = defaults (present qm.fields)
+        let (nl, ndat, _) = defaults (present qm.fields)
             nqm = { qm | fields = List.sortWith cmp (nl++qm.fields) }
-        in { model | query = (qid, qdd, FMNest nqm), data = dat }
-      _ -> model
+        in ((qid, qdd, FMNest nqm), ndat)
+      _ -> (query, odat)
+
+
+loadQuery : Data -> GApi.ApiAdvSearchQuery -> (QType, Field, Data)
+loadQuery odat arg =
+  let dat = { objid        = 0
+            , level        = 0
+            , uid          = odat.uid
+            , labels       = odat.labels
+            , defaultSpoil = odat.defaultSpoil
+            , producers    = Dict.union (Dict.fromList <| List.map (\p -> (p.id,p)) <| arg.producers) odat.producers
+            , staff        = Dict.union (Dict.fromList <| List.map (\s -> (s.id,s)) <| arg.staff    ) odat.staff
+            , tags         = Dict.union (Dict.fromList <| List.map (\t -> (t.id,t)) <| arg.tags     ) odat.tags
+            , traits       = Dict.union (Dict.fromList <| List.map (\t -> (t.id,t)) <| arg.traits   ) odat.traits
+            , anime        = Dict.union (Dict.fromList <| List.map (\a -> (a.id,a)) <| arg.anime    ) odat.anime
+            }
+      qtype = if arg.qtype == "v" then V else R
+
+      (dat2, query) = JD.decodeValue decodeQuery arg.query |> Result.toMaybe |> Maybe.withDefault (QAnd []) |> fieldFromQuery qtype dat
+
+      -- We always want the top-level query to be a Nest type.
+      addtoplvl = let (_,m) = fieldCreate -1 (Tuple.mapSecond FMNest (nestInit True qtype qtype [query] dat2)) in m
+      query2 = case query of
+                (_,_,FMNest m) -> if m.qtype == qtype then query else addtoplvl
+                _ -> addtoplvl
+      dat3 = { dat2 | objid = dat2.objid + 5 } -- +5 for the creation of query2
+
+      -- Is this a "simple" query? i.e. one that consists of at most a single level of nesting
+      isSimple = case query2 of
+                  (_,_,FMNest m) -> List.all (\f -> case f of
+                                                      (_,_,FMNest _) -> False
+                                                      _ -> True) m.fields
+                  _ -> True
+
+      (query3, dat4) = if isSimple then normalize qtype query2 dat3 else (query2, dat3)
+  in (qtype, query3, dat4)
 
 
 init : Recv -> Model
@@ -81,47 +138,104 @@ init arg =
             , uid          = arg.uid
             , labels       = (0, "Unlabeled") :: List.map (\e -> (e.id, e.label)) arg.labels
             , defaultSpoil = arg.defaultSpoil
-            , producers    = Dict.fromList <| List.map (\p -> (p.id,p)) <| arg.producers
-            , staff        = Dict.fromList <| List.map (\s -> (s.id,s)) <| arg.staff
-            , tags         = Dict.fromList <| List.map (\t -> (t.id,t)) <| arg.tags
-            , traits       = Dict.fromList <| List.map (\t -> (t.id,t)) <| arg.traits
-            , anime        = Dict.fromList <| List.map (\a -> (a.id,a)) <| arg.anime
+            , producers    = Dict.empty
+            , staff        = Dict.empty
+            , tags         = Dict.empty
+            , traits       = Dict.empty
+            , anime        = Dict.empty
             }
-      qtype = if arg.qtype == "v" then V else R
-
-      (ndat, query) = JD.decodeValue decodeQuery arg.query |> Result.toMaybe |> Maybe.withDefault (QAnd []) |> fieldFromQuery qtype dat
-
-      -- We always want the top-level query to be a Nest type.
-      addtoplvl = let (_,m) = fieldCreate -1 (Tuple.mapSecond FMNest (nestInit True qtype qtype [query] ndat)) in m
-      nquery = case query of
-                (_,_,FMNest m) -> if m.qtype == qtype then query else addtoplvl
-                _ -> addtoplvl
-
-      -- Is this a "simple" query? i.e. one that consists of at most a single level of nesting
-      isSimple = case nquery of
-                  (_,_,FMNest m) -> List.all (\f -> case f of
-                                                      (_,_,FMNest _) -> False
-                                                      _ -> True) m.fields
-                  _ -> True
-
-      model = { query = nquery
-              , qtype = qtype
-              , data  = { ndat | objid = ndat.objid + 5 } -- +5 for the creation of nQuery
-              }
-  in if isSimple then normalize model else model
+      (qtype, query, ndat) = loadQuery dat arg.query
+  in  { query      = query
+      , qtype      = qtype
+      , data       = ndat
+      , saved      = arg.saved
+      , saveState  = Api.Normal
+      , saveDd     = DD.init "advsearch_save" SaveToggle
+      , saveAct    = 0
+      , saveName   = ""
+      , saveDel    = Set.empty
+      }
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+    Noop -> (model, Cmd.none)
     Field m ->
       let (ndat, nm, nc) = fieldUpdate model.data m model.query
       in ({ model | data = ndat, query = nm }, Cmd.map Field nc)
+    SaveToggle b ->
+      let act = if model.saveAct == 0 && not (List.isEmpty model.saved) && fieldToQuery model.data model.query == Nothing then 1 else model.saveAct
+      in ( { model | saveDd = DD.toggle model.saveDd b, saveAct = act, saveDel = Set.empty }
+         , if b && act == 0 then Task.attempt (always Noop) (Dom.focus "advsearch_saveinput") else Cmd.none)
+    SaveAct  n -> ({ model | saveAct  = n, saveDel = Set.empty }, Cmd.none)
+    SaveName n -> ({ model | saveName = n }, Cmd.none)
+    SaveSave ->
+      case Maybe.map encQuery (fieldToQuery model.data model.query) of
+        Just q -> ({ model | saveState = Api.Loading }, GASS.send { name = model.saveName, qtype = showQType model.qtype, query = q } (SaveSaved { name = model.saveName, query = q }) )
+        Nothing -> (model, Cmd.none)
+    SaveSaved q GApi.Success ->
+      let f rep lst = case lst of
+                        (x::xs) ->
+                          if x.name == q.name then q :: f True xs
+                          else if not rep && x.name > q.name then q :: x :: f True xs
+                          else x :: f rep xs
+                        [] -> if rep then [] else [q]
+      in ({ model | saveState = Api.Normal, saveDd = DD.toggle model.saveDd False, saved = f False model.saved }, Cmd.none)
+    SaveSaved _ e -> ({ model | saveState = Api.Error e }, Cmd.none)
+    SaveLoad q -> ({ model | saveState = Api.Loading, saveDd = DD.toggle model.saveDd False }, GASL.send { qtype = showQType model.qtype, query = q } SaveLoaded)
+    SaveLoaded (GApi.AdvSearchQuery q) ->
+      let (_, query, dat) = loadQuery model.data q
+      in ({ model | saveState = Api.Normal, query = query, data = dat }, Cmd.none)
+    SaveLoaded e -> ({ model | saveState = Api.Error e }, Cmd.none)
+    SaveDelSel s -> ({ model | saveDel = (if Set.member s model.saveDel then Set.remove else Set.insert) s model.saveDel }, Cmd.none)
+    SaveDel -> ({ model | saveState = Api.Loading }, GASD.send { qtype = showQType model.qtype, name = Set.toList model.saveDel } (SaveDeleted model.saveDel))
+    SaveDeleted d GApi.Success -> ({ model | saveState = Api.Normal, saveDel = Set.empty, saved = List.filter (\e -> not (Set.member e.name d)) model.saved }, Cmd.none)
+    SaveDeleted _ e -> ({ model | saveState = Api.Error e }, Cmd.none)
+
 
 
 view : Model -> Html Msg
-view model = div [ class "advsearch" ]
-  [ input [ type_ "hidden", id "f", name "f", value <| Maybe.withDefault "" <| Maybe.map encQuery (fieldToQuery model.data model.query) ] []
+view model = div [ class "advsearch" ] <|
+  let encQ = Maybe.withDefault "" <| Maybe.map encQuery (fieldToQuery model.data model.query)
+  in
+  [ input [ type_ "hidden", id "f", name "f", value encQ ] []
   , Html.map Field (fieldView model.data model.query)
-  , input [ type_ "submit", class "submit", value "Search" ] []
+  , div [ class "optbuttons" ]
+    [ if model.data.uid == Nothing then text "" else div [ class "elm_dd_button" ]
+      [ DD.view model.saveDd model.saveState (text "Save/Load") <| \() ->
+        [ div [ class "advheader", style "min-width" "250px" ]
+          [ div [ class "opts", style "margin-bottom" "5px" ]
+            [ if model.saveAct == 0 then b [] [ text "Save"   ] else a [ href "#", onClickD (SaveAct 0) ] [ text "Save" ]
+            , if model.saveAct == 1 then b [] [ text "Load"   ] else a [ href "#", onClickD (SaveAct 1) ] [ text "Load" ]
+            , if model.saveAct == 2 then b [] [ text "Delete" ] else a [ href "#", onClickD (SaveAct 2) ] [ text "Delete" ]
+            ]
+          , h3 [] [ text <| if model.saveAct == 0 then "Save current filter" else if model.saveAct == 1 then "Load filter" else "Delete saved filter" ]
+          ]
+        , case (model.saved, model.saveAct) of
+            (_, 0) ->
+              if encQ == "" then text "Nothing to save." else
+              form_ "" SaveSave False
+              [ inputText "advsearch_saveinput" model.saveName SaveName [ required True, maxlength 50, placeholder "Name...", style "width" "245px" ]
+              , if List.any (\e -> e.name == model.saveName) model.saved
+                then text "You already have a filter by that name, click save to overwrite it."
+                else text ""
+              , submitButton "Save" model.saveState True
+              ]
+            ([], _) -> text "You don't have any saved queries."
+            (l, 1) ->
+              div []
+              [ if encQ == "" || List.any (\e -> encQ == e.query) l
+                then text "" else text "Unsaved changes will be lost when loading a saved filter."
+              , ul [] <| List.map (\e -> li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ] [ a [ href "#", onClickD (SaveLoad e.query) ] [ text e.name ] ]) l
+              ]
+            (l, _) ->
+              div []
+              [ ul [] <| List.map (\e -> li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ] [ linkRadio (Set.member e.name model.saveDel) (always (SaveDelSel e.name)) [ text e.name ] ]) model.saved
+              , inputButton "Delete selected" SaveDel [ disabled (Set.isEmpty model.saveDel) ]
+              ]
+        ]
+      ]
+    , input [ type_ "submit", class "submit", value "Search" ] []
+    ]
   ]

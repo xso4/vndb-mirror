@@ -282,7 +282,7 @@ sub _enc_query {
 #
 #   An implementation for the '!=' operator will be supplied automatically if it's not explicitely defined.
 #   NOTE: That implementation does NOT work for NULL values.
-my(%FIELDS, %NUMFIELDS);
+our(%FIELDS, %NUMFIELDS);
 sub f {
     my($t, $num, $n, $v, @opts) = @_;
     my %f = (
@@ -641,6 +641,9 @@ sub sql_where {
 }
 
 
+sub json { shift->{query} }
+
+
 sub _compact_json {
     my($t, $q) = @_;
     return [ $q->[0] eq 'and' ? 0 : 1, map _compact_json($t, $_), @$q[1..$#$q] ] if $q->[0] eq 'and' || $q->[0] eq 'or';
@@ -678,7 +681,8 @@ sub _extract_ids {
 }
 
 
-sub elm_ {
+# Returns a JSON object suitable for the AdvSearchQuery API response.
+sub elm_search_query {
     my($self) = @_;
 
     my(%o,%ids);
@@ -702,23 +706,27 @@ sub elm_ {
 
     $o{qtype}  = $self->{type};
     $o{query}  = $self->compact_json;
-    $o{uid}    = auth->uid;
-    $o{labels} = auth ? tuwf->dbAlli('SELECT id, label FROM ulist_labels WHERE uid =', \auth->uid, 'ORDER BY CASE WHEN id < 10 THEN id ELSE 10 END, label') : [];
-    $o{defaultSpoil} = auth->pref('spoilers')||0;
+    \%o
+}
+
+
+sub elm_ {
+    my($self) = @_;
 
     state $schema ||= tuwf->compile({ type => 'hash', keys => {
-        qtype        => {},
-        query        => { type => 'array', required => 0 },
         uid          => { uint => 1, required => 0 },
         labels       => { aoh => { id => { uint => 1 }, label => {} } },
         defaultSpoil => { uint => 1 },
-        producers    => $VNWeb::Elm::apis{ProducerResult}[0],
-        staff        => $VNWeb::Elm::apis{StaffResult}[0],
-        tags         => $VNWeb::Elm::apis{TagResult}[0],
-        traits       => $VNWeb::Elm::apis{TraitResult}[0],
-        anime        => $VNWeb::Elm::apis{AnimeResult}[0],
+        saved        => { aoh => { name => {}, query => {} } },
+        query        => $VNWeb::Elm::apis{AdvSearchQuery}[0],
     }});
-    VNWeb::HTML::elm_ 'AdvSearch.Main', $schema, \%o;
+    VNWeb::HTML::elm_ 'AdvSearch.Main', $schema, {
+        uid          => auth->uid,
+        labels       => auth ? tuwf->dbAlli('SELECT id, label FROM ulist_labels WHERE uid =', \auth->uid, 'ORDER BY CASE WHEN id < 10 THEN id ELSE 10 END, label') : [],
+        defaultSpoil => auth->pref('spoilers')||0,
+        saved        => auth ? tuwf->dbAlli('SELECT name, query FROM saved_queries WHERE uid =', \auth->uid, ' AND qtype =', \$self->{type}, 'ORDER BY name') : [],
+        query        => $self->elm_search_query(),
+    };
 }
 
 

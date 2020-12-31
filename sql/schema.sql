@@ -574,6 +574,15 @@ CREATE TABLE rlists (
   PRIMARY KEY(uid, rid)
 );
 
+-- saved_queries
+CREATE TABLE saved_queries (
+    uid   integer NOT NULL,
+    name  text NOT NULL,
+    qtype dbentry_type NOT NULL,
+    query text NOT NULL, -- compact encoded form
+    PRIMARY KEY(uid, qtype, name)
+);
+
 -- sessions
 CREATE TABLE sessions (
   uid     integer NOT NULL,

@@ -58,6 +58,7 @@ showResponse res =
     CharResult _                    -> unexp
     AnimeResult _                   -> unexp
     ImageResult _                   -> unexp
+    AdvSearchQuery _                -> unexp
 
 
 expectResponse : (Response -> msg) -> Http.Expect msg
