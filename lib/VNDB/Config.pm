@@ -28,6 +28,7 @@ my $config = {
     poll_options      => 20, # max number of options in discussion board polls
     graphviz_path     => '/usr/bin/dot',
     convert_path      => '/usr/bin/convert',
+    identify_path     => '/usr/bin/identify',
     trace_log         => 0,
 
     Multi => {

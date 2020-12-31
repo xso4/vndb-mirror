@@ -60,7 +60,6 @@ General:
 - Crypt::URandom
 - DBD::Pg
 - DBI
-- Image::Magick
 - JSON::XS
 - PerlIO::gzip
 
