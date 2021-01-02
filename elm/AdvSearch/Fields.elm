@@ -8,6 +8,7 @@ import Lib.Html exposing (..)
 import Lib.DropDown as DD
 import Lib.Api as Api
 import Lib.Autocomplete as A
+import AdvSearch.Anime as AA
 import AdvSearch.Set as AS
 import AdvSearch.Producers as AP
 import AdvSearch.Staff as AT
@@ -277,6 +278,7 @@ type FieldModel
   | FMDeveloper  AP.Model
   | FMProducer   AP.Model
   | FMStaff      AT.Model
+  | FMAnime      AA.Model
   | FMRDate      AD.Model
   | FMResolution AE.Model
   | FMEngine     AEng.Model
@@ -317,6 +319,7 @@ type FieldMsg
   | FSDeveloper  AP.Msg
   | FSProducer   AP.Msg
   | FSStaff      AT.Msg
+  | FSAnime      AA.Msg
   | FSRDate      AD.Msg
   | FSResolution AE.Msg
   | FSEngine     AEng.Msg
@@ -378,6 +381,7 @@ fields =
   , f V "Popularity"         0  FMPopularity  AR.popularityInit       AR.popularityFromQuery
   , f V "Rating"             0  FMRating      AR.ratingInit           AR.ratingFromQuery
   , f V "Number of votes"    0  FMVotecount   AR.votecountInit        AR.votecountFromQuery
+  , f V "Anime"              0  FMAnime       AA.init                 AA.fromQuery
   , l V "Has description"    0 [(QInt 61 Eq 1, "Has description"),    (QInt 61 Ne 1, "No description")]
   , l V "Has anime"          0 [(QInt 62 Eq 1, "Has anime relation"), (QInt 62 Ne 1, "No anime relation")]
   , l V "Has screenshot"     0 [(QInt 63 Eq 1, "Has screenshot(s)"),  (QInt 63 Ne 1, "No screenshot(s)")]
@@ -443,6 +447,7 @@ fieldUpdate dat msg_ (num, dd, model) =
           FMDeveloper  m -> Cmd.map FSDeveloper  (A.refocus m.conf)
           FMProducer   m -> Cmd.map FSProducer   (A.refocus m.conf)
           FMStaff      m -> Cmd.map FSStaff      (A.refocus m.conf)
+          FMAnime      m -> Cmd.map FSAnime      (A.refocus m.conf)
           FMResolution m -> Cmd.map FSResolution (A.refocus m.conf)
           FMEngine     m -> Cmd.map FSEngine     (A.refocus m.conf)
           _ -> Cmd.none
@@ -497,6 +502,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSDeveloper msg,FMDeveloper m)-> mapf FMDeveloper FSDeveloper (AP.update dat msg m)
       (FSProducer msg, FMProducer m) -> mapf FMProducer  FSProducer  (AP.update dat msg m)
       (FSStaff msg,    FMStaff m)    -> mapf FMStaff     FSStaff     (AT.update dat msg m)
+      (FSAnime msg,    FMAnime m)    -> mapf FMAnime     FSAnime     (AA.update dat msg m)
       (FSRDate msg,    FMRDate m)    -> maps FMRDate    (AD.update msg m)
       (FSResolution msg,FMResolution m)->mapf FMResolution FSResolution (AE.update dat msg m)
       (FSEngine msg,   FMEngine m)   -> mapf FMEngine FSEngine (AEng.update dat msg m)
@@ -562,6 +568,7 @@ fieldView dat (_, dd, model) =
       FMDeveloper m  -> f FSDeveloper  (AP.view False dat m)
       FMProducer m   -> f FSProducer   (AP.view True dat m)
       FMStaff m      -> f FSStaff      (AT.view dat m)
+      FMAnime m      -> f FSAnime      (AA.view dat m)
       FMRDate m      -> f FSRDate      (AD.view m)
       FMResolution m -> f FSResolution (AE.view m)
       FMEngine m     -> f FSEngine     (AEng.view m)
@@ -606,6 +613,7 @@ fieldToQuery dat (_, _, model) =
     FMDeveloper m-> AP.toQuery False m
     FMProducer m -> AP.toQuery True m
     FMStaff m    -> AT.toQuery m
+    FMAnime m    -> AA.toQuery m
     FMRDate m    -> AD.toQuery m
     FMResolution m-> AE.toQuery m
     FMEngine m   -> AEng.toQuery m

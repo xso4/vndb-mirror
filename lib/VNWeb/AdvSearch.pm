@@ -327,6 +327,12 @@ f v => 12 => 'label',    { type => 'any', func => \&_validate_label },
     compact => sub { [ ($_->[0] =~ s/^u//r)*1, $_->[1]*1 ] },
     sql_list => \&_sql_where_label, sql_list_grp => sub { $_->[1] == 0 ? undef : $_->[0] };
 
+f v => 13 => 'anime-id',  { id => 1 },
+    sql_list => sub {
+        my($neg, $all, $val) = @_;
+        sql 'v.id', $neg ? 'NOT' : '', 'IN(SELECT id FROM vn_anime WHERE aid IN', $val, $all && @$val > 1 ? ('GROUP BY id HAVING COUNT(aid) =', \scalar @$val) : (), ')';
+    };
+
 f v => 50 => 'release',  'r', '=' => sub { sql 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE NOT r.hidden AND', $_, ')' };
 f v => 51 => 'character','c', '=' => sub { sql 'v.id IN(SELECT cv.vid FROM chars c JOIN chars_vns cv ON cv.id = c.id WHERE NOT c.hidden AND', $_, ')' }; # TODO: Spoiler setting?
 f v => 52 => 'staff',    's', '=' => sub { sql 'v.id IN(SELECT vs.id FROM vn_staff vs JOIN staff_alias sa ON sa.aid = vs.aid JOIN staff s ON s.id = sa.id WHERE NOT s.hidden AND', $_, ')' };
@@ -665,6 +671,7 @@ sub _extract_ids {
     } else {
         my $f = $FIELDS{$t}{$q->[0]};
         $ids->{$q->[2]} = 1 if $f->{vndbid};
+        $ids->{"anime$q->[2]"} = 1 if $q->[0] eq 'anime-id';
         $ids->{$q->[2][0]} = 1 if ref $f->{value} && ref $q->[2] eq 'ARRAY'; # Ugly heuristic, may have false positives
         _extract_ids($f->{value}, $q->[2], $ids) if !ref $f->{value};
     }
@@ -690,6 +697,9 @@ sub elm_ {
     enrich_merge id => 'SELECT t.id, t.name, t.searchable, t.applicable, t.defaultspoil, t.state, g.id AS group_id, g.name AS group_name
                           FROM traits t LEFT JOIN traits g ON g.id = t.group WHERE t.id IN', $o{traits};
 
+    $o{anime} = [ map +{id => $_=~s/^anime//rg}, grep /^anime/, keys %ids ];
+    enrich_merge id => 'SELECT id, title_romaji AS title, title_kanji AS original FROM anime WHERE id IN', $o{anime};
+
     $o{qtype}  = $self->{type};
     $o{query}  = $self->compact_json;
     $o{uid}    = auth->uid;
@@ -706,6 +716,7 @@ sub elm_ {
         staff        => $VNWeb::Elm::apis{StaffResult}[0],
         tags         => $VNWeb::Elm::apis{TagResult}[0],
         traits       => $VNWeb::Elm::apis{TraitResult}[0],
+        anime        => $VNWeb::Elm::apis{AnimeResult}[0],
     }});
     VNWeb::HTML::elm_ 'AdvSearch.Main', $schema, \%o;
 }

@@ -170,4 +170,5 @@ type alias Data =
   , staff        : Dict.Dict Int GApi.ApiStaffResult
   , tags         : Dict.Dict Int GApi.ApiTagResult
   , traits       : Dict.Dict Int GApi.ApiTraitResult
+  , anime        : Dict.Dict Int GApi.ApiAnimeResult
   }

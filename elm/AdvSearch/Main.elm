@@ -32,6 +32,7 @@ type alias Recv =
   , staff        : List GApi.ApiStaffResult
   , tags         : List GApi.ApiTagResult
   , traits       : List GApi.ApiTraitResult
+  , anime        : List GApi.ApiAnimeResult
   }
 
 type alias Model =
@@ -84,6 +85,7 @@ init arg =
             , staff        = Dict.fromList <| List.map (\s -> (s.id,s)) <| arg.staff
             , tags         = Dict.fromList <| List.map (\t -> (t.id,t)) <| arg.tags
             , traits       = Dict.fromList <| List.map (\t -> (t.id,t)) <| arg.traits
+            , anime        = Dict.fromList <| List.map (\a -> (a.id,a)) <| arg.anime
             }
       qtype = if arg.qtype == "v" then V else R
 
