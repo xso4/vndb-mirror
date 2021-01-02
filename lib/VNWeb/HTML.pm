@@ -452,6 +452,12 @@ sub _hidden_msg_ {
         div_ class => 'warning', sub {
             h2_ 'Item deleted';
             p_ sub {
+                if($o->{type} eq 'r' && $o->{dbobj}{vn}) {
+                    txt_ 'This was a release entry for ';
+                    join_ ',', sub { a_ href => "/v$_->{vid}", $_->{title} }, $o->{dbobj}{vn}->@*;
+                    txt_ '.';
+                    br_;
+                }
                 txt_ 'This item has been deleted from the database. You may file a request on the ';
                 a_ href => '/t/'._board_id($o->{type}, $o->{dbobj}), "discussion board";
                 txt_ ' if you believe that this entry should be restored.';
