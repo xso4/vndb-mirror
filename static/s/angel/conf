@@ -24,7 +24,7 @@ border       #258  // primary border color
 boxbg        #071c30bc  // RGBA, background color of the boxes, stacked for menu box titles and odd row numers
 
 // images (0 = no image)
-imglefttop   bg-xmas.jpg
+imglefttop   bg.jpg
 imgrighttop  bgright.jpg
 
 // misc colors
