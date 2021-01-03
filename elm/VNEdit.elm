@@ -142,7 +142,7 @@ vnConfig : A.Config Msg GApi.ApiVNResult
 vnConfig = { wrap = VNSearch, id = "relationadd", source = A.vnSource }
 
 animeConfig : A.Config Msg GApi.ApiAnimeResult
-animeConfig = { wrap = AnimeSearch, id = "animeadd", source = A.animeSource }
+animeConfig = { wrap = AnimeSearch, id = "animeadd", source = A.animeSource False }
 
 staffConfig : A.Config Msg GApi.ApiStaffResult
 staffConfig = { wrap = StaffSearch, id = "staffadd", source = A.staffSource }

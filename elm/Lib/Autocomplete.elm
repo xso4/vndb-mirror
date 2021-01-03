@@ -188,9 +188,9 @@ charSource =
   }
 
 
-animeSource : SourceConfig m GApi.ApiAnimeResult
-animeSource =
-  { source  = Endpoint (\s -> GA.send { search = s })
+animeSource : Bool -> SourceConfig m GApi.ApiAnimeResult
+animeSource ref =
+  { source  = Endpoint (\s -> GA.send { search = s, ref = ref })
     <| \x -> case x of
       GApi.AnimeResult e -> Just e
       _ -> Nothing
