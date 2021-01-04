@@ -577,7 +577,7 @@ CREATE TABLE rlists (
 -- saved_queries
 CREATE TABLE saved_queries (
     uid   integer NOT NULL,
-    name  text NOT NULL,
+    name  text NOT NULL, -- Empty string is the users' default filter for the given qtype
     qtype dbentry_type NOT NULL,
     query text NOT NULL, -- compact encoded form
     PRIMARY KEY(uid, qtype, name)

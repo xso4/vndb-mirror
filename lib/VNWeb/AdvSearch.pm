@@ -732,7 +732,7 @@ sub elm_ {
 
 sub query_encode {
     my($self) = @_;
-    return if !$self->{query};
+    return '' if !$self->{query};
     $self->{query_encode} //= _enc_query $self->compact_json;
     $self->{query_encode};
 }

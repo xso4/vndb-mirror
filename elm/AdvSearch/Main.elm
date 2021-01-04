@@ -58,12 +58,12 @@ type Msg
   | SaveToggle Bool
   | SaveAct Int
   | SaveName String
-  | SaveSave
+  | SaveSave String
   | SaveSaved SQuery GApi.Response
   | SaveLoad String
   | SaveLoaded GApi.Response
   | SaveDelSel String
-  | SaveDel
+  | SaveDel (Set.Set String)
   | SaveDeleted (Set.Set String) GApi.Response
 
 
@@ -170,9 +170,9 @@ update msg model =
          , if b && act == 0 then Task.attempt (always Noop) (Dom.focus "advsearch_saveinput") else Cmd.none)
     SaveAct  n -> ({ model | saveAct  = n, saveDel = Set.empty }, Cmd.none)
     SaveName n -> ({ model | saveName = n }, Cmd.none)
-    SaveSave ->
+    SaveSave s ->
       case Maybe.map encQuery (fieldToQuery model.data model.query) of
-        Just q -> ({ model | saveState = Api.Loading }, GASS.send { name = model.saveName, qtype = showQType model.qtype, query = q } (SaveSaved { name = model.saveName, query = q }) )
+        Just q -> ({ model | saveState = Api.Loading }, GASS.send { name = s, qtype = showQType model.qtype, query = q } (SaveSaved { name = s, query = q }) )
         Nothing -> (model, Cmd.none)
     SaveSaved q GApi.Success ->
       let f rep lst = case lst of
@@ -189,7 +189,7 @@ update msg model =
       in ({ model | saveState = Api.Normal, query = query, data = dat }, Cmd.none)
     SaveLoaded e -> ({ model | saveState = Api.Error e }, Cmd.none)
     SaveDelSel s -> ({ model | saveDel = (if Set.member s model.saveDel then Set.remove else Set.insert) s model.saveDel }, Cmd.none)
-    SaveDel -> ({ model | saveState = Api.Loading }, GASD.send { qtype = showQType model.qtype, name = Set.toList model.saveDel } (SaveDeleted model.saveDel))
+    SaveDel d -> ({ model | saveState = Api.Loading }, GASD.send { qtype = showQType model.qtype, name = Set.toList d } (SaveDeleted d))
     SaveDeleted d GApi.Success -> ({ model | saveState = Api.Normal, saveDel = Set.empty, saved = List.filter (\e -> not (Set.member e.name d)) model.saved }, Cmd.none)
     SaveDeleted _ e -> ({ model | saveState = Api.Error e }, Cmd.none)
 
@@ -204,23 +204,42 @@ view model = div [ class "advsearch" ] <|
   , div [ class "optbuttons" ]
     [ if model.data.uid == Nothing then text "" else div [ class "elm_dd_button" ]
       [ DD.view model.saveDd model.saveState (text "Save/Load") <| \() ->
-        [ div [ class "advheader", style "min-width" "250px" ]
+        [ div [ class "advheader", style "min-width" "300px" ]
           [ div [ class "opts", style "margin-bottom" "5px" ]
             [ if model.saveAct == 0 then b [] [ text "Save"   ] else a [ href "#", onClickD (SaveAct 0) ] [ text "Save" ]
             , if model.saveAct == 1 then b [] [ text "Load"   ] else a [ href "#", onClickD (SaveAct 1) ] [ text "Load" ]
             , if model.saveAct == 2 then b [] [ text "Delete" ] else a [ href "#", onClickD (SaveAct 2) ] [ text "Delete" ]
+            , if model.saveAct == 3 then b [] [ text "Default"] else a [ href "#", onClickD (SaveAct 3) ] [ text "Default" ]
             ]
           , h3 [] [ text <| if model.saveAct == 0 then "Save current filter" else if model.saveAct == 1 then "Load filter" else "Delete saved filter" ]
           ]
-        , case (model.saved, model.saveAct) of
+        , case (List.filter (\e -> e.name /= "") model.saved, model.saveAct) of
             (_, 0) ->
               if encQ == "" then text "Nothing to save." else
-              form_ "" SaveSave False
-              [ inputText "advsearch_saveinput" model.saveName SaveName [ required True, maxlength 50, placeholder "Name...", style "width" "245px" ]
-              , if List.any (\e -> e.name == model.saveName) model.saved
+              form_ "" (SaveSave model.saveName) False
+              [ inputText "advsearch_saveinput" model.saveName SaveName [ required True, maxlength 50, placeholder "Name...", style "width" "290px" ]
+              , if model.saveName /= "" && List.any (\e -> e.name == model.saveName) model.saved
                 then text "You already have a filter by that name, click save to overwrite it."
                 else text ""
               , submitButton "Save" model.saveState True
+              ]
+            (_, 3) ->
+              div []
+              [ p [ class "center", style "padding" "0px 5px" ]
+                [ text "You can set a default filter that will be applied automatically to most listings on the site,"
+                , text " this includes the \"Random visual novel\" button, lists on the homepage, tag pages, etc."
+                , text " This feature is mainly useful to filter out tags, languages or platforms that you are not interested in seeing."
+                ]
+              , br [] []
+              , case List.filter (\e -> e.name == "") model.saved of
+                  [d] -> span []
+                         [ inputButton "Load my default filters" (SaveLoad d.query) [style "width" "100%"]
+                         , br [] []
+                         , br [] []
+                         , inputButton "Delete my default filters" (SaveDel (Set.fromList [""])) [style "width" "100%"]
+                         ]
+                  _ -> text "You don't have a default filter set."
+              , if encQ /= "" then inputButton "Save current filters as default" (SaveSave "") [ style "width" "100%" ] else text ""
               ]
             ([], _) -> text "You don't have any saved queries."
             (l, 1) ->
@@ -231,8 +250,8 @@ view model = div [ class "advsearch" ] <|
               ]
             (l, _) ->
               div []
-              [ ul [] <| List.map (\e -> li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ] [ linkRadio (Set.member e.name model.saveDel) (always (SaveDelSel e.name)) [ text e.name ] ]) model.saved
-              , inputButton "Delete selected" SaveDel [ disabled (Set.isEmpty model.saveDel) ]
+              [ ul [] <| List.map (\e -> li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ] [ linkRadio (Set.member e.name model.saveDel) (always (SaveDelSel e.name)) [ text e.name ] ]) l
+              , inputButton "Delete selected" (SaveDel model.saveDel) [ disabled (Set.isEmpty model.saveDel) ]
               ]
         ]
       ]

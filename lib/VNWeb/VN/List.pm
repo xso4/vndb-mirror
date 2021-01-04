@@ -80,6 +80,11 @@ TUWF::get qr{/experimental/v}, sub {
         }
     }
 
+    if(auth && !$opt->{f}{query} && !defined tuwf->reqGet('f')) {
+        my $def = tuwf->dbVali('SELECT query FROM saved_queries WHERE qtype = \'v\' AND name = \'\' AND uid =', \auth->uid);
+        $opt->{f} = tuwf->compile({ advsearch => 'v' })->validate($def)->data if $def;
+    }
+
     my $where = sql_and
         'NOT v.hidden', $opt->{f}->sql_where(),
         $opt->{q} ? map sql('v.c_search LIKE', \"%$_%"), normalize_query $opt->{q} : (),

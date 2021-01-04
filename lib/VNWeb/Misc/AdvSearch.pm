@@ -5,7 +5,7 @@ use VNWeb::AdvSearch;
 
 
 elm_api 'AdvSearchSave' => undef, {
-    name  => { length => [1,50] },
+    name  => { required => 0, default => '', length => [1,50] },
     qtype => { enum => \%VNWeb::AdvSearch::FIELDS },
     query => {},
 }, sub {
@@ -20,7 +20,7 @@ elm_api 'AdvSearchSave' => undef, {
 
 
 elm_api 'AdvSearchDel' => undef, {
-    name  => { type => 'array', minlength => 1, values => { length => [1,50] } },
+    name  => { type => 'array', minlength => 1, values => { required => 0, default => '', length => [1,50] } },
     qtype => { enum => \%VNWeb::AdvSearch::FIELDS },
 }, sub {
     my($d) = @_;
