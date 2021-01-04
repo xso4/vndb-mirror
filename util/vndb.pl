@@ -30,33 +30,11 @@ use VNWeb::Validation ();
 my $skin = SkinFile->new("$ROOT/static/s");
 tuwf->{skins} = { map +($_ => [ $skin->get($_, 'name'), $skin->get($_, 'userid') ]), $skin->list };
 
-# Some global variables
-tuwf->{scr_size}     = [ 136, 102 ]; # w*h of screenshot thumbnails
-tuwf->{ch_size}      = [ 256, 300 ]; # max. w*h of char images
-tuwf->{cv_size}      = [ 256, 400 ]; # max. w*h of cover images
-tuwf->{$_} = config->{$_} for keys %{ config() };
-
 TUWF::set %{ config->{tuwf} };
 
 # Signal to VNWeb::Elm whether it should generate the Elm files.
 # Should be done before loading any more modules.
 tuwf->{elmgen} = $ARGV[0] && $ARGV[0] eq 'elmgen';
-
-
-sub _path {
-    my($t, $id) = $_[1] =~ /([a-z]+)([0-9]+)/;
-    $t = 'st' if $t eq 'sf' && $_[2];
-    sprintf '%s/%s/%02d/%d.jpg', $_[0], $t, $id%100, $id;
-}
-
-# tuwf->imgpath($image_id, $thumb)
-sub TUWF::Object::imgpath { _path "$ROOT/static", $_[1], $_[2] }
-
-# tuwf->imgurl($image_id, $thumb)
-sub TUWF::Object::imgurl { _path $_[0]{url_static}, $_[1], $_[2] }
-
-# tuwf->samesite() - returns true if this request originated from the same site, i.e. not an external referer.
-sub TUWF::Object::samesite { !!tuwf->reqCookie('samesite') }
 
 
 TUWF::hook before => sub {
@@ -70,7 +48,7 @@ TUWF::hook before => sub {
 
     # Use a 'SameSite=Strict' cookie to determine whether this page was loaded from internal or external.
     # Ought to be more reliable than checking the Referer header, but it's unfortunately a bit uglier.
-    tuwf->resCookie(samesite => 1, httponly => 1, samesite => 'Strict') if !tuwf->samesite;
+    tuwf->resCookie(samesite => 1, httponly => 1, samesite => 'Strict') if !VNWeb::Validation::samesite;
 
     tuwf->req->{trace_start} = time if config->{trace_log};
 };

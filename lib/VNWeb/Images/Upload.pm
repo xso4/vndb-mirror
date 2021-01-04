@@ -23,8 +23,8 @@ TUWF::post qr{/elm/ImageUpload.json}, sub {
         height => 0
     }, 'RETURNING id');
 
-    my $fn0 = tuwf->imgpath($id, 0);
-    my $fn1 = tuwf->imgpath($id, 1);
+    my $fn0 = imgpath($id, 0);
+    my $fn1 = imgpath($id, 1);
     my $fntmp = "$fn0-tmp.jpg";
 
     sub resize { (-resize => "$_[0][0]x$_[0][1]>", -print => 'r:%wx%h') }
@@ -34,9 +34,9 @@ TUWF::post qr{/elm/ImageUpload.json}, sub {
         '-strip', -define => 'filter:Lagrange',
         -background => '#fff', -alpha => 'Remove',
         -quality => 90, -print => 'o:%wx%h',
-        $type eq 'ch' ? (resize(tuwf->{ch_size}), -write => $fn0, @unsharp, $fntmp) :
-        $type eq 'cv' ? (resize(tuwf->{cv_size}), -write => $fn0, @unsharp, $fntmp) :
-        $type eq 'sf' ? (-write => $fn0, resize(tuwf->{scr_size}), @unsharp, $fn1) : die
+        $type eq 'ch' ? (resize(config->{ch_size}), -write => $fn0, @unsharp, $fntmp) :
+        $type eq 'cv' ? (resize(config->{cv_size}), -write => $fn0, @unsharp, $fntmp) :
+        $type eq 'sf' ? (-write => $fn0, resize(config->{scr_size}), @unsharp, $fn1) : die
     );
 
     run_cmd(\@cmd, '<', \$imgdata, '>', \my $out, '2>', \my $err)->recv;

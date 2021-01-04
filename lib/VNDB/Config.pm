@@ -25,11 +25,14 @@ my $config = {
     admin_email       => 'contact@vndb.org',
     login_throttle    => [ 24*3600/10, 24*3600 ], # interval between attempts, max burst (10 a day)
     board_edit_time   => 7*24*3600, # Time after which posts become immutable
-    poll_options      => 20, # max number of options in discussion board polls
     graphviz_path     => '/usr/bin/dot',
     convert_path      => '/usr/bin/convert',
     identify_path     => '/usr/bin/identify',
     trace_log         => 0,
+
+    scr_size          => [ 136, 102 ], # w*h of screenshot thumbnails
+    ch_size           => [ 256, 300 ], # max. w*h of char images
+    cv_size           => [ 256, 400 ], # max. w*h of cover images
 
     Multi => {
         Core        => {},

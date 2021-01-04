@@ -67,8 +67,8 @@ sub og {
     my($v) = @_;
     +{
         description => bb_format($v->{desc}, text => 1),
-        image => $v->{image} && !$v->{image}{sexual} && !$v->{image}{violence} ? tuwf->imgurl($v->{image}{id}) :
-                 [map $_->{scr}{sexual}||$_->{scr}{violence}?():(tuwf->imgurl($_->{scr}{id})), $v->{screenshots}->@*]->[0]
+        image => $v->{image} && !$v->{image}{sexual} && !$v->{image}{violence} ? imgurl($v->{image}{id}) :
+                 [map $_->{scr}{sexual}||$_->{scr}{violence}?():(imgurl($_->{scr}{id})), $v->{screenshots}->@*]->[0]
     }
 }
 
@@ -112,7 +112,7 @@ sub rev_ {
             a_ href => "/r$_->{rid}", "r$_->{rid}" if $_->{rid};
             txt_ 'no release' if !$_->{rid};
             txt_ '] ';
-            a_ href => tuwf->imgurl($_->{scr}{id}), 'data-iv' => "$_->{scr}{width}x$_->{scr}{height}::$_->{scr}{sexual}$_->{scr}{violence}$_->{scr}{votecount}", $_->{scr}{id};
+            a_ href => imgurl($_->{scr}{id}), 'data-iv' => "$_->{scr}{width}x$_->{scr}{height}::$_->{scr}{sexual}$_->{scr}{violence}$_->{scr}{votecount}", $_->{scr}{id};
             txt_ ' [';
             a_ href => "/img/$_->{scr}{id}", image_flagging_display $_->{scr};
             txt_ '] ';
@@ -689,7 +689,7 @@ sub screenshots_ {
                 a_ href => "/r$r->{id}", $r->{title};
             };
             div_ class => 'scr', sub {
-                a_ href => tuwf->imgurl($_->{scr}{id}),
+                a_ href => imgurl($_->{scr}{id}),
                     'data-iv' => "$_->{scr}{width}x$_->{scr}{height}:scr:$_->{scr}{sexual}$_->{scr}{violence}$_->{scr}{votecount}",
                     mkclass(
                         scrlnk => 1,
@@ -700,8 +700,8 @@ sub screenshots_ {
                         nsfw => $_->{scr}{sexual} || $_->{scr}{violence},
                     ),
                 sub {
-                    my($w, $h) = imgsize $_->{scr}{width}, $_->{scr}{height}, tuwf->{scr_size}->@*;
-                    img_ src => tuwf->imgurl($_->{scr}{id}, 1), width => $w, height => $h, alt => "Screenshot $_->{scr}{id}";
+                    my($w, $h) = imgsize $_->{scr}{width}, $_->{scr}{height}, config->{scr_size}->@*;
+                    img_ src => imgurl($_->{scr}{id}, 1), width => $w, height => $h, alt => "Screenshot $_->{scr}{id}";
                 } for $rel{$r->{id}}->@*;
             }
         }

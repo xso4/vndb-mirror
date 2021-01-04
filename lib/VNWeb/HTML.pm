@@ -177,7 +177,7 @@ sub _head_ {
     if($o->{og}) {
         $o->{og}{site_name} ||= 'The Visual Novel Database';
         $o->{og}{type}      ||= 'object';
-        $o->{og}{image}     ||= 'https://s.vndb.org/s/angel/bg.jpg'; # TODO: Something better
+        $o->{og}{image}     ||= config->{placeholder_img};
         $o->{og}{url}       ||= tuwf->reqURI;
         $o->{og}{title}     ||= $o->{title};
         meta_ property => "og:$_", content => ($o->{og}{$_} =~ s/\n/ /gr) for sort keys $o->{og}->%*;

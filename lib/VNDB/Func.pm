@@ -3,20 +3,18 @@ package VNDB::Func;
 
 use strict;
 use warnings;
-use TUWF ':html', 'kv_validate', 'xml_escape', 'uri_escape';
+use TUWF ':html', 'uri_escape';
 use Exporter 'import';
-use POSIX 'strftime', 'ceil', 'floor';
-use JSON::XS;
+use POSIX 'strftime';
 use VNDBUtil;
+use VNDB::Config;
 use VNDB::Types;
 use VNDB::BBCode;
 our @EXPORT = (@VNDBUtil::EXPORT, 'bb_format', qw|
-  clearfloat cssicon minage fil_parse fil_serialize parenttags
-  childtags charspoil imgpath imgurl
+  clearfloat cssicon minage fil_parse fil_serialize parenttags childtags
   fmtvote fmtmedia fmtvnlen fmtage fmtdatestr fmtdate fmtrating fmtspoil
+  imgpath imgurl
   lang_attr
-  json_encode json_decode script_json
-  form_compare
   query_encode
   md2html
 |);
@@ -146,22 +144,17 @@ sub childtags {
 }
 
 
-# generates the class elements for character spoiler hiding
-sub charspoil {
-  return "charspoil charspoil_$_[0]";
+sub _path {
+    my($t, $id) = $_[1] =~ /([a-z]+)([0-9]+)/;
+    $t = 'st' if $t eq 'sf' && $_[2];
+    sprintf '%s/%s/%02d/%d.jpg', $_[0], $t, $id%100, $id;
 }
 
+# imgpath($image_id, $thumb)
+sub imgpath { _path config->{root}.'/static', @_ }
 
-# generates a local path to an image in static/
-sub imgpath { # <type>, <id>
-  return sprintf '%s/static/%s/%02d/%d.jpg', $TUWF::OBJ->{root}, $_[0], $_[1]%100, $_[1];
-}
-
-
-# generates a URL for an image in static/
-sub imgurl {
-  return sprintf '%s/%s/%02d/%d.jpg', $TUWF::OBJ->{url_static}, $_[0], $_[1]%100, $_[1];
-}
+# imgurl($image_id, $thumb)
+sub imgurl { _path config->{url_static}, @_ }
 
 
 # Formats a vote number.
@@ -263,50 +256,6 @@ sub lang_attr {
     ()
 }
 
-
-
-# JSON::XS::encode_json converts input to utf8, whereas the below functions
-# operate on wide character strings. Canonicalization is enabled to allow for
-# proper comparison of serialized objects.
-my $JSON = JSON::XS->new;
-$JSON->canonical(1);
-
-sub json_encode ($) {
-  $JSON->encode(@_);
-}
-
-sub json_decode ($) {
-  $JSON->decode(@_);
-}
-
-# Insert JSON-encoded data as script, arguments: id, object
-sub script_json {
-  script id => $_[0], type => 'application/json';
-   my $js = json_encode $_[1];
-   $js =~ s/</\\u003C/g; # escape HTML tags like </script> and <!--
-   lit $js;
-  end;
-}
-
-
-
-# Compare the keys in %$old with the keys in %$new. Returns 1 if a difference was found, 0 otherwise.
-sub form_compare {
-  my($old, $new) = @_;
-  for my $k (keys %$old) {
-    my($o, $n) = ($old->{$k}, $new->{$k});
-    return 1 if defined $n ne defined $o || ref $o ne ref $n;
-    if(!defined $o) {
-      # must be equivalent
-    } elsif(!ref $o) {
-      return 1 if $o ne $n;
-    } else { # 'json' template
-      return 1 if @$o != @$n;
-      return 1 if grep form_compare($o->[$_], $n->[$_]), 0..$#$o;
-    }
-  }
-  return 0;
-}
 
 
 # Encode query parameters. Takes a hash or hashref with key/values, supports array values and objects that implement query_encode().

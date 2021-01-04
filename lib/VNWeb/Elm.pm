@@ -18,6 +18,7 @@ use VNDB::Config;
 use VNDB::Types;
 use VNDB::Func 'fmtrating';
 use VNDB::ExtLinks ();
+use VNWeb::Validation;
 use VNWeb::Auth;
 
 our @EXPORT = qw/
@@ -316,7 +317,7 @@ sub elm_api {
     $in = comp $in;
 
     TUWF::post qr{/elm/\Q$name\E\.json} => sub {
-        if(!tuwf->samesite && !auth->csrfcheck(tuwf->reqHeader('X-CSRF-Token')||'')) {
+        if(!samesite && !auth->csrfcheck(tuwf->reqHeader('X-CSRF-Token')||'')) {
             warn "Invalid CSRF token in request\n";
             return elm_CSRF();
         }

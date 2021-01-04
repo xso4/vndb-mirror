@@ -13,6 +13,7 @@ use Carp 'croak';
 use Exporter 'import';
 
 our @EXPORT = qw/
+    samesite
     is_insecurepass
     form_compile
     form_changed
@@ -89,6 +90,10 @@ sub _validate_fuzzyrdate {
     return 1 if $_[0] eq 1;
     VNWeb::Validation::_validate_rdate($_[0]);
 }
+
+
+# returns true if this request originated from the same site, i.e. not an external referer.
+sub samesite { !!tuwf->reqCookie('samesite') }
 
 
 sub is_insecurepass {
@@ -270,7 +275,7 @@ sub viewget {
         my($view, $token) = tuwf->reqGet('view') =~ /^([^-]*)-(.+)$/;
 
         # Abort this request and redirect if the token is invalid.
-        if(length($view) && (!tuwf->samesite || !length($token) || !auth->csrfcheck($token, 'view'))) {
+        if(length($view) && (!samesite || !length($token) || !auth->csrfcheck($token, 'view'))) {
             my $qs = join '&', map { my $k=$_; my @l=tuwf->reqGets($k); map uri_escape($k).'='.uri_escape($_), @l } grep $_ ne 'view', tuwf->reqGets();
             tuwf->resInit;
             tuwf->resRedirect(tuwf->reqPath().($qs?"?$qs":''), 'temp');

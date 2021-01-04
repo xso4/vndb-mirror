@@ -92,7 +92,7 @@ sub image_ {
     label_ class => 'imghover', style => "width: $img->{width}px; height: $img->{height}px", sub {
         input_ type => 'checkbox', class => 'visuallyhidden', $hidden ? () : (checked => 'checked') if $hide_on_click;
         div_ class => 'imghover--visible', sub {
-            img_ src => tuwf->imgurl($img->{id}), $opt{alt} ? (alt => $opt{alt}) : ();
+            img_ src => imgurl($img->{id}), $opt{alt} ? (alt => $opt{alt}) : ();
             a_ class => 'imghover--overlay', href => "/img/$img->{id}?view=".viewset(show_nsfw=>1), image_flagging_display $img;
         };
         div_ class => 'imghover--warning', sub {
