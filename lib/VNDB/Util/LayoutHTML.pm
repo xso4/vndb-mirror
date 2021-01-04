@@ -4,6 +4,7 @@ package VNDB::Util::LayoutHTML;
 use strict;
 use warnings;
 use TUWF ':html';
+use VNDB::Config;
 use VNWeb::HTML;
 use Exporter 'import';
 
@@ -34,7 +35,7 @@ sub htmlFooter { # %options => { pref_code => 1 }
     # Abuse an empty noscript tag for the formcode to update a preference setting, if the page requires one.
     noscript id => 'pref_code', title => $self->authGetCode('/xml/prefs.xml'), ''
       if $o{pref_code} && $self->authInfo->{id};
-    script type => 'text/javascript', src => $self->{url_static}.'/f/vndb.js?'.$self->{version}, '';
+    script type => 'text/javascript', src => config->{url_static}.'/f/vndb.js?'.config->{version}, '';
     VNWeb::HTML::_scripts_({});
    end 'body';
   end 'html';
