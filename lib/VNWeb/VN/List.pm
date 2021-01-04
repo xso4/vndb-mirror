@@ -44,7 +44,7 @@ sub listing_ {
 }
 
 
-TUWF::get qr{/experimental/v}, sub {
+TUWF::get qr{/experimental/v(?:/(?<char>all|[a-z0]))?}, sub {
     my $opt = tuwf->validate(get =>
         q => { onerror => undef },
         sq=> { onerror => undef },
@@ -59,6 +59,7 @@ TUWF::get qr{/experimental/v}, sub {
     )->data;
     $opt->{q} //= $opt->{sq};
     $opt->{ch} = $opt->{ch}[0];
+    $opt->{ch} //= tuwf->capture('char') if tuwf->capture('char') ne 'all'; # compat with old URLs
 
     # URL compatibility with old filters
     if(!$opt->{f}->{query} && ($opt->{fil} || $opt->{rfil} || $opt->{cfil})) {
@@ -123,6 +124,8 @@ TUWF::get qr{/experimental/v}, sub {
         ($count, $list) = (undef, []);
     }
     die $@ if !defined $list;
+
+    return tuwf->resRedirect("/v$list->[0]{id}") if $count == 1 && $opt->{q} && !defined $opt->{ch};
 
     enrich_flatten vnlist_labels => id => vid => sub { sql '
         SELECT uvl.vid, ul.label
