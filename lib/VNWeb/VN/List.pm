@@ -59,7 +59,10 @@ TUWF::get qr{/experimental/v(?:/(?<char>all|[a-z0]))?}, sub {
     )->data;
     $opt->{q} //= $opt->{sq};
     $opt->{ch} = $opt->{ch}[0];
-    $opt->{ch} //= tuwf->capture('char') if tuwf->capture('char') ne 'all'; # compat with old URLs
+
+    # compat with old URLs
+    my $oldch = tuwf->capture('char');
+    $opt->{ch} //= $oldch if defined $oldch && $oldch ne 'all';
 
     # URL compatibility with old filters
     if(!$opt->{f}->{query} && ($opt->{fil} || $opt->{rfil} || $opt->{cfil})) {
