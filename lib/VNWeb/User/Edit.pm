@@ -1,6 +1,7 @@
 package VNWeb::User::Edit;
 
 use VNWeb::Prelude;
+use VNDB::Skins;
 
 
 my $FORM = {
@@ -40,7 +41,7 @@ my $FORM = {
         tags_ero        => { anybool => 1 },
         tags_tech       => { anybool => 1 },
         spoilers        => { uint => 1, range => [ 0, 2 ] },
-        skin            => { enum => tuwf->{skins} },
+        skin            => { enum => skins },
         customcss       => { required => 0, default => '', maxlength => 2000 },
 
         # Supporter options

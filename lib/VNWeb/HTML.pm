@@ -13,6 +13,7 @@ use Carp 'croak';
 use JSON::XS;
 use VNDB::Config;
 use VNDB::BBCode;
+use VNDB::Skins;
 use VNWeb::Auth;
 use VNWeb::Validation;
 use VNWeb::DB;
@@ -155,7 +156,7 @@ sub _head_ {
         'SELECT customcss, skin FROM users WHERE pubskin_can AND pubskin_enabled AND id =', \$o->{dbobj}{id}
     ) : {};
     my $skin = tuwf->reqGet('skin') || $pubskin->{skin} || auth->pref('skin') || '';
-    $skin = config->{skin_default} if !tuwf->{skins}{$skin};
+    $skin = config->{skin_default} if !skins->{$skin};
     my $customcss = $pubskin->{customcss} || auth->pref('customcss');
 
     meta_ charset => 'utf-8';

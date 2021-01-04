@@ -1,6 +1,7 @@
 package VNWeb::Docs::Lib;
 
 use VNWeb::Prelude;
+use VNDB::Skins;
 
 our @EXPORT = qw/enrich_html/;
 
@@ -26,10 +27,10 @@ sub _moderators {
 
 sub _skincontrib {
     my %users;
-    push $users{ tuwf->{skins}{$_}[1] }->@*, [ $_, tuwf->{skins}{$_}[0] ]
-        for sort { tuwf->{skins}{$a}[0] cmp tuwf->{skins}{$b}[0] } keys tuwf->{skins}->%*;
+    push $users{ skins->{$_}{userid} }->@*, [ $_, skins->{$_}{name} ]
+        for sort { skins->{$a}{name} cmp skins->{$b}{name} } keys skins->%*;
 
-    my $u = tuwf->dbAlli('SELECT id, username FROM users WHERE id IN', [keys %users]);
+    my $u = tuwf->dbAlli('SELECT id, username FROM users WHERE id IN', [keys %users], 'ORDER BY id');
 
     xml_string sub {
         dl_ sub {

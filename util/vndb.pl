@@ -18,17 +18,10 @@ my $ROOT;
 BEGIN { ($ROOT = abs_path $0) =~ s{/util/vndb\.pl$}{}; }
 
 use lib $ROOT.'/lib';
-use SkinFile;
-use VNDB::Func ();
 use VNDB::Config;
 use VNWeb::Auth;
 use VNWeb::HTML ();
 use VNWeb::Validation ();
-
-
-# load the skins
-my $skin = SkinFile->new("$ROOT/static/s");
-tuwf->{skins} = { map +($_ => [ $skin->get($_, 'name'), $skin->get($_, 'userid') ]), $skin->list };
 
 TUWF::set %{ config->{tuwf} };
 

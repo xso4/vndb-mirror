@@ -8,7 +8,7 @@ our($ROOT, %S);
 BEGIN { ($ROOT = abs_path $0) =~ s{/util/skingen\.pl$}{}; }
 
 use lib "$ROOT/lib";
-use SkinFile;
+use VNDB::Skins;
 
 
 my $iconcss = do {
@@ -49,8 +49,7 @@ sub mtime($) { [stat("$ROOT/static$_[0]")]->[9] }
 
 sub writeskin { # $name
   my $name = shift;
-  my $skin = SkinFile->new("$ROOT/static/s", $name);
-  my %o = map +($_ => $skin->get($_)), $skin->get;
+  my %o = skins->{$name}->%*;
   $o{iconcss} = $iconcss;
 
   # get the right top image
@@ -94,7 +93,7 @@ sub writeskin { # $name
 if(@ARGV) {
   writeskin($_) for (@ARGV);
 } else {
-  writeskin($_) for (SkinFile->new("$ROOT/static/s")->list);
+  writeskin($_) for (keys skins->%*);
 }
 
 

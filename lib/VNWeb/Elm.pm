@@ -18,6 +18,7 @@ use VNDB::Config;
 use VNDB::Types;
 use VNDB::Func 'fmtrating';
 use VNDB::ExtLinks ();
+use VNDB::Skins;
 use VNWeb::Validation;
 use VNWeb::Auth;
 
@@ -418,9 +419,7 @@ sub write_types {
     my $data = '';
 
     $data .= def adminEMail => String => string config->{admin_email};
-    $data .= def skins      => 'List (String, String)' =>
-                list map tuple(string $_, string tuwf->{skins}{$_}[0]),
-                sort { tuwf->{skins}{$a}[0] cmp tuwf->{skins}{$b}[0] } keys tuwf->{skins}->%*;
+    $data .= def skins      => 'List (String, String)' => list map tuple(string $_, string skins->{$_}{name}), sort { skins->{$a}{name} cmp skins->{$b}{name} } keys skins->%*;
     $data .= def languages  => 'List (String, String)' => list map tuple(string $_, string $LANGUAGE{$_}), sort { $LANGUAGE{$a} cmp $LANGUAGE{$b} } keys %LANGUAGE;
     $data .= def platforms  => 'List (String, String)' => list map tuple(string $_, string $PLATFORM{$_}), keys %PLATFORM;
     $data .= def releaseTypes => 'List (String, String)' => list map tuple(string $_, string $RELEASE_TYPE{$_}), keys %RELEASE_TYPE;
