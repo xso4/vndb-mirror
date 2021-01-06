@@ -68,8 +68,12 @@ sub release_extlinks_ {
 }
 
 
+# Options
+#   id:   unique identifier if the same release may be listed on a page twice.
+#   lang: 0/1 whether to display language icons
+#   prod: 0/1 whether to display Pub/Dev indication
 sub release_row_ {
-    my($r, $id, $prodpage) = @_;
+    my($r, $opt) = @_;
 
     my sub icon_ {
         my($img, $label, $class) = @_;
@@ -103,7 +107,7 @@ sub release_row_ {
         td_ class => 'tc2', $r->{minage} < 0 ? '' : minage $r->{minage};
         td_ class => 'tc3', sub {
             abbr_ class => "icons $_", title => $PLATFORM{$_}, '' for grep $_ ne 'oth', $r->{platforms}->@*;
-            if($prodpage) {
+            if($opt->{lang}) {
                 abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for $r->{lang}->@*;
             }
             abbr_ class => "icons rt$r->{type}", title => $r->{type}, '';
@@ -114,11 +118,11 @@ sub release_row_ {
             b_ class => 'grayedout', " ($note)" if $note;
         };
         td_ class => 'tc_icons', sub { icons_ $r };
-        td_ class => 'tc_prod', join ' & ', $r->{publisher} ? 'Pub' : (), $r->{developer} ? 'Dev' : () if $prodpage;
+        td_ class => 'tc_prod', join ' & ', $r->{publisher} ? 'Pub' : (), $r->{developer} ? 'Dev' : () if $opt->{prod};
         td_ class => 'tc5 elm_dd_left', sub {
             elm_ 'UList.ReleaseEdit', $VNWeb::ULists::Elm::RLIST_STATUS, { rid => $r->{id}, uid => auth->uid, status => $r->{rlist_status}, empty => '--' } if auth;
         };
-        td_ class => 'tc6', sub { release_extlinks_ $r, "${id}_$r->{id}" };
+        td_ class => 'tc6', sub { release_extlinks_ $r, "$opt->{id}_$r->{id}" };
     }
 }
 

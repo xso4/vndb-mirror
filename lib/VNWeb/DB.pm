@@ -12,7 +12,7 @@ our @EXPORT = qw/
     sql
     sql_identifier sql_join sql_comma sql_and sql_or sql_array sql_func sql_fromhex sql_tohex sql_fromtime sql_totime sql_like sql_user
     enrich enrich_merge enrich_flatten enrich_obj
-    db_entry db_edit
+    db_maytimeout db_entry db_edit
 /;
 
 
@@ -216,6 +216,25 @@ sub enrich_obj {
         my %ids = map +($_->{$merge_col}, $_), @$data;
         $_->{$key} = defined $_->{$key} ? $ids{ $_->{$key} } : undef for @$array;
     }, $key, $sql, @array;
+}
+
+
+
+# Run the given subroutine inside a savepoint and capture an SQL timeout.
+# Returns false and logs a warning on timeout.
+sub db_maytimeout(&) {
+    my($f) = @_;
+    tuwf->dbh->pg_savepoint('maytimeout');
+    my $r = eval { $f->(); 1 };
+
+    if(!$r && $@ =~ /canceling statement due to statement timeout/) {
+        tuwf->dbh->pg_rollback_to('maytimeout');
+        warn "Query timed out\n";
+        return 0;
+    }
+    carp $@ if !$r;
+    tuwf->dbh->pg_release('maytimeout');
+    1;
 }
 
 

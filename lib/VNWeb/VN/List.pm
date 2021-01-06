@@ -97,10 +97,9 @@ TUWF::get qr{/experimental/v(?:/(?<char>all|[a-z0]))?}, sub {
 
     my $time = time;
     my($count, $list);
-    tuwf->dbh->pg_savepoint('filter'); # Savepoint to reset our transaction in case the query timed out.
-    eval {
+    db_maytimeout {
         $count = tuwf->dbVali('SELECT count(*) FROM vn v WHERE', $where);
-        $list = $count && tuwf->dbPagei({results => 50, page => $opt->{p}}, '
+        $list = $count ? tuwf->dbPagei({results => 50, page => $opt->{p}}, '
             SELECT v.id, v.title, v.original, v.c_released, v.c_popularity, v.c_votecount, v.c_rating, v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang
                  , vl.userlist_all, vl.userlist_obtained
               FROM vn v
@@ -119,16 +118,10 @@ TUWF::get qr{/experimental/v(?:/(?<char>all|[a-z0]))?}, sub {
                  pop    => 'v.c_popularity %s NULLS LAST, v.title',
                  rating => 'v.c_rating %s NULLS LAST, v.title'
              }->{$opt->{s}}, $opt->{o} eq 'a' ? 'ASC' : 'DESC'
-        );
-    };
-    tuwf->dbh->pg_rollback_to('filter');
-    if(!defined $list && $@ =~ /canceling statement due to statement timeout/) {
-        warn "Query timed out\n";
-        ($count, $list) = (undef, []);
-    }
-    die $@ if !defined $list;
+        ) : [];
+    } || (($count, $list) = (undef, []));
 
-    return tuwf->resRedirect("/v$list->[0]{id}") if $count == 1 && $opt->{q} && !defined $opt->{ch};
+    return tuwf->resRedirect("/v$list->[0]{id}") if $count && $count == 1 && $opt->{q} && !defined $opt->{ch};
 
     enrich_flatten vnlist_labels => id => vid => sub { sql '
         SELECT uvl.vid, ul.label
@@ -136,7 +129,7 @@ TUWF::get qr{/experimental/v(?:/(?<char>all|[a-z0]))?}, sub {
           JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl
          WHERE uvl.uid =', \auth->uid, 'AND uvl.vid IN', $_[0], '
          ORDER BY CASE WHEN ul.id < 10 THEN ul.id ELSE 10 END, ul.label'
-    }, $list if $count && auth;
+    }, $list if auth;
     $time = time - $time;
 
     framework_ title => 'Browse visual novels', sub {
@@ -157,16 +150,8 @@ TUWF::get qr{/experimental/v(?:/(?<char>all|[a-z0]))?}, sub {
                 input_ type => 'hidden', name => 's', value => $opt->{s};
                 input_ type => 'hidden', name => 'ch', value => $opt->{ch}//'';
                 $opt->{f}->elm_;
+                advsearch_msg_ $count, $time;
             };
-            p_ class => 'center', sprintf '%d results in %.3fs', $count, $time if defined $count;
-            div_ class => 'warning', sub {
-                h2_ 'ERROR: Query timed out.';
-                p_ q{
-                  This usually happens when your combination of filters is too complex for the server to handle.
-                  This may also happen when the server is overloaded with other work, but that's much less common.
-                  You can adjust your filters or try again later.
-                };
-            } if !defined $count;
         };
         listing_ $opt, $list, $count if $count;
     };

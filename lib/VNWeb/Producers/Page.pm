@@ -100,7 +100,8 @@ sub rel_ {
                 td_ colspan => 8, sub {
                     a_ href => "/v$v->{id}", title => $v->{original}||$v->{title}, $v->{title};
                 };
-                release_row_ $_, $v->{id}, 1 for $vn{$v->{id}}->@*;
+                my $ropt = { id => $v->{id}, prod => 1, lang => 1 };
+                release_row_ $_, $ropt for $vn{$v->{id}}->@*;
             };
         }
     } if @$r;

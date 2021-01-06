@@ -443,7 +443,8 @@ sub releases_ {
                 txt_ $LANGUAGE{$lang};
             }
         };
-        release_row_ $_, $lang for grep grep($_ eq $lang, $_->{lang}->@*), $v->{releases}->@*;
+        my $ropt = { id => $lang };
+        release_row_ $_, $ropt for grep grep($_ eq $lang, $_->{lang}->@*), $v->{releases}->@*;
     }
 
     div_ class => 'mainbox', sub {
