@@ -212,11 +212,16 @@ view model = div [ class "advsearch" ] <|
               ]
             (_, 3) ->
               div []
-              [ p [ class "center", style "padding" "0px 5px" ]
-                [ text "You can set a default filter that will be applied automatically to most listings on the site,"
-                , text " this includes the \"Random visual novel\" button, lists on the homepage, tag pages, etc."
-                , text " This feature is mainly useful to filter out tags, languages or platforms that you are not interested in seeing."
-                ]
+              [ p [ class "center", style "padding" "0px 5px" ] <|
+                case model.qtype of
+                  V -> [ text "You can set a default filter that will be applied automatically to most listings on the site,"
+                       , text " this includes the \"Random visual novel\" button, lists on the homepage, tag pages, etc."
+                       , text " This feature is mainly useful to filter out tags, languages or platforms that you are not interested in seeing."
+                       ]
+                  R -> [ text "You can set a default filter that will be applied automatically to this release browser and the listings on the homepage."
+                       , text " This feature is mainly useful to filter out tags, languages or platforms that you are not interested in seeing."
+                       ]
+                  _ -> [ text "You can set a default filter that will be applied automatically when you open this listing." ]
               , br [] []
               , case List.filter (\e -> e.name == "") model.saved of
                   [d] -> span []
