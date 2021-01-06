@@ -67,32 +67,24 @@ type Msg
   | SaveDeleted (Set.Set String) GApi.Response
 
 
--- Add default set of fields (if they aren't present yet) and sort the list
+-- If the query only contains "quick" selection fields, add the remaining quick fields and sort them.
 normalize : QType -> Field -> Data -> (Field, Data)
 normalize qtype query odat =
-  let present = List.foldl (\(n,_,_) a -> Set.insert n a) Set.empty
+  let quickFromId (n,_,_) = Array.get n fields |> Maybe.map (\f -> abs f.quick) |> Maybe.withDefault 0
+      present = List.foldl (\f a -> Set.insert (quickFromId f) a) Set.empty
       defaults pres = Array.foldl (\f (al,dat,an) ->
-          if f.qtype == qtype && f.quick /= 0 && not (Set.member an pres)
+          if f.qtype == qtype && f.quick > 0 && not (Set.member (abs f.quick) pres)
           then let (ndat, nf) = fieldInit an dat
                in (nf::al, ndat, an+1)
           else (al,dat,an+1)
         ) ([],odat,0) fields
-      cmp (an,add,am) (bn,bdd,bm) = -- Sort active filters before empty ones, then order by 'quick', fallback to title
-        let aq = fieldToQuery odat (an,add,am) /= Nothing
-            bq = fieldToQuery odat (bn,bdd,bm) /= Nothing
-            af = Array.get an fields
-            bf = Array.get bn fields
-            ao = Maybe.andThen (\d -> if d.quick == 0 then Nothing else Just d.quick) af |> Maybe.withDefault 9999
-            bo = Maybe.andThen (\d -> if d.quick == 0 then Nothing else Just d.quick) bf |> Maybe.withDefault 9999
-            at = Maybe.map (\d -> d.title) af |> Maybe.withDefault ""
-            bt = Maybe.map (\d -> d.title) bf |> Maybe.withDefault ""
-        in if aq && not bq then LT else if not aq && bq then GT
-           else if ao /= bo then compare ao bo else compare at bt
+      cmp a b = compare (quickFromId a) (quickFromId b)
   in case query of
       (qid, qdd, FMNest qm) ->
-        let (nl, ndat, _) = defaults (present qm.fields)
+        let pres = present qm.fields
+            (nl, ndat, _) = defaults pres
             nqm = { qm | fields = List.sortWith cmp (nl++qm.fields) }
-        in ((qid, qdd, FMNest nqm), ndat)
+        in if Set.member 0 pres || List.length nqm.fields > 4 then (query, odat) else ((qid, qdd, FMNest nqm), ndat)
       _ -> (query, odat)
 
 
@@ -120,14 +112,7 @@ loadQuery odat arg =
                 _ -> addtoplvl
       dat3 = { dat2 | objid = dat2.objid + 5 } -- +5 for the creation of query2
 
-      -- Is this a "simple" query? i.e. one that consists of at most a single level of nesting
-      isSimple = case query2 of
-                  (_,_,FMNest m) -> List.all (\f -> case f of
-                                                      (_,_,FMNest _) -> False
-                                                      _ -> True) m.fields
-                  _ -> True
-
-      (query3, dat4) = if isSimple then normalize qtype query2 dat3 else (query2, dat3)
+      (query3, dat4) = normalize qtype query2 dat3
   in (qtype, query3, dat4)
 
 

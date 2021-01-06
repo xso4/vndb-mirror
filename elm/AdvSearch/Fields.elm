@@ -370,9 +370,9 @@ fields =
   , f V "Original language"  2  FMOLang       AS.init                 AS.olangFromQuery
   , f V "Platform"           3  FMVPlatform   AS.init                 AS.platformFromQuery
   , f V "Tags"               4  FMTag         AG.init                 (AG.fromQuery -1)
-  , f V ""                   0  FMTag         AG.init                 (AG.fromQuery 0)
-  , f V ""                   0  FMTag         AG.init                 (AG.fromQuery 1)
-  , f V ""                   0  FMTag         AG.init                 (AG.fromQuery 2)
+  , f V ""                  -4  FMTag         AG.init                 (AG.fromQuery 0)
+  , f V ""                  -4  FMTag         AG.init                 (AG.fromQuery 1)
+  , f V ""                  -4  FMTag         AG.init                 (AG.fromQuery 2)
   , f V "My Labels"          0  FMLabel       AS.init                 AS.labelFromQuery
   , f V "Length"             0  FMLength      AS.init                 AS.lengthFromQuery
   , f V "Developer"          0  FMDeveloper   AP.init                 (AP.fromQuery False)
