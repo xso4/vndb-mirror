@@ -246,7 +246,7 @@ sub filter_release_adv {
     defined $fil->{released}    ? [ 'released', $fil->{released} ? '<=' : '>', 1 ] : (),
     defined $fil->{minage}      ? [ 'or', map [ 'minage', '=', $_ == -1 ? undef : $_ ], $fil->{minage}->@* ] : (),
     defined $fil->{lang}        ? [ 'or', map [ 'lang', '=', $_ ], $fil->{lang}->@* ] : (),
-    defined $fil->{olang}       ? () : (), # TODO: This isn't supported (yet? it's more like a VN filter).
+    defined $fil->{olang}       ? [ 'vn', '=', [ 'or', map [ 'olang', '=', $_ ], $fil->{olang}->@* ] ]  : (),
     defined $fil->{resolution}  ? [ 'or', map [ 'resolution', '=', $_ eq 'unknown' ? [0,0] : $_ eq 'nonstandard' ? [0,1] : [split /x/] ], $fil->{resolution}->@* ] : (),
     defined $fil->{plat}        ? [ 'or', map [ 'platform', '=', $_ eq 'unk' ? '' : $_ ], $fil->{plat}->@* ] : (),
     defined $fil->{prod_inc}    ? [ 'or', map [ 'producer-id', '=', $_ ], $fil->{prod_inc}->@* ] : (),

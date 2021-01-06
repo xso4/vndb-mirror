@@ -92,6 +92,7 @@ loadQuery : Data -> GApi.ApiAdvSearchQuery -> (QType, Field, Data)
 loadQuery odat arg =
   let dat = { objid        = 0
             , level        = 0
+            , parentTypes  = Set.empty
             , uid          = odat.uid
             , labels       = odat.labels
             , defaultSpoil = odat.defaultSpoil
@@ -120,6 +121,7 @@ init : Recv -> Model
 init arg =
   let dat = { objid        = 0
             , level        = 0
+            , parentTypes  = Set.empty
             , uid          = arg.uid
             , labels       = (0, "Unlabeled") :: List.map (\e -> (e.id, e.label)) arg.labels
             , defaultSpoil = arg.defaultSpoil

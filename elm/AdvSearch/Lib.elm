@@ -6,6 +6,7 @@ import Html
 import Html.Attributes
 import Lib.Html
 import Dict
+import Set
 import Gen.Api as GApi
 
 -- Generic dynamically typed representation of a query.
@@ -171,6 +172,7 @@ inputOp onlyEq val msg =
 type alias Data =
   { objid        : Int -- Incremental integer for global identifiers
   , level        : Int -- Nesting level of the field being processed
+  , parentTypes  : Set.Set String -- Only used for 'view' functions: query types that the current field is a subquery of
   , uid          : Maybe Int
   , labels       : List (Int, String)
   , defaultSpoil : Int

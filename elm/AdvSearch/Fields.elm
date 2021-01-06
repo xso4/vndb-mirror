@@ -3,6 +3,7 @@ module AdvSearch.Fields exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Array
+import Set
 import Lib.Util exposing (..)
 import Lib.Html exposing (..)
 import Lib.DropDown as DD
@@ -104,6 +105,7 @@ nestToQuery dat model =
       (V,  C) -> wrap (QQuery 51 op)
       (V,  S) -> wrap (QQuery 52 op)
       (C,  S) -> wrap (QQuery 52 op)
+      (R,  V) -> wrap (QQuery 53 op)
       _       -> wrap identity
 
 
@@ -127,6 +129,7 @@ nestFromQuery ptype qtype dat q =
        (V, C, QQuery 51 op r) -> initSub op r
        (V, S, QQuery 52 op r) -> initSub op r
        (C, S, QQuery 52 op r) -> initSub op r
+       (R, V, QQuery 53 op r) -> initSub op r
        (_, _, QAnd l) -> if ptype == qtype then Just (init True  l) else Nothing
        (_, _, QOr  l) -> if ptype == qtype then Just (init False l) else Nothing
        _ -> Nothing
@@ -140,8 +143,13 @@ nestView dat dd model =
        FMNest _ -> True
        _ -> False
     hasNest = List.any isNest model.fields
+    filterDat =
+      { dat
+      | level = if model.ptype /= model.qtype then 1 else dat.level+1
+      , parentTypes = if model.ptype /= model.qtype then Set.insert (showQType model.ptype) dat.parentTypes else dat.parentTypes
+      }
     filters = List.indexedMap (\i f ->
-        Html.map (FSNest << NField i) <| fieldView { dat | level = if model.ptype /= model.qtype then 1 else dat.level+1 } f
+        Html.map (FSNest << NField i) <| fieldView filterDat f
       ) model.fields
 
     add =
@@ -153,15 +161,17 @@ nestView dat dd model =
             let opts = case model.qtype of
                         V -> [ V, R, C, S ]
                         C -> [ C, S ]
-                        R -> []
+                        R -> [ R, V ]
                         S -> []
+                fopts = List.filter (\t -> (not (Set.member (showQType t) filterDat.parentTypes))) opts
                 f t = case t of
                        V -> "VN"
                        R -> "Release"
                        C -> "Character"
                        S -> if model.qtype == C then "Seiyuu" else "Staff"
-            in List.map (\t -> if t == model.addtype then b [] [ text (f t) ] else a [ href "#", onClickD (FSNest <| NAddType t) ] [ text (f t) ]) opts
+            in List.map (\t -> if t == model.addtype then b [] [ text (f t) ] else a [ href "#", onClickD (FSNest <| NAddType t) ] [ text (f t) ]) fopts
           ]
+          -- TODO: "Staff"/"Seiyuu" subquery filters should not be visible when S is in parentTypes
         , let lst = Array.toIndexedList fields |> List.filter (\(_,f) -> f.qtype == model.addtype && f.title /= "")
           in ul (if List.length lst > 6 then [ style "columns" "2" ] else []) <|
               List.map (\(n,f) ->
@@ -185,6 +195,7 @@ nestView dat dd model =
             case (model.ptype, model.qtype) of
               (_, C) -> ("Has a character that matches these filters", "Does not have a character that matches these filters")
               (_, R) -> ("Has a release that matches these filters", "Does not have a release that matches these filters")
+              (_, V) -> ("Has a visual novel that matches these filters", "Does not have a visual novel that matches these filters")
               (V, S) -> ("Has staff that matches these filters", "Does not have staff that matches these filters")
               (C, S) -> ("Has a voice actor that matches these filters", "Does not have a voice actor that matches these filters")
               _ -> ("","")
@@ -197,6 +208,7 @@ nestView dat dd model =
       case (model.ptype, model.qtype) of
         (_, C) -> "Char"
         (_, R) -> "Rel"
+        (_, V) -> "VN"
         (V, S) -> "Staff"
         (C, S) -> "Seiyuu"
         _ -> ""
@@ -407,6 +419,7 @@ fields =
   , f R "Ero animation "     0  FMAniEro      AS.init                 (AS.animatedFromQuery False)
   , f R "Story animation"    0  FMAniStory    AS.init                 (AS.animatedFromQuery True)
   , f R "Engine"             0  FMEngine      AEng.init               AEng.fromQuery
+  , f R ""                   0  FMNest        (nestInit True R V [])  (nestFromQuery R V) -- VN subtype
 
   , f C "Role"               1  FMRole        AS.init                 AS.roleFromQuery
   , f C "Age"                0  FMAge         AR.ageInit              AR.ageFromQuery
