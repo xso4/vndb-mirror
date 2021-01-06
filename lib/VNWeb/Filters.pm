@@ -119,6 +119,18 @@ sub filter_vn_compat {
 }
 
 
+# Resolutions were passed as integers into an array index before 6bd0b0cd1f3892253d881f71533940f0cf07c13d.
+# New resolutions have been added to this array in the past, so some older filters may reference the wrong resolution.
+my @OLDRES = (qw/unknown nonstandard 640x480 800x600 1024x768 1280x960 1600x1200 640x400 960x600 1024x576 1024x600 1024x640 1280x720 1280x800 1366x768 1600x900 1920x1080/);
+
+sub filter_release_compat {
+    my($fil) = @_;
+    my $mod = 0;
+    $fil->{resolution} &&= [ map /^(?:0|[1-9][0-9]*)$/ && $_ <= $#OLDRES ? do { $mod++; $OLDRES[$_] } : $_, $fil->{resolution}->@* ];
+    $mod;
+}
+
+
 # Throws error on failure.
 sub filter_parse {
     my($type, $str) = @_;
@@ -128,6 +140,7 @@ sub filter_parse {
     die "Invalid filter data: $str\n" if !$data;
     my $f = $s->validate($data)->data;
     filter_vn_compat $f if $type eq 'v';
+    filter_release_compat $f if $type eq 'r';
     $f
 }
 
@@ -207,14 +220,14 @@ sub filter_vn_adv {
     defined $fil->{lang}        ? [ 'or', map [ 'lang',     '=', $_ ], $fil->{lang}->@* ] : (),
     defined $fil->{olang}       ? [ 'or', map [ 'olang',    '=', $_ ], $fil->{olang}->@* ] : (),
     defined $fil->{plat}        ? [ 'or', map [ 'platform', '=', $_ ], $fil->{plat}->@* ] : (),
-    defined $fil->{staff_inc}   ? [ 'staff', '=',  [ 'or', map [ 'id', '=', $_ ], $fil->{staff_inc} ] ] : (),
-    defined $fil->{staff_exc}   ? [ 'staff', '!=', [ 'or', map [ 'id', '=', $_ ], $fil->{staff_exc} ] ] : (),
+    defined $fil->{staff_inc}   ? [ 'staff', '=',  [ 'or', map [ 'id', '=', $_ ], $fil->{staff_inc}->@* ] ] : (),
+    defined $fil->{staff_exc}   ? [ 'staff', '!=', [ 'or', map [ 'id', '=', $_ ], $fil->{staff_exc}->@* ] ] : (),
     auth ? (
-        defined $fil->{ul_notblack}   ? [ 'label', '!=', 6 ] : (),
-        defined $fil->{ul_onwish}     ? [ 'label', $fil->{ul_onwish} ? '=' : '!=', 5 ] : (),
-        defined $fil->{ul_voted}      ? [ 'label', $fil->{ul_voted}  ? '=' : '!=', 7 ] : (),
+        defined $fil->{ul_notblack}   ? [ 'label', '!=', [ auth->uid, 6 ] ] : (),
+        defined $fil->{ul_onwish}     ? [ 'label', $fil->{ul_onwish} ? '=' : '!=', [ auth->uid, 5 ] ] : (),
+        defined $fil->{ul_voted}      ? [ 'label', $fil->{ul_voted}  ? '=' : '!=', [ auth->uid, 7 ] ] : (),
         # XXX: "Not on list" can't be represented in the same way with an AdvSearch query, so it's instead taken to mean "not assigned any of the built-in labels"
-        defined $fil->{ul_onlist}     ? [$fil->{ul_onlist} ? ('or', [ 'label', '=', 0 ], [ 'label', '!=', 0 ]) : ('and', map [ 'label', '!=', $_ ], 1..7)] : (),
+        defined $fil->{ul_onlist}     ? [$fil->{ul_onlist} ? ('or', [ 'label', '=', [ auth->uid, 0 ] ], [ 'label', '!=', [ auth->uid, 0 ] ]) : ('and', map [ 'label', '!=', [ auth->uid, $_ ] ], 1..7)] : (),
     ) : ()
     ]
 }
@@ -231,18 +244,18 @@ sub filter_release_adv {
     defined $fil->{date_before} ? [ 'released', '<=', $fil->{date_before} ] : (),
     defined $fil->{date_after}  ? [ 'released', '>=', $fil->{date_after}  ] : (),
     defined $fil->{released}    ? [ 'released', $fil->{released} ? '<=' : '>', 1 ] : (),
-    defined $fil->{minage}      ? [ 'or', map [ 'minage', '=', $_ ], $fil->{minage}->@* ] : (),
+    defined $fil->{minage}      ? [ 'or', map [ 'minage', '=', $_ == -1 ? undef : $_ ], $fil->{minage}->@* ] : (),
     defined $fil->{lang}        ? [ 'or', map [ 'lang', '=', $_ ], $fil->{lang}->@* ] : (),
     defined $fil->{olang}       ? () : (), # TODO: This isn't supported (yet? it's more like a VN filter).
     defined $fil->{resolution}  ? [ 'or', map [ 'resolution', '=', $_ eq 'unknown' ? [0,0] : $_ eq 'nonstandard' ? [0,1] : [split /x/] ], $fil->{resolution}->@* ] : (),
     defined $fil->{plat}        ? [ 'or', map [ 'platform', '=', $_ eq 'unk' ? '' : $_ ], $fil->{plat}->@* ] : (),
-    defined $fil->{prod_inc}    ? [ 'or', map [ 'producer', '=', $_ ], $fil->{prod_inc}->@* ] : (),
-    defined $fil->{prod_exc}    ? [ 'and', map [ 'producer', '!=', $_ ], $fil->{prod_exc}->@* ] : (),
+    defined $fil->{prod_inc}    ? [ 'or', map [ 'producer-id', '=', $_ ], $fil->{prod_inc}->@* ] : (),
+    defined $fil->{prod_exc}    ? [ 'and', map [ 'producer-id', '!=', $_ ], $fil->{prod_exc}->@* ] : (),
     defined $fil->{med}         ? [ 'or', map [ 'medium', '=', $_ eq 'unk' ? '' : $_ ], $fil->{med}->@* ] : (),
     defined $fil->{voiced}      ? [ 'or', map [ 'voiced', '=', $_ ], $fil->{voiced}->@* ] : (),
     defined $fil->{ani_story}   ? [ 'or', map [ 'animation-story', '=', $_ ], $fil->{ani_story}->@* ] : (),
     defined $fil->{ani_ero}     ? [ 'or', map [ 'animation-ero',   '=', $_ ], $fil->{ani_ero}->@* ]  : (),
-    defined $fil->{engine}      ? [ 'or', map [ 'engine', '=', $_ ], $fil->{engine}->@* ] : (),
+    defined $fil->{engine}      ? [ 'engine', '=', $fil->{engine} ] : (),
     ]
 }
 

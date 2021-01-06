@@ -18,6 +18,7 @@ use TUWF;
 use VNWeb::Auth;
 use VNWeb::DB;
 use VNWeb::Validation;
+use VNWeb::HTML ();
 use VNDB::Types;
 
 
