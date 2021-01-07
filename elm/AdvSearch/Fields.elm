@@ -32,7 +32,7 @@ type alias NestModel =
   , and     : Bool
   , andDd   : DD.Config FieldMsg
   , addDd   : DD.Config FieldMsg
-  , addtype : QType
+  , addtype : List QType
   , neg     : Bool -- only if ptype /= qtype
   }
 
@@ -42,7 +42,7 @@ type NestMsg
   | NAnd Bool Bool
   | NAddToggle Bool
   | NAdd Int
-  | NAddType QType
+  | NAddType (List QType)
   | NField Int FieldMsg
   | NNeg Bool Bool
 
@@ -56,7 +56,7 @@ nestInit and ptype qtype list dat =
     , and     = and
     , andDd   = DD.init ("advsearch_field"++String.fromInt (dat.objid+0)) (FSNest << NAndToggle)
     , addDd   = DD.init ("advsearch_field"++String.fromInt (dat.objid+1)) (FSNest << NAddToggle)
-    , addtype = qtype
+    , addtype = [qtype]
     , neg     = False
     }
   )
@@ -65,16 +65,21 @@ nestInit and ptype qtype list dat =
 nestUpdate : Data -> NestMsg -> NestModel -> (Data, NestModel, Cmd NestMsg)
 nestUpdate dat msg model =
   case msg of
-    NAndToggle b -> (dat, { model | andDd = DD.toggle model.andDd b, addtype = model.qtype }, Cmd.none)
+    NAndToggle b -> (dat, { model | andDd = DD.toggle model.andDd b, addtype = [model.qtype] }, Cmd.none)
     NAnd b _ -> (dat, { model | and = b, andDd = DD.toggle model.andDd False }, Cmd.none)
-    NAddToggle b -> (dat, { model | addDd = DD.toggle model.addDd b }, Cmd.none)
+    NAddToggle b -> (dat, { model | addDd = DD.toggle model.addDd b, addtype = [model.qtype] }, Cmd.none)
     NAdd n ->
-      let (ndat,f) = fieldInit n dat
-          (ndat2,f2) =
-            if model.qtype == model.addtype then (ndat, f) else
-            let (nd,subm) = nestInit True model.qtype model.addtype [f] ndat
-            in fieldCreate -1 (nd, FMNest subm)
-      in (ndat2, { model | addDd = DD.toggle model.addDd False, addtype = model.qtype, fields = model.fields ++ [f2] }, Cmd.none)
+      let addPar lst (ndat,f) =
+            case lst of
+              (a::b::xs) ->
+                -- Don't add the child field if it's an And/Or, the parent field covers that already.
+                let nf = case f of
+                          (_,_,FMNest m) -> if m.ptype == m.qtype then [] else [f]
+                          _ -> [f]
+                in addPar (b::xs) (nestInit True b a nf ndat |> Tuple.mapSecond FMNest |> fieldCreate -1)
+              _ -> (ndat,f)
+          (ndat2,f2) = addPar model.addtype (fieldInit n dat)
+      in (ndat2, { model | addDd = DD.toggle model.addDd False, addtype = [model.qtype], fields = model.fields ++ [f2] }, Cmd.none)
     NAddType t -> (dat, { model | addtype = t }, Cmd.none)
     NField n FDel -> (dat, { model | fields = delidx n model.fields }, Cmd.none)
     NField n FMoveSub ->
@@ -153,30 +158,35 @@ nestView dat dd model =
       ) model.fields
 
     add =
+      let parents = Set.union filterDat.parentTypes <| Set.fromList <| List.map showQType <| List.drop 1 model.addtype
+          lst = Array.toIndexedList fields |> List.filter (\(_,f) ->
+                     Just f.ptype == List.head model.addtype
+                  && f.title /= ""
+                  && (dat.uid /= Nothing || f.title /= "My Labels")
+                  && not (Set.member (showQType f.qtype) parents))
+          showT par t =
+            case (par,t) of
+              (_,V) -> "VN"
+              (_,R) -> "Release"
+              (_,C) -> "Character"
+              (C,S) -> "Seiyuu"
+              (_,S) -> "Staff"
+          breads pre par l =
+            case l of
+              [] -> []
+              [x] -> [ b [] [ text (showT par x) ] ]
+              (x::xs) -> a [ href "#", onClickD (FSNest (NAddType (x::pre))) ] [ text (showT par x) ] :: text " » " :: breads (x::pre) x xs
+      in
       div [ class "elm_dd_input elm_dd_noarrow short" ]
       [ DD.view model.addDd Api.Normal (text "+") <| \() ->
         [ div [ class "advheader", style "min-width" "200px" ]
           [ h3 [] [ text "Add filter" ]
-          , div [ class "opts" ] <|
-            let opts = case model.qtype of
-                        V -> [ V, R, C, S ]
-                        C -> [ C, S ]
-                        R -> [ R, V ]
-                        S -> []
-                fopts = List.filter (\t -> (not (Set.member (showQType t) filterDat.parentTypes))) opts
-                f t = case t of
-                       V -> "VN"
-                       R -> "Release"
-                       C -> "Character"
-                       S -> if model.qtype == C then "Seiyuu" else "Staff"
-            in List.map (\t -> if t == model.addtype then b [] [ text (f t) ] else a [ href "#", onClickD (FSNest <| NAddType t) ] [ text (f t) ]) fopts
+          , if List.length model.addtype <= 1 then text "" else
+            div [] <| breads [] model.qtype (List.reverse model.addtype)
           ]
-          -- TODO: "Staff"/"Seiyuu" subquery filters should not be visible when S is in parentTypes
-        , let lst = Array.toIndexedList fields |> List.filter (\(_,f) -> f.qtype == model.addtype && f.title /= "")
-          in ul (if List.length lst > 6 then [ style "columns" "2" ] else []) <|
+        , ul (if List.length lst > 6 then [ style "columns" "2" ] else []) <|
               List.map (\(n,f) ->
-                if f.qtype /= model.addtype || f.title == "" || (dat.uid == Nothing && f.title == "My Labels") then text ""
-                else li [] [ a [ href "#", onClickD (FSNest <| NAdd n)] [ text f.title ] ]
+                li [] [ a [ href "#", onClickD (FSNest <| if f.qtype /= f.ptype then NAddType (f.qtype :: model.addtype) else NAdd n)] [ text f.title ] ]
               ) lst
         ]
       ]
@@ -344,6 +354,7 @@ type FieldMsg
 
 type alias FieldDesc =
   { qtype     : QType
+  , ptype     : QType
   , title     : String                     -- How it's listed in the field selection menu.
   , quick     : Int                        -- Whether it should be included in the default set of fields (>0) ("quick mode") and in which order.
   , init      : Data -> (Data, FieldModel) -- How to initialize an empty field
@@ -356,6 +367,7 @@ fields : Array.Array FieldDesc
 fields =
   let f qtype title quick wrap init fromq =
         { qtype     = qtype
+        , ptype     = qtype
         , title     = title
         , quick     = quick
         , init      = \d -> (Tuple.mapSecond wrap (init d))
@@ -364,20 +376,26 @@ fields =
       -- List type queries are fully defined here for convenience
       l qtype title quick lst =
         f qtype title quick FMList (\d -> (d, { val = 0, lst = lst }))
-          (\d q -> List.indexedMap (\n (k,v) -> (n,k,v)) lst |> List.filter (\(n,k,_) -> k == q) |> List.head |> Maybe.map (\(n,_,_) -> (d, { val = n, lst = lst })))
-
-      staffInit t dat = let (ndat, n) = fieldCreate -1 (Tuple.mapSecond FMStaff (AT.init dat)) in nestInit True t S [n] ndat
+          (\d q -> List.indexedMap (\i (k,v) -> (i,k,v)) lst |> List.filter (\(i,k,_) -> k == q) |> List.head |> Maybe.map (\(i,_,_) -> (d, { val = i, lst = lst })))
+      -- Nested queries
+      n ptype qtype title =
+        { qtype     = qtype
+        , ptype     = ptype
+        , title     = title
+        , quick     = 0
+        , init      = nestInit True ptype qtype [] >> Tuple.mapSecond FMNest
+        , fromQuery = \d -> nestFromQuery ptype qtype d >> Maybe.map (Tuple.mapSecond FMNest)
+        }
   in Array.fromList
   -- IMPORTANT: This list is processed in reverse order when reading a Query
   -- into Fields, so "catch all" fields must be listed first. In particular,
   -- FMNest with qtype == ptype go before everything else.
 
   --  T TITLE            QUICK  WRAP          INIT                    FROM_QUERY
-  [ f V ""                   0  FMNest        (nestInit True V V [])  (nestFromQuery V V) -- and/or's
-  , f R ""                   0  FMNest        (nestInit True V R [])  (nestFromQuery R R)
-  , f C ""                   0  FMNest        (nestInit True C C [])  (nestFromQuery C C)
-  , f S ""                   0  FMNest        (nestInit True S S [])  (nestFromQuery S S)
-
+  [ n V V "And/Or"
+  , n V R "Release »"
+  , n V S "Staff »"
+  , n V C "Character »"
   , f V "Language"           1  FMLang        AS.init                 AS.langFromQuery
   , f V "Original language"  2  FMOLang       AS.init                 AS.olangFromQuery
   , f V "Platform"           3  FMVPlatform   AS.init                 AS.platformFromQuery
@@ -388,7 +406,6 @@ fields =
   , f V "My Labels"          0  FMLabel       AS.init                 AS.labelFromQuery
   , f V "Length"             0  FMLength      AS.init                 AS.lengthFromQuery
   , f V "Developer"          0  FMDeveloper   AP.init                 (AP.fromQuery False)
-  , f V "Staff"              0  FMNest        (staffInit V)           (nestFromQuery V S)
   , f V "Release date"       0  FMRDate       AD.init                 AD.fromQuery
   , f V "Popularity"         0  FMPopularity  AR.popularityInit       AR.popularityFromQuery
   , f V "Rating"             0  FMRating      AR.ratingInit           AR.ratingFromQuery
@@ -398,9 +415,9 @@ fields =
   , l V "Has anime"          0 [(QInt 62 Eq 1, "Has anime relation"), (QInt 62 Ne 1, "No anime relation")]
   , l V "Has screenshot"     0 [(QInt 63 Eq 1, "Has screenshot(s)"),  (QInt 63 Ne 1, "No screenshot(s)")]
   , l V "Has review"         0 [(QInt 64 Eq 1, "Has review(s)"),      (QInt 64 Ne 1, "No review(s)")]
-  , f V ""                   0  FMNest        (nestInit True V R [])  (nestFromQuery V R) -- release subtype
-  , f V ""                   0  FMNest        (nestInit True V C [])  (nestFromQuery V C) -- character subtype
 
+  , n R R "And/Or"
+  , n R V "Visual Novel »"
   , f R "Language"           1  FMLang        AS.init                 AS.langFromQuery
   , f R "Platform"           2  FMRPlatform   AS.init                 AS.platformFromQuery
   , f R "Type"               3  FMRType       AS.init                 AS.rtypeFromQuery
@@ -416,11 +433,12 @@ fields =
   , f R "Age rating"         0  FMMinAge      AR.minageInit           AR.minageFromQuery
   , f R "Medium"             0  FMMedium      AS.init                 AS.mediumFromQuery
   , f R "Voiced"             0  FMVoiced      AS.init                 AS.voicedFromQuery
-  , f R "Ero animation "     0  FMAniEro      AS.init                 (AS.animatedFromQuery False)
+  , f R "Ero animation"      0  FMAniEro      AS.init                 (AS.animatedFromQuery False)
   , f R "Story animation"    0  FMAniStory    AS.init                 (AS.animatedFromQuery True)
   , f R "Engine"             0  FMEngine      AEng.init               AEng.fromQuery
-  , f R ""                   0  FMNest        (nestInit True R V [])  (nestFromQuery R V) -- VN subtype
 
+  , n C C "And/Or"
+  , n C S "Seiyuu »"
   , f C "Role"               1  FMRole        AS.init                 AS.roleFromQuery
   , f C "Age"                0  FMAge         AR.ageInit              AR.ageFromQuery
   , f C "Sex"                2  FMSex         (AS.sexInit False)      (AS.sexFromQuery False)
@@ -436,8 +454,8 @@ fields =
   , f C "Waist"              0  FMWaist       AR.waistInit            AR.waistFromQuery
   , f C "Hips"               0  FMHips        AR.hipsInit             AR.hipsFromQuery
   , f C "Cup size"           0  FMCup         AR.cupInit              AR.cupFromQuery
-  , f C "Seiyuu"             0  FMNest        (staffInit C)           (nestFromQuery C S) -- seiyuu subtype
 
+  , n S S "And/Or"
   , f S "Name"               0  FMStaff       AT.init                 AT.fromQuery
   , f S "Language"           1  FMLang        AS.init                 AS.langFromQuery
   , f S "Gender"             2  FMGender      AS.init                 AS.genderFromQuery
@@ -652,7 +670,7 @@ fieldFromQuery : QType -> Data -> Query -> (Data,Field)
 fieldFromQuery qtype dat q =
   let (field, _) =
         Array.foldr (\f (af,n) ->
-          case (if af /= Nothing || f.qtype /= qtype then Nothing else f.fromQuery dat q) of
+          case (if af /= Nothing || f.ptype /= qtype then Nothing else f.fromQuery dat q) of
             Nothing -> (af,n-1)
             Just ret -> (Just (fieldCreate n ret), 0)
         ) (Nothing,Array.length fields-1) fields
