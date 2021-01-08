@@ -1039,7 +1039,7 @@ my %GET_QUOTE = (
     $_[0]{id}*=1;
   },
   sortdef => 'random',
-  sorts   => { id => 'q.vid %s', random => 'RANDOM()' },
+  sorts   => { id => 'q.vid %s', random => 'RANDOM() %s' },
   flags   => { basic => {} },
   filters => {
     id => [
