@@ -73,7 +73,7 @@ sub enrich_userlist {
 }
 
 
-TUWF::get qr{/experimental/v(?:/(?<char>all|[a-z0]))?}, sub {
+TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
     my $opt = tuwf->validate(get =>
         q => { onerror => undef },
         sq=> { onerror => undef },
@@ -146,12 +146,7 @@ TUWF::get qr{/experimental/v(?:/(?<char>all|[a-z0]))?}, sub {
     framework_ title => 'Browse visual novels', sub {
         div_ class => 'mainbox', sub {
             h1_ 'Browse visual novels';
-            div_ class => 'warning', sub {
-                h2_ 'EXPERIMENTAL';
-                p_ "This is Yorhel's playground. Lots of functionality is missing, lots of stuff is or will be broken. Here be dragons. Etc.";
-            };
-            br_;
-            form_ action => '/experimental/v', method => 'get', sub {
+            form_ action => '/v', method => 'get', sub {
                 searchbox_ v => $opt->{q}//'';
                 p_ class => 'browseopts', sub {
                     button_ type => 'submit', name => 'ch', value => ($_//''), ($_//'') eq ($opt->{ch}//'') ? (class => 'optselected') : (), !defined $_ ? 'ALL' : $_ ? uc $_ : '#'

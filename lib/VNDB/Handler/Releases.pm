@@ -9,7 +9,7 @@ use VNDB::Types;
 
 
 TUWF::register(
-  qr{r}                            => \&browse,
+  qr{old/r}                            => \&browse,
   qr{r/engines}                    => \&engines,
   qr{xml/engines.xml}              => \&enginexml,
 );
@@ -39,7 +39,7 @@ sub browse {
 
   $self->htmlHeader(title => 'Browse releases');
 
-  form method => 'get', action => '/r', 'accept-charset' => 'UTF-8';
+  form method => 'get', action => '/old/r', 'accept-charset' => 'UTF-8';
   div class => 'mainbox';
    h1 'Browse releases';
    $self->htmlSearchBox('r', $f->{q});
@@ -52,7 +52,7 @@ sub browse {
   end;
   end 'form';
 
-  my $uri = sprintf '/r?q=%s;fil=%s', uri_escape($f->{q}), $f->{fil};
+  my $uri = sprintf '/old/r?q=%s;fil=%s', uri_escape($f->{q}), $f->{fil};
   $self->htmlBrowse(
     class    => 'relbrowse',
     items    => $list,
@@ -153,7 +153,8 @@ sub engines {
    ul;
     for my $e (@$lst) {
       li;
-       a href => '/r?fil='.fil_serialize({engine => $e->{engine}}), $e->{engine};
+       # TODO: link to new advsearch listing
+       a href => '/old/r?fil='.fil_serialize({engine => $e->{engine}}), $e->{engine};
        b class => 'grayedout', " $e->{cnt}";
       end;
     }

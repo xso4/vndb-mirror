@@ -10,7 +10,7 @@ use VNDB::Types;
 
 
 TUWF::register(
-  qr{g([1-9]\d*)},          \&tagpage,
+  qr{old/g([1-9]\d*)},          \&tagpage,
   qr{g/debug},              \&fulltree,
   qr{xml/tags\.xml},        \&tagxml,
 );
@@ -106,15 +106,15 @@ sub tagpage {
   childtags($self, 'Child tags', 'g', $t) if @{$t->{childs}};
 
   if($t->{searchable} && $t->{state} == 2) {
-    form action => "/g$t->{id}", 'accept-charset' => 'UTF-8', method => 'get';
+    form action => "/old/g$t->{id}", 'accept-charset' => 'UTF-8', method => 'get';
     div class => 'mainbox';
      a class => 'addnew', href => "/g/links?t=$tag", 'Recently tagged';
      h1 'Visual novels';
 
      p class => 'browseopts';
-      a href => "/g$t->{id}?fil=$f->{fil};s=$f->{s};o=$f->{o};m=0", $f->{m} == 0 ? (class => 'optselected') : (), 'Hide spoilers';
-      a href => "/g$t->{id}?fil=$f->{fil};s=$f->{s};o=$f->{o};m=1", $f->{m} == 1 ? (class => 'optselected') : (), 'Show minor spoilers';
-      a href => "/g$t->{id}?fil=$f->{fil};s=$f->{s};o=$f->{o};m=2", $f->{m} == 2 ? (class => 'optselected') : (), 'Spoil me!';
+      a href => "/old/g$t->{id}?fil=$f->{fil};s=$f->{s};o=$f->{o};m=0", $f->{m} == 0 ? (class => 'optselected') : (), 'Hide spoilers';
+      a href => "/old/g$t->{id}?fil=$f->{fil};s=$f->{s};o=$f->{o};m=1", $f->{m} == 1 ? (class => 'optselected') : (), 'Show minor spoilers';
+      a href => "/old/g$t->{id}?fil=$f->{fil};s=$f->{s};o=$f->{o};m=2", $f->{m} == 2 ? (class => 'optselected') : (), 'Spoil me!';
      end;
 
      p class => 'filselect';
@@ -133,7 +133,7 @@ sub tagpage {
      }
     end 'div';
     end 'form';
-    $self->htmlBrowseVN($list, $f, $np, "/g$t->{id}?fil=$f->{fil};m=$f->{m}", 1) if @$list;
+    $self->htmlBrowseVN($list, $f, $np, "/old/g$t->{id}?fil=$f->{fil};m=$f->{m}", 1) if @$list;
   }
 
   $self->htmlFooter(pref_code => 1);

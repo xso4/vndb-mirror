@@ -149,7 +149,7 @@ sub vns_ {
             a_ href => "/g/links?t=$t->{id}", 'Recently tagged';
         };
         h1_ 'Visual novels';
-        form_ action => "/experimental/g$t->{id}", method => 'get', sub {
+        form_ action => "/g$t->{id}", method => 'get', sub {
             p_ class => 'browseopts', sub {
                 button_ type => 'submit', name => 'm', value => 0, $opt->{m} == 0 ? (class => 'optselected') : (), 'Hide spoilers';
                 button_ type => 'submit', name => 'm', value => 1, $opt->{m} == 1 ? (class => 'optselected') : (), 'Show minor spoilers';
@@ -166,7 +166,7 @@ sub vns_ {
 }
 
 
-TUWF::get qr{/experimental/$RE{gid}}, sub {
+TUWF::get qr{/$RE{gid}}, sub {
     my $t = tuwf->dbRowi('SELECT id, name, description, state, c_items, cat, defaultspoil, searchable, applicable FROM tags WHERE id =', \tuwf->capture('id'));
     return tuwf->resNotFound if !$t->{id};
 

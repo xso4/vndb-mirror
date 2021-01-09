@@ -143,8 +143,7 @@ sub _infotable_ {
         tr_ sub {
             td_ 'Engine';
             td_ sub {
-                # TODO: Should not rely on legacy VNDB::* functions!
-                a_ href => '/r?fil='.VNDB::Util::Misc::fil_serialize({engine => $r->{engine}}), $r->{engine};
+                a_ href => '/r?f='.tuwf->compile({advsearch => 'r'})->validate(['engine', '=', $r->{engine}])->data->query_encode, $r->{engine};
             }
         } if length $r->{engine};
 

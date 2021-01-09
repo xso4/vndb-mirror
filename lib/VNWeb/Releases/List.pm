@@ -30,7 +30,7 @@ sub listing_ {
 }
 
 
-TUWF::get qr{/experimental/r}, sub {
+TUWF::get qr{/r}, sub {
     my $opt = tuwf->validate(get =>
         q => { onerror => undef },
         p => { upage => 1 },
@@ -84,12 +84,7 @@ TUWF::get qr{/experimental/r}, sub {
     framework_ title => 'Browse releases', sub {
         div_ class => 'mainbox', sub {
             h1_ 'Browse releases';
-            div_ class => 'warning', sub {
-                h2_ 'EXPERIMENTAL';
-                p_ "This is Yorhel's playground. Lots of functionality is missing, lots of stuff is or will be broken. Here be dragons. Etc.";
-            };
-            br_;
-            form_ action => '/experimental/r', method => 'get', sub {
+            form_ action => '/r', method => 'get', sub {
                 searchbox_ r => $opt->{q}//'';
                 input_ type => 'hidden', name => 'o', value => $opt->{o};
                 input_ type => 'hidden', name => 's', value => $opt->{s};

@@ -9,7 +9,7 @@ use VNDB::Types;
 
 
 TUWF::register(
-  qr{v/([a-z0]|all)}  => \&list,
+  qr{old/v/([a-z0]|all)}  => \&list,
 );
 
 
@@ -78,13 +78,13 @@ sub list {
   $self->htmlHeader(title => 'Browse visual novels', search => $f->{q});
 
   my $quri = uri_escape($f->{q});
-  form action => '/v/all', 'accept-charset' => 'UTF-8', method => 'get';
+  form action => '/old/v/all', 'accept-charset' => 'UTF-8', method => 'get';
 
   # url generator
   my $url = sub {
     my($char, $toggle) = @_;
 
-    return "/v/$char?q=$quri;fil=$f->{fil};rfil=$f->{rfil};cfil=$f->{cfil};s=$f->{s};o=$f->{o}" .
+    return "/old/v/$char?q=$quri;fil=$f->{fil};rfil=$f->{rfil};cfil=$f->{cfil};s=$f->{s};o=$f->{o}" .
            ($toggle ? ";$toggle=".($f->{$toggle}?0:1) : '');
   };
 
@@ -118,7 +118,7 @@ sub list {
   end;
   end 'form';
 
-  $self->htmlBrowseVN($list, $f, $np, "/v/$char?q=$quri;fil=$f->{fil};rfil=$f->{rfil};cfil=$f->{cfil}", $f->{fil} =~ /tag_inc-/);
+  $self->htmlBrowseVN($list, $f, $np, "/old/v/$char?q=$quri;fil=$f->{fil};rfil=$f->{rfil};cfil=$f->{cfil}", $f->{fil} =~ /tag_inc-/);
   $self->htmlFooter(pref_code => 1);
 }
 
