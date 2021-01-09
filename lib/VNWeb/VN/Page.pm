@@ -592,7 +592,7 @@ sub stats_ {
     my sub votestats_ {
         table_ class => 'votegraph', sub {
             thead_ sub { tr_ sub { td_ colspan => 2, 'Vote stats' } };
-            tfoot_ sub { tr_ sub { td_ colspan => 2, sprintf '%d vote%s total, average %.2f (%s)', $num, $num == 1 ? '' : 's', $sum/$num/10, fmtrating(ceil($sum/$num/10-1)||1) } };
+            tfoot_ sub { tr_ sub { td_ colspan => 2, sprintf '%d vote%s total, average %.2f (%s)', $num, $num == 1 ? '' : 's', $sum/$num/10, fmtrating(floor($sum/$num/10)||1) } };
             tr_ sub {
                 my $num = $_;
                 my $votes = [grep $num == $_->{idx}, @$stats]->[0]{votes} || 0;
