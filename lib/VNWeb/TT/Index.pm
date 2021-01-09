@@ -1,49 +1,7 @@
 package VNWeb::TT::Index;
 
 use VNWeb::Prelude;
-use VNWeb::TT::Lib 'enrich_group';
-
-
-sub tree_ {
-    my($type) = @_;
-    my $table = $type eq 'g' ? 'tag' : 'trait';
-    my $top = tuwf->dbAlli(
-        "SELECT id, name, c_items FROM ${table}s WHERE state = 1+1 AND NOT EXISTS(SELECT 1 FROM ${table}s_parents WHERE $table = id)
-          ORDER BY ", $type eq 'g' ? 'name' : '"order"'
-    );
-
-    enrich childs => id => parent => sub { sql
-        "SELECT tp.parent, t.id, t.name, t.c_items FROM ${table}s t JOIN ${table}s_parents tp ON tp.$table = t.id WHERE state = 1+1 AND tp.parent IN", $_, 'ORDER BY name'
-    }, $top;
-    $top = [ sort { $b->{childs}->@* <=> $a->{childs}->@* } @$top ] if $type eq 'g';
-
-    my sub lnk_ {
-        a_ href => "/$type$_[0]{id}", $_[0]{name};
-        b_ class => 'grayedout', " ($_[0]{c_items})" if $_[0]{c_items};
-    }
-    div_ class => 'mainbox', sub {
-        h1_ $type eq 'g' ? 'Tag tree' : 'Trait tree';
-        ul_ class => 'tagtree', sub {
-            li_ sub {
-                lnk_ $_;
-                my $sub = $_->{childs};
-                ul_ sub {
-                    li_ sub {
-                        txt_ '> ';
-                        lnk_ $_;
-                    } for grep $_, $sub->@[0 .. (@$sub > 6 ? 4 : 5)];
-                    li_ sub {
-                        my $num = @$sub-5;
-                        txt_ '> ';
-                        a_ href => "/$type$_->{id}", style => 'font-style: italic', sprintf '%d more %s%s', $num, $table, $num == 1 ? '' : 's';
-                    } if @$sub > 6;
-                } if @$sub;
-            } for @$top;
-        };
-        clearfloat_;
-        br_;
-    };
-}
+use VNWeb::TT::Lib 'enrich_group', 'tree_';
 
 
 sub recent_ {
