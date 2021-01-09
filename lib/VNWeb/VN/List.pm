@@ -113,10 +113,7 @@ TUWF::get qr{/experimental/v(?:/(?<char>all|[a-z0]))?}, sub {
         }
     }
 
-    if(auth && !$opt->{f}{query} && !defined tuwf->reqGet('f')) {
-        my $def = tuwf->dbVali('SELECT query FROM saved_queries WHERE qtype = \'v\' AND name = \'\' AND uid =', \auth->uid);
-        $opt->{f} = tuwf->compile({ advsearch => 'v' })->validate($def)->data if $def;
-    }
+    $opt->{f} = advsearch_default 'v' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
 
     my $where = sql_and
         'NOT v.hidden', $opt->{f}->sql_where(),

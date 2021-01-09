@@ -52,10 +52,7 @@ TUWF::get qr{/experimental/r}, sub {
         }
     }
 
-    if(auth && !$opt->{f}{query} && !defined tuwf->reqGet('f')) {
-        my $def = tuwf->dbVali('SELECT query FROM saved_queries WHERE qtype = \'r\' AND name = \'\' AND uid =', \auth->uid);
-        $opt->{f} = tuwf->compile({ advsearch => 'r' })->validate($def)->data if $def;
-    }
+    $opt->{f} = advsearch_default 'r' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
 
     my @search = map {
         my $l = '%'.sql_like($_).'%';

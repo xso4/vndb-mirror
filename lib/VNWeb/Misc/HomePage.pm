@@ -1,7 +1,7 @@
 package VNWeb::Misc::HomePage;
 
 use VNWeb::Prelude;
-use VNWeb::Filters;
+use VNWeb::AdvSearch;
 use VNWeb::Discussions::Lib 'enrich_boards';
 
 
@@ -10,13 +10,13 @@ sub screens_ {
     state $stats  ||= tuwf->dbRowi('SELECT count(*) as total, count(*) filter(where', $where, ') as subset from images i');
     state $sample ||= 100*min 1, (200 / $stats->{subset}) * ($stats->{total} / $stats->{subset});
 
-    my $filt = auth->pref('filter_vn') && eval { filter_parse v => auth->pref('filter_vn') };
-    my $lst = $filt ? tuwf->dbAlli(
+    my $filt = advsearch_default 'v';
+    my $lst = $filt->{query} ? tuwf->dbAlli(
         # Assumption: If we randomly select 30 matching VNs, there'll be at least 4 VNs with qualified screenshots
         # (As of Sep 2020, over half of the VNs in the database have screenshots, so that assumption usually works)
         'SELECT * FROM (
             SELECT DISTINCT ON (v.id) i.id, i.width, i,height, v.id AS vid, v.title
-              FROM (SELECT id, title FROM vn v WHERE NOT v.hidden AND ', filter_vn_query($filt), ' ORDER BY random() LIMIT', \30, ') v
+              FROM (SELECT id, title FROM vn v WHERE NOT v.hidden AND ', $filt->sql_where(), ' ORDER BY random() LIMIT', \30, ') v
               JOIN vn_screenshots vs ON v.id = vs.id
               JOIN images i ON i.id = vs.scr
              WHERE ', $where, '
@@ -161,23 +161,28 @@ sub recent_vn_posts_ {
 sub releases_ {
     my($released) = @_;
 
-    my $filt = auth->pref('filter_release') && eval { filter_parse r => auth->pref('filter_release') };
-    $filt = { $filt ? %$filt : (), date_before => undef, date_after => undef, released => $released?1:0 };
+    my $filt = advsearch_default 'r';
+
+    # Drop any top-level date filters
+    $filt->{query} = [ grep !(ref $_ eq 'ARRAY' && $_->[0] eq 'released'), $filt->{query}->@* ] if $filt->{query};
+    delete $filt->{query} if $filt->{query} && $filt->{query}[0] eq 'released';
+
+    # Add the release date as filter, we need to construct a filter for the header link anyway
+    $filt->{query} = [ 'and', [ released => $released ? '<=' : '>', 1 ], $filt->{query} || () ];
 
     # XXX This query is kinda slow, an index on releases.released would probably help.
     my $lst = tuwf->dbAlli('
         SELECT id, title, original, released
           FROM releases r
-         WHERE NOT hidden AND released', $released ? '<=' : '>', \strftime('%Y%m%d', gmtime), '
-           AND ', filter_release_query($filt), '
+         WHERE NOT hidden AND ', $filt->sql_where(), '
          ORDER BY released', $released ? 'DESC' : '', ', id LIMIT 10'
     );
     enrich_flatten plat => id => id => 'SELECT id, platform FROM releases_platforms WHERE id IN', $lst;
     enrich_flatten lang => id => id => 'SELECT id, lang     FROM releases_lang      WHERE id IN', $lst;
 
     h1_ sub {
-        a_ href => '/r?fil='.VNDB::Func::fil_serialize($filt).';o=a;s=released', 'Upcoming Releases' if !$released;
-        a_ href => '/r?fil='.VNDB::Func::fil_serialize($filt).';o=d;s=released', 'Just Released' if $released;
+        a_ href => '/r?f='.$filt->query_encode().';o=a;s=released', 'Upcoming Releases' if !$released;
+        a_ href => '/r?f='.$filt->query_encode().';o=d;s=released', 'Just Released' if $released;
     };
     ul_ sub {
         li_ sub {

@@ -117,10 +117,7 @@ sub vns_ {
         }
     }
 
-    if(auth && !$opt->{f}{query} && !defined tuwf->reqGet('f')) {
-        my $def = tuwf->dbVali('SELECT query FROM saved_queries WHERE qtype = \'v\' AND name = \'\' AND uid =', \auth->uid);
-        $opt->{f} = tuwf->compile({ advsearch => 'v' })->validate($def)->data if $def;
-    }
+    $opt->{f} = advsearch_default 'v' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
 
     my $where = sql 'tvi.tag =', \$t->{id}, 'AND NOT v.hidden AND tvi.spoiler <=', \$opt->{m}, 'AND', $opt->{f}->sql_where();
 

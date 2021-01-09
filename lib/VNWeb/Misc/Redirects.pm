@@ -1,7 +1,7 @@
 package VNWeb::Misc::Redirects;
 
 use VNWeb::Prelude;
-use VNWeb::Filters;
+use VNWeb::AdvSearch;
 
 
 # VNDB URLs don't have a trailing /, redirect if we get one.
@@ -28,11 +28,11 @@ TUWF::get qr{/v/rand}, sub {
     state $stats  ||= tuwf->dbRowi('SELECT COUNT(*) AS total, COUNT(*) FILTER(WHERE NOT hidden) AS subset FROM vn');
     state $sample ||= 100*min 1, (100 / $stats->{subset}) * ($stats->{total} / $stats->{subset});
 
-    my $filt = auth->pref('filter_vn') && eval { filter_parse v => auth->pref('filter_vn') };
+    my $filt = advsearch_default 'v';
     my $vn = tuwf->dbVali('
         SELECT id
-          FROM vn v', $filt ? '' : ('TABLESAMPLE SYSTEM (', \$sample, ')'), '
-         WHERE NOT hidden AND', filter_vn_query($filt||{}), '
+          FROM vn v', $filt->{query} ? '' : ('TABLESAMPLE SYSTEM (', \$sample, ')'), '
+         WHERE NOT hidden AND', $filt->sql_where(), '
          ORDER BY random() LIMIT 1'
     );
     return tuwf->resNotFound if !$vn;

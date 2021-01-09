@@ -20,6 +20,9 @@ use VNWeb::DB;
 use VNWeb::Validation;
 use VNWeb::HTML ();
 use VNDB::Types;
+use Exporter 'import';
+our @EXPORT = qw/advsearch_default/;
+
 
 
 # Search queries should be seen as some kind of low-level assembly for
@@ -737,6 +740,17 @@ sub query_encode {
     return '' if !$self->{query};
     $self->{query_encode} //= _enc_query $self->compact_json;
     $self->{query_encode};
+}
+
+
+# Returns the saved default query for the current user, or an empty query if none has been set.
+sub advsearch_default {
+    my($t) = @_;
+    if(auth) {
+        my $def = tuwf->dbVali('SELECT query FROM saved_queries WHERE qtype =', \$t, 'AND name = \'\' AND uid =', \auth->uid);
+        return tuwf->compile({ advsearch => $t })->validate($def)->data if $def;
+    }
+    bless {type=>$t}, __PACKAGE__;
 }
 
 1;
