@@ -97,7 +97,7 @@ sub vns_ {
 
     my $opt = tuwf->validate(get =>
         p => { upage => 1 },
-        f => { advsearch => 'v' },
+        f => { advsearch_err => 'v' },
         s => { onerror => 'tagscore', enum => [qw/tagscore title rel pop rating/] },
         o => { onerror => 'd', enum => ['a','d'] },
         m => { onerror => [auth->pref('spoilers')||0], type => 'array', scalar => 1, minlength => 1, values => { enum => [0..2] } },

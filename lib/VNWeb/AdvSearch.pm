@@ -500,8 +500,8 @@ sub _validate {
 }
 
 
-# 'advsearch' validation, accepts either a compact encoded string, JSON string or an already decoded array.
-TUWF::set('custom_validations')->{advsearch} = sub { my($t) = @_; +{ required => 0, type => 'any', default => bless({type=>$t}, __PACKAGE__), func => sub {
+sub _validate_adv {
+    my $t = shift;
     return { msg => 'Invalid JSON', error => $@ =~ s{[\s\r\n]* at /[^ ]+ line.*$}{}smr } if !ref $_[0] && $_[0] =~ /^\[/ && !eval { $_[0] = JSON::XS->new->decode($_[0]); 1 };
     if(!ref $_[0]) {
         my($v,$i) = ($_[0],0);
@@ -511,8 +511,25 @@ TUWF::set('custom_validations')->{advsearch} = sub { my($t) = @_; +{ required =>
     my $v = _validate($t, @_);
     $_[0] = bless { type => $t, query => $_[0] }, __PACKAGE__ if $v;
     $v
-} } };
+}
 
+
+# 'advsearch' validation, accepts either a compact encoded string, JSON string or an already decoded array.
+TUWF::set('custom_validations')->{advsearch} = sub { my($t) = @_; +{ required => 0, type => 'any', default => bless({type=>$t}, __PACKAGE__), func => sub { _validate_adv $t, @_ } } };
+
+# 'advsearch_err' validation; Same as the 'advsearch' validation except it never throws an error.
+# If the validation failed, this will log a warning and return an empty query that will cause elm_() to display a warning message.
+TUWF::set('custom_validations')->{advsearch_err} = sub {
+    my ($t) = @_;
+    +{ required => 0, type => 'any', default => bless({type=>$t}, __PACKAGE__), func => sub {
+        my $r = _validate_adv $t, @_;
+        if(!$r || ref $r eq 'HASH') {
+            warn "advsearch validation failed\n";
+            $_[0] = bless {type=>$t,error=>1}, __PACKAGE__;
+        }
+        1
+    } }
+};
 
 
 # "Canonicalize"/simplify a query (in Normalized JSON form):
@@ -723,6 +740,7 @@ sub elm_ {
         labels       => { aoh => { id => { uint => 1 }, label => {} } },
         defaultSpoil => { uint => 1 },
         saved        => { aoh => { name => {}, query => {} } },
+        error        => { anybool => 1 },
         query        => $VNWeb::Elm::apis{AdvSearchQuery}[0],
     }});
     VNWeb::HTML::elm_ 'AdvSearch.Main', $schema, {
@@ -730,6 +748,7 @@ sub elm_ {
         labels       => auth ? tuwf->dbAlli('SELECT id, label FROM ulist_labels WHERE uid =', \auth->uid, 'ORDER BY CASE WHEN id < 10 THEN id ELSE 10 END, label') : [],
         defaultSpoil => auth->pref('spoilers')||0,
         saved        => auth ? tuwf->dbAlli('SELECT name, query FROM saved_queries WHERE uid =', \auth->uid, ' AND qtype =', \$self->{type}, 'ORDER BY name') : [],
+        error        => $self->{error}?1:0,
         query        => $self->elm_search_query(),
     };
 }

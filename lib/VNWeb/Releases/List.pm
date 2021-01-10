@@ -34,7 +34,7 @@ TUWF::get qr{/r}, sub {
     my $opt = tuwf->validate(get =>
         q => { onerror => undef },
         p => { upage => 1 },
-        f => { advsearch => 'r' },
+        f => { advsearch_err => 'r' },
         s => { onerror => 'title', enum => [qw/released minage title/] },
         o => { onerror => 'a', enum => ['a','d'] },
         fil => { required => 0 },

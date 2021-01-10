@@ -78,7 +78,7 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
         q => { onerror => undef },
         sq=> { onerror => undef },
         p => { upage => 1 },
-        f => { advsearch => 'v' },
+        f => { advsearch_err => 'v' },
         s => { onerror => 'title', enum => [qw/title rel pop rating/] },
         o => { onerror => 'a', enum => ['a','d'] },
         ch=> { onerror => [], type => 'array', scalar => 1, values => { onerror => undef, enum => ['0', 'a'..'z'] } },

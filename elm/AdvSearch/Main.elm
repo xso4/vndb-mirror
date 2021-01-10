@@ -37,6 +37,7 @@ type alias Recv =
   , labels       : List { id: Int, label: String }
   , defaultSpoil : Int
   , saved        : List SQuery
+  , error        : Bool
   , query        : GApi.ApiAdvSearchQuery
   }
 
@@ -44,6 +45,7 @@ type alias Model =
   { query      : Field
   , qtype      : QType
   , data       : Data
+  , error      : Bool
   , saved      : List SQuery
   , saveState  : Api.State
   , saveDd     : DD.Config Msg
@@ -135,6 +137,7 @@ init arg =
   in  { query      = query
       , qtype      = qtype
       , data       = ndat
+      , error      = arg.error
       , saved      = arg.saved
       , saveState  = Api.Normal
       , saveDd     = DD.init "advsearch_save" SaveToggle
@@ -150,7 +153,7 @@ update msg model =
     Noop -> (model, Cmd.none)
     Field m ->
       let (ndat, nm, nc) = fieldUpdate model.data m model.query
-      in ({ model | data = ndat, query = nm }, Cmd.map Field nc)
+      in ({ model | data = ndat, query = nm, error = False }, Cmd.map Field nc)
     SaveToggle b ->
       let act = if model.saveAct == 0 && not (List.isEmpty model.saved) && fieldToQuery model.data model.query == Nothing then 1 else model.saveAct
       in ( { model | saveDd = DD.toggle model.saveDd b, saveAct = act, saveDel = Set.empty }
@@ -249,4 +252,8 @@ view model = div [ class "advsearch" ] <|
       ]
     , input [ type_ "submit", class "submit", value "Search" ] []
     ]
+  , if model.error
+    then b [ class "standout" ] [ text "Error parsing search query. The URL was probably corrupted in some way. "
+                                , text "Please report a bug if you opened this page from VNDB (as opposed to getting here from an external site)." ]
+    else text ""
   ]
