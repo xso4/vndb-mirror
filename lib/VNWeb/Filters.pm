@@ -212,7 +212,7 @@ sub filter_vn_adv {
     defined $fil->{date_before} ? [ 'released', '<=', $fil->{date_before} ] : (),
     defined $fil->{date_after}  ? [ 'released', '>=', $fil->{date_after} ] : (),
     defined $fil->{released}    ? [ 'released', $fil->{released} ? '<=' : '>', 1 ] : (),
-    defined $fil->{length}      ? map [ 'length', '=', $_ ], $fil->{length}->@* : (),
+    defined $fil->{length}      ? [ 'or', map [ 'length', '=', $_ ], $fil->{length}->@* ] : (),
     defined $fil->{hasani}      ? [ 'has-anime', $fil->{hasani} ? '=' : '!=', 1 ] : (),
     defined $fil->{hasshot}     ? [ 'has-screenshot', $fil->{hasshot} ? '=' : '!=', 1 ] : (),
     defined $fil->{tag_inc}     ? [ 'and', map [ 'tag', '=',  [ $_, $fil->{tagspoil}, 0 ] ], $fil->{tag_inc}->@* ] : (),
