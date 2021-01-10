@@ -10,7 +10,6 @@ use VNDB::Types;
 
 TUWF::register(
   qr{old/r}                            => \&browse,
-  qr{r/engines}                    => \&engines,
   qr{xml/engines.xml}              => \&enginexml,
 );
 
@@ -132,35 +131,6 @@ sub _fil_compat {
   $c{freeware} = $f->{fw} == 2 ? 0 : 1 if $f->{fw};
   $c{doujin} = $f->{do} == 2 ? 0 : 1 if $f->{do};
   return %c;
-}
-
-
-sub engines {
-  my $self = shift;
-  my $lst = $self->dbReleaseEngines();
-  $self->htmlHeader(title => 'Engine list', noindex => 1);
-
-  div class => 'mainbox';
-   h1 'Engine list';
-   p;
-    lit q{
-     This is a list of all engines currently associated with releases. This
-     list can be used as reference when filling out the engine field for a
-     release and to find inconsistencies in the engine names. See the <a
-     href="/d3#3">releases guidelines</a> for more information.
-    };
-   end;
-   ul;
-    for my $e (@$lst) {
-      li;
-       # TODO: link to new advsearch listing
-       a href => '/old/r?fil='.fil_serialize({engine => $e->{engine}}), $e->{engine};
-       b class => 'grayedout', " $e->{cnt}";
-      end;
-    }
-   end;
-
-  end;
 }
 
 
