@@ -108,11 +108,16 @@ sub vns_ {
     # URL compatibility with old filters
     if(!$opt->{f}->{query} && $opt->{fil}) {
         my $q = eval {
-            tuwf->compile({ advsearch => 'v' })->validate(filter_release_adv filter_parse v => $opt->{fil})->data;
+            my $f = filter_parse v => $opt->{fil};
+            # Old URLs often had the tag ID as part of the filter, let's remove that.
+            $f->{tag_inc} = [ grep $_ != $t->{id}, $f->{tag_inc}->@* ] if $f->{tag_inc};
+            delete $f->{tag_inc} if $f->{tag_inc} && !$f->{tag_inc}->@*;
+            $f = filter_vn_adv $f;
+            tuwf->compile({ advsearch => 'v' })->validate(@$f > 1 ? $f : undef)->data;
         };
         if(!$q) {
             warn "Filter compatibility conversion failed\n$@";
-        } else {
+        } elsif($q->{query}) {
             return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode(%$opt, fil => undef, f => $q), 'temp');
         }
     }
