@@ -431,7 +431,7 @@ vn => [ 0, 0, sub {
     return if pg_expect $res, 1;
     return $irc->send_msg(PRIVMSG => $chan, 'No visual novels found.') if !$res->nRows;
     return $irc->send_msg(PRIVMSG => $chan,
-      sprintf 'Too many results found, see %s/v/all?q=%s', config->{url}, uri_escape($q)) if $res->nRows > 5;
+      sprintf 'Too many results found, see %s/v?q=%s', config->{url}, uri_escape($q)) if $res->nRows > 5;
     formatid([$res->rowsAsHashes()], $chan, 0);
   };
 }],

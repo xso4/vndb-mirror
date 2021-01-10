@@ -203,7 +203,7 @@ sub _menu_ {
         h2_ 'Menu';
         div_ sub {
             a_ href => '/',      'Home'; br_;
-            a_ href => '/v/all', 'Visual novels'; br_;
+            a_ href => '/v',     'Visual novels'; br_;
             b_ class => 'grayedout', '> '; a_ href => '/g', 'Tags'; br_;
             a_ href => '/r',     'Releases'; br_;
             a_ href => '/p/all', 'Producers'; br_;
@@ -219,7 +219,7 @@ sub _menu_ {
             a_ href => '/d14',   'Dumps'; lit_ ' - ';
             a_ href => '/d18',   'Query';
         };
-        form_ action => '/v/all', method => 'get', id => 'search', sub {
+        form_ action => '/v', method => 'get', id => 'search', sub {
             fieldset_ sub {
                 legend_ 'Search';
                 input_ type => 'text', class => 'text', id => 'sq', name => 'sq', value => $o->{search}||'', placeholder => 'search';
@@ -804,7 +804,7 @@ sub searchbox_ {
       tuwf->req->{js} = 1;
       fieldset_ class => 'search', sub {
           p_ id => 'searchtabs', sub {
-              a_ href => '/v/all', $sel eq 'v' ? (class => 'sel') : (), 'Visual novels';
+              a_ href => '/v',     $sel eq 'v' ? (class => 'sel') : (), 'Visual novels';
               a_ href => '/r',     $sel eq 'r' ? (class => 'sel') : (), 'Releases';
               a_ href => '/p/all', $sel eq 'p' ? (class => 'sel') : (), 'Producers';
               a_ href => '/s/all', $sel eq 's' ? (class => 'sel') : (), 'Staff';
