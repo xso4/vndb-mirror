@@ -76,6 +76,7 @@ jap_ = Maybe.withDefault Regex.never (Regex.fromString "[\\u3000-\\u9fff\\uff00-
 nonlatin_ : Regex.Regex
 nonlatin_ = Maybe.withDefault Regex.never (Regex.fromString "[\\u3000-\\u9fff\\uff00-\\uff9f\\u0400-\\u04ff\\u1100-\\u11ff\\uac00-\\ud7af]")
 
+-- This regex can't differentiate between Japanese and Chinese, so has a good chance of returning true for Chinese as well.
 containsJapanese : String -> Bool
 containsJapanese = Regex.contains jap_
 
