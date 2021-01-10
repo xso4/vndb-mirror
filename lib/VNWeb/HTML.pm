@@ -165,7 +165,7 @@ sub _head_ {
     base_ href => tuwf->reqURI();
     link_ rel => 'shortcut icon', href => '/favicon.ico', type => 'image/x-icon';
     link_ rel => 'stylesheet', href => config->{url_static}.'/s/'.$skin.'/style.css?'.config->{version}, type => 'text/css', media => 'all';
-    link_ rel => 'search', type => 'application/opensearchdescription+xml', title => 'VNDB VN Search', href => tuwf->reqBaseURI().'/opensearch.xml';
+    link_ rel => 'search', type => 'application/opensearchdescription+xml', title => 'VNDB Visual Novel Search', href => tuwf->reqBaseURI().'/opensearch.xml';
     style_ type => 'text/css', sub { lit_ _sanitize_css $customcss } if $customcss;
     if($o->{feeds}) {
         link_ rel => 'alternate', type => 'application/atom+xml', href => "/feeds/announcements.atom", title => 'Site Announcements';
