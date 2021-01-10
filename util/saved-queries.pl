@@ -28,6 +28,14 @@ for my $r (tuwf->dbAlli('SELECT uid, qtype, name, query FROM saved_queries')->@*
         warn "Invalid query: u$r->{uid}, $r->{qtype}, \"$r->{name}\": $r->{query}\n";
         next;
     }
+
+    # The old filter->advsearch conversion had a bug that caused length filters to get AND'ed together, which doesn't make sense.
+    if($r->{qtype} eq 'v' && !$r->{name} && $q->{query}[0] eq 'and') {
+        my @lengths = grep ref $_ && $_->[0] eq 'length', $q->{query}->@*;
+        $q->{query} = [ grep(!ref $_ || $_->[0] ne 'length', $q->{query}->@*), [ 'or', @lengths ] ] if @lengths > 1;
+        warn "Converted 'AND length' to 'OR length' for u$r->{uid}\n" if @lengths > 1;
+    }
+
     my $qs = $q->query_encode;
     if(!$qs) {
         warn "Empty query: u$r->{uid}, $r->{qtype}, \"$r->{name}\": $r->{query}\n";
