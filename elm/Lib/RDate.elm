@@ -45,13 +45,16 @@ fromDate d =
   , d = Date.day d
   }
 
+maxDayInMonth : Int -> Int -> Int
+maxDayInMonth y m = Date.fromCalendarDate y (Date.numberToMonth m) 1 |> Date.add Date.Months 1 |> Date.add Date.Days -1 |> Date.day
 
 normalize : RDateComp -> RDateComp
 normalize r =
-       if r.y == 0    then { y = 0,    m = 0,  d = clamp 0 1 r.y }
+       if r.y == 0    then { y = 0,    m = 0,  d = clamp 0 1 r.d }
   else if r.y == 9999 then { y = 9999, m = 99, d = 99 }
   else if r.m == 0 || r.m == 99 then { y = r.y,  m = 99, d = 99 }
   else if r.d == 0 then { r | d = 99 }
+  else if r.d /= 99 && r.d > 28 then { r | d = Basics.min r.d (maxDayInMonth r.y r.m) } -- Make sure the day field is in range
   else r
 
 
@@ -74,11 +77,6 @@ display today d =
 
 
 -- Input widget.
---
--- BUG: Changing the month or year fields when day 30-31 is selected but no
--- longer valid results in an invalid RDate. It also causes the "-day-" option
--- to be selected (which is good), so I don't expect that many people will try
--- to submit the form without changing it.
 view : RDate -> Bool -> Bool -> (RDate -> msg) -> Html msg
 view ro permitUnknown permitToday msg =
   let r = expand ro
@@ -88,8 +86,7 @@ view ro permitUnknown permitToday msg =
         ++ [(99999999, "TBA")]
         ++ List.reverse (range 1980 (GT.curYear + 5) (\n -> {r|y=n}))
       ml = ({r|m=99} |> normalize |> compact, "- month -") :: range 1 12 (\n -> {r|m=n})
-      maxDay = Date.fromCalendarDate r.y (Date.numberToMonth r.m) 1 |> Date.add Date.Months 1 |> Date.add Date.Days -1 |> Date.day
-      dl = ({r|d=99} |> normalize |> compact, "- day -") :: range 1 maxDay (\n -> {r|d=n})
+      dl = ({r|d=99} |> normalize |> compact, "- day -") :: range 1 (maxDayInMonth r.y r.m) (\n -> {r|d=n})
   in div []
     [ inputSelect "" ro msg [ style "width" "100px" ] yl
     , if r.y == 0 || r.y == 9999 then text "" else inputSelect "" ro msg [ style "width" "90px" ] ml
