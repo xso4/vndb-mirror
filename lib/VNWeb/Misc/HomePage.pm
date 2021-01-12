@@ -165,7 +165,7 @@ sub releases_ {
 
     # Drop any top-level date filters
     $filt->{query} = [ grep !(ref $_ eq 'ARRAY' && $_->[0] eq 'released'), $filt->{query}->@* ] if $filt->{query};
-    delete $filt->{query} if $filt->{query} && $filt->{query}[0] eq 'released';
+    delete $filt->{query} if $filt->{query} && ($filt->{query}[0] eq 'released' || $filt->{query}->@* < 2);
 
     # Add the release date as filter, we need to construct a filter for the header link anyway
     $filt->{query} = [ 'and', [ released => $released ? '<=' : '>', 1 ], $filt->{query} || () ];
