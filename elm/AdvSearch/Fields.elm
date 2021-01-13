@@ -163,13 +163,14 @@ nestView dat dd model =
                      Just f.ptype == List.head model.addtype
                   && f.title /= ""
                   && (dat.uid /= Nothing || f.title /= "My Labels")
+                  && not (f.title == "Role" && (List.head (List.drop 1 model.addtype)) == Just C) -- No "role" filter for character seiyuu (the seiyuu role is implied, after all)
                   && not (Set.member (showQType f.qtype) parents))
           showT par t =
             case (par,t) of
               (_,V) -> "VN"
               (_,R) -> "Release"
               (_,C) -> "Character"
-              (C,S) -> "Seiyuu"
+              (C,S) -> "VA"
               (_,S) -> "Staff"
           breads pre par l =
             case l of
@@ -220,7 +221,7 @@ nestView dat dd model =
         (_, R) -> "Rel"
         (_, V) -> "VN"
         (V, S) -> "Staff"
-        (C, S) -> "Seiyuu"
+        (C, S) -> "VA"
         _ -> ""
 
     ourdd =
@@ -438,7 +439,7 @@ fields =
   , f R "Engine"             0  FMEngine      AEng.init               AEng.fromQuery
 
   , n C C "And/Or"
-  , n C S "Seiyuu »"
+  , n C S "Voice Actor »"
   , f C "Role"               1  FMRole        AS.init                 AS.roleFromQuery
   , f C "Age"                0  FMAge         AR.ageInit              AR.ageFromQuery
   , f C "Sex"                2  FMSex         (AS.sexInit False)      (AS.sexFromQuery False)

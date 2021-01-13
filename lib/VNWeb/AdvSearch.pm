@@ -339,7 +339,13 @@ f v => 13 => 'anime-id',  { id => 1 },
 
 f v => 50 => 'release',  'r', '=' => sub { sql 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE NOT r.hidden AND', $_, ')' };
 f v => 51 => 'character','c', '=' => sub { sql 'v.id IN(SELECT cv.vid FROM chars c JOIN chars_vns cv ON cv.id = c.id WHERE NOT c.hidden AND', $_, ')' }; # TODO: Spoiler setting?
-f v => 52 => 'staff',    's', '=' => sub { sql 'v.id IN(SELECT vs.id FROM vn_staff vs JOIN staff_alias sa ON sa.aid = vs.aid JOIN staff s ON s.id = sa.id WHERE NOT s.hidden AND', $_, ')' };
+f v => 52 => 'staff',    's', '=' => sub {
+    # The "Staff" filter includes both vn_staff and vn_seiyuu. Union those tables together and filter on that.
+    sql 'v.id IN(SELECT vs.id
+                   FROM (SELECT id, aid, role FROM vn_staff UNION ALL SELECT id, aid, NULL FROM vn_seiyuu) vs
+                   JOIN staff_alias sa ON sa.aid = vs.aid
+                   JOIN staff s ON s.id = sa.id
+                  WHERE NOT s.hidden AND', $_, ')' };
 
 
 
@@ -420,8 +426,9 @@ f s =>  5 => 'role',      { enum => [ 'seiyuu', keys %CREDIT_TYPE ] },
         my($neg, $all, $val) = @_;
         my @grp = $all && @$val > 1 ? ('GROUP BY vs.aid HAVING COUNT(vs.role) =', \scalar @$val) : ();
         if($#TYPE && $TYPE[$#TYPE-1] eq 'v') {
+            # Shortcut referencing the vn_staff table we're already querying
+            return $val->[0] eq 'seiyuu' ? 'vs.role IS NULL' : sql 'vs.role IN', $val if !@grp && !$neg;
             return sql $neg ? 'NOT' : '', 'EXISTS(SELECT 1 FROM vn_seiyuu vs WHERE vs.id = v.id AND vs.aid = sa.aid)' if $val->[0] eq 'seiyuu';
-            return sql 'vs.role IN', $val if !@grp && !$neg; # Shortcut referencing the vn_staff table we're already querying
             sql 'sa.aid', $neg ? 'NOT' : '', 'IN(SELECT vs.aid FROM vn_staff vs WHERE vs.id = v.id AND vs.role IN', $val, @grp, ')';
         } else {
             return sql $neg ? 'NOT' : '', 'EXISTS(SELECT 1 FROM vn_seiyuu vs JOIN vn v ON v.id = vs.id WHERE NOT v.hidden AND vs.aid = sa.aid)' if $val->[0] eq 'seiyuu';
