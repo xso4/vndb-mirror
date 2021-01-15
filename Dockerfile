@@ -1,7 +1,7 @@
-FROM alpine:3.11
-MAINTAINER Yoran Heling <contact@vndb.org>
+FROM alpine:3.13
+MAINTAINER Yorhel <contact@vndb.org>
 
-ENV VNDB_DOCKER_VERSION=4
+ENV VNDB_DOCKER_VERSION=5
 CMD /var/www/util/docker-init.sh
 
 RUN apk add --no-cache \
@@ -10,7 +10,7 @@ RUN apk add --no-cache \
         git \
         graphviz \
         imagemagick \
-        imagemagick-perlmagick \
+        perl-algorithm-diff-xs \
         perl-anyevent \
         perl-app-cpanminus \
         perl-dbd-pg \
@@ -22,7 +22,6 @@ RUN apk add --no-cache \
         wget \
         zlib-dev \
     && cpanm -nq \
-        Algorithm::Diff::XS \
         AnyEvent::HTTP \
         AnyEvent::IRC \
         AnyEvent::Pg \

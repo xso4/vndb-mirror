@@ -45,11 +45,11 @@ installvndbid() {
 
 # Should run as devuser
 pg_start() {
-    if [ ! -d /var/www/data/docker-pg/12 ]; then
-        mkdir -p /var/www/data/docker-pg/12
-        initdb -D /var/www/data/docker-pg/12 --locale en_US.UTF-8 -A trust
+    if [ ! -d /var/www/data/docker-pg/13 ]; then
+        mkdir -p /var/www/data/docker-pg/13
+        initdb -D /var/www/data/docker-pg/13 --locale en_US.UTF-8 -A trust
     fi
-    pg_ctl -D /var/www/data/docker-pg/12 -l /var/www/data/docker-pg/12/logfile start
+    pg_ctl -D /var/www/data/docker-pg/13 -l /var/www/data/docker-pg/13/logfile start
 
     cd /var/www
     if test -f data/docker-pg/vndb-init-done; then
