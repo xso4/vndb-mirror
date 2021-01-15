@@ -85,7 +85,7 @@ view dat model =
         li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ]
         [ inputButton "X" (Sel (S.Sel s False)) []
         , b [ class "grayedout" ] [ text <| " s" ++ String.fromInt s ++ ": " ]
-        , Dict.get s dat.staff |> Maybe.map (\e -> e.name) |> Maybe.withDefault "" |> text
+        , Dict.get s dat.staff |> Maybe.map (\e -> a [ href ("/s" ++ String.fromInt e.id), target "_blank", style "display" "inline" ] [ text e.name ]) |> Maybe.withDefault (text "")
         ]
       ) (Set.toList model.sel.sel)
     , A.view model.conf model.search [ placeholder "Search..." ]
