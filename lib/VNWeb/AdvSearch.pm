@@ -379,6 +379,11 @@ f r => 13 => 'animation-ero',   { uint => 1, enum => \%ANIMATED }, '=' => sub { 
 f r => 14 => 'animation-story', { uint => 1, enum => \%ANIMATED }, '=' => sub { sql 'NOT r.patch AND r.ani_story =', \$_ };
 f r => 15 => 'engine',   { required => 0, default => '' }, '=' => sub { sql 'r.engine =', \$_ };
 f r => 16 => 'rtype',    { enum => \%RELEASE_TYPE }, '=' => sub { sql 'r.type =', \$_ };
+f r => 18 => 'rlist',    { uint => 1, enum => \%RLIST_STATUS }, sql_list => sub {
+        my($neg, $all, $val) = @_;
+        return '1=0' if !auth;
+        sql 'r.id', $neg ? 'NOT' : '', 'IN(SELECT rid FROM rlists WHERE uid =', \auth->uid, 'AND status IN', $val, $all && @$val > 1 ? ('GROUP BY rid HAVING COUNT(status) =', \scalar @$val) : (), ')';
+    };
 f r => 61 => 'patch',    { uint => 1, range => [1,1] }, '=' => sub { 'r.patch' };
 f r => 62 => 'freeware', { uint => 1, range => [1,1] }, '=' => sub { 'r.freeware' };
 f r => 63 => 'doujin',   { uint => 1, range => [1,1] }, '=' => sub { 'r.doujin' };

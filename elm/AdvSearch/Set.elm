@@ -438,3 +438,26 @@ sroleFromQuery = fromQuery (\q ->
   case q of
     QStr 5 op v -> Just (op, v)
     _ -> Nothing)
+
+
+
+
+-- Release list status
+
+rlistView model =
+  ( case Set.toList model.sel of
+      []  -> b [ class "grayedout" ] [ text "List status" ]
+      [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" <| lookup v GT.rlistStatus ]
+      l   -> span [ class "nowrap" ] [ lblPrefix model, text <| "List (" ++ String.fromInt (List.length l) ++ ")" ]
+  , \() ->
+    [ div [ class "advheader" ]
+      [ h3 [] [ text "List status" ]
+      , opts model False True ]
+    , ul [] <| List.map (\(k,l) -> li [] [ linkRadio (Set.member k model.sel) (Sel k) [ text l ] ]) GT.rlistStatus
+    ]
+  )
+
+rlistFromQuery = fromQuery (\q ->
+  case q of
+    QInt 18 op v -> Just (op, v)
+    _ -> Nothing)

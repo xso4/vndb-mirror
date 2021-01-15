@@ -163,6 +163,7 @@ nestView dat dd model =
                      Just f.ptype == List.head model.addtype
                   && f.title /= ""
                   && (dat.uid /= Nothing || f.title /= "My Labels")
+                  && (dat.uid /= Nothing || f.title /= "My List")
                   && not (f.title == "Role" && (List.head (List.drop 1 model.addtype)) == Just C) -- No "role" filter for character seiyuu (the seiyuu role is implied, after all)
                   && not (Set.member (showQType f.qtype) parents))
           showT par t =
@@ -286,6 +287,7 @@ type FieldModel
   | FMAniStory   (AS.Model Int)
   | FMRType      (AS.Model String)
   | FMLabel      (AS.Model Int)
+  | FMRList      (AS.Model Int)
   | FMSRole      (AS.Model String)
   | FMHeight     (AR.Model Int)
   | FMWeight     (AR.Model Int)
@@ -327,6 +329,7 @@ type FieldMsg
   | FSAniStory   (AS.Msg Int)
   | FSRType      (AS.Msg String)
   | FSLabel      (AS.Msg Int)
+  | FSRList      (AS.Msg Int)
   | FSSRole      (AS.Msg String)
   | FSHeight     AR.Msg
   | FSWeight     AR.Msg
@@ -437,6 +440,7 @@ fields =
   , f R "Ero animation"      0  FMAniEro      AS.init                 (AS.animatedFromQuery False)
   , f R "Story animation"    0  FMAniStory    AS.init                 (AS.animatedFromQuery True)
   , f R "Engine"             0  FMEngine      AEng.init               AEng.fromQuery
+  , f R "My List"            0  FMRList       AS.init                 AS.rlistFromQuery
 
   , n C C "And/Or"
   , n C S "Voice Actor »"
@@ -519,6 +523,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSAniStory msg, FMAniStory m) -> maps FMAniStory (AS.update msg m)
       (FSRType  msg,   FMRType m)    -> maps FMRType    (AS.update msg m)
       (FSLabel  msg,   FMLabel m)    -> maps FMLabel    (AS.update msg m)
+      (FSRList  msg,   FMRList m)    -> maps FMRList    (AS.update msg m)
       (FSSRole  msg,   FMSRole m)    -> maps FMSRole    (AS.update msg m)
       (FSHeight msg,   FMHeight m)   -> maps FMHeight   (AR.update msg m)
       (FSWeight msg,   FMWeight m)   -> maps FMWeight   (AR.update msg m)
@@ -585,6 +590,7 @@ fieldView dat (_, dd, model) =
       FMAniStory m   -> f FSAniStory   (AS.animatedView True m)
       FMRType m      -> f FSRType      (AS.rtypeView m)
       FMLabel m      -> f FSLabel      (AS.labelView dat m)
+      FMRList m      -> f FSRList      (AS.rlistView m)
       FMSRole m      -> f FSSRole      (AS.sroleView m)
       FMHeight m     -> f FSHeight     (AR.heightView m)
       FMWeight m     -> f FSWeight     (AR.weightView m)
@@ -630,6 +636,7 @@ fieldToQuery dat (_, _, model) =
     FMAniStory m -> AS.toQuery (QInt 14) m
     FMRType m    -> AS.toQuery (QStr 16) m
     FMLabel m    -> AS.toQuery (\op v -> QTuple 12 op (Maybe.withDefault 0 dat.uid) v) m
+    FMRList m    -> AS.toQuery (QInt 18) m
     FMSRole m    -> AS.toQuery (QStr 5) m
     FMHeight m   -> AR.toQuery (QInt 6) (QStr 6) m
     FMWeight m   -> AR.toQuery (QInt 7) (QStr 7) m
