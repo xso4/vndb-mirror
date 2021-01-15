@@ -75,7 +75,7 @@ sub infobox_ {
     p_ class => 'center', sub {
         b_ 'Properties';
         br_;
-        join_ \&br_, \&txt_, @prop;
+        join_ \&br_, sub { txt_ $_ }, @prop;
     } if @prop;
 
     p_ class => 'center', sub {
