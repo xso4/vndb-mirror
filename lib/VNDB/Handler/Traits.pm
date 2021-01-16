@@ -8,7 +8,7 @@ use VNDB::Func;
 
 
 TUWF::register(
-  qr{i([1-9]\d*)},        \&traitpage,
+  qr{old/i([1-9]\d*)},        \&traitpage,
   qr{xml/traits\.xml},    \&traitxml,
 );
 

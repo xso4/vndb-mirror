@@ -3,7 +3,7 @@ package VNWeb::TT::Lib;
 use VNWeb::Prelude;
 use Exporter 'import';
 
-our @EXPORT = qw/ tagscore_ enrich_group tree_ /;
+our @EXPORT = qw/ tagscore_ enrich_group tree_ parents_ /;
 
 sub tagscore_ {
     my($s, $ign) = @_;
@@ -66,6 +66,37 @@ sub tree_ {
     };
 }
 
+
+# Breadcrumbs-style listing of parent tags/traits
+sub parents_ {
+    my($type, $t) = @_;
+
+    my %t;
+    my $name = $type eq 'g' ? 'tag' : 'trait';
+    push $t{$_->{child}}->@*, $_ for tuwf->dbAlli('
+        WITH RECURSIVE p(id,child,name) AS (
+            SELECT ', \$t->{id}, "::int, 0, NULL::text
+            UNION
+            SELECT t.id, p.id, t.name FROM p JOIN ${name}s_parents tp ON tp.${name} = p.id JOIN ${name}s t ON t.id = tp.parent
+        ) SELECT * FROM p WHERE child <> 0 ORDER BY name
+    ")->@*;
+
+    my sub rec {
+        $t{$_[0]} ? map { my $e=$_; map [ @$_, $e ], __SUB__->($e->{id}) } $t{$_[0]}->@* : []
+    }
+
+    p_ sub {
+        join_ \&br_, sub {
+            a_ href => "/$type", $type eq 'g' ? 'Tags' : 'Traits';
+            for (@$_) {
+                txt_ ' > ';
+                a_ href => "/$type$_->{id}", $_->{name};
+            }
+            txt_ ' > ';
+            txt_ $t->{name};
+        }, rec($t->{id});
+    };
+}
 
 
 1;

@@ -4,37 +4,7 @@ use VNWeb::Prelude;
 use VNWeb::Filters;
 use VNWeb::AdvSearch;
 use VNWeb::VN::List;
-use VNWeb::TT::Lib 'tree_';
-
-
-sub parents_ {
-    my($t) = @_;
-
-    my %t;
-    push $t{$_->{child}}->@*, $_ for tuwf->dbAlli('
-        WITH RECURSIVE p(id,child,name) AS (
-            SELECT ', \$t->{id}, '::int, 0, NULL::text
-            UNION
-            SELECT t.id, p.id, t.name FROM p JOIN tags_parents tp ON tp.tag = p.id JOIN tags t ON t.id = tp.parent
-        ) SELECT * FROM p WHERE child <> 0 ORDER BY name
-    ')->@*;
-
-    my sub rec {
-        $t{$_[0]} ? map { my $e=$_; map [ @$_, $e ], __SUB__->($e->{id}) } $t{$_[0]}->@* : []
-    }
-
-    p_ sub {
-        join_ \&br_, sub {
-            a_ href => '/g', 'Tags';
-            for (@$_) {
-                txt_ ' > ';
-                a_ href => "/g$_->{id}", $_->{name};
-            }
-            txt_ ' > ';
-            txt_ $t->{name};
-        }, rec($t->{id});
-    };
-}
+use VNWeb::TT::Lib 'tree_', 'parents_';
 
 
 sub infobox_ {
@@ -62,7 +32,7 @@ sub infobox_ {
         p_ 'This tag is waiting for a moderator to approve it. You can still use it to tag VNs as you would with a normal tag.';
     } if $t->{state} == 0;
 
-    parents_ $t;
+    parents_ g => $t;
 
     p_ class => 'description', sub {
         lit_ bb_format $t->{description};
@@ -172,7 +142,7 @@ sub vns_ {
 
 
 TUWF::get qr{/$RE{gid}}, sub {
-    my $t = tuwf->dbRowi('SELECT id, name, description, state, c_items, cat, defaultspoil, searchable, applicable FROM tags WHERE id =', \tuwf->capture('id'));
+    my $t = tuwf->dbRowi('SELECT id, name, description, state, c_items, cat, searchable, applicable FROM tags WHERE id =', \tuwf->capture('id'));
     return tuwf->resNotFound if !$t->{id};
 
     enrich_flatten aliases => id => tag => sub { 'SELECT tag, alias FROM tags_aliases WHERE tag IN', $_, 'ORDER BY alias' }, $t;

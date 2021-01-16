@@ -5,6 +5,7 @@ use VNWeb::AdvSearch;
 use VNWeb::Filters;
 
 
+# Also used by VNWeb::TT::TraitPage
 sub listing_ {
     my($opt, $list, $count) = @_;
     my sub url { '?'.query_encode %$opt, @_ }
@@ -25,6 +26,18 @@ sub listing_ {
         }
     };
     paginate_ \&url, $opt->{p}, [$count, 50], 'b';
+}
+
+
+# Also used by VNWeb::TT::TraitPage
+sub enrich_listing {
+    enrich vn => id => cid => sub { sql '
+        SELECT cv.id AS cid, v.id, v.title, v.original
+          FROM chars_vns cv
+          JOIN vn v ON v.id = cv.vid
+         WHERE NOT v.hidden AND cv.id IN', $_, '
+         ORDER BY v.title'
+    }, @_;
 }
 
 
@@ -75,14 +88,7 @@ TUWF::get qr{/c(?:/(?<char>all|[a-z0]))?}, sub {
         ) : [];
     } || (($count, $list) = (undef, []));
 
-    enrich vn => id => cid => sub { sql '
-        SELECT cv.id AS cid, v.id, v.title, v.original
-          FROM chars_vns cv
-          JOIN vn v ON v.id = cv.vid
-         WHERE NOT v.hidden AND cv.id IN', $_, '
-         ORDER BY v.title'
-    }, $list;
-
+    enrich_listing $list;
     $time = time - $time;
 
     framework_ title => 'Browse characters', sub {
