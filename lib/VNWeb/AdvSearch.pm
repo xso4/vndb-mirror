@@ -654,7 +654,7 @@ sub _sql_where {
             }
         }
 
-        return $q->[0] eq 'and' ? sql_and @l : sql_or @l;
+        return sql '(', ($q->[0] eq 'and' ? sql_and @l : sql_or @l), ')';
     }
 
     my $f = $FIELDS{$t}{$q->[0]};
