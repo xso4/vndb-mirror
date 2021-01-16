@@ -393,7 +393,7 @@ f r => 53 => 'vn', 'v', '=' => sub { sql 'r.id IN(SELECT rv.id FROM releases_vn 
 
 
 
-f c =>  2 => 'role',       { enum => \%CHAR_ROLE  }, '=' => sub { sql 'cv.role =', \$_ }; # TODO: SQL is different when not used as a subquery in VN search
+f c =>  2 => 'role',       { enum => \%CHAR_ROLE  }, '=' => sub { $#TYPE && $TYPE[$#TYPE-1] eq 'v' ? sql 'cv.role =', \$_ : sql 'c.id IN(SELECT id FROM chars_vns WHERE role =', \$_, ')' };
 f c =>  3 => 'blood-type', { enum => \%BLOOD_TYPE }, '=' => sub { sql 'c.bloodt =', \$_ };
 f c =>  4 => 'sex',        { enum => \%GENDER },     '=' => sub { sql 'c.gender =', \$_ };
 f c =>  5 => 'sex-spoil',  { enum => \%GENDER },     '=' => sub { sql '(c.gender =', \$_, 'AND c.spoil_gender IS NULL) OR c.spoil_gender IS NOT DISTINCT FROM', \$_ };
