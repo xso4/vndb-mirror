@@ -104,7 +104,11 @@ loadQuery odat arg =
             , traits       = Dict.union (Dict.fromList <| List.map (\t -> (t.id,t)) <| arg.traits   ) odat.traits
             , anime        = Dict.union (Dict.fromList <| List.map (\a -> (a.id,a)) <| arg.anime    ) odat.anime
             }
-      qtype = if arg.qtype == "v" then V else R
+      qtype =
+        case arg.qtype of
+          "v" -> V
+          "c" -> C
+          _ -> R
 
       (dat2, query) = JD.decodeValue decodeQuery arg.query |> Result.toMaybe |> Maybe.withDefault (QAnd []) |> fieldFromQuery qtype dat
 

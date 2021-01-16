@@ -208,7 +208,7 @@ sub _menu_ {
             a_ href => '/r',     'Releases'; br_;
             a_ href => '/p/all', 'Producers'; br_;
             a_ href => '/s/all', 'Staff'; br_;
-            a_ href => '/c/all', 'Characters'; br_;
+            a_ href => '/c',     'Characters'; br_;
             b_ class => 'grayedout', '> '; a_ href => '/i', 'Traits'; br_;
             a_ href => '/u/all', 'Users'; br_;
             a_ href => '/hist',  'Recent changes'; br_;
@@ -808,7 +808,7 @@ sub searchbox_ {
               a_ href => '/r',     $sel eq 'r' ? (class => 'sel') : (), 'Releases';
               a_ href => '/p/all', $sel eq 'p' ? (class => 'sel') : (), 'Producers';
               a_ href => '/s/all', $sel eq 's' ? (class => 'sel') : (), 'Staff';
-              a_ href => '/c/all', $sel eq 'c' ? (class => 'sel') : (), 'Characters';
+              a_ href => '/c',     $sel eq 'c' ? (class => 'sel') : (), 'Characters';
               a_ href => '/g',     $sel eq 'g' ? (class => 'sel') : (), 'Tags';
               a_ href => '/i',     $sel eq 'i' ? (class => 'sel') : (), 'Traits';
               a_ href => '/u/all', $sel eq 'u' ? (class => 'sel') : (), 'Users';

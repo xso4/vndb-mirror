@@ -11,7 +11,7 @@ use VNDB::Types;
 our @EXPORT = ('charBrowseTable');
 
 TUWF::register(
-  qr{c/([a-z0]|all)} => \&list,
+  qr{old/c/([a-z0]|all)} => \&list,
 );
 
 
@@ -38,13 +38,13 @@ sub list {
   $self->htmlHeader(title => 'Browse characters');
 
   my $quri = uri_escape($f->{q});
-  form action => '/c/all', 'accept-charset' => 'UTF-8', method => 'get';
+  form action => '/old/c/all', 'accept-charset' => 'UTF-8', method => 'get';
   div class => 'mainbox';
    h1 'Browse characters';
    $self->htmlSearchBox('c', $f->{q});
    p class => 'browseopts';
     for ('all', 'a'..'z', 0) {
-      a href => "/c/$_?q=$quri;fil=$f->{fil}", $_ eq $fch ? (class => 'optselected') : (), $_ eq 'all' ? 'ALL' : $_ ? uc $_ : '#';
+      a href => "/old/c/$_?q=$quri;fil=$f->{fil}", $_ eq $fch ? (class => 'optselected') : (), $_ eq 'all' ? 'ALL' : $_ ? uc $_ : '#';
     }
    end;
 
@@ -64,7 +64,7 @@ sub list {
     end;
   }
 
-  @$list && $self->charBrowseTable($list, $np, $f, "/c/$fch?q=$quri;fil=$f->{fil}");
+  @$list && $self->charBrowseTable($list, $np, $f, "/old/c/$fch?q=$quri;fil=$f->{fil}");
 
   $self->htmlFooter;
 }
