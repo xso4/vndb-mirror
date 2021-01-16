@@ -417,7 +417,8 @@ f c => 13 => 'trait',      { type => 'any', func => \&_validate_trait },
 
 # XXX: When this field is nested inside a VN query, it may match seiyuu linked to other VNs.
 # This can be trivially fixed by adding an (AND vs.id = v.id) clause, but that results in extremely slow queries that I've no clue how to optimize.
-f c => 52 => 'seiyuu',    's', '=' => sub { sql 'c.id IN(SELECT vs.cid FROM vn_seiyuu vs JOIN staff_alias sa ON sa.aid = vs.aid JOIN staff s ON s.id = sa.id WHERE NOT s.hidden AND', $_, ')' };
+f c => 52 => 'seiyuu', 's', '=' => sub { sql 'c.id IN(SELECT vs.cid FROM vn_seiyuu vs JOIN staff_alias sa ON sa.aid = vs.aid JOIN staff s ON s.id = sa.id WHERE NOT s.hidden AND', $_, ')' };
+f c => 53 => 'vn',     'v', '=' => sub { sql 'c.id IN(SELECT cv.id FROM chars_vns cv JOIN vn v ON v.id = cv.vid WHERE NOT v.hidden AND', $_, ')' };
 
 
 

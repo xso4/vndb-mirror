@@ -110,6 +110,7 @@ nestToQuery dat model =
       (V,  C) -> wrap (QQuery 51 op)
       (V,  S) -> wrap (QQuery 52 op)
       (C,  S) -> wrap (QQuery 52 op)
+      (C,  V) -> wrap (QQuery 53 op)
       (R,  V) -> wrap (QQuery 53 op)
       _       -> wrap identity
 
@@ -134,6 +135,7 @@ nestFromQuery ptype qtype dat q =
        (V, C, QQuery 51 op r) -> initSub op r
        (V, S, QQuery 52 op r) -> initSub op r
        (C, S, QQuery 52 op r) -> initSub op r
+       (C, V, QQuery 53 op r) -> initSub op r
        (R, V, QQuery 53 op r) -> initSub op r
        (_, _, QAnd l) -> if ptype == qtype then Just (init True  l) else Nothing
        (_, _, QOr  l) -> if ptype == qtype then Just (init False l) else Nothing
@@ -207,7 +209,7 @@ nestView dat dd model =
             case (model.ptype, model.qtype) of
               (_, C) -> ("Has a character that matches these filters", "Does not have a character that matches these filters")
               (_, R) -> ("Has a release that matches these filters", "Does not have a release that matches these filters")
-              (_, V) -> ("Has a visual novel that matches these filters", "Does not have a visual novel that matches these filters")
+              (_, V) -> ("Linked to a visual novel that matches these filters", "Not linked to a visual novel that matches these filters")
               (V, S) -> ("Has staff that matches these filters", "Does not have staff that matches these filters")
               (C, S) -> ("Has a voice actor that matches these filters", "Does not have a voice actor that matches these filters")
               _ -> ("","")
@@ -444,6 +446,7 @@ fields =
 
   , n C C "And/Or"
   , n C S "Voice Actor »"
+  , n C V "Visual Novel »"
   , f C "Role"               1  FMRole        AS.init                 AS.roleFromQuery
   , f C "Age"                0  FMAge         AR.ageInit              AR.ageFromQuery
   , f C "Sex"                2  FMSex         (AS.sexInit False)      (AS.sexFromQuery False)
