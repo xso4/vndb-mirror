@@ -1228,7 +1228,7 @@ div.imagebrowse { padding: 0; display: flex; flex-wrap: wrap }
 /****** Icons *******/
 
 .icons {
-  background: url(/g/icons.png??#{$version}) no-repeat;
+  background: url(/g/icons.png?#{$icons-version}) no-repeat;
   width: 16px;
   height: 14px;
   margin: 0 2px 0 0;

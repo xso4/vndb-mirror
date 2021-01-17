@@ -93,7 +93,7 @@ static/g/icons.opt.png: static/g/icons.png
 	zopflipng -m --lossy_transparent $< $@
 
 static/g/%.css: css/skins/%.sass css/v2.css data/icons/icons.css | static/g
-	( echo '$$version: "$(shell git show-ref --head --abbrev -s HEAD)";'; echo '@import "css/skins/$*"' ) | sassc --stdin -I. --style compressed >$@
+	( echo '$$icons-version: "$(shell sha1sum static/g/icons.png | head -c8)";'; echo '@import "css/skins/$*"' ) | sassc --stdin -I. --style compressed >$@
 
 
 

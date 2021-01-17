@@ -98,7 +98,7 @@ sub img {
     my($w, $h) = @_;
     my @cmd = (config->{convert_path}, -size => "${w}x$h", 'canvas:rgba(0,0,0,0)',
         map(+($_->{p}, -geometry => "+$_->{x}+$_->{y}", '-composite'), @img),
-        "png32:$ticons"
+        '-strip', "png32:$ticons"
     );
     system(@cmd);
 }
