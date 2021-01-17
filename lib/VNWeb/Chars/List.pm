@@ -58,7 +58,8 @@ TUWF::get qr{/c(?:/(?<char>all|[a-z0]))?}, sub {
     # URL compatibility with old filters
     if(!$opt->{f}->{query} && $opt->{fil}) {
         my $q = eval {
-            tuwf->compile({ advsearch => 'c' })->validate(filter_char_adv filter_parse c => $opt->{fil})->data;
+            my $f = filter_char_adv filter_parse c => $opt->{fil};
+            tuwf->compile({ advsearch => 'c' })->validate(@$f > 1 ? $f : undef)->data;
         };
         if(!$q) {
             warn "Filter compatibility conversion failed\n$@";
