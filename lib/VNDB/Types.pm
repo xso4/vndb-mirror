@@ -29,6 +29,7 @@ hash LANGUAGE =>
     fa => 'Persian',
     fi => 'Finnish',
     fr => 'French',
+    ga => 'Irish',
     gd => 'Scottish Gaelic',
     he => 'Hebrew',
     hr => 'Croatian',
