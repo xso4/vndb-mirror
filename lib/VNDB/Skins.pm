@@ -11,18 +11,16 @@ my $skins;
 
 sub skins {
     $skins ||= do { +{ map {
-        my $skin = /\/([^\/]+)\/conf/ ? $1 : die;
+        my $skin = /\/([^\/]+)\.sass/ ? $1 : die;
         my %o;
         open my $F, '<:utf8', $_ or die $!;
-        while(<$F>) {
-            chomp;
-            s/\r//g;
-            s{[\t\s]*//.+$}{};
-            next if !/^([a-z0-9]+)[\t\s]+(.+)$/;
-            $o{$1} = $2;
+        if(<$F> !~ qr{^// *userid: *([0-9]+) *name: *(.+)}) {
+            warn "Invalid skin: $skin\n";
+            ()
+        } else {
+            +( $skin, { userid => $1, name => $2 })
         }
-        +( $skin, \%o )
-    } glob "$ROOT/static/s/*/conf" } };
+    } glob "$ROOT/css/skins/*.sass" } };
     $skins;
 }
 

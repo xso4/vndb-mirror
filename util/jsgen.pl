@@ -59,4 +59,4 @@ sub save {
 
 my $js = readjs;
 $js =~ s{/\*VARS\*/}{vars()}eg;
-save "$ROOT/static/f/vndb.js", $js;
+save "$ROOT/static/g/vndb.js", $js;

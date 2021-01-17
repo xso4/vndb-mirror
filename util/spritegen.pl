@@ -11,8 +11,8 @@ use lib "$ROOT/lib";
 use VNDB::Config;
 
 my $path = "$ROOT/data/icons";
-my $icons = "$ROOT/static/f/icons.png";
-my $ticons = "$ROOT/static/f/icons~.png";
+my $icons = "$ROOT/static/g/icons.png";
+my $ticons = "$ROOT/static/g/icons~.png";
 my $css = "$ROOT/data/icons/icons.css";
 
 my @img = map {

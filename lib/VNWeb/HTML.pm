@@ -164,7 +164,7 @@ sub _head_ {
     title_ $o->{title}.' | vndb';
     base_ href => tuwf->reqURI();
     link_ rel => 'shortcut icon', href => '/favicon.ico', type => 'image/x-icon';
-    link_ rel => 'stylesheet', href => config->{url_static}.'/s/'.$skin.'/style.css?'.config->{version}, type => 'text/css', media => 'all';
+    link_ rel => 'stylesheet', href => config->{url_static}.'/g/'.$skin.'.css?'.config->{version}, type => 'text/css', media => 'all';
     link_ rel => 'search', type => 'application/opensearchdescription+xml', title => 'VNDB Visual Novel Search', href => tuwf->reqBaseURI().'/opensearch.xml';
     style_ type => 'text/css', sub { lit_ _sanitize_css $customcss } if $customcss;
     if($o->{feeds}) {
@@ -479,8 +479,8 @@ sub _scripts_ {
         # Escaping rules for a JSON <script> context are kinda weird, but more efficient than regular xml_escape().
         lit_(JSON::XS->new->canonical->encode(tuwf->req->{pagevars}) =~ s{</}{<\\/}rg =~ s/<!--/<\\u0021--/rg);
     } if keys tuwf->req->{pagevars}->%*;
-    script_ type => 'application/javascript', src => config->{url_static}.'/f/elm.js?'.config->{version}, '' if tuwf->req->{pagevars}{elm};
-    script_ type => 'application/javascript', src => config->{url_static}.'/f/plain.js?'.config->{version}, '' if tuwf->req->{js} || tuwf->req->{pagevars}{elm};
+    script_ type => 'application/javascript', src => config->{url_static}.'/g/elm.js?'.config->{version}, '' if tuwf->req->{pagevars}{elm};
+    script_ type => 'application/javascript', src => config->{url_static}.'/g/plain.js?'.config->{version}, '' if tuwf->req->{js} || tuwf->req->{pagevars}{elm};
 }
 
 

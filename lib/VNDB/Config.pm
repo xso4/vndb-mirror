@@ -17,7 +17,7 @@ my $config = {
     },
 
     skin_default      => 'angel',
-    placeholder_img   => 'http://s.vndb.org/s/angel/bg.jpg', # Used in the og:image meta tag
+    placeholder_img   => 'https://s.vndb.org/s/angel-bg.jpg', # Used in the og:image meta tag
     scrypt_args       => [ 65536, 8, 1 ], # N, r, p
     scrypt_salt       => 'another-random-string',
     form_salt         => 'a-private-string-here',
