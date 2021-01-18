@@ -90,7 +90,7 @@ TUWF::get qr{/s(?:/(?<char>all|[a-z0]))?}, sub {
                     button_ type => 'submit', name => 'n', value => 1, $opt->{n}  ? (class => 'optselected') : (), 'Hide aliases';
                 };
                 input_ type => 'hidden', name => 'ch', value => $opt->{ch}//'';
-                input_ type => 'hidden', name => 'n', value => $opt->{n};
+                input_ type => 'hidden', name => 'n', value => $opt->{n}//0;
                 $opt->{f}->elm_;
                 advsearch_msg_ $count, $time;
             };
