@@ -118,7 +118,10 @@ TUWF::load_recursive('VNWeb');
 TUWF::hook after => sub {
     return if rand() > config->{trace_log} || !tuwf->req->{trace_start};
     my $sqlt = List::Util::sum(map $_->[2], tuwf->{_TUWF}{DB}{queries}->@*);
-    my %elm = map +($_->[0], 1), tuwf->req->{pagevars}{elm}->@*;
+    my %elm = (
+        tuwf->req->{js} || tuwf->req->{pagevars}{elm} ? ('plain.js' => 1) : (),
+        map +($_->[0], 1), tuwf->req->{pagevars}{elm}->@*
+    );
     tuwf->dbExeci('INSERT INTO trace_log', {
         method    => tuwf->reqMethod(),
         path      => tuwf->reqPath(),
