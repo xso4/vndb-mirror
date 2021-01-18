@@ -166,6 +166,7 @@ nestView dat dd model =
                   && f.title /= ""
                   && (dat.uid /= Nothing || f.title /= "My Labels")
                   && (dat.uid /= Nothing || f.title /= "My List")
+                  && (f.title /= "Name" || not (Set.isEmpty parents))
                   && not (f.title == "Role" && (List.head (List.drop 1 model.addtype)) == Just C) -- No "role" filter for character seiyuu (the seiyuu role is implied, after all)
                   && not (Set.member (showQType f.qtype) parents))
           showT par t =

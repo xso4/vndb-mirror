@@ -207,7 +207,7 @@ sub _menu_ {
             b_ class => 'grayedout', '> '; a_ href => '/g', 'Tags'; br_;
             a_ href => '/r',     'Releases'; br_;
             a_ href => '/p/all', 'Producers'; br_;
-            a_ href => '/s/all', 'Staff'; br_;
+            a_ href => '/s',     'Staff'; br_;
             a_ href => '/c',     'Characters'; br_;
             b_ class => 'grayedout', '> '; a_ href => '/i', 'Traits'; br_;
             a_ href => '/u/all', 'Users'; br_;
@@ -807,7 +807,7 @@ sub searchbox_ {
               a_ href => '/v',     $sel eq 'v' ? (class => 'sel') : (), 'Visual novels';
               a_ href => '/r',     $sel eq 'r' ? (class => 'sel') : (), 'Releases';
               a_ href => '/p/all', $sel eq 'p' ? (class => 'sel') : (), 'Producers';
-              a_ href => '/s/all', $sel eq 's' ? (class => 'sel') : (), 'Staff';
+              a_ href => '/s',     $sel eq 's' ? (class => 'sel') : (), 'Staff';
               a_ href => '/c',     $sel eq 'c' ? (class => 'sel') : (), 'Characters';
               a_ href => '/g',     $sel eq 'g' ? (class => 'sel') : (), 'Tags';
               a_ href => '/i',     $sel eq 'i' ? (class => 'sel') : (), 'Traits';

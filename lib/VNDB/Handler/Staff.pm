@@ -9,7 +9,7 @@ use VNDB::Types;
 use List::Util qw(first);
 
 TUWF::register(
-  qr{s/([a-z0]|all)}               => \&list,
+  qr{old/s/([a-z0]|all)}               => \&list,
   qr{xml/staff\.xml}               => \&staffxml,
 );
 
@@ -37,17 +37,17 @@ sub list {
 
   my $quri = join(';', $f->{q} ? 'q='.uri_escape($f->{q}) : (), $f->{fil} ? "fil=$f->{fil}" : ());
   $quri = '?'.$quri if $quri;
-  my $pageurl = "/s/$char$quri";
+  my $pageurl = "/old/s/$char$quri";
 
   $self->htmlHeader(title => 'Browse staff');
 
-  form action => '/s/all', 'accept-charset' => 'UTF-8', method => 'get';
+  form action => '/old/s/all', 'accept-charset' => 'UTF-8', method => 'get';
    div class => 'mainbox';
     h1 'Browse staff';
     $self->htmlSearchBox('s', $f->{q});
     p class => 'browseopts';
     for ('all', 'a'..'z', 0) {
-      a href => "/s/$_$quri", $_ eq $char ? (class => 'optselected') : (), $_ eq 'all' ? 'ALL' : $_ ? uc $_ : '#';
+      a href => "/old/s/$_$quri", $_ eq $char ? (class => 'optselected') : (), $_ eq 'all' ? 'ALL' : $_ ? uc $_ : '#';
     }
     end;
 

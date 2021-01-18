@@ -108,6 +108,7 @@ loadQuery odat arg =
         case arg.qtype of
           "v" -> V
           "c" -> C
+          "s" -> S
           _ -> R
 
       (dat2, query) = JD.decodeValue decodeQuery arg.query |> Result.toMaybe |> Maybe.withDefault (QAnd []) |> fieldFromQuery qtype dat

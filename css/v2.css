@@ -733,7 +733,7 @@ div.charb td.tc2 b a { color: $grayedout!important }
 /***** Staff browse *****/
 
 div.staffbrowse	   { padding-bottom: 10px }
-.staffbrowse ul    { float: left; margin-top: -5px; margin-left: 3%; width: 28%; }
+.staffbrowse ul    { margin-top: -5px; margin-left: 3%; column-width: 300px }
 .staffbrowse ul li { list-style-type: none; margin-bottom: 2px; }
 .staffbrowse ul li abbr { margin-right: 5px; margin-top: 1px; }
 .staffpage table.stripe { width: 450px; margin: 0 auto; }

@@ -7,7 +7,7 @@ package VNWeb::Filters;
 use VNWeb::Prelude;
 use Exporter 'import';
 
-our @EXPORT = qw/filter_parse filter_vn_query filter_release_query filter_vn_adv filter_release_adv filter_char_adv/;
+our @EXPORT = qw/filter_parse filter_vn_query filter_release_query filter_vn_adv filter_release_adv filter_char_adv filter_staff_adv/;
 
 
 my $VN = form_compile any => {
@@ -282,6 +282,17 @@ sub filter_char_adv {
     defined $fil->{trait_inc}  ? [ 'and', map [ 'trait', '=',  [ $_, $fil->{tagspoil} ] ], $fil->{trait_inc}->@* ] : (),
     defined $fil->{trait_exc}  ? [ 'and', map [ 'trait', '!=', [ $_, 2 ] ], $fil->{trait_exc}->@* ] : (),
     defined $fil->{role}       ? [ 'or', map [ 'role', '=', $_ ], $fil->{role}->@* ] : (),
+    ]
+}
+
+
+# 'truename' filter is ignored, not part of the AdvSearch interface
+sub filter_staff_adv {
+    my($fil) = @_;
+    [ 'and',
+    defined $fil->{gender}   ? [ 'or', map [ 'gender', '=', $_ ], $fil->{gender}->@* ] : (),
+    defined $fil->{role}     ? [ 'or', map [ 'role', '=', $_ ], $fil->{role}->@* ] : (),
+    defined $fil->{lang}     ? [ 'or', map [ 'lang', '=', $_ ], $fil->{lang}->@* ] : (),
     ]
 }
 
