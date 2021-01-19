@@ -91,27 +91,22 @@ sub TUWF::Object::resDenied {
 
 # Intercept TUWF::any() and TUWF::register() to figure out which module is processing the request.
 if(config->{trace_log}) {
-    my sub wrap {
-        my $f = shift;
-        sub {
-            my $i = 0;
-            my $loc = ['',0];
-            while(my($pack, undef, $line) = caller($i++)) {
-                if($pack !~ '^(?:main|TUWF|VNWeb::Elm)') {
-                    $loc = [$pack,$line];
-                    last;
-                }
-            }
-            my sub subwrap { my $sub = shift; sub { tuwf->req->{trace_loc} = $loc; $sub->(@_) } }
-            $f->(map ref($_) eq 'CODE' ? subwrap($_) : $_, @_)
-        }
-    }
     no warnings 'redefine';
-    my $x = \&TUWF::register; *TUWF::register = wrap($x);
-    my $y = \&TUWF::any;      *TUWF::any      = wrap($y);
+    my $f = \&TUWF::any;
+    *TUWF::any = sub {
+        my($meth, $path, $sub) = @_;
+        my $i = 0;
+        my $loc = ['',0];
+        while(my($pack, undef, $line) = caller($i++)) {
+            if($pack !~ '^(?:main|TUWF|VNWeb::Elm)') {
+                $loc = [$pack,$line];
+                last;
+            }
+        }
+        $f->($meth, $path, sub { tuwf->req->{trace_loc} = $loc; $sub->(@_) });
+    };
 }
 
-TUWF::load_recursive('VNDB::Util', 'VNDB::DB', 'VNDB::Handler');
 TUWF::set import_modules => 0;
 TUWF::load_recursive('VNWeb');
 

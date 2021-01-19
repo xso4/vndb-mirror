@@ -134,45 +134,6 @@ util/multi.pl (application server, optional):
 ```
 
 
-# Rewrites, rewrites, rewrites
-
-The VNDB website is currently (like every project beyond a certain age) in a
-transitional state of rewrites. There are three "versions" and coding styles
-across this repository:
-
-**Version 2**
-
-This is the code that powers the actual website. It lives in `lib/VNDB/` and
-has `util/vndb.pl` as entry point. Front-end assets are in `data/js/`,
-`data/style.css`, `data/icons/`, `static/f/` and `static/s/`.
-
-**Version 2-rw**
-
-This is a (recently started) backend rewrite of version 2. It lives in
-`lib/VNWeb/` with Elm and Javascript code in `elm/`. Individual parts of the
-website are gradually being moved into this new coding style and structure.
-Version 2 and 2-rw run side-by-side in the same process and share a common
-route table and database connection, so the entry point is still
-`util/vndb.pl`. The primary goal of this rewrite is to make use of the clearer
-version 3 structure and to slowly migrate the brittle frontend Javascript parts
-to Elm and JSON APIs.
-
-**Version 3**
-
-There also used to be a "version 3" rewrite with a completely new user
-interface. All of the improvements developed in version 3 are slowly being
-backported and improved upon in version 2-rw and version 3 does not exist
-anymore (though it can still be found in the version history).
-
-**Non-rewrites**
-
-Some parts of this repository are not affected by these rewrites. These include
-the database structure, most of the scripts in `util/`, some common modules
-spread across `lib/` and Multi, which resides in `lib/Multi/`. That's not to
-say these are *final* or *stable*, but they're largely independent from the
-website code.
-
-
 # License
 
 GNU AGPL, see COPYING file for details.
