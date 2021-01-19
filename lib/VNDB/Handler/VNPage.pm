@@ -9,7 +9,7 @@ use VNDB::Types;
 
 
 TUWF::register(
-  qr{v([1-9]\d*)/releases}          => \&releases,
+  qr{old/v([1-9]\d*)/releases}          => \&releases,
 );
 
 
