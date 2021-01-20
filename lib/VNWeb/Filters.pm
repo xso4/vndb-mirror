@@ -3,7 +3,10 @@ package VNWeb::Filters;
 # This module implements validating old search filters and converting them to
 # the new AdvSearch system. It only exists for compatibility with old URLs.
 
+use v5.26;
 use TUWF;
+use VNDB::Types;
+use VNWeb::Auth;
 use VNWeb::Validation;
 use Exporter 'import';
 
