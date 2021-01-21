@@ -174,8 +174,7 @@ sub filter_vn_adv {
         defined $fil->{ul_notblack}   ? [ 'label', '!=', [ auth->uid, 6 ] ] : (),
         defined $fil->{ul_onwish}     ? [ 'label', $fil->{ul_onwish} ? '=' : '!=', [ auth->uid, 5 ] ] : (),
         defined $fil->{ul_voted}      ? [ 'label', $fil->{ul_voted}  ? '=' : '!=', [ auth->uid, 7 ] ] : (),
-        # XXX: "Not on list" can't be represented in the same way with an AdvSearch query, so it's instead taken to mean "not assigned any of the built-in labels"
-        defined $fil->{ul_onlist}     ? [$fil->{ul_onlist} ? ('or', [ 'label', '=', [ auth->uid, 0 ] ], [ 'label', '!=', [ auth->uid, 0 ] ]) : ('and', map [ 'label', '!=', [ auth->uid, $_ ] ], 1..7)] : (),
+        defined $fil->{ul_onlist}     ? [ 'on-list', $fil->{ul_onlist} ? '=' : '!=', 1 ] : (),
     ) : ()
     ]
 }
