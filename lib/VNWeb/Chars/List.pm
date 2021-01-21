@@ -61,11 +61,7 @@ TUWF::get qr{/c(?:/(?<char>all|[a-z0]))?}, sub {
             my $f = filter_char_adv filter_parse c => $opt->{fil};
             tuwf->compile({ advsearch => 'c' })->validate(@$f > 1 ? $f : undef)->data;
         };
-        if(!$q) {
-            warn "Filter compatibility conversion failed\n$@";
-        } else {
-            return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode(%$opt, fil => undef, f => $q), 'temp');
-        }
+        return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode(%$opt, fil => undef, f => $q), 'temp') if $q;
     }
 
     $opt->{f} = advsearch_default 'c' if !$opt->{f}{query} && !defined tuwf->reqGet('f');

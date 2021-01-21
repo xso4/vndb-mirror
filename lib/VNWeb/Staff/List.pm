@@ -46,11 +46,7 @@ TUWF::get qr{/s(?:/(?<char>all|[a-z0]))?}, sub {
             $f = filter_staff_adv $f;
             tuwf->compile({ advsearch => 's' })->validate(@$f > 1 ? $f : undef)->data;
         };
-        if(!$q) {
-            warn "Filter compatibility conversion failed\n$@";
-        } else {
-            return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode(%$opt, fil => undef, f => $q), 'temp');
-        }
+        return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode(%$opt, fil => undef, f => $q), 'temp') if $q;
     }
 
     $opt->{f} = advsearch_default 's' if !$opt->{f}{query} && !defined tuwf->reqGet('f');

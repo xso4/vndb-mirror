@@ -85,11 +85,7 @@ sub vns_ {
             $f = filter_vn_adv $f;
             tuwf->compile({ advsearch => 'v' })->validate(@$f > 1 ? $f : undef)->data;
         };
-        if(!$q) {
-            warn "Filter compatibility conversion failed\n$@";
-        } elsif($q->{query}) {
-            return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode(%$opt, fil => undef, f => $q), 'temp');
-        }
+        return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode(%$opt, fil => undef, f => $q), 'temp') if $q;
     }
 
     $opt->{f} = advsearch_default 'v' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
