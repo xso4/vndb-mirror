@@ -411,6 +411,7 @@ fields =
   , f V ""                  -4  FMTag         AG.init                 (AG.fromQuery 1)
   , f V ""                  -4  FMTag         AG.init                 (AG.fromQuery 2)
   , f V "My Labels"          0  FMLabel       AS.init                 AS.labelFromQuery
+  , l V "My List"            0 [(QInt 65 Eq 1, "On my list"),         (QInt 65 Ne 1, "Not on my list")]
   , f V "Length"             0  FMLength      AS.init                 AS.lengthFromQuery
   , f V "Developer"          0  FMDeveloper   AP.init                 (AP.fromQuery False)
   , f V "Release date"       0  FMRDate       AD.init                 AD.fromQuery

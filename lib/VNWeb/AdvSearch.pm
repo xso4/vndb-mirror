@@ -318,6 +318,7 @@ f v => 61 => 'has-description', { uint => 1, range => [1,1] }, '=' => sub { 'v."
 f v => 62 => 'has-anime',       { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM vn_anime va WHERE va.id = v.id)' };
 f v => 63 => 'has-screenshot',  { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM vn_screenshots vs WHERE vs.id = v.id)' };
 f v => 64 => 'has-review',      { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM reviews r WHERE r.vid = v.id AND NOT r.c_flagged)' };
+f v => 65 => 'on-list',         { uint => 1, range => [1,1] }, '=' => sub { auth ? sql 'v.id IN(SELECT vid FROM ulist_vns WHERE uid =', \auth->uid, ')' : '1=0' };
 
 f v =>  6 => 'developer-id',{ vndbid => 'p' },
     '=' => sub { sql 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id JOIN releases_producers rp ON rp.id = r.id
@@ -608,11 +609,13 @@ sub _sql_where_label {
     my $own = VNWeb::ULists::Lib::ulists_own($uid);
     my @lbl = map $_->[1], @$val;
 
-    # Unlabeled (implies that it's on the list, so "Unlabeled || !Unlabeled" actually means "On my list")
+    # Unlabeled
     if($lbl[0] == 0) {
         return '1=0' if !$own;
-        return sql $neg ? '' : ('EXISTS(SELECT 1 FROM ulist_vns WHERE vid = v.id AND uid =', \$uid, ') AND NOT'),
-            'EXISTS(SELECT 1 FROM ulist_vns_labels WHERE vid = v.id AND uid =', \$uid, 'AND lbl <>', \7, ')';
+        my $onlist = sql 'EXISTS(SELECT 1 FROM ulist_vns WHERE vid = v.id AND uid =', \$uid, ')';
+        my $haslbl = sql 'EXISTS(SELECT 1 FROM ulist_vns_labels WHERE vid = v.id AND uid =', \$uid, 'AND lbl <>', \7, ')';
+        return $neg ? sql 'NOT', $onlist, 'OR', $haslbl
+                    : sql $onlist,' AND NOT', $haslbl;
     }
 
     # Simple, stupid and safe: Don't attempt to query anything if there's a private label.
