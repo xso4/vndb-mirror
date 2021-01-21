@@ -20,27 +20,29 @@ my %ntypes = (
 sub settings_ {
     my $id = shift;
 
+    my $u = tuwf->dbRowi('SELECT notify_dbedit, notify_post, notify_comment, notify_announce FROM users WHERE id =', \$id);
+
     h1_ 'Settings';
     form_ action => "/u$id/notify_options", method => 'POST', sub {
         input_ type => 'hidden', class => 'hidden', name => 'csrf', value => auth->csrftoken;
         p_ sub {
             label_ sub {
-                input_ type => 'checkbox', name => 'dbedit', auth->pref('notify_dbedit') ? (checked => 'checked') : ();
+                input_ type => 'checkbox', name => 'dbedit', $u->{notify_dbedit} ? (checked => 'checked') : ();
                 txt_ ' Notify me about edits of database entries I contributed to.';
             };
             br_;
             label_ sub {
-                input_ type => 'checkbox', name => 'post', auth->pref('notify_post') ? (checked => 'checked') : ();
+                input_ type => 'checkbox', name => 'post', $u->{notify_post} ? (checked => 'checked') : ();
                 txt_ ' Notify me about replies to threads I posted in.';
             };
             br_;
             label_ sub {
-                input_ type => 'checkbox', name => 'comment', auth->pref('notify_comment') ? (checked => 'checked') : ();
+                input_ type => 'checkbox', name => 'comment', $u->{notify_comment} ? (checked => 'checked') : ();
                 txt_ ' Notify me about comments to my reviews.';
             };
             br_;
             label_ sub {
-                input_ type => 'checkbox', name => 'announce', auth->pref('notify_announce') ? (checked => 'checked') : ();
+                input_ type => 'checkbox', name => 'announce', $u->{notify_announce} ? (checked => 'checked') : ();
                 txt_ ' Notify me about site announcements.';
             };
             br_;
@@ -167,10 +169,12 @@ TUWF::post qr{/$RE{uid}/notify_options}, sub {
     )->data;
     return tuwf->resNotFound if !auth->csrfcheck($frm->{csrf});
 
-    auth->prefSet(notify_dbedit   => $frm->{dbedit});
-    auth->prefSet(notify_announce => $frm->{announce});
-    auth->prefSet(notify_post     => $frm->{post});
-    auth->prefSet(notify_comment  => $frm->{comment});
+    tuwf->dbExeci('UPDATE users SET', {
+        notify_dbedit   => $frm->{dbedit},
+        notify_announce => $frm->{announce},
+        notify_post     => $frm->{post},
+        notify_comment  => $frm->{comment},
+    }, 'WHERE id =', \$id);
     tuwf->resRedirect("/u$id/notifies", 'post');
 };
 

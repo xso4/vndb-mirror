@@ -23,6 +23,7 @@ use warnings;
 use TUWF;
 use Exporter 'import';
 
+use Carp 'croak';
 use Digest::SHA qw|sha1 sha1_hex|;
 use Crypt::URandom 'urandom';
 use Crypt::ScryptKDF 'scrypt_raw';
@@ -78,6 +79,18 @@ for my $perm (@perms) {
 }
 
 
+
+# Pref(erences) are like permissions, we load these columns eagerly so they can
+# be accessed through auth->pref().
+my @pref_columns = qw/
+    skin customcss
+    notify_dbedit notify_post notify_comment
+    tags_all tags_cont tags_ero tags_tech
+    spoilers traits_sexual max_sexual max_violence
+    nodistract_can nodistract_noads nodistract_nofancy
+/;
+
+
 sub _randomascii {
     return join '', map chr($_%92+33), unpack 'C*', urandom shift;
 }
@@ -131,7 +144,7 @@ sub _load_session {
     my($self, $uid, $token_db) = @_;
 
     my $user = $uid ? tuwf->dbRowi(
-        'SELECT ', sql_user(), ',', sql_comma(map "perm_$_", @perms), '
+        'SELECT ', sql_user(), ',', sql_comma(@pref_columns, map "perm_$_", @perms), '
            FROM users u
           WHERE id = ', \$uid,
            'AND', sql_func(user_isvalidsession => 'id', sql_fromhex($token_db), \'web')
@@ -142,7 +155,6 @@ sub _load_session {
 
     $self->{user}  = $user;
     $self->{token} = $token_db;
-    delete $self->{pref};
 }
 
 
@@ -258,32 +270,11 @@ sub csrfcheck {
 }
 
 
-# TODO: Measure global usage of the pref() and prefSet() calls to see if this cache is actually necessary.
-
-my @pref_columns = qw/
-    email_confirmed skin customcss filter_vn filter_release
-    notify_dbedit notify_announce notify_post notify_comment
-    vn_list_own vn_list_wish tags_all tags_cont tags_ero tags_tech spoilers traits_sexual
-    max_sexual max_violence nodistract_can nodistract_noads nodistract_nofancy
-/;
-
-# Returns a user preference column for the current user. Lazily loads all
-# preferences to speed of subsequent calls.
 sub pref {
     my($self, $key) = @_;
     return undef if !$self->uid;
-
-    $self->{pref} ||= tuwf->dbRowi('SELECT', sql_comma(map "\"$_\"", @pref_columns), 'FROM users WHERE id =', \$self->uid);
-    $self->{pref}{$key};
-}
-
-
-sub prefSet {
-    my($self, $key, $value, $uid) = @_;
-    die "Unknown pref key: $_" if !grep $key eq $_, @pref_columns;
-    $uid //= $self->uid;
-    $self->{pref}{$key} = $value;
-    tuwf->dbExeci(qq{UPDATE users SET "$key" =}, \$value, 'WHERE id =', \$self->uid);
+    croak "Pref key not loaded: $key" if !exists $self->{user}{$key};
+    $self->{user}{$key};
 }
 
 

@@ -903,12 +903,12 @@ CREATE TABLE users (
   email_confirmed boolean NOT NULL DEFAULT FALSE,
   skin            text NOT NULL DEFAULT '',
   customcss       text NOT NULL DEFAULT '',
-  filter_vn       text NOT NULL DEFAULT '',
-  filter_release  text NOT NULL DEFAULT '',
+  filter_vn       text NOT NULL DEFAULT '', -- Not used anymore, replaced by saved_queries
+  filter_release  text NOT NULL DEFAULT '', -- Not used anymore, replaced by saved_queries
   show_nsfw       boolean NOT NULL DEFAULT FALSE, -- Not used anymore, replaced by max_sexual and max_violence
   notify_dbedit   boolean NOT NULL DEFAULT TRUE,
   notify_announce boolean NOT NULL DEFAULT FALSE,
-  vn_list_own     boolean NOT NULL DEFAULT FALSE,
+  vn_list_own     boolean NOT NULL DEFAULT FALSE, -- Not used anymore, list indicator is always shown now
   vn_list_wish    boolean NOT NULL DEFAULT FALSE, -- Not used anymore, wishlist column in the VN list view has been removed
   tags_all        boolean NOT NULL DEFAULT FALSE,
   tags_cont       boolean NOT NULL DEFAULT TRUE,
