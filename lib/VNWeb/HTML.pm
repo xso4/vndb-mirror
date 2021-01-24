@@ -897,7 +897,7 @@ sub editmsg_ {
 # Display the number of results and time it took. If the query timed out ($count is undef), an error message is displayed instead.
 sub advsearch_msg_ {
     my($count, $time) = @_;
-    p_ class => 'center', sprintf '%d results in %.3fs', $count, $time if defined $count;
+    p_ class => 'center', sprintf '%d result%s in %.3fs', $count, $count == 1 ? '' : 's', $time if defined $count;
     div_ class => 'warning', sub {
         h2_ 'ERROR: Query timed out.';
         p_ q{
