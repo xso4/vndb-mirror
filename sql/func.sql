@@ -170,8 +170,8 @@ BEGIN
              ELSE 0 END AS weight
         FROM (
             SELECT i.id, count(iv.id) AS votecount
-                 , greatest(avg(sexual)   FILTER(WHERE NOT iv.ignore), max(sexual)   FILTER(WHERE u.perm_imgmod)) AS sexual_avg
-                 , greatest(avg(violence) FILTER(WHERE NOT iv.ignore), max(violence) FILTER(WHERE u.perm_imgmod)) AS violence_avg
+                 , avg(sexual)   FILTER(WHERE NOT iv.ignore) AS sexual_avg
+                 , avg(violence) FILTER(WHERE NOT iv.ignore) AS violence_avg
                  , stddev_pop(sexual)   FILTER(WHERE NOT iv.ignore) AS sexual_stddev
                  , stddev_pop(violence) FILTER(WHERE NOT iv.ignore) AS violence_stddev
                  , coalesce(array_agg(u.id) FILTER(WHERE u.id IS NOT NULL), '{}') AS uids
