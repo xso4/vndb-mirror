@@ -65,7 +65,7 @@ view : Model -> (Html Msg, () -> List (Html Msg))
 view model =
   ( case Set.toList model.sel.sel of
       []  -> b [ class "grayedout" ] [ text "Engine" ]
-      [s] -> span [ class "nowrap" ] [ text s ]
+      [s] -> span [ class "nowrap" ] [  S.lblPrefix model.sel, text s ]
       l   -> span [] [ S.lblPrefix model.sel, text <| "Engines (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
     [ div [ class "advheader" ]
