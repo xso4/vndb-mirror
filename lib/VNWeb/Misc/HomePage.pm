@@ -115,7 +115,7 @@ sub recent_vn_posts_ {
             SELECT t.id, t.title, tp.num, tp.date, tp.uid
               FROM threads t
               JOIN threads_posts tp ON tp.tid = t.id AND tp.num = t.c_lastnum
-             WHERE EXISTS(SELECT 1 FROM threads_boards tb WHERE tb.tid = t.id AND tb.type IN(\'v\',\'p\',\'ge\'))
+             WHERE NOT EXISTS(SELECT 1 FROM threads_boards tb WHERE tb.tid = t.id AND tb.type IN(\'an\',\'db\',\'u\'))
                AND NOT t.hidden AND NOT t.private
              ORDER BY tp.date DESC LIMIT 10
         ), wposts (id,title,num,date,uid) AS (
