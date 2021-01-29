@@ -32,7 +32,7 @@ sub listing_ {
 # Also used by VNWeb::TT::TraitPage
 sub enrich_listing {
     enrich vn => id => cid => sub { sql '
-        SELECT cv.id AS cid, v.id, v.title, v.original
+        SELECT DISTINCT cv.id AS cid, v.id, v.title, v.original
           FROM chars_vns cv
           JOIN vn v ON v.id = cv.vid
          WHERE NOT v.hidden AND cv.id IN', $_, '
