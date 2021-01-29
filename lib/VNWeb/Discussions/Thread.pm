@@ -121,7 +121,7 @@ sub posts_ {
                         }
                         a_ href => "/report/$t->{id}.$_->{num}", 'report';
                         txt_ ' >';
-                    };
+                    } if !$_->{hidden} || can_edit t => $_;
                     if($_->{hidden}) {
                         i_ class => 'deleted', 'Post deleted.';
                     } else {
