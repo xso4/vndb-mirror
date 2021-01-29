@@ -45,7 +45,7 @@ TUWF::get qr{/r}, sub {
         my $q = eval {
             tuwf->compile({ advsearch => 'r' })->validate(filter_release_adv filter_parse r => $opt->{fil})->data;
         };
-        return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode(%$opt, fil => undef, f => $q), 'temp') if $q;
+        return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode(%$opt, fil => undef, f => $q), 'perm') if $q;
     }
 
     $opt->{f} = advsearch_default 'r' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
