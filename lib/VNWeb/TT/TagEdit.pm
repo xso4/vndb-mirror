@@ -115,6 +115,8 @@ elm_api TagEdit => $FORM_OUT, $FORM_IN, sub {
             sql 'id IN', $_[0]
     }, map $_->{id}, $data->{parents}->@*;
 
+    $data->{description} = bb_subst_links($data->{description});
+
     my %set = map +($_,$data->{$_}), qw/name description state addedby cat defaultspoil searchable applicable/;
     $set{added} = sql 'NOW()' if $id && $data->{state} == 2 && $g->{state} != 2;
     tuwf->dbExeci('UPDATE tags SET', \%set, 'WHERE id =', \$id) if $id;

@@ -123,6 +123,8 @@ elm_api TraitEdit => $FORM_OUT, $FORM_IN, sub {
     );
     return elm_DupNames $dups if @$dups;
 
+    $data->{description} = bb_subst_links($data->{description});
+
     my %set = map +($_,$data->{$_}), qw/name alias description state addedby sexual defaultspoil searchable applicable/;
     $set{'"group"'} = $data->{group};
     $set{'"order"'} = $data->{order};
