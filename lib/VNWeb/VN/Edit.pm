@@ -11,6 +11,7 @@ my $FORM = {
     original   => { required => 0, default => '', maxlength => 250 },
     alias      => { required => 0, default => '', maxlength => 500 },
     desc       => { required => 0, default => '', maxlength => 10240 },
+    olang      => { enum => \%LANGUAGE, default => 'ja' },
     length     => { uint => 1, enum => \%VN_LENGTH },
     l_wikidata => { required => 0, uint => 1, max => (1<<31)-1 },
     l_renai    => { required => 0, default => '', maxlength => 100 },

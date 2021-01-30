@@ -10,7 +10,7 @@ use VNDB::Func 'fmtrating';
 # Also used by Chars::VNTab & Reviews::VNTab
 sub enrich_vn {
     my($v, $revonly) = @_;
-    enrich_merge id => 'SELECT id, c_votecount, c_olang::text[] AS c_olang FROM vn WHERE id IN', $v;
+    enrich_merge id => 'SELECT id, c_votecount FROM vn WHERE id IN', $v;
     enrich_merge vid => 'SELECT id AS vid, title, original FROM vn WHERE id IN', $v->{relations};
     enrich_merge aid => 'SELECT id AS aid, title_romaji, title_kanji, year, type, ann_id, lastfetch FROM anime WHERE id IN', $v->{anime};
     enrich_extlinks v => $v;
@@ -87,6 +87,7 @@ sub rev_ {
         [ title       => 'Title (romaji)' ],
         [ original    => 'Original title' ],
         [ alias       => 'Alias'          ],
+        [ olang       => 'Original language', fmt => \%LANGUAGE ],
         [ desc        => 'Description'    ],
         [ length      => 'Length',        fmt => \%VN_LENGTH ],
         [ staff       => 'Credits',       fmt => sub {
@@ -339,7 +340,7 @@ sub infobox_ {
     div_ class => 'mainbox', sub {
         itemmsg_ v => $v;
         h1_ $v->{title};
-        h2_ class => 'alttitle', lang_attr($v->{c_olang}), $v->{original} if $v->{original};
+        h2_ class => 'alttitle', lang_attr($v->{olang}), $v->{original} if $v->{original};
 
         div_ class => 'vndetails', sub {
             div_ class => 'vnimg', sub { image_ $v->{image}, alt => $v->{title}; };
@@ -347,12 +348,16 @@ sub infobox_ {
             table_ class => 'stripe', sub {
                 tr_ sub {
                     td_ class => 'key', 'Title';
-                    td_ sub { txt_ $v->{title}; debug_ $v; };
+                    td_ class => 'title', sub {
+                        txt_ $v->{title};
+                        debug_ $v;
+                        abbr_ class => "icons lang $v->{olang}", title => "Original language: $LANGUAGE{$v->{olang}}", '';
+                    };
                 };
 
                 tr_ sub {
                     td_ 'Original title';
-                    td_ lang_attr($v->{c_olang}), $v->{original};
+                    td_ lang_attr($v->{olang}), $v->{original};
                 } if $v->{original};
 
                 tr_ sub {

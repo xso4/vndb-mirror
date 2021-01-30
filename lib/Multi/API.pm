@@ -423,12 +423,12 @@ my %GET_VN = (
   },
   flags  => {
     basic => {
-      select => 'v.title, v.original, v.c_released, v.c_languages, v.c_olang, v.c_platforms',
+      select => 'v.title, v.original, v.c_released, v.c_languages, v.olang, v.c_platforms',
       proc   => sub {
         $_[0]{original}  ||= undef;
         $_[0]{platforms} = splitarray delete $_[0]{c_platforms};
         $_[0]{languages} = splitarray delete $_[0]{c_languages};
-        $_[0]{orig_lang} = splitarray delete $_[0]{c_olang};
+        $_[0]{orig_lang} = [ delete $_[0]{olang} ];
         $_[0]{released}  = formatdate delete $_[0]{c_released};
       },
     },
@@ -577,8 +577,8 @@ my %GET_VN = (
       [ stra  => ':op: (v.c_languages && ARRAY[:value:]::language[])', {'=' => '', '!=' => 'NOT'}, join => ',', process => \'lang' ],
     ],
     orig_lang => [
-      [ str   => ':op: (v.c_olang && ARRAY[:value:]::language[])', {'=' => '', '!=' => 'NOT'}, process => \'lang' ],
-      [ stra  => ':op: (v.c_olang && ARRAY[:value:]::language[])', {'=' => '', '!=' => 'NOT'}, join => ',', process => \'lang' ],
+      [ str   => 'v.olang :op: :value:', {qw|= =  != <>|}, process => \'lang' ],
+      [ stra  => 'v.olang :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, join => ',', process => \'lang' ],
     ],
     search => [
       [ str   => '(:value:)', {'~',1}, split => \&normalize_query,

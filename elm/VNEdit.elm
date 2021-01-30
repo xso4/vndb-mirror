@@ -55,6 +55,7 @@ type alias Model =
   , original    : String
   , alias       : String
   , desc        : TP.Model
+  , olang       : String
   , length      : Int
   , lWikidata   : Maybe Int
   , lRenai      : String
@@ -91,6 +92,7 @@ init d =
   , original    = d.original
   , alias       = d.alias
   , desc        = TP.bbcode d.desc
+  , olang       = d.olang
   , length      = d.length
   , lWikidata   = d.l_wikidata
   , lRenai      = d.l_renai
@@ -127,6 +129,7 @@ encode model =
   , original    = model.original
   , alias       = model.alias
   , desc        = model.desc.data
+  , olang       = model.olang
   , length      = model.length
   , l_wikidata  = model.lWikidata
   , l_renai     = model.lRenai
@@ -161,6 +164,7 @@ type Msg
   | Original String
   | Alias String
   | Desc TP.Msg
+  | OLang String
   | Length Int
   | LWikidata (Maybe Int)
   | LRenai String
@@ -218,6 +222,7 @@ update msg model =
     Original s -> ({ model | original = s, dupVNs = [] }, Cmd.none)
     Alias s    -> ({ model | alias    = s, dupVNs = [] }, Cmd.none)
     Desc m     -> let (nm,nc) = TP.update m model.desc in ({ model | desc = nm }, Cmd.map Desc nc)
+    OLang s    -> ({ model | olang    = s }, Cmd.none)
     Length n   -> ({ model | length = n }, Cmd.none)
     LWikidata n-> ({ model | lWikidata = n }, Cmd.none)
     LRenai s   -> ({ model | lRenai = s }, Cmd.none)
@@ -361,6 +366,7 @@ view model =
         [ TP.view "desc" model.desc Desc 600 (style "height" "180px" :: onInvalid (Invalid General) :: GVE.valDesc) [ b [ class "standout" ] [ text "English please!" ] ]
         , text "Short description of the main story. Please do not include spoilers, and don't forget to list the source in case you didn't write the description yourself."
         ]
+      , formField "olang::Original language" [ inputSelect "olang" model.olang OLang [] GT.languages ]
       , formField "length::Length" [ inputSelect "length" model.length Length [] GT.vnLengths ]
       , formField "l_wikidata::Wikidata ID" [ inputWikidata "l_wikidata" model.lWikidata LWikidata [onInvalid (Invalid General)] ]
       , formField "l_renai::Renai.us link" [ text "http://renai.us/game/", inputText "l_renai" model.lRenai LRenai (onInvalid (Invalid General) :: GVE.valL_Renai), text ".shtml" ]

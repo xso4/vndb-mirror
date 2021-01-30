@@ -307,7 +307,7 @@ my @TYPE; # stack of query types, $TYPE[0] is the top-level query, $TYPE[$#TYPE]
 
 
 f v =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_languages && ARRAY', \$_, '::language[]' };
-f v =>  3 => 'olang',     { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_olang     && ARRAY', \$_, '::language[]' };
+f v =>  3 => 'olang',     { enum => \%LANGUAGE }, '=' => sub { sql 'v.olang =', \$_ };
 f v =>  4 => 'platform',  { enum => \%PLATFORM }, '=' => sub { sql 'v.c_platforms && ARRAY', \$_, '::platform[]' };
 f v =>  5 => 'length',    { uint => 1, enum => \%VN_LENGTH }, '=' => sub { sql 'v.length =', \$_ };
 f v =>  7 => 'released',  { fuzzyrdate => 1 }, sql => sub { sql 'v.c_released', $_[0], \($_ == 1 ? strftime('%Y%m%d', gmtime) : $_) };

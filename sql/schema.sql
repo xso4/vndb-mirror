@@ -965,7 +965,7 @@ CREATE TABLE vn ( -- dbentry_type=v
   l_renai    varchar(100) NOT NULL DEFAULT '', -- [pub]
   c_released integer NOT NULL DEFAULT 0,
   c_languages language[] NOT NULL DEFAULT '{}',
-  c_olang    language[] NOT NULL DEFAULT '{}',
+  c_olang    language[] NOT NULL DEFAULT '{}', -- deprecated, replaced by olang
   c_platforms platform[] NOT NULL DEFAULT '{}',
   c_popularity real, -- [pub]
   c_rating   real, -- [pub]
@@ -973,7 +973,8 @@ CREATE TABLE vn ( -- dbentry_type=v
   c_search   text,
   l_wikidata integer, -- [pub]
   c_pop_rank integer,
-  c_rat_rank integer
+  c_rat_rank integer,
+  olang      language NOT NULL DEFAULT 'ja' -- [pub]
 );
 
 -- vn_hist
@@ -989,7 +990,8 @@ CREATE TABLE vn_hist (
   l_wp       varchar(150) NOT NULL DEFAULT '',
   l_encubed  varchar(100) NOT NULL DEFAULT '',
   l_renai    varchar(100) NOT NULL DEFAULT '',
-  l_wikidata integer
+  l_wikidata integer,
+  olang      language NOT NULL DEFAULT 'ja'
 );
 
 -- vn_anime
