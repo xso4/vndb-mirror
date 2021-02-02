@@ -284,7 +284,7 @@ CREATE TABLE producers ( -- dbentry_type=p
   lang       language NOT NULL DEFAULT 'ja', -- [pub]
   "desc"     text NOT NULL DEFAULT '', -- [pub]
   alias      varchar(500) NOT NULL DEFAULT '', -- [pub]
-  l_wp       varchar(150), -- [pub] (deprecated)
+  l_wp       varchar(150), -- (deprecated)
   l_wikidata integer -- [pub]
 );
 
@@ -654,7 +654,7 @@ CREATE TABLE staff ( -- dbentry_type=s
   gender     gender NOT NULL DEFAULT 'unknown', -- [pub]
   lang       language NOT NULL DEFAULT 'ja', -- [pub]
   "desc"     text NOT NULL DEFAULT '', -- [pub]
-  l_wp       varchar(150) NOT NULL DEFAULT '', -- [pub] (deprecated)
+  l_wp       varchar(150) NOT NULL DEFAULT '', -- (deprecated)
   l_site     varchar(250) NOT NULL DEFAULT '', -- [pub]
   l_twitter  varchar(16) NOT NULL DEFAULT '', -- [pub]
   l_anidb    integer, -- [pub]
@@ -756,8 +756,6 @@ CREATE TABLE threads (
   hidden boolean NOT NULL DEFAULT FALSE,
   poll_question varchar(100),
   poll_max_options smallint NOT NULL DEFAULT 1,
-  poll_preview boolean NOT NULL DEFAULT FALSE, -- deprecated
-  poll_recast boolean NOT NULL DEFAULT FALSE, -- deprecated
   private boolean NOT NULL DEFAULT FALSE,
   c_count smallint NOT NULL DEFAULT 0, -- Number of non-hidden posts
   c_lastnum smallint NOT NULL DEFAULT 1 -- 'num' of the most recent non-hidden post
@@ -903,13 +901,8 @@ CREATE TABLE users (
   email_confirmed boolean NOT NULL DEFAULT FALSE,
   skin            text NOT NULL DEFAULT '',
   customcss       text NOT NULL DEFAULT '',
-  filter_vn       text NOT NULL DEFAULT '', -- Not used anymore, replaced by saved_queries
-  filter_release  text NOT NULL DEFAULT '', -- Not used anymore, replaced by saved_queries
-  show_nsfw       boolean NOT NULL DEFAULT FALSE, -- Not used anymore, replaced by max_sexual and max_violence
   notify_dbedit   boolean NOT NULL DEFAULT TRUE,
   notify_announce boolean NOT NULL DEFAULT FALSE,
-  vn_list_own     boolean NOT NULL DEFAULT FALSE, -- Not used anymore, list indicator is always shown now
-  vn_list_wish    boolean NOT NULL DEFAULT FALSE, -- Not used anymore, wishlist column in the VN list view has been removed
   tags_all        boolean NOT NULL DEFAULT FALSE,
   tags_cont       boolean NOT NULL DEFAULT TRUE,
   tags_ero        boolean NOT NULL DEFAULT FALSE,
@@ -960,12 +953,11 @@ CREATE TABLE vn ( -- dbentry_type=v
   img_nsfw   boolean NOT NULL DEFAULT FALSE, -- (deprecated)
   image      vndbid CONSTRAINT vn_image_check CHECK(vndbid_type(image) = 'cv'), -- [pub]
   "desc"     text NOT NULL DEFAULT '', -- [pub]
-  l_wp       varchar(150) NOT NULL DEFAULT '', -- [pub] (deprecated)
-  l_encubed  varchar(100) NOT NULL DEFAULT '', -- [pub] (deprecated)
+  l_wp       varchar(150) NOT NULL DEFAULT '', -- (deprecated)
+  l_encubed  varchar(100) NOT NULL DEFAULT '', -- (deprecated)
   l_renai    varchar(100) NOT NULL DEFAULT '', -- [pub]
   c_released integer NOT NULL DEFAULT 0,
   c_languages language[] NOT NULL DEFAULT '{}',
-  c_olang    language[] NOT NULL DEFAULT '{}', -- deprecated, replaced by olang
   c_platforms platform[] NOT NULL DEFAULT '{}',
   c_popularity real, -- [pub]
   c_rating   real, -- [pub]
