@@ -156,7 +156,7 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
     my $newmail = $own && $data->{prefs}{email};
     my $oldmail = $own && _getmail $data->{id};
     if($own && $newmail ne $oldmail) {
-        return elm_DoubleEmail if tuwf->dbVali(select => sql_func user_emailexists => \$newmail, \$data->{id});
+        return elm_DoubleEmail if tuwf->dbVali('SELECT 1 FROM user_emailtoid(', \$newmail, ') x(id) WHERE id <>', \$data->{id});
         auth->audit($data->{id}, 'email change', "old=$oldmail; new=$newmail");
         if(auth->permUsermod) {
             tuwf->dbExeci(select => sql_func user_admin_setmail => \$data->{id}, \auth->uid, sql_fromhex(auth->token), \$newmail);

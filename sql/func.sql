@@ -684,8 +684,9 @@ CREATE OR REPLACE FUNCTION user_isvalidsession(integer, bytea, session_type) RET
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 
-CREATE OR REPLACE FUNCTION user_emailexists(text, integer) RETURNS boolean AS $$
-  SELECT true FROM users WHERE lower(mail) = lower($1) AND ($2 IS NULL OR id <> $2) LIMIT 1
+-- Used for duplicate email checks and user-by-email lookup for usermods.
+CREATE OR REPLACE FUNCTION user_emailtoid(text) RETURNS SETOF integer AS $$
+  SELECT id FROM users WHERE lower(mail) = lower($1)
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 
