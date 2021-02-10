@@ -254,7 +254,7 @@ update msg model =
         Just t ->
           if not t.applicable || t.state /= 2 || List.any (\l -> l.tid == t.id) model.traits
           then ({ model | traitSearch = A.clear nm "" }, c)
-          else ({ model | traitSearch = A.clear nm "", traits = model.traits ++ [{ tid = t.id, spoil = t.defaultspoil, name = t.name, group = t.group_name, applicable = t.applicable, new = True }] }, c)
+          else ({ model | traitSearch = A.clear nm "", traits = model.traits ++ [{ tid = t.id, spoil = t.defaultspoil, name = t.name, group = t.group_name, state = t.state, applicable = t.applicable, new = True }] }, c)
 
     VnRel   idx r -> ({ model | vns = modidx idx (\v -> { v | rid   = r }) model.vns }, Cmd.none)
     VnRole  idx s -> ({ model | vns = modidx idx (\v -> { v | role  = s }) model.vns }, Cmd.none)
@@ -409,10 +409,13 @@ view model =
         spoil t = if t.tid == model.traitSelId then model.traitSelSpl else t.spoil
         trait (i,t) = (String.fromInt t.tid,
           tr []
-          [ td [ style "padding" "0 0 0 10px", style "text-decoration" (if t.applicable then "none" else "line-through") ]
+          [ td [ style "padding" "0 0 0 10px", style "text-decoration" (if t.applicable && t.state == 2 then "none" else "line-through") ]
             [ Maybe.withDefault (text "") <| Maybe.map (\g -> b [ class "grayedout" ] [ text <| g ++ " / " ]) t.group
             , a [ href <| "/i" ++ String.fromInt t.tid ] [ text t.name ]
-            , if t.applicable then text "" else b [ class "standout" ] [ text " (not applicable)" ]
+            , if t.state == 0 then b [ class "standout" ] [ text " (awaiting moderation)" ]
+              else if t.state == 1 then b [ class "standout" ] [ text " (deleted)" ]
+              else if not t.applicable then b [ class "standout" ] [ text " (not applicable)" ]
+              else text ""
             ]
           , td [ class "buts" ]
             [ a [ href "#", onMouseOver (TraitSel t.tid 0), onMouseOut (TraitSel 0 0), onClickD (TraitSpoil i 0), classList [("s0", spoil t == 0 )], title "Not a spoiler" ] []
