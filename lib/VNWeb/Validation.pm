@@ -214,7 +214,7 @@ sub validate_dbid {
 sub can_edit {
     my($type, $entry) = @_;
 
-    return auth->permUsermod || auth->permDbmod || auth->permImgmod || auth->permBoardmod || auth->permTagmod || (auth && $entry->{id} == auth->uid) if $type eq 'u';
+    return auth->permUsermod || auth->permDbmod || auth->permImgmod || auth->permBoardmod || auth->permTagmod || (auth && $entry->{id} eq auth->uid) if $type eq 'u';
     return auth->permDbmod if $type eq 'd';
 
     if($type eq 't') {
@@ -229,14 +229,14 @@ sub can_edit {
         } else {
             die "Can't do authorization test when hidden/date/user_id fields aren't present"
                 if !exists $entry->{hidden} || !exists $entry->{date} || !exists $entry->{user_id};
-            return auth && $entry->{user_id} == auth->uid && !$entry->{hidden} && $entry->{date} > time-config->{board_edit_time};
+            return auth && $entry->{user_id} eq auth->uid && !$entry->{hidden} && $entry->{date} > time-config->{board_edit_time};
         }
     }
 
     if($type eq 'w') {
         return 1 if auth->permBoardmod;
         return auth->permReview if !$entry->{id};
-        return auth && auth->uid == $entry->{user_id};
+        return auth && auth->uid eq $entry->{user_id};
     }
 
     if($type eq 'g' || $type eq 'i') {

@@ -282,16 +282,16 @@ my $entry_types = do {
 # - Combine the enrich_merge() calls into a single query.
 # - Fixed ordering of arrays (use primary keys)
 sub db_entry {
-    my($type, $id, $rev) = @_;
-    my $t = $entry_types->{$type}||die;
+    my($id, $rev) = @_;
+    my $t = $entry_types->{ substr $id, 0, 1 }||die;
 
-    my $maxrev = tuwf->dbVali('SELECT MAX(rev) FROM changes WHERE type =', \$type, ' AND itemid =', \$id);
+    my $maxrev = tuwf->dbVali('SELECT MAX(rev) FROM changes WHERE itemid =', \$id);
     return undef if !$maxrev;
     $rev ||= $maxrev;
     my $entry = tuwf->dbRowi(q{
         SELECT itemid AS id, id AS chid, rev AS chrev, ihid AS hidden, ilock AS locked
           FROM changes
-         WHERE}, { type => $type, itemid => $id, rev => $rev }
+         WHERE}, { itemid => $id, rev => $rev }
     );
     return undef if !$entry->{id};
     $entry->{maxrev} = $maxrev;
@@ -335,7 +335,7 @@ sub db_edit {
     $id ||= undef;
     my $t = $entry_types->{$type}||die;
 
-    tuwf->dbExeci("SELECT edit_${type}_init(", \$id, ', (SELECT MAX(rev) FROM changes WHERE type = ', \$type, ' AND itemid = ', \$id, '))');
+    tuwf->dbExeci("SELECT edit_${type}_init(", \$id, ', (SELECT MAX(rev) FROM changes WHERE itemid = ', \$id, '))');
     tuwf->dbExeci('UPDATE edit_revision SET', {
         requester => $uid // scalar VNWeb::Auth::auth()->uid(),
         ip        => scalar tuwf->reqIP(),
@@ -372,8 +372,7 @@ sub db_edit {
         tuwf->dbExeci("INSERT INTO edit_${base} (", @colnames, ') VALUES ', sql_comma @rows) if @rows;
     }
 
-    my $r = tuwf->dbRow("SELECT * FROM edit_${type}_commit()");
-    ($r->{itemid}, $r->{chid}, $r->{rev})
+    tuwf->dbRow("SELECT * FROM edit_${type}_commit()");
 }
 
 1;

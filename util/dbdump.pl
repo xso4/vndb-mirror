@@ -201,7 +201,7 @@ sub export_import_script {
         my $schema = $schema->{$table->{name}};
         print $F "\n";
         print $F "CREATE TABLE \"$table->{name}\" (\n";
-        print $F join ",\n", map "  $_->{decl}" =~ s/" serial/" integer/ir =~ s/ +(?:check|constraint) +.*//ir, grep $_->{pub}, @{$schema->{cols}};
+        print $F join ",\n", map "  $_->{decl}" =~ s/" serial/" integer/ir =~ s/ +(?:check|constraint|default) +.*//ir, grep $_->{pub}, @{$schema->{cols}};
         print $F ",\n  PRIMARY KEY(".join(', ', map "\"$_\"", @{$schema->{primary}}).")" if $schema->{primary};
         print $F "\n);\n";
     }
@@ -331,7 +331,7 @@ sub export_votes {
 
     open my $F, '>:gzip:utf8', $dest;
     $db->do(q{COPY (
-        SELECT uv.vid||' '||uv.uid||' '||uv.vote||' '||to_char(uv.vote_date, 'YYYY-MM-DD')
+        SELECT vndbid_num(uv.vid)||' '||vndbid_num(uv.uid)||' '||uv.vote||' '||to_char(uv.vote_date, 'YYYY-MM-DD')
           FROM ulist_vns uv
           JOIN users u ON u.id = uv.uid
           JOIN vn v ON v.id = uv.vid

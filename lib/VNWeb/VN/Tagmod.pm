@@ -4,7 +4,7 @@ use VNWeb::Prelude;
 
 
 my $FORM = {
-    id    => { id => 1 },
+    id    => { vndbid => 'v' },
     title => { _when => 'out' },
     tags  => { sort_keys => 'id', aoh => {
         id        => { id => 1 },
@@ -96,7 +96,7 @@ TUWF::get qr{/$RE{vid}/tagmod}, sub {
         $_->{othnotes} = join "\n", map user_displayname($_).': '.$_->{notes}, $_->{othnotes}->@*;
     }
 
-    framework_ title => "Edit tags for $v->{title}", type => 'v', dbobj => $v, tab => 'tagmod', sub {
+    framework_ title => "Edit tags for $v->{title}", dbobj => $v, tab => 'tagmod', sub {
         elm_ 'Tagmod' => $FORM_OUT, { id => $v->{id}, title => $v->{title}, tags => $tags, mod => auth->permTagmod };
     };
 };

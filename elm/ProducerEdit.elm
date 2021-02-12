@@ -38,7 +38,7 @@ type alias Model =
   , desc        : TP.Model
   , rel         : List GPE.RecvRelations
   , relSearch   : A.Model GApi.ApiProducerResult
-  , id          : Maybe Int
+  , id          : Maybe String
   , dupCheck    : Bool
   , dupProds    : List GApi.ApiProducerResult
   }
@@ -185,8 +185,8 @@ view model =
       , formField "Related producers"
         [ if List.isEmpty model.rel then text ""
           else table [] <| List.indexedMap (\i p -> tr []
-            [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| "p" ++ String.fromInt p.pid ++ ":" ] ]
-            , td [ style "text-align" "right"] [ a [ href <| "/p" ++ String.fromInt p.pid ] [ text p.name ] ]
+            [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| p.pid ++ ":" ] ]
+            , td [ style "text-align" "right"] [ a [ href <| "/" ++ p.pid ] [ text p.name ] ]
             , td []
               [ text "is an "
               , inputSelect "" p.relation (RelRel i) [] GT.producerRelations
@@ -210,7 +210,7 @@ view model =
           , text "Please check this list to avoid creating a duplicate producer entry. "
           , text "Be especially wary of items that have been deleted! To see why an entry has been deleted, click on its title."
           , ul [] <| List.map (\p -> li []
-              [ a [ href <| "/p" ++ String.fromInt p.id ] [ text p.name ]
+              [ a [ href <| "/" ++ p.id ] [ text p.name ]
               , if p.hidden then b [ class "standout" ] [ text " (deleted)" ] else text ""
               ]
             ) model.dupProds

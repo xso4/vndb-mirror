@@ -133,6 +133,7 @@ CREATE UNIQUE INDEX reviews_votes_id_uid   ON reviews_votes (id,uid);
 CREATE UNIQUE INDEX reviews_votes_id_ip    ON reviews_votes (id,ip);
 CREATE        INDEX staff_alias_id         ON staff_alias (id);
 CREATE UNIQUE INDEX tags_vn_pkey           ON tags_vn (tag,vid,uid);
+CREATE UNIQUE INDEX threads_boards_pkey    ON threads_boards (tid,type,COALESCE(iid, 'r1')); -- 'r1' is an invalid board id
 CREATE        INDEX tags_vn_date           ON tags_vn (date);
 CREATE        INDEX tags_vn_inherit_tag_vid ON tags_vn_inherit (tag, vid);
 CREATE        INDEX tags_vn_uid            ON tags_vn (uid) WHERE uid IS NOT NULL;
@@ -147,8 +148,8 @@ CREATE        INDEX vn_screenshots_scr     ON vn_screenshots (scr);
 CREATE        INDEX vn_seiyuu_aid          ON vn_seiyuu (aid); -- Only used on /s+?
 CREATE        INDEX vn_seiyuu_cid          ON vn_seiyuu (cid); -- Only used on /c+?
 CREATE        INDEX vn_staff_aid           ON vn_staff (aid);
-CREATE UNIQUE INDEX changes_itemrev        ON changes (type, itemid, rev);
-CREATE UNIQUE INDEX chars_vns_pkey         ON chars_vns (id, vid, COALESCE(rid, 0));
-CREATE UNIQUE INDEX chars_vns_hist_pkey    ON chars_vns_hist (chid, vid, COALESCE(rid, 0));
+CREATE UNIQUE INDEX changes_itemrev        ON changes (itemid, rev);
+CREATE UNIQUE INDEX chars_vns_pkey         ON chars_vns (id, vid, COALESCE(rid, 'v1')); -- 'v1' is an invalid release id, but works as a 'no release specified' value in the UNIQUE qualifier.
+CREATE UNIQUE INDEX chars_vns_hist_pkey    ON chars_vns_hist (chid, vid, COALESCE(rid, 'v1'));
 CREATE        INDEX ulist_vns_voted        ON ulist_vns (vid, vote_date) WHERE vote IS NOT NULL; -- For VN recent votes & vote graph. INCLUDE(vote) speeds up vote graph even more
 CREATE        INDEX users_ign_votes        ON users (id) WHERE ign_votes;

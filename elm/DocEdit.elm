@@ -28,7 +28,7 @@ type alias Model =
   , editsum     : Editsum.Model
   , title       : String
   , content     : TP.Model
-  , id          : Int
+  , id          : String
   }
 
 
@@ -77,7 +77,7 @@ view : Model -> Html Msg
 view model =
   form_ "" Submit (model.state == Api.Loading)
     [ div [ class "mainbox" ]
-      [ h1 [] [ text <| "Edit d" ++ String.fromInt model.id ]
+      [ h1 [] [ text <| "Edit " ++ model.id ]
       , table [ class "formtable" ]
         [ formField "title::Title" [ inputText "title" model.title Title (style "width" "300px" :: GD.valTitle) ]
         , formField "none"

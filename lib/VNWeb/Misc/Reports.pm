@@ -48,13 +48,12 @@ sub enrich_object {
                 user_ $post;
             } if $post->{num};
 
-        } elsif($o->{object} =~ /^([vrpcsd])$RE{num}$/ && !defined $o->{objectnum}) {
-            my($t,$id) = ($1, $+{num});
-            my $obj = dbobj $t, $id;
+        } elsif($o->{object} =~ /^([vrpcsd]$RE{num})$/ && !defined $o->{objectnum}) {
+            my $obj = dbobj $1;
             $o->{title} = xml_string sub {
-                txt_ {qw/v VN r Release p Producer c Character s Staff d Doc/}->{$t};
+                txt_ {qw/v VN r Release p Producer c Character s Staff d Doc/}->{substr $obj->{id}, 0, 1};
                 txt_ ': ';
-                a_ href => "/$t$id", $obj->{title};
+                a_ href => "/$obj->{id}", $obj->{title};
             } if $obj->{id};
         }
     }
@@ -119,9 +118,9 @@ sub report_ {
         b_ class => 'grayedout', ' '.fmtdate $r->{date}, 'full';
         txt_ ' by ';
         if($r->{uid}) {
-            a_ href => "/u$r->{uid}", $r->{username};
+            a_ href => "/$r->{uid}", $r->{username};
             txt_ ' (';
-            a_ href => "/t/u$r->{uid}/new?title=Regarding your report on $objid&priv=1", 'pm';
+            a_ href => "/t/$r->{uid}/new?title=Regarding your report on $objid&priv=1", 'pm';
             txt_ ')';
         } else {
             txt_ $r->{ip}||'[anonymous]';

@@ -68,15 +68,15 @@ type alias Model =
   , staffSearch : A.Model GApi.ApiStaffResult
   , seiyuu      : List GVE.RecvSeiyuu
   , seiyuuSearch: A.Model GApi.ApiStaffResult
-  , seiyuuDef   : Int -- character id for newly added seiyuu
-  , screenshots : List (Int,Img.Image,Maybe Int) -- internal id, img, rel
+  , seiyuuDef   : String -- character id for newly added seiyuu
+  , screenshots : List (Int,Img.Image,Maybe String) -- internal id, img, rel
   , scrQueue    : List File
-  , scrUplRel   : Maybe Int
+  , scrUplRel   : Maybe String
   , scrUplNum   : Maybe Int
   , scrId       : Int -- latest used internal id
   , releases    : List GVE.RecvReleases
   , chars       : List GVE.RecvChars
-  , id          : Maybe Int
+  , id          : Maybe String
   , dupCheck    : Bool
   , dupVNs      : List GApi.ApiVNResult
   }
@@ -105,7 +105,7 @@ init d =
   , staffSearch = A.init ""
   , seiyuu      = d.seiyuu
   , seiyuuSearch= A.init ""
-  , seiyuuDef   = Maybe.withDefault 0 <| List.head <| List.map (\c -> c.id) d.chars
+  , seiyuuDef   = Maybe.withDefault "" <| List.head <| List.map (\c -> c.id) d.chars
   , screenshots = List.indexedMap (\n i -> (n, Img.info (Just i.info), i.rid)) d.screenshots
   , scrQueue    = []
   , scrUplRel   = Nothing
@@ -182,16 +182,16 @@ type Msg
   | StaffRole Int String
   | StaffNote Int String
   | StaffSearch (A.Msg GApi.ApiStaffResult)
-  | SeiyuuDef Int
+  | SeiyuuDef String
   | SeiyuuDel Int
-  | SeiyuuChar Int Int
+  | SeiyuuChar Int String
   | SeiyuuNote Int String
   | SeiyuuSearch (A.Msg GApi.ApiStaffResult)
-  | ScrUplRel (Maybe Int)
+  | ScrUplRel (Maybe String)
   | ScrUplSel
   | ScrUpl File (List File)
   | ScrMsg Int Img.Msg
-  | ScrRel Int (Maybe Int)
+  | ScrRel Int (Maybe String)
   | ScrDel Int
   | DupSubmit
   | DupResults GApi.Response
@@ -352,7 +352,7 @@ view model =
                 [ b [ class "standout" ] [ text "Release titles should not be added as alias." ]
                 , br [] []
                 , text "Release: "
-                , a [ href <| "/r"++String.fromInt r.id ] [ text r.title ]
+                , a [ href <| "/"++r.id ] [ text r.title ]
                 , br [] [], br [] []
                 ]
         , text "List of alternative titles or abbreviations. One line for each alias. Can include both official (japanese/english) titles and unofficial titles used around net."
@@ -375,8 +375,8 @@ view model =
       , formField "Related VNs"
         [ if List.isEmpty model.vns then text ""
           else table [] <| List.indexedMap (\i v -> tr []
-            [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| "v" ++ String.fromInt v.vid ++ ":" ] ]
-            , td [ style "text-align" "right"] [ a [ href <| "/v" ++ String.fromInt v.vid ] [ text v.title ] ]
+            [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| v.vid ++ ":" ] ]
+            , td [ style "text-align" "right"] [ a [ href <| "/" ++ v.vid ] [ text v.title ] ]
             , td []
               [ text "is an "
               , label [] [ inputCheck "" v.official (VNOfficial i), text " official" ]
@@ -455,8 +455,8 @@ view model =
             ]
           ] ] ]
         item n s = tr []
-          [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| "s" ++ String.fromInt s.id ++ ":" ] ]
-          , td [] [ a [ href <| "/s" ++ String.fromInt s.id ] [ text s.name ] ]
+          [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| s.id ++ ":" ] ]
+          , td [] [ a [ href <| "/" ++ s.id ] [ text s.name ] ]
           , td [] [ inputSelect "" s.role (StaffRole n) [style "width" "150px" ] GT.creditTypes ]
           , td [] [ inputText "" s.note (StaffNote n) (style "width" "300px" :: onInvalid (Invalid Staff) :: GVE.valStaffNote) ]
           , td [] [ inputButton "remove" (StaffDel n) [] ]
@@ -465,7 +465,7 @@ view model =
 
     cast =
       let
-        chars = List.map (\c -> (c.id, c.name ++ " (c" ++ String.fromInt c.id ++ ")")) model.chars
+        chars = List.map (\c -> (c.id, c.name ++ " (" ++ c.id ++ ")")) model.chars
         head =
           if List.isEmpty model.seiyuu then [] else [
             thead [] [ tr []
@@ -493,10 +493,10 @@ view model =
           ] ] ]
         item n s = tr []
           [ td [] [ inputSelect "" s.cid (SeiyuuChar n) []
-            <| chars ++ if List.any (\c -> c.id == s.cid) model.chars then [] else [(s.cid, "[deleted/moved character: c" ++ String.fromInt s.cid ++ "]")] ]
+            <| chars ++ if List.any (\c -> c.id == s.cid) model.chars then [] else [(s.cid, "[deleted/moved character: " ++ s.cid ++ "]")] ]
           , td []
-            [ b [ class "grayedout" ] [ text <| "s" ++ String.fromInt s.id ++ ":" ]
-            , a [ href <| "/s" ++ String.fromInt s.id ] [ text s.name ] ]
+            [ b [ class "grayedout" ] [ text <| s.id ++ ":" ]
+            , a [ href <| "/" ++ s.id ] [ text s.name ] ]
           , td [] [ inputText "" s.note (SeiyuuNote n) (style "width" "300px" :: onInvalid (Invalid Cast) :: GVE.valSeiyuuNote) ]
           , td [] [ inputButton "remove" (SeiyuuDel n) [] ]
           ]
@@ -507,14 +507,14 @@ view model =
         else if List.isEmpty model.chars && List.isEmpty model.seiyuu
         then p []
              [ text "This visual novel does not have any characters associated with it (yet). Please "
-             , a [ href <| "/v" ++ Maybe.withDefault "" (Maybe.map String.fromInt model.id) ++ "/addchar" ] [ text "add the appropriate character entries" ]
+             , a [ href <| "/" ++ Maybe.withDefault "" model.id ++ "/addchar" ] [ text "add the appropriate character entries" ]
              , text " first and then come back to this form to assign voice actors."
              ]
         else table [] <| head ++ [ foot ] ++ List.indexedMap item model.seiyuu
 
     screenshots =
       let
-        showrel r = "[" ++ (RDate.format (RDate.expand r.released)) ++ " " ++ (String.join "," r.lang) ++ "] " ++ r.title ++ " (r" ++ String.fromInt r.id ++ ")"
+        showrel r = "[" ++ (RDate.format (RDate.expand r.released)) ++ " " ++ (String.join "," r.lang) ++ "] " ++ r.title ++ " (" ++ r.id ++ ")"
         rellist = List.map (\r -> (Just r.id, showrel r)) model.releases
         scr n (id, i, rel) = (String.fromInt id, tr [] <|
           let getdim img = Maybe.map (\nfo -> (nfo.width, nfo.height)) img |> Maybe.withDefault (0,0)
@@ -548,7 +548,7 @@ view model =
             , inputSelect "" rel (ScrRel id) [style "width" "500px"] <| rellist ++
               case (relnfo, rel) of
                 (_, Nothing) -> [(Nothing, "[No release selected]")]
-                (Nothing, Just r) -> [(Just r, "[Deleted or unlinked release: r" ++ String.fromInt r ++ "]")]
+                (Nothing, Just r) -> [(Just r, "[Deleted or unlinked release: " ++ r ++ "]")]
                 _ -> []
             ]
           ])
@@ -597,7 +597,7 @@ view model =
         else if List.isEmpty model.screenshots && List.isEmpty model.releases
         then p []
              [ text "This visual novel does not have any releases associated with it (yet). Please "
-             , a [ href <| "/v" ++ Maybe.withDefault "" (Maybe.map String.fromInt model.id) ++ "/add" ] [ text "add the appropriate release entries" ]
+             , a [ href <| "/" ++ Maybe.withDefault "" model.id ++ "/add" ] [ text "add the appropriate release entries" ]
              , text " first and then come back to this form to upload screenshots."
              ]
         else
@@ -617,7 +617,7 @@ view model =
           , text "Please check this list to avoid creating a duplicate visual novel entry. "
           , text "Be especially wary of items that have been deleted! To see why an entry has been deleted, click on its title."
           , ul [] <| List.map (\v -> li []
-              [ a [ href <| "/v" ++ String.fromInt v.id ] [ text v.title ]
+              [ a [ href <| "/" ++ v.id ] [ text v.title ]
               , if v.hidden then b [ class "standout" ] [ text " (deleted)" ] else text ""
               ]
             ) model.dupVNs

@@ -58,7 +58,7 @@ our %apis = (
         name     => {},
     } } ],
     Releases       => [ { aoh => { # Response to 'Release'
-        id       => { id => 1 },
+        id       => { vndbid => 'r' },
         title    => {},
         original => { required => 0, default => '' },
         released => { uint => 1 },
@@ -77,8 +77,8 @@ our %apis = (
         count    => { uint => 1 },
     } } ],
     BoardResult    => [ { aoh => { # Response to 'Boards'
-        btype    => {},
-        iid      => { required => 0, default => 0, id => 1 },
+        btype    => { enum => \%BOARD_TYPE },
+        iid      => { required => 0, vndbid => ['p','v','u'] },
         title    => { required => 0 },
     } } ],
     TagResult      => [ { aoh => { # Response to 'Tags'
@@ -99,29 +99,29 @@ our %apis = (
         group_name   => { required => 0 },
     } } ],
     VNResult       => [ { aoh => { # Response to 'VN'
-        id       => { id => 1 },
+        id       => { vndbid => 'v' },
         title    => {},
         original => { required => 0, default => '' },
         hidden   => { anybool => 1 },
     } } ],
     ProducerResult => [ { aoh => { # Response to 'Producers'
-        id       => { id => 1 },
+        id       => { vndbid => 'p' },
         name     => {},
         original => { required => 0, default => '' },
         hidden   => { anybool => 1 },
     } } ],
     StaffResult    => [ { aoh => { # Response to 'Staff'
-        id       => { id => 1 },
+        id       => { vndbid => 's' },
         aid      => { id => 1 },
         name     => {},
         original => { required => 0, default => '' },
     } } ],
     CharResult     => [ { aoh => { # Response to 'Chars'
-        id       => { id => 1 },
+        id       => { vndbid => 'c' },
         name     => {},
         original => { required => 0, default => '' },
         main     => { required => 0, type => 'hash', keys => {
-            id       => { id => 1 },
+            id       => { vndbid => 'c' },
             name     => {},
             original => { required => 0, default => '' },
         } }
@@ -132,7 +132,7 @@ our %apis = (
         original => { required => 0, default => '' },
     } } ],
     ImageResult => [ { aoh => { # Response to 'Images'
-        id              => { }, # image id...
+        id              => { vndbid => ['ch','cv','sf'] },
         token           => { required => 0 },
         width           => { uint => 1 },
         height          => { uint => 1 },
@@ -150,7 +150,7 @@ our %apis = (
         } },
         votes           => { unique => 0, aoh => {
             user     => {},
-            uid      => { uint => 1, required => 0 },
+            uid      => { vndbid => 'u', required => 0 },
             sexual   => { uint => 1 },
             violence => { uint => 1 },
             ignore   => { anybool => 1 },

@@ -640,7 +640,7 @@ fieldToQuery dat (_, _, model) =
     FMAniEro m   -> AS.toQuery (QInt 13) m
     FMAniStory m -> AS.toQuery (QInt 14) m
     FMRType m    -> AS.toQuery (QStr 16) m
-    FMLabel m    -> AS.toQuery (\op v -> QTuple 12 op (Maybe.withDefault 0 dat.uid) v) m
+    FMLabel m    -> AS.toQuery (\op v -> QTuple 12 op (Maybe.withDefault 0 (Maybe.map vndbidNum dat.uid)) v) m
     FMRList m    -> AS.toQuery (QInt 18) m
     FMSRole m    -> AS.toQuery (QStr 5) m
     FMHeight m   -> AR.toQuery (QInt 6) (QStr 6) m

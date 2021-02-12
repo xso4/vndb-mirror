@@ -41,8 +41,8 @@ type alias Model =
   , notesRev   : Int
   , notesState : Api.State
   , rels       : List RE.Model
-  , relNfo     : Dict Int GApi.ApiReleases
-  , relOptions : Maybe (List (Int, String))
+  , relNfo     : Dict String GApi.ApiReleases
+  , relOptions : Maybe (List (String, String))
   , relState   : Api.State
   }
 
@@ -69,14 +69,14 @@ type Msg
   | Notes String
   | NotesSave Int
   | NotesSaved Int GApi.Response
-  | Rel Int RE.Msg
+  | Rel String RE.Msg
   | RelLoad
   | RelLoaded GApi.Response
-  | RelAdd Int
+  | RelAdd String
 
 
 showrel : GApi.ApiReleases -> String
-showrel r = "[" ++ (RDate.format (RDate.expand r.released)) ++ " " ++ (String.join "," r.lang) ++ "] " ++ r.title ++ " (r" ++ String.fromInt r.id ++ ")"
+showrel r = "[" ++ (RDate.format (RDate.expand r.released)) ++ " " ++ (String.join "," r.lang) ++ "] " ++ r.title ++ " (" ++ r.id ++ ")"
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -132,7 +132,7 @@ update msg model =
         }, Cmd.none)
     RelLoaded e -> ({ model | relState = Api.Error e }, Cmd.none)
     RelAdd rid ->
-      ( { model | rels = model.rels ++ (if rid == 0 then [] else [RE.init model.flags.vid { rid = rid, uid = model.flags.uid, status = Just 2, empty = "" }]) }
+      ( { model | rels = model.rels ++ (if rid == "" then [] else [RE.init model.flags.vid { rid = rid, uid = model.flags.uid, status = Just 2, empty = "" }]) }
       , Task.perform (always <| Rel rid <| RE.Set (Just 2) True) <| Task.succeed True)
 
 
@@ -169,8 +169,8 @@ view model =
             -- TODO: This <select> solution is ugly as hell, a Lib.DropDown-based solution would be nicer.
             -- Or just throw all releases in the table and use the status field for add stuff.
             case (model.relOptions, model.relState) of
-              (Just opts, _)   -> [ inputSelect "" 0 RelAdd [ style "width" "500px" ]
-                                    <| (0, "-- add release --") :: List.filter (\(rid,_) -> not <| List.any (\r -> r.rid == rid) model.rels) opts ]
+              (Just opts, _)   -> [ inputSelect "" "" RelAdd [ style "width" "500px" ]
+                                    <| ("", "-- add release --") :: List.filter (\(rid,_) -> not <| List.any (\r -> r.rid == rid) model.rels) opts ]
               (_, Api.Normal)  -> []
               (_, Api.Loading) -> [ span [ class "spinner" ] [], text "Loading releases..." ]
               (_, Api.Error e) -> [ b [ class "standout" ] [ text <| Api.showResponse e ], text ". ", a [ href "#", onClickD RelLoad ] [ text "Try again" ] ]
@@ -191,7 +191,7 @@ view model =
         <| List.map platformIcon nfo.platforms
         ++ List.map langIcon nfo.lang
         ++ [ releaseTypeIcon nfo.rtype ]
-      , td [ class "tco4" ] [ a [ href ("/r"++String.fromInt nfo.id), title nfo.original ] [ text nfo.title ] ]
+      , td [ class "tco4" ] [ a [ href ("/"++nfo.id), title nfo.original ] [ text nfo.title ] ]
       ]
 
     confirm =

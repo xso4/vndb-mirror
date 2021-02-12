@@ -21,8 +21,8 @@ sub enrich_item {
 
 sub _rev_ {
     my($r) = @_;
-    revision_ r => $r, \&enrich_item,
-        [ vn         => 'Relations', fmt => sub { a_ href => "/v$_->{vid}", title => $_->{original}||$_->{title}, $_->{title} } ],
+    revision_ $r, \&enrich_item,
+        [ vn         => 'Relations', fmt => sub { a_ href => "/$_->{vid}", title => $_->{original}||$_->{title}, $_->{title} } ],
         [ type       => 'Type' ],
         [ official   => 'Official',        fmt => 'bool' ],
         [ patch      => 'Patch',           fmt => 'bool' ],
@@ -45,7 +45,7 @@ sub _rev_ {
         [ ani_ero    => 'Ero animation',   fmt => \%ANIMATED ],
         [ engine     => 'Engine' ],
         [ producers  => 'Producers',       fmt => sub {
-            a_ href => "/p$_->{pid}", title => $_->{original}||$_->{name}, $_->{name};
+            a_ href => "/$_->{pid}", title => $_->{original}||$_->{name}, $_->{name};
             txt_ ' (';
             txt_ join ', ', $_->{developer} ? 'developer' : (), $_->{publisher} ? 'publisher' : ();
             txt_ ')';
@@ -62,7 +62,7 @@ sub _infotable_ {
             td_ class => 'key', 'Relation';
             td_ sub {
                 join_ \&br_, sub {
-                    a_ href => "/v$_->{vid}", title => $_->{original}||$_->{title}, $_->{title};
+                    a_ href => "/$_->{vid}", title => $_->{original}||$_->{title}, $_->{title};
                 }, $r->{vn}->@*
             }
         };
@@ -168,7 +168,7 @@ sub _infotable_ {
                 td_ ucfirst($t).(@prod == 1 ? '' : 's');
                 td_ sub {
                     join_ \&br_, sub {
-                        a_ href => "/p$_->{pid}", title => $_->{original}||$_->{name}, $_->{name};
+                        a_ href => "/$_->{pid}", title => $_->{original}||$_->{name}, $_->{name};
                     }, @prod
                 }
             } if @prod;
@@ -205,20 +205,20 @@ sub _infotable_ {
 
 
 TUWF::get qr{/$RE{rrev}} => sub {
-    my $r = db_entry r => tuwf->capture('id'), tuwf->capture('rev');
+    my $r = db_entry tuwf->captures('id','rev');
     return tuwf->resNotFound if !$r;
 
     enrich_item $r;
     enrich_extlinks r => $r;
 
-    framework_ title => $r->{title}, index => !tuwf->capture('rev'), type => 'r', dbobj => $r, hiddenmsg => 1,
+    framework_ title => $r->{title}, index => !tuwf->capture('rev'), dbobj => $r, hiddenmsg => 1,
         og => {
             description => bb_format $r->{notes}, text => 1
         },
     sub {
         _rev_ $r if tuwf->capture('rev');
         div_ class => 'mainbox release', sub {
-            itemmsg_ r => $r;
+            itemmsg_ $r;
             h1_ sub { txt_ $r->{title}; debug_ $r };
             h2_ class => 'alttitle', lang_attr($r->{lang}), $r->{original} if length $r->{original};
             _infotable_ $r;

@@ -6,7 +6,7 @@ use VNWeb::Releases::Lib;
 
 
 my $FORM = {
-    id         => { required => 0, id => 1 },
+    id         => { required => 0, vndbid => 'v' },
     title      => { maxlength => 250 },
     original   => { required => 0, default => '', maxlength => 250 },
     alias      => { required => 0, default => '', maxlength => 500 },
@@ -16,7 +16,7 @@ my $FORM = {
     l_wikidata => { required => 0, uint => 1, max => (1<<31)-1 },
     l_renai    => { required => 0, default => '', maxlength => 100 },
     relations  => { sort_keys => 'vid', aoh => {
-        vid      => { id => 1 },
+        vid      => { vndbid => 'v' },
         relation => { enum => \%VN_RELATION },
         official => { anybool => 1 },
         title    => { _when => 'out' },
@@ -33,22 +33,22 @@ my $FORM = {
         aid      => { id => 1 },
         role     => { enum => \%CREDIT_TYPE },
         note     => { required => 0, default => '', maxlength => 250 },
-        id       => { _when => 'out', id => 1 },
+        id       => { _when => 'out', vndbid => 's' },
         name     => { _when => 'out' },
         original => { _when => 'out', required => 0, default => '' },
     } },
     seiyuu     => { sort_keys => ['aid','cid'], aoh => {
         aid      => { id => 1 },
-        cid      => { id => 1 },
+        cid      => { vndbid => 'c' },
         note     => { required => 0, default => '', maxlength => 250 },
         # Staff info
-        id       => { _when => 'out', id => 1 },
+        id       => { _when => 'out', vndbid => 's' },
         name     => { _when => 'out' },
         original => { _when => 'out', required => 0, default => '' },
     } },
     screenshots=> { sort_keys => 'scr', aoh => {
         scr      => { vndbid => 'sf' },
-        rid      => { required => 0, id => 1 },
+        rid      => { required => 0, vndbid => 'r' },
         info     => { _when => 'out', type => 'hash', keys => $VNWeb::Elm::apis{ImageResult}[0]{aoh} },
     } },
     hidden     => { anybool => 1 },
@@ -58,7 +58,7 @@ my $FORM = {
     editsum    => { _when => 'in out', editsum => 1 },
     releases   => { _when => 'out', $VNWeb::Elm::apis{Releases}[0]->%* },
     chars      => { _when => 'out', aoh => {
-        id       => { id => 1 },
+        id       => { vndbid => 'c' },
         name     => {},
         original => { required => 0, default => '' },
     } },
@@ -70,11 +70,11 @@ my $FORM_CMP = form_compile cmp => $FORM;
 
 
 TUWF::get qr{/$RE{vrev}/edit} => sub {
-    my $e = db_entry v => tuwf->capture('id'), tuwf->capture('rev') or return tuwf->resNotFound;
+    my $e = db_entry tuwf->captures('id', 'rev') or return tuwf->resNotFound;
     return tuwf->resDenied if !can_edit v => $e;
 
     $e->{authmod} = auth->permDbmod;
-    $e->{editsum} = $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision v$e->{id}.$e->{chrev}";
+    $e->{editsum} = $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
 
     if($e->{image}) {
         $e->{image_info} = { id => $e->{image} };
@@ -103,7 +103,7 @@ TUWF::get qr{/$RE{vrev}/edit} => sub {
          ORDER BY name, id'
     );
 
-    framework_ title => "Edit $e->{title}", type => 'v', dbobj => $e, tab => 'edit',
+    framework_ title => "Edit $e->{title}", dbobj => $e, tab => 'edit',
     sub {
         editmsg_ v => $e, "Edit $e->{title}";
         elm_ VNEdit => $FORM_OUT, $e;
@@ -125,7 +125,7 @@ TUWF::get qr{/v/add}, sub {
 elm_api VNEdit => $FORM_OUT, $FORM_IN, sub {
     my $data = shift;
     my $new = !$data->{id};
-    my $e = $new ? { id => 0 } : db_entry v => $data->{id} or return tuwf->resNotFound;
+    my $e = $new ? { id => 0 } : db_entry $data->{id} or return tuwf->resNotFound;
     return elm_Unauth if !can_edit v => $e;
 
     if(!auth->permDbmod) {
@@ -143,7 +143,7 @@ elm_api VNEdit => $FORM_OUT, $FORM_IN, sub {
 
     $data->{relations} = [] if $data->{hidden};
     validate_dbid 'SELECT id FROM vn WHERE id IN', map $_->{vid}, $data->{relations}->@*;
-    die "Relation with self" if grep $_->{vid} == $e->{id}, $data->{relations}->@*;
+    die "Relation with self" if grep $_->{vid} eq $e->{id}, $data->{relations}->@*;
 
     die "Screenshot without releases assigned" if grep !$_->{rid}, $data->{screenshots}->@*; # This is only the case for *very* old revisions, form disallows this now.
     # Allow linking to deleted or moved releases only if the previous revision also had that.
@@ -166,9 +166,9 @@ elm_api VNEdit => $FORM_OUT, $FORM_IN, sub {
     $_->{nsfw} = $oldscr{$_->{scr}}||0 for $data->{screenshots}->@*;
 
     return elm_Unchanged if !$new && !form_changed $FORM_CMP, $data, $e;
-    my($id,undef,$rev) = db_edit v => $e->{id}, $data;
-    update_reverse($id, $rev, $e, $data);
-    elm_Redirect "/v$id.$rev";
+    my $ch = db_edit v => $e->{id}, $data;
+    update_reverse($ch->{nitemid}, $ch->{nrev}, $e, $data);
+    elm_Redirect "/$ch->{nitemid}.$ch->{nrev}";
 };
 
 
@@ -194,13 +194,13 @@ sub update_reverse {
     }
 
     for my $i (keys %upd) {
-        my $v = db_entry v => $i;
+        my $v = db_entry $i;
         $v->{relations} = [
             $upd{$i} ? $upd{$i} : (),
-            grep $_->{vid} != $id, $v->{relations}->@*
+            grep $_->{vid} ne $id, $v->{relations}->@*
         ];
-        $v->{editsum} = "Reverse relation update caused by revision v$id.$rev";
-        db_edit v => $i, $v, 1;
+        $v->{editsum} = "Reverse relation update caused by revision $id.$rev";
+        db_edit v => $i, $v, 'u1';
     }
 }
 

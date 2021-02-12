@@ -8,11 +8,7 @@ my $FORM = {
     tid         => { required => 0, vndbid => 't' }, # Thread ID, only when editing a post
 
     title       => { required => 0, maxlength => 50 },
-    boards      => { required => 0, sort_keys => [ 'boardtype', 'iid' ], aoh => {
-        btype     => { enum => \%BOARD_TYPE },
-        iid       => { required => 0, default => 0, id => 1 }, #
-        title     => { required => 0 },
-    } },
+    boards      => { required => 0, sort_keys => [ 'boardtype', 'iid' ], aoh => $VNWeb::Elm::apis{BoardResult}[0]{aoh} },
     poll        => { required => 0, type => 'hash', keys => {
         question    => { maxlength => 100 },
         max_options => { uint => 1, min => 1, max => 20 }, #
@@ -54,7 +50,7 @@ elm_api DiscussionsEdit => $FORM_OUT, $FORM_IN, sub {
         tuwf->dbExeci('DELETE FROM threads WHERE id =', \$tid);
         return elm_Redirect '/t';
     }
-    auth->audit($t->{user_id}, 'post edit', "edited $tid.1") if $tid && $t->{user_id} != auth->uid;
+    auth->audit($t->{user_id}, 'post edit', "edited $tid.1") if $tid && $t->{user_id} ne auth->uid;
 
 
     die "Invalid title" if !length $data->{title};
@@ -88,7 +84,7 @@ elm_api DiscussionsEdit => $FORM_OUT, $FORM_IN, sub {
     $tid = tuwf->dbVali('INSERT INTO threads', $thread, 'RETURNING id') if !$tid;
 
     tuwf->dbExeci('DELETE FROM threads_boards WHERE tid =', \$tid);
-    tuwf->dbExeci('INSERT INTO threads_boards', { tid => $tid, type => $_->{btype}, iid => $_->{iid}//0 }) for $data->{boards}->@*;
+    tuwf->dbExeci('INSERT INTO threads_boards', { tid => $tid, type => $_->{btype}, iid => $_->{iid} }) for $data->{boards}->@*;
 
     if($pollchanged) {
         tuwf->dbExeci('DELETE FROM threads_poll_options WHERE tid =', \$tid);
@@ -110,7 +106,9 @@ elm_api DiscussionsEdit => $FORM_OUT, $FORM_IN, sub {
 
 
 TUWF::get qr{(?:/t/(?<board>$BOARD_RE)/new|/$RE{tid}\.1/edit)}, sub {
-    my($board_type, $board_id) = (tuwf->capture('board')||'') =~ /^([^0-9]+)([0-9]*)$/;
+    my $board_id = tuwf->capture('board')||'';
+    my($board_type) = $board_id =~ /^([^0-9]+)/;
+    $board_id = undef if $board_id !~ /[0-9]$/;
     my $tid = tuwf->capture('id');
 
     $board_type = 'ge' if $board_type && $board_type eq 'an' && !auth->permBoardmod;
@@ -134,13 +132,13 @@ TUWF::get qr{(?:/t/(?<board>$BOARD_RE)/new|/$RE{tid}\.1/edit)}, sub {
     } else {
         $t->{boards} = [ {
             btype => $board_type,
-            iid   => $board_id||0,
+            iid   => $board_id||undef,
             title => !$board_id ? undef :
                 tuwf->dbVali('SELECT title FROM', sql_boards(), 'x WHERE btype =', \$board_type, 'AND iid =', \$board_id)
         } ];
         return tuwf->resNotFound if $board_id && !length $t->{boards}[0]{title};
         push $t->{boards}->@*, { btype => 'u', iid => auth->uid, title => auth->user->{user_name} }
-            if $board_type eq 'u' && $board_id != auth->uid;
+            if $board_type eq 'u' && $board_id ne auth->uid;
     }
 
     $t->{can_mod}     = auth->permBoardmod;

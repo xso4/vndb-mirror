@@ -3,7 +3,7 @@ package VNWeb::User::PassSet;
 use VNWeb::Prelude;
 
 my $FORM = {
-    uid      => { id => 1 },
+    uid      => { vndbid => 'u' },
     token    => { regex => qr/[a-f0-9]{40}/ },
     password => { _when => 'in', password => 1 },
 };

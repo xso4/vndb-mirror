@@ -27,7 +27,7 @@ sub feed {
             tag published => datetime $_->{published} if $_->{published};
             tag author => sub {
                 tag name => $_->{user_name};
-                tag uri => "$base/u$_->{user_id}";
+                tag uri => "$base/$_->{user_id}";
             } if $_->{user_id};
             tag link => rel => 'alternate', type => 'text/html', href => "$base/$_->{id}", undef;
             tag summary => type => 'html', bb_format $_->{summary}, maxlength => 300 if $_->{summary};
@@ -52,9 +52,9 @@ TUWF::get qr{/feeds/announcements.atom}, sub {
 
 
 TUWF::get qr{/feeds/changes.atom}, sub {
-    my($lst) = VNWeb::Misc::History::fetch(undef, undef, {m=>1,h=>1,p=>1}, {results=>25});
+    my($lst) = VNWeb::Misc::History::fetch(undef, {m=>1,h=>1,p=>1}, {results=>25});
     for (@$lst) {
-        $_->{id}      = "$_->{type}$_->{itemid}.$_->{rev}";
+        $_->{id}      = "$_->{itemid}.$_->{rev}";
         $_->{summary} = $_->{comments};
         $_->{updated} = $_->{added};
     }

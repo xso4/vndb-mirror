@@ -26,8 +26,8 @@ main = Browser.element
 port ulistLabelChanged : Bool -> Cmd msg
 
 type alias Model =
-  { uid      : Int
-  , vid      : Int
+  { uid      : String
+  , vid      : String
   , labels   : List GLE.RecvLabels
   , sel      : Set Int -- Set of label IDs applied on the server
   , tsel     : Set Int -- Set of label IDs applied on the client
@@ -43,7 +43,7 @@ init f =
   , sel      = Set.fromList f.selected
   , tsel     = Set.fromList f.selected
   , state    = Dict.empty
-  , dd       = DD.init ("ulist_labeledit_dd" ++ String.fromInt f.vid) Open
+  , dd       = DD.init ("ulist_labeledit_dd" ++ f.vid) Open
   }
 
 type Msg

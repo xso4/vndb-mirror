@@ -36,7 +36,7 @@ type Sel
 type alias Model =
   { state    : Api.State
   , title    : String
-  , id       : Int
+  , id       : String
   , mod      : Bool
   , tags     : List Tag
   , saved    : List Tag
@@ -123,7 +123,7 @@ update msg model =
 
 
 
-viewTag : Tag -> Sel -> Int -> Bool -> Html Msg
+viewTag : Tag -> Sel -> String -> Bool -> Html Msg
 viewTag t sel vid mod =
   let
     -- Similar to VNWeb::Tags::Lib::tagscore_
@@ -201,7 +201,7 @@ viewTag t sel vid mod =
         , td [ class "tc_allspoil"] [ text <| Ffi.fmtFloat t.spoiler 2 ]
         , td [ class "tc_allwho"  ]
           [ span [ style "opacity" <| if t.othnotes == "" then "0" else "1", style "cursor" "default", title t.othnotes ] [ text "💬 " ]
-          , a [ href <| "/g/links?v="++String.fromInt vid++"&t="++String.fromInt t.id ] [ text "Who?" ]
+          , a [ href <| "/g/links?v="++vid++"&t="++String.fromInt t.id ] [ text "Who?" ]
           ]
         ]
 

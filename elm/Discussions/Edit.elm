@@ -87,7 +87,7 @@ numPollOptions : Model -> Int
 numPollOptions model = Maybe.withDefault 0 (Maybe.map (\o -> List.length o.options) model.poll)
 
 dupBoards : Model -> Bool
-dupBoards model = hasDuplicates (List.map (\b -> (b.btype, b.iid)) (Maybe.withDefault [] model.boards))
+dupBoards model = hasDuplicates (List.map (\b -> (b.btype, Maybe.withDefault "" b.iid)) (Maybe.withDefault [] model.boards))
 
 isValid : Model -> Bool
 isValid model = not (model.boards == Just [] || dupBoards model || Maybe.map (\p -> p.max_options < 1 || p.max_options > numPollOptions model) model.poll == Just True)
@@ -151,13 +151,13 @@ view model =
         , a [ href "#", onClickD (BoardDel n), tabindex 10 ] [ text "remove" ]
         , text "] "
         , text (Maybe.withDefault "" (lookup bd.btype boardTypes))
-        ] ++ case (bd.btype, bd.title) of
-          (_, Just title) ->
+        ] ++ case (bd.btype, bd.iid, bd.title) of
+          (_, Just iid, Just title) ->
             [ b [ class "grayedout" ] [ text " > " ]
-            , a [ href <| "/" ++ bd.btype ++ String.fromInt bd.iid ] [ text title ]
+            , a [ href <| "/" ++ iid ] [ text title ]
             ]
-          ("u", _) -> [ b [ class "grayedout" ] [ text " > " ], text <| bd.btype ++ String.fromInt bd.iid ++ " (deleted)" ]
-          (_, _) -> []
+          ("u", Just iid, _) -> [ b [ class "grayedout" ] [ text " > " ], text <| iid ++ " (deleted)" ]
+          _ -> []
 
     boards () =
       [ text "You can link this thread to multiple boards. Every visual novel, producer and user in the database has its own board,"

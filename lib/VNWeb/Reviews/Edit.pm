@@ -6,9 +6,9 @@ use VNWeb::Releases::Lib;
 
 my $FORM = {
     id      => { vndbid => 'w', required => 0 },
-    vid     => { id => 1 },
+    vid     => { vndbid => 'v' },
     vntitle => { _when => 'out' },
-    rid     => { id => 1, required => 0 },
+    rid     => { vndbid => 'r', required => 0 },
     spoiler => { anybool => 1 },
     isfull  => { anybool => 1 },
     text    => { maxlength => 100_000, required => 0, default => '' },
@@ -58,7 +58,7 @@ TUWF::get qr{/$RE{wid}/edit}, sub {
 
     $e->{releases} = releases_by_vn $e->{vid};
     $e->{mod} = auth->permBoardmod;
-    framework_ title => "Edit review for $e->{vntitle}", type => 'w', dbobj => $e, tab => 'edit', sub {
+    framework_ title => "Edit review for $e->{vntitle}", dbobj => $e, tab => 'edit', sub {
         elm_ 'Reviews.Edit' => $FORM_OUT, $e;
     };
 };
@@ -83,7 +83,7 @@ elm_api ReviewsEdit => $FORM_OUT, $FORM_IN, sub {
     if($id) {
         $data->{lastmod} = sql 'NOW()';
         tuwf->dbExeci('UPDATE reviews SET', $data, 'WHERE id =', \$id) if $id;
-        auth->audit($review->{user_id}, 'review edit', "edited $review->{id}") if auth->uid != $review->{user_id};
+        auth->audit($review->{user_id}, 'review edit', "edited $review->{id}") if auth->uid ne $review->{user_id};
 
     } else {
         return elm_Unauth if tuwf->dbVali('SELECT 1 FROM reviews WHERE vid =', \$data->{vid}, 'AND uid =', \auth->uid);

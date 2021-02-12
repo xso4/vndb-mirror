@@ -21,7 +21,7 @@ main = Browser.element
 
 type alias Model =
   { state : Api.State
-  , uid   : Int
+  , uid   : String
   , opts  : GUSD.SendOpts
   , field : String -- Ewwww stringly typed enum
   , hid   : Bool

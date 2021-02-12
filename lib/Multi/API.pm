@@ -5,7 +5,7 @@
 
 package Multi::API;
 
-use strict;
+use v5.26;
 use warnings;
 use Multi::Core;
 use Socket 'SO_KEEPALIVE', 'SOL_SOCKET', 'IPPROTO_TCP';
@@ -362,6 +362,8 @@ sub parsedate {
 
 sub formatwd { $_[0] ? "Q$_[0]" : undef }
 
+sub idnum { defined $_[0] ? 1*($_[0] =~ s/^[a-z]+//r) : undef }
+
 
 sub splitarray {
   (my $s = shift) =~ s/^{(.*)}$/$1/;
@@ -410,7 +412,7 @@ my %GET_VN = (
   sql     => 'SELECT %s FROM vn v LEFT JOIN images i ON i.id = v.image WHERE NOT v.hidden AND (%s) %s',
   select  => 'v.id',
   proc    => sub {
-    $_[0]{id} *= 1
+    $_[0]{id} = idnum $_[0]{id};
   },
   sortdef => 'id',
   sorts   => {
@@ -464,7 +466,7 @@ my %GET_VN = (
         sub { my($r, $n) = @_;
           # link
           for my $i (@$r) {
-            $i->{anime} = [ grep $i->{id} == $_->{vid}, @$n ];
+            $i->{anime} = [ grep $i->{id} eq $_->{vid}, @$n ];
           }
           # cleanup
           for (@$n) {
@@ -481,10 +483,10 @@ my %GET_VN = (
                      JOIN vn v ON v.id = vr.vid WHERE vr.id IN(%s)',
         sub { my($r, $n) = @_;
           for my $i (@$r) {
-            $i->{relations} = [ grep $i->{id} == $_->{vid}, @$n ];
+            $i->{relations} = [ grep $i->{id} eq $_->{vid}, @$n ];
           }
           for (@$n) {
-            $_->{id} *= 1;
+            $_->{id} = idnum $_->{id};
             $_->{original} ||= undef;
             $_->{official} = $_->{official} =~ /t/ ? TRUE : FALSE,
             delete $_->{vid};
@@ -501,7 +503,7 @@ my %GET_VN = (
           for my $i (@$r) {
             $i->{tags} = [ map
               [ $_->{id}*1, 1*sprintf('%.2f', $_->{score}), 1*sprintf('%.0f', $_->{spoiler}) ],
-              grep $i->{id} == $_->{vid}, @$n ];
+              grep $i->{id} eq $_->{vid}, @$n ];
           }
         },
       ]],
@@ -511,11 +513,11 @@ my %GET_VN = (
                       FROM vn_screenshots vs JOIN images s ON s.id = vs.scr WHERE vs.id IN(%s)',
         sub { my($r, $n) = @_;
           for my $i (@$r) {
-            $i->{screens} = [ grep $i->{id} == $_->{vid}, @$n ];
+            $i->{screens} = [ grep $i->{id} eq $_->{vid}, @$n ];
           }
           for (@$n) {
             $_->{image} = imgurl delete $_->{scr};
-            $_->{rid} *= 1;
+            $_->{rid} = idnum $_->{rid};
             $_->{nsfw} = !$_->{c_votecount} || $_->{c_sexual_avg} > 0.4 || $_->{c_violence_avg} > 0.4 ? TRUE : FALSE;
             $_->{width} *= 1;
             $_->{height} *= 1;
@@ -531,11 +533,11 @@ my %GET_VN = (
                       WHERE vs.id IN(%s) AND NOT s.hidden',
         sub { my($r, $n) = @_;
           for my $i (@$r) {
-            $i->{staff} = [ grep $i->{id} == $_->{id}, @$n ];
+            $i->{staff} = [ grep $i->{id} eq $_->{id}, @$n ];
           }
           for (@$n) {
             $_->{aid} *= 1;
-            $_->{sid} *= 1;
+            $_->{sid} = idnum $_->{sid};
             $_->{original} ||= undef;
             $_->{note} ||= undef;
             delete $_->{id};
@@ -546,8 +548,8 @@ my %GET_VN = (
   },
   filters => {
     id => [
-      [ 'int' => 'v.id :op: :value:', {qw|= =  != <>  > >  < <  <= <=  >= >=|}, range => [1,1e6] ],
-      [ inta  => 'v.id :op:(:value:)', {'=' => 'IN', '!= ' => 'NOT IN'}, range => [1,1e6], join => ',' ],
+      [ 'int' => 'v.id :op: :value:', {qw|= =  != <>  > >  < <  <= <=  >= >=|}, process => \'v' ],
+      [ inta  => 'v.id :op:(:value:)', {'=' => 'IN', '!= ' => 'NOT IN'}, process => \'v', join => ',' ],
     ],
     title => [
       [ str   => 'v.title :op: :value:', {qw|= =  != <>|} ],
@@ -601,7 +603,7 @@ my %GET_RELEASE = (
     released => 'r.released %s',
   },
   proc    => sub {
-    $_[0]{id} *= 1
+    $_[0]{id} = idnum $_[0]{id};
   },
   flags => {
     basic => {
@@ -616,7 +618,7 @@ my %GET_RELEASE = (
       fetch => [[ 'id', 'SELECT id, lang FROM releases_lang WHERE id IN(%s)',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
-            $i->{languages} = [ map $i->{id} == $_->{id} ? $_->{lang} : (), @$r ];
+            $i->{languages} = [ map $i->{id} eq $_->{id} ? $_->{lang} : (), @$r ];
           }
         },
       ]],
@@ -644,13 +646,13 @@ my %GET_RELEASE = (
         [ 'id', 'SELECT id, platform FROM releases_platforms WHERE id IN(%s)',
           sub { my($n, $r) = @_;
             for my $i (@$n) {
-               $i->{platforms} = [ map $i->{id} == $_->{id} ? $_->{platform} : (), @$r ];
+               $i->{platforms} = [ map $i->{id} eq $_->{id} ? $_->{platform} : (), @$r ];
             }
           } ],
         [ 'id', 'SELECT id, medium, qty FROM releases_media WHERE id IN(%s)',
           sub { my($n, $r) = @_;
             for my $i (@$n) {
-              $i->{media} = [ grep $i->{id} == $_->{id}, @$r ];
+              $i->{media} = [ grep $i->{id} eq $_->{id}, @$r ];
             }
             for (@$r) {
               delete $_->{id};
@@ -664,10 +666,10 @@ my %GET_RELEASE = (
                     WHERE NOT v.hidden AND rv.id IN(%s)',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
-            $i->{vn} = [ grep $i->{id} == $_->{rid}, @$r ];
+            $i->{vn} = [ grep $i->{id} eq $_->{rid}, @$r ];
           }
           for (@$r) {
-            $_->{id}*=1;
+            $_->{id} = idnum $_->{id};
             $_->{original} ||= undef;
             delete $_->{rid};
           }
@@ -679,10 +681,10 @@ my %GET_RELEASE = (
                     JOIN producers p ON p.id = rp.pid WHERE NOT p.hidden AND rp.id IN(%s)',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
-            $i->{producers} = [ grep $i->{id} == $_->{rid}, @$r ];
+            $i->{producers} = [ grep $i->{id} eq $_->{rid}, @$r ];
           }
           for (@$r) {
-            $_->{id}*=1;
+            $_->{id} = idnum $_->{id};
             $_->{original}  ||= undef;
             $_->{developer} = $_->{developer} =~ /^t/ ? TRUE : FALSE;
             $_->{publisher} = $_->{publisher} =~ /^t/ ? TRUE : FALSE;
@@ -694,15 +696,15 @@ my %GET_RELEASE = (
   },
   filters => {
     id => [
-      [ 'int' => 'r.id :op: :value:', {qw|= =  != <>  > >  >= >=  < <  <= <=|}, range => [1,1e6] ],
-      [ inta  => 'r.id :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, join => ',', range => [1,1e6] ],
+      [ 'int' => 'r.id :op: :value:', {qw|= =  != <>  > >  >= >=  < <  <= <=|}, process => \'r' ],
+      [ inta  => 'r.id :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, join => ',', process => \'r' ],
     ],
     vn => [
-      [ 'int' => 'r.id :op:(SELECT rv.id FROM releases_vn rv WHERE rv.vid = :value:)', {'=' => 'IN', '!=' => 'NOT IN'}, range => [1,1e6] ],
-      [ inta  => 'r.id :op:(SELECT rv.id FROM releases_vn rv WHERE rv.vid IN(:value:))', {'=' => 'IN', '!=' => 'NOT IN'}, join => ',', range => [1,1e6] ],
+      [ 'int' => 'r.id :op:(SELECT rv.id FROM releases_vn rv WHERE rv.vid = :value:)', {'=' => 'IN', '!=' => 'NOT IN'}, process => \'v' ],
+      [ inta  => 'r.id :op:(SELECT rv.id FROM releases_vn rv WHERE rv.vid IN(:value:))', {'=' => 'IN', '!=' => 'NOT IN'}, join => ',', process => \'v' ],
     ],
     producer => [
-      [ 'int' => 'r.id IN(SELECT rp.id FROM releases_producers rp WHERE rp.pid = :value:)', {'=',1}, range => [1,1e6] ],
+      [ 'int' => 'r.id IN(SELECT rp.id FROM releases_producers rp WHERE rp.pid = :value:)', {'=',1}, process => \'p' ],
     ],
     title => [
       [ str   => 'r.title :op: :value:', {qw|= =  != <>|} ],
@@ -745,7 +747,7 @@ my %GET_PRODUCER = (
   sql     => 'SELECT %s FROM producers p WHERE NOT p.hidden AND (%s) %s',
   select  => 'p.id',
   proc    => sub {
-    $_[0]{id} *= 1
+    $_[0]{id} = idnum $_[0]{id}
   },
   sortdef => 'id',
   sorts   => {
@@ -776,10 +778,10 @@ my %GET_PRODUCER = (
                     JOIN producers p ON p.id = pl.pid WHERE pl.id IN(%s)',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
-            $i->{relations} = [ grep $i->{id} == $_->{pid}, @$r ];
+            $i->{relations} = [ grep $i->{id} eq $_->{pid}, @$r ];
           }
           for (@$r) {
-            $_->{id}*=1;
+            $_->{id} = idnum $_->{id};
             $_->{original} ||= undef;
             delete $_->{pid};
           }
@@ -789,8 +791,8 @@ my %GET_PRODUCER = (
   },
   filters => {
     id => [
-      [ 'int' => 'p.id :op: :value:', {qw|= =  != <>  > >  < <  <= <=  >= >=|}, range => [1,1e6] ],
-      [ inta  => 'p.id :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, join => ',', range => [1,1e6] ],
+      [ 'int' => 'p.id :op: :value:', {qw|= =  != <>  > >  < <  <= <=  >= >=|}, process => \'p' ],
+      [ inta  => 'p.id :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, join => ',', process => \'p' ],
     ],
     name => [
       [ str   => 'p.name :op: :value:', {qw|= =  != <>|} ],
@@ -819,7 +821,7 @@ my %GET_CHARACTER = (
   sql     => 'SELECT %s FROM chars c LEFT JOIN images i ON i.id = c.image WHERE NOT c.hidden AND (%s) %s',
   select  => 'c.id',
   proc    => sub {
-    $_[0]{id} *= 1
+    $_[0]{id} = idnum $_[0]{id};
   },
   sortdef => 'id',
   sorts   => {
@@ -857,7 +859,7 @@ my %GET_CHARACTER = (
       fetch => [[ 'id', 'SELECT id, tid, spoil FROM chars_traits WHERE id IN(%s)',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
-            $i->{traits} = [ map [ $_->{tid}*1, $_->{spoil}*1 ], grep $i->{id} == $_->{id}, @$r ];
+            $i->{traits} = [ map [ $_->{tid}*1, $_->{spoil}*1 ], grep $i->{id} eq $_->{id}, @$r ];
           }
         },
       ]],
@@ -866,7 +868,7 @@ my %GET_CHARACTER = (
       fetch => [[ 'id', 'SELECT id, vid, rid, spoil, role FROM chars_vns WHERE id IN(%s)',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
-            $i->{vns} = [ map [ $_->{vid}*1, ($_->{rid}||0)*1, $_->{spoil}*1, $_->{role} ], grep $i->{id} == $_->{id}, @$r ];
+            $i->{vns} = [ map [ idnum($_->{vid}), idnum($_->{rid}||0), $_->{spoil}*1, $_->{role} ], grep $i->{id} eq $_->{id}, @$r ];
           }
         },
       ]],
@@ -877,12 +879,12 @@ my %GET_CHARACTER = (
           WHERE vs.cid IN(%s) AND NOT v.hidden AND NOT s.hidden',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
-            $i->{voiced} = [ grep $i->{id} == $_->{cid}, @$r ];
+            $i->{voiced} = [ grep $i->{id} eq $_->{cid}, @$r ];
           }
           for (@$r) {
-            $_->{id}*=1;
+            $_->{id}  = idnum $_->{id};
             $_->{aid}*=1;
-            $_->{vid}*=1;
+            $_->{vid} = idnum $_->{vid};
             $_->{note} ||= undef;
             delete $_->{cid};
           }
@@ -894,10 +896,10 @@ my %GET_CHARACTER = (
                   UNION SELECT c.main AS cid, c.id, c.name, c.original,  c.main_spoil AS spoiler FROM chars c WHERE c.main IN(%1$s)',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
-            $i->{instances} = [ grep $i->{id} == $_->{cid} && $_->{id} != $i->{id}, @$r ];
+            $i->{instances} = [ grep $i->{id} eq $_->{cid} && $_->{id} ne $i->{id}, @$r ];
           }
           for (@$r) {
-            $_->{id}*=1;
+            $_->{id} = idnum $_->{id};
             $_->{original} ||= undef;
             $_->{spoiler}*=1;
             delete $_->{cid};
@@ -908,8 +910,8 @@ my %GET_CHARACTER = (
   },
   filters => {
     id => [
-      [ 'int' => 'c.id :op: :value:', {qw|= =  != <>  > >  < <  <= <=  >= >=|}, range => [1,1e6] ],
-      [ inta  => 'c.id :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, range => [1,1e6], join => ',' ],
+      [ 'int' => 'c.id :op: :value:', {qw|= =  != <>  > >  < <  <= <=  >= >=|}, process => \'c' ],
+      [ inta  => 'c.id :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, process => \'c', join => ',' ],
     ],
     name => [
       [ str   => 'c.name :op: :value:', {qw|= =  != <>|} ],
@@ -924,8 +926,8 @@ my %GET_CHARACTER = (
       [ str   => '(c.name ILIKE :value: OR c.original ILIKE :value: OR c.alias ILIKE :value:)', {'~',1}, process => \'like' ],
     ],
     vn => [
-      [ 'int' => 'c.id IN(SELECT cv.id FROM chars_vns cv WHERE cv.vid = :value:)', {'=',1}, range => [1,1e6] ],
-      [ inta  => 'c.id IN(SELECT cv.id FROM chars_vns cv WHERE cv.vid IN(:value:))', {'=',1}, range => [1,1e6], join => ',' ],
+      [ 'int' => 'c.id IN(SELECT cv.id FROM chars_vns cv WHERE cv.vid = :value:)', {'=',1}, process => \'v' ],
+      [ inta  => 'c.id IN(SELECT cv.id FROM chars_vns cv WHERE cv.vid IN(:value:))', {'=',1}, process => \'v', join => ',' ],
     ],
     traits => [
       [ int   => 'c.id :op:(SELECT tc.cid FROM traits_chars tc WHERE tc.tid = :value:)',   {'=' => 'IN', '!=' => 'NOT IN'}, range => [1,1e6] ],
@@ -939,7 +941,7 @@ my %GET_STAFF = (
   sql     => 'SELECT %s FROM staff s JOIN staff_alias sa ON sa.aid = s.aid WHERE NOT s.hidden AND (%s) %s',
   select  => 's.id',
   proc    => sub {
-    $_[0]{id} *= 1
+    $_[0]{id} = idnum $_[0]{id};
   },
   sortdef => 'id',
   sorts   => {
@@ -975,7 +977,7 @@ my %GET_STAFF = (
       fetch => [[ 'id', 'SELECT id, aid, name, original FROM staff_alias WHERE id IN(%s)',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
-            $i->{aliases} = [ map [ $_->{aid}*1, $_->{name}, $_->{original}||undef ], grep $i->{id} == $_->{id}, @$r ];
+            $i->{aliases} = [ map [ $_->{aid}*1, $_->{name}, $_->{original}||undef ], grep $i->{id} eq $_->{id}, @$r ];
           }
         },
       ]],
@@ -986,10 +988,10 @@ my %GET_STAFF = (
           WHERE sa.id IN(%s) AND NOT v.hidden',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
-            $i->{vns} = [ grep $i->{id} == $_->{sid}, @$r ];
+            $i->{vns} = [ grep $i->{id} eq $_->{sid}, @$r ];
           }
           for (@$r) {
-            $_->{id}*=1;
+            $_->{id} = idnum $_->{id};
             $_->{aid}*=1;
             $_->{note} ||= undef;
             delete $_->{sid};
@@ -1003,12 +1005,12 @@ my %GET_STAFF = (
           WHERE sa.id IN(%s) AND NOT v.hidden',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
-            $i->{voiced} = [ grep $i->{id} == $_->{sid}, @$r ];
+            $i->{voiced} = [ grep $i->{id} eq $_->{sid}, @$r ];
           }
           for (@$r) {
-            $_->{id}*=1;
+            $_->{id} = idnum $_->{id};
             $_->{aid}*=1;
-            $_->{cid}*=1;
+            $_->{cid} = idnum $_->{cid};
             $_->{note} ||= undef;
             delete $_->{sid};
           }
@@ -1018,8 +1020,8 @@ my %GET_STAFF = (
   },
   filters => {
     id => [
-      [ 'int' => 's.id :op: :value:', {qw|= =  != <>  > >  < <  <= <=  >= >=|}, range => [1,1e6] ],
-      [ inta  => 's.id :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, range => [1,1e6], join => ',' ],
+      [ 'int' => 's.id :op: :value:', {qw|= =  != <>  > >  < <  <= <=  >= >=|}, process => \'s' ],
+      [ inta  => 's.id :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, range => [1,1e6], process => \'s' ],
     ],
     aid => [
       [ 'int' => 's.id IN(SELECT sa.id FROM staff_alias sa WHERE sa.aid = :value:)', {'=',1}, range => [1,1e6] ],
@@ -1036,36 +1038,36 @@ my %GET_QUOTE = (
   sql     => "SELECT %s FROM quotes q JOIN vn v ON v.id = q.vid WHERE NOT v.hidden AND (%s) %s",
   select  => "v.id, v.title, q.quote",
   proc    => sub {
-    $_[0]{id}*=1;
+    $_[0]{id} = idnum $_[0]{id};
   },
   sortdef => 'random',
   sorts   => { id => 'q.vid %s', random => 'RANDOM() %s' },
   flags   => { basic => {} },
   filters => {
     id => [
-      [ 'int' => 'q.vid :op: :value:', {qw|= =  != <>  > >  >= >=  < <  <= <=|}, range => [1,1e6] ],
-      [ inta  => 'q.vid :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, join => ',', range => [1,1e6] ],
+      [ 'int' => 'q.vid :op: :value:', {qw|= =  != <>  > >  >= >=  < <  <= <=|}, process => \'v' ],
+      [ inta  => 'q.vid :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, join => ',', process => \'v' ],
     ]
   },
 );
 
 
 # All user ID filters consider uid=0 to be the logged in user. Needs a special processing function to handle that.
-sub subst_user_id { my($id, $c) = @_; !$id && !$c->{uid} ? \'Not logged in.' : $id || $c->{uid} }
+sub subst_user_id { my($id, $c) = @_; $id && $id =~ /^[1-9][0-9]{0,6}$/ ? "u$id" : ($c->{uid} || \'Not logged in.') }
 
 my %GET_USER = (
   sql     => "SELECT %s FROM users u WHERE (%s) %s",
   select  => "id, username",
   proc    => sub {
-    $_[0]{id}*=1;
+    $_[0]{id} = idnum $_[0]{id};
   },
   sortdef => 'id',
   sorts   => { id => 'id %s' },
   flags   => { basic => {} },
   filters => {
     id => [
-      [ 'int' => 'u.id :op: :value:', {qw|= =|}, range => [0,1e6], process => \&subst_user_id ],
-      [ inta  => 'u.id IN(:value:)', {'=',1}, range => [0,1e6], join => ',', process => \&subst_user_id ],
+      [ 'int' => 'u.id :op: :value:', {qw|= =|}, process => \&subst_user_id ],
+      [ inta  => 'u.id IN(:value:)', {'=',1}, join => ',', process => \&subst_user_id ],
     ],
     username => [
       [ str   => 'u.username :op: :value:', {qw|= =  != <>|} ],
@@ -1077,7 +1079,7 @@ my %GET_USER = (
 
 
 # the uid filter for votelist/vnlist/wishlist
-my $UID_FILTER = [ 'int' => 'uv.uid :op: :value:', {qw|= =|}, range => [0,1e6], process => \&subst_user_id ];
+my $UID_FILTER = [ 'int' => 'uv.uid :op: :value:', {qw|= =|}, process => \&subst_user_id ];
 
 # Similarly, a filter for 'vid'
 my $VN_FILTER = [
@@ -1091,11 +1093,11 @@ my $UV_PUBLIC = 'EXISTS(SELECT 1 FROM ulist_vns_labels uvl JOIN ulist_labels ul 
 my %GET_VOTELIST = (
   islist  => 1,
   sql     => "SELECT %s FROM ulist_vns uv WHERE uv.vote IS NOT NULL AND (%s) AND $UV_PUBLIC %s",
-  sqluser => "SELECT %1\$s FROM ulist_vns uv WHERE uv.vote IS NOT NULL AND (%2\$s) AND (uid = %4\$d OR $UV_PUBLIC) %3\$s",
-  select  => "uid, vid as vn, vote, extract('epoch' from vote_date) AS added",
+  sqluser => "SELECT %1\$s FROM ulist_vns uv WHERE uv.vote IS NOT NULL AND (%2\$s) AND (uid = %4\$s OR $UV_PUBLIC) %3\$s",
+  select  => "uid AS uid, vid as vn, vote, extract('epoch' from vote_date) AS added",
   proc    => sub {
-    $_[0]{uid}*=1;
-    $_[0]{vn}*=1;
+    $_[0]{uid} = idnum $_[0]{uid};
+    $_[0]{vn}  = idnum $_[0]{vn};
     $_[0]{vote}*=1;
     $_[0]{added} = int $_[0]{added};
   },
@@ -1112,11 +1114,11 @@ my $SQL_VNLIST = 'FROM ulist_vns uv LEFT JOIN ulist_vns_labels uvl ON uvl.uid = 
 my %GET_VNLIST = (
   islist  => 1,
   sql     => "SELECT %s    $SQL_VNLIST AND (%s)    AND                    $UV_PUBLIC  GROUP BY uv.uid, uv.vid, uv.added, uv.notes %s",
-  sqluser => "SELECT %1\$s $SQL_VNLIST AND (%2\$s) AND (uv.uid = %4\$d OR $UV_PUBLIC) GROUP BY uv.uid, uv.vid, uv.added, uv.notes %3\$s",
-  select  => "uv.uid, uv.vid as vn, MAX(uvl.lbl) AS status, extract('epoch' from uv.added) AS added, uv.notes",
+  sqluser => "SELECT %1\$s $SQL_VNLIST AND (%2\$s) AND (uv.uid = %4\$s OR $UV_PUBLIC) GROUP BY uv.uid, uv.vid, uv.added, uv.notes %3\$s",
+  select  => "uv.uid AS uid, uv.vid as vn, MAX(uvl.lbl) AS status, extract('epoch' from uv.added) AS added, uv.notes",
   proc    => sub {
-    $_[0]{uid}*=1;
-    $_[0]{vn}*=1;
+    $_[0]{uid} = idnum $_[0]{uid};
+    $_[0]{vn}  = idnum $_[0]{vn};
     $_[0]{status} = defined $_[0]{status} ? $_[0]{status}*1 : 0;
     $_[0]{added} = int $_[0]{added};
     $_[0]{notes} ||= undef;
@@ -1133,11 +1135,11 @@ my $SQL_WISHLIST = "FROM ulist_vns uv JOIN ulist_vns_labels uvl ON uvl.uid = uv.
 my %GET_WISHLIST = (
   islist  => 1,
   sql     => "SELECT %s    $SQL_WISHLIST AND (%s)    AND                    NOT ul.private  GROUP BY uv.uid, uv.vid, uv.added %s",
-  sqluser => "SELECT %1\$s $SQL_WISHLIST AND (%2\$s) AND (uv.uid = %4\$d OR NOT ul.private) GROUP BY uv.uid, uv.vid, uv.added %3\$s",
-  select  => "uv.uid, uv.vid AS vn, MAX(ul.label) AS priority, extract('epoch' from uv.added) AS added",
+  sqluser => "SELECT %1\$s $SQL_WISHLIST AND (%2\$s) AND (uv.uid = %4\$s OR NOT ul.private) GROUP BY uv.uid, uv.vid, uv.added %3\$s",
+  select  => "uv.uid AS uid, uv.vid AS vn, MAX(ul.label) AS priority, extract('epoch' from uv.added) AS added",
   proc    => sub {
-    $_[0]{uid}*=1;
-    $_[0]{vn}*=1;
+    $_[0]{uid} = idnum $_[0]{uid};
+    $_[0]{vn}  = idnum $_[0]{vn};
     $_[0]{priority} = {'Wishlist-High' => 0, 'Wishlist-Medium' => 1, 'Wishlist-Low' => 2, 'Blacklist' => 3}->{$_[0]{priority}}//1;
     $_[0]{added} = int $_[0]{added};
   },
@@ -1150,11 +1152,11 @@ my %GET_WISHLIST = (
 my %GET_ULIST_LABELS = (
   islist  => 1,
   sql     => 'SELECT %s FROM ulist_labels uv WHERE (%s) AND NOT uv.private %s',
-  sqluser => 'SELECT %1$s FROM ulist_labels uv WHERE (%2$s) AND (uv.uid = %4$d OR NOT uv.private) %3$s',
-  select  => 'uid, id, label, private',
+  sqluser => 'SELECT %1$s FROM ulist_labels uv WHERE (%2$s) AND (uv.uid = %4$s OR NOT uv.private) %3$s',
+  select  => 'uid AS uid, id, label, private',
   proc    => sub {
-    $_[0]{uid}*=1;
-    $_[0]{id}*=1;
+    $_[0]{uid} = idnum $_[0]{uid};
+    $_[0]{id}  = idnum $_[0]{id};
     $_[0]{private} = $_[0]{private} =~ /^t/ ? TRUE : FALSE;
   },
   sortdef => 'id',
@@ -1167,11 +1169,11 @@ my $ULIST_PUBLIC = 'EXISTS(SELECT 1 FROM ulist_vns_labels uvl JOIN ulist_labels 
 my %GET_ULIST = (
   islist  => 1,
   sql     => "SELECT %s FROM ulist_vns uv WHERE (%s) AND ($ULIST_PUBLIC) %s",
-  sqluser => "SELECT %1\$s FROM ulist_vns uv WHERE (%2\$s) AND (uv.uid = %4\$d OR $ULIST_PUBLIC) %3\$s",
-  select  => "uid, vid as vn, extract('epoch' from added) AS added, extract('epoch' from lastmod) AS lastmod, extract('epoch' from vote_date) AS voted, vote, started, finished, notes",
+  sqluser => "SELECT %1\$s FROM ulist_vns uv WHERE (%2\$s) AND (uv.uid = %4\$s OR $ULIST_PUBLIC) %3\$s",
+  select  => "uid AS uid, vid as vn, extract('epoch' from added) AS added, extract('epoch' from lastmod) AS lastmod, extract('epoch' from vote_date) AS voted, vote, started, finished, notes",
   proc    => sub {
-    $_[0]{uid}*=1;
-    $_[0]{vn}*=1;
+    $_[0]{uid} = idnum $_[0]{uid};
+    $_[0]{vn}  = idnum $_[0]{vn};
     $_[0]{added} = int $_[0]{added};
     $_[0]{lastmod} = int $_[0]{lastmod};
     $_[0]{voted} = int $_[0]{voted} if $_[0]{voted};
@@ -1195,10 +1197,10 @@ my %GET_ULIST = (
               WHERE (uvl.uid,uvl.vid) IN(%s) AND (NOT ul.private OR uvl.uid = %s OR uvl.lbl = 7)',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
-            $i->{labels} = [ grep $i->{uid} == $_->{uid} && $i->{vn} == $_->{vid}, @$r ];
+            $i->{labels} = [ grep $i->{uid} eq $_->{uid} && $i->{vn} eq $_->{vid}, @$r ];
           }
           for (@$r) {
-            $_->{id}*=1;
+            $_->{id} = idnum $_->{id};
             delete $_->{uid};
             delete $_->{vid};
           }
@@ -1327,6 +1329,9 @@ sub get_filters {
       return cerr $c, filter => 'Invalid language code', %e if !$LANGUAGE{$v};
     } elsif(${$o{process}} eq 'plat') {
       return cerr $c, filter => 'Invalid platform code', %e if !$PLATFORM{$v};
+    } elsif(length ${$o{process}} == 1) {
+      return cerr $c, filter => 'Invalid identifier', %e if $v !~ /^[1-9][0-9]{0,6}$/;
+      $v = ${$o{process}}.$v;
     }
   }
 
@@ -1386,7 +1391,7 @@ sub get_mainsql {
   $sql = $type->{sqluser} if $c->{uid} && $type->{sqluser};
 
   no if $] >= 5.022, warnings => 'redundant';
-  cpg $c, sprintf($sql, $select, $where, $last, $c->{uid}), \@placeholders, sub {
+  cpg $c, sprintf($sql, $select, $where, $last, $c->{uid} ? "'$c->{uid}'" : 'NULL'), \@placeholders, sub {
     my @res = $_[0]->rowsAsHashes;
     $get->{more} = pop(@res)&&1 if @res > $get->{opt}{results};
     $get->{list} = \@res;
@@ -1411,7 +1416,7 @@ sub get_fetch {
     my @ids = map { my $d=$_; ref $field ? @{$d}{@$field} : ($d->{$field}) } @{$get->{list}};
     my $ids = join ',', map { ref $field ? '('.join(',', map '$'.$ref++, @$field).')' : '$'.$ref++ } 1..@{$get->{list}};
     no warnings 'redundant';
-    cpg $c, sprintf($need{$n}[1], $ids, $c->{uid}||'NULL'), \@ids, sub {
+    cpg $c, sprintf($need{$n}[1], $ids, $c->{uid} ? "'$c->{uid}'" : 'NULL'), \@ids, sub {
       $get->{fetched}{$n} = [ $need{$n}[2], [$_[0]->rowsAsHashes] ];
       delete $need{$n};
       get_final($c, $type, $get) if !keys %need;
@@ -1487,7 +1492,7 @@ sub set_ulist_ret {
 sub set_votelist {
   my($c, $obj) = @_;
 
-  return cpg $c, 'UPDATE ulist_vns SET vote = NULL, vote_date = NULL WHERE uid = $1 AND vid = $2', [ $c->{uid}, $obj->{id} ], sub {
+  return cpg $c, 'UPDATE ulist_vns SET vote = NULL, vote_date = NULL WHERE uid = $1 AND vid = $2', [ $c->{uid}, 'v'.$obj->{id} ], sub {
     set_ulist_ret $c, $obj
   } if !$obj->{opt};
 
@@ -1496,7 +1501,7 @@ sub set_votelist {
   return cerr $c, badarg => 'Invalid vote', field => 'vote' if ref($vv) || !defined($vv) || $vv !~ /^\d+$/ || $vv < 10 || $vv > 100;
 
   cpg $c, 'INSERT INTO ulist_vns (uid, vid, vote, vote_date) VALUES ($1, $2, $3, NOW()) ON CONFLICT (uid, vid) DO UPDATE SET vote = $3, vote_date = NOW(), lastmod = NOW()',
-    [ $c->{uid}, $obj->{id}, $vv ], sub { set_ulist_ret $c, $obj; }
+    [ $c->{uid}, 'v'.$obj->{id}, $vv ], sub { set_ulist_ret $c, $obj; }
 }
 
 
@@ -1504,7 +1509,7 @@ sub set_vnlist {
   my($c, $obj) = @_;
 
   # Bug: Also removes from wishlist and votelist.
-  return cpg $c, 'DELETE FROM ulist_vns WHERE uid = $1 AND vid = $2', [ $c->{uid}, $obj->{id} ], sub {
+  return cpg $c, 'DELETE FROM ulist_vns WHERE uid = $1 AND vid = $2', [ $c->{uid}, 'v'.$obj->{id} ], sub {
     set_ulist_ret $c, $obj;
   } if !$obj->{opt};
 
@@ -1517,11 +1522,11 @@ sub set_vnlist {
   $vn ||= '';
 
   cpg $c, 'INSERT INTO ulist_vns (uid, vid, notes) VALUES ($1, $2, $3) ON CONFLICT (uid, vid) DO UPDATE SET lastmod = NOW()'.($en ? ', notes = $3' : ''),
-    [ $c->{uid}, $obj->{id}, $vn ], sub {
+    [ $c->{uid}, 'v'.$obj->{id}, $vn ], sub {
     if($es) {
-      cpg $c, 'DELETE FROM ulist_vns_labels WHERE uid = $1 AND vid = $2 AND lbl IN(1,2,3,4)', [ $c->{uid}, $obj->{id} ], sub {
+      cpg $c, 'DELETE FROM ulist_vns_labels WHERE uid = $1 AND vid = $2 AND lbl IN(1,2,3,4)', [ $c->{uid}, 'v'.$obj->{id} ], sub {
         if($vs) {
-          cpg $c, 'INSERT INTO ulist_vns_labels (uid, vid, lbl) VALUES($1, $2, $3)', [ $c->{uid}, $obj->{id}, $vs ], sub {
+          cpg $c, 'INSERT INTO ulist_vns_labels (uid, vid, lbl) VALUES($1, $2, $3)', [ $c->{uid}, 'v'.$obj->{id}, $vs ], sub {
             set_ulist_ret $c, $obj;
           }
         } else {
@@ -1542,7 +1547,7 @@ sub set_wishlist {
 
   # Bug: This will make it appear in the vnlist
   return cpg $c, "DELETE FROM ulist_vns_labels WHERE uid = \$1 AND vid = \$2 AND $sql_label",
-    [ $c->{uid}, $obj->{id} ], sub {
+    [ $c->{uid}, 'v'.$obj->{id} ], sub {
     set_ulist_ret $c, $obj;
   } if !$obj->{opt};
 
@@ -1551,12 +1556,12 @@ sub set_wishlist {
   return cerr $c, badarg => 'Invalid priority', field => 'priority' if ref($vp) || !defined($vp) || $vp !~ /^[0-3]$/;
 
   # Bug: High/Med/Low statuses are only set if a Wishlist-(High|Medium|Low) label exists; These should probably be created if they don't.
-  cpg $c, 'INSERT INTO ulist_vns (uid, vid) VALUES ($1, $2) ON CONFLICT DO NOTHING', [ $c->{uid}, $obj->{id} ], sub {
-    cpg $c, "DELETE FROM ulist_vns_labels WHERE uid = \$1 AND vid = \$2 AND $sql_label", [ $c->{uid}, $obj->{id} ], sub {
-      cpg $c, 'INSERT INTO ulist_vns_labels (uid, vid, lbl) VALUES($1, $2, $3)', [ $c->{uid}, $obj->{id}, $vp == 3 ? 6 : 5 ], sub {
+  cpg $c, 'INSERT INTO ulist_vns (uid, vid) VALUES ($1, $2) ON CONFLICT DO NOTHING', [ $c->{uid}, 'v'.$obj->{id} ], sub {
+    cpg $c, "DELETE FROM ulist_vns_labels WHERE uid = \$1 AND vid = \$2 AND $sql_label", [ $c->{uid}, 'v'.$obj->{id} ], sub {
+      cpg $c, 'INSERT INTO ulist_vns_labels (uid, vid, lbl) VALUES($1, $2, $3)', [ $c->{uid}, 'v'.$obj->{id}, $vp == 3 ? 6 : 5 ], sub {
         if($vp != 3) {
           cpg $c, 'INSERT INTO ulist_vns_labels (uid, vid, lbl) SELECT $1, $2, id FROM ulist_labels WHERE uid = $1 AND label = $3',
-            [ $c->{uid}, $obj->{id}, ['Wishlist-High', 'Wishlist-Medium', 'Wishlist-Low']->[$vp] ], sub {
+            [ $c->{uid}, 'v'.$obj->{id}, ['Wishlist-High', 'Wishlist-Medium', 'Wishlist-Low']->[$vp] ], sub {
             set_ulist_ret $c, $obj;
           }
         } else {
@@ -1570,13 +1575,13 @@ sub set_wishlist {
 sub set_ulist {
   my($c, $obj) = @_;
 
-  return cpg $c, 'DELETE FROM ulist_vns WHERE uid = $1 AND vid = $2', [ $c->{uid}, $obj->{id} ], sub {
+  return cpg $c, 'DELETE FROM ulist_vns WHERE uid = $1 AND vid = $2', [ $c->{uid}, 'v'.$obj->{id} ], sub {
     set_ulist_ret $c, $obj;
   } if !$obj->{opt};
 
   my $opt = $obj->{opt};
   my @set;
-  my @bind = ($c->{uid}, $obj->{id});
+  my @bind = ($c->{uid}, 'v'.$obj->{id});
 
   if(exists $opt->{vote}) {
     return cerr $c, badarg => 'Invalid vote', field => 'vote' if defined($opt->{vote}) && (ref $opt->{vote} || $opt->{vote} !~ /^[0-9]+$/ || $opt->{vote} < 10 || $opt->{vote} > 100);
@@ -1608,18 +1613,18 @@ sub set_ulist {
     my %l = map +($_,1), grep $_ != 7, $opt->{labels}->@*;
     # XXX: This is ugly. Errors (especially: unknown labels) are ignored and
     # the entire set operation ought to run in a single transaction.
-    pg_cmd 'SELECT lbl FROM ulist_vns_labels WHERE uid = $1 AND vid = $2', [ $c->{uid}, $obj->{id} ], sub {
+    pg_cmd 'SELECT lbl FROM ulist_vns_labels WHERE uid = $1 AND vid = $2', [ $c->{uid}, 'v'.$obj->{id} ], sub {
       return if pg_expect $_[0];
       my %ids = map +($_->{lbl}, 1), $_[0]->rowsAsHashes;
-      pg_cmd 'INSERT INTO ulist_vns_labels (uid, vid, lbl) VALUES ($1,$2,$3)', [ $c->{uid}, $obj->{id}, $_ ] for grep !$ids{$_}, keys %l;
-      pg_cmd 'DELETE FROM ulist_vns_labels WHERE uid = $1 AND vid = $2 AND lbl = $3', [ $c->{uid}, $obj->{id}, $_ ] for grep !$l{$_}, keys %ids;
+      pg_cmd 'INSERT INTO ulist_vns_labels (uid, vid, lbl) VALUES ($1,$2,$3)', [ $c->{uid}, 'v'.$obj->{id}, $_ ] for grep !$ids{$_}, keys %l;
+      pg_cmd 'DELETE FROM ulist_vns_labels WHERE uid = $1 AND vid = $2 AND lbl = $3', [ $c->{uid}, 'v'.$obj->{id}, $_ ] for grep !$l{$_}, keys %ids;
     };
   }
 
   push @set, 'lastmod = NOW()' if @set || $opt->{labels};
   return cerr $c, missing => 'No fields to change' if !@set;
 
-  cpg $c, 'INSERT INTO ulist_vns (uid, vid) VALUES ($1, $2) ON CONFLICT (uid, vid) DO NOTHING', [ $c->{uid}, $obj->{id} ], sub {
+  cpg $c, 'INSERT INTO ulist_vns (uid, vid) VALUES ($1, $2) ON CONFLICT (uid, vid) DO NOTHING', [ $c->{uid}, 'v'.$obj->{id} ], sub {
     cpg $c, 'UPDATE ulist_vns SET '.join(',', @set).' WHERE uid = $1 AND vid = $2', \@bind, sub {
       set_ulist_ret $c, $obj;
     }

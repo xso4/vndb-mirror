@@ -32,7 +32,7 @@ sub screens_ {
     );
 
     p_ class => 'screenshots', sub {
-        a_ href => "/v$_->{vid}", title => $_->{title}, sub {
+        a_ href => "/$_->{vid}", title => $_->{title}, sub {
             my($w, $h) = imgsize $_->{width}, $_->{height}, config->{scr_size}->@*;
             img_ src => imgurl($_->{id}, 1), alt => $_->{title}, width => $w, height => $h;
         } for @$lst;
@@ -41,7 +41,7 @@ sub screens_ {
 
 
 sub recent_changes_ {
-    my($lst) = VNWeb::Misc::History::fetch(undef, undef, {m=>1,h=>1,p=>1}, {results=>10});
+    my($lst) = VNWeb::Misc::History::fetch(undef, {m=>1,h=>1,p=>1}, {results=>10});
     h1_ sub {
         a_ href => '/hist', 'Recent Changes'; txt_ ' ';
         a_ href => '/feeds/changes.atom', sub { abbr_ class => 'icons feed', title => 'Atom Feed', '' };
@@ -49,8 +49,8 @@ sub recent_changes_ {
     ul_ sub {
         li_ sub {
             span_ sub {
-                txt_ "$_->{type}:";
-                a_ href => "/$_->{type}$_->{itemid}.$_->{rev}", title => $_->{original}||$_->{title}, $_->{title};
+                txt_ "$1:" if $_->{itemid} =~ /^(.)/;
+                a_ href => "/$_->{itemid}.$_->{rev}", title => $_->{original}||$_->{title}, $_->{title};
             };
             span_ sub {
                 lit_ " by ";
@@ -192,7 +192,7 @@ sub releases_ {
                 abbr_ class => "icons $_", title => $PLATFORM{$_}, '' for $_->{plat}->@*;
                 abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for $_->{lang}->@*;
                 txt_ ' ';
-                a_ href => "/r$_->{id}", title => $_->{original}||$_->{title}, $_->{title};
+                a_ href => "/$_->{id}", title => $_->{original}||$_->{title}, $_->{title};
             }
         } for @$lst;
     };

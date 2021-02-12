@@ -90,7 +90,7 @@ boardSource =
       Just title -> [ b [ class "grayedout" ] [ text " > " ], text title ]
       _ -> []
     )
-  , key     = \i -> i.btype ++ String.fromInt i.iid
+  , key     = \i -> Maybe.withDefault i.btype i.iid
   }
 
 
@@ -139,9 +139,9 @@ vnSource =
       GApi.VNResult e -> Just e
       _ -> Nothing
   , view    = \i ->
-    [ b [ class "grayedout" ] [ text <| "v" ++ String.fromInt i.id ++ ": " ]
+    [ b [ class "grayedout" ] [ text <| i.id ++ ": " ]
     , text i.title ]
-  , key     = \i -> String.fromInt i.id
+  , key     = \i -> i.id
   }
 
 
@@ -152,9 +152,9 @@ producerSource =
       GApi.ProducerResult e -> Just e
       _ -> Nothing
   , view    = \i ->
-    [ b [ class "grayedout" ] [ text <| "p" ++ String.fromInt i.id ++ ": " ]
+    [ b [ class "grayedout" ] [ text <| i.id ++ ": " ]
     , text i.name ]
-  , key     = \i -> String.fromInt i.id
+  , key     = \i -> i.id
   }
 
 
@@ -165,7 +165,7 @@ staffSource =
       GApi.StaffResult e -> Just e
       _ -> Nothing
   , view    = \i ->
-    [ b [ class "grayedout" ] [ text <| "s" ++ String.fromInt i.id ++ ": " ]
+    [ b [ class "grayedout" ] [ text <| i.id ++ ": " ]
     , text i.name ]
   , key     = \i -> String.fromInt i.aid
   }
@@ -178,13 +178,13 @@ charSource =
       GApi.CharResult e -> Just e
       _ -> Nothing
   , view    = \i ->
-    [ b [ class "grayedout" ] [ text <| "c" ++ String.fromInt i.id ++ ": " ]
+    [ b [ class "grayedout" ] [ text <| i.id ++ ": " ]
     , text i.name
     , Maybe.withDefault (text "") <| Maybe.map (\m ->
-        b [ class "grayedout" ] [ text <| " (instance of c" ++ String.fromInt m.id ++ ": " ++ m.name ]
+        b [ class "grayedout" ] [ text <| " (instance of " ++ m.id ++ ": " ++ m.name ]
       ) i.main
     ]
-  , key     = \i -> String.fromInt i.id
+  , key     = \i -> i.id
   }
 
 

@@ -32,7 +32,7 @@ sub reviews_ {
                         txt_ 'By '; user_ $r; txt_ ' on '.fmtdate $r->{date}, 'compact';
                         b_ class => 'grayedout', ' contains spoilers' if $r->{spoiler} && (auth->pref('spoilers')||0) == 2;
                     };
-                    a_ href => "/r$r->{rid}", "r$r->{rid}" if $r->{rid};
+                    a_ href => "/$r->{rid}", $r->{rid} if $r->{rid};
                     span_ "Vote: ".fmtvote($r->{vote}) if $r->{vote};
                 };
                 div_ sub {
@@ -69,11 +69,11 @@ sub reviews_ {
 
 TUWF::get qr{/$RE{vid}/(?<mini>mini|full)?reviews}, sub {
     my $mini = !tuwf->capture('mini') ? undef : tuwf->capture('mini') eq 'mini' ? 1 : 0;
-    my $v = db_entry v => tuwf->capture('id');
+    my $v = db_entry tuwf->capture('id');
     return tuwf->resNotFound if !$v;
     VNWeb::VN::Page::enrich_vn($v);
 
-    framework_ title => ($mini?'Mini reviews':'Reviews')." for $v->{title}", index => 1, type => 'v', dbobj => $v, hiddenmsg => 1,
+    framework_ title => ($mini?'Mini reviews':'Reviews')." for $v->{title}", index => 1, dbobj => $v, hiddenmsg => 1,
     sub {
         VNWeb::VN::Page::infobox_($v);
         VNWeb::VN::Page::tabs_($v, !defined $mini ? 'reviews' : $mini ? 'minireviews' : 'fullreviews');

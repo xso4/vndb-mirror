@@ -32,7 +32,7 @@ type alias PassData =
 
 type alias Model =
   { state       : Api.State
-  , id          : Int
+  , id          : String
   , title       : String
   , username    : String
   , opts        : GUE.RecvOpts
@@ -173,7 +173,7 @@ update msg model =
       else ({ model | state = Api.Loading }, GUE.send (encode model) Submitted)
 
     -- TODO: This reload is only necessary for the skin and customcss options to apply, but it's nicer to do that directly from JS.
-    Submitted GApi.Success    -> (model, load <| "/u" ++ String.fromInt model.id ++ "/edit")
+    Submitted GApi.Success    -> (model, load <| "/" ++ model.id ++ "/edit")
     Submitted GApi.MailChange -> ({ model | mailConfirm = True, state = Api.Normal }, Cmd.none)
     Submitted r -> ({ model | state = Api.Error r }, Cmd.none)
 

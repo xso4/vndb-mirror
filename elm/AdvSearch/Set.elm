@@ -411,7 +411,7 @@ labelView dat model =
 labelFromQuery dat q =
   fromQuery (\qs ->
     case qs of
-      QTuple 12 op uid l -> if Just uid == dat.uid then Just (op, l) else Nothing
+      QTuple 12 op uid l -> if Just (vndbid 'u' uid) == dat.uid then Just (op, l) else Nothing
       _ -> Nothing) dat q
 
 

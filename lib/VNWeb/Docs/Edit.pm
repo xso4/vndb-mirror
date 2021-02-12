@@ -5,7 +5,7 @@ use VNWeb::Docs::Lib;
 
 
 my $FORM = {
-    id      => { id => 1 },
+    id      => { vndbid => 'd' },
     title   => { maxlength => 200 },
     content => { required => 0, default => '' },
     hidden  => { anybool => 1 },
@@ -20,12 +20,12 @@ my $FORM_CMP = form_compile cmp => $FORM;
 
 
 TUWF::get qr{/$RE{drev}/edit} => sub {
-    my $d = db_entry d => tuwf->capture('id'), tuwf->capture('rev') or return tuwf->resNotFound;
+    my $d = db_entry tuwf->captures('id', 'rev') or return tuwf->resNotFound;
     return tuwf->resDenied if !can_edit d => $d;
 
-    $d->{editsum} = $d->{chrev} == $d->{maxrev} ? '' : "Reverted to revision d$d->{id}.$d->{chrev}";
+    $d->{editsum} = $d->{chrev} == $d->{maxrev} ? '' : "Reverted to revision $d->{id}.$d->{chrev}";
 
-    framework_ title => "Edit $d->{title}", type => 'd', dbobj => $d, tab => 'edit',
+    framework_ title => "Edit $d->{title}", dbobj => $d, tab => 'edit',
     sub {
         elm_ DocEdit => $FORM_OUT, $d;
     };
@@ -34,14 +34,14 @@ TUWF::get qr{/$RE{drev}/edit} => sub {
 
 elm_api DocEdit => $FORM_OUT, $FORM_IN, sub {
     my $data = shift;
-    my $doc = db_entry d => $data->{id} or return tuwf->resNotFound;
+    my $doc = db_entry $data->{id} or return tuwf->resNotFound;
 
     return elm_Unauth if !can_edit d => $doc;
     return elm_Unchanged if !form_changed $FORM_CMP, $data, $doc;
 
     $data->{html} = md2html $data->{content};
-    my($id,undef,$rev) = db_edit d => $doc->{id}, $data;
-    elm_Redirect "/d$id.$rev";
+    my $c = db_edit d => $doc->{id}, $data;
+    elm_Redirect "/$c->{nitemid}.$c->{nrev}";
 };
 
 

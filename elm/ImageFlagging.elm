@@ -232,7 +232,7 @@ view model =
           [ td [ Ffi.innerHtml v.user ] []
           , td [] [ text <| if v.sexual   == 0 then "Safe" else if v.sexual   == 1 then "Suggestive" else "Explicit" ]
           , td [] [ text <| if v.violence == 0 then "Tame" else if v.violence == 1 then "Violent"    else "Brutal" ]
-          , td [] <| Maybe.withDefault [] <| Maybe.map (\u -> [ a [ href <| "/img/list?view=" ++ model.nsfwToken ++ "&u=" ++ String.fromInt u ] [ text "votes" ] ]) v.uid
+          , td [] <| Maybe.withDefault [] <| Maybe.map (\u -> [ a [ href <| "/img/list?view=" ++ model.nsfwToken ++ "&u=" ++ u ] [ text "votes" ] ]) v.uid
           ]
         ) i.votes
       ]

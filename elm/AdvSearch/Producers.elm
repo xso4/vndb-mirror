@@ -44,9 +44,9 @@ update dat msg model =
       in case res of
           Nothing -> (dat, { model | search = nm }, c)
           Just p ->
-            if Set.member p.id model.sel.sel then (dat, { model | search = nm }, c)
+            if Set.member (vndbidNum p.id) model.sel.sel then (dat, { model | search = nm }, c)
             else ( { dat | producers = Dict.insert p.id p dat.producers }
-                 , { model | search = A.clear nm "", sel = S.update (S.Sel p.id True) model.sel }
+                 , { model | search = A.clear nm "", sel = S.update (S.Sel (vndbidNum p.id) True) model.sel }
                  , c )
 
 
@@ -76,7 +76,7 @@ view prod dat model =
       [s] -> span [ class "nowrap" ]
              [ S.lblPrefix model.sel
              , b [ class "grayedout" ] [ text <| "p" ++ String.fromInt s ++ ":" ]
-             , Dict.get s dat.producers |> Maybe.map (\p -> p.name) |> Maybe.withDefault "" |> text
+             , Dict.get (vndbid 'p' s) dat.producers |> Maybe.map (\p -> p.name) |> Maybe.withDefault "" |> text
              ]
       l   -> span [] [ S.lblPrefix model.sel, text <| lbl ++ " (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
@@ -88,7 +88,7 @@ view prod dat model =
         li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ]
         [ inputButton "X" (Sel (S.Sel s False)) []
         , b [ class "grayedout" ] [ text <| " p" ++ String.fromInt s ++ ": " ]
-        , Dict.get s dat.producers |> Maybe.map (\p -> a [ href ("/p" ++ String.fromInt p.id), target "_blank", style "display" "inline" ] [ text p.name ]) |> Maybe.withDefault (text "")
+        , Dict.get (vndbid 'p' s) dat.producers |> Maybe.map (\p -> a [ href ("/" ++ p.id), target "_blank", style "display" "inline" ] [ text p.name ]) |> Maybe.withDefault (text "")
         ]
       ) (Set.toList model.sel.sel)
     , A.view model.conf model.search [ placeholder "Search..." ]

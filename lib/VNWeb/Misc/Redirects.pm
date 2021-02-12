@@ -21,9 +21,9 @@ TUWF::get qr{/u/list(/[a-z0]|/all)?}, sub { tuwf->resRedirect('/u'.(tuwf->captur
 
 TUWF::get qr{/$RE{uid}/tags},  sub { tuwf->resRedirect('/g/links?u='.tuwf->capture('id'), 'perm') };
 
-TUWF::get qr{/$RE{vid}/staff}, sub { tuwf->resRedirect(sprintf '/v%s#staff',       tuwf->capture('id')) };
-TUWF::get qr{/$RE{vid}/stats}, sub { tuwf->resRedirect(sprintf '/v%s#stats',       tuwf->capture('id')) };
-TUWF::get qr{/$RE{vid}/scr},   sub { tuwf->resRedirect(sprintf '/v%s#screenshots', tuwf->capture('id')) };
+TUWF::get qr{/$RE{vid}/staff}, sub { tuwf->resRedirect(sprintf '/%s#staff',       tuwf->capture('id')) };
+TUWF::get qr{/$RE{vid}/stats}, sub { tuwf->resRedirect(sprintf '/%s#stats',       tuwf->capture('id')) };
+TUWF::get qr{/$RE{vid}/scr},   sub { tuwf->resRedirect(sprintf '/%s#screenshots', tuwf->capture('id')) };
 
 
 TUWF::get qr{/v/rand}, sub {
@@ -38,7 +38,7 @@ TUWF::get qr{/v/rand}, sub {
          ORDER BY random() LIMIT 1'
     );
     return tuwf->resNotFound if !$vn;
-    tuwf->resRedirect("/v$vn", 'temp');
+    tuwf->resRedirect("/$vn", 'temp');
 };
 
 1;

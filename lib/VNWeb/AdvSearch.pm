@@ -322,7 +322,7 @@ f v => 65 => 'on-list',         { uint => 1, range => [1,1] }, '=' => sub { auth
 
 f v =>  6 => 'developer-id',{ vndbid => 'p' },
     '=' => sub { sql 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id JOIN releases_producers rp ON rp.id = r.id
-                               WHERE NOT r.hidden AND rp.pid = vndbid_num(', \$_, ') AND rp.developer)' };
+                               WHERE NOT r.hidden AND rp.pid =', \$_, 'AND rp.developer)' };
 
 f v =>  8 => 'tag',      { type => 'any', func => \&_validate_tag },
     compact => sub { my $id = ($_->[0] =~ s/^g//r)*1; $_->[1] == 0 && $_->[2] == 0 ? $id : [ $id, int($_->[2]*5)*3 + $_->[1] ] },
@@ -364,8 +364,8 @@ f r =>  4 => 'platform', { required => 0, default => undef, enum => \%PLATFORM }
         sql 'r.id', $neg ? 'NOT' : '', 'IN(SELECT id FROM releases_platforms WHERE platform IN', $val, $all && @$val > 1 ? ('GROUP BY id HAVING COUNT(platform) =', \scalar @$val) : (), ')';
     };
 
-f r =>  6 => 'developer-id',{ vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE developer AND pid = vndbid_num(', \$_, '))' };
-f r => 17 => 'producer-id', { vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE pid = vndbid_num(', \$_, '))' };
+f r =>  6 => 'developer-id',{ vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE developer AND pid =', \$_, ')' };
+f r => 17 => 'producer-id', { vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE pid =', \$_, ')' };
 f r =>  7 => 'released', { fuzzyrdate => 1 }, sql => sub { sql 'r.released', $_[0], \($_ == 1 ? strftime('%Y%m%d', gmtime) : $_) };
 f r =>  8 => 'resolution',        { type => 'array', length => 2, values => { uint => 1, max => 32767 } },
     sql => sub { sql 'NOT r.patch AND r.reso_x', $_[0], \$_->[0], 'AND r.reso_y', $_[0], \$_->[1], $_->[0] ? 'AND r.reso_x > 0' : () };
@@ -425,7 +425,7 @@ f c => 53 => 'vn',     'v', '=' => sub { sql 'c.id IN(SELECT cv.id FROM chars_vn
 
 # Staff filters need both 'staff s' and 'staff_alias sa' - aliases are treated as separate rows.
 f s =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 's.lang =', \$_ };
-f s =>  3 => 'id',        { vndbid => 's' }, '=' => sub { sql 's.id = vndbid_num(', \$_, ')' };
+f s =>  3 => 'id',        { vndbid => 's' }, '=' => sub { sql 's.id = ', \$_ };
 f s =>  4 => 'gender',    { enum => \%GENDER }, '=' => sub { sql 's.gender =', \$_ };
 f s =>  5 => 'role',      { enum => [ 'seiyuu', keys %CREDIT_TYPE ] },
     sql_list_grp => sub { $_ eq 'seiyuu' ? undef : '' },
@@ -605,7 +605,7 @@ sub _sql_where_trait {
 # Assumption: All labels in a group are for the same uid and label==0 has its own group.
 sub _sql_where_label {
     my($neg, $all, $val) = @_;
-    my $uid = $val->[0][0] =~ s/^u//r;
+    my $uid = $val->[0][0];
     my $own = VNWeb::ULists::Lib::ulists_own($uid);
     my @lbl = map $_->[1], @$val;
 
@@ -726,10 +726,10 @@ sub elm_search_query {
     my(%o,%ids);
     _extract_ids($self->{type}, $self->{query}, \%ids) if $self->{query};
 
-    $o{producers} = [ map +{id => $_=~s/^p//rg}, grep /^p/, keys %ids ];
+    $o{producers} = [ map +{id => $_}, grep /^p/, keys %ids ];
     enrich_merge id => 'SELECT id, name, original, hidden FROM producers WHERE id IN', $o{producers};
 
-    $o{staff} = [ map +{id => $_=~s/^s//rg}, grep /^s/, keys %ids ];
+    $o{staff} = [ map +{id => $_}, grep /^s/, keys %ids ];
     enrich_merge id => 'SELECT s.id, sa.aid, sa.name, sa.original FROM staff s JOIN staff_alias sa ON sa.aid = s.aid WHERE s.id IN', $o{staff};
 
     $o{tags} = [ map +{id => $_=~s/^g//rg}, grep /^g/, keys %ids ];
@@ -752,7 +752,7 @@ sub elm_ {
     my($self) = @_;
 
     state $schema ||= tuwf->compile({ type => 'hash', keys => {
-        uid          => { uint => 1, required => 0 },
+        uid          => { vndbid => 'u', required => 0 },
         labels       => { aoh => { id => { uint => 1 }, label => {} } },
         defaultSpoil => { uint => 1 },
         saved        => { aoh => { name => {}, query => {} } },

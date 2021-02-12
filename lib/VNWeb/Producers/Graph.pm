@@ -29,18 +29,18 @@ TUWF::get qr{/$RE{pid}/rg}, sub {
 
     my @lines;
     my $params = $num == 15 ? '' : "?num=$num";
-    for my $n (sort { $a->{id} <=> $b->{id} } values %$nodes) {
+    for my $n (sort { idcmp $a->{id}, $b->{id} } values %$nodes) {
         my $name = val_escape shorten $n->{name}, 27;
         my $tooltip = val_escape $n->{name};
         my $nodeid = $n->{distance} == 0 ? 'id = "graph_current", ' : '';
         push @lines,
-            qq|n$n->{id} [ $nodeid URL = "/p$n->{id}", tooltip = "$tooltip", label=<|.
+            qq|n$n->{id} [ $nodeid URL = "/$n->{id}", tooltip = "$tooltip", label=<|.
             qq|<TABLE CELLSPACING="0" CELLPADDING="2" BORDER="0" CELLBORDER="1" BGCOLOR="#222222">|.
             qq|<TR><TD COLSPAN="2" ALIGN="CENTER" CELLPADDING="3"><FONT POINT-SIZE="9">  $name  </FONT></TD></TR>|.
             qq|<TR><TD ALIGN="CENTER"> $LANGUAGE{$n->{lang}} </TD><TD ALIGN="CENTER"> $PRODUCER_TYPE{$n->{type}} </TD></TR>|.
             qq|</TABLE>> ]|;
 
-        push @lines, node_more $n->{id}, "/p$n->{id}/rg$params", scalar grep !$nodes->{$_}, $n->{rels}->@*;
+        push @lines, node_more $n->{id}, "/$n->{id}/rg$params", scalar grep !$nodes->{$_}, $n->{rels}->@*;
     }
 
     $rel = [ grep $nodes->{$_->{id0}} && $nodes->{$_->{id1}}, @$rel ];
@@ -59,7 +59,7 @@ TUWF::get qr{/$RE{pid}/rg}, sub {
                     if($_ == min $num, $total_nodes) {
                         txt_ $_ ;
                     } else {
-                        a_ href => "/p$id/rg?num=$_", $_;
+                        a_ href => "/$id/rg?num=$_", $_;
                     }
                 }, grep($_ < $total_nodes, 10, 15, 25, 50, 75, 100, 150, 250, 500, 750, 1000), $total_nodes;
                 txt_ '.';

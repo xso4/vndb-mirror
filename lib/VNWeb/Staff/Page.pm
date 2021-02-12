@@ -16,7 +16,7 @@ sub enrich_item {
 
 sub _rev_ {
     my($s) = @_;
-    revision_ s => $s, \&enrich_item,
+    revision_ $s, \&enrich_item,
         [ alias  => 'Names', fmt => sub {
             txt_ $_->{name};
             txt_ " ($_->{original})" if $_->{original};
@@ -95,7 +95,7 @@ sub _roles_ {
             tr_ sub {
                 my($v, $a) = ($_, $alias{$_->{aid}});
                 td_ class => 'tc1', sub {
-                    a_ href => "/v$v->{id}", title => $v->{original}||$v->{title}, shorten $v->{title}, 60;
+                    a_ href => "/$v->{id}", title => $v->{original}||$v->{title}, shorten $v->{title}, 60;
                 };
                 td_ class => 'tc2', sub { rdate_ $v->{c_released} };
                 td_ class => 'tc3', $CREDIT_TYPE{$v->{role}};
@@ -147,11 +147,11 @@ sub _cast_ {
             tr_ sub {
                 my($v, $a) = ($_, $alias{$_->{aid}});
                 td_ class => 'tc1', sub {
-                    a_ href => "/v$v->{id}", title => $v->{original}||$v->{title}, shorten $v->{title}, 60;
+                    a_ href => "/$v->{id}", title => $v->{original}||$v->{title}, shorten $v->{title}, 60;
                 };
                 td_ class => 'tc2', sub { rdate_ $v->{c_released} };
                 td_ class => 'tc3', sub {
-                    a_ href => "/c$v->{cid}", title => $v->{c_original}||$v->{c_name}, $v->{c_name};
+                    a_ href => "/$v->{cid}", title => $v->{c_original}||$v->{c_name}, $v->{c_name};
                 };
                 td_ class => 'tc4', title => $a->{original}||$a->{name}, $a->{name};
                 td_ class => 'tc5', $v->{note};
@@ -162,21 +162,21 @@ sub _cast_ {
 
 
 TUWF::get qr{/$RE{srev}} => sub {
-    my $s = db_entry s => tuwf->capture('id'), tuwf->capture('rev');
+    my $s = db_entry tuwf->captures('id', 'rev');
     return tuwf->resNotFound if !$s;
 
     enrich_item $s;
     enrich_extlinks s => $s;
     my($main) = grep $_->{aid} == $s->{aid}, $s->{alias}->@*;
 
-    framework_ title => $main->{name}, index => !tuwf->capture('rev'), type => 's', dbobj => $s, hiddenmsg => 1,
+    framework_ title => $main->{name}, index => !tuwf->capture('rev'), dbobj => $s, hiddenmsg => 1,
         og => {
             description => bb_format $s->{desc}, text => 1
         },
     sub {
         _rev_ $s if tuwf->capture('rev');
         div_ class => 'mainbox staffpage', sub {
-            itemmsg_ s => $s;
+            itemmsg_ $s;
             h1_ sub { txt_ $main->{name}; debug_ $s };
             h2_ class => 'alttitle', lang => $s->{lang}, $main->{original} if $main->{original};
             _infotable_ $main, $s;

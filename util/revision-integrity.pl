@@ -34,6 +34,6 @@ for my $table (sort { $a->{name} cmp $b->{name} } values %$schema) {
          EXCEPT
          SELECT '$main', c.itemid, $histlock $cols
            FROM $table->{name} e
-           JOIN changes c ON c.type = '$schema->{$type}{dbentry_type}' AND e.chid = c.id
-          WHERE NOT EXISTS(SELECT 1 FROM changes c2 WHERE c2.type = c.type AND c2.itemid = c.itemid AND c2.rev > c.rev);\n\n"
+           JOIN changes c ON e.chid = c.id
+          WHERE NOT EXISTS(SELECT 1 FROM changes c2 WHERE c2.itemid = c.itemid AND c2.rev > c.rev);\n\n"
 }

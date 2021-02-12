@@ -26,9 +26,9 @@ main = Browser.element
 type alias Model =
   { state       : Api.State
   , id          : Maybe String
-  , vid         : Int
+  , vid         : String
   , vntitle     : String
-  , rid         : Maybe Int
+  , rid         : Maybe String
   , spoiler     : Bool
   , locked      : Bool
   , isfull      : Bool
@@ -71,7 +71,7 @@ encode m =
 
 
 type Msg
-  = Release (Maybe Int)
+  = Release (Maybe String)
   | Full Bool
   | Spoiler Bool
   | Locked Bool
@@ -98,11 +98,11 @@ update msg model =
 
     Delete b   -> ({ model | delete   = b }, Cmd.none)
     DoDelete -> ({ model | delState = Api.Loading }, GRD.send ({ id = Maybe.withDefault "" model.id }) Deleted)
-    Deleted GApi.Success -> (model, load <| "/v" ++ String.fromInt model.vid)
+    Deleted GApi.Success -> (model, load <| "/" ++ model.vid)
     Deleted r -> ({ model | delState = Api.Error r }, Cmd.none)
 
 
-showrel r = "[" ++ (RDate.format (RDate.expand r.released)) ++ " " ++ (String.join "," r.lang) ++ "] " ++ r.title ++ " (r" ++ String.fromInt r.id ++ ")"
+showrel r = "[" ++ (RDate.format (RDate.expand r.released)) ++ " " ++ (String.join "," r.lang) ++ "] " ++ r.title ++ " (" ++ r.id ++ ")"
 
 view : Model -> Html Msg
 view model =
@@ -125,12 +125,12 @@ view model =
     ]
   , div [ class "mainbox" ]
     [ table [ class "formtable" ]
-      [ formField "Subject" [ a [ href <| "/v"++String.fromInt model.vid ] [ text model.vntitle ] ]
+      [ formField "Subject" [ a [ href <| "/"++model.vid ] [ text model.vntitle ] ]
       , formField ""
         [ inputSelect "" model.rid Release [style "width" "500px" ] <|
           (Nothing, "No release selected")
           :: List.map (\r -> (Just r.id, showrel r)) model.releases
-          ++ if model.rid == Nothing || List.any (\r -> Just r.id == model.rid) model.releases then [] else [(model.rid, "Deleted or moved release: r"++Maybe.withDefault "" (Maybe.map String.fromInt model.rid))]
+          ++ if model.rid == Nothing || List.any (\r -> Just r.id == model.rid) model.releases then [] else [(model.rid, "Deleted or moved release: r"++Maybe.withDefault "" model.rid)]
         , br [] []
         , text "You do not have to select a release, but indicating which release your review is based on gives more context."
         ]

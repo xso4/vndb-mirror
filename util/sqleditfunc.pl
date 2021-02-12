@@ -37,15 +37,15 @@ sub gensql {
     $_, join ', ', @{$ts{$_}}), sort keys %ts;
 
   $replace{copyfromtemp} = join "\n", map sprintf(
-    "  DELETE FROM %1\$s WHERE id = r.itemid;\n".
-    "  INSERT INTO %1\$s (id, %2\$s) SELECT r.itemid, %2\$s FROM edit_%1\$s;\n".
-    "  INSERT INTO %1\$s_hist (chid, %2\$s) SELECT r.chid, %2\$s FROM edit_%1\$s;",
+    "  DELETE FROM %1\$s WHERE id = nitemid;\n".
+    "  INSERT INTO %1\$s (id, %2\$s) SELECT nitemid, %2\$s FROM edit_%1\$s;\n".
+    "  INSERT INTO %1\$s_hist (chid, %2\$s) SELECT nchid, %2\$s FROM edit_%1\$s;",
     $_, join ', ', @{$ts{$_}}), grep $_ ne $item, sort keys %ts;
 
   $replace{copymainfromtemp} = sprintf
-    "  INSERT INTO %1\$s_hist (chid, %2\$s) SELECT r.chid, %2\$s FROM edit_%1\$s;\n".
+    "  INSERT INTO %1\$s_hist (chid, %2\$s) SELECT nchid, %2\$s FROM edit_%1\$s;\n".
     "  UPDATE %1\$s SET locked = (SELECT ilock FROM edit_revision), hidden = (SELECT ihid FROM edit_revision),\n".
-    "    %3\$s FROM edit_%1\$s x WHERE id = r.itemid;",
+    "    %3\$s FROM edit_%1\$s x WHERE id = nitemid;",
     $item, join(', ', @{$ts{$item}}), join(', ', map "$_ = x.$_", @{$ts{$item}});
 
   $template =~ s/{([a-z]+)}/$replace{$1}/gr;
@@ -59,7 +59,7 @@ print $F gensql $_ for sort grep $schema->{$_}{dbentry_type}, keys %$schema;
 
 __DATA__
 
-CREATE OR REPLACE FUNCTION edit_{itemtype}_init(xid integer, xrev integer) RETURNS void AS $$
+CREATE OR REPLACE FUNCTION edit_{itemtype}_init(xid vndbid, xrev integer) RETURNS void AS $$
 DECLARE
   xchid integer;
 BEGIN
@@ -70,7 +70,7 @@ BEGIN
     TRUNCATE {temptablenames};
   END;
   -- Create edit_revision table and get relevant change ID.
-  SELECT edit_revtable('{itemtype}', xid, xrev) INTO xchid;
+  SELECT edit_revtable(xid, xrev) INTO xchid;
   -- new entry, load defaults
   IF xchid IS NULL THEN
     INSERT INTO edit_{item} DEFAULT VALUES;
@@ -82,18 +82,26 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION edit_{itemtype}_commit() RETURNS edit_rettype AS $$
-DECLARE
-  r edit_rettype;
+CREATE OR REPLACE FUNCTION edit_{itemtype}_commit(out nchid integer, out nitemid vndbid, out nrev integer) AS $$
 BEGIN
   IF (SELECT COUNT(*) FROM edit_{item}) <> 1 THEN
     RAISE 'edit_{item} must have exactly one row!';
   END IF;
-  SELECT INTO r * FROM edit_commit();
+  SELECT itemid INTO nitemid FROM edit_revision;
+  -- figure out revision number
+  SELECT MAX(rev)+1 INTO nrev FROM changes WHERE itemid = nitemid;
+  SELECT COALESCE(nrev, 1) INTO nrev;
+  -- insert DB item
+  IF nitemid IS NULL THEN
+    INSERT INTO {item} DEFAULT VALUES RETURNING id INTO nitemid;
+  END IF;
+  -- insert change
+  INSERT INTO changes (itemid, rev, requester, ip, comments, ihid, ilock)
+    SELECT nitemid, nrev, requester, ip, comments, ihid, ilock FROM edit_revision RETURNING id INTO nchid;
+  -- insert data
 {copyfromtemp}
 {copymainfromtemp}
-  PERFORM edit_committed('{itemtype}', r);
-  RETURN r;
+  PERFORM edit_committed(nchid, nitemid, nrev);
 END;
 $$ LANGUAGE plpgsql;
 

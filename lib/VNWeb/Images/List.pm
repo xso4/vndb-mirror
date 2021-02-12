@@ -29,7 +29,7 @@ sub graph_ {
         $y = 13;
         line_ 'Avg', $avg-$stddev, $avg, $avg+$stddev if defined $avg;
         line_ 'User', $user, $user, $avg if defined $user;
-        line_ 'My', $my, $my, $avg if defined $my && $opt->{u} != $opt->{u2};
+        line_ 'My', $my, $my, $avg if defined $my && $opt->{u} ne $opt->{u2};
     }
 
     tag_ 'svg', width => '190px', height => '100px', viewBox => '0 0 190 100', sub {
@@ -76,7 +76,7 @@ sub opts_ {
 
     form_ sub {
         input_ type => 'hidden', class => 'hidden', name => 'u', value => $opt->{u} if $opt->{u};
-        input_ type => 'hidden', class => 'hidden', name => 'u2', value => $opt->{u2} if $opt->{u2} != (auth->uid||0);
+        input_ type => 'hidden', class => 'hidden', name => 'u2', value => $opt->{u2} if $opt->{u2} ne (auth->uid||'');
         input_ type => 'hidden', class => 'hidden', name => 'view', value => viewset(show_nsfw => viewget('show_nsfw'));
         table_ style => 'margin: auto', sub {
             tr_ sub {
@@ -98,7 +98,7 @@ sub opts_ {
             tr_ sub {
                 td_ '';
                 td_ class => 'linkradio', sub { opt_ checkbox => my => 1, 'Only images I voted on' };
-            } if auth && $opt->{u} != $opt->{u2};
+            } if auth && $opt->{u} ne $opt->{u2};
             tr_ sub {
                 td_ 'Time filter';
                 td_ class => 'linkradio', sub {
@@ -136,13 +136,13 @@ TUWF::get qr{/img/list}, sub {
         t  => { onerror => [], scalar => 1, type => 'array', values => { enum => [qw/ ch cv sf /] } },
         m  => { onerror => 0, range => [0,10] },
         d  => { onerror => 0, range => [0,10000] },
-        u  => { onerror => 0, id => 1 },
-        u2 => { onerror => 0, id => 1 }, # Hidden option, allows comparing two users by overriding the 'My' user.
+        u  => { onerror => '', vndbid => 'u' },
+        u2 => { onerror => '', vndbid => 'u' }, # Hidden option, allows comparing two users by overriding the 'My' user.
         my => { anybool => 1 },
         p  => { page => 1 },
     )->data;
 
-    $opt->{u2} ||= auth->uid || 0;
+    $opt->{u2} ||= auth->uid || '';
     $opt->{s} = 'weight' if !$opt->{u} && ($opt->{s} eq 'date' || $opt->{s} eq 'diff');
     $opt->{t} = [ List::Util::uniq sort $opt->{t}->@* ];
     $opt->{t} = [] if $opt->{t}->@* == 3;
@@ -163,7 +163,7 @@ TUWF::get qr{/img/list}, sub {
           $opt->{u} ? ', iu.sexual as user_sexual, iu.violence as user_violence' : (), '
           FROM images i',
           $opt->{u} ? ('JOIN image_votes iu ON iu.uid =', \$opt->{u}, ' AND iu.id = i.id') : (),
-          $opt->{my} ? () : 'LEFT', 'JOIN image_votes iv ON iv.uid =', \$opt->{u2}, ' AND iv.id = i.id
+          $opt->{my} ? () : 'LEFT', 'JOIN image_votes iv ON iv.uid =', \($opt->{u2}||undef), ' AND iv.id = i.id
          WHERE', $where, '
          ORDER BY', {
              weight => 'i.c_weight DESC',

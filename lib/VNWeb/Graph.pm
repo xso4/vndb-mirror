@@ -9,6 +9,7 @@ use Encode 'encode_utf8', 'decode_utf8';
 use Exporter 'import';
 use List::Util 'max';
 use VNDB::Config;
+use VNDB::Func 'idcmp';
 
 our @EXPORT = qw/gen_nodes dot2svg val_escape node_more gen_dot/;
 
@@ -91,7 +92,7 @@ sub gen_dot {
     my $rankdir = $max_fanout > 6 ? 'LR' : 'TB';
 
     for (@$rel) {
-        next if $_->{id0} < $_->{id1};
+        next if idcmp($_->{id0}, $_->{id1}) < 0;
         my $r1 = $rel_types->{$_->{relation}};
         my $r2 = $rel_types->{ $r1->{reverse} };
         my $style = exists $_->{official} && !$_->{official} ? 'style="dotted", ' : '';

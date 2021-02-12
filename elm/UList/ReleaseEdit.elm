@@ -15,29 +15,29 @@ import Gen.UListRStatus as GRS
 
 main : Program GRS.Send Model Msg
 main = Browser.element
-  { init = \f -> (init 0 f, Cmd.none)
+  { init = \f -> (init "" f, Cmd.none)
   , subscriptions = \model -> DD.sub model.dd
   , view = view
   , update = update
   }
 
 type alias Model =
-  { uid      : Int
-  , rid      : Int
+  { uid      : String
+  , rid      : String
   , status   : Maybe Int
   , empty    : String
   , state    : Api.State
   , dd       : DD.Config Msg
   }
 
-init : Int -> GRS.Send -> Model
+init : String -> GRS.Send -> Model
 init vid f =
   { uid      = f.uid
   , rid      = f.rid
   , status   = f.status
   , empty    = f.empty
   , state    = Api.Normal
-  , dd       = DD.init ("ulist_reldd" ++ String.fromInt vid ++ "_" ++ String.fromInt f.rid) Open
+  , dd       = DD.init ("ulist_reldd" ++ vid ++ "_" ++ f.rid) Open
   }
 
 type Msg

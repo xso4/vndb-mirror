@@ -24,9 +24,9 @@ sub listing_ {
                     abbr_ class => "icons gen $_->{gender}", title => $GENDER{$_->{gender}}, '' if $_->{gender} ne 'unknown';
                 };
                 td_ class => 'tc2', sub {
-                    a_ href => "/c$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
+                    a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
                     b_ class => 'grayedout', sub {
-                        join_ ', ', sub { a_ href => "/v$_->{id}", title => $_->{original}||$_->{title}, $_->{title} }, $_->{vn}->@*;
+                        join_ ', ', sub { a_ href => "/$_->{id}", title => $_->{original}||$_->{title}, $_->{title} }, $_->{vn}->@*;
                     };
                 };
             } for @$list;
@@ -39,17 +39,17 @@ sub listing_ {
             div_ sub {
                 if($_->{image}) {
                     my($iw,$ih) = imgsize $_->{image}{width}*100, $_->{image}{height}*100, $w, $h;
-                    image_ $_->{image}, alt => $_->{name}, width => $iw, height => $ih, url => "/c$_->{id}";
+                    image_ $_->{image}, alt => $_->{name}, width => $iw, height => $ih, url => "/$_->{id}";
                 } else {
                     txt_ 'no image';
                 }
             };
             div_ sub {
                 abbr_ class => "icons gen $_->{gender}", title => $GENDER{$_->{gender}}, '' if $_->{gender} ne 'unknown';
-                a_ href => "/c$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
+                a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
                 br_;
                 b_ class => 'grayedout', sub {
-                    join_ ', ', sub { a_ href => "/v$_->{id}", title => $_->{original}||$_->{title}, $_->{title} }, $_->{vn}->@*;
+                    join_ ', ', sub { a_ href => "/$_->{id}", title => $_->{original}||$_->{title}, $_->{title} }, $_->{vn}->@*;
                 };
             };
         } for @$list;
@@ -58,11 +58,11 @@ sub listing_ {
     div_ class => 'mainbox charbgrid', sub {
         my($w,$h) = (160,200);
         div_ sub {
-            a_ href => "/c$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
+            a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
             div_ sub {
                 if($_->{image}) {
                     my($iw,$ih) = imgsize $_->{image}{width}*100, $_->{image}{height}*100, $w, $h;
-                    image_ $_->{image}, alt => $_->{name}, width => $iw, height => $ih, url => "/c$_->{id}";
+                    image_ $_->{image}, alt => $_->{name}, width => $iw, height => $ih, url => "/$_->{id}";
                 } else {
                     txt_ 'no image';
                 }

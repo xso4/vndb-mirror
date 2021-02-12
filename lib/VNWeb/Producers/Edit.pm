@@ -4,7 +4,7 @@ use VNWeb::Prelude;
 
 
 my $FORM = {
-    id         => { required => 0, id => 1 },
+    id         => { required => 0, vndbid => 'p' },
     ptype      => { default => 'co', enum => \%PRODUCER_TYPE },
     name       => { maxlength => 200 },
     original   => { required => 0, default => '', maxlength => 200 },
@@ -14,7 +14,7 @@ my $FORM = {
     l_wikidata => { required => 0, uint => 1, max => (1<<31)-1 },
     desc       => { required => 0, default => '', maxlength => 5000 },
     relations  => { sort_keys => 'pid', aoh => {
-        pid      => { id => 1 },
+        pid      => { vndbid => 'p' },
         relation => { enum => \%PRODUCER_RELATION },
         name     => { _when => 'out' },
         original => { _when => 'out', required => 0, default => '' },
@@ -32,16 +32,16 @@ my $FORM_CMP = form_compile cmp => $FORM;
 
 
 TUWF::get qr{/$RE{prev}/edit} => sub {
-    my $e = db_entry p => tuwf->capture('id'), tuwf->capture('rev') or return tuwf->resNotFound;
+    my $e = db_entry tuwf->captures('id', 'rev') or return tuwf->resNotFound;
     return tuwf->resDenied if !can_edit p => $e;
 
     $e->{authmod} = auth->permDbmod;
-    $e->{editsum} = $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision p$e->{id}.$e->{chrev}";
+    $e->{editsum} = $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
     $e->{ptype} = delete $e->{type};
 
     enrich_merge pid => 'SELECT id AS pid, name, original FROM producers WHERE id IN', $e->{relations};
 
-    framework_ title => "Edit $e->{name}", type => 'p', dbobj => $e, tab => 'edit',
+    framework_ title => "Edit $e->{name}", dbobj => $e, tab => 'edit',
     sub {
         editmsg_ p => $e, "Edit $e->{name}";
         elm_ ProducerEdit => $FORM_OUT, $e;
@@ -63,7 +63,7 @@ TUWF::get qr{/p/add}, sub {
 elm_api ProducerEdit => $FORM_OUT, $FORM_IN, sub {
     my $data = shift;
     my $new = !$data->{id};
-    my $e = $new ? { id => 0 } : db_entry p => $data->{id} or return tuwf->resNotFound;
+    my $e = $new ? { id => 0 } : db_entry $data->{id} or return tuwf->resNotFound;
     return elm_Unauth if !can_edit p => $e;
 
     if(!auth->permDbmod) {
@@ -75,14 +75,14 @@ elm_api ProducerEdit => $FORM_OUT, $FORM_IN, sub {
 
     $data->{relations} = [] if $data->{hidden};
     validate_dbid 'SELECT id FROM producers WHERE id IN', map $_->{pid}, $data->{relations}->@*;
-    die "Relation with self" if grep $_->{pid} == $e->{id}, $data->{relations}->@*;
+    die "Relation with self" if grep $_->{pid} eq $e->{id}, $data->{relations}->@*;
 
     $e->{ptype} = $e->{type};
     $data->{type} = $data->{ptype};
     return elm_Unchanged if !$new && !form_changed $FORM_CMP, $data, $e;
-    my($id,undef,$rev) = db_edit p => $e->{id}, $data;
-    update_reverse($id, $rev, $e, $data);
-    elm_Redirect "/p$id.$rev";
+    my $ch = db_edit p => $e->{id}, $data;
+    update_reverse($ch->{nitemid}, $ch->{nrev}, $e, $data);
+    elm_Redirect "/$ch->{nitemid}.$ch->{nrev}";
 };
 
 
@@ -107,13 +107,13 @@ sub update_reverse {
     }
 
     for my $i (keys %upd) {
-        my $e = db_entry p => $i;
+        my $e = db_entry $i;
         $e->{relations} = [
             $upd{$i} ? $upd{$i} : (),
-            grep $_->{pid} != $id, $e->{relations}->@*
+            grep $_->{pid} ne $id, $e->{relations}->@*
         ];
-        $e->{editsum} = "Reverse relation update caused by revision p$id.$rev";
-        db_edit p => $i, $e, 1;
+        $e->{editsum} = "Reverse relation update caused by revision $id.$rev";
+        db_edit p => $i, $e, 'u1';
     }
 }
 

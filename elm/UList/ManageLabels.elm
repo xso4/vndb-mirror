@@ -24,7 +24,7 @@ main = Browser.element
   }
 
 type alias Model =
-  { uid     : Int
+  { uid     : String
   , state   : Api.State
   , labels  : List GML.SendLabels
   , editing : Maybe Int

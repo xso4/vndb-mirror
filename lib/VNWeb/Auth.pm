@@ -39,7 +39,7 @@ our @EXPORT = ('auth');
 sub auth {
     tuwf->req->{auth} ||= do {
         my $cookie = tuwf->reqCookie('auth')||'';
-        my($uid, $token_e) = $cookie =~ /^([a-fA-F0-9]{40})\.?(\d+)$/ ? ($2, sha1_hex pack 'H*', $1) : (0, '');
+        my($uid, $token_e) = $cookie =~ /^([a-fA-F0-9]{40})\.?u?(\d+)$/ ? ('u'.$2, sha1_hex pack 'H*', $1) : (0, '');
 
         my $auth = __PACKAGE__->new();
         $auth->_load_session($uid, $token_e);
@@ -53,7 +53,7 @@ sub auth {
 # have a lot of influence in this)
 TUWF::set log_format => sub {
     my(undef, $uri, $msg) = @_;
-    sprintf "[%s] %s %s: %s\n", scalar localtime(), $uri, tuwf->req && auth ? 'u'.auth->uid : '-', $msg;
+    sprintf "[%s] %s %s: %s\n", scalar localtime(), $uri, tuwf->req && auth ? auth->uid : '-', $msg;
 };
 
 

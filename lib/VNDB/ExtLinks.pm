@@ -262,7 +262,7 @@ sub enrich_extlinks {
             w 'howlongtobeat';
             w 'igdb_game';
             l 'l_renai';
-            push @links, [ 'VNStat', sprintf('https://vnstat.net/novel/%d', $obj->{id}), undef ] if $obj->{c_votecount}>=20;
+            push @links, [ 'VNStat', sprintf('https://vnstat.net/novel/%d', $obj->{id} =~ s/^.//r), undef ] if $obj->{c_votecount}>=20;
         }
 
         # Release links
@@ -315,7 +315,7 @@ sub enrich_extlinks {
             w 'mobygames_company';
             w 'gamefaqs_company';
             w 'doujinshi_author';
-            push @links, [ 'VNStat', sprintf('https://vnstat.net/developer/%d', $obj->{id}), undef ];
+            push @links, [ 'VNStat', sprintf('https://vnstat.net/developer/%d', $obj->{id} =~ s/^.//r), undef ];
         }
 
         $obj->{extlinks} = \@links

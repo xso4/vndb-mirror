@@ -33,7 +33,7 @@ main = Browser.element
 
 type alias SQuery = { name: String, query: String }
 type alias Recv =
-  { uid          : Maybe Int
+  { uid          : Maybe String
   , labels       : List { id: Int, label: String }
   , defaultSpoil : Int
   , saved        : List SQuery

@@ -22,7 +22,7 @@ sub _info_table_ {
         td_ class => 'key', 'Username';
         td_ sub {
             txt_ ucfirst $u->{user_name};
-            txt_ ' ('; a_ href => "/u$u->{id}", "u$u->{id}";
+            txt_ ' ('; a_ href => "/$u->{id}", $u->{id};
             txt_ ')';
             debug_ $u;
             sup if !($u->{user_uniname_can} && $u->{user_uniname});
@@ -35,7 +35,7 @@ sub _info_table_ {
     tr_ sub {
         td_ 'Edits';
         td_ !$u->{c_changes} ? '-' : sub {
-            a_ href => "/u$u->{id}/hist", $u->{c_changes}
+            a_ href => "/$u->{id}/hist", $u->{c_changes}
         };
     };
     tr_ sub {
@@ -44,7 +44,7 @@ sub _info_table_ {
         td_ 'Votes';
         td_ !$num ? '-' : sub {
             txt_ sprintf '%d vote%s, %.2f average. ', $num, $num == 1 ? '' : 's', $sum/$num/10;
-            a_ href => "/u$u->{id}/ulist?votes=1", 'Browse votes »';
+            a_ href => "/$u->{id}/ulist?votes=1", 'Browse votes »';
         }
     };
     tr_ sub {
@@ -62,7 +62,7 @@ sub _info_table_ {
             txt_ sprintf '%d release%s of %d visual novel%s. ',
                 $rel, $rel == 1 ? '' : 's',
                 $vns, $vns == 1 ? '' : 's';
-            a_ href => "/u$u->{id}/ulist?vnlist=1", 'Browse list »';
+            a_ href => "/$u->{id}/ulist?vnlist=1", 'Browse list »';
         };
     };
     tr_ sub {
@@ -99,7 +99,7 @@ sub _info_table_ {
             txt_ sprintf '%d post%s, %d new thread%s. ',
                 $stats->{posts},   $stats->{posts}   == 1 ? '' : 's',
                 $stats->{threads}, $stats->{threads} == 1 ? '' : 's';
-            a_ href => "/u$u->{id}/posts", 'Browse posts »';
+            a_ href => "/$u->{id}/posts", 'Browse posts »';
         };
     };
 }
@@ -140,11 +140,11 @@ sub _votestats_ {
     table_ class => 'recentvotes stripe', sub {
         thead_ sub { tr_ sub { td_ colspan => 3, sub {
             txt_ 'Recent votes';
-            b_ sub { txt_ ' ('; a_ href => "/u$u->{id}/ulist?votes=1", 'show all'; txt_ ')' };
+            b_ sub { txt_ ' ('; a_ href => "/$u->{id}/ulist?votes=1", 'show all'; txt_ ')' };
         } } };
         tr_ sub {
             my $v = $_;
-            td_ sub { a_ href => "/v$v->{id}", title => $v->{original}||$v->{title}, shorten $v->{title}, 30 };
+            td_ sub { a_ href => "/$v->{id}", title => $v->{original}||$v->{title}, shorten $v->{title}, 30 };
             td_ fmtvote $v->{vote};
             td_ fmtdate $v->{date};
         } for @$recent;
@@ -164,7 +164,7 @@ TUWF::get qr{/$RE{uid}}, sub {
     );
     return tuwf->resNotFound if !$u->{id};
 
-    my $own = (auth && auth->uid == $u->{id}) || auth->permUsermod;
+    my $own = (auth && auth->uid eq $u->{id}) || auth->permUsermod;
 
     $u->{votes} = tuwf->dbAlli('
         SELECT (uv.vote::numeric/10)::int AS idx, COUNT(uv.vote) as votes, SUM(uv.vote) AS total
@@ -177,7 +177,7 @@ TUWF::get qr{/$RE{uid}}, sub {
     ');
 
     my $title = user_displayname($u)."'s profile";
-    framework_ title => $title, type => 'u', dbobj => $u,
+    framework_ title => $title, dbobj => $u,
     sub {
         div_ class => 'mainbox userpage', sub {
             h1_ $title;
@@ -190,8 +190,8 @@ TUWF::get qr{/$RE{uid}}, sub {
         } if grep $_->{votes} > 0, $u->{votes}->@*;
 
         if($u->{c_changes}) {
-            h1_ class => 'boxtitle', sub { a_ href => "/u$u->{id}/hist", 'Recent changes' };
-            VNWeb::Misc::History::tablebox_ u => $u->{id}, {p=>1}, nopage => 1, results => 10;
+            h1_ class => 'boxtitle', sub { a_ href => "/$u->{id}/hist", 'Recent changes' };
+            VNWeb::Misc::History::tablebox_ $u->{id}, {p=>1}, nopage => 1, results => 10;
         }
     };
 };

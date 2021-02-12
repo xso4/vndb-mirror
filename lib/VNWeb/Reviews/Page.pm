@@ -33,13 +33,13 @@ sub review_ {
         tr_ sub {
             td_ 'Subject';
             td_ sub {
-                a_ href => "/v$w->{vid}", $w->{title};
+                a_ href => "/$w->{vid}", $w->{title};
                 if($w->{rid}) {
                     br_;
                     abbr_ class => "icons $_", title => $PLATFORM{$_}, '' for grep $_ ne 'oth', $w->{platforms}->@*;
                     abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for $w->{lang}->@*;
                     abbr_ class => "icons rt$w->{rtype}", title => $w->{rtype}, '';
-                    a_ href => "/r$w->{rid}", title => $w->{roriginal}||$w->{rtitle}, $w->{rtitle};
+                    a_ href => "/$w->{rid}", title => $w->{roriginal}||$w->{rtitle}, $w->{rtitle};
                 }
             };
         };
@@ -126,14 +126,14 @@ TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
     auth->notiRead($id, undef);
     auth->notiRead($id, [ map $_->{num}, $posts->@* ]) if @$posts;
 
-    my $newreview = auth && auth->uid == $w->{user_id} && tuwf->reqGet('submit');
+    my $newreview = auth && auth->uid eq $w->{user_id} && tuwf->reqGet('submit');
 
     my $title = "Review of $w->{title}";
-    framework_ title => $title, index => 1, type => 'w', dbobj => $w,
+    framework_ title => $title, index => 1, dbobj => $w,
         $num||$page>1 ? (pagevars => {sethash=>$num?$num:'threadstart'}) : (),
     sub {
         div_ class => 'mainbox', sub {
-            itemmsg_ w => $w;
+            itemmsg_ $w;
             h1_ $title;
             div_ class => 'notice', sub {
                 b_ 'Review has been successfully submitted! ';

@@ -5,32 +5,27 @@ use VNWeb::Prelude;
 
 # Also used by Misc::HomePage and Misc::Feeds
 sub fetch {
-    my($type, $id, $filt, $opt) = @_;
+    my($id, $filt, $opt) = @_;
 
     my $where = sql_and
-         !$type ? ()
-         : $type eq 'u' ? sql 'c.requester =', \$id
-         : sql_or(
-            sql('c.type =', \$type, ' AND c.itemid =', \$id),
+         !$id ? ()
+         : $id =~ /^u/ ? sql 'c.requester =', \$id
+         : $id =~ /^v/ && $filt->{r} ? sql 'c.itemid =', \$id, 'OR c.id IN(SELECT chid FROM releases_vn_hist WHERE vid =', \$id, ')' # This may need an index on releases_vn_hist.vid
+         : sql('c.itemid =', \$id),
 
-            # This may need an index on releases_vn_hist.vid
-            $type eq 'v' && $filt->{r} ?
-                sql 'c.id IN(SELECT chid FROM releases_vn_hist WHERE vid =', \$id, ')' : ()
-         ),
-
-         $filt->{t} && $filt->{t}->@* ? sql 'c.type IN', \$filt->{t} : (),
-         $filt->{m} ? sql 'c.requester IS DISTINCT FROM 1' : (),
+         $filt->{t} && $filt->{t}->@* ? sql_or map sql('c.itemid BETWEEN vndbid(', \"$_", ',1) AND vndbid_max(', \"$_", ')'), $filt->{t}->@* : (),
+         $filt->{m} ? sql 'c.requester IS DISTINCT FROM \'u1\'' : (),
 
          $filt->{e} && $filt->{e} == 1 ? sql 'c.rev <> 1' : (),
          $filt->{e} && $filt->{e} ==-1 ? sql 'c.rev = 1' : (),
 
          $filt->{h} ? sql $filt->{h} == 1 ? 'NOT' : '',
             'EXISTS(SELECT 1 FROM changes c_i
-                WHERE c_i.type = c.type AND c_i.itemid = c.itemid AND c_i.ihid
-                  AND c_i.rev = (SELECT MAX(c_ii.rev) FROM changes c_ii WHERE c_ii.type = c.type AND c_ii.itemid = c.itemid))' : ();
+                WHERE c_i.itemid = c.itemid AND c_i.ihid
+                  AND c_i.rev = (SELECT MAX(c_ii.rev) FROM changes c_ii WHERE c_ii.itemid = c.itemid))' : ();
 
     my($lst, $np) = tuwf->dbPagei({ page => $filt->{p}, results => $opt->{results}||50 }, q{
-        SELECT c.id, c.type, c.itemid, c.comments, c.rev,}, sql_totime('c.added'), q{ AS added, }, sql_user(), q{
+        SELECT c.id, c.itemid, c.comments, c.rev,}, sql_totime('c.added'), q{ AS added, }, sql_user(), q{
           FROM changes c
           LEFT JOIN users u ON c.requester = u.id
          WHERE}, $where, q{
@@ -55,9 +50,9 @@ sub fetch {
 # Also used by User::Page.
 # %opt: nopage => 1/0, results => $num
 sub tablebox_ {
-    my($type, $id, $filt, %opt) = @_;
+    my($id, $filt, %opt) = @_;
 
-    my($lst, $np) = fetch $type, $id, $filt, \%opt;
+    my($lst, $np) = fetch $id, $filt, \%opt;
 
     my sub url { '?'.query_encode %$filt, p => $_ }
 
@@ -73,9 +68,9 @@ sub tablebox_ {
             }};
             tr_ sub {
                 my $i = $_;
-                my $revurl = "/$i->{type}$i->{itemid}.$i->{rev}";
+                my $revurl = "/$i->{itemid}.$i->{rev}";
 
-                td_ class => 'tc1_1', sub { a_ href => $revurl, "$i->{type}$i->{itemid}" };
+                td_ class => 'tc1_1', sub { a_ href => $revurl, $i->{itemid} };
                 td_ class => 'tc1_2', sub { a_ href => $revurl, ".$i->{rev}" };
                 td_ class => 'tc2', fmtdate $i->{added}, 'full';
                 td_ class => 'tc3', sub { user_ $i };
@@ -168,23 +163,21 @@ sub filters_ {
 }
 
 
-TUWF::get qr{/(?:([upvrcsd])([1-9]\d*)/)?hist} => sub {
-    my($type, $id) = (tuwf->capture(1)||'', tuwf->capture(2));
+TUWF::get qr{/(?:([upvrcsd][1-9][0-9]{0,6})/)?hist} => sub {
+    my $id = tuwf->capture(1)||'';
+    my $obj = dbobj $id;
 
-    my $obj = dbobj $type, $id;
+    return tuwf->resNotFound if $id && !$obj->{id};
 
-    return tuwf->resNotFound if $type && !$obj->{id};
-    $obj->{title} = user_displayname $obj if $type eq 'u';
-
-    my $title = $type ? "Edit history of $obj->{title}" : 'Recent changes';
-    framework_ title => $title, type => $type, dbobj => $obj, tab => 'hist',
+    my $title = $id ? "Edit history of $obj->{title}" : 'Recent changes';
+    framework_ title => $title, dbobj => $obj, tab => 'hist',
     sub {
         my $filt;
         div_ class => 'mainbox', sub {
             h1_ $title;
-            $filt = filters_ $type;
+            $filt = filters_($id =~ /^(.)/ or '');
         };
-        tablebox_ $type, $id, $filt;
+        tablebox_ $id, $filt;
     };
 };
 

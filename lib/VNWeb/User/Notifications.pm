@@ -23,7 +23,7 @@ sub settings_ {
     my $u = tuwf->dbRowi('SELECT notify_dbedit, notify_post, notify_comment, notify_announce FROM users WHERE id =', \$id);
 
     h1_ 'Settings';
-    form_ action => "/u$id/notify_options", method => 'POST', sub {
+    form_ action => "/$id/notify_options", method => 'POST', sub {
         input_ type => 'hidden', class => 'hidden', name => 'csrf', value => auth->csrftoken;
         p_ sub {
             label_ sub {
@@ -55,7 +55,7 @@ sub settings_ {
 sub listing_ {
     my($id, $opt, $count, $list) = @_;
 
-    my sub url { "/u$id/notifies?r=$opt->{r}&p=$_" }
+    my sub url { "/$id/notifies?r=$opt->{r}&p=$_" }
 
     my sub tbl_ {
         thead_ sub { tr_ sub {
@@ -101,7 +101,7 @@ sub listing_ {
         } for @$list;
     }
 
-    form_ action => "/u$id/notify_update", method => 'POST', sub {
+    form_ action => "/$id/notify_update", method => 'POST', sub {
         input_ type => 'hidden', class => 'hidden', name => 'url', value => do { local $_ = $opt->{p}; url };
         paginate_ \&url, $opt->{p}, [$count, 25], 't';
         div_ class => 'mainbox browse notifies', sub {
@@ -113,12 +113,12 @@ sub listing_ {
 
 
 # Redirect so that elm/Subscribe.elm can link to this page without knowing our uid.
-TUWF::get qr{/u/notifies}, sub { auth ? tuwf->resRedirect('/u'.auth->uid.'/notifies') : tuwf->resNotFound };
+TUWF::get qr{/u/notifies}, sub { auth ? tuwf->resRedirect('/'.auth->uid.'/notifies') : tuwf->resNotFound };
 
 
 TUWF::get qr{/$RE{uid}/notifies}, sub {
     my $id = tuwf->capture('id');
-    return tuwf->resNotFound if !auth || $id != auth->uid;
+    return tuwf->resNotFound if !auth || $id ne auth->uid;
 
     my $opt = tuwf->validate(get =>
         p => { page => 1 },
@@ -158,7 +158,7 @@ TUWF::get qr{/$RE{uid}/notifies}, sub {
 
 TUWF::post qr{/$RE{uid}/notify_options}, sub {
     my $id = tuwf->capture('id');
-    return tuwf->resNotFound if !auth || $id != auth->uid;
+    return tuwf->resNotFound if !auth || $id ne auth->uid;
 
     my $frm = tuwf->validate(post =>
         csrf     => {},
@@ -175,16 +175,16 @@ TUWF::post qr{/$RE{uid}/notify_options}, sub {
         notify_post     => $frm->{post},
         notify_comment  => $frm->{comment},
     }, 'WHERE id =', \$id);
-    tuwf->resRedirect("/u$id/notifies", 'post');
+    tuwf->resRedirect("/$id/notifies", 'post');
 };
 
 
 TUWF::post qr{/$RE{uid}/notify_update}, sub {
     my $id = tuwf->capture('id');
-    return tuwf->resNotFound if !auth || $id != auth->uid;
+    return tuwf->resNotFound if !auth || $id ne auth->uid;
 
     my $frm = tuwf->validate(post =>
-        url       => { regex => qr{^/u$id/notifies} },
+        url       => { regex => qr{^/$id/notifies} },
         notifysel => { required => 0, default => [], type => 'array', scalar => 1, values => { id => 1 } },
         markread  => { anybool => 1 },
         remove    => { anybool => 1 },
@@ -203,7 +203,7 @@ TUWF::post qr{/$RE{uid}/notify_update}, sub {
 # (but that's subject to change in the future, so let's keep this around)
 TUWF::get qr{/$RE{uid}/notify/$RE{num}/(?<lid>[a-z0-9\.]+)}, sub {
     my $id = tuwf->capture('id');
-    return tuwf->resNotFound if !auth || $id != auth->uid;
+    return tuwf->resNotFound if !auth || $id ne auth->uid;
     tuwf->dbExeci('UPDATE notifications SET read = NOW() WHERE read IS NULL AND uid =', \$id, ' AND id =', \tuwf->capture('num'));
     tuwf->resRedirect('/'.tuwf->capture('lid'), 'temp');
 };

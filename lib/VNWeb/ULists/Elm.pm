@@ -12,7 +12,7 @@ sub updcache {
 
 
 our $LABELS = form_compile any => {
-    uid => { id => 1 },
+    uid => { vndbid => 'u' },
     labels => { aoh => {
         id      => { int => 1 },
         label   => { maxlength => 50 },
@@ -77,8 +77,8 @@ elm_api UListManageLabels => undef, $LABELS, sub {
 
 
 our $VNVOTE = form_compile any => {
-    uid  => { id => 1 },
-    vid  => { id => 1 },
+    uid  => { vndbid => 'u' },
+    vid  => { vndbid => 'v' },
     vote => { vnvote => 1 },
 };
 
@@ -101,8 +101,8 @@ elm_api UListVoteEdit => undef, $VNVOTE, sub {
 
 
 my $VNLABELS = {
-    uid      => { id => 1 },
-    vid      => { id => 1 },
+    uid      => { vndbid => 'u' },
+    vid      => { vndbid => 'v' },
     label    => { _when => 'in', id => 1 },
     applied  => { _when => 'in', anybool => 1 },
     labels   => { _when => 'out', aoh => { id => { int => 1 }, label => {}, private => { anybool => 1 } } },
@@ -136,8 +136,8 @@ elm_api UListLabelEdit => $VNLABELS_OUT, $VNLABELS_IN, sub {
 
 
 our $VNDATE = form_compile any => {
-    uid   => { id => 1 },
-    vid   => { id => 1 },
+    uid   => { vndbid => 'u' },
+    vid   => { vndbid => 'v' },
     date  => { required => 0, default => '', regex => qr/^(?:19[7-9][0-9]|20[0-9][0-9])-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])$/ }, # 1970 - 2099 for sanity
     start => { anybool => 1 }, # Field selection, started/finished
 };
@@ -158,8 +158,8 @@ elm_api UListDateEdit => undef, $VNDATE, sub {
 
 our $VNOPT = form_compile any => {
     own   => { anybool => 1 },
-    uid   => { id => 1 },
-    vid   => { id => 1 },
+    uid   => { vndbid => 'u' },
+    vid   => { vndbid => 'v' },
     notes => {},
     rels  => $VNWeb::Elm::apis{Releases}[0],
     relstatus => { type => 'array', values => { uint => 1 } }, # List of release statuses, same order as rels
@@ -167,8 +167,8 @@ our $VNOPT = form_compile any => {
 
 
 our $VNPAGE = form_compile any => {
-    uid      => { id => 1 },
-    vid      => { id => 1 },
+    uid      => { vndbid => 'u' },
+    vid      => { vndbid => 'v' },
     onlist   => { anybool => 1 },
     canvote  => { anybool => 1 },
     vote     => { vnvote => 1 },
@@ -182,8 +182,8 @@ our $VNPAGE = form_compile any => {
 
 # UListVNNotes module is abused for the UList.Opts and UList.VNPage flag definition
 elm_api UListVNNotes => $VNOPT, {
-    uid   => { id => 1 },
-    vid   => { id => 1 },
+    uid   => { vndbid => 'u' },
+    vid   => { vndbid => 'v' },
     notes => { required => 0, default => '', maxlength => 2000 },
 }, sub {
     my($data) = @_;
@@ -199,8 +199,8 @@ elm_api UListVNNotes => $VNOPT, {
 
 
 elm_api UListDel => undef, {
-    uid => { id => 1 },
-    vid => { id => 1 },
+    uid => { vndbid => 'u' },
+    vid => { vndbid => 'v' },
 }, sub {
     my($data) = @_;
     return elm_Unauth if !ulists_own $data->{uid};
@@ -215,8 +215,8 @@ elm_api UListDel => undef, {
 # Adds the release when not in the list.
 # $RLIST_STATUS is also referenced from VNWeb::Releases::Page.
 our $RLIST_STATUS = form_compile any => {
-    uid => { id => 1 },
-    rid => { id => 1 },
+    uid => { vndbid => 'u' },
+    rid => { vndbid => 'r' },
     status => { required => 0, uint => 1, enum => \%RLIST_STATUS }, # undef meaning delete
     empty => { required => 0, default => '' }, # An 'out' field
 };
@@ -248,7 +248,7 @@ our %SAVED_OPTS = (
 );
 
 my $SAVED_OPTS = {
-    uid   => { id => 1 },
+    uid   => { vndbid => 'u' },
     opts  => { type => 'hash', keys => \%SAVED_OPTS },
     field => { _when => 'in', enum => [qw/ vnlist votes wish /] },
 };

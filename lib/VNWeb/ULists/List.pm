@@ -132,7 +132,7 @@ sub vn_ {
         } if in label => $opt->{c};
 
         td_ class => 'tc_title', sub {
-            a_ href => "/v$v->{id}", title => $v->{original}||$v->{title}, shorten $v->{title}, 70;
+            a_ href => "/$v->{id}", title => $v->{original}||$v->{title}, shorten $v->{title}, 70;
             b_ class => 'grayedout', id => 'ulist_notes_'.$v->{id}, $v->{notes} if $v->{notes} || $own;
         };
 
@@ -305,9 +305,9 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
             : $num_core_labels == 1 && $opt_labels->{5} ? 'wish' : 'list';
 
     my $title = $own ? 'My list' : user_displayname($u)."'s list";
-    framework_ title => $title, type => 'u', dbobj => $u, tab => $tab, js => 1,
+    framework_ title => $title, dbobj => $u, tab => $tab, js => 1,
         $own ? ( pagevars => {
-            uid         => $u->{id}*1,
+            uid         => $u->{id},
             labels      => $VNWeb::ULists::Elm::LABELS->analyze->{keys}{labels}->coerce_for_json($labels),
             voteprivate => (map \($_->{private}?1:0), grep $_->{id} == 7, @$labels),
         } ) : (),
@@ -330,7 +330,7 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
                     txt_ '(there is currently no import function, more export options may be added later).';
                     br_;
                     br_;
-                    a_ href => "/u$u->{id}/list-export/xml", "Download XML export.";
+                    a_ href => "/$u->{id}/list-export/xml", "Download XML export.";
                 } if $own;
             }
         };
@@ -341,9 +341,9 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
 
 
 # Redirects for old URLs
-TUWF::get qr{/$RE{uid}/votes}, sub { tuwf->resRedirect("/u".tuwf->capture('id').'/ulist?votes=1', 'perm') };
-TUWF::get qr{/$RE{uid}/list},  sub { tuwf->resRedirect("/u".tuwf->capture('id').'/ulist?vnlist=1', 'perm') };
-TUWF::get qr{/$RE{uid}/wish},  sub { tuwf->resRedirect("/u".tuwf->capture('id').'/ulist?wishlist=1', 'perm') };
+TUWF::get qr{/$RE{uid}/votes}, sub { tuwf->resRedirect("/".tuwf->capture('id').'/ulist?votes=1', 'perm') };
+TUWF::get qr{/$RE{uid}/list},  sub { tuwf->resRedirect("/".tuwf->capture('id').'/ulist?vnlist=1', 'perm') };
+TUWF::get qr{/$RE{uid}/wish},  sub { tuwf->resRedirect("/".tuwf->capture('id').'/ulist?wishlist=1', 'perm') };
 
 
 1;

@@ -17,28 +17,29 @@ use lib $ROOT.'/lib';
 
 my $db = DBI->connect('dbi:Pg:dbname=vndb', 'vndb', undef, { RaiseError => 1 });
 
+sub ids { join ',', map "'$_'", @_ }
 
 
 # Figure out which DB entries to export
 
-my @vids = (3, 17, 97, 183, 264, 266, 384, 407, 1910, 2932, 5922, 6438, 9837);
-my $vids = join ',', @vids;
+my @vids = (qw/v3 v17 v97 v183 v264 v266 v384 v407 v1910 v2932 v5922 v6438 v9837/);
+my $vids = ids @vids;
 my $staff = $db->selectcol_arrayref(
     "SELECT c2.itemid FROM vn_staff_hist  v JOIN changes c ON c.id = v.chid JOIN staff_alias_hist a ON a.aid = v.aid JOIN changes c2 ON c2.id = a.chid WHERE c.itemid IN($vids) "
    ."UNION "
    ."SELECT c2.itemid FROM vn_seiyuu_hist v JOIN changes c ON c.id = v.chid JOIN staff_alias_hist a ON a.aid = v.aid JOIN changes c2 ON c2.id = a.chid WHERE c.itemid IN($vids)"
 );
 my $releases = $db->selectcol_arrayref("SELECT DISTINCT c.itemid FROM releases_vn_hist v JOIN changes c ON c.id = v.chid WHERE v.vid IN($vids)");
-my $producers = $db->selectcol_arrayref("SELECT pid FROM releases_producers_hist p JOIN changes c ON c.id = p.chid WHERE c.type = 'r' AND c.itemid IN(".join(',',@$releases).")");
+my $producers = $db->selectcol_arrayref("SELECT pid FROM releases_producers_hist p JOIN changes c ON c.id = p.chid WHERE c.itemid IN(".ids(@$releases).")");
 my $characters = $db->selectcol_arrayref(
     "SELECT DISTINCT c.itemid FROM chars_vns_hist e JOIN changes c ON c.id = e.chid WHERE e.vid IN($vids) "
    ."UNION "
    ."SELECT DISTINCT h.main FROM chars_vns_hist e JOIN changes c ON c.id = e.chid JOIN chars_hist h ON h.chid = e.chid WHERE e.vid IN($vids) AND h.main IS NOT NULL"
 );
 my $images = $db->selectcol_arrayref(q{
-         SELECT image FROM chars_hist          ch JOIN changes c ON c.id = ch.chid WHERE c.type = 'c' AND c.itemid IN(}.join(',',@$characters).qq{) AND ch.image IS NOT NULL
-   UNION SELECT image FROM vn_hist             vh JOIN changes c ON c.id = vh.chid WHERE c.type = 'v' AND c.itemid IN($vids) AND vh.image IS NOT NULL
-   UNION SELECT scr   FROM vn_screenshots_hist vs JOIN changes c ON c.id = vs.chid WHERE c.type = 'v' AND c.itemid IN($vids)
+         SELECT image FROM chars_hist          ch JOIN changes c ON c.id = ch.chid WHERE c.itemid IN(}.ids(@$characters).qq{) AND ch.image IS NOT NULL
+   UNION SELECT image FROM vn_hist             vh JOIN changes c ON c.id = vh.chid WHERE c.itemid IN($vids) AND vh.image IS NOT NULL
+   UNION SELECT scr   FROM vn_screenshots_hist vs JOIN changes c ON c.id = vs.chid WHERE c.itemid IN($vids)
 });
 
 
@@ -47,6 +48,7 @@ my $images = $db->selectcol_arrayref(q{
 sub copy {
     my($dest, $sql, $specials) = @_;
 
+    warn $dest;
     $sql ||= "SELECT * FROM $dest";
     $specials ||= {};
 
@@ -61,7 +63,7 @@ sub copy {
     $sql = "SELECT " . join(',', map {
         my $s = $specials->{$_} || '';
         if($s eq 'user') {
-            qq{CASE WHEN "$_" % 10 = 0 THEN NULL ELSE "$_" % 10 END AS "$_"}
+            qq{CASE WHEN vndbid_num("$_") % 10 = 0 THEN NULL ELSE vndbid('u', vndbid_num("$_") % 10) END AS "$_"}
         } else {
             qq{"$_"}
         }
@@ -77,14 +79,14 @@ sub copy {
 
 # Helper function to copy a full DB entry with history and all (doesn't handle references)
 sub copy_entry {
-    my($type, $tables, $ids) = @_;
-    $ids = join ',', @$ids;
-    copy changes => "SELECT * FROM changes WHERE type = '$type' AND itemid IN($ids)", {requester => 'user', ip => 'del'};
+    my($tables, $ids) = @_;
+    $ids = ids @$ids;
+    copy changes => "SELECT * FROM changes WHERE itemid IN($ids)", {requester => 'user', ip => 'del'};
     for(@$tables) {
         my $add = '';
         $add = " AND vid IN($vids)" if /^releases_vn/ || /^vn_relations/ || /^chars_vns/;
         copy $_          => "SELECT *   FROM $_ WHERE id IN($ids) $add";
-        copy "${_}_hist" => "SELECT x.* FROM ${_}_hist x JOIN changes c ON c.id = x.chid WHERE c.type = '$type' AND c.itemid IN($ids) $add";
+        copy "${_}_hist" => "SELECT x.* FROM ${_}_hist x JOIN changes c ON c.id = x.chid WHERE c.itemid IN($ids) $add";
     }
 }
 
@@ -109,15 +111,15 @@ sub copy_entry {
     # A few pre-defined users
     # This password is 'hunter2' with the default salt
     my $pass = '000100000801ec4185fed438752d6b3b968e2b2cd045f70005cb7e10cafdbb694a82246bd34a065b6e977e0c3dcc';
-    printf "INSERT INTO users (id, username, mail, perm_usermod, passwd, email_confirmed) VALUES (%d, '%s', '%s', %s, decode('%s', 'hex'), true);\n", @$_, $pass for(
-        [ 2, 'admin', 'admin@vndb.org', 'true' ],
-        [ 3, 'user1', 'user1@vndb.org', 'false'],
-        [ 4, 'user2', 'user2@vndb.org', 'false'],
-        [ 5, 'user3', 'user3@vndb.org', 'false'],
-        [ 6, 'user4', 'user4@vndb.org', 'false'],
-        [ 7, 'user5', 'user5@vndb.org', 'false'],
-        [ 8, 'user6', 'user6@vndb.org', 'false'],
-        [ 9, 'user7', 'user7@vndb.org', 'false'],
+    printf "INSERT INTO users (id, username, mail, perm_usermod, passwd, email_confirmed) VALUES ('%s', '%s', '%s', %s, decode('%s', 'hex'), true);\n", @$_, $pass for(
+        [ 'u2', 'admin', 'admin@vndb.org', 'true' ],
+        [ 'u3', 'user1', 'user1@vndb.org', 'false'],
+        [ 'u4', 'user2', 'user2@vndb.org', 'false'],
+        [ 'u5', 'user3', 'user3@vndb.org', 'false'],
+        [ 'u6', 'user4', 'user4@vndb.org', 'false'],
+        [ 'u7', 'user5', 'user5@vndb.org', 'false'],
+        [ 'u8', 'user6', 'user6@vndb.org', 'false'],
+        [ 'u9', 'user7', 'user7@vndb.org', 'false'],
     );
     print "SELECT ulist_labels_create(id) FROM users;\n";
 
@@ -132,9 +134,9 @@ sub copy_entry {
     copy 'wikidata';
 
     # Image metadata
-    my $image_ids = join ',', map "'$_'", @$images;
+    my $image_ids = ids @$images;
     copy images => "SELECT * FROM images WHERE id IN($image_ids)";
-    copy image_votes => "SELECT DISTINCT ON (id,uid%10) * FROM image_votes WHERE id IN($image_ids)", { uid => 'user' };
+    copy image_votes => "SELECT DISTINCT ON (id,vndbid('u', vndbid_num(uid)%10+10)) * FROM image_votes WHERE id IN($image_ids)", { uid => 'user' };
 
     # Threads (announcements)
     my $threads = join ',', map "'$_'", @{ $db->selectcol_arrayref("SELECT tid FROM threads_boards b WHERE b.type = 'an'") };
@@ -143,31 +145,31 @@ sub copy_entry {
     copy threads_posts  => "SELECT * FROM threads_posts WHERE tid IN($threads)", { uid => 'user' };
 
     # Doc pages
-    copy_entry d => ['docs'], $db->selectcol_arrayref('SELECT id FROM docs');
+    copy_entry ['docs'], $db->selectcol_arrayref('SELECT id FROM docs');
 
     # Staff
-    copy_entry s => [qw/staff staff_alias/], $staff;
+    copy_entry [qw/staff staff_alias/], $staff;
 
     # Producers (TODO: Relations)
-    copy_entry p => [qw/producers/], $producers;
+    copy_entry [qw/producers/], $producers;
 
     # Characters
-    copy_entry c => [qw/chars chars_traits chars_vns/], $characters;
+    copy_entry [qw/chars chars_traits chars_vns/], $characters;
 
     # Visual novels
-    copy anime       => "SELECT DISTINCT a.* FROM anime a JOIN vn_anime_hist v ON v.aid = a.id JOIN changes c ON c.id = v.chid WHERE c.type = 'v' AND c.itemid IN($vids)";
-    copy_entry v     => [qw/vn vn_anime vn_seiyuu vn_staff vn_relations vn_screenshots/], \@vids;
+    copy anime => "SELECT DISTINCT a.* FROM anime a JOIN vn_anime_hist v ON v.aid = a.id JOIN changes c ON c.id = v.chid WHERE c.itemid IN($vids)";
+    copy_entry [qw/vn vn_anime vn_seiyuu vn_staff vn_relations vn_screenshots/], \@vids;
 
     # VN-related niceties
-    copy tags_vn     => "SELECT DISTINCT ON (tag,vid,uid%10) * FROM tags_vn WHERE vid IN($vids)", {uid => 'user'};
+    copy tags_vn     => "SELECT DISTINCT ON (tag,vid,vndbid_num(uid)%10) * FROM tags_vn WHERE vid IN($vids)", {uid => 'user'};
     copy quotes      => "SELECT * FROM quotes WHERE vid IN($vids)";
-    my $votes = "SELECT vid, uid%8+2 AS uid, (percentile_cont((uid%8+1)::float/9) WITHIN GROUP (ORDER BY vote))::smallint AS vote, MIN(vote_date) AS vote_date"
-               ."  FROM ulist_vns WHERE vid IN($vids) AND vote IS NOT NULL GROUP BY vid, uid%8";
+    my $votes = "SELECT vid, vndbid('u', vndbid_num(uid)%8+2) AS uid, (percentile_cont((vndbid_num(uid)%8+1)::float/9) WITHIN GROUP (ORDER BY vote))::smallint AS vote, MIN(vote_date) AS vote_date"
+               ."  FROM ulist_vns WHERE vid IN($vids) AND vote IS NOT NULL GROUP BY vid, vndbid_num(uid)%8";
     copy ulist_vns   => $votes, {uid => 'user'};
     copy ulist_vns_labels => "SELECT vid, uid, 7 AS lbl FROM ($votes) x", {uid => 'user'};
 
     # Releases
-    copy_entry r => [qw/releases releases_lang releases_media releases_platforms releases_producers releases_vn/], $releases;
+    copy_entry [qw/releases releases_lang releases_media releases_platforms releases_producers releases_vn/], $releases;
 
     print "\\i sql/tableattrs.sql\n";
     print "\\i sql/triggers.sql\n";

@@ -5,7 +5,7 @@ use VNWeb::Releases::Lib;
 
 
 # Used by UList.Opt and CharEdit to fetch releases from a VN id.
-elm_api Release => undef, { vid => { id => 1 } }, sub {
+elm_api Release => undef, { vid => { vndbid => 'v' } }, sub {
     my($data) = @_;
     elm_Releases releases_by_vn $data->{vid};
 };

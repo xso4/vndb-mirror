@@ -59,7 +59,7 @@ TUWF::get qr{/$RE{uid}/posts}, sub {
            FROM ', $sql, 'ORDER BY date DESC'
     );
 
-    my $own = auth && $u->{id} == auth->uid;
+    my $own = auth && $u->{id} eq auth->uid;
     my $title = $own ? 'My posts' : 'Posts by '.user_displayname $u;
     framework_ title => $title, type => 'u', dbobj => $u, tab => 'posts',
     sub {

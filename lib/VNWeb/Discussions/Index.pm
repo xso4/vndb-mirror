@@ -23,7 +23,7 @@ TUWF::get qr{/t}, sub {
             };
             threadlist_
                 where   => sql('t.id IN(SELECT tid FROM threads_boards WHERE type =', \$b, ')'),
-                boards  => sql('NOT (tb.type =', \$b, 'AND tb.iid = 0)'),
+                boards  => sql('NOT (tb.type =', \$b, 'AND tb.iid IS NULL)'),
                 results => $BOARD_TYPE{$b}{index_rows},
                 page    => 1;
         }

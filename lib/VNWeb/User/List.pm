@@ -27,19 +27,19 @@ sub listing_ {
                 td_ class => 'tc2', fmtdate $l->{registered};
                 td_ class => 'tc3', sub {
                     txt_ '0' if !$l->{c_vns};
-                    a_ href => "/u$l->{user_id}/ulist?vnlist=1", $l->{c_vns} if $l->{c_vns};
+                    a_ href => "/$l->{user_id}/ulist?vnlist=1", $l->{c_vns} if $l->{c_vns};
                 };
                 td_ class => 'tc4', sub {
                     txt_ '0' if !$l->{c_votes};
-                    a_ href => "/u$l->{user_id}/ulist?votes=1", $l->{c_votes} if $l->{c_votes};
+                    a_ href => "/$l->{user_id}/ulist?votes=1", $l->{c_votes} if $l->{c_votes};
                 };
                 td_ class => 'tc5', sub {
                     txt_ '0' if !$l->{c_wish};
-                    a_ href => "/u$l->{user_id}/ulist?wishlist=1", $l->{c_wish} if $l->{c_wish};
+                    a_ href => "/$l->{user_id}/ulist?wishlist=1", $l->{c_wish} if $l->{c_wish};
                 };
                 td_ class => 'tc6', sub {
                     txt_ '-' if !$l->{c_changes};
-                    a_ href => "/u$l->{user_id}/hist", $l->{c_changes} if $l->{c_changes};
+                    a_ href => "/$l->{user_id}/hist", $l->{c_changes} if $l->{c_changes};
                 };
                 td_ class => 'tc7', sub {
                     txt_ '-' if !$l->{c_tags};
@@ -70,7 +70,7 @@ TUWF::get qr{/u/(?<char>[0a-z]|all)}, sub {
         $char eq 'all' ? () : $char eq '0' ? "ascii(username) not between ascii('a') and ascii('z')" : "username like '$char%'",
         $opt->{q} ? sql_or(
             auth->permUsermod && $opt->{q} =~ /@/ ? sql('id IN(SELECT y FROM user_emailtoid(', \$opt->{q}, ') x(y))') : (),
-            $opt->{q} =~ /^u?([0-9]{1,6})$/ ? sql 'id =', \"$1" : (),
+            $opt->{q} =~ /^(u?[0-9]{1,6})$/ ? sql 'id =', \"$1" : (),
             sql('username ILIKE', \('%'.sql_like($opt->{q}).'%')),
         ) : ()
     );
@@ -78,7 +78,7 @@ TUWF::get qr{/u/(?<char>[0a-z]|all)}, sub {
     my $list = tuwf->dbPagei({ results => 50, page => $opt->{p} },
         'SELECT', sql_user(), ',', sql_totime('registered'), 'as registered, c_vns, c_votes, c_wish, c_changes, c_tags, c_imgvotes
            FROM users u
-          WHERE', sql_and('id > 0', @where),
+          WHERE', sql_and(@where),
          'ORDER BY', {
                   username   => 'username',
                   registered => 'id',

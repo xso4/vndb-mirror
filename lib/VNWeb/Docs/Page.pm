@@ -32,21 +32,21 @@ sub _index_ {
 
 sub _rev_ {
     my $d = shift;
-    revision_ d => $d, sub {},
+    revision_ $d, sub {},
         [ title   => 'Title'    ],
         [ content => 'Contents' ];
 }
 
 
 TUWF::get qr{/$RE{drev}} => sub {
-    my $d = db_entry d => tuwf->capture('id'), tuwf->capture('rev');
+    my $d = db_entry tuwf->captures('id', 'rev');
     return tuwf->resNotFound if !$d;
 
-    framework_ title => $d->{title}, index => !tuwf->capture('rev'), type => 'd', dbobj => $d, hiddenmsg => 1,
+    framework_ title => $d->{title}, index => !tuwf->capture('rev'), dbobj => $d, hiddenmsg => 1,
     sub {
         _rev_ $d if tuwf->capture('rev');
         div_ class => 'mainbox', sub {
-            itemmsg_ d => $d;
+            itemmsg_ $d;
             h1_ $d->{title};
             div_ class => 'docs', sub {
                 _index_;

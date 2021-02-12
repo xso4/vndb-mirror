@@ -5,7 +5,7 @@ use VNDB::Skins;
 
 
 my $FORM = {
-    id             => { uint => 1 },
+    id             => { vndbid => 'u' },
     title          => { _when => 'out' },
     username       => { username => 1 }, # Can only be modified with perm_usermod
 
@@ -79,7 +79,7 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
     $u->{opts}{perm_boardmod} = auth->permBoardmod;
     $u->{opts}{perm_imgmod}   = auth->permImgmod;
 
-    $u->{prefs} = $u->{id} == auth->uid || auth->permUsermod ?
+    $u->{prefs} = $u->{id} eq auth->uid || auth->permUsermod ?
         tuwf->dbRowi(
             'SELECT max_sexual, max_violence, traits_sexual, tags_all, tags_cont, tags_ero, tags_tech, spoilers, skin, customcss
                   , nodistract_noads, nodistract_nofancy, support_enabled, uniname, pubskin_enabled
@@ -93,7 +93,7 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
 
     $u->{password} = undef;
 
-    $u->{title} = $u->{id} == auth->uid ? 'My Account' : "Edit $u->{username}";
+    $u->{title} = $u->{id} eq auth->uid ? 'My Account' : "Edit $u->{username}";
     framework_ title => $u->{title}, type => 'u', dbobj => $u, tab => 'edit',
     sub {
         elm_ 'User.Edit', $FORM_OUT, $u;
@@ -108,7 +108,7 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
     return tuwf->resNotFound if !$username;
     return elm_Unauth if !can_edit u => $data;
 
-    my $own = $data->{id} == auth->uid || auth->permUsermod;
+    my $own = $data->{id} eq auth->uid || auth->permUsermod;
     my %set;
 
     if($own) {
@@ -140,7 +140,7 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
         return elm_InsecurePass if is_insecurepass $data->{password}{new};
 
         my $ok = 1;
-        if(auth->uid == $data->{id}) {
+        if(auth->uid eq $data->{id}) {
             $ok = 0 if !auth->setpass($data->{id}, undef, $data->{password}{old}, $data->{password}{new});
         } else {
             tuwf->dbExeci(select => sql_func user_admin_setpass => \$data->{id}, \auth->uid,
@@ -170,7 +170,7 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
                 ."%s"
                 ."\n\n"
                 ."vndb.org",
-                $username, $oldmail, $newmail, tuwf->reqBaseURI()."/u$data->{id}/setmail/$token";
+                $username, $oldmail, $newmail, tuwf->reqBaseURI()."/$data->{id}/setmail/$token";
 
             tuwf->mail($body,
                 To => $newmail,
@@ -188,7 +188,7 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
     $_ = JSON::XS->new->allow_nonref->encode($_) for values %$old, %$new;
     my @diff = grep $old->{$_} ne $new->{$_}, keys %set;
     auth->audit($data->{id}, 'user edit', join '; ', map "$_: $old->{$_} -> $new->{$_}", @diff)
-        if @diff && (auth->uid != $data->{id} || grep /^(perm_|ign_votes|username)/, @diff);
+        if @diff && (auth->uid ne $data->{id} || grep /^(perm_|ign_votes|username)/, @diff);
 
     $ret->();
 };

@@ -55,10 +55,10 @@ sub enrich_item {
     enrich_merge aid => 'SELECT id AS sid, aid, name, original FROM staff_alias WHERE aid IN', $v->{staff}, $v->{seiyuu};
     enrich_merge cid => 'SELECT id AS cid, name AS char_name, original AS char_original FROM chars WHERE id IN', $v->{seiyuu};
 
-    $v->{relations}   = [ sort { $a->{vid} <=> $b->{vid} } $v->{relations}->@* ];
+    $v->{relations}   = [ sort { idcmp($a->{vid}, $b->{vid}) } $v->{relations}->@* ];
     $v->{anime}       = [ sort { $a->{aid} <=> $b->{aid} } $v->{anime}->@* ];
     $v->{staff}       = [ sort { $a->{aid} <=> $b->{aid} || $a->{role} cmp $b->{role} } $v->{staff}->@* ];
-    $v->{seiyuu}      = [ sort { $a->{aid} <=> $b->{aid} || $a->{cid} <=> $b->{cid} || $a->{note} cmp $b->{note} } $v->{seiyuu}->@* ];
+    $v->{seiyuu}      = [ sort { $a->{aid} <=> $b->{aid} || idcmp($a->{cid}, $b->{cid}) || $a->{note} cmp $b->{note} } $v->{seiyuu}->@* ];
     $v->{screenshots} = [ sort { idcmp($a->{scr}{id}, $b->{scr}{id}) } $v->{screenshots}->@* ];
 }
 
@@ -83,7 +83,7 @@ sub canvote {
 
 sub rev_ {
     my($v) = @_;
-    revision_ v => $v, \&enrich_item,
+    revision_ $v, \&enrich_item,
         [ title       => 'Title (romaji)' ],
         [ original    => 'Original title' ],
         [ alias       => 'Alias'          ],
@@ -91,26 +91,26 @@ sub rev_ {
         [ desc        => 'Description'    ],
         [ length      => 'Length',        fmt => \%VN_LENGTH ],
         [ staff       => 'Credits',       fmt => sub {
-            a_ href => "/s$_->{sid}", title => $_->{original}||$_->{name}, $_->{name} if $_->{sid};
+            a_ href => "/$_->{sid}", title => $_->{original}||$_->{name}, $_->{name} if $_->{sid};
             b_ class => 'grayedout', '[removed alias]' if !$_->{sid};
             txt_ " [$CREDIT_TYPE{$_->{role}}]";
             txt_ " [$_->{note}]" if $_->{note};
         }],
         [ seiyuu      => 'Seiyuu',        fmt => sub {
-            a_ href => "/s$_->{sid}", title => $_->{original}||$_->{name}, $_->{name} if $_->{sid};
+            a_ href => "/$_->{sid}", title => $_->{original}||$_->{name}, $_->{name} if $_->{sid};
             b_ class => 'grayedout', '[removed alias]' if !$_->{sid};
             txt_ ' as ';
-            a_ href => "/c$_->{cid}", title => $_->{char_original}||$_->{char_name}, $_->{char_name};
+            a_ href => "/$_->{cid}", title => $_->{char_original}||$_->{char_name}, $_->{char_name};
             txt_ " [$_->{note}]" if $_->{note};
         }],
         [ relations   => 'Relations',     fmt => sub {
             txt_ sprintf '[%s] %s: ', $_->{official} ? 'official' : 'unofficial', $VN_RELATION{$_->{relation}}{txt};
-            a_ href => "/v$_->{vid}", title => $_->{original}||$_->{title}, $_->{title};
+            a_ href => "/$_->{vid}", title => $_->{original}||$_->{title}, $_->{title};
         }],
         [ anime       => 'Anime',         fmt => sub { a_ href => "https://anidb.net/anime/$_->{aid}", "a$_->{aid}" }],
         [ screenshots => 'Screenshots',   fmt => sub {
             txt_ '[';
-            a_ href => "/r$_->{rid}", "r$_->{rid}" if $_->{rid};
+            a_ href => "/$_->{rid}", $_->{rid} if $_->{rid};
             txt_ 'no release' if !$_->{rid};
             txt_ '] ';
             a_ href => imgurl($_->{scr}{id}), 'data-iv' => "$_->{scr}{width}x$_->{scr}{height}::$_->{scr}{sexual}$_->{scr}{violence}$_->{scr}{votecount}", $_->{scr}{id};
@@ -141,7 +141,7 @@ sub infobox_relations_ {
                 dd_ sub {
                     join_ \&br_, sub {
                         b_ class => 'grayedout', '[unofficial] ' if !$_->{official};
-                        a_ href => "/v$_->{vid}", title => $_->{original}||$_->{title}, shorten $_->{title}, 40;
+                        a_ href => "/$_->{vid}", title => $_->{original}||$_->{title}, shorten $_->{title}, 40;
                     }, $rel{$_}->@*;
                 }
             }
@@ -173,7 +173,7 @@ sub infobox_producers_ {
     tr_ sub {
         td_ 'Developer';
         td_ sub {
-            join_ ' & ', sub { a_ href => "/p$_->{id}", title => $_->{original}||$_->{name}, $_->{name}; }, @dev;
+            join_ ' & ', sub { a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name}; }, @dev;
         };
     } if @dev;
 
@@ -188,7 +188,7 @@ sub infobox_producers_ {
         td_ sub {
             join_ \&br_, sub {
                 abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '';
-                join_ ' & ', sub { a_ href => "/p$_->{id}", $_->{official} ? () : (class => 'grayedout'), title => $_->{original}||$_->{name}, $_->{name} }, $lang{$_}->@*;
+                join_ ' & ', sub { a_ href => "/$_->{id}", $_->{official} ? () : (class => 'grayedout'), title => $_->{original}||$_->{name}, $_->{name} }, $lang{$_}->@*;
             }, @lang;
         }
     } if keys %lang;
@@ -338,7 +338,7 @@ sub infobox_useroptions_ {
 sub infobox_ {
     my($v, $notags) = @_;
     div_ class => 'mainbox', sub {
-        itemmsg_ v => $v;
+        itemmsg_ $v;
         h1_ $v->{title};
         h2_ class => 'alttitle', lang_attr($v->{olang}), $v->{original} if $v->{original};
 
@@ -405,25 +405,25 @@ sub tabs_ {
     $tab ||= '';
     div_ class => 'maintabs', sub {
         ul_ sub {
-            li_ class => ($tab eq ''        ? ' tabselected' : ''), sub { a_ href => "/v$v->{id}#main", name => 'main', 'main' };
-            li_ class => ($tab eq 'tags'    ? ' tabselected' : ''), sub { a_ href => "/v$v->{id}/tags#tags", name => 'tags', 'tags' };
-            li_ class => ($tab eq 'chars'   ? ' tabselected' : ''), sub { a_ href => "/v$v->{id}/chars#chars", name => 'chars', "characters ($chars)" } if $chars;
+            li_ class => ($tab eq ''        ? ' tabselected' : ''), sub { a_ href => "/$v->{id}#main", name => 'main', 'main' };
+            li_ class => ($tab eq 'tags'    ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/tags#tags", name => 'tags', 'tags' };
+            li_ class => ($tab eq 'chars'   ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/chars#chars", name => 'chars', "characters ($chars)" } if $chars;
             if($v->{reviews}{mini} > 4 || $tab eq 'minireviews' || $tab eq 'fullreviews') {
-                li_ class => ($tab eq 'minireviews'?' tabselected' : ''), sub { a_ href => "/v$v->{id}/minireviews#review", name => 'review', "mini reviews ($v->{reviews}{mini})" } if $v->{reviews}{mini};
-                li_ class => ($tab eq 'fullreviews'?' tabselected' : ''), sub { a_ href => "/v$v->{id}/fullreviews#review", name => 'review', "full reviews ($v->{reviews}{full})" } if $v->{reviews}{full};
+                li_ class => ($tab eq 'minireviews'?' tabselected' : ''), sub { a_ href => "/$v->{id}/minireviews#review", name => 'review', "mini reviews ($v->{reviews}{mini})" } if $v->{reviews}{mini};
+                li_ class => ($tab eq 'fullreviews'?' tabselected' : ''), sub { a_ href => "/$v->{id}/fullreviews#review", name => 'review', "full reviews ($v->{reviews}{full})" } if $v->{reviews}{full};
             } elsif($v->{reviews}{mini} || $v->{reviews}{full}) {
-                li_ class => ($tab =~ /reviews/ ?' tabselected':''),      sub { a_ href => "/v$v->{id}/reviews#review", name => 'review', sprintf 'reviews (%d)', $v->{reviews}{total} };
+                li_ class => ($tab =~ /reviews/ ?' tabselected':''),      sub { a_ href => "/$v->{id}/reviews#review", name => 'review', sprintf 'reviews (%d)', $v->{reviews}{total} };
             }
         };
         ul_ sub {
             if(auth && canvote $v) {
                 my $id = tuwf->dbVali('SELECT id FROM reviews WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
-                li_ sub { a_ href => "/v$v->{id}/addreview", 'add review' } if !$id && can_edit w => {};
+                li_ sub { a_ href => "/$v->{id}/addreview", 'add review' } if !$id && can_edit w => {};
                 li_ sub { a_ href => "/$id/edit", 'edit review' } if $id;
             }
             if(auth->permEdit) {
-                li_ sub { a_ href => "/v$v->{id}/add", 'add release' };
-                li_ sub { a_ href => "/v$v->{id}/addchar", 'add character' };
+                li_ sub { a_ href => "/$v->{id}/add", 'add release' };
+                li_ sub { a_ href => "/$v->{id}/addchar", 'add character' };
             }
         };
     }
@@ -436,7 +436,7 @@ sub releases_ {
     # TODO: Organize a long list of releases a bit better somehow? Collapsable language sections?
 
     enrich_release $v->{releases};
-    $v->{releases} = [ sort { $a->{released} <=> $b->{released} || $a->{id} <=> $b->{id} } $v->{releases}->@* ];
+    $v->{releases} = [ sort { $a->{released} <=> $b->{released} || idcmp($a->{id}, $b->{id}) } $v->{releases}->@* ];
     my %lang;
     my @lang = grep !$lang{$_}++, map $_->{lang}->@*, $v->{releases}->@*;
 
@@ -484,7 +484,7 @@ sub staff_ {
             xml_string sub {
                 li_ class => 'vnstaff_head', $CREDIT_TYPE{$_};
                 li_ sub {
-                    a_ href => "/s$_->{sid}", title => $_->{original}||$_->{name}, $_->{name};
+                    a_ href => "/$_->{sid}", title => $_->{original}||$_->{name}, $_->{name};
                     b_ title => $_->{note}, class => 'grayedout', $_->{note} if $_->{note};
                 } for sort { $a->{name} cmp $b->{name} } $roles{$_}->@*;
             }
@@ -540,7 +540,7 @@ sub charsum_ {
 
     div_ class => 'mainbox', 'data-mainbox-summarize' => 200, sub {
         p_ class => 'mainopts', sub {
-            a_ href => "/v$v->{id}/chars#chars", 'Full character list';
+            a_ href => "/$v->{id}/chars#chars", 'Full character list';
         };
         h1_ 'Character summary';
         div_ class => 'charsum_list', sub {
@@ -548,7 +548,7 @@ sub charsum_ {
                 div_ class => 'name', sub {
                     span_ sub {
                         abbr_ class => "icons gen $_->{gender}", title => $GENDER{$_->{gender}}, '' if $_->{gender} ne 'unknown';
-                        a_ href => "/c$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
+                        a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
                     };
                     i_ $CHAR_ROLE{$_->{role}}{txt};
                 };
@@ -556,7 +556,7 @@ sub charsum_ {
                     txt_ 'Voiced by';
                     $_->{seiyuu}->@* > 1 ? br_ : txt_ ' ';
                     join_ \&br_, sub {
-                        a_ href => "/s$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
+                        a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
                         b_ class => 'grayedout', $_->{note} if $_->{note};
                     }, $_->{seiyuu}->@*;
                 } if $_->{seiyuu}->@*;
@@ -614,12 +614,12 @@ sub stats_ {
                 txt_ 'Recent votes';
                 b_ sub {
                     txt_ '(';
-                    a_ href => "/v$v->{id}/votes", 'show all';
+                    a_ href => "/$v->{id}/votes", 'show all';
                     txt_ ')';
                 }
             } } };
             tfoot_ sub { tr_ sub { td_ colspan => 3, sub {
-                a_ href => "/v$v->{id}/reviews#review", sprintf'%d review%s »', $v->{reviews}{total}, $v->{reviews}{total}==1?'':'s';
+                a_ href => "/$v->{id}/reviews#review", sprintf'%d review%s »', $v->{reviews}{total}, $v->{reviews}{total}==1?'':'s';
             } } } if $v->{reviews}{total};
             tr_ sub {
                 td_ sub {
@@ -692,7 +692,7 @@ sub screenshots_ {
             p_ class => 'rel', sub {
                 abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for $r->{languages}->@*;
                 abbr_ class => "icons $_", title => $PLATFORM{$_}, '' for $r->{platforms}->@*;
-                a_ href => "/r$r->{id}", $r->{title};
+                a_ href => "/$r->{id}", $r->{title};
             };
             div_ class => 'scr', sub {
                 a_ href => imgurl($_->{scr}{id}),
@@ -794,12 +794,12 @@ sub tags_ {
 
 
 TUWF::get qr{/$RE{vrev}}, sub {
-    my $v = db_entry v => tuwf->capture('id'), tuwf->capture('rev');
+    my $v = db_entry tuwf->captures('id', 'rev');
     return tuwf->resNotFound if !$v;
 
     enrich_item $v, 1;
 
-    framework_ title => $v->{title}, index => !tuwf->capture('rev'), type => 'v', dbobj => $v, hiddenmsg => 1, js => 1, og => og($v),
+    framework_ title => $v->{title}, index => !tuwf->capture('rev'), dbobj => $v, hiddenmsg => 1, js => 1, og => og($v),
     sub {
         rev_ $v if tuwf->capture('rev');
         infobox_ $v;
@@ -814,12 +814,12 @@ TUWF::get qr{/$RE{vrev}}, sub {
 
 
 TUWF::get qr{/$RE{vid}/tags}, sub {
-    my $v = db_entry v => tuwf->capture('id');
+    my $v = db_entry tuwf->capture('id');
     return tuwf->resNotFound if !$v;
 
     enrich_vn $v;
 
-    framework_ title => $v->{title}, index => 1, type => 'v', dbobj => $v, hiddenmsg => 1,
+    framework_ title => $v->{title}, index => 1, dbobj => $v, hiddenmsg => 1,
     sub {
         infobox_ $v, 1;
         tabs_ $v, 'tags';

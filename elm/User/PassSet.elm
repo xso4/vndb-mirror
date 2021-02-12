@@ -22,7 +22,7 @@ main = Browser.element
 
 type alias Model =
   { token    : String
-  , uid      : Int
+  , uid      : String
   , newpass1 : String
   , newpass2 : String
   , state    : Api.State

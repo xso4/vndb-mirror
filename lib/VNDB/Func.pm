@@ -12,6 +12,8 @@ use VNDB::Config;
 use VNDB::Types;
 use VNDB::BBCode;
 our @EXPORT = ('bb_format', qw|
+  in
+  idcmp
   shorten
   resolution
   gtintype
@@ -25,6 +27,27 @@ our @EXPORT = ('bb_format', qw|
   query_encode
   md2html
 |);
+
+
+# Simple "is this element in the array?" function, using 'eq' to test equality.
+# Supports both an @array and \@array.
+# Usage:
+#
+#   my $contains_hi = in 'hi', qw/ a b hi c /; # true
+#
+sub in {
+    my($q, @a) = @_;
+    $_ eq $q && return 1 for map ref $_ eq 'ARRAY' ? @$_ : ($_), @a;
+    0
+}
+
+
+# Compare two vndbids, using proper numeric order
+sub idcmp($$) {
+    my($a1, $a2) = $_[0] =~ /^([a-z]+)([0-9]+)$/;
+    my($b1, $b2) = $_[1] =~ /^([a-z]+)([0-9]+)$/;
+    $a1 cmp $b1 || $a2 <=> $b2
+}
 
 
 sub shorten {

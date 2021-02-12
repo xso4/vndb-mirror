@@ -52,7 +52,7 @@ elm_api DiscussionsPostEdit => $FORM_OUT, $FORM_IN, sub {
         tuwf->dbExeci('DELETE FROM reviews_posts WHERE  id =', \$id, 'AND num =', \$num);
         return elm_Redirect "/$id";
     }
-    auth->audit($t->{user_id}, 'post edit', "edited $id.$num") if $t->{user_id} != auth->uid;
+    auth->audit($t->{user_id}, 'post edit', "edited $id.$num") if $t->{user_id} ne auth->uid;
 
     my $post = {
         tid => $id,

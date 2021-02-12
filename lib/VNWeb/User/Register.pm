@@ -46,7 +46,7 @@ elm_api UserRegister => undef, {
         ."If you don't remember creating an account on VNDB.org recently, please ignore this e-mail."
         ."\n\n"
         ."vndb.org",
-        $data->{username}, tuwf->reqBaseURI()."/u$id/setpass/$token";
+        $data->{username}, tuwf->reqBaseURI()."/$id/setpass/$token";
 
     tuwf->mail($body,
         To => $data->{email},

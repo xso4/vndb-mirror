@@ -80,10 +80,10 @@ sub metabox_ {
                 a_ href => "/t/$_->{btype}", $BOARD_TYPE{$_->{btype}}{txt};
                 if($_->{iid}) {
                     txt_ ' > ';
-                    a_ style => 'font-weight: bold', href => "/t/$_->{btype}$_->{iid}", "$_->{btype}$_->{iid}";
+                    a_ style => 'font-weight: bold', href => "/t/$_->{iid}", $_->{iid};
                     txt_ ':';
                     if($_->{title}) {
-                        a_ href => "/$_->{btype}$_->{iid}", title => $_->{original}||$_->{title}, $_->{title};
+                        a_ href => "/$_->{iid}", title => $_->{original}||$_->{title}, $_->{title};
                     } else {
                         b_ '[deleted]';
                     }

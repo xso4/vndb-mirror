@@ -16,7 +16,7 @@ sub _moderators {
     xml_string sub {
         dl_ sub {
             for my $u (@$l) {
-                dt_ sub { a_ href => "/u$u->{id}", $u->{username} };
+                dt_ sub { a_ href => "/$u->{id}", $u->{username} };
                 dd_ @special_perms == grep($u->{"perm_$_"}, @special_perms) ? 'admin'
                     : join ', ', grep $u->{"perm_$_"}, @special_perms;
             }
@@ -35,7 +35,7 @@ sub _skincontrib {
     xml_string sub {
         dl_ sub {
             for my $u (@$u) {
-                dt_ sub { a_ href => "/u$u->{id}", $u->{username} };
+                dt_ sub { a_ href => "/$u->{id}", $u->{username} };
                 dd_ sub {
                     join_ ', ', sub { a_ href => "?skin=$_->[0]", $_->[1] }, $users{$u->{id}}->@*
                 }

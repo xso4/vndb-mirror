@@ -72,13 +72,13 @@ TUWF::get qr{/$RE{uid}/list-export/xml}, sub {
     tag 'vndb-export' => version => '1.0', date => $d->{'export-date'}, sub {
         tag user => sub {
             tag name => $d->{user}{name};
-            tag url => config->{url}.'/u'.$d->{user}{id};
+            tag url => config->{url}.'/'.$d->{user}{id};
         };
         tag labels => sub {
             tag label => id => $_->{id}, label => $_->{label}, private => $_->{private}?'true':'false', undef for $d->{labels}->@*;
         };
         tag vns => sub {
-            tag vn => id => "v$_->{id}", private => grep(!$_->{private}, $_->{labels}->@*)?'false':'true', sub {
+            tag vn => id => $_->{id}, private => grep(!$_->{private}, $_->{labels}->@*)?'false':'true', sub {
                 tag title => length($_->{original}) ? (original => $_->{original}) : (), $_->{title};
                 tag label => id => $_->{id}, label => $_->{label}, undef for $_->{labels}->@*;
                 tag added => $_->{added};
@@ -87,7 +87,7 @@ TUWF::get qr{/$RE{uid}/list-export/xml}, sub {
                 tag started => $_->{started} if $_->{started};
                 tag finished => $_->{finished} if $_->{finished};
                 tag notes => $_->{notes} if length $_->{notes};
-                tag release => id => "r$_->{id}", sub {
+                tag release => id => $_->{id}, sub {
                     tag title => length($_->{original}) ? (original => $_->{original}) : (), $_->{title};
                     tag 'release-date' => rdate $_->{released};
                     tag status => $RLIST_STATUS{$_->{status}};

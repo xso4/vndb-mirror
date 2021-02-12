@@ -196,7 +196,7 @@ sub vnsearch_update { # id, res, time
   pg_cmd 'UPDATE vn SET c_search = $1 WHERE id = $2', [ $t, $id ], sub {
     my($res, $t2) = @_;
     return if pg_expect $res, 0;
-    AE::log info => sprintf 'Updated search cache for v%d (%3dms SQL)', $id, ($time+$t2)*1000;
+    AE::log info => sprintf 'Updated search cache for %s (%3dms SQL)', $id, ($time+$t2)*1000;
     vnsearch_check;
   };
 }

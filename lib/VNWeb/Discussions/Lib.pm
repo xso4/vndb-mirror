@@ -11,7 +11,7 @@ our $BOARD_RE = join '|', map $_.($BOARD_TYPE{$_}{dbitem}?'(?:[1-9][0-9]{0,5})?'
 
 # Returns a WHERE condition to filter threads that the current user is allowed to see.
 sub sql_visible_threads {
-    return '1=1' if auth && auth->uid == 2; # Yorhel sees everything
+    return '1=1' if auth && auth->uid eq 'u2'; # Yorhel sees everything
     sql_and
         auth->permBoardmod ? () : ('NOT t.hidden'),
         sql('NOT t.private OR EXISTS(SELECT 1 FROM threads_boards WHERE tid = t.id AND type = \'u\' AND iid =', \auth->uid, ')');
@@ -93,7 +93,7 @@ sub threadlist_ {
                     };
                     b_ class => 'boards', sub {
                         join_ ', ', sub {
-                            a_ href => "/t/$_->{btype}".($_->{iid}||''),
+                            a_ href => '/t/'.($_->{iid}||$_->{btype}),
                                 title => $_->{original}||$BOARD_TYPE{$_->{btype}}{txt},
                                 shorten $_->{title}||$BOARD_TYPE{$_->{btype}}{txt}, 30;
                         }, $l->{boards}->@[0 .. min 4, $#{$l->{boards}}];

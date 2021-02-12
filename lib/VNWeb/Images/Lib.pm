@@ -25,7 +25,7 @@ sub enrich_image {
            , i.c_violence_avg AS violence_avg, i.c_violence_stddev AS violence_stddev
            , iv.sexual AS my_sexual, iv.violence AS my_violence
            , COALESCE(EXISTS(SELECT 1 FROM image_votes iv0 WHERE iv0.id = i.id AND iv0.ignore) AND NOT iv.ignore, FALSE) AS my_overrule
-           , COALESCE('v'||v.id, 'c'||c.id, 'v'||vsv.id) AS entry_id
+           , COALESCE(v.id, c.id, vsv.id) AS entry_id
            , COALESCE(v.title, c.name, vsv.title) AS entry_title
         FROM images i
         LEFT JOIN image_votes iv ON iv.id = i.id AND iv.uid =}, \auth->uid, q{

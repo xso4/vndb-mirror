@@ -46,7 +46,7 @@ TUWF::get qr{/w}, sub {
         p => { page => 1 },
         s => { onerror => 'id', enum => [qw[id lastpost rating]] },
         o => { onerror => 'd',  enum => [qw[a d]] },
-        u => { onerror => 0, id => 1 },
+        u => { onerror => 0, vndbid => 'u' },
     )->data;
     $opt->{s} = 'id' if $opt->{s} eq 'rating' && !auth->isMod;
 
@@ -70,13 +70,13 @@ TUWF::get qr{/w}, sub {
     );
 
     my $title = $u ? 'Reviews by '.user_displayname($u) : 'Browse reviews';
-    framework_ title => $title, $u ? (type => 'u', dbobj => $u, tab => 'reviews') : (), sub {
+    framework_ title => $title, $u ? (dbobj => $u, tab => 'reviews') : (), sub {
         div_ class => 'mainbox', sub {
             h1_ $title;
             if($u && !$count) {
-                p_ +(auth && $u->{id} == auth->uid ? 'You have' : user_displayname($u).' has').' not submitted any reviews yet.';
+                p_ +(auth && $u->{id} eq auth->uid ? 'You have' : user_displayname($u).' has').' not submitted any reviews yet.';
             }
-            p_ 'Note: The score column is only visible to moderators.' if auth->isMod;
+            p_ 'Note: The score column is only visible to moderators.' if $count && auth->isMod;
         };
         tablebox_ $opt, $lst, $count if $count;
     };

@@ -156,7 +156,7 @@ view model =
            , td [] <| notesBut ++
              [ case (model.vote.vote /= Nothing && model.flags.canreview, model.flags.review) of
                  (False, _)  -> text ""
-                 (True, Nothing) -> a [ href ("/v" ++ String.fromInt model.flags.vid ++ "/addreview") ] [ text " write a review »" ]
+                 (True, Nothing) -> a [ href ("/" ++ model.flags.vid ++ "/addreview") ] [ text " write a review »" ]
                  (True, Just w)  -> a [ href ("/" ++ w ++ "/edit") ] [ text " edit review »" ]
              ]
            ]

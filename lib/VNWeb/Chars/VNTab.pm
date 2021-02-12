@@ -44,12 +44,12 @@ sub chars_ {
 
 
 TUWF::get qr{/$RE{vid}/chars}, sub {
-    my $v = db_entry v => tuwf->capture('id');
+    my $v = db_entry tuwf->capture('id');
     return tuwf->resNotFound if !$v;
 
     VNWeb::VN::Page::enrich_vn($v);
 
-    framework_ title => $v->{title}, index => 1, type => 'v', dbobj => $v, hiddenmsg => 1,
+    framework_ title => $v->{title}, index => 1, dbobj => $v, hiddenmsg => 1,
     sub {
         VNWeb::VN::Page::infobox_($v);
         VNWeb::VN::Page::tabs_($v, 'chars');

@@ -26,7 +26,7 @@ sub enrich_item {
      'SELECT t.id AS tid, t.name, t.state, t.applicable, t.sexual, coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.order,0) AS order
         FROM traits t LEFT JOIN traits g ON t.group = g.id WHERE t.id IN', $c->{traits};
 
-    $c->{vns}    = [ sort { $a->{title} cmp $b->{title} || $a->{vid} <=> $b->{vid} || ($a->{rid}||999999) <=> ($b->{rid}||999999) } $c->{vns}->@* ];
+    $c->{vns}    = [ sort { $a->{title} cmp $b->{title} || idcmp($a->{vid}, $b->{vid}) || idcmp($a->{rid}||'r999999', $b->{rid}||'r999999') } $c->{vns}->@* ];
     $c->{traits} = [ sort { $a->{order} <=> $b->{order} || $a->{groupname} cmp $b->{groupname} || $a->{name} cmp $b->{name} } $c->{traits}->@* ];
 }
 
@@ -67,7 +67,7 @@ sub fetch_chars {
 
 sub _rev_ {
     my($c) = @_;
-    revision_ c => $c, \&enrich_item,
+    revision_ $c, \&enrich_item,
         [ name       => 'Name'           ],
         [ original   => 'Original name'  ],
         [ alias      => 'Aliases'        ],
@@ -86,14 +86,14 @@ sub _rev_ {
         [ age        => 'Age',           ],
         [ main       => 'Instance of',   empty => 0, fmt => sub {
             my $c = tuwf->dbRowi('SELECT id, name, original FROM chars WHERE id =', \$_);
-            a_ href => "/c$c->{id}", title => $c->{name}, "c$c->{id}"
+            a_ href => "/$c->{id}", title => $c->{name}, $c->{id}
         } ],
         [ main_spoil => 'Spoiler',       fmt => sub { txt_ fmtspoil $_ } ],
         [ image      => 'Image',         fmt => sub { image_ $_ } ],
         [ vns        => 'Visual novels', fmt => sub {
-            a_ href => "/v$_->{vid}", title => $_->{original}||$_->{title}, "v$_->{vid}";
+            a_ href => "/$_->{vid}", title => $_->{original}||$_->{title}, $_->{vid};
             if($_->{rid}) {
-                txt_ ' ['; a_ href => "/r$_->{rid}", "r$_->{rid}"; txt_ ']';
+                txt_ ' ['; a_ href => "/$_->{rid}", $_->{rid}; txt_ ']';
             }
             txt_ " $CHAR_ROLE{$_->{role}}{txt} (".fmtspoil($_->{spoil}).')';
         } ],
@@ -118,7 +118,7 @@ sub chartable_ {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub { td_ colspan => 2, sub {
                 $link
-                ? a_ href => "/c$c->{id}", style => 'margin-right: 10px; font-weight: bold', $c->{name}
+                ? a_ href => "/$c->{id}", style => 'margin-right: 10px; font-weight: bold', $c->{name}
                 : b_ style => 'margin-right: 10px', $c->{name};
                 b_ class => 'grayedout', style => 'margin-right: 10px', $c->{original} if $c->{original};
                 abbr_ class => "icons gen $c->{gender}", title => $GENDER{$c->{gender}}, '' if $c->{gender} ne 'unknown';
@@ -173,7 +173,7 @@ sub chartable_ {
                 td_ sub {
                     my @vns;
                     for(@visvns) {
-                        push @vns, $_ if !@vns || $vns[$#vns]{vid} != $_->{vid};
+                        push @vns, $_ if !@vns || $vns[$#vns]{vid} ne $_->{vid};
                         push $vns[$#vns]{rels}->@*, $_;
                     }
                     join_ \&br_, sub {
@@ -181,18 +181,18 @@ sub chartable_ {
                         # Just a VN link, no releases
                         if(!$vn && $v->{rels}->@* == 1 && !$v->{rels}[0]{rid}) {
                             txt_ $CHAR_ROLE{$v->{role}}{txt}.' - ';
-                            a_ href => "/v$v->{vid}", title => $v->{original}||$v->{title}, $v->{title};
+                            a_ href => "/$v->{vid}", title => $v->{original}||$v->{title}, $v->{title};
                             spoil_ $v->{spoil};
                         # With releases
                         } else {
-                            a_ href => "/v$v->{vid}", title => $v->{original}||$v->{title}, $v->{title} if !$vn;
+                            a_ href => "/$v->{vid}", title => $v->{original}||$v->{title}, $v->{title} if !$vn;
                             br_ if !$vn;
                             join_ \&br_, sub {
                                 b_ class => 'grayedout', '> ';
                                 txt_ $CHAR_ROLE{$_->{role}}{txt}.' - ';
                                 if($_->{rid}) {
-                                    b_ class => 'grayedout', "r$_->{rid}:";
-                                    a_ href => "/r$_->{rid}", title => $_->{roriginal}||$_->{rtitle}, $_->{rtitle};
+                                    b_ class => 'grayedout', "$_->{rid}:";
+                                    a_ href => "/$_->{rid}", title => $_->{roriginal}||$_->{rtitle}, $_->{rtitle};
                                 } else {
                                     txt_ 'All other releases';
                                 }
@@ -207,7 +207,7 @@ sub chartable_ {
                 td_ class => 'key', 'Voiced by';
                 td_ sub {
                     join_ \&br_, sub {
-                        a_ href => "/s$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
+                        a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
                         txt_ " ($_->{note})" if $_->{note};
                     }, $c->{seiyuu}->@*;
                 };
@@ -226,7 +226,7 @@ sub chartable_ {
 
 
 TUWF::get qr{/$RE{crev}} => sub {
-    my $c = db_entry c => tuwf->capture('id'), tuwf->capture('rev');
+    my $c = db_entry tuwf->captures('id','rev');
     return tuwf->resNotFound if !$c;
 
     enrich_item $c;
@@ -252,7 +252,7 @@ TUWF::get qr{/$RE{crev}} => sub {
     # Only display the sexual traits toggle when there are sexual traits within the current spoiler level.
     my $has_sex = grep $_->{state} == 2 && $_->{spoil} <= $view->{spoilers} && $_->{sexual}, map $_->{traits}->@*, $c, @$inst;
 
-    framework_ title => $c->{name}, index => !tuwf->capture('rev'), type => 'c', dbobj => $c, hiddenmsg => 1,
+    framework_ title => $c->{name}, index => !tuwf->capture('rev'), dbobj => $c, hiddenmsg => 1,
         og => {
             description => bb_format($c->{desc}, text => 1),
             image => $c->{image} && $c->{image}{votecount} && !$c->{image}{sexual} && !$c->{image}{violence} ? imgurl($c->{image}{id}) : undef,
@@ -260,7 +260,7 @@ TUWF::get qr{/$RE{crev}} => sub {
     sub {
         _rev_ $c if tuwf->capture('rev');
         div_ class => 'mainbox', sub {
-            itemmsg_ c => $c;
+            itemmsg_ $c;
             h1_ sub { txt_ $c->{name}; debug_ $c };
             h2_ class => 'alttitle', $c->{original} if length $c->{original};
             p_ class => 'chardetailopts', sub {

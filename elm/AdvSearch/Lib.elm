@@ -173,11 +173,11 @@ type alias Data =
   { objid        : Int -- Incremental integer for global identifiers
   , level        : Int -- Nesting level of the field being processed
   , parentTypes  : Set.Set String -- Only used for 'view' functions: query types that the current field is a subquery of
-  , uid          : Maybe Int
+  , uid          : Maybe String
   , labels       : List (Int, String)
   , defaultSpoil : Int
-  , producers    : Dict.Dict Int GApi.ApiProducerResult
-  , staff        : Dict.Dict Int GApi.ApiStaffResult
+  , producers    : Dict.Dict String GApi.ApiProducerResult
+  , staff        : Dict.Dict String GApi.ApiStaffResult
   , tags         : Dict.Dict Int GApi.ApiTagResult
   , traits       : Dict.Dict Int GApi.ApiTraitResult
   , anime        : Dict.Dict Int GApi.ApiAnimeResult

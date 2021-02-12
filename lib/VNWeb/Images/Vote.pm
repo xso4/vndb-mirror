@@ -45,7 +45,7 @@ elm_api Images => $SEND, { excl_voted => { anybool => 1 } }, sub {
         SELECT id
           FROM images TABLESAMPLE SYSTEM (', \$tablesample, ')
          WHERE c_weight > 0',
-            $data->{excl_voted} ? ('AND NOT (c_uids && ARRAY[', \auth->uid, '::int])') : (), '
+            $data->{excl_voted} ? ('AND NOT (c_uids && ARRAY[', \auth->uid, '::vndbid])') : (), '
          ORDER BY random() ^ (1.0/c_weight) DESC
          LIMIT', \30
     );

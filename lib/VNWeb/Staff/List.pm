@@ -14,7 +14,7 @@ sub listing_ {
         ul_ sub {
             li_ sub {
                 abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, '';
-                a_ href => "/s$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
+                a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
             } for @$list;
         };
     };

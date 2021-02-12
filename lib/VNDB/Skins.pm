@@ -14,7 +14,7 @@ sub skins {
         my $skin = /\/([^\/]+)\.sass/ ? $1 : die;
         my %o;
         open my $F, '<:utf8', $_ or die $!;
-        if(<$F> !~ qr{^// *userid: *([0-9]+) *name: *(.+)}) {
+        if(<$F> !~ qr{^// *userid: *(u[0-9]+) *name: *(.+)}) {
             warn "Invalid skin: $skin\n";
             ()
         } else {

@@ -4,7 +4,7 @@ use VNWeb::Prelude;
 
 
 my $FORM = {
-    id         => { required => 0, id => 1 },
+    id         => { required => 0, vndbid => 'r' },
     title      => { maxlength => 300 },
     original   => { required => 0, default => '', maxlength => 250 },
     rtype      => { default => 'complete', enum => \%RELEASE_TYPE },
@@ -33,11 +33,11 @@ my $FORM = {
     extlinks   => validate_extlinks('r'),
     notes      => { required => 0, default => '', maxlength => 10240 },
     vn         => { sort_keys => 'vid', aoh => {
-        vid    => { id => 1 },
+        vid    => { vndbid => 'v' },
         title  => { _when => 'out' },
     } },
     producers  => { sort_keys => 'pid', aoh => {
-        pid       => { id => 1 },
+        pid       => { vndbid => 'p' },
         developer => { anybool => 1 },
         publisher => { anybool => 1 },
         name      => { _when => 'out' },
@@ -57,12 +57,12 @@ sub to_extlinks { $_[0]{extlinks} = { map +($_, delete $_[0]{$_}), grep /^l_/, k
 
 
 TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
-    my $e = db_entry r => tuwf->capture('id'), tuwf->capture('rev') or return tuwf->resNotFound;
+    my $e = db_entry tuwf->captures('id', 'rev') or return tuwf->resNotFound;
     my $copy = tuwf->capture('action') eq 'copy';
     return tuwf->resDenied if !can_edit r => $copy ? {} : $e;
 
     $e->{rtype} = delete $e->{type};
-    $e->{editsum} = $copy ? "Copied from r$e->{id}.$e->{chrev}" : $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision r$e->{id}.$e->{chrev}";
+    $e->{editsum} = $copy ? "Copied from $e->{id}.$e->{chrev}" : $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
     $e->{authmod} = auth->permDbmod;
 
     to_extlinks $e;
@@ -73,7 +73,7 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
     $e->@{qw/gtin catalog extlinks/} = elm_empty($FORM_OUT)->@{qw/gtin catalog extlinks/} if $copy;
 
     my $title = ($copy ? 'Copy ' : 'Edit ').$e->{title};
-    framework_ title => $title, type => 'r', dbobj => $e, tab => tuwf->capture('action'),
+    framework_ title => $title, dbobj => $e, tab => tuwf->capture('action'),
     sub {
         editmsg_ r => $e, $title, $copy;
         elm_ ReleaseEdit => $FORM_OUT, $copy ? {%$e, id=>undef} : $e;
@@ -111,8 +111,8 @@ TUWF::get qr{/$RE{vid}/add}, sub {
                 br_;
                 ul_ sub {
                     li_ sub {
-                        txt_ '['.join(',', $_->{languages}->@*)."] r$_->{id}:";
-                        a_ href => "/r$_->{id}", title => $_->{original}||$_->{title}, $_->{title};
+                        txt_ '['.join(',', $_->{languages}->@*)."] $_->{id}:";
+                        a_ href => "/$_->{id}", title => $_->{original}||$_->{title}, $_->{title};
                     } for @$delrel;
                 }
             }
@@ -126,7 +126,7 @@ TUWF::get qr{/$RE{vid}/add}, sub {
 elm_api ReleaseEdit => $FORM_OUT, $FORM_IN, sub {
     my $data = shift;
     my $new = !$data->{id};
-    my $e = $new ? { id => 0 } : db_entry r => $data->{id} or return tuwf->resNotFound;
+    my $e = $new ? { id => 0 } : db_entry $data->{id} or return tuwf->resNotFound;
     return elm_Unauth if !can_edit r => $e;
 
     if(!auth->permDbmod) {
@@ -151,8 +151,8 @@ elm_api ReleaseEdit => $FORM_OUT, $FORM_IN, sub {
     delete $data->{extlinks};
     $data->{type} = delete $data->{rtype};
 
-    my($id,undef,$rev) = db_edit r => $e->{id}, $data;
-    elm_Redirect "/r$id.$rev";
+    my $ch = db_edit r => $e->{id}, $data;
+    elm_Redirect "/$ch->{nitemid}.$ch->{nrev}";
 };
 
 

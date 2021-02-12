@@ -30,7 +30,7 @@ my @rel_cols = (
     sort_field    => 'title',
     sort_sql      => 'r.title %s, r.released %1$s',
     column_string => 'Title',
-    draw          => sub { a_ href => "/r$_[0]{id}", $_[0]{title} },
+    draw          => sub { a_ href => "/$_[0]{id}", $_[0]{title} },
   }, { # Type
     id            => 'typ',
     sort_field    => 'type',
@@ -221,7 +221,7 @@ sub listing_ {
 
 
 TUWF::get qr{/$RE{vid}/releases} => sub {
-    my $v = dbobj v => tuwf->capture('id');
+    my $v = dbobj tuwf->capture('id');
     return tuwf->resNotFound if !$v->{id};
 
     my $opt = tuwf->validate(get =>

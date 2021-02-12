@@ -64,7 +64,7 @@ type alias Model =
   , weight      : Maybe Int
   , bloodt      : String
   , cupSize     : String
-  , main        : Maybe Int
+  , main        : Maybe String
   , mainRef     : Bool
   , mainHas     : Bool
   , mainName    : String
@@ -77,8 +77,8 @@ type alias Model =
   , traitSelSpl : Int
   , vns         : List GCE.RecvVns
   , vnSearch    : A.Model GApi.ApiVNResult
-  , releases    : Dict.Dict Int (List GCE.RecvReleasesRels) -- vid -> list of releases
-  , id          : Maybe Int
+  , releases    : Dict.Dict String (List GCE.RecvReleasesRels) -- vid -> list of releases
+  , id          : Maybe String
   }
 
 
@@ -194,13 +194,13 @@ type Msg
   | TraitSel Int Int
   | TraitSpoil Int Int
   | TraitSearch (A.Msg GApi.ApiTraitResult)
-  | VnRel Int (Maybe Int)
+  | VnRel Int (Maybe String)
   | VnRole Int String
   | VnSpoil Int Int
   | VnDel Int
-  | VnRelAdd Int String
+  | VnRelAdd String String
   | VnSearch (A.Msg GApi.ApiVNResult)
-  | VnRelGet Int GApi.Response
+  | VnRelGet String GApi.Response
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -283,7 +283,7 @@ update msg model =
 isValid : Model -> Bool
 isValid model = not
   (  (model.name /= "" && model.name == model.original)
-  || hasDuplicates (List.map (\v -> (v.vid, Maybe.withDefault 0 v.rid)) model.vns)
+  || hasDuplicates (List.map (\v -> (v.vid, Maybe.withDefault "" v.rid)) model.vns)
   || not (Img.isValid model.image)
   || (model.mainHas && model.main /= Nothing && model.main == model.id)
   )
@@ -369,8 +369,8 @@ view model =
         , br_ 2
         , Maybe.withDefault (text "No character selected") <| Maybe.map (\m -> span []
           [ text "Selected character: "
-          , b [ class "grayedout" ] [ text <| "c" ++ String.fromInt m ++ ": " ]
-          , a [ href <| "/c" ++ String.fromInt m ] [ text model.mainName ]
+          , b [ class "grayedout" ] [ text <| m ++ ": " ]
+          , a [ href <| "/" ++ m ] [ text model.mainName ]
           , if Just m == model.id then b [ class "standout" ] [ br [] [], text "A character can't be an instance of itself. Please select another character or disable the above checkbox to remove the instance." ] else text ""
           ]) model.main
         , br [] []
@@ -446,24 +446,24 @@ view model =
           case lst of
             (x::xs) -> if Set.member x set then uniq xs set else x :: uniq xs (Set.insert x set)
             [] -> []
-        showrel r = "[" ++ (RDate.format (RDate.expand r.released)) ++ " " ++ (String.join "," r.lang) ++ "] " ++ r.title ++ " (r" ++ String.fromInt r.id ++ ")"
+        showrel r = "[" ++ (RDate.format (RDate.expand r.released)) ++ " " ++ (String.join "," r.lang) ++ "] " ++ r.title ++ " (" ++ r.id ++ ")"
         vn vid lst rels =
           let title = Maybe.withDefault "<unknown>" <| Maybe.map (\(_,v) -> v.title) <| List.head lst
           in
-          [ ( String.fromInt vid
+          [ ( vid
             , tr [ class "newpart" ] [ td [ colspan 4, style "padding-bottom" "5px" ]
-              [ b [ class "grayedout" ] [ text <| "v" ++ String.fromInt vid ++ ":" ]
-              , a [ href <| "/v" ++ String.fromInt vid ] [ text title ]
+              [ b [ class "grayedout" ] [ text <| vid ++ ":" ]
+              , a [ href <| "/" ++ vid ] [ text title ]
               ]]
             )
           ] ++ List.map (\(idx,item) ->
-            ( String.fromInt vid ++ "i" ++ String.fromInt (Maybe.withDefault 0 item.rid)
+            ( vid ++ "i" ++ Maybe.withDefault "r0" item.rid
             , tr []
               [ td [] [ inputSelect "" item.rid (VnRel idx) [ style "width" "400px", style "margin" "0 15px" ] <|
                   (Nothing, if List.length lst == 1 then "All (full) releases" else "Other releases")
                   :: List.map (\r -> (Just r.id, showrel r)) rels
                   ++ if isJust item.rid && List.isEmpty (List.filter (\r -> Just r.id == item.rid) rels)
-                     then [(item.rid, "Deleted release: r" ++ String.fromInt (Maybe.withDefault 0 item.rid))] else []
+                     then [(item.rid, "Deleted release: " ++ Maybe.withDefault "" item.rid)] else []
                 ]
               , td [] [ inputSelect "" item.role (VnRole idx) [] GT.charRoles ]
               , td [] [ inputSelect "" item.spoil (VnSpoil idx) [ style "width" "130px", style "margin" "0 5px" ] spoilOpts ]
@@ -471,13 +471,13 @@ view model =
               ]
             )
           ) lst
-          ++ (if List.map (\(_,r) -> Maybe.withDefault 0 r.rid) lst |> hasDuplicates |> not then [] else [
-            ( String.fromInt vid ++ "dup"
+          ++ (if List.map (\(_,r) -> Maybe.withDefault "" r.rid) lst |> hasDuplicates |> not then [] else [
+            ( vid ++ "dup"
             , td [] [ td [ colspan 4, style "padding" "0 15px" ] [ b [ class "standout" ] [ text "List contains duplicate releases." ] ] ]
             )
           ])
           ++ (if 1 /= List.length (List.filter (\(_,r) -> isJust r.rid) lst) then [] else [
-            ( String.fromInt vid ++ "warn"
+            ( vid ++ "warn"
             , tr [] [ td [ colspan 4, style "padding" "0 15px" ]
               [ b [ class "standout" ] [ text "Note: " ]
               , text "Only select specific releases if the character has a significantly different role in those releases. "
@@ -486,7 +486,7 @@ view model =
             ])
           ])
           ++ (if List.length lst > List.length rels then [] else [
-            ( String.fromInt vid ++ "add"
+            ( vid ++ "add"
             , tr [] [ td [ colspan 4 ] [ inputButton "add release" (VnRelAdd vid title) [style "margin" "0 15px"] ] ]
             )
           ])

@@ -212,7 +212,6 @@ sub set_notify {
 
 
 # formats and posts database items listed in @res, where each item is a hashref with:
-#   type      database item in [dvprtugw]
 #   id        database id
 #   title     main name or title of the DB entry
 #   rev       (optional) revision, post number
@@ -239,17 +238,18 @@ sub formatid {
   );
 
   for (@$res) {
-    my $id = ($_->{id} =~ /^[a-z]/ ? '' : $_->{type}) . $_->{id} . ($_->{rev} ? '.'.$_->{rev} : '');
+    my $id = $_->{id} . ($_->{rev} ? '.'.$_->{rev} : '');
+    my $type = $types{ substr $id, 0, 1 };
 
     # (always) [x+.+]
     my @msg = ("$BOLD$c"."[$NORMAL$BOLD$id$c]$NORMAL");
 
     # (only if username key is present) Edit of / New item / reply to / whatever
     push @msg, $c.(
-      $_->{type} eq 'w' && !$_->{rev} ? 'Review of' :
-      $_->{type} eq 'w' ? 'Comment to review of' :
-      ($_->{rev}||1) == 1 ? "New $types{$_->{type}}" :
-      $_->{type} eq 't' ? 'Reply to' : 'Edit of'
+      $id =~ /^w/ && !$_->{rev} ? 'Review of' :
+      $id =~ /^w/ ? 'Comment to review of' :
+      ($_->{rev}||1) == 1 ? "New $type" :
+      $id =~ /^t/ ? 'Reply to' : 'Edit of'
     ).$NORMAL if exists $_->{username};
 
     # (always) main title
@@ -277,13 +277,13 @@ sub formatid {
 
 
 sub handleid {
-  my($chan, $t, $id, $rev) = @_;
+  my($chan, $id, $rev) = @_;
 
   # Some common exceptions
-  return if grep "$t$id$rev" eq $_, qw|v1 v2 v3 v4 u2 i3 i5 i7 c64|;
+  return if grep $id eq $_, qw|v1 v2 v3 v4 u2 i3 i5 i7 c64|;
 
   return if throttle $O{throt_vndbid}, 'irc_vndbid';
-  return if throttle $O{throt_sameid}, "irc_sameid_$t$id$rev";
+  return if throttle $O{throt_sameid}, "irc_sameid_$id.$rev";
 
   my $c = sub {
     return if pg_expect $_[0], 1;
@@ -291,31 +291,31 @@ sub handleid {
   };
 
   # plain vn/user/producer/thread/tag/trait/release
-  pg_cmd 'SELECT $1::text AS type, $2::integer AS id, '.(
-    $t eq 'v' ? 'v.title FROM vn v WHERE v.id = $2' :
-    $t eq 'u' ? 'u.username AS title FROM users u WHERE u.id = $2' :
-    $t eq 'p' ? 'p.name AS title FROM producers p WHERE p.id = $2' :
-    $t eq 'c' ? 'c.name AS title FROM chars c WHERE c.id = $2' :
-    $t eq 's' ? 'sa.name AS title FROM staff s JOIN staff_alias sa ON sa.aid = s.aid AND sa.id = s.id WHERE s.id = $2' :
-    $t eq 't' ? 'title, '.$GETBOARDS.' FROM threads t WHERE NOT t.hidden AND NOT t.private AND t.id = vndbid(\'t\',$2)' :
-    $t eq 'g' ? 'name AS title FROM tags WHERE id = $2' :
-    $t eq 'i' ? 'name AS title FROM traits WHERE id = $2' :
-    $t eq 'd' ? 'title FROM docs WHERE id = $2' :
-    $t eq 'w' ? 'v.title, u.username FROM reviews w JOIN vn v ON v.id = w.vid LEFT JOIN users u ON u.id = w.uid WHERE w.id = vndbid(\'w\',$2)' :
-                'r.title FROM releases r WHERE r.id = $2'),
-    [ $t, $id ], $c if !$rev && $t =~ /[dvprtugicsw]/;
+  pg_cmd 'SELECT $1::vndbid AS id, '.(
+    $id =~ /^v/ ? 'v.title FROM vn v WHERE v.id = $1' :
+    $id =~ /^u/ ? 'u.username AS title FROM users u WHERE u.id = $1' :
+    $id =~ /^p/ ? 'p.name AS title FROM producers p WHERE p.id = $1' :
+    $id =~ /^c/ ? 'c.name AS title FROM chars c WHERE c.id = $1' :
+    $id =~ /^s/ ? 'sa.name AS title FROM staff s JOIN staff_alias sa ON sa.aid = s.aid AND sa.id = s.id WHERE s.id = $1' :
+    $id =~ /^t/ ? 'title, '.$GETBOARDS.' FROM threads t WHERE NOT t.hidden AND NOT t.private AND t.id = $1' :
+    $id =~ /^g/ ? 'name AS title FROM tags WHERE id = vndbid_num($1)' :
+    $id =~ /^i/ ? 'name AS title FROM traits WHERE id = vndbid_num($1)' :
+    $id =~ /^d/ ? 'title FROM docs WHERE id = $1' :
+    $id =~ /^w/ ? 'v.title, u.username FROM reviews w JOIN vn v ON v.id = w.vid LEFT JOIN users u ON u.id = w.uid WHERE w.id = $1' :
+                  'r.title FROM releases r WHERE r.id = $1'),
+    [ $id ], $c if !$rev && $id =~ /^[dvprtugicsw]/;
 
   # edit/insert of vn/release/producer or discussion board post
-  pg_cmd 'SELECT $1::text AS type, $2::integer AS id, $3::integer AS rev, '.(
-    $t eq 'v' ? 'vh.title, u.username, c.comments FROM changes c JOIN vn_hist vh ON c.id = vh.chid LEFT JOIN users u ON u.id = c.requester WHERE c.type = \'v\' AND c.itemid = $2 AND c.rev = $3' :
-    $t eq 'r' ? 'rh.title, u.username, c.comments FROM changes c JOIN releases_hist rh ON c.id = rh.chid LEFT JOIN users u ON u.id = c.requester WHERE c.type = \'r\' AND c.itemid = $2 AND c.rev = $3' :
-    $t eq 'p' ? 'ph.name AS title, u.username, c.comments FROM changes c JOIN producers_hist ph ON c.id = ph.chid LEFT JOIN users u ON u.id = c.requester WHERE c.type = \'p\' AND c.itemid = $2 AND c.rev = $3' :
-    $t eq 'c' ? 'ch.name AS title, u.username, c.comments FROM changes c JOIN chars_hist ch ON c.id = ch.chid LEFT JOIN users u ON u.id = c.requester WHERE c.type = \'c\' AND c.itemid = $2 AND c.rev = $3' :
-    $t eq 's' ? 'sah.name AS title, u.username, c.comments FROM changes c JOIN staff_hist sh ON c.id = sh.chid LEFT JOIN users u ON u.id = c.requester JOIN staff_alias_hist sah ON sah.chid = c.id AND sah.aid = sh.aid WHERE c.type = \'s\' AND c.itemid = $2 AND c.rev = $3' :
-    $t eq 'd' ? 'dh.title, u.username, c.comments FROM changes c JOIN docs_hist dh ON c.id = dh.chid LEFT JOIN users u ON u.id = c.requester WHERE c.type = \'d\' AND c.itemid = $2 AND c.rev = $3' :
-    $t eq 'w' ? 'v.title, u.username FROM reviews_posts wp JOIN reviews w ON w.id = wp.id JOIN vn v ON v.id = w.vid LEFT JOIN users u ON u.id = wp.uid WHERE wp.id = vndbid(\'w\',$2) AND wp.num = $3' :
-                't.title, u.username, '.$GETBOARDS.' FROM threads t JOIN threads_posts tp ON tp.tid = t.id LEFT JOIN users u ON u.id = tp.uid WHERE NOT t.hidden AND NOT t.private AND t.id = vndbid(\'t\',$2) AND tp.num = $3'),
-    [ $t, $id, $rev], $c if $rev && $t =~ /[dvprtcsw]/;
+  pg_cmd 'SELECT $1::vndbid AS id, $2::integer AS rev, '.(
+    $id =~ /^v/ ? 'vh.title, u.username, c.comments FROM changes c JOIN vn_hist vh ON c.id = vh.chid LEFT JOIN users u ON u.id = c.requester WHERE c.itemid = $1 AND c.rev = $2' :
+    $id =~ /^r/ ? 'rh.title, u.username, c.comments FROM changes c JOIN releases_hist rh ON c.id = rh.chid LEFT JOIN users u ON u.id = c.requester WHERE c.itemid = $1 AND c.rev = $2' :
+    $id =~ /^p/ ? 'ph.name AS title, u.username, c.comments FROM changes c JOIN producers_hist ph ON c.id = ph.chid LEFT JOIN users u ON u.id = c.requester WHERE c.itemid = $1 AND c.rev = $2' :
+    $id =~ /^c/ ? 'ch.name AS title, u.username, c.comments FROM changes c JOIN chars_hist ch ON c.id = ch.chid LEFT JOIN users u ON u.id = c.requester WHERE c.itemid = $1 AND c.rev = $2' :
+    $id =~ /^s/ ? 'sah.name AS title, u.username, c.comments FROM changes c JOIN staff_hist sh ON c.id = sh.chid LEFT JOIN users u ON u.id = c.requester JOIN staff_alias_hist sah ON sah.chid = c.id AND sah.aid = sh.aid WHERE c.itemid = $1 AND c.rev = $2' :
+    $id =~ /^d/ ? 'dh.title, u.username, c.comments FROM changes c JOIN docs_hist dh ON c.id = dh.chid LEFT JOIN users u ON u.id = c.requester WHERE c.itemid = $1 AND c.rev = $2' :
+    $id =~ /^w/ ? 'v.title, u.username FROM reviews_posts wp JOIN reviews w ON w.id = wp.id JOIN vn v ON v.id = w.vid LEFT JOIN users u ON u.id = wp.uid WHERE wp.id = $1 AND wp.num = $2' :
+                  't.title, u.username, '.$GETBOARDS.' FROM threads t JOIN threads_posts tp ON tp.tid = t.id LEFT JOIN users u ON u.id = tp.uid WHERE NOT t.hidden AND NOT t.private AND t.id = $1 AND tp.num = $2'),
+    [ $id, $rev], $c if $rev && $id =~ /^[dvprtcsw]/;
 }
 
 
@@ -327,8 +327,8 @@ sub vndbid {
   my @id; # [ type, id, ref ]
   for (split /[, ]/, $msg) {
     next if length > 15 or m{[a-z]{3,6}://}i; # weed out URLs and too long things
-    push @id, /^(?:.*[^\w]|)([wdvprtcs])([1-9][0-9]*)\.([1-9][0-9]*)(?:[^\w].*|)$/ ? [ $1, $2, $3 ] # x+.+
-            : /^(?:.*[^\w]|)([wdvprtugics])([1-9][0-9]*)(?:[^\w].*|)$/ ? [ $1, $2, '' ] : ();       # x+
+    push @id, /^(?:.*[^\w]|)([wdvprtcs][1-9][0-9]*)\.([1-9][0-9]*)(?:[^\w].*|)$/ ? [ $1, $2 ] # x+.+
+            : /^(?:.*[^\w]|)([wdvprtugics][1-9][0-9]*)(?:[^\w].*|)$/ ? [ $1, '' ] : ();       # x+
   }
   handleid($chan, @$_) for @id;
 }
@@ -343,40 +343,40 @@ sub notify {
 
   my $q = {
   rev => q{
-    SELECT c.type, c.rev, c.comments, c.id AS lastid, c.itemid AS id,
+    SELECT c.rev, c.comments, c.id AS lastid, c.itemid AS id,
       COALESCE(vh.title, rh.title, ph.name, ch.name, sah.name, dh.title) AS title, u.username
     FROM changes c
-    LEFT JOIN vn_hist vh ON c.type = 'v' AND c.id = vh.chid
-    LEFT JOIN releases_hist rh ON c.type = 'r' AND c.id = rh.chid
-    LEFT JOIN producers_hist ph ON c.type = 'p' AND c.id = ph.chid
-    LEFT JOIN chars_hist ch ON c.type = 'c' AND c.id = ch.chid
-    LEFT JOIN staff_hist sh ON c.type = 's' AND c.id = sh.chid
-    LEFT JOIN staff_alias_hist sah ON c.type = 's' AND sah.aid = sh.aid AND sah.chid = c.id
-    LEFT JOIN docs_hist dh ON c.type = 'd' AND c.id = dh.chid
+    LEFT JOIN vn_hist vh ON vndbid_type(c.itemid) = 'v' AND c.id = vh.chid
+    LEFT JOIN releases_hist rh ON vndbid_type(c.itemid) = 'r' AND c.id = rh.chid
+    LEFT JOIN producers_hist ph ON vndbid_type(c.itemid) = 'p' AND c.id = ph.chid
+    LEFT JOIN chars_hist ch ON vndbid_type(c.itemid) = 'c' AND c.id = ch.chid
+    LEFT JOIN staff_hist sh ON vndbid_type(c.itemid) = 's' AND c.id = sh.chid
+    LEFT JOIN staff_alias_hist sah ON vndbid_type(c.itemid) = 's' AND sah.aid = sh.aid AND sah.chid = c.id
+    LEFT JOIN docs_hist dh ON vndbid_type(c.itemid) = 'd' AND c.id = dh.chid
     JOIN users u ON u.id = c.requester
-    WHERE c.id > $1 AND c.requester <> 1
+    WHERE c.id > $1 AND c.requester <> 'u1'
     ORDER BY c.id},
   post => q{
-    SELECT 't' AS type, vndbid_num(tp.tid) AS id, tp.num AS rev, t.title, COALESCE(u.username, 'deleted') AS username, tp.date AS lastid, }.$GETBOARDS.q{
+    SELECT tp.tid AS id, tp.num AS rev, t.title, COALESCE(u.username, 'deleted') AS username, tp.date AS lastid, }.$GETBOARDS.q{
     FROM threads_posts tp
     JOIN threads t ON t.id = tp.tid
     LEFT JOIN users u ON u.id = tp.uid
     WHERE tp.date > $1 AND tp.num = 1 AND NOT t.hidden AND NOT t.private
     ORDER BY tp.date},
   trait => q{
-    SELECT 'i' AS type, t.id, t.name AS title, u.username, t.id AS lastid
+    SELECT 'i'||t.id AS id, t.name AS title, u.username, t.id AS lastid
     FROM traits t
     JOIN users u ON u.id = t.addedby
     WHERE t.id > $1
     ORDER BY t.id},
   tag => q{
-    SELECT 'g' AS type, t.id, t.name AS title, u.username, t.id AS lastid
+    SELECT 'g'||t.id AS id, t.name AS title, u.username, t.id AS lastid
     FROM tags t
     JOIN users u ON u.id = t.addedby
     WHERE t.id > $1
     ORDER BY t.id},
   review => q{
-    SELECT 'w' AS type, w.id, v.title, u.username, w.id AS lastid
+    SELECT w.id, v.title, u.username, w.id AS lastid
     FROM reviews w
     JOIN vn v ON v.id = w.vid
     LEFT JOIN users u ON u.id = w.uid
@@ -421,7 +421,7 @@ vn => [ 0, 0, sub {
 
   my $w = join ' AND ', map "c_search LIKE \$$_", 1..@q;
   pg_cmd qq{
-    SELECT 'v'::text AS type, id, title
+    SELECT id, title
       FROM vn
      WHERE NOT hidden AND $w
      ORDER BY title
@@ -440,7 +440,7 @@ p => [ 0, 0, sub {
   my($nick, $chan, $q) = @_;
   return $irc->send_msg(PRIVMSG => $chan, 'You forgot the search query, dummy~~!') if !$q;
   pg_cmd q{
-    SELECT 'p'::text AS type, id, name AS title
+    SELECT id, name AS title
     FROM producers p
     WHERE hidden = FALSE AND (name ILIKE $1 OR original ILIKE $1 OR alias ILIKE $1)
     ORDER BY name

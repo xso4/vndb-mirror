@@ -29,7 +29,7 @@ elm_api UserPassReset => undef, {
         ."Now don't forget your password again! :-)"
         ."\n\n"
         ."vndb.org",
-        $name, tuwf->reqBaseURI()."/u$id/setpass/$token";
+        $name, tuwf->reqBaseURI()."/$id/setpass/$token";
 
     tuwf->mail($body,
       To => $data->{email},

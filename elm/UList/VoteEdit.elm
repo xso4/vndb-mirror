@@ -42,12 +42,12 @@ init f =
   in
   { state   = Api.Normal
   , flags   = f
-  , dd      = DD.init ("vote_edit_dd_" ++ String.fromInt f.vid) Open
+  , dd      = DD.init ("vote_edit_dd_" ++ f.vid) Open
   , text    = if List.any (\n -> v == Just (String.fromInt n)) (List.indexedMap (\a b -> a+1) ratings) then "" else Maybe.withDefault "" v
   , vote    = v
   , ovote   = v
   , isvalid = True
-  , fieldId = "vote_edit_" ++ String.fromInt f.vid
+  , fieldId = "vote_edit_" ++ f.vid
   }
 
 type Msg

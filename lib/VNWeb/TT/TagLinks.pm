@@ -38,7 +38,7 @@ sub listing_ {
                 };
                 td_ class => 'tc6', sub {
                     a_ href => $url->(v => $i->{vid}, p=>undef), class => 'setfil', '> ' if !defined $opt->{v};
-                    a_ href => "/v$i->{vid}", shorten $i->{title}, 50;
+                    a_ href => "/$i->{vid}", shorten $i->{title}, 50;
                 };
                 td_ class => 'tc7', sub { lit_ bb_format $i->{notes}, inline => 1 };
             } for @$lst;
@@ -53,8 +53,8 @@ TUWF::get qr{/g/links}, sub {
         p => { page => 1 },
         o => { onerror => 'd', enum => ['a', 'd'] },
         s => { onerror => 'date', enum => [qw|date tag|] },
-        v => { onerror => undef, id => 1 },
-        u => { onerror => undef, id => 1 },
+        v => { onerror => undef, vndbid => 'v' },
+        u => { onerror => undef, vndbid => 'u' },
         t => { onerror => undef, id => 1 },
     )->data;
 
@@ -98,7 +98,7 @@ TUWF::get qr{/g/links}, sub {
                     li_ sub {
                         txt_ '['; a_ href => url(v=>undef, p=>undef), 'remove'; txt_ '] ';
                         txt_ 'Visual novel'; txt_ ' ';
-                        a_ href => "/v$opt->{v}", tuwf->dbVali('SELECT title FROM vn WHERE id=', \$opt->{v})||'Unknown VN';
+                        a_ href => "/$opt->{v}", tuwf->dbVali('SELECT title FROM vn WHERE id=', \$opt->{v})||'Unknown VN';
                     } if defined $opt->{v};
                 }
             }

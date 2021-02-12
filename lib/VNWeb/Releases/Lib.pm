@@ -113,7 +113,7 @@ sub release_row_ {
             abbr_ class => "icons rt$r->{type}", title => $r->{type}, '';
         };
         td_ class => 'tc4', sub {
-            a_ href => "/r$r->{id}", title => $r->{original}||$r->{title}, $r->{title};
+            a_ href => "/$r->{id}", title => $r->{original}||$r->{title}, $r->{title};
             my $note = join ' ', $r->{official} ? () : 'unofficial', $r->{patch} ? 'patch' : ();
             b_ class => 'grayedout', " ($note)" if $note;
         };

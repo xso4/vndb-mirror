@@ -65,7 +65,7 @@ type alias Model =
   , prodAdd    : A.Model GApi.ApiProducerResult
   , notes      : TP.Model
   , editsum    : Editsum.Model
-  , id         : Maybe Int
+  , id         : Maybe String
   }
 
 
@@ -368,8 +368,8 @@ viewGen model =
   , formField "Visual novels"
     [ if List.isEmpty model.vn then b [ class "standout" ] [ text "No visual novels selected.", br [] [] ]
       else table [] <| List.indexedMap (\i v -> tr []
-        [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| "v" ++ String.fromInt v.vid ++ ":" ] ]
-        , td [] [ a [ href <| "/v" ++ String.fromInt v.vid ] [ text v.title ] ]
+        [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| v.vid ++ ":" ] ]
+        , td [] [ a [ href <| "/" ++ v.vid ] [ text v.title ] ]
         , td [] [ inputButton "remove" (VNDel i) [] ]
         ]
       ) model.vn
@@ -378,8 +378,8 @@ viewGen model =
   , tr [ class "newpart" ] [ td [ colspan 2 ] [] ]
   , formField "Producers"
     [ table [ class "compact" ] <| List.indexedMap (\i p -> tr []
-        [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| "p" ++ String.fromInt p.pid ++ ":" ] ]
-        , td [] [ a [ href <| "/p" ++ String.fromInt p.pid ] [ text p.name ] ]
+        [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| p.pid ++ ":" ] ]
+        , td [] [ a [ href <| "/" ++ p.pid ] [ text p.name ] ]
         , td [] [ inputSelect "" (p.developer, p.publisher) (ProdRole i) [style "width" "100px"] [((True,False), "Developer"), ((False,True), "Publisher"), ((True,True), "Both")] ]
         , td [] [ inputButton "remove" (ProdDel i) [] ]
         ]

@@ -48,7 +48,7 @@ $$ LANGUAGE SQL;
 
 
 -- update_vncache(id) - updates some c_* columns in the vn table
-CREATE OR REPLACE FUNCTION update_vncache(integer) RETURNS void AS $$
+CREATE OR REPLACE FUNCTION update_vncache(vndbid) RETURNS void AS $$
   UPDATE vn SET
     c_released = COALESCE((
       SELECT MIN(r.released)
@@ -189,7 +189,7 @@ END; $$ LANGUAGE plpgsql;
 
 
 -- Update users.c_vns, c_votes and c_wish for one user (when given an id) or all users (when given NULL)
-CREATE OR REPLACE FUNCTION update_users_ulist_stats(integer) RETURNS void AS $$
+CREATE OR REPLACE FUNCTION update_users_ulist_stats(vndbid) RETURNS void AS $$
 BEGIN
   WITH cnt(uid, votes, vns, wish) AS (
     SELECT u.id
@@ -212,7 +212,7 @@ $$ LANGUAGE plpgsql; -- Don't use "LANGUAGE SQL" here; Make sure to generate a n
 -- When a vid is given, only the tags for that vid will be updated. These
 -- incremental updates do not affect tags.c_items, so that may still get
 -- out-of-sync.
-CREATE OR REPLACE FUNCTION tag_vn_calc(uvid integer) RETURNS void AS $$
+CREATE OR REPLACE FUNCTION tag_vn_calc(uvid vndbid) RETURNS void AS $$
 BEGIN
   IF uvid IS NULL THEN
     DROP INDEX IF EXISTS tags_vn_inherit_tag_vid;
@@ -262,7 +262,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
 -- Recalculate traits_chars. Pretty much same thing as tag_vn_calc().
-CREATE OR REPLACE FUNCTION traits_chars_calc(ucid integer) RETURNS void AS $$
+CREATE OR REPLACE FUNCTION traits_chars_calc(ucid vndbid) RETURNS void AS $$
 BEGIN
   IF ucid IS NULL THEN
     DROP INDEX IF EXISTS traits_chars_tid;
@@ -318,7 +318,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Create ulist labels for new users.
-CREATE OR REPLACE FUNCTION ulist_labels_create(integer) RETURNS void AS $$
+CREATE OR REPLACE FUNCTION ulist_labels_create(vndbid) RETURNS void AS $$
   INSERT INTO ulist_labels (uid, id, label, private)
        VALUES ($1, 1, 'Playing',   false),
               ($1, 2, 'Finished',  false),
@@ -337,21 +337,21 @@ $$ LANGUAGE SQL;
 -- A MATERIALIZED VIEW would likely be the fastest approach, but keeping that up-to-date seems like a pain.
 --
 -- Not currently supported: i#, g#, u#, ch#, cv#, sf#
-CREATE OR REPLACE FUNCTION item_info(id vndbid, num int) RETURNS TABLE(title text, uid int) AS $$
+CREATE OR REPLACE FUNCTION item_info(id vndbid, num int) RETURNS TABLE(title text, uid vndbid) AS $$
   -- x#.#
-            SELECT v.title,  h.requester FROM changes h JOIN vn_hist v        ON h.id = v.chid WHERE h.type = 'v' AND vndbid_type($1) = 'v' AND h.itemid = vndbid_num($1) AND $2 IS NOT NULL AND h.rev = $2
-  UNION ALL SELECT r.title,  h.requester FROM changes h JOIN releases_hist r  ON h.id = r.chid WHERE h.type = 'r' AND vndbid_type($1) = 'r' AND h.itemid = vndbid_num($1) AND $2 IS NOT NULL AND h.rev = $2
-  UNION ALL SELECT p.name,   h.requester FROM changes h JOIN producers_hist p ON h.id = p.chid WHERE h.type = 'p' AND vndbid_type($1) = 'p' AND h.itemid = vndbid_num($1) AND $2 IS NOT NULL AND h.rev = $2
-  UNION ALL SELECT c.name,   h.requester FROM changes h JOIN chars_hist c     ON h.id = c.chid WHERE h.type = 'c' AND vndbid_type($1) = 'c' AND h.itemid = vndbid_num($1) AND $2 IS NOT NULL AND h.rev = $2
-  UNION ALL SELECT d.title,  h.requester FROM changes h JOIN docs_hist d      ON h.id = d.chid WHERE h.type = 'd' AND vndbid_type($1) = 'd' AND h.itemid = vndbid_num($1) AND $2 IS NOT NULL AND h.rev = $2
-  UNION ALL SELECT sa.name,  h.requester FROM changes h JOIN staff_hist s     ON h.id = s.chid JOIN staff_alias_hist sa ON sa.chid = s.chid AND sa.aid = s.aid WHERE h.type = 's' AND vndbid_type($1) = 's' AND h.itemid = vndbid_num($1) AND $2 IS NOT NULL AND h.rev = $2
+            SELECT v.title,  h.requester FROM changes h JOIN vn_hist v        ON h.id = v.chid WHERE vndbid_type($1) = 'v' AND h.itemid = $1 AND $2 IS NOT NULL AND h.rev = $2
+  UNION ALL SELECT r.title,  h.requester FROM changes h JOIN releases_hist r  ON h.id = r.chid WHERE vndbid_type($1) = 'r' AND h.itemid = $1 AND $2 IS NOT NULL AND h.rev = $2
+  UNION ALL SELECT p.name,   h.requester FROM changes h JOIN producers_hist p ON h.id = p.chid WHERE vndbid_type($1) = 'p' AND h.itemid = $1 AND $2 IS NOT NULL AND h.rev = $2
+  UNION ALL SELECT c.name,   h.requester FROM changes h JOIN chars_hist c     ON h.id = c.chid WHERE vndbid_type($1) = 'c' AND h.itemid = $1 AND $2 IS NOT NULL AND h.rev = $2
+  UNION ALL SELECT d.title,  h.requester FROM changes h JOIN docs_hist d      ON h.id = d.chid WHERE vndbid_type($1) = 'd' AND h.itemid = $1 AND $2 IS NOT NULL AND h.rev = $2
+  UNION ALL SELECT sa.name,  h.requester FROM changes h JOIN staff_hist s     ON h.id = s.chid JOIN staff_alias_hist sa ON sa.chid = s.chid AND sa.aid = s.aid WHERE vndbid_type($1) = 's' AND h.itemid = $1 AND $2 IS NOT NULL AND h.rev = $2
   -- x#
-  UNION ALL SELECT title,   NULL   FROM vn        WHERE vndbid_type($1) = 'v' AND id = vndbid_num($1) AND $2 IS NULL
-  UNION ALL SELECT title,   NULL   FROM releases  WHERE vndbid_type($1) = 'r' AND id = vndbid_num($1) AND $2 IS NULL
-  UNION ALL SELECT name,    NULL   FROM producers WHERE vndbid_type($1) = 'p' AND id = vndbid_num($1) AND $2 IS NULL
-  UNION ALL SELECT name,    NULL   FROM chars     WHERE vndbid_type($1) = 'c' AND id = vndbid_num($1) AND $2 IS NULL
-  UNION ALL SELECT title,   NULL   FROM docs      WHERE vndbid_type($1) = 'd' AND id = vndbid_num($1) AND $2 IS NULL
-  UNION ALL SELECT sa.name, NULL   FROM staff s JOIN staff_alias sa ON sa.aid = s.aid WHERE vndbid_type($1) = 's' AND s.id = vndbid_num($1) AND $2 IS NOT NULL AND $2 IS NULL
+  UNION ALL SELECT title,   NULL   FROM vn        WHERE vndbid_type($1) = 'v' AND id = $1 AND $2 IS NULL
+  UNION ALL SELECT title,   NULL   FROM releases  WHERE vndbid_type($1) = 'r' AND id = $1 AND $2 IS NULL
+  UNION ALL SELECT name,    NULL   FROM producers WHERE vndbid_type($1) = 'p' AND id = $1 AND $2 IS NULL
+  UNION ALL SELECT name,    NULL   FROM chars     WHERE vndbid_type($1) = 'c' AND id = $1 AND $2 IS NULL
+  UNION ALL SELECT title,   NULL   FROM docs      WHERE vndbid_type($1) = 'd' AND id = $1 AND $2 IS NULL
+  UNION ALL SELECT sa.name, NULL   FROM staff s JOIN staff_alias sa ON sa.aid = s.aid WHERE vndbid_type($1) = 's' AND s.id = $1 AND $2 IS NOT NULL AND $2 IS NULL
   -- t#
   UNION ALL SELECT title,   NULL   FROM threads WHERE vndbid_type($1) = 't' AND id = $1 AND $2 IS NULL
   -- t#.#
@@ -372,16 +372,14 @@ $$ LANGUAGE SQL ROWS 1;
 -- The two functions below are utility functions used by the item-specific functions in editfunc.sql
 
 -- create temporary table for generic revision info, and returns the chid of the revision being edited (or NULL).
-CREATE OR REPLACE FUNCTION edit_revtable(xtype dbentry_type, xitemid integer, xrev integer) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION edit_revtable(xitemid vndbid, xrev integer) RETURNS integer AS $$
 DECLARE
-  ret integer;
   x record;
 BEGIN
   BEGIN
     CREATE TEMPORARY TABLE edit_revision (
-      type dbentry_type NOT NULL,
-      itemid integer,
-      requester integer,
+      itemid vndbid,
+      requester vndbid,
       ip inet,
       comments text,
       ihid boolean,
@@ -390,61 +388,30 @@ BEGIN
   EXCEPTION WHEN duplicate_table THEN
     TRUNCATE edit_revision;
   END;
-  SELECT INTO x id, ihid, ilock FROM changes c WHERE type = xtype AND itemid = xitemid AND rev = xrev;
-  INSERT INTO edit_revision (type, itemid, ihid, ilock) VALUES (xtype, xitemid, COALESCE(x.ihid, FALSE), COALESCE(x.ilock, FALSE));
+  SELECT INTO x id, ihid, ilock FROM changes c WHERE itemid = xitemid AND rev = xrev;
+  INSERT INTO edit_revision (itemid, ihid, ilock) VALUES (xitemid, COALESCE(x.ihid, FALSE), COALESCE(x.ilock, FALSE));
   RETURN x.id;
 END;
 $$ LANGUAGE plpgsql;
 
 
-
-CREATE OR REPLACE FUNCTION edit_commit() RETURNS edit_rettype AS $$
-DECLARE
-  ret edit_rettype;
-  xtype dbentry_type;
-BEGIN
-  SELECT type INTO xtype FROM edit_revision;
-  SELECT itemid INTO ret.itemid FROM edit_revision;
-  -- figure out revision number
-  SELECT MAX(rev)+1 INTO ret.rev FROM changes WHERE type = xtype AND itemid = ret.itemid;
-  SELECT COALESCE(ret.rev, 1) INTO ret.rev;
-  -- insert DB item
-  IF ret.itemid IS NULL THEN
-    CASE xtype
-      WHEN 'v' THEN INSERT INTO vn        DEFAULT VALUES RETURNING id INTO ret.itemid;
-      WHEN 'r' THEN INSERT INTO releases  DEFAULT VALUES RETURNING id INTO ret.itemid;
-      WHEN 'p' THEN INSERT INTO producers DEFAULT VALUES RETURNING id INTO ret.itemid;
-      WHEN 'c' THEN INSERT INTO chars     DEFAULT VALUES RETURNING id INTO ret.itemid;
-      WHEN 's' THEN INSERT INTO staff     DEFAULT VALUES RETURNING id INTO ret.itemid;
-      WHEN 'd' THEN INSERT INTO docs      DEFAULT VALUES RETURNING id INTO ret.itemid;
-    END CASE;
-  END IF;
-  -- insert change
-  INSERT INTO changes (type, itemid, rev, requester, ip, comments, ihid, ilock)
-    SELECT type, ret.itemid, ret.rev, requester, ip, comments, ihid, ilock FROM edit_revision RETURNING id INTO ret.chid;
-  RETURN ret;
-END;
-$$ LANGUAGE plpgsql;
-
-
-
 -- Check for stuff to be done when an item has been changed
-CREATE OR REPLACE FUNCTION edit_committed(xtype dbentry_type, xedit edit_rettype) RETURNS void AS $$
+CREATE OR REPLACE FUNCTION edit_committed(nchid integer, nitemid vndbid, nrev integer) RETURNS void AS $$
 DECLARE
   xoldchid integer;
 BEGIN
-  SELECT id INTO xoldchid FROM changes WHERE type = xtype AND itemid = xedit.itemid AND rev = xedit.rev-1;
+  SELECT id INTO xoldchid FROM changes WHERE itemid = nitemid AND rev = nrev-1;
 
   -- Set c_search to NULL and notify when
   -- 1. A new VN entry is created
   -- 2. The vn title/original/alias has changed
-  IF xtype = 'v' THEN
+  IF vndbid_type(nitemid) = 'v' THEN
     IF -- 1.
        xoldchid IS NULL OR
        -- 2.
-       EXISTS(SELECT 1 FROM vn_hist v1, vn_hist v2 WHERE (v2.title <> v1.title OR v2.original <> v1.original OR v2.alias <> v1.alias) AND v1.chid = xoldchid AND v2.chid = xedit.chid)
+       EXISTS(SELECT 1 FROM vn_hist v1, vn_hist v2 WHERE (v2.title <> v1.title OR v2.original <> v1.original OR v2.alias <> v1.alias) AND v1.chid = xoldchid AND v2.chid = nchid)
     THEN
-      UPDATE vn SET c_search = NULL WHERE id = xedit.itemid;
+      UPDATE vn SET c_search = NULL WHERE id = nitemid;
       NOTIFY vnsearch;
     END IF;
   END IF;
@@ -454,58 +421,58 @@ BEGIN
   -- 2. A release has been hidden or unhidden
   -- 3. The release title/original has changed
   -- 4. The releases_vn table differs from a previous revision
-  IF xtype = 'r' THEN
+  IF vndbid_type(nitemid) = 'r' THEN
     IF -- 1.
        xoldchid IS NULL OR
        -- 2.
-       EXISTS(SELECT 1 FROM changes c1, changes c2 WHERE c1.ihid IS DISTINCT FROM c2.ihid AND c1.id = xedit.chid AND c2.id = xoldchid) OR
+       EXISTS(SELECT 1 FROM changes c1, changes c2 WHERE c1.ihid IS DISTINCT FROM c2.ihid AND c1.id = nchid AND c2.id = xoldchid) OR
        -- 3.
-       EXISTS(SELECT 1 FROM releases_hist r1, releases_hist r2 WHERE (r2.title <> r1.title OR r2.original <> r1.original) AND r1.chid = xoldchid AND r2.chid = xedit.chid) OR
+       EXISTS(SELECT 1 FROM releases_hist r1, releases_hist r2 WHERE (r2.title <> r1.title OR r2.original <> r1.original) AND r1.chid = xoldchid AND r2.chid = nchid) OR
        -- 4.
-       EXISTS(SELECT vid FROM releases_vn_hist WHERE chid = xoldchid   EXCEPT SELECT vid FROM releases_vn_hist WHERE chid = xedit.chid) OR
-       EXISTS(SELECT vid FROM releases_vn_hist WHERE chid = xedit.chid EXCEPT SELECT vid FROM releases_vn_hist WHERE chid = xoldchid)
+       EXISTS(SELECT vid FROM releases_vn_hist WHERE chid = xoldchid EXCEPT SELECT vid FROM releases_vn_hist WHERE chid = nchid) OR
+       EXISTS(SELECT vid FROM releases_vn_hist WHERE chid = nchid    EXCEPT SELECT vid FROM releases_vn_hist WHERE chid = xoldchid)
     THEN
-      UPDATE vn SET c_search = NULL WHERE id IN(SELECT vid FROM releases_vn_hist WHERE chid IN(xedit.chid, xoldchid));
+      UPDATE vn SET c_search = NULL WHERE id IN(SELECT vid FROM releases_vn_hist WHERE chid IN(nchid, xoldchid));
       NOTIFY vnsearch;
     END IF;
   END IF;
 
   -- Call update_vncache() for related VNs when a release has been created or edited
   -- (This could be made more specific, but update_vncache() is fast enough that it's not worth the complexity)
-  IF xtype = 'r' THEN
+  IF vndbid_type(nitemid) = 'r' THEN
     PERFORM update_vncache(vid) FROM (
-      SELECT DISTINCT vid FROM releases_vn_hist WHERE chid IN(xedit.chid, xoldchid)
+      SELECT DISTINCT vid FROM releases_vn_hist WHERE chid IN(nchid, xoldchid)
     ) AS v(vid);
   END IF;
 
   -- Call traits_chars_calc() for characters to update the traits cache
-  IF xtype = 'c' THEN
-    PERFORM traits_chars_calc(xedit.itemid);
+  IF vndbid_type(nitemid) = 'c' THEN
+    PERFORM traits_chars_calc(nitemid);
   END IF;
 
   -- Create edit notifications
   INSERT INTO notifications (uid, ntype, iid, num)
-       SELECT n.uid, n.ntype, n.iid, n.num FROM changes c, notify(vndbid(c.type::text, c.itemid), c.rev, c.requester) n WHERE c.id = xedit.chid;
+       SELECT n.uid, n.ntype, n.iid, n.num FROM changes c, notify(nitemid, c.rev, c.requester) n WHERE c.id = nchid;
 
   -- Make sure all visual novels linked to a release have a corresponding entry
   -- in ulist_vns for users who have the release in rlists. This is action (3) in
   -- update_vnlist_rlist().
-  IF xtype = 'r' AND xoldchid IS NOT NULL
+  IF vndbid_type(nitemid) = 'r' AND xoldchid IS NOT NULL
   THEN
     INSERT INTO ulist_vns (uid, vid)
-      SELECT rl.uid, rv.vid FROM rlists rl JOIN releases_vn rv ON rv.id = rl.rid WHERE rl.rid = xedit.itemid
+      SELECT rl.uid, rv.vid FROM rlists rl JOIN releases_vn rv ON rv.id = rl.rid WHERE rl.rid = nitemid
     ON CONFLICT (uid, vid) DO NOTHING;
   END IF;
 
   -- Call update_images_cache() where appropriate
-  IF xtype = 'c'
+  IF vndbid_type(nitemid) = 'c'
   THEN
-    PERFORM update_images_cache(image) FROM chars_hist WHERE chid IN(xoldchid,xedit.chid) AND image IS NOT NULL;
+    PERFORM update_images_cache(image) FROM chars_hist WHERE chid IN(xoldchid,nchid) AND image IS NOT NULL;
   END IF;
-  IF xtype = 'v'
+  IF vndbid_type(nitemid) = 'v'
   THEN
-    PERFORM update_images_cache(image) FROM vn_hist WHERE chid IN(xoldchid,xedit.chid) AND image IS NOT NULL;
-    PERFORM update_images_cache(scr) FROM vn_screenshots_hist WHERE chid IN(xoldchid,xedit.chid);
+    PERFORM update_images_cache(image) FROM vn_hist WHERE chid IN(xoldchid,nchid) AND image IS NOT NULL;
+    PERFORM update_images_cache(scr) FROM vn_screenshots_hist WHERE chid IN(xoldchid,nchid);
   END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -522,7 +489,7 @@ $$ LANGUAGE plpgsql;
 --  'iid' and 'num' identify the item that has been created.
 --  'uid' indicates who created the item, providing an easy method of not creating a notification for that user.
 --     (can technically be fetched with a DB lookup, too)
-CREATE OR REPLACE FUNCTION notify(iid vndbid, num integer, uid integer) RETURNS TABLE (uid integer, ntype notification_ntype[], iid vndbid, num int) AS $$
+CREATE OR REPLACE FUNCTION notify(iid vndbid, num integer, uid vndbid) RETURNS TABLE (uid vndbid, ntype notification_ntype[], iid vndbid, num int) AS $$
   SELECT uid, array_agg(ntype), $1, $2
     FROM (
 
@@ -536,9 +503,9 @@ CREATE OR REPLACE FUNCTION notify(iid vndbid, num integer, uid integer) RETURNS 
       UNION
       SELECT 'dbdel', c_all.requester
         FROM changes c_cur, changes c_all, changes c_pre
-       WHERE c_cur.type = vndbid_type($1)::dbentry_type AND c_cur.itemid = vndbid_num($1) AND c_cur.rev = $2   -- Current edit
-         AND c_pre.type = vndbid_type($1)::dbentry_type AND c_pre.itemid = vndbid_num($1) AND c_pre.rev = $2-1 -- Previous edit, to check if .ihid changed
-         AND c_all.type = vndbid_type($1)::dbentry_type AND c_all.itemid = vndbid_num($1) -- All edits on this entry, to see whom to notify
+       WHERE c_cur.itemid = $1 AND c_cur.rev = $2   -- Current edit
+         AND c_pre.itemid = $1 AND c_pre.rev = $2-1 -- Previous edit, to check if .ihid changed
+         AND c_all.itemid = $1 -- All edits on this entry, to see whom to notify
          AND c_cur.ihid AND NOT c_pre.ihid
          AND $2 > 1 AND vndbid_type($1) IN('v', 'r', 'p', 'c', 's', 'd')
 
@@ -546,12 +513,12 @@ CREATE OR REPLACE FUNCTION notify(iid vndbid, num integer, uid integer) RETURNS 
       UNION
       SELECT 'listdel', u.uid
         FROM changes c_cur, changes c_pre,
-             ( SELECT uid FROM ulist_vns WHERE vndbid_type($1) = 'v' AND vid = vndbid_num($1) -- TODO: Could use an index on ulist_vns.vid
+             ( SELECT uid FROM ulist_vns WHERE vndbid_type($1) = 'v' AND vid = $1 -- TODO: Could use an index on ulist_vns.vid
                UNION ALL
-               SELECT uid FROM rlists    WHERE vndbid_type($1) = 'r' AND rid = vndbid_num($1) -- TODO: Could also use an index, but the rlists table isn't that large so it's still okay
+               SELECT uid FROM rlists    WHERE vndbid_type($1) = 'r' AND rid = $1 -- TODO: Could also use an index, but the rlists table isn't that large so it's still okay
              ) u(uid)
-       WHERE c_cur.type = vndbid_type($1)::dbentry_type AND c_cur.itemid = vndbid_num($1) AND c_cur.rev = $2   -- Current edit
-         AND c_pre.type = vndbid_type($1)::dbentry_type AND c_pre.itemid = vndbid_num($1) AND c_pre.rev = $2-1 -- Previous edit, to check if .ihid changed
+       WHERE c_cur.itemid = $1 AND c_cur.rev = $2   -- Current edit
+         AND c_pre.itemid = $1 AND c_pre.rev = $2-1 -- Previous edit, to check if .ihid changed
          AND c_cur.ihid AND NOT c_pre.ihid
          AND $2 > 1 AND vndbid_type($1) IN('v','r')
 
@@ -560,9 +527,9 @@ CREATE OR REPLACE FUNCTION notify(iid vndbid, num integer, uid integer) RETURNS 
       SELECT 'dbedit', c.requester
         FROM changes c
         JOIN users u ON u.id = c.requester
-       WHERE c.type = vndbid_type($1)::dbentry_type AND c.itemid = vndbid_num($1)
+       WHERE c.itemid = $1
          AND $2 > 1 AND vndbid_type($1) IN('v', 'r', 'p', 'c', 's', 'd')
-         AND $3 <> 1 -- Exclude edits by Multi
+         AND $3 <> 'u1' -- Exclude edits by Multi
          AND u.notify_dbedit
          AND NOT EXISTS(SELECT 1 FROM notification_subs ns WHERE ns.iid = $1 AND ns.uid = c.requester AND ns.subnum = false)
 
@@ -571,7 +538,7 @@ CREATE OR REPLACE FUNCTION notify(iid vndbid, num integer, uid integer) RETURNS 
       SELECT 'subedit', ns.uid
         FROM notification_subs ns
        WHERE $2 > 1 AND vndbid_type($1) IN('v', 'r', 'p', 'c', 's', 'd')
-         AND $3 <> 1 -- Exclude edits by Multi
+         AND $3 <> 'u1' -- Exclude edits by Multi
          AND ns.iid = $1 AND ns.subnum
 
       -- announce
@@ -622,7 +589,7 @@ CREATE OR REPLACE FUNCTION notify(iid vndbid, num integer, uid integer) RETURNS 
       UNION
       SELECT 'subreview', ns.uid
         FROM reviews w, notification_subs ns
-       WHERE w.id = $1 AND vndbid_type($1) = 'w' AND $2 IS NULL AND ns.iid = vndbid('v', w.vid) AND ns.subreview
+       WHERE w.id = $1 AND vndbid_type($1) = 'w' AND $2 IS NULL AND ns.iid = w.vid AND ns.subreview
 
       -- subapply
       UNION
@@ -630,14 +597,14 @@ CREATE OR REPLACE FUNCTION notify(iid vndbid, num integer, uid integer) RETURNS 
         FROM notification_subs
        WHERE subapply AND vndbid_type($1) = 'c' AND $2 IS NOT NULL
          AND iid IN(
-              WITH new(tid) AS (SELECT vndbid('i', tid) FROM chars_traits_hist WHERE chid = (SELECT id FROM changes WHERE type = 'c' AND itemid = vndbid_num($1) AND rev = $2)),
-                   old(tid) AS (SELECT vndbid('i', tid) FROM chars_traits_hist WHERE chid = (SELECT id FROM changes WHERE type = 'c' AND itemid = vndbid_num($1) AND $2 > 1 AND rev = $2-1))
+              WITH new(tid) AS (SELECT vndbid('i', tid) FROM chars_traits_hist WHERE chid = (SELECT id FROM changes WHERE itemid = $1 AND rev = $2)),
+                   old(tid) AS (SELECT vndbid('i', tid) FROM chars_traits_hist WHERE chid = (SELECT id FROM changes WHERE itemid = $1 AND $2 > 1 AND rev = $2-1))
               (SELECT tid FROM old EXCEPT SELECT tid FROM new) UNION (SELECT tid FROM new EXCEPT SELECT tid FROM old)
             )
 
     ) AS noti(ntype, uid)
    WHERE uid <> $3
-     AND uid <> 1 -- No announcements for Multi
+     AND uid <> 'u1' -- No announcements for Multi
    GROUP BY uid;
 $$ LANGUAGE SQL;
 
@@ -653,7 +620,7 @@ $$ LANGUAGE SQL;
 -- Returns the raw scrypt parameters (N, r, p and salt) for this user, in order
 -- to create an encrypted pass. Returns NULL if this user does not have a valid
 -- password.
-CREATE OR REPLACE FUNCTION user_getscryptargs(integer) RETURNS bytea AS $$
+CREATE OR REPLACE FUNCTION user_getscryptargs(vndbid) RETURNS bytea AS $$
   SELECT
     CASE WHEN length(passwd) = 46 THEN substring(passwd from 1 for 14) ELSE NULL END
   FROM users WHERE id = $1
@@ -661,7 +628,7 @@ $$ LANGUAGE SQL SECURITY DEFINER;
 
 
 -- Create a new web session for this user (uid, scryptpass, token)
-CREATE OR REPLACE FUNCTION user_login(integer, bytea, bytea) RETURNS boolean AS $$
+CREATE OR REPLACE FUNCTION user_login(vndbid, bytea, bytea) RETURNS boolean AS $$
   INSERT INTO sessions (uid, token, expires, type) SELECT $1, $3, NOW() + '1 month', 'web' FROM users
    WHERE length($2) = 46 AND length($3) = 20
      AND id = $1 AND passwd = $2
@@ -669,14 +636,14 @@ CREATE OR REPLACE FUNCTION user_login(integer, bytea, bytea) RETURNS boolean AS 
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 
-CREATE OR REPLACE FUNCTION user_logout(integer, bytea) RETURNS void AS $$
+CREATE OR REPLACE FUNCTION user_logout(vndbid, bytea) RETURNS void AS $$
   DELETE FROM sessions WHERE uid = $1 AND token = $2 AND type = 'web'
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 
 -- Returns true if the given session token is valid.
 -- As a side effect, this also extends the expiration time of web sessions.
-CREATE OR REPLACE FUNCTION user_isvalidsession(integer, bytea, session_type) RETURNS bool AS $$
+CREATE OR REPLACE FUNCTION user_isvalidsession(vndbid, bytea, session_type) RETURNS bool AS $$
   UPDATE sessions SET expires = NOW() + '1 month'
    WHERE uid = $1 AND token = $2 AND type = $3 AND $3 = 'web'
      AND expires < NOW() + '1 month'::interval - '6 hours'::interval;
@@ -685,7 +652,7 @@ $$ LANGUAGE SQL SECURITY DEFINER;
 
 
 -- Used for duplicate email checks and user-by-email lookup for usermods.
-CREATE OR REPLACE FUNCTION user_emailtoid(text) RETURNS SETOF integer AS $$
+CREATE OR REPLACE FUNCTION user_emailtoid(text) RETURNS SETOF vndbid AS $$
   SELECT id FROM users WHERE lower(mail) = lower($1)
 $$ LANGUAGE SQL SECURITY DEFINER;
 
@@ -696,7 +663,7 @@ $$ LANGUAGE SQL SECURITY DEFINER;
 -- Ideally Postgres itself would send the user an email so that the application
 -- calling this function doesn't even get the token, and thus can't get access
 -- to someone's account. But alas, that'd require a separate process.
-CREATE OR REPLACE FUNCTION user_resetpass(text, bytea) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION user_resetpass(text, bytea) RETURNS vndbid AS $$
   INSERT INTO sessions (uid, token, expires, type)
     SELECT id, $2, NOW()+'1 week', 'pass' FROM users
      WHERE lower(mail) = lower($1) AND length($2) = 20 AND NOT perm_usermod
@@ -705,7 +672,7 @@ $$ LANGUAGE SQL SECURITY DEFINER;
 
 
 -- Changes the user's password and invalidates all existing sessions. args: uid, old_pass_or_reset_token, new_pass
-CREATE OR REPLACE FUNCTION user_setpass(integer, bytea, bytea) RETURNS boolean AS $$
+CREATE OR REPLACE FUNCTION user_setpass(vndbid, bytea, bytea) RETURNS boolean AS $$
   WITH upd(id) AS (
     UPDATE users SET passwd = $3
      WHERE id = $1
@@ -723,24 +690,24 @@ $$ LANGUAGE SQL SECURITY DEFINER;
 
 -- Internal function, used to verify whether user ($2 with session $3) is
 -- allowed to access sensitive data from user $1.
-CREATE OR REPLACE FUNCTION user_isauth(integer, integer, bytea) RETURNS boolean AS $$
+CREATE OR REPLACE FUNCTION user_isauth(vndbid, vndbid, bytea) RETURNS boolean AS $$
   SELECT true FROM users
    WHERE id = $2
      AND EXISTS(SELECT 1 FROM sessions WHERE uid = $2 AND token = $3 AND type = 'web')
-     AND ($2 = $1 OR perm_usermod)
+     AND ($2 IS NOT DISTINCT FROM $1 OR perm_usermod)
 $$ LANGUAGE SQL;
 
 
 -- uid of user email to get, uid currently logged in, session token of currently logged in.
 -- Ensures that only the user itself or a useradmin can get someone's email address.
-CREATE OR REPLACE FUNCTION user_getmail(integer, integer, bytea) RETURNS text AS $$
+CREATE OR REPLACE FUNCTION user_getmail(vndbid, vndbid, bytea) RETURNS text AS $$
   SELECT mail FROM users WHERE id = $1 AND user_isauth($1, $2, $3)
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 
 -- Set a token to change a user's email address.
 -- Args: uid, web-token, new-email-token, email
-CREATE OR REPLACE FUNCTION user_setmail_token(integer, bytea, bytea, text) RETURNS void AS $$
+CREATE OR REPLACE FUNCTION user_setmail_token(vndbid, bytea, bytea, text) RETURNS void AS $$
   INSERT INTO sessions (uid, token, expires, type, mail)
     SELECT id, $3, NOW()+'1 week', 'mail', $4 FROM users
      WHERE id = $1 AND user_isauth($1, $1, $2) AND length($3) = 20
@@ -748,7 +715,7 @@ $$ LANGUAGE SQL SECURITY DEFINER;
 
 
 -- Actually change a user's email address, given a valid token.
-CREATE OR REPLACE FUNCTION user_setmail_confirm(integer, bytea) RETURNS boolean AS $$
+CREATE OR REPLACE FUNCTION user_setmail_confirm(vndbid, bytea) RETURNS boolean AS $$
   WITH u(mail) AS (
     DELETE FROM sessions WHERE uid = $1 AND token = $2 AND type = 'mail' AND expires > NOW() RETURNING mail
   )
@@ -756,19 +723,19 @@ CREATE OR REPLACE FUNCTION user_setmail_confirm(integer, bytea) RETURNS boolean 
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 
-CREATE OR REPLACE FUNCTION user_setperm_usermod(integer, integer, bytea, boolean) RETURNS void AS $$
-  UPDATE users SET perm_usermod = $4 WHERE id = $1 AND user_isauth(-1, $2, $3)
+CREATE OR REPLACE FUNCTION user_setperm_usermod(vndbid, vndbid, bytea, boolean) RETURNS void AS $$
+  UPDATE users SET perm_usermod = $4 WHERE id = $1 AND user_isauth(NULL, $2, $3)
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 
-CREATE OR REPLACE FUNCTION user_admin_setpass(integer, integer, bytea, bytea) RETURNS void AS $$
+CREATE OR REPLACE FUNCTION user_admin_setpass(vndbid, vndbid, bytea, bytea) RETURNS void AS $$
   WITH upd(id) AS (
-    UPDATE users SET passwd = $4 WHERE id = $1 AND user_isauth(-1, $2, $3) AND length($4) = 46 RETURNING id
+    UPDATE users SET passwd = $4 WHERE id = $1 AND user_isauth(NULL, $2, $3) AND length($4) = 46 RETURNING id
   )
   DELETE FROM sessions WHERE uid IN(SELECT id FROM upd)
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 
-CREATE OR REPLACE FUNCTION user_admin_setmail(integer, integer, bytea, text) RETURNS void AS $$
-  UPDATE users SET mail = $4 WHERE id = $1 AND user_isauth(-1, $2, $3)
+CREATE OR REPLACE FUNCTION user_admin_setmail(vndbid, vndbid, bytea, text) RETURNS void AS $$
+  UPDATE users SET mail = $4 WHERE id = $1 AND user_isauth(NULL, $2, $3)
 $$ LANGUAGE SQL SECURITY DEFINER;

@@ -14,7 +14,7 @@ sub enrich_item {
 
 sub rev_ {
     my($p) = @_;
-    revision_ p => $p, \&enrich_item,
+    revision_ $p, \&enrich_item,
         [ name       => 'Name'           ],
         [ original   => 'Original name'  ],
         [ alias      => 'Aliases'        ],
@@ -23,7 +23,7 @@ sub rev_ {
         [ lang       => 'Language',      fmt => \%LANGUAGE ],
         [ relations  => 'Relations',     fmt => sub {
             txt_ $PRODUCER_RELATION{$_->{relation}}{txt}.': ';
-            a_ href => "/p$_->{pid}", title => $_->{original}||$_->{name}, $_->{name};
+            a_ href => "/$_->{pid}", title => $_->{original}||$_->{name}, $_->{name};
         } ],
         revision_extlinks 'p'
 }
@@ -54,7 +54,7 @@ sub info_ {
         join_ \&br_, sub {
             txt_ $PRODUCER_RELATION{$_}{txt}.': ';
             join_ ', ', sub {
-                a_ href => "/p$_->{pid}", title => $_->{original}||$_->{name}, $_->{name};
+                a_ href => "/$_->{pid}", title => $_->{original}||$_->{name}, $_->{name};
             }, $rel{$_}->@*;
         }, grep $rel{$_}, keys %PRODUCER_RELATION;
     } if $p->{relations}->@*;
@@ -98,7 +98,7 @@ sub rel_ {
             tr_ class => 'vn', sub {
                 # TODO: VN list status & management
                 td_ colspan => 8, sub {
-                    a_ href => "/v$v->{id}", title => $v->{original}||$v->{title}, $v->{title};
+                    a_ href => "/$v->{id}", title => $v->{original}||$v->{title}, $v->{title};
                 };
                 my $ropt = { id => $v->{id}, prod => 1, lang => 1 };
                 release_row_ $_, $ropt for $vn{$v->{id}}->@*;
@@ -133,7 +133,7 @@ sub vns_ {
     ul_ class => 'prodvns', sub {
         li_ sub {
             span_ sub { rdate_ $_->{released} };
-            a_ href => "/v$_->{id}", title => $_->{original}||$_->{title}, $_->{title};
+            a_ href => "/$_->{id}", title => $_->{original}||$_->{title}, $_->{title};
             span_ join ' & ',
                 $_->{publisher} ? 'Publisher' : (),
                 $_->{developer} ? 'Developer' : ();
@@ -144,7 +144,7 @@ sub vns_ {
 
 
 TUWF::get qr{/$RE{prev}(?:/(?<tab>vn|rel))?}, sub {
-    my $p = db_entry p => tuwf->capture('id'), tuwf->capture('rev');
+    my $p = db_entry tuwf->captures('id', 'rev');
     return tuwf->resNotFound if !$p;
     enrich_item $p;
 
@@ -153,7 +153,7 @@ TUWF::get qr{/$RE{prev}(?:/(?<tab>vn|rel))?}, sub {
     tuwf->resCookie(prodrelexpand => $tab eq 'vn' ? 1 : undef, expires => time + 315360000) if $tab && $tab ne $pref;
     $tab = 'rel' if !$tab;
 
-    framework_ title => $p->{name}, index => !tuwf->capture('rev'), type => 'p', dbobj => $p, hiddenmsg => 1,
+    framework_ title => $p->{name}, index => !tuwf->capture('rev'), dbobj => $p, hiddenmsg => 1,
     og => {
         title       => $p->{name},
         description => bb_format($p->{desc}, text => 1),
@@ -161,13 +161,13 @@ TUWF::get qr{/$RE{prev}(?:/(?<tab>vn|rel))?}, sub {
     sub {
         rev_ $p if tuwf->capture('rev');
         div_ class => 'mainbox', sub {
-            itemmsg_ p => $p;
+            itemmsg_ $p;
             info_ $p;
         };
         div_ class => 'maintabs right', sub {
             ul_ sub {
-                li_ mkclass(tabselected => $tab eq 'vn'),  sub { a_ href => "/p$p->{id}/vn",  'Visual Novels' };
-                li_ mkclass(tabselected => $tab eq 'rel'), sub { a_ href => "/p$p->{id}/rel", 'Releases' };
+                li_ mkclass(tabselected => $tab eq 'vn'),  sub { a_ href => "/$p->{id}/vn",  'Visual Novels' };
+                li_ mkclass(tabselected => $tab eq 'rel'), sub { a_ href => "/$p->{id}/rel", 'Releases' };
             };
         };
         div_ class => 'mainbox', sub { rel_ $p } if $tab eq 'rel';

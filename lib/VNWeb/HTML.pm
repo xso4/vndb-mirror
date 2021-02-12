@@ -75,7 +75,7 @@ sub user_ {
     return b_ class => 'grayedout', 'anonymous' if !f 'id';
     my $fancy = !(auth->pref('nodistract_can') && auth->pref('nodistract_nofancy'));
     my $uniname = f 'uniname_can' && f 'uniname';
-    a_ href => '/u'.f('id'),
+    a_ href => '/'.f('id'),
         $fancy && $uniname ? (title => f('name'), $uniname) :
         (!$fancy && $uniname ? (title => $uniname) : (), $capital ? ucfirst f 'name' : f 'name');
     txt_ '⭐' if $fancy && f 'support_can' && f 'support_enabled';
@@ -229,7 +229,7 @@ sub _menu_ {
     };
 
     div_ class => 'menubox', sub {
-        my $uid = sprintf '/u%d', auth->uid;
+        my $uid = '/'.auth->uid;
         my $nc = auth && tuwf->dbVali('SELECT count(*) FROM notifications WHERE uid =', \auth->uid, 'AND read IS NULL');
         h2_ sub { user_ auth->user, 'user_', 1 };
         div_ sub {
@@ -303,7 +303,7 @@ sub _footer_ {
     my $q = tuwf->dbRow('SELECT vid, quote FROM quotes ORDER BY RANDOM() LIMIT 1');
     if($q && $q->{vid}) {
         lit_ '"';
-        a_ href => "/v$q->{vid}", style => 'text-decoration: none', $q->{quote};
+        a_ href => "/$q->{vid}", style => 'text-decoration: none', $q->{quote};
         txt_ '"';
         br_;
     }
@@ -357,7 +357,7 @@ sub _maintabs_subscribe_ {
            ) x(x)')
 
       : $id =~ /^[vrpcsd]/ && auth->pref('notify_dbedit') && tuwf->dbVali('
-           SELECT 1 FROM changes WHERE type = vndbid_type(', \$id, ')::dbentry_type AND itemid = vndbid_num(', \$id, ') AND requester =', \auth->uid);
+           SELECT 1 FROM changes WHERE itemid =', \$id, 'AND requester =', \auth->uid);
 
     my $sub = tuwf->dbRowi('SELECT subnum, subreview, subapply FROM notification_subs WHERE uid =', \auth->uid, 'AND iid =', \$id);
 
@@ -415,7 +415,7 @@ sub _maintabs_ {
                     SELECT COUNT(*)
                     FROM threads_boards tb
                     JOIN threads t ON t.id = tb.tid
-                    WHERE tb.type =}, \$t, 'AND tb.iid =', \$o->{id}, 'AND', VNWeb::Discussions::Lib::sql_visible_threads());
+                    WHERE tb.type =}, \$t, 'AND tb.iid =', \$o->{id}, ' AND', VNWeb::Discussions::Lib::sql_visible_threads());
                 t disc => "/t/$id", "discussions ($cnt)";
             };
 
@@ -429,9 +429,9 @@ sub _maintabs_ {
 # Attempt to figure out the board id from a database entry ($type, $dbobj) combination
 sub _board_id {
     my($type, $obj) = @_;
-    $type =~ /[vp]/ ? $type.$obj->{id} :
-       $type eq 'r' && $obj->{vn}->@*  ? 'v'.$obj->{vn}[0]{vid} :
-       $type eq 'c' && $obj->{vns}->@* ? 'v'.$obj->{vns}[0]{vid} : 'db';
+    $type =~ /[vp]/ ? $obj->{id} :
+       $type eq 'r' && $obj->{vn}->@*  ? $obj->{vn}[0]{vid} :
+       $type eq 'c' && $obj->{vns}->@* ? $obj->{vns}[0]{vid} : 'db';
 }
 
 
@@ -445,7 +445,7 @@ sub _hidden_msg_ {
     my $msg = tuwf->dbVali(
         'SELECT comments
            FROM changes
-          WHERE', { type => $o->{type}, itemid => $o->{dbobj}{id} },
+          WHERE itemid =', \$o->{dbobj}{id},
          'ORDER BY id DESC LIMIT 1'
     );
     div_ class => 'mainbox', sub {
@@ -455,7 +455,7 @@ sub _hidden_msg_ {
             p_ sub {
                 if($o->{type} eq 'r' && $o->{dbobj}{vn}) {
                     txt_ 'This was a release entry for ';
-                    join_ ',', sub { a_ href => "/v$_->{vid}", $_->{title} }, $o->{dbobj}{vn}->@*;
+                    join_ ',', sub { a_ href => "/$_->{vid}", $_->{title} }, $o->{dbobj}{vn}->@*;
                     txt_ '.';
                     br_;
                 }
@@ -479,7 +479,7 @@ sub _hidden_msg_ {
 #   js         => 1/0, set to 1 to ensure 'plain.js' is included on the page even if no elm_() modules are loaded.
 #   search     => $query
 #   og         => { opengraph metadata }
-#   type       => Database entry type (used for the main tabs & hidden message)
+#   type       => Database entry type (used for the main tabs & hidden message) (obsolete, inferred from dbobj->{id})
 #   dbobj      => Database entry object (used for the main tabs & hidden message)
 #                 Recognized object fields: id, entry_hidden, entry_locked
 #   tab        => Current tab, or empty for the main tab
@@ -491,6 +491,7 @@ sub framework_ {
     my %o = @_;
     tuwf->req->{pagevars} = { $o{pagevars}->%* } if $o{pagevars};
     tuwf->req->{js} ||= $o{js};
+    $o{type} ||= $1 if $o{dbobj} && $o{dbobj}{id} =~ /^([a-z])/;
 
     html_ lang => 'en', sub {
         head_ sub { _head_ \%o };
@@ -517,15 +518,15 @@ sub framework_ {
 
 
 sub _revision_header_ {
-    my($type, $obj) = @_;
+    my($obj) = @_;
     b_ "Revision $obj->{chrev}";
     debug_ $obj;
     if(auth) {
         lit_ ' (';
-        a_ href => "/$type$obj->{id}.$obj->{chrev}/edit", $obj->{chrev} == $obj->{maxrev} ? 'edit' : 'revert to';
+        a_ href => "/$obj->{id}.$obj->{chrev}/edit", $obj->{chrev} == $obj->{maxrev} ? 'edit' : 'revert to';
         if($obj->{rev_user_id}) {
             lit_ ' / ';
-            a_ href => "/t/u$obj->{rev_user_id}/new?title=Regarding%20$type$obj->{id}.$obj->{chrev}", 'msg user';
+            a_ href => "/t/$obj->{rev_user_id}/new?title=Regarding%20$obj->{id}.$obj->{chrev}", 'msg user';
         }
         lit_ ')';
     }
@@ -613,7 +614,7 @@ sub _stringify_scalars_rec {
 }
 
 sub _revision_diff_ {
-    my($type, $old, $new, $field, $name, %opt) = @_;
+    my($old, $new, $field, $name, %opt) = @_;
 
     # First do a diff on the raw field elements.
     # (if the field is a scalar, it's considered a single element and the diff just tests equality)
@@ -647,14 +648,14 @@ sub _revision_diff_ {
 
 
 sub _revision_cmp_ {
-    my($type, $old, $new, @fields) = @_;
+    my($old, $new, @fields) = @_;
 
     table_ class => 'stripe', sub {
         thead_ sub {
             tr_ sub {
                 td_ ' ';
-                td_ sub { _revision_header_ $type, $old };
-                td_ sub { _revision_header_ $type, $new };
+                td_ sub { _revision_header_ $old };
+                td_ sub { _revision_header_ $new };
             };
             tr_ sub {
                 td_ ' ';
@@ -666,7 +667,7 @@ sub _revision_cmp_ {
                 };
             };
         };
-        _revision_diff_ $type, $old, $new, @$_ for(
+        _revision_diff_ $old, $new, @$_ for(
             [ hidden => 'Hidden', fmt => 'bool' ],
             [ locked => 'Locked', fmt => 'bool' ],
             @fields,
@@ -677,7 +678,7 @@ sub _revision_cmp_ {
 
 # Revision info box.
 #
-# Arguments: $type, $object, \&enrich_for_diff, @fields
+# Arguments: $object, \&enrich_for_diff, @fields
 #
 # The given $object is assumed to originate from VNWeb::DB::db_entry() and
 # should have the 'id', 'hidden', 'locked', 'chrev' and 'maxrev' fields in
@@ -702,9 +703,9 @@ sub _revision_cmp_ {
 #   empty   => str    - What value should be considered "empty", e.g. (empty => 0) for integer fields.
 #                 undef or empty string are always considered empty values.
 sub revision_ {
-    my($type, $new, $enrich, @fields) = @_;
+    my($new, $enrich, @fields) = @_;
 
-    my $old = $new->{chrev} == 1 ? undef : db_entry $type, $new->{id}, $new->{chrev} - 1;
+    my $old = $new->{chrev} == 1 ? undef : db_entry $new->{id}, $new->{chrev} - 1;
     $enrich->($old) if $old;
 
     enrich_merge chid => sql(
@@ -716,19 +717,19 @@ sub revision_ {
     div_ class => 'mainbox revision', sub {
         h1_ "Revision $new->{chrev}";
 
-        a_ class => 'prev', href => sprintf('/%s%d.%d', $type, $new->{id}, $new->{chrev}-1), '<- earlier revision' if $new->{chrev} > 1;
-        a_ class => 'next', href => sprintf('/%s%d.%d', $type, $new->{id}, $new->{chrev}+1), 'later revision ->' if $new->{chrev} < $new->{maxrev};
-        p_ class => 'center', sub { a_ href => "/$type$new->{id}", $type.$new->{id} };
+        a_ class => 'prev', href => sprintf('/%s.%d', $new->{id}, $new->{chrev}-1), '<- earlier revision' if $new->{chrev} > 1;
+        a_ class => 'next', href => sprintf('/%s.%d', $new->{id}, $new->{chrev}+1), 'later revision ->' if $new->{chrev} < $new->{maxrev};
+        p_ class => 'center', sub { a_ href => "/$new->{id}", $new->{id} };
 
         div_ class => 'rev', sub {
-            _revision_header_ $type, $new;
+            _revision_header_ $new;
             br_;
             b_ 'Edit summary';
             br_; br_;
             lit_ bb_format $new->{rev_comments}||'-';
         } if !$old;
 
-        _revision_cmp_ $type, $old, $new, @fields if $old;
+        _revision_cmp_ $old, $new, @fields if $old;
     };
 }
 
@@ -814,17 +815,16 @@ sub searchbox_ {
 
 # Generate a message to display on an entry page to report the entry and to indicate it has been locked or the user can't edit it.
 sub itemmsg_ {
-    my($type, $obj) = @_;
+    my($obj) = @_;
     p_ class => 'itemmsg', sub {
-        if($type ne 'd' && $type ne 'w') {
+        if($obj->{id} !~ /^[dw]/) {
             if($obj->{entry_locked}) {
                 txt_ 'Locked for editing. ';
-            } elsif(auth && !can_edit $type => $obj) {
+            } elsif(auth && !can_edit(($obj->{id} =~ /^(.)/), $obj)) {
                 txt_ 'You can not edit this page. ';
             }
         }
-        my $id = $obj->{id} =~ /^[0-9]*$/ ? "$type$obj->{id}" : $obj->{id};
-        a_ href => "/report/$id", 'Report an issue on this page.';
+        a_ href => "/report/$obj->{id}", 'Report an issue on this page.';
     };
 }
 
@@ -848,7 +848,7 @@ sub editmsg_ {
                 h2_ "You're not editing an entry!";
                 p_ sub {;
                     txt_ "You're about to insert a new entry into the database with information based on ";
-                    a_ href => "/$type$obj->{id}", "$type$obj->{id}";
+                    a_ href => "/$obj->{id}", $obj->{id};
                     txt_ '.';
                     br_;
                     txt_ "Hit the 'edit' tab on the right-top if you intended to edit the entry instead of creating a new one.";
@@ -878,7 +878,7 @@ sub editmsg_ {
                     # TODO: Include a list of the most recent edits in this page.
                     li_ sub {
                         txt_ 'Browse the ';
-                        a_ href => "/$type$obj->{id}/hist", 'edit history';
+                        a_ href => "/$obj->{id}/hist", 'edit history';
                         txt_ ' for any recent changes related to what you want to change.';
                     };
                 } elsif($type ne 'r') {

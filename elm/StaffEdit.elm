@@ -38,7 +38,7 @@ type alias Model =
   , l_twitter   : String
   , l_anidb     : Maybe Int
   , l_pixiv     : Int
-  , id          : Maybe Int
+  , id          : Maybe String
   }
 
 

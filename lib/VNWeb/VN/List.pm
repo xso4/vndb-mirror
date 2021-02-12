@@ -27,7 +27,7 @@ sub listing_ {
             } };
             tr_ sub {
                 td_ class => 'tc_s',sub { tagscore_ $_->{tagscore} } if $tagscore;
-                td_ class => $tagscore ? 'tc_t' : 'tc1', sub { a_ href => "/v$_->{id}", title => $_->{original}||$_->{title}, $_->{title} };
+                td_ class => $tagscore ? 'tc_t' : 'tc1', sub { a_ href => "/$_->{id}", title => $_->{original}||$_->{title}, $_->{title} };
                 td_ class => 'tc7', sub {
                     b_ class => $_->{userlist_obtained} == $_->{userlist_all} ? 'done' : 'todo', sprintf '%d/%d', $_->{userlist_obtained}, $_->{userlist_all} if $_->{userlist_all};
                     abbr_ title => join(', ', $_->{vnlist_labels}->@*), scalar $_->{vnlist_labels}->@* if $_->{vnlist_labels} && $_->{vnlist_labels}->@*;
@@ -134,7 +134,7 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
         ) : [];
     } || (($count, $list) = (undef, []));
 
-    return tuwf->resRedirect("/v$list->[0]{id}") if $count && $count == 1 && $opt->{q} && !defined $opt->{ch};
+    return tuwf->resRedirect("/$list->[0]{id}") if $count && $count == 1 && $opt->{q} && !defined $opt->{ch};
 
     enrich_userlist $list;
     $time = time - $time;

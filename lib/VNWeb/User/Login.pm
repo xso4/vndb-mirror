@@ -60,7 +60,7 @@ elm_api UserChangePass => undef, {
 
 
 TUWF::post qr{/$RE{uid}/logout}, sub {
-    return tuwf->resNotFound if !auth || auth->uid != tuwf->capture('id') || (tuwf->reqPost('csrf')||'') ne auth->csrftoken;
+    return tuwf->resNotFound if !auth || auth->uid ne tuwf->capture('id') || (tuwf->reqPost('csrf')||'') ne auth->csrftoken;
     auth->logout;
     tuwf->resRedirect('/', 'post');
 };

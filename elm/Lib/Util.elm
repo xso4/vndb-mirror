@@ -68,6 +68,13 @@ imageUrl id =
   in Ffi.urlStatic ++ "/" ++ String.left 2 id ++ "/" ++ String.fromInt (modBy 10 (num // 10)) ++ String.fromInt (modBy 10 num) ++ "/" ++ String.fromInt num ++ ".jpg"
 
 
+vndbidNum : String -> Int
+vndbidNum = String.dropLeft 1 >> String.toInt >> Maybe.withDefault 0
+
+
+vndbid : Char -> Int -> String
+vndbid c n = String.fromChar c ++ String.fromInt n
+
 
 jap_ : Regex.Regex
 jap_ = Maybe.withDefault Regex.never (Regex.fromString "[\\u3000-\\u9fff\\uff00-\\uff9f]")
