@@ -77,18 +77,16 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON ulist_vns_labels         TO vndb_site;
 -- protected and can only be accessed through the user_* functions.
 GRANT SELECT ( id, username, registered, ip, ign_votes, email_confirmed, last_reports
              , perm_board, perm_boardmod, perm_dbmod, perm_edit, perm_imgvote, perm_tag, perm_tagmod, perm_usermod, perm_imgmod, perm_review
-             , skin, customcss, show_nsfw, notify_dbedit, notify_announce, notify_post, notify_comment
+             , skin, customcss, notify_dbedit, notify_announce, notify_post, notify_comment
              , tags_all, tags_cont, tags_ero, tags_tech, spoilers, traits_sexual, max_sexual, max_violence
-             , filter_vn, filter_release, vn_list_own, vn_list_wish
              , nodistract_can, nodistract_noads, nodistract_nofancy, support_can, support_enabled, uniname_can, uniname, pubskin_can, pubskin_enabled
              , ulist_votes, ulist_vnlist, ulist_wish
              , c_vns, c_wish, c_votes, c_changes, c_imgvotes, c_tags),
       INSERT ( username, mail, ip),
       UPDATE ( username, ign_votes, email_confirmed, last_reports
              , perm_board, perm_boardmod, perm_dbmod, perm_edit, perm_imgvote, perm_tag, perm_tagmod, perm_imgmod, perm_review
-             , skin, customcss, show_nsfw, notify_dbedit, notify_announce, notify_post, notify_comment
+             , skin, customcss, notify_dbedit, notify_announce, notify_post, notify_comment
              , tags_all, tags_cont, tags_ero, tags_tech, spoilers, traits_sexual, max_sexual, max_violence
-             , filter_vn, filter_release, vn_list_own, vn_list_wish
              , nodistract_can, nodistract_noads, nodistract_nofancy, support_can, support_enabled, uniname_can, uniname, pubskin_can, pubskin_enabled
              , ulist_votes, ulist_vnlist, ulist_wish
              , c_vns, c_wish, c_votes, c_changes, c_imgvotes, c_tags) ON users TO vndb_site;
