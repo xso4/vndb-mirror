@@ -107,7 +107,7 @@ CREATE TABLE changes (
   itemid     integer NOT NULL,
   rev        integer NOT NULL DEFAULT 1,
   added      timestamptz NOT NULL DEFAULT NOW(),
-  requester  integer NOT NULL DEFAULT 0,
+  requester  integer,
   ip         inet NOT NULL DEFAULT '0.0.0.0',
   comments   text NOT NULL DEFAULT '',
   ihid       boolean NOT NULL DEFAULT FALSE,
@@ -708,7 +708,7 @@ CREATE TABLE tags (
   added timestamptz NOT NULL DEFAULT NOW(),
   state smallint NOT NULL DEFAULT 0, -- [pub]
   c_items integer NOT NULL DEFAULT 0,
-  addedby integer NOT NULL DEFAULT 0,
+  addedby integer,
   cat tag_category NOT NULL DEFAULT 'cont', -- [pub]
   defaultspoil smallint NOT NULL DEFAULT 0, -- [pub]
   searchable boolean NOT NULL DEFAULT TRUE, -- [pub]
@@ -821,7 +821,7 @@ CREATE TABLE traits (
   description text NOT NULL DEFAULT '', -- [pub]
   added timestamptz NOT NULL DEFAULT NOW(),
   state smallint NOT NULL DEFAULT 0, -- [pub]
-  addedby integer NOT NULL DEFAULT 0,
+  addedby integer,
   "group" integer, -- [pub]
   "order" smallint NOT NULL DEFAULT 0, -- [pub]
   sexual boolean NOT NULL DEFAULT false, -- [pub]

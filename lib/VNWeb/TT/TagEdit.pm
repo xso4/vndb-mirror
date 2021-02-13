@@ -92,7 +92,7 @@ elm_api TagEdit => $FORM_OUT, $FORM_IN, sub {
     return tuwf->resNotFound if $id && !$g->{id};
     return elm_Unauth if !can_edit g => $g;
 
-    $data->{addedby} = $g->{addedby} // auth->uid;
+    $data->{addedby} = $id ? $g->{addedby} : auth->uid;
     if(!auth->permTagmod) {
         $data->{state} = 0;
         $data->{applicable} = $data->{searchable} = 1;

@@ -307,12 +307,12 @@ sub handleid {
 
   # edit/insert of vn/release/producer or discussion board post
   pg_cmd 'SELECT $1::text AS type, $2::integer AS id, $3::integer AS rev, '.(
-    $t eq 'v' ? 'vh.title, u.username, c.comments FROM changes c JOIN vn_hist vh ON c.id = vh.chid JOIN users u ON u.id = c.requester WHERE c.type = \'v\' AND c.itemid = $2 AND c.rev = $3' :
-    $t eq 'r' ? 'rh.title, u.username, c.comments FROM changes c JOIN releases_hist rh ON c.id = rh.chid JOIN users u ON u.id = c.requester WHERE c.type = \'r\' AND c.itemid = $2 AND c.rev = $3' :
-    $t eq 'p' ? 'ph.name AS title, u.username, c.comments FROM changes c JOIN producers_hist ph ON c.id = ph.chid JOIN users u ON u.id = c.requester WHERE c.type = \'p\' AND c.itemid = $2 AND c.rev = $3' :
-    $t eq 'c' ? 'ch.name AS title, u.username, c.comments FROM changes c JOIN chars_hist ch ON c.id = ch.chid JOIN users u ON u.id = c.requester WHERE c.type = \'c\' AND c.itemid = $2 AND c.rev = $3' :
-    $t eq 's' ? 'sah.name AS title, u.username, c.comments FROM changes c JOIN staff_hist sh ON c.id = sh.chid JOIN users u ON u.id = c.requester JOIN staff_alias_hist sah ON sah.chid = c.id AND sah.aid = sh.aid WHERE c.type = \'s\' AND c.itemid = $2 AND c.rev = $3' :
-    $t eq 'd' ? 'dh.title, u.username, c.comments FROM changes c JOIN docs_hist dh ON c.id = dh.chid JOIN users u ON u.id = c.requester WHERE c.type = \'d\' AND c.itemid = $2 AND c.rev = $3' :
+    $t eq 'v' ? 'vh.title, u.username, c.comments FROM changes c JOIN vn_hist vh ON c.id = vh.chid LEFT JOIN users u ON u.id = c.requester WHERE c.type = \'v\' AND c.itemid = $2 AND c.rev = $3' :
+    $t eq 'r' ? 'rh.title, u.username, c.comments FROM changes c JOIN releases_hist rh ON c.id = rh.chid LEFT JOIN users u ON u.id = c.requester WHERE c.type = \'r\' AND c.itemid = $2 AND c.rev = $3' :
+    $t eq 'p' ? 'ph.name AS title, u.username, c.comments FROM changes c JOIN producers_hist ph ON c.id = ph.chid LEFT JOIN users u ON u.id = c.requester WHERE c.type = \'p\' AND c.itemid = $2 AND c.rev = $3' :
+    $t eq 'c' ? 'ch.name AS title, u.username, c.comments FROM changes c JOIN chars_hist ch ON c.id = ch.chid LEFT JOIN users u ON u.id = c.requester WHERE c.type = \'c\' AND c.itemid = $2 AND c.rev = $3' :
+    $t eq 's' ? 'sah.name AS title, u.username, c.comments FROM changes c JOIN staff_hist sh ON c.id = sh.chid LEFT JOIN users u ON u.id = c.requester JOIN staff_alias_hist sah ON sah.chid = c.id AND sah.aid = sh.aid WHERE c.type = \'s\' AND c.itemid = $2 AND c.rev = $3' :
+    $t eq 'd' ? 'dh.title, u.username, c.comments FROM changes c JOIN docs_hist dh ON c.id = dh.chid LEFT JOIN users u ON u.id = c.requester WHERE c.type = \'d\' AND c.itemid = $2 AND c.rev = $3' :
     $t eq 'w' ? 'v.title, u.username FROM reviews_posts wp JOIN reviews w ON w.id = wp.id JOIN vn v ON v.id = w.vid LEFT JOIN users u ON u.id = wp.uid WHERE wp.id = vndbid(\'w\',$2) AND wp.num = $3' :
                 't.title, u.username, '.$GETBOARDS.' FROM threads t JOIN threads_posts tp ON tp.tid = t.id LEFT JOIN users u ON u.id = tp.uid WHERE NOT t.hidden AND NOT t.private AND t.id = vndbid(\'t\',$2) AND tp.num = $3'),
     [ $t, $id, $rev], $c if $rev && $t =~ /[dvprtcsw]/;

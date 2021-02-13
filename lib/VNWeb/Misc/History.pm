@@ -19,7 +19,7 @@ sub fetch {
          ),
 
          $filt->{t} && $filt->{t}->@* ? sql 'c.type IN', \$filt->{t} : (),
-         $filt->{m} ? sql 'c.requester <> 1' : (),
+         $filt->{m} ? sql 'c.requester IS DISTINCT FROM 1' : (),
 
          $filt->{e} && $filt->{e} == 1 ? sql 'c.rev <> 1' : (),
          $filt->{e} && $filt->{e} ==-1 ? sql 'c.rev = 1' : (),
@@ -32,7 +32,7 @@ sub fetch {
     my($lst, $np) = tuwf->dbPagei({ page => $filt->{p}, results => $opt->{results}||50 }, q{
         SELECT c.id, c.type, c.itemid, c.comments, c.rev,}, sql_totime('c.added'), q{ AS added, }, sql_user(), q{
           FROM changes c
-          JOIN users u ON c.requester = u.id
+          LEFT JOIN users u ON c.requester = u.id
          WHERE}, $where, q{
          ORDER BY c.id DESC
     });

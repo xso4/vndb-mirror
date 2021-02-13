@@ -61,7 +61,7 @@ sub copy {
     $sql = "SELECT " . join(',', map {
         my $s = $specials->{$_} || '';
         if($s eq 'user') {
-            qq{"$_" % 10 AS "$_"}
+            qq{CASE WHEN "$_" % 10 = 0 THEN NULL ELSE "$_" % 10 END AS "$_"}
         } else {
             qq{"$_"}
         }

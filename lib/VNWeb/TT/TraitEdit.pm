@@ -91,7 +91,7 @@ elm_api TraitEdit => $FORM_OUT, $FORM_IN, sub {
     return elm_Unauth if !can_edit i => $e;
 
 
-    $data->{addedby} = $e->{addedby} // auth->uid;
+    $data->{addedby} = $id ? $e->{addedby} : auth->uid;
     if(!auth->permTagmod) {
         $data->{state} = 0;
         $data->{applicable} = $data->{searchable} = 1;
