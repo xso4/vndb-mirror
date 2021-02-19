@@ -152,9 +152,11 @@ our %LINKS = (
                       , regex => qr{((?:www\.|dlsoft\.)?dmm\.(?:com|co\.jp)/[^\s]+)}
                       , patt  => 'https://<any link to dmm.com or dmm.co.jp>' },
         l_toranoana=> { label => 'Toranoana'
+                        # ec.* is for 18+, ecs.toranoana.jp is for non-18+.
+                        # ec.toranoana.shop will redirect to ecs.* as appropriate for the product ID, but ec.toranoana.jp won't.
                       , fmt   => 'https://ec.toranoana.shop/tora/ec/item/%012d/'
-                      , regex => qr{(?:www\.)?ec\.toranoana\.(?:shop|jp)/(?:aqua/ec|(?:tora|joshi)(?:/ec|_r/ec|_d/digi|_rd/digi)?)/item/([0-9]{12}).*}
-                      , patt  => 'https://ec.toranoana.<com or jp>/<shop>/item/<number>/' },
+                      , regex => qr{(?:www\.)?ecs?\.toranoana\.(?:shop|jp)/(?:aqua/ec|(?:tora|joshi)(?:/ec|_r/ec|_d/digi|_rd/digi)?)/item/([0-9]{12}).*}
+                      , patt  => 'https://ec.toranoana.<shop or jp>/<shop>/item/<number>/' },
         l_gamejolt => { label => 'Game Jolt'
                       , fmt   => 'https://gamejolt.com/games/vn/%d', # /vn/ should be the game title, but it doesn't matter
                       , regex => qr{(?:www\.)?gamejolt\.com/games/(?:[^/]+)/([0-9]+)(?:/.*)?} },
