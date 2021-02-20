@@ -240,7 +240,7 @@ sub can_edit {
     }
 
     if($type eq 'g' || $type eq 'i') {
-        return auth && (auth->permTagmod || !$entry->{id});
+        return auth->permEdit && (auth->permTagmod || !$entry->{id});
     }
 
     die "Can't do authorization test when entry_hidden/entry_locked fields aren't present"
