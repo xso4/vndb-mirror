@@ -9,6 +9,8 @@ use VNWeb::Images::Lib;
 # Also used by VNWeb::TT::TraitPage
 sub listing_ {
     my($opt, $list, $count) = @_;
+    $opt->{card} //= 0;
+
     my sub url { '?'.query_encode %$opt, @_ }
     paginate_ \&url, $opt->{p}, [$count, 50], 't';
 
@@ -48,7 +50,22 @@ sub listing_ {
                 };
             };
         } for @$list;
-    } if $opt->{card};
+    } if $opt->{card} == 1;
+
+    div_ class => 'mainbox charbgrid', sub {
+        my($w,$h) = (160,200);
+        div_ sub {
+            a_ href => "/c$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
+            div_ sub {
+                if($_->{image}) {
+                    my($iw,$ih) = imgsize $_->{image}{width}*100, $_->{image}{height}*100, $w, $h;
+                    image_ $_->{image}, alt => $_->{name}, width => $iw, height => $ih, url => "/c$_->{id}";
+                } else {
+                    txt_ 'no image';
+                }
+            };
+        } for @$list;
+    } if $opt->{card} == 2;
 
     paginate_ \&url, $opt->{p}, [$count, 50], 'b';
 }
@@ -73,7 +90,7 @@ TUWF::get qr{/c(?:/(?<char>all|[a-z0]))?}, sub {
         f => { advsearch_err => 'c' },
         ch=> { onerror => [], type => 'array', scalar => 1, values => { onerror => undef, enum => ['0', 'a'..'z'] } },
         fil => { required => 0 },
-        card => { anybool => 1 }, # XXX: Experimental option, will be consolidated into a merged "display settings" field
+        card => { onerror => 0, enum => [0..2] }, # XXX: Experimental option, will be consolidated into a merged "display settings" field
     )->data;
     $opt->{ch} = $opt->{ch}[0];
 
@@ -112,7 +129,7 @@ TUWF::get qr{/c(?:/(?<char>all|[a-z0]))?}, sub {
     } || (($count, $list) = (undef, []));
 
     enrich_listing $list;
-    enrich_image_obj image => $list;
+    enrich_image_obj image => $list if $opt->{card};
     $time = time - $time;
 
     framework_ title => 'Browse characters', sub {

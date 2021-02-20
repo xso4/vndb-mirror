@@ -731,11 +731,16 @@ div.charb td.tc2 b { margin-left: 10px }
 div.charb td.tc2 b a { color: $grayedout!important }
 
 div.charbcard { padding: 0; display: flex; flex-wrap: wrap }
-div.charbcard > div { padding: 2px; display: flex; flex: 1 }
+div.charbcard > div { padding: 2px; display: flex; flex: 1; min-width: 280px }
 div.charbcard > div:hover { background-color: $secbg }
-div.charbcard > div > div:first-child { flex-shrink: 0; display: block; width: 80px; height: 100px; text-align: center }
-div.charbcard > div > div:nth-child(2) { flex-shrink: 0; display: block; width: 200px; height: 100px; padding-left: 5px; overflow-y: hidden }
+div.charbcard > div > div:first-child { flex-shrink: 0; width: 80px; height: 100px; text-align: center }
+div.charbcard > div > div:nth-child(2) { height: 100px; padding-left: 5px; overflow-y: hidden }
 div.charbcard b a { color: $grayedout!important }
+
+div.charbgrid { padding: 10px; display: flex; flex-wrap: wrap; justify-content: space-between }
+div.charbgrid > div { padding: 5px; display: flex; flex-direction: column; width: 200px; text-align: center }
+div.charbgrid > div:hover { background-color: $secbg }
+
 
 /***** Staff browse *****/
 
