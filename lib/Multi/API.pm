@@ -15,7 +15,7 @@ use POE::Filter::VNDBAPI 'encode_filters';
 use Encode 'encode_utf8', 'decode_utf8';
 use Crypt::URandom 'urandom';
 use Crypt::ScryptKDF 'scrypt_raw';;
-use VNDBUtil 'normalize_query', 'norm_ip', 'resolution';
+use VNDB::Func 'imgurl', 'normalize_query', 'norm_ip', 'resolution';
 use VNDB::Types;
 use VNDB::Config;
 use JSON::XS;
@@ -433,7 +433,7 @@ my %GET_VN = (
       },
     },
     details => {
-      select => 'vndbid_num(v.image) as image, i.c_sexual_avg, i.c_violence_avg, i.c_votecount, v.alias AS aliases, v.length, v.desc AS description, v.l_wp, v.l_encubed, v.l_renai, l_wikidata',
+      select => 'v.image, i.c_sexual_avg, i.c_violence_avg, i.c_votecount, v.alias AS aliases, v.length, v.desc AS description, v.l_wp, v.l_encubed, v.l_renai, l_wikidata',
       proc   => sub {
         $_[0]{aliases}     ||= undef;
         $_[0]{length}      *= 1;
@@ -445,7 +445,7 @@ my %GET_VN = (
           renai     => delete($_[0]{l_renai})  ||undef,
           wikidata  => formatwd(delete $_[0]{l_wikidata}),
         };
-        $_[0]{image} = $_[0]{image} ? sprintf '%s/cv/%02d/%d.jpg', config->{url_static}, $_[0]{image}%100, $_[0]{image} : undef;
+        $_[0]{image} = $_[0]{image} ? imgurl $_[0]{image} : undef;
         $_[0]{image_nsfw}  = !$_[0]{image} ? FALSE : !$_[0]{c_votecount} || $_[0]{c_sexual_avg} > 0.4 || $_[0]{c_violence_avg} > 0.4 ? TRUE : FALSE;
         $_[0]{image_flagging} = image_flagging $_[0]{image}, $_[0];
       },
@@ -507,14 +507,14 @@ my %GET_VN = (
       ]],
     },
     screens => {
-      fetch => [[ 'id', 'SELECT vs.id AS vid, vndbid_num(vs.scr) AS image, vs.rid, s.width, s.height, s.c_sexual_avg, s.c_violence_avg, s.c_votecount
+      fetch => [[ 'id', 'SELECT vs.id AS vid, vs.scr, vs.rid, s.width, s.height, s.c_sexual_avg, s.c_violence_avg, s.c_votecount
                       FROM vn_screenshots vs JOIN images s ON s.id = vs.scr WHERE vs.id IN(%s)',
         sub { my($r, $n) = @_;
           for my $i (@$r) {
             $i->{screens} = [ grep $i->{id} == $_->{vid}, @$n ];
           }
           for (@$n) {
-            $_->{image} = sprintf '%s/sf/%02d/%d.jpg', config->{url_static}, $_->{image}%100, $_->{image};
+            $_->{image} = imgurl delete $_->{scr};
             $_->{rid} *= 1;
             $_->{nsfw} = !$_->{c_votecount} || $_->{c_sexual_avg} > 0.4 || $_->{c_violence_avg} > 0.4 ? TRUE : FALSE;
             $_->{width} *= 1;
@@ -837,11 +837,11 @@ my %GET_CHARACTER = (
       },
     },
     details => {
-      select => 'c.alias AS aliases, vndbid_num(c.image) as image, i.c_sexual_avg, i.c_violence_avg, i.c_votecount, c."desc" AS description, c.age',
+      select => 'c.alias AS aliases, c.image, i.c_sexual_avg, i.c_violence_avg, i.c_votecount, c."desc" AS description, c.age',
       proc => sub {
         $_[0]{aliases}     ||= undef;
         $_[0]{description} ||= undef;
-        $_[0]{image}       = $_[0]{image} ? sprintf '%s/ch/%02d/%d.jpg', config->{url_static}, $_[0]{image}%100, $_[0]{image} : undef;
+        $_[0]{image}       = $_[0]{image} ? imgurl $_[0]{image} : undef;
         $_[0]{image_flagging} = image_flagging $_[0]{image}, $_[0];
         $_[0]{age}*=1 if defined $_[0]{age};
       },

@@ -10,7 +10,7 @@ use warnings;
 use Multi::Core;
 use AnyEvent::IRC::Client;
 use AnyEvent::IRC::Util 'prefix_nick';
-use VNDBUtil 'normalize_query';
+use VNDB::Func 'normalize_query';
 use VNDB::Config;
 use TUWF::Misc 'uri_escape';
 use POSIX 'strftime';

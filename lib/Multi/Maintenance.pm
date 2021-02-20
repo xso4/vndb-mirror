@@ -9,7 +9,7 @@ use strict;
 use warnings;
 use Multi::Core;
 use PerlIO::gzip;
-use VNDBUtil 'normalize_titles';
+use VNDB::Func 'normalize_titles';
 use VNDB::Config;
 
 

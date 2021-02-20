@@ -10,11 +10,10 @@
 #  use List::Util 'min', 'max', 'sum';
 #  use POSIX 'ceil', 'floor', 'strftime';
 #
-#  use VNDBUtil;
 #  use VNDB::BBCode;
 #  use VNDB::Types;
 #  use VNDB::Config;
-#  use VNDB::Func qw/fmtdate fmtage fmtvote fmtspoil fmtmedia minage resolution query_encode lang_attr md2html imgurl imgpath/;
+#  use VNDB::Func;
 #  use VNDB::ExtLinks;
 #  use VNWeb::Auth;
 #  use VNWeb::HTML;
@@ -55,11 +54,10 @@ sub import {
     use List::Util 'min', 'max', 'sum';
     use POSIX 'ceil', 'floor', 'strftime';
 
-    use VNDBUtil;
     use VNDB::BBCode;
     use VNDB::Types;
     use VNDB::Config;
-    use VNDB::Func qw/fmtdate fmtage fmtvote fmtspoil fmtmedia minage resolution query_encode lang_attr md2html imgurl imgpath/;
+    use VNDB::Func;
     use VNDB::ExtLinks;
     use VNWeb::Auth;
     use VNWeb::HTML;

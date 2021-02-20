@@ -30,7 +30,7 @@ use Crypt::ScryptKDF 'scrypt_raw';
 use Encode 'encode_utf8';
 use MIME::Base64 'encode_base64url';
 
-use VNDBUtil 'norm_ip';
+use VNDB::Func 'norm_ip';
 use VNDB::Config;
 use VNWeb::DB;
 
