@@ -1,5 +1,24 @@
 # The VNDB.org Source Code
 
+## How to contribute
+
+First, a warning: VNDB's code base is a ~~little~~ *very* weird when compared
+to many other web projects, don't expect to be productive very fast or
+solutions to be very obvious. This is by design; VNDB's code is optimized so
+that **I** can reason about its reliability and performance while being
+productive. Also unlike many other open source software projects, don't expect
+me to hold your hand during the process. You're the one who wants to implement
+something, so you better be motivated to see it through.
+
+Second, another warning: don't send me a pull request out of the blue and
+expect me to merge it. Before you start coding, it's often best to open an
+issue to discuss what you want to do and how you plan to implement it. There's
+a good chance I already have some ideas on the topic. For larger and more
+impactful changes to the database schema or the UI, it's often best to discuss
+these on the [discussion board](https://vndb.org/t/db) first so everyone can
+chime in with ideas.
+
+
 ## Quick and dirty setup using Docker
 
 Setup:
