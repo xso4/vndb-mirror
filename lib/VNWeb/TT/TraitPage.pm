@@ -3,6 +3,7 @@ package VNWeb::TT::TraitPage;
 use VNWeb::Prelude;
 use VNWeb::Filters;
 use VNWeb::AdvSearch;
+use VNWeb::Images::Lib;
 use VNWeb::TT::Lib 'tree_', 'parents_';
 
 
@@ -64,6 +65,7 @@ sub chars_ {
         f => { advsearch_err => 'c' },
         m => { onerror => [auth->pref('spoilers')||0], type => 'array', scalar => 1, minlength => 1, values => { enum => [0..2] } },
         fil => { required => 0 },
+        s => { tableopts => $VNWeb::Chars::List::TABLEOPTS },
     )->data;
     $opt->{m} = $opt->{m}[0];
 
@@ -88,8 +90,8 @@ sub chars_ {
     my($count, $list);
     db_maytimeout {
         $count = tuwf->dbVali('SELECT count(*) FROM chars c JOIN traits_chars tc ON tc.cid = c.id WHERE', $where);
-        $list = $count ? tuwf->dbPagei({results => 50, page => $opt->{p}}, '
-            SELECT c.id, c.name, c.original, c.gender
+        $list = $count ? tuwf->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
+            SELECT c.id, c.name, c.original, c.gender, c.image
               FROM chars c
               JOIN traits_chars tc ON tc.cid = c.id
              WHERE', $where, '
@@ -98,11 +100,12 @@ sub chars_ {
     } || (($count, $list) = (undef, []));
 
     VNWeb::Chars::List::enrich_listing $list;
+    enrich_image_obj image => $list if !$opt->{s}->rows;
     $time = time - $time;
 
-    div_ class => 'mainbox', sub {
-        h1_ 'Characters';
-        form_ action => "/i$t->{id}", method => 'get', sub {
+    form_ action => "/i$t->{id}", method => 'get', sub {
+        div_ class => 'mainbox', sub {
+            h1_ 'Characters';
             p_ class => 'browseopts', sub {
                 button_ type => 'submit', name => 'm', value => 0, $opt->{m} == 0 ? (class => 'optselected') : (), 'Hide spoilers';
                 button_ type => 'submit', name => 'm', value => 1, $opt->{m} == 1 ? (class => 'optselected') : (), 'Show minor spoilers';
@@ -112,8 +115,8 @@ sub chars_ {
             $opt->{f}->elm_;
             advsearch_msg_ $count, $time;
         };
+        VNWeb::Chars::List::listing_ $opt, $list, $count, 1 if $count;
     };
-    VNWeb::Chars::List::listing_ $opt, $list, $count, 1 if $count;
 }
 
 
