@@ -938,7 +938,8 @@ CREATE TABLE users (
   last_reports    timestamptz, -- For mods: Most recent activity seen on the reports listing
   perm_review     boolean NOT NULL DEFAULT true,
   notify_post     boolean NOT NULL DEFAULT true,
-  notify_comment  boolean NOT NULL DEFAULT true
+  notify_comment  boolean NOT NULL DEFAULT true,
+  tableopts_c     int
 );
 
 -- vn

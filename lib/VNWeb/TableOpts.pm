@@ -18,6 +18,9 @@ package VNWeb::TableOpts;
 #       # Which views are supported (default: all)
 #       _views => [ 'rows', 'cards', 'grid' ],
 #
+#       # SQL column in the users table to store the saved default
+#       _pref => 'tableopts_something',
+#
 #       # Column config.
 #       # The key names are only used internally.
 #       title => {
@@ -64,6 +67,7 @@ use v5.26;
 use Carp 'croak';
 use Exporter 'import';
 use TUWF;
+use VNWeb::Auth;
 use VNWeb::HTML ();
 use VNWeb::Validation;
 use VNWeb::Elm;
@@ -98,6 +102,10 @@ sub tableopts {
             $o{views} = [ map $views{$_}//croak("unknown view: $_"), ref $v ? @$v : $v ];
             next;
         }
+        if($k eq '_pref') {
+            $o{pref} = $v;
+            next;
+        }
         $o{columns}{$k} = $v;
         push $o{col_order}->@*, $k;
         $o{sort_ids}[$v->{sort_id}] = $k if defined $v->{sort_id};
@@ -113,9 +121,12 @@ sub tableopts {
 
 TUWF::set('custom_validations')->{tableopts} = sub {
     my($t) = @_;
-    +{ onerror => bless([$t->{default},$t], __PACKAGE__), func => sub {
+    +{ onerror => sub {
+        my $d = $t->{pref} && auth ? tuwf->dbVali('SELECT', $t->{pref}, 'FROM users WHERE id =', \auth->uid) : undef;
+        bless([$d // $t->{default},$t], __PACKAGE__)
+    }, func => sub {
         # TODO: compatibility with the old ?s=<colname> sort parameter
-        my $v = _dec $_[0] or return 0;
+        my $v = _dec($_[0]) // return 0;
         # We could do strict validation on the individual fields, but the methods below can handle incorrect data.
         $_[0] = bless [$v, $t], __PACKAGE__;
         1;
@@ -136,18 +147,28 @@ sub results { $results[($_[0][0] >> 2) & 7] || $results[0] }
 
 
 my $FORM_OUT = form_compile any => {
+    save    => { required => 0 },
     views   => { type => 'array', values => { uint => 1 } },
     default => { uint => 1 },
     value   => { uint => 1 },
     # TODO: Sorting & column visibility
 };
 
-elm_api TableOptsSave => $FORM_OUT, {}, sub { ... };
+elm_api TableOptsSave => $FORM_OUT, {
+    save => { enum => ['tableopts_c'] },
+    value => { required => 0, uint => 1 }
+}, sub {
+    my($f) = @_;
+    return elm_Unauth if !auth;
+    tuwf->dbExeci('UPDATE users SET', { $f->{save} => $f->{value} }, 'WHERE id =', \auth->uid);
+    elm_Success
+};
 
 sub elm_ {
     my $self = shift;
     my($v,$o) = $self->@*;
     VNWeb::HTML::elm_ TableOpts => $FORM_OUT, {
+        save    => auth ? $o->{pref} : undef,
         views   => $o->{views},
         default => $o->{default},
         value   => $v,

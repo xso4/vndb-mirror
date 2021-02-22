@@ -80,7 +80,7 @@ GRANT SELECT ( id, username, registered, ip, ign_votes, email_confirmed, last_re
              , skin, customcss, notify_dbedit, notify_announce, notify_post, notify_comment
              , tags_all, tags_cont, tags_ero, tags_tech, spoilers, traits_sexual, max_sexual, max_violence
              , nodistract_can, nodistract_noads, nodistract_nofancy, support_can, support_enabled, uniname_can, uniname, pubskin_can, pubskin_enabled
-             , ulist_votes, ulist_vnlist, ulist_wish
+             , ulist_votes, ulist_vnlist, ulist_wish, tableopts_c
              , c_vns, c_wish, c_votes, c_changes, c_imgvotes, c_tags),
       INSERT ( username, mail, ip),
       UPDATE ( username, ign_votes, email_confirmed, last_reports
@@ -88,7 +88,7 @@ GRANT SELECT ( id, username, registered, ip, ign_votes, email_confirmed, last_re
              , skin, customcss, notify_dbedit, notify_announce, notify_post, notify_comment
              , tags_all, tags_cont, tags_ero, tags_tech, spoilers, traits_sexual, max_sexual, max_violence
              , nodistract_can, nodistract_noads, nodistract_nofancy, support_can, support_enabled, uniname_can, uniname, pubskin_can, pubskin_enabled
-             , ulist_votes, ulist_vnlist, ulist_wish
+             , ulist_votes, ulist_vnlist, ulist_wish, tableopts_c
              , c_vns, c_wish, c_votes, c_changes, c_imgvotes, c_tags) ON users TO vndb_site;
 
 GRANT SELECT, INSERT, UPDATE         ON vn                       TO vndb_site;

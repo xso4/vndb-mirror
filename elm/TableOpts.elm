@@ -8,6 +8,7 @@ import Bitwise as B
 import Lib.DropDown as DD
 import Lib.Api as Api
 import Lib.Html exposing (..)
+import Gen.Api as GApi
 import Gen.TableOptsSave as GTO
 
 
@@ -21,6 +22,8 @@ main = Browser.element
 
 type alias Model =
   { opts    : GTO.Recv
+  , state   : Api.State
+  , saved   : Bool
   , dd      : DD.Config Msg
   , view    : Int
   , results : Int
@@ -32,6 +35,8 @@ type alias Model =
 init : GTO.Recv -> Model
 init opts =
   { opts    = opts
+  , state   = Api.Normal
+  , saved   = False
   , dd      = DD.init "tableopts" Open
   , view    = B.and 3 opts.value
   , results = B.and 7 (B.shiftRightBy 2 opts.value)
@@ -45,14 +50,22 @@ type Msg
   = Open Bool
   | View Int Bool
   | Results Int Bool
+  | Save
+  | Saved GApi.Response
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    Open b      -> ({ model | dd = DD.toggle model.dd b }, Cmd.none)
-    View n _    -> ({ model | view = n }, Cmd.none)
-    Results n _ -> ({ model | results = n }, Cmd.none)
+    Open b      -> ({ model | saved = False, dd = DD.toggle model.dd b }, Cmd.none)
+    View n _    -> ({ model | saved = False, view = n }, Cmd.none)
+    Results n _ -> ({ model | saved = False, results = n }, Cmd.none)
+    Save        -> ( { model | saved = False, state = Api.Loading }
+                   , GTO.send { save = Maybe.withDefault "" model.opts.save
+                              , value = if encInt model == model.opts.default then Nothing else Just (encInt model)
+                              } Saved)
+    Saved GApi.Success -> ({ model | saved = True, state = Api.Normal }, Cmd.none)
+    Saved e -> ({ model | state = Api.Error e }, Cmd.none)
 
 
 encBase64Alpha : Int -> String
@@ -71,7 +84,7 @@ encInt m =
 
 view : Model -> Html Msg
 view model = div []
-  [ if encInt model == model.opts.default
+  [ if model.opts.save == Nothing && encInt model == model.opts.default
     then text ""
     else input [ type_ "hidden", name "s", value (encBase64 (encInt model)) ] []
   , DD.view model.dd Api.Normal
@@ -89,7 +102,17 @@ view model = div []
           , linkRadio (model.results == 3) (Results 3) [ text "100" ], text " / "
           , linkRadio (model.results == 4) (Results 4) [ text "200" ]
           ] ]
-        , tr [] [ td [] [], td [] [ input [ type_ "submit", class "submit", value "Update" ] [] ] ]
+        , tr [] [ td [] [], td []
+          [ input [ type_ "submit", class "submit", value "Update" ] []
+          , case (model.opts.save, model.saved) of
+              (_, True) -> text "Saved!"
+              (Just _, _) -> inputButton "Save as default" Save []
+              _ -> text ""
+          , case model.state of
+              Api.Normal  -> text ""
+              Api.Loading -> span [ class "spinner" ] []
+              Api.Error e -> b [ class "standout" ] [ text <| Api.showResponse e ]
+          ] ]
         ]
       ])
   ]

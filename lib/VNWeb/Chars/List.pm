@@ -5,7 +5,9 @@ use VNWeb::AdvSearch;
 use VNWeb::Filters;
 use VNWeb::Images::Lib;
 
-our $TABLEOPTS = tableopts _views => [qw|rows cards grid|];
+our $TABLEOPTS = tableopts
+    _pref => 'tableopts_c',
+    _views => [qw|rows cards grid|];
 
 
 # Also used by VNWeb::TT::TraitPage
