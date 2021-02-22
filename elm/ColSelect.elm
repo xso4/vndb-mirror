@@ -10,6 +10,8 @@
 --     [ 'modified',  'Date modified' ],
 --     ...
 --   ] ]
+--
+-- TODO: Convert all uses of this module to the more flexible TableOpts.
 module ColSelect exposing (main)
 
 import Html exposing (..)

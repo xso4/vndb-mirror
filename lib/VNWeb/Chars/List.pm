@@ -5,14 +5,15 @@ use VNWeb::AdvSearch;
 use VNWeb::Filters;
 use VNWeb::Images::Lib;
 
+our $TABLEOPTS = tableopts _views => [qw|rows cards grid|];
+
 
 # Also used by VNWeb::TT::TraitPage
 sub listing_ {
     my($opt, $list, $count) = @_;
-    $opt->{card} //= 0;
 
     my sub url { '?'.query_encode %$opt, @_ }
-    paginate_ \&url, $opt->{p}, [$count, 50], 't';
+    paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 't', sub { $opt->{s}->elm_ };
 
     div_ class => 'mainbox browse charb', sub {
         table_ class => 'stripe', sub {
@@ -28,7 +29,7 @@ sub listing_ {
                 };
             } for @$list;
         }
-    } if !$opt->{card};
+    } if $opt->{s}->rows;
 
     div_ class => 'mainbox charbcard', sub {
         my($w,$h) = (80,100);
@@ -50,7 +51,7 @@ sub listing_ {
                 };
             };
         } for @$list;
-    } if $opt->{card} == 1;
+    } if $opt->{s}->cards;
 
     div_ class => 'mainbox charbgrid', sub {
         my($w,$h) = (160,200);
@@ -65,9 +66,9 @@ sub listing_ {
                 }
             };
         } for @$list;
-    } if $opt->{card} == 2;
+    } if $opt->{s}->grid;
 
-    paginate_ \&url, $opt->{p}, [$count, 50], 'b';
+    paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 'b';
 }
 
 
@@ -90,7 +91,7 @@ TUWF::get qr{/c(?:/(?<char>all|[a-z0]))?}, sub {
         f => { advsearch_err => 'c' },
         ch=> { onerror => [], type => 'array', scalar => 1, values => { onerror => undef, enum => ['0', 'a'..'z'] } },
         fil => { required => 0 },
-        card => { onerror => 0, enum => [0..2] }, # XXX: Experimental option, will be consolidated into a merged "display settings" field
+        s => { tableopts => $TABLEOPTS },
     )->data;
     $opt->{ch} = $opt->{ch}[0];
 
@@ -123,30 +124,30 @@ TUWF::get qr{/c(?:/(?<char>all|[a-z0]))?}, sub {
     my($count, $list);
     db_maytimeout {
         $count = tuwf->dbVali('SELECT count(*) FROM chars c WHERE', $where);
-        $list = $count ? tuwf->dbPagei({results => 50, page => $opt->{p}}, '
+        $list = $count ? tuwf->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
             SELECT c.id, c.name, c.original, c.gender, c.image FROM chars c WHERE', $where, 'ORDER BY c.name, c.id'
         ) : [];
     } || (($count, $list) = (undef, []));
 
     enrich_listing $list;
-    enrich_image_obj image => $list if $opt->{card};
+    enrich_image_obj image => $list if !$opt->{s}->rows;
     $time = time - $time;
 
     framework_ title => 'Browse characters', sub {
-        div_ class => 'mainbox', sub {
-            h1_ 'Browse characters';
-            form_ action => '/c', method => 'get', sub {
+        form_ action => '/c', method => 'get', sub {
+            div_ class => 'mainbox', sub {
+                h1_ 'Browse characters';
                 searchbox_ c => $opt->{q}//'';
                 p_ class => 'browseopts', sub {
                     button_ type => 'submit', name => 'ch', value => ($_//''), ($_//'') eq ($opt->{ch}//'') ? (class => 'optselected') : (), !defined $_ ? 'ALL' : $_ ? uc $_ : '#'
-                        for (undef, 'a'..'z', 0);
+                    for (undef, 'a'..'z', 0);
                 };
                 input_ type => 'hidden', name => 'ch', value => $opt->{ch}//'';
                 $opt->{f}->elm_;
                 advsearch_msg_ $count, $time;
             };
-        };
-        listing_ $opt, $list, $count if $count;
+            listing_ $opt, $list, $count if $count;
+        }
     };
 };
 

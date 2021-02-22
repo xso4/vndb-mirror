@@ -20,6 +20,7 @@
 #  use VNWeb::DB;
 #  use VNWeb::Validation;
 #  use VNWeb::Elm;
+#  use VNWeb::TableOpts;
 #
 # + A few other handy tools.
 #
@@ -64,6 +65,7 @@ sub import {
     use VNWeb::DB;
     use VNWeb::Validation;
     use VNWeb::Elm;
+    use VNWeb::TableOpts;
     1;
     EOM;
 
