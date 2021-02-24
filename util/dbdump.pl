@@ -12,6 +12,14 @@ util/dbdump.pl export-img output-dir
 
   Create or update a directory with hardlinks to images.
 
+util/dbdump.pl export-data data.sql
+
+  Create an SQL script that is usable as replacement for 'sql/all.sql'.
+  (Similar to the dump created by devdump.pl, except this one includes *all* data)
+
+  This allows recreating the full database using the definitions in sql/*.
+  The script does not rely on column order, so can be used to re-order table columns.
+
 util/dbdump.pl export-votes output.gz
 util/dbdump.pl export-tags output.gz
 util/dbdump.pl export-traits output.gz
@@ -114,6 +122,14 @@ $db->do('SET TIME ZONE +0');
 $db->do('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
 
 
+sub table_order {
+    my $s = $schema->{$_[0]};
+    my $c = $tables{$_[0]};
+    my $o = $s->{primary} ? join ', ', map "\"$_\"", $s->{primary}->@* : $c ? $c->{order} : '';
+    $o ? "ORDER BY $o" : '';
+}
+
+
 sub export_timestamp {
     my $dest = shift;
     open my $F, '>', $dest;
@@ -133,11 +149,11 @@ sub export_table {
     # Truncate all timestamptz columns to a day, to avoid leaking privacy-sensitive info.
     my $cols = join ', ', map $_->{type} eq 'timestamptz' ? "date_trunc('day', \"$_->{name}\")" : qq{"$_->{name}"}, @cols;
     my $where = $table->{where} ? "WHERE $table->{where}" : '';
-    my $order = $schema->{primary} ? join ', ', map "\"$_\"", @{$schema->{primary}} : $table->{order};
+    my $order = table_order $table->{name};
     die "Table '$table->{name}' is missing an ORDER BY clause\n" if !$order;
 
     my $start = time;
-    $db->do(qq{COPY (SELECT $cols FROM "$table->{name}" $where ORDER BY $order) TO STDOUT});
+    $db->do(qq{COPY (SELECT $cols FROM "$table->{name}" $where $order) TO STDOUT});
     open my $F, '>:utf8', $fn;
     my $v;
     print $F $v while($db->pg_getcopydata($v) >= 0);
@@ -278,6 +294,37 @@ sub export_img {
 }
 
 
+sub export_data {
+    my $dest = shift;
+    my $F = *STDOUT;
+    open $F, '>', $dest if $dest ne '-';
+    binmode($F, ":utf8");
+    select $F;
+    print "\\set ON_ERROR_STOP 1\n";
+    print "\\i sql/schema.sql\n";
+    # Would be nice if VNDB::Schema could list sequences, too.
+    my @seq = sort @{ $db->selectcol_arrayref(
+        "SELECT oid::regclass::text FROM pg_class WHERE relkind = 'S' AND relnamespace = 'public'::regnamespace"
+    ) };
+    printf "SELECT setval('%s', %d);\n", $_, $db->selectrow_array("SELECT last_value FROM \"$_\"", {}) for @seq;
+    for my $t (sort { $a->{name} cmp $b->{name} } values %$schema) {
+        my $cols = join ',', map "\"$_->{name}\"", $t->{cols}->@*;
+        my $order = table_order $t->{name};
+        print "\nCOPY \"$t->{name}\" ($cols) FROM STDIN;\n";
+        $db->do("COPY (SELECT $cols FROM \"$t->{name}\" $order) TO STDOUT");
+        my $v;
+        print $v while($db->pg_getcopydata($v) >= 0);
+        print "\\.\n";
+    }
+    print "\\i sql/func.sql\n";
+    print "\\i sql/editfunc.sql\n";
+    print "\\i sql/tableattrs.sql\n";
+    print "\\i sql/triggers.sql\n";
+    print "\\set ON_ERROR_STOP 0\n";
+    print "\\i sql/perms.sql\n";
+}
+
+
 sub export_votes {
     my $dest = shift;
     require PerlIO::gzip;
@@ -355,6 +402,8 @@ if($ARGV[0] && $ARGV[0] eq 'export-db' && $ARGV[1]) {
     export_db $ARGV[1];
 } elsif($ARGV[0] && $ARGV[0] eq 'export-img' && $ARGV[1]) {
     export_img $ARGV[1];
+} elsif($ARGV[0] && $ARGV[0] eq 'export-data' && $ARGV[1]) {
+    export_data $ARGV[1];
 } elsif($ARGV[0] && $ARGV[0] eq 'export-votes' && $ARGV[1]) {
     export_votes $ARGV[1];
 } elsif($ARGV[0] && $ARGV[0] eq 'export-tags' && $ARGV[1]) {

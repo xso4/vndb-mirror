@@ -48,7 +48,7 @@ sub schema {
         } elsif(/^\s*\);/) {
             $table = undef;
 
-        } elsif(/^\s+CHECK/) {
+        } elsif(/^\s+(?:CHECK|CONSTRAINT)/) {
             # ignore
 
         } elsif($table && /^\s+PRIMARY\s+KEY\s*\(([^\)]+)\)/i) {
