@@ -65,7 +65,7 @@ Global requirements:
 
 - Linux, or an OS that resembles Linux. Chances are VNDB won't run on Windows.
 - A standard C build system (make/gcc/etc)
-- PostgreSQL 10+ (including development files)
+- PostgreSQL 13+ (including development files)
 - Perl 5.26+
 - Elm 0.19.1
 - Graphviz

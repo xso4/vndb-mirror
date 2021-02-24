@@ -6,7 +6,7 @@
 -- A 'vndbid' represents an identifier used on the site and is essentially a
 -- (type,number) tuple, e.g. 'v17', 'r102', 'sf500'. It is not strictly limited
 -- to database entries with an edit history, any type-prefixed integer could be
--- added here. 'u' and 't' types are not yet supported but may be added later.
+-- added here.
 --
 -- Main advantage of this type is convenience and domain separation. Comparing
 -- vndbids of different types will always return false, so it's less prone to
@@ -66,7 +66,7 @@ CREATE TYPE vndbid (
 
 CREATE OPERATOR <  (leftarg = vndbid, rightarg = vndbid, procedure = vndbid_lt, commutator = > , negator = >=, restrict = scalarltsel, join = scalarltjoinsel);
 CREATE OPERATOR <= (leftarg = vndbid, rightarg = vndbid, procedure = vndbid_le, commutator = >=, negator = > , restrict = scalarlesel, join = scalarlejoinsel);
-CREATE OPERATOR =  (leftarg = vndbid, rightarg = vndbid, procedure = vndbid_eq, commutator = = , negator = <>, restrict = eqsel,       join = eqjoinsel);
+CREATE OPERATOR =  (leftarg = vndbid, rightarg = vndbid, procedure = vndbid_eq, commutator = = , negator = <>, restrict = eqsel,       join = eqjoinsel, HASHES, MERGES);
 CREATE OPERATOR <> (leftarg = vndbid, rightarg = vndbid, procedure = vndbid_ne, commutator = <>, negator = =,  restrict = neqsel,      join = neqjoinsel);
 CREATE OPERATOR >= (leftarg = vndbid, rightarg = vndbid, procedure = vndbid_ge, commutator = <=, negator = < , restrict = scalargesel, join = scalargejoinsel);
 CREATE OPERATOR >  (leftarg = vndbid, rightarg = vndbid, procedure = vndbid_gt, commutator = < , negator = <=, restrict = scalargtsel, join = scalargtjoinsel);
@@ -78,7 +78,8 @@ CREATE OPERATOR CLASS vndbid_btree_ops DEFAULT FOR TYPE vndbid USING btree AS
     OPERATOR 4 >=,
     OPERATOR 5 >,
     FUNCTION 1 vndbid_cmp(vndbid, vndbid),
-    FUNCTION 2 vndbid_sortsupport(internal);
+    FUNCTION 2 vndbid_sortsupport(internal),
+    FUNCTION 4 btequalimage(oid);
 
 CREATE OPERATOR CLASS vndbid_hash_ops DEFAULT FOR TYPE vndbid USING hash AS
     OPERATOR 1 =,
