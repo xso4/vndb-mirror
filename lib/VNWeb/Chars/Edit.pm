@@ -117,7 +117,7 @@ TUWF::get qr{/$RE{vid}/addchar}, sub {
 elm_api CharEdit => $FORM_OUT, $FORM_IN, sub {
     my $data = shift;
     my $new = !$data->{id};
-    my $e = $new ? { id => 0 } : db_entry $data->{id} or return tuwf->resNotFound;
+    my $e = $new ? {} : db_entry $data->{id} or return tuwf->resNotFound;
     return elm_Unauth if !can_edit c => $e;
 
     if(!auth->permDbmod) {
@@ -128,7 +128,7 @@ elm_api CharEdit => $FORM_OUT, $FORM_IN, sub {
     $data->{b_day} = 0 if !$data->{b_month};
 
     $data->{main} = undef if $data->{hidden};
-    die "Attempt to set main to self" if $data->{main} && $data->{main} eq $e->{id};
+    die "Attempt to set main to self" if $data->{main} && $e->{id} && $data->{main} eq $e->{id};
     die "Attempt to set main while this character is already referenced." if $data->{main} && tuwf->dbVali('SELECT 1 AS ref FROM chars WHERE main =', \$e->{id});
     # It's possible that the referenced character has been deleted since it was added as main, so don't die() on this one, just unset main.
     $data->{main} = undef if $data->{main} && !tuwf->dbVali('SELECT 1 FROM chars WHERE NOT hidden AND main IS NULL AND id =', \$data->{main});
