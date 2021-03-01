@@ -321,8 +321,11 @@ f v => 64 => 'has-review',      { uint => 1, range => [1,1] }, '=' => sub { 'EXI
 f v => 65 => 'on-list',         { uint => 1, range => [1,1] }, '=' => sub { auth ? sql 'v.id IN(SELECT vid FROM ulist_vns WHERE uid =', \auth->uid, ')' : '1=0' };
 
 f v =>  6 => 'developer-id',{ vndbid => 'p' },
-    '=' => sub { sql 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id JOIN releases_producers rp ON rp.id = r.id
-                               WHERE NOT r.hidden AND rp.pid =', \$_, 'AND rp.developer)' };
+    sql_list => sub {
+        my($neg, $all, $val) = @_;
+        sql 'v.id', $neg ? 'NOT' : '', 'IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id JOIN releases_producers rp ON rp.id = r.id
+                               WHERE NOT r.hidden AND rp.developer AND rp.pid IN', $val, $all && @$val > 1 ? ('GROUP BY rv.vid HAVING COUNT(rp.pid) =', \scalar @$val) : (), ')';
+    };
 
 f v =>  8 => 'tag',      { type => 'any', func => \&_validate_tag },
     compact => sub { my $id = ($_->[0] =~ s/^g//r)*1; $_->[1] == 0 && $_->[2] == 0 ? $id : [ $id, int($_->[2]*5)*3 + $_->[1] ] },
