@@ -1083,8 +1083,8 @@ my $UID_FILTER = [ 'int' => 'uv.uid :op: :value:', {qw|= =|}, process => \&subst
 
 # Similarly, a filter for 'vid'
 my $VN_FILTER = [
-  [ 'int' => 'uv.vid :op: :value:', {qw|= =  != <>  > >  < <  <= <=  >= >=|}, range => [1,1e6] ],
-  [ inta  => 'uv.vid :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, range => [1,1e6], join => ',' ],
+  [ 'int' => 'uv.vid :op: :value:', {qw|= =  != <>  > >  < <  <= <=  >= >=|}, process => \'v' ],
+  [ inta  => 'uv.vid :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, process => \'v', join => ',' ],
 ];
 
 my $UV_PUBLIC = 'EXISTS(SELECT 1 FROM ulist_vns_labels uvl JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl WHERE uvl.uid = uv.uid AND uvl.vid = uv.vid AND NOT ul.private)';
