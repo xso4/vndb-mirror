@@ -545,7 +545,8 @@ CREATE TABLE reviews (
   isfull     boolean NOT NULL,
   locked     boolean NOT NULL DEFAULT false,
   c_flagged  boolean NOT NULL DEFAULT false,
-  text       text
+  text       text NOT NULL,
+  modnote    text NOT NULL DEFAULT ''
 );
 
 -- reviews_posts

@@ -32,6 +32,7 @@ type alias Model =
   , spoiler     : Bool
   , locked      : Bool
   , isfull      : Bool
+  , modnote     : String
   , text        : TP.Model
   , releases    : List GRE.RecvReleases
   , delete      : Bool
@@ -50,6 +51,7 @@ init d =
   , spoiler     = d.spoiler
   , locked      = d.locked
   , isfull      = d.isfull
+  , modnote     = d.modnote
   , text        = TP.bbcode d.text
   , releases    = d.releases
   , delete      = False
@@ -65,6 +67,7 @@ encode m =
   , rid         = m.rid
   , spoiler     = m.spoiler
   , locked      = m.locked
+  , modnote     = m.modnote
   , isfull      = m.isfull
   , text        = m.text.data
   }
@@ -75,6 +78,7 @@ type Msg
   | Full Bool
   | Spoiler Bool
   | Locked Bool
+  | Modnote String
   | Text TP.Msg
   | Submit
   | Submitted GApi.Response
@@ -90,6 +94,7 @@ update msg model =
     Full b     -> ({ model | isfull   = b }, Cmd.none)
     Spoiler b  -> ({ model | spoiler  = b }, Cmd.none)
     Locked b   -> ({ model | locked   = b }, Cmd.none)
+    Modnote s  -> ({ model | modnote  = s }, Cmd.none)
     Text m     -> let (nm,nc) = TP.update m model.text in ({ model | text = nm }, Cmd.map Text nc)
 
     Submit -> ({ model | state = Api.Loading }, GRE.send (encode model) Submitted)
@@ -152,6 +157,11 @@ view model =
         ]
       , if not model.mod then text "" else
         formField "" [ label [] [ inputCheck "" model.locked Locked, text " Locked for commenting." ] ]
+      , if not model.mod then text "" else
+        formField "modnote::Mod note"
+        [ inputText "modnote" model.modnote Modnote (style "width" "500px" :: GRE.valModnote)
+        , br [] [], text "Moderation note intended to inform readers of the review that its author may be biased and failed to disclose that." ]
+
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "" ] ]
       , formField "text::Review"
         [ TP.view "sum" model.text Text 700 ([rows (if model.isfull then 30 else 10), cols 50] ++ GRE.valText)

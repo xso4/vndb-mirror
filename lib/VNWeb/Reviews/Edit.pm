@@ -11,7 +11,8 @@ my $FORM = {
     rid     => { vndbid => 'r', required => 0 },
     spoiler => { anybool => 1 },
     isfull  => { anybool => 1 },
-    text    => { maxlength => 100_000, required => 0, default => '' },
+    modnote => { maxlength => 1024, required => 0, default => '' },
+    text    => { maxlength => 100_000, default => '' },
     locked  => { anybool => 1 },
 
     mod     => { _when => 'out', anybool => 1 },
@@ -50,7 +51,7 @@ TUWF::get qr{/$RE{vid}/addreview}, sub {
 
 TUWF::get qr{/$RE{wid}/edit}, sub {
     my $e = tuwf->dbRowi(
-        'SELECT r.id, r.uid AS user_id, r.vid, r.rid, r.isfull, r.text, r.spoiler, r.locked, v.title AS vntitle
+        'SELECT r.id, r.uid AS user_id, r.vid, r.rid, r.isfull, r.modnote, r.text, r.spoiler, r.locked, v.title AS vntitle
           FROM reviews r JOIN vn v ON v.id = r.vid WHERE r.id =', \tuwf->capture('id')
     );
     return tuwf->resNotFound if !$e->{id};
@@ -69,10 +70,13 @@ elm_api ReviewsEdit => $FORM_OUT, $FORM_IN, sub {
     my($data) = @_;
     my $id = delete $data->{id};
 
-    my $review = $id ? tuwf->dbRowi('SELECT id, locked, uid AS user_id FROM reviews WHERE id =', \$id) : {};
+    my $review = $id ? tuwf->dbRowi('SELECT id, locked, modnote, text, uid AS user_id FROM reviews WHERE id =', \$id) : {};
     return elm_Unauth if !can_edit w => $review;
 
-    $data->{locked} = $review->{locked}||0 if !auth->permBoardmod;
+    if(!auth->permBoardmod) {
+        $data->{locked} = $review->{locked}||0;
+        $data->{modnote} = $review->{modnote}||'';
+    }
 
     validate_dbid 'SELECT id FROM vn WHERE id IN', $data->{vid};
     validate_dbid 'SELECT id FROM releases WHERE id IN', $data->{rid} if defined $data->{rid};
@@ -81,7 +85,7 @@ elm_api ReviewsEdit => $FORM_OUT, $FORM_IN, sub {
     $data->{text} = bb_subst_links $data->{text} if $data->{isfull};
 
     if($id) {
-        $data->{lastmod} = sql 'NOW()';
+        $data->{lastmod} = sql 'NOW()' if $review->{text} ne $data->{text};
         tuwf->dbExeci('UPDATE reviews SET', $data, 'WHERE id =', \$id) if $id;
         auth->audit($review->{user_id}, 'review edit', "edited $review->{id}") if auth->uid ne $review->{user_id};
 

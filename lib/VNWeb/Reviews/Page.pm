@@ -66,6 +66,10 @@ sub review_ {
                 }
             }
         };
+        tr_ sub {
+            td_ 'Moderator note';
+            td_ sub { lit_ bb_format $w->{modnote} };
+        } if $w->{modnote};
         tr_ class => 'reviewnotspoil', sub {
             td_ '';
             td_ sub {
@@ -89,7 +93,7 @@ sub review_ {
 TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
     my($id, $sep, $num) = (tuwf->capture('id'), tuwf->capture('sep')||'', tuwf->capture('num'));
     my $w = tuwf->dbRowi(
-        'SELECT r.id, r.vid, r.rid, r.isfull, r.text, r.spoiler, r.locked, COALESCE(c.count,0) AS count, r.c_flagged, r.c_up, r.c_down, uv.vote, rm.id IS NULL AS can
+        'SELECT r.id, r.vid, r.rid, r.isfull, r.modnote, r.text, r.spoiler, r.locked, COALESCE(c.count,0) AS count, r.c_flagged, r.c_up, r.c_down, uv.vote, rm.id IS NULL AS can
               , v.title, rel.title AS rtitle, rel.original AS roriginal, rel.type AS rtype, rv.vote AS my, COALESCE(rv.overrule,false) AS overrule
               , ', sql_user(), ',', sql_totime('r.date'), 'AS date,', sql_totime('r.lastmod'), 'AS lastmod
            FROM reviews r

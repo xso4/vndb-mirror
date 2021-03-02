@@ -540,14 +540,16 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $bo
 
 .reviews { display: flex; justify-content: center; flex-wrap: wrap }
 .reviewbox { margin: 10px 12px 30px 12px; flex: 1 1; flex-basis: 450px }
-.reviewbox > div:nth-child(2) > span:first-child  { float: right; color: $grayedout; font-style: normal; margin: -5px 0 0 0; visibility: hidden }
-.reviewbox > div:nth-child(2):hover  > span:first-child,
-.reviewbox > div:nth-child(2):active > span:first-child { visibility: visible }
+.reviewbox > div:nth-child(3) > span:first-child  { float: right; color: $grayedout; font-style: normal; margin: -5px 0 0 0; visibility: hidden }
+.reviewbox > div:nth-child(3):hover  > span:first-child,
+.reviewbox > div:nth-child(3):active > span:first-child { visibility: visible }
 .reviewbox .review_spoil input:checked       ~ span { display: none }
 .reviewbox .review_spoil input:not(:checked) ~ div  { display: none }
 .reviewbox > div:first-child { display: flex; justify-content: space-between; background: $secbg; font-weight: bold }
 .reviewbox > div:first-child > span:first-child { font-weight: bold }
-.reviewbox > div:nth-child(2) { box-sizing: border-box; padding: 10px; background: $boxbg }
+.reviewbox > div:nth-child(2) { background: $secbg }
+.reviewbox > div:nth-child(2) p { padding: 2px; text-align: center }
+.reviewbox > div:nth-child(3) { box-sizing: border-box; padding: 10px; background: $boxbg }
 .reviewbox > div:last-child { display: flex; justify-content: space-between; border-top: 1px solid $border }
 .reviewbox .myvote { font-weight: bold; text-decoration: underline }
 

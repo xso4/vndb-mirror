@@ -9,7 +9,8 @@ sub reviews_ {
 
     # TODO: Better order, pagination, option to show flagged reviews
     my $lst = tuwf->dbAlli(
-        'SELECT r.id, r.rid, r.text, r.spoiler, r.c_count, r.c_up, r.c_down, uv.vote, rv.vote AS my, COALESCE(rv.overrule,false) AS overrule, NOT r.isfull AND rm.id IS NULL AS can
+        'SELECT r.id, r.rid, r.modnote, r.text, r.spoiler, r.c_count, r.c_up, r.c_down, uv.vote, rv.vote AS my
+              , COALESCE(rv.overrule,false) AS overrule, NOT r.isfull AND rm.id IS NULL AS can
               , ', sql_totime('r.date'), 'AS date, ', sql_user(), '
            FROM reviews r
            LEFT JOIN users u ON r.uid = u.id
@@ -34,6 +35,9 @@ sub reviews_ {
                     };
                     a_ href => "/$r->{rid}", $r->{rid} if $r->{rid};
                     span_ "Vote: ".fmtvote($r->{vote}) if $r->{vote};
+                };
+                div_ sub {
+                    p_ $r->{modnote} if $r->{modnote};
                 };
                 div_ sub {
                     span_ sub {
