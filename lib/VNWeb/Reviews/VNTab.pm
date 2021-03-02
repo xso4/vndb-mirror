@@ -37,7 +37,7 @@ sub reviews_ {
                     span_ "Vote: ".fmtvote($r->{vote}) if $r->{vote};
                 };
                 div_ sub {
-                    p_ $r->{modnote} if $r->{modnote};
+                    p_ sub { lit_ bb_format $r->{modnote} } if $r->{modnote};
                 };
                 div_ sub {
                     span_ sub {
