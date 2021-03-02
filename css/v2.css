@@ -117,7 +117,7 @@ b.grayedout   { font-weight: normal }
 i.grayedout   { font-style: normal }
 .underline    { text-decoration: underline }
 #maincontent h2 b { font: 13px "Tahoma", "Arial", sans-serif; font-weight: normal; }
-p.description { margin: 10px 100px!important; }
+p.description, div.description { margin: 10px 100px!important; }
 b.done        { font-weight: normal; color: $statok }
 b.todo        { font-weight: normal; color: $statnok }
 b.neutral     { font-weight: normal }

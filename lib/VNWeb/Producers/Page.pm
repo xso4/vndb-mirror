@@ -59,7 +59,7 @@ sub info_ {
         }, grep $rel{$_}, keys %PRODUCER_RELATION;
     } if $p->{relations}->@*;
 
-    p_ class => 'description', sub { lit_ bb_format $p->{desc} } if length $p->{desc};
+    div_ class => 'description', sub { lit_ bb_format $p->{desc} } if length $p->{desc};
 }
 
 

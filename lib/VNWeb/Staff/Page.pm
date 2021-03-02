@@ -180,7 +180,7 @@ TUWF::get qr{/$RE{srev}} => sub {
             h1_ sub { txt_ $main->{name}; debug_ $s };
             h2_ class => 'alttitle', lang => $s->{lang}, $main->{original} if $main->{original};
             _infotable_ $main, $s;
-            p_ class => 'description', sub { lit_ bb_format $s->{desc} };
+            div_ class => 'description', sub { lit_ bb_format $s->{desc} };
         };
 
         _roles_ $s;

@@ -34,7 +34,7 @@ sub infobox_ {
 
     parents_ g => $t;
 
-    p_ class => 'description', sub {
+    div_ class => 'description', sub {
         lit_ bb_format $t->{description};
     } if $t->{description};
 

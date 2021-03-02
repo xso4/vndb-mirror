@@ -222,7 +222,7 @@ TUWF::get qr{/$RE{rrev}} => sub {
             h1_ sub { txt_ $r->{title}; debug_ $r };
             h2_ class => 'alttitle', lang_attr($r->{lang}), $r->{original} if length $r->{original};
             _infotable_ $r;
-            p_ class => 'description', sub { lit_ bb_format $r->{notes} } if $r->{notes};
+            div_ class => 'description', sub { lit_ bb_format $r->{notes} } if $r->{notes};
         };
     };
 };
