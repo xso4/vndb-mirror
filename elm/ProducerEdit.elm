@@ -185,13 +185,8 @@ view model =
       , formField "Related producers"
         [ if List.isEmpty model.rel then text ""
           else table [] <| List.indexedMap (\i p -> tr []
-            [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| p.pid ++ ":" ] ]
-            , td [ style "text-align" "right"] [ a [ href <| "/" ++ p.pid ] [ text p.name ] ]
-            , td []
-              [ text "is an "
-              , inputSelect "" p.relation (RelRel i) [] GT.producerRelations
-              , text " of this producer"
-              ]
+            [ td [] [ inputSelect "" p.relation (RelRel i) [] GT.producerRelations ]
+            , td [] [ b [ class "grayedout" ] [ text <| p.pid ++ ": " ], a [ href <| "/" ++ p.pid ] [ text p.name ] ]
             , td [] [ inputButton "remove" (RelDel i) [] ]
             ]
           ) model.rel
