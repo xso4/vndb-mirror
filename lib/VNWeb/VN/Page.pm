@@ -438,7 +438,7 @@ sub releases_ {
     enrich_release $v->{releases};
     $v->{releases} = [ sort { $a->{released} <=> $b->{released} || idcmp($a->{id}, $b->{id}) } $v->{releases}->@* ];
     my %lang;
-    my @lang = grep !$lang{$_}++, map $_->{lang}->@*, $v->{releases}->@*;
+    my @lang = grep !$lang{$_}++, map +(sort { ($b eq $v->{olang}) cmp ($a eq $v->{olang}) || $a cmp $b } $_->{lang}->@*), $v->{releases}->@*;
 
     my sub lang_ {
         my($lang) = @_;
