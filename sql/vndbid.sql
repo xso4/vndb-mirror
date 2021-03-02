@@ -13,9 +13,6 @@
 -- errors. Values are interally represented as a 32bit integer, so they're
 -- pretty efficient as well.
 --
--- (This type is only used for image idenfitiers as of writing, but I expect
--- I'll be converting DB entries as well at some point)
---
 -- Constructing an ID:
 --
 --   'v1'::vndbid

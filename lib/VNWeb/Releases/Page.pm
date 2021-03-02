@@ -11,8 +11,8 @@ sub enrich_item {
 
     $r->{lang}      = [ sort map $_->{lang},     $r->{lang}->@*      ];
     $r->{platforms} = [ sort map $_->{platform}, $r->{platforms}->@* ];
-    $r->{vn}        = [ sort { $a->{title}  cmp $b->{title}  || $a->{vid} <=> $b->{vid} } $r->{vn}->@*        ];
-    $r->{producers} = [ sort { $a->{name}   cmp $b->{name}   || $a->{pid} <=> $b->{pid} } $r->{producers}->@* ];
+    $r->{vn}        = [ sort { $a->{title}  cmp $b->{title}  || idcmp($a->{vid}, $b->{vid}) } $r->{vn}->@*        ];
+    $r->{producers} = [ sort { $a->{name}   cmp $b->{name}   || idcmp($a->{pid}, $b->{pid}) } $r->{producers}->@* ];
     $r->{media}     = [ sort { $a->{medium} cmp $b->{medium} || $a->{qty} <=> $b->{qty} } $r->{media}->@*     ];
 
     $r->{resolution} = resolution $r;

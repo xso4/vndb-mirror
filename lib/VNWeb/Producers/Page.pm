@@ -8,7 +8,7 @@ sub enrich_item {
     my($p) = @_;
     enrich_extlinks p => $p;
     enrich_merge pid => 'SELECT id AS pid, name, original FROM producers WHERE id IN', $p->{relations};
-    $p->{relations} = [ sort { $a->{name} cmp $b->{name} || $a->{pid} <=> $b->{pid} } $p->{relations}->@* ];
+    $p->{relations} = [ sort { $a->{name} cmp $b->{name} || idcmp($a->{pid}, $b->{pid}) } $p->{relations}->@* ];
 }
 
 
