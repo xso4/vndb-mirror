@@ -186,10 +186,11 @@ sub infobox_producers_ {
     tr_ sub {
         td_ 'Publishers';
         td_ sub {
+            use sort 'stable';
             join_ \&br_, sub {
                 abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '';
                 join_ ' & ', sub { a_ href => "/$_->{id}", $_->{official} ? () : (class => 'grayedout'), title => $_->{original}||$_->{name}, $_->{name} }, $lang{$_}->@*;
-            }, @lang;
+            }, sort { ($b eq $v->{olang}) cmp ($a eq $v->{olang}) } @lang;
         }
     } if keys %lang;
 }
