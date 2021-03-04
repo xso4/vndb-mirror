@@ -21,7 +21,7 @@ my $FORM = {
     gtin       => { gtin => 1 },
     catalog    => { required => 0, default => '', maxlength => 50 },
     released   => { default => 99999999, min => 1, rdate => 1 },
-    minage     => { int => 1, enum => \%AGE_RATING },
+    minage     => { required => 0, default => undef, int => 1, enum => \%AGE_RATING },
     uncensored => { anybool => 1 },
     reso_x     => { uint => 1, range => [0,32767] },
     reso_y     => { uint => 1, range => [0,32767] },
@@ -136,7 +136,7 @@ elm_api ReleaseEdit => $FORM_OUT, $FORM_IN, sub {
     $data->{doujin} = $data->{voiced} = $data->{ani_story} = $data->{ani_ero} = 0 if $data->{patch};
     $data->{reso_x} = $data->{reso_y} = 0 if $data->{patch};
     $data->{engine} = '' if $data->{patch};
-    $data->{uncensored} = $data->{ani_ero} = 0 if $data->{minage} != 18;
+    $data->{uncensored} = $data->{ani_ero} = 0 if !defined $data->{minage} || $data->{minage} != 18;
     $_->{qty} = $MEDIUM{$_->{medium}}{qty} ? $_->{qty}||1 : 0 for $data->{media}->@*;
     $data->{notes} = bb_subst_links $data->{notes};
     die "No VNs selected" if !$data->{vn}->@*;

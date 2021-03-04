@@ -121,7 +121,7 @@ my @rel_cols = (
     sort_sql      => 'r.minage %s,                                  r.released %1$s, r.title %1$s',
     button_string => 'Age rating',
     default       => 1,
-    has_data      => sub { $_[0]{minage} != -1 },
+    has_data      => sub { defined $_[0]{minage} },
     draw          => sub { txt_ minage $_[0]{minage} },
   }, { # Notes
     id            => 'not',

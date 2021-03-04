@@ -201,10 +201,7 @@ hash VOICED =>
 
 
 
-# TODO: For some reason the minage column in SQL is nullable but still stores 'unknown' as -1.
-# This should be cleaned up at some point.
 hash AGE_RATING =>
-    -1 => { txt => 'Unknown',  ex => '' },
      0 => { txt => 'All ages', ex => 'CERO A' },
      6 => { txt => '6+',       ex => '' },
      7 => { txt => '7+',       ex => '' },

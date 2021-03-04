@@ -155,12 +155,12 @@ sub _infotable_ {
         tr_ sub {
             td_ 'Age rating';
             td_ minage $r->{minage};
-        } if $r->{minage} >= 0;
+        } if defined $r->{minage};
 
         tr_ sub {
             td_ 'Censoring';
             td_ $r->{uncensored} ? 'No optical censoring (e.g. mosaics)' : 'May include optical censoring (e.g. mosaics)';
-        } if $r->{minage} == 18;
+        } if $r->{minage} && $r->{minage} == 18;
 
         for my $t (qw|developer publisher|) {
             my @prod = grep $_->{$t}, @{$r->{producers}};

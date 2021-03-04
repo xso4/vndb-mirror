@@ -190,6 +190,7 @@ sub norm_ip {
 
 sub minage {
   my($a, $ex) = @_;
+  return 'Unknown' if !defined $a;
   $a = $AGE_RATING{$a};
   $ex && $a->{ex} ? "$a->{txt} (e.g. $a->{ex})" : $a->{txt}
 }

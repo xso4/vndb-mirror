@@ -45,7 +45,7 @@ my $RELEASE = form_compile any => {
     date_before => { required => 0, range => [0, 99999999] }, # don't use 'rdate' validation here, the search form allows invalid dates
     date_after  => { required => 0, range => [0, 99999999] }, # ^
     released    => { undefbool => 1 },
-    minage      => { undefarray => { enum => \%AGE_RATING } },
+    minage      => { undefarray => { enum => [-1, keys %AGE_RATING] } },
     lang        => { undefarray => { enum => \%LANGUAGE } },
     olang       => { undefarray => { enum => \%LANGUAGE } },
     resolution  => { undefarray => {} },

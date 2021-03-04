@@ -48,7 +48,7 @@ type alias Model =
   , gtinValid  : Bool
   , catalog    : String
   , released   : D.RDate
-  , minage     : Int
+  , minage     : Maybe Int
   , uncensored : Bool
   , resoX      : Int
   , resoY      : Int
@@ -176,7 +176,7 @@ type Msg
   | Gtin String
   | Catalog String
   | Released D.RDate
-  | Minage Int
+  | Minage (Maybe Int)
   | Uncensored Bool
   | Resolution (A.Msg GApi.ApiResolutions)
   | Voiced Int
@@ -299,7 +299,7 @@ viewGen model =
 
   , tr [ class "newpart" ] [ td [] [] ]
   , formField "rtype::Type" [ inputSelect "rtype" model.rtype RType [] GT.releaseTypes ]
-  , formField "minage::Age rating" [ inputSelect "minage" model.minage Minage [] GT.ageRatings, text " (*)" ]
+  , formField "minage::Age rating" [ inputSelect "minage" model.minage Minage [] ((Nothing, "Unknown") :: List.map (Tuple.mapFirst Just) GT.ageRatings), text " (*)" ]
   , formField "" [ label [] [ inputCheck "" model.official Official, text " Official (i.e. sanctioned by the original developer of the visual novel)" ] ]
   , formField "" [ label [] [ inputCheck "" model.patch    Patch   , text " This release is a patch to another release.", text " (*)" ] ]
   , formField "" [ label [] [ inputCheck "" model.freeware Freeware, text " Freeware (i.e. available at no cost)" ] ]
@@ -348,10 +348,10 @@ viewGen model =
   , if model.patch then text "" else
     formField "ani_story::Animations"
     [ inputSelect "ani_story" model.ani_story AniStory [] GT.animated
-    , if model.minage == 18 then text " <= story | ero scenes => " else text ""
-    , if model.minage == 18 then inputSelect "" model.ani_ero AniEro [] GT.animated else text ""
+    , if model.minage == Just 18 then text " <= story | ero scenes => " else text ""
+    , if model.minage == Just 18 then inputSelect "" model.ani_ero AniEro [] GT.animated else text ""
     ]
-  , if model.minage /= 18 then text "" else
+  , if model.minage /= Just 18 then text "" else
     formField "" [ label [] [ inputCheck "" model.uncensored Uncensored, text " Uncensored (No mosaic or other optical censoring, only check if this release has erotic content)" ] ]
 
   , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "External identifiers & links" ] ]

@@ -204,7 +204,7 @@ votecountView = view False "# Votes" String.fromInt
 
 
 
-minageInit dat = (dat, { op = Lt, val = 13, unk = False, lst = Array.fromList <| List.map Tuple.first <| List.drop 1 GT.ageRatings })
+minageInit dat = (dat, { op = Lt, val = 13, unk = False, lst = Array.fromList <| List.map Tuple.first GT.ageRatings })
 
 minageFromQuery d q =
   case q of
