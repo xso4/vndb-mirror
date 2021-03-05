@@ -1021,7 +1021,7 @@ my %GET_STAFF = (
   filters => {
     id => [
       [ 'int' => 's.id :op: :value:', {qw|= =  != <>  > >  < <  <= <=  >= >=|}, process => \'s' ],
-      [ inta  => 's.id :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, process => \'s' ],
+      [ inta  => 's.id :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, join => ',', process => \'s' ],
     ],
     aid => [
       [ 'int' => 's.id IN(SELECT sa.id FROM staff_alias sa WHERE sa.aid = :value:)', {'=',1}, range => [1,1e6] ],
