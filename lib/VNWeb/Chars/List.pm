@@ -34,12 +34,12 @@ sub listing_ {
     } if $opt->{s}->rows;
 
     div_ class => 'mainbox charbcard', sub {
-        my($w,$h) = (80,100);
+        my($w,$h) = (90,120);
         div_ sub {
             div_ sub {
                 if($_->{image}) {
                     my($iw,$ih) = imgsize $_->{image}{width}*100, $_->{image}{height}*100, $w, $h;
-                    image_ $_->{image}, alt => $_->{name}, width => $iw, height => $ih, url => "/$_->{id}";
+                    image_ $_->{image}, alt => $_->{name}, width => $iw, height => $ih, url => "/$_->{id}", overlay => undef;
                 } else {
                     txt_ 'no image';
                 }
@@ -56,13 +56,13 @@ sub listing_ {
     } if $opt->{s}->cards;
 
     div_ class => 'mainbox charbgrid', sub {
-        my($w,$h) = (160,200);
+        my($w,$h) = (170,210);
         div_ sub {
             a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
             div_ sub {
                 if($_->{image}) {
                     my($iw,$ih) = imgsize $_->{image}{width}*100, $_->{image}{height}*100, $w, $h;
-                    image_ $_->{image}, alt => $_->{name}, width => $iw, height => $ih, url => "/$_->{id}";
+                    image_ $_->{image}, alt => $_->{name}, width => $iw, height => $ih, url => "/$_->{id}", overlay => undef;
                 } else {
                     txt_ 'no image';
                 }
