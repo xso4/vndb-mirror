@@ -111,15 +111,17 @@ CREATE OR REPLACE FUNCTION update_vnvotestats() RETURNS void AS $$
       ) x(uid, vid, rank)
      GROUP BY vid
   ), stats(vid, rating, count, popularity, pop_rank, rat_rank) AS ( -- Combined stats
-    SELECT v.id, COALESCE(r.rating, 0), COALESCE(r.count, 0)
-         , p.win/(SELECT MAX(win) FROM popularities)
+    SELECT v.id, COALESCE(round(r.rating::numeric, 1), 0)::real, COALESCE(r.count, 0)
+         , round((p.win/(SELECT MAX(win) FROM popularities))::numeric, 4)::real
          , CASE WHEN p.win    IS NULL THEN NULL ELSE rank() OVER(ORDER BY hidden, p.win    DESC NULLS LAST) END
          , CASE WHEN r.rating IS NULL THEN NULL ELSE rank() OVER(ORDER BY hidden, r.rating DESC NULLS LAST) END
       FROM vn v
       LEFT JOIN ratings r ON r.vid = v.id
       LEFT JOIN popularities p ON p.vid = v.id AND p.win > 0
   )
-  UPDATE vn SET c_rating = rating, c_votecount = count, c_popularity = popularity, c_pop_rank = pop_rank, c_rat_rank = rat_rank FROM stats WHERE id = vid;
+  UPDATE vn SET c_rating = rating, c_votecount = count, c_popularity = popularity, c_pop_rank = pop_rank, c_rat_rank = rat_rank
+    FROM stats
+   WHERE id = vid AND (c_rating, c_votecount, c_popularity, c_pop_rank, c_rat_rank) IS DISTINCT FROM (rating, count, popularity, pop_rank, rat_rank);
 $$ LANGUAGE SQL;
 
 
@@ -146,14 +148,14 @@ BEGIN
                 UNION ALL SELECT 1 FROM vn_screenshots vs JOIN vn v ON v.id = vs.id WHERE s.id BETWEEN 'sf1' AND vndbid_max('sf') AND NOT v.hidden AND vs.scr = s.id
                 UNION ALL SELECT 1 FROM chars c                                     WHERE s.id BETWEEN 'ch1' AND vndbid_max('ch') AND NOT c.hidden AND c.image = s.id
              )
-             THEN pow(2, greatest(0, 14 - s.votecount)) + coalesce(pow(s.sexual_stddev, 2), 0)*100 + coalesce(pow(s.violence_stddev, 2), 0)*100
+             THEN ceil(pow(2, greatest(0, 14 - s.votecount)) + coalesce(pow(s.sexual_stddev, 2), 0)*100 + coalesce(pow(s.violence_stddev, 2), 0)*100)::real
              ELSE 0 END AS weight
         FROM (
             SELECT i.id, count(iv.id) AS votecount
-                 , avg(sexual)   FILTER(WHERE NOT iv.ignore) AS sexual_avg
-                 , avg(violence) FILTER(WHERE NOT iv.ignore) AS violence_avg
-                 , stddev_pop(sexual)   FILTER(WHERE NOT iv.ignore) AS sexual_stddev
-                 , stddev_pop(violence) FILTER(WHERE NOT iv.ignore) AS violence_stddev
+                 , round(avg(sexual)   FILTER(WHERE NOT iv.ignore), 2)::real AS sexual_avg
+                 , round(avg(violence) FILTER(WHERE NOT iv.ignore), 2)::real AS violence_avg
+                 , round(stddev_pop(sexual)   FILTER(WHERE NOT iv.ignore), 2)::real AS sexual_stddev
+                 , round(stddev_pop(violence) FILTER(WHERE NOT iv.ignore), 2)::real AS violence_stddev
                  , coalesce(array_agg(u.id) FILTER(WHERE u.id IS NOT NULL), '{}') AS uids
               FROM images i
               LEFT JOIN image_votes iv ON iv.id = i.id
@@ -163,7 +165,8 @@ BEGIN
              GROUP BY i.id
         ) s
     ) weights
-   WHERE weights.id = images.id;
+   WHERE weights.id = images.id AND (c_votecount, c_sexual_avg, c_sexual_stddev, c_violence_avg, c_violence_stddev, c_weight, c_uids)
+                   IS DISTINCT FROM (votecount,   sexual_avg,   sexual_stddev,   violence_avg,   violence_stddev,   weight,   uids);
 END; $$ LANGUAGE plpgsql;
 
 
@@ -202,7 +205,8 @@ BEGIN
       LEFT JOIN ulist_vns uv ON uv.uid = u.id AND uv.vid = uvl.vid
      WHERE $1 IS NULL OR u.id = $1
      GROUP BY u.id
-  ) UPDATE users SET c_votes = votes, c_vns = vns, c_wish = wish FROM cnt WHERE id = uid;
+  ) UPDATE users SET c_votes = votes, c_vns = vns, c_wish = wish
+      FROM cnt WHERE id = uid AND (c_votes, c_vns, c_wish) IS DISTINCT FROM (votes, vns, wish);
 END;
 $$ LANGUAGE plpgsql; -- Don't use "LANGUAGE SQL" here; Make sure to generate a new query plan at invocation time.
 
