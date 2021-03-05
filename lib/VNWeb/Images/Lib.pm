@@ -94,7 +94,7 @@ sub image_ {
     my $sexh = $sex > $sexp && $sexp >= 0 if $img->{votecount};
     my $vioh = $vio > $viop if $img->{votecount};
     my $hidden = $sexp < 0 || $sexh || $vioh || (!$img->{votecount} && ($sexp < 2 || $viop < 2));
-    my $hide_on_click = $sexp < 0 || $sex || $vio || !$img->{votecount};
+    my $hide_on_click = $opt{url} ? $hidden : $sexp < 0 || $sex || $vio || !$img->{votecount};
     my $small = $w*$h < 20000;
 
     label_ class => 'imghover', style => "width: ${w}px; height: ${h}px", sub {
