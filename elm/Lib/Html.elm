@@ -205,7 +205,7 @@ langIcon : String -> Html m
 langIcon l = abbr [ class "icons lang", class l, title (Maybe.withDefault "" <| lookup l T.languages) ] [ text " " ]
 
 platformIcon : String -> Html m
-platformIcon l = abbr [ class "icons", class l, title (Maybe.withDefault "" <| lookup l T.platforms) ] [ text " " ]
+platformIcon l = abbr [ class "icons plat", class l, title (Maybe.withDefault "" <| lookup l T.platforms) ] [ text " " ]
 
 releaseTypeIcon : String -> Html m
 releaseTypeIcon t = abbr [ class ("icons rt"++t), title (Maybe.withDefault "" <| lookup t T.releaseTypes) ] [ text " " ]

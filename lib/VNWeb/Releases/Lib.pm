@@ -106,7 +106,7 @@ sub release_row_ {
         td_ class => 'tc1', sub { rdate_ $r->{released} };
         td_ class => 'tc2', defined $r->{minage} ? minage $r->{minage} : '';
         td_ class => 'tc3', sub {
-            abbr_ class => "icons $_", title => $PLATFORM{$_}, '' for grep $_ ne 'oth', $r->{platforms}->@*;
+            abbr_ class => "icons plat $_", title => $PLATFORM{$_}, '' for $r->{platforms}->@*;
             if($opt->{lang}) {
                 abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for $r->{lang}->@*;
             }

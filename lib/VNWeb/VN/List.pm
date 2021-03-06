@@ -33,7 +33,7 @@ sub listing_ {
                     abbr_ title => join(', ', $_->{vnlist_labels}->@*), scalar $_->{vnlist_labels}->@* if $_->{vnlist_labels} && $_->{vnlist_labels}->@*;
                     abbr_ title => 'No labels', ' ' if $_->{vnlist_labels} && !$_->{vnlist_labels}->@*;
                 };
-                td_ class => 'tc2', sub { join_ '', sub { abbr_ class => "icons $_", title => $PLATFORM{$_}, '' if $_ ne 'unk' }, sort $_->{platforms}->@* };
+                td_ class => 'tc2', sub { join_ '', sub { abbr_ class => "icons plat $_", title => $PLATFORM{$_}, '' if $_ ne 'unk' }, sort $_->{platforms}->@* };
                 td_ class => 'tc3', sub { join_ '', sub { abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' }, reverse sort $_->{lang}->@* };
                 td_ class => 'tc4', sub { rdate_ $_->{c_released} };
                 td_ class => 'tc5', sprintf '%.2f', ($_->{c_popularity}||0)*100;

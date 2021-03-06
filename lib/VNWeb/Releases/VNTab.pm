@@ -59,7 +59,7 @@ my @rel_cols = (
     default       => 1,
     has_data      => sub { !!@{$_[0]{platforms}} },
     draw          => sub {
-        join_ \&br_, sub { abbr_ class => "icons $_", title => $PLATFORM{$_}, ''; }, $_[0]{platforms}->@*;
+        join_ \&br_, sub { abbr_ class => "icons plat $_", title => $PLATFORM{$_}, ''; }, $_[0]{platforms}->@*;
         txt_ 'Unknown' if !$_[0]{platforms}->@*;
     },
   }, { # Media

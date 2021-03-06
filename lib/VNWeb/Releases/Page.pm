@@ -108,7 +108,7 @@ sub _infotable_ {
             td_ 'Platform'.($r->{platforms}->@* == 1 ? '' : 's');
             td_ sub {
                 join_ \&br_, sub {
-                    abbr_ class => "icons $_", title => $PLATFORM{$_}, ' ';
+                    abbr_ class => "icons plat $_", title => $PLATFORM{$_}, ' ';
                     txt_ ' '.$PLATFORM{$_};
                 }, $r->{platforms}->@*;
             }
