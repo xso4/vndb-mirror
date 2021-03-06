@@ -327,7 +327,7 @@ viewGen model =
         let q = List.filter (\(s,_,_) -> m.medium == s) GT.media |> List.head |> Maybe.map (\(_,_,x) -> x) |> Maybe.withDefault False
         in tr []
             [ td [] [ inputSelect "" m.medium (MediaType i) [] <| (if m.medium == "unk" then [("unk", "- Add medium -")] else []) ++ List.map (\(a,b,_) -> (a,b)) GT.media ]
-            , td [] [ if q then inputSelect "" m.qty (MediaQty i) [ style "width" "100px" ] <| List.map (\a -> (a,String.fromInt a)) <| List.range 1 20 else text "" ]
+            , td [] [ if q then inputSelect "" m.qty (MediaQty i) [ style "width" "100px" ] <| List.map (\a -> (a,String.fromInt a)) <| List.range 1 40 else text "" ]
             , td [] [ if m.medium == "unk" then text "" else inputButton "remove" (MediaDel i) [] ]
             ]
       ) <| model.media ++ [{medium = "unk", qty = 0}]

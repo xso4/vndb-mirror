@@ -16,7 +16,7 @@ my $FORM = {
     platforms  => { aoh => { platform => { enum => \%PLATFORM } } },
     media      => { aoh => {
         medium    => { enum => \%MEDIUM },
-        qty       => { uint => 1, range => [0,20] },
+        qty       => { uint => 1, range => [0,40] },
     } },
     gtin       => { gtin => 1 },
     catalog    => { required => 0, default => '', maxlength => 50 },
