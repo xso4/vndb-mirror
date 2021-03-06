@@ -227,6 +227,7 @@ hash MEDIUM =>
     gdr => { qty => 1, txt => 'GD-ROM',                plural => 'GD-ROMs',                icon => 'disk'      },
     blr => { qty => 1, txt => 'Blu-ray disc',          plural => 'Blu-ray discs',          icon => 'disk'      },
     flp => { qty => 1, txt => 'Floppy',                plural => 'Floppies',               icon => 'cartridge' },
+    cas => { qty => 1, txt => 'Cassette tape',         plural => 'Cassette tapes',         icon => 'cartridge' },
     mrt => { qty => 1, txt => 'Cartridge',             plural => 'Cartridges',             icon => 'cartridge' },
     mem => { qty => 1, txt => 'Memory card',           plural => 'Memory cards',           icon => 'cartridge' },
     umd => { qty => 1, txt => 'UMD',                   plural => 'UMDs',                   icon => 'disk'      },
