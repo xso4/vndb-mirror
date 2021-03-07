@@ -87,7 +87,7 @@ init d =
   { state       = Api.Normal
   , tab         = General
   , invalidDis  = False
-  , editsum     = { authmod = d.authmod, editsum = TP.bbcode d.editsum, locked = d.locked, hidden = d.hidden }
+  , editsum     = { authmod = d.authmod, editsum = TP.bbcode d.editsum, locked = d.locked, hidden = d.hidden, hasawait = False }
   , title       = d.title
   , original    = d.original
   , alias       = d.alias

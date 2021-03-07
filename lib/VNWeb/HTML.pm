@@ -650,6 +650,9 @@ sub _revision_diff_ {
 sub _revision_cmp_ {
     my($old, $new, @fields) = @_;
 
+    local $old->{_entry_state} = ($old->{hidden}?2:0) + ($old->{locked}?1:0);
+    local $new->{_entry_state} = ($new->{hidden}?2:0) + ($new->{locked}?1:0);
+
     table_ class => 'stripe', sub {
         thead_ sub {
             tr_ sub {
@@ -668,8 +671,7 @@ sub _revision_cmp_ {
             };
         };
         _revision_diff_ $old, $new, @$_ for(
-            [ hidden => 'Hidden', fmt => 'bool' ],
-            [ locked => 'Locked', fmt => 'bool' ],
+            [ _entry_state => 'State', fmt => {0 => 'Normal', 1 => 'Locked', 2 => 'Awaiting approval', 3 => 'Deleted'} ],
             @fields,
         );
     };

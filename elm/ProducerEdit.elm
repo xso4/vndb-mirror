@@ -47,7 +47,7 @@ type alias Model =
 init : GPE.Recv -> Model
 init d =
   { state       = Api.Normal
-  , editsum     = { authmod = d.authmod, editsum = TP.bbcode d.editsum, locked = d.locked, hidden = d.hidden }
+  , editsum     = { authmod = d.authmod, editsum = TP.bbcode d.editsum, locked = d.locked, hidden = d.hidden, hasawait = False }
   , ptype       = d.ptype
   , name        = d.name
   , original    = d.original

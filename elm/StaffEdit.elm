@@ -45,7 +45,7 @@ type alias Model =
 init : GSE.Recv -> Model
 init d =
   { state       = Api.Normal
-  , editsum     = { authmod = d.authmod, editsum = TP.bbcode d.editsum, locked = d.locked, hidden = d.hidden }
+  , editsum     = { authmod = d.authmod, editsum = TP.bbcode d.editsum, locked = d.locked, hidden = d.hidden, hasawait = False }
   , alias       = d.alias
   , aliasDup    = False
   , aid         = d.aid

@@ -1,5 +1,5 @@
--- This module provides an the 'Edit summary' box, including the 'hidden' and
--- 'locked' moderation checkboxes.
+-- This module provides an the 'Edit summary' box, including the entry state
+-- option for moderators.
 
 module Lib.Editsum exposing (Model, Msg, new, update, view)
 
@@ -11,6 +11,7 @@ import Lib.TextPreview as TP
 
 type alias Model =
   { authmod  : Bool
+  , hasawait : Bool
   , locked   : Bool
   , hidden   : Bool
   , editsum  : TP.Model
@@ -18,25 +19,24 @@ type alias Model =
 
 
 type Msg
-  = Locked Bool
-  | Hidden Bool
+  = State Bool Bool Bool
   | Editsum TP.Msg
 
 
 new : Model
 new =
-  { authmod = False
-  , locked  = False
-  , hidden  = False
-  , editsum = TP.bbcode ""
+  { authmod  = False
+  , hasawait = False
+  , locked   = False
+  , hidden   = False
+  , editsum  = TP.bbcode ""
   }
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    Locked b  -> ({ model | locked  = b }, Cmd.none)
-    Hidden b  -> ({ model | hidden  = b }, Cmd.none)
+    State hid lock _ -> ({ model | hidden = hid, locked = lock }, Cmd.none)
     Editsum m -> let (nm,nc) = TP.update m model.editsum in ({ model | editsum = nm }, Cmd.map Editsum nc)
 
 
@@ -44,14 +44,13 @@ view : Model -> Html Msg
 view model =
   let
     lockhid =
-      [ label []
-        [ inputCheck "" model.hidden Hidden
-        , text " Deleted" ]
-      , label []
-        [ inputCheck "" model.locked Locked
-        , text " Locked" ]
+      [ label [] [ inputRadio "entry_state" (not model.hidden && not model.locked) (State False False), text " Normal " ]
+      , label [] [ inputRadio "entry_state" (not model.hidden &&     model.locked) (State False True ), text " Locked " ]
+      , label [] [ inputRadio "entry_state" (    model.hidden &&     model.locked) (State True  True ), text " Deleted " ]
+      , if not model.hasawait then text "" else
+        label [] [ inputRadio "entry_state" (    model.hidden && not model.locked) (State True  False), text " Awaiting approval" ]
       , br [] []
-      , if model.hidden
+      , if model.hidden && model.locked
         then span [] [ text "Note: edit summary of the last edit should indicate the reason for the deletion.", br [] [] ]
         else text ""
       ]
