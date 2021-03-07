@@ -54,7 +54,7 @@ our %apis = (
     MailChange     => [], # A confirmation mail has been sent to change a user's email address
     ImgFormat      => [], # Unrecognized image format
     DupNames       => [ { aoh => { # Duplicate names/aliases (for tags & traits)
-        id       => { id => 1 },
+        id       => { vndbid => ['i','g'] },
         name     => {},
     } } ],
     Releases       => [ { aoh => { # Response to 'Release'
@@ -82,11 +82,12 @@ our %apis = (
         title    => { required => 0 },
     } } ],
     TagResult      => [ { aoh => { # Response to 'Tags'
-        id           => { id => 1 },
+        id           => { vndbid => 'g' },
         name         => {},
         searchable   => { anybool => 1 },
         applicable   => { anybool => 1 },
-        state        => { int => 1 },
+        hidden       => { anybool => 1 },
+        locked       => { anybool => 1 },
     } } ],
     TraitResult    => [ { aoh => { # Response to 'Traits'
         id           => { id => 1 },

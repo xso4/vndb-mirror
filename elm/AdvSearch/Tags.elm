@@ -51,7 +51,7 @@ update dat msg model =
           Nothing -> (dat, { model | search = nm }, c)
           Just t ->
             ( { dat | tags = Dict.insert t.id t dat.tags }
-            , { model | search = A.clear nm "", sel = S.update (S.Sel (t.id,0) True) model.sel }
+            , { model | search = A.clear nm "", sel = S.update (S.Sel (vndbidNum t.id,0) True) model.sel }
             , c )
 
 
@@ -80,7 +80,7 @@ view dat model =
       [(s,_)] -> span [ class "nowrap" ]
              [ S.lblPrefix model.sel
              , b [ class "grayedout" ] [ text <| "g" ++ String.fromInt s ++ ":" ]
-             , Dict.get s dat.tags |> Maybe.map (\t -> t.name) |> Maybe.withDefault "" |> text
+             , Dict.get (vndbid 'g' s) dat.tags |> Maybe.map (\t -> t.name) |> Maybe.withDefault "" |> text
              ]
       l   -> span [] [ S.lblPrefix model.sel, text <| "Tags (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
@@ -101,7 +101,7 @@ view dat model =
           :: List.map (\i -> (i, String.fromInt (i//5) ++ "." ++ String.fromInt (2*(modBy 5 i)) ++ "+")) (List.range 1 14)
           ++ [(15, "3.0")]
         , b [ class "grayedout" ] [ text <| " g" ++ String.fromInt t ++ ": " ]
-        , Dict.get t dat.tags |> Maybe.map (\e -> a [ href ("/g" ++ String.fromInt t), target "_blank", style "display" "inline" ] [ text e.name ]) |> Maybe.withDefault (text "")
+        , Dict.get (vndbid 'g' t) dat.tags |> Maybe.map (\e -> a [ href ("/" ++ e.id), target "_blank", style "display" "inline" ] [ text e.name ]) |> Maybe.withDefault (text "")
         ]
       ) (Set.toList model.sel.sel)
     , A.view model.conf model.search [ placeholder "Search..." ]

@@ -124,9 +124,7 @@ sub copy_entry {
     print "SELECT ulist_labels_create(id) FROM users;\n";
 
     # Tags & traits
-    copy tags => undef, {addedby => 'user'};
-    copy 'tags_aliases';
-    copy 'tags_parents';
+    copy_entry [qw/tags tags_parents/], $db->selectcol_arrayref('SELECT id FROM tags');
     copy traits => undef, {addedby => 'user'};
     copy 'traits_parents';
 

@@ -41,6 +41,7 @@ sub fetch {
             UNION ALL SELECT chid, name,  original FROM chars_hist
             UNION ALL SELECT chid, title, '' AS original FROM docs_hist
             UNION ALL SELECT sh.chid, name, original FROM staff_hist sh JOIN staff_alias_hist sah ON sah.chid = sh.chid AND sah.aid = sh.aid
+            UNION ALL SELECT chid, name, '' AS original FROM tags_hist
                 ) t(id, title, original)
         WHERE id IN}), $lst;
     ($lst, $np)
@@ -90,11 +91,12 @@ sub filters_ {
 
     my @types = (
         [ v => 'Visual novels' ],
+        [ g => 'Tags' ],
         [ r => 'Releases' ],
         [ p => 'Producers' ],
         [ s => 'Staff' ],
         [ c => 'Characters' ],
-        [ d => 'Docs' ]
+        [ d => 'Docs' ],
     );
 
     state $schema = tuwf->compile({ type => 'hash', keys => {
@@ -163,7 +165,7 @@ sub filters_ {
 }
 
 
-TUWF::get qr{/(?:([upvrcsd][1-9][0-9]{0,6})/)?hist} => sub {
+TUWF::get qr{/(?:([upvrcsdg][1-9][0-9]{0,6})/)?hist} => sub {
     my $id = tuwf->capture(1)||'';
     my $obj = dbobj $id;
 

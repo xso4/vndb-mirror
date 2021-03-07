@@ -40,7 +40,7 @@ sub enrich_vn {
           FROM tags t
           JOIN tags_vn tv ON tv.tag = t.id
           LEFT JOIN users u ON u.id = tv.uid
-         WHERE t.state = 1+1 AND tv.vid =", \$v->{id}, "
+         WHERE NOT t.hidden AND tv.vid =", \$v->{id}, "
          GROUP BY t.id, t.name, t.cat
         HAVING $rating > 0
          ORDER BY rating DESC"
@@ -292,7 +292,7 @@ sub infobox_tags_ {
                 $cnt->[0]++ if $spoil < 1;
                 my $cut = $cnt->[0] > 15 ? ' cut cut2 cut1 cut0' : $cnt->[1] > 15 ? ' cut cut2 cut1' : $cnt->[2] > 15 ? ' cut cut2' : '';
                 span_ class => "tagspl$spoil cat_$_->{cat} $cut", sub {
-                    a_ href => "/g$_->{id}", style => sprintf('font-size: %dpx', $_->{rating}*3.5+6), $_->{name};
+                    a_ href => "/$_->{id}", style => sprintf('font-size: %dpx', $_->{rating}*3.5+6), $_->{name};
                     spoil_ $spoil;
                     b_ class => 'grayedout', sprintf ' %.1f', $_->{rating};
                 }
@@ -729,9 +729,9 @@ sub tags_ {
     my %tags = map +($_->{id},$_), $v->{tags}->@*;
     my $parents = tuwf->dbAlli("
         WITH RECURSIVE parents (tag, child) AS (
-          SELECT tag::int, NULL::int FROM (VALUES", sql_join(',', map sql('(',\$_,')'), keys %tags), ") AS x(tag)
+          SELECT tag::vndbid, NULL::vndbid FROM (VALUES", sql_join(',', map sql('(',\$_,')'), keys %tags), ") AS x(tag)
           UNION
-          SELECT tp.parent, tp.tag FROM tags_parents tp, parents a WHERE a.tag = tp.tag
+          SELECT tp.parent, tp.id FROM tags_parents tp, parents a WHERE a.tag = tp.id
         ) SELECT * FROM parents WHERE child IS NOT NULL"
     );
 
@@ -760,13 +760,13 @@ sub tags_ {
         my($lvl, $t) = @_;
         return if $t->{spoiler} > $view->{spoilers};
         li_ class => "tagvnlist-top", sub {
-            h3_ sub { a_ href => "/g$t->{id}", $t->{name} }
+            h3_ sub { a_ href => "/$t->{id}", $t->{name} }
         } if !$lvl;
 
         li_ $lvl == 1 ? (class => 'tagvnlist-parent') : $t->{inherited} ? (class => 'tagvnlist-inherited') : (), sub {
             VNWeb::TT::Lib::tagscore_($t->{rating}, $t->{inherited});
             b_ class => 'grayedout', '━━'x($lvl-1).' ' if $lvl > 1;
-            a_ href => "/g$t->{id}", $t->{rating} ? () : (class => 'parent'), $t->{name};
+            a_ href => "/$t->{id}", $t->{rating} ? () : (class => 'parent'), $t->{name};
             spoil_ $t->{spoiler};
         } if $lvl;
 

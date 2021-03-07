@@ -7,12 +7,30 @@ use VNWeb::VN::List;
 use VNWeb::TT::Lib 'tree_', 'parents_';
 
 
+sub rev_ {
+    my($t) = @_;
+    sub enrich_item {
+        enrich_merge parent => 'SELECT id AS parent, name FROM tags WHERE id IN', $_[0]{parents};
+    }
+    enrich_item $t;
+    revision_ $t, \&enrich_item,
+        [ name         => 'Name'           ],
+        [ alias        => 'Aliases'        ],
+        [ cat          => 'Category',      fmt => \%TAG_CATEGORY ],
+        [ description  => 'Description'    ],
+        [ searchable   => 'Searchable',    fmt => 'bool' ],
+        [ applicable   => 'Applicable',    fmt => 'bool' ],
+        [ defaultspoil => 'Default spoiler level' ],
+        [ parents      => 'Parent tags',   fmt => sub { a_ href => "/$_->{parent}", $_->{name}; } ];
+}
+
+
 sub infobox_ {
     my($t) = @_;
 
     p_ class => 'mainopts', sub {
-        a_ href => "/g$t->{id}/add", 'Create child tag';
-    } if $t->{state} != 1 && can_edit g => {};
+        a_ href => "/$t->{id}/add", 'Create child tag';
+    } if !$t->{hidden} && can_edit g => {};
     h1_ "Tag: $t->{name}";
     debug_ $t;
 
@@ -25,12 +43,12 @@ sub infobox_ {
             a_ href => '/t/db', 'discussion board';
             txt_ ' if you disagree with this.';
         }
-    } if $t->{state} == 1;
+    } if $t->{hidden} && $t->{locked};
 
     div_ class => 'notice', sub {
         h2_ 'Waiting for approval';
         p_ 'This tag is waiting for a moderator to approve it. You can still use it to tag VNs as you would with a normal tag.';
-    } if $t->{state} == 0;
+    } if $t->{hidden} && !$t->{locked};
 
     parents_ g => $t;
 
@@ -57,8 +75,8 @@ sub infobox_ {
     p_ class => 'center', sub {
         b_ 'Aliases';
         br_;
-        join_ \&br_, sub { txt_ $_ }, $t->{aliases}->@*;
-    } if $t->{aliases}->@*;
+        join_ \&br_, sub { txt_ $_ }, split /\n/, $t->{alias};
+    } if $t->{alias};
 }
 
 
@@ -120,7 +138,7 @@ sub vns_ {
             a_ href => "/g/links?t=$t->{id}", 'Recently tagged';
         };
         h1_ 'Visual novels';
-        form_ action => "/g$t->{id}", method => 'get', sub {
+        form_ action => "/$t->{id}", method => 'get', sub {
             p_ class => 'browseopts', sub {
                 button_ type => 'submit', name => 'm', value => 0, $opt->{m} == 0 ? (class => 'optselected') : (), 'Hide spoilers';
                 button_ type => 'submit', name => 'm', value => 1, $opt->{m} == 1 ? (class => 'optselected') : (), 'Show minor spoilers';
@@ -137,16 +155,15 @@ sub vns_ {
 }
 
 
-TUWF::get qr{/$RE{gid}}, sub {
-    my $t = tuwf->dbRowi('SELECT id, name, description, state, c_items, cat, searchable, applicable FROM tags WHERE id =', \tuwf->capture('id'));
+TUWF::get qr{/$RE{grev}}, sub {
+    my $t = db_entry tuwf->captures('id', 'rev');
     return tuwf->resNotFound if !$t->{id};
 
-    enrich_flatten aliases => id => tag => sub { 'SELECT tag, alias FROM tags_aliases WHERE tag IN', $_, 'ORDER BY alias' }, $t;
-
-    framework_ index => $t->{state} == 2, title => "Tag: $t->{name}", type => 'g', dbobj => $t, sub {
+    framework_ index => !tuwf->capture('rev'), title => "Tag: $t->{name}", dbobj => $t, sub {
+        rev_ $t if tuwf->capture('rev');
         div_ class => 'mainbox', sub { infobox_ $t; };
         tree_ g => $t->{id};
-        vns_ $t if $t->{searchable} && $t->{state} == 2;
+        vns_ $t if $t->{searchable} && !$t->{hidden};
     };
 };
 

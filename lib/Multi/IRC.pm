@@ -199,7 +199,6 @@ sub set_logger {
 sub set_notify {
   pg_cmd q{SELECT
     (SELECT id FROM changes ORDER BY id DESC LIMIT 1) AS rev,
-    (SELECT id FROM tags ORDER BY id DESC LIMIT 1) AS tag,
     (SELECT id FROM traits ORDER BY id DESC LIMIT 1) AS trait,
     (SELECT date FROM threads_posts ORDER BY date DESC LIMIT 1) AS post,
     (SELECT id FROM reviews ORDER BY id DESC LIMIT 1) AS review
@@ -298,7 +297,7 @@ sub handleid {
     $id =~ /^c/ ? 'c.name AS title FROM chars c WHERE c.id = $1' :
     $id =~ /^s/ ? 'sa.name AS title FROM staff s JOIN staff_alias sa ON sa.aid = s.aid AND sa.id = s.id WHERE s.id = $1' :
     $id =~ /^t/ ? 'title, '.$GETBOARDS.' FROM threads t WHERE NOT t.hidden AND NOT t.private AND t.id = $1' :
-    $id =~ /^g/ ? 'name AS title FROM tags WHERE id = vndbid_num($1)' :
+    $id =~ /^g/ ? 'name AS title FROM tags WHERE id = $1' :
     $id =~ /^i/ ? 'name AS title FROM traits WHERE id = vndbid_num($1)' :
     $id =~ /^d/ ? 'title FROM docs WHERE id = $1' :
     $id =~ /^w/ ? 'v.title, u.username FROM reviews w JOIN vn v ON v.id = w.vid LEFT JOIN users u ON u.id = w.uid WHERE w.id = $1' :
@@ -313,9 +312,10 @@ sub handleid {
     $id =~ /^c/ ? 'ch.name AS title, u.username, c.comments FROM changes c JOIN chars_hist ch ON c.id = ch.chid LEFT JOIN users u ON u.id = c.requester WHERE c.itemid = $1 AND c.rev = $2' :
     $id =~ /^s/ ? 'sah.name AS title, u.username, c.comments FROM changes c JOIN staff_hist sh ON c.id = sh.chid LEFT JOIN users u ON u.id = c.requester JOIN staff_alias_hist sah ON sah.chid = c.id AND sah.aid = sh.aid WHERE c.itemid = $1 AND c.rev = $2' :
     $id =~ /^d/ ? 'dh.title, u.username, c.comments FROM changes c JOIN docs_hist dh ON c.id = dh.chid LEFT JOIN users u ON u.id = c.requester WHERE c.itemid = $1 AND c.rev = $2' :
+    $id =~ /^g/ ? 'th.name AS title, u.username, c.comments FROM changes c JOIN tags_hist th ON c.id = th.chid LEFT JOIN users u ON u.id = c.requester WHERE c.itemid = $1 AND c.rev = $2' :
     $id =~ /^w/ ? 'v.title, u.username FROM reviews_posts wp JOIN reviews w ON w.id = wp.id JOIN vn v ON v.id = w.vid LEFT JOIN users u ON u.id = wp.uid WHERE wp.id = $1 AND wp.num = $2' :
                   't.title, u.username, '.$GETBOARDS.' FROM threads t JOIN threads_posts tp ON tp.tid = t.id LEFT JOIN users u ON u.id = tp.uid WHERE NOT t.hidden AND NOT t.private AND t.id = $1 AND tp.num = $2'),
-    [ $id, $rev], $c if $rev && $id =~ /^[dvprtcsw]/;
+    [ $id, $rev], $c if $rev && $id =~ /^[dvprtcsgw]/;
 }
 
 
@@ -327,8 +327,8 @@ sub vndbid {
   my @id; # [ type, id, ref ]
   for (split /[, ]/, $msg) {
     next if length > 15 or m{[a-z]{3,6}://}i; # weed out URLs and too long things
-    push @id, /^(?:.*[^\w]|)([wdvprtcs][1-9][0-9]*)\.([1-9][0-9]*)(?:[^\w].*|)$/ ? [ $1, $2 ] # x+.+
-            : /^(?:.*[^\w]|)([wdvprtugics][1-9][0-9]*)(?:[^\w].*|)$/ ? [ $1, '' ] : ();       # x+
+    push @id, /^(?:.*[^\w]|)([wdvprtcsg][1-9][0-9]*)\.([1-9][0-9]*)(?:[^\w].*|)$/ ? [ $1, $2 ] # x+.+
+            : /^(?:.*[^\w]|)([wdvprtugics][1-9][0-9]*)(?:[^\w].*|)$/ ? [ $1, '' ] : ();        # x+
   }
   handleid($chan, @$_) for @id;
 }
@@ -338,13 +338,13 @@ sub vndbid {
 
 sub notify {
   my(undef, $sel) = @_;
-  my $k = {qw|newrevision rev  newpost post  newtrait trait  newtag tag  newreview review|}->{$sel};
+  my $k = {qw|newrevision rev  newpost post  newtrait trait  newreview review|}->{$sel};
   return if !$k || !$lastnotify{$k};
 
   my $q = {
   rev => q{
     SELECT c.rev, c.comments, c.id AS lastid, c.itemid AS id,
-      COALESCE(vh.title, rh.title, ph.name, ch.name, sah.name, dh.title) AS title, u.username
+      COALESCE(vh.title, rh.title, ph.name, ch.name, sah.name, dh.title, th.name) AS title, u.username
     FROM changes c
     LEFT JOIN vn_hist vh ON vndbid_type(c.itemid) = 'v' AND c.id = vh.chid
     LEFT JOIN releases_hist rh ON vndbid_type(c.itemid) = 'r' AND c.id = rh.chid
@@ -353,6 +353,7 @@ sub notify {
     LEFT JOIN staff_hist sh ON vndbid_type(c.itemid) = 's' AND c.id = sh.chid
     LEFT JOIN staff_alias_hist sah ON vndbid_type(c.itemid) = 's' AND sah.aid = sh.aid AND sah.chid = c.id
     LEFT JOIN docs_hist dh ON vndbid_type(c.itemid) = 'd' AND c.id = dh.chid
+    LEFT JOIN tags_hist th ON vndbid_type(c.itemid) = 'g' AND c.id = th.chid
     JOIN users u ON u.id = c.requester
     WHERE c.id > $1 AND c.requester <> 'u1'
     ORDER BY c.id},
@@ -366,12 +367,6 @@ sub notify {
   trait => q{
     SELECT 'i'||t.id AS id, t.name AS title, u.username, t.id AS lastid
     FROM traits t
-    JOIN users u ON u.id = t.addedby
-    WHERE t.id > $1
-    ORDER BY t.id},
-  tag => q{
-    SELECT 'g'||t.id AS id, t.name AS title, u.username, t.id AS lastid
-    FROM tags t
     JOIN users u ON u.id = t.addedby
     WHERE t.id > $1
     ORDER BY t.id},

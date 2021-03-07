@@ -156,7 +156,7 @@ view model =
              else div []
              [ b [ class "standout" ] [ text "The following trait names are already present in the same group:" ]
              , ul [] <| List.map (\t ->
-                 li [] [ a [ href ("/i"++String.fromInt t.id) ] [ text t.name ] ]
+                 li [] [ a [ href ("/"++t.id) ] [ text t.name ] ]
                ) dups
              ]
         ]

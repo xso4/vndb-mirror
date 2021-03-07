@@ -23,23 +23,25 @@ sub enrich_group {
 
 sub tree_ {
     my($type, $id) = @_;
-    my $table = $type eq 'g' ? 'tag' : 'trait';
+    my $table = $type eq 'g' ? 'tags' : 'traits';
+    my $joincol = $type eq 'g' ? 'id' : 'trait';
+    my $visible = $type eq 'g' ? 'NOT hidden' : 'state = 1+1';
     my $top = tuwf->dbAlli(
-        "SELECT id, name, c_items FROM ${table}s
-          WHERE state = 1+1
-            AND", $id ? sql "id IN(SELECT $table FROM ${table}s_parents WHERE parent = ", \$id, ')'
-                      : "NOT EXISTS(SELECT 1 FROM ${table}s_parents WHERE $table = id)", "
+        "SELECT id, name, c_items FROM $table t
+          WHERE $visible
+            AND", $id ? sql "id IN(SELECT $joincol FROM ${table}_parents WHERE parent = ", \$id, ')'
+                      : "NOT EXISTS(SELECT 1 FROM ${table}_parents tp WHERE tp.$joincol = t.id)", "
           ORDER BY ", $type eq 'g' || $id ? 'name' : '"order"'
     );
     return if !@$top;
 
     enrich childs => id => parent => sub { sql
-        "SELECT tp.parent, t.id, t.name, t.c_items FROM ${table}s t JOIN ${table}s_parents tp ON tp.$table = t.id WHERE state = 1+1 AND tp.parent IN", $_, 'ORDER BY name'
+        "SELECT tp.parent, t.id, t.name, t.c_items FROM $table t JOIN ${table}_parents tp ON tp.$joincol = t.id WHERE $visible AND tp.parent IN", $_, 'ORDER BY name'
     }, $top;
     $top = [ sort { $b->{childs}->@* <=> $a->{childs}->@* } @$top ] if $type eq 'g' || $id;
 
     my sub lnk_ {
-        a_ href => "/$type$_[0]{id}", $_[0]{name};
+        a_ href => $type eq 'i' ? "/$type$_[0]{id}" : "/$_[0]{id}", $_[0]{name};
         b_ class => 'grayedout', " ($_[0]{c_items})" if $_[0]{c_items};
     }
     div_ class => 'mainbox', sub {
@@ -56,7 +58,7 @@ sub tree_ {
                     li_ sub {
                         my $num = @$sub-5;
                         txt_ '> ';
-                        a_ href => "/$type$_->{id}", style => 'font-style: italic', sprintf '%d more %s%s', $num, $table, $num == 1 ? '' : 's';
+                        a_ href => $type eq 'i' ? "/$type$_->{id}" : "/$_->{id}", style => 'font-style: italic', sprintf '%d more %s%s', $num, $type eq 'g' ? 'tag' : 'trait', $num == 1 ? '' : 's';
                     } if @$sub > 6;
                 } if @$sub;
             } for @$top;
@@ -72,13 +74,15 @@ sub parents_ {
     my($type, $t) = @_;
 
     my %t;
-    my $name = $type eq 'g' ? 'tag' : 'trait';
+    my $table = $type eq 'g' ? 'tags' : 'traits';
+    my $joincol = $type eq 'g' ? 'id' : 'trait';
+    my $idtype = $type eq 'g' ? 'vndbid' : 'int';
     push $t{$_->{child}}->@*, $_ for tuwf->dbAlli('
         WITH RECURSIVE p(id,child,name) AS (
-            SELECT ', \$t->{id}, "::int, 0, NULL::text
+            SELECT ', \$t->{id}, "::$idtype, NULL::$idtype, NULL::text
             UNION
-            SELECT t.id, p.id, t.name FROM p JOIN ${name}s_parents tp ON tp.${name} = p.id JOIN ${name}s t ON t.id = tp.parent
-        ) SELECT * FROM p WHERE child <> 0 ORDER BY name
+            SELECT t.id, p.id, t.name FROM p JOIN ${table}_parents tp ON tp.$joincol = p.id JOIN $table t ON t.id = tp.parent
+        ) SELECT * FROM p WHERE child IS NOT NULL ORDER BY name
     ")->@*;
 
     my sub rec {
@@ -90,7 +94,7 @@ sub parents_ {
             a_ href => "/$type", $type eq 'g' ? 'Tags' : 'Traits';
             for (@$_) {
                 txt_ ' > ';
-                a_ href => "/$type$_->{id}", $_->{name};
+                a_ href => $type eq 'i' ? "/$type$_->{id}" : "/$_->{id}", $_->{name};
             }
             txt_ ' > ';
             txt_ $t->{name};

@@ -233,7 +233,7 @@ BEGIN
           FROM tags_vn tv
           JOIN tags t ON t.id = tv.tag
           LEFT JOIN users u ON u.id = tv.uid
-         WHERE NOT tv.ignore AND t.state = 2
+         WHERE NOT tv.ignore AND NOT t.hidden
            AND (u.id IS NULL OR u.perm_tag)
            AND vid NOT IN(SELECT id FROM vn WHERE hidden)
            AND (uvid IS NULL OR vid = uvid)
@@ -245,7 +245,7 @@ BEGIN
         UNION ALL
         SELECT ta.lvl-1, tp.parent, ta.vid, ta.vote, ta.spoiler
           FROM t_all ta
-          JOIN tags_parents tp ON tp.tag = ta.tag
+          JOIN tags_parents tp ON tp.id = ta.tag
          WHERE ta.lvl > 0
     )
     -- Merge
@@ -263,6 +263,7 @@ BEGIN
   RETURN;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
 
 
 -- Recalculate traits_chars. Pretty much same thing as tag_vn_calc().
@@ -315,7 +316,7 @@ BEGIN
   UPDATE stats_cache SET count = (SELECT COUNT(*) FROM producers WHERE hidden = FALSE) WHERE section = 'producers';
   UPDATE stats_cache SET count = (SELECT COUNT(*) FROM chars     WHERE hidden = FALSE) WHERE section = 'chars';
   UPDATE stats_cache SET count = (SELECT COUNT(*) FROM staff     WHERE hidden = FALSE) WHERE section = 'staff';
-  UPDATE stats_cache SET count = (SELECT COUNT(*) FROM tags      WHERE state = 2)      WHERE section = 'tags';
+  UPDATE stats_cache SET count = (SELECT COUNT(*) FROM tags      WHERE hidden = FALSE) WHERE section = 'tags';
   UPDATE stats_cache SET count = (SELECT COUNT(*) FROM traits    WHERE state = 2)      WHERE section = 'traits';
 END;
 $$ LANGUAGE plpgsql;
@@ -340,7 +341,7 @@ $$ LANGUAGE SQL;
 -- A VIEW that can be joined would offer much better optimization possibilities, but I've not managed to write that in a performant way yet.
 -- A MATERIALIZED VIEW would likely be the fastest approach, but keeping that up-to-date seems like a pain.
 --
--- Not currently supported: i#, g#, u#, ch#, cv#, sf#
+-- Not currently supported: i#, u#, ch#, cv#, sf#
 CREATE OR REPLACE FUNCTION item_info(id vndbid, num int) RETURNS TABLE(title text, uid vndbid) AS $$
   -- x#.#
             SELECT v.title,  h.requester FROM changes h JOIN vn_hist v        ON h.id = v.chid WHERE vndbid_type($1) = 'v' AND h.itemid = $1 AND $2 IS NOT NULL AND h.rev = $2
@@ -348,6 +349,7 @@ CREATE OR REPLACE FUNCTION item_info(id vndbid, num int) RETURNS TABLE(title tex
   UNION ALL SELECT p.name,   h.requester FROM changes h JOIN producers_hist p ON h.id = p.chid WHERE vndbid_type($1) = 'p' AND h.itemid = $1 AND $2 IS NOT NULL AND h.rev = $2
   UNION ALL SELECT c.name,   h.requester FROM changes h JOIN chars_hist c     ON h.id = c.chid WHERE vndbid_type($1) = 'c' AND h.itemid = $1 AND $2 IS NOT NULL AND h.rev = $2
   UNION ALL SELECT d.title,  h.requester FROM changes h JOIN docs_hist d      ON h.id = d.chid WHERE vndbid_type($1) = 'd' AND h.itemid = $1 AND $2 IS NOT NULL AND h.rev = $2
+  UNION ALL SELECT g.name,   h.requester FROM changes h JOIN tags_hist g      ON h.id = g.chid WHERE vndbid_type($1) = 'g' AND h.itemid = $1 AND $2 IS NOT NULL AND h.rev = $2
   UNION ALL SELECT sa.name,  h.requester FROM changes h JOIN staff_hist s     ON h.id = s.chid JOIN staff_alias_hist sa ON sa.chid = s.chid AND sa.aid = s.aid WHERE vndbid_type($1) = 's' AND h.itemid = $1 AND $2 IS NOT NULL AND h.rev = $2
   -- x#
   UNION ALL SELECT title,   NULL   FROM vn        WHERE vndbid_type($1) = 'v' AND id = $1 AND $2 IS NULL
@@ -355,6 +357,7 @@ CREATE OR REPLACE FUNCTION item_info(id vndbid, num int) RETURNS TABLE(title tex
   UNION ALL SELECT name,    NULL   FROM producers WHERE vndbid_type($1) = 'p' AND id = $1 AND $2 IS NULL
   UNION ALL SELECT name,    NULL   FROM chars     WHERE vndbid_type($1) = 'c' AND id = $1 AND $2 IS NULL
   UNION ALL SELECT title,   NULL   FROM docs      WHERE vndbid_type($1) = 'd' AND id = $1 AND $2 IS NULL
+  UNION ALL SELECT name,    NULL   FROM tags      WHERE vndbid_type($1) = 'g' AND id = $1 AND $2 IS NULL
   UNION ALL SELECT sa.name, NULL   FROM staff s JOIN staff_alias sa ON sa.aid = s.aid WHERE vndbid_type($1) = 's' AND s.id = $1 AND $2 IS NOT NULL AND $2 IS NULL
   -- t#
   UNION ALL SELECT title,   NULL   FROM threads WHERE vndbid_type($1) = 't' AND id = $1 AND $2 IS NULL
@@ -511,7 +514,7 @@ CREATE OR REPLACE FUNCTION notify(iid vndbid, num integer, uid vndbid) RETURNS T
          AND c_pre.itemid = $1 AND c_pre.rev = $2-1 -- Previous edit, to check if .ihid changed
          AND c_all.itemid = $1 -- All edits on this entry, to see whom to notify
          AND c_cur.ihid AND NOT c_pre.ihid
-         AND $2 > 1 AND vndbid_type($1) IN('v', 'r', 'p', 'c', 's', 'd')
+         AND $2 > 1 AND vndbid_type($1) IN('v', 'r', 'p', 'c', 's', 'd', 'g')
 
       -- listdel
       UNION
@@ -532,7 +535,7 @@ CREATE OR REPLACE FUNCTION notify(iid vndbid, num integer, uid vndbid) RETURNS T
         FROM changes c
         JOIN users u ON u.id = c.requester
        WHERE c.itemid = $1
-         AND $2 > 1 AND vndbid_type($1) IN('v', 'r', 'p', 'c', 's', 'd')
+         AND $2 > 1 AND vndbid_type($1) IN('v', 'r', 'p', 'c', 's', 'd', 'g')
          AND $3 <> 'u1' -- Exclude edits by Multi
          AND u.notify_dbedit
          AND NOT EXISTS(SELECT 1 FROM notification_subs ns WHERE ns.iid = $1 AND ns.uid = c.requester AND ns.subnum = false)
@@ -541,7 +544,7 @@ CREATE OR REPLACE FUNCTION notify(iid vndbid, num integer, uid vndbid) RETURNS T
       UNION
       SELECT 'subedit', ns.uid
         FROM notification_subs ns
-       WHERE $2 > 1 AND vndbid_type($1) IN('v', 'r', 'p', 'c', 's', 'd')
+       WHERE $2 > 1 AND vndbid_type($1) IN('v', 'r', 'p', 'c', 's', 'd', 'g')
          AND $3 <> 'u1' -- Exclude edits by Multi
          AND ns.iid = $1 AND ns.subnum
 

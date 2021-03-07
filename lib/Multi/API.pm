@@ -502,7 +502,7 @@ my %GET_VN = (
         sub { my($r, $n) = @_;
           for my $i (@$r) {
             $i->{tags} = [ map
-              [ $_->{id}*1, 1*sprintf('%.2f', $_->{score}), 1*sprintf('%.0f', $_->{spoiler}) ],
+              [ idnum($_->{id}), 1*sprintf('%.2f', $_->{score}), 1*sprintf('%.0f', $_->{spoiler}) ],
               grep $i->{id} eq $_->{vid}, @$n ];
           }
         },
@@ -587,8 +587,8 @@ my %GET_VN = (
                   join => ' AND ', serialize => 'v.c_search LIKE :value:', process => \'like' ],
     ],
     tags => [
-      [ int   => 'v.id :op:(SELECT vid FROM tags_vn_inherit WHERE tag = :value:)',   {'=' => 'IN', '!=' => 'NOT IN'}, range => [1,1e6] ],
-      [ inta  => 'v.id :op:(SELECT vid FROM tags_vn_inherit WHERE tag IN(:value:))', {'=' => 'IN', '!=' => 'NOT IN'}, join => ',', range => [1,1e6] ],
+      [ int   => 'v.id :op:(SELECT vid FROM tags_vn_inherit WHERE tag = :value:)',   {'=' => 'IN', '!=' => 'NOT IN'}, process => \'g' ],
+      [ inta  => 'v.id :op:(SELECT vid FROM tags_vn_inherit WHERE tag IN(:value:))', {'=' => 'IN', '!=' => 'NOT IN'}, join => ',', process => \'g' ],
     ],
   },
 );

@@ -112,7 +112,7 @@ elm_api TraitEdit => $FORM_OUT, $FORM_IN, sub {
     # (Ideally this checks all groups that this trait applies in, but that's more annoying to implement)
     my $re = '[\t\s]*\n[\t\s]*';
     my $dups = tuwf->dbAlli('
-        SELECT n.id, n.name
+        SELECT \'i\'||n.id, n.name
           FROM (SELECT id, name FROM traits UNION ALL SELECT id, s FROM traits, regexp_split_to_table(alias, ', \$re, ') a(s) WHERE s <> \'\') n(id,name)
           JOIN traits t ON n.id = t.id
          WHERE ', sql_and(
