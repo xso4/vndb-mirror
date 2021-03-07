@@ -1,0 +1,9 @@
+ALTER TYPE platform ADD VALUE 'tdo' BEFORE 'oth';
+ALTER TYPE platform ADD VALUE 'fm7' BEFORE 'fmt';
+ALTER TYPE platform ADD VALUE 'fm8' BEFORE 'fmt';
+ALTER TYPE platform ADD VALUE 'ps5' BEFORE 'psv';
+ALTER TYPE platform ADD VALUE 'smd' BEFORE 'sat';
+ALTER TYPE platform ADD VALUE 'scd' BEFORE 'sat';
+ALTER TYPE platform ADD VALUE 'x1s' BEFORE 'x68';
+ALTER TYPE platform ADD VALUE 'vnd' AFTER 'n3d';
+ALTER TYPE platform ADD VALUE 'xxs' AFTER 'xbo';

@@ -1271,6 +1271,7 @@ a .icons { cursor: pointer }
 .icons.lin { background-image: url(/f/plat/lin.svg) }
 .icons.mac { background-image: url(/f/plat/mac.svg) }
 .icons.web { background-image: url(/f/plat/web.svg) }
+.icons.tdo { background-image: url(/f/plat/tdo.svg) }
 .icons.ios { background-image: url(/f/plat/ios.svg) }
 .icons.and { background-image: url(/f/plat/and.svg) }
 .icons.bdp { background-image: url(/f/plat/bdp.svg) }
@@ -1278,6 +1279,8 @@ a .icons { cursor: pointer }
 .icons.dvd { background-image: url(/f/plat/dvd.svg) }
 .icons.drc { background-image: url(/f/plat/drc.svg) }
 .icons.nes { background-image: url(/f/plat/nes.svg) }
+.icons.fm7 { background-image: url(/f/plat/fm7.svg) }
+.icons.fm8 { background-image: url(/f/plat/fm8.svg) }
 .icons.fmt { background-image: url(/f/plat/fmt.svg) }
 .icons.gba { background-image: url(/f/plat/gba.svg) }
 .icons.gbc { background-image: url(/f/plat/gbc.svg) }
@@ -1296,13 +1299,19 @@ a .icons { cursor: pointer }
 .icons.ps2 { background-image: url(/f/plat/ps2.svg) }
 .icons.ps3 { background-image: url(/f/plat/ps3.svg) }
 .icons.ps4 { background-image: url(/f/plat/ps4.svg) }
+.icons.ps5 { background-image: url(/f/plat/ps5.svg) }
 .icons.psv { background-image: url(/f/plat/psv.svg) }
+.icons.smd { background-image: url(/f/plat/smd.svg) }
+.icons.scd { background-image: url(/f/plat/scd.svg) }
 .icons.sat { background-image: url(/f/plat/sat.svg) }
+.icons.vnd { background-image: url(/f/plat/vnd.svg) }
 .icons.sfc { background-image: url(/f/plat/sfc.svg) }
+.icons.x1s { background-image: url(/f/plat/x1s.svg) }
 .icons.x68 { background-image: url(/f/plat/x68.svg) }
 .icons.xb1 { background-image: url(/f/plat/xb1.svg) }
 .icons.xb3 { background-image: url(/f/plat/xb3.svg) }
 .icons.xbo { background-image: url(/f/plat/xbo.svg) }
+.icons.xxs { background-image: url(/f/plat/xxs.svg) }
 .icons.oth { background-image: url(/f/plat/oth.svg) }
 
 
