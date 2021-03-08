@@ -133,9 +133,9 @@ viewImg image =
           case (i.sexual_avg, i.violence_avg) of
             (Just sex, Just vio) ->
               -- XXX: These thresholds are subject to change, maybe just show the numbers here?
-              [ text <| if sex > 1.3 then "Explicit" else if sex > 0.4 then "Suggestive" else "Tame"
+              [ text <| if sex > 1.3 then "Explicit" else if sex > 0.4 then "Suggestive" else "Safe"
               , text " / "
-              , text <| if vio > 1.3 then "Brutal"   else if vio > 0.4 then "Violent"    else "Safe"
+              , text <| if vio > 1.3 then "Brutal"   else if vio > 0.4 then "Violent"    else "Tame"
               , text <| " (" ++ String.fromInt i.votecount ++ ")"
               ]
             _ -> [ text "Not flagged" ]
