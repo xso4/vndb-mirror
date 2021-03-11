@@ -379,7 +379,7 @@ CREATE TABLE releases ( -- dbentry_type=r
   engine       varchar(50) NOT NULL DEFAULT '', -- [pub]
   notes        text NOT NULL DEFAULT '', -- [pub]
   l_dlsite     text NOT NULL DEFAULT '', -- [pub]
-  l_dlsiteen   text NOT NULL DEFAULT '', -- [pub]
+  l_dlsiteen   text NOT NULL DEFAULT '', -- [pub] (deprecated, DLsite doesn't have a separate English shop anymore)
   l_gog        text NOT NULL DEFAULT '', -- [pub]
   l_denpa      text NOT NULL DEFAULT '', -- [pub]
   l_jlist      text NOT NULL DEFAULT '', -- [pub]

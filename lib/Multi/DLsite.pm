@@ -12,7 +12,7 @@ use VNDB::Config;
 my %C = (
   url => 'https://www.dlsite.com/%s/work/=/product_id/%s.html',
   clean_timeout => 48*3600,
-  check_timeout => 5*60,
+  check_timeout => 1*60,
 );
 
 
@@ -22,10 +22,7 @@ sub run {
   %C = (%C, @_);
 
   push_watcher schedule 0, $C{clean_timeout}, sub {
-    pg_cmd q{DELETE FROM shop_dlsite WHERE id NOT IN(
-        SELECT l_dlsite FROM releases WHERE NOT hidden
-      UNION ALL
-        SELECT l_dlsiteen FROM releases WHERE NOT hidden)};
+    pg_cmd q{DELETE FROM shop_dlsite WHERE id NOT IN(SELECT l_dlsite FROM releases WHERE NOT hidden)};
   };
   push_watcher schedule 0, $C{check_timeout}, sub {
     pg_cmd q{
@@ -34,15 +31,7 @@ sub run {
         FROM releases
        WHERE NOT hidden AND l_dlsite <> ''
          AND NOT EXISTS(SELECT 1 FROM shop_dlsite WHERE id = l_dlsite)
-    }, [], sub {
-      pg_cmd q{
-        INSERT INTO shop_dlsite (id)
-        SELECT DISTINCT l_dlsiteen
-          FROM releases
-         WHERE NOT hidden AND l_dlsiteen <> ''
-           AND NOT EXISTS(SELECT 1 FROM shop_dlsite WHERE id = l_dlsiteen)
-      }, [], \&sync
-    }
+    }, [], \&sync
   }
 }
 
@@ -61,7 +50,6 @@ sub data {
     $body =~ m{<i class="work_jpy">([0-9,]+) JPY</i></span>} ? sprintf('JP¥ %d', $1 =~ s/,//gr) : '';
 
   $shop = $body =~ /,"category":"([^"]+)"/ ? $1 : '';
-  $shop = 'ecchi-eng' if $shop eq 'ecchieng'; # Both work, but DLsite seems to prefer a dash.
 
   return AE::log warn => "$prefix Product found, but no price ($price) or shop ($shop)" if $found && (!$price || !$shop);
 

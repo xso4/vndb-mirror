@@ -79,7 +79,7 @@ our %LINKS = (
         l_steam    => { label => 'Steam'
                       , fmt   => 'https://store.steampowered.com/app/%d/'
                       , regex => qr{(?:www\.)?(?:store\.steampowered\.com/app/([0-9]+)(?:/.*)?|steamcommunity\.com/(?:app|games)/([0-9]+)(?:/.*)?|steamdb\.info/app/([0-9]+)(?:/.*)?)} },
-        l_dlsite   => { label => 'DLsite (jpn)'
+        l_dlsite   => { label => 'DLsite'
                       , fmt   => 'https://www.dlsite.com/home/work/=/product_id/%s.html'
                       , fmt2  => sub { config->{dlsite_url} && sprintf config->{dlsite_url}, shift->{l_dlsite_shop}||'home' }
                       , regex => qr{(?:www\.)?dlsite\.com/.*/(?:dlaf/=/link/work/aid/.*/id|work/=/product_id)/([VR]J[0-9]{6}).*}
@@ -217,15 +217,13 @@ sub enrich_extlinks {
                  ,    sdenpa.price AS l_denpa_price
                  ,    sjlist.price AS l_jlist_price,    sjlist.jbox AS l_jlist_jbox
                  ,   sdlsite.price AS l_dlsite_price,   sdlsite.shop AS l_dlsite_shop
-                 , sdlsiteen.price AS l_dlsiteen_price, sdlsiteen.shop AS l_dlsiteen_shop
               FROM releases r
               LEFT JOIN shop_denpa  sdenpa    ON    sdenpa.id = r.l_denpa    AND    sdenpa.lastfetch IS NOT NULL AND    sdenpa.deadsince IS NULL
               LEFT JOIN shop_dlsite sdlsite   ON   sdlsite.id = r.l_dlsite   AND   sdlsite.lastfetch IS NOT NULL AND   sdlsite.deadsince IS NULL
-              LEFT JOIN shop_dlsite sdlsiteen ON sdlsiteen.id = r.l_dlsiteen AND sdlsiteen.lastfetch IS NOT NULL AND sdlsiteen.deadsince IS NULL
               LEFT JOIN shop_jlist  sjlist    ON    sjlist.id = r.l_jlist    AND    sjlist.lastfetch IS NOT NULL AND    sjlist.deadsince IS NULL
               LEFT JOIN shop_mg     smg       ON       smg.id = r.l_mg       AND       smg.lastfetch IS NOT NULL AND       smg.deadsince IS NULL
               WHERE r.id IN},
-              grep $_->{l_mg}||$_->{l_denpa}||$_->{l_jlist}||$_->{l_dlsite}||$_->{l_dlsiteen}, @obj
+              grep $_->{l_mg}||$_->{l_denpa}||$_->{l_jlist}||$_->{l_dlsite}, @obj
         );
         VNWeb::DB::enrich(l_playasia => gtin => gtin =>
             "SELECT gtin, price, url FROM shop_playasia WHERE price <> '' AND gtin IN",
@@ -272,7 +270,6 @@ sub enrich_extlinks {
             l 'l_steam';
             push @links, [ 'SteamDB', sprintf('https://steamdb.info/app/%d/info', $obj->{l_steam}), undef ] if $obj->{l_steam};
             l 'l_dlsite', $obj->{l_dlsite_price};
-            l 'l_dlsiteen', $obj->{l_dlsiteen_price};
             l 'l_gog';
             l 'l_itch';
             l 'l_gamejolt';
