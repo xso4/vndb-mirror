@@ -98,7 +98,7 @@ sub vns_ {
         my $q = eval {
             my $f = filter_parse v => $opt->{fil};
             # Old URLs often had the tag ID as part of the filter, let's remove that.
-            $f->{tag_inc} = [ grep $_ != $t->{id}, $f->{tag_inc}->@* ] if $f->{tag_inc};
+            $f->{tag_inc} = [ grep "g$_" ne $t->{id}, $f->{tag_inc}->@* ] if $f->{tag_inc};
             delete $f->{tag_inc} if $f->{tag_inc} && !$f->{tag_inc}->@*;
             $f = filter_vn_adv $f;
             tuwf->compile({ advsearch => 'v' })->validate(@$f > 1 ? $f : undef)->data;
