@@ -129,16 +129,14 @@ sub filters_ {
     };
 
     form_ method => 'get', action => tuwf->reqPath(), sub {
-        table_ style => 'margin: 0 auto', sub { tr_ sub {
-            td_ style => 'padding: 10px', sub {
-                p_ class => 'linkradio', sub {
-                    join_ \&br_, sub {
-                        opt_ checkbox => t => $_->[0], $_->[1], $t{$_->[0]}||0;
-                    }, @types;
+        table_ class => 'histoptions', sub { tr_ sub {
+            td_ sub {
+                select_ multiple => 1, size => scalar @types, name => 't', sub {
+                    option_ $t{$_->[0]} ? (selected => 1) : (), value => $_->[0], $_->[1] for @types;
                 }
             } if exists $filt->{t};
 
-            td_ style => 'padding: 10px', sub {
+            td_ sub {
                 p_ class => 'linkradio', sub {
                     opt_ radio => e => 0, 'All'; em_ ' | ';
                     opt_ radio => e => 1, 'Only changes to existing items'; em_ ' | ';

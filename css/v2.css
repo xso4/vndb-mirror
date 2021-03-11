@@ -398,6 +398,10 @@ p#searchtabs a:hover, p#searchtabs a.sel {
 
 /* history browser */
 
+table.histoptions { margin: 0 auto }
+table.histoptions select { width: 150px; scrollbar-width: none }
+table.histoptions select::-webkit-scrollbar { display: none }
+
 div.history td       { white-space: nowrap; padding-left: 15px }
 div.history td.tc1_1 { width: 70px; padding-right: 0; text-align: right }
 div.history td.tc1_2 { width: 30px; padding-left: 0 }
