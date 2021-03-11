@@ -29,7 +29,7 @@ sub listing_ {
                 td_ class => 'tc3', sub { tagscore_ $i->{vote}, $i->{ignore} };
                 td_ class => 'tc4', sub {
                     a_ href => $url->(t => $i->{tag}, p=>undef), class => 'setfil', '> ' if !defined $opt->{t};
-                    a_ href => "/g$i->{tag}", $i->{name};
+                    a_ href => "/$i->{tag}", $i->{name};
                 };
                 td_ class => 'tc5', sub {
                     my $s = !defined $i->{spoiler} ? '' : fmtspoil $i->{spoiler};
@@ -55,7 +55,7 @@ TUWF::get qr{/g/links}, sub {
         s => { onerror => 'date', enum => [qw|date tag|] },
         v => { onerror => undef, vndbid => 'v' },
         u => { onerror => undef, vndbid => 'u' },
-        t => { onerror => undef, id => 1 },
+        t => { onerror => undef, vndbid => 'g' },
     )->data;
 
     my $where = sql_and
@@ -93,7 +93,7 @@ TUWF::get qr{/g/links}, sub {
                     li_ sub {
                         txt_ '['; a_ href => url(t=>undef, p=>undef), 'remove'; txt_ '] ';
                         txt_ 'Tag:'; txt_ ' ';
-                        a_ href => "/g$opt->{t}", tuwf->dbVali('SELECT name FROM tags WHERE id=', \$opt->{t})||'Unknown tag';
+                        a_ href => "/$opt->{t}", tuwf->dbVali('SELECT name FROM tags WHERE id=', \$opt->{t})||'Unknown tag';
                     } if defined $opt->{t};
                     li_ sub {
                         txt_ '['; a_ href => url(v=>undef, p=>undef), 'remove'; txt_ '] ';

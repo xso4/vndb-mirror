@@ -83,10 +83,9 @@ my %tables = (
                                                    .' WHERE r.id = rlists.rid AND uvl.uid = rlists.uid AND NOT r.hidden AND NOT v.hidden AND NOT ul.private)' },
     staff               => { where => 'NOT hidden' },
     staff_alias         => { where => 'id IN(SELECT id FROM staff WHERE NOT hidden)' },
-    tags                => { where => 'state = 2' },
-    tags_aliases        => { where => 'tag IN(SELECT id FROM tags WHERE state = 2)' },
-    tags_parents        => { where => 'tag IN(SELECT id FROM tags WHERE state = 2)' },
-    tags_vn             => { where => 'tag IN(SELECT id FROM tags WHERE state = 2) AND vid IN(SELECT id FROM vn WHERE NOT hidden)', order => 'tag, vid, uid, date' },
+    tags                => { where => 'NOT hidden' },
+    tags_parents        => { where => 'id IN(SELECT id FROM tags WHERE NOT hidden)' },
+    tags_vn             => { where => 'tag IN(SELECT id FROM tags WHERE NOT hidden) AND vid IN(SELECT id FROM vn WHERE NOT hidden)', order => 'tag, vid, uid, date' },
     traits              => { where => 'state = 2' },
     traits_parents      => { where => 'trait IN(SELECT id FROM traits WHERE state = 2)' },
     ulist_labels        => { where => 'NOT private AND EXISTS(SELECT 1 FROM ulist_vns_labels uvl WHERE uvl.lbl = id AND ulist_labels.uid = uvl.uid)' },
@@ -353,10 +352,9 @@ sub export_tags {
     require PerlIO::gzip;
 
     my $lst = $db->selectall_arrayref(q{
-        SELECT id, name, description, searchable, applicable, c_items AS vns, cat,
-          (SELECT string_agg(alias,'$$$-$$$') FROM tags_aliases where tag = id) AS aliases,
-          (SELECT string_agg(parent::text, ',') FROM tags_parents WHERE tag = id) AS parents
-        FROM tags WHERE state = 2 ORDER BY id
+        SELECT vndbid_num(id) AS id, name, description, searchable, applicable, c_items AS vns, cat, alias,
+          (SELECT string_agg(vndbid_num(parent)::text, ',') FROM tags_parents tp WHERE tp.id = t.id) AS parents
+        FROM tags t WHERE NOT hidden ORDER BY id
     }, { Slice => {} });
     for(@$lst) {
       $_->{id} *= 1;
@@ -364,7 +362,7 @@ sub export_tags {
       $_->{searchable} = $_->{searchable} ? JSON::XS::true() : JSON::XS::false();
       $_->{applicable} = $_->{applicable} ? JSON::XS::true() : JSON::XS::false();
       $_->{vns} *= 1;
-      $_->{aliases} = [ split /\$\$\$-\$\$\$/, ($_->{aliases}||'') ];
+      $_->{aliases} = [ split /\n/, delete $_->{alias} ];
       $_->{parents} = [ map $_*1, split /,/, ($_->{parents}||'') ];
     }
 

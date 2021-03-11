@@ -10,6 +10,7 @@ import Lib.Api as Api
 import Lib.Util exposing (..)
 import Lib.Autocomplete as A
 import Lib.Ffi as Ffi
+import Lib.Editsum as Editsum
 import Gen.Api as GApi
 import Gen.Types exposing (tagCategories)
 import Gen.TagEdit as GTE
@@ -25,11 +26,11 @@ main = Browser.element
 
 
 type alias Model =
-  { formstate    : Api.State
-  , id           : Maybe Int
+  { state        : Api.State
+  , editsum      : Editsum.Model
+  , id           : Maybe String
   , name         : String
-  , aliases      : String
-  , state        : Int
+  , alias        : String
   , cat          : String
   , description  : TP.Model
   , searchable   : Bool
@@ -37,22 +38,20 @@ type alias Model =
   , defaultspoil : Int
   , parents      : List GTE.RecvParents
   , parentAdd    : A.Model GApi.ApiTagResult
-  , addedby      : String
   , wipevotes    : Bool
-  , merge        : List GTE.RecvParents
+  , merge        : List GTE.RecvMerge
   , mergeAdd     : A.Model GApi.ApiTagResult
-  , canMod       : Bool
   , dupNames     : List GApi.ApiDupNames
   }
 
 
 init : GTE.Recv -> Model
 init d =
-  { formstate    = Api.Normal
+  { state        = Api.Normal
+  , editsum      = { authmod = d.authmod, editsum = TP.bbcode d.editsum, locked = d.locked, hidden = d.hidden, hasawait = True }
   , id           = d.id
   , name         = d.name
-  , aliases      = String.join "\n" d.aliases
-  , state        = d.state
+  , alias        = d.alias
   , cat          = d.cat
   , description  = TP.bbcode d.description
   , searchable   = d.searchable
@@ -60,11 +59,9 @@ init d =
   , defaultspoil = d.defaultspoil
   , parents      = d.parents
   , parentAdd    = A.init ""
-  , addedby      = d.addedby
   , wipevotes    = False
   , merge        = []
   , mergeAdd     = A.init ""
-  , canMod       = d.can_mod
   , dupNames     = []
   }
 
@@ -76,7 +73,7 @@ findDup : Model -> String -> List GApi.ApiDupNames
 findDup model a = List.filter (\t -> String.toLower t.name == String.toLower a) model.dupNames
 
 isValid : Model -> Bool
-isValid model = not (List.any (findDup model >> List.isEmpty >> not) (model.name :: splitAliases model.aliases))
+isValid model = not (List.any (findDup model >> List.isEmpty >> not) (model.name :: splitAliases model.alias))
 
 parentConfig : A.Config Msg GApi.ApiTagResult
 parentConfig = { wrap = ParentSearch, id = "parentadd", source = A.tagSource }
@@ -88,15 +85,17 @@ mergeConfig = { wrap = MergeSearch, id = "mergeadd", source = A.tagSource }
 encode : Model -> GTE.Send
 encode m =
   { id           = m.id
+  , editsum      = m.editsum.editsum.data
+  , hidden       = m.editsum.hidden
+  , locked       = m.editsum.locked
   , name         = m.name
-  , aliases      = splitAliases m.aliases
-  , state        = m.state
+  , alias        = m.alias
   , cat          = m.cat
   , description  = m.description.data
   , searchable   = m.searchable
   , applicable   = m.applicable
   , defaultspoil = m.defaultspoil
-  , parents      = List.map (\l -> {id=l.id}) m.parents
+  , parents      = List.map (\l -> {parent=l.parent}) m.parents
   , wipevotes    = m.wipevotes
   , merge        = List.map (\l -> {id=l.id}) m.merge
   }
@@ -104,13 +103,13 @@ encode m =
 
 type Msg
   = Name String
-  | Aliases String
-  | State Int
+  | Alias String
   | Searchable Bool
   | Applicable Bool
   | Cat String
   | DefaultSpoil Int
   | Description TP.Msg
+  | Editsum Editsum.Msg
   | ParentDel Int
   | ParentSearch (A.Msg GApi.ApiTagResult)
   | WipeVotes Bool
@@ -124,14 +123,14 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Name s        -> ({ model | name = s }, Cmd.none)
-    Aliases s     -> ({ model | aliases = String.replace "," "\n" s }, Cmd.none)
-    State n       -> ({ model | state = n }, Cmd.none)
+    Alias s       -> ({ model | alias = String.replace "," "\n" s }, Cmd.none)
     Searchable b  -> ({ model | searchable = b }, Cmd.none)
     Applicable b  -> ({ model | applicable = b }, Cmd.none)
     Cat s         -> ({ model | cat = s }, Cmd.none)
     DefaultSpoil n-> ({ model | defaultspoil = n }, Cmd.none)
     WipeVotes b   -> ({ model | wipevotes = b }, Cmd.none)
     Description m -> let (nm,nc) = TP.update m model.description in ({ model | description = nm }, Cmd.map Description nc)
+    Editsum m     -> let (nm,nc) = Editsum.update m model.editsum in ({ model | editsum = nm }, Cmd.map Editsum nc)
 
     ParentDel i   -> ({ model | parents = delidx i model.parents }, Cmd.none)
     ParentSearch m ->
@@ -139,9 +138,9 @@ update msg model =
       in case res of
         Nothing -> ({ model | parentAdd = nm }, c)
         Just p  ->
-          if List.any (\e -> e.id == p.id) model.parents
+          if List.any (\e -> e.parent == p.id) model.parents
           then ({ model | parentAdd = nm }, c)
-          else ({ model | parentAdd = A.clear nm "", parents = model.parents ++ [{ id = p.id, name = p.name}] }, c)
+          else ({ model | parentAdd = A.clear nm "", parents = model.parents ++ [{ parent = p.id, name = p.name}] }, c)
 
     MergeDel i   -> ({ model | merge = delidx i model.merge }, Cmd.none)
     MergeSearch m ->
@@ -150,46 +149,35 @@ update msg model =
         Nothing -> ({ model | mergeAdd = nm }, c)
         Just p  -> ({ model | mergeAdd = A.clear nm "", merge = model.merge ++ [{ id = p.id, name = p.name}] }, c)
 
-    Submit -> ({ model | formstate = Api.Loading }, GTE.send (encode model) Submitted)
-    Submitted (GApi.DupNames l) -> ({ model | dupNames = l, formstate = Api.Normal }, Cmd.none)
+    Submit -> ({ model | state = Api.Loading }, GTE.send (encode model) Submitted)
+    Submitted (GApi.DupNames l) -> ({ model | dupNames = l, state = Api.Normal }, Cmd.none)
     Submitted (GApi.Redirect s) -> (model, load s)
-    Submitted r -> ({ model | formstate = Api.Error r }, Cmd.none)
+    Submitted r -> ({ model | state = Api.Error r }, Cmd.none)
 
 
 view : Model -> Html Msg
 view model =
-  form_ "" Submit (model.formstate == Api.Loading)
+  form_ "" Submit (model.state == Api.Loading)
   [ div [ class "mainbox" ]
     [ h1 [] [ text <| if model.id == Nothing then "Submit new tag" else "Edit tag" ]
     , table [ class "formtable" ] <|
-      [ if model.id == Nothing then text "" else
-        formField "Added by" [ span [ Ffi.innerHtml model.addedby ] [], br_ 2 ]
-      , formField "name::Primary name" [ inputText "name" model.name Name GTE.valName ]
-      , formField "aliases::Aliases"
+      [ formField "name::Primary name" [ inputText "name" model.name Name GTE.valName ]
+      , formField "alias::Aliases"
         -- BUG: Textarea doesn't validate the maxlength and patterns for aliases, we don't have a client-side fallback check either.
-        [ inputTextArea "aliases" model.aliases Aliases []
-        , let dups = List.concatMap (findDup model) (model.name :: splitAliases model.aliases)
+        [ inputTextArea "alias" model.alias Alias []
+        , let dups = List.concatMap (findDup model) (model.name :: splitAliases model.alias)
           in if List.isEmpty dups
              then span [] [ br [] [], text "Tag name and aliases must be unique and self-describing." ]
              else div []
              [ b [ class "standout" ] [ text "The following tag names are already present in the database:" ]
              , ul [] <| List.map (\t ->
-                 li [] [ a [ href ("/g"++String.fromInt t.id) ] [ text t.name ] ]
+                 li [] [ a [ href ("/"++t.id) ] [ text t.name ] ]
                ) dups
              ]
         ]
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "" ] ]
-      , if not model.canMod then text "" else
-        formField "state::State" [ inputSelect "state" model.state State GTE.valState
-          [ (0, "Awaiting Moderation")
-          , (1, "Deleted/hidden")
-          , (2, "Approved")
-          ]
-        ]
-      , if not model.canMod then text "" else
-        formField "" [ label [] [ inputCheck "" model.searchable Searchable, text " Searchable (people can use this tag to find VNs)" ] ]
-      , if not model.canMod then text "" else
-        formField "" [ label [] [ inputCheck "" model.applicable Applicable, text " Applicable (people can apply this tag to VNs)" ] ]
+      , formField "" [ label [] [ inputCheck "" model.searchable Searchable, text " Searchable (people can use this tag to find VNs)" ] ]
+      , formField "" [ label [] [ inputCheck "" model.applicable Applicable, text " Applicable (people can apply this tag to VNs)" ] ]
       , formField "cat::Category" [ inputSelect "cat" model.cat Cat GTE.valCat tagCategories ]
       , formField "defaultspoil::Default spoiler level" [ inputSelect "defaultspoil" model.defaultspoil DefaultSpoil GTE.valDefaultspoil 
         [ (0, "No spoiler")
@@ -204,16 +192,20 @@ view model =
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "" ] ]
       , formField "Parent tags"
         [ table [ class "compact" ] <| List.indexedMap (\i p -> tr []
-            [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| "g" ++ String.fromInt p.id ++ ":" ] ]
-            , td [] [ a [ href <| "/g" ++ String.fromInt p.id ] [ text p.name ] ]
+            [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| p.parent ++ ":" ] ]
+            , td [] [ a [ href <| "/" ++ p.parent ] [ text p.name ] ]
             , td [] [ inputButton "remove" (ParentDel i) [] ]
             ]
           ) model.parents
         , A.view parentConfig model.parentAdd [placeholder "Add parent tag..."]
         ]
       ]
-      ++ if not model.canMod || model.id == Nothing then [] else
-      [ tr [ class "newpart" ] [ td [ colspan 2 ] [ text "DANGER ZONE" ] ]
+      ++ if not model.editsum.authmod || model.id == Nothing then [] else
+      [ tr [ class "newpart" ] [ td [ colspan 2 ]
+        [ text "DANGER ZONE"
+        , b [ class "grayedout" ] [ text " (The options in this section are not visible in the edit history. Your edit summary will not be visible anywhere unless you also changed something in the above fields)" ]
+        , br_ 2
+        ] ]
       , formField ""
         [ inputCheck "" model.wipevotes WipeVotes
         , text " Delete all direct votes on this tag. WARNING: cannot be undone!", br [] []
@@ -223,8 +215,8 @@ view model =
       , formField "Merge votes"
         [ text "All direct votes on the listed tags will be moved to this tag. WARNING: cannot be undone!", br [] []
         , table [ class "compact" ] <| List.indexedMap (\i p -> tr []
-            [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| "g" ++ String.fromInt p.id ++ ":" ] ]
-            , td [] [ a [ href <| "/g" ++ String.fromInt p.id ] [ text p.name ] ]
+            [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| p.id ++ ":" ] ]
+            , td [] [ a [ href <| "/" ++ p.id ] [ text p.name ] ]
             , td [] [ inputButton "remove" (MergeDel i) [] ]
             ]
           ) model.merge
@@ -232,6 +224,9 @@ view model =
         ]
       ]
     ]
-  , div [ class "mainbox" ]
-    [ fieldset [ class "submit" ] [ submitButton "Submit" model.formstate (isValid model) ] ]
+  , div [ class "mainbox" ] [ fieldset [ class "submit" ]
+      [ Html.map Editsum (Editsum.view model.editsum)
+      , submitButton "Submit" model.state (isValid model)
+      ]
+    ]
   ]

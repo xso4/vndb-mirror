@@ -104,7 +104,7 @@ init d =
   , prod       = d.producers
   , prodAdd    = A.init ""
   , notes      = TP.bbcode d.notes
-  , editsum    = { authmod = d.authmod, editsum = TP.bbcode d.editsum, locked = d.locked, hidden = d.hidden }
+  , editsum    = { authmod = d.authmod, editsum = TP.bbcode d.editsum, locked = d.locked, hidden = d.hidden, hasawait = False }
   , id         = d.id
   }
 

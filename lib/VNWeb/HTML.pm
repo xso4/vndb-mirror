@@ -343,7 +343,7 @@ sub _footer_ {
 
 sub _maintabs_subscribe_ {
     my($o, $id) = @_;
-    return if !auth || $id !~ /^[twvrpcsdi]/;
+    return if !auth || $id !~ /^[twvrpcsdig]/;
 
     my $noti =
         $id =~ /^t/ ? tuwf->dbVali('SELECT SUM(x) FROM (
@@ -356,7 +356,7 @@ sub _maintabs_subscribe_ {
            UNION SELECT 1+1 FROM reviews w, users u WHERE u.id =', \auth->uid, 'AND w.uid =', \auth->uid, 'AND w.id =', \$id, 'AND u.notify_comment
            ) x(x)')
 
-      : $id =~ /^[vrpcsd]/ && auth->pref('notify_dbedit') && tuwf->dbVali('
+      : $id =~ /^[vrpcsdg]/ && auth->pref('notify_dbedit') && tuwf->dbVali('
            SELECT 1 FROM changes WHERE itemid =', \$id, 'AND requester =', \auth->uid);
 
     my $sub = tuwf->dbRowi('SELECT subnum, subreview, subapply FROM notification_subs WHERE uid =', \auth->uid, 'AND iid =', \$id);
@@ -379,7 +379,6 @@ sub _maintabs_ {
     my $opt = shift;
     my($t, $o, $sel) = @{$opt}{qw/type dbobj tab/};
     return if !$t || !$o;
-    return if $t eq 'g' && !auth->permTagmod;
 
     my $id = $o->{id} =~ /^[0-9]*$/ ? $t.$o->{id} : $o->{id};
 
@@ -419,7 +418,7 @@ sub _maintabs_ {
                 t disc => "/t/$id", "discussions ($cnt)";
             };
 
-            t hist => "/$id/hist", 'history' if $t =~ /[uvrpcsd]/;
+            t hist => "/$id/hist", 'history' if $t =~ /[uvrpcsdg]/;
             _maintabs_subscribe_ $o, $id;
         }
     }
@@ -650,6 +649,9 @@ sub _revision_diff_ {
 sub _revision_cmp_ {
     my($old, $new, @fields) = @_;
 
+    local $old->{_entry_state} = ($old->{hidden}?2:0) + ($old->{locked}?1:0);
+    local $new->{_entry_state} = ($new->{hidden}?2:0) + ($new->{locked}?1:0);
+
     table_ class => 'stripe', sub {
         thead_ sub {
             tr_ sub {
@@ -668,8 +670,7 @@ sub _revision_cmp_ {
             };
         };
         _revision_diff_ $old, $new, @$_ for(
-            [ hidden => 'Hidden', fmt => 'bool' ],
-            [ locked => 'Locked', fmt => 'bool' ],
+            [ _entry_state => 'State', fmt => {0 => 'Normal', 1 => 'Locked', 2 => 'Awaiting approval', 3 => 'Deleted'} ],
             @fields,
         );
     };

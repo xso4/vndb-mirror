@@ -89,7 +89,7 @@ our %RE = (
     iid  => qr{i(?<id>$num)},
     did  => qr{(?<id>d$num)},
     tid  => qr{(?<id>t$num)},
-    gid  => qr{g(?<id>$num)},
+    gid  => qr{(?<id>g$num)},
     wid  => qr{(?<id>w$num)},
     imgid=> qr{(?<id>(?:ch|cv|sf)$num)},
     vrev => qr{(?<id>v$num)$rev?},
@@ -98,6 +98,7 @@ our %RE = (
     srev => qr{(?<id>s$num)$rev?},
     crev => qr{(?<id>c$num)$rev?},
     drev => qr{(?<id>d$num)$rev?},
+    grev => qr{(?<id>g$num)$rev?},
     postid => qr{(?<id>t$num)\.(?<num>$num)},
 );
 
@@ -121,6 +122,7 @@ sub dbobj {
         $id =~ /^r/ ? item releases  => 'title' :
         $id =~ /^c/ ? item chars     => 'name' :
         $id =~ /^s/ ? item staff     => '(SELECT name FROM staff_alias WHERE aid = staff.aid)' :
+        $id =~ /^g/ ? item tags      => 'name' :
         $id =~ /^d/ ? item docs      => 'title' : die;
 
     $o->{title} = VNWeb::HTML::user_displayname $o if $id =~ /^u/;

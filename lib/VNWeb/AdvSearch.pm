@@ -585,7 +585,7 @@ sub _sql_where_tag {
             push @l, sql_and
                 $s < 2 ? sql('spoiler <=', \$s) : (),
                 $r > 0 ? sql('rating >=', \$r) : (),
-                sql('tag IN', [ map s/^.//r, $f{$s}{$r}->@* ]);
+                sql('tag IN', $f{$s}{$r});
         }
     }
     sql 'v.id', $neg ? 'NOT' : (), 'IN(SELECT vid FROM tags_vn_inherit WHERE', sql_or(@l), $all && @$val > 1 ? ('GROUP BY vid HAVING COUNT(tag) =', \scalar @$val) : (), ')'
@@ -735,8 +735,8 @@ sub elm_search_query {
     $o{staff} = [ map +{id => $_}, grep /^s/, keys %ids ];
     enrich_merge id => 'SELECT s.id, sa.aid, sa.name, sa.original FROM staff s JOIN staff_alias sa ON sa.aid = s.aid WHERE s.id IN', $o{staff};
 
-    $o{tags} = [ map +{id => $_=~s/^g//rg}, grep /^g/, keys %ids ];
-    enrich_merge id => 'SELECT id, name, searchable, applicable, state FROM tags WHERE id IN', $o{tags};
+    $o{tags} = [ map +{id => $_}, grep /^g/, keys %ids ];
+    enrich_merge id => 'SELECT id, name, searchable, applicable, hidden, locked FROM tags WHERE id IN', $o{tags};
 
     $o{traits} = [ map +{id => $_=~s/^i//rg}, grep /^i/, keys %ids ];
     enrich_merge id => 'SELECT t.id, t.name, t.searchable, t.applicable, t.defaultspoil, t.state, g.id AS group_id, g.name AS group_name

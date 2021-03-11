@@ -44,7 +44,7 @@ BEGIN
     UPDATE stats_cache SET count = count+1 WHERE section = TG_TABLE_NAME;
 
   ELSIF TG_OP = 'UPDATE' THEN
-    IF TG_TABLE_NAME IN('tags', 'traits') THEN
+    IF TG_TABLE_NAME = 'traits' THEN
       unhidden := OLD.state <> 2 AND NEW.state = 2;
       hidden := OLD.state = 2 AND NEW.state <> 2;
     ELSE
@@ -71,8 +71,8 @@ CREATE TRIGGER stats_cache_new  AFTER  INSERT           ON chars         FOR EAC
 CREATE TRIGGER stats_cache_edit AFTER  UPDATE           ON chars         FOR EACH ROW WHEN (OLD.hidden IS DISTINCT FROM NEW.hidden) EXECUTE PROCEDURE update_stats_cache();
 CREATE TRIGGER stats_cache_new  AFTER  INSERT           ON staff         FOR EACH ROW WHEN (NEW.hidden = FALSE)                     EXECUTE PROCEDURE update_stats_cache();
 CREATE TRIGGER stats_cache_edit AFTER  UPDATE           ON staff         FOR EACH ROW WHEN (OLD.hidden IS DISTINCT FROM NEW.hidden) EXECUTE PROCEDURE update_stats_cache();
-CREATE TRIGGER stats_cache_new  AFTER  INSERT           ON tags          FOR EACH ROW WHEN (NEW.state = 2)                          EXECUTE PROCEDURE update_stats_cache();
-CREATE TRIGGER stats_cache_edit AFTER  UPDATE           ON tags          FOR EACH ROW WHEN (OLD.state IS DISTINCT FROM NEW.state)   EXECUTE PROCEDURE update_stats_cache();
+CREATE TRIGGER stats_cache_new  AFTER  INSERT           ON tags          FOR EACH ROW WHEN (NEW.hidden = FALSE)                     EXECUTE PROCEDURE update_stats_cache();
+CREATE TRIGGER stats_cache_edit AFTER  UPDATE           ON tags          FOR EACH ROW WHEN (OLD.hidden IS DISTINCT FROM NEW.hidden) EXECUTE PROCEDURE update_stats_cache();
 CREATE TRIGGER stats_cache_new  AFTER  INSERT           ON traits        FOR EACH ROW WHEN (NEW.state = 2)                          EXECUTE PROCEDURE update_stats_cache();
 CREATE TRIGGER stats_cache_edit AFTER  UPDATE           ON traits        FOR EACH ROW WHEN (OLD.state IS DISTINCT FROM NEW.state)   EXECUTE PROCEDURE update_stats_cache();
 
@@ -199,8 +199,6 @@ BEGIN
     NOTIFY newrevision;
   ELSIF TG_TABLE_NAME = 'threads_posts' THEN
     NOTIFY newpost;
-  ELSIF TG_TABLE_NAME = 'tags' THEN
-    NOTIFY newtag;
   ELSIF TG_TABLE_NAME = 'traits' THEN
     NOTIFY newtrait;
   ELSIF TG_TABLE_NAME = 'reviews' THEN
@@ -212,7 +210,6 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER insert_notify AFTER INSERT ON changes       FOR EACH STATEMENT EXECUTE PROCEDURE insert_notify();
 CREATE TRIGGER insert_notify AFTER INSERT ON threads_posts FOR EACH STATEMENT EXECUTE PROCEDURE insert_notify();
-CREATE TRIGGER insert_notify AFTER INSERT ON tags          FOR EACH STATEMENT EXECUTE PROCEDURE insert_notify();
 CREATE TRIGGER insert_notify AFTER INSERT ON traits        FOR EACH STATEMENT EXECUTE PROCEDURE insert_notify();
 CREATE TRIGGER insert_notify AFTER INSERT ON reviews       FOR EACH STATEMENT EXECUTE PROCEDURE insert_notify();
 

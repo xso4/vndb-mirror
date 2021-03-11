@@ -51,20 +51,21 @@ TUWF::get qr{/(?<type>[gi])/list}, sub {
 
     my $qs = $opt->{q} && '%'.sql_like($opt->{q}).'%';
     my $where = sql_and
-        defined $opt->{t} ? sql 't.state =', \$opt->{t} : (),
-        defined $opt->{a} ? sql 't.applicable =', \$opt->{a} : (),
-        defined $opt->{b} ? sql 't.searchable =', \$opt->{b} : (),
-        $type eq 'g' ? (
-            $opt->{q} ? sql 't.name ILIKE', \$qs, 'OR t.id IN(SELECT tag FROM tags_aliases WHERE alias ILIKE', \$qs, ')' : ()
-        ) : (
-            $opt->{q} ? sql 't.name ILIKE', \$qs, 'OR t.alias ILIKE', \$qs : ()
-        );
+        defined $opt->{t} ? (
+            $type eq 'i' ? sql 'state =', \$opt->{t} :
+            $opt->{t} == 0 ? 'hidden AND NOT locked' : $opt->{t} == 1 ? 'hidden AND locked' : 'NOT hidden'
+        ) : (),
+        defined $opt->{a} ? sql 'applicable =', \$opt->{a} : (),
+        defined $opt->{b} ? sql 'searchable =', \$opt->{b} : (),
+        $opt->{q} ? sql 'name ILIKE', \$qs, 'OR alias ILIKE', \$qs : ();
 
     my $table = $type eq 'g' ? 'tags' : 'traits';
     my $count = tuwf->dbVali("SELECT COUNT(*) FROM $table t WHERE", $where);
     my $list = tuwf->dbPagei({ results => 50, page => $opt->{p} },'
-        SELECT t.id, t.name, t.state, t.searchable, t.applicable, t.c_items,', sql_totime('t.added'), "as added
-          FROM $table t
+        SELECT name, searchable, applicable, c_items,', sql_totime('added'), 'as added
+             , ', $type eq 'g' ? 'vndbid_num(id) AS id, CASE WHEN NOT hidden THEN 1+1 WHEN locked THEN 1 ELSE 0 END AS state'
+                               : 'id, state', "
+          FROM $table
          WHERE ", $where, '
          ORDER BY', {qw|added id  name name  items c_items|}->{$opt->{s}}, {qw|a ASC d DESC|}->{$opt->{o}}, ', id'
     );

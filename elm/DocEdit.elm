@@ -35,7 +35,7 @@ type alias Model =
 init : GD.Recv -> Model
 init d =
   { state       = Api.Normal
-  , editsum     = { authmod = True, editsum = TP.bbcode d.editsum, locked = d.locked, hidden = d.hidden }
+  , editsum     = { authmod = True, editsum = TP.bbcode d.editsum, locked = d.locked, hidden = d.hidden, hasawait = False }
   , title       = d.title
   , content     = TP.markdown d.content
   , id          = d.id

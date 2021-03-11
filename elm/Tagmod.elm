@@ -41,7 +41,7 @@ type alias Model =
   , tags     : List Tag
   , saved    : List Tag
   , changed  : Bool
-  , selId    : Int
+  , selId    : String
   , selType  : Sel
   , negCount : Int
   , negShow  : Bool
@@ -59,7 +59,7 @@ init f =
   , tags     = f.tags
   , saved    = f.tags
   , changed  = False
-  , selId    = 0
+  , selId    = ""
   , selType  = NoSel
   , negCount = List.length <| List.filter (\t -> t.rating <= 0) f.tags
   , negShow  = False
@@ -73,11 +73,11 @@ searchConfig = { wrap = TagSearch, id = "tagadd", source = A.tagSource }
 
 type Msg
   = Noop
-  | SetSel Int Sel
-  | SetVote Int Int
-  | SetOver Int Bool
-  | SetSpoil Int (Maybe Int)
-  | SetNote Int String
+  | SetSel String Sel
+  | SetVote String Int
+  | SetOver String Bool
+  | SetSpoil String (Maybe Int)
+  | SetNote String String
   | NegShow Bool
   | TagSearch (A.Msg GApi.ApiTagResult)
   | Submit
@@ -108,11 +108,11 @@ update msg model =
         Nothing -> ({ model | add = nm }, c)
         Just t ->
           let (nl, ms) =
-                if t.state == 1                                    then ([], "Can't add deleted tags")
+                if t.hidden && t.locked                            then ([], "Can't add deleted tags")
                 else if not t.applicable                           then ([], "Tag is not applicable")
                 else if List.any (\it -> it.id == t.id) model.tags then ([], "Tag is already in the list")
                 else ([{ id = t.id, vote = 2, spoil = Nothing, overrule = False, notes = "", cat = "new", name = t.name
-                       , rating = 0, count = 0, spoiler = 0, overruled = False, othnotes = "", state = t.state, applicable = t.applicable }], "")
+                       , rating = 0, count = 0, spoiler = 0, overruled = False, othnotes = "", hidden = t.hidden, locked = t.locked, applicable = t.applicable }], "")
           in (changed { model | add = if ms == "" then A.clear nm "" else nm, tags = model.tags ++ nl, addMsg = ms }, c)
 
     Submit ->
@@ -140,33 +140,33 @@ viewTag t sel vid mod =
   in
     tr [] <|
     [ td [ class "tc_tagname" ]
-      [ a [ href <| "/g"++String.fromInt t.id, style "text-decoration" (if t.applicable && t.state /= 1 then "none" else "line-through") ] [ text t.name ]
-      , case (t.state, t.applicable) of
-          (0, _)     -> b [ class "grayedout" ] [ text " (awaiting approval)" ]
-          (1, _)     -> b [ class "grayedout" ] [ text " (deleted)" ]
-          (_, False) -> b [ class "grayedout" ] [ text " (not applicable)" ]
+      [ a [ href <| "/"++t.id, style "text-decoration" (if t.applicable && not (t.hidden && t.locked) then "none" else "line-through") ] [ text t.name ]
+      , case (t.hidden, t.locked, t.applicable) of
+          (True, False, _) -> b [ class "grayedout" ] [ text " (awaiting approval)" ]
+          (True, True,  _) -> b [ class "grayedout" ] [ text " (deleted)" ]
+          (_, _, False)    -> b [ class "grayedout" ] [ text " (not applicable)" ]
           _ -> text ""
       ]
     , td [ class "tc_myvote buts"  ]
-      [ a [ href "#", onMouseOver (SetSel t.id (Vote -3)), onMouseOut (SetSel 0 NoSel), onClickD (SetVote t.id -3), classList [("ld", vote <  0)], title "Downvote"    ] []
-      , a [ href "#", onMouseOver (SetSel t.id (Vote  0)), onMouseOut (SetSel 0 NoSel), onClickD (SetVote t.id  0), classList [("l0", vote == 0)], title "Remove vote" ] []
-      , a [ href "#", onMouseOver (SetSel t.id (Vote  1)), onMouseOut (SetSel 0 NoSel), onClickD (SetVote t.id  1), classList [("l1", vote >= 1)], title "+1"          ] []
-      , a [ href "#", onMouseOver (SetSel t.id (Vote  2)), onMouseOut (SetSel 0 NoSel), onClickD (SetVote t.id  2), classList [("l2", vote >= 2)], title "+2"          ] []
-      , a [ href "#", onMouseOver (SetSel t.id (Vote  3)), onMouseOut (SetSel 0 NoSel), onClickD (SetVote t.id  3), classList [("l3", vote == 3)], title "+3"          ] []
+      [ a [ href "#", onMouseOver (SetSel t.id (Vote -3)), onMouseOut (SetSel "" NoSel), onClickD (SetVote t.id -3), classList [("ld", vote <  0)], title "Downvote"    ] []
+      , a [ href "#", onMouseOver (SetSel t.id (Vote  0)), onMouseOut (SetSel "" NoSel), onClickD (SetVote t.id  0), classList [("l0", vote == 0)], title "Remove vote" ] []
+      , a [ href "#", onMouseOver (SetSel t.id (Vote  1)), onMouseOut (SetSel "" NoSel), onClickD (SetVote t.id  1), classList [("l1", vote >= 1)], title "+1"          ] []
+      , a [ href "#", onMouseOver (SetSel t.id (Vote  2)), onMouseOut (SetSel "" NoSel), onClickD (SetVote t.id  2), classList [("l2", vote >= 2)], title "+2"          ] []
+      , a [ href "#", onMouseOver (SetSel t.id (Vote  3)), onMouseOut (SetSel "" NoSel), onClickD (SetVote t.id  3), classList [("l3", vote == 3)], title "+3"          ] []
       ]
     , td [ class "tc_myover" ] [ if mod && t.vote /= 0 then inputCheck "" t.overrule (SetOver t.id) else text "" ]
     , td [ class "tc_myspoil buts" ] <|
       if t.vote <= 0 then [] else
-      [ a [ href "#", onMouseOver (SetSel t.id (Spoil Nothing)),  onMouseOut (SetSel 0 NoSel), onClickD (SetSpoil t.id Nothing),  classList [("sn", spoil == Nothing)], title "Unknown"       ] []
-      , a [ href "#", onMouseOver (SetSel t.id (Spoil (Just 0))), onMouseOut (SetSel 0 NoSel), onClickD (SetSpoil t.id (Just 0)), classList [("s0", spoil == Just 0 )], title "Not a spoiler" ] []
-      , a [ href "#", onMouseOver (SetSel t.id (Spoil (Just 1))), onMouseOut (SetSel 0 NoSel), onClickD (SetSpoil t.id (Just 1)), classList [("s1", spoil == Just 1 )], title "Minor spoiler" ] []
-      , a [ href "#", onMouseOver (SetSel t.id (Spoil (Just 2))), onMouseOut (SetSel 0 NoSel), onClickD (SetSpoil t.id (Just 2)), classList [("s2", spoil == Just 2 )], title "Major spoiler" ] []
+      [ a [ href "#", onMouseOver (SetSel t.id (Spoil Nothing)),  onMouseOut (SetSel "" NoSel), onClickD (SetSpoil t.id Nothing),  classList [("sn", spoil == Nothing)], title "Unknown"       ] []
+      , a [ href "#", onMouseOver (SetSel t.id (Spoil (Just 0))), onMouseOut (SetSel "" NoSel), onClickD (SetSpoil t.id (Just 0)), classList [("s0", spoil == Just 0 )], title "Not a spoiler" ] []
+      , a [ href "#", onMouseOver (SetSel t.id (Spoil (Just 1))), onMouseOut (SetSel "" NoSel), onClickD (SetSpoil t.id (Just 1)), classList [("s1", spoil == Just 1 )], title "Minor spoiler" ] []
+      , a [ href "#", onMouseOver (SetSel t.id (Spoil (Just 2))), onMouseOut (SetSel "" NoSel), onClickD (SetSpoil t.id (Just 2)), classList [("s2", spoil == Just 2 )], title "Major spoiler" ] []
       ]
     , td [ class "tc_mynote" ] <|
       if t.vote == 0 then [] else
       [ span
         [ onMouseOver (SetSel t.id Note)
-        , onMouseOut (SetSel 0 NoSel)
+        , onMouseOut (SetSel "" NoSel)
         , onClickD (SetSel t.id NoteSet)
         , style "opacity" <| if t.notes == "" then "0.5" else "1.0"
         ] [ text "💬" ]
@@ -201,7 +201,7 @@ viewTag t sel vid mod =
         , td [ class "tc_allspoil"] [ text <| Ffi.fmtFloat t.spoiler 2 ]
         , td [ class "tc_allwho"  ]
           [ span [ style "opacity" <| if t.othnotes == "" then "0" else "1", style "cursor" "default", title t.othnotes ] [ text "💬 " ]
-          , a [ href <| "/g/links?v="++vid++"&t="++String.fromInt t.id ] [ text "Who?" ]
+          , a [ href <| "/g/links?v="++vid++"&t="++t.id ] [ text "Who?" ]
           ]
         ]
 

@@ -139,7 +139,7 @@ sub parse {
   while($raw =~ m{(?:
     \[ \/? (?i: b|i|u|s|spoiler|quote|code|url|raw ) [^\s\]]* \] |  # tag
     d[1-9][0-9]* \# [1-9][0-9]* (?: \.[1-9][0-9]* )?             |  # d+#+[.+]
-    [tdvprcsw][1-9][0-9]*\.[1-9][0-9]*                           |  # v+.+
+    [tdvprcswg][1-9][0-9]*\.[1-9][0-9]*                          |  # v+.+
     [tdvprcsugiw][1-9][0-9]*                                     |  # v+
     (?:https?|ftp)://[^><"\n\s\]\[]+[\d\w=/-]                       # link
   )}xg) {
@@ -295,7 +295,7 @@ sub bb_subst_links {
   my %lookup;
   parse $msg, sub {
     my($code, $tag) = @_;
-    $lookup{$2}{ $2 eq 'g' || $2 eq 'i' ? $3 : $1 } = 1 if $tag eq 'dblink' && $code =~ /^((.)(\d+))/;
+    $lookup{$2}{ $2 eq 'i' ? $3 : $1 } = 1 if $tag eq 'dblink' && $code =~ /^((.)(\d+))/;
     1;
   };
   return $msg unless %lookup;
@@ -305,7 +305,7 @@ sub bb_subst_links {
     v => 'SELECT id, title AS name FROM vn WHERE id IN',
     c => 'SELECT id, name FROM chars WHERE id IN',
     p => 'SELECT id, name FROM producers WHERE id IN',
-    g => 'SELECT \'g\'||id AS id, name FROM tags WHERE id IN',
+    g => 'SELECT id, name FROM tags WHERE id IN',
     i => 'SELECT \'i\'||id AS id, name FROM traits WHERE id IN',
     s => 'SELECT s.id, sa.name FROM staff_alias sa JOIN staff s ON s.aid = sa.aid WHERE s.id IN',
   };

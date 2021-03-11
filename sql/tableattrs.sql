@@ -59,10 +59,10 @@ ALTER TABLE staff_hist               ADD CONSTRAINT staff_hist_chid_fkey        
 ALTER TABLE staff_hist               ADD CONSTRAINT staff_hist_l_wikidata_fkey         FOREIGN KEY (l_wikidata)REFERENCES wikidata      (id);
 ALTER TABLE staff_alias              ADD CONSTRAINT staff_alias_id_fkey                FOREIGN KEY (id)        REFERENCES staff         (id);
 ALTER TABLE staff_alias_hist         ADD CONSTRAINT staff_alias_chid_fkey              FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
-ALTER TABLE tags                     ADD CONSTRAINT tags_addedby_fkey                  FOREIGN KEY (addedby)   REFERENCES users         (id) ON DELETE SET DEFAULT;
-ALTER TABLE tags_aliases             ADD CONSTRAINT tags_aliases_tag_fkey              FOREIGN KEY (tag)       REFERENCES tags          (id);
-ALTER TABLE tags_parents             ADD CONSTRAINT tags_parents_tag_fkey              FOREIGN KEY (tag)       REFERENCES tags          (id);
+ALTER TABLE tags_parents             ADD CONSTRAINT tags_parents_id_fkey               FOREIGN KEY (id)        REFERENCES tags          (id);
 ALTER TABLE tags_parents             ADD CONSTRAINT tags_parents_parent_fkey           FOREIGN KEY (parent)    REFERENCES tags          (id);
+ALTER TABLE tags_parents_hist        ADD CONSTRAINT tags_parents_hist_chid_fkey        FOREIGN KEY (chid)      REFERENCES changes       (id);
+ALTER TABLE tags_parents_hist        ADD CONSTRAINT tags_parents_hist_parent_fkey      FOREIGN KEY (parent)    REFERENCES tags          (id);
 ALTER TABLE tags_vn                  ADD CONSTRAINT tags_vn_tag_fkey                   FOREIGN KEY (tag)       REFERENCES tags          (id);
 ALTER TABLE tags_vn                  ADD CONSTRAINT tags_vn_vid_fkey                   FOREIGN KEY (vid)       REFERENCES vn            (id);
 ALTER TABLE tags_vn                  ADD CONSTRAINT tags_vn_uid_fkey                   FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE SET DEFAULT;

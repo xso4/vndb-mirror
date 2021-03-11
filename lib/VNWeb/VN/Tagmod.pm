@@ -7,7 +7,7 @@ my $FORM = {
     id    => { vndbid => 'v' },
     title => { _when => 'out' },
     tags  => { sort_keys => 'id', aoh => {
-        id        => { id => 1 },
+        id        => { vndbid => 'g' },
         vote      => { int => 1, enum => [ -3..3 ] },
         spoil     => { required => 0, uint => 1, enum => [ 0..2 ] },
         overrule  => { anybool => 1 },
@@ -19,7 +19,8 @@ my $FORM = {
         spoiler   => { _when => 'out', num => 1 },
         overruled => { _when => 'out', anybool => 1 },
         othnotes  => { _when => 'out' },
-        state     => { _when => 'out', uint => 1 },
+        hidden    => { _when => 'out', anybool => 1 },
+        locked    => { _when => 'out', anybool => 1 },
         applicable => { _when => 'out', anybool => 1 },
     } },
     mod   => { _when => 'out', anybool => 1 },
@@ -40,7 +41,7 @@ elm_api Tagmod => $FORM_OUT, $FORM_IN, sub {
     enrich_merge id => sql('
         SELECT tag AS id, 1 as exists FROM tags_vn WHERE vid =', \$id, '
         UNION
-        SELECT id, 1 as exists FROM tags WHERE state <> 1 AND applicable AND id IN'
+        SELECT id, 1 as exists FROM tags WHERE NOT (hidden AND locked) AND applicable AND id IN'
     ), $tags;
     $tags = [ grep $_->{exists}, @$tags ];
 
@@ -72,7 +73,7 @@ TUWF::get qr{/$RE{vid}/tagmod}, sub {
     return tuwf->resDenied if !auth->permTag;
 
     my $tags = tuwf->dbAlli('
-        SELECT t.id, t.name, t.cat, count(*) as count, t.state, t.applicable
+        SELECT t.id, t.name, t.cat, count(*) as count, t.hidden, t.locked, t.applicable
              , coalesce(avg(CASE WHEN tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) THEN NULL ELSE tv.vote END), 0) as rating
              , coalesce(avg(CASE WHEN tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) THEN NULL ELSE tv.spoiler END), t.defaultspoil) as spoiler
              , bool_or(tv.ignore) as overruled
