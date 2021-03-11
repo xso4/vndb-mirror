@@ -109,6 +109,7 @@ hash PLATFORM =>
     xb3 => 'Xbox 360',
     xbo => 'Xbox One',
     xxs => 'Xbox X/S',
+    mob => 'Other (mobile)',
     oth => 'Other';
 
 
