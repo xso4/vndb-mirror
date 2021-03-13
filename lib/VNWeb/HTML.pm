@@ -819,7 +819,7 @@ sub itemmsg_ {
     my($obj) = @_;
     p_ class => 'itemmsg', sub {
         if($obj->{id} !~ /^[dw]/) {
-            if($obj->{entry_locked}) {
+            if($obj->{entry_locked} && !$obj->{entry_hidden}) {
                 txt_ 'Locked for editing. ';
             } elsif(auth && !can_edit(($obj->{id} =~ /^(.)/), $obj)) {
                 txt_ 'You can not edit this page. ';
