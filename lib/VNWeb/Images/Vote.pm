@@ -49,7 +49,7 @@ elm_api Images => $SEND, { excl_voted => { anybool => 1 } }, sub {
          ORDER BY random() ^ (1.0/c_weight) DESC
          LIMIT', \30
     );
-    warn sprintf 'Weighted random image sampling query returned %d < 30 rows for u%d with a sample fraction of %f', scalar @$l, auth->uid(), $tablesample if @$l < 30;
+    warn sprintf 'Weighted random image sampling query returned %d < 30 rows for %s with a sample fraction of %f', scalar @$l, auth->uid(), $tablesample if @$l < 30;
     enrich_image 1, $l;
     elm_ImageResult $l;
 };

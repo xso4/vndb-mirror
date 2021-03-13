@@ -205,13 +205,15 @@ sub _dec_str {
     _unescape_str substr $s, $start, $$i-$start-1;
 }
 
+sub _substr { $_[1]+$_[2] <= length $_[0] ? substr $_[0], $_[1], $_[2] : undef }
+
 sub _dec_int {
     my($s, $i) = @_;
-    my $c1 = ($alpha{substr $s, $$i++, 1} // return);
+    my $c1 = ($alpha{_substr($s, $$i++, 1) // return} // return);
     return $c1 if $c1 < 49;
-    my $n = ($alpha{substr $s, $$i++, 1} // return);
+    my $n = ($alpha{_substr($s, $$i++, 1) // return} // return);
     return 49 + ($c1-49)*64 + $n if $c1 < 59;
-    $n = $n*64 + ($alpha{substr $s, $$i++, 1} // return) for (1..$c1-59+1);
+    $n = $n*64 + ($alpha{_substr($s, $$i++, 1) // return} // return) for (1..$c1-59+1);
     $n + (689, 4785, 266929, 17044145, 1090785969)[$c1-59]
 }
 
@@ -224,8 +226,8 @@ sub _dec_query {
     [ $c1, $ops[$op],
         $type == 0 ? (_dec_int($s, $i) // return) :
         $type == 1 ? (_dec_query($s, $i) // return) :
-        $type == 2 ? do { my $v = _unescape_str(substr $s, $$i, 2) // return; $$i += 2; $v } :
-        $type == 3 ? do { my $v = _unescape_str(substr $s, $$i, 3) // return; $$i += 3; $v } :
+        $type == 2 ? do { my $v = _unescape_str(_substr($s, $$i, 2) // return) // return; $$i += 2; $v } :
+        $type == 3 ? do { my $v = _unescape_str(_substr($s, $$i, 3) // return) // return; $$i += 3; $v } :
         $type == 4 ? (_dec_str($s, $i) // return) :
         $type == 5 ? [ _dec_int($s, $i) // return, _dec_int($s, $i) // return ] : undef ]
 }
