@@ -276,45 +276,35 @@ my $entry_types = do {
 #   id, chid, chrev, maxrev, hidden, locked, entry_hidden, entry_locked
 #
 # (Ordering of arrays is unspecified)
-#
-# TODO:
-# - Use non _hist tables if $maxrev == $rev (should be faster)
-# - Combine the enrich_merge() calls into a single query.
-# - Fixed ordering of arrays (use primary keys)
 sub db_entry {
     my($id, $rev) = @_;
     my $t = $entry_types->{ substr $id, 0, 1 }||die;
 
-    my $maxrev = tuwf->dbVali('SELECT MAX(rev) FROM changes WHERE itemid =', \$id);
-    return undef if !$maxrev;
-    $rev ||= $maxrev;
-    my $entry = tuwf->dbRowi(q{
-        SELECT itemid AS id, id AS chid, rev AS chrev, ihid AS hidden, ilock AS locked
-          FROM changes
-         WHERE}, { itemid => $id, rev => $rev }
+    my $entry = tuwf->dbRowi('
+        WITH maxrev (iid, maxrev) AS (SELECT itemid, MAX(rev) FROM changes WHERE itemid =', \$id, 'GROUP BY itemid)
+           , lastrev (entry_hidden, entry_locked) AS (SELECT ihid, ilock FROM maxrev, changes WHERE itemid = iid AND rev = maxrev)
+        SELECT itemid AS id, id AS chid, rev AS chrev, ihid AS hidden, ilock AS locked, maxrev, entry_hidden, entry_locked
+          FROM changes, maxrev, lastrev
+         WHERE itemid = iid AND rev = ', $rev ? \$rev : 'maxrev'
     );
     return undef if !$entry->{id};
-    $entry->{maxrev} = $maxrev;
 
-    if($maxrev == $rev) {
-        $entry->{entry_hidden} = $entry->{hidden};
-        $entry->{entry_locked} = $entry->{locked};
-    } else {
-        my $base = $t->{base}{name} =~ s/_hist$//r;
-        enrich_merge id => sql('SELECT id, hidden AS entry_hidden, locked AS entry_locked FROM', sql_identifier($base), 'WHERE id IN'), $entry;
+    # Fetch data from the main entry tables if rev == maxrev, from the _hist
+    # tables otherwise. This should improve caching a bit.
+    my sub data_table {
+        $entry->{chrev} == $entry->{maxrev} ? sql sql_identifier($_[0] =~ s/_hist$//r), 'WHERE id =', \$id
+                                            : sql sql_identifier($_[0]), 'WHERE chid =', \$entry->{chid}
     }
 
-    enrich_merge chid => sql(
-        SELECT => sql_comma(map sql_identifier($_->{name}), $t->{base}{cols}->@*),
-        FROM => sql_identifier($t->{base}{name}),
-        'WHERE chid IN'
-    ), $entry;
+    %$entry = (%$entry, tuwf->dbRowi(
+        SELECT => sql_comma(map sql_identifier($_->{name}), grep $_->{name} ne 'chid', $t->{base}{cols}->@*),
+        FROM   => data_table $t->{base}{name}
+    )->%*);
 
     while(my($name, $tbl) = each $t->{tables}->%*) {
         $entry->{$name} = tuwf->dbAlli(
             SELECT => sql_comma(map sql_identifier($_->{name}), grep $_->{name} ne 'chid', $tbl->{cols}->@*),
-            FROM => sql_identifier($tbl->{name}),
-            WHERE => { chid => $entry->{chid} }
+            FROM   => data_table($tbl->{name}),
         );
     }
     $entry
