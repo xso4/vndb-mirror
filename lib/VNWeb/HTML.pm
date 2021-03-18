@@ -356,7 +356,7 @@ sub _maintabs_subscribe_ {
            UNION SELECT 1+1 FROM reviews w, users u WHERE u.id =', \auth->uid, 'AND w.uid =', \auth->uid, 'AND w.id =', \$id, 'AND u.notify_comment
            ) x(x)')
 
-      : $id =~ /^[vrpcsdg]/ && auth->pref('notify_dbedit') && tuwf->dbVali('
+      : $id =~ /^[vrpcsdgi]/ && auth->pref('notify_dbedit') && tuwf->dbVali('
            SELECT 1 FROM changes WHERE itemid =', \$id, 'AND requester =', \auth->uid);
 
     my $sub = tuwf->dbRowi('SELECT subnum, subreview, subapply FROM notification_subs WHERE uid =', \auth->uid, 'AND iid =', \$id);
@@ -377,10 +377,11 @@ sub _maintabs_subscribe_ {
 
 sub _maintabs_ {
     my $opt = shift;
-    my($t, $o, $sel) = @{$opt}{qw/type dbobj tab/};
-    return if !$t || !$o;
+    my($o, $sel) = @{$opt}{qw/dbobj tab/};
+    return if !$o;
 
-    my $id = $o->{id} =~ /^[0-9]*$/ ? $t.$o->{id} : $o->{id};
+    my $id = $o->{id};
+    my($t) = $id =~ /^(.)/;
 
     my sub t {
         my($tabname, $url, $text) = @_;
@@ -418,7 +419,7 @@ sub _maintabs_ {
                 t disc => "/t/$id", "discussions ($cnt)";
             };
 
-            t hist => "/$id/hist", 'history' if $t =~ /[uvrpcsdg]/;
+            t hist => "/$id/hist", 'history' if $t =~ /[uvrpcsdgi]/;
             _maintabs_subscribe_ $o, $id;
         }
     }

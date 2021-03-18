@@ -58,7 +58,7 @@ use VNDB::Schema;
 my %tables = (
     anime               => { where => 'id IN(SELECT va.aid FROM vn_anime va JOIN vn v ON v.id = va.id WHERE NOT v.hidden)' },
     chars               => { where => 'NOT hidden' },
-    chars_traits        => { where => 'id IN(SELECT id FROM chars WHERE NOT hidden) AND tid IN(SELECT id FROM traits WHERE state = 2)' },
+    chars_traits        => { where => 'id IN(SELECT id FROM chars WHERE NOT hidden) AND tid IN(SELECT id FROM traits WHERE NOT hidden)' },
     chars_vns           => { where => 'id IN(SELECT id FROM chars WHERE NOT hidden)'
                                 .' AND vid IN(SELECT id FROM vn WHERE NOT hidden)'
                                 .' AND (rid IS NULL OR rid IN(SELECT id FROM releases WHERE NOT hidden))'
@@ -86,8 +86,8 @@ my %tables = (
     tags                => { where => 'NOT hidden' },
     tags_parents        => { where => 'id IN(SELECT id FROM tags WHERE NOT hidden)' },
     tags_vn             => { where => 'tag IN(SELECT id FROM tags WHERE NOT hidden) AND vid IN(SELECT id FROM vn WHERE NOT hidden)', order => 'tag, vid, uid, date' },
-    traits              => { where => 'state = 2' },
-    traits_parents      => { where => 'trait IN(SELECT id FROM traits WHERE state = 2)' },
+    traits              => { where => 'NOT hidden' },
+    traits_parents      => { where => 'trait IN(SELECT id FROM traits WHERE NOT hidden)' },
     ulist_labels        => { where => 'NOT private AND EXISTS(SELECT 1 FROM ulist_vns_labels uvl WHERE uvl.lbl = id AND ulist_labels.uid = uvl.uid)' },
     ulist_vns           => { where => 'vid IN(SELECT id FROM vn WHERE NOT hidden)'
                                 .' AND EXISTS(SELECT 1 FROM ulist_vns_labels uvl'
@@ -377,9 +377,9 @@ sub export_traits {
     require PerlIO::gzip;
 
     my $lst = $db->selectall_arrayref(q{
-        SELECT id, name, alias AS aliases, description, searchable, applicable, c_items AS chars,
-               (SELECT string_agg(parent::text, ',') FROM traits_parents WHERE trait = id) AS parents
-        FROM traits WHERE state = 2 ORDER BY id
+        SELECT vndbid_num(id) AS id, name, alias AS aliases, description, searchable, applicable, c_items AS chars,
+               (SELECT string_agg(vndbid_num(parent)::text, ',') FROM traits_parents tp WHERE tp.id = t.id) AS parents
+        FROM traits t WHERE NOT hidden ORDER BY id
     }, { Slice => {} });
     for(@$lst) {
       $_->{id} *= 1;

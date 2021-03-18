@@ -84,6 +84,7 @@ CREATE SEQUENCE reviews_seq;
 CREATE SEQUENCE screenshots_seq;
 CREATE SEQUENCE staff_id_seq;
 CREATE SEQUENCE tags_id_seq;
+CREATE SEQUENCE traits_id_seq;
 CREATE SEQUENCE threads_id_seq;
 CREATE SEQUENCE vn_id_seq;
 CREATE SEQUENCE users_id_seq;
@@ -180,7 +181,7 @@ CREATE TABLE chars_hist (
 -- chars_traits
 CREATE TABLE chars_traits (
   id         vndbid NOT NULL, -- [pub]
-  tid        integer NOT NULL, -- [pub] traits.id
+  tid        vndbid NOT NULL, -- [pub] traits.id
   spoil      smallint NOT NULL DEFAULT 0, -- [pub]
   PRIMARY KEY(id, tid)
 );
@@ -188,7 +189,7 @@ CREATE TABLE chars_traits (
 -- chars_traits_hist
 CREATE TABLE chars_traits_hist (
   chid       integer NOT NULL,
-  tid        integer NOT NULL, -- traits.id
+  tid        vndbid NOT NULL, -- traits.id
   spoil      smallint NOT NULL DEFAULT 0,
   PRIMARY KEY(chid, tid)
 );
@@ -841,9 +842,9 @@ CREATE TABLE trace_log (
 );
 
 -- traits
-CREATE TABLE traits (
-  id            SERIAL PRIMARY KEY, -- [pub]
-  "group"       integer, -- [pub]
+CREATE TABLE traits ( -- dbentry_type=i
+  id            vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('i', nextval('traits_id_seq')::int) CONSTRAINT traits_id_check CHECK(vndbid_type(id) = 'i'), -- [pub]
+  "group"       vndbid, -- [pub]
   added         timestamptz NOT NULL DEFAULT NOW(),
   addedby       vndbid,
   c_items       integer NOT NULL DEFAULT 0,
@@ -853,9 +854,24 @@ CREATE TABLE traits (
   sexual        boolean NOT NULL DEFAULT false, -- [pub]
   searchable    boolean NOT NULL DEFAULT true, -- [pub]
   applicable    boolean NOT NULL DEFAULT true, -- [pub]
-  name          varchar(250) NOT NULL, -- [pub]
+  name          varchar(250) NOT NULL DEFAULT '', -- [pub]
   alias         varchar(500) NOT NULL DEFAULT '', -- [pub]
-  description   text NOT NULL DEFAULT '' -- [pub]
+  description   text NOT NULL DEFAULT '', -- [pub]
+  hidden        boolean NOT NULL DEFAULT TRUE,
+  locked        boolean NOT NULL DEFAULT FALSE
+);
+
+-- traits_hist
+CREATE TABLE traits_hist (
+  chid          integer NOT NULL,
+  "order"       smallint NOT NULL DEFAULT 0,
+  defaultspoil  smallint NOT NULL DEFAULT 0,
+  sexual        boolean NOT NULL DEFAULT false,
+  searchable    boolean NOT NULL DEFAULT true,
+  applicable    boolean NOT NULL DEFAULT true,
+  name          varchar(250) NOT NULL DEFAULT '',
+  alias         varchar(500) NOT NULL DEFAULT '',
+  description   text NOT NULL DEFAULT ''
 );
 
 -- traits_chars
@@ -864,15 +880,22 @@ CREATE TABLE traits (
 -- key constraints on this table.
 CREATE TABLE traits_chars (
   cid    vndbid NOT NULL,  -- chars (id)
-  tid    integer NOT NULL,  -- traits (id)
+  tid    vndbid NOT NULL,  -- traits (id)
   spoil  smallint NOT NULL DEFAULT 0
 );
 
 -- traits_parents
 CREATE TABLE traits_parents (
-  trait    integer NOT NULL, -- [pub]
-  parent   integer NOT NULL, -- [pub]
-  PRIMARY KEY(trait, parent)
+  id       vndbid NOT NULL, -- [pub]
+  parent   vndbid NOT NULL, -- [pub]
+  PRIMARY KEY(id, parent)
+);
+
+-- traits_parents_hist
+CREATE TABLE traits_parents_hist (
+  chid     integer NOT NULL,
+  parent   vndbid NOT NULL,
+  PRIMARY KEY(chid, parent)
 );
 
 -- ulist_labels

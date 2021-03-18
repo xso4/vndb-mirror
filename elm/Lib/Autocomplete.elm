@@ -94,7 +94,7 @@ boardSource =
   }
 
 
-tagStatus i =
+ttStatus i =
   case ((i.hidden, i.locked), i.searchable, i.applicable) of
     ((True, False), _,     _    ) -> b [ class "grayedout" ] [ text " (awaiting approval)" ]
     ((True, True ), _,     _    ) -> b [ class "grayedout" ] [ text " (deleted)" ] -- (not returned by the API for now)
@@ -110,19 +110,9 @@ tagSource =
     <| \x -> case x of
       GApi.TagResult e -> Just e
       _ -> Nothing
-  , view    = \i -> [ text i.name, tagStatus i ]
+  , view    = \i -> [ text i.name, ttStatus i ]
   , key     = \i -> i.id
   }
-
-
-traitStatus i =
-  case (i.searchable, i.applicable, i.state) of
-    (_,     _,     0) -> b [ class "grayedout" ] [ text " (awaiting approval)" ]
-    (_,     _,     1) -> b [ class "grayedout" ] [ text " (deleted)" ] -- (not returned by the API for now)
-    (False, False, _) -> b [ class "grayedout" ] [ text " (meta)" ]
-    (True,  False, _) -> b [ class "grayedout" ] [ text " (not applicable)" ]
-    (False, True,  _) -> b [ class "grayedout" ] [ text " (not searchable)" ]
-    _ -> text ""
 
 
 traitSource : SourceConfig m GApi.ApiTraitResult
@@ -136,9 +126,9 @@ traitSource =
         Nothing -> text ""
         Just g -> b [ class "grayedout" ] [ text <| g ++ " / " ]
     , text i.name
-    , traitStatus i
+    , ttStatus i
     ]
-  , key     = \i -> String.fromInt i.id
+  , key     = \i -> i.id
   }
 
 

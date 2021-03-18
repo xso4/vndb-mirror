@@ -48,7 +48,6 @@ my $images = $db->selectcol_arrayref(q{
 sub copy {
     my($dest, $sql, $specials) = @_;
 
-    warn $dest;
     $sql ||= "SELECT * FROM $dest";
     $specials ||= {};
 
@@ -125,8 +124,7 @@ sub copy_entry {
 
     # Tags & traits
     copy_entry [qw/tags tags_parents/], $db->selectcol_arrayref('SELECT id FROM tags');
-    copy traits => undef, {addedby => 'user'};
-    copy 'traits_parents';
+    copy_entry [qw/traits traits_parents/], $db->selectcol_arrayref('SELECT id FROM traits');
 
     # Wikidata (TODO: This could be a lot more selective)
     copy 'wikidata';

@@ -80,7 +80,7 @@ view model =
           "w" -> text " Disable notifications only for this review."
           _   -> text " Disable edit notifications only for this entry."
       ]
-    , if t == "i" then text "" else label []
+    , label []
       [ inputCheck "" (dat.subnum == Just True) (SubNum True)
       , case t of
           "t" -> text " Enable notifications for new replies"

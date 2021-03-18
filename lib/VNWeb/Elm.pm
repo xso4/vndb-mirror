@@ -90,13 +90,14 @@ our %apis = (
         locked       => { anybool => 1 },
     } } ],
     TraitResult    => [ { aoh => { # Response to 'Traits'
-        id           => { id => 1 },
+        id           => { vndbid => 'i' },
         name         => {},
         searchable   => { anybool => 1 },
         applicable   => { anybool => 1 },
-        state        => { int => 1 },
         defaultspoil => { uint => 1 },
-        group_id     => { required => 0, uint => 1 },
+        hidden       => { anybool => 1 },
+        locked       => { anybool => 1 },
+        group_id     => { required => 0, vndbid => 'i' },
         group_name   => { required => 0 },
     } } ],
     VNResult       => [ { aoh => { # Response to 'VN'

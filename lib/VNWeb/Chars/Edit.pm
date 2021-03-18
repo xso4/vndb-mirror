@@ -30,11 +30,12 @@ my $FORM = {
     image      => { required => 0, vndbid => 'ch' },
     image_info => { _when => 'out', required => 0, type => 'hash', keys => $VNWeb::Elm::apis{ImageResult}[0]{aoh} },
     traits     => { sort_keys => 'id', aoh => {
-        tid     => { id => 1 },
+        tid     => { vndbid => 'i' },
         spoil   => { uint => 1, range => [0,2] },
         name    => { _when => 'out' },
         group   => { _when => 'out', required => 0 },
-        state   => { _when => 'out', uint => 1 },
+        hidden  => { _when => 'out', anybool => 1 },
+        locked  => { _when => 'out', anybool => 1 },
         applicable => { _when => 'out', anybool => 1 },
         new     => { _when => 'out', anybool => 1 },
     } },
@@ -69,7 +70,7 @@ TUWF::get qr{/$RE{crev}/(?<action>edit|copy)} => sub {
     $e->{main_name} = $e->{main} ? tuwf->dbVali('SELECT name FROM chars WHERE id =', \$e->{main}) : '';
     $e->{main_ref} = tuwf->dbVali('SELECT 1 FROM chars WHERE main =', \$e->{id})||0;
 
-    enrich_merge tid => 'SELECT t.id AS tid, t.name, t.state, t.applicable, g.name AS group, g.order AS order, false AS new FROM traits t LEFT JOIN traits g ON g.id = t.group WHERE t.id IN', $e->{traits};
+    enrich_merge tid => 'SELECT t.id AS tid, t.name, t.hidden, t.locked, t.applicable, g.name AS group, g.order AS order, false AS new FROM traits t LEFT JOIN traits g ON g.id = t.group WHERE t.id IN', $e->{traits};
     $e->{traits} = [ sort { ($a->{order}//99) <=> ($b->{order}//99) || $a->{name} cmp $b->{name} } grep !$copy || $_->{applicable}, $e->{traits}->@* ];
 
     enrich_merge vid => 'SELECT id AS vid, title FROM vn WHERE id IN', $e->{vns};
@@ -138,7 +139,7 @@ elm_api CharEdit => $FORM_OUT, $FORM_IN, sub {
 
     # Allow non-applicable or non-approved traits only when they were already applied to this character.
     validate_dbid
-        sql('SELECT id FROM traits t WHERE ((state = 1+1 AND applicable) OR EXISTS(SELECT 1 FROM chars_traits ct WHERE ct.tid = t.id AND ct.id =', \$e->{id}, ')) AND id IN'),
+        sql('SELECT id FROM traits t WHERE ((NOT hidden AND applicable) OR EXISTS(SELECT 1 FROM chars_traits ct WHERE ct.tid = t.id AND ct.id =', \$e->{id}, ')) AND id IN'),
         map $_->{tid}, $data->{traits}->@*;
 
     validate_dbid 'SELECT id FROM vn WHERE id IN', map $_->{vid}, $data->{vns}->@*;

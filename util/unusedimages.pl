@@ -59,7 +59,9 @@ sub cleandb {
                 UNION ALL SELECT "desc" FROM staff
                 UNION ALL SELECT "desc" FROM staff_hist
                 UNION ALL SELECT description FROM tags
+                UNION ALL SELECT description FROM tags_hist
                 UNION ALL SELECT description FROM traits
+                UNION ALL SELECT description FROM traits_hist
                 UNION ALL SELECT comments FROM changes
                 UNION ALL SELECT msg FROM threads_posts
                 UNION ALL SELECT msg FROM reviews_posts

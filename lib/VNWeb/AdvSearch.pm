@@ -601,7 +601,7 @@ sub _sql_where_trait {
     for my $s (keys %f) {
         push @l, sql_and
             $s < 2 ? sql('spoil <=', \$s) : (),
-            sql('tid IN', [ map s/^.//r, $f{$s}->@* ]);
+            sql('tid IN', $f{$s});
     }
     sql 'c.id', $neg ? 'NOT' : (), 'IN(SELECT cid FROM traits_chars WHERE', sql_or(@l), $all && @$val > 1 ? ('GROUP BY cid HAVING COUNT(tid) =', \scalar @$val) : (), ')'
 }
@@ -740,8 +740,8 @@ sub elm_search_query {
     $o{tags} = [ map +{id => $_}, grep /^g/, keys %ids ];
     enrich_merge id => 'SELECT id, name, searchable, applicable, hidden, locked FROM tags WHERE id IN', $o{tags};
 
-    $o{traits} = [ map +{id => $_=~s/^i//rg}, grep /^i/, keys %ids ];
-    enrich_merge id => 'SELECT t.id, t.name, t.searchable, t.applicable, t.defaultspoil, t.state, g.id AS group_id, g.name AS group_name
+    $o{traits} = [ map +{id => $_}, grep /^i/, keys %ids ];
+    enrich_merge id => 'SELECT t.id, t.name, t.searchable, t.applicable, t.defaultspoil, t.hidden, t.locked, g.id AS group_id, g.name AS group_name
                           FROM traits t LEFT JOIN traits g ON g.id = t.group WHERE t.id IN', $o{traits};
 
     $o{anime} = [ map +{id => $_=~s/^anime//rg}, grep /^anime/, keys %ids ];

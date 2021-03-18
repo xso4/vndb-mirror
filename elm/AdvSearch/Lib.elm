@@ -179,6 +179,6 @@ type alias Data =
   , producers    : Dict.Dict String GApi.ApiProducerResult
   , staff        : Dict.Dict String GApi.ApiStaffResult
   , tags         : Dict.Dict String GApi.ApiTagResult
-  , traits       : Dict.Dict Int GApi.ApiTraitResult
+  , traits       : Dict.Dict String GApi.ApiTraitResult
   , anime        : Dict.Dict Int GApi.ApiAnimeResult
   }

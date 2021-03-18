@@ -10,14 +10,14 @@ sub chars_ {
 
     my $max_spoil = max(
         map max(
-            (map $_->{spoil}, $_->{traits}->@*),
+            (map $_->{spoil}, grep !$_->{hidden}, $_->{traits}->@*),
             (map $_->{spoil}, $_->{vns}->@*),
             defined $_->{spoil_gender} ? 2 : 0,
             $_->{desc} =~ /\[spoiler\]/i ? 2 : 0,
         ), @$chars
     );
     $chars = [ grep +grep($_->{spoil} <= $view->{spoilers}, $_->{vns}->@*), @$chars ];
-    my $has_sex = grep $_->{spoil} <= $view->{spoilers} && $_->{sexual}, map $_->{traits}->@*, @$chars;
+    my $has_sex = grep !$_->{hidden} && $_->{spoil} <= $view->{spoilers} && $_->{sexual}, map $_->{traits}->@*, @$chars;
 
     my %done;
     my $first = 0;

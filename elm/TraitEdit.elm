@@ -10,6 +10,7 @@ import Lib.Api as Api
 import Lib.Util exposing (..)
 import Lib.Autocomplete as A
 import Lib.Ffi as Ffi
+import Lib.Editsum as Editsum
 import Gen.Api as GApi
 import Gen.TraitEdit as GTE
 
@@ -24,11 +25,11 @@ main = Browser.element
 
 
 type alias Model =
-  { formstate    : Api.State
-  , id           : Maybe Int
+  { state        : Api.State
+  , editsum      : Editsum.Model
+  , id           : Maybe String
   , name         : String
   , alias        : String
-  , state        : Int
   , sexual       : Bool
   , description  : TP.Model
   , searchable   : Bool
@@ -37,19 +38,17 @@ type alias Model =
   , parents      : List GTE.RecvParents
   , parentAdd    : A.Model GApi.ApiTraitResult
   , order        : Int
-  , addedby      : String
-  , canMod       : Bool
   , dupNames     : List GApi.ApiDupNames
   }
 
 
 init : GTE.Recv -> Model
 init d =
-  { formstate    = Api.Normal
+  { state        = Api.Normal
+  , editsum      = { authmod = d.authmod, editsum = TP.bbcode d.editsum, locked = d.locked, hidden = d.hidden, hasawait = True }
   , id           = d.id
   , name         = d.name
   , alias        = d.alias
-  , state        = d.state
   , sexual       = d.sexual
   , description  = TP.bbcode d.description
   , searchable   = d.searchable
@@ -58,8 +57,6 @@ init d =
   , parents      = d.parents
   , parentAdd    = A.init ""
   , order        = d.order
-  , addedby      = d.addedby
-  , canMod       = d.can_mod
   , dupNames     = []
   }
 
@@ -80,15 +77,17 @@ parentConfig = { wrap = ParentSearch, id = "parentadd", source = A.traitSource }
 encode : Model -> GTE.Send
 encode m =
   { id           = m.id
+  , editsum      = m.editsum.editsum.data
+  , hidden       = m.editsum.hidden
+  , locked       = m.editsum.locked
   , name         = m.name
   , alias        = m.alias
-  , state        = m.state
   , sexual       = m.sexual
   , description  = m.description.data
   , searchable   = m.searchable
   , applicable   = m.applicable
   , defaultspoil = m.defaultspoil
-  , parents      = List.map (\l -> {id=l.id}) m.parents
+  , parents      = List.map (\l -> {parent=l.parent}) m.parents
   , order        = m.order
   }
 
@@ -96,12 +95,12 @@ encode m =
 type Msg
   = Name String
   | Alias String
-  | State Int
   | Searchable Bool
   | Applicable Bool
   | Sexual Bool
   | DefaultSpoil Int
   | Description TP.Msg
+  | Editsum Editsum.Msg
   | ParentDel Int
   | ParentSearch (A.Msg GApi.ApiTraitResult)
   | Order String
@@ -114,13 +113,13 @@ update msg model =
   case msg of
     Name s        -> ({ model | name = s }, Cmd.none)
     Alias s       -> ({ model | alias = String.replace "," "\n" s }, Cmd.none)
-    State n       -> ({ model | state = n }, Cmd.none)
     Searchable b  -> ({ model | searchable = b }, Cmd.none)
     Applicable b  -> ({ model | applicable = b }, Cmd.none)
     Sexual b      -> ({ model | sexual = b }, Cmd.none)
     DefaultSpoil n-> ({ model | defaultspoil = n }, Cmd.none)
     Order s       -> ({ model | order = Maybe.withDefault 0 (String.toInt s) }, Cmd.none)
     Description m -> let (nm,nc) = TP.update m model.description in ({ model | description = nm }, Cmd.map Description nc)
+    Editsum m     -> let (nm,nc) = Editsum.update m model.editsum in ({ model | editsum = nm }, Cmd.map Editsum nc)
 
     ParentDel i   -> ({ model | parents = delidx i model.parents }, Cmd.none)
     ParentSearch m ->
@@ -128,25 +127,23 @@ update msg model =
       in case res of
         Nothing -> ({ model | parentAdd = nm }, c)
         Just p  ->
-          if List.any (\e -> e.id == p.id) model.parents
+          if List.any (\e -> e.parent == p.id) model.parents
           then ({ model | parentAdd = nm }, c)
-          else ({ model | parentAdd = A.clear nm "", parents = model.parents ++ [{ id = p.id, name = p.name, group = p.group_name }] }, c)
+          else ({ model | parentAdd = A.clear nm "", parents = model.parents ++ [{ parent = p.id, name = p.name, group = p.group_name }] }, c)
 
-    Submit -> ({ model | formstate = Api.Loading }, GTE.send (encode model) Submitted)
-    Submitted (GApi.DupNames l) -> ({ model | dupNames = l, formstate = Api.Normal }, Cmd.none)
+    Submit -> ({ model | state = Api.Loading }, GTE.send (encode model) Submitted)
+    Submitted (GApi.DupNames l) -> ({ model | dupNames = l, state = Api.Normal }, Cmd.none)
     Submitted (GApi.Redirect s) -> (model, load s)
-    Submitted r -> ({ model | formstate = Api.Error r }, Cmd.none)
+    Submitted r -> ({ model | state = Api.Error r }, Cmd.none)
 
 
 view : Model -> Html Msg
 view model =
-  form_ "" Submit (model.formstate == Api.Loading)
+  form_ "" Submit (model.state == Api.Loading)
   [ div [ class "mainbox" ]
     [ h1 [] [ text <| if model.id == Nothing then "Submit new trait" else "Edit trait" ]
     , table [ class "formtable" ]
-      [ if model.id == Nothing then text "" else
-        formField "Added by" [ span [ Ffi.innerHtml model.addedby ] [], br_ 2 ]
-      , formField "name::Primary name" [ inputText "name" model.name Name GTE.valName ]
+      [ formField "name::Primary name" [ inputText "name" model.name Name GTE.valName ]
       , formField "alias::Aliases"
         -- BUG: Textarea doesn't validate the maxlength and patterns for aliases, we don't have a client-side fallback check either.
         [ inputTextArea "alias" model.alias Alias []
@@ -161,17 +158,8 @@ view model =
              ]
         ]
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "" ] ]
-      , if not model.canMod then text "" else
-        formField "state::State" [ inputSelect "state" model.state State GTE.valState
-          [ (0, "Awaiting Moderation")
-          , (1, "Deleted/hidden")
-          , (2, "Approved")
-          ]
-        ]
-      , if not model.canMod then text "" else
-        formField "" [ label [] [ inputCheck "" model.searchable Searchable, text " Searchable (people can use this trait to find characters)" ] ]
-      , if not model.canMod then text "" else
-        formField "" [ label [] [ inputCheck "" model.applicable Applicable, text " Applicable (people can apply this trait to characters)" ] ]
+      , formField "" [ label [] [ inputCheck "" model.searchable Searchable, text " Searchable (people can use this trait to find characters)" ] ]
+      , formField "" [ label [] [ inputCheck "" model.applicable Applicable, text " Applicable (people can apply this trait to characters)" ] ]
       , formField "" [ label [] [ inputCheck "" model.sexual Sexual, text " Indicates sexual content" ] ]
       , formField "defaultspoil::Default spoiler level" [ inputSelect "defaultspoil" model.defaultspoil DefaultSpoil GTE.valDefaultspoil 
         [ (0, "No spoiler")
@@ -186,10 +174,10 @@ view model =
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "" ] ]
       , formField "Parent traits"
         [ table [ class "compact" ] <| List.indexedMap (\i p -> tr []
-            [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| "i" ++ String.fromInt p.id ++ ":" ] ]
+            [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| p.parent ++ ":" ] ]
             , td []
               [ Maybe.withDefault (text "") <| Maybe.map (\g -> b [ class "grayedout" ] [ text (g ++ " / ") ]) p.group
-              , a [ href <| "/i" ++ String.fromInt p.id ] [ text p.name ]
+              , a [ href <| "/" ++ p.parent ] [ text p.name ]
               ]
             , td [] [ inputButton "remove" (ParentDel i) [] ]
             ]
@@ -204,6 +192,9 @@ view model =
         ]
       ]
     ]
-  , div [ class "mainbox" ]
-    [ fieldset [ class "submit" ] [ submitButton "Submit" model.formstate (isValid model) ] ]
+  , div [ class "mainbox" ] [ fieldset [ class "submit" ]
+      [ Html.map Editsum (Editsum.view model.editsum)
+      , submitButton "Submit" model.state (isValid model)
+      ]
+    ]
   ]

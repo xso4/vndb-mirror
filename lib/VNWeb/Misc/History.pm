@@ -42,6 +42,7 @@ sub fetch {
             UNION ALL SELECT chid, title, '' AS original FROM docs_hist
             UNION ALL SELECT sh.chid, name, original FROM staff_hist sh JOIN staff_alias_hist sah ON sah.chid = sh.chid AND sah.aid = sh.aid
             UNION ALL SELECT chid, name, '' AS original FROM tags_hist
+            UNION ALL SELECT chid, name, '' AS original FROM traits_hist
                 ) t(id, title, original)
         WHERE id IN}), $lst;
     ($lst, $np)
@@ -96,6 +97,7 @@ sub filters_ {
         [ p => 'Producers' ],
         [ s => 'Staff' ],
         [ c => 'Characters' ],
+        [ i => 'Traits' ],
         [ d => 'Docs' ],
     );
 
@@ -163,7 +165,7 @@ sub filters_ {
 }
 
 
-TUWF::get qr{/(?:([upvrcsdg][1-9][0-9]{0,6})/)?hist} => sub {
+TUWF::get qr{/(?:([upvrcsdgi][1-9][0-9]{0,6})/)?hist} => sub {
     my $id = tuwf->capture(1)||'';
     my $obj = dbobj $id;
 

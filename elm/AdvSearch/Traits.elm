@@ -49,7 +49,7 @@ update dat msg model =
           Nothing -> (dat, { model | search = nm }, c)
           Just t ->
             ( { dat | traits = Dict.insert t.id t dat.traits }
-            , { model | search = A.clear nm "", sel = S.update (S.Sel t.id True) model.sel }
+            , { model | search = A.clear nm "", sel = S.update (S.Sel (vndbidNum t.id) True) model.sel }
             , c )
 
 
@@ -78,7 +78,7 @@ view dat model =
       [s] -> span [ class "nowrap" ]
              [ S.lblPrefix model.sel
              , b [ class "grayedout" ] [ text <| "i" ++ String.fromInt s ++ ":" ]
-             , Dict.get s dat.traits |> Maybe.map (\t -> t.name) |> Maybe.withDefault "" |> text
+             , Dict.get (vndbid 'i' s) dat.traits |> Maybe.map (\t -> t.name) |> Maybe.withDefault "" |> text
              ]
       l   -> span [] [ S.lblPrefix model.sel, text <| "Traits (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
@@ -95,9 +95,9 @@ view dat model =
         li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ]
         [ inputButton "X" (Sel (S.Sel t False)) []
         , b [ class "grayedout" ] [ text <| " i" ++ String.fromInt t ++ ": " ]
-        , Dict.get t dat.traits |> Maybe.map (\e -> span []
+        , Dict.get (vndbid 'i' t) dat.traits |> Maybe.map (\e -> span []
           [ Maybe.withDefault (text "") <| Maybe.map (\g -> b [ class "grayedout" ] [ text (g ++ " / ") ]) e.group_name
-          , a [ href ("/i" ++ String.fromInt t), target "_blank", style "display" "inline" ] [ text e.name ] ]) |> Maybe.withDefault (text "")
+          , a [ href ("/" ++ e.id), target "_blank", style "display" "inline" ] [ text e.name ] ]) |> Maybe.withDefault (text "")
         ]
       ) (Set.toList model.sel.sel)
     , A.view model.conf model.search [ placeholder "Search..." ]

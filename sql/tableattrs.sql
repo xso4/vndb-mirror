@@ -59,6 +59,7 @@ ALTER TABLE staff_hist               ADD CONSTRAINT staff_hist_chid_fkey        
 ALTER TABLE staff_hist               ADD CONSTRAINT staff_hist_l_wikidata_fkey         FOREIGN KEY (l_wikidata)REFERENCES wikidata      (id);
 ALTER TABLE staff_alias              ADD CONSTRAINT staff_alias_id_fkey                FOREIGN KEY (id)        REFERENCES staff         (id);
 ALTER TABLE staff_alias_hist         ADD CONSTRAINT staff_alias_chid_fkey              FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
+ALTER TABLE tags_hist                ADD CONSTRAINT tags_hist_chid_fkey                FOREIGN KEY (chid)      REFERENCES changes       (id);
 ALTER TABLE tags_parents             ADD CONSTRAINT tags_parents_id_fkey               FOREIGN KEY (id)        REFERENCES tags          (id);
 ALTER TABLE tags_parents             ADD CONSTRAINT tags_parents_parent_fkey           FOREIGN KEY (parent)    REFERENCES tags          (id);
 ALTER TABLE tags_parents_hist        ADD CONSTRAINT tags_parents_hist_chid_fkey        FOREIGN KEY (chid)      REFERENCES changes       (id);
@@ -72,10 +73,12 @@ ALTER TABLE threads_poll_votes       ADD CONSTRAINT threads_poll_votes_optid_fke
 ALTER TABLE threads_posts            ADD CONSTRAINT threads_posts_tid_fkey             FOREIGN KEY (tid)       REFERENCES threads       (id) ON DELETE CASCADE;
 ALTER TABLE threads_posts            ADD CONSTRAINT threads_posts_uid_fkey             FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE SET DEFAULT;
 ALTER TABLE threads_boards           ADD CONSTRAINT threads_boards_tid_fkey            FOREIGN KEY (tid)       REFERENCES threads       (id) ON DELETE CASCADE;
-ALTER TABLE traits                   ADD CONSTRAINT traits_addedby_fkey                FOREIGN KEY (addedby)   REFERENCES users         (id) ON DELETE SET DEFAULT;
 ALTER TABLE traits                   ADD CONSTRAINT traits_group_fkey                  FOREIGN KEY ("group")   REFERENCES traits        (id);
-ALTER TABLE traits_parents           ADD CONSTRAINT traits_parents_trait_fkey          FOREIGN KEY (trait)     REFERENCES traits        (id);
+ALTER TABLE traits_hist              ADD CONSTRAINT traits_hist_chid_fkey              FOREIGN KEY (chid)      REFERENCES changes       (id);
+ALTER TABLE traits_parents           ADD CONSTRAINT traits_parents_id_fkey             FOREIGN KEY (id)        REFERENCES traits        (id);
 ALTER TABLE traits_parents           ADD CONSTRAINT traits_parents_parent_fkey         FOREIGN KEY (parent)    REFERENCES traits        (id);
+ALTER TABLE traits_parents_hist      ADD CONSTRAINT traits_parents_hist_chid_fkey      FOREIGN KEY (chid)      REFERENCES changes       (id);
+ALTER TABLE traits_parents_hist      ADD CONSTRAINT traits_parents_hist_parent_fkey    FOREIGN KEY (parent)    REFERENCES traits        (id);
 ALTER TABLE ulist_labels             ADD CONSTRAINT ulist_labels_uid_fkey              FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE CASCADE;
 ALTER TABLE ulist_vns                ADD CONSTRAINT ulist_vns_uid_fkey                 FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE CASCADE;
 ALTER TABLE ulist_vns                ADD CONSTRAINT ulist_vns_vid_fkey                 FOREIGN KEY (vid)       REFERENCES vn            (id);

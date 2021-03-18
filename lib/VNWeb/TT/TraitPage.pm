@@ -7,12 +7,31 @@ use VNWeb::Images::Lib;
 use VNWeb::TT::Lib 'tree_', 'parents_';
 
 
+sub rev_ {
+    my($t) = @_;
+    sub enrich_item {
+        enrich_merge parent => 'SELECT id AS parent, name FROM traits WHERE id IN', $_[0]{parents};
+    }
+    enrich_item $t;
+    revision_ $t, \&enrich_item,
+        [ name         => 'Name'           ],
+        [ alias        => 'Aliases'        ],
+        [ description  => 'Description'    ],
+        [ sexual       => 'Sexual content',fmt => 'bool' ],
+        [ searchable   => 'Searchable',    fmt => 'bool' ],
+        [ applicable   => 'Applicable',    fmt => 'bool' ],
+        [ defaultspoil => 'Default spoiler level' ],
+        [ order        => 'Sort order'     ],
+        [ parents      => 'Parent traits', fmt => sub { a_ href => "/$_->{parent}", $_->{name}; } ];
+}
+
+
 sub infobox_ {
     my($t) = @_;
 
     p_ class => 'mainopts', sub {
-        a_ href => "/i$t->{id}/add", 'Create child trait';
-    } if $t->{state} != 1 && can_edit i => {};
+        a_ href => "/$t->{id}/add", 'Create child trait';
+    } if !$t->{hidden} && can_edit i => {};
     h1_ "Trait: $t->{name}";
     debug_ $t;
 
@@ -25,12 +44,12 @@ sub infobox_ {
             a_ href => '/t/db', 'discussion board';
             txt_ ' if you disagree with this.';
         }
-    } if $t->{state} == 1;
+    } if $t->{hidden} && $t->{locked};
 
     div_ class => 'notice', sub {
         h2_ 'Waiting for approval';
         p_ 'This trait is waiting for a moderator to approve it.';
-    } if $t->{state} == 0;
+    } if $t->{hidden} && !$t->{locked};
 
     parents_ i => $t;
 
@@ -74,7 +93,7 @@ sub chars_ {
         my $q = eval {
             my $f = filter_parse c => $opt->{fil};
             # Old URLs often had the trait ID as part of the filter, let's remove that.
-            $f->{trait_inc} = [ grep $_ != $t->{id}, $f->{trait_inc}->@* ] if $f->{trait_inc};
+            $f->{trait_inc} = [ grep "i$_" ne $t->{id}, $f->{trait_inc}->@* ] if $f->{trait_inc};
             delete $f->{trait_inc} if $f->{trait_inc} && !$f->{trait_inc}->@*;
             $f = filter_char_adv $f;
             tuwf->compile({ advsearch => 'c' })->validate(@$f > 1 ? $f : undef)->data;
@@ -103,7 +122,7 @@ sub chars_ {
     enrich_image_obj image => $list if !$opt->{s}->rows;
     $time = time - $time;
 
-    form_ action => "/i$t->{id}", method => 'get', sub {
+    form_ action => "/$t->{id}", method => 'get', sub {
         div_ class => 'mainbox', sub {
             h1_ 'Characters';
             p_ class => 'browseopts', sub {
@@ -120,14 +139,15 @@ sub chars_ {
 }
 
 
-TUWF::get qr{/$RE{iid}}, sub {
-    my $t = tuwf->dbRowi('SELECT id, name, alias, description, state, c_items, sexual, searchable, applicable FROM traits WHERE id =', \tuwf->capture('id'));
+TUWF::get qr{/$RE{irev}}, sub {
+    my $t = db_entry tuwf->captures('id', 'rev');
     return tuwf->resNotFound if !$t->{id};
 
-    framework_ index => $t->{state} == 2, title => "Trait: $t->{name}", type => 'i', dbobj => $t, sub {
+    framework_ index => !$t->{hidden}, title => "Trait: $t->{name}", dbobj => $t, sub {
+        rev_ $t if tuwf->capture('rev');
         div_ class => 'mainbox', sub { infobox_ $t; };
         tree_ i => $t->{id};
-        chars_ $t if $t->{searchable} && $t->{state} == 2;
+        chars_ $t if $t->{searchable} && !$t->{hidden};
     };
 };
 

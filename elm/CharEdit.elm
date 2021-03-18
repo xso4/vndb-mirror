@@ -73,7 +73,7 @@ type alias Model =
   , image       : Img.Image
   , traits      : List GCE.RecvTraits
   , traitSearch : A.Model GApi.ApiTraitResult
-  , traitSelId  : Int
+  , traitSelId  : String
   , traitSelSpl : Int
   , vns         : List GCE.RecvVns
   , vnSearch    : A.Model GApi.ApiVNResult
@@ -113,7 +113,7 @@ init d =
   , image       = Img.info d.image_info
   , traits      = d.traits
   , traitSearch = A.init ""
-  , traitSelId  = 0
+  , traitSelId  = ""
   , traitSelSpl = 0
   , vns         = d.vns
   , vnSearch    = A.init ""
@@ -191,7 +191,7 @@ type Msg
   | ImageSelected File
   | ImageMsg Img.Msg
   | TraitDel Int
-  | TraitSel Int Int
+  | TraitSel String Int
   | TraitSpoil Int Int
   | TraitSearch (A.Msg GApi.ApiTraitResult)
   | VnRel Int (Maybe String)
@@ -252,9 +252,9 @@ update msg model =
       in case res of
         Nothing -> ({ model | traitSearch = nm }, c)
         Just t ->
-          if not t.applicable || t.state /= 2 || List.any (\l -> l.tid == t.id) model.traits
+          if not t.applicable || t.hidden || List.any (\l -> l.tid == t.id) model.traits
           then ({ model | traitSearch = A.clear nm "" }, c)
-          else ({ model | traitSearch = A.clear nm "", traits = model.traits ++ [{ tid = t.id, spoil = t.defaultspoil, name = t.name, group = t.group_name, state = t.state, applicable = t.applicable, new = True }] }, c)
+          else ({ model | traitSearch = A.clear nm "", traits = model.traits ++ [{ tid = t.id, spoil = t.defaultspoil, name = t.name, group = t.group_name, hidden = t.hidden, locked = t.locked, applicable = t.applicable, new = True }] }, c)
 
     VnRel   idx r -> ({ model | vns = modidx idx (\v -> { v | rid   = r }) model.vns }, Cmd.none)
     VnRole  idx s -> ({ model | vns = modidx idx (\v -> { v | role  = s }) model.vns }, Cmd.none)
@@ -407,20 +407,20 @@ view model =
         old = List.filter (\(_,t) -> not t.new) <| List.indexedMap (\i t -> (i,t)) model.traits
         new = List.filter (\(_,t) ->     t.new) <| List.indexedMap (\i t -> (i,t)) model.traits
         spoil t = if t.tid == model.traitSelId then model.traitSelSpl else t.spoil
-        trait (i,t) = (String.fromInt t.tid,
+        trait (i,t) = (t.tid,
           tr []
-          [ td [ style "padding" "0 0 0 10px", style "text-decoration" (if t.applicable && t.state == 2 then "none" else "line-through") ]
+          [ td [ style "padding" "0 0 0 10px", style "text-decoration" (if t.applicable && not t.hidden then "none" else "line-through") ]
             [ Maybe.withDefault (text "") <| Maybe.map (\g -> b [ class "grayedout" ] [ text <| g ++ " / " ]) t.group
-            , a [ href <| "/i" ++ String.fromInt t.tid ] [ text t.name ]
-            , if t.state == 0 then b [ class "standout" ] [ text " (awaiting moderation)" ]
-              else if t.state == 1 then b [ class "standout" ] [ text " (deleted)" ]
+            , a [ href <| "/" ++ t.tid ] [ text t.name ]
+            , if t.hidden && t.locked then b [ class "standout" ] [ text " (awaiting moderation)" ]
+              else if t.hidden then b [ class "standout" ] [ text " (deleted)" ]
               else if not t.applicable then b [ class "standout" ] [ text " (not applicable)" ]
               else text ""
             ]
           , td [ class "buts" ]
-            [ a [ href "#", onMouseOver (TraitSel t.tid 0), onMouseOut (TraitSel 0 0), onClickD (TraitSpoil i 0), classList [("s0", spoil t == 0 )], title "Not a spoiler" ] []
-            , a [ href "#", onMouseOver (TraitSel t.tid 1), onMouseOut (TraitSel 0 0), onClickD (TraitSpoil i 1), classList [("s1", spoil t == 1 )], title "Minor spoiler" ] []
-            , a [ href "#", onMouseOver (TraitSel t.tid 2), onMouseOut (TraitSel 0 0), onClickD (TraitSpoil i 2), classList [("s2", spoil t == 2 )], title "Major spoiler" ] []
+            [ a [ href "#", onMouseOver (TraitSel t.tid 0), onMouseOut (TraitSel "" 0), onClickD (TraitSpoil i 0), classList [("s0", spoil t == 0 )], title "Not a spoiler" ] []
+            , a [ href "#", onMouseOver (TraitSel t.tid 1), onMouseOut (TraitSel "" 0), onClickD (TraitSpoil i 1), classList [("s1", spoil t == 1 )], title "Minor spoiler" ] []
+            , a [ href "#", onMouseOver (TraitSel t.tid 2), onMouseOut (TraitSel "" 0), onClickD (TraitSpoil i 2), classList [("s2", spoil t == 2 )], title "Major spoiler" ] []
             ]
           , td []
             [ case (t.tid == model.traitSelId, lookup model.traitSelSpl spoilOpts) of

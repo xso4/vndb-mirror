@@ -27,7 +27,7 @@ elm_api Traits => undef, { search => {} }, sub {
     my $qs = sql_like $q;
 
     elm_TraitResult tuwf->dbPagei({ results => 15, page => 1 },
-        'SELECT t.id, t.name, t.searchable, t.applicable, t.defaultspoil, t.state, g.id AS group_id, g.name AS group_name
+        'SELECT t.id, t.name, t.searchable, t.applicable, t.defaultspoil, t.hidden, t.locked, g.id AS group_id, g.name AS group_name
            FROM (SELECT MIN(prio), id FROM (',
              sql_join('UNION ALL',
                  $q =~ /^$RE{iid}$/ ? sql('SELECT 1, id FROM traits WHERE id =', \"$+{id}") : (),
@@ -36,7 +36,7 @@ elm_api Traits => undef, { search => {} }, sub {
              ), ') x(prio, id) GROUP BY id) x(prio,id)
            JOIN traits t ON t.id = x.id
            LEFT JOIN traits g ON g.id = t.group
-          WHERE t.state <> 1
+          WHERE NOT (t.hidden AND t.locked)
           ORDER BY x.prio, t.name
     ')
 };

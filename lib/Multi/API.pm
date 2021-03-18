@@ -859,7 +859,7 @@ my %GET_CHARACTER = (
       fetch => [[ 'id', 'SELECT id, tid, spoil FROM chars_traits WHERE id IN(%s)',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
-            $i->{traits} = [ map [ $_->{tid}*1, $_->{spoil}*1 ], grep $i->{id} eq $_->{id}, @$r ];
+            $i->{traits} = [ map [ idnum($_->{tid}), $_->{spoil}*1 ], grep $i->{id} eq $_->{id}, @$r ];
           }
         },
       ]],
@@ -930,8 +930,8 @@ my %GET_CHARACTER = (
       [ inta  => 'c.id IN(SELECT cv.id FROM chars_vns cv WHERE cv.vid IN(:value:))', {'=',1}, process => \'v', join => ',' ],
     ],
     traits => [
-      [ int   => 'c.id :op:(SELECT tc.cid FROM traits_chars tc WHERE tc.tid = :value:)',   {'=' => 'IN', '!=' => 'NOT IN'}, range => [1,1e6] ],
-      [ inta  => 'c.id :op:(SELECT tc.cid FROM traits_chars tc WHERE tc.tid IN(:value:))', {'=' => 'IN', '!=' => 'NOT IN'}, join => ',', range => [1,1e6] ],
+      [ int   => 'c.id :op:(SELECT tc.cid FROM traits_chars tc WHERE tc.tid = :value:)',   {'=' => 'IN', '!=' => 'NOT IN'}, process => \'i' ],
+      [ inta  => 'c.id :op:(SELECT tc.cid FROM traits_chars tc WHERE tc.tid IN(:value:))', {'=' => 'IN', '!=' => 'NOT IN'}, join => ',', process => \'i' ],
     ],
   },
 );

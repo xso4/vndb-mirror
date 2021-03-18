@@ -212,7 +212,7 @@ TUWF::get qr{/$RE{uid}/notify/$RE{num}/(?<lid>[a-z0-9\.]+)}, sub {
 
 # It's a bit annoying to add auth->notiRead() to each revision page, so do that in bulk with a simple hook.
 TUWF::hook before => sub {
-    auth->notiRead($+{vndbid}, $+{rev}) if auth && tuwf->reqPath() =~ qr{^/(?<vndbid>[vrpcsdg]$RE{num})\.(?<rev>$RE{num})$};
+    auth->notiRead($+{vndbid}, $+{rev}) if auth && tuwf->reqPath() =~ qr{^/(?<vndbid>[vrpcsdgi]$RE{num})\.(?<rev>$RE{num})$};
 };
 
 

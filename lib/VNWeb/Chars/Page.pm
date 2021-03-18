@@ -23,7 +23,7 @@ sub enrich_item {
     enrich_merge vid => 'SELECT id AS vid, title, original FROM vn WHERE id IN', $c->{vns};
     enrich_merge rid => 'SELECT id AS rid, title AS rtitle, original AS roriginal FROM releases WHERE id IN', grep $_->{rid}, $c->{vns}->@*;
     enrich_merge tid =>
-     'SELECT t.id AS tid, t.name, t.state, t.applicable, t.sexual, coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.order,0) AS order
+     'SELECT t.id AS tid, t.name, t.hidden, t.locked, t.applicable, t.sexual, coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.order,0) AS order
         FROM traits t LEFT JOIN traits g ON t.group = g.id WHERE t.id IN', $c->{traits};
 
     $c->{vns}    = [ sort { $a->{title} cmp $b->{title} || idcmp($a->{vid}, $b->{vid}) || idcmp($a->{rid}||'r999999', $b->{rid}||'r999999') } $c->{vns}->@* ];
@@ -51,7 +51,7 @@ sub fetch_chars {
     }, $l;
 
     enrich traits => id => id => sub { sql '
-        SELECT ct.id, ct.tid, ct.spoil, t.name, t.state, t.sexual, coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.order,0) AS order
+        SELECT ct.id, ct.tid, ct.spoil, t.name, t.hidden, t.locked, t.sexual, coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.order,0) AS order
           FROM chars_traits ct
           JOIN traits t ON t.id = ct.tid
           LEFT JOIN traits g ON t.group = g.id
@@ -98,11 +98,11 @@ sub _rev_ {
             txt_ " $CHAR_ROLE{$_->{role}}{txt} (".fmtspoil($_->{spoil}).')';
         } ],
         [ traits => 'Traits', fmt => sub {
-            b_ class => 'grayedout', "$_->{groupname} / " if $_->{group} != $_->{tid};
-            a_ href => "/i$_->{tid}", $_->{name};
+            b_ class => 'grayedout', "$_->{groupname} / " if $_->{group} ne $_->{tid};
+            a_ href => "/$_->{tid}", $_->{name};
             txt_ ' ('.fmtspoil($_->{spoil}).')';
-            b_ class => 'standout', ' (awaiting moderation)' if $_->{state} == 0;
-            b_ class => 'standout', ' (trait deleted)' if $_->{state} == 1;
+            b_ class => 'standout', ' (awaiting moderation)' if $_->{hidden} && !$_->{locked};
+            b_ class => 'standout', ' (trait deleted)' if $_->{hidden} && $_->{locked};
             b_ class => 'standout', ' (not applicable)' if !$_->{applicable};
         } ],
 }
@@ -158,13 +158,13 @@ sub chartable_ {
             } if defined $c->{age};
 
             my @groups;
-            for(grep $_->{state} == 2 && $_->{spoil} <= $view->{spoilers} && (!$_->{sexual} || $view->{traits_sexual}), $c->{traits}->@*) {
-                push @groups, $_ if !@groups || $groups[$#groups]{group} != $_->{group};
+            for(grep !$_->{hidden} && $_->{spoil} <= $view->{spoilers} && (!$_->{sexual} || $view->{traits_sexual}), $c->{traits}->@*) {
+                push @groups, $_ if !@groups || $groups[$#groups]{group} ne $_->{group};
                 push $groups[$#groups]{traits}->@*, $_;
             }
-            tr_ class => "trait_group_i$_->{group}", sub {
-                td_ class => 'key', sub { a_ href => "/i$_->{group}", $_->{groupname} };
-                td_ sub { join_ ', ', sub { a_ href => "/i$_->{tid}", $_->{name}; spoil_ $_->{spoil} }, $_->{traits}->@* };
+            tr_ class => "trait_group_$_->{group}", sub {
+                td_ class => 'key', sub { a_ href => "/$_->{group}", $_->{groupname} };
+                td_ sub { join_ ', ', sub { a_ href => "/$_->{tid}", $_->{name}; spoil_ $_->{spoil} }, $_->{traits}->@* };
             } for @groups;
 
             my @visvns = grep $_->{spoil} <= $view->{spoilers}, $c->{vns}->@*;
@@ -244,13 +244,13 @@ TUWF::get qr{/$RE{crev}} => sub {
 
     my $max_spoil = max(
         $inst_maxspoil||0,
-        (map $_->{spoil}, grep $_->{state} == 2, $c->{traits}->@*),
+        (map $_->{spoil}, grep !$_->{hidden}, $c->{traits}->@*),
         (map $_->{spoil}, $c->{vns}->@*),
         defined $c->{spoil_gender} ? 2 : 0,
         $c->{desc} =~ /\[spoiler\]/i ? 2 : 0, # crude
     );
     # Only display the sexual traits toggle when there are sexual traits within the current spoiler level.
-    my $has_sex = grep $_->{state} == 2 && $_->{spoil} <= $view->{spoilers} && $_->{sexual}, map $_->{traits}->@*, $c, @$inst;
+    my $has_sex = grep !$_->{hidden} && $_->{spoil} <= $view->{spoilers} && $_->{sexual}, map $_->{traits}->@*, $c, @$inst;
 
     framework_ title => $c->{name}, index => !tuwf->capture('rev'), dbobj => $c, hiddenmsg => 1,
         og => {

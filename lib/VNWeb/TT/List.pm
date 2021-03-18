@@ -22,9 +22,9 @@ sub listing_ {
                 td_ class => 'tc2', $_->{c_items}||'-';
                 td_ class => 'tc3', sub {
                     b_ class => 'grayedout', "$_->{group} / " if $_->{group};
-                    a_ href => "/$type$_->{id}", $_->{name};
+                    a_ href => "/$_->{id}", $_->{name};
                     join_ ',', sub { b_ class => 'grayedout', ' '.$_ },
-                        $_->{state} == 0 ? 'awaiting moderation' : $_->{state} == 1 ? 'deleted' : (),
+                        !$_->{hidden} ? () : $_->{locked} ? 'deleted' : 'awaiting moderation',
                         !$_->{applicable} ? 'not applicable' : (),
                         !$_->{searchable} ? 'not searchable' : ();
                 };
@@ -51,10 +51,9 @@ TUWF::get qr{/(?<type>[gi])/list}, sub {
 
     my $qs = $opt->{q} && '%'.sql_like($opt->{q}).'%';
     my $where = sql_and
-        defined $opt->{t} ? (
-            $type eq 'i' ? sql 'state =', \$opt->{t} :
-            $opt->{t} == 0 ? 'hidden AND NOT locked' : $opt->{t} == 1 ? 'hidden AND locked' : 'NOT hidden'
-        ) : (),
+        !defined $opt->{t} ? () :
+            $opt->{t} == 0 ? 'hidden AND NOT locked' :
+            $opt->{t} == 1 ? 'hidden AND locked' : 'NOT hidden',
         defined $opt->{a} ? sql 'applicable =', \$opt->{a} : (),
         defined $opt->{b} ? sql 'searchable =', \$opt->{b} : (),
         $opt->{q} ? sql 'name ILIKE', \$qs, 'OR alias ILIKE', \$qs : ();
@@ -62,9 +61,7 @@ TUWF::get qr{/(?<type>[gi])/list}, sub {
     my $table = $type eq 'g' ? 'tags' : 'traits';
     my $count = tuwf->dbVali("SELECT COUNT(*) FROM $table t WHERE", $where);
     my $list = tuwf->dbPagei({ results => 50, page => $opt->{p} },'
-        SELECT name, searchable, applicable, c_items,', sql_totime('added'), 'as added
-             , ', $type eq 'g' ? 'vndbid_num(id) AS id, CASE WHEN NOT hidden THEN 1+1 WHEN locked THEN 1 ELSE 0 END AS state'
-                               : 'id, state', "
+        SELECT id, name, hidden, locked, searchable, applicable, c_items,', sql_totime('added'), "as added
           FROM $table
          WHERE ", $where, '
          ORDER BY', {qw|added id  name name  items c_items|}->{$opt->{s}}, {qw|a ASC d DESC|}->{$opt->{o}}, ', id'

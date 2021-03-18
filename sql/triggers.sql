@@ -36,24 +36,14 @@ CREATE TRIGGER users_imgvotes_update AFTER INSERT OR DELETE ON image_votes FOR E
 -- the stats_cache table
 
 CREATE OR REPLACE FUNCTION update_stats_cache() RETURNS TRIGGER AS $$
-DECLARE
-  unhidden boolean;
-  hidden boolean;
 BEGIN
   IF TG_OP = 'INSERT' THEN
     UPDATE stats_cache SET count = count+1 WHERE section = TG_TABLE_NAME;
 
   ELSIF TG_OP = 'UPDATE' THEN
-    IF TG_TABLE_NAME = 'traits' THEN
-      unhidden := OLD.state <> 2 AND NEW.state = 2;
-      hidden := OLD.state = 2 AND NEW.state <> 2;
-    ELSE
-      unhidden := OLD.hidden AND NOT NEW.hidden;
-      hidden := NEW.hidden AND NOT OLD.hidden;
-    END IF;
-    IF unhidden THEN
+    IF OLD.hidden AND NOT NEW.hidden THEN
       UPDATE stats_cache SET count = count+1 WHERE section = TG_TABLE_NAME;
-    ELSIF hidden THEN
+    ELSIF NEW.hidden AND NOT OLD.hidden THEN
       UPDATE stats_cache SET count = count-1 WHERE section = TG_TABLE_NAME;
     END IF;
   END IF;
@@ -73,8 +63,8 @@ CREATE TRIGGER stats_cache_new  AFTER  INSERT           ON staff         FOR EAC
 CREATE TRIGGER stats_cache_edit AFTER  UPDATE           ON staff         FOR EACH ROW WHEN (OLD.hidden IS DISTINCT FROM NEW.hidden) EXECUTE PROCEDURE update_stats_cache();
 CREATE TRIGGER stats_cache_new  AFTER  INSERT           ON tags          FOR EACH ROW WHEN (NEW.hidden = FALSE)                     EXECUTE PROCEDURE update_stats_cache();
 CREATE TRIGGER stats_cache_edit AFTER  UPDATE           ON tags          FOR EACH ROW WHEN (OLD.hidden IS DISTINCT FROM NEW.hidden) EXECUTE PROCEDURE update_stats_cache();
-CREATE TRIGGER stats_cache_new  AFTER  INSERT           ON traits        FOR EACH ROW WHEN (NEW.state = 2)                          EXECUTE PROCEDURE update_stats_cache();
-CREATE TRIGGER stats_cache_edit AFTER  UPDATE           ON traits        FOR EACH ROW WHEN (OLD.state IS DISTINCT FROM NEW.state)   EXECUTE PROCEDURE update_stats_cache();
+CREATE TRIGGER stats_cache_new  AFTER  INSERT           ON traits        FOR EACH ROW WHEN (NEW.hidden = FALSE)                     EXECUTE PROCEDURE update_stats_cache();
+CREATE TRIGGER stats_cache_edit AFTER  UPDATE           ON traits        FOR EACH ROW WHEN (OLD.hidden IS DISTINCT FROM NEW.hidden) EXECUTE PROCEDURE update_stats_cache();
 
 
 
@@ -191,7 +181,7 @@ CREATE TRIGGER ulist_voted_label AFTER INSERT OR UPDATE ON ulist_vns FOR EACH RO
 
 
 
--- NOTIFY on insert into changes/posts/tags/trait/reviews
+-- NOTIFY on insert into changes/posts/reviews
 
 CREATE OR REPLACE FUNCTION insert_notify() RETURNS trigger AS $$
 BEGIN
@@ -199,8 +189,6 @@ BEGIN
     NOTIFY newrevision;
   ELSIF TG_TABLE_NAME = 'threads_posts' THEN
     NOTIFY newpost;
-  ELSIF TG_TABLE_NAME = 'traits' THEN
-    NOTIFY newtrait;
   ELSIF TG_TABLE_NAME = 'reviews' THEN
     NOTIFY newreview;
   END IF;
@@ -210,7 +198,6 @@ $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER insert_notify AFTER INSERT ON changes       FOR EACH STATEMENT EXECUTE PROCEDURE insert_notify();
 CREATE TRIGGER insert_notify AFTER INSERT ON threads_posts FOR EACH STATEMENT EXECUTE PROCEDURE insert_notify();
-CREATE TRIGGER insert_notify AFTER INSERT ON traits        FOR EACH STATEMENT EXECUTE PROCEDURE insert_notify();
 CREATE TRIGGER insert_notify AFTER INSERT ON reviews       FOR EACH STATEMENT EXECUTE PROCEDURE insert_notify();
 
 
