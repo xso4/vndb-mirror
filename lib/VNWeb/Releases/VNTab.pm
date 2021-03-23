@@ -247,7 +247,7 @@ TUWF::get qr{/$RE{vid}/releases} => sub {
 
     my sub url { '?'.query_encode %$opt, @_ }
 
-    framework_ title => "Releases for $v->{title}", type => 'v', dbobj => $v, tab => 'releases', sub {
+    framework_ title => "Releases for $v->{title}", dbobj => $v, tab => 'releases', sub {
         div_ class => 'mainbox releases_compare', sub {
             h1_ "Releases for $v->{title}";
             if(!@$r) {

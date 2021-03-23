@@ -153,7 +153,7 @@ sub _head_ {
     my $o = shift;
 
     my $fancy = !(auth->pref('nodistract_can') && auth->pref('nodistract_nofancy'));
-    my $pubskin = $fancy && $o->{type} && $o->{type} eq 'u' && $o->{dbobj} ? tuwf->dbRowi(
+    my $pubskin = $fancy && $o->{dbobj} && $o->{dbobj}{id} =~ /^u/ ? tuwf->dbRowi(
         'SELECT customcss, skin FROM users WHERE pubskin_can AND pubskin_enabled AND id =', \$o->{dbobj}{id}
     ) : {};
     my $skin = tuwf->reqGet('skin') || $pubskin->{skin} || auth->pref('skin') || '';
@@ -426,12 +426,12 @@ sub _maintabs_ {
 }
 
 
-# Attempt to figure out the board id from a database entry ($type, $dbobj) combination
+# Attempt to figure out the board id from a database entry
 sub _board_id {
-    my($type, $obj) = @_;
-    $type =~ /[vp]/ ? $obj->{id} :
-       $type eq 'r' && $obj->{vn}->@*  ? $obj->{vn}[0]{vid} :
-       $type eq 'c' && $obj->{vns}->@* ? $obj->{vns}[0]{vid} : 'db';
+    my($obj) = @_;
+    $obj->{id} =~ /^[vp]/ ? $obj->{id} :
+       $obj->{id} =~ /^r/ && $obj->{vn}  && $obj->{vn}->@*  ? $obj->{vn}[0]{vid} :
+       $obj->{id} =~ /^c/ && $obj->{vns} && $obj->{vns}->@* ? $obj->{vns}[0]{vid} : 'db';
 }
 
 
@@ -468,14 +468,14 @@ sub _hidden_msg_ {
         div_ class => 'warning', sub {
             h2_ 'Item deleted';
             p_ sub {
-                if($o->{type} eq 'r' && $o->{dbobj}{vn}) {
+                if($o->{dbobj}{id} =~ /^r/ && $o->{dbobj}{vn}) {
                     txt_ 'This was a release entry for ';
                     join_ ',', sub { a_ href => "/$_->{vid}", $_->{title} }, $o->{dbobj}{vn}->@*;
                     txt_ '.';
                     br_;
                 }
                 txt_ 'This item has been deleted from the database. You may file a request on the ';
-                a_ href => '/t/'._board_id($o->{type}, $o->{dbobj}), "discussion board";
+                a_ href => '/t/'._board_id($o->{dbobj}), "discussion board";
                 txt_ ' if you believe that this entry should be restored.';
                 if($msg->{rev} > 1) {
                     br_;
@@ -496,19 +496,17 @@ sub _hidden_msg_ {
 #   js         => 1/0, set to 1 to ensure 'plain.js' is included on the page even if no elm_() modules are loaded.
 #   search     => $query
 #   og         => { opengraph metadata }
-#   type       => Database entry type (used for the main tabs & hidden message) (obsolete, inferred from dbobj->{id})
 #   dbobj      => Database entry object (used for the main tabs & hidden message)
 #                 Recognized object fields: id, entry_hidden, entry_locked
 #   tab        => Current tab, or empty for the main tab
 #   hiddenmsg  => 1/0, if true and dbobj is 'hidden', a message will be displayed
-#                      and the content function will not be called.
+#                      and the content function may not be called.
 #   sub { content }
 sub framework_ {
     my $cont = pop;
     my %o = @_;
     tuwf->req->{pagevars} = { $o{pagevars}->%* } if $o{pagevars};
     tuwf->req->{js} ||= $o{js};
-    $o{type} ||= $1 if $o{dbobj} && $o{dbobj}{id} =~ /^([a-z])/;
 
     html_ lang => 'en', sub {
         head_ sub { _head_ \%o };
@@ -892,7 +890,7 @@ sub editmsg_ {
                 if($obj) {
                     li_ sub {
                         txt_ 'Check for any existing discussions on the ';
-                        a_ href => '/t/'._board_id($type, $obj), 'discussion board';
+                        a_ href => '/t/'._board_id($obj), 'discussion board';
                     };
                     # TODO: Include a list of the most recent edits in this page.
                     li_ sub {

@@ -61,7 +61,7 @@ TUWF::get qr{/$RE{uid}/posts}, sub {
 
     my $own = auth && $u->{id} eq auth->uid;
     my $title = $own ? 'My posts' : 'Posts by '.user_displayname $u;
-    framework_ title => $title, type => 'u', dbobj => $u, tab => 'posts',
+    framework_ title => $title, dbobj => $u, tab => 'posts',
     sub {
         div_ class => 'mainbox', sub {
             h1_ $title;

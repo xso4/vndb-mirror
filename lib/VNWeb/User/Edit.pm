@@ -94,7 +94,7 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
     $u->{password} = undef;
 
     $u->{title} = $u->{id} eq auth->uid ? 'My Account' : "Edit $u->{username}";
-    framework_ title => $u->{title}, type => 'u', dbobj => $u, tab => 'edit',
+    framework_ title => $u->{title}, dbobj => $u, tab => 'edit',
     sub {
         elm_ 'User.Edit', $FORM_OUT, $u;
     };

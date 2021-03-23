@@ -194,7 +194,7 @@ TUWF::get qr{/$RE{tid}(?:(?<sep>[\./])$RE{num})?}, sub {
 
     auth->notiRead($id, [ map $_->{num}, $posts->@* ]) if @$posts;
 
-    framework_ title => $t->{title}, type => 't', dbobj => $t, $num ? (js => 1, pagevars => {sethash=>$num}) : (), sub {
+    framework_ title => $t->{title}, dbobj => $t, $num ? (js => 1, pagevars => {sethash=>$num}) : (), sub {
         metabox_ $t;
         elm_ 'Discussions.Poll' => $POLL_OUT, {
             question    => $t->{poll_question},

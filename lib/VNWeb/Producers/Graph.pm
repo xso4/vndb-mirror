@@ -46,7 +46,7 @@ TUWF::get qr{/$RE{pid}/rg}, sub {
     $rel = [ grep $nodes->{$_->{id0}} && $nodes->{$_->{id1}}, @$rel ];
     my $dot = gen_dot \@lines, $nodes, $rel, \%PRODUCER_RELATION;
 
-    framework_ title => "Relations for $p->{name}", type => 'p', dbobj => $p, tab => 'rg',
+    framework_ title => "Relations for $p->{name}", dbobj => $p, tab => 'rg',
     sub {
         div_ class => 'mainbox', style => 'float: left; min-width: 100%', sub {
             h1_ "Relations for $p->{name}";
