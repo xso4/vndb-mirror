@@ -88,8 +88,9 @@ view model =
               Just n -> span []
                 [ br [] []
                 , b [ class "standout" ] [ text "WARNING: " ]
-                , text (n ++ " is known to silently drop emails from VNDB. If you have an address at another provider, you may want to use that."
-                          ++ " If you want to keep using this provider, please kindly tell them to stop blocking VNDB. Thanks.")
+                , text (n ++ " is known to silently drop emails from VNDB, so you may not be able to activate and use your account."
+                          ++ " If you have an address at another provider, you may want to use that."
+                          ++ " If you want to keep using this provider, please kindly tell them to stop blocking VNDB. I can't help you.")
                 , br [] []
                 ]
           , br_ 1

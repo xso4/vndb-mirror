@@ -76,7 +76,7 @@ view model =
               Just n -> span []
                 [ br [] []
                 , b [ class "standout" ] [ text "WARNING: " ]
-                , text (n ++ " is known to silently drop emails from VNDB. If your password reset email does not arrive in a few hours, please send a mail to contact@vndb.org.")
+                , text (n ++ " is known to silently drop emails from VNDB. If your password reset email does not arrive in a few hours, I'm afraid you're fucked, because I have no way to contact you. Please complain to your email provider.")
                 ]
           ]
         ]
