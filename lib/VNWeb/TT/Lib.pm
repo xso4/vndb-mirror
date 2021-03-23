@@ -73,12 +73,12 @@ sub parents_ {
 
     my %t;
     my $table = $type eq 'g' ? 'tags' : 'traits';
-    push $t{$_->{child}}->@*, $_ for tuwf->dbAlli('
+    push $t{$_->{child}}->@*, $_ for tuwf->dbAlli("
         WITH RECURSIVE p(id,child,name) AS (
-            SELECT ', \$t->{id}, "::vndbid, NULL::vndbid, NULL::text
+            SELECT id, ", \$t->{id}, "::vndbid, name FROM $table WHERE id IN", [ map $_->{parent}, $t->{parents}->@* ], "
             UNION
             SELECT t.id, p.id, t.name FROM p JOIN ${table}_parents tp ON tp.id = p.id JOIN $table t ON t.id = tp.parent
-        ) SELECT * FROM p WHERE child IS NOT NULL ORDER BY name
+        ) SELECT * FROM p ORDER BY name
     ")->@*;
 
     my sub rec {
