@@ -37,7 +37,6 @@ my $LIGHT_GREY = "\x0315";
 
 my $irc;
 my $connecttimer;
-my @quotew;
 my %lastnotify;
 
 
@@ -62,7 +61,6 @@ sub run {
 
   set_cbs();
   set_logger();
-  set_quotew($_) for (0..$#{$O{channels}});
   set_notify();
   ircconnect();
 
@@ -86,7 +84,6 @@ sub run {
 
 
 sub unload {
-  @quotew = ();
   # TODO: Wait until we've nicely disconnected?
   $irc->disconnect('Closing...');
   undef $connecttimer;
@@ -103,24 +100,6 @@ sub reconnect {
   $connecttimer = AE::timer 60, 0, sub {
     ircconnect();
     undef $connecttimer;
-  };
-}
-
-
-sub send_quote {
-  my $chan = shift;
-  pg_cmd 'SELECT quote FROM quotes ORDER BY random() LIMIT 1', undef, sub {
-    return if pg_expect $_[0], 1 or !$_[0]->nRows;
-    $irc->send_msg(PRIVMSG => $chan, encode_utf8 $_[0]->value(0,0));
-  };
-}
-
-
-sub set_quotew {
-  my $idx = shift;
-  $quotew[$idx] = AE::timer +(18*3600)+rand()*(72*3600), 0, sub {
-    send_quote($O{channels}[$idx]) if $irc->registered;
-    set_quotew($idx);
   };
 }
 
@@ -399,7 +378,13 @@ list => [ 0, 0, sub {
     $irc->is_channel_name($_[1]) ? 'This is not a warez channel!' : 'I am not a warez bot!');
 }],
 
-quote => [ 1, 0, sub { send_quote($_[1]) } ],
+quote => [ 1, 0, sub {
+  my(undef, $chan) = @_;
+  pg_cmd 'SELECT quote FROM quotes ORDER BY random() LIMIT 1', undef, sub {
+    return if pg_expect $_[0], 1 or !$_[0]->nRows;
+    $irc->send_msg(PRIVMSG => $chan, encode_utf8 $_[0]->value(0,0));
+  };
+} ],
 
 vn => [ 0, 0, sub {
   my($nick, $chan, $q) = @_;
