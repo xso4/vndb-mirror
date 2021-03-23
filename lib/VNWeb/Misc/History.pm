@@ -177,7 +177,7 @@ TUWF::get qr{/(?:([upvrcsdgi][1-9][0-9]{0,6})/)?hist} => sub {
         my $filt;
         div_ class => 'mainbox', sub {
             h1_ $title;
-            $filt = filters_($id =~ /^(.)/ or '');
+            $filt = filters_($id =~ /^(.)/ ? $1 : '');
         };
         tablebox_ $id, $filt;
     };
