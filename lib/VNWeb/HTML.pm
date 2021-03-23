@@ -439,11 +439,26 @@ sub _board_id {
 sub _hidden_msg_ {
     my $o = shift;
 
-    die "Can't use hiddenmsg on an object that is missing 'entry_hidden'" if !exists $o->{dbobj}{entry_hidden};
+    die "Can't use hiddenmsg on an object that is missing 'entry_hidden' or 'entry_locked'"
+        if !exists $o->{dbobj}{entry_hidden} || !exists $o->{dbobj}{entry_locked};
+
     return 0 if !$o->{dbobj}{entry_hidden};
 
-    my $msg = tuwf->dbVali(
-        'SELECT comments
+    # Awaiting moderation
+    if(!$o->{dbobj}{entry_locked}) {
+        div_ class => 'mainbox', sub {
+            h1_ $o->{title};
+            div_ class => 'notice', sub {
+                h2_ 'Waiting for approval';
+                p_ 'This entry is waiting for a moderator to approve it.';
+            }
+        };
+        return 0;
+    }
+
+    # Deleted.
+    my $msg = tuwf->dbRowi(
+        'SELECT comments, rev
            FROM changes
           WHERE itemid =', \$o->{dbobj}{id},
          'ORDER BY id DESC LIMIT 1'
@@ -462,13 +477,15 @@ sub _hidden_msg_ {
                 txt_ 'This item has been deleted from the database. You may file a request on the ';
                 a_ href => '/t/'._board_id($o->{type}, $o->{dbobj}), "discussion board";
                 txt_ ' if you believe that this entry should be restored.';
-                br_;
-                br_;
-                lit_ bb_format $msg;
+                if($msg->{rev} > 1) {
+                    br_;
+                    br_;
+                    lit_ bb_format $msg->{comments};
+                }
             }
         }
     };
-    !auth->permDbmod # dbmods can still see the page
+    $o->{dbobj}{id} !~ /^[gi]/ && !auth->permDbmod # tags/traits are still visible, dbmods can still see all pages
 }
 
 

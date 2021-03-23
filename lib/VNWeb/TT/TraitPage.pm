@@ -35,22 +35,6 @@ sub infobox_ {
     h1_ "Trait: $t->{name}";
     debug_ $t;
 
-    div_ class => 'warning', sub {
-        h2_ 'Trait deleted';
-        p_ sub {
-            txt_ 'This trait has been removed from the database, and cannot be used or re-added.';
-            br_;
-            txt_ 'File a request on the ';
-            a_ href => '/t/db', 'discussion board';
-            txt_ ' if you disagree with this.';
-        }
-    } if $t->{hidden} && $t->{locked};
-
-    div_ class => 'notice', sub {
-        h2_ 'Waiting for approval';
-        p_ 'This trait is waiting for a moderator to approve it.';
-    } if $t->{hidden} && !$t->{locked};
-
     parents_ i => $t;
 
     div_ class => 'description', sub {
@@ -143,7 +127,7 @@ TUWF::get qr{/$RE{irev}}, sub {
     my $t = db_entry tuwf->captures('id', 'rev');
     return tuwf->resNotFound if !$t->{id};
 
-    framework_ index => !$t->{hidden}, title => "Trait: $t->{name}", dbobj => $t, sub {
+    framework_ index => !$t->{hidden}, title => "Trait: $t->{name}", dbobj => $t, hiddenmsg => 1, sub {
         rev_ $t if tuwf->capture('rev');
         div_ class => 'mainbox', sub { infobox_ $t; };
         tree_ i => $t->{id};
