@@ -846,7 +846,6 @@ CREATE TABLE traits ( -- dbentry_type=i
   id            vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('i', nextval('traits_id_seq')::int) CONSTRAINT traits_id_check CHECK(vndbid_type(id) = 'i'), -- [pub]
   "group"       vndbid, -- [pub]
   added         timestamptz NOT NULL DEFAULT NOW(),
-  addedby       vndbid,
   c_items       integer NOT NULL DEFAULT 0,
   "order"       smallint NOT NULL DEFAULT 0, -- [pub]
   defaultspoil  smallint NOT NULL DEFAULT 0, -- [pub]
