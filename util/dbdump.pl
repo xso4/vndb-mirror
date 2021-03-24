@@ -87,7 +87,7 @@ my %tables = (
     tags_parents        => { where => 'id IN(SELECT id FROM tags WHERE NOT hidden)' },
     tags_vn             => { where => 'tag IN(SELECT id FROM tags WHERE NOT hidden) AND vid IN(SELECT id FROM vn WHERE NOT hidden)', order => 'tag, vid, uid, date' },
     traits              => { where => 'NOT hidden' },
-    traits_parents      => { where => 'trait IN(SELECT id FROM traits WHERE NOT hidden)' },
+    traits_parents      => { where => 'id IN(SELECT id FROM traits WHERE NOT hidden)' },
     ulist_labels        => { where => 'NOT private AND EXISTS(SELECT 1 FROM ulist_vns_labels uvl WHERE uvl.lbl = id AND ulist_labels.uid = uvl.uid)' },
     ulist_vns           => { where => 'vid IN(SELECT id FROM vn WHERE NOT hidden)'
                                 .' AND EXISTS(SELECT 1 FROM ulist_vns_labels uvl'

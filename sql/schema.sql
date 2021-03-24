@@ -848,7 +848,6 @@ CREATE TABLE traits ( -- dbentry_type=i
   added         timestamptz NOT NULL DEFAULT NOW(),
   addedby       vndbid,
   c_items       integer NOT NULL DEFAULT 0,
-  state         smallint NOT NULL DEFAULT 0, -- [pub]
   "order"       smallint NOT NULL DEFAULT 0, -- [pub]
   defaultspoil  smallint NOT NULL DEFAULT 0, -- [pub]
   sexual        boolean NOT NULL DEFAULT false, -- [pub]
