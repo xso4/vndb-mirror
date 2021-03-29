@@ -412,7 +412,7 @@ view model =
           [ td [ style "padding" "0 0 0 10px", style "text-decoration" (if t.applicable && not t.hidden then "none" else "line-through") ]
             [ Maybe.withDefault (text "") <| Maybe.map (\g -> b [ class "grayedout" ] [ text <| g ++ " / " ]) t.group
             , a [ href <| "/" ++ t.tid ] [ text t.name ]
-            , if t.hidden && t.locked then b [ class "standout" ] [ text " (awaiting moderation)" ]
+            , if t.hidden && not t.locked then b [ class "standout" ] [ text " (awaiting moderation)" ]
               else if t.hidden then b [ class "standout" ] [ text " (deleted)" ]
               else if not t.applicable then b [ class "standout" ] [ text " (not applicable)" ]
               else text ""
