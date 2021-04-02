@@ -191,12 +191,11 @@ sub _menu_ {
     my $o = shift;
 
     div_ id => 'support', sub {
-        a_ href => 'https://www.patreon.com/vndb', id => 'patreon', sub {
-            img_ src => config->{url_static}.'/f/patreon.png', alt => 'Support VNDB on Patreon', width => 160, height => 38;
-        };
-        a_ href => 'https://www.subscribestar.com/vndb', id => 'subscribestar', sub {
-            img_ src => config->{url_static}.'/f/subscribestar.png', alt => 'Support VNDB on SubscribeStar', width => 160, height => 38;
-        };
+        b_ 'Support VNDB';
+        p_ sub {
+            a_ href => 'https://www.patreon.com/vndb', 'Patreon';
+            a_ href => 'https://www.subscribestar.com/vndb', 'SubscribeStar';
+        }
     } if !(auth->pref('nodistract_can') && auth->pref('nodistract_noads'));
 
     div_ class => 'menubox', sub {
