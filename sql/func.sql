@@ -504,8 +504,9 @@ CREATE OR REPLACE FUNCTION notify(iid vndbid, num integer, uid vndbid) RETURNS T
     FROM (
 
       -- pm
-      SELECT 'pm'::notification_ntype, tb.iid
+      SELECT 'pm'::notification_ntype, u.id
         FROM threads_boards tb
+        JOIN users u ON u.id = tb.iid
        WHERE vndbid_type($1) = 't' AND tb.tid = $1 AND tb.type = 'u'
          AND NOT EXISTS(SELECT 1 FROM notification_subs ns WHERE ns.iid = $1 AND ns.uid = tb.iid AND ns.subnum = false)
 
