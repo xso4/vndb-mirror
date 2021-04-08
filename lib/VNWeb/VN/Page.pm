@@ -322,11 +322,11 @@ sub infobox_useroptions_ {
                 uid      => auth->uid,
                 vid      => $v->{id},
                 onlist   => $lst->{vid}||0,
-                canvote  => canvote($v),
+                canvote  => canvote($v)||0,
                 vote     => fmtvote($lst->{vote}),
                 notes    => $lst->{notes}||'',
                 review   => $review,
-                canreview=> $review || (canvote($v) && can_edit(w => {})),
+                canreview=> $review || (canvote($v) && can_edit(w => {})) || 0,
                 labels   => $labels,
                 selected => [ map $_->{id}, grep $_->{assigned}, @$labels ],
             };
