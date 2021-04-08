@@ -105,30 +105,17 @@ our %RE = (
 
 
 # Returns very generic information on a DB entry object.
-# Only { id, title, entry_hidden, entry_locked } for now.
 # Suitable for passing to HTML::framework_'s dbobj argument.
-# TODO: Merge with SQL's item_info() or something.
 sub dbobj {
     my($id) = @_;
 
-    my sub item {
-        my($table, $title) = @_;
-        tuwf->dbRowi('SELECT id,', $title, ' AS title, hidden AS entry_hidden, locked AS entry_locked FROM', $table, 'WHERE id =', \$id);
-    };
+    if($id =~ /^u/) {
+        my $o = tuwf->dbRowi('SELECT id, ', sql_user(), 'FROM users u WHERE id =', \$id);
+        $o->{title} = VNWeb::HTML::user_displayname $o;
+        return $o;
+    }
 
-    my $o = !$id ? undef :
-        $id =~ /^u/ ? tuwf->dbRowi('SELECT id, ', sql_user(), 'FROM users u WHERE id =', \$id) :
-        $id =~ /^p/ ? item producers => 'name' :
-        $id =~ /^v/ ? item vn        => 'title' :
-        $id =~ /^r/ ? item releases  => 'title' :
-        $id =~ /^c/ ? item chars     => 'name' :
-        $id =~ /^s/ ? item staff     => '(SELECT name FROM staff_alias WHERE aid = staff.aid)' :
-        $id =~ /^g/ ? item tags      => 'name' :
-        $id =~ /^i/ ? item traits    => 'name' :
-        $id =~ /^d/ ? item docs      => 'title' : die;
-
-    $o->{title} = VNWeb::HTML::user_displayname $o if $id =~ /^u/;
-    $o;
+    tuwf->dbRowi('SELECT', \$id, 'AS id, title, hidden AS entry_hidden, locked AS entry_locked FROM item_info(', \$id, ', NULL) x');
 }
 
 1;

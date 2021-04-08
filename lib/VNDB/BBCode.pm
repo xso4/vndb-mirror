@@ -295,26 +295,15 @@ sub bb_subst_links {
   my %lookup;
   parse $msg, sub {
     my($code, $tag) = @_;
-    $lookup{$2}{$1} = 1 if $tag eq 'dblink' && $code =~ /^((.)\d+)/;
+    $lookup{$1} = 1 if $tag eq 'dblink' && $code =~ /^([vcpgis]\d+)$/;
     1;
   };
   return $msg unless %lookup;
 
-  # Now resolve the links
-  state $types = { # Query must return 'id' and 'name' columns, list of IDs will be appended to it.
-    v => 'SELECT id, title AS name FROM vn WHERE id IN',
-    c => 'SELECT id, name FROM chars WHERE id IN',
-    p => 'SELECT id, name FROM producers WHERE id IN',
-    g => 'SELECT id, name FROM tags WHERE id IN',
-    i => 'SELECT id, name FROM traits WHERE id IN',
-    s => 'SELECT s.id, sa.name FROM staff_alias sa JOIN staff s ON s.aid = sa.aid WHERE s.id IN',
-  };
-  my %links;
-  for my $type (keys %$types) {
-    next if !$lookup{$type};
-    my $lst = $TUWF::OBJ->dbAlli($types->{$type}, [keys %{$lookup{$type}}]);
-    $links{$_->{id}} = $_->{name} for @$lst;
-  }
+  my $first = 0;
+  my %links = map +($_->{id}, $_->{title}), $TUWF::OBJ->dbAlli(
+    'SELECT id, title FROM (VALUES', (map +($first++ ? ',(' : '(', \"$_", '::vndbid)'), sort keys %lookup), ') n(id), item_info(n.id, NULL::int)'
+  )->@*;
   return $msg unless %links;
 
   # Now substitute

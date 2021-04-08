@@ -6,55 +6,39 @@ my $reportsperday = 5;
 
 my @STATUS = qw/new busy done dismissed/;
 
-# Requires objects with {object,objectnum} fields, adds a HTML-formatted 'title' field, which formats and links to the entry.
-sub enrich_object {
-    for my $o (@_) {
-        delete $o->{title};
-        if($o->{object} =~ /^$RE{wid}$/ && $o->{objectnum}) {
-            my $w = tuwf->dbRowi(
-              'SELECT rp.id, rp.num, ', sql_user(), '
-                 FROM reviews_posts rp LEFT JOIN users u ON u.id = rp.uid
-                WHERE NOT rp.hidden AND rp.id =', \$o->{object}, 'AND rp.num =', \$o->{objectnum}
-            );
-            $o->{title} = xml_string sub {
-                txt_ 'Comment ';
-                a_ href => "/$o->{object}.$o->{objectnum}", "#$o->{objectnum}";
-                txt_ ' on review ';
-                a_ href => "/$o->{object}.$o->{objectnum}", $o->{object};
-                txt_ ' by ';
-                user_ $w;
-            } if $w->{id};
 
-        } elsif($o->{object} =~ /^$RE{wid}$/) {
-            my $w = tuwf->dbRowi('SELECT r.id, v.title,', sql_user(), 'FROM reviews r JOIN vn v ON v.id = r.vid LEFT JOIN users u ON u.id = r.uid WHERE r.id =', \$o->{object});
-            $o->{title} = xml_string sub {
-                a_ href => "/$o->{object}", "Review of $w->{title}";
-                txt_ ' by ';
-                user_ $w;
-            } if $w->{id};
+# Returns the object associated with the vndbid.num; Returns false if the object can't be reported.
+sub obj {
+    my($id, $num) = @_;
+    my $o = tuwf->dbRowi('SELECT x.*, ', sql_user(), 'FROM item_info(', \$id, ',', \$num, ') x LEFT JOIN users u ON u.id = x.uid');
+    $o->{object} = $id;
+    $o->{objectnum} = $num;
+    my $can = !defined $o->{title} ? 0
+            : $id =~ /^[vrpcsd]/ ? !$num
+            : $id =~ /^w/ ? 1
+            : $id =~ /^t/ ? $num && !$o->{hidden} : 0;
+    $can && $o
+}
 
-        } elsif($o->{object} =~ /^$RE{tid}$/ && $o->{objectnum}) {
-            my $post = tuwf->dbRowi(
-               'SELECT tp.num, t.title, ', sql_user(), '
-                  FROM threads t JOIN threads_posts tp ON tp.tid = t.id LEFT JOIN users u ON u.id = tp.uid
-                 WHERE NOT t.hidden AND NOT t.private AND t.id =', \$o->{object}, 'AND tp.num =', \$o->{objectnum}
-            );
-            $o->{title} = xml_string sub {
-                txt_ 'Post ';
-                a_ href => "/$o->{object}.$o->{objectnum}", "#$post->{num}";
-                txt_ ' on ';
-                a_ href => "/$o->{object}.$o->{objectnum}", $post->{title};
-                txt_ ' by ';
-                user_ $post;
-            } if $post->{num};
 
-        } elsif($o->{object} =~ /^([vrpcsd]$RE{num})$/ && !defined $o->{objectnum}) {
-            my $obj = dbobj $1;
-            $o->{title} = xml_string sub {
-                txt_ {qw/v VN r Release p Producer c Character s Staff d Doc/}->{substr $obj->{id}, 0, 1};
-                txt_ ': ';
-                a_ href => "/$obj->{id}", $obj->{title};
-            } if $obj->{id};
+sub obj_ {
+    my($o) = @_;
+    my $lnk = $o->{object} . ($o->{objectnum} ? "#$o->{objectnum}" : '');
+    if($o->{object} =~ /^(?:$RE{wid}|$RE{tid})$/ && $o->{objectnum}) {
+        txt_ 'Comment ';
+        a_ href => "/$lnk", "#$o->{objectnum}";
+        txt_ ' on ';
+        a_ href => "/$lnk", $o->{title}||$o->{object};
+        txt_ ' by ';
+        user_ $o;
+
+    } else {
+        txt_ {qw/v VN r Release p Producer c Character s Staff d Doc w Review t Thread/}->{substr $o->{object}, 0, 1};
+        txt_ ': ';
+        a_ href => "/$lnk", $o->{title}||$lnk;
+        if($o->{user_name}) {
+            txt_ ' by ';
+            user_ $o;
         }
     }
 }
@@ -75,10 +59,10 @@ my $FORM = form_compile any => {
 };
 
 elm_api Report => undef, $FORM, sub {
-    my($data) = @_;
-    enrich_object $data;
-    return elm_Invalid if !$data->{title};
     return elm_Unauth if is_throttled;
+    my($data) = @_;
+    my $obj = obj $data->{object}, $data->{objectnum};
+    return elm_Invalid if !$data;
 
     tuwf->dbExeci('INSERT INTO reports', {
         uid      => auth->uid,
@@ -93,9 +77,8 @@ elm_api Report => undef, $FORM, sub {
 
 
 TUWF::get qr{/report/(?<object>[vrpcsdtw]$RE{num})(?:\.(?<subid>$RE{num}))?}, sub {
-    my $obj = { object => tuwf->capture('object'), objectnum => tuwf->capture('subid') };
-    enrich_object $obj;
-    return tuwf->resNotFound if !$obj->{title};
+    my $obj = obj tuwf->captures('object', 'subid');
+    return tuwf->resNotFound if !$obj;
 
     framework_ title => 'Submit report', sub {
         if(is_throttled) {
@@ -104,7 +87,7 @@ TUWF::get qr{/report/(?<object>[vrpcsdtw]$RE{num})(?:\.(?<subid>$RE{num}))?}, su
                 p_ "Sorry, you can only submit $reportsperday reports per day. If you wish to report more, you can do so by sending an email to ".config->{admin_email}
             }
         } else {
-            elm_ Report => $FORM, { elm_empty($FORM)->%*, %$obj, loggedin => !!auth };
+            elm_ Report => $FORM, { elm_empty($FORM)->%*, %$obj, loggedin => !!auth, title => xml_string sub { obj_ $obj } };
         }
     };
 };
@@ -126,7 +109,7 @@ sub report_ {
             txt_ $r->{ip}||'[anonymous]';
         }
         br_;
-        lit_ $r->{title} || '[deleted]';
+        obj_ $r;
         br_;
         txt_ $r->{reason};
         div_ class => 'quote', sub { lit_ bb_format $r->{message} } if $r->{message};
@@ -166,13 +149,15 @@ TUWF::get qr{/report/list}, sub {
 
     my $cnt = tuwf->dbVali('SELECT count(*) FROM reports r WHERE', $where);
     my $lst = tuwf->dbPagei({results => 25, page => $opt->{p}},
-       'SELECT r.id,', sql_totime('r.date'), 'as date, r.uid, u.username, r.ip, r.reason, r.object, r.objectnum, r.status, r.message, r.log
+       'SELECT r.id,', sql_totime('r.date'), 'as date, r.uid, ur.username, r.ip, r.reason, r.status, r.message, r.log
+             , r.object, r.objectnum, x.title, x.uid as by_uid,', sql_user('uo'), '
           FROM reports r
-          LEFT JOIN users u ON u.id = r.uid
+          LEFT JOIN item_info(r.object, r.objectnum) x ON true
+          LEFT JOIN users ur ON ur.id = r.uid
+          LEFT JOIN users uo ON uo.id = x.uid
          WHERE', $where, '
          ORDER BY', {id => 'r.id DESC', lastmod => 'r.lastmod DESC'}->{$opt->{s}}
     );
-    enrich_object @$lst;
 
     tuwf->dbExeci(
         'UPDATE users SET last_reports = NOW()

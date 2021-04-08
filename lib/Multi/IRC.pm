@@ -269,31 +269,16 @@ sub handleid {
 
   # plain vn/user/producer/thread/tag/trait/release
   pg_cmd 'SELECT $1::vndbid AS id, '.(
-    $id =~ /^v/ ? 'v.title FROM vn v WHERE v.id = $1' :
-    $id =~ /^u/ ? 'u.username AS title FROM users u WHERE u.id = $1' :
-    $id =~ /^p/ ? 'p.name AS title FROM producers p WHERE p.id = $1' :
-    $id =~ /^c/ ? 'c.name AS title FROM chars c WHERE c.id = $1' :
-    $id =~ /^s/ ? 'sa.name AS title FROM staff s JOIN staff_alias sa ON sa.aid = s.aid AND sa.id = s.id WHERE s.id = $1' :
     $id =~ /^t/ ? 'title, '.$GETBOARDS.' FROM threads t WHERE NOT t.hidden AND NOT t.private AND t.id = $1' :
-    $id =~ /^g/ ? 'name AS title FROM tags WHERE id = $1' :
-    $id =~ /^i/ ? 'name AS title FROM traits WHERE id = $1' :
-    $id =~ /^d/ ? 'title FROM docs WHERE id = $1' :
     $id =~ /^w/ ? 'v.title, u.username FROM reviews w JOIN vn v ON v.id = w.vid LEFT JOIN users u ON u.id = w.uid WHERE w.id = $1' :
-                  'r.title FROM releases r WHERE r.id = $1'),
+                  'title FROM item_info($1,NULL) x'),
     [ $id ], $c if !$rev && $id =~ /^[dvprtugicsw]/;
 
   # edit/insert of vn/release/producer or discussion board post
   pg_cmd 'SELECT $1::vndbid AS id, $2::integer AS rev, '.(
-    $id =~ /^v/ ? 'vh.title, u.username, c.comments FROM changes c JOIN vn_hist vh ON c.id = vh.chid LEFT JOIN users u ON u.id = c.requester WHERE c.itemid = $1 AND c.rev = $2' :
-    $id =~ /^r/ ? 'rh.title, u.username, c.comments FROM changes c JOIN releases_hist rh ON c.id = rh.chid LEFT JOIN users u ON u.id = c.requester WHERE c.itemid = $1 AND c.rev = $2' :
-    $id =~ /^p/ ? 'ph.name AS title, u.username, c.comments FROM changes c JOIN producers_hist ph ON c.id = ph.chid LEFT JOIN users u ON u.id = c.requester WHERE c.itemid = $1 AND c.rev = $2' :
-    $id =~ /^c/ ? 'ch.name AS title, u.username, c.comments FROM changes c JOIN chars_hist ch ON c.id = ch.chid LEFT JOIN users u ON u.id = c.requester WHERE c.itemid = $1 AND c.rev = $2' :
-    $id =~ /^s/ ? 'sah.name AS title, u.username, c.comments FROM changes c JOIN staff_hist sh ON c.id = sh.chid LEFT JOIN users u ON u.id = c.requester JOIN staff_alias_hist sah ON sah.chid = c.id AND sah.aid = sh.aid WHERE c.itemid = $1 AND c.rev = $2' :
-    $id =~ /^d/ ? 'dh.title, u.username, c.comments FROM changes c JOIN docs_hist dh ON c.id = dh.chid LEFT JOIN users u ON u.id = c.requester WHERE c.itemid = $1 AND c.rev = $2' :
-    $id =~ /^g/ ? 'th.name AS title, u.username, c.comments FROM changes c JOIN tags_hist th ON c.id = th.chid LEFT JOIN users u ON u.id = c.requester WHERE c.itemid = $1 AND c.rev = $2' :
-    $id =~ /^i/ ? 'th.name AS title, u.username, c.comments FROM changes c JOIN traits_hist th ON c.id = th.chid LEFT JOIN users u ON u.id = c.requester WHERE c.itemid = $1 AND c.rev = $2' :
+    $id =~ /^t/ ? 't.title, u.username, '.$GETBOARDS.' FROM threads t JOIN threads_posts tp ON tp.tid = t.id LEFT JOIN users u ON u.id = tp.uid WHERE NOT t.hidden AND NOT t.private AND t.id = $1 AND tp.num = $2' :
     $id =~ /^w/ ? 'v.title, u.username FROM reviews_posts wp JOIN reviews w ON w.id = wp.id JOIN vn v ON v.id = w.vid LEFT JOIN users u ON u.id = wp.uid WHERE wp.id = $1 AND wp.num = $2' :
-                  't.title, u.username, '.$GETBOARDS.' FROM threads t JOIN threads_posts tp ON tp.tid = t.id LEFT JOIN users u ON u.id = tp.uid WHERE NOT t.hidden AND NOT t.private AND t.id = $1 AND tp.num = $2'),
+                  'x.title, u.username, c.comments FROM changes c JOIN item_info($1,$2) x ON true JOIN users u ON u.id = c.requester WHERE c.itemid = $1 AND c.rev = $2'),
     [ $id, $rev], $c if $rev && $id =~ /^[dvprtcsgiw]/;
 }
 
@@ -322,18 +307,9 @@ sub notify {
 
   my $q = {
   rev => q{
-    SELECT c.rev, c.comments, c.id AS lastid, c.itemid AS id,
-      COALESCE(vh.title, rh.title, ph.name, ch.name, sah.name, dh.title, th.name, ih.name) AS title, u.username
+    SELECT c.rev, c.comments, c.id AS lastid, c.itemid AS id, x.title, u.username
     FROM changes c
-    LEFT JOIN vn_hist vh ON vndbid_type(c.itemid) = 'v' AND c.id = vh.chid
-    LEFT JOIN releases_hist rh ON vndbid_type(c.itemid) = 'r' AND c.id = rh.chid
-    LEFT JOIN producers_hist ph ON vndbid_type(c.itemid) = 'p' AND c.id = ph.chid
-    LEFT JOIN chars_hist ch ON vndbid_type(c.itemid) = 'c' AND c.id = ch.chid
-    LEFT JOIN staff_hist sh ON vndbid_type(c.itemid) = 's' AND c.id = sh.chid
-    LEFT JOIN staff_alias_hist sah ON vndbid_type(c.itemid) = 's' AND sah.aid = sh.aid AND sah.chid = c.id
-    LEFT JOIN docs_hist dh ON vndbid_type(c.itemid) = 'd' AND c.id = dh.chid
-    LEFT JOIN tags_hist th ON vndbid_type(c.itemid) = 'g' AND c.id = th.chid
-    LEFT JOIN traits_hist ih ON vndbid_type(c.itemid) = 'i' AND c.id = ih.chid
+    JOIN item_info(c.itemid, c.rev) x ON true
     JOIN users u ON u.id = c.requester
     WHERE c.id > $1 AND c.requester <> 'u1'
     ORDER BY c.id},

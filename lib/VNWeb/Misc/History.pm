@@ -6,6 +6,7 @@ use VNWeb::Prelude;
 # Also used by Misc::HomePage and Misc::Feeds
 sub fetch {
     my($id, $filt, $opt) = @_;
+    my $num = $opt->{results}||50;
 
     my $where = sql_and
          !$id ? ()
@@ -24,27 +25,14 @@ sub fetch {
                 WHERE c_i.itemid = c.itemid AND c_i.ihid
                   AND c_i.rev = (SELECT MAX(c_ii.rev) FROM changes c_ii WHERE c_ii.itemid = c.itemid))' : ();
 
-    my($lst, $np) = tuwf->dbPagei({ page => $filt->{p}, results => $opt->{results}||50 }, q{
-        SELECT c.id, c.itemid, c.comments, c.rev,}, sql_totime('c.added'), q{ AS added, }, sql_user(), q{
-          FROM changes c
+    my $lst = tuwf->dbAlli('
+        SELECT c.id, c.itemid, c.comments, c.rev,', sql_totime('c.added'), 'AS added,', sql_user(), ', x.title, x.original
+          FROM (SELECT * FROM changes c WHERE', $where, ' ORDER BY c.id DESC LIMIT', \($num+1), 'OFFSET', \($num*($filt->{p}-1)), ') c
+          JOIN item_info(c.itemid, c.rev) x ON true
           LEFT JOIN users u ON c.requester = u.id
-         WHERE}, $where, q{
-         ORDER BY c.id DESC
-    });
-
-    # Fetching the titles in a separate query is faster, for some reason.
-    enrich_merge id => sql(q{
-        SELECT id, title, original FROM (
-                      SELECT chid, title, original FROM vn_hist
-            UNION ALL SELECT chid, title, original FROM releases_hist
-            UNION ALL SELECT chid, name,  original FROM producers_hist
-            UNION ALL SELECT chid, name,  original FROM chars_hist
-            UNION ALL SELECT chid, title, '' AS original FROM docs_hist
-            UNION ALL SELECT sh.chid, name, original FROM staff_hist sh JOIN staff_alias_hist sah ON sah.chid = sh.chid AND sah.aid = sh.aid
-            UNION ALL SELECT chid, name, '' AS original FROM tags_hist
-            UNION ALL SELECT chid, name, '' AS original FROM traits_hist
-                ) t(id, title, original)
-        WHERE id IN}), $lst;
+         ORDER BY c.id DESC'
+    );
+    my $np = @$lst > $num ? pop(@$lst)&&1 : 0;
     ($lst, $np)
 }
 
@@ -77,7 +65,7 @@ sub tablebox_ {
                 td_ class => 'tc2', fmtdate $i->{added}, 'full';
                 td_ class => 'tc3', sub { user_ $i };
                 td_ class => 'tc4', sub {
-                    a_ href => $revurl, title => $i->{original}, shorten $i->{title}, 80;
+                    a_ href => $revurl, title => $i->{original}//$i->{title}, shorten $i->{title}, 80;
                     b_ class => 'grayedout', sub { lit_ bb_format $i->{comments}, maxlength => 150, inline => 1 };
                 };
             } for @$lst;

@@ -337,41 +337,52 @@ CREATE OR REPLACE FUNCTION ulist_labels_create(vndbid) RETURNS void AS $$
 $$ LANGUAGE SQL;
 
 
--- Returns the title and (where applicable) uid of the user who created the thing for almost every supported vndbid + num.
--- While a function like this would be super useful in many places, it's too slow to be used in large or popular listings.
--- A VIEW that can be joined would offer much better optimization possibilities, but I've not managed to write that in a performant way yet.
--- A MATERIALIZED VIEW would likely be the fastest approach, but keeping that up-to-date seems like a pain.
+-- Returns generic information for almost every supported vndbid + num.
+-- Not currently supported: ch#, cv#, sf#
 --
--- Not currently supported: u#, ch#, cv#, sf#
-CREATE OR REPLACE FUNCTION item_info(id vndbid, num int) RETURNS TABLE(title text, uid vndbid) AS $$
-  -- x#.#
-            SELECT v.title,  h.requester FROM changes h JOIN vn_hist v        ON h.id = v.chid WHERE vndbid_type($1) = 'v' AND h.itemid = $1 AND $2 IS NOT NULL AND h.rev = $2
-  UNION ALL SELECT r.title,  h.requester FROM changes h JOIN releases_hist r  ON h.id = r.chid WHERE vndbid_type($1) = 'r' AND h.itemid = $1 AND $2 IS NOT NULL AND h.rev = $2
-  UNION ALL SELECT p.name,   h.requester FROM changes h JOIN producers_hist p ON h.id = p.chid WHERE vndbid_type($1) = 'p' AND h.itemid = $1 AND $2 IS NOT NULL AND h.rev = $2
-  UNION ALL SELECT c.name,   h.requester FROM changes h JOIN chars_hist c     ON h.id = c.chid WHERE vndbid_type($1) = 'c' AND h.itemid = $1 AND $2 IS NOT NULL AND h.rev = $2
-  UNION ALL SELECT d.title,  h.requester FROM changes h JOIN docs_hist d      ON h.id = d.chid WHERE vndbid_type($1) = 'd' AND h.itemid = $1 AND $2 IS NOT NULL AND h.rev = $2
-  UNION ALL SELECT g.name,   h.requester FROM changes h JOIN tags_hist g      ON h.id = g.chid WHERE vndbid_type($1) = 'g' AND h.itemid = $1 AND $2 IS NOT NULL AND h.rev = $2
-  UNION ALL SELECT i.name,   h.requester FROM changes h JOIN traits_hist i    ON h.id = i.chid WHERE vndbid_type($1) = 'i' AND h.itemid = $1 AND $2 IS NOT NULL AND h.rev = $2
-  UNION ALL SELECT sa.name,  h.requester FROM changes h JOIN staff_hist s     ON h.id = s.chid JOIN staff_alias_hist sa ON sa.chid = s.chid AND sa.aid = s.aid WHERE vndbid_type($1) = 's' AND h.itemid = $1 AND $2 IS NOT NULL AND h.rev = $2
+-- Returned fields:
+--   * title    - Main/romanized title.
+--                For users this is their username, not displayname.
+--   * original - Original title (if applicable). Used in edit histories
+--   * uid      - User who created/initiated this entry. Used in notification listings and reports
+--   * hidden   - Whether this entry is 'hidden' or private. Used for the reporting function & framework_ object.
+--                For edits this info comes from the revision itself, not the final entry.
+--                Interpretation of this field is dependent on the entry type, For most database entries,
+--                'hidden' means "partially visible if you know the ID, but not shown in regular listings".
+--                For threads it means "totally invisible, does not exist".
+--   * locked   - Whether this entry is 'locked'. Used for the framework_ object.
+CREATE OR REPLACE FUNCTION item_info(id vndbid, num int) RETURNS TABLE(title text, original text, uid vndbid, hidden boolean, locked boolean) AS $$
+BEGIN
   -- x#
-  UNION ALL SELECT title,   NULL   FROM vn        WHERE vndbid_type($1) = 'v' AND id = $1 AND $2 IS NULL
-  UNION ALL SELECT title,   NULL   FROM releases  WHERE vndbid_type($1) = 'r' AND id = $1 AND $2 IS NULL
-  UNION ALL SELECT name,    NULL   FROM producers WHERE vndbid_type($1) = 'p' AND id = $1 AND $2 IS NULL
-  UNION ALL SELECT name,    NULL   FROM chars     WHERE vndbid_type($1) = 'c' AND id = $1 AND $2 IS NULL
-  UNION ALL SELECT title,   NULL   FROM docs      WHERE vndbid_type($1) = 'd' AND id = $1 AND $2 IS NULL
-  UNION ALL SELECT name,    NULL   FROM tags      WHERE vndbid_type($1) = 'g' AND id = $1 AND $2 IS NULL
-  UNION ALL SELECT name,    NULL   FROM traits    WHERE vndbid_type($1) = 'i' AND id = $1 AND $2 IS NULL
-  UNION ALL SELECT sa.name, NULL   FROM staff s JOIN staff_alias sa ON sa.aid = s.aid WHERE vndbid_type($1) = 's' AND s.id = $1 AND $2 IS NOT NULL AND $2 IS NULL
-  -- t#
-  UNION ALL SELECT title,   NULL   FROM threads WHERE vndbid_type($1) = 't' AND id = $1 AND $2 IS NULL
-  -- t#.#
-  UNION ALL SELECT t.title, tp.uid FROM threads t JOIN threads_posts tp ON tp.tid = t.id WHERE vndbid_type($1) = 't' AND t.id = $1 AND $2 IS NOT NULL AND tp.num = $2
-  -- w#
-  UNION ALL SELECT v.title, w.uid  FROM reviews w JOIN vn v ON v.id = w.vid WHERE vndbid_type($1) = 'w' AND w.id = $1 AND $2 IS NULL
-  -- w#.#
-  UNION ALL SELECT v.title, wp.uid FROM reviews w JOIN vn v ON v.id = w.vid JOIN reviews_posts wp ON wp.id = w.id WHERE vndbid_type($1) = 'w' AND w.id = $1 AND $2 IS NOT NULL AND wp.num = $2
-$$ LANGUAGE SQL ROWS 1;
-
+  IF $2 IS NULL THEN CASE vndbid_type($1)
+    WHEN 'v' THEN RETURN QUERY SELECT v.title   ::text, v.original::text,  NULL::vndbid,  v.hidden, v.locked FROM vn v        WHERE v.id = $1;
+    WHEN 'r' THEN RETURN QUERY SELECT r.title   ::text, r.original::text,  NULL::vndbid,  r.hidden, r.locked FROM releases r  WHERE r.id = $1;
+    WHEN 'p' THEN RETURN QUERY SELECT p.name    ::text, p.original::text,  NULL::vndbid,  p.hidden, p.locked FROM producers p WHERE p.id = $1;
+    WHEN 'c' THEN RETURN QUERY SELECT c.name    ::text, c.original::text,  NULL::vndbid,  c.hidden, c.locked FROM chars c     WHERE c.id = $1;
+    WHEN 'd' THEN RETURN QUERY SELECT d.title   ::text, NULL,              NULL::vndbid,  d.hidden, d.locked FROM docs d      WHERE d.id = $1;
+    WHEN 'g' THEN RETURN QUERY SELECT g.name    ::text, NULL,              NULL::vndbid,  g.hidden, g.locked FROM tags g      WHERE g.id = $1;
+    WHEN 'i' THEN RETURN QUERY SELECT i.name    ::text, NULL,              NULL::vndbid,  i.hidden, i.locked FROM traits i    WHERE i.id = $1;
+    WHEN 's' THEN RETURN QUERY SELECT sa.name   ::text, sa.original::text, NULL::vndbid,  s.hidden, s.locked FROM staff s   JOIN staff_alias sa ON sa.aid = s.aid WHERE s.id = $1;
+    WHEN 't' THEN RETURN QUERY SELECT t.title   ::text, NULL,              NULL::vndbid,  t.hidden OR t.private, t.locked FROM threads t WHERE t.id = $1;
+    WHEN 'w' THEN RETURN QUERY SELECT v.title   ::text, v.original::text,  w.uid, w.c_flagged, w.locked FROM reviews w JOIN vn v ON v.id = w.vid WHERE w.id = $1;
+    WHEN 'u' THEN RETURN QUERY SELECT u.username::text, NULL,              NULL::vndbid,  FALSE,  FALSE  FROM users u WHERE u.id = $1;
+  END CASE;
+  -- x#.#
+  ELSE CASE vndbid_type($1)
+    WHEN 'v' THEN RETURN QUERY SELECT v.title::text, v.original::text,  h.requester, h.ihid, h.ilock FROM changes h JOIN vn_hist v        ON h.id = v.chid WHERE h.itemid = $1 AND h.rev = $2;
+    WHEN 'r' THEN RETURN QUERY SELECT r.title::text, r.original::text,  h.requester, h.ihid, h.ilock FROM changes h JOIN releases_hist r  ON h.id = r.chid WHERE h.itemid = $1 AND h.rev = $2;
+    WHEN 'p' THEN RETURN QUERY SELECT p.name ::text, p.original::text,  h.requester, h.ihid, h.ilock FROM changes h JOIN producers_hist p ON h.id = p.chid WHERE h.itemid = $1 AND h.rev = $2;
+    WHEN 'c' THEN RETURN QUERY SELECT c.name ::text, c.original::text,  h.requester, h.ihid, h.ilock FROM changes h JOIN chars_hist c     ON h.id = c.chid WHERE h.itemid = $1 AND h.rev = $2;
+    WHEN 'd' THEN RETURN QUERY SELECT d.title::text, NULL,              h.requester, h.ihid, h.ilock FROM changes h JOIN docs_hist d      ON h.id = d.chid WHERE h.itemid = $1 AND h.rev = $2;
+    WHEN 'g' THEN RETURN QUERY SELECT g.name ::text, NULL,              h.requester, h.ihid, h.ilock FROM changes h JOIN tags_hist g      ON h.id = g.chid WHERE h.itemid = $1 AND h.rev = $2;
+    WHEN 'i' THEN RETURN QUERY SELECT i.name ::text, NULL,              h.requester, h.ihid, h.ilock FROM changes h JOIN traits_hist i    ON h.id = i.chid WHERE h.itemid = $1 AND h.rev = $2;
+    WHEN 's' THEN RETURN QUERY SELECT sa.name::text, sa.original::text, h.requester, h.ihid, h.ilock FROM changes h JOIN staff_hist s     ON h.id = s.chid JOIN staff_alias_hist sa ON sa.chid = s.chid AND sa.aid = s.aid WHERE h.itemid = $1 AND h.rev = $2;
+    WHEN 't' THEN RETURN QUERY SELECT t.title::text, NULL,              tp.uid, t.hidden OR t.private OR tp.hidden, t.locked FROM threads t JOIN threads_posts tp ON tp.tid = t.id WHERE t.id = $1 AND tp.num = $2;
+    WHEN 'w' THEN RETURN QUERY SELECT v.title::text, v.original::text,  wp.uid, w.c_flagged OR wp.hidden, w.locked FROM reviews w JOIN vn v ON v.id = w.vid JOIN reviews_posts wp ON wp.id = w.id WHERE w.id = $1 AND wp.num = $2;
+  END CASE;
+  END IF;
+END;
+$$ LANGUAGE plpgsql ROWS 1;
 
 
 
