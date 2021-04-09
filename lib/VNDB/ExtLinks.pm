@@ -78,6 +78,7 @@ our %LINKS = (
                       , regex => qr{(?:www\.)?erogetrailers\.com/soft/([0-9]+)} },
         l_steam    => { label => 'Steam'
                       , fmt   => 'https://store.steampowered.com/app/%d/'
+                      , fmt2  => 'https://store.steampowered.com/app/%d/?utm_source=vndb'
                       , regex => qr{(?:www\.)?(?:store\.steampowered\.com/app/([0-9]+)(?:/.*)?|steamcommunity\.com/(?:app|games)/([0-9]+)(?:/.*)?|steamdb\.info/app/([0-9]+)(?:/.*)?)} },
         l_dlsite   => { label => 'DLsite'
                       , fmt   => 'https://www.dlsite.com/home/work/=/product_id/%s.html'
