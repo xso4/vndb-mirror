@@ -109,6 +109,7 @@ our %RE = (
 sub dbobj {
     my($id) = @_;
 
+    return undef if !$id;
     if($id =~ /^u/) {
         my $o = tuwf->dbRowi('SELECT id, ', sql_user(), 'FROM users u WHERE id =', \$id);
         $o->{title} = VNWeb::HTML::user_displayname $o;
