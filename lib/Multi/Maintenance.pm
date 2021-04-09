@@ -54,6 +54,15 @@ sub log_res {
 
 
 my %dailies = (
+  # Delete tags assigned to Multi that also have (possibly inherited) votes from other users.
+  cleanmultitags => q|
+    WITH RECURSIVE
+      t_votes(tag,vid,uid) AS (SELECT tv.tag, tv.vid, tv.uid FROM tags_vn tv LEFT JOIN users u ON u.id = tv.uid WHERE tv.uid IS DISTINCT FROM 'u1' AND (u.id IS NULL OR u.perm_tag)),
+      t_inherit(tag,vid,uid) AS (SELECT * FROM t_votes UNION SELECT tp.parent, th.vid, th.uid FROM t_inherit th JOIN tags_parents tp ON tp.id = th.tag),
+      t_nonmulti(tag,vid) AS (SELECT DISTINCT tag, vid FROM t_inherit),
+      t_del(tag,vid) AS (SELECT tv.tag, tv.vid FROM tags_vn tv JOIN t_nonmulti tn ON (tn.tag,tn.vid) = (tv.tag,tv.vid) WHERE tv.uid = 'u1')
+    DELETE FROM tags_vn tv WHERE tv.uid = 'u1' AND EXISTS(SELECT 1 FROM t_del td WHERE (td.tag,td.vid) = (tv.tag,tv.vid))|,
+
   # takes about 50ms to 500ms to complete, depending on how many releases have been released within the past 5 days
   vncache_inc => q|
     SELECT update_vncache(id)
