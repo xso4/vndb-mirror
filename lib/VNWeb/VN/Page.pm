@@ -438,8 +438,13 @@ sub releases_ {
 
     enrich_release $v->{releases};
     $v->{releases} = [ sort { $a->{released} <=> $b->{released} || idcmp($a->{id}, $b->{id}) } $v->{releases}->@* ];
-    my %lang;
-    my @lang = grep !$lang{$_}++, map +(sort { ($b eq $v->{olang}) cmp ($a eq $v->{olang}) || $a cmp $b } $_->{lang}->@*), $v->{releases}->@*;
+
+    my(%lang, %langrel);
+    for my $r ($v->{releases}->@*) {
+        push $lang{$_}->@*, $r for $r->{lang}->@*;
+    }
+    $langrel{$_} = min map $_->{released}, $lang{$_}->@* for keys %lang;
+    my @lang = sort { $langrel{$a} <=> $langrel{$b} || ($b eq $v->{olang}) cmp ($a eq $v->{olang}) || $a cmp $b } keys %lang;
 
     my sub lang_ {
         my($lang) = @_;
@@ -450,7 +455,7 @@ sub releases_ {
             }
         };
         my $ropt = { id => $lang };
-        release_row_ $_, $ropt for grep grep($_ eq $lang, $_->{lang}->@*), $v->{releases}->@*;
+        release_row_ $_, $ropt for $lang{$lang}->@*;
     }
 
     div_ class => 'mainbox', sub {
