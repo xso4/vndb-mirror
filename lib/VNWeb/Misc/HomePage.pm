@@ -44,7 +44,9 @@ sub recent_changes_ {
     my($lst) = VNWeb::Misc::History::fetch(undef, {m=>1,h=>1,p=>1}, {results=>10});
     h1_ sub {
         a_ href => '/hist', 'Recent Changes'; txt_ ' ';
-        a_ href => '/feeds/changes.atom', sub { abbr_ class => 'icons feed', title => 'Atom Feed', '' };
+        a_ href => '/feeds/changes.atom', sub {
+            img_ src => config->{url_static}.'/f/rss.svg', title => 'Atom feed', width => 14, height => 14;
+        }
     };
     ul_ sub {
         li_ sub {
