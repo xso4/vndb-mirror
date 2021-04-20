@@ -59,7 +59,7 @@ my @rel_cols = (
     default       => 1,
     has_data      => sub { !!@{$_[0]{platforms}} },
     draw          => sub {
-        join_ \&br_, sub { abbr_ class => "icons plat $_", title => $PLATFORM{$_}, ''; }, $_[0]{platforms}->@*;
+        join_ \&br_, sub { platform_ $_ }, $_[0]{platforms}->@*;
         txt_ 'Unknown' if !$_[0]{platforms}->@*;
     },
   }, { # Media
@@ -158,17 +158,17 @@ sub buttons_ {
     };
 
     my sub pl {
-        my($row, $option, $txt, $csscat) = @_;
+        my($row, $option, $txt, $icon) = @_;
         my %opts = map +($_,1), map $_->{$row}->@*, @$r;
         return if !keys %opts;
         p_ class => 'browseopts', sub {
             a_ href => $url->($option, $_), $_ eq $opt->{$option} ? (class => 'optselected') : (), sub {
-                $_ eq 'all' ? txt_ 'All' : abbr_ class => "icons $csscat $_", title => $txt->{$_}, '';
+                $_ eq 'all' ? txt_ 'All' : $icon->($_);
             } for ('all', sort keys %opts);
         }
     };
-    pl 'platforms', 'os', \%PLATFORM, ''     if $opt->{pla};
-    pl 'lang',     'lang',\%LANGUAGE, 'lang' if $opt->{lan};
+    pl 'platforms', 'os', \%PLATFORM, \&platform_ if $opt->{pla};
+    pl 'lang',     'lang',\%LANGUAGE, sub { abbr_ class => "icons lang $_[0]", title => $LANGUAGE{$_[0]}, '' } if $opt->{lan};
 }
 
 

@@ -697,7 +697,7 @@ sub screenshots_ {
         for my $r (grep $rel{$_->{id}}, $v->{releases}->@*) {
             p_ class => 'rel', sub {
                 abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for $r->{languages}->@*;
-                abbr_ class => "icons plat $_", title => $PLATFORM{$_}, '' for $r->{platforms}->@*;
+                platform_ $_ for $r->{platforms}->@*;
                 a_ href => "/$r->{id}", $r->{title};
             };
             div_ class => 'scr', sub {

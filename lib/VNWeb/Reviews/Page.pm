@@ -36,7 +36,7 @@ sub review_ {
                 a_ href => "/$w->{vid}", $w->{title};
                 if($w->{rid}) {
                     br_;
-                    abbr_ class => "icons plat $_", title => $PLATFORM{$_}, '' for $w->{platforms}->@*;
+                    platform_ $_ for $w->{platforms}->@*;
                     abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for $w->{lang}->@*;
                     abbr_ class => "icons rt$w->{rtype}", title => $w->{rtype}, '';
                     a_ href => "/$w->{rid}", title => $w->{roriginal}||$w->{rtitle}, $w->{rtitle};

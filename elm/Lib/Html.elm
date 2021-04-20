@@ -7,6 +7,7 @@ import Json.Decode as JD
 import List
 import Lib.Api as Api
 import Lib.Util exposing (..)
+import Lib.Ffi as Ffi
 import Gen.Types as T
 
 
@@ -205,7 +206,7 @@ langIcon : String -> Html m
 langIcon l = abbr [ class "icons lang", class l, title (Maybe.withDefault "" <| lookup l T.languages) ] [ text " " ]
 
 platformIcon : String -> Html m
-platformIcon l = abbr [ class "icons plat", class l, title (Maybe.withDefault "" <| lookup l T.platforms) ] [ text " " ]
+platformIcon l = img [ class "platicon", src <| Ffi.urlStatic ++ "/f/plat/" ++ l ++ ".svg", title (Maybe.withDefault "" <| lookup l T.platforms) ] []
 
 releaseTypeIcon : String -> Html m
 releaseTypeIcon t = abbr [ class ("icons rt"++t), title (Maybe.withDefault "" <| lookup t T.releaseTypes) ] [ text " " ]

@@ -14,6 +14,7 @@ use JSON::XS;
 use VNDB::Config;
 use VNDB::BBCode;
 use VNDB::Skins;
+use VNDB::Types;
 use VNWeb::Auth;
 use VNWeb::Validation;
 use VNWeb::DB;
@@ -21,6 +22,7 @@ use VNDB::Func 'fmtdate';
 
 our @EXPORT = qw/
     clearfloat_
+    platform_
     debug_
     join_
     user_ user_displayname
@@ -40,6 +42,12 @@ our @EXPORT = qw/
 
 # Ugly hack to move rendering down below the float object.
 sub clearfloat_ { div_ class => 'clearfloat', '' }
+
+
+# Platform icon
+sub platform_ {
+    img_ src => config->{url_static}.'/f/plat/'.$_[0].'.svg', class => 'platicon', title => $PLATFORM{$_[0]}, undef;
+}
 
 
 # Throw any data structure on the page for inspection.

@@ -189,7 +189,7 @@ sub releases_ {
             span_ sub {
                 rdate_ $_->{released};
                 txt_ ' ';
-                abbr_ class => "icons plat $_", title => $PLATFORM{$_}, '' for $_->{plat}->@*;
+                platform_ $_ for $_->{plat}->@*;
                 abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for $_->{lang}->@*;
                 txt_ ' ';
                 a_ href => "/$_->{id}", title => $_->{original}||$_->{title}, $_->{title};

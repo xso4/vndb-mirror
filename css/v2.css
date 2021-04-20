@@ -514,7 +514,7 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $bo
 }
 #screenshots a.scrlnk     { margin: 2px; border: none }
 #screenshots div.scr      { display: block; padding-left: 30px; text-align: center }
-#screenshots img          { border: 3px solid transparent; }
+#screenshots a img        { border: 3px solid transparent; }
 #screenshots a.nsfw img   { border: 3px solid $statnok; }
 #screenshots a:hover img  { border: 3px solid $border; }
 
@@ -1243,6 +1243,8 @@ div.imagebrowse { padding: 0; display: flex; flex-wrap: wrap }
 
 /****** Icons *******/
 
+.platicon { width: 16px; height: 16px; margin: -1px 2px -1px 0; border: 0; padding: 0; object-fit: contain }
+
 .icons {
   background: url(/g/icons.png?#{$icons-version}) no-repeat;
   width: 16px;
@@ -1261,61 +1263,9 @@ div.imagebrowse { padding: 0; display: flex; flex-wrap: wrap }
 .icons.gen   { width: 14px; height: 14px }
 .icons.gen.b { width: 28px }
 .icons.rtcomplete, .icons.rtpartial, .icons.rttrial { width: 11px; }
-abbr.icons, abbr.uicons { cursor: default; }
+abbr.icons { cursor: default; }
 a .icons { cursor: pointer }
 @import 'data/icons/icons';
-
-.icons.plat { height: 16px; margin: -1px 2px -1px 0!important; background-size: contain; background-repeat: no-repeat; background-position: center }
-/* This list of platform icons can be avoided by linking to the icons directly with <img> tags,
- * but I like having the option to have different icons for different skins. */
-.icons.win { background-image: url(/f/plat/win.svg) }
-.icons.lin { background-image: url(/f/plat/lin.svg) }
-.icons.mac { background-image: url(/f/plat/mac.svg) }
-.icons.web { background-image: url(/f/plat/web.svg) }
-.icons.tdo { background-image: url(/f/plat/tdo.svg) }
-.icons.ios { background-image: url(/f/plat/ios.svg) }
-.icons.and { background-image: url(/f/plat/and.svg) }
-.icons.bdp { background-image: url(/f/plat/bdp.svg) }
-.icons.dos { background-image: url(/f/plat/dos.svg) }
-.icons.dvd { background-image: url(/f/plat/dvd.svg) }
-.icons.drc { background-image: url(/f/plat/drc.svg) }
-.icons.nes { background-image: url(/f/plat/nes.svg) }
-.icons.fm7 { background-image: url(/f/plat/fm7.svg) }
-.icons.fm8 { background-image: url(/f/plat/fm8.svg) }
-.icons.fmt { background-image: url(/f/plat/fmt.svg) }
-.icons.gba { background-image: url(/f/plat/gba.svg) }
-.icons.gbc { background-image: url(/f/plat/gbc.svg) }
-.icons.msx { background-image: url(/f/plat/msx.svg) }
-.icons.nds { background-image: url(/f/plat/nds.svg) }
-.icons.swi { background-image: url(/f/plat/swi.svg) }
-.icons.wii { background-image: url(/f/plat/wii.svg) }
-.icons.wiu { background-image: url(/f/plat/wiu.svg) }
-.icons.n3d { background-image: url(/f/plat/n3d.svg) }
-.icons.p88 { background-image: url(/f/plat/p88.svg) }
-.icons.p98 { background-image: url(/f/plat/p98.svg) }
-.icons.pce { background-image: url(/f/plat/pce.svg) }
-.icons.pcf { background-image: url(/f/plat/pcf.svg) }
-.icons.psp { background-image: url(/f/plat/psp.svg) }
-.icons.ps1 { background-image: url(/f/plat/ps1.svg) }
-.icons.ps2 { background-image: url(/f/plat/ps2.svg) }
-.icons.ps3 { background-image: url(/f/plat/ps3.svg) }
-.icons.ps4 { background-image: url(/f/plat/ps4.svg) }
-.icons.ps5 { background-image: url(/f/plat/ps5.svg) }
-.icons.psv { background-image: url(/f/plat/psv.svg) }
-.icons.smd { background-image: url(/f/plat/smd.svg) }
-.icons.scd { background-image: url(/f/plat/scd.svg) }
-.icons.sat { background-image: url(/f/plat/sat.svg) }
-.icons.vnd { background-image: url(/f/plat/vnd.svg) }
-.icons.sfc { background-image: url(/f/plat/sfc.svg) }
-.icons.x1s { background-image: url(/f/plat/x1s.svg) }
-.icons.x68 { background-image: url(/f/plat/x68.svg) }
-.icons.xb1 { background-image: url(/f/plat/xb1.svg) }
-.icons.xb3 { background-image: url(/f/plat/xb3.svg) }
-.icons.xbo { background-image: url(/f/plat/xbo.svg) }
-.icons.xxs { background-image: url(/f/plat/xxs.svg) }
-.icons.mob { background-image: url(/f/plat/mob.svg) }
-.icons.oth { background-image: url(/f/plat/oth.svg) }
-
 
 .release_icons { width: 16px; height: 16px; float: right; margin-left: 4px; }
 .release_icon_voiced2, .release_icon_anim2 { filter: hue-rotate(30deg); }
