@@ -94,35 +94,11 @@ containsNonLatin = Regex.contains nonlatin_
 -- Given an email address, returns the name of the provider if it has a good chance of blocking mails from our server.
 shittyMailProvider : String -> Maybe String
 shittyMailProvider s =
-  case String.split "@" s |> List.drop 1 |> List.head |> Maybe.withDefault "" |> String.toLower of
-    "sbcglobal.net" -> Just "AT&T"
-    "att.net"       -> Just "AT&T"
-    "hotmail.ca"    -> Just "Outlook"
-    "hotmail.cl"    -> Just "Outlook"
-    "hotmail.co.jp" -> Just "Outlook"
-    "hotmail.co.uk" -> Just "Outlook"
-    "hotmail.com"   -> Just "Outlook"
-    "hotmail.com.ar"-> Just "Outlook"
-    "hotmail.de"    -> Just "Outlook"
-    "hotmail.es"    -> Just "Outlook"
-    "hotmail.fr"    -> Just "Outlook"
-    "hotmail.it"    -> Just "Outlook"
-    "hotmail.nl"    -> Just "Outlook"
-    "live.be"       -> Just "Outlook"
-    "live.ca"       -> Just "Outlook"
-    "live.co.uk"    -> Just "Outlook"
-    "live.com"      -> Just "Outlook"
-    "live.com.mx"   -> Just "Outlook"
-    "live.de"       -> Just "Outlook"
-    "live.fr"       -> Just "Outlook"
-    "live.it"       -> Just "Outlook"
-    "live.nl"       -> Just "Outlook"
-    "live.no"       -> Just "Outlook"
-    "live.ru"       -> Just "Outlook"
-    "msn.com"       -> Just "Outlook"
-    "outlook.com"   -> Just "Outlook"
-    "outlook.fr"    -> Just "Outlook"
-    _ -> Nothing
+  let outlook = Maybe.withDefault Regex.never (Regex.fromString "(hotmail|live|msn|outlook)(\\.co|\\.com)?\\.[^\\.]+$")
+  in case String.split "@" s |> List.drop 1 |> List.head |> Maybe.withDefault "" |> String.toLower of
+      "sbcglobal.net" -> Just "AT&T"
+      "att.net"       -> Just "AT&T"
+      d -> if Regex.contains outlook d then Just "Outlook" else Nothing
 
 
 -- Format a release resolution, first argument indicates whether empty string is to be used for "unknown"
