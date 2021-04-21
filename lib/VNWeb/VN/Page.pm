@@ -182,17 +182,34 @@ sub infobox_producers_ {
         push @lang, $_->{lang} if !$lang{$_->{lang}};
         push $lang{$_->{lang}}->@*, $_;
     }
+    next if !keys %lang;
+
+    use sort 'stable';
+    @lang = sort { ($b eq $v->{olang}) cmp ($a eq $v->{olang}) } @lang;
+
+    # Merge multiple languages into one group if the publishers are the same.
+    my @nlang = (shift @lang);
+    my $last = join ';', sort map $_->{id}, $lang{$nlang[0]}->@*;
+    for (@lang) {
+        my $cids = join ';', sort map $_->{id}, $lang{$_}->@*;
+        if($last eq $cids) {
+            $nlang[$#nlang] .= ";$_";
+        } else {
+            push @nlang, $_;
+        }
+        $last = $cids;
+    }
 
     tr_ sub {
         td_ 'Publishers';
         td_ sub {
-            use sort 'stable';
             join_ \&br_, sub {
-                abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '';
-                join_ ' & ', sub { a_ href => "/$_->{id}", $_->{official} ? () : (class => 'grayedout'), title => $_->{original}||$_->{name}, $_->{name} }, $lang{$_}->@*;
-            }, sort { ($b eq $v->{olang}) cmp ($a eq $v->{olang}) } @lang;
+                my @l = split /;/;
+                abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for @l;
+                join_ ' & ', sub { a_ href => "/$_->{id}", $_->{official} ? () : (class => 'grayedout'), title => $_->{original}||$_->{name}, $_->{name} }, $lang{$l[0]}->@*;
+            }, @nlang;
         }
-    } if keys %lang;
+    };
 }
 
 
