@@ -182,7 +182,7 @@ sub infobox_producers_ {
         push @lang, $_->{lang} if !$lang{$_->{lang}};
         push $lang{$_->{lang}}->@*, $_;
     }
-    next if !keys %lang;
+    return if !keys %lang;
 
     use sort 'stable';
     @lang = sort { ($b eq $v->{olang}) cmp ($a eq $v->{olang}) } @lang;
