@@ -206,7 +206,7 @@ window.ivClose = function(ev) {
 window.ivInit = function() {
     cats = {};
     document.querySelectorAll('a[data-iv]').forEach(function(o) {
-        if(o == ivnext || o == ivprev)
+        if(o == ivnext || o == ivprev || o == ivfull || o == ivhoverprev || o == ivhovernext)
             return;
         o.addEventListener('click', show);
         var cat = o.getAttribute('data-iv').split(':')[1];
