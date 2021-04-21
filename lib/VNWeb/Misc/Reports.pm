@@ -23,7 +23,7 @@ sub obj {
 
 sub obj_ {
     my($o) = @_;
-    my $lnk = $o->{object} . ($o->{objectnum} ? "#$o->{objectnum}" : '');
+    my $lnk = $o->{object} . ($o->{objectnum} ? ".$o->{objectnum}" : '');
     if($o->{object} =~ /^(?:$RE{wid}|$RE{tid})$/ && $o->{objectnum}) {
         txt_ 'Comment ';
         a_ href => "/$lnk", "#$o->{objectnum}";
