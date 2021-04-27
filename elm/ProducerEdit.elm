@@ -157,7 +157,7 @@ view model =
       , formField "original::Original name"
         [ inputText "original" model.original Original (style "width" "500px" :: GPE.valOriginal)
         , if model.name /= "" && model.name == model.original
-          then b [ class "standout" ] [ br [] [], text "Should not be the same as the Name (romaji). Leave blank is the original name is already in the latin alphabet" ]
+          then b [ class "standout" ] [ br [] [], text "Should not be the same as the Name (romaji). Leave blank if the original name is already in the latin alphabet" ]
           else if model.original /= "" && String.toLower model.name /= String.toLower model.original && not (containsNonLatin model.original)
           then b [ class "standout" ] [ br [] [], text "Original name does not seem to contain any non-latin characters. Leave this field empty if the name is already in the latin alphabet" ]
           else text ""

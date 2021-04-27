@@ -304,7 +304,7 @@ view model =
       , formField "original::Original name"
         [ inputText "original" model.original Original (onInvalid (Invalid General) :: GCE.valOriginal)
         , if model.name /= "" && model.name == model.original
-          then b [ class "standout" ] [ br [] [], text "Should not be the same as the Name (romaji). Leave blank is the original name is already in the latin alphabet" ]
+          then b [ class "standout" ] [ br [] [], text "Should not be the same as the Name (romaji). Leave blank if the original name is already in the latin alphabet" ]
           else text ""
         ]
       , formField "alias::Aliases"

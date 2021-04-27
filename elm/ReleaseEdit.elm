@@ -289,7 +289,7 @@ viewGen model =
   , formField "original::Original title"
     [ inputText "original" model.original Original (style "width" "500px" :: GRE.valOriginal)
     , if model.title /= "" && model.title == model.original
-      then b [ class "standout" ] [ br [] [], text "Should not be the same as the Title (romaji). Leave blank is the original title is already in the latin alphabet" ]
+      then b [ class "standout" ] [ br [] [], text "Should not be the same as the Title (romaji). Leave blank if the original title is already in the latin alphabet" ]
       else if model.original /= "" && not (containsNonLatin model.original)
       then b [ class "standout" ] [ br [] [], text "Original title does not seem to contain any non-latin characters. Leave this field empty if the title is already in the latin alphabet" ]
       else if containsJapanese model.original && not (Set.isEmpty model.lang) && not (Set.member "ja" model.lang) && not (Set.member "zh" model.lang)
