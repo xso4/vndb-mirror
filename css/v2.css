@@ -704,11 +704,11 @@ p.chardetailopts { margin: -10px auto 7px auto; width: 800px; text-align: right 
 p.chardetailopts a { margin: 0 5px }
 p.chardetailopts a:last-child { margin: 0 0 0 5px }
 div.chardetails { margin: 0 auto; width: 800px; }
-div.charimg     { float: left; width: 250px; margin: 0 10px; text-align: center }
+div.charimg     { float: left; width: 256px; margin: 0 15px 0 0; text-align: center }
 div.charimg p   { text-align: center; padding: 0px; margin: 0; }
 .chardesc h2    { margin: 0; }
 .chardesc p     { padding: 0 0 0 5px; }
-div.chardetails table        { float: left; width: 530px; }
+div.chardetails table        { float: left; width: 525px; }
 div.chardetails table td.key { width: 100px; }
 div.chardetails.charsep      { margin-top: 30px }
 
