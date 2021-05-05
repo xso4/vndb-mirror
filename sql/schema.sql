@@ -61,7 +61,7 @@ CREATE TYPE credit_type       AS ENUM ('scenario', 'chardesign', 'art', 'music',
 CREATE TYPE cup_size          AS ENUM ('', 'AAA', 'AA', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z');
 CREATE TYPE dbentry_type      AS ENUM ('v', 'r', 'p', 'c', 's', 'd');
 CREATE TYPE gender            AS ENUM ('unknown', 'm', 'f', 'b');
-CREATE TYPE language          AS ENUM ('ar', 'bg', 'ca', 'cs', 'da', 'de', 'el', 'en', 'eo', 'es', 'fa', 'fi', 'fr', 'ga', 'gd', 'he', 'hr', 'hu', 'id', 'it', 'ja', 'ko', 'mk', 'ms', 'lt', 'lv', 'nl', 'no', 'pl', 'pt-pt', 'pt-br', 'ro', 'ru', 'sk', 'sl', 'sv', 'ta', 'th', 'tr', 'uk', 'vi', 'zh');
+CREATE TYPE language          AS ENUM ('ar', 'bg', 'ca', 'cs', 'da', 'de', 'el', 'en', 'eo', 'es', 'fa', 'fi', 'fr', 'ga', 'gd', 'he', 'hr', 'hu', 'id', 'it', 'ja', 'ko', 'mk', 'ms', 'la', 'lt', 'lv', 'nl', 'no', 'pl', 'pt-pt', 'pt-br', 'ro', 'ru', 'sk', 'sl', 'sv', 'ta', 'th', 'tr', 'uk', 'vi', 'zh');
 CREATE TYPE medium            AS ENUM ('cd', 'dvd', 'gdr', 'blr', 'flp', 'cas', 'mrt', 'mem', 'umd', 'nod', 'in', 'otc');
 CREATE TYPE notification_ntype AS ENUM ('pm', 'dbdel', 'listdel', 'dbedit', 'announce', 'post', 'comment', 'subpost', 'subedit', 'subreview', 'subapply');
 CREATE TYPE platform          AS ENUM ('win', 'dos', 'lin', 'mac', 'ios', 'and', 'dvd', 'bdp', 'fm7', 'fm8', 'fmt', 'gba', 'gbc', 'msx', 'nds', 'nes', 'p88', 'p98', 'pce', 'pcf', 'psp', 'ps1', 'ps2', 'ps3', 'ps4', 'ps5', 'psv', 'drc', 'smd', 'scd', 'sat', 'sfc', 'swi', 'wii', 'wiu', 'n3d', 'vnd', 'x1s', 'x68', 'xb1', 'xb3', 'xbo', 'xxs', 'web', 'tdo', 'mob', 'oth');

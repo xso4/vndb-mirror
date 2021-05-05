@@ -40,6 +40,7 @@ hash LANGUAGE =>
     ko => 'Korean',
     mk => 'Macedonian',
     ms => 'Malay',
+    la => 'Latin',
     lt => 'Lithuanian',
     lv => 'Latvian',
     nl => 'Dutch',
