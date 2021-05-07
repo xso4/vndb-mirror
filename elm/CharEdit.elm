@@ -422,7 +422,7 @@ view model =
             , a [ href "#", onMouseOver (TraitSel t.tid 1), onMouseOut (TraitSel "" 0), onClickD (TraitSpoil i 1), classList [("s1", spoil t == 1 )], title "Minor spoiler" ] []
             , a [ href "#", onMouseOver (TraitSel t.tid 2), onMouseOut (TraitSel "" 0), onClickD (TraitSpoil i 2), classList [("s2", spoil t == 2 )], title "Major spoiler" ] []
             ]
-          , td []
+          , td [ style "width" "150px" ]
             [ case (t.tid == model.traitSelId, lookup model.traitSelSpl spoilOpts) of
                 (True, Just s) -> text s
                 _ -> a [ href "#", onClickD (TraitDel i)] [ text "remove" ]
