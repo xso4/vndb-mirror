@@ -67,6 +67,7 @@ CREATE OR REPLACE FUNCTION update_vncache(vndbid) RETURNS void AS $$
         JOIN releases_vn rv ON r.id = rv.id
        WHERE rv.vid = $1
          AND r.type <> 'trial'
+         AND NOT rl.mtl
          AND r.released <= TO_CHAR('today'::timestamp, 'YYYYMMDD')::integer
          AND r.hidden = FALSE
       GROUP BY rl.lang

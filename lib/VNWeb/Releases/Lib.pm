@@ -28,8 +28,8 @@ sub enrich_release {
     my($r) = @_;
     enrich_merge id => 'SELECT id, title, original, notes, minage, official, freeware, doujin, reso_x, reso_y, voiced, ani_story, ani_ero, uncensored FROM releases WHERE id IN', $r;
     enrich_merge id => sql('SELECT rid as id, status as rlist_status FROM rlists WHERE uid =', \auth->uid, 'AND rid IN'), $r if auth;
-    enrich_flatten lang => id => id => sub { sql 'SELECT id, lang FROM releases_lang WHERE id IN', $_, 'ORDER BY id, lang' }, $r;
     enrich_flatten platforms => id => id => sub { sql 'SELECT id, platform FROM releases_platforms WHERE id IN', $_, 'ORDER BY id, platform' }, $r;
+    enrich lang => id => id => sub { 'SELECT id, lang, mtl FROM releases_lang WHERE id IN', $_, 'ORDER BY id, mtl, lang' }, $r;
     enrich media => id => id => sub { 'SELECT id, medium, qty FROM releases_media WHERE id IN', $_, 'ORDER BY id, medium' }, $r;
 }
 
@@ -70,10 +70,14 @@ sub release_extlinks_ {
 
 # Options
 #   id:   unique identifier if the same release may be listed on a page twice.
-#   lang: 0/1 whether to display language icons
+#   lang: $lang, whether to display language icons and which language to use for the MTL flag.
 #   prod: 0/1 whether to display Pub/Dev indication
 sub release_row_ {
     my($r, $opt) = @_;
+
+    my $mtl = $opt->{lang}
+        ? [grep $_->{lang} eq $opt->{lang}, $r->{lang}->@*]->[0]{mtl}
+        : (grep $_->{mtl}, $r->{lang}->@*) == $r->{lang}->@*;
 
     my sub icon_ {
         my($img, $label, $class) = @_;
@@ -102,19 +106,19 @@ sub release_row_ {
         icon_ 'notes', bb_format $r->{notes}, text => 1 if $r->{notes};
     }
 
-    tr_ sub {
-        td_ class => 'tc1', sub { rdate_ $r->{released} };
+    tr_ $mtl ? (class => 'mtl') : (), sub {
+        td_ class => 'tc1', sub { rdate_ [grep $_->{lang} eq $opt->{lang}, $opt->{lang}?$r->{lang}->@*:()]->[0]{released}//$r->{released} };
         td_ class => 'tc2', defined $r->{minage} ? minage $r->{minage} : '';
         td_ class => 'tc3', sub {
             platform_ $_ for $r->{platforms}->@*;
-            if($opt->{lang}) {
-                abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for $r->{lang}->@*;
+            if(!$opt->{lang}) {
+                abbr_ class => "icons lang $_->{lang}".($_->{mtl}?' mtl':''), title => $LANGUAGE{$_->{lang}}, '' for $r->{lang}->@*;
             }
             abbr_ class => "icons rt$r->{type}", title => $r->{type}, '';
         };
         td_ class => 'tc4', sub {
             a_ href => "/$r->{id}", title => $r->{original}||$r->{title}, $r->{title};
-            my $note = join ' ', $r->{official} ? () : 'unofficial', $r->{patch} ? 'patch' : ();
+            my $note = join ' ', $r->{official} ? () : 'unofficial', $mtl ? 'machine translation' : (), $r->{patch} ? 'patch' : ();
             b_ class => 'grayedout', " ($note)" if $note;
         };
         td_ class => 'tc_icons', sub { icons_ $r };

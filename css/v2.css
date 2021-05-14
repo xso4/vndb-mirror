@@ -452,6 +452,9 @@ div.postsearch td.tc3             { width: 90px; }
 .releases td.tc_prod   { color: $grayedout; white-space: nowrap; width: 50px }
 .releases td.tc5       { width: 70px; text-align: right }
 .releases td.tc6       { text-align: right; width: 25px; padding: 0; white-space: nowrap }
+.releases tr.mtl a,
+.releases tr.mtl b,
+.releases tr.mtl td { color: $grayedout }
 
 
 /***** VN page *******/
@@ -1259,6 +1262,7 @@ div.imagebrowse { padding: 0; display: flex; flex-wrap: wrap }
   text-decoration: none;
 }
 .icons.lang  { width: 13px; height: 11px; opacity: 0.5 }
+.icons.lang.mtl { opacity: 0.3 }
 .icons.gen   { width: 14px; height: 14px }
 .icons.gen.b { width: 28px }
 .icons.rtcomplete, .icons.rtpartial, .icons.rttrial { width: 11px; }

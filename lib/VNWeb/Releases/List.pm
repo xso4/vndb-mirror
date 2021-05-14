@@ -22,7 +22,7 @@ sub listing_ {
                 td_ class => 'tc5', '';
                 td_ class => 'tc6', '';
             } };
-            my $ropt = { id => '', lang => 1 };
+            my $ropt = { id => '' };
             release_row_ $_, $ropt for @$list;
         }
     };

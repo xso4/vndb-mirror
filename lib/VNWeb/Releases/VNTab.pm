@@ -43,7 +43,7 @@ my @rel_cols = (
     button_string => 'Language',
     default       => 1,
     has_data      => sub { !!@{$_[0]{lang}} },
-    draw          => sub { join_ \&br_, sub { abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, ''; }, $_[0]{lang}->@* },
+    draw          => sub { join_ \&br_, sub { abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, ''; }, $_[0]{lang}->@* },
   }, { # Publication
     id            => 'pub',
     sort_field    => 'publication',
@@ -158,8 +158,8 @@ sub buttons_ {
     };
 
     my sub pl {
-        my($row, $option, $txt, $icon) = @_;
-        my %opts = map +($_,1), map $_->{$row}->@*, @$r;
+        my($option, $icon, @lst) = @_;
+        my %opts = map +($_,1), @lst;
         return if !keys %opts;
         p_ class => 'browseopts', sub {
             a_ href => $url->($option, $_), $_ eq $opt->{$option} ? (class => 'optselected') : (), sub {
@@ -167,8 +167,8 @@ sub buttons_ {
             } for ('all', sort keys %opts);
         }
     };
-    pl 'platforms', 'os', \%PLATFORM, \&platform_ if $opt->{pla};
-    pl 'lang',     'lang',\%LANGUAGE, sub { abbr_ class => "icons lang $_[0]", title => $LANGUAGE{$_[0]}, '' } if $opt->{lan};
+    pl 'os',  \&platform_, map $_->{platforms}->@*, @$r if $opt->{pla};
+    pl 'lang', sub { abbr_ class => "icons lang $_[0]", title => $LANGUAGE{$_[0]}, '' }, map $_->{lang}, map $_->{lang}->@*, @$r if $opt->{lan};
 }
 
 
@@ -178,7 +178,7 @@ sub listing_ {
     # Apply language and platform filters
     my @r = grep +
         ($opt->{os}   eq 'all' || ($_->{platforms} && grep $_ eq $opt->{os},   $_->{platforms}->@*)) &&
-        ($opt->{lang} eq 'all' || ($_->{lang}      && grep $_ eq $opt->{lang}, $_->{lang}->@*)), @$r;
+        ($opt->{lang} eq 'all' || ($_->{lang}      && grep $_ eq $opt->{lang}, map $_->{lang}, $_->{lang}->@*)), @$r;
 
     # Figure out which columns to display
     my @col;

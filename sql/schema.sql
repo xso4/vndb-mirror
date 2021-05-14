@@ -449,6 +449,7 @@ CREATE TABLE releases_hist (
 CREATE TABLE releases_lang (
   id         vndbid NOT NULL, -- [pub]
   lang       language NOT NULL, -- [pub]
+  mtl        boolean NOT NULL DEFAULT false, -- [pub]
   PRIMARY KEY(id, lang)
 );
 
@@ -456,6 +457,7 @@ CREATE TABLE releases_lang (
 CREATE TABLE releases_lang_hist (
   chid       integer NOT NULL,
   lang       language NOT NULL,
+  mtl        boolean NOT NULL DEFAULT false, -- [pub]
   PRIMARY KEY(chid, lang)
 );
 

@@ -9,7 +9,7 @@ sub enrich_item {
     enrich_merge pid => 'SELECT id AS pid, name, original FROM producers WHERE id IN', $r->{producers};
     enrich_merge vid => 'SELECT id AS vid, title, original FROM vn WHERE id IN', $r->{vn};
 
-    $r->{lang}      = [ sort map $_->{lang},     $r->{lang}->@*      ];
+    $r->{lang}      = [ sort { ($a->{mtl}?1:0) <=> ($b->{mtl}?1:0) || $a->{lang} cmp $b->{lang} } $r->{lang}->@* ];
     $r->{platforms} = [ sort map $_->{platform}, $r->{platforms}->@* ];
     $r->{vn}        = [ sort { $a->{title}  cmp $b->{title}  || idcmp($a->{vid}, $b->{vid}) } $r->{vn}->@*        ];
     $r->{producers} = [ sort { $a->{name}   cmp $b->{name}   || idcmp($a->{pid}, $b->{pid}) } $r->{producers}->@* ];
@@ -33,7 +33,7 @@ sub _rev_ {
         [ original   => 'Original title' ],
         [ gtin       => 'JAN/EAN/UPC',     empty => 0 ],
         [ catalog    => 'Catalog number' ],
-        [ lang       => 'Languages',       fmt => \%LANGUAGE ],
+        [ lang       => 'Languages',       fmt => sub { txt_ $LANGUAGE{$_->{lang}}; txt_ ' (machine translation)' if $_->{mtl} } ],
         [ released   => 'Release date',    fmt => sub { rdate_ $_ } ],
         [ minage     => 'Age rating',      fmt => sub { txt_ minage $_ } ],
         [ notes      => 'Notes' ],
@@ -91,8 +91,14 @@ sub _infotable_ {
             td_ 'Language';
             td_ sub {
                 join_ \&br_, sub {
-                    abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, ' ';
-                    txt_ ' '.$LANGUAGE{$_};
+                    abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, ' ';
+                    txt_ ' ';
+                    if($_->{mtl}) {
+                        b_ class => 'grayedout', $LANGUAGE{$_->{lang}};
+                        txt_ ' (machine translation)';
+                    } else {
+                        txt_ $LANGUAGE{$_->{lang}};
+                    }
                 }, $r->{lang}->@*;
             }
         };

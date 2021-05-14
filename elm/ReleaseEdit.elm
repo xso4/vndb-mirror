@@ -26,7 +26,7 @@ main = Browser.element
   { init   = \e -> (init e, Cmd.none)
   , view   = view
   , update = update
-  , subscriptions = sub
+  , subscriptions = \m -> DD.sub m.platDd
   }
 
 
@@ -39,8 +39,7 @@ type alias Model =
   , patch      : Bool
   , freeware   : Bool
   , doujin     : Bool
-  , lang       : Set.Set String
-  , langDd     : DD.Config Msg
+  , lang       : List GRE.RecvLang
   , plat       : Set.Set String
   , platDd     : DD.Config Msg
   , media      : List GRE.RecvMedia
@@ -79,8 +78,7 @@ init d =
   , patch      = d.patch
   , freeware   = d.freeware
   , doujin     = d.doujin
-  , lang       = Set.fromList <| List.map (\e -> e.lang) d.lang
-  , langDd     = DD.init "lang" LangOpen
+  , lang       = d.lang
   , plat       = Set.fromList <| List.map (\e -> e.platform) d.platforms
   , platDd     = DD.init "platforms" PlatOpen
   , media      = List.map (\m -> { m | qty = if m.qty == 0 then 1 else m.qty }) d.media
@@ -122,7 +120,7 @@ encode model =
   , patch       = model.patch
   , freeware    = model.freeware
   , doujin      = model.doujin
-  , lang        = List.map (\l -> {lang=l    }) <| Set.toList model.lang
+  , lang        = model.lang
   , platforms   = List.map (\l -> {platform=l}) <| Set.toList model.plat
   , media       = model.media
   , gtin        = model.gtin
@@ -155,8 +153,6 @@ resoConfig = { wrap = Resolution, id = "resolution", source = A.resolutionSource
 engineConfig : A.Config Msg GApi.ApiEngines
 engineConfig = { wrap = Engine, id = "engine", source = A.engineSource }
 
-sub : Model -> Sub Msg
-sub m = Sub.batch [ DD.sub m.langDd, DD.sub m.platDd ]
 
 type Msg
   = Title String
@@ -166,8 +162,9 @@ type Msg
   | Patch Bool
   | Freeware Bool
   | Doujin Bool
-  | Lang String Bool
-  | LangOpen Bool
+  | Lang Int String
+  | LangMtl Int Bool
+  | LangDel Int
   | Plat String Bool
   | PlatOpen Bool
   | MediaType Int String
@@ -206,8 +203,9 @@ update msg model =
     Patch b    -> ({ model | patch    = b }, Cmd.none)
     Freeware b -> ({ model | freeware = b }, Cmd.none)
     Doujin b   -> ({ model | doujin   = b }, Cmd.none)
-    Lang s b   -> ({ model | lang     = if b then Set.insert s model.lang else Set.remove s model.lang }, Cmd.none)
-    LangOpen b -> ({ model | langDd   = DD.toggle model.langDd b }, Cmd.none)
+    Lang n s   -> ({ model | lang     = if s /= "" && n == List.length model.lang then model.lang ++ [{lang=s, mtl=False}] else modidx n (\l -> { l | lang = s }) model.lang }, Cmd.none)
+    LangMtl n b-> ({ model | lang     = modidx n (\l -> { l | mtl = b }) model.lang }, Cmd.none)
+    LangDel n  -> ({ model | lang     = delidx n model.lang }, Cmd.none)
     Plat s b   -> ({ model | plat     = if b then Set.insert s model.plat else Set.remove s model.plat }, Cmd.none)
     PlatOpen b -> ({ model | platDd   = DD.toggle model.platDd b }, Cmd.none)
     MediaType n s -> ({ model | media = if s /= "unk" && n == List.length model.media then model.media ++ [{medium = s, qty = 1}] else modidx n (\m -> { m | medium = s }) model.media }, Cmd.none)
@@ -269,7 +267,8 @@ update msg model =
 isValid : Model -> Bool
 isValid model = not
   (  model.title == model.original
-  || Set.isEmpty model.lang
+  || List.isEmpty model.lang
+  || hasDuplicates (List.map (\l -> l.lang) model.lang)
   || hasDuplicates (List.map (\m -> (m.medium, m.qty)) model.media)
   || not model.gtinValid
   || List.isEmpty model.vn
@@ -292,7 +291,7 @@ viewGen model =
       then b [ class "standout" ] [ br [] [], text "Should not be the same as the Title (romaji). Leave blank if the original title is already in the latin alphabet" ]
       else if model.original /= "" && not (containsNonLatin model.original)
       then b [ class "standout" ] [ br [] [], text "Original title does not seem to contain any non-latin characters. Leave this field empty if the title is already in the latin alphabet" ]
-      else if containsJapanese model.original && not (Set.isEmpty model.lang) && not (Set.member "ja" model.lang) && not (Set.member "zh" model.lang)
+      else if containsJapanese model.original && not (List.isEmpty model.lang) && not (List.any (\l -> l.lang == "ja" || l.lang == "zh") model.lang)
       then b [ class "standout" ] [ br [] [], text "Non-Japanese releases should (probably) not have a Japanese original title." ]
       else text ""
     ]
@@ -309,12 +308,17 @@ viewGen model =
 
   , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Format" ] ]
   , formField "Language(s)"
-    [ div [ class "elm_dd_input", style "width" "500px" ] [ DD.view model.langDd Api.Normal
-      (if Set.isEmpty model.lang
-       then b [ class "standout" ] [ text "No language selected" ]
-       else span [] <| List.intersperse (text ", ") <| List.map (\(l,t) -> span [ style "white-space" "nowrap" ] [ langIcon l, text t ]) <| List.filter (\(l,_) -> Set.member l model.lang) GT.languages)
-      <| \() -> [ ul [ style "columns" "2"] <| List.map (\(l,t) -> li [] [ linkRadio (Set.member l model.lang) (Lang l) [ langIcon l, text t ] ]) GT.languages ]
-    ] ]
+    [ table [] <| List.indexedMap (\i l ->
+        tr []
+        [ td [] [ inputSelect "" l.lang (Lang i) [] <| (if l.lang == "" then [("", "- Add language -")] else []) ++ GT.languages ]
+        , td [] [ if l.lang == "" || not model.editsum.authmod then text "" else label [] [ inputCheck "" l.mtl (LangMtl i), text " machine translation" ] ]
+        , td [] [ if l.lang == "" || List.length model.lang == 1 then text "" else inputButton "remove" (LangDel i) [] ]
+        ]
+      ) <| model.lang ++ [{lang = "", mtl = False}]
+    , if hasDuplicates (List.map (\l -> l.lang) model.lang)
+      then b [ class "standout" ] [ text "List contains duplicates", br [] [] ]
+      else text ""
+    ]
   , formField "Platform(s)"
     [ div [ class "elm_dd_input", style "width" "500px" ] [ DD.view model.platDd Api.Normal
       (if Set.isEmpty model.plat

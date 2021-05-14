@@ -272,7 +272,7 @@ sub fmtspoil {
 # Generates a HTML 'lang' attribute given a list of possible languages.
 # This is used for the 'original language' field, which we can safely assume is not used for latin-alphabet languages.
 sub lang_attr {
-    my @l = ref $_[0] ? $_[0]->@* : @_;
+    my @l = map ref($_) eq 'HASH' ? $_->{lang} : $_, ref $_[0] ? $_[0]->@* : @_;
     # Choose Japanese, Chinese or Korean (in order of likelyness) if those are in the list.
     return (lang => 'ja') if grep $_ eq 'ja', @l;
     return (lang => 'zh') if grep $_ eq 'zh', @l;

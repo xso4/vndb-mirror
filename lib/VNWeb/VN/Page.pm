@@ -160,7 +160,7 @@ sub infobox_producers_ {
           JOIN releases_lang rl ON rl.id = rv.id
           JOIN releases_producers rp ON rp.id = rv.id
           JOIN producers p ON p.id = rp.pid
-         WHERE NOT r.hidden AND rv.vid =', \$v->{id}, '
+         WHERE NOT r.hidden AND (r.official OR NOT rl.mtl) AND rv.vid =', \$v->{id}, '
          GROUP BY p.id, p.name, p.original, rl.lang
          ORDER BY NOT bool_or(r.official), MIN(r.released), p.name
     ');
@@ -458,7 +458,7 @@ sub releases_ {
 
     my(%lang, %langrel);
     for my $r ($v->{releases}->@*) {
-        push $lang{$_}->@*, $r for $r->{lang}->@*;
+        push $lang{$_->{lang}}->@*, $r for $r->{lang}->@*;
     }
     $langrel{$_} = min map $_->{released}, $lang{$_}->@* for keys %lang;
     my @lang = sort { $langrel{$a} <=> $langrel{$b} || ($b eq $v->{olang}) cmp ($a eq $v->{olang}) || $a cmp $b } keys %lang;
@@ -471,7 +471,7 @@ sub releases_ {
                 txt_ $LANGUAGE{$lang};
             }
         };
-        my $ropt = { id => $lang };
+        my $ropt = { id => $lang, lang => $lang };
         release_row_ $_, $ropt for $lang{$lang}->@*;
     }
 
@@ -713,7 +713,7 @@ sub screenshots_ {
 
         for my $r (grep $rel{$_->{id}}, $v->{releases}->@*) {
             p_ class => 'rel', sub {
-                abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for $r->{languages}->@*;
+                abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, '' for $r->{lang}->@*;
                 platform_ $_ for $r->{platforms}->@*;
                 a_ href => "/$r->{id}", $r->{title};
             };

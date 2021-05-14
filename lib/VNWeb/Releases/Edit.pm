@@ -12,7 +12,10 @@ my $FORM = {
     patch      => { anybool => 1 },
     freeware   => { anybool => 1 },
     doujin     => { anybool => 1 },
-    lang       => { aoh => { lang => { enum => \%LANGUAGE } } },
+    lang       => { minlength => 1, sort_keys => 'lang', aoh => {
+        lang      => { enum => \%LANGUAGE },
+        mtl       => { anybool => 1 },
+    } },
     platforms  => { aoh => { platform => { enum => \%PLATFORM } } },
     media      => { aoh => {
         medium    => { enum => \%MEDIUM },
