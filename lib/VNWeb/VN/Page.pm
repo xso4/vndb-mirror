@@ -456,18 +456,22 @@ sub releases_ {
     enrich_release $v->{releases};
     $v->{releases} = [ sort { $a->{released} <=> $b->{released} || idcmp($a->{id}, $b->{id}) } $v->{releases}->@* ];
 
-    my(%lang, %langrel);
+    my(%lang, %langrel, %langmtl);
     for my $r ($v->{releases}->@*) {
-        push $lang{$_->{lang}}->@*, $r for $r->{lang}->@*;
+        for ($r->{lang}->@*) {
+            push $lang{$_->{lang}}->@*, $r;
+            $langmtl{$_->{lang}} = ($langmtl{$_->{lang}}//1) && $_->{mtl};
+        }
     }
     $langrel{$_} = min map $_->{released}, $lang{$_}->@* for keys %lang;
     my @lang = sort { $langrel{$a} <=> $langrel{$b} || ($b eq $v->{olang}) cmp ($a eq $v->{olang}) || $a cmp $b } keys %lang;
 
     my sub lang_ {
         my($lang) = @_;
-        tr_ class => 'lang', sub {
+        my $mtl = $langmtl{$lang} ? ' mtl' : '';
+        tr_ class => "lang$mtl", sub {
             td_ colspan => 7, sub {
-                abbr_ class => "icons lang $lang", title => $LANGUAGE{$lang}, '';
+                abbr_ class => "icons lang $lang$mtl", title => $LANGUAGE{$lang}, '';
                 txt_ $LANGUAGE{$lang};
             }
         };
