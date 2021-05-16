@@ -443,7 +443,6 @@ div.postsearch td.tc3             { width: 90px; }
 /***** Release listings on VN & producer pages */
 
 .releases { width: 100%; }
-.releases tr.lang td,
 .releases tr.vn td     { background: $boxbg; font-weight: bold; }
 .releases td.tc1       { padding-left: 30px; width: 80px; white-space: nowrap }
 .releases td.tc2       { text-align: center; width: 50px; white-space: nowrap }
@@ -451,11 +450,15 @@ div.postsearch td.tc3             { width: 90px; }
 .releases td.tc_icons  { padding: 0 4px }
 .releases td.tc_prod   { color: $grayedout; white-space: nowrap; width: 50px }
 .releases td.tc5       { width: 70px; text-align: right }
-.releases td.tc6       { text-align: right; width: 25px; padding: 0; white-space: nowrap }
+.releases td.tc6       { text-align: right; width: 35px; padding: 0; white-space: nowrap }
 .releases tr.mtl a,
 .releases tr.mtl b,
 .releases tr.mtl td { color: $grayedout }
 
+.vnreleases details { margin: 7px 0 3px 0 }
+.vnreleases details[open] summary b.grayedout { display: none }
+.vnreleases summary { background: $boxbg; font-weight: bold; width: 100%; cursor: pointer }
+.vnreleases summary.mtl { color: $grayedout; }
 
 /***** VN page *******/
 

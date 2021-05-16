@@ -468,23 +468,26 @@ sub releases_ {
 
     my sub lang_ {
         my($lang) = @_;
-        my $mtl = $langmtl{$lang} ? ' mtl' : '';
-        tr_ class => "lang$mtl", sub {
-            td_ colspan => 7, sub {
-                abbr_ class => "icons lang $lang$mtl", title => $LANGUAGE{$lang}, '';
-                txt_ $LANGUAGE{$lang};
-            }
-        };
         my $ropt = { id => $lang, lang => $lang };
-        release_row_ $_, $ropt for $lang{$lang}->@*;
+        my $mtl = $langmtl{$lang};
+        tag_ 'details', $mtl ? () : (open => 'open'), 'data-remember-id' => "vnlang-$lang".($mtl?'-mtl':''), sub {
+            tag_ 'summary', $mtl ? (class => 'mtl') : (), sub {
+                abbr_ class => "icons lang $lang".($mtl?' mtl':''), title => $LANGUAGE{$lang}, '';
+                txt_ $LANGUAGE{$lang};
+                b_ class => 'grayedout', sprintf ' (%d)', scalar $lang{$lang}->@*;
+            };
+            table_ class => 'releases', sub {
+                release_row_ $_, $ropt for $lang{$lang}->@*;
+            };
+        };
     }
 
-    div_ class => 'mainbox', sub {
+    div_ class => 'mainbox vnreleases', sub {
         h1_ 'Releases';
         if(!$v->{releases}->@*) {
             p_ 'We don\'t have any information about releases of this visual novel yet...';
         } else {
-            table_ class => 'releases', sub { lang_ $_ for @lang };
+            lang_ $_ for @lang;
         }
     }
 }
