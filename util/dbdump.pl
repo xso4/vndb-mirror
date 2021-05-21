@@ -353,7 +353,7 @@ sub export_tags {
 
     my $lst = $db->selectall_arrayref(q{
         SELECT vndbid_num(id) AS id, name, description, searchable, applicable, c_items AS vns, cat, alias,
-          (SELECT string_agg(vndbid_num(parent)::text, ',') FROM tags_parents tp WHERE tp.id = t.id) AS parents
+          (SELECT string_agg(vndbid_num(parent)::text, ',' ORDER BY main desc, parent) FROM tags_parents tp WHERE tp.id = t.id) AS parents
         FROM tags t WHERE NOT hidden ORDER BY id
     }, { Slice => {} });
     for(@$lst) {
@@ -378,7 +378,7 @@ sub export_traits {
 
     my $lst = $db->selectall_arrayref(q{
         SELECT vndbid_num(id) AS id, name, alias AS aliases, description, searchable, applicable, c_items AS chars,
-               (SELECT string_agg(vndbid_num(parent)::text, ',') FROM traits_parents tp WHERE tp.id = t.id) AS parents
+               (SELECT string_agg(vndbid_num(parent)::text, ',' ORDER BY main desc, parent) FROM traits_parents tp WHERE tp.id = t.id) AS parents
         FROM traits t WHERE NOT hidden ORDER BY id
     }, { Slice => {} });
     for(@$lst) {

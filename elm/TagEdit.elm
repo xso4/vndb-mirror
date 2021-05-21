@@ -95,7 +95,7 @@ encode m =
   , searchable   = m.searchable
   , applicable   = m.applicable
   , defaultspoil = m.defaultspoil
-  , parents      = List.map (\l -> {parent=l.parent}) m.parents
+  , parents      = List.map (\l -> {parent=l.parent, main=l.main}) m.parents
   , wipevotes    = m.wipevotes
   , merge        = List.map (\l -> {id=l.id}) m.merge
   }
@@ -110,6 +110,7 @@ type Msg
   | DefaultSpoil Int
   | Description TP.Msg
   | Editsum Editsum.Msg
+  | ParentMain Int Bool
   | ParentDel Int
   | ParentSearch (A.Msg GApi.ApiTagResult)
   | WipeVotes Bool
@@ -132,7 +133,11 @@ update msg model =
     Description m -> let (nm,nc) = TP.update m model.description in ({ model | description = nm }, Cmd.map Description nc)
     Editsum m     -> let (nm,nc) = Editsum.update m model.editsum in ({ model | editsum = nm }, Cmd.map Editsum nc)
 
-    ParentDel i   -> ({ model | parents = delidx i model.parents }, Cmd.none)
+    ParentMain i _-> ({ model | parents = List.indexedMap (\n p -> { p | main = i == n }) model.parents }, Cmd.none)
+    ParentDel i   ->
+      let np = delidx i model.parents
+          nnp = if List.any (\p -> p.main) np then np else List.indexedMap (\n p -> { p | main = n == 0 }) np
+      in ({ model | parents = nnp }, Cmd.none)
     ParentSearch m ->
       let (nm, c, res) = A.update parentConfig m model.parentAdd
       in case res of
@@ -140,7 +145,7 @@ update msg model =
         Just p  ->
           if List.any (\e -> e.parent == p.id) model.parents
           then ({ model | parentAdd = nm }, c)
-          else ({ model | parentAdd = A.clear nm "", parents = model.parents ++ [{ parent = p.id, name = p.name}] }, c)
+          else ({ model | parentAdd = A.clear nm "", parents = model.parents ++ [{ parent = p.id, main = List.isEmpty model.parents, name = p.name}] }, c)
 
     MergeDel i   -> ({ model | merge = delidx i model.merge }, Cmd.none)
     MergeSearch m ->
@@ -179,7 +184,7 @@ view model =
       , formField "" [ label [] [ inputCheck "" model.searchable Searchable, text " Searchable (people can use this tag to find VNs)" ] ]
       , formField "" [ label [] [ inputCheck "" model.applicable Applicable, text " Applicable (people can apply this tag to VNs)" ] ]
       , formField "cat::Category" [ inputSelect "cat" model.cat Cat GTE.valCat tagCategories ]
-      , formField "defaultspoil::Default spoiler level" [ inputSelect "defaultspoil" model.defaultspoil DefaultSpoil GTE.valDefaultspoil 
+      , formField "defaultspoil::Default spoiler level" [ inputSelect "defaultspoil" model.defaultspoil DefaultSpoil GTE.valDefaultspoil
         [ (0, "No spoiler")
         , (1, "Minor spoiler")
         , (2, "Major spoiler")
@@ -194,6 +199,7 @@ view model =
         [ table [ class "compact" ] <| List.indexedMap (\i p -> tr []
             [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| p.parent ++ ":" ] ]
             , td [] [ a [ href <| "/" ++ p.parent ] [ text p.name ] ]
+            , td [] [ label [] [ inputRadio "parentprimary" p.main (ParentMain i), text " primary" ] ]
             , td [] [ inputButton "remove" (ParentDel i) [] ]
             ]
           ) model.parents

@@ -15,6 +15,7 @@ my $FORM = {
     defaultspoil => { uint => 1, range => [0,2] },
     parents      => { aoh => {
         parent      => { vndbid => 'g' },
+        main        => { anybool => 1 },
         name        => { _when => 'out' },
     } },
     wipevotes    => { _when => 'in', anybool => 1 },
@@ -60,7 +61,7 @@ TUWF::get qr{/(?:$RE{gid}/add|g/new)}, sub {
     my $e = elm_empty($FORM_OUT);
     $e->{authmod} = auth->permTagmod;
     if($id) {
-        $e->{parents} = [{ parent => $g->{id}, name => $g->{name} }];
+        $e->{parents} = [{ parent => $g->{id}, main => 1, name => $g->{name} }];
         $e->{cat} = $g->{cat};
     }
 
@@ -112,6 +113,7 @@ elm_api TagEdit => $FORM_OUT, $FORM_IN, sub {
             $new ? () : sql('id NOT IN(WITH RECURSIVE t(id) AS (SELECT', \$data->{id}, '::vndbid UNION SELECT tp.id FROM tags_parents tp JOIN t ON t.id = tp.parent) SELECT id FROM t)'),
             sql 'id IN', $_[0]
     }, map $_->{parent}, $data->{parents}->@*;
+    die "No or multiple primary parents" if $data->{parents}->@* && 1 != grep $_->{main}, $data->{parents}->@*;
 
     $data->{description} = bb_subst_links($data->{description});
 

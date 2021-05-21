@@ -13,6 +13,7 @@ my $FORM = {
     defaultspoil => { uint => 1, range => [0,2] },
     parents      => { aoh => {
         parent      => { vndbid => 'i' },
+        main        => { anybool => 1 },
         name        => { _when => 'out' },
         group       => { _when => 'out', required => 0 },
     } },
@@ -56,6 +57,7 @@ TUWF::get qr{/(?:$RE{iid}/add|i/new)}, sub {
     my $e = elm_empty($FORM_OUT);
     $e->{authmod} = auth->permTagmod;
     if($id) {
+        $i->{main} = 1;
         $e->{parents} = [$i];
         $e->{sexual} = $i->{sexual};
     }
@@ -98,9 +100,9 @@ elm_api TraitEdit => $FORM_OUT, $FORM_IN, sub {
             $new ? () : sql('id NOT IN(WITH RECURSIVE t(id) AS (SELECT', \$e->{id}, '::vndbid UNION SELECT tp.id FROM traits_parents tp JOIN t ON t.id = tp.parent) SELECT id FROM t)'),
             sql 'id IN', $_[0]
     }, @parents;
+    die "No or multiple primary parents" if $data->{parents}->@* && 1 != grep $_->{main}, $data->{parents}->@*;
 
-    # It's technically possible for a trait to be in multiple groups, but the DB schema doesn't support that so let's get the group from the first parent (sorted by id).
-    my $group = tuwf->dbVali('SELECT coalesce("group",id) FROM traits WHERE id IN', \@parents, 'ORDER BY id LIMIT 1');
+    my $group = tuwf->dbVali('SELECT coalesce("group",id) FROM traits WHERE id =', \[grep $_->{main}, $data->{parents}->@*]->[0]{parent});
 
     $data->{description} = bb_subst_links($data->{description});
 
@@ -120,7 +122,12 @@ elm_api TraitEdit => $FORM_OUT, $FORM_IN, sub {
 
     return elm_Unchanged if !$new && !form_changed $FORM_CMP, $data, $e;
     my $ch = db_edit i => $e->{id}, $data;
-    tuwf->dbExeci('UPDATE traits SET "group" =', \$group, 'WHERE id =', \$ch->{nitemid});
+    tuwf->dbExeci('UPDATE traits SET "group" = null WHERE id =', \$ch->{nitemid}) if !$group;
+    tuwf->dbExeci('
+        WITH RECURSIVE childs (id) AS (
+            SELECT ', \$ch->{nitemid}, '::vndbid UNION ALL SELECT tp.id FROM childs JOIN traits_parents tp ON tp.parent = childs.id AND tp.main
+        ) UPDATE traits SET "group" =', \$group, 'WHERE id IN(SELECT id FROM childs) AND "group" IS DISTINCT FROM', \$group
+    ) if $group;
     elm_Redirect "/$ch->{nitemid}.$ch->{nrev}";
 };
 

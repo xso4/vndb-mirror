@@ -11,6 +11,7 @@ sub rev_ {
     my($t) = @_;
     sub enrich_item {
         enrich_merge parent => 'SELECT id AS parent, name FROM tags WHERE id IN', $_[0]{parents};
+        $_[0]{parents} = [ sort { $a->{name} cmp $b->{name} || $a->{parent} <=> $b->{parent} } $_[0]{parents}->@* ];
     }
     enrich_item $t;
     revision_ $t, \&enrich_item,
@@ -21,7 +22,7 @@ sub rev_ {
         [ searchable   => 'Searchable',    fmt => 'bool' ],
         [ applicable   => 'Applicable',    fmt => 'bool' ],
         [ defaultspoil => 'Default spoiler level' ],
-        [ parents      => 'Parent tags',   fmt => sub { a_ href => "/$_->{parent}", $_->{name}; } ];
+        [ parents      => 'Parent tags',   fmt => sub { a_ href => "/$_->{parent}", $_->{name}; txt_ ' (primary)' if $_->{main} } ];
 }
 
 

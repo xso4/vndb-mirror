@@ -749,6 +749,7 @@ CREATE TABLE tags_hist (
 CREATE TABLE tags_parents (
   id       vndbid NOT NULL, -- [pub]
   parent   vndbid NOT NULL, -- [pub]
+  main     boolean NOT NULL DEFAULT false, -- [pub]
   PRIMARY KEY(id, parent)
 );
 
@@ -756,6 +757,7 @@ CREATE TABLE tags_parents (
 CREATE TABLE tags_parents_hist (
   chid     integer NOT NULL,
   parent   vndbid NOT NULL,
+  main     boolean NOT NULL DEFAULT false,
   PRIMARY KEY(chid, parent)
 );
 
@@ -888,6 +890,7 @@ CREATE TABLE traits_chars (
 CREATE TABLE traits_parents (
   id       vndbid NOT NULL, -- [pub]
   parent   vndbid NOT NULL, -- [pub]
+  main     boolean NOT NULL DEFAULT false, -- [pub]
   PRIMARY KEY(id, parent)
 );
 
@@ -895,6 +898,7 @@ CREATE TABLE traits_parents (
 CREATE TABLE traits_parents_hist (
   chid     integer NOT NULL,
   parent   vndbid NOT NULL,
+  main     boolean NOT NULL DEFAULT false,
   PRIMARY KEY(chid, parent)
 );
 

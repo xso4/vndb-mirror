@@ -760,7 +760,7 @@ sub tags_ {
         WITH RECURSIVE parents (tag, child) AS (
           SELECT tag::vndbid, NULL::vndbid FROM (VALUES", sql_join(',', map sql('(',\$_,')'), keys %tags), ") AS x(tag)
           UNION
-          SELECT tp.parent, tp.id FROM tags_parents tp, parents a WHERE a.tag = tp.id
+          SELECT tp.parent, tp.id FROM tags_parents tp, parents a WHERE a.tag = tp.id AND tp.main
         ) SELECT * FROM parents WHERE child IS NOT NULL"
     );
 

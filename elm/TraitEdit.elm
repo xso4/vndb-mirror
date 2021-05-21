@@ -87,7 +87,7 @@ encode m =
   , searchable   = m.searchable
   , applicable   = m.applicable
   , defaultspoil = m.defaultspoil
-  , parents      = List.map (\l -> {parent=l.parent}) m.parents
+  , parents      = List.map (\l -> {parent=l.parent, main=l.main}) m.parents
   , order        = m.order
   }
 
@@ -101,6 +101,7 @@ type Msg
   | DefaultSpoil Int
   | Description TP.Msg
   | Editsum Editsum.Msg
+  | ParentMain Int Bool
   | ParentDel Int
   | ParentSearch (A.Msg GApi.ApiTraitResult)
   | Order String
@@ -121,7 +122,11 @@ update msg model =
     Description m -> let (nm,nc) = TP.update m model.description in ({ model | description = nm }, Cmd.map Description nc)
     Editsum m     -> let (nm,nc) = Editsum.update m model.editsum in ({ model | editsum = nm }, Cmd.map Editsum nc)
 
-    ParentDel i   -> ({ model | parents = delidx i model.parents }, Cmd.none)
+    ParentMain i _-> ({ model | parents = List.indexedMap (\n p -> { p | main = i == n }) model.parents }, Cmd.none)
+    ParentDel i   ->
+      let np = delidx i model.parents
+          nnp = if List.any (\p -> p.main) np then np else List.indexedMap (\n p -> { p | main = n == 0 }) np
+      in ({ model | parents = nnp }, Cmd.none)
     ParentSearch m ->
       let (nm, c, res) = A.update parentConfig m model.parentAdd
       in case res of
@@ -129,7 +134,7 @@ update msg model =
         Just p  ->
           if List.any (\e -> e.parent == p.id) model.parents
           then ({ model | parentAdd = nm }, c)
-          else ({ model | parentAdd = A.clear nm "", parents = model.parents ++ [{ parent = p.id, name = p.name, group = p.group_name }] }, c)
+          else ({ model | parentAdd = A.clear nm "", parents = model.parents ++ [{ parent = p.id, main = List.isEmpty model.parents, name = p.name, group = p.group_name }] }, c)
 
     Submit -> ({ model | state = Api.Loading }, GTE.send (encode model) Submitted)
     Submitted (GApi.DupNames l) -> ({ model | dupNames = l, state = Api.Normal }, Cmd.none)
@@ -161,7 +166,7 @@ view model =
       , formField "" [ label [] [ inputCheck "" model.searchable Searchable, text " Searchable (people can use this trait to find characters)" ] ]
       , formField "" [ label [] [ inputCheck "" model.applicable Applicable, text " Applicable (people can apply this trait to characters)" ] ]
       , formField "" [ label [] [ inputCheck "" model.sexual Sexual, text " Indicates sexual content" ] ]
-      , formField "defaultspoil::Default spoiler level" [ inputSelect "defaultspoil" model.defaultspoil DefaultSpoil GTE.valDefaultspoil 
+      , formField "defaultspoil::Default spoiler level" [ inputSelect "defaultspoil" model.defaultspoil DefaultSpoil GTE.valDefaultspoil
         [ (0, "No spoiler")
         , (1, "Minor spoiler")
         , (2, "Major spoiler")
@@ -179,6 +184,7 @@ view model =
               [ Maybe.withDefault (text "") <| Maybe.map (\g -> b [ class "grayedout" ] [ text (g ++ " / ") ]) p.group
               , a [ href <| "/" ++ p.parent ] [ text p.name ]
               ]
+            , td [] [ label [] [ inputRadio "parentprimary" p.main (ParentMain i), text " primary" ] ]
             , td [] [ inputButton "remove" (ParentDel i) [] ]
             ]
           ) model.parents
