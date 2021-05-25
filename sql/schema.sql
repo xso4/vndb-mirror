@@ -983,7 +983,8 @@ CREATE TABLE users (
   customcss           text NOT NULL DEFAULT '',
   ulist_votes         jsonb,
   ulist_vnlist        jsonb,
-  ulist_wish          jsonb
+  ulist_wish          jsonb,
+  vnlang              jsonb -- '$lang(-mtl)?' => true/false, which languages to expand/collapse on VN pages
 );
 
 -- Additional fields for the 'users' table, but with some protected columns.

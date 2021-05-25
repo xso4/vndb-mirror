@@ -466,11 +466,18 @@ sub releases_ {
     $langrel{$_} = min map $_->{released}, $lang{$_}->@* for keys %lang;
     my @lang = sort { $langrel{$a} <=> $langrel{$b} || ($b eq $v->{olang}) cmp ($a eq $v->{olang}) || $a cmp $b } keys %lang;
 
+    my $pref = +(auth && do {
+        my $v = tuwf->dbVali('SELECT vnlang FROM users WHERE id =', \auth->uid);
+        $v && JSON::XS::decode_json($v)
+    }) || {};
+
     my sub lang_ {
         my($lang) = @_;
         my $ropt = { id => $lang, lang => $lang };
         my $mtl = $langmtl{$lang};
-        tag_ 'details', $mtl ? () : (open => 'open'), 'data-remember-id' => "vnlang-$lang".($mtl?'-mtl':''), sub {
+        my $prefid = $lang.($mtl?'-mtl':'');
+        my $open = $pref->{$prefid} // ($lang eq $v->{olang} || !$mtl);
+        tag_ 'details', $open ? (open => 'open') : (), auth ? 'data-save-id' : 'data-remember-id', "vnlang-$prefid", sub {
             tag_ 'summary', $mtl ? (class => 'mtl') : (), sub {
                 abbr_ class => "icons lang $lang".($mtl?' mtl':''), title => $LANGUAGE{$lang}, '';
                 txt_ $LANGUAGE{$lang};
