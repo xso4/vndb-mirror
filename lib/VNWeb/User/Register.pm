@@ -29,11 +29,8 @@ elm_api UserRegister => undef, {
         $ip =~ /:/ ? \"$ip/48" : \"$ip/30"
     );
 
-    my $id = tuwf->dbVali('INSERT INTO users', {
-        username => $data->{username},
-        mail     => $data->{email},
-        ip       => $ip,
-    }, 'RETURNING id');
+    my $id = tuwf->dbVali('INSERT INTO users', {username => $data->{username}, ip => $ip}, 'RETURNING id');
+    tuwf->dbExeci('INSERT INTO users_shadow', {id => $id, mail => $data->{email}});
     my(undef, $token) = auth->resetpass($data->{email});
 
     my $body = sprintf

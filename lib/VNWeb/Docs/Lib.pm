@@ -11,7 +11,7 @@ my @special_perms = qw/boardmod dbmod usermod imgmod tagmod/;
 sub _moderators {
     my $cols = sql_comma map "perm_$_", @special_perms;
     my $where = sql_or map "perm_$_", @special_perms;
-    my $l = tuwf->dbAlli("SELECT id, username, $cols FROM users WHERE $where ORDER BY id LIMIT 100");
+    state $l //= tuwf->dbAlli("SELECT u.id, username, $cols FROM users u JOIN users_shadow us ON us.id = u.id WHERE $where ORDER BY u.id LIMIT 100");
 
     xml_string sub {
         dl_ sub {

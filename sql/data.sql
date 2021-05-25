@@ -1,4 +1,4 @@
-INSERT INTO users (id, username, mail, notify_dbedit) VALUES ('u1', 'multi', 'multi@vndb.org', FALSE);
+INSERT INTO users (id, username, notify_dbedit) VALUES ('u1', 'multi', FALSE);
 SELECT setval('users_id_seq', 2);
 
 INSERT INTO stats_cache (section, count) VALUES

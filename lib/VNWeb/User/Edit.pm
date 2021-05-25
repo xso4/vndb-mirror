@@ -89,7 +89,7 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
     $u->{prefs}{skin} ||= config->{skin_default} if $u->{prefs};
 
     $u->{admin} = auth->permDbmod || auth->permUsermod || auth->permTagmod || auth->permBoardmod || auth->permImgmod ?
-        tuwf->dbRowi('SELECT ign_votes, ', sql_comma(map "perm_$_", auth->listPerms), 'FROM users WHERE id =', \$u->{id}) : undef;
+        tuwf->dbRowi('SELECT ign_votes, ', sql_comma(map "perm_$_", auth->listPerms), 'FROM users u JOIN users_shadow us ON us.id = u.id WHERE u.id =', \$u->{id}) : undef;
 
     $u->{password} = undef;
 

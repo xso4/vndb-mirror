@@ -75,25 +75,8 @@ GRANT SELECT, INSERT                 ON traits_parents_hist      TO vndb_site;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ulist_labels             TO vndb_site;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ulist_vns                TO vndb_site;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ulist_vns_labels         TO vndb_site;
-
--- users table is special; The 'perm_usermod', 'passwd' and 'mail' columns are
--- protected and can only be accessed through the user_* functions.
-GRANT SELECT ( id, username, registered, ip, ign_votes, email_confirmed, last_reports
-             , perm_board, perm_boardmod, perm_dbmod, perm_edit, perm_imgvote, perm_tag, perm_tagmod, perm_usermod, perm_imgmod, perm_review
-             , skin, customcss, notify_dbedit, notify_announce, notify_post, notify_comment
-             , tags_all, tags_cont, tags_ero, tags_tech, spoilers, traits_sexual, max_sexual, max_violence
-             , nodistract_can, nodistract_noads, nodistract_nofancy, support_can, support_enabled, uniname_can, uniname, pubskin_can, pubskin_enabled
-             , ulist_votes, ulist_vnlist, ulist_wish, tableopts_c
-             , c_vns, c_wish, c_votes, c_changes, c_imgvotes, c_tags),
-      INSERT ( username, mail, ip),
-      UPDATE ( username, ign_votes, email_confirmed, last_reports
-             , perm_board, perm_boardmod, perm_dbmod, perm_edit, perm_imgvote, perm_tag, perm_tagmod, perm_imgmod, perm_review
-             , skin, customcss, notify_dbedit, notify_announce, notify_post, notify_comment
-             , tags_all, tags_cont, tags_ero, tags_tech, spoilers, traits_sexual, max_sexual, max_violence
-             , nodistract_can, nodistract_noads, nodistract_nofancy, support_can, support_enabled, uniname_can, uniname, pubskin_can, pubskin_enabled
-             , ulist_votes, ulist_vnlist, ulist_wish, tableopts_c
-             , c_vns, c_wish, c_votes, c_changes, c_imgvotes, c_tags) ON users TO vndb_site;
-
+GRANT SELECT, INSERT, UPDATE         ON users                    TO vndb_site;
+GRANT SELECT (id, perm_usermod), INSERT (id, mail) ON users_shadow TO vndb_site;
 GRANT SELECT, INSERT, UPDATE         ON vn                       TO vndb_site;
 GRANT SELECT, INSERT,         DELETE ON vn_anime                 TO vndb_site;
 GRANT SELECT, INSERT                 ON vn_anime_hist            TO vndb_site;
@@ -175,11 +158,8 @@ GRANT SELECT                         ON traits_parents           TO vndb_multi;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ulist_labels             TO vndb_multi;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ulist_vns                TO vndb_multi;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ulist_vns_labels         TO vndb_multi;
-
-GRANT SELECT (id, username, registered, ign_votes, email_confirmed, notify_dbedit, notify_announce, notify_post, notify_comment, c_vns, c_wish, c_votes, c_changes, c_imgvotes, c_tags, perm_imgvote, perm_imgmod, perm_tag),
-      UPDATE (                                                                                                                   c_vns, c_wish, c_votes, c_changes, c_imgvotes, c_tags                                     ) ON users TO vndb_multi;
-GRANT                         DELETE ON users                    TO vndb_multi;
-
+GRANT SELECT,         UPDATE, DELETE ON users                    TO vndb_multi;
+GRANT SELECT (id),            DELETE ON users_shadow             TO vndb_multi;
 GRANT SELECT,         UPDATE         ON vn                       TO vndb_multi;
 GRANT SELECT                         ON vn_anime                 TO vndb_multi;
 GRANT SELECT                         ON vn_hist                  TO vndb_multi;

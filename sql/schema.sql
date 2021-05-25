@@ -937,7 +937,7 @@ CREATE TABLE ulist_vns_labels (
 CREATE TABLE users (
   registered          timestamptz NOT NULL DEFAULT NOW(),
   last_reports        timestamptz, -- For mods: Most recent activity seen on the reports listing
-  id         vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('u', nextval('users_id_seq')::int) CONSTRAINT users_id_check CHECK(vndbid_type(id) = 'u'), -- [pub]
+  id                  vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('u', nextval('users_id_seq')::int) CONSTRAINT users_id_check CHECK(vndbid_type(id) = 'u'), -- [pub]
   c_votes             integer NOT NULL DEFAULT 0,
   c_changes           integer NOT NULL DEFAULT 0,
   c_tags              integer NOT NULL DEFAULT 0,
@@ -974,15 +974,26 @@ CREATE TABLE users (
   perm_imgvote        boolean NOT NULL DEFAULT true, -- [pub] (public because this is used in calculating image flagging scores)
   perm_tag            boolean NOT NULL DEFAULT true, -- [pub] (public because this is used in calculating VN tag scores)
   perm_tagmod         boolean NOT NULL DEFAULT false,
-  perm_usermod        boolean NOT NULL DEFAULT false,
   perm_imgmod         boolean NOT NULL DEFAULT false,
   perm_review         boolean NOT NULL DEFAULT true,
   username            varchar(20) NOT NULL UNIQUE, -- [pub]
   uniname             text NOT NULL DEFAULT '',
-  mail                varchar(100) NOT NULL,
   ip                  inet NOT NULL DEFAULT '0.0.0.0',
   skin                text NOT NULL DEFAULT '',
   customcss           text NOT NULL DEFAULT '',
+  ulist_votes         jsonb,
+  ulist_vnlist        jsonb,
+  ulist_wish          jsonb
+);
+
+-- Additional fields for the 'users' table, but with some protected columns.
+-- (Separated from the users table to simplify permission management)
+CREATE TABLE users_shadow (
+  id             vndbid NOT NULL PRIMARY KEY,
+  -- Usermods can see other users' mail and edit their passwords, so this
+  -- permission is separated in this table to prevent unauthorized writes.
+  perm_usermod   boolean NOT NULL DEFAULT false,
+  mail           varchar(100) NOT NULL,
   -- A valid passwd column is 46 bytes:
   --   4 bytes: N (big endian)
   --   1 byte: r
@@ -990,10 +1001,7 @@ CREATE TABLE users (
   --   8 bytes: salt
   --   32 bytes: scrypt(passwd, global_salt + salt, N, r, p, 32)
   -- Anything else is invalid, account disabled.
-  passwd              bytea NOT NULL DEFAULT '',
-  ulist_votes         jsonb,
-  ulist_vnlist        jsonb,
-  ulist_wish          jsonb
+  passwd         bytea NOT NULL DEFAULT ''
 );
 
 -- vn

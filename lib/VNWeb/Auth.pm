@@ -146,8 +146,9 @@ sub _load_session {
     my $user = $uid ? tuwf->dbRowi(
         'SELECT ', sql_user(), ',', sql_comma(@pref_columns, map "perm_$_", @perms), '
            FROM users u
-          WHERE id = ', \$uid,
-           'AND', sql_func(user_isvalidsession => 'id', sql_fromhex($token_db), \'web')
+           JOIN users_shadow us ON us.id = u.id
+          WHERE u.id = ', \$uid,
+           'AND', sql_func(user_isvalidsession => 'u.id', sql_fromhex($token_db), \'web')
     ) : {};
 
     # Drop the cookie if it's not valid

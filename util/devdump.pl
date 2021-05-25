@@ -110,7 +110,7 @@ sub copy_entry {
     # A few pre-defined users
     # This password is 'hunter2' with the default salt
     my $pass = '000100000801ec4185fed438752d6b3b968e2b2cd045f70005cb7e10cafdbb694a82246bd34a065b6e977e0c3dcc';
-    printf "INSERT INTO users (id, username, mail, perm_usermod, passwd, email_confirmed) VALUES ('%s', '%s', '%s', %s, decode('%s', 'hex'), true);\n", @$_, $pass for(
+    for(
         [ 'u2', 'admin', 'admin@vndb.org', 'true' ],
         [ 'u3', 'user1', 'user1@vndb.org', 'false'],
         [ 'u4', 'user2', 'user2@vndb.org', 'false'],
@@ -119,7 +119,10 @@ sub copy_entry {
         [ 'u7', 'user5', 'user5@vndb.org', 'false'],
         [ 'u8', 'user6', 'user6@vndb.org', 'false'],
         [ 'u9', 'user7', 'user7@vndb.org', 'false'],
-    );
+    ) {
+        printf "INSERT INTO users (id, username, email_confirmed) VALUES ('%s', '%s', true);\n", @{$_}[0,1];
+        printf "INSERT INTO users_shadow (id, mail, perm_usermod, passwd) VALUES ('%s', '%s', %s, decode('%s', 'hex'));\n", @{$_}[0,2,3], $pass;
+    }
     print "SELECT ulist_labels_create(id) FROM users;\n";
 
     # Tags & traits
