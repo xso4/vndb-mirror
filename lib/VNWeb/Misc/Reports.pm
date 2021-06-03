@@ -120,10 +120,9 @@ sub report_ {
             input_ type => 'hidden', name => 'url', value => $url;
             textarea_ name => 'comment', rows => 2, cols => 25, style => 'width: 290px', placeholder => 'Mod comment... (optional)', '';
             br_;
-            select_ style => 'width: 100px', name => 'status', sub {
-                option_ value => $_, $_ eq $r->{status} ? (selected => 'selected') : (), ucfirst $_ for @STATUS;
-            };
-            input_ type => 'submit', class => 'submit', value => 'Update';
+            input_ type => 'submit', class => 'submit', value => 'Post';
+            txt_ ' & ';
+            input_ type => 'submit', class => 'submit', name => 'status', value => $_, $_ eq $r->{status} ? (style => 'font-weight: bold') : () for @STATUS;
         };
     };
     td_ sub {
@@ -223,19 +222,23 @@ TUWF::post qr{/report/edit}, sub {
     my $frm = tuwf->validate(post =>
         id      => { id => 1 },
         url     => { regex => qr{^/report/list} },
-        status  => { enum => \@STATUS },
+        status  => { enum => \@STATUS, required => 0 },
         comment => { required => 0, default => '' },
     )->data;
     my $r = tuwf->dbRowi('SELECT id, status FROM reports WHERE id =', \$frm->{id});
     return tuwf->resNotFound if !$r->{id};
 
     my $log = join '; ',
-        $r->{status} ne $frm->{status} ? "$r->{status} -> $frm->{status}" : (),
+        $frm->{status} && $r->{status} ne $frm->{status} ? "$r->{status} -> $frm->{status}" : (),
         $frm->{comment} ? $frm->{comment} : ();
 
     if($log) {
         $log = sprintf "%s <%s> %s\n", fmtdate(time, 'full'), auth->user->{user_name}, $log;
-        tuwf->dbExeci('UPDATE reports SET lastmod = NOW(), status =', \$frm->{status}, ', log = log ||', \$log, 'WHERE id =', \$r->{id});
+        tuwf->dbExeci('UPDATE reports SET', {
+            lastmod => sql('NOW()'),
+            $frm->{status} ? (status => $frm->{status}) : (),
+            log => sql('log ||', \$log)
+        }, 'WHERE id =', \$r->{id});
     }
     tuwf->resRedirect($frm->{url}, 'post');
 };
