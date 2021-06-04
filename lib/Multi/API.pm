@@ -455,8 +455,8 @@ my %GET_VN = (
     stats => {
       select => 'v.c_popularity, v.c_rating, v.c_votecount as votecount',
       proc => sub {
-        $_[0]{popularity} = 1 * sprintf '%.2f', 100*(delete $_[0]{c_popularity} or 0);
-        $_[0]{rating}     = 1 * sprintf '%.2f', 0.1*(delete $_[0]{c_rating} or 0);
+        $_[0]{popularity} = 1 * sprintf '%.2f', (delete $_[0]{c_popularity} or 0)/100;
+        $_[0]{rating}     = 1 * sprintf '%.2f', (delete $_[0]{c_rating} or 0)/100;
         $_[0]{votecount}  *= 1;
       },
     },

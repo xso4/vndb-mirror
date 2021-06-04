@@ -314,8 +314,8 @@ f v =>  4 => 'platform',  { enum => \%PLATFORM }, '=' => sub { sql 'v.c_platform
 f v =>  6 => 'developer-id',{ vndbid => 'p' }, '=' => sub { sql 'v.c_developers && ARRAY', \$_, '::vndbid[]' };
 f v =>  5 => 'length',    { uint => 1, enum => \%VN_LENGTH }, '=' => sub { sql 'v.length =', \$_ };
 f v =>  7 => 'released',  { fuzzyrdate => 1 }, sql => sub { sql 'v.c_released', $_[0], \($_ == 1 ? strftime('%Y%m%d', gmtime) : $_) };
-f v =>  9 => 'popularity',{ uint => 1, range => [ 0,  100] }, sql => sub { sql 'v.c_popularity', $_[0], \($_/100) };
-f v => 10 => 'rating',    { uint => 1, range => [10,  100] }, sql => sub { sql 'v.c_rating', $_[0], \$_ };
+f v =>  9 => 'popularity',{ uint => 1, range => [ 0,  100] }, sql => sub { sql 'v.c_popularity', $_[0], \($_*100) };
+f v => 10 => 'rating',    { uint => 1, range => [10,  100] }, sql => sub { sql 'v.c_rating', $_[0], \($_*10) };
 f v => 11 => 'vote-count',{ uint => 1, range => [ 0,1<<30] }, sql => sub { sql 'v.c_votecount', $_[0], \$_ };
 f v => 61 => 'has-description', { uint => 1, range => [1,1] }, '=' => sub { 'v."desc" <> \'\'' };
 f v => 62 => 'has-anime',       { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM vn_anime va WHERE va.id = v.id)' };
