@@ -43,11 +43,11 @@ package VNWeb::TableOpts;
 #
 #   my $opts = tuwf->validate(get => s => { tableopts => $config })->data;
 #
-#   my $sql = sql('.... ORDER BY', $opts->sql_order);  (TODO)
+#   my $sql = sql('.... ORDER BY', $opts->sql_order);
 #
 #   $opts->view;     # Current view, 'rows', 'cards' or 'grid'
 #   $opts->results;  # How many results to display
-#   $opts->vis('popularity'); # is the column visible? (TODO)
+#   $opts->vis('popularity'); # is the column visible?
 #
 #
 #
@@ -89,9 +89,8 @@ my %results = map +($results[$_], $_), 0..$#results;
 # Turn config options into something more efficient to work with
 sub tableopts {
     my %o = (
-        sort_ids  => [], # identifier => column name
-        vis_ids   => [], # identifier => column name
-        col_order => [], # column names in the order listed in the config
+        sort_ids  => [], # identifier => column config hash
+        col_order => [], # column config hashes in the order listed in the config
         columns   => {}, # column name => config hash
         views     => [], # supported views, as numbers
         default   => 0,  # default settings, integer form
@@ -107,9 +106,9 @@ sub tableopts {
             next;
         }
         $o{columns}{$k} = $v;
-        push $o{col_order}->@*, $k;
-        $o{sort_ids}[$v->{sort_id}] = $k if defined $v->{sort_id};
-        $o{vis_ids}[$v->{vis_id}] = $k if defined $v->{vis_id};
+        $v->{id} = $k;
+        push $o{col_order}->@*, $v;
+        $o{sort_ids}[$v->{sort_id}] = $v if defined $v->{sort_id};
         $o{default} |= ($v->{sort_id} << 6) | ({qw|asc 0 desc 32|}->{$v->{sort_default}}//croak("unknown sort_default: $v->{sort_default}")) if $v->{sort_default};
         $o{default} |= 1 << ($v->{vis_id} + 12) if $v->{vis_default};
     }
@@ -125,10 +124,18 @@ TUWF::set('custom_validations')->{tableopts} = sub {
         my $d = $t->{pref} && auth ? tuwf->dbVali('SELECT', $t->{pref}, 'FROM users WHERE id =', \auth->uid) : undef;
         bless([$d // $t->{default},$t], __PACKAGE__)
     }, func => sub {
-        # TODO: compatibility with the old ?s=<colname> sort parameter
-        my $v = _dec($_[0]) // return 0;
+        my $obj = bless [undef, $t], __PACKAGE__;
+        my $col = [grep $_->{compat} && $_->{compat} eq $_[0], values $t->{columns}->%*]->[0];
+        if($col && defined $col->{sort_id}) {
+            $obj->[0] = $t->{default};
+            $obj->set_sort_col_id($col->{sort_id});
+            my $ord = tuwf->reqGet('o');
+            $obj->set_order($ord && $ord eq 'd' ? 1 : 0);
+        } else {
+            $obj->[0] = _dec($_[0]) // return 0;
+        }
+        $_[0] = $obj;
         # We could do strict validation on the individual fields, but the methods below can handle incorrect data.
-        $_[0] = bless [$v, $t], __PACKAGE__;
         1;
     } }
 };
@@ -145,17 +152,55 @@ sub grid  { shift->view eq 'grid'  }
 
 sub results { $results[($_[0][0] >> 2) & 7] || $results[0] }
 
+sub order { $_[0][0] & 32 }
+sub set_order { if($_[1]) { $_[0][0] |= 32 } else { $_[0][0] &= ~32 } }
+
+sub sort_col_id { ($_[0][0] >> 6) & 63 }
+sub set_sort_col_id { $_[0][0] = ($_[0][0] & (~1 - 0b111111000000)) | ($_[1] << 6) }
+
+# Given the key of a column, returns whether it is currently sorted on ('' / 'a' / 'd')
+sub sorted {
+    my($self, $key) = @_;
+    $self->[1]{columns}{$key}{sort_id} != $self->sort_col_id ? '' : $self->order ? 'd' : 'a';
+}
+
+# Given the key of a column and the desired order ('a'/'d'), returns a new object with that sorting applied.
+sub sort_param {
+    my($self, $key, $o) = @_;
+    my $n = bless [@$self], __PACKAGE__;
+    $n->set_order($o eq 'a' ? 0 : 1);
+    $n->set_sort_col_id($self->[1]{columns}{$key}{sort_id});
+    $n
+}
+
+# Returns an SQL expression suitable for use in an ORDER BY clause.
+sub sql_order {
+    my($self) = @_;
+    my($v,$o) = $self->@*;
+    my $col = $o->{sort_ids}[ $self->sort_col_id ] || $o->{sort_ids}[ sort_col_id([$o->{default}]) ];
+    die "No column to sort on" if !$col;
+    my $order = $self->order ? 'DESC' : 'ASC';
+    my $opposite_order = $self->order ? 'ASC' : 'DESC';
+    my $sql = $col->{sort_sql};
+    $sql =~ /[?!]o/ ? ($sql =~ s/\?o/$order/rg =~ s/!o/$opposite_order/rg) : "$sql $order";
+}
+
+
+# Returns whether the given column key is visible.
+sub vis { $_[0][0] & (1 << (12+$_[0][1]{columns}{$_[1]}{vis_id})) }
+
 
 my $FORM_OUT = form_compile any => {
     save    => { required => 0 },
     views   => { type => 'array', values => { uint => 1 } },
     default => { uint => 1 },
     value   => { uint => 1 },
-    # TODO: Sorting & column visibility
+    sorts   => { aoh => { id => { uint => 1 }, name => {} } },
+    vis     => { aoh => { id => { uint => 1 }, name => {} } },
 };
 
 elm_api TableOptsSave => $FORM_OUT, {
-    save => { enum => ['tableopts_c'] },
+    save => { enum => ['tableopts_c', 'tableopts_v', 'tableopts_vt'] },
     value => { required => 0, uint => 1 }
 }, sub {
     my($f) = @_;
@@ -172,6 +217,8 @@ sub elm_ {
         views   => $o->{views},
         default => $o->{default},
         value   => $v,
+        sorts   => [ map +{ id => $_->{sort_id}, name => $_->{name} }, grep defined $_->{sort_id}, values $o->{col_order}->@* ],
+        vis     => [ map +{ id => $_->{vis_id}, name => $_->{name} }, grep defined $_->{vis_id}, values $o->{col_order}->@* ],
     }, sub {
         TUWF::XML::input_ type => 'hidden', name => 's', value => $self->query_encode if defined $self->query_encode
     };

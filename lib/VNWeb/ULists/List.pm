@@ -117,7 +117,7 @@ sub vn_ {
         } if in vote => $opt->{c};
 
         td_ class => 'tc_rating', sub {
-            txt_ sprintf '%.2f', ($v->{c_rating}||0)/10;
+            txt_ sprintf '%.2f', ($v->{c_rating}||0)/100;
             b_ class => 'grayedout', sprintf ' (%d)', $v->{c_votecount};
         } if in rating => $opt->{c};
 

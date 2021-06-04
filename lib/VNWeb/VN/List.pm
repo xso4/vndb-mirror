@@ -5,6 +5,64 @@ use VNWeb::AdvSearch;
 use VNWeb::Filters;
 use VNWeb::TT::Lib 'tagscore_';
 
+# Returns the tableopts config for this VN list (0) or the VN listing on tags (1).
+sub TABLEOPTS {
+    my($tags) = @_;
+    tableopts _pref => $tags ? 'tableopts_vt' : 'tableopts_v',
+        $tags ? (tagscore => {
+            name => 'Tag score',
+            compat => 'tagscore',
+            sort_id => 0,
+            sort_sql => 'tvi.rating ?o, v.title',
+            sort_default => 'desc'
+        }) : (),
+        title => {
+            name => 'Title',
+            compat => 'title',
+            sort_id => 1,
+            sort_sql => 'v.title',
+            sort_default => $tags ? undef : 'asc',
+        },
+        released => {
+            name => 'Release date',
+            compat => 'rel',
+            sort_id => 2,
+            sort_sql => 'v.c_released ?o, v.title',
+        },
+        developer => {
+            name => 'Developer',
+            vis_id => 2,
+        },
+        popularity => {
+            name => 'Popularity score',
+            compat => 'pop',
+            sort_id => 3,
+            sort_sql => 'v.c_popularity ?o NULLS LAST, v.title',
+            vis_id => 0,
+            vis_default => 1,
+        },
+        rating => {
+            name => 'Bayesian rating',
+            compat => 'rating',
+            sort_id => 4,
+            sort_sql => 'v.c_rating ?o NULLS LAST, v.title',
+            vis_id => 1,
+            vis_default => 1,
+        },
+        average => {
+            name => 'Vote average',
+            sort_id => 5,
+            sort_sql => 'v.c_average ?o NULLS LAST, v.title',
+            vis_id => 3,
+        },
+        votes => {
+            name => 'Number of votes',
+            sort_id => 6,
+            sort_sql => 'v.c_votecount ?o, v.title',
+        }
+}
+
+my $TABLEOPTS = TABLEOPTS 0;
 
 # Also used by VNWeb::TT::TagPage
 sub listing_ {
@@ -12,46 +70,63 @@ sub listing_ {
 
     my sub url { '?'.query_encode %$opt, @_ }
 
-    paginate_ \&url, $opt->{p}, [$count, 50], 't';
+    paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 't', sub { $opt->{s}->elm_ };
     div_ class => 'mainbox browse vnbrowse', sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
-                td_ class => 'tc_s',sub { txt_ 'Score'; sortable_ 'tagscore', $opt, \&url } if $tagscore;
-                td_ class => $tagscore ? 'tc_t' : 'tc1', sub { txt_ 'Title'; sortable_ 'title', $opt, \&url };
-                td_ class => 'tc7', '';
-                td_ class => 'tc2', '';
-                td_ class => 'tc3', '';
-                td_ class => 'tc4', sub { txt_ 'Released';   sortable_ 'rel',    $opt, \&url };
-                td_ class => 'tc5', sub { txt_ 'Popularity'; sortable_ 'pop',    $opt, \&url };
-                td_ class => 'tc6', sub { txt_ 'Rating';     sortable_ 'rating', $opt, \&url };
+                td_ class => 'tc_score', sub { txt_ 'Score'; sortable_ 'tagscore', $opt, \&url } if $tagscore;
+                td_ class => 'tc_title', sub { txt_ 'Title'; sortable_ 'title', $opt, \&url };
+                td_ class => 'tc_dev',   'Developer' if $opt->{s}->vis('developer');
+                td_ class => 'tc_ulist', '';
+                td_ class => 'tc_plat',  '';
+                td_ class => 'tc_lang',  '';
+                td_ class => 'tc_rel',   sub { txt_ 'Released';   sortable_ 'released',   $opt, \&url };
+                td_ class => 'tc_pop',   sub { txt_ 'Popularity'; sortable_ 'popularity', $opt, \&url } if $opt->{s}->vis('popularity');
+                td_ class => 'tc_rating',sub { txt_ 'Rating';     sortable_ 'rating',     $opt, \&url } if $opt->{s}->vis('rating');
+                td_ class => 'tc_average',sub{ txt_ 'Average';    sortable_ 'average',    $opt, \&url } if $opt->{s}->vis('average');
             } };
             tr_ sub {
-                td_ class => 'tc_s',sub { tagscore_ $_->{tagscore} } if $tagscore;
-                td_ class => $tagscore ? 'tc_t' : 'tc1', sub { a_ href => "/$_->{id}", title => $_->{original}||$_->{title}, $_->{title} };
-                td_ class => 'tc7', sub {
+                td_ class => 'tc_score', sub { tagscore_ $_->{tagscore} } if $tagscore;
+                td_ class => 'tc_title', sub { a_ href => "/$_->{id}", title => $_->{original}||$_->{title}, $_->{title} };
+                td_ class => 'tc_dev',   sub {
+                    join_ ' & ', sub {
+                        a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
+                    }, sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} } $_->{developers}->@*;
+                } if $opt->{s}->vis('developer');
+                td_ class => 'tc_ulist', sub {
                     b_ class => $_->{userlist_obtained} == $_->{userlist_all} ? 'done' : 'todo', sprintf '%d/%d', $_->{userlist_obtained}, $_->{userlist_all} if $_->{userlist_all};
                     abbr_ title => join(', ', $_->{vnlist_labels}->@*), scalar $_->{vnlist_labels}->@* if $_->{vnlist_labels} && $_->{vnlist_labels}->@*;
                     abbr_ title => 'No labels', ' ' if $_->{vnlist_labels} && !$_->{vnlist_labels}->@*;
                 };
-                td_ class => 'tc2', sub { join_ '', sub { platform_ $_ if $_ ne 'unk' }, sort $_->{platforms}->@* };
-                td_ class => 'tc3', sub { join_ '', sub { abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' }, reverse sort $_->{lang}->@* };
-                td_ class => 'tc4', sub { rdate_ $_->{c_released} };
-                td_ class => 'tc5', sprintf '%.2f', ($_->{c_popularity}||0)*100;
-                td_ class => 'tc6', sub {
-                    txt_ sprintf '%.2f', ($_->{c_rating}||0)/10;
+                td_ class => 'tc_plat',  sub { join_ '', sub { platform_ $_ if $_ ne 'unk' }, sort $_->{platforms}->@* };
+                td_ class => 'tc_lang',  sub { join_ '', sub { abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' }, reverse sort $_->{lang}->@* };
+                td_ class => 'tc_rel',   sub { rdate_ $_->{c_released} };
+                td_ class => 'tc_pop',   sprintf '%.2f', ($_->{c_popularity}||0)/100 if $opt->{s}->vis('popularity');
+                td_ class => 'tc_rating',sub {
+                    txt_ sprintf '%.2f', ($_->{c_rating}||0)/100;
                     b_ class => 'grayedout', sprintf ' (%d)', $_->{c_votecount};
-                };
+                } if $opt->{s}->vis('rating');
+                td_ class => 'tc_average',sub {
+                    txt_ sprintf '%.2f', ($_->{c_average}||0)/100;
+                    b_ class => 'grayedout', sprintf ' (%d)', $_->{c_votecount} if !$opt->{s}->vis('rating');
+                } if $opt->{s}->vis('average');
             } for @$list;
         }
     };
-    paginate_ \&url, $opt->{p}, [$count, 50], 'b';
+    paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 'b';
 }
 
 
-# Enrich the userlist fields needed for listing_()
+# Enrich some extra fields fields needed for listing_()
 # Also used by VNWeb::TT::TagPage
-sub enrich_userlist {
-    return if !auth;
+sub enrich_listing {
+    my $opt = shift;
+
+    enrich developers => id => vid => sub {
+        'SELECT v.id AS vid, p.id, p.name, p.original
+           FROM vn v, unnest(v.c_developers) vp(id), producers p
+          WHERE p.id = vp.id AND v.id IN', $_[0], 'ORDER BY p.name, p.id'
+    }, @_ if $opt->{s}->vis('developer');
 
     enrich_merge id => sub { sql '
         SELECT irv.vid AS id
@@ -61,7 +136,7 @@ sub enrich_userlist {
          JOIN releases_vn irv ON irv.id = irl.rid
         WHERE irl.uid =', \auth->uid, 'AND irv.vid IN', $_, '
         GROUP BY irv.vid
-    ' }, @_;
+    ' }, @_ if auth;
 
     enrich_flatten vnlist_labels => id => vid => sub { sql '
         SELECT uvl.vid, ul.label
@@ -69,7 +144,7 @@ sub enrich_userlist {
           JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl
          WHERE uvl.uid =', \auth->uid, 'AND uvl.vid IN', $_[0], '
          ORDER BY CASE WHEN ul.id < 10 THEN ul.id ELSE 10 END, ul.label'
-    }, @_;
+    }, @_ if auth;
 }
 
 
@@ -79,8 +154,7 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
         sq=> { onerror => undef },
         p => { upage => 1 },
         f => { advsearch_err => 'v' },
-        s => { onerror => 'title', enum => [qw/title rel pop rating/] },
-        o => { onerror => 'a', enum => ['a','d'] },
+        s => { tableopts => $TABLEOPTS },
         ch=> { onerror => [], type => 'array', scalar => 1, values => { onerror => undef, enum => ['0', 'a'..'z'] } },
         fil  => { required => 0 },
         rfil => { required => 0 },
@@ -121,41 +195,35 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
     my($count, $list);
     db_maytimeout {
         $count = tuwf->dbVali('SELECT count(*) FROM vn v WHERE', $where);
-        $list = $count ? tuwf->dbPagei({results => 50, page => $opt->{p}}, '
-            SELECT v.id, v.title, v.original, v.c_released, v.c_popularity, v.c_votecount, v.c_rating, v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang
+        $list = $count ? tuwf->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
+            SELECT v.id, v.title, v.original, v.c_released, v.c_popularity, v.c_votecount, v.c_rating, v.c_average
+                 , v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang
               FROM vn v
              WHERE', $where, '
-             ORDER BY', sprintf {
-                 title  => 'v.title %s',
-                 rel    => 'v.c_released %s, v.title',
-                 pop    => 'v.c_popularity %s NULLS LAST, v.title',
-                 rating => 'v.c_rating %s NULLS LAST, v.title'
-             }->{$opt->{s}}, $opt->{o} eq 'a' ? 'ASC' : 'DESC'
+             ORDER BY', $opt->{s}->sql_order(),
         ) : [];
     } || (($count, $list) = (undef, []));
 
     return tuwf->resRedirect("/$list->[0]{id}") if $count && $count == 1 && $opt->{q} && !defined $opt->{ch};
 
-    enrich_userlist $list;
+    enrich_listing($opt, $list);
     $time = time - $time;
 
     framework_ title => 'Browse visual novels', sub {
-        div_ class => 'mainbox', sub {
-            h1_ 'Browse visual novels';
-            form_ action => '/v', method => 'get', sub {
+        form_ action => '/v', method => 'get', sub {
+            div_ class => 'mainbox', sub {
+                h1_ 'Browse visual novels';
                 searchbox_ v => $opt->{q}//'';
                 p_ class => 'browseopts', sub {
                     button_ type => 'submit', name => 'ch', value => ($_//''), ($_//'') eq ($opt->{ch}//'') ? (class => 'optselected') : (), !defined $_ ? 'ALL' : $_ ? uc $_ : '#'
                         for (undef, 'a'..'z', 0);
                 };
-                input_ type => 'hidden', name => 'o', value => $opt->{o};
-                input_ type => 'hidden', name => 's', value => $opt->{s};
                 input_ type => 'hidden', name => 'ch', value => $opt->{ch}//'';
                 $opt->{f}->elm_;
                 advsearch_msg_ $count, $time;
             };
+            listing_ $opt, $list, $count if $count;
         };
-        listing_ $opt, $list, $count if $count;
     };
 };
 

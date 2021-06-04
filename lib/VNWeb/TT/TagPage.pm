@@ -65,14 +65,16 @@ sub infobox_ {
 }
 
 
+my $TABLEOPTS = VNWeb::VN::List::TABLEOPTS(1);
+
+
 sub vns_ {
     my($t) = @_;
 
     my $opt = tuwf->validate(get =>
         p => { upage => 1 },
         f => { advsearch_err => 'v' },
-        s => { onerror => 'tagscore', enum => [qw/tagscore title rel pop rating/] },
-        o => { onerror => 'd', enum => ['a','d'] },
+        s => { tableopts => $TABLEOPTS },
         m => { onerror => [auth->pref('spoilers')||0], type => 'array', scalar => 1, minlength => 1, values => { enum => [0..2] } },
         fil => { required => 0 },
     )->data;
@@ -99,44 +101,36 @@ sub vns_ {
     my($count, $list);
     db_maytimeout {
         $count = tuwf->dbVali('SELECT count(*) FROM vn v JOIN tags_vn_inherit tvi ON tvi.vid = v.id WHERE', $where);
-        $list = $count ? tuwf->dbPagei({results => 50, page => $opt->{p}}, '
-            SELECT tvi.rating AS tagscore, v.id, v.title, v.original, v.c_released, v.c_popularity, v.c_votecount, v.c_rating
+        $list = $count ? tuwf->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
+            SELECT tvi.rating AS tagscore, v.id, v.title, v.original, v.c_released, v.c_popularity, v.c_votecount, v.c_rating, v.c_average
                  , v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang
               FROM vn v
               JOIN tags_vn_inherit tvi ON tvi.vid = v.id
              WHERE', $where, '
-             ORDER BY', sprintf {
-                 tagscore => 'tvi.rating %s, v.title',
-                 title    => 'v.title %s',
-                 rel      => 'v.c_released %s, v.title',
-                 pop      => 'v.c_popularity %s NULLS LAST, v.title',
-                 rating   => 'v.c_rating %s NULLS LAST, v.title'
-             }->{$opt->{s}}, $opt->{o} eq 'a' ? 'ASC' : 'DESC'
+             ORDER BY', $opt->{s}->sql_order(),
         ) : [];
     } || (($count, $list) = (undef, []));
 
-    VNWeb::VN::List::enrich_userlist $list;
+    VNWeb::VN::List::enrich_listing $opt, $list;
     $time = time - $time;
 
-    div_ class => 'mainbox', sub {
-        p_ class => 'mainopts', sub {
-            a_ href => "/g/links?t=$t->{id}", 'Recently tagged';
-        };
-        h1_ 'Visual novels';
-        form_ action => "/$t->{id}", method => 'get', sub {
+    form_ action => "/$t->{id}", method => 'get', sub {
+        div_ class => 'mainbox', sub {
+            p_ class => 'mainopts', sub {
+                a_ href => "/g/links?t=$t->{id}", 'Recently tagged';
+            };
+            h1_ 'Visual novels';
             p_ class => 'browseopts', sub {
                 button_ type => 'submit', name => 'm', value => 0, $opt->{m} == 0 ? (class => 'optselected') : (), 'Hide spoilers';
                 button_ type => 'submit', name => 'm', value => 1, $opt->{m} == 1 ? (class => 'optselected') : (), 'Show minor spoilers';
                 button_ type => 'submit', name => 'm', value => 2, $opt->{m} == 2 ? (class => 'optselected') : (), 'Spoil me!';
             };
-            input_ type => 'hidden', name => 'o', value => $opt->{o};
-            input_ type => 'hidden', name => 's', value => $opt->{s};
             input_ type => 'hidden', name => 'm', value => $opt->{m};
             $opt->{f}->elm_;
             advsearch_msg_ $count, $time;
         };
+        VNWeb::VN::List::listing_ $opt, $list, $count, 1 if $count;
     };
-    VNWeb::VN::List::listing_ $opt, $list, $count, 1 if $count;
 }
 
 

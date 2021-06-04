@@ -806,14 +806,20 @@ sub paginate_ {
 
 
 # Generate sort buttons for a table header. This function assumes that sorting
-# options are given as query parameters: 's' for the $column_name to sort on
-# and 'o' for order ('a'sc/'d'esc).
+# options are given either as a TableOpts parameter in 's' or as two query
+# parameters: 's' for the $column_name to sort on and 'o' for order ('a'/'d').
 # Options: $column_title, $column_name, $opt, $url
 # Where $url is a function that is given ('p', undef, 's', $column_name, 'o', $order) and returns a URL.
 sub sortable_ {
     my($name, $opt, $url) = @_;
-    $opt->{s} eq $name && $opt->{o} eq 'a' ? txt_ ' ▴' : a_ href => $url->(p => undef, s => $name, o => 'a'), ' ▴';
-    $opt->{s} eq $name && $opt->{o} eq 'd' ? txt_  '▾' : a_ href => $url->(p => undef, s => $name, o => 'd'),  '▾';
+    if(ref $opt->{s}) {
+        my $o = $opt->{s}->sorted($name);
+        $o eq 'a' ? txt_ ' ▴' : a_ href => $url->(p => undef, s => $opt->{s}->sort_param($name, 'a')), ' ▴';
+        $o eq 'd' ? txt_  '▾' : a_ href => $url->(p => undef, s => $opt->{s}->sort_param($name, 'd')),  '▾';
+    } else {
+        $opt->{s} eq $name && $opt->{o} eq 'a' ? txt_ ' ▴' : a_ href => $url->(p => undef, s => $name, o => 'a'), ' ▴';
+        $opt->{s} eq $name && $opt->{o} eq 'd' ? txt_  '▾' : a_ href => $url->(p => undef, s => $name, o => 'd'),  '▾';
+    }
 }
 
 

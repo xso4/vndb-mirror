@@ -84,12 +84,23 @@ CREATE OR REPLACE FUNCTION update_vncache(vndbid) RETURNS void AS $$
         AND r.hidden = FALSE
       GROUP BY rp.platform
       ORDER BY rp.platform
+    ),
+    c_developers = ARRAY(
+      SELECT rp.pid
+        FROM releases_producers rp
+        JOIN releases r ON rp.id = r.id
+        JOIN releases_vn rv ON rv.id = r.id
+       WHERE rv.vid = $1
+         AND r.official AND rp.developer
+         AND r.hidden = FALSE
+      GROUP BY rp.pid
+      ORDER BY rp.pid
     )
   WHERE id = $1;
 $$ LANGUAGE sql;
 
 
--- Update vn.c_popularity, c_rating, c_votecount, c_pop_rank and c_rat_rank
+-- Update vn.c_popularity, c_rating, c_votecount, c_pop_rank, c_rat_rank and c_average
 CREATE OR REPLACE FUNCTION update_vnvotestats() RETURNS void AS $$
   WITH votes(vid, uid, vote) AS ( -- List of all non-ignored VN votes
     SELECT vid, uid, vote FROM ulist_vns WHERE vote IS NOT NULL AND uid NOT IN(SELECT id FROM users WHERE ign_votes)
@@ -97,8 +108,8 @@ CREATE OR REPLACE FUNCTION update_vnvotestats() RETURNS void AS $$
     SELECT COUNT(vote)::real/COUNT(DISTINCT vid)::real FROM votes
   ), avgavg(avgavg) AS ( -- Average vote average
     SELECT AVG(a)::real FROM (SELECT AVG(vote) FROM votes GROUP BY vid) x(a)
-  ), ratings(vid, count, rating) AS ( -- Ratings and vote counts
-    SELECT vid, COALESCE(COUNT(uid), 0),
+  ), ratings(vid, count, average, rating) AS ( -- Ratings and vote counts
+    SELECT vid, COALESCE(COUNT(uid), 0), (AVG(vote)*10)::smallint,
            COALESCE(
               ((SELECT avgcount FROM avgcount) * (SELECT avgavg FROM avgavg) + SUM(vote)::real) /
               ((SELECT avgcount FROM avgcount) + COUNT(uid)::real),
@@ -111,18 +122,18 @@ CREATE OR REPLACE FUNCTION update_vnvotestats() RETURNS void AS $$
         SELECT uid, vid, ((rank() OVER (PARTITION BY uid ORDER BY vote))::real - 1) ^ 0.36788 FROM votes
       ) x(uid, vid, rank)
      GROUP BY vid
-  ), stats(vid, rating, count, popularity, pop_rank, rat_rank) AS ( -- Combined stats
-    SELECT v.id, COALESCE(round(r.rating::numeric, 1), 0)::real, COALESCE(r.count, 0)
-         , round((p.win/(SELECT MAX(win) FROM popularities))::numeric, 4)::real
+  ), stats(vid, rating, count, average, popularity, pop_rank, rat_rank) AS ( -- Combined stats
+    SELECT v.id, (r.rating*10)::smallint, COALESCE(r.count, 0), r.average
+         , (p.win/(SELECT MAX(win) FROM popularities)*10000)::smallint
          , CASE WHEN p.win    IS NULL THEN NULL ELSE rank() OVER(ORDER BY hidden, p.win    DESC NULLS LAST) END
          , CASE WHEN r.rating IS NULL THEN NULL ELSE rank() OVER(ORDER BY hidden, r.rating DESC NULLS LAST) END
       FROM vn v
       LEFT JOIN ratings r ON r.vid = v.id
       LEFT JOIN popularities p ON p.vid = v.id AND p.win > 0
   )
-  UPDATE vn SET c_rating = rating, c_votecount = count, c_popularity = popularity, c_pop_rank = pop_rank, c_rat_rank = rat_rank
+  UPDATE vn SET c_rating = rating, c_votecount = count, c_popularity = popularity, c_pop_rank = pop_rank, c_rat_rank = rat_rank, c_average = average
     FROM stats
-   WHERE id = vid AND (c_rating, c_votecount, c_popularity, c_pop_rank, c_rat_rank) IS DISTINCT FROM (rating, count, popularity, pop_rank, rat_rank);
+   WHERE id = vid AND (c_rating, c_votecount, c_popularity, c_pop_rank, c_rat_rank, c_average) IS DISTINCT FROM (rating, count, popularity, pop_rank, rat_rank, average);
 $$ LANGUAGE SQL;
 
 

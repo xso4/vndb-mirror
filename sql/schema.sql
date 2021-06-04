@@ -984,7 +984,9 @@ CREATE TABLE users (
   ulist_votes         jsonb,
   ulist_vnlist        jsonb,
   ulist_wish          jsonb,
-  vnlang              jsonb -- '$lang(-mtl)?' => true/false, which languages to expand/collapse on VN pages
+  vnlang              jsonb, -- '$lang(-mtl)?' => true/false, which languages to expand/collapse on VN pages
+  tableopts_v         integer,
+  tableopts_vt        integer -- VN listing on tag pages
 );
 
 -- Additional fields for the 'users' table, but with some protected columns.
@@ -1012,9 +1014,9 @@ CREATE TABLE vn ( -- dbentry_type=v
   image         vndbid CONSTRAINT vn_image_check CHECK(vndbid_type(image) = 'cv'), -- [pub]
   l_wikidata    integer, -- [pub]
   c_votecount   integer NOT NULL DEFAULT 0, -- [pub]
-  c_popularity  real, -- [pub]
+  c_popularity  smallint, -- [pub], ratio between 0 and 10000
   c_pop_rank    integer,
-  c_rating      real, -- [pub]
+  c_rating      smallint, -- [pub], decimal vote*100, i.e. 100 - 1000
   c_rat_rank    integer,
   c_released    integer NOT NULL DEFAULT 0,
   length        smallint NOT NULL DEFAULT 0, -- [pub]
@@ -1030,7 +1032,9 @@ CREATE TABLE vn ( -- dbentry_type=v
   "desc"        text NOT NULL DEFAULT '', -- [pub]
   c_search      text,
   c_languages   language[] NOT NULL DEFAULT '{}',
-  c_platforms   platform[] NOT NULL DEFAULT '{}'
+  c_platforms   platform[] NOT NULL DEFAULT '{}',
+  c_developers  vndbid[] NOT NULL DEFAULT '{}',
+  c_average     smallint -- [pub], decimal vote*100, i.e. 100 - 1000
 );
 
 -- vn_hist

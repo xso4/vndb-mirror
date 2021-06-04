@@ -671,8 +671,8 @@ sub stats_ {
         clearfloat_;
         div_ sub {
             h3_ 'Ranking';
-            p_ sprintf 'Popularity: ranked #%d with a score of %.2f', $rank->{c_pop_rank}, $rank->{c_popularity}*100 if defined $rank->{c_popularity};
-            p_ sprintf 'Bayesian rating: ranked #%d with a rating of %.2f', $rank->{c_rat_rank}, $rank->{c_rating}/10;
+            p_ sprintf 'Popularity: ranked #%d with a score of %.2f', $rank->{c_pop_rank}, $rank->{c_popularity}/100 if defined $rank->{c_popularity};
+            p_ sprintf 'Bayesian rating: ranked #%d with a rating of %.2f', $rank->{c_rat_rank}, $rank->{c_rating}/100;
         } if $v->{c_votecount};
     }
 
