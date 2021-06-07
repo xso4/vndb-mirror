@@ -57,7 +57,11 @@ view model =
     div [ class "mainbox" ]
     [ h1 [] [ text "New password" ]
     , div [ class "notice" ]
-      [ p [] [ text "Your password has been reset and instructions to set a new one should reach your mailbox in a few minutes." ] ]
+      [ p []
+        [ text "Instructions to set a new password should reach your mailbox in a few minutes."
+        , br_ 1
+        , text "(make sure to check your spam box if the mail doesn't seem to be arriving)"
+        ] ]
     ]
   else
     form_ "" Submit (model.state == Api.Loading)
@@ -69,17 +73,7 @@ view model =
         , text " and we'll send you instructions to set a new password within a few minutes!"
         ]
       , table [ class "formtable" ]
-        [ formField "email::E-Mail"
-          [ inputText "email" model.email EMail GUPR.valEmail
-          , case shittyMailProvider model.email of
-              Nothing -> text ""
-              Just n -> span []
-                [ br [] []
-                , b [ class "standout" ] [ text "WARNING: " ]
-                , text (n ++ " is known to silently drop emails from VNDB. If your password reset email does not arrive in a few hours, I'm afraid you're fucked, because I have no way to contact you. Please complain to your email provider.")
-                ]
-          ]
-        ]
+        [ formField "email::E-Mail" [ inputText "email" model.email EMail GUPR.valEmail ] ]
       ]
     , div [ class "mainbox" ]
       [ fieldset [ class "submit" ] [ submitButton "Submit" model.state True ]

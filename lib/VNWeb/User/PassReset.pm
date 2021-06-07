@@ -22,7 +22,7 @@ elm_api UserPassReset => undef, {
     my $body = sprintf
          "Hello %s,"
         ."\n\n"
-        ."Your VNDB.org login has been disabled, you can now set a new password by following the link below:"
+        ."You can set a new password for your VNDB.org account by following the link below:"
         ."\n\n"
         ."%s"
         ."\n\n"

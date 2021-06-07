@@ -68,7 +68,11 @@ view model =
     div [ class "mainbox" ]
     [ h1 [] [ text "Account created" ]
     , div [ class "notice" ]
-      [ p [] [ text "Your account has been created! In a few minutes, you should receive an email with instructions to set your password." ] ]
+      [ p []
+        [ text "Your account has been created! In a few minutes, you should receive an email with instructions to set your password."
+        , br_ 1
+        , text "(make sure to check your spam box if it doesn't seem to be arriving)"
+        ] ]
     ]
   else
     form_ "" Submit (model.state == Api.Loading)
@@ -83,19 +87,10 @@ view model =
           ]
         , formField "email::E-Mail"
           [ inputText "email" model.email EMail GUR.valEmail
-          , case shittyMailProvider model.email of
-              Nothing -> text ""
-              Just n -> span []
-                [ br [] []
-                , b [ class "standout" ] [ text "WARNING: " ]
-                , text (n ++ " is known to silently drop emails from VNDB, so you may not be able to activate and use your account."
-                          ++ " If you have an address at another provider, you may want to use that."
-                          ++ " If you want to keep using this provider, please kindly tell them to stop blocking VNDB. I can't help you.")
-                , br [] []
-                ]
           , br_ 1
-          , text "Your email address will only be used in case you lose your password. "
-          , text "We will never send spam or newsletters unless you explicitly ask us for it or we get hacked."
+          , text "A valid address is required in order to activate and use your account. "
+          , text "Other than that, your address is only used in case you lose your password, "
+          , text "we will never send spam or newsletters unless you explicitly ask us for it or we get hacked."
           , br_ 3
           , text "Anti-bot question: How many visual novels do we have in the database? (Hint: look to your left)"
           ]

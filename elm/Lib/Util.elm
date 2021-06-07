@@ -91,16 +91,6 @@ containsNonLatin : String -> Bool
 containsNonLatin = Regex.contains nonlatin_
 
 
--- Given an email address, returns the name of the provider if it has a good chance of blocking mails from our server.
-shittyMailProvider : String -> Maybe String
-shittyMailProvider s =
-  let outlook = Maybe.withDefault Regex.never (Regex.fromString "(hotmail|live|msn|outlook)(\\.co|\\.com)?\\.[^\\.]+$")
-  in case String.split "@" s |> List.drop 1 |> List.head |> Maybe.withDefault "" |> String.toLower of
-      "sbcglobal.net" -> Just "AT&T"
-      "att.net"       -> Just "AT&T"
-      d -> if Regex.contains outlook d then Just "Outlook" else Nothing
-
-
 -- Format a release resolution, first argument indicates whether empty string is to be used for "unknown"
 resoFmt : Bool -> Int -> Int -> String
 resoFmt empty x y =
