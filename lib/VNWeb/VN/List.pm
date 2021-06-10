@@ -3,12 +3,14 @@ package VNWeb::VN::List;
 use VNWeb::Prelude;
 use VNWeb::AdvSearch;
 use VNWeb::Filters;
+use VNWeb::Images::Lib;
 use VNWeb::TT::Lib 'tagscore_';
 
 # Returns the tableopts config for this VN list (0) or the VN listing on tags (1).
 sub TABLEOPTS {
     my($tags) = @_;
     tableopts _pref => $tags ? 'tableopts_vt' : 'tableopts_v',
+        _views => ['rows', 'cards'],
         $tags ? (tagscore => {
             name => 'Tag score',
             compat => 'tagscore',
@@ -71,6 +73,7 @@ sub listing_ {
     my sub url { '?'.query_encode %$opt, @_ }
 
     paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 't', sub { $opt->{s}->elm_ };
+
     div_ class => 'mainbox browse vnbrowse', sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
@@ -112,7 +115,55 @@ sub listing_ {
                 } if $opt->{s}->vis('average');
             } for @$list;
         }
-    };
+    } if $opt->{s}->rows;
+
+    div_ class => 'mainbox vncards', sub {
+        my($w,$h) = (90,120);
+        div_ sub {
+            div_ sub {
+                if($_->{image}) {
+                    my($iw,$ih) = imgsize $_->{image}{width}*100, $_->{image}{height}*100, $w, $h;
+                    image_ $_->{image}, width => $iw, height => $ih, url => "/$_->{id}", overlay => undef;
+                } else {
+                    txt_ 'no image';
+                }
+            };
+            div_ sub {
+                a_ href => "/$_->{id}", title => $_->{original}||$_->{title}, $_->{title};
+                br_;
+                join_ '', sub { platform_ $_ if $_ ne 'unk' }, sort $_->{platforms}->@*;
+                join_ '', sub { abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' }, reverse sort $_->{lang}->@*;
+                rdate_ $_->{c_released};
+                if($opt->{s}->vis('developer')) {
+                    br_;
+                    join_ ' & ', sub {
+                        a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
+                    }, sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} } $_->{developers}->@*;
+                }
+                table_ sub {
+                    tr_ sub {
+                        td_ 'Popularity:';
+                        td_ sprintf '%.2f', ($_->{c_popularity}||0)/100;
+                    } if $opt->{s}->vis('popularity');
+                    tr_ sub {
+                        td_ 'Rating:';
+                        td_ sub {
+                            txt_ sprintf '%.2f', ($_->{c_rating}||0)/100;
+                            b_ class => 'grayedout', sprintf ' (%d)', $_->{c_votecount};
+                        };
+                    } if $opt->{s}->vis('rating');
+                    tr_ sub {
+                        td_ 'Average:';
+                        td_ sub {
+                            txt_ sprintf '%.2f', ($_->{c_average}||0)/100;
+                            b_ class => 'grayedout', sprintf ' (%d)', $_->{c_votecount} if !$opt->{s}->vis('rating');
+                        };
+                    } if $opt->{s}->vis('average');
+                }
+            };
+        } for @$list;
+    } if $opt->{s}->cards;
+
     paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 'b';
 }
 
@@ -127,6 +178,8 @@ sub enrich_listing {
            FROM vn v, unnest(v.c_developers) vp(id), producers p
           WHERE p.id = vp.id AND v.id IN', $_[0], 'ORDER BY p.name, p.id'
     }, @_ if $opt->{s}->vis('developer');
+
+    enrich_image_obj image => @_ if $opt->{s}->cards;
 
     enrich_merge id => sub { sql '
         SELECT irv.vid AS id
@@ -197,7 +250,7 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
         $count = tuwf->dbVali('SELECT count(*) FROM vn v WHERE', $where);
         $list = $count ? tuwf->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
             SELECT v.id, v.title, v.original, v.c_released, v.c_popularity, v.c_votecount, v.c_rating, v.c_average
-                 , v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang
+                 , v.image, v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang
               FROM vn v
              WHERE', $where, '
              ORDER BY', $opt->{s}->sql_order(),
