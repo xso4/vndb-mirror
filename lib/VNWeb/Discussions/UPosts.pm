@@ -19,8 +19,8 @@ sub listing_ {
             }};
             tr_ sub {
                 my $url = "/$_->{id}.$_->{num}";
-                td_ class => 'tc1', sub { a_ href => $url, $_->{id} };
-                td_ class => 'tc2', sub { a_ href => $url, '.'.$_->{num} };
+                td_ class => 'tc1', sub { a_ href => $url, $_->{hidden} ? (class => 'grayedout') : (), $_->{id} };
+                td_ class => 'tc2', sub { a_ href => $url, $_->{hidden} ? (class => 'grayedout') : (), '.'.$_->{num} };
                 td_ class => 'tc3', fmtdate $_->{date};
                 td_ class => 'tc4', sub {
                     a_ href => $url, $_->{title};
@@ -41,21 +41,21 @@ TUWF::get qr{/$RE{uid}/posts}, sub {
     my $page = tuwf->validate(get => p => { upage => 1 })->data;
 
     my $sql = sql '(
-        SELECT tp.tid, tp.num, tp.msg, t.title, tp.date
+        SELECT tp.tid, tp.num, tp.msg, t.title, tp.date, t.hidden OR tp.hidden
           FROM threads_posts tp
           JOIN threads t ON t.id = tp.tid
-         WHERE NOT t.private AND NOT t.hidden AND NOT tp.hidden AND tp.uid =', \$u->{id}, '
+         WHERE tp.uid =', \$u->{id}, 'AND NOT t.private', auth->permBoardmod ? () : 'AND NOT t.hidden AND NOT tp.hidden', '
        UNION ALL
-        SELECT rp.id, rp.num, rp.msg, v.title, rp.date
+        SELECT rp.id, rp.num, rp.msg, v.title, rp.date, rp.hidden
           FROM reviews_posts rp
           JOIN reviews r ON r.id = rp.id
           JOIN vn v ON v.id = r.vid
-         WHERE NOT rp.hidden AND rp.uid =', \$u->{id}, '
-       ) p(id,num,msg,title,date)';
+         WHERE rp.uid =', \$u->{id}, auth->permBoardmod ? () : 'AND NOT rp.hidden', '
+       ) p(id,num,msg,title,date,hidden)';
 
     my $count = tuwf->dbVali('SELECT count(*) FROM', $sql);
     my $list = $count && tuwf->dbPagei({ results => 50, page => $page },
-        'SELECT id, num, substring(msg from 1 for 1000) as msg, title, ', sql_totime('date'), 'as date
+        'SELECT id, num, substring(msg from 1 for 1000) as msg, title, ', sql_totime('date'), 'as date, hidden
            FROM ', $sql, 'ORDER BY date DESC'
     );
 
