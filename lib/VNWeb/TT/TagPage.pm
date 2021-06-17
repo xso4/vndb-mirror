@@ -103,7 +103,7 @@ sub vns_ {
         $count = tuwf->dbVali('SELECT count(*) FROM vn v JOIN tags_vn_inherit tvi ON tvi.vid = v.id WHERE', $where);
         $list = $count ? tuwf->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
             SELECT tvi.rating AS tagscore, v.id, v.title, v.original, v.c_released, v.c_popularity, v.c_votecount, v.c_rating, v.c_average
-                 , v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang
+                 , v.image, v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang
               FROM vn v
               JOIN tags_vn_inherit tvi ON tvi.vid = v.id
              WHERE', $where, '
