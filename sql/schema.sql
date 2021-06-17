@@ -368,7 +368,7 @@ CREATE TABLE releases ( -- dbentry_type=r
   reso_y       smallint NOT NULL DEFAULT 0, -- [pub]
   patch        boolean NOT NULL DEFAULT FALSE, -- [pub]
   freeware     boolean NOT NULL DEFAULT FALSE, -- [pub]
-  doujin       boolean NOT NULL DEFAULT FALSE, -- [pub]
+  doujin       boolean NOT NULL DEFAULT FALSE, -- [pub] (deprecated)
   uncensored   boolean NOT NULL DEFAULT FALSE, -- [pub]
   official     boolean NOT NULL DEFAULT TRUE, -- [pub]
   locked       boolean NOT NULL DEFAULT FALSE,

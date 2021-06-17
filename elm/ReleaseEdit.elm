@@ -161,7 +161,6 @@ type Msg
   | Official Bool
   | Patch Bool
   | Freeware Bool
-  | Doujin Bool
   | Lang Int String
   | LangMtl Int Bool
   | LangDel Int
@@ -202,7 +201,6 @@ update msg model =
     Official b -> ({ model | official = b }, Cmd.none)
     Patch b    -> ({ model | patch    = b }, Cmd.none)
     Freeware b -> ({ model | freeware = b }, Cmd.none)
-    Doujin b   -> ({ model | doujin   = b }, Cmd.none)
     Lang n s   -> ({ model | lang     = if s /= "" && n == List.length model.lang then model.lang ++ [{lang=s, mtl=False}] else modidx n (\l -> { l | lang = s }) model.lang }, Cmd.none)
     LangMtl n b-> ({ model | lang     = modidx n (\l -> { l | mtl = b }) model.lang }, Cmd.none)
     LangDel n  -> ({ model | lang     = delidx n model.lang }, Cmd.none)
@@ -302,8 +300,6 @@ viewGen model =
   , formField "" [ label [] [ inputCheck "" model.official Official, text " Official (i.e. sanctioned by the original developer of the visual novel)" ] ]
   , formField "" [ label [] [ inputCheck "" model.patch    Patch   , text " This release is a patch to another release.", text " (*)" ] ]
   , formField "" [ label [] [ inputCheck "" model.freeware Freeware, text " Freeware (i.e. available at no cost)" ] ]
-  , if model.patch then text "" else
-    formField "" [ label [] [ inputCheck "" model.doujin   Doujin  , text " Doujin (self-published, not by a company)" ] ]
   , formField "Release date" [ D.view model.released False False Released, text " Leave month or day blank if they are unknown." ]
 
   , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Format" ] ]

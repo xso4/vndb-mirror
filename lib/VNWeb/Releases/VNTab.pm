@@ -47,12 +47,12 @@ my @rel_cols = (
   }, { # Publication
     id            => 'pub',
     sort_field    => 'publication',
-    sort_sql      => 'r.doujin %s, r.freeware %1$s,   r.patch %1$s, r.released %1$s, r.title %1$s',
+    sort_sql      => 'r.freeware %1$s, r.patch %1$s, r.released %1$s, r.title %1$s',
     column_string => 'Publication',
     column_width  => 70,
     button_string => 'Publication',
     default       => 1,
-    draw          => sub { txt_ join ', ', $_[0]{freeware} ? 'Freeware' : 'Non-free', $_[0]{patch} ? () : ($_[0]{doujin} ? 'doujin' : 'commercial') },
+    draw          => sub { txt_ $_[0]{freeware} ? 'Freeware' : 'Non-free' },
   }, { # Platforms
     id             => 'pla',
     button_string => 'Platforms',

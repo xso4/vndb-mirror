@@ -386,6 +386,7 @@ f r => 18 => 'rlist',    { uint => 1, enum => \%RLIST_STATUS }, sql_list => sub 
     };
 f r => 61 => 'patch',    { uint => 1, range => [1,1] }, '=' => sub { 'r.patch' };
 f r => 62 => 'freeware', { uint => 1, range => [1,1] }, '=' => sub { 'r.freeware' };
+# TODO: This flag has been deprecated, replace with a subquery that checks the publisher instead?
 f r => 63 => 'doujin',   { uint => 1, range => [1,1] }, '=' => sub { 'r.doujin' };
 f r => 64 => 'uncensored',{uint => 1, range => [1,1] }, '=' => sub { 'r.uncensored' };
 f r => 65 => 'official', { uint => 1, range => [1,1] }, '=' => sub { 'r.official' };

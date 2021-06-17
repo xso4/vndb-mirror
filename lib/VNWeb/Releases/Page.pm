@@ -105,9 +105,7 @@ sub _infotable_ {
 
         tr_ sub {
             td_ 'Publication';
-            td_ join ', ',
-                $r->{freeware} ? 'Freeware' : 'Non-free',
-                $r->{patch} ? () : ($r->{doujin} ? 'doujin' : 'commercial');
+            td_ $r->{freeware} ? 'Freeware' : 'Non-free';
         };
 
         tr_ sub {

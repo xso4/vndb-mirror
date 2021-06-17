@@ -92,8 +92,6 @@ sub release_row_ {
         icon_ 'ero_animated', "Ero: $ANIMATED{$r->{ani_ero}}{txt}", "anim$r->{ani_ero}" if $r->{ani_ero};
         icon_ 'free', 'Freeware' if $r->{freeware};
         icon_ 'nonfree', 'Non-free' if !$r->{freeware};
-        icon_ 'doujin', 'Doujin' if !$r->{patch} && $r->{doujin};
-        icon_ 'commercial', 'Commercial' if !$r->{patch} && !$r->{doujin};
         if($r->{reso_y}) {
             my $ratio = $r->{reso_x} / $r->{reso_y};
             my $type = $ratio == 4/3 ? '4-3' : $ratio == 16/9 ? '16-9' : 'custom';
