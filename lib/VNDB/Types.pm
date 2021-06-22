@@ -32,6 +32,7 @@ hash LANGUAGE =>
     ga => 'Irish',
     gd => 'Scottish Gaelic',
     he => 'Hebrew',
+    hi => 'Hindu',
     hr => 'Croatian',
     hu => 'Hungarian',
     id => 'Indonesian',
@@ -57,6 +58,7 @@ hash LANGUAGE =>
     th => 'Thai',
     tr => 'Turkish',
     uk => 'Ukrainian',
+    ur => 'Urdu',
     vi => 'Vietnamese',
     zh => 'Chinese';
 
