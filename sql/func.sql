@@ -296,6 +296,7 @@ BEGIN
           FROM chars_traits ct
          WHERE id NOT IN(SELECT id from chars WHERE hidden)
            AND (ucid IS NULL OR ct.id = ucid)
+           AND NOT EXISTS (SELECT 1 FROM traits t WHERE t.id = ct.tid AND t.hidden)
       UNION ALL
         SELECT lvl-1, tp.parent, tc.cid, tc.spoiler
         FROM traits_chars_all tc
