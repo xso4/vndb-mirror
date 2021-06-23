@@ -43,7 +43,7 @@ sub enrich_vn {
          WHERE NOT t.hidden AND tv.vid =", \$v->{id}, "
          GROUP BY t.id, t.name, t.cat
         HAVING $rating > 0
-         ORDER BY rating DESC"
+         ORDER BY rating DESC, t.name"
     );
 }
 
