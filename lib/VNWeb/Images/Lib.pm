@@ -83,6 +83,7 @@ sub image_flagging_display {
 #   height  -> if different from original image
 #   url     -> link the image to a page (if not hidden by settings)
 #   overlay -> CODE ref, html to replace the overlay with.
+# XXX: Not all of these options are used, could clean up a few.
 sub image_ {
     my($img, %opt) = @_;
     return p_ 'No image' if !$img;
