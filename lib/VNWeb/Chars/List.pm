@@ -61,7 +61,7 @@ sub listing_ {
         my $sexp = auth->pref('max_sexual')||0;
         my $viop = auth->pref('max_violence')||0;
         a_ href => "/$_->{id}", title => $_->{original}||$_->{name},
-            $sexp < 0 || $_->{image}{sexual} > $sexp || $_->{image}{violence} > $viop || (!$_->{image}{votecount} && ($sexp < 2 || $viop < 2))
+            !$_->{image} || $sexp < 0 || $_->{image}{sexual} > $sexp || $_->{image}{violence} > $viop || (!$_->{image}{votecount} && ($sexp < 2 || $viop < 2))
                 ? () : (style => 'background-image: url("'.imgurl($_->{image}{id}).'")'),
         sub {
             span_ $_->{name};
