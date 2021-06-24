@@ -57,12 +57,8 @@ sub listing_ {
 
 
     div_ class => 'mainbox charbgrid', sub {
-        # XXX: This logic is repeated in Images::Lib (and possibly elsewhere), might want to abstract it.
-        my $sexp = auth->pref('max_sexual')||0;
-        my $viop = auth->pref('max_violence')||0;
         a_ href => "/$_->{id}", title => $_->{original}||$_->{name},
-            !$_->{image} || $sexp < 0 || $_->{image}{sexual} > $sexp || $_->{image}{violence} > $viop || (!$_->{image}{votecount} && ($sexp < 2 || $viop < 2))
-                ? () : (style => 'background-image: url("'.imgurl($_->{image}{id}).'")'),
+            !$_->{image} || image_hidden($_->{image}) ? () : (style => 'background-image: url("'.imgurl($_->{image}{id}).'")'),
         sub {
             span_ $_->{name};
         } for @$list;

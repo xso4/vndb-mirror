@@ -10,7 +10,7 @@ use VNWeb::TT::Lib 'tagscore_';
 sub TABLEOPTS {
     my($tags) = @_;
     tableopts _pref => $tags ? 'tableopts_vt' : 'tableopts_v',
-        _views => ['rows', 'cards'],
+        _views => ['rows', 'cards', 'grid'],
         $tags ? (tagscore => {
             name => 'Tag score',
             compat => 'tagscore',
@@ -117,6 +117,47 @@ sub listing_ {
         }
     } if $opt->{s}->rows;
 
+    # Contents of the grid & card modes are the same
+    my sub infoblock_ {
+        my($canlink) = @_; # grid contains an outer <a>, so may not contain links itself.
+        my sub lnk_ {
+            my($url, $title, $label) = @_;
+            a_ href => $url, $title, $label if $canlink;
+            span_ $label if !$canlink;
+        }
+        lnk_ "/$_->{id}", $_->{original}||$_->{title}, $_->{title};
+        br_;
+        join_ '', sub { platform_ $_ if $_ ne 'unk' }, sort $_->{platforms}->@*;
+        join_ '', sub { abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' }, reverse sort $_->{lang}->@*;
+        rdate_ $_->{c_released};
+        if($opt->{s}->vis('developer')) {
+            br_;
+            join_ ' & ', sub {
+                lnk_ "/$_->{id}", $_->{original}||$_->{name}, $_->{name};
+            }, sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} } $_->{developers}->@*;
+        }
+        table_ sub {
+            tr_ sub {
+                td_ 'Popularity:';
+                td_ sprintf '%.2f', ($_->{c_popularity}||0)/100;
+            } if $opt->{s}->vis('popularity');
+            tr_ sub {
+                td_ 'Rating:';
+                td_ sub {
+                    txt_ sprintf '%.2f', ($_->{c_rating}||0)/100;
+                    b_ class => 'grayedout', sprintf ' (%d)', $_->{c_votecount};
+                };
+            } if $opt->{s}->vis('rating');
+            tr_ sub {
+                td_ 'Average:';
+                td_ sub {
+                    txt_ sprintf '%.2f', ($_->{c_average}||0)/100;
+                    b_ class => 'grayedout', sprintf ' (%d)', $_->{c_votecount} if !$opt->{s}->vis('rating');
+                };
+            } if $opt->{s}->vis('average');
+        }
+    }
+
     div_ class => 'mainbox vncards', sub {
         my($w,$h) = (90,120);
         div_ sub {
@@ -128,41 +169,17 @@ sub listing_ {
                     txt_ 'no image';
                 }
             };
-            div_ sub {
-                a_ href => "/$_->{id}", title => $_->{original}||$_->{title}, $_->{title};
-                br_;
-                join_ '', sub { platform_ $_ if $_ ne 'unk' }, sort $_->{platforms}->@*;
-                join_ '', sub { abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' }, reverse sort $_->{lang}->@*;
-                rdate_ $_->{c_released};
-                if($opt->{s}->vis('developer')) {
-                    br_;
-                    join_ ' & ', sub {
-                        a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
-                    }, sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} } $_->{developers}->@*;
-                }
-                table_ sub {
-                    tr_ sub {
-                        td_ 'Popularity:';
-                        td_ sprintf '%.2f', ($_->{c_popularity}||0)/100;
-                    } if $opt->{s}->vis('popularity');
-                    tr_ sub {
-                        td_ 'Rating:';
-                        td_ sub {
-                            txt_ sprintf '%.2f', ($_->{c_rating}||0)/100;
-                            b_ class => 'grayedout', sprintf ' (%d)', $_->{c_votecount};
-                        };
-                    } if $opt->{s}->vis('rating');
-                    tr_ sub {
-                        td_ 'Average:';
-                        td_ sub {
-                            txt_ sprintf '%.2f', ($_->{c_average}||0)/100;
-                            b_ class => 'grayedout', sprintf ' (%d)', $_->{c_votecount} if !$opt->{s}->vis('rating');
-                        };
-                    } if $opt->{s}->vis('average');
-                }
-            };
+            div_ sub { infoblock_ 1 };
         } for @$list;
     } if $opt->{s}->cards;
+
+    div_ class => 'mainbox vngrid', sub {
+        a_ href => "/$_->{id}", title => $_->{original}||$_->{title},
+            !$_->{image} || image_hidden($_->{image}) ? (class => 'noimage') : (style => 'background-image: url("'.imgurl($_->{image}{id}).'")'),
+        sub {
+            div_ sub { infoblock_ 0 };
+        } for @$list;
+    } if $opt->{s}->grid;
 
     paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 'b';
 }
@@ -179,7 +196,7 @@ sub enrich_listing {
           WHERE p.id = vp.id AND v.id IN', $_[0], 'ORDER BY p.name, p.id'
     }, @_ if $opt->{s}->vis('developer');
 
-    enrich_image_obj image => @_ if $opt->{s}->cards;
+    enrich_image_obj image => @_ if !$opt->{s}->rows;
 
     enrich_merge id => sub { sql '
         SELECT irv.vid AS id
