@@ -53,7 +53,9 @@ TUWF::get qr{/w}, sub {
     my $u = $opt->{u} && tuwf->dbRowi('SELECT id, ', sql_user(), 'FROM users u WHERE id =', \$opt->{u});
     return tuwf->resNotFound if $u && !$u->{id};
 
-    my $where = $u ? sql 'w.uid =', \$u->{id} : '1=1';
+    my $where = sql_and
+        $u ? sql 'w.uid =', \$u->{id} : (),
+        auth->isMod ? () : 'NOT w.c_flagged';
     my $count = tuwf->dbVali('SELECT COUNT(*) FROM reviews w WHERE', $where);
     my $lst = tuwf->dbPagei({results => 50, page => $opt->{p}}, '
         SELECT w.id, w.vid, w.isfull, w.c_up, w.c_down, w.c_flagged, w.c_count, w.c_lastnum, v.title, uv.vote
