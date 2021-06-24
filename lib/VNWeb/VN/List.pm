@@ -122,7 +122,7 @@ sub listing_ {
         my($canlink) = @_; # grid contains an outer <a>, so may not contain links itself.
         my sub lnk_ {
             my($url, $title, $label) = @_;
-            a_ href => $url, $title, $label if $canlink;
+            a_ href => $url, title => $title, $label if $canlink;
             span_ $label if !$canlink;
         }
         lnk_ "/$_->{id}", $_->{original}||$_->{title}, $_->{title};
