@@ -177,6 +177,7 @@ sub releases_ {
         SELECT id, title, original, released
           FROM releases r
          WHERE NOT hidden AND ', $filt->sql_where(), '
+           AND NOT EXISTS(SELECT 1 FROM releases_lang rl WHERE rl.id = r.id AND rl.mtl)
          ORDER BY released', $released ? 'DESC' : '', ', id LIMIT 10'
     );
     enrich_flatten plat => id => id => 'SELECT id, platform FROM releases_platforms WHERE id IN', $lst;
