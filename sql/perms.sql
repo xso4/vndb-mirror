@@ -16,6 +16,7 @@ GRANT SELECT, INSERT,         DELETE ON chars_vns                TO vndb_site;
 GRANT SELECT, INSERT                 ON chars_vns_hist           TO vndb_site;
 GRANT SELECT, INSERT, UPDATE         ON docs                     TO vndb_site;
 GRANT SELECT, INSERT                 ON docs_hist                TO vndb_site;
+GRANT SELECT        , UPDATE         ON global_settings          TO vndb_site;
 GRANT SELECT, INSERT, UPDATE         ON images                   TO vndb_site;
 GRANT SELECT, INSERT, UPDATE, DELETE ON image_votes              TO vndb_site;
 GRANT SELECT, INSERT, UPDATE, DELETE ON login_throttle           TO vndb_site;

@@ -6,7 +6,14 @@ use VNWeb::Prelude;
 TUWF::get '/u/register', sub {
     return tuwf->resRedirect('/', 'temp') if auth;
     framework_ title => 'Register', sub {
-        elm_ 'User.Register';
+        if(global_settings->{lockdown_registration}) {
+            div_ class => 'mainbox', sub {
+                h1_ 'Create an account';
+                p_ 'Account registration is temporarily disabled. Try again later.';
+            }
+        } else {
+            elm_ 'User.Register';
+        }
     };
 };
 
@@ -17,6 +24,7 @@ elm_api UserRegister => undef, {
     vns      => { int => 1 },
 }, sub {
     my $data = shift;
+    return elm_Unauth if global_settings->{lockdown_registration};
 
     my $num = tuwf->dbVali("SELECT count FROM stats_cache WHERE section = 'vn'");
     return elm_Bot         if $data->{vns} < $num*0.995 || $data->{vns} > $num*1.005;

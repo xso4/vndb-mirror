@@ -79,6 +79,8 @@ sub TUWF::Object::resDenied {
                         a_ href => '/u/register', 'create an account';
                         txt_ " if you don't have one yet.";
                     }
+                } elsif(VNWeb::DB::global_settings()->{lockdown_edit} || VNWeb::DB::global_settings()->{lockdown_board}) {
+                    h2_ 'The database is in temporary lockdown.';
                 } else {
                     h2_ 'You are not allowed to perform this action.';
                     p_ 'You do not have the proper rights to perform the action you wanted to perform.';

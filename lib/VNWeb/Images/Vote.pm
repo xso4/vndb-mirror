@@ -16,10 +16,13 @@ my $SEND = form_compile any => {
 };
 
 
+sub can_vote { auth->permImgmod || (auth->permImgvote && !global_settings->{lockdown_edit}) }
+
+
 # Fetch a list of images for the user to vote on.
 elm_api Images => $SEND, { excl_voted => { anybool => 1 } }, sub {
     my($data) = @_;
-    return elm_Unauth if !auth->permImgvote;
+    return elm_Unauth if !can_vote;
 
     state $stats = tuwf->dbRowi('SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE c_weight > 0) AS referenced FROM images');
 
@@ -65,7 +68,7 @@ elm_api ImageVote => undef, {
     } },
 }, sub {
     my($data) = @_;
-    return elm_Unauth if !auth->permImgvote;
+    return elm_Unauth if !can_vote;
     return elm_CSRF if !validate_token $data->{votes};
 
     # Find out if any of these images are being overruled
@@ -106,7 +109,7 @@ sub imgflag_ {
 
 
 TUWF::get qr{/img/vote}, sub {
-    return tuwf->resDenied if !auth->permImgvote;
+    return tuwf->resDenied if !can_vote;
 
     my $recent = tuwf->dbAlli('SELECT id FROM image_votes WHERE uid =', \auth->uid, 'ORDER BY date DESC LIMIT', \30);
     enrich_image 1, $recent;

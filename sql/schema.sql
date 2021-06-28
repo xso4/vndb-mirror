@@ -230,6 +230,17 @@ CREATE TABLE docs_hist (
   html       text -- cache
 );
 
+-- global_settings
+CREATE TABLE global_settings (
+  -- Only permit a single row in this table
+  id                    boolean NOT NULL PRIMARY KEY DEFAULT FALSE CONSTRAINT global_settings_single_row CHECK(id),
+  -- locks down any DB edits, including image voting and tagging
+  lockdown_edit         boolean NOT NULL DEFAULT FALSE,
+  -- locks down any forum & review posting
+  lockdown_board        boolean NOT NULL DEFAULT FALSE,
+  lockdown_registration boolean NOT NULL DEFAULT FALSE
+);
+
 -- images
 CREATE TABLE images (
   id                vndbid NOT NULL PRIMARY KEY CONSTRAINT images_id_check CHECK(vndbid_type(id) IN('ch', 'cv', 'sf')), -- [pub]

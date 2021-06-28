@@ -1,3 +1,5 @@
+INSERT INTO global_settings (id) VALUES (TRUE);
+
 INSERT INTO users (id, username, notify_dbedit) VALUES ('u1', 'multi', FALSE);
 SELECT setval('users_id_seq', 2);
 

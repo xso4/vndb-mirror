@@ -10,7 +10,7 @@ TUWF::post qr{/elm/ImageUpload.json}, sub {
         warn "Invalid CSRF token in request\n";
         return elm_CSRF;
     }
-    return elm_Unauth if !auth->permEdit;
+    return elm_Unauth if !(auth->permDbmod || (auth->permEdit && !global_settings->{lockdown_edit}));
 
     my $type = tuwf->validate(post => type => { enum => [qw/cv ch sf/] })->data;
     my $imgdata = tuwf->reqUploadRaw('img');

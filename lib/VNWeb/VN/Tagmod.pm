@@ -29,9 +29,13 @@ my $FORM = {
 my $FORM_IN  = form_compile in  => $FORM;
 my $FORM_OUT = form_compile out => $FORM;
 
+
+sub can_tag { auth->permTagmod || (auth->permTag && !global_settings->{lockdown_edit}) }
+
+
 elm_api Tagmod => $FORM_OUT, $FORM_IN, sub {
     my($id, $tags) = $_[0]->@{'id', 'tags'};
-    return elm_Unauth if !auth->permTag;
+    return elm_Unauth if !can_tag;
 
     $tags = [ grep $_->{vote}, @$tags ];
     $_->{overrule} = 0 for auth->permTagmod ? () : @$tags;
@@ -70,7 +74,7 @@ elm_api Tagmod => $FORM_OUT, $FORM_IN, sub {
 TUWF::get qr{/$RE{vid}/tagmod}, sub {
     my $v = tuwf->dbRowi('SELECT id, title, hidden AS entry_hidden, locked AS entry_locked FROM vn WHERE id =', \tuwf->capture('id'));
     return tuwf->resNotFound if !$v->{id} || (!auth->permDbmod && $v->{entry_hidden});
-    return tuwf->resDenied if !auth->permTag;
+    return tuwf->resDenied if !can_tag;
 
     my $tags = tuwf->dbAlli('
         SELECT t.id, t.name, t.cat, count(*) as count, t.hidden, t.locked, t.applicable

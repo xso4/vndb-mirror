@@ -248,10 +248,10 @@ sub _menu_ {
             a_ href => "$uid/hist", 'My Recent Changes'; br_;
             a_ href => '/g/links?u='.auth->uid, 'My Tags'; br_;
             br_;
-            if(auth->permImgvote) {
+            if(VNWeb::Images::Vote::can_vote()) {
                 a_ href => '/img/vote', 'Image Flagging'; br_;
             }
-            if(auth->permEdit) {
+            if(can_edit v => {}) {
                 a_ href => '/v/add', 'Add Visual Novel'; br_;
                 a_ href => '/p/add', 'Add Producer'; br_;
                 a_ href => '/s/new', 'Add Staff'; br_;
@@ -265,6 +265,8 @@ sub _menu_ {
                 a_ $stats->{unseen} ? (class => 'standout') : (), href => '/report/list?status=new', sprintf 'Reports %d/%d', $stats->{unseen}, $stats->{new};
                 b_ class => 'grayedout', ' | ';
                 a_ href => '/report/list?s=lastmod', sprintf '%d upd', $stats->{upd};
+                br_;
+                a_ global_settings->{lockdown_edit} || global_settings->{lockdown_board} || global_settings->{lockdown_registration} ? (class => 'standout') : (), href => '/lockdown', 'Lockdown';
                 br_;
             }
             br_;

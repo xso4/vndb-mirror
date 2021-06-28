@@ -218,8 +218,8 @@ sub can_edit {
     return auth->permDbmod if $type eq 'd';
 
     if($type eq 't') {
-        return 0 if !auth->permBoard;
         return 1 if auth->permBoardmod;
+        return 0 if !auth->permBoard || (global_settings->{lockdown_board} && !auth->isMod);
         if(!$entry->{id}) {
             # Allow at most 5 new threads per day per user.
             return auth && tuwf->dbVali('SELECT count(*) < ', \5, 'FROM threads_posts WHERE num = 1 AND date > NOW()-\'1 day\'::interval AND uid =', \auth->uid);
@@ -235,7 +235,7 @@ sub can_edit {
 
     if($type eq 'w') {
         return 1 if auth->permBoardmod;
-        return auth->permReview if !$entry->{id};
+        return auth->permReview && (!global_settings->{lockdown_board} || auth->isMod) if !$entry->{id};
         return auth && auth->uid eq $entry->{user_id};
     }
 
@@ -246,7 +246,7 @@ sub can_edit {
     die "Can't do authorization test when entry_hidden/entry_locked fields aren't present"
         if $entry->{id} && (!exists $entry->{entry_hidden} || !exists $entry->{entry_locked});
 
-    auth->permDbmod || (auth->permEdit && !($entry->{entry_hidden} || $entry->{entry_locked}));
+    auth->permDbmod || (auth->permEdit && !global_settings->{lockdown_edit} && !($entry->{entry_hidden} || $entry->{entry_locked}));
 }
 
 
