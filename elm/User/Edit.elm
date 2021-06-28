@@ -71,6 +71,8 @@ type AdminMsg
   | PermTagmod Bool
   | PermUsermod Bool
   | IgnVotes Bool
+  | PermNone
+  | PermDefault
 
 type PrefMsg
   = EMail String
@@ -119,6 +121,32 @@ updateAdmin msg model =
     PermTagmod b   -> { model | perm_tagmod   = b }
     PermUsermod b  -> { model | perm_usermod  = b }
     IgnVotes b     -> { model | ign_votes     = b }
+    PermNone       ->
+      { perm_board    = False
+      , perm_review   = False
+      , perm_boardmod = False
+      , perm_edit     = False
+      , perm_imgvote  = False
+      , perm_imgmod   = False
+      , perm_tag      = False
+      , perm_dbmod    = False
+      , perm_tagmod   = False
+      , perm_usermod  = False
+      , ign_votes     = model.ign_votes
+      }
+    PermDefault    ->
+      { perm_board    = True
+      , perm_review   = True
+      , perm_boardmod = False
+      , perm_edit     = True
+      , perm_imgvote  = True
+      , perm_imgmod   = False
+      , perm_tag      = True
+      , perm_dbmod    = False
+      , perm_tagmod   = False
+      , perm_usermod  = False
+      , ign_votes     = model.ign_votes
+      }
 
 updatePrefs : PrefMsg -> GUE.SendPrefs -> GUE.SendPrefs
 updatePrefs msg model =
@@ -190,6 +218,7 @@ view model =
       , perm False <| formField "username::Username" [ inputText "username" model.username Username GUE.valUsername ]
       , formField "Permissions"
         [ text "Fields marked with * indicate permissions assigned to new users by default", br_ 1
+        , perm False <| span [] [ inputButton "None" (Admin PermNone) [], inputButton "Default" (Admin PermDefault) [], br_ 1 ]
         , perm opts.perm_boardmod <| label [] [ inputCheck "" m.perm_board    (Admin << PermBoard),    text " board*", br_ 1 ]
         , perm opts.perm_boardmod <| label [] [ inputCheck "" m.perm_review   (Admin << PermReview),   text " review*", br_ 1 ]
         , perm False              <| label [] [ inputCheck "" m.perm_boardmod (Admin << PermBoardmod), text " boardmod", br_ 1 ]
