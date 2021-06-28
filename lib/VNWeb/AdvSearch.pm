@@ -751,6 +751,7 @@ sub elm_search_query {
 sub elm_ {
     my($self) = @_;
 
+    # TODO: labels can be lazily loaded to reduce page weight
     state $schema ||= tuwf->compile({ type => 'hash', keys => {
         uid          => { vndbid => 'u', required => 0 },
         labels       => { aoh => { id => { uint => 1 }, label => {} } },

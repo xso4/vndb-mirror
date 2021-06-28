@@ -97,9 +97,12 @@ sub listing_ {
                     }, sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} } $_->{developers}->@*;
                 } if $opt->{s}->vis('developer');
                 td_ class => 'tc_ulist', sub {
-                    b_ class => $_->{userlist_obtained} == $_->{userlist_all} ? 'done' : 'todo', sprintf '%d/%d', $_->{userlist_obtained}, $_->{userlist_all} if $_->{userlist_all};
-                    abbr_ title => join(', ', $_->{vnlist_labels}->@*), scalar $_->{vnlist_labels}->@* if $_->{vnlist_labels} && $_->{vnlist_labels}->@*;
-                    abbr_ title => 'No labels', ' ' if $_->{vnlist_labels} && !$_->{vnlist_labels}->@*;
+                    elm_ 'UList.Widget', $VNWeb::ULists::Elm::WIDGET, {
+                        uid    => auth->uid,
+                        vid    => $_->{id},
+                        labels => $_->{on_vnlist} ? $_->{vnlist_labels} : undef,
+                        full   => undef,
+                    } if auth;
                 };
                 td_ class => 'tc_plat',  sub { join_ '', sub { platform_ $_ if $_ ne 'unk' }, sort $_->{platforms}->@* };
                 td_ class => 'tc_lang',  sub { join_ '', sub { abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' }, reverse sort $_->{lang}->@* };
@@ -202,18 +205,10 @@ sub enrich_listing {
 
     enrich_image_obj image => @_ if !$opt->{s}->rows;
 
-    enrich_merge id => sub { sql '
-        SELECT irv.vid AS id
-             , COUNT(*) AS userlist_all
-             , SUM(CASE WHEN irl.status = 1+1 THEN 1 ELSE 0 END) AS userlist_obtained
-         FROM rlists irl
-         JOIN releases_vn irv ON irv.id = irl.rid
-        WHERE irl.uid =', \auth->uid, 'AND irv.vid IN', $_, '
-        GROUP BY irv.vid
-    ' }, @_ if auth;
+    enrich_merge id => sql('SELECT vid AS id, true AS on_vnlist FROM ulist_vns WHERE uid =', \auth->uid, 'AND vid IN'), @_ if auth;
 
-    enrich_flatten vnlist_labels => id => vid => sub { sql '
-        SELECT uvl.vid, ul.label
+    enrich vnlist_labels => id => vid => sub { sql '
+        SELECT uvl.vid, ul.id, ul.label
           FROM ulist_vns_labels uvl
           JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl
          WHERE uvl.uid =', \auth->uid, 'AND uvl.vid IN', $_[0], '

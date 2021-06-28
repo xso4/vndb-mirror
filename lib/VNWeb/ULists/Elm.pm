@@ -2,6 +2,7 @@ package VNWeb::ULists::Elm;
 
 use VNWeb::Prelude;
 use VNWeb::ULists::Lib;
+use VNWeb::Releases::Lib 'releases_by_vn';
 
 
 # Should be called after any change to the ulist_* tables.
@@ -231,6 +232,38 @@ elm_api UListRStatus => undef, $RLIST_STATUS, sub {
     }
     # Doesn't need `updcache()`
     elm_Success
+};
+
+
+
+our $WIDGET = form_compile out => $VNWeb::Elm::apis{UListWidget}[0]{keys};
+
+elm_api UListWidget => $WIDGET, { uid => { vndbid => 'u' }, vid => { vndbid => 'v' } }, sub {
+    my($data) = @_;
+    return elm_Unauth if !ulists_own $data->{uid};
+    my $v = tuwf->dbRowi('SELECT title, c_released FROM vn WHERE id =', \$data->{vid});
+    return elm_Invalid if !defined $v->{title};
+    my $lst = tuwf->dbRowi('SELECT vid, vote, notes, started, finished FROM ulist_vns WHERE uid =', \$data->{uid}, 'AND vid =', \$data->{vid});
+    my $review = tuwf->dbVali('SELECT id FROM reviews WHERE uid =', \$data->{uid}, 'AND vid =', \$data->{vid});
+    my $canvote = sprintf('%08d', $v->{c_released}||0) < strftime '%Y%m%d', gmtime;
+    elm_UListWidget {
+        uid    => $data->{uid},
+        vid    => $data->{vid},
+        labels => !$lst->{vid} ? undef : tuwf->dbAlli('SELECT lbl AS id, \'\' AS label FROM ulist_vns_labels WHERE uid =', \$data->{uid}, 'AND vid =', \$data->{vid}),
+        full   => {
+            title     => $v->{title},
+            labels    => tuwf->dbAlli('SELECT id, label, private FROM ulist_labels WHERE uid =', \$data->{uid}, 'ORDER BY CASE WHEN id < 10 THEN id ELSE 10 END, label'),
+            canvote   => $lst->{vote} || $canvote || 0,
+            canreview => $review || ($canvote && can_edit(w => {})) || 0,
+            vote      => fmtvote($lst->{vote}),
+            review    => $review,
+            notes     => $lst->{notes}||'',
+            started   => $lst->{started}||'',
+            finished  => $lst->{finished}||'',
+            releases  => releases_by_vn($data->{vid}),
+            rlist     => tuwf->dbAlli('SELECT rid AS id, status FROM rlists WHERE uid =', \$data->{uid}, 'AND rid IN(SELECT id FROM releases_vn WHERE vid =', \$data->{vid}, ')'),
+        },
+    };
 };
 
 

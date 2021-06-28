@@ -1,3 +1,5 @@
+-- TODO: Would be nice to have a "create new label" option in this model, to make custom labels more discoverable.
+
 port module UList.LabelEdit exposing (main, init, update, view, isPublic, Model, Msg)
 
 import Html exposing (..)

@@ -168,7 +168,27 @@ $apis{AdvSearchQuery} = [ { type => 'hash', keys => { # Response to 'AdvSearchLo
         tags         => $apis{TagResult}[0],
         traits       => $apis{TraitResult}[0],
         anime        => $apis{AnimeResult}[0],
-} } ],
+} } ];
+$apis{UListWidget} = [ { type => 'hash', keys => { # Initialization for UList.Widget and response to UListWidget
+        uid      => { vndbid => 'u' },
+        vid      => { vndbid => 'v' },
+        # Only includes selected labels, null if the VN is not on the list at all.
+        labels   => { required => 0, aoh => { id => { int => 1 }, label => {required => 0, default => ''} } },
+        # Can be set to null to lazily load the extra data as needed
+        full     => { required => 0, type => 'hash', keys => {
+            title     => {},
+            labels    => { aoh => { id => { int => 1 }, label => {}, private => { anybool => 1 } } },
+            canvote   => { anybool => 1 },
+            canreview => { anybool => 1 },
+            vote      => { vnvote => 1 },
+            review    => { required => 0, vndbid => 'w' },
+            notes     => { required => 0, default => '' },
+            started   => { required => 0, default => '' },
+            finished  => { required => 0, default => '' },
+            releases  => $apis{Releases}[0],
+            rlist     => { aoh => { id => { vndbid => 'r' }, status => { uint => 1 } } },
+        } },
+} } ];
 
 
 # Compile %apis into a %schema and generate the elm_Response() functions

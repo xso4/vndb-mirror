@@ -631,8 +631,7 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $bo
 .vnbrowse .tc_score   { padding-left: 30px; width: 70px  }
 .vnbrowse .tc_title   { padding-left: 30px }
 .vnbrowse .tc_score + td { padding-left: 0 }
-.vnbrowse .tc_ulist       { text-align: right; width: 8px; white-space: nowrap }
-.vnbrowse .tc_ulist abbr  { display: inline-block; width: 20px; }
+.vnbrowse .tc_ulist       { width: 10px }
 .vnbrowse .tc_plat        { text-align: right; padding: 0; }
 .vnbrowse .tc_lang        { padding: 0; }
 .vnbrowse .tc_pop         { text-align: right; padding-right: 10px }
@@ -911,19 +910,23 @@ div.votelist td.tc2 { width: 50px; text-align: right; padding-right: 10px }
 .ulist .tc_opt .tco3 { white-space: nowrap; width: 60px; text-align: right; padding-bottom: 0 }
 
 
-/***** User VN list browser ******/
+/***** ulist-widget (elm/Ulist/Widget) *****/
 
-#expandall, .collapse_but { cursor: pointer }
-.browse.rlist .tc1 { width: 16px; padding-bottom: 0 }
-.browse.rlist .tc2 { width: 16px; padding-bottom: 0 }
-.browse.rlist .tc3 { width: 60px }
-.browse.rlist .tc3_5 b { margin-left: 10px }
-.browse.rlist .tc4 { width: 60px; text-align: right; padding-top: 0; padding-bottom: 0 }
-.browse.rlist .tc6 { width: 100px }
-.browse.rlist .tc7 { width: 90px }
-.browse.rlist .tc8 { width: 70px }
-.browse.rlist tfoot select { width: 200px }
-.browse.rlist .relhid .tc6 { padding-left: 15px; width: auto }
+.ulist-widget-icon { cursor: pointer }
+.ulist-widget {
+    z-index: 100; position: fixed; height: 100%; width: 100%; top: 0; right: 0; display: flex; align-items: center; justify-content: center; text-align: left; white-space: normal; background: $boxbg; overflow: auto;
+    > div {
+        background: $blendbg; width: 600px; min-height: 300px; border: 2px solid $border; padding: 10px;
+        > div.spinner { position: absolute; top: unquote('calc(50% - 8px)'); right: unquote('calc(50% - 8px)'); }
+    }
+    table tr { background: none!important }
+    table td:first-child { width: 100px }
+    textarea, select { margin: 0 -1px; width: 100% }
+    .date span:not(.spinner) { display: none }
+    .tco1 { white-space: nowrap; width: 100px }
+    .tco2 { white-space: nowrap; width: 100px }
+    .tco3 { width: 60px; text-align: right; padding-bottom: 0 }
+}
 
 
 /***** User notifications *****/
@@ -1268,6 +1271,11 @@ div.imagebrowse { padding: 0; display: flex; flex-wrap: wrap }
 /****** Icons *******/
 
 .platicon { width: 16px; height: 16px; margin: -1px 2px -1px 0; border: 0; padding: 0; object-fit: contain }
+/* XXX: Not a fan of this filtering solution. Also, these don't work on light skins */
+.liststatus_icon { width: 15px; height: 15px; margin: -1px 0; object-fit: contain; filter: invert(100%); opacity: 0.9 }
+.liststatus_icon.add { opacity: 0.4 }
+.liststatus_icon.l2 { opacity: 1; filter: invert(48%) sepia(23%) saturate(3672%) hue-rotate(86deg) brightness(103%) contrast(116%) }
+.liststatus_icon.blacklist { opacity: 1; filter: invert(10%) sepia(96%) saturate(5309%) hue-rotate(359deg) brightness(96%) contrast(113%) }
 
 .icons {
   background: url(/g/icons.png?#{$icons-version}) no-repeat;
