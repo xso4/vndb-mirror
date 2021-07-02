@@ -20,9 +20,12 @@ sub fetch {
          $filt->{e} && $filt->{e} == 1 ? sql 'c.rev <> 1' : (),
          $filt->{e} && $filt->{e} ==-1 ? sql 'c.rev = 1' : (),
 
-         $filt->{h} ? sql $filt->{h} == 1 ? 'NOT' : '',
+         # -2 = awaiting mod, -1 = deleted, 0 = all, 1 = approved
+         $filt->{h} ? sql
             'EXISTS(SELECT 1 FROM changes c_i
-                WHERE c_i.itemid = c.itemid AND c_i.ihid
+                WHERE c_i.itemid = c.itemid AND',
+                    $filt->{h} == -2 ? 'c_i.ihid AND NOT c_i.ilock' :
+                    $filt->{h} == -1 ? 'c_i.ihid AND c_i.ilock' : 'NOT c_i.ihid', '
                   AND c_i.rev = (SELECT MAX(c_ii.rev) FROM changes c_ii WHERE c_ii.itemid = c.itemid))' : ();
 
     my $lst = tuwf->dbAlli('
@@ -93,7 +96,7 @@ sub filters_ {
         # Types
         t => { type => 'array', scalar => 1, onerror => [map $_->[0], @types], values => { enum => [(map $_->[0], @types), 'a'] } },
         m => { onerror => undef, enum => [ 0, 1 ] }, # Automated edits
-        h => { onerror => 0, enum => [ -1..1 ] }, # Hidden items
+        h => { onerror => 0, enum => [ -2..1 ] }, # Item status (the numbers dont make sense)
         e => { onerror => 0, enum => [ -1..1 ] }, # Existing/new items
         r => { onerror => 0, enum => [ 0, 1 ] },  # Include releases
         p => { page => 1 },
@@ -134,8 +137,9 @@ sub filters_ {
                 } if exists $filt->{e};
                 p_ class => 'linkradio', sub {
                     opt_ radio => h => 0, 'All'; em_ ' | ';
-                    opt_ radio => h => 1, 'Only non-deleted items'; em_ ' | ';
-                    opt_ radio => h =>-1, 'Only deleted';
+                    opt_ radio => h => 1, 'Only public items'; em_ ' | ';
+                    opt_ radio => h =>-1, 'Only deleted'; em_ ' | ';
+                    opt_ radio => h =>-2, 'Only unapproved';
                 } if exists $filt->{h};
                 p_ class => 'linkradio', sub {
                     opt_ checkbox => m => 0, 'Show automated edits' if !$type;
