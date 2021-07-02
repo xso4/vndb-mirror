@@ -74,7 +74,7 @@ sub enrich_listing {
         SELECT DISTINCT cv.id AS cid, v.id, v.title, v.original
           FROM chars_vns cv
           JOIN vn v ON v.id = cv.vid
-         WHERE NOT v.hidden AND cv.id IN', $_, '
+         WHERE NOT v.hidden AND cv.spoil = 0 AND cv.id IN', $_, '
          ORDER BY v.title'
     }, @_;
 }
