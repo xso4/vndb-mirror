@@ -240,7 +240,7 @@ update msg model =
     MainSpoil n -> ({ model | mainSpoil = n }, Cmd.none)
 
     ImageSet s b -> let (nm, nc) = Img.new b s in ({ model | image = nm }, Cmd.map ImageMsg nc)
-    ImageSelect -> (model, FSel.file ["image/png", "image/jpg"] ImageSelected)
+    ImageSelect -> (model, FSel.file ["image/png", "image/jpg", "image/webp"] ImageSelected)
     ImageSelected f -> let (nm, nc) = Img.upload Api.Ch f in ({ model | image = nm }, Cmd.map ImageMsg nc)
     ImageMsg m -> let (nm, nc) = Img.update m model.image in ({ model | image = nm }, Cmd.map ImageMsg nc)
 
@@ -390,7 +390,7 @@ view model =
         , h2 [] [ text "Upload new image" ]
         , inputButton "Browse image" ImageSelect []
         , br [] []
-        , text "Image must be in JPEG or PNG format and at most 10 MiB. Images larger than 256x300 will automatically be resized."
+        , text "Image must be in JPEG, PNG or WebP format and at most 10 MiB. Images larger than 256x300 will automatically be resized."
         , case Img.viewVote model.image ImageMsg (Invalid Image) of
             Nothing -> text ""
             Just v ->

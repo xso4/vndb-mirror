@@ -14,7 +14,7 @@ TUWF::post qr{/elm/ImageUpload.json}, sub {
 
     my $type = tuwf->validate(post => type => { enum => [qw/cv ch sf/] })->data;
     my $imgdata = tuwf->reqUploadRaw('img');
-    return elm_ImgFormat if $imgdata !~ /^(\xff\xd8|\x89\x50)/; # JPG or PNG header
+    return elm_ImgFormat if $imgdata !~ /^(\xff\xd8|\x89\x50|RIFF....WEBP)/s; # JPG, PNG or WebP header
 
     my $seq = {qw/sf screenshots_seq cv covers_seq ch charimg_seq/}->{$type}||die;
     my $id = tuwf->dbVali('INSERT INTO images', {

@@ -44,7 +44,7 @@ showResponse res =
     DoubleIP                        -> "You can only register one account from the same IP within 24 hours."
     BadCurPass                      -> "Current password is invalid."
     MailChange                      -> unexp
-    ImgFormat                       -> "Unrecognized image format, only JPEG and PNG are accepted."
+    ImgFormat                       -> "Unrecognized image format, only JPEG, PNG and WebP are accepted."
     DupNames _                      -> "Name or alias already in the database."
     Releases _                      -> unexp
     Resolutions _                   -> unexp
