@@ -27,6 +27,7 @@ sub screens_ {
           FROM (SELECT id, width, height FROM images i TABLESAMPLE SYSTEM (', \$sample, ') WHERE', $where, ' ORDER BY random() LIMIT', \4, ') i(id)
           JOIN vn_screenshots vs ON vs.scr = i.id
           JOIN vn v ON v.id = vs.id
+         WHERE NOT v.hidden
          ORDER BY random()
          LIMIT', \4
     );
