@@ -138,6 +138,10 @@ sub listing_ {
         }
         table_ sub {
             tr_ sub {
+                td_ 'Tag score:';
+                td_ sub { tagscore_ $_->{tagscore} };
+            } if $tagscore;
+            tr_ sub {
                 td_ 'Popularity:';
                 td_ sprintf '%.2f', ($_->{c_popularity}||0)/100;
             } if $opt->{s}->vis('popularity');
