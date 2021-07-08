@@ -139,7 +139,7 @@ platformView unk model =
   ( case Set.toList model.sel of
       []  -> b [ class "grayedout" ] [ text "Platform" ]
       [v] -> span [ class "nowrap" ] <| lblPrefix model :: fmt v (Maybe.withDefault "" (lookup v lst))
-      l   -> span [ class "nowrap" ] <| lblPrefix model :: List.intersperse (text "") (List.map langIcon l)
+      l   -> span [ class "nowrap" ] <| lblPrefix model :: List.intersperse (text "") (List.map platformIcon l)
   , \() ->
     [ div [ class "advheader" ]
       [ h3 [] [ text "Platforms for which the visual novel is available." ]
