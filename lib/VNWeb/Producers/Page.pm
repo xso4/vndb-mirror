@@ -91,7 +91,7 @@ sub rel_ {
             push $vn{$_->{id}}->@*, $rel;
         }
     }
-    ulists_enrich_widget \@vn;
+    enrich_ulists_widget \@vn;
 
     h1_ 'Releases';
     debug_ $r;
@@ -131,7 +131,7 @@ sub vns_ {
 
     h1_ 'Visual Novels';
     debug_ $v;
-    ulists_enrich_widget $v;
+    enrich_ulists_widget $v;
     # TODO: Perhaps something more table-like, also showing languages, platforms & VN list status
     ul_ class => 'prodvns', sub {
         li_ sub {

@@ -200,7 +200,7 @@ sub enrich_listing {
     }, @_ if $opt->{s}->vis('developer');
 
     enrich_image_obj image => @_ if !$opt->{s}->rows;
-    ulists_enrich_widget @_;
+    enrich_ulists_widget @_;
 }
 
 

@@ -3,7 +3,7 @@ package VNWeb::ULists::Lib;
 use VNWeb::Prelude;
 use Exporter 'import';
 
-our @EXPORT = qw/ulists_own ulists_enrich_widget ulists_widget_/;
+our @EXPORT = qw/ulists_own enrich_ulists_widget ulists_widget_/;
 
 # Do we have "ownership" access to this users' list (i.e. can we edit and see private stuff)?
 sub ulists_own {
@@ -12,7 +12,7 @@ sub ulists_own {
 
 
 # Enrich a list of VNs with data necessary for ulist_widget_.
-sub ulists_enrich_widget {
+sub enrich_ulists_widget {
     enrich_merge id => sql('SELECT vid AS id, true AS on_vnlist FROM ulist_vns WHERE uid =', \auth->uid, 'AND vid IN'), @_ if auth;
 
     enrich vnlist_labels => id => vid => sub { sql '

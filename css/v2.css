@@ -781,6 +781,8 @@ div.staffbrowse	   { padding-bottom: 10px }
 .staffbrowse ul li abbr { margin-right: 5px; margin-top: 1px; }
 .staffpage table.stripe { width: 450px; margin: 0 auto; }
 .staffpage .key  { width: 70px; }
+.staffroles td.tc_ulist { padding-left: 15px; width: 25px }
+.staffroles td.tc_ulist + td { padding-left: 0!important }
 .staffroles td.tc2 { white-space: nowrap; width: 80px }
 .staffroles td.tc3 { white-space: nowrap; width: 100px }
 .staffroles td.tc4 { white-space: nowrap; padding-right: 10px }

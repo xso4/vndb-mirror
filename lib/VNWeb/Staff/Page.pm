@@ -1,6 +1,7 @@
 package VNWeb::Staff::Page;
 
 use VNWeb::Prelude;
+use VNWeb::ULists::Lib;
 
 
 sub enrich_item {
@@ -81,19 +82,23 @@ sub _roles_ {
          ORDER BY v.c_released ASC, v.title ASC, vs.role ASC
     });
     return if !@$roles;
+    enrich_ulists_widget $roles;
 
     h1_ class => 'boxtitle', sprintf 'Credits (%d)', scalar @$roles;
     div_ class => 'mainbox browse staffroles', sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
+                td_ class => 'tc_ulist', '' if auth;
                 td_ class => 'tc1', 'Title';
                 td_ class => 'tc2', 'Released';
                 td_ class => 'tc3', 'Role';
                 td_ class => 'tc4', 'As';
                 td_ class => 'tc5', 'Note';
             }};
+            my %vns;
             tr_ sub {
                 my($v, $a) = ($_, $alias{$_->{aid}});
+                td_ class => 'tc_ulist', sub { ulists_widget_ $v if !$vns{$v->{id}}++ } if auth;
                 td_ class => 'tc1', sub {
                     a_ href => "/$v->{id}", title => $v->{original}||$v->{title}, shorten $v->{title}, 60;
                 };
@@ -123,6 +128,7 @@ sub _cast_ {
          ORDER BY v.c_released ASC, v.title ASC
     });
     return if !@$cast;
+    enrich_ulists_widget $cast;
 
     my $spoilers = viewget->{spoilers};
     my $max_spoil = max(map $_->{spoil}, @$cast);
@@ -138,14 +144,17 @@ sub _cast_ {
     div_ class => "mainbox browse staffroles", sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
+                td_ class => 'tc_ulist', '' if auth;
                 td_ class => 'tc1', sub { txt_ 'Title'; debug_ $cast };
                 td_ class => 'tc2', 'Released';
                 td_ class => 'tc3', 'Cast';
                 td_ class => 'tc4', 'As';
                 td_ class => 'tc5', 'Note';
             }};
+            my %vns;
             tr_ sub {
                 my($v, $a) = ($_, $alias{$_->{aid}});
+                td_ class => 'tc_ulist', sub { ulists_widget_ $v if !$vns{$v->{id}}++ } if auth;
                 td_ class => 'tc1', sub {
                     a_ href => "/$v->{id}", title => $v->{original}||$v->{title}, shorten $v->{title}, 60;
                 };
