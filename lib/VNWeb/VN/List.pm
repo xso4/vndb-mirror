@@ -72,6 +72,16 @@ sub listing_ {
 
     my sub url { '?'.query_encode %$opt, @_ }
 
+    my sub widget_ {
+        my($v) = @_;
+        elm_ 'UList.Widget', $VNWeb::ULists::Elm::WIDGET, {
+            uid    => auth->uid,
+            vid    => $v->{id},
+            labels => $v->{on_vnlist} ? $v->{vnlist_labels} : undef,
+            full   => undef,
+        } if auth;
+    }
+
     paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 't', sub { $opt->{s}->elm_ };
 
     div_ class => 'mainbox browse vnbrowse', sub {
@@ -96,14 +106,7 @@ sub listing_ {
                         a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
                     }, sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} } $_->{developers}->@*;
                 } if $opt->{s}->vis('developer');
-                td_ class => 'tc_ulist', sub {
-                    elm_ 'UList.Widget', $VNWeb::ULists::Elm::WIDGET, {
-                        uid    => auth->uid,
-                        vid    => $_->{id},
-                        labels => $_->{on_vnlist} ? $_->{vnlist_labels} : undef,
-                        full   => undef,
-                    } if auth;
-                };
+                td_ class => 'tc_ulist', sub { widget_ $_ };
                 td_ class => 'tc_plat',  sub { join_ '', sub { platform_ $_ if $_ ne 'unk' }, sort $_->{platforms}->@* };
                 td_ class => 'tc_lang',  sub { join_ '', sub { abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' }, reverse sort $_->{lang}->@* };
                 td_ class => 'tc_rel',   sub { rdate_ $_->{c_released} };
@@ -176,15 +179,17 @@ sub listing_ {
                     txt_ 'no image';
                 }
             };
-            div_ sub { infoblock_ 1 };
+            div_ sub {
+                widget_ $_;
+                infoblock_ 1;
+            };
         } for @$list;
     } if $opt->{s}->cards;
 
     div_ class => 'mainbox vngrid', sub {
-        a_ href => "/$_->{id}", title => $_->{original}||$_->{title},
-            !$_->{image} || image_hidden($_->{image}) ? (class => 'noimage') : (style => 'background-image: url("'.imgurl($_->{image}{id}).'")'),
-        sub {
-            div_ sub { infoblock_ 0 };
+        div_ !$_->{image} || image_hidden($_->{image}) ? (class => 'noimage') : (style => 'background-image: url("'.imgurl($_->{image}{id}).'")'), sub {
+            widget_ $_;
+            a_ href => "/$_->{id}", title => $_->{original}||$_->{title}, sub { infoblock_ 0 };
         } for @$list;
     } if $opt->{s}->grid;
 
