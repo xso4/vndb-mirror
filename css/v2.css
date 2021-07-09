@@ -444,6 +444,7 @@ div.postsearch td.tc3             { width: 90px; }
 
 .releases { width: 100%; }
 .releases tr.vn td     { background: $boxbg; font-weight: bold; }
+.releases tr.vn .ulist-widget-icon { padding-left: 15px }
 .releases td.tc1       { padding-left: 30px; width: 80px; white-space: nowrap }
 .releases td.tc2       { text-align: center; width: 50px; white-space: nowrap }
 .releases td.tc3       { text-align: right; padding: 0; width: 120px; }
@@ -662,6 +663,7 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $bo
 .prodvns { list-style-type: none }
 .prodvns li span:first-child { display: inline-block; width: 80px; text-align: right; padding-right: 15px }
 .prodvns li span:last-child { color: $grayedout; padding-left: 15px }
+.prodvns .ulist-widget-icon { padding-right: 5px; width: 14px; height: 14px }
 
 
 /***** Producer list ******/

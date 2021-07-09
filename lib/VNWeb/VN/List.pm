@@ -4,6 +4,7 @@ use VNWeb::Prelude;
 use VNWeb::AdvSearch;
 use VNWeb::Filters;
 use VNWeb::Images::Lib;
+use VNWeb::ULists::Lib;
 use VNWeb::TT::Lib 'tagscore_';
 
 # Returns the tableopts config for this VN list (0) or the VN listing on tags (1).
@@ -72,16 +73,6 @@ sub listing_ {
 
     my sub url { '?'.query_encode %$opt, @_ }
 
-    my sub widget_ {
-        my($v) = @_;
-        elm_ 'UList.Widget', $VNWeb::ULists::Elm::WIDGET, {
-            uid    => auth->uid,
-            vid    => $v->{id},
-            labels => $v->{on_vnlist} ? $v->{vnlist_labels} : undef,
-            full   => undef,
-        } if auth;
-    }
-
     paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 't', sub { $opt->{s}->elm_ };
 
     div_ class => 'mainbox browse vnbrowse', sub {
@@ -106,7 +97,7 @@ sub listing_ {
                         a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
                     }, sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} } $_->{developers}->@*;
                 } if $opt->{s}->vis('developer');
-                td_ class => 'tc_ulist', sub { widget_ $_ };
+                td_ class => 'tc_ulist', sub { ulists_widget_ $_ };
                 td_ class => 'tc_plat',  sub { join_ '', sub { platform_ $_ if $_ ne 'unk' }, sort $_->{platforms}->@* };
                 td_ class => 'tc_lang',  sub { join_ '', sub { abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' }, reverse sort $_->{lang}->@* };
                 td_ class => 'tc_rel',   sub { rdate_ $_->{c_released} };
@@ -180,7 +171,7 @@ sub listing_ {
                 }
             };
             div_ sub {
-                widget_ $_;
+                ulists_widget_ $_;
                 infoblock_ 1;
             };
         } for @$list;
@@ -188,7 +179,7 @@ sub listing_ {
 
     div_ class => 'mainbox vngrid', sub {
         div_ !$_->{image} || image_hidden($_->{image}) ? (class => 'noimage') : (style => 'background-image: url("'.imgurl($_->{image}{id}).'")'), sub {
-            widget_ $_;
+            ulists_widget_ $_;
             a_ href => "/$_->{id}", title => $_->{original}||$_->{title}, sub { infoblock_ 0 };
         } for @$list;
     } if $opt->{s}->grid;
@@ -209,16 +200,7 @@ sub enrich_listing {
     }, @_ if $opt->{s}->vis('developer');
 
     enrich_image_obj image => @_ if !$opt->{s}->rows;
-
-    enrich_merge id => sql('SELECT vid AS id, true AS on_vnlist FROM ulist_vns WHERE uid =', \auth->uid, 'AND vid IN'), @_ if auth;
-
-    enrich vnlist_labels => id => vid => sub { sql '
-        SELECT uvl.vid, ul.id, ul.label
-          FROM ulist_vns_labels uvl
-          JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl
-         WHERE uvl.uid =', \auth->uid, 'AND uvl.vid IN', $_[0], '
-         ORDER BY CASE WHEN ul.id < 10 THEN ul.id ELSE 10 END, ul.label'
-    }, @_ if auth;
+    ulists_enrich_widget @_;
 }
 
 

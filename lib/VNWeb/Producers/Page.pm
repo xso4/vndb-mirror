@@ -2,6 +2,7 @@ package VNWeb::Producers::Page;
 
 use VNWeb::Prelude;
 use VNWeb::Releases::Lib;
+use VNWeb::ULists::Lib;
 
 
 sub enrich_item {
@@ -90,15 +91,16 @@ sub rel_ {
             push $vn{$_->{id}}->@*, $rel;
         }
     }
+    ulists_enrich_widget \@vn;
 
     h1_ 'Releases';
     debug_ $r;
     table_ class => 'releases', sub {
         for my $v (@vn) {
             tr_ class => 'vn', sub {
-                # TODO: VN list status & management
                 td_ colspan => 8, sub {
                     a_ href => "/$v->{id}", title => $v->{original}||$v->{title}, $v->{title};
+                    ulists_widget_ $v;
                 };
                 my $ropt = { id => $v->{id}, prod => 1 };
                 release_row_ $_, $ropt for $vn{$v->{id}}->@*;
@@ -129,10 +131,12 @@ sub vns_ {
 
     h1_ 'Visual Novels';
     debug_ $v;
+    ulists_enrich_widget $v;
     # TODO: Perhaps something more table-like, also showing languages, platforms & VN list status
     ul_ class => 'prodvns', sub {
         li_ sub {
             span_ sub { rdate_ $_->{released} };
+            ulists_widget_ $_;
             a_ href => "/$_->{id}", title => $_->{original}||$_->{title}, $_->{title};
             span_ join ' & ',
                 $_->{publisher} ? 'Publisher' : (),
