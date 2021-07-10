@@ -112,8 +112,9 @@ sub vn_ {
 
         td_ mkclass(tc_vote => 1, compact => $own, stealth => $own), sub {
             txt_ fmtvote $v->{vote} if !$own;
-            elm_ 'UList.VoteEdit' => $VNWeb::ULists::Elm::VNVOTE, { uid => $uid, vid => $v->{id}, vote => fmtvote($v->{vote}) }, fmtvote $v->{vote}
-                if $own && ($v->{vote} || sprintf('%08d', $v->{c_released}||0) < strftime '%Y%m%d', gmtime);
+            elm_ 'UList.VoteEdit' => $VNWeb::ULists::Elm::VNVOTE, { uid => $uid, vid => $v->{id}, vote => fmtvote($v->{vote}) }, sub {
+                div_ @_, fmtvote $v->{vote}
+            } if $own && ($v->{vote} || sprintf('%08d', $v->{c_released}||0) < strftime '%Y%m%d', gmtime);
         } if in vote => $opt->{c};
 
         td_ class => 'tc_rating', sub {
@@ -125,7 +126,9 @@ sub vn_ {
             my @l = grep $labels{$_->{id}} && $_->{id} != 7, @$labels;
             my $txt = @l ? join ', ', map $_->{label}, @l : '-';
             if($own) {
-                elm_ 'UList.LabelEdit' => $VNWeb::ULists::Elm::VNLABELS_OUT, { vid => $v->{id}, selected => [ grep $_ != 7, $v->{labels}->@* ] }, $txt;
+                elm_ 'UList.LabelEdit' => $VNWeb::ULists::Elm::VNLABELS_OUT, { vid => $v->{id}, selected => [ grep $_ != 7, $v->{labels}->@* ] }, sub {
+                    div_ @_, $txt;
+                };
             } else {
                 txt_ $txt;
             }
@@ -141,12 +144,16 @@ sub vn_ {
 
         td_ class => 'tc_started', sub {
             txt_ $v->{started}||'' if !$own;
-            elm_ 'UList.DateEdit' => $VNWeb::ULists::Elm::VNDATE, { uid => $uid, vid => $v->{id}, date => $v->{started}||'', start => 1 }, $v->{started}||'' if $own;
+            elm_ 'UList.DateEdit' => $VNWeb::ULists::Elm::VNDATE, { uid => $uid, vid => $v->{id}, date => $v->{started}||'', start => 1 }, sub {
+                div_ @_, $v->{started}||''
+            } if $own;
         } if in started => $opt->{c};
 
         td_ class => 'tc_finished', sub {
             txt_ $v->{finished}||'' if !$own;
-            elm_ 'UList.DateEdit' => $VNWeb::ULists::Elm::VNDATE, { uid => $uid, vid => $v->{id}, date => $v->{finished}||'', start => 0 }, $v->{finished}||'' if $own;
+            elm_ 'UList.DateEdit' => $VNWeb::ULists::Elm::VNDATE, { uid => $uid, vid => $v->{id}, date => $v->{finished}||'', start => 0 }, sub {
+                div_ @_, $v->{finished}||''
+            } if $own;
         } if in finished => $opt->{c};
 
         td_ class => 'tc_rel', sub { rdate_ $v->{c_released} } if in rel => $opt->{c};

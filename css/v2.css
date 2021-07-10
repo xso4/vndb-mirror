@@ -444,7 +444,7 @@ div.postsearch td.tc3             { width: 90px; }
 
 .releases { width: 100%; }
 .releases tr.vn td     { background: $boxbg; font-weight: bold; }
-.releases tr.vn .ulist-widget-icon { padding-left: 15px }
+.releases tr.vn .ulist-widget-icon { padding-right: 10px }
 .releases td.tc1       { padding-left: 30px; width: 80px; white-space: nowrap }
 .releases td.tc2       { text-align: center; width: 50px; white-space: nowrap }
 .releases td.tc3       { text-align: right; padding: 0; width: 120px; }
@@ -629,13 +629,14 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $bo
 
 /****** VN browse ********/
 
-.vnbrowse .tc_score   { padding-left: 30px; width: 70px  }
-.vnbrowse .tc_title   { padding-left: 30px }
+.vnbrowse .tc_score      { padding-left: 30px; width: 70px  }
 .vnbrowse .tc_score + td { padding-left: 0 }
-.vnbrowse .tc_ulist       { width: 10px }
-.vnbrowse .tc_plat        { text-align: right; padding: 0; }
-.vnbrowse .tc_lang        { padding: 0; }
-.vnbrowse .tc_pop         { text-align: right; padding-right: 10px }
+.vnbrowse .tc_ulist      { padding-left: 20px; width: 16px }
+.vnbrowse .tc_ulist + td.tc_title { padding-left: 10px }
+.vnbrowse .tc_title      { padding-left: 30px }
+.vnbrowse .tc_plat       { text-align: right; padding: 0; }
+.vnbrowse .tc_lang       { padding: 0; }
+.vnbrowse .tc_pop        { text-align: right; padding-right: 10px }
 .vnbrowse .tc_rating, .vnbrowse .tc_average { width: 80px; white-space: nowrap }
 
 .vncards { padding: 0; display: flex; flex-wrap: wrap }

@@ -79,9 +79,9 @@ sub listing_ {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
                 td_ class => 'tc_score', sub { txt_ 'Score'; sortable_ 'tagscore', $opt, \&url } if $tagscore;
+                td_ class => 'tc_ulist', '' if auth;
                 td_ class => 'tc_title', sub { txt_ 'Title'; sortable_ 'title', $opt, \&url };
                 td_ class => 'tc_dev',   'Developer' if $opt->{s}->vis('developer');
-                td_ class => 'tc_ulist', '';
                 td_ class => 'tc_plat',  '';
                 td_ class => 'tc_lang',  '';
                 td_ class => 'tc_rel',   sub { txt_ 'Released';   sortable_ 'released',   $opt, \&url };
@@ -91,13 +91,13 @@ sub listing_ {
             } };
             tr_ sub {
                 td_ class => 'tc_score', sub { tagscore_ $_->{tagscore} } if $tagscore;
+                td_ class => 'tc_ulist', sub { ulists_widget_ $_ } if auth;
                 td_ class => 'tc_title', sub { a_ href => "/$_->{id}", title => $_->{original}||$_->{title}, $_->{title} };
                 td_ class => 'tc_dev',   sub {
                     join_ ' & ', sub {
                         a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
                     }, sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} } $_->{developers}->@*;
                 } if $opt->{s}->vis('developer');
-                td_ class => 'tc_ulist', sub { ulists_widget_ $_ };
                 td_ class => 'tc_plat',  sub { join_ '', sub { platform_ $_ if $_ ne 'unk' }, sort $_->{platforms}->@* };
                 td_ class => 'tc_lang',  sub { join_ '', sub { abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' }, reverse sort $_->{lang}->@* };
                 td_ class => 'tc_rel',   sub { rdate_ $_->{c_released} };

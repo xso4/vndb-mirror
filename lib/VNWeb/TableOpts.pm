@@ -220,7 +220,9 @@ sub elm_ {
         sorts   => [ map +{ id => $_->{sort_id}, name => $_->{name} }, grep defined $_->{sort_id}, values $o->{col_order}->@* ],
         vis     => [ map +{ id => $_->{vis_id}, name => $_->{name} }, grep defined $_->{vis_id}, values $o->{col_order}->@* ],
     }, sub {
-        TUWF::XML::input_ type => 'hidden', name => 's', value => $self->query_encode if defined $self->query_encode
+        TUWF::XML::div_ @_, sub {
+            TUWF::XML::input_ type => 'hidden', name => 's', value => $self->query_encode if defined $self->query_encode
+        }
     };
 }
 

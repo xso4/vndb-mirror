@@ -132,7 +132,8 @@ sub elm_ {
     my($mod, $schema, $data, $placeholder) = @_;
     die "Elm data without a schema" if defined $data && !defined $schema;
     push tuwf->req->{pagevars}{elm}->@*, [ $mod, $data ? ($schema eq 'raw' ? $data : $schema->analyze->coerce_for_json($data, unknown => 'remove')) : () ];
-    div_ id => sprintf('elm%d', $#{ tuwf->req->{pagevars}{elm} }), $placeholder//'';
+    my @arg = (id => sprintf 'elm%d', $#{ tuwf->req->{pagevars}{elm} });
+    $placeholder ? $placeholder->(@arg) : div_ @arg, '';
 }
 
 
@@ -378,7 +379,7 @@ sub _maintabs_subscribe_ {
             subreview => $sub->{subreview}||0,
             subapply  => $sub->{subapply}||0,
         }, sub {
-            a_ href => '#', class => ($noti && (!defined $sub->{subnum} || $sub->{subnum})) || $sub->{subnum} || $sub->{subreview} || $sub->{subapply} ? 'active' : 'inactive', '🔔';
+            a_ @_, href => '#', class => ($noti && (!defined $sub->{subnum} || $sub->{subnum})) || $sub->{subnum} || $sub->{subreview} || $sub->{subapply} ? 'active' : 'inactive', '🔔';
         };
     };
 }

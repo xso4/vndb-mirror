@@ -99,8 +99,8 @@ sub rel_ {
         for my $v (@vn) {
             tr_ class => 'vn', sub {
                 td_ colspan => 8, sub {
-                    a_ href => "/$v->{id}", title => $v->{original}||$v->{title}, $v->{title};
                     ulists_widget_ $v;
+                    a_ href => "/$v->{id}", title => $v->{original}||$v->{title}, $v->{title};
                 };
                 my $ropt = { id => $v->{id}, prod => 1 };
                 release_row_ $_, $ropt for $vn{$v->{id}}->@*;
