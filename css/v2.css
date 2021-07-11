@@ -443,7 +443,7 @@ div.postsearch td.tc3             { width: 90px; }
 /***** Release listings on VN & producer pages */
 
 .releases { width: 100%; }
-.releases tr.vn td     { background: $boxbg; font-weight: bold; }
+.releases tr.vn > td   { background: $boxbg; font-weight: bold; }
 .releases tr.vn .ulist-widget-icon { padding-right: 10px }
 .releases td.tc1       { padding-left: 30px; width: 80px; white-space: nowrap }
 .releases td.tc2       { text-align: center; width: 50px; white-space: nowrap }
@@ -662,8 +662,8 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $bo
 /***** Producer page *******/
 
 .prodvns { list-style-type: none }
-.prodvns li span:first-child { display: inline-block; width: 80px; text-align: right; padding-right: 15px }
-.prodvns li span:last-child { color: $grayedout; padding-left: 15px }
+.prodvns li > span:first-child { display: inline-block; width: 80px; text-align: right; padding-right: 15px }
+.prodvns li > span:last-child { color: $grayedout; padding-left: 15px }
 .prodvns .ulist-widget-icon { padding-right: 5px; width: 14px; height: 14px }
 
 
@@ -921,11 +921,12 @@ div.votelist td.tc2 { width: 50px; text-align: right; padding-right: 10px }
 
 .ulist-widget-icon { cursor: pointer }
 .ulist-widget {
-    z-index: 100; position: fixed; height: 100%; width: 100%; top: 0; right: 0; display: flex; align-items: center; justify-content: center; text-align: left; white-space: normal; background: $boxbg; overflow: auto;
+    z-index: 100; position: fixed; height: 100%; width: 100%; top: 0; right: 0; display: flex; align-items: center; justify-content: center; text-align: left; white-space: normal; background: $boxbg; overflow: auto; font-weight: normal;
     > div {
         background: $blendbg; width: 600px; min-height: 300px; border: 2px solid $border; padding: 10px;
         > div.spinner { position: absolute; top: unquote('calc(50% - 8px)'); right: unquote('calc(50% - 8px)'); }
     }
+    table { width: 100% }
     table tr { background: none!important }
     table td:first-child { width: 100px }
     textarea, select { margin: 0 -1px; width: 100% }
