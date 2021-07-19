@@ -20,9 +20,9 @@ sub sql_visible_threads {
 
 # Returns a SELECT subquery with all board IDs
 sub sql_boards {
-    sql q{(   SELECT 'v'::board_type AS btype, id AS iid, title,    original FROM vn
-    UNION ALL SELECT 'p'::board_type AS btype, id AS iid, name,     original FROM producers
-    UNION ALL SELECT 'u'::board_type AS btype, id AS iid, username, NULL     FROM users
+    sql q{(   SELECT 'v'::board_type AS btype, id AS iid, title,    original, hidden FROM vn
+    UNION ALL SELECT 'p'::board_type AS btype, id AS iid, name,     original, hidden FROM producers
+    UNION ALL SELECT 'u'::board_type AS btype, id AS iid, username, NULL,     false  FROM users
     )}
 }
 

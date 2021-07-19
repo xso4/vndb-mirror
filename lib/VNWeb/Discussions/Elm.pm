@@ -16,12 +16,12 @@ elm_api Boards => undef, {
         sql 'SELECT', $prio, ' AS prio, btype, iid, CASE WHEN iid IS NULL THEN NULL ELSE title END AS title
            FROM (',
               sql_join('UNION ALL',
-                sql('SELECT btype, iid, title, original FROM', sql_boards(), 'a'),
-                map sql('SELECT', \$_, '::board_type, NULL,', \$BOARD_TYPE{$_}{txt}, q{, ''}),
+                sql('SELECT btype, iid, title, original, hidden FROM', sql_boards(), 'a'),
+                map sql('SELECT', \$_, '::board_type, NULL,', \$BOARD_TYPE{$_}{txt}, q{, '', false}),
                 grep !$BOARD_TYPE{$_}{dbitem} && ($BOARD_TYPE{$_}{post_perm} eq 'board' || auth->permBoardmod),
                 keys %BOARD_TYPE
               ),
-           ') x WHERE', $where
+           ') x WHERE NOT x.hidden AND', $where
     }
 
     # This query is SLOW :(
