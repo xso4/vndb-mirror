@@ -194,7 +194,7 @@ view model =
   let
     icon () =
       let fn = if not model.onlist then "add"
-               else List.range 1 5
+               else List.range 1 6
                  |> List.filter (\n -> Set.member n model.labels.tsel)
                  |> List.maximum
                  |> Maybe.map (\n -> "l" ++ String.fromInt n)
