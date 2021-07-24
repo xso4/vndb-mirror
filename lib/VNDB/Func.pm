@@ -104,9 +104,8 @@ sub normalize {
   tr/\r\n\t,_\-.~～〜∼ー῀:[]()%+!?#$"'`♥★☆♪†「」『』【】・‟“”‛’‘‚„«‹»›//d;
   tr/@/a/;
   tr/ı/i/; # Turkish lowercase i
+  tr/×/x/;
   s/&/and/;
-  # Consider wo and o the same thing (when used as separate word)
-  s/(?:^| )o(?:$| )/wo/g;
   # Remove spaces. We're doing substring search, so let it cross word boundary to find more stuff
   tr/ //d;
   # remove commonly used release titles ("x Edition" and "x Version")
@@ -130,20 +129,16 @@ sub normalize {
 # normalizes each title and returns a concatenated string of unique titles
 sub normalize_titles {
   my %t = map +(normalize($_), 1), @_;
-  return join ' ', grep $_, keys %t;
+  return join ' ', grep length $_, sort keys %t;
 }
 
 
 sub normalize_query {
   my $q = shift;
-  # Consider wo and o the same thing (when used as separate word). Has to be
-  # done here (in addition to normalize()) to make it work in combination with
-  # double quote search.
-  $q =~ s/(^| )o($| )/$1wo$2/ig;
   # remove spaces within quotes, so that it's considered as one search word
   $q =~ s/"([^"]+)"/(my $s=$1)=~y{ }{}d;$s/ge;
-  # split into search words, normalize, and remove too short words
-  return map length($_)>=(/^[\x01-\x7F]+$/?2:1) ? quotemeta($_) : (), map normalize($_), split / /, $q;
+  # split into search words and normalize
+  return map quotemeta($_), grep length $_, map normalize($_), split / /, $q;
 }
 
 
