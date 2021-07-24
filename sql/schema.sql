@@ -1183,5 +1183,8 @@ CREATE TABLE wikidata (
   steam              integer[], -- [pub] P1733
   gog                text[],    -- [pub] P2725
   pixiv_user         integer[], -- [pub] P5435
-  doujinshi_author   integer[]  -- [pub] P7511
+  doujinshi_author   integer[], -- [pub] P7511
+  soundcloud         text[],    -- [pub] P3040
+  humblestore        text[],    -- [pub] P4477
+  itchio             text[]     -- [pub] P7294
 );

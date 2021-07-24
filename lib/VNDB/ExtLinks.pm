@@ -45,6 +45,10 @@ our %WIKIDATA = (
     gog                => { type => 'text[]',     property => 'P2725', label => 'GOG',            fmt => 'https://www.gog.com/game/%s' },
     pixiv_user         => { type => 'integer[]',  property => 'P5435', label => 'Pixiv',          fmt => 'https://www.pixiv.net/member.php?id=%d' },
     doujinshi_author   => { type => 'integer[]',  property => 'P7511', label => 'Doujinshi.org',  fmt => 'https://www.doujinshi.org/browse/author/%d/' },
+    soundcloud         => { type => 'text[]',     property => 'P3040', label => 'Soundcloud',     fmt => 'https://soundcloud.com/%s' },
+    humblestore        => { type => 'text[]',     property => 'P4477', label => undef,            fmt => undef },
+    itchio             => { type => 'text[]',     property => 'P7294', label => undef,            fmt => undef },
+
 );
 
 
@@ -305,6 +309,7 @@ sub enrich_extlinks {
             w 'vgmdb_artist';
             w 'discogs_artist';
             w 'doujinshi_author';
+            w 'soundcloud';
         }
 
         # Producer links
@@ -313,6 +318,7 @@ sub enrich_extlinks {
             w 'mobygames_company';
             w 'gamefaqs_company';
             w 'doujinshi_author';
+            w 'soundcloud';
             push @links, [ 'VNStat', sprintf('https://vnstat.net/developer/%d', $obj->{id} =~ s/^.//r), undef ];
         }
 
