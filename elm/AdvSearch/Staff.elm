@@ -79,7 +79,7 @@ view dat model =
   , \() ->
     [ div [ class "advheader" ]
       [ h3 [] [ text "Staff identifier" ]
-      , Html.map Sel (S.opts model.sel True False)
+      , Html.map Sel (S.opts model.sel False True)
       ]
     , ul [] <| List.map (\s ->
         li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ]
