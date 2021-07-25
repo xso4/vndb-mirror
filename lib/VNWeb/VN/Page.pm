@@ -3,6 +3,7 @@ package VNWeb::VN::Page;
 use VNWeb::Prelude;
 use VNWeb::Releases::Lib;
 use VNWeb::Images::Lib qw/image_flagging_display image_ enrich_image_obj/;
+use VNWeb::ULists::Lib 'ulists_widget_full_data';
 use VNDB::Func 'fmtrating';
 
 
@@ -10,7 +11,7 @@ use VNDB::Func 'fmtrating';
 # Also used by Chars::VNTab & Reviews::VNTab
 sub enrich_vn {
     my($v, $revonly) = @_;
-    enrich_merge id => 'SELECT id, c_votecount FROM vn WHERE id IN', $v;
+    enrich_merge id => 'SELECT id, c_votecount, c_released FROM vn WHERE id IN', $v;
     enrich_merge vid => 'SELECT id AS vid, title, original FROM vn WHERE id IN', $v->{relations};
     enrich_merge aid => 'SELECT id AS aid, title_romaji, title_kanji, year, type, ann_id, lastfetch FROM anime WHERE id IN', $v->{anime};
     enrich_extlinks v => $v;
@@ -319,39 +320,6 @@ sub infobox_tags_ {
 }
 
 
-sub infobox_useroptions_ {
-    my($v) = @_;
-    return if !auth;
-
-    my $labels = tuwf->dbAlli('
-        SELECT l.id, l.label, l.private, uvl.vid IS NOT NULL as assigned
-          FROM ulist_labels l
-          LEFT JOIN ulist_vns_labels uvl ON uvl.uid = l.uid AND uvl.lbl = l.id AND uvl.vid =', \$v->{id}, '
-         WHERE l.uid =', \auth->uid,  '
-         ORDER BY CASE WHEN l.id < 10 THEN l.id ELSE 10 END, l.label'
-    );
-    my $lst = tuwf->dbRowi('SELECT vid, vote, notes FROM ulist_vns WHERE uid =', \auth->uid, 'AND vid =', \$v->{id});
-    my $review = tuwf->dbVali('SELECT id FROM reviews WHERE uid =', \auth->uid, 'AND vid =', \$v->{id});
-
-    tr_ class => 'nostripe', sub {
-        td_ colspan => 2, sub {
-            elm_ 'UList.VNPage', $VNWeb::ULists::Elm::VNPAGE, {
-                uid      => auth->uid,
-                vid      => $v->{id},
-                onlist   => $lst->{vid}||0,
-                canvote  => canvote($v)||0,
-                vote     => fmtvote($lst->{vote}),
-                notes    => $lst->{notes}||'',
-                review   => $review,
-                canreview=> $review || (canvote($v) && can_edit(w => {})) || 0,
-                labels   => $labels,
-                selected => [ map $_->{id}, grep $_->{assigned}, @$labels ],
-            };
-        }
-    }
-}
-
-
 # Also used by Chars::VNTab & Reviews::VNTab
 sub infobox_ {
     my($v, $notags) = @_;
@@ -398,7 +366,13 @@ sub infobox_ {
 
                 infobox_affiliates_ $v;
                 infobox_anime_ $v;
-                infobox_useroptions_ $v;
+
+                tr_ class => 'nostripe', sub {
+                    td_ colspan => 2, sub {
+                        elm_ 'UList.VNPage', $VNWeb::ULists::Elm::WIDGET,
+                        ulists_widget_full_data $v, auth->uid, 1;
+                    }
+                } if auth;
 
                 tr_ class => 'nostripe', sub {
                     td_ class => 'vndesc', colspan => 2, sub {

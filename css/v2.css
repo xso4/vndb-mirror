@@ -480,6 +480,7 @@ div.vndetails td.anime b      { font-size: 10px; font-weight: normal; padding-ri
 .ulistvn > b { font-size: 14px }
 .ulistvn > span { float: right }
 .ulistvn textarea { width: 100% }
+.ulistvn .date span:not(.spinner) { display: none }
 
 div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $border; padding: 3px 5% 0 5%; text-align: center; }
 #vntags span                  { white-space: nowrap; margin-left: 15px; }

@@ -1,11 +1,16 @@
--- TODO: Integrate this with UList.VNPage and have this replace UList.Opt.
--- XXX: Only one widget can be instantiated per VN on a single page.
-module UList.Widget exposing (main)
+-- This module provides a ulist management widget. By default it shows as a
+-- small icon indicating the list status, which can be clicked on to open a
+-- full management modal for the VN.
+--
+-- It is also used by UList.VNPage to provide a different view for essentially
+-- the same functionality.
+module UList.Widget exposing (Model, Msg(..), main, init, update, viewStatus, viewReviewLink)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Browser
+import Browser.Dom exposing (focus)
 import Task
 import Process
 import Set
@@ -57,6 +62,7 @@ type alias Model =
   , notesRev   : Int
   , notesSaved : String
   , notesState : Api.State
+  , notesVis   : Bool -- For UList.VNPage
   , started    : DE.Model
   , finished   : DE.Model
   , rels       : List RE.Model
@@ -91,6 +97,7 @@ init f =
   , notesRev   = 0
   , notesSaved = Maybe.map (\full -> full.notes     ) f.full |> Maybe.withDefault ""
   , notesState = Api.Normal
+  , notesVis   = Maybe.map (\full -> full.notes /= "") f.full == Just True
   , started    = let m = DE.init { uid = f.uid, vid = f.vid, date = Maybe.map (\full -> full.started ) f.full |> Maybe.withDefault "", start = True  } in { m | visible = True }
   , finished   = let m = DE.init { uid = f.uid, vid = f.vid, date = Maybe.map (\full -> full.finished) f.full |> Maybe.withDefault "", start = False } in { m | visible = True }
   , rels       = List.map (\st -> RE.init ("widget-" ++ f.vid) { uid = f.uid, rid = st.id, status = Just st.status, empty = "" }) <| Maybe.withDefault [] <| Maybe.map (\full -> full.rlist) f.full
@@ -98,9 +105,30 @@ init f =
   , relOptions = Maybe.withDefault [] <| Maybe.map (\full -> List.map (\r -> (r.id, showrel r)) full.releases) f.full
   }
 
+reset : Model -> Model
+reset m = init
+  { uid    = m.uid
+  , vid    = m.vid
+  , labels = Nothing
+  , full   = Maybe.map (\t ->
+      { title      = t
+      , labels     = m.labels.labels
+      , canvote    = m.canvote
+      , canreview  = m.canreview
+      , vote       = Nothing
+      , review     = m.review
+      , notes      = ""
+      , started    = ""
+      , finished   = ""
+      , releases   = Dict.values m.relNfo
+      , rlist      = []
+      }) m.title
+  }
+
 
 type Msg
-  = Today Date.Date
+  = Noop
+  | Today Date.Date
   | Open Bool
   | Loaded GApi.Response
   | Label LE.Msg
@@ -108,6 +136,7 @@ type Msg
   | Notes String
   | NotesSave Int
   | NotesSaved Int GApi.Response
+  | NotesToggle
   | Started DE.Msg
   | Finished DE.Msg
   | Del Bool
@@ -142,6 +171,7 @@ showrel r = "[" ++ (RDate.format (RDate.expand r.released)) ++ " " ++ (String.jo
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+    Noop -> (model, Cmd.none)
     Today d -> ({ model | today = d }, Cmd.none)
     Open b ->
       if b && model.title == Nothing
@@ -169,10 +199,13 @@ update msg model =
       then (model, Cmd.none)
       else (setOnList {model | notesSaved = model.notes, notesState = Api.Normal }, Cmd.none)
     NotesSaved _ e -> ({ model | notesState = Api.Error e }, Cmd.none)
+    NotesToggle ->
+      ( { model | notesVis = not model.notesVis }
+      , if model.notesVis then Cmd.none else Task.attempt (always Noop) (focus "widget-notes"))
 
     Del b -> ({ model | del = b }, Cmd.none)
     Delete -> ({ model | loadState = Api.Loading }, GDE.send { uid = model.uid, vid = model.vid } Deleted)
-    Deleted GApi.Success -> (init { uid = model.uid, vid = model.vid, labels = Nothing, full = Nothing }, Cmd.none)
+    Deleted GApi.Success -> (reset model, Cmd.none)
     Deleted e -> ({ model | loadState = Api.Error e }, Cmd.none)
 
     Rel rid m ->
@@ -187,6 +220,32 @@ update msg model =
     RelAdd rid ->
       ( setOnList { model | rels = model.rels ++ (if rid == "" then [] else [RE.init model.vid { rid = rid, uid = model.uid, status = Just 2, empty = "" }]) }
       , Task.perform (always <| Rel rid <| RE.Set (Just 2) True) <| Task.succeed True)
+
+
+viewStatus : Model -> List (Html Msg)
+viewStatus model =
+  case (model.loadState, model.del, model.onlist) of
+    (Api.Loading, _, _) -> [ span [ class "spinner" ] [] ]
+    (Api.Error e, _, _) -> [ b [ class "standout" ] [ text <| Api.showResponse e ] ]
+    (_, _, False) -> [ b [ class "grayedout" ] [ text "not on your list" ] ]
+    (_, True, _) ->
+      [ a [ onClickD Delete ] [ text "Yes, delete" ]
+      , text " | "
+      , a [ onClickD (Del False) ] [ text "Cancel" ]
+      ]
+    (_, False, True) ->
+      [ span [ classList [("hidden", not (isPublic model))], title "This visual novel is on your public list" ] [ text "👁 " ]
+      , text "On your list | "
+      , a [ onClickD (Del True) ] [ text "Remove from list" ]
+      ]
+
+viewReviewLink : Model -> Html Msg
+viewReviewLink model =
+  case (model.vote.vote /= Nothing && model.canreview, model.review) of
+    (False, _)  -> text ""
+    (True, Nothing) -> a [ href ("/" ++ model.vid ++ "/addreview") ] [ text " write a review »" ]
+    (True, Just w)  -> a [ href ("/" ++ w ++ "/edit") ] [ text " edit review »" ]
+
 
 
 view : Model -> Html Msg
@@ -221,31 +280,15 @@ view model =
 
     box () =
       [ h2 [] [ text (Maybe.withDefault "" model.title) ]
-      , div [ style "text-align" "right", style "margin" "3px 0" ] <|
-        case (model.del, model.onlist) of
-          ( _, False) -> [ b [ class "grayedout" ] [ text "not on your list" ] ]
-          (True, _) ->
-            [ a [ onClickD Delete ] [ text "Yes, delete" ]
-            , text " | "
-            , a [ onClickD (Del False) ] [ text "Cancel" ]
-            ]
-          (False, True) ->
-            [ span [ classList [("hidden", not (isPublic model))], title "This visual novel is on your public list" ] [ text "👁 " ]
-            , text "On your list | "
-            , a [ onClickD (Del True) ] [ text "Remove from list" ]
-            ]
-      , table []
+      , div [ style "text-align" "right", style "margin" "3px 0" ] (viewStatus model)
+      , table [] <|
         [ tr [] [ td [] [ text "Labels" ], td [] [ Html.map Label (LE.view model.labels "- select label -") ] ]
         , if not model.canvote then text "" else
           tr []
           [ td [] [ text "Vote" ]
           , td []
             [ div [ style "width" "80px", style "display" "inline-block" ] [ Html.map Vote (VE.view model.vote "- vote -") ]
-            , case (model.vote.vote /= Nothing && model.canreview, model.review) of
-                 (False, _)  -> text ""
-                 (True, Nothing) -> a [ href ("/" ++ model.vid ++ "/addreview") ] [ text " write a review »" ]
-                 (True, Just w)  -> a [ href ("/" ++ w ++ "/edit") ] [ text " edit review »" ]
-            ]
+            , viewReviewLink model ]
           ]
         , tr [] [ td [] [ text "Start date"  ], td [ class "date" ] [ Html.map Started  (DE.view model.started ) ] ]
         , tr [] [ td [] [ text "Finish date" ], td [ class "date" ] [ Html.map Finished (DE.view model.finished) ] ]

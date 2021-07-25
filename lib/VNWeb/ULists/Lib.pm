@@ -1,9 +1,10 @@
 package VNWeb::ULists::Lib;
 
 use VNWeb::Prelude;
+use VNWeb::Releases::Lib 'releases_by_vn';
 use Exporter 'import';
 
-our @EXPORT = qw/ulists_own enrich_ulists_widget ulists_widget_/;
+our @EXPORT = qw/ulists_own enrich_ulists_widget ulists_widget_ ulists_widget_full_data/;
 
 # Do we have "ownership" access to this users' list (i.e. can we edit and see private stuff)?
 sub ulists_own {
@@ -36,6 +37,34 @@ sub ulists_widget_ {
             (reverse sort map "l$_->{id}", grep $_->{id} >= 1 && $_->{id} <= 6, $v->{vnlist_labels}->@*)[0] || 'unknown';
         img_ @_, src => config->{url_static}.'/f/list-'.$img.'.svg', class => "ulist-widget-icon liststatus_icon $img";
     } if auth;
+}
+
+
+# Returns the data structure for the elm_UListWidget API response for the given VN.
+sub ulists_widget_full_data {
+    my($v, $uid, $vnpage) = @_;
+    my $lst = tuwf->dbRowi('SELECT vid, vote, notes, started, finished FROM ulist_vns WHERE uid =', \$uid, 'AND vid =', \$v->{id});
+    my $review = tuwf->dbVali('SELECT id FROM reviews WHERE uid =', \$uid, 'AND vid =', \$v->{id});
+    my $canvote = sprintf('%08d', $v->{c_released}||0) < strftime '%Y%m%d', gmtime;
+    +{
+        uid    => $uid,
+        vid    => $v->{id},
+        labels => !$lst->{vid} ? undef : tuwf->dbAlli('SELECT lbl AS id, \'\' AS label FROM ulist_vns_labels WHERE uid =', \$uid, 'AND vid =', \$v->{id}),
+        full   => {
+            title     => $vnpage ? '' : $v->{title},
+            labels    => tuwf->dbAlli('SELECT id, label, private FROM ulist_labels WHERE uid =', \$uid, 'ORDER BY CASE WHEN id < 10 THEN id ELSE 10 END, label'),
+            canvote   => $lst->{vote} || $canvote || 0,
+            canreview => $review || ($canvote && can_edit(w => {})) || 0,
+            vote      => fmtvote($lst->{vote}),
+            review    => $review,
+            notes     => $lst->{notes}||'',
+            started   => $lst->{started}||'',
+            finished  => $lst->{finished}||'',
+            releases  => $vnpage ? [] : releases_by_vn($v->{id}),
+            rlist     => $vnpage ? [] : tuwf->dbAlli('SELECT rid AS id, status FROM rlists WHERE uid =', \$uid, 'AND rid IN(SELECT id FROM releases_vn WHERE vid =', \$v->{id}, ')'),
+        },
+    };
+
 }
 
 1;
