@@ -63,11 +63,11 @@ use overload bool => sub { defined shift->{user}{user_id} };
 sub uid   { shift->{user}{user_id} }
 sub user  { shift->{user} }
 sub token { shift->{token} }
-sub isMod { auth->permUsermod || auth->permDbmod || auth->permImgmod || auth->permBoardmod || auth->permTagmod }
+sub isMod { auth->permUsermod || auth->permDbmod || auth->permBoardmod || auth->permTagmod }
 
 
 
-my @perms = qw/board boardmod edit imgvote imgmod tag dbmod tagmod usermod review/;
+my @perms = qw/board boardmod edit imgvote tag dbmod tagmod usermod review/;
 
 sub listPerms { @perms }
 

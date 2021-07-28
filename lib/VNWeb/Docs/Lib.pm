@@ -6,7 +6,7 @@ use VNDB::Skins;
 our @EXPORT = qw/enrich_html/;
 
 
-my @special_perms = qw/boardmod dbmod usermod imgmod tagmod/;
+my @special_perms = qw/boardmod dbmod usermod tagmod/;
 
 sub _moderators {
     my $cols = sql_comma map "perm_$_", @special_perms;

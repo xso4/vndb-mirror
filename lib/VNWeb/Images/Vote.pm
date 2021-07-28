@@ -16,7 +16,7 @@ my $SEND = form_compile any => {
 };
 
 
-sub can_vote { auth->permImgmod || (auth->permImgvote && !global_settings->{lockdown_edit}) }
+sub can_vote { auth->permDbmod || (auth->permImgvote && !global_settings->{lockdown_edit}) }
 
 
 # Fetch a list of images for the user to vote on.
@@ -74,10 +74,10 @@ elm_api ImageVote => undef, {
     # Find out if any of these images are being overruled
     enrich_merge id => sub { sql 'SELECT id, bool_or(ignore) AS overruled FROM image_votes WHERE id IN', $_, 'GROUP BY id' }, $data->{votes};
     enrich_merge id => sql('SELECT id, NOT ignore AS my_overrule FROM image_votes WHERE uid =', \auth->uid, 'AND id IN'),
-        grep $_->{overruled}, $data->{votes}->@* if auth->permImgmod;
+        grep $_->{overruled}, $data->{votes}->@* if auth->permDbmod;
 
     for($data->{votes}->@*) {
-        $_->{overrule} = 0 if !auth->permImgmod;
+        $_->{overrule} = 0 if !auth->permDbmod;
         my $d = {
             id       => $_->{id},
             uid      => auth->uid(),
@@ -102,7 +102,7 @@ sub imgflag_ {
     elm_ 'ImageFlagging', $SEND, {
         my_votes   => my_votes(),
         nsfw_token => viewset(show_nsfw => 1),
-        mod        => auth->permImgmod()||0,
+        mod        => auth->permDbmod()||0,
         @_
     };
 }
@@ -124,7 +124,7 @@ TUWF::get qr{/img/$RE{imgid}}, sub {
     my $id = tuwf->capture('id');
 
     my $l = [{ id => $id }];
-    enrich_image auth->permImgmod() || sub { defined $_[0]{my_sexual} }, $l;
+    enrich_image auth->permDbmod() || sub { defined $_[0]{my_sexual} }, $l;
     return tuwf->resNotFound if !defined $l->[0]{width};
 
     framework_ title => "Image flagging for $id", sub {

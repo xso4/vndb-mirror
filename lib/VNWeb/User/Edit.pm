@@ -21,7 +21,6 @@ my $FORM = {
         perm_usermod   => { _when => 'out', anybool => 1 },
         perm_tagmod    => { _when => 'out', anybool => 1 },
         perm_boardmod  => { _when => 'out', anybool => 1 },
-        perm_imgmod    => { _when => 'out', anybool => 1 },
     } },
 
     # Settings that require at least one perm_*mod
@@ -77,7 +76,6 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
     $u->{opts}{perm_usermod}  = auth->permUsermod;
     $u->{opts}{perm_tagmod}   = auth->permTagmod;
     $u->{opts}{perm_boardmod} = auth->permBoardmod;
-    $u->{opts}{perm_imgmod}   = auth->permImgmod;
 
     $u->{prefs} = $u->{id} eq auth->uid || auth->permUsermod ?
         tuwf->dbRowi(
@@ -88,7 +86,7 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
     $u->{prefs}{email} = _getmail $u->{id} if $u->{prefs};
     $u->{prefs}{skin} ||= config->{skin_default} if $u->{prefs};
 
-    $u->{admin} = auth->permDbmod || auth->permUsermod || auth->permTagmod || auth->permBoardmod || auth->permImgmod ?
+    $u->{admin} = auth->permDbmod || auth->permUsermod || auth->permTagmod || auth->permBoardmod ?
         tuwf->dbRowi('SELECT ign_votes, ', sql_comma(map "perm_$_", auth->listPerms), 'FROM users u JOIN users_shadow us ON us.id = u.id WHERE u.id =', \$u->{id}) : undef;
 
     $u->{password} = undef;
@@ -133,7 +131,7 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
     $set{perm_board}   = $data->{admin}{perm_board}   if auth->permBoardmod;
     $set{perm_review}  = $data->{admin}{perm_review}  if auth->permBoardmod;
     $set{perm_edit}    = $data->{admin}{perm_edit}    if auth->permDbmod;
-    $set{perm_imgvote} = $data->{admin}{perm_imgvote} if auth->permImgmod;
+    $set{perm_imgvote} = $data->{admin}{perm_imgvote} if auth->permDbmod;
     $set{perm_tag}     = $data->{admin}{perm_tag}     if auth->permTagmod;
 
     if($own && $data->{password}) {
