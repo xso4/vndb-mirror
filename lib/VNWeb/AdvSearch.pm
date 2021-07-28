@@ -415,6 +415,8 @@ f c => 12 => 'age',        { required => 0, default => undef, uint => 1, max => 
 f c => 13 => 'trait',      { type => 'any', func => \&_validate_trait },
     compact => sub { my $id = ($_->[0] =~ s/^i//r)*1; $_->[1] == 0 ? $id : [ $id, int $_->[1] ] },
     sql_list => \&_sql_where_trait;
+f c => 14 => 'birthday',   { type => 'array', length => 2, values => { uint => 1, max => 31 } },
+    '=' => sub { sql 'c.b_month =', \$_->[0], $_->[1] ? ('AND c.b_day =', \$_->[1]) : () };
 
 # XXX: When this field is nested inside a VN query, it may match seiyuu linked to other VNs.
 # This can be trivially fixed by adding an (AND vs.id = v.id) clause, but that results in extremely slow queries that I've no clue how to optimize.

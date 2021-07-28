@@ -316,20 +316,7 @@ view model =
         [ b [ class "standout" ] [ text "English please!" ] ] ]
       , formField "bmonth::Birthday"
         [ inputSelect "bmonth" model.bMonth BMonth [style "width" "128px"]
-          [ ( 0, "Unknown")
-          , ( 1, "January")
-          , ( 2, "February")
-          , ( 3, "March")
-          , ( 4, "April")
-          , ( 5, "May")
-          , ( 6, "June")
-          , ( 7, "July")
-          , ( 8, "August")
-          , ( 9, "September")
-          , (10, "October")
-          , (11, "November")
-          , (12, "December")
-          ]
+          <| (0, "Unknown") :: List.indexedMap (\m s -> (m+1, s)) RDate.monthList
         , if model.bMonth == 0 then text ""
           else inputSelect "" model.bDay BDay [style "width" "70px"] <| List.map (\i -> (i, String.fromInt i)) <| List.range 1 31
         ]

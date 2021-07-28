@@ -19,6 +19,7 @@ import AdvSearch.RDate as AD
 import AdvSearch.Range as AR
 import AdvSearch.Resolution as AE
 import AdvSearch.Engine as AEng
+import AdvSearch.Birthday as AB
 import AdvSearch.Lib exposing (..)
 
 
@@ -312,6 +313,7 @@ type FieldModel
   | FMEngine     AEng.Model
   | FMTag        AG.Model
   | FMTrait      AI.Model
+  | FMBirthday   AB.Model
 
 type FieldMsg
   = FSCustom     () -- Not actually used at the moment
@@ -354,6 +356,7 @@ type FieldMsg
   | FSEngine     AEng.Msg
   | FSTag        AG.Msg
   | FSTrait      AI.Msg
+  | FSBirthday   AB.Msg
   | FToggle Bool
   | FDel       -- intercepted in nestUpdate
   | FMoveSub   -- intercepted in nestUpdate
@@ -450,6 +453,7 @@ fields =
   , n C V "Visual Novel »"
   , f C "Role"               1  FMRole        AS.init                 AS.roleFromQuery
   , f C "Age"                0  FMAge         AR.ageInit              AR.ageFromQuery
+  , f C "Birthday"           0  FMBirthday    AB.init                 AB.fromQuery
   , f C "Sex"                2  FMSex         (AS.sexInit False)      (AS.sexFromQuery False)
   , f C ""                   0  FMSex         (AS.sexInit True)       (AS.sexFromQuery True)
   , f C "Traits"             3  FMTrait       AI.init                 (AI.fromQuery -1)
@@ -549,6 +553,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSEngine msg,   FMEngine m)   -> mapf FMEngine FSEngine (AEng.update dat msg m)
       (FSTag msg,      FMTag m)      -> mapf FMTag FSTag     (AG.update dat msg m)
       (FSTrait msg,    FMTrait m)    -> mapf FMTrait FSTrait (AI.update dat msg m)
+      (FSBirthday msg, FMBirthday m) -> maps FMBirthday (AB.update msg m)
       (FToggle b, _) -> (dat, (num, DD.toggle dd b, model), if b then focus else Cmd.none)
       _ -> noop
 
@@ -616,6 +621,7 @@ fieldView dat (_, dd, model) =
       FMEngine m     -> f FSEngine     (AEng.view m)
       FMTag m        -> f FSTag        (AG.view dat m)
       FMTrait m      -> f FSTrait      (AI.view dat m)
+      FMBirthday m   -> f FSBirthday   (AB.view m)
       FMNest m       -> nestView dat dd m
 
 
@@ -662,6 +668,7 @@ fieldToQuery dat (_, _, model) =
     FMEngine m   -> AEng.toQuery m
     FMTag m      -> AG.toQuery m
     FMTrait m    -> AI.toQuery m
+    FMBirthday m -> AB.toQuery m
 
 
 fieldCreate : Int -> (Data,FieldModel) -> (Data,Field)

@@ -76,20 +76,20 @@ display today d =
   in if future then b [ class "future" ] [ text fmt ] else text fmt
 
 
-monthList : List (Int, String)
+monthList : List String
 monthList =
-  [ ( 1, "Jan")
-  , ( 2, "Feb")
-  , ( 3, "Mar")
-  , ( 4, "Apr")
-  , ( 5, "May")
-  , ( 6, "Jun")
-  , ( 7, "Jul")
-  , ( 8, "Aug")
-  , ( 9, "Sep")
-  , (10, "Oct")
-  , (11, "Nov")
-  , (12, "Dec")
+  [ "1 (Jan)"
+  , "2 (Feb)"
+  , "3 (Mar)"
+  , "4 (Apr)"
+  , "5 (May)"
+  , "6 (Jun)"
+  , "7 (Jul)"
+  , "8 (Aug)"
+  , "9 (Sep)"
+  , "10 (Oct)"
+  , "11 (Nov)"
+  , "12 (Dec)"
   ]
 
 -- Input widget.
@@ -101,8 +101,8 @@ view ro permitUnknown permitToday msg =
         ++ (if permitUnknown then [(0, "Unknown")] else [])
         ++ [(99999999, "TBA")]
         ++ List.reverse (range 1980 (GT.curYear + 5) (\n -> {r|y=n}))
-      mf (m,s) = (compact (normalize {r|m=m}), String.fromInt m ++ " (" ++ s ++ ")")
-      ml = ({r|m=99} |> normalize |> compact, "- month -") :: List.map mf monthList
+      mf m s = (compact (normalize {r|m=m+1}), s)
+      ml = ({r|m=99} |> normalize |> compact, "- month -") :: List.indexedMap mf monthList
       dl = ({r|d=99} |> normalize |> compact, "- day -") :: range 1 (maxDayInMonth r.y r.m) (\n -> {r|d=n})
   in div []
     [ inputSelect "" ro msg [ style "width" "100px" ] yl
