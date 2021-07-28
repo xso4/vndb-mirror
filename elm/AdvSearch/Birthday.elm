@@ -53,14 +53,13 @@ view model =
   ( text <| showOp model.op ++ " "
       ++ (if model.month == 0 then "Unknown"
           else List.drop (model.month-1) RDate.monthList |> List.head |> Maybe.withDefault "")
-      ++ (if model.day == 0 then "" else " - " ++ String.fromInt model.day)
+      ++ (if model.day == 0 then "" else " " ++ String.fromInt model.day)
   , \() ->
     [ div [ class "advheader", style "width" "290px" ]
       [ h3 [] [ text "Birthday" ]
       , div [ class "opts" ] [ inputOp True model.op MOp ]
       ]
-    , inputSelect "" model.month Month [style "width" "128px"]
-        <| (0, "Unknown") :: List.indexedMap (\m s -> (m+1, s)) RDate.monthList
+    , inputSelect "" model.month Month [style "width" "128px"] <| (0, "Unknown") :: RDate.monthSelect
     , if model.month == 0 then text ""
       else inputSelect "" model.day Day [style "width" "70px"]
         <| (0, "- day -") :: List.map (\i -> (i, String.fromInt i)) (List.range 1 31)

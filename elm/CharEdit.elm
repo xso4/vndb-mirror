@@ -315,8 +315,7 @@ view model =
       , formField "desc::Description" [ TP.view "desc" model.desc Desc 600 (style "height" "150px" :: onInvalid (Invalid General) :: GCE.valDesc)
         [ b [ class "standout" ] [ text "English please!" ] ] ]
       , formField "bmonth::Birthday"
-        [ inputSelect "bmonth" model.bMonth BMonth [style "width" "128px"]
-          <| (0, "Unknown") :: List.indexedMap (\m s -> (m+1, s)) RDate.monthList
+        [ inputSelect "bmonth" model.bMonth BMonth [style "width" "128px"] <| (0, "Unknown") :: RDate.monthSelect
         , if model.bMonth == 0 then text ""
           else inputSelect "" model.bDay BDay [style "width" "70px"] <| List.map (\i -> (i, String.fromInt i)) <| List.range 1 31
         ]
