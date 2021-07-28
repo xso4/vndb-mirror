@@ -12,7 +12,7 @@ use VNDB::Func 'fmtrating';
 sub enrich_vn {
     my($v, $revonly) = @_;
     enrich_merge id => 'SELECT id, c_votecount, c_released FROM vn WHERE id IN', $v;
-    enrich_merge vid => 'SELECT id AS vid, title, original FROM vn WHERE id IN', $v->{relations};
+    enrich_merge vid => 'SELECT id AS vid, title, original, c_released FROM vn WHERE id IN', $v->{relations};
     enrich_merge aid => 'SELECT id AS aid, title_romaji, title_kanji, year, type, ann_id, lastfetch FROM anime WHERE id IN', $v->{anime};
     enrich_extlinks v => $v;
     enrich_image_obj image => $v;
@@ -132,7 +132,7 @@ sub infobox_relations_ {
     return if !$v->{relations}->@*;
 
     my %rel;
-    push $rel{$_->{relation}}->@*, $_ for sort { $a->{title} cmp $b->{title} } $v->{relations}->@*;
+    push $rel{$_->{relation}}->@*, $_ for sort { $a->{c_released} <=> $b->{c_released} || $a->{title} cmp $b->{title} } $v->{relations}->@*;
 
     tr_ sub {
         td_ 'Relations';
