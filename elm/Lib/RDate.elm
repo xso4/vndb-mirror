@@ -15,6 +15,7 @@ import Html.Events exposing (..)
 import Date
 import Lib.Html exposing (..)
 import Gen.Types as GT
+import Gen.Api as GApi
 
 
 type alias RDate = Int
@@ -111,3 +112,10 @@ view ro permitUnknown permitToday msg =
     , if r.y == 0 || r.y == 9999 then text "" else inputSelect "" ro msg [ style "width" "90px" ] ml
     , if r.m == 0 || r.m ==   99 then text "" else inputSelect "" ro msg [ style "width" "90px" ] dl
     ]
+
+
+-- Handy function for formatting release info as a string
+-- (Typically used in selection boxes)
+-- (Why is that in this module, you ask? Well, where else do I put it?)
+showrel : GApi.ApiReleases -> String
+showrel r = "[" ++ (format (expand r.released)) ++ " " ++ (String.join "," r.lang) ++ "] " ++ r.title ++ " (" ++ r.id ++ ")"

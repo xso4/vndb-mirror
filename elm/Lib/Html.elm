@@ -49,7 +49,7 @@ inputButton val onch attrs =
 
 -- Submit button with loading indicator and error message display
 submitButton : String -> Api.State -> Bool -> Html m
-submitButton val state valid = div []
+submitButton val state valid = span []
    [ input [ type_ "submit", class "submit", tabindex 10, value val, disabled (state == Api.Loading || not valid) ] []
    , case state of
        Api.Error r -> p [] [ b [class "standout" ] [ text <| Api.showResponse r ] ]

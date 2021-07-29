@@ -102,7 +102,7 @@ init f =
   , finished   = let m = DE.init { uid = f.uid, vid = f.vid, date = Maybe.map (\full -> full.finished) f.full |> Maybe.withDefault "", start = False } in { m | visible = True }
   , rels       = List.map (\st -> RE.init ("widget-" ++ f.vid) { uid = f.uid, rid = st.id, status = Just st.status, empty = "" }) <| Maybe.withDefault [] <| Maybe.map (\full -> full.rlist) f.full
   , relNfo     = Dict.fromList <| List.map (\r -> (r.id, r)) <| Maybe.withDefault [] <| Maybe.map (\full -> full.releases) f.full
-  , relOptions = Maybe.withDefault [] <| Maybe.map (\full -> List.map (\r -> (r.id, showrel r)) full.releases) f.full
+  , relOptions = Maybe.withDefault [] <| Maybe.map (\full -> List.map (\r -> (r.id, RDate.showrel r)) full.releases) f.full
   }
 
 reset : Model -> Model
@@ -162,10 +162,6 @@ isPublic : Model -> Bool
 isPublic model =
      LE.isPublic model.labels
   || (isJust model.vote.vote && List.any (\l -> l.id == 7 && not l.private) model.labels.labels)
-
-
-showrel : GApi.ApiReleases -> String
-showrel r = "[" ++ (RDate.format (RDate.expand r.released)) ++ " " ++ (String.join "," r.lang) ++ "] " ++ r.title ++ " (" ++ r.id ++ ")"
 
 
 update : Msg -> Model -> (Model, Cmd Msg)

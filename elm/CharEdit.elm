@@ -432,7 +432,6 @@ view model =
           case lst of
             (x::xs) -> if Set.member x set then uniq xs set else x :: uniq xs (Set.insert x set)
             [] -> []
-        showrel r = "[" ++ (RDate.format (RDate.expand r.released)) ++ " " ++ (String.join "," r.lang) ++ "] " ++ r.title ++ " (" ++ r.id ++ ")"
         vn vid lst rels =
           let title = Maybe.withDefault "<unknown>" <| Maybe.map (\(_,v) -> v.title) <| List.head lst
           in
@@ -447,7 +446,7 @@ view model =
             , tr []
               [ td [] [ inputSelect "" item.rid (VnRel idx) [ style "width" "400px", style "margin" "0 15px" ] <|
                   (Nothing, if List.length lst == 1 then "All (full) releases" else "Other releases")
-                  :: List.map (\r -> (Just r.id, showrel r)) rels
+                  :: List.map (\r -> (Just r.id, RDate.showrel r)) rels
                   ++ if isJust item.rid && List.isEmpty (List.filter (\r -> Just r.id == item.rid) rels)
                      then [(item.rid, "Deleted release: " ++ Maybe.withDefault "" item.rid)] else []
                 ]

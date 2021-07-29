@@ -4,6 +4,7 @@ import Dict
 import Task
 import Regex
 import Lib.Ffi as Ffi
+import Gen.Api as GApi
 
 -- Delete an element from a List
 delidx : Int -> List a -> List a

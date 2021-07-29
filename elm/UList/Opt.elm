@@ -75,10 +75,6 @@ type Msg
   | RelAdd String
 
 
-showrel : GApi.ApiReleases -> String
-showrel r = "[" ++ (RDate.format (RDate.expand r.released)) ++ " " ++ (String.join "," r.lang) ++ "] " ++ r.title ++ " (" ++ r.id ++ ")"
-
-
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
@@ -128,7 +124,7 @@ update msg model =
       ( { model
         | relState = Api.Normal
         , relNfo = Dict.union (Dict.fromList <| List.map (\r -> (r.id, r)) rels) model.relNfo
-        , relOptions = Just <| List.map (\r -> (r.id, showrel r)) rels
+        , relOptions = Just <| List.map (\r -> (r.id, RDate.showrel r)) rels
         }, Cmd.none)
     RelLoaded e -> ({ model | relState = Api.Error e }, Cmd.none)
     RelAdd rid ->

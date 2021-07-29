@@ -65,6 +65,7 @@ type AdminMsg
   | PermBoardmod Bool
   | PermEdit Bool
   | PermImgvote Bool
+  | PermLengthvote Bool
   | PermTag Bool
   | PermDbmod Bool
   | PermTagmod Bool
@@ -114,6 +115,7 @@ updateAdmin msg model =
     PermBoardmod b -> { model | perm_boardmod = b }
     PermEdit b     -> { model | perm_edit     = b }
     PermImgvote b  -> { model | perm_imgvote  = b }
+    PermLengthvote b->{ model | perm_lengthvote=b }
     PermTag b      -> { model | perm_tag      = b }
     PermDbmod b    -> { model | perm_dbmod    = b }
     PermTagmod b   -> { model | perm_tagmod   = b }
@@ -125,6 +127,7 @@ updateAdmin msg model =
       , perm_boardmod = False
       , perm_edit     = False
       , perm_imgvote  = False
+      , perm_lengthvote=False
       , perm_tag      = False
       , perm_dbmod    = False
       , perm_tagmod   = False
@@ -137,6 +140,7 @@ updateAdmin msg model =
       , perm_boardmod = False
       , perm_edit     = True
       , perm_imgvote  = True
+      , perm_lengthvote=True
       , perm_tag      = True
       , perm_dbmod    = False
       , perm_tagmod   = False
@@ -220,6 +224,7 @@ view model =
         , perm False              <| label [] [ inputCheck "" m.perm_boardmod (Admin << PermBoardmod), text " boardmod", br_ 1 ]
         , perm opts.perm_dbmod    <| label [] [ inputCheck "" m.perm_edit     (Admin << PermEdit),     text " edit*", br_ 1 ]
         , perm opts.perm_dbmod    <| label [] [ inputCheck "" m.perm_imgvote  (Admin << PermImgvote),  text " imgvote* (existing votes will stop counting when unset)", br_ 1 ]
+        , perm opts.perm_dbmod    <| label [] [ inputCheck "" m.perm_lengthvote(Admin<< PermLengthvote),text " lengthvote* (existing votes will stop counting when unset)", br_ 1 ]
         , perm opts.perm_tagmod   <| label [] [ inputCheck "" m.perm_tag      (Admin << PermTag),      text " tag* (existing tag votes will stop counting when unset)", br_ 1 ]
         , perm False              <| label [] [ inputCheck "" m.perm_dbmod    (Admin << PermDbmod),    text " dbmod", br_ 1 ]
         , perm False              <| label [] [ inputCheck "" m.perm_tagmod   (Admin << PermTagmod),   text " tagmod", br_ 1 ]

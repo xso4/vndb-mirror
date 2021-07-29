@@ -996,7 +996,8 @@ CREATE TABLE users (
   ulist_wish          jsonb,
   vnlang              jsonb, -- '$lang(-mtl)?' => true/false, which languages to expand/collapse on VN pages
   tableopts_v         integer,
-  tableopts_vt        integer -- VN listing on tag pages
+  tableopts_vt        integer, -- VN listing on tag pages
+  perm_lengthvote     boolean NOT NULL DEFAULT false
 );
 
 -- Additional fields for the 'users' table, but with some protected columns.
@@ -1148,6 +1149,16 @@ CREATE TABLE vn_staff_hist (
   role       credit_type NOT NULL DEFAULT 'staff',
   note       varchar(250) NOT NULL DEFAULT '',
   PRIMARY KEY (chid, aid, role)
+);
+
+-- vn_length_votes
+CREATE TABLE vn_length_votes (
+  vid        vndbid NOT NULL,
+  rid        vndbid NOT NULL,
+  date       timestamptz NOT NULL DEFAULT NOW(),
+  uid        vndbid,
+  length     smallint NOT NULL, -- minutes
+  notes      text NOT NULL DEFAULT ''
 );
 
 -- wikidata

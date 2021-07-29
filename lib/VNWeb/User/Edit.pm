@@ -128,11 +128,12 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
         tuwf->dbExeci(select => sql_func user_setperm_usermod => \$data->{id}, \auth->uid, sql_fromhex(auth->token), \$data->{admin}{perm_usermod});
         $set{"perm_$_"} = $data->{admin}{"perm_$_"} for grep $_ ne 'usermod', auth->listPerms;
     }
-    $set{perm_board}   = $data->{admin}{perm_board}   if auth->permBoardmod;
-    $set{perm_review}  = $data->{admin}{perm_review}  if auth->permBoardmod;
-    $set{perm_edit}    = $data->{admin}{perm_edit}    if auth->permDbmod;
-    $set{perm_imgvote} = $data->{admin}{perm_imgvote} if auth->permDbmod;
-    $set{perm_tag}     = $data->{admin}{perm_tag}     if auth->permTagmod;
+    $set{perm_board}      = $data->{admin}{perm_board}      if auth->permBoardmod;
+    $set{perm_review}     = $data->{admin}{perm_review}     if auth->permBoardmod;
+    $set{perm_edit}       = $data->{admin}{perm_edit}       if auth->permDbmod;
+    $set{perm_imgvote}    = $data->{admin}{perm_imgvote}    if auth->permDbmod;
+    $set{perm_lengthvote} = $data->{admin}{perm_lengthvote} if auth->permDbmod;
+    $set{perm_tag}        = $data->{admin}{perm_tag}        if auth->permTagmod;
 
     if($own && $data->{password}) {
         return elm_InsecurePass if is_insecurepass $data->{password}{new};

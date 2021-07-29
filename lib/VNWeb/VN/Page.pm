@@ -355,7 +355,16 @@ sub infobox_ {
 
                 tr_ sub {
                     td_ 'Length';
-                    td_ "$VN_LENGTH{$v->{length}}{txt} ($VN_LENGTH{$v->{length}}{time})";
+                    td_ sub {
+                        txt_ "$VN_LENGTH{$v->{length}}{txt} ($VN_LENGTH{$v->{length}}{time})";
+                        if (auth->permLengthvote && canvote $v) {
+                            my $vote = tuwf->dbRowi('SELECT rid, length, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
+                            elm_ VNLengthVote => $VNWeb::VN::Elm::LENGTHVOTE, {
+                                uid => auth->uid, vid => $v->{id},
+                                vote => $vote->{rid}?$vote:undef,
+                            }, sub { span_ @_, ''};
+                        }
+                    };
                 } if $v->{length};
 
                 infobox_producers_ $v;

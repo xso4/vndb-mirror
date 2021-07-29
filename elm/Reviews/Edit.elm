@@ -107,8 +107,6 @@ update msg model =
     Deleted r -> ({ model | delState = Api.Error r }, Cmd.none)
 
 
-showrel r = "[" ++ (RDate.format (RDate.expand r.released)) ++ " " ++ (String.join "," r.lang) ++ "] " ++ r.title ++ " (" ++ r.id ++ ")"
-
 view : Model -> Html Msg
 view model =
   let minChars = if model.isfull then   1000 else 200
@@ -134,7 +132,7 @@ view model =
       , formField ""
         [ inputSelect "" model.rid Release [style "width" "500px" ] <|
           (Nothing, "No release selected")
-          :: List.map (\r -> (Just r.id, showrel r)) model.releases
+          :: List.map (\r -> (Just r.id, RDate.showrel r)) model.releases
           ++ if model.rid == Nothing || List.any (\r -> Just r.id == model.rid) model.releases then [] else [(model.rid, "Deleted or moved release: r"++Maybe.withDefault "" model.rid)]
         , br [] []
         , text "You do not have to select a release, but indicating which release your review is based on gives more context."

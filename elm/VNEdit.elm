@@ -514,8 +514,7 @@ view model =
 
     screenshots =
       let
-        showrel r = "[" ++ (RDate.format (RDate.expand r.released)) ++ " " ++ (String.join "," r.lang) ++ "] " ++ r.title ++ " (" ++ r.id ++ ")"
-        rellist = List.map (\r -> (Just r.id, showrel r)) model.releases
+        rellist = List.map (\r -> (Just r.id, RDate.showrel r)) model.releases
         scr n (id, i, rel) = (String.fromInt id, tr [] <|
           let getdim img = Maybe.map (\nfo -> (nfo.width, nfo.height)) img |> Maybe.withDefault (0,0)
               imgdim = getdim i.img
