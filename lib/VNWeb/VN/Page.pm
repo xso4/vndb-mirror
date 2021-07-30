@@ -11,7 +11,7 @@ use VNDB::Func 'fmtrating';
 # Also used by Chars::VNTab & Reviews::VNTab
 sub enrich_vn {
     my($v, $revonly) = @_;
-    enrich_merge id => 'SELECT id, c_votecount, c_released FROM vn WHERE id IN', $v;
+    enrich_merge id => 'SELECT id, c_votecount FROM vn WHERE id IN', $v;
     enrich_merge vid => 'SELECT id AS vid, title, original, c_released FROM vn WHERE id IN', $v->{relations};
     enrich_merge aid => 'SELECT id AS aid, title_romaji, title_kanji, year, type, ann_id, lastfetch FROM anime WHERE id IN', $v->{anime};
     enrich_extlinks v => $v;
@@ -77,8 +77,10 @@ sub og {
 # The voting and review options are hidden if nothing has been released yet.
 sub canvote {
     my($v) = @_;
-    my $minreleased = min grep $_, map $_->{released}, $v->{releases}->@*;
-    $minreleased && $minreleased <= strftime('%Y%m%d', gmtime)
+    $v->{_canvote} //= do {
+        my $minreleased = min grep $_, map $_->{released}, $v->{releases}->@*;
+        $minreleased && $minreleased <= strftime('%Y%m%d', gmtime)
+    };
 }
 
 
@@ -370,7 +372,7 @@ sub infobox_ {
                 tr_ class => 'nostripe', sub {
                     td_ colspan => 2, sub {
                         elm_ 'UList.VNPage', $VNWeb::ULists::Elm::WIDGET,
-                        ulists_widget_full_data $v, auth->uid, 1;
+                        ulists_widget_full_data $v, auth->uid, 1, canvote $v;
                     }
                 } if auth;
 

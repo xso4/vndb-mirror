@@ -42,10 +42,10 @@ sub ulists_widget_ {
 
 # Returns the data structure for the elm_UListWidget API response for the given VN.
 sub ulists_widget_full_data {
-    my($v, $uid, $vnpage) = @_;
+    my($v, $uid, $vnpage, $canvote) = @_;
     my $lst = tuwf->dbRowi('SELECT vid, vote, notes, started, finished FROM ulist_vns WHERE uid =', \$uid, 'AND vid =', \$v->{id});
     my $review = tuwf->dbVali('SELECT id FROM reviews WHERE uid =', \$uid, 'AND vid =', \$v->{id});
-    my $canvote = sprintf('%08d', $v->{c_released}||0) < strftime '%Y%m%d', gmtime;
+    $canvote //= sprintf('%08d', $v->{c_released}||0) <= strftime '%Y%m%d', gmtime;
     +{
         uid    => $uid,
         vid    => $v->{id},
