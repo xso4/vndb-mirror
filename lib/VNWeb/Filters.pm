@@ -102,7 +102,7 @@ sub filter_vn_compat {
         next if !$l;
         $l = [ map lc($_), ref $l ? @$l : $l ];
         $fil->{ s/^tag/tag_/rg } ||= [ map $_->{id}, tuwf->dbAlli(
-           'SELECT DISTINCT id FROM tags LEFT JOIN tags_aliases ON id = tag WHERE searchable AND lower(name) IN', $l, 'OR lower(alias) IN', $l
+           'SELECT DISTINCT id FROM tags WHERE searchable AND lower(name) IN', $l
         )->@* ];
         $mod++;
     }
