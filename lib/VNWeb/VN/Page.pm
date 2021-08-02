@@ -153,6 +153,32 @@ sub infobox_relations_ {
 }
 
 
+sub infobox_length_ {
+    my($v) = @_;
+
+    my $today = strftime('%Y%m%d', gmtime);
+    my $canvote = auth->permLengthvote && grep $_->{type} ne 'trial' && $_->{released} <= $today, $v->{releases}->@*;
+    return if !$v->{length} && !$canvote;
+
+    my $vote = tuwf->dbRowi('SELECT rid, length, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
+
+    # TODO: Display aggregated vote stats
+
+    tr_ sub {
+        td_ 'Length';
+        td_ sub {
+            txt_ $v->{length} ? "$VN_LENGTH{$v->{length}}{txt} ($VN_LENGTH{$v->{length}}{time})" : 'Unknown';
+            if ($canvote) {
+                elm_ VNLengthVote => $VNWeb::VN::Elm::LENGTHVOTE, {
+                    uid => auth->uid, vid => $v->{id},
+                    vote => $vote->{rid}?$vote:undef,
+                }, sub { span_ @_, ''};
+            }
+        };
+    };
+}
+
+
 sub infobox_producers_ {
     my($v) = @_;
 
@@ -353,20 +379,7 @@ sub infobox_ {
                     td_ $v->{alias} =~ s/\n/, /gr;
                 } if $v->{alias};
 
-                tr_ sub {
-                    td_ 'Length';
-                    td_ sub {
-                        txt_ "$VN_LENGTH{$v->{length}}{txt} ($VN_LENGTH{$v->{length}}{time})";
-                        if (auth->permLengthvote && canvote $v) {
-                            my $vote = tuwf->dbRowi('SELECT rid, length, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
-                            elm_ VNLengthVote => $VNWeb::VN::Elm::LENGTHVOTE, {
-                                uid => auth->uid, vid => $v->{id},
-                                vote => $vote->{rid}?$vote:undef,
-                            }, sub { span_ @_, ''};
-                        }
-                    };
-                } if $v->{length};
-
+                infobox_length_ $v;
                 infobox_producers_ $v;
                 infobox_relations_ $v;
 

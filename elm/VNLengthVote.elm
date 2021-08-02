@@ -4,6 +4,8 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Browser
+import Task
+import Date
 import Lib.Html exposing (..)
 import Lib.Api as Api
 import Lib.RDate as RDate
@@ -14,7 +16,7 @@ import Gen.Release as GR
 
 main : Program GV.Send Model Msg
 main = Browser.element
-  { init   = \e -> (init e, Cmd.none)
+  { init   = \e -> (init e, Date.today |> Task.perform Today)
   , view   = view
   , update = update
   , subscriptions = always Sub.none
@@ -23,12 +25,14 @@ main = Browser.element
 type alias Model =
   { state   : Api.State
   , open    : Bool
+  , today   : Int
   , uid     : String
   , vid     : String
   , rid     : String
   , defrid  : String
-  , length  : Int
-  , slength : Int
+  , hours   : Maybe Int
+  , minutes : Maybe Int
+  , length  : Int -- last saved length
   , notes   : String
   , rels    : Maybe (List (String, String))
   }
@@ -36,13 +40,15 @@ type alias Model =
 init : GV.Send -> Model
 init f =
   { state   = Api.Normal
+  , today   = 0
   , open    = False
   , uid     = f.uid
   , vid     = f.vid
-  , rid     = Maybe.map (\v -> v.rid)    f.vote |> Maybe.withDefault ""
+  , rid     = Maybe.map (\v -> v.rid) f.vote |> Maybe.withDefault ""
   , defrid  = ""
+  , hours   = Maybe.map (\v -> v.length // 60   ) f.vote
+  , minutes = Maybe.map (\v -> modBy 60 v.length) f.vote
   , length  = Maybe.map (\v -> v.length) f.vote |> Maybe.withDefault 0
-  , slength = Maybe.map (\v -> v.length) f.vote |> Maybe.withDefault 0
   , notes   = Maybe.map (\v -> v.notes)  f.vote |> Maybe.withDefault ""
   , rels    = Nothing
   }
@@ -51,12 +57,14 @@ encode : Model -> GV.Send
 encode m =
   { uid = m.uid
   , vid = m.vid
-  , vote = if m.length == 0 then Nothing else Just { rid = m.rid, length = m.length, notes = m.notes }
+  , vote = Maybe.map (\h -> { rid = m.rid, notes = m.notes, length = h * 60 + Maybe.withDefault 0 m.minutes }) m.hours
   }
 
 type Msg
   = Open Bool
-  | Length (Maybe Int)
+  | Today Date.Date
+  | Hours (Maybe Int)
+  | Minutes (Maybe Int)
   | Release String
   | Notes String
   | RelLoaded GApi.Response
@@ -72,21 +80,29 @@ update msg model =
       if b && model.rels == Nothing
       then ({ model | open = b, state = Api.Loading }, GR.send { vid = model.vid } RelLoaded)
       else ({ model | open = b }, Cmd.none)
-    Length n  -> ({ model | length = 60 * Maybe.withDefault 0 n }, Cmd.none)
+    Today d   -> ({ model | today = RDate.fromDate d |> RDate.compact }, Cmd.none)
+    Hours n   -> ({ model | hours = n }, Cmd.none)
+    Minutes n -> ({ model | minutes = n }, Cmd.none)
     Release s -> ({ model | rid = s }, Cmd.none)
     Notes s   -> ({ model | notes  = s }, Cmd.none)
     RelLoaded (GApi.Releases rels) ->
-      let def = case rels of
-                  [r] -> r.id
+      let rel r = if r.rtype /= "trial" && r.released <= model.today then Just (r.id, RDate.showrel r) else Nothing
+          frels = List.filterMap rel rels
+          def = case frels of
+                  [(r,_)] -> r
                   _ -> ""
       in ({ model | state = Api.Normal
-          , rels = Just <| List.map (\r -> (r.id, RDate.showrel r)) rels
+          , rels = Just frels
+          , defrid = def
           , rid = if model.rid == "" then def else model.rid
          }, Cmd.none)
     RelLoaded e -> ({ model | state = Api.Error e }, Cmd.none)
-    Delete      -> let m = { model | length = 0, rid = model.defrid, notes = "", state = Api.Loading } in (m, GV.send (encode m) Submitted)
+    Delete      -> let m = { model | hours = Nothing, minutes = Nothing, rid = model.defrid, notes = "", state = Api.Loading } in (m, GV.send (encode m) Submitted)
     Submit      -> ({ model | state = Api.Loading }, GV.send (encode model) Submitted)
-    Submitted (GApi.Success) -> ({ model | open = False, state = Api.Normal, slength = model.length }, Cmd.none)
+    Submitted (GApi.Success) ->
+      ({ model | open = False, state = Api.Normal
+       , length = (Maybe.withDefault 0 model.hours) * 60 + Maybe.withDefault 0 model.minutes
+       }, Cmd.none)
     Submitted r -> ({ model | state = Api.Error r }, Cmd.none)
 
 
@@ -94,25 +110,34 @@ view : Model -> Html Msg
 view model = span [] <|
   let
     frm = [ form_ "" (if model.rid == "" then Open True else Submit) False
-      [ text "My play time: "
-      , inputNumber "" (if model.length == 0 then Nothing else Just (model.length//60)) Length <|
-        [ Html.Attributes.min "1", Html.Attributes.max "500", required True ]
-      , text " hours"
+      [ br [] []
+      , text "How long did you take to finish this VN?"
       , br [] []
-      , if model.defrid /= "" then text "" else
-        inputSelect "" model.rid Release [style "width" "100%"] <|
-          ("", "-- select release --") :: (Maybe.withDefault [] model.rels)
+      , text "- Only vote if you've completed all normal/true endings."
+      , br [] []
+      , text "- Exact measurements preferred, but rough estimates are accepted too."
+      , br [] []
+      , text "Play time: "
+      , inputNumber "" model.hours Hours [ Html.Attributes.min "1", Html.Attributes.max "500", required True ]
+      , text " hours "
+      , inputNumber "" model.minutes Minutes [ Html.Attributes.min "0", Html.Attributes.max "59" ]
+      , text " minutes"
+      , br [] []
+      , if model.defrid /= "" then text "" else -- TODO: Handle missing model.rid
+        inputSelect "" model.rid Release [style "width" "100%"] <| ("", "-- select release --") :: (Maybe.withDefault [] model.rels)
       , inputTextArea "" model.notes Notes
         [rows 2, cols 30, style "width" "100%", placeholder "(Optional) comments that may be helpful. For example, did you complete all routes, did you use auto mode? etc." ]
-      , if model.slength == 0 then text "" else inputButton "Delete my vote" Delete [style "float" "right"]
-      , if model.length == 0 || model.rid == "" then text "" else submitButton "Save" model.state True
+      , if model.length == 0 then text "" else inputButton "Delete my vote" Delete [style "float" "right"]
+      , if model.hours == Nothing || model.rid == "" then text "" else submitButton "Save" model.state True
       , inputButton "Cancel" (Open False) []
+      , br_ 2
       ] ]
   in
     [ text " "
     , a [ onClickD (Open (not model.open)), href "#" ]
-      [ text <| if model.slength == 0 then "Vote »"
-        else "My vote: " ++ String.fromInt (model.slength // 60) ++ "h" ] -- TODO minute
+      [ text <| if model.length == 0 then "Vote »"
+        else "My vote: " ++ String.fromInt (model.length // 60) ++ "h"
+                         ++ if modBy 60 model.length /= 0 then String.fromInt (modBy 60 model.length) ++ "m" else "" ]
     ] ++ case (model.open, model.state) of
           (False, _) -> []
           (_, Api.Normal) -> frm
