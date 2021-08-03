@@ -56,11 +56,14 @@ init f =
   , rels    = Nothing
   }
 
+enclen : Model -> Int
+enclen m = (Maybe.withDefault 0 m.hours) * 60 + Maybe.withDefault 0 m.minutes
+
 encode : Model -> GV.Send
 encode m =
   { uid = m.uid
   , vid = m.vid
-  , vote = Maybe.map (\h -> { rid = m.rid, notes = m.notes, speed = m.speed, length = h * 60 + Maybe.withDefault 0 m.minutes }) m.hours
+  , vote = if enclen m == 0 then Nothing else Just { rid = m.rid, notes = m.notes, speed = m.speed, length = enclen m }
   }
 
 type Msg
@@ -116,8 +119,9 @@ update msg model =
 view : Model -> Html Msg
 view model = span [] <|
   let
+    cansubmit = enclen model > 0 && model.speed /= -1 && model.rid /= ""
     rels = Maybe.withDefault [] model.rels
-    frm = [ form_ "" (if model.rid == "" then Noop else Submit) False
+    frm = [ form_ "" (if cansubmit then Submit else Noop) False
       [ br [] []
       , text "How long did you take to finish this VN?"
       , br [] []
@@ -126,7 +130,7 @@ view model = span [] <|
       , text "- Exact measurements preferred, but rough estimates are accepted too."
       , br [] []
       , text "Play time: "
-      , inputNumber "vnlengthhours" model.hours Hours [ Html.Attributes.min "1", Html.Attributes.max "500", required True ]
+      , inputNumber "vnlengthhours" model.hours Hours [ Html.Attributes.min "0", Html.Attributes.max "500" ]
       , text " hours "
       , inputNumber "" model.minutes Minutes [ Html.Attributes.min "0", Html.Attributes.max "59" ]
       , text " minutes"
@@ -144,7 +148,7 @@ view model = span [] <|
       , inputTextArea "" model.notes Notes
         [rows 2, cols 30, style "width" "100%", placeholder "(Optional) comments that may be helpful. For example, did you complete all the bad endings, how did you measure? etc." ]
       , if model.length == 0 then text "" else inputButton "Delete my vote" Delete [style "float" "right"]
-      , if model.hours == Nothing || model.speed == -1 || model.rid == "" then text "" else submitButton "Save" model.state True
+      , if cansubmit then submitButton "Save" model.state True else text ""
       , inputButton "Cancel" (Open False) []
       , br_ 2
       ] ]
