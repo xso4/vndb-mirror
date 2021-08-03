@@ -1153,13 +1153,13 @@ CREATE TABLE vn_staff_hist (
 
 -- vn_length_votes
 CREATE TABLE vn_length_votes (
-  vid        vndbid NOT NULL,
-  rid        vndbid NOT NULL,
-  date       timestamptz NOT NULL DEFAULT NOW(),
-  uid        vndbid,
-  length     smallint NOT NULL, -- minutes
-  speed      smallint NOT NULL, -- 0=slow, 1=normal, 2=fast
-  notes      text NOT NULL DEFAULT ''
+  vid        vndbid NOT NULL, -- [pub]
+  rid        vndbid NOT NULL, -- [pub]
+  date       timestamptz NOT NULL DEFAULT NOW(), -- [pub]
+  uid        vndbid, -- [pub]
+  length     smallint NOT NULL, -- [pub] minutes
+  speed      smallint NOT NULL, -- [pub] 0=slow, 1=normal, 2=fast
+  notes      text NOT NULL DEFAULT '' -- [pub]
 );
 
 -- wikidata

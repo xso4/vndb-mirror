@@ -367,7 +367,9 @@ view model =
         , text "Short description of the main story. Please do not include spoilers, and don't forget to list the source in case you didn't write the description yourself."
         ]
       , formField "olang::Original language" [ inputSelect "olang" model.olang OLang [] GT.languages ]
-      , formField "length::Length" [ inputSelect "length" model.length Length [] GT.vnLengths ]
+      , formField "length::Length"
+        [ inputSelect "length" model.length Length [] GT.vnLengths
+        , text " (only displayed if there are no length votes)" ]
       , formField "l_wikidata::Wikidata ID" [ inputWikidata "l_wikidata" model.lWikidata LWikidata [onInvalid (Invalid General)] ]
       , formField "l_renai::Renai.us link" [ text "http://renai.us/game/", inputText "l_renai" model.lRenai LRenai (onInvalid (Invalid General) :: GVE.valL_Renai), text ".shtml" ]
 

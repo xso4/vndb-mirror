@@ -97,7 +97,8 @@ my %tables = (
                                 .' AND EXISTS(SELECT 1 FROM ulist_labels ul WHERE ul.uid = ulist_vns_labels.uid AND id = lbl AND NOT ul.private)' },
     users               => { where => 'id IN(SELECT DISTINCT uvl.uid FROM ulist_vns_labels uvl JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl WHERE NOT ul.private)'
                                  .' OR id IN(SELECT DISTINCT uid FROM tags_vn)'
-                                 .' OR id IN(SELECT DISTINCT uid FROM image_votes)' },
+                                 .' OR id IN(SELECT DISTINCT uid FROM image_votes)'
+                                 .' OR id IN(SELECT DISTINCT uid FROM vn_length_votes)' },
     vn                  => { where => 'NOT hidden' },
     vn_anime            => { where => 'id IN(SELECT id FROM vn WHERE NOT hidden)' },
     vn_relations        => { where => 'id IN(SELECT id FROM vn WHERE NOT hidden)' },
@@ -106,6 +107,8 @@ my %tables = (
                                 .' AND aid IN(SELECT sa.aid FROM staff_alias sa JOIN staff s ON s.id = sa.id WHERE NOT s.hidden)'
                                 .' AND cid IN(SELECT id FROM chars WHERE NOT hidden)' },
     vn_staff            => { where => 'id IN(SELECT id FROM vn WHERE NOT hidden) AND aid IN(SELECT sa.aid FROM staff_alias sa JOIN staff s ON s.id = sa.id WHERE NOT s.hidden)' },
+    vn_length_votes     => { where => 'vid IN(SELECT id FROM vn WHERE NOT hidden) AND rid IN(SELECT id FROM releases WHERE NOT hidden)'
+                           , order => 'vid, uid' },
     wikidata            => { where => q{id IN(SELECT l_wikidata FROM producers WHERE NOT hidden
                                         UNION SELECT l_wikidata FROM staff WHERE NOT hidden
                                         UNION SELECT l_wikidata FROM vn WHERE NOT hidden)} },

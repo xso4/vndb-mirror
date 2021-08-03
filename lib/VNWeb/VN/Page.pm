@@ -157,21 +157,40 @@ sub infobox_length_ {
     my($v) = @_;
 
     my $today = strftime('%Y%m%d', gmtime);
-    my $canvote = auth->permLengthvote && grep $_->{type} ne 'trial' && $_->{released} <= $today, $v->{releases}->@*;
-    return if !$v->{length} && !$canvote;
+    return if !grep $_->{type} ne 'trial' && $_->{released} <= $today, $v->{releases}->@*;
 
-    my $vote = $canvote && tuwf->dbRowi('SELECT rid, length, speed, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
+    my $stats = tuwf->dbRowi('
+        SELECT count(*) as count, avg(l.length)::int as avg, stddev_pop(l.length::real)::int as stddev
+          FROM vn_length_votes l
+          LEFT JOIN users u ON u.id = l.uid
+         WHERE u.perm_lengthvote IS DISTINCT FROM false AND l.vid =', \$v->{id});
+    return if !$v->{length} && !$stats->{count} && !auth->permLengthvote;
 
-    # TODO: Display aggregated vote stats
+    my $my = auth->permLengthvote && tuwf->dbRowi('SELECT rid, length, speed, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
+
+    my sub fmtlength {
+        my($l) = @_;
+        +($l>60?floor($l/60).'h':'').($l%60?sprintf '%dm', $l%60:'');
+    }
 
     tr_ sub {
         td_ 'Length';
         td_ sub {
-            txt_ $v->{length} ? "$VN_LENGTH{$v->{length}}{txt} ($VN_LENGTH{$v->{length}}{time})" : 'Unknown';
-            if ($canvote) {
+            if($stats->{count}) {
+                txt_ fmtlength $stats->{avg};
+                txt_ ' σ '.fmtlength $stats->{stddev} if $stats->{stddev};
+                txt_ ' (';
+                a_ href => "/$v->{id}/lengthvotes", sprintf '%d vote%s', $stats->{count}, $stats->{count}==1?'':'s';
+                txt_ ').';
+            } elsif($v->{length}) {
+                txt_ "$VN_LENGTH{$v->{length}}{txt} ($VN_LENGTH{$v->{length}}{time})";
+            } else {
+                txt_ 'Unknown';
+            }
+            if (auth->permLengthvote) {
                 elm_ VNLengthVote => $VNWeb::VN::Elm::LENGTHVOTE, {
                     uid => auth->uid, vid => $v->{id},
-                    vote => $vote->{rid}?$vote:undef,
+                    vote => $my->{rid}?$my:undef,
                 }, sub { span_ @_, ''};
             }
         };
