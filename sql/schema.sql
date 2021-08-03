@@ -1158,6 +1158,7 @@ CREATE TABLE vn_length_votes (
   date       timestamptz NOT NULL DEFAULT NOW(),
   uid        vndbid,
   length     smallint NOT NULL, -- minutes
+  speed      smallint NOT NULL, -- 0=slow, 1=normal, 2=fast
   notes      text NOT NULL DEFAULT ''
 );
 

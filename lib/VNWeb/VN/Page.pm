@@ -160,7 +160,7 @@ sub infobox_length_ {
     my $canvote = auth->permLengthvote && grep $_->{type} ne 'trial' && $_->{released} <= $today, $v->{releases}->@*;
     return if !$v->{length} && !$canvote;
 
-    my $vote = tuwf->dbRowi('SELECT rid, length, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
+    my $vote = tuwf->dbRowi('SELECT rid, length, speed, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
 
     # TODO: Display aggregated vote stats
 

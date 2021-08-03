@@ -37,6 +37,7 @@ our $LENGTHVOTE = form_compile any => {
     vote   => { type => 'hash', required => 0, keys => {
         rid    => { vndbid => 'r' },
         length => { uint => 1, range => [1,32767] },
+        speed  => { uint => 1, enum => [0,1,2] },
         notes  => { required => 0, default => '' },
     } },
 };
