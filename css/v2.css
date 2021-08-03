@@ -874,6 +874,7 @@ div.lengthlist {
     .tc3 { text-align: right }
     .tc3a, .tc3b { width: 35px; padding-left: 0; padding-right: 0; text-align: right; white-space: nowrap }
     .tc4 { width: 100px; padding-left: 10px }
+    .tc5 { width: 50px }
 }
 
 

@@ -32,7 +32,8 @@ sub listing_ {
                 td_ class => 'tc2', sub { txt_ 'Title';  sortable_ 'title', $opt, \&url } if !$vn;
                 td_ class => 'tc3', colspan => 2, sub { txt_ 'Time'; sortable_ 'length', $opt, \&url };
                 td_ class => 'tc4', sub { txt_ 'Speed';  sortable_ 'speed', $opt, \&url };
-                td_ class => 'tc5', 'Notes';
+                td_ class => 'tc5', 'Rel';
+                td_ class => 'tc6', 'Notes';
             } };
             tr_ sub {
                 td_ class => 'tc1', fmtdate $_->{date};
@@ -43,7 +44,8 @@ sub listing_ {
                 td_ class => 'tc3a', $_->{length} >= 60 ? floor($_->{length}/60).'h' : '';
                 td_ class => 'tc3b', $_->{length} % 60 > 0 ? ($_->{length}%60).'m' : '';
                 td_ class => 'tc4', ['Slow','Normal','Fast']->[$_->{speed}];
-                td_ class => 'tc5', sub { lit_ bb_format $_->{notes}, inline => 1 };
+                td_ class => 'tc5', sub { a_ href => "/$_->{rid}", $_->{rid} };
+                td_ class => 'tc6', sub { lit_ bb_format $_->{notes}, inline => 1 };
             } for @$list;
         };
     };
@@ -67,7 +69,7 @@ TUWF::get qr{/(?<thing>$RE{vid}|$RE{uid})/lengthvotes}, sub {
     my $count = tuwf->dbVali('SELECT COUNT(*) FROM vn_length_votes l WHERE', $where);
 
     my $lst = tuwf->dbPagei({results => $opt->{s}->results, page => $opt->{p}},
-      'SELECT l.uid, l.vid, l.length, l.speed, l.notes, ', sql_totime('l.date'), 'AS date, ',
+      'SELECT l.uid, l.vid, l.length, l.speed, l.notes, l.rid, ', sql_totime('l.date'), 'AS date, ',
               $vn ? sql_user() : 'v.title, v.original', '
          FROM vn_length_votes l',
          $vn ? 'LEFT JOIN users u ON u.id = l.uid'
