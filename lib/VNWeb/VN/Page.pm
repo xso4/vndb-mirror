@@ -159,27 +159,38 @@ sub infobox_length_ {
     my $today = strftime('%Y%m%d', gmtime);
     return if !grep $_->{type} ne 'trial' && $_->{released} <= $today, $v->{releases}->@*;
 
-    my $stats = tuwf->dbRowi('
-        SELECT count(*) as count, avg(l.length)::int as avg, stddev_pop(l.length::real)::int as stddev
+    my $stats = tuwf->dbAlli('
+        SELECT speed, count(*) as count, stddev_pop(l.length::real)::int as stddev
+             , percentile_cont(0.5) WITHIN GROUP (ORDER BY l.length) AS median
           FROM vn_length_votes l
           LEFT JOIN users u ON u.id = l.uid
-         WHERE u.perm_lengthvote IS DISTINCT FROM false AND l.vid =', \$v->{id});
-    return if !$v->{length} && !$stats->{count} && !auth->permLengthvote;
+         WHERE u.perm_lengthvote IS DISTINCT FROM false AND l.vid =', \$v->{id}, '
+         GROUP BY speed ORDER BY speed');
+    return if !$v->{length} && !@$stats && !VNWeb::VN::Length::can_vote();
 
     my $my = VNWeb::VN::Length::can_vote() && tuwf->dbRowi('SELECT rid, length, speed, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
 
     tr_ sub {
         td_ 'Play time';
         td_ sub {
-            if($stats->{count}) {
-                vnlength_ $stats->{avg};
-                if ($stats->{stddev}) {
-                    txt_ ' σ ';
-                    vnlength_ $stats->{stddev};
-                }
-                txt_ ' (';
-                a_ href => "/$v->{id}/lengthvotes", sprintf '%d vote%s', $stats->{count}, $stats->{count}==1?'':'s';
-                txt_ ').';
+            if(@$stats) {
+                my $first=0;
+                table_ class => 'lengthstats', sub {
+                    tr_ sub {
+                        td_ ['Slow', 'Normal', 'Fast']->[$_->{speed}].':';
+                        td_ sub { vnlength_ $_->{median} };
+                        td_ sub {
+                            if ($_->{stddev}) {
+                                txt_ 'σ ';
+                                vnlength_ $_->{stddev};
+                            }
+                        };
+                        td_ sub {
+                            txt_ sprintf ' (%d vote%s).', $_->{count}, $_->{count}==1?'':'s';
+                            a_ href => "/$v->{id}/lengthvotes", style => @$stats > 1 ? 'float: right' : undef, ' All votes »' if !$first++;
+                        };
+                    } for @$stats;
+                };
             } elsif($v->{length}) {
                 txt_ "$VN_LENGTH{$v->{length}}{txt} ($VN_LENGTH{$v->{length}}{time})";
             } else {

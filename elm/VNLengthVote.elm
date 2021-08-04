@@ -117,12 +117,12 @@ update msg model =
 
 
 view : Model -> Html Msg
-view model = span [] <|
+view model = div [class "lengthvotefrm"] <|
   let
     cansubmit = enclen model > 0 && model.speed /= -1 && model.rid /= ""
     rels = Maybe.withDefault [] model.rels
     frm = [ form_ "" (if cansubmit then Submit else Noop) False
-      [ br [] []
+      [ br_ 2
       , text "How long did you take to finish this VN?"
       , br [] []
       , text "- Only vote if you've completed all normal/true endings."
@@ -154,12 +154,12 @@ view model = span [] <|
       ] ]
   in
     [ text " "
-    , a [ onClickD (Open (not model.open)), href "#" ]
+    , a [ onClickD (Open (not model.open)), href "#", style "float" "right" ]
       [ text <| if model.length == 0 then "Vote »"
         else "My vote: " ++ String.fromInt (model.length // 60) ++ "h"
                          ++ if modBy 60 model.length /= 0 then String.fromInt (modBy 60 model.length) ++ "m" else "" ]
     ] ++ case (model.open, model.state) of
           (False, _) -> []
           (_, Api.Normal) -> frm
-          (_, Api.Error e) -> [ br [] [], b [ class "standout" ] [ text ("Error: " ++ Api.showResponse e) ] ]
-          (_, Api.Loading) -> [ span [ class "spinner" ] [] ]
+          (_, Api.Error e) -> [ br_ 2, b [ class "standout" ] [ text ("Error: " ++ Api.showResponse e) ] ]
+          (_, Api.Loading) -> [ span [ style "float" "right", class "spinner" ] [] ]
