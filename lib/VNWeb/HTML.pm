@@ -8,7 +8,7 @@ use Encode 'encode_utf8', 'decode_utf8';
 use JSON::XS;
 use TUWF ':html5_', 'uri_escape', 'html_escape', 'mkclass';
 use Exporter 'import';
-use POSIX 'ceil', 'strftime';
+use POSIX 'ceil', 'floor', 'strftime';
 use Carp 'croak';
 use JSON::XS;
 use VNDB::Config;
@@ -27,6 +27,7 @@ our @EXPORT = qw/
     join_
     user_ user_displayname
     rdate rdate_
+    vnlength_
     spoil_
     elm_
     framework_
@@ -116,6 +117,16 @@ sub rdate {
 sub rdate_ {
     my $str = rdate $_[0];
     $_[0] > strftime('%Y%m%d', gmtime) ? b_ class => 'future', $str : txt_ $str;
+}
+
+
+sub vnlength_ {
+    my($l) = @_;
+    my $h = floor($l/60);
+    my $m = $l % 60;
+    txt_ "${h}h" if $h;
+    b_ class => 'grayedout', "${m}m" if $h && $m;
+    txt_ "${m}m" if !$h && $m;
 }
 
 

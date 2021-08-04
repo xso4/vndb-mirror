@@ -30,7 +30,7 @@ sub listing_ {
                 td_ class => 'tc1', sub { txt_ 'Date';   sortable_ 'date', $opt, \&url };
                 td_ class => 'tc2', sub { txt_ 'User';   sortable_ 'username', $opt, \&url } if $vn;
                 td_ class => 'tc2', sub { txt_ 'Title';  sortable_ 'title', $opt, \&url } if !$vn;
-                td_ class => 'tc3', colspan => 2, sub { txt_ 'Time'; sortable_ 'length', $opt, \&url };
+                td_ class => 'tc3', sub { txt_ 'Time';   sortable_ 'length', $opt, \&url };
                 td_ class => 'tc4', sub { txt_ 'Speed';  sortable_ 'speed', $opt, \&url };
                 td_ class => 'tc5', 'Rel';
                 td_ class => 'tc6', 'Notes';
@@ -41,8 +41,7 @@ sub listing_ {
                 td_ class => 'tc2', sub {
                     a_ href => "/$_->{vid}", title => $_->{original}||$_->{title}, $_->{title};
                 } if !$vn;
-                td_ class => 'tc3a', $_->{length} >= 60 ? floor($_->{length}/60).'h' : '';
-                td_ class => 'tc3b', $_->{length} % 60 > 0 ? ($_->{length}%60).'m' : '';
+                td_ class => 'tc3', sub { vnlength_ $_->{length} };
                 td_ class => 'tc4', ['Slow','Normal','Fast']->[$_->{speed}];
                 td_ class => 'tc5', sub { a_ href => "/$_->{rid}", $_->{rid} };
                 td_ class => 'tc6', sub { lit_ bb_format $_->{notes}, inline => 1 };

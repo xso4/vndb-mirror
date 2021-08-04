@@ -168,17 +168,15 @@ sub infobox_length_ {
 
     my $my = auth->permLengthvote && tuwf->dbRowi('SELECT rid, length, speed, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
 
-    my sub fmtlength {
-        my($l) = @_;
-        +($l>60?floor($l/60).'h':'').($l%60?sprintf '%dm', $l%60:'');
-    }
-
     tr_ sub {
         td_ 'Length';
         td_ sub {
             if($stats->{count}) {
-                txt_ fmtlength $stats->{avg};
-                txt_ ' σ '.fmtlength $stats->{stddev} if $stats->{stddev};
+                vnlength_ $stats->{avg};
+                if ($stats->{stddev}) {
+                    txt_ ' σ ';
+                    vnlength_ $stats->{stddev};
+                }
                 txt_ ' (';
                 a_ href => "/$v->{id}/lengthvotes", sprintf '%d vote%s', $stats->{count}, $stats->{count}==1?'':'s';
                 txt_ ').';
