@@ -47,6 +47,15 @@ sub _info_table_ {
             a_ href => "/$u->{id}/ulist?votes=1", 'Browse votes »';
         }
     };
+    my $lengthvotes = tuwf->dbRowi('SELECT count(*) AS count, sum(length) AS sum FROM vn_length_votes WHERE uid =', \$u->{id});
+    tr_ sub {
+        td_ 'Play times';
+        td_ sub {
+            vnlength_ $lengthvotes->{sum};
+            txt_ sprintf ' from %d submitted play times. ', $lengthvotes->{count};
+            a_ href => "/$u->{id}/lengthvotes", 'Browse votes »';
+        };
+    } if $lengthvotes->{count};
     tr_ sub {
         my $vns = tuwf->dbVali(
             'SELECT COUNT(DISTINCT uvl.vid) FROM ulist_vns_labels uvl',

@@ -2,6 +2,9 @@ package VNWeb::VN::Length;
 
 use VNWeb::Prelude;
 
+# Also used from VN::Page
+sub can_vote { auth->permDbmod || (auth->permLengthvote && !global_settings->{lockdown_edit}) }
+
 sub opts {
     my($vn) = @_;
     tableopts
@@ -85,6 +88,30 @@ TUWF::get qr{/(?<thing>$RE{vid}|$RE{uid})/lengthvotes}, sub {
         };
         listing_ $opt, $count, $lst, $vn if @$lst;
     };
+};
+
+
+our $LENGTHVOTE = form_compile any => {
+    uid    => { vndbid => 'u' },
+    vid    => { vndbid => 'v' },
+    vote   => { type => 'hash', required => 0, keys => {
+        rid    => { vndbid => 'r' },
+        length => { uint => 1, range => [1,32767] },
+        speed  => { uint => 1, enum => [0,1,2] },
+        notes  => { required => 0, default => '' },
+    } },
+};
+
+elm_api VNLengthVote => undef, $LENGTHVOTE, sub {
+    my($data) = @_;
+    return elm_Unauth if !can_vote() || $data->{uid} ne auth->uid;
+    my %where = ( uid => $data->{uid}, vid => $data->{vid} );
+    tuwf->dbExeci('DELETE FROM vn_length_votes WHERE', \%where) if !$data->{vote};
+    tuwf->dbExeci(
+        'INSERT INTO vn_length_votes', { %where, $data->{vote}->%* },
+        'ON CONFLICT (uid, vid) DO UPDATE SET', $data->{vote}
+    ) if $data->{vote};
+    return elm_Success;
 };
 
 1;

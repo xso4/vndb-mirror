@@ -156,6 +156,7 @@ CREATE        INDEX vn_seiyuu_aid          ON vn_seiyuu (aid); -- Only used on /
 CREATE        INDEX vn_seiyuu_cid          ON vn_seiyuu (cid); -- Only used on /c+?
 CREATE        INDEX vn_staff_aid           ON vn_staff (aid);
 CREATE UNIQUE INDEX vn_length_votes_pkey   ON vn_length_votes (vid, uid);
+CREATE        INDEX vn_length_votes_uid    ON vn_length_votes (uid);
 CREATE UNIQUE INDEX changes_itemrev        ON changes (itemid, rev);
 CREATE UNIQUE INDEX chars_vns_pkey         ON chars_vns (id, vid, COALESCE(rid, 'v1')); -- 'v1' is an invalid release id, but works as a 'no release specified' value in the UNIQUE qualifier.
 CREATE UNIQUE INDEX chars_vns_hist_pkey    ON chars_vns_hist (chid, vid, COALESCE(rid, 'v1'));

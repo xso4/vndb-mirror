@@ -166,10 +166,10 @@ sub infobox_length_ {
          WHERE u.perm_lengthvote IS DISTINCT FROM false AND l.vid =', \$v->{id});
     return if !$v->{length} && !$stats->{count} && !auth->permLengthvote;
 
-    my $my = auth->permLengthvote && tuwf->dbRowi('SELECT rid, length, speed, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
+    my $my = VNWeb::VN::Length::can_vote() && tuwf->dbRowi('SELECT rid, length, speed, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
 
     tr_ sub {
-        td_ 'Length';
+        td_ 'Play time';
         td_ sub {
             if($stats->{count}) {
                 vnlength_ $stats->{avg};
@@ -186,7 +186,7 @@ sub infobox_length_ {
                 txt_ 'Unknown';
             }
             if (auth->permLengthvote) {
-                elm_ VNLengthVote => $VNWeb::VN::Elm::LENGTHVOTE, {
+                elm_ VNLengthVote => $VNWeb::VN::Length::LENGTHVOTE, {
                     uid => auth->uid, vid => $v->{id},
                     vote => $my->{rid}?$my:undef,
                 }, sub { span_ @_, ''};
