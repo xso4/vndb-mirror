@@ -44,7 +44,7 @@ view model =
   div [ class "ulistvn elm_dd_input" ]
   [ span [] (UW.viewStatus model)
   , b [] [ text "User options" ]
-  , table [ style "margin" "4px 0 0 0" ] <|
+  , table [ style "margin" "4px 0 0 0", style "width" "100%" ] <|
     [ tr [ class "odd" ]
       [ td [ class "key" ] [ text "My labels" ]
       , td [ colspan (if model.canvote then 2 else 1) ] [ Html.map UW.Label (LE.view model.labels "- select label -") ]
