@@ -24,6 +24,11 @@ sub listing_ {
 
     my sub url { '?'.query_encode %$opt, @_ }
 
+    if(auth->permDbmod) {
+        form_ method => 'post', action => '/lengthvotes-edit';
+        input_ type => 'hidden', class => 'hidden', name => 'url', value => tuwf->reqPath.tuwf->reqQuery, undef;
+    }
+
     paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 't';
     div_ class => 'mainbox browse lengthlist', sub {
         table_ class => 'stripe', sub {
@@ -35,6 +40,9 @@ sub listing_ {
                 td_ class => 'tc4', sub { txt_ 'Speed';  sortable_ 'speed', $opt, \&url };
                 td_ class => 'tc5', 'Rel';
                 td_ class => 'tc6', 'Notes';
+                td_ class => 'tc7', sub {
+                    input_ type => 'submit', class => 'submit', value => 'Del', undef;
+                } if auth->permDbmod;
             } };
             tr_ sub {
                 td_ class => 'tc1', fmtdate $_->{date};
@@ -46,10 +54,15 @@ sub listing_ {
                 td_ class => 'tc4', ['Slow','Normal','Fast']->[$_->{speed}];
                 td_ class => 'tc5', sub { a_ href => "/$_->{rid}", $_->{rid} };
                 td_ class => 'tc6', sub { lit_ bb_format $_->{notes}, inline => 1 };
+                td_ class => 'tc7', sub {
+                    input_ type => 'checkbox', name => 'del', value => "$_->{vid}-$_->{uid}", undef
+                } if auth->permDbmod;
             } for @$list;
         };
     };
     paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 'b';
+
+    end_ 'form' if auth->permDbmod;
 }
 
 
@@ -88,6 +101,21 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
         };
         listing_ $opt, $count, $lst, $mode if @$lst;
     };
+};
+
+
+TUWF::post '/lengthvotes-edit', sub {
+    return tuwf->resDenied if !auth->permDbmod || !samesite;
+    my $frm = tuwf->validate(post =>
+        url => {},
+        del => { required => 0, type => 'array', scalar => 1, values => { regex => "$RE{vid}-$RE{uid}" } }
+    )->data;
+    tuwf->dbExeci('DELETE FROM vn_length_votes WHERE', {
+        vid => (split /-/)[0],
+        uid => (split /-/)[1],
+    }) for $frm->{del}->@*;
+    auth->audit(undef, 'lengthvote-del', join ', ', sort $frm->{del}->@*) if $frm->{del}->@*;
+    tuwf->resRedirect($frm->{url}, 'post');
 };
 
 

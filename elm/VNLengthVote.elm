@@ -142,7 +142,7 @@ view model = div [class "lengthvotefrm"] <|
       , inputSelect "" model.speed Speed [style "width" "100%"]
         [ (-1, "-- how do you estimate your read/play speed? --")
         , (0, "Slow (e.g. low language proficiency or extra time spent on gameplay)")
-        , (1, "Normal")
+        , (1, "Normal (no content skipped, all voices listened to end)")
         , (2, "Fast (e.g. fast reader or skipping through voices and gameplay)")
         ]
       , inputTextArea "" model.notes Notes
