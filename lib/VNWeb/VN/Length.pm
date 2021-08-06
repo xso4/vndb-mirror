@@ -66,6 +66,37 @@ sub listing_ {
 }
 
 
+sub stats_ {
+    my($o) = @_;
+    my $stats = tuwf->dbAlli('
+        SELECT speed, count(*) as count, avg(l.length) as avg
+             , stddev_pop(l.length::real)::int as stddev
+             , percentile_cont(0.5) WITHIN GROUP (ORDER BY l.length) AS median
+          FROM vn_length_votes l
+          LEFT JOIN users u ON u.id = l.uid
+         WHERE u.perm_lengthvote IS DISTINCT FROM false AND l.vid =', \$o->{id}, '
+         GROUP BY GROUPING SETS ((speed),()) ORDER BY speed'
+    );
+
+    table_ style => 'margin: 0 auto', sub {
+        thead_ sub { tr_ sub {
+                td_ 'Speed';
+                td_ 'Median';
+                td_ 'Average';
+                td_ 'Stddev';
+                td_ '# Votes';
+            } };
+        tr_ sub {
+            td_ ['Slow', 'Normal', 'Fast', 'Total']->[$_->{speed}//3];
+            td_ sub { vnlength_ $_->{median} };
+            td_ sub { vnlength_ $_->{avg} };
+            td_ sub { vnlength_ $_->{stddev} if $_->{stddev} };
+            td_ $_->{count};
+        } for @$stats;
+    };
+}
+
+
 TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
     my $thing = tuwf->capture('thing');
     my $o = $thing && dbobj $thing;
@@ -98,6 +129,7 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
         div_ class => 'mainbox', sub {
             h1_ $title;
             p_ 'Nothing to list. :(' if !@$lst;
+            stats_ $o if $mode eq 'v' && @$lst;
         };
         listing_ $opt, $count, $lst, $mode if @$lst;
     };
