@@ -161,7 +161,7 @@ sub infobox_length_ {
 
     my $stats = tuwf->dbRowi('
         SELECT count(*) as count
-             , percentile_cont(0.5) WITHIN GROUP (ORDER BY l.length + (l.length/2 * (l.speed-1))) AS median
+             , percentile_cont(0.5) WITHIN GROUP (ORDER BY l.length + (l.length/4 * (l.speed-1))) AS median
           FROM vn_length_votes l
           LEFT JOIN users u ON u.id = l.uid
          WHERE u.perm_lengthvote IS DISTINCT FROM false AND l.vid =', \$v->{id});
