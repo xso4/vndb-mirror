@@ -997,7 +997,7 @@ CREATE TABLE users (
   vnlang              jsonb, -- '$lang(-mtl)?' => true/false, which languages to expand/collapse on VN pages
   tableopts_v         integer,
   tableopts_vt        integer, -- VN listing on tag pages
-  perm_lengthvote     boolean NOT NULL DEFAULT true
+  perm_lengthvote     boolean NOT NULL DEFAULT true -- [pub] (public because this is used in calculating VN lengths)
 );
 
 -- Additional fields for the 'users' table, but with some protected columns.
