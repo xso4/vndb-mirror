@@ -41,7 +41,7 @@ sub listing_ {
                 td_ class => 'tc5', 'Rel';
                 td_ class => 'tc6', 'Notes';
                 td_ class => 'tc7', sub {
-                    input_ type => 'submit', class => 'submit', value => 'Del', undef;
+                    input_ type => 'submit', class => 'submit', value => 'Update', undef;
                 } if auth->permDbmod;
             } };
             tr_ sub {
@@ -50,12 +50,19 @@ sub listing_ {
                 td_ class => 'tc2', sub {
                     a_ href => "/$_->{vid}", title => $_->{original}||$_->{title}, $_->{title};
                 } if $mode ne 'v';
-                td_ class => 'tc3', sub { vnlength_ $_->{length} };
-                td_ class => 'tc4', ['Slow','Normal','Fast']->[$_->{speed}];
+                td_ class => 'tc3'.($_->{ignore}?' grayedout':''), sub { vnlength_ $_->{length} };
+                td_ class => 'tc4'.($_->{ignore}?' grayedout':''), ['Slow','Normal','Fast']->[$_->{speed}];
                 td_ class => 'tc5', sub { a_ href => "/$_->{rid}", $_->{rid} };
                 td_ class => 'tc6', sub { lit_ bb_format $_->{notes}, inline => 1 };
                 td_ class => 'tc7', sub {
-                    input_ type => 'checkbox', name => 'del', value => "$_->{vid}-$_->{uid}", undef
+                    select_ name => "$_->{vid}-$_->{uid}", sub {
+                        option_ value => '', '--';
+                        option_ value => 's0', 'slow';
+                        option_ value => 's1', 'normal';
+                        option_ value => 's2', 'fast';
+                        option_ value => 'ign', 'ignore' if !$_->{ignore};
+                        option_ value => 'noign', 'unignore' if $_->{ignore};
+                    };
                 } if auth->permDbmod;
             } for @$list;
         };
@@ -71,10 +78,10 @@ sub stats_ {
     my $stats = tuwf->dbAlli('
         SELECT speed, count(*) as count, avg(l.length) as avg
              , stddev_pop(l.length::real)::int as stddev
-             , percentile_cont(0.5) WITHIN GROUP (ORDER BY l.length) AS median
+             , percentile_cont(', \0.5, ') WITHIN GROUP (ORDER BY l.length) AS median
           FROM vn_length_votes l
           LEFT JOIN users u ON u.id = l.uid
-         WHERE u.perm_lengthvote IS DISTINCT FROM false AND l.vid =', \$o->{id}, '
+         WHERE u.perm_lengthvote IS DISTINCT FROM false AND NOT l.ignore AND l.vid =', \$o->{id}, '
          GROUP BY GROUPING SETS ((speed),()) ORDER BY speed'
     );
 
@@ -108,17 +115,15 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
         s => { tableopts => $TABLEOPTS{$mode} },
     )->data;
 
-    my $where = sql_and
-        $mode ne 'u' ? 'NOT EXISTS(SELECT 1 FROM users WHERE users.id = l.uid AND NOT perm_lengthvote)' : (),
-        $mode ? sql($mode eq 'v' ? 'l.vid =' : 'l.uid =', \$o->{id}) : ();
+    my $where = sql_and $mode ? sql($mode eq 'v' ? 'l.vid =' : 'l.uid =', \$o->{id}) : ();
     my $count = tuwf->dbVali('SELECT COUNT(*) FROM vn_length_votes l WHERE', $where);
 
     my $lst = tuwf->dbPagei({results => $opt->{s}->results, page => $opt->{p}},
-      'SELECT l.uid, l.vid, l.length, l.speed, l.notes, l.rid, ', sql_totime('l.date'), 'AS date',
+      'SELECT l.uid, l.vid, l.length, l.speed, l.notes, l.rid, ', sql_totime('l.date'), 'AS date, l.ignore OR u.perm_lengthvote IS NOT DISTINCT FROM false AS ignore',
               $mode ne 'u' ? (', ', sql_user()) : (),
               $mode ne 'v' ? ', v.title, v.original' : (), '
-         FROM vn_length_votes l',
-         $mode ne 'u' ? 'LEFT JOIN users u ON u.id = l.uid' : (),
+         FROM vn_length_votes l
+         LEFT JOIN users u ON u.id = l.uid',
          $mode ne 'v' ? 'JOIN vn v ON v.id = l.vid' : (),
        'WHERE', $where,
        'ORDER BY', $opt->{s}->sql_order(),
@@ -138,16 +143,20 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
 
 TUWF::post '/lengthvotes-edit', sub {
     return tuwf->resDenied if !auth->permDbmod || !samesite;
-    my $frm = tuwf->validate(post =>
-        url => {},
-        del => { required => 0, type => 'array', scalar => 1, values => { regex => "$RE{vid}-$RE{uid}" } }
-    )->data;
-    tuwf->dbExeci('DELETE FROM vn_length_votes WHERE', {
-        vid => (split /-/)[0],
-        uid => (split /-/)[1],
-    }) for $frm->{del}->@*;
-    auth->audit(undef, 'lengthvote-del', join ', ', sort $frm->{del}->@*) if $frm->{del}->@*;
-    tuwf->resRedirect($frm->{url}, 'post');
+
+    for my $k (tuwf->reqPosts) {
+        next if $k !~ /^(?<vid>$RE{vid})-(?<uid>$RE{uid})$/;
+        my $where = { vid => $+{vid}, uid => $+{uid} };
+        my $act = tuwf->reqPost($k);
+        next if !$act;
+        warn "$act $where->{vid} $where->{uid}\n";
+        tuwf->dbExeci('UPDATE vn_length_votes SET ignore = true WHERE', $where) if $act eq 'ign';
+        tuwf->dbExeci('UPDATE vn_length_votes SET ignore = false WHERE', $where) if $act eq 'noign';
+        tuwf->dbExeci('UPDATE vn_length_votes SET speed = 0 WHERE', $where) if $act eq 's0';
+        tuwf->dbExeci('UPDATE vn_length_votes SET speed = 1 WHERE', $where) if $act eq 's1';
+        tuwf->dbExeci('UPDATE vn_length_votes SET speed =', \2, 'WHERE', $where) if $act eq 's2';
+    }
+    tuwf->resRedirect(tuwf->reqPost('url'), 'post');
 };
 
 

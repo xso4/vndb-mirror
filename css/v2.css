@@ -876,6 +876,7 @@ div.lengthlist {
     .tc4 { width: 100px; padding-left: 10px }
     .tc5 { width: 50px }
     .tc7 { width: 10px; text-align: right; padding: 0 }
+    select { width: 70px }
 }
 
 

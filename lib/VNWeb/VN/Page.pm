@@ -164,7 +164,7 @@ sub infobox_length_ {
              , percentile_cont(0.5) WITHIN GROUP (ORDER BY l.length + (l.length/4 * (l.speed-1))) AS median
           FROM vn_length_votes l
           LEFT JOIN users u ON u.id = l.uid
-         WHERE u.perm_lengthvote IS DISTINCT FROM false AND l.vid =', \$v->{id});
+         WHERE u.perm_lengthvote IS DISTINCT FROM false AND NOT l.ignore AND l.vid =', \$v->{id});
     return if !$v->{length} && !$stats->{count} && !VNWeb::VN::Length::can_vote();
 
     my $my = VNWeb::VN::Length::can_vote() && tuwf->dbRowi('SELECT rid, length, speed, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
