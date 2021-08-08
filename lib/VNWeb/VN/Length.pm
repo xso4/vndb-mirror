@@ -144,18 +144,20 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
 TUWF::post '/lengthvotes-edit', sub {
     return tuwf->resDenied if !auth->permDbmod || !samesite;
 
+    my @actions;
     for my $k (tuwf->reqPosts) {
         next if $k !~ /^(?<vid>$RE{vid})-(?<uid>$RE{uid})$/;
         my $where = { vid => $+{vid}, uid => $+{uid} };
         my $act = tuwf->reqPost($k);
         next if !$act;
-        warn "$act $where->{vid} $where->{uid}\n";
+        push @actions, "$k-$act";
         tuwf->dbExeci('UPDATE vn_length_votes SET ignore = true WHERE', $where) if $act eq 'ign';
         tuwf->dbExeci('UPDATE vn_length_votes SET ignore = false WHERE', $where) if $act eq 'noign';
         tuwf->dbExeci('UPDATE vn_length_votes SET speed = 0 WHERE', $where) if $act eq 's0';
         tuwf->dbExeci('UPDATE vn_length_votes SET speed = 1 WHERE', $where) if $act eq 's1';
         tuwf->dbExeci('UPDATE vn_length_votes SET speed =', \2, 'WHERE', $where) if $act eq 's2';
     }
+    auth->audit(undef, 'lengthvote-edit', join ', ', sort @actions) if @actions;
     tuwf->resRedirect(tuwf->reqPost('url'), 'post');
 };
 
