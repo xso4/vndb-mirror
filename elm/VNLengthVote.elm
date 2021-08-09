@@ -8,6 +8,7 @@ import Browser.Dom exposing (focus)
 import Task
 import Date
 import Lib.Html exposing (..)
+import Lib.Util exposing (..)
 import Lib.Api as Api
 import Lib.RDate as RDate
 import Gen.Api as GApi
@@ -29,7 +30,7 @@ type alias Model =
   , today   : Int
   , uid     : String
   , vid     : String
-  , rid     : String
+  , rid     : List String
   , defrid  : String
   , hours   : Maybe Int
   , minutes : Maybe Int
@@ -46,10 +47,10 @@ init f =
   , open    = False
   , uid     = f.uid
   , vid     = f.vid
-  , rid     = Maybe.map (\v -> v.rid) f.vote |> Maybe.withDefault ""
+  , rid     = Maybe.map (\v -> v.rid) f.vote |> Maybe.withDefault []
   , defrid  = ""
   , hours   = Maybe.map (\v -> v.length // 60   ) f.vote
-  , minutes = Maybe.map (\v -> modBy 60 v.length) f.vote
+  , minutes = Maybe.andThen (\v -> let n = modBy 60 v.length in if n == 0 then Nothing else Just n) f.vote
   , speed   = Maybe.map (\v -> v.speed)  f.vote |> Maybe.withDefault -1
   , length  = Maybe.map (\v -> v.length) f.vote |> Maybe.withDefault 0
   , notes   = Maybe.map (\v -> v.notes)  f.vote |> Maybe.withDefault ""
@@ -73,7 +74,9 @@ type Msg
   | Hours (Maybe Int)
   | Minutes (Maybe Int)
   | Speed Int
-  | Release String
+  | Release Int String
+  | ReleaseAdd
+  | ReleaseDel Int
   | Notes String
   | RelLoaded GApi.Response
   | Delete
@@ -93,7 +96,9 @@ update msg model =
     Hours n   -> ({ model | hours = n }, Cmd.none)
     Minutes n -> ({ model | minutes = n }, Cmd.none)
     Speed n   -> ({ model | speed = n }, Cmd.none)
-    Release s -> ({ model | rid = s }, Cmd.none)
+    Release n s  -> ({ model | rid = modidx n (always s) model.rid }, Cmd.none)
+    ReleaseAdd   -> ({ model | rid = model.rid ++ [""] }, Cmd.none)
+    ReleaseDel n -> ({ model | rid = delidx n model.rid }, Cmd.none)
     Notes s   -> ({ model | notes  = s }, Cmd.none)
     RelLoaded (GApi.Releases rels) ->
       let rel r = if r.rtype /= "trial" && r.released <= model.today then Just (r.id, RDate.showrel r) else Nothing
@@ -104,10 +109,10 @@ update msg model =
       in ({ model | state = Api.Normal
           , rels = Just frels
           , defrid = def
-          , rid = if model.rid == "" then def else model.rid
+          , rid = if not (List.isEmpty model.rid) then model.rid else [def]
          }, if model.hours == Nothing then Task.attempt (always Noop) (focus "vnlengthhours") else Cmd.none)
     RelLoaded e -> ({ model | state = Api.Error e }, Cmd.none)
-    Delete      -> let m = { model | hours = Nothing, minutes = Nothing, rid = model.defrid, notes = "", state = Api.Loading } in (m, GV.send (encode m) Submitted)
+    Delete      -> let m = { model | hours = Nothing, minutes = Nothing, rid = [model.defrid], notes = "", state = Api.Loading } in (m, GV.send (encode m) Submitted)
     Submit      -> ({ model | state = Api.Loading }, GV.send (encode model) Submitted)
     Submitted (GApi.Success) ->
       ({ model | open = False, state = Api.Normal
@@ -119,10 +124,12 @@ update msg model =
 view : Model -> Html Msg
 view model = div [class "lengthvotefrm"] <|
   let
-    cansubmit = enclen model > 0 && model.speed /= -1 && model.rid /= ""
+    cansubmit = enclen model > 0 && model.speed /= -1
+      && not (List.isEmpty model.rid)
+      && not (List.any (\r -> r == "") model.rid)
     rels = Maybe.withDefault [] model.rels
     frm = [ form_ "" (if cansubmit then Submit else Noop) False
-      [ br_ 2
+      [ br [] []
       , text "How long did you take to finish this VN?"
       , br [] []
       , text "- Only vote if you've completed all normal/true endings."
@@ -135,10 +142,14 @@ view model = div [class "lengthvotefrm"] <|
       , inputNumber "" model.minutes Minutes [ Html.Attributes.min "0", Html.Attributes.max "59" ]
       , text " minutes"
       , br [] []
-      , if model.defrid /= "" then text "" else -- TODO: Handle missing model.rid
-        inputSelect "" model.rid Release [style "width" "100%"]
-        <| ("", "-- select release --") :: rels
-        ++ if model.rid == "" || List.any (\(r,_) -> r == model.rid) rels then [] else [(model.rid, "[deleted/moved release: " ++ model.rid ++ "]")]
+      , if model.defrid /= "" then text "" else div [] <| List.indexedMap (\n rid -> div []
+        [ inputSelect "" rid (Release n) []
+            <| ("", "-- select release --") :: rels
+            ++ if rid == "" || List.any (\(r,_) -> r == rid) rels then [] else [(rid, "[deleted/moved release: " ++ rid ++ "]")]
+        , if n == 0
+          then inputButton "+" ReleaseAdd [title "Add release"]
+          else inputButton "-" (ReleaseDel n) [title "Remove release"]
+        ]) model.rid
       , inputSelect "" model.speed Speed [style "width" "100%"]
         [ (-1, "-- how do you estimate your read/play speed? --")
         , (0, "Slow (e.g. low language proficiency or extra time spent on gameplay)")
@@ -154,7 +165,7 @@ view model = div [class "lengthvotefrm"] <|
       ] ]
   in
     [ text " "
-    , a [ onClickD (Open (not model.open)), href "#", style "float" "right" ]
+    , a [ onClickD (Open (not model.open)), href "#" ]
       [ text <| if model.length == 0 then "Vote »"
         else "My vote: " ++ String.fromInt (model.length // 60) ++ "h"
                          ++ if modBy 60 model.length /= 0 then String.fromInt (modBy 60 model.length) ++ "m" else "" ]

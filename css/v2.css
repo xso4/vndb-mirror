@@ -476,7 +476,15 @@ div.vndetails td.title abbr   { float: right }
 div.vndetails td.relations dt { float: none; font-style: normal; }
 div.vndetails td.relations dd { margin-left: 15px; }
 div.vndetails td.anime b      { font-size: 10px; font-weight: normal; padding-right: 4px; }
-div.vndetails .lengthvotefrm  { margin-top: -18px }
+div.vndetails .lengthvotefrm {
+    margin-top: -18px; text-align: right;
+    > form { text-align: left }
+    > form div > div {
+        display: flex;
+        select { flex: 1 }
+        input { flex: 0 0 30px }
+    }
+}
 .ulistvn     { padding: 5px 0 0 0 }
 .ulistvn > b { font-size: 14px }
 .ulistvn > span { float: right }
@@ -874,7 +882,7 @@ div.lengthlist {
     .tc1 { width: 100px }
     .tc3 { width: 60px; white-space: nowrap }
     .tc4 { width: 100px; padding-left: 10px }
-    .tc5 { width: 50px }
+    .tc5 { width: 70px; white-space: nowrap }
     .tc7 { width: 10px; text-align: right; padding: 0 }
     select { width: 70px }
 }

@@ -52,7 +52,11 @@ sub listing_ {
                 } if $mode ne 'v';
                 td_ class => 'tc3'.($_->{ignore}?' grayedout':''), sub { vnlength_ $_->{length} };
                 td_ class => 'tc4'.($_->{ignore}?' grayedout':''), ['Slow','Normal','Fast']->[$_->{speed}];
-                td_ class => 'tc5', sub { a_ href => "/$_->{rid}", $_->{rid} };
+                td_ class => 'tc5', sub {
+                    my %l = map +($_,1), map $_->{lang}->@*, $_->{rel}->@*;
+                    abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for sort keys %l;
+                    join_ ',', sub { a_ href => "/$_->{id}", $_->{id} }, sort { idcmp $a->{id}, $b->{id} } $_->{rel}->@*;
+                };
                 td_ class => 'tc6', sub { lit_ bb_format $_->{notes}, inline => 1 };
                 td_ class => 'tc7', sub {
                     select_ name => "$_->{vid}-$_->{uid}", sub {
@@ -119,7 +123,8 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
     my $count = tuwf->dbVali('SELECT COUNT(*) FROM vn_length_votes l WHERE', $where);
 
     my $lst = tuwf->dbPagei({results => $opt->{s}->results, page => $opt->{p}},
-      'SELECT l.uid, l.vid, l.length, l.speed, l.notes, l.rid, ', sql_totime('l.date'), 'AS date, l.ignore OR u.perm_lengthvote IS NOT DISTINCT FROM false AS ignore',
+      'SELECT l.uid, l.vid, l.length, l.speed, l.notes, l.rid::text[] AS rel, '
+            , sql_totime('l.date'), 'AS date, l.ignore OR u.perm_lengthvote IS NOT DISTINCT FROM false AS ignore',
               $mode ne 'u' ? (', ', sql_user()) : (),
               $mode ne 'v' ? ', v.title, v.original' : (), '
          FROM vn_length_votes l
@@ -128,6 +133,8 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
        'WHERE', $where,
        'ORDER BY', $opt->{s}->sql_order(),
     );
+    $_->{rel} = [ map +{ id => $_ }, $_->{rel}->@* ] for @$lst;
+    enrich_flatten lang => id => id => 'SELECT id, lang FROM releases_lang WHERE id IN', map $_->{rel}, @$lst;
 
     my $title = 'Length votes'.($mode ? ($mode eq 'v' ? ' for ' : ' by ').$o->{title} : '');
     framework_ title => $title, dbobj => $o, sub {
@@ -166,7 +173,7 @@ our $LENGTHVOTE = form_compile any => {
     uid    => { vndbid => 'u' },
     vid    => { vndbid => 'v' },
     vote   => { type => 'hash', required => 0, keys => {
-        rid    => { vndbid => 'r' },
+        rid    => { type => 'array', minlength => 1, values => { vndbid => 'r' } },
         length => { uint => 1, range => [1,32767] },
         speed  => { uint => 1, enum => [0,1,2] },
         notes  => { required => 0, default => '' },
@@ -178,6 +185,7 @@ elm_api VNLengthVote => undef, $LENGTHVOTE, sub {
     return elm_Unauth if !can_vote() || $data->{uid} ne auth->uid;
     my %where = ( uid => $data->{uid}, vid => $data->{vid} );
     tuwf->dbExeci('DELETE FROM vn_length_votes WHERE', \%where) if !$data->{vote};
+    $data->{vote}{rid} = sql sql_array($data->{vote}{rid}->@*), '::vndbid[]' if $data->{vote};
     tuwf->dbExeci(
         'INSERT INTO vn_length_votes', { %where, $data->{vote}->%* },
         'ON CONFLICT (uid, vid) DO UPDATE SET', $data->{vote}
