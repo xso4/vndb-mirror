@@ -59,7 +59,7 @@ sub listing_ {
                 };
                 td_ class => 'tc6', sub { lit_ bb_format $_->{notes}, inline => 1 };
                 td_ class => 'tc7', sub {
-                    select_ name => "$_->{vid}-$_->{uid}", sub {
+                    select_ name => "lv$_->{id}", sub {
                         option_ value => '', '--';
                         option_ value => 's0', 'slow';
                         option_ value => 's1', 'normal';
@@ -123,7 +123,7 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
     my $count = tuwf->dbVali('SELECT COUNT(*) FROM vn_length_votes l WHERE', $where);
 
     my $lst = tuwf->dbPagei({results => $opt->{s}->results, page => $opt->{p}},
-      'SELECT l.uid, l.vid, l.length, l.speed, l.notes, l.rid::text[] AS rel, '
+      'SELECT l.id, l.uid, l.vid, l.length, l.speed, l.notes, l.rid::text[] AS rel, '
             , sql_totime('l.date'), 'AS date, l.ignore OR u.perm_lengthvote IS NOT DISTINCT FROM false AS ignore',
               $mode ne 'u' ? (', ', sql_user()) : (),
               $mode ne 'v' ? ', v.title, v.original' : (), '
@@ -153,18 +153,22 @@ TUWF::post '/lengthvotes-edit', sub {
 
     my @actions;
     for my $k (tuwf->reqPosts) {
-        next if $k !~ /^(?<vid>$RE{vid})-(?<uid>$RE{uid})$/;
-        my $where = { vid => $+{vid}, uid => $+{uid} };
+        next if $k !~ /^lv$RE{num}$/;
+        my $id = $+{num};
         my $act = tuwf->reqPost($k);
         next if !$act;
-        push @actions, "$k-$act";
-        tuwf->dbExeci('UPDATE vn_length_votes SET ignore = true WHERE', $where) if $act eq 'ign';
-        tuwf->dbExeci('UPDATE vn_length_votes SET ignore = false WHERE', $where) if $act eq 'noign';
-        tuwf->dbExeci('UPDATE vn_length_votes SET speed = 0 WHERE', $where) if $act eq 's0';
-        tuwf->dbExeci('UPDATE vn_length_votes SET speed = 1 WHERE', $where) if $act eq 's1';
-        tuwf->dbExeci('UPDATE vn_length_votes SET speed =', \2, 'WHERE', $where) if $act eq 's2';
+        my $r = tuwf->dbRowi('
+            UPDATE vn_length_votes SET',
+              $act eq 'ign' ? 'ignore = true' :
+            $act eq 'noign' ? 'ignore = false' :
+               $act eq 's0' ? 'speed = 0' :
+               $act eq 's1' ? 'speed = 1' :
+               $act eq 's2' ? ('speed =', \2) : die,
+           'WHERE id =', \$id, 'RETURNING vid, uid'
+        );
+        push @actions, "$r->{vid}-".($r->{uid}//'anon')."-$act";
     }
-    auth->audit(undef, 'lengthvote-edit', join ', ', sort @actions) if @actions;
+    auth->audit(undef, 'lengthvote edit', join ', ', sort @actions) if @actions;
     tuwf->resRedirect(tuwf->reqPost('url'), 'post');
 };
 
