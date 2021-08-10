@@ -107,7 +107,7 @@ my %tables = (
                                 .' AND aid IN(SELECT sa.aid FROM staff_alias sa JOIN staff s ON s.id = sa.id WHERE NOT s.hidden)'
                                 .' AND cid IN(SELECT id FROM chars WHERE NOT hidden)' },
     vn_staff            => { where => 'id IN(SELECT id FROM vn WHERE NOT hidden) AND aid IN(SELECT sa.aid FROM staff_alias sa JOIN staff s ON s.id = sa.id WHERE NOT s.hidden)' },
-    vn_length_votes     => { where => 'vid IN(SELECT id FROM vn WHERE NOT hidden) AND rid IN(SELECT id FROM releases WHERE NOT hidden)'
+    vn_length_votes     => { where => 'vid IN(SELECT id FROM vn WHERE NOT hidden)'
                            , order => 'vid, uid' },
     wikidata            => { where => q{id IN(SELECT l_wikidata FROM producers WHERE NOT hidden
                                         UNION SELECT l_wikidata FROM staff WHERE NOT hidden
@@ -201,10 +201,11 @@ sub export_import_script {
 
     for my $table (@tables) {
         my $schema = $schema->{$table->{name}};
+        my @primary = grep { my $n=$_; !!grep $_->{name} eq $n && $_->{pub}, $schema->{cols}->@* } ($schema->{primary}||[])->@*;
         print $F "\n";
         print $F "CREATE TABLE \"$table->{name}\" (\n";
         print $F join ",\n", map "  $_->{decl}" =~ s/" serial/" integer/ir =~ s/ +(?:check|constraint|default) +.*//ir, grep $_->{pub}, @{$schema->{cols}};
-        print $F ",\n  PRIMARY KEY(".join(', ', map "\"$_\"", @{$schema->{primary}}).")" if $schema->{primary};
+        print $F ",\n  PRIMARY KEY(".join(', ', map "\"$_\"", @primary).")" if @primary;
         print $F "\n);\n";
     }
 
