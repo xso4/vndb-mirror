@@ -20,24 +20,22 @@ my %TABLEOPTS = map +($_, opts $_), '', 'v', 'u';
 
 
 sub listing_ {
-    my($opt, $count, $list, $mode) = @_;
-
-    my sub url { '?'.query_encode %$opt, @_ }
+    my($opt, $url, $count, $list, $mode) = @_;
 
     if(auth->permDbmod) {
         form_ method => 'post', action => '/lengthvotes-edit';
         input_ type => 'hidden', class => 'hidden', name => 'url', value => tuwf->reqPath.tuwf->reqQuery, undef;
     }
 
-    paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 't';
+    paginate_ $url, $opt->{p}, [$count, $opt->{s}->results], 't';
     div_ class => 'mainbox browse lengthlist', sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
-                td_ class => 'tc1', sub { txt_ 'Date';   sortable_ 'date', $opt, \&url };
-                td_ class => 'tc2', sub { txt_ 'User';   sortable_ 'username', $opt, \&url } if $mode ne 'u';
-                td_ class => 'tc2', sub { txt_ 'Title';  sortable_ 'title', $opt, \&url } if $mode ne 'v';
-                td_ class => 'tc3', sub { txt_ 'Time';   sortable_ 'length', $opt, \&url };
-                td_ class => 'tc4', sub { txt_ 'Speed';  sortable_ 'speed', $opt, \&url };
+                td_ class => 'tc1', sub { txt_ 'Date';   sortable_ 'date', $opt, $url };
+                td_ class => 'tc2', sub { txt_ 'User';   sortable_ 'username', $opt, $url } if $mode ne 'u';
+                td_ class => 'tc2', sub { txt_ 'Title';  sortable_ 'title', $opt, $url } if $mode ne 'v';
+                td_ class => 'tc3', sub { txt_ 'Time';   sortable_ 'length', $opt, $url };
+                td_ class => 'tc4', sub { txt_ 'Speed';  sortable_ 'speed', $opt, $url };
                 td_ class => 'tc5', 'Rel';
                 td_ class => 'tc6', 'Notes';
                 td_ class => 'tc7', sub {
@@ -70,7 +68,7 @@ sub listing_ {
             } for @$list;
         };
     };
-    paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 'b';
+    paginate_ $url, $opt->{p}, [$count, $opt->{s}->results], 'b';
 
     end_ 'form' if auth->permDbmod;
 }
@@ -114,11 +112,16 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
     my $mode = !$thing ? '' : $o->{id} =~ /^v/ ? 'v' : 'u';
 
     my $opt = tuwf->validate(get =>
-        p => { page => 1 },
-        s => { tableopts => $TABLEOPTS{$mode} },
+        ign => { required => 0, enum => [0,1] },
+        p   => { page => 1 },
+        s   => { tableopts => $TABLEOPTS{$mode} },
     )->data;
 
-    my $where = sql_and $mode ? sql($mode eq 'v' ? 'l.vid =' : 'l.uid =', \$o->{id}) : ();
+    my sub url { '?'.query_encode %$opt, @_ }
+
+    my $where = sql_and
+        $mode ? sql($mode eq 'v' ? 'l.vid =' : 'l.uid =', \$o->{id}) : (),
+        defined $opt->{ign} ? sql('l.ignore =', \$opt->{ign}) : ();
     my $count = tuwf->dbVali('SELECT COUNT(*) FROM vn_length_votes l WHERE', $where);
 
     my $lst = tuwf->dbPagei({results => $opt->{s}->results, page => $opt->{p}},
@@ -141,8 +144,13 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
             h1_ $title;
             p_ 'Nothing to list. :(' if !@$lst;
             stats_ $o if $mode eq 'v' && @$lst;
+            p_ class => 'browseopts', sub {
+                a_ href => url(p => undef, ign => undef), class => defined $opt->{ign} ? undef : 'optselected', 'All';
+                a_ href => url(p => undef, ign => 0), class => defined $opt->{ign} && !$opt->{ign} ? 'optselected' : undef, 'Active';
+                a_ href => url(p => undef, ign => 1), class => defined $opt->{ign} &&  $opt->{ign} ? 'optselected' : undef, 'Ignored';
+            } if auth->permDbmod;
         };
-        listing_ $opt, $count, $lst, $mode if @$lst;
+        listing_ $opt, \&url, $count, $lst, $mode if @$lst;
     };
 };
 
