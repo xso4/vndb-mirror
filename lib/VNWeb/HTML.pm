@@ -125,7 +125,7 @@ sub vnlength_ {
     my $h = floor($l/60);
     my $m = $l % 60;
     txt_ "${h}h" if $h;
-    b_ class => 'grayedout', "${m}m" if $h && $m;
+    small_ "${m}m" if $h && $m;
     txt_ "${m}m" if !$h && $m;
 }
 

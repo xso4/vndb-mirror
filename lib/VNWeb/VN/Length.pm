@@ -57,15 +57,14 @@ sub listing_ {
                     abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for sort keys %l;
                     join_ ',', sub { a_ href => "/$_->{id}", $_->{id} }, sort { idcmp $a->{id}, $b->{id} } $_->{rel}->@*;
                 };
-                td_ class => 'tc6', sub { lit_ bb_format $_->{notes}, inline => 1 };
+                td_ class => 'tc6'.($_->{ignore}?' grayedout':''), sub { lit_ bb_format $_->{notes}, inline => 1 };
                 td_ class => 'tc7', sub {
                     select_ name => "lv$_->{id}", sub {
-                        option_ value => '', '--';
+                        option_ value => $_->{ignore} ? 'noign' : '', '--';
                         option_ value => 's0', 'slow';
                         option_ value => 's1', 'normal';
                         option_ value => 's2', 'fast';
-                        option_ value => 'ign', 'ignore' if !$_->{ignore};
-                        option_ value => 'noign', 'unignore' if $_->{ignore};
+                        option_ value => $_->{ignore} ? '' : 'ign', selected => $_->{ignore}?'':undef, 'ignore';
                     };
                 } if auth->permDbmod;
             } for @$list;
