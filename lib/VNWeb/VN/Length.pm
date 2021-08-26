@@ -85,6 +85,7 @@ sub stats_ {
          WHERE u.perm_lengthvote IS DISTINCT FROM false AND NOT l.ignore AND l.vid =', \$o->{id}, '
          GROUP BY GROUPING SETS ((speed),()) ORDER BY speed'
     );
+    return if !$stats->[0]{count};
 
     table_ style => 'margin: 0 auto', sub {
         thead_ sub { tr_ sub {
