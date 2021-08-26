@@ -110,8 +110,8 @@ our %LINKS = (
                       , fmt2  => sub { config->{ shift->{l_jlist_jbox} ? 'jbox_url' : 'jlist_url' } }
                       , regex => qr{(?:www\.)?(?:jlist|jbox)\.com/(?:.+/)?([a-z0-9-]*[0-9][a-z0-9-]*)} },
         l_jastusa  => { label => 'JAST USA'
-                      , fmt   => 'https://jastusa.com/%s'
-                      , regex => qr{(?:www\.)?jastusa\.com/([a-z0-9-]+)} },
+                      , fmt   => 'https://jastusa.com/games/%s'
+                      , regex => qr{(?:www\.)?jastusa\.com/games/([a-z0-9-]+)} },
         l_fakku    => { label => 'Fakku'
                       , fmt   => 'https://www.fakku.net/games/%s'
                       , regex => qr{(?:www\.)?fakku\.(?:net|com)/games/([^/]+)(?:[/\?].*)?} },
