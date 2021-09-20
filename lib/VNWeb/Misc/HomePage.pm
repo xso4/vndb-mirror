@@ -252,12 +252,10 @@ TUWF::get qr{/}, sub {
             };
             screens_;
         };
-        div_ class => 'homepage threelayout', sub {
+        div_ class => 'homepage', sub {
             div_ \&recent_changes_;
             div_ \&recent_db_posts_;
             div_ \&recent_vn_posts_;
-        };
-        div_ class => 'homepage threelayout', sub {
             div_ sub { reviews_ };
             div_ sub { releases_ 0 };
             div_ sub { releases_ 1 };

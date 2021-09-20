@@ -350,8 +350,14 @@ p.screenshots           { text-align: center; margin-top: 10px; padding: 0; heig
 p.screenshots img       { margin: 2px; }
 li.announcement         { margin-bottom: 3px; margin-top: 3px }
 li.announcement a       { font-weight: bold; font-size: 15px; color: $maintext }
-.homepage h1 { margin-bottom: 5px }
-.homepage > div { overflow: hidden }
+.homepage { margin: 21px 0 -10px 0; display: grid; gap: 10px; grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 1300px) { .homepage { grid-template-columns: 1fr 1fr } }
+@media (max-width:  900px) { .homepage { grid-template-columns: 1fr } }
+.homepage > div { overflow: hidden; border: 1px solid $border; padding: 0 2px 10px 2px; background: $boxbg; }
+.homepage h1 { margin: 0 0 5px 0; font-size: 18px; font-weight: bold; color: $boxtitle }
+.homepage h1 a { color: $boxtitle; }
+.homepage h2 { font-size: 14px; margin-top: 3px; }
+.homepage ul { list-style-type: none; margin-left: 10px; }
 .homepage li { display: flex; line-height: 1.1 }
 .homepage li span { white-space: nowrap; padding-right: 4px; padding-bottom: 3px }
 .homepage li span:first-child { overflow: hidden; text-overflow: ellipsis }
