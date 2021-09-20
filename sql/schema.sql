@@ -1153,7 +1153,7 @@ CREATE TABLE vn_staff_hist (
 
 -- vn_length_votes
 CREATE TABLE vn_length_votes (
-  id         integer PRIMARY KEY,
+  id         serial PRIMARY KEY,
   vid        vndbid NOT NULL, -- [pub]
   date       timestamptz NOT NULL DEFAULT NOW(), -- [pub]
   length     smallint NOT NULL, -- [pub] minutes
