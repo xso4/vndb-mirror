@@ -83,6 +83,8 @@ my %dailies = (
   # takes about 5 seconds, OK
   vnstats => 'SELECT update_vnvotestats()',
 
+  lengthcache => 'SELECT update_vn_length_cache(NULL)',
+
   # takes about 10 seconds, OK
   imagecache => 'SELECT update_images_cache(NULL)',
 

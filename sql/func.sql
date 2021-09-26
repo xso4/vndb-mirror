@@ -138,6 +138,24 @@ $$ LANGUAGE SQL;
 
 
 
+-- Updates vn.c_length and vn.c_lengthnum
+CREATE OR REPLACE FUNCTION update_vn_length_cache(vndbid) RETURNS void AS $$
+  WITH s (vid, cnt, len) AS (
+    SELECT v.id, count(l.vid)
+         , percentile_cont(0.5) WITHIN GROUP (ORDER BY l.length + (l.length/4 * (l.speed-1)))
+      FROM vn v
+      LEFT JOIN vn_length_votes l ON l.vid = v.id
+      LEFT JOIN users u ON u.id = l.uid
+     WHERE u.perm_lengthvote IS DISTINCT FROM false AND NOT l.ignore
+       AND ($1 IS NULL OR v.id = $1)
+     GROUP BY v.id
+  ) UPDATE vn SET c_lengthnum = cnt, c_length = len
+      FROM s
+     WHERE s.vid = id AND (c_lengthnum, c_length) IS DISTINCT FROM (cnt, len)
+$$ LANGUAGE SQL;
+
+
+
 -- c_weight = if not_referenced then 0 else lower(c_votecount) -> higher(c_weight) && higher(*_stddev) -> higher(c_weight)
 --
 -- Current algorithm:

@@ -137,7 +137,7 @@ view model = div [class "lengthvotefrm"] <|
       , text "- Exact measurements preferred, but rough estimates are accepted too."
       , br [] []
       , text "Play time: "
-      , inputNumber "vnlengthhours" model.hours Hours [ Html.Attributes.min "0", Html.Attributes.max "500" ]
+      , inputNumber "vnlengthhours" model.hours Hours [ Html.Attributes.min "0", Html.Attributes.max "435" ]
       , text " hours "
       , inputNumber "" model.minutes Minutes [ Html.Attributes.min "0", Html.Attributes.max "59" ]
       , text " minutes"

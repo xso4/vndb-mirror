@@ -11,7 +11,7 @@ use VNDB::Func 'fmtrating';
 # Also used by Chars::VNTab & Reviews::VNTab
 sub enrich_vn {
     my($v, $revonly) = @_;
-    enrich_merge id => 'SELECT id, c_votecount FROM vn WHERE id IN', $v;
+    enrich_merge id => 'SELECT id, c_votecount, c_length, c_lengthnum FROM vn WHERE id IN', $v;
     enrich_merge vid => 'SELECT id AS vid, title, original, c_released FROM vn WHERE id IN', $v->{relations};
     enrich_merge aid => 'SELECT id AS aid, title_romaji, title_kanji, year, type, ann_id, lastfetch FROM anime WHERE id IN', $v->{anime};
     enrich_extlinks v => $v;
@@ -159,13 +159,7 @@ sub infobox_length_ {
     my $today = strftime('%Y%m%d', gmtime);
     return if !grep $_->{type} ne 'trial' && $_->{released} <= $today, $v->{releases}->@*;
 
-    my $stats = tuwf->dbRowi('
-        SELECT count(*) as count
-             , percentile_cont(', \0.5, ') WITHIN GROUP (ORDER BY l.length + (l.length/(1+1+1+1) * (l.speed-1))) AS median
-          FROM vn_length_votes l
-          LEFT JOIN users u ON u.id = l.uid
-         WHERE u.perm_lengthvote IS DISTINCT FROM false AND NOT l.ignore AND l.vid =', \$v->{id});
-    return if !$v->{length} && !$stats->{count} && !VNWeb::VN::Length::can_vote();
+    return if !$v->{c_length} && !$v->{c_lengthnum} && !VNWeb::VN::Length::can_vote();
 
     my $my = VNWeb::VN::Length::can_vote()
         && tuwf->dbRowi('SELECT rid::text[] AS rid, length, speed, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
@@ -173,8 +167,8 @@ sub infobox_length_ {
     tr_ sub {
         td_ 'Play time';
         td_ sub {
-            if($stats->{count}) {
-                my $m = $stats->{median};
+            if($v->{c_lengthnum}) {
+                my $m = $v->{c_length};
                 my $len = $m <  2*60 ? 1
                         : $m < 10*60 ? 2
                         : $m < 30*60 ? 3
@@ -182,7 +176,7 @@ sub infobox_length_ {
                 txt_ $VN_LENGTH{$len}{txt}.' (';
                 vnlength_ $m;
                 txt_ ' from ';
-                a_ href => "/$v->{id}/lengthvotes", sprintf '%d vote%s', $stats->{count}, $stats->{count}==1?'':'s';
+                a_ href => "/$v->{id}/lengthvotes", sprintf '%d vote%s', $v->{c_lengthnum}, $v->{c_length}==1?'':'s';
                 txt_ ')';
             } elsif($v->{length}) {
                 txt_ "$VN_LENGTH{$v->{length}}{txt} ($VN_LENGTH{$v->{length}}{time})";

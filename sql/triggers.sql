@@ -288,6 +288,19 @@ CREATE TRIGGER update_reviews_cache AFTER INSERT OR UPDATE OR DELETE ON reviews_
 
 
 
+-- Call update_vn_length_cache() for every change on vn_length_votes
+
+CREATE OR REPLACE FUNCTION update_vn_length_cache() RETURNS trigger AS $$
+BEGIN
+  PERFORM update_vn_length_cache(id) FROM (SELECT OLD.vid UNION SELECT NEW.vid) AS x(id) WHERE id IS NOT NULL;
+  RETURN NULL;
+END
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER vn_length_cache AFTER INSERT OR UPDATE OR DELETE ON vn_length_votes FOR EACH ROW EXECUTE PROCEDURE update_vn_length_cache();
+
+
+
 
 -- Call update_images_cache() for every change on image_votes
 

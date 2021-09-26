@@ -32,6 +32,10 @@ sub TABLEOPTS {
             sort_id => 2,
             sort_sql => 'v.c_released ?o, v.title',
         },
+        length => {
+            name => 'Length',
+            vis_id => 4,
+        },
         developer => {
             name => 'Developer',
             vis_id => 2,
@@ -75,6 +79,16 @@ sub listing_ {
 
     paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 't', sub { $opt->{s}->elm_ };
 
+    my sub len_ {
+        my($v) = @_;
+        if ($v->{c_lengthnum}) {
+            vnlength_ $v->{c_length};
+            b_ class => 'grayedout', " ($v->{c_lengthnum})";
+        } elsif($_->{length}) {
+            txt_ $VN_LENGTH{$v->{length}}{txt};
+        }
+    }
+
     div_ class => 'mainbox browse vnbrowse', sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
@@ -85,6 +99,7 @@ sub listing_ {
                 td_ class => 'tc_plat',  '';
                 td_ class => 'tc_lang',  '';
                 td_ class => 'tc_rel',   sub { txt_ 'Released';   sortable_ 'released',   $opt, \&url };
+                td_ class => 'tc_length',sub { txt_ 'Length';                                         } if $opt->{s}->vis('length');
                 td_ class => 'tc_pop',   sub { txt_ 'Popularity'; sortable_ 'popularity', $opt, \&url } if $opt->{s}->vis('popularity');
                 td_ class => 'tc_rating',sub { txt_ 'Rating';     sortable_ 'rating',     $opt, \&url } if $opt->{s}->vis('rating');
                 td_ class => 'tc_average',sub{ txt_ 'Average';    sortable_ 'average',    $opt, \&url } if $opt->{s}->vis('average');
@@ -101,6 +116,7 @@ sub listing_ {
                 td_ class => 'tc_plat',  sub { join_ '', sub { platform_ $_ if $_ ne 'unk' }, sort $_->{platforms}->@* };
                 td_ class => 'tc_lang',  sub { join_ '', sub { abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' }, reverse sort $_->{lang}->@* };
                 td_ class => 'tc_rel',   sub { rdate_ $_->{c_released} };
+                td_ class => 'tc_length',sub { len_ $_ } if $opt->{s}->vis('length');
                 td_ class => 'tc_pop',   sprintf '%.2f', ($_->{c_popularity}||0)/100 if $opt->{s}->vis('popularity');
                 td_ class => 'tc_rating',sub {
                     txt_ sprintf '%.2f', ($_->{c_rating}||0)/100;
@@ -138,6 +154,10 @@ sub listing_ {
                 td_ 'Tag score:';
                 td_ sub { tagscore_ $_->{tagscore} };
             } if $tagscore;
+            tr_ sub {
+                td_ 'Length';
+                td_ sub { len_ $_ };
+            } if $opt->{s}->vis('length');
             tr_ sub {
                 td_ 'Popularity:';
                 td_ sprintf '%.2f', ($_->{c_popularity}||0)/100;
@@ -253,7 +273,8 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
         $count = tuwf->dbVali('SELECT count(*) FROM vn v WHERE', $where);
         $list = $count ? tuwf->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
             SELECT v.id, v.title, v.original, v.c_released, v.c_popularity, v.c_votecount, v.c_rating, v.c_average
-                 , v.image, v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang
+                 , v.image, v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang',
+                   $opt->{s}->vis('length') ? ', v.length, v.c_length, v.c_lengthnum' : (), '
               FROM vn v
              WHERE', $where, '
              ORDER BY', $opt->{s}->sql_order(),
