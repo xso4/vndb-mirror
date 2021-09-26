@@ -248,15 +248,14 @@ view : Model -> Html Msg
 view model =
   let
     icon () =
-      let fn = if not model.onlist then "add"
+      let fn = if not model.onlist then -1
                else List.range 1 6
                  |> List.filter (\n -> Set.member n model.labels.tsel)
                  |> List.maximum
-                 |> Maybe.map (\n -> "l" ++ String.fromInt n)
-                 |> Maybe.withDefault "unknown"
+                 |> Maybe.withDefault 0
           lbl = if not model.onlist then "Add to list"
                 else String.join ", " <| List.filterMap (\l -> if Set.member l.id model.labels.tsel && l.id /= 7 then Just l.label else Nothing) model.labels.labels
-      in img [ src (Ffi.urlStatic ++ "/f/list-" ++ fn ++ ".svg"), class ("ulist-widget-icon liststatus_icon "++fn), title lbl, onClickN (Open True) ] []
+      in span [ onClickN (Open True), class "ulist-widget-icon" ] [ ulistIcon fn lbl ]
 
     rel r =
       case Dict.get r.rid model.relNfo of

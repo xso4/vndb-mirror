@@ -210,3 +210,14 @@ platformIcon l = img [ class "platicon", src <| Ffi.urlStatic ++ "/f/plat/" ++ l
 
 releaseTypeIcon : String -> Html m
 releaseTypeIcon t = abbr [ class ("icons rt"++t), title (Maybe.withDefault "" <| lookup t T.releaseTypes) ] [ text " " ]
+
+-- Special values: -1 = "add to list", not 1-6 = unknown
+-- (Because why use the type system to encode special values?)
+ulistIcon : Int -> String -> Html m
+ulistIcon n lbl =
+  let fn = if n == -1 then "add"
+           else if n >= 1 && n <= 6 then "l" ++ String.fromInt n
+           else "unknown"
+  in img [ src (Ffi.urlStatic ++ "/f/list-" ++ fn ++ ".svg")
+         , class ("liststatus_icon "++fn), title lbl
+         ] []

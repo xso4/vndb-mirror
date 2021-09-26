@@ -84,21 +84,26 @@ update msg model =
 view : Model -> String -> Html Msg
 view model txt =
   let
-    str = String.join ", " <| List.filterMap (\l -> if l.id /= 7 && Set.member l.id model.sel then Just l.label else Nothing) model.labels
+    lbl = List.intersperse (text ", ") <| List.filterMap (\l ->
+      if l.id /= 7 && Set.member l.id model.sel
+      then Just <| span []
+            [ if l.id <= 6 && txt /= "-" then ulistIcon l.id l.label else text ""
+            , text (" " ++ l.label) ]
+      else Nothing) model.labels
 
     item l =
       li [ ]
       [ linkRadio (Set.member l.id model.tsel) (Toggle l.id True)
         [ text l.label
         , text " "
-        , span [ class "spinner", classList [("invisible", Dict.get l.id model.state /= Just Api.Loading)] ] []
         , case Dict.get l.id model.state of
+            Just Api.Loading -> span [ class "spinner" ] []
             Just (Api.Error _) -> b [ class "standout" ] [ text "error" ] -- Need something better
-            _ -> text ""
+            _ -> if l.id <= 6 then ulistIcon l.id l.label else text ""
         ]
       ]
   in
     DD.view model.dd
       (if List.any (\s -> s == Api.Loading) <| Dict.values model.state then Api.Loading else Api.Normal)
-      (text <| if str == "" then txt else str)
+      (if List.isEmpty lbl then text txt else span [] lbl)
       (\_ -> [ ul [] <| List.map item <| List.filter (\l -> l.id /= 7) model.labels ])

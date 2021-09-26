@@ -671,7 +671,8 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $bo
 .vngrid > div > a > span:first-child { display: block; font-weight: bold }
 .vngrid table { margin: 10px 0 }
 .vngrid table td { padding: 0 5px 0 0 }
-.vngrid .ulist-widget-icon { float: right; margin: 280px 0 -300px -20px!important; padding: 3px; width: 20px; height: 20px } /* Horrible hacks everywhere */
+.vngrid .ulist-widget-icon { float: right; margin: 280px 0 -300px -20px!important; padding: 3px } /* Horrible hacks everywhere */
+.vngrid .ulist-widget-icon img { width: 20px; height: 20px }
 
 
 
@@ -680,7 +681,7 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $bo
 .prodvns { list-style-type: none }
 .prodvns li > span:first-child { display: inline-block; width: 80px; text-align: right; padding-right: 15px }
 .prodvns li > span:last-child { color: $grayedout; padding-left: 15px }
-.prodvns .ulist-widget-icon { padding-right: 5px; width: 14px; height: 14px }
+.prodvns .ulist-widget-icon { padding-right: 5px }
 
 
 /***** Producer list ******/
@@ -963,6 +964,12 @@ div.lengthlist {
     .tco1 { white-space: nowrap; width: 100px }
     .tco2 { white-space: nowrap; width: 100px }
     .tco3 { width: 60px; text-align: right; padding-bottom: 0 }
+}
+
+/* Just kill me already */
+[id^=ulist_labeledit] li > a {
+    padding-right: 30px!important;
+    .liststatus_icon, .spinner { float: right; margin-right: -26px; margin-top: 2px }
 }
 
 
