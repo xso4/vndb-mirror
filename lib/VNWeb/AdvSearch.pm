@@ -312,7 +312,8 @@ f v =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_language
 f v =>  3 => 'olang',     { enum => \%LANGUAGE }, '=' => sub { sql 'v.olang =', \$_ };
 f v =>  4 => 'platform',  { enum => \%PLATFORM }, '=' => sub { sql 'v.c_platforms && ARRAY', \$_, '::platform[]' };
 f v =>  6 => 'developer-id',{ vndbid => 'p' }, '=' => sub { sql 'v.c_developers && ARRAY', \$_, '::vndbid[]' };
-f v =>  5 => 'length',    { uint => 1, enum => \%VN_LENGTH }, '=' => sub { sql 'v.length =', \$_ };
+f v =>  5 => 'length',    { uint => 1, enum => \%VN_LENGTH },
+    '=' => sub { sql 'COALESCE(v.c_length BETWEEN', \$VN_LENGTH{$_}{low}, 'AND', \$VN_LENGTH{$_}{high}, ', v.length =', \$_, ')' };
 f v =>  7 => 'released',  { fuzzyrdate => 1 }, sql => sub { sql 'v.c_released', $_[0], \($_ == 1 ? strftime('%Y%m%d', gmtime) : $_) };
 f v =>  9 => 'popularity',{ uint => 1, range => [ 0,  100] }, sql => sub { sql 'v.c_popularity', $_[0], \($_*100) };
 f v => 10 => 'rating',    { uint => 1, range => [10,  100] }, sql => sub { sql 'v.c_rating', $_[0], \($_*10) };

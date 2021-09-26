@@ -169,11 +169,7 @@ sub infobox_length_ {
         td_ sub {
             if($v->{c_lengthnum}) {
                 my $m = $v->{c_length};
-                my $len = $m <  2*60 ? 1
-                        : $m < 10*60 ? 2
-                        : $m < 30*60 ? 3
-                        : $m < 50*60 ? 4 : 5;
-                txt_ $VN_LENGTH{$len}{txt}.' (';
+                txt_ +(grep $m >= $_->{low} && $m < $_->{high}, values %VN_LENGTH)[0]{txt}.' (';
                 vnlength_ $m;
                 txt_ ' from ';
                 a_ href => "/$v->{id}/lengthvotes", sprintf '%d vote%s', $v->{c_lengthnum}, $v->{c_length}==1?'':'s';

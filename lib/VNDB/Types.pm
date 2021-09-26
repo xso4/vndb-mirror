@@ -167,12 +167,12 @@ hash CREDIT_TYPE =>
 
 
 hash VN_LENGTH =>
-    0 => { txt => 'Unknown',    time => ''              },
-    1 => { txt => 'Very short', time => '< 2 hours'     },
-    2 => { txt => 'Short',      time => '2 - 10 hours'  },
-    3 => { txt => 'Medium',     time => '10 - 30 hours' },
-    4 => { txt => 'Long',       time => '30 - 50 hours' },
-    5 => { txt => 'Very long',  time => '> 50 hours'    };
+    0 => { txt => 'Unknown',    time => '',              low =>     0, high =>     0 },
+    1 => { txt => 'Very short', time => '< 2 hours',     low =>     1, high =>  2*60 },
+    2 => { txt => 'Short',      time => '2 - 10 hours',  low =>  2*60, high => 10*60 },
+    3 => { txt => 'Medium',     time => '10 - 30 hours', low => 10*60, high => 30*60 },
+    4 => { txt => 'Long',       time => '30 - 50 hours', low => 30*60, high => 50*60 },
+    5 => { txt => 'Very long',  time => '> 50 hours',    low => 50*60, high => 32767 };
 
 
 
