@@ -671,7 +671,7 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $bo
 .vngrid > div > a > span:first-child { display: block; font-weight: bold }
 .vngrid table { margin: 10px 0 }
 .vngrid table td { padding: 0 5px 0 0 }
-.vngrid .ulist-widget-icon { float: right; margin: 276px 0 -300px 0px!important; padding: 10px 5px 5px 10px; background-color: rgba(0,0,0,0.8); border-radius: 15px 0 0 0 } /* Horrible hacks everywhere */
+.vngrid .ulist-widget-icon { float: right; margin: 273px 0 -300px 0px!important; padding: 10px 5px 0 10px; background-color: rgba(0,0,0,0.8); border-radius: 15px 0 0 0 } /* Horrible hacks everywhere */
 
 
 
