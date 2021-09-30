@@ -70,7 +70,7 @@ sub recent_db_posts_ {
           FROM threads t
           JOIN threads_boards tb ON tb.tid = t.id AND tb.type = \'an\'
           JOIN threads_posts tp ON tp.tid = t.id AND tp.num = 1
-         WHERE NOT t.hidden AND NOT t.private AND tp.date >', sql_fromtime(time-2*30*24*3600), '
+         WHERE NOT t.hidden AND NOT t.private AND tp.date >', sql_fromtime(time-30*24*3600), '
          ORDER BY tb.tid DESC
          LIMIT 1+1'
     );
