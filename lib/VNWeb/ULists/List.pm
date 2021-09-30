@@ -5,23 +5,112 @@ use VNWeb::ULists::Lib;
 use VNWeb::Releases::Lib;
 
 
+my $TABLEOPTS = tableopts
+    title => {
+        name => 'Title',
+        sort_sql => 'v.title',
+        sort_id => 0,
+        compat => 'title',
+        sort_default => 'asc',
+    },
+    voted => {
+        name => 'Vote date',
+        sort_sql => 'uv.vote_date',
+        sort_id => 1,
+        vis_id => 0,
+        compat => 'voted'
+    },
+    vote => {
+        name => 'Vote',
+        sort_sql => 'uv.vote',
+        sort_id => 2,
+        vis_id => 1,
+        compat => 'vote'
+    },
+    rating => {
+        name => 'Rating',
+        sort_sql => 'v.c_rating',
+        sort_id => 3,
+        vis_id => 2,
+        compat => 'rating'
+    },
+    label => {
+        name => 'Labels',
+        sort_sql => sql('ARRAY(SELECT ul.label FROM ulist_vns_labels uvl JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl WHERE uvl.uid = uv.uid AND uvl.vid = uv.vid AND uvl.lbl <> ', \7, ')'),
+        sort_id => 4,
+        vis_id => 3,
+        compat => 'label'
+    },
+    added => {
+        name => 'Added',
+        sort_sql => 'uv.added',
+        sort_id => 5,
+        vis_id => 4,
+        compat => 'added'
+    },
+    modified => {
+        name => 'Modified',
+        sort_sql => 'uv.lastmod',
+        sort_id => 6,
+        vis_id => 5,
+        compat => 'modified'
+    },
+    started => {
+        name => 'Start date',
+        sort_sql => 'uv.started',
+        sort_id => 7,
+        vis_id => 6,
+        compat => 'started'
+    },
+    finished => {
+        name => 'Finish date',
+        sort_sql => 'uv.finished',
+        sort_id => 8,
+        vis_id => 7,
+        compat => 'finished'
+    },
+    rel => {
+        name => 'Release date',
+        sort_sql => 'v.c_released',
+        sort_id => 9,
+        vis_id => 8,
+        compat => 'rel'
+    };
+
+
 sub opt {
     my($u, $filtlabels) = @_;
 
+    # Note that saved defaults may still use the old query format, which is
+    #   { s => $sort_column, o => $order, c => [$visible_columns] }
     my sub load { my $o = $u->{"ulist_$_[0]"}; ($o && eval { JSON::XS->new->decode($o) } or {})->%* };
+
+    state $s_default  = tuwf->compile({ tableopts => $TABLEOPTS })->validate(undef)->data;
+    state $s_vnlist   = $s_default->sort_param(title => 'a')->vis_param(qw/label vote added started finished/)->query_encode;
+    state $s_votes    = $s_default->sort_param(voted => 'd')->vis_param(qw/vote voted/)->query_encode;
+    state $s_wishlist = $s_default->sort_param(title => 'a')->vis_param(qw/label added/)->query_encode;
 
     my $opt =
         # Presets
-        tuwf->reqGet('vnlist')   ? { mul => 0, p => 1, l => [1,2,3,4,7,-1,0], s => 'title', o => 'a', c => [qw/label vote added started finished/], load 'vnlist' } :
-        tuwf->reqGet('votes')    ? { mul => 0, p => 1, l => [7],              s => 'voted', o => 'd', c => [qw/vote voted/], load 'votes' } :
-        tuwf->reqGet('wishlist') ? { mul => 0, p => 1, l => [5],              s => 'title', o => 'a', c => [qw/label added/], load 'wish' } :
+        tuwf->reqGet('vnlist')   ? { mul => 0, p => 1, l => [1,2,3,4,7,-1,0], s => $s_vnlist,   load 'vnlist' } :
+        tuwf->reqGet('votes')    ? { mul => 0, p => 1, l => [7],              s => $s_votes,    load 'votes'  } :
+        tuwf->reqGet('wishlist') ? { mul => 0, p => 1, l => [5],              s => $s_wishlist, load 'wish'   } :
         # Full options
         tuwf->validate(get =>
             p => { upage => 1 },
             ch=> { onerror => undef, enum => [ 'a'..'z', 0 ] },
             q => { onerror => undef },
-            %VNWeb::ULists::Elm::SAVED_OPTS
+            %VNWeb::ULists::Elm::SAVED_OPTS,
+            # Compat for old URLs
+            o => { onerror => undef, enum => ['a', 'd'] },
+            c => { onerror => undef, type => 'array', scalar => 1, values => { enum => [qw[ label vote voted added modified started finished rel rating ]] } },
         )->data;
+
+    $opt->{s} .= "/$opt->{o}" if $opt->{o};
+    $opt->{s} = tuwf->compile({ tableopts => $TABLEOPTS })->validate($opt->{s})->data;
+    $opt->{s} = $opt->{s}->vis_param($opt->{c}->@*) if $opt->{c};
+    delete $opt->{o};
+    delete $opt->{c};
 
     # $labels only includes labels we are allowed to see, getting rid of any labels in 'l' that aren't in $labels ensures we only filter on visible labels
     my %accessible_labels = map +($_->{id}, 1), @$filtlabels;
@@ -42,43 +131,38 @@ sub filters_ {
         txt_ " ($_->{count})";
     }
 
-    form_ method => 'get', sub {
-        input_ type => 'hidden', name => 's', value => $opt->{s};
-        input_ type => 'hidden', name => 'o', value => $opt->{o};
-        input_ type => 'hidden', name => 'ch', value => $opt->{ch} if defined $opt->{ch};
-        input_ type => 'hidden', name => 'c', value => $_ for $opt->{c}->@*;
-        p_ class => 'labelfilters', sub {
-            input_ type => 'text', class => 'text', name => 'q', value => $opt->{q}||'', style => 'width: 500px', placeholder => 'Search', tabindex => 10;
-            br_;
-            # XXX: Rather silly that everything in this form is a form element except for the alphabet filter. Meh, behavior seems intuitive enough.
-            span_ class => 'browseopts', sub {
-                a_ href => $url->(ch => $_, p => undef), ($_//'') eq ($opt->{ch}//'') ? (class => 'optselected') : (), !defined($_) ? 'ALL' : $_ ? uc $_ : '#'
-                    for (undef, 'a'..'z', 0);
+    input_ type => 'hidden', name => 'ch', value => $opt->{ch} if defined $opt->{ch};
+    p_ class => 'labelfilters', sub {
+        input_ type => 'text', class => 'text', name => 'q', value => $opt->{q}||'', style => 'width: 500px', placeholder => 'Search', tabindex => 10;
+        br_;
+        # XXX: Rather silly that everything in this form is a form element except for the alphabet filter. Meh, behavior seems intuitive enough.
+        span_ class => 'browseopts', sub {
+            a_ href => $url->(ch => $_, p => undef), ($_//'') eq ($opt->{ch}//'') ? (class => 'optselected') : (), !defined($_) ? 'ALL' : $_ ? uc $_ : '#'
+                for (undef, 'a'..'z', 0);
+        };
+        br_;
+        span_ class => 'linkradio', sub {
+            join_ sub { em_ ' / ' }, \&lblfilt_, grep $_->{id} < 10, @$filtlabels;
+
+            span_ class => 'hidden', sub {
+                em_ ' || ';
+                input_ type => 'checkbox', name => 'mul', value => 1, id => 'form_l_multi', tabindex => 10, $opt->{mul} ? (checked => 'checked') : ();
+                label_ for => 'form_l_multi', 'Multi-select';
             };
+            debug_ $filtlabels;
+        };
+        my @cust = grep $_->{id} >= 10, @$filtlabels;
+        if(@cust) {
             br_;
             span_ class => 'linkradio', sub {
-                join_ sub { em_ ' / ' }, \&lblfilt_, grep $_->{id} < 10, @$filtlabels;
-
-                span_ class => 'hidden', sub {
-                    em_ ' || ';
-                    input_ type => 'checkbox', name => 'mul', value => 1, id => 'form_l_multi', tabindex => 10, $opt->{mul} ? (checked => 'checked') : ();
-                    label_ for => 'form_l_multi', 'Multi-select';
-                };
-                debug_ $filtlabels;
-            };
-            my @cust = grep $_->{id} >= 10, @$filtlabels;
-            if(@cust) {
-                br_;
-                span_ class => 'linkradio', sub {
-                    join_ sub { em_ ' / ' }, \&lblfilt_, @cust;
-                }
+                join_ sub { em_ ' / ' }, \&lblfilt_, @cust;
             }
-            br_;
-            input_ type => 'submit', class => 'submit', tabindex => 10, value => 'Update filters';
-            input_ type => 'button', class => 'submit', tabindex => 10, id => 'managelabels', value => 'Manage labels' if $own;
-            input_ type => 'button', class => 'submit', tabindex => 10, id => 'savedefault', value => 'Save as default' if $own;
-            input_ type => 'button', class => 'submit', tabindex => 10, id => 'exportlist', value => 'Export' if $own;
-        };
+        }
+        br_;
+        input_ type => 'submit', class => 'submit', tabindex => 10, value => 'Update filters';
+        input_ type => 'button', class => 'submit', tabindex => 10, id => 'managelabels', value => 'Manage labels' if $own;
+        input_ type => 'button', class => 'submit', tabindex => 10, id => 'savedefault', value => 'Save as default' if $own;
+        input_ type => 'button', class => 'submit', tabindex => 10, id => 'exportlist', value => 'Export' if $own;
     };
 }
 
@@ -89,7 +173,7 @@ sub vn_ {
         my %labels = map +($_,1), $v->{labels}->@*;
 
         td_ class => 'tc1', sub {
-            input_ type => 'checkbox', class => 'checkhidden', name => 'collapse_vid', id => 'collapse_vid'.$v->{id}, value => 'collapsed_vid'.$v->{id};
+            input_ type => 'checkbox', class => 'checkhidden', 'x-checkall' => 'collapse_vid', id => 'collapse_vid'.$v->{id}, value => 'collapsed_vid'.$v->{id};
             label_ for => 'collapse_vid'.$v->{id}, sub {
                 my $obtained = grep $_->{status} == 2, $v->{rels}->@*;
                 my $total = $v->{rels}->@*;
@@ -108,19 +192,19 @@ sub vn_ {
             };
         };
 
-        td_ class => 'tc_voted',    $v->{vote_date} ? fmtdate $v->{vote_date}, 'compact' : '-' if in voted => $opt->{c};
+        td_ class => 'tc_voted',    $v->{vote_date} ? fmtdate $v->{vote_date}, 'compact' : '-' if $opt->{s}->vis('voted');
 
         td_ mkclass(tc_vote => 1, compact => $own, stealth => $own), sub {
             txt_ fmtvote $v->{vote} if !$own;
             elm_ 'UList.VoteEdit' => $VNWeb::ULists::Elm::VNVOTE, { uid => $uid, vid => $v->{id}, vote => fmtvote($v->{vote}) }, sub {
                 div_ @_, fmtvote $v->{vote}
             } if $own && ($v->{vote} || sprintf('%08d', $v->{c_released}||0) < strftime '%Y%m%d', gmtime);
-        } if in vote => $opt->{c};
+        } if $opt->{s}->vis('vote');
 
         td_ class => 'tc_rating', sub {
             txt_ sprintf '%.2f', ($v->{c_rating}||0)/100;
             b_ class => 'grayedout', sprintf ' (%d)', $v->{c_votecount};
-        } if in rating => $opt->{c};
+        } if $opt->{s}->vis('rating');
 
         td_ class => 'tc_labels', sub {
             my @l = grep $labels{$_->{id}} && $_->{id} != 7, @$labels;
@@ -132,31 +216,31 @@ sub vn_ {
             } else {
                 txt_ $txt;
             }
-        } if in label => $opt->{c};
+        } if $opt->{s}->vis('label');
 
         td_ class => 'tc_title', sub {
             a_ href => "/$v->{id}", title => $v->{original}||$v->{title}, shorten $v->{title}, 70;
             b_ class => 'grayedout', id => 'ulist_notes_'.$v->{id}, $v->{notes} if $v->{notes} || $own;
         };
 
-        td_ class => 'tc_added',    fmtdate $v->{added},     'compact' if in added    => $opt->{c};
-        td_ class => 'tc_modified', fmtdate $v->{lastmod},   'compact' if in modified => $opt->{c};
+        td_ class => 'tc_added',    fmtdate $v->{added},     'compact' if $opt->{s}->vis('added');
+        td_ class => 'tc_modified', fmtdate $v->{lastmod},   'compact' if $opt->{s}->vis('modified');
 
         td_ class => 'tc_started', sub {
             txt_ $v->{started}||'' if !$own;
             elm_ 'UList.DateEdit' => $VNWeb::ULists::Elm::VNDATE, { uid => $uid, vid => $v->{id}, date => $v->{started}||'', start => 1 }, sub {
                 div_ @_, $v->{started}||''
             } if $own;
-        } if in started => $opt->{c};
+        } if $opt->{s}->vis('started');
 
         td_ class => 'tc_finished', sub {
             txt_ $v->{finished}||'' if !$own;
             elm_ 'UList.DateEdit' => $VNWeb::ULists::Elm::VNDATE, { uid => $uid, vid => $v->{id}, date => $v->{finished}||'', start => 0 }, sub {
                 div_ @_, $v->{finished}||''
             } if $own;
-        } if in finished => $opt->{c};
+        } if $opt->{s}->vis('finished');
 
-        td_ class => 'tc_rel', sub { rdate_ $v->{c_released} } if in rel => $opt->{c};
+        td_ class => 'tc_rel', sub { rdate_ $v->{c_released} } if $opt->{s}->vis('rel');
     };
 
     tr_ mkclass(hidden => 1, 'collapsed_vid'.$v->{id} => 1, odd => $n % 2 == 0), sub {
@@ -191,7 +275,7 @@ sub listing_ {
 
     my $count = tuwf->dbVali('SELECT count(*) FROM ulist_vns uv JOIN vn v ON v.id = uv.vid WHERE', $where);
 
-    my $lst = tuwf->dbPagei({ page => $opt->{p}, results => 50 },
+    my $lst = tuwf->dbPagei({ page => $opt->{p}, results => $opt->{s}->results },
         'SELECT v.id, v.title, v.original, uv.vote, uv.notes, uv.started, uv.finished, v.c_rating, v.c_votecount, v.c_released
               ,', sql_totime('uv.added'), ' as added
               ,', sql_totime('uv.lastmod'), ' as lastmod
@@ -199,18 +283,7 @@ sub listing_ {
            FROM ulist_vns uv
            JOIN vn v ON v.id = uv.vid
           WHERE', $where, '
-          ORDER BY', {
-                    title    => 'v.title',
-                    label    => sql('ARRAY(SELECT ul.label FROM ulist_vns_labels uvl JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl WHERE uvl.uid = uv.uid AND uvl.vid = uv.vid AND uvl.lbl <> ', \7, ')'),
-                    vote     => 'uv.vote',
-                    voted    => 'uv.vote_date',
-                    added    => 'uv.added',
-                    modified => 'uv.lastmod',
-                    started  => 'uv.started',
-                    finished => 'uv.finished',
-                    rel      => 'v.c_released',
-                    rating   => 'v.c_rating',
-                }->{$opt->{s}}, $opt->{o} eq 'd' ? 'DESC' : 'ASC', 'NULLS LAST, v.title'
+          ORDER BY', $opt->{s}->sql_order(), 'NULLS LAST, v.title'
     );
 
     enrich_flatten labels => id => vid => sql('SELECT vid, lbl FROM ulist_vns_labels WHERE uid =', \$uid, 'AND vid IN'), $lst;
@@ -226,42 +299,30 @@ sub listing_ {
     }, $lst;
     enrich_release_elm map $_->{rels}, @$lst;
 
-    # TODO: Thumbnail view?
-    paginate_ $url, $opt->{p}, [ $count, 50 ], 't', sub {
-        elm_ ColSelect => 'raw', [ $url->(), [
-            [ voted    => 'Vote date'    ],
-            [ vote     => 'Vote'         ],
-            [ rating   => 'Rating'       ],
-            [ label    => 'Labels'       ],
-            [ added    => 'Added'        ],
-            [ modified => 'Modified'     ],
-            [ started  => 'Start date'   ],
-            [ finished => 'Finish date'  ],
-            [ rel      => 'Release date' ],
-        ] ];
-    };
+    paginate_ $url, $opt->{p}, [$count, $opt->{s}->results], 't', sub { $opt->{s}->elm_ };
     div_ class => 'mainbox browse ulist', sub {
         table_ sub {
             thead_ sub { tr_ sub {
                 td_ class => 'tc1', sub {
-                    input_ type => 'checkbox', class => 'checkall', name => 'collapse_vid', id => 'collapse_vid';
+                    # TODO: these checkboxes shouldn't be included in the query string
+                    input_ type => 'checkbox', class => 'checkall', 'x-checkall' => 'collapse_vid', id => 'collapse_vid';
                     label_ for => 'collapse_vid', sub { txt_ 'Opt' };
                 };
-                td_ class => 'tc_voted',    sub { txt_ 'Vote date';   sortable_ 'voted',    $opt, $url } if in voted    => $opt->{c};
-                td_ class => 'tc_vote',     sub { txt_ 'Vote';        sortable_ 'vote',     $opt, $url } if in vote     => $opt->{c};
-                td_ class => 'tc_rating',   sub { txt_ 'Rating';      sortable_ 'rating',   $opt, $url } if in rating   => $opt->{c};
-                td_ class => 'tc_labels',   sub { txt_ 'Labels';      sortable_ 'label',    $opt, $url } if in label    => $opt->{c};
+                td_ class => 'tc_voted',    sub { txt_ 'Vote date';   sortable_ 'voted',    $opt, $url } if $opt->{s}->vis('voted');
+                td_ class => 'tc_vote',     sub { txt_ 'Vote';        sortable_ 'vote',     $opt, $url } if $opt->{s}->vis('vote');
+                td_ class => 'tc_rating',   sub { txt_ 'Rating';      sortable_ 'rating',   $opt, $url } if $opt->{s}->vis('rating');
+                td_ class => 'tc_labels',   sub { txt_ 'Labels';      sortable_ 'label',    $opt, $url } if $opt->{s}->vis('label');
                 td_ class => 'tc_title',    sub { txt_ 'Title';       sortable_ 'title',    $opt, $url; debug_ $lst };
-                td_ class => 'tc_added',    sub { txt_ 'Added';       sortable_ 'added',    $opt, $url } if in added    => $opt->{c};
-                td_ class => 'tc_modified', sub { txt_ 'Modified';    sortable_ 'modified', $opt, $url } if in modified => $opt->{c};
-                td_ class => 'tc_started',  sub { txt_ 'Start date';  sortable_ 'started',  $opt, $url } if in started  => $opt->{c};
-                td_ class => 'tc_finished', sub { txt_ 'Finish date'; sortable_ 'finished', $opt, $url } if in finished => $opt->{c};
-                td_ class => 'tc_rel',      sub { txt_ 'Release date';sortable_ 'rel',      $opt, $url } if in rel      => $opt->{c};
+                td_ class => 'tc_added',    sub { txt_ 'Added';       sortable_ 'added',    $opt, $url } if $opt->{s}->vis('added');
+                td_ class => 'tc_modified', sub { txt_ 'Modified';    sortable_ 'modified', $opt, $url } if $opt->{s}->vis('modified');
+                td_ class => 'tc_started',  sub { txt_ 'Start date';  sortable_ 'started',  $opt, $url } if $opt->{s}->vis('started');
+                td_ class => 'tc_finished', sub { txt_ 'Finish date'; sortable_ 'finished', $opt, $url } if $opt->{s}->vis('finished');
+                td_ class => 'tc_rel',      sub { txt_ 'Release date';sortable_ 'rel',      $opt, $url } if $opt->{s}->vis('rel');
             }};
             vn_ $uid, $own, $opt, $_, $lst->[$_], $labels for (0..$#$lst);
         };
     };
-    paginate_ $url, $opt->{p}, [ $count, 50 ], 'b';
+    paginate_ $url, $opt->{p}, [$count, $opt->{s}->results], 'b';
 }
 
 
@@ -320,28 +381,33 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
         } ) : (),
     sub {
         my $empty = !grep $_->{count}, @$filtlabels;
-        div_ class => 'mainbox', sub {
-            h1_ $title;
-            if($empty) {
-                p_ $own
-                    ? 'Your list is empty! You can add visual novels to your list from the visual novel pages.'
-                    : user_displayname($u).' does not have any visible visual novels in their list.';
-            } else {
-                filters_ $own, $filtlabels, $opt, $opt_labels, \&url;
-                elm_ 'UList.ManageLabels' if $own;
-                elm_ 'UList.SaveDefault', $VNWeb::ULists::Elm::SAVED_OPTS_OUT, { uid => $u->{id}, opts => $opt } if $own;
-                div_ class => 'hidden exportlist', sub {
-                    b_ 'Export your list';
-                    br_;
-                    txt_ 'This function will export all visual novels and releases in your list, even those marked as private ';
-                    txt_ '(there is currently no import function, more export options may be added later).';
-                    br_;
-                    br_;
-                    a_ href => "/$u->{id}/list-export/xml", "Download XML export.";
-                } if $own;
-            }
-        };
-        listing_ $u->{id}, $own, $opt, $labels, \&url if !$empty;
+        form_ method => 'get', sub {
+            div_ class => 'mainbox', sub {
+                h1_ $title;
+                if($empty) {
+                    p_ $own
+                        ? 'Your list is empty! You can add visual novels to your list from the visual novel pages.'
+                        : user_displayname($u).' does not have any visible visual novels in their list.';
+                } else {
+                    filters_ $own, $filtlabels, $opt, $opt_labels, \&url;
+                    elm_ 'UList.ManageLabels' if $own;
+                    elm_ 'UList.SaveDefault', $VNWeb::ULists::Elm::SAVED_OPTS_OUT, {
+                        uid => $u->{id},
+                        opts => { l => $opt->{l}, mul => $opt->{mul}, s => $opt->{s}->query_encode() },
+                    } if $own;
+                    div_ class => 'hidden exportlist', sub {
+                        b_ 'Export your list';
+                        br_;
+                        txt_ 'This function will export all visual novels and releases in your list, even those marked as private ';
+                        txt_ '(there is currently no import function, more export options may be added later).';
+                        br_;
+                        br_;
+                        a_ href => "/$u->{id}/list-export/xml", "Download XML export.";
+                    } if $own;
+                }
+            };
+            listing_ $u->{id}, $own, $opt, $labels, \&url if !$empty;
+        }
     };
 };
 

@@ -235,14 +235,9 @@ elm_api UListWidget => $WIDGET, { uid => { vndbid => 'u' }, vid => { vndbid => '
 
 
 our %SAVED_OPTS = (
-    # Labels
     l   => { onerror => [], type => 'array', scalar => 1, values => { int => 1 } },
     mul => { anybool => 1 },
-    # Sort column & order
-    s   => { onerror => 'title', enum => [qw[ title label vote voted added modified started finished rel rating ]] },
-    o   => { onerror => 'a', enum => ['a', 'd'] },
-    # Visible columns
-    c   => { onerror => [], type => 'array', scalar => 1, values => { enum => [qw[ label vote voted added modified started finished rel rating ]] } },
+    s   => { onerror => '' }, # TableOpts query string
 );
 
 my $SAVED_OPTS = {

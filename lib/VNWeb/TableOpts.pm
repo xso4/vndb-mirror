@@ -118,6 +118,12 @@ sub tableopts {
 }
 
 
+# COMPAT: For old URLs, we assume that this validation is used on the 's'
+# parameter, so we can accept two formats:
+# - "s=$compat_sort_column/$order"
+# - "s=$compat_sort_column&o=$order"
+# In the latter case, the validation will use reqGet() to get the 'o'
+# parameter.
 TUWF::set('custom_validations')->{tableopts} = sub {
     my($t) = @_;
     +{ onerror => sub {
@@ -125,11 +131,12 @@ TUWF::set('custom_validations')->{tableopts} = sub {
         bless([$d // $t->{default},$t], __PACKAGE__)
     }, func => sub {
         my $obj = bless [undef, $t], __PACKAGE__;
-        my $col = [grep $_->{compat} && $_->{compat} eq $_[0], values $t->{columns}->%*]->[0];
+        my($val,$ord) = $_[0] =~ m{^([^/]+)/([ad])$} ? ($1,$2) : ($_[0],undef);
+        my $col = [grep $_->{compat} && $_->{compat} eq $val, values $t->{columns}->%*]->[0];
         if($col && defined $col->{sort_id}) {
             $obj->[0] = $t->{default};
             $obj->set_sort_col_id($col->{sort_id});
-            my $ord = tuwf->reqGet('o');
+            $ord //= tuwf->reqGet('o');
             $obj->set_order($ord && $ord eq 'd' ? 1 : 0);
         } else {
             $obj->[0] = _dec($_[0]) // return 0;
@@ -188,6 +195,15 @@ sub sql_order {
 
 # Returns whether the given column key is visible.
 sub vis { $_[0][0] & (1 << (12+$_[0][1]{columns}{$_[1]}{vis_id})) }
+
+# Given a list of column names, return a new object with only these columns visible
+sub vis_param {
+    my($self, @cols) = @_;
+    my $n = bless [@$self], __PACKAGE__;
+    $n->[0] = $n->[0] & 0b1111_1111_1111;
+    $n->[0] |= 1 << (12+$self->[1]{columns}{$_}{vis_id}) for @cols;
+    $n;
+}
 
 
 my $FORM_OUT = form_compile any => {
