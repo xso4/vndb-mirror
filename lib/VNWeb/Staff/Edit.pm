@@ -19,8 +19,8 @@ my $FORM = {
     l_site     => { required => 0, default => '', weburl => 1 },
     l_wikidata => { required => 0, uint => 1, max => (1<<31)-1 },
     l_twitter  => { required => 0, default => '', regex => qr/^\S+$/, maxlength => 16 },
-    l_anidb    => { required => 0, id => 1, default => undef },
-    l_pixiv    => { required => 0, id => 1, default => 0 },
+    l_anidb    => { required => 0, uint => 1, max => (1<<31)-1, default => undef },
+    l_pixiv    => { required => 0, uint => 1, max => (1<<31)-1, default => 0 },
     hidden     => { anybool => 1 },
     locked     => { anybool => 1 },
 
