@@ -119,7 +119,7 @@ update msg model =
     LWikidata n-> ({ model | l_wikidata= n }, Cmd.none)
     LTwitter s -> ({ model | l_twitter = s }, Cmd.none)
     LAnidb s   -> ({ model | l_anidb   = if s == "" then Nothing else String.toInt s }, Cmd.none)
-    LPixiv s   -> ({ model | l_pixiv   = Maybe.withDefault model.l_pixiv (String.toInt s) }, Cmd.none)
+    LPixiv s   -> ({ model | l_pixiv   = Maybe.withDefault 0 (String.toInt s) }, Cmd.none)
     Desc m     -> let (nm,nc) = TP.update m model.desc in ({ model | desc = nm }, Cmd.map Desc nc)
 
     AliasDel i    -> (validate { model | alias = delidx i model.alias }, Cmd.none)
