@@ -39,7 +39,7 @@ sub release_extlinks_ {
     return if !$r->{extlinks}->@*;
 
     if($r->{extlinks}->@* == 1 && $r->{website}) {
-        a_ href => $r->{website}, sub {
+        a_ href => $r->{extlinks}[0][1], sub {
             abbr_ class => 'icons external', title => 'Official website', '';
         };
         return
