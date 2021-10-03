@@ -72,7 +72,7 @@ sub rel_ {
           FROM releases r
           JOIN releases_producers rp ON rp.id = r.id
          WHERE rp.pid =', \$p->{id}, ' AND NOT r.hidden
-         ORDER BY r.released, r.id
+         ORDER BY r.released, r.title, r.id
     ');
     enrich_extlinks r => $r;
     enrich_release $r;
@@ -126,7 +126,7 @@ sub vns_ {
                 GROUP BY rv.vid
                ) rels(vid, developer, publisher, released) ON rels.vid = v.id
          WHERE NOT v.hidden
-         ORDER BY rels.released
+         ORDER BY rels.released, v.title
     ');
 
     h1_ 'Visual Novels';
