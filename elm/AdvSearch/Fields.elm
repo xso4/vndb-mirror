@@ -512,6 +512,13 @@ fieldUpdate dat msg_ (num, dd, model) =
             in (dat, (num,dd,FMNest newGrandModel), Cmd.none)
           _ -> noop
 
+      -- Move root node to sub; for child nodes this is handled in nestUpdate, but the root node must be handled separately
+      (FMoveSub, FMNest m) ->
+        let subfields = [(num,DD.toggle dd False,model)]
+            (ndat,subm) = nestInit True m.qtype m.qtype subfields dat
+            (ndat2,subf) = fieldCreate -1 (ndat, FMNest subm)
+        in (ndat2, subf, Cmd.none)
+
       (FSNest (NAnd a b), FMNest m)  -> mapc FMNest FSNest (nestUpdate dat (NAnd a b) m)
       (FSNest (NNeg a b), FMNest m)  -> mapc FMNest FSNest (nestUpdate dat (NNeg a b) m)
       (FSNest msg,     FMNest m)     -> mapf FMNest FSNest (nestUpdate dat msg m)
@@ -569,9 +576,7 @@ fieldViewDd dat dd lbl cont =
       , if dat.level <= 1
         then b [ title "Can't move this filter to parent branch" ] [ text "↰" ]
         else a [ href "#", onClickD FMovePar, title "Move this filter to parent branch" ] [ text "↰" ]
-      , if dat.level == 0
-        then b [ title "Can't move this filter into a subbranch" ] [ text "↳" ]
-        else a [ href "#", onClickD FMoveSub, title "Create new branch for this filter" ] [ text "↳" ]
+      , a [ href "#", onClickD FMoveSub, title "Create new branch for this filter" ] [ text "↳" ]
       ] :: cont ()
   ]
 
