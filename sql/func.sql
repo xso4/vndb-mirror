@@ -141,13 +141,12 @@ $$ LANGUAGE SQL;
 -- Updates vn.c_length and vn.c_lengthnum
 CREATE OR REPLACE FUNCTION update_vn_length_cache(vndbid) RETURNS void AS $$
   WITH s (vid, cnt, len) AS (
-    SELECT v.id, count(l.vid)
-         , percentile_cont(0.5) WITHIN GROUP (ORDER BY l.length + (l.length/4 * (l.speed-1)))
+    SELECT v.id, count(l.vid) FILTER (WHERE u.id IS NOT NULL AND l.vid IS NOT NULL)
+         , percentile_cont(0.5) WITHIN GROUP (ORDER BY l.length + (l.length/4 * (l.speed-1))) FILTER (WHERE u.id IS NOT NULL AND l.vid IS NOT NULL)
       FROM vn v
-      LEFT JOIN vn_length_votes l ON l.vid = v.id
-      LEFT JOIN users u ON u.id = l.uid
-     WHERE u.perm_lengthvote IS DISTINCT FROM false AND NOT l.ignore
-       AND ($1 IS NULL OR v.id = $1)
+      LEFT JOIN vn_length_votes l ON l.vid = v.id AND NOT l.ignore
+      LEFT JOIN users u ON u.id = l.uid AND u.perm_lengthvote
+     WHERE ($1 IS NULL OR v.id = $1)
      GROUP BY v.id
   ) UPDATE vn SET c_lengthnum = cnt, c_length = len
       FROM s
