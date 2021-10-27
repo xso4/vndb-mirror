@@ -401,7 +401,8 @@ CREATE TABLE releases ( -- dbentry_type=r
   l_googplay   text NOT NULL DEFAULT '', -- [pub]
   l_fakku      text NOT NULL DEFAULT '', -- [pub]
   l_gyutto     integer[] NOT NULL DEFAULT '{}', -- [pub]
-  l_dmm        text[] NOT NULL DEFAULT '{}' -- [pub]
+  l_dmm        text[] NOT NULL DEFAULT '{}', -- [pub]
+  l_freegame   text NOT NULL DEFAULT '' -- [pub]
 );
 
 -- releases_hist
@@ -453,7 +454,8 @@ CREATE TABLE releases_hist (
   l_googplay   text NOT NULL DEFAULT '',
   l_fakku      text NOT NULL DEFAULT '',
   l_gyutto     integer[] NOT NULL DEFAULT '{}',
-  l_dmm        text[] NOT NULL DEFAULT '{}'
+  l_dmm        text[] NOT NULL DEFAULT '{}',
+  l_freegame   text NOT NULL DEFAULT ''
 );
 
 -- releases_lang

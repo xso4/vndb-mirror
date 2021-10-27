@@ -89,11 +89,6 @@ our %LINKS = (
                       , fmt2  => sub { config->{dlsite_url} && sprintf config->{dlsite_url}, shift->{l_dlsite_shop}||'home' }
                       , regex => qr{(?:www\.)?dlsite\.com/.*/(?:dlaf/=/link/work/aid/.*/id|work/=/product_id)/([VR]J[0-9]{6}).*}
                       , patt  => 'https://www.dlsite.com/<store>/work/=/product_id/<VJ or RJ-code>' },
-        l_dlsiteen => { label => 'DLsite (eng)'
-                      , fmt   => 'https://www.dlsite.com/eng/work/=/product_id/%s.html'
-                      , fmt2  => sub { config->{dlsite_url} && sprintf config->{dlsite_url}, shift->{l_dlsiteen_shop}||'eng' }
-                      , regex => qr{(?:www\.)?dlsite\.com/.*/(?:dlaf/=/link/work/aid/.*/id|work/=/product_id)/([VR]E[0-9]{6}).*}
-                      , patt  => 'https://www.dlsite.com/<store>/work/=/product_id/<VE or RE-code>' },
         l_gog      => { label => 'GOG'
                       , fmt   => 'https://www.gog.com/game/%s'
                       , regex => qr{(?:www\.)?gog\.com/game/([a-z0-9_]+).*} },
@@ -127,6 +122,10 @@ our %LINKS = (
         l_freem    => { label => 'Freem!'
                       , fmt   => 'https://www.freem.ne.jp/win/game/%d'
                       , regex => qr{(?:www\.)?freem\.ne\.jp/win/game/([0-9]+)} },
+        l_freegame => { label => 'Freegame Mugen'
+                      , fmt   => 'https://freegame-mugen.jp/%s.html'
+                      , regex => qr{(?:www\.)?freegame-mugen\.jp/([^/]+/game_[0-9]+)\.html}
+                      , patt  => 'https://freegame-mugen.jp/<genre>/game_<id>.html' },
         l_novelgam => { label => 'NovelGame'
                       , fmt   => 'https://novelgame.jp/games/show/%d'
                       , regex => qr{(?:www\.)?novelgame\.jp/games/show/([0-9]+)} },
@@ -168,6 +167,8 @@ our %LINKS = (
         l_nutaku   => { label => 'Nutaku'
                       , fmt   => 'https://www.nutaku.net/games/%s/'
                       , regex => qr{(?:www\.)?nutaku\.net/games/(?:mobile/|download/|app/)?([a-z0-9-]+)/?} }, # The section part does sometimes link to different pages, but it's the same game and the non-section link always works.
+        # deprecated
+        l_dlsiteen => { label => 'DLsite (eng)', fmt => 'https://www.dlsite.com/eng/work/=/product_id/%s.html' },
     },
     s => {
         l_site     => { label => 'Official website', fmt => '%s' },
@@ -286,6 +287,7 @@ sub enrich_extlinks {
             l 'l_googplay';
             l 'l_animateg';
             l 'l_freem';
+            l 'l_freegame';
             l 'l_novelgam';
             l 'l_gyutto';
             l 'l_digiket';
