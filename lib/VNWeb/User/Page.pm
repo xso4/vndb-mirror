@@ -19,6 +19,8 @@ sub _info_table_ {
         };
     } if $u->{user_uniname_can} && $u->{user_uniname};
     tr_ sub {
+        my $old = tuwf->dbAlli('SELECT date::date, old FROM users_username_hist WHERE id =', \$u->{id},
+            auth->permUsermod ? () : 'AND date > NOW()-\'1 month\'::interval', 'ORDER BY date DESC');
         td_ class => 'key', 'Username';
         td_ sub {
             txt_ ucfirst $u->{user_name};
@@ -26,6 +28,10 @@ sub _info_table_ {
             txt_ ')';
             debug_ $u;
             sup if !($u->{user_uniname_can} && $u->{user_uniname});
+            for(@$old) {
+                br_;
+                b_ class => 'grayedout', "Changed from '$_->{old}' on $_->{date}.";
+            }
         };
     };
     tr_ sub {

@@ -1020,6 +1020,15 @@ CREATE TABLE users_shadow (
   passwd         bytea NOT NULL DEFAULT ''
 );
 
+-- users_username_hist
+CREATE TABLE users_username_hist (
+  id    vndbid NOT NULL,
+  date  timestamptz NOT NULL DEFAULT NOW(),
+  old   text NOT NULL,
+  new   text NOT NULL,
+  PRIMARY KEY(id, date)
+);
+
 -- vn
 CREATE TABLE vn ( -- dbentry_type=v
   id            vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('v', nextval('vn_id_seq')::int) CONSTRAINT vn_id_check CHECK(vndbid_type(id) = 'v'), -- [pub]

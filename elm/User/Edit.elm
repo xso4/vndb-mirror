@@ -35,6 +35,7 @@ type alias Model =
   , id          : String
   , title       : String
   , username    : String
+  , nusername   : Maybe String
   , opts        : GUE.RecvOpts
   , admin       : Maybe GUE.SendAdmin
   , prefs       : Maybe GUE.SendPrefs
@@ -50,6 +51,7 @@ init d =
   , id          = d.id
   , title       = d.title
   , username    = d.username
+  , nusername   = Nothing
   , opts        = d.opts
   , admin       = d.admin
   , prefs       = d.prefs
@@ -99,7 +101,7 @@ type PassMsg
   | Pass2 String
 
 type Msg
-  = Username String
+  = Username (Maybe String)
   | Admin AdminMsg
   | Prefs PrefMsg
   | Pass PassMsg
@@ -180,7 +182,7 @@ updatePass msg model =
 encode : Model -> GUE.Send
 encode model =
   { id       = model.id
-  , username = model.username
+  , username = Maybe.withDefault model.username model.nusername
   , admin    = model.admin
   , prefs    = model.prefs
   , password = Maybe.andThen (\p -> if p.cpass && p.pass1 == p.pass2 then Just { old = p.opass, new = p.pass1 } else Nothing) model.pass
@@ -193,7 +195,7 @@ update msg model =
     Admin m -> ({ model | admin = Maybe.map (updateAdmin m) model.admin }, Cmd.none)
     Prefs m -> ({ model | prefs = Maybe.map (updatePrefs m) model.prefs }, Cmd.none)
     Pass  m -> ({ model | pass  = Maybe.map (updatePass  m) model.pass, passNeq = False }, Cmd.none)
-    Username s -> ({ model | username = s }, Cmd.none)
+    Username s -> ({ model | nusername = s }, Cmd.none)
 
     Submit ->
       if Maybe.withDefault False (Maybe.map (\p -> p.cpass && p.pass1 /= p.pass2) model.pass)
@@ -215,7 +217,6 @@ view model =
 
     adminform m =
       [ tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Admin options" ] ]
-      , perm False <| formField "username::Username" [ inputText "username" model.username Username GUE.valUsername ]
       , formField "Permissions"
         [ text "Fields marked with * indicate permissions assigned to new users by default", br_ 1
         , perm False <| span [] [ inputButton "None" (Admin PermNone) [], inputButton "Default" (Admin PermDefault) [], br_ 1 ]
@@ -300,7 +301,21 @@ view model =
       [ h1 [] [ text model.title ]
       , table [ class "formtable" ] <|
         [ tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Account settings" ] ]
-        , formField "Username" [ text model.username ]
+        , formField "Username"
+          [ text model.username, text " "
+          , if model.prefs == Nothing then text "" else label []
+            [ inputCheck "" (model.nusername /= Nothing) (\b -> Username <| if b then Just model.username else Nothing)
+            , text " change" ]
+          ]
+        , Maybe.withDefault (text "") <| Maybe.map (\u ->
+           tr [] [ K.node "td" [colspan 2] [("username_change", table []
+            [ formField "username::New username"
+              [ inputText "username" u (Username << Just) GUE.valUsername
+              , br [] []
+              , text "You may only change your username once a day. Your old username(s) will be displayed on your profile for a month after the change."
+              ]
+            ])] ]
+          ) model.nusername
         , Maybe.withDefault (text "") <| Maybe.map (\m ->
             formField "email::E-Mail" [ inputText "email" m.email (Prefs << EMail) GUE.valPrefsEmail ]
           ) model.prefs

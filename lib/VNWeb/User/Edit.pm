@@ -7,7 +7,7 @@ use VNDB::Skins;
 my $FORM = {
     id             => { vndbid => 'u' },
     title          => { _when => 'out' },
-    username       => { username => 1 }, # Can only be modified with perm_usermod
+    username       => { username => 1 }, # Can only be modified by the user itself or a perm_usermod
 
     opts => { _when => 'out', type => 'hash', keys => {
         # Supporter options available to this user
@@ -103,7 +103,7 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
     my $data = shift;
 
     my $username = tuwf->dbVali('SELECT username FROM users WHERE id =', \$data->{id});
-    return tuwf->resNotFound if !$username;
+    return tuwf->resNotFound if !length $username;
     return elm_Unauth if !can_edit u => $data;
 
     my $own = $data->{id} eq auth->uid || auth->permUsermod;
@@ -122,7 +122,6 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
     }
 
     if(auth->permUsermod) {
-        $set{username} = $data->{username};
         $set{ign_votes} = $data->{admin}{ign_votes};
         $set{email_confirmed} = 1;
         tuwf->dbExeci(select => sql_func user_setperm_usermod => \$data->{id}, \auth->uid, sql_fromhex(auth->token), \$data->{admin}{perm_usermod});
@@ -134,6 +133,13 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
     $set{perm_imgvote}    = $data->{admin}{perm_imgvote}    if auth->permDbmod;
     $set{perm_lengthvote} = $data->{admin}{perm_lengthvote} if auth->permDbmod;
     $set{perm_tag}        = $data->{admin}{perm_tag}        if auth->permTagmod;
+
+    if($own && $data->{username} ne $username) {
+        return elm_NameThrottle if tuwf->dbVali('SELECT 1 FROM users_username_hist WHERE id =', \$data->{id}, 'AND date > NOW()-\'1 day\'::interval');
+        return elm_Taken if tuwf->dbVali('SELECT 1 FROM users WHERE id <>', \$data->{id}, 'AND username =', \$data->{username});
+        $set{username} = $data->{username};
+        tuwf->dbExeci('INSERT INTO users_username_hist', { id => $data->{id}, old => $username, new => $data->{username} });
+    }
 
     if($own && $data->{password}) {
         return elm_InsecurePass if is_insecurepass $data->{password}{new};

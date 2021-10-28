@@ -40,6 +40,7 @@ showResponse res =
     BadEmail                        -> "Unknown email address."
     Bot                             -> "Invalid answer to the anti-bot question."
     Taken                           -> "Username already taken, please choose a different name."
+    NameThrottle                    -> "You can only change your username once every 24 hours."
     DoubleEmail                     -> "Email address already used for another account."
     DoubleIP                        -> "You can only register one account from the same IP within 24 hours."
     BadCurPass                      -> "Current password is invalid."

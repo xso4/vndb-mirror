@@ -48,6 +48,7 @@ our %apis = (
     BadEmail       => [], # Unknown email address in password reset form
     Bot            => [], # User didn't pass bot verification
     Taken          => [], # Username already taken
+    NameThrottle   => [], # Username change throttled
     DoubleEmail    => [], # Account with same email already exists
     DoubleIP       => [], # Account with same IP already exists
     BadCurPass     => [], # Current password is incorrect when changing password
