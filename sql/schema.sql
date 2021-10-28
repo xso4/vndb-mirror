@@ -308,7 +308,7 @@ CREATE TABLE producers ( -- dbentry_type=p
   name       varchar(200) NOT NULL DEFAULT '', -- [pub]
   original   varchar(200) NOT NULL DEFAULT '', -- [pub]
   alias      varchar(500) NOT NULL DEFAULT '', -- [pub]
-  website    varchar(250) NOT NULL DEFAULT '', -- [pub]
+  website    varchar(1024) NOT NULL DEFAULT '', -- [pub]
   "desc"     text NOT NULL DEFAULT '', -- [pub]
   l_wp       varchar(150) -- (deprecated)
 );
@@ -322,7 +322,7 @@ CREATE TABLE producers_hist (
   name       varchar(200) NOT NULL DEFAULT '',
   original   varchar(200) NOT NULL DEFAULT '',
   alias      varchar(500) NOT NULL DEFAULT '',
-  website    varchar(250) NOT NULL DEFAULT '',
+  website    varchar(1024) NOT NULL DEFAULT '',
   "desc"     text NOT NULL DEFAULT '',
   l_wp       varchar(150)
 );
@@ -386,12 +386,12 @@ CREATE TABLE releases ( -- dbentry_type=r
   hidden       boolean NOT NULL DEFAULT FALSE,
   title        varchar(300) NOT NULL DEFAULT '', -- [pub]
   original     varchar(250) NOT NULL DEFAULT '', -- [pub]
-  website      varchar(250) NOT NULL DEFAULT '', -- [pub]
+  website      varchar(1024) NOT NULL DEFAULT '', -- [pub]
   catalog      varchar(50) NOT NULL DEFAULT '', -- [pub]
   engine       varchar(50) NOT NULL DEFAULT '', -- [pub]
   notes        text NOT NULL DEFAULT '', -- [pub]
   l_dlsite     text NOT NULL DEFAULT '', -- [pub]
-  l_dlsiteen   text NOT NULL DEFAULT '', -- [pub] (deprecated, DLsite doesn't have a separate English shop anymore)
+  l_dlsiteen   text NOT NULL DEFAULT '', -- (deprecated, DLsite doesn't have a separate English shop anymore)
   l_gog        text NOT NULL DEFAULT '', -- [pub]
   l_denpa      text NOT NULL DEFAULT '', -- [pub]
   l_jlist      text NOT NULL DEFAULT '', -- [pub]
@@ -439,7 +439,7 @@ CREATE TABLE releases_hist (
   official     boolean NOT NULL DEFAULT TRUE,
   title        varchar(300) NOT NULL DEFAULT '',
   original     varchar(250) NOT NULL DEFAULT '',
-  website      varchar(250) NOT NULL DEFAULT '',
+  website      varchar(1024) NOT NULL DEFAULT '',
   catalog      varchar(50) NOT NULL DEFAULT '',
   engine       varchar(50) NOT NULL DEFAULT '',
   notes        text NOT NULL DEFAULT '',

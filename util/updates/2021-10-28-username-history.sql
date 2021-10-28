@@ -6,7 +6,7 @@ CREATE TABLE users_username_hist (
   PRIMARY KEY(id, date)
 );
 ALTER TABLE users_username_hist      ADD CONSTRAINT users_username_hist_id_fkey        FOREIGN KEY (id)        REFERENCES users         (id) ON DELETE CASCADE;
-\u sql/perms.sql
+\i sql/perms.sql
 
 INSERT INTO users_username_hist (id, date, old, new)
      SELECT affected_uid, date
