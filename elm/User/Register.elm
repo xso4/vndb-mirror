@@ -50,7 +50,7 @@ type Msg
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    Username n -> ({ model | username = String.toLower n }, Cmd.none)
+    Username n -> ({ model | username = n }, Cmd.none)
     EMail    n -> ({ model | email    = n }, Cmd.none)
     VNs      n -> ({ model | vns      = Maybe.withDefault model.vns (String.toInt n) }, Cmd.none)
 
@@ -82,7 +82,7 @@ view model =
         [ formField "username::Username"
           [ inputText "username" model.username Username GUR.valUsername
           , br_ 1
-          , text "Preferred username. Must be lowercase, between 2 and 15 characters long and consist entirely of alphanumeric characters or a dash."
+          , text "Preferred username. Must be between 2 and 15 characters long and consist entirely of alphanumeric characters or a dash."
           , text " Names that look like database identifiers (i.e. a single letter followed by several numbers) are also disallowed."
           ]
         , formField "email::E-Mail"

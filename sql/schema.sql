@@ -988,7 +988,7 @@ CREATE TABLE users (
   perm_tag            boolean NOT NULL DEFAULT true, -- [pub] (public because this is used in calculating VN tag scores)
   perm_tagmod         boolean NOT NULL DEFAULT false,
   perm_review         boolean NOT NULL DEFAULT true,
-  username            varchar(20) NOT NULL UNIQUE, -- [pub]
+  username            varchar(20) NOT NULL, -- [pub]
   uniname             text NOT NULL DEFAULT '',
   ip                  inet NOT NULL DEFAULT '0.0.0.0',
   skin                text NOT NULL DEFAULT '',

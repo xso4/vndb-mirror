@@ -175,7 +175,7 @@ sub login {
     my($self, $user, $pass, $pretend) = @_;
     return 0 if $self->uid || !$user || !$pass;
 
-    my $uid = tuwf->dbVali('SELECT id FROM users WHERE username =', \$user);
+    my $uid = tuwf->dbVali('SELECT id FROM users WHERE lower(username) = lower(', \$user, ')');
     return 0 if !$uid;
     my $encpass = $self->_encpass($uid, $pass);
     return 0 if !$encpass;

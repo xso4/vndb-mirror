@@ -67,7 +67,7 @@ TUWF::get qr{/u/(?<char>[0a-z]|all)}, sub {
     )->data;
 
     my @where = (
-        $char eq 'all' ? () : $char eq '0' ? "ascii(username) not between ascii('a') and ascii('z')" : "username like '$char%'",
+        $char eq 'all' ? () : $char eq '0' ? "ascii(lower(username)) not between ascii('a') and ascii('z')" : "lower(username) like '$char%'",
         $opt->{q} ? sql_or(
             auth->permUsermod && $opt->{q} =~ /@/ ? sql('id IN(SELECT y FROM user_emailtoid(', \$opt->{q}, ') x(y))') : (),
             $opt->{q} =~ /^u?([0-9]{1,6})$/ ? sql 'id =', \"u$1" : (),
@@ -80,7 +80,7 @@ TUWF::get qr{/u/(?<char>[0a-z]|all)}, sub {
            FROM users u
           WHERE', sql_and(@where),
          'ORDER BY', {
-                  username   => 'username',
+                  username   => 'lower(username)',
                   registered => 'id',
                   vns        => 'c_vns',
                   votes      => 'c_votes',

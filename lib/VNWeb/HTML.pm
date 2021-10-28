@@ -86,7 +86,7 @@ sub user_ {
     my $uniname = f 'uniname_can' && f 'uniname';
     a_ href => '/'.f('id'),
         $fancy && $uniname ? (title => f('name'), $uniname) :
-        (!$fancy && $uniname ? (title => $uniname) : (), $capital ? ucfirst f 'name' : f 'name');
+        (!$fancy && $uniname ? (title => $uniname) : (), $capital ? f 'name' : f 'name');
     txt_ '⭐' if $fancy && f 'support_can' && f 'support_enabled';
 }
 

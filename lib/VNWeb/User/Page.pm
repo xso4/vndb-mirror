@@ -23,7 +23,7 @@ sub _info_table_ {
             auth->permUsermod ? () : 'AND date > NOW()-\'1 month\'::interval', 'ORDER BY date DESC');
         td_ class => 'key', 'Username';
         td_ sub {
-            txt_ ucfirst $u->{user_name};
+            txt_ $u->{user_name};
             txt_ ' ('; a_ href => "/$u->{id}", $u->{id};
             txt_ ')';
             debug_ $u;

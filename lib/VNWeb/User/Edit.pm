@@ -136,7 +136,7 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
 
     if($own && $data->{username} ne $username) {
         return elm_NameThrottle if tuwf->dbVali('SELECT 1 FROM users_username_hist WHERE id =', \$data->{id}, 'AND date > NOW()-\'1 day\'::interval');
-        return elm_Taken if tuwf->dbVali('SELECT 1 FROM users WHERE id <>', \$data->{id}, 'AND username =', \$data->{username});
+        return elm_Taken if !is_unique_username $data->{username}, $data->{id};
         $set{username} = $data->{username};
         tuwf->dbExeci('INSERT INTO users_username_hist', { id => $data->{id}, old => $username, new => $data->{username} });
     }

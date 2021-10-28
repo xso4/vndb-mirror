@@ -28,7 +28,7 @@ elm_api UserRegister => undef, {
 
     my $num = tuwf->dbVali("SELECT count FROM stats_cache WHERE section = 'vn'");
     return elm_Bot         if $data->{vns} < $num*0.995 || $data->{vns} > $num*1.005;
-    return elm_Taken       if tuwf->dbVali('SELECT 1 FROM users WHERE username =', \$data->{username});
+    return elm_Taken       if !is_unique_username $data->{username};
     return elm_DoubleEmail if tuwf->dbVali('SELECT 1 FROM user_emailtoid(', \$data->{email}, ') x');
 
     my $ip = tuwf->reqIP;

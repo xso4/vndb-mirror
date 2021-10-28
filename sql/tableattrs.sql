@@ -161,4 +161,5 @@ CREATE UNIQUE INDEX changes_itemrev        ON changes (itemid, rev);
 CREATE UNIQUE INDEX chars_vns_pkey         ON chars_vns (id, vid, COALESCE(rid, 'v1')); -- 'v1' is an invalid release id, but works as a 'no release specified' value in the UNIQUE qualifier.
 CREATE UNIQUE INDEX chars_vns_hist_pkey    ON chars_vns_hist (chid, vid, COALESCE(rid, 'v1'));
 CREATE        INDEX ulist_vns_voted        ON ulist_vns (vid, vote_date) WHERE vote IS NOT NULL; -- For VN recent votes & vote graph. INCLUDE(vote) speeds up vote graph even more
+CREATE UNIQUE INDEX users_username_key     ON users (lower(username));
 CREATE        INDEX users_ign_votes        ON users (id) WHERE ign_votes;

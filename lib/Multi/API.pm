@@ -276,7 +276,6 @@ sub login {
     cres $c, ['ok'], 'Login using client "%s" ver. %s', $c->{client}, $c->{clientver};
     return;
   } else {
-    $arg->{username} = lc $arg->{username};
     return cerr $c, auth => "Password too weak, please log in on the site and change your password"
       if config->{password_db} && PWLookup::lookup(config->{password_db}, $arg->{password});
   }
@@ -295,7 +294,7 @@ sub login_auth {
       if $tm-AE::time() > config->{login_throttle}[1];
 
     # Fetch user info
-    cpg $c, 'SELECT id, encode(user_getscryptargs(id), \'hex\') FROM users WHERE username = $1', [ $arg->{username} ], sub {
+    cpg $c, 'SELECT id, username, encode(user_getscryptargs(id), \'hex\') FROM users WHERE lower(username) = lower($1)', [ $arg->{username} ], sub {
       login_verify($c, $arg, $tm, $_[0]);
     };
   };
@@ -307,7 +306,8 @@ sub login_verify {
 
   return cerr $c, auth => "No user with the name '$arg->{username}'" if $res->nRows == 0;
   my $uid = $res->value(0,0);
-  my $sargs = $res->value(0,1);
+  my $username = $res->value(0,1);
+  my $sargs = $res->value(0,2);
   return cerr $c, auth => "Account disabled" if !$sargs || length($sargs) != 14*2;
 
   my $token = urandom(20);
@@ -317,16 +317,16 @@ sub login_verify {
   cpg $c, 'SELECT user_login($1, decode($2, \'hex\'), decode($3, \'hex\'))', [ $uid, unpack('H*', $passwd), unpack('H*', $token) ], sub {
     if($_[0]->nRows == 1 && ($_[0]->value(0,0)||'') =~ /t/) {
       $c->{uid} = $uid;
-      $c->{username} = $arg->{username};
+      $c->{username} = $username;
       $c->{client} = $arg->{client};
       $c->{clientver} = $arg->{clientver};
       pg_cmd 'SELECT user_logout($1, decode($2, \'hex\'))', [ $uid, unpack('H*', $token) ];
-      cres $c, ['ok'], 'Successful login by %s (%s) using client "%s" ver. %s', $arg->{username}, $c->{uid}, $c->{client}, $c->{clientver};
+      cres $c, ['ok'], 'Successful login by %s (%s) using client "%s" ver. %s', $username, $c->{uid}, $c->{client}, $c->{clientver};
     } else {
       my @a = ( $tm + config->{login_throttle}[0], norm_ip($c->{ip}) );
       pg_cmd 'UPDATE login_throttle SET timeout = to_timestamp($1) WHERE ip = $2', \@a;
       pg_cmd 'INSERT INTO login_throttle (ip, timeout) SELECT $2, to_timestamp($1) WHERE NOT EXISTS(SELECT 1 FROM login_throttle WHERE ip = $2)', \@a;
-      cerr $c, auth => "Wrong password for user '$arg->{username}'";
+      cerr $c, auth => "Wrong password for user '$username'";
     }
   };
 }

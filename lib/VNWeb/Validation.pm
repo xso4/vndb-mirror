@@ -15,6 +15,7 @@ use Exporter 'import';
 our @EXPORT = qw/
     samesite
     is_insecurepass
+    is_unique_username
     form_compile
     form_changed
     validate_dbid
@@ -36,7 +37,7 @@ TUWF::set custom_validations => {
     editsum     => { required => 1, length => [ 2, 5000 ] },
     page        => { uint => 1, min => 1, max => 1000, required => 0, default => 1, onerror => 1 },
     upage       => { uint => 1, min => 1, required => 0, default => 1, onerror => 1 }, # pagination without a maximum
-    username    => { regex => qr/^(?!-*[a-z][0-9]+-*$)[a-z0-9-]*$/, minlength => 2, maxlength => 15 },
+    username    => { regex => qr/^(?!-*[a-zA-Z][0-9]+-*$)[a-zA-Z0-9-]*$/, minlength => 2, maxlength => 15 },
     password    => { length => [ 4, 500 ] },
     language    => { enum => \%LANGUAGE },
     gtin        => { required => 0, default => 0, func => sub { $_[0] = 0 if !length $_[0]; $_[0] eq 0 || gtintype($_[0]) } },
@@ -98,6 +99,21 @@ sub samesite { !!tuwf->reqCookie('samesite') }
 
 sub is_insecurepass {
     config->{password_db} && PWLookup::lookup(config->{password_db}, shift)
+}
+
+# Test uniqueness of a username in the database. Usernames with similar
+# homographs are considered duplicate.
+# (Would be much faster and safer to do this normalization in the DB and put a
+# unique constraint on the normalized name, but we have a bunch of existing
+# username clashes that I can't just change)
+sub is_unique_username {
+    my($name, $excludeid) = @_;
+    my sub norm {
+        # lowercase, normalize 'i1l' and '0o'
+        sql "regexp_replace(regexp_replace(lower(", $_[0], "), '[1l]', 'i', 'g'), '0', 'o', 'g')";
+    };
+    !tuwf->dbVali('SELECT 1 FROM users WHERE', norm('username'), '=', norm(\$name),
+        $excludeid ? ('AND id <>', \$excludeid) : ());
 }
 
 

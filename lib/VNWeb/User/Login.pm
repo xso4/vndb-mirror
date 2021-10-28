@@ -34,7 +34,7 @@ elm_api UserLogin => undef, {
     }
 
     # Failed login, log and update throttle.
-    auth->audit(tuwf->dbVali('SELECT id FROM users WHERE username =', \$data->{username}), 'bad password', 'failed login attempt');
+    auth->audit(tuwf->dbVali('SELECT id FROM users WHERE lower(username) = lower(', \$data->{username}, ')'), 'bad password', 'failed login attempt');
     my $upd = {
         ip      => \$ip,
         timeout => sql_fromtime $tm + config->{login_throttle}[0]
@@ -50,7 +50,7 @@ elm_api UserChangePass => undef, {
     newpass  => { password => 1 },
 }, sub {
     my $data = shift;
-    my $uid = tuwf->dbVali('SELECT id FROM users WHERE username =', \$data->{username});
+    my $uid = tuwf->dbVali('SELECT id FROM users WHERE lower(username) = lower(', \$data->{username}, ')');
     die if !$uid;
     return elm_InsecurePass if is_insecurepass $data->{newpass};
     auth->audit($uid, 'password change', 'after login with an insecure password');
