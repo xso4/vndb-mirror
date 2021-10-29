@@ -155,7 +155,7 @@ sub imgsize {
     $ow *= $sh/$oh;
     $oh = $sh;
   }
-  return (int $ow, int $oh);
+  return (int ($ow+0.5), int ($oh+0.5));
 }
 
 
