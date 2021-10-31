@@ -134,7 +134,7 @@ sub infobox_relations_ {
     return if !$v->{relations}->@*;
 
     my %rel;
-    push $rel{$_->{relation}}->@*, $_ for sort { $a->{c_released} <=> $b->{c_released} || $a->{title} cmp $b->{title} } $v->{relations}->@*;
+    push $rel{$_->{relation}}->@*, $_ for sort { $b->{official} <=> $a->{official} || $a->{c_released} <=> $b->{c_released} || $a->{title} cmp $b->{title} } $v->{relations}->@*;
 
     tr_ sub {
         td_ 'Relations';
