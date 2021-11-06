@@ -27,7 +27,10 @@ sub releases_by_vn {
 # Assumption: Each release already has id, patch, released, gtin and enrich_extlinks().
 sub enrich_release {
     my($r) = @_;
-    enrich_merge id => 'SELECT id, title, original, notes, minage, official, freeware, doujin, reso_x, reso_y, voiced, ani_story, ani_ero, uncensored FROM releases WHERE id IN', $r;
+    enrich_merge id =>
+        'SELECT id, title, original, notes, minage, official, freeware, doujin, reso_x, reso_y, voiced, uncensored
+              , ani_story, ani_ero, ani_story_sp, ani_story_cg, ani_cutscene, ani_ero_sp, ani_ero_cg, ani_face, ani_bg
+          FROM releases WHERE id IN', $r;
     enrich_merge id => sub { sql 'SELECT id, MAX(rtype) AS rtype FROM releases_vn WHERE id IN', $_, 'GROUP BY id' }, grep !$_->{rtype}, ref $r ? @$r : $r;
     enrich_merge id => sql('SELECT rid as id, status as rlist_status FROM rlists WHERE uid =', \auth->uid, 'AND rid IN'), $r if auth;
     enrich_flatten platforms => id => id => sub { sql 'SELECT id, platform FROM releases_platforms WHERE id IN', $_, 'ORDER BY id, platform' }, $r;
@@ -81,6 +84,28 @@ sub release_row_ {
         ? [grep $_->{lang} eq $opt->{lang}, $r->{lang}->@*]->[0]{mtl}
         : (grep $_->{mtl}, $r->{lang}->@*) == $r->{lang}->@*;
 
+    my @boolani = (
+        defined $r->{ani_bg}   ? ($r->{ani_bg} ? 'Animated background effects' : 'No background effects') : (),
+        defined $r->{ani_face} ? ($r->{ani_face} ? 'Lip and/or eye movement' : 'No facial animations') : (),
+    );
+
+    my $storyani = join "\n", map "$_.",
+        $r->{ani_story} == 1 ? 'Not animated' :
+        @boolani || defined $r->{ani_story_sp} || defined $r->{ani_story_cg} || defined $r->{ani_cutscene} ? (
+            defined $r->{ani_story_sp} ? fmtanimation $r->{ani_story_sp}, 'sprites' : (),
+            defined $r->{ani_story_cg} ? fmtanimation $r->{ani_story_cg}, 'CGs' : (),
+            defined $r->{ani_cutscene} ? fmtanimation $r->{ani_cutscene}, 'cutscenes' : (),
+            @boolani
+        ) : $ANIMATED{$r->{ani_story}}{txt};
+
+    my $eroani = join "\n", map "$_.",
+        $r->{ani_ero} == 1 ? 'Not animated' :
+        @boolani || defined $r->{ani_ero_sp} || defined $r->{ani_ero_cg} ? (
+            defined $r->{ani_ero_sp} ? fmtanimation $r->{ani_ero_sp}, 'sprites' : (),
+            defined $r->{ani_ero_cg} ? fmtanimation $r->{ani_ero_cg}, 'CGs' : (),
+            @boolani
+        ) : $ANIMATED{$r->{ani_ero}}{txt};
+
     my sub icon_ {
         my($img, $label, $class) = @_;
         $class = $class ? " release_icon_$class" : '';
@@ -90,8 +115,8 @@ sub release_row_ {
     my sub icons_ {
         my($r) = @_;
         icon_ 'voiced', $VOICED{$r->{voiced}}{txt}, "voiced$r->{voiced}" if $r->{voiced};
-        icon_ 'story_animated', "Story: $ANIMATED{$r->{ani_story}}{txt}", "anim$r->{ani_story}" if $r->{ani_story};
-        icon_ 'ero_animated', "Ero: $ANIMATED{$r->{ani_ero}}{txt}", "anim$r->{ani_ero}" if $r->{ani_ero};
+        icon_ 'story_animated', "Story scene animation:\n$storyani", "anim$r->{ani_story}" if $r->{ani_story};
+        icon_ 'ero_animated', "Erotic scene animation:\n$eroani", "anim$r->{ani_ero}" if $r->{ani_ero};
         icon_ 'free', 'Freeware' if $r->{freeware};
         icon_ 'nonfree', 'Non-free' if !$r->{freeware};
         if($r->{reso_y}) {

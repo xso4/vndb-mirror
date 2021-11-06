@@ -73,6 +73,24 @@ CREATE TYPE tag_category      AS ENUM('cont', 'ero', 'tech');
 CREATE TYPE vn_relation       AS ENUM ('seq', 'preq', 'set', 'alt', 'char', 'side', 'par', 'ser', 'fan', 'orig');
 CREATE TYPE session_type      AS ENUM ('web', 'pass', 'mail', 'api');
 
+-- Animation types & frequency encoded as bitflags in a smallint.
+-- Bitflags suck balls, but the alternatives suck too.
+-- Special values:
+--   NULL  Animation information not known
+--      0  No animation
+--      1  Animation type does not apply (e.g. VN has no sprites)
+-- Otherwise, bit flags:
+--      4  type = handrawn
+--      8  type = vectorial
+--     16  type = 3d
+--     32  type = live
+--    256  frequency = some scenes
+--    512  frequency = all scenes
+-- At least one of the 'type' flags must be set.
+-- If none of the frequency flags are set -> frequency = unknown.
+CREATE DOMAIN animation AS smallint CHECK(value IS NULL OR value IN(0,1) OR ((value & (4+8+16+32)) > 0 AND (value & (256+512)) <> (256+512)));
+
+
 -- Sequences used for ID generation
 CREATE SEQUENCE charimg_seq;
 CREATE SEQUENCE chars_id_seq;
@@ -376,8 +394,8 @@ CREATE TABLE releases ( -- dbentry_type=r
   l_novelgam   integer NOT NULL DEFAULT 0, -- [pub]
   minage       smallint, -- [pub]
   voiced       smallint NOT NULL DEFAULT 0, -- [pub]
-  ani_story    smallint NOT NULL DEFAULT 0, -- [pub]
-  ani_ero      smallint NOT NULL DEFAULT 0, -- [pub]
+  ani_story    smallint NOT NULL DEFAULT 0, -- [pub] (old, superseded by the newer ani_* columns)
+  ani_ero      smallint NOT NULL DEFAULT 0, -- [pub] (^ but the newer columns haven't been filled out much)
   reso_x       smallint NOT NULL DEFAULT 0, -- [pub] When reso_x is 0, reso_y is either 0 for 'unknown' or 1 for 'non-standard'.
   reso_y       smallint NOT NULL DEFAULT 0, -- [pub]
   patch        boolean NOT NULL DEFAULT FALSE, -- [pub]
@@ -409,7 +427,16 @@ CREATE TABLE releases ( -- dbentry_type=r
   c_search     text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[title, original])) STORED,
   l_playstation_jp text NOT NULL DEFAULT '', -- [pub]
   l_playstation_na text NOT NULL DEFAULT '', -- [pub]
-  l_playstation_eu text NOT NULL DEFAULT ''  -- [pub]
+  l_playstation_eu text NOT NULL DEFAULT '',  -- [pub]
+  -- These replace the old ani_story and ani_ero columns.
+  ani_story_sp animation, -- [pub]
+  ani_story_cg animation, -- [pub]
+  -- "Not animated" and frequency options are irrelevant for ani_cutscene.
+  ani_cutscene animation CONSTRAINT releases_cutscene_check CHECK(ani_cutscene <> 0 AND (ani_cutscene & (256+512)) = 0), -- [pub]
+  ani_ero_sp   animation, -- [pub]
+  ani_ero_cg   animation, -- [pub]
+  ani_bg       boolean, -- [pub]
+  ani_face     boolean -- [pub]
 );
 
 -- releases_hist
@@ -464,7 +491,14 @@ CREATE TABLE releases_hist (
   l_freegame   text NOT NULL DEFAULT '',
   l_playstation_jp text NOT NULL DEFAULT '',
   l_playstation_na text NOT NULL DEFAULT '',
-  l_playstation_eu text NOT NULL DEFAULT ''
+  l_playstation_eu text NOT NULL DEFAULT '',
+  ani_story_sp animation,
+  ani_story_cg animation,
+  ani_cutscene animation,
+  ani_ero_sp   animation,
+  ani_ero_cg   animation,
+  ani_bg       boolean,
+  ani_face     boolean
 );
 
 -- releases_lang

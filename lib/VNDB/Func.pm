@@ -18,7 +18,7 @@ our @EXPORT = ('bb_format', qw|
   imgsize
   norm_ip
   minage
-  fmtvote fmtmedia fmtage fmtdate fmtrating fmtspoil
+  fmtvote fmtmedia fmtage fmtdate fmtrating fmtspoil fmtanimation
   imgpath imgurl
   lang_attr
   query_encode
@@ -209,6 +209,20 @@ sub fmtspoil {
    'no spoiler',
    'minor spoiler',
    'major spoiler']->[shift()+1];
+}
+
+
+sub fmtanimation {
+    my($a, $cat) = @_;
+    return if !defined $a;
+    return $cat ? ucfirst "$cat not animated" : 'Not animated' if !$a;
+    return $cat ? "No $cat" : 'Not applicable' if $a == 1;
+    ($a & 256 ? 'Some scenes ' : $a & 512 ? 'All scenes ' : '').join('/',
+        $a &  4 ? 'Hand drawn' : (),
+        $a &  8 ? 'Vectorial' : (),
+        $a & 16 ? '3D' : (),
+        $a & 32 ? 'Live action' : ()
+    ).($cat ? " $cat" : '');
 }
 
 

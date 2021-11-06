@@ -200,7 +200,7 @@ hash TAG_CATEGORY =>
 
 hash ANIMATED =>
     0 => { txt => 'Unknown'                    },
-    1 => { txt => 'No animations'              },
+    1 => { txt => 'Not animated'               },
     2 => { txt => 'Simple animations'          },
     3 => { txt => 'Some fully animated scenes' },
     4 => { txt => 'All scenes fully animated'  };

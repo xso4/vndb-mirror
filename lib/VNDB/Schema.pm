@@ -35,7 +35,7 @@ sub schema {
     while(<$F>) {
         chomp;
         next if /^\s*--/ || /^\s*$/;
-        next if /^\s*CREATE\s+(?:TYPE|SEQUENCE|FUNCTION|VIEW)/;
+        next if /^\s*CREATE\s+(?:TYPE|SEQUENCE|FUNCTION|DOMAIN|VIEW)/;
 
         if(/^\s*CREATE\s+TABLE\s+([^ ]+)/) {
             die "Unexpected 'CREATE TABLE $1'\n" if $table;
@@ -88,7 +88,7 @@ sub types {
     open my $F, '<', "$ROOT/sql/schema.sql" or die "schema.sql: $!";
     while(<$F>) {
         chomp;
-        if(/^CREATE TYPE ([^ ]+)/) {
+        if(/^CREATE (?:TYPE|DOMAIN) ([^ ]+)/) {
             $types{$1} = { decl => $_ };
         }
     }

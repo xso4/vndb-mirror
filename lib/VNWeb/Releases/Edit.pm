@@ -30,6 +30,13 @@ my $FORM = {
     voiced     => { uint => 1, enum => \%VOICED },
     ani_story  => { uint => 1, enum => \%ANIMATED },
     ani_ero    => { uint => 1, enum => \%ANIMATED },
+    ani_story_sp => { required => 0, uint => 1, range => [0,32767] },
+    ani_story_cg => { required => 0, uint => 1, range => [0,32767] },
+    ani_cutscene => { required => 0, uint => 1, range => [0,32767] },
+    ani_ero_sp   => { required => 0, uint => 1, range => [0,32767] },
+    ani_ero_cg   => { required => 0, uint => 1, range => [0,32767] },
+    ani_face   => { undefbool => 1 },
+    ani_bg     => { undefbool => 1 },
     website    => { required => 0, default => '', weburl => 1 },
     engine     => { required => 0, default => '', maxlength => 50 },
     extlinks   => validate_extlinks('r'),
@@ -144,13 +151,15 @@ elm_api ReleaseEdit => $FORM_OUT, $FORM_IN, sub {
     if($data->{patch}) {
         $data->{doujin} = $data->{voiced} = $data->{ani_story} = $data->{ani_ero} = 0;
         $data->{reso_x} = $data->{reso_y} = 0;
+        $data->{ani_story_sp} = $data->{ani_story_cg} = $data->{ani_cutscene} = $data->{ani_ero_sp} = $data->{ani_ero_cg} = $data->{ani_face} = $data->{ani_bg} = undef;
         $data->{engine} = '';
     }
-
     if(!defined $data->{minage} || $data->{minage} != 18) {
         $data->{uncensored} = undef;
         $data->{ani_ero} = 0;
+        $data->{ani_ero_sp} = $data->{ani_ero_cg} = undef;
     }
+    ani_compat($data, $e);
 
     $_->{qty} = $MEDIUM{$_->{medium}}{qty} ? $_->{qty}||1 : 0 for $data->{media}->@*;
     $data->{notes} = bb_subst_links $data->{notes};
@@ -167,6 +176,35 @@ elm_api ReleaseEdit => $FORM_OUT, $FORM_IN, sub {
     my $ch = db_edit r => $e->{id}, $data;
     elm_Redirect "/$ch->{nitemid}.$ch->{nrev}";
 };
+
+
+# Set the old ani_story and ani_ero fields to some sort of value based on the
+# new ani_* fields, if they've been changed.
+sub ani_compat {
+    my($r, $old) = @_;
+    return if !grep +($r->{$_}//'_undef_') ne ($old->{$_}//'_undef_'),
+        qw{ ani_story_sp ani_story_cg ani_cutscene ani_ero_sp ani_ero_cg ani_face ani_bg };
+
+    my sub known($) { defined $r->{"ani_$_[0]"} }
+    my sub hasani($) { $r->{"ani_$_[0]"} && $r->{"ani_$_[0]"} > 1 }
+    my sub someani($) { hasani $_[0] && ($r->{"ani_$_[0]"} & 512) == 0 }
+    my sub fullani($) { defined $r->{"ani_$_[0]"} && ($r->{"ani_$_[0]"} & 512) > 0 }
+
+    $r->{ani_story} =
+        !known  'story_sp' && !known  'story_cg' && !known  'cutscene' ? 0 :
+        !hasani 'story_sp' && !hasani 'story_cg' && !hasani 'cutscene' ? 1 :
+        (fullani 'story_sp' || fullani 'story_cg') && !(someani 'story_sp' || someani 'story_cg') ? 4 : 3;
+
+    $r->{ani_ero} =
+        !known  'ero_sp' && !known  'ero_cg' ? 0 :
+        !hasani 'ero_sp' && !hasani 'ero_cg' ? 1 :
+        (fullani 'ero_sp' || fullani 'ero_cg') && !(someani 'ero_sp' || someani 'ero_cg') ? 4 : 3;
+
+    if($r->{ani_face} || $r->{ani_bg}) {
+        $r->{ani_story} = 2 if $r->{ani_story} < 2;
+        $r->{ani_ero} = 2 if $r->{ani_ero} < 2 && $r->{minage} && $r->{minage} == 18;
+    }
+}
 
 
 1;

@@ -5,6 +5,7 @@ import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import Browser
 import Browser.Navigation exposing (load)
+import Bitwise as B
 import Set
 import Lib.Util exposing (..)
 import Lib.Html exposing (..)
@@ -54,6 +55,13 @@ type alias Model =
   , voiced     : Int
   , ani_story  : Int
   , ani_ero    : Int
+  , ani_story_sp : Maybe Int
+  , ani_story_cg : Maybe Int
+  , ani_cutscene : Maybe Int
+  , ani_ero_sp : Maybe Int
+  , ani_ero_cg : Maybe Int
+  , ani_face   : Maybe Bool
+  , ani_bg     : Maybe Bool
   , website    : String
   , engine     : A.Model GApi.ApiEngines
   , extlinks   : EL.Model GRE.RecvExtlinks
@@ -92,6 +100,13 @@ init d =
   , voiced     = d.voiced
   , ani_story  = d.ani_story
   , ani_ero    = d.ani_ero
+  , ani_story_sp = d.ani_story_sp
+  , ani_story_cg = d.ani_story_cg
+  , ani_cutscene = d.ani_cutscene
+  , ani_ero_sp = d.ani_ero_sp
+  , ani_ero_cg = d.ani_ero_cg
+  , ani_face   = d.ani_face
+  , ani_bg     = d.ani_bg
   , website    = d.website
   , engine     = A.init d.engine
   , extlinks   = EL.new d.extlinks GEL.releaseSites
@@ -130,6 +145,13 @@ encode model =
   , voiced      = model.voiced
   , ani_story   = model.ani_story
   , ani_ero     = model.ani_ero
+  , ani_story_sp = model.ani_story_sp
+  , ani_story_cg = model.ani_story_cg
+  , ani_cutscene = model.ani_cutscene
+  , ani_ero_sp  = model.ani_ero_sp
+  , ani_ero_cg  = model.ani_ero_cg
+  , ani_face    = model.ani_face
+  , ani_bg      = model.ani_bg
   , website     = model.website
   , engine      = model.engine.value
   , extlinks    = model.extlinks.links
@@ -174,6 +196,15 @@ type Msg
   | Voiced Int
   | AniStory Int
   | AniEro Int
+  | AniUnknown
+  | AniNoAni
+  | AniStorySp (Maybe Int)
+  | AniStoryCg (Maybe Int)
+  | AniCutscene (Maybe Int)
+  | AniEroSp (Maybe Int)
+  | AniEroCg (Maybe Int)
+  | AniFace (Maybe Bool)
+  | AniBg (Maybe Bool)
   | Website String
   | Engine (A.Msg GApi.ApiEngines)
   | ExtLinks (EL.Msg GRE.RecvExtlinks)
@@ -219,7 +250,21 @@ update msg model =
       in (n2mod, c)
     Voiced i   -> ({ model | voiced = i }, Cmd.none)
     AniStory i -> ({ model | ani_story = i }, Cmd.none)
-    AniEro i   -> ({ model | ani_ero = i }, Cmd.none)
+    AniEro i   -> ({ model | ani_ero   = i }, Cmd.none)
+    AniUnknown -> ({ model | ani_story_sp = Nothing, ani_story_cg = Nothing, ani_cutscene = Nothing
+                   , ani_ero_sp = Nothing, ani_ero_cg = Nothing
+                   , ani_face = Nothing, ani_bg = Nothing }, Cmd.none)
+    AniNoAni   -> ({ model | ani_story_sp = Just 0,  ani_story_cg = Just 0,  ani_cutscene = Just 1
+                   , ani_ero_sp = if model.minage == Just 18 then Just 0 else Nothing
+                   , ani_ero_cg = if model.minage == Just 18 then Just 0 else Nothing
+                   , ani_face = Just False, ani_bg = Just False }, Cmd.none)
+    AniStorySp i -> ({ model | ani_story_sp = i }, Cmd.none)
+    AniStoryCg i -> ({ model | ani_story_cg = i }, Cmd.none)
+    AniEroSp   i -> ({ model | ani_ero_sp   = i }, Cmd.none)
+    AniEroCg   i -> ({ model | ani_ero_cg   = i }, Cmd.none)
+    AniCutscene i-> ({ model | ani_cutscene = i }, Cmd.none)
+    AniFace b  -> ({ model | ani_face = b }, Cmd.none)
+    AniBg b    -> ({ model | ani_bg = b }, Cmd.none)
     Website s  -> ({ model | website = s }, Cmd.none)
     Engine m   ->
       let (nm, c, en) = A.update engineConfig m model.engine
@@ -271,9 +316,37 @@ isValid model = not
   )
 
 
+viewAnimation : Bool -> String -> (Maybe Int -> Msg) -> Maybe Int -> List (Html Msg)
+viewAnimation cut na m v =
+  let isset mask = mask == B.and mask (Maybe.withDefault 0 v)
+      set mask b = m <| if b then Just (B.or mask (Maybe.withDefault 0 v))
+                        else if Maybe.map (\x -> B.and x (4+8+16+32)) v == Just mask then Nothing
+                        else Just (B.and (B.xor (B.complement 0) mask) (Maybe.withDefault 0 v))
+      lbl typ txt =
+        if v == Nothing || (typ == 0 && v == Just 0) || (typ == 1 && v == Just 1) || (typ == 2 && v /= Just 0 && v /= Just 1)
+        then text txt
+        else b [ class "grayedout" ] [ text txt ]
+  in
+  [ if cut then text "" else
+    label [] [ inputCheck "" (v == Just 0) (\b -> m <| if b then Just 0 else Nothing), lbl 0 " Not animated", br [] [] ]
+  , label [] [ inputCheck "" (v == Just 1) (\b -> m <| if b then Just 1 else Nothing), lbl 1 na ], br [] []
+  , label [] [ inputCheck "" (isset  4) (set  4), lbl 2 " Hand Drawn" ], br [] []
+  , label [] [ inputCheck "" (isset  8) (set  8), lbl 2 " Vectorial" ], br [] []
+  , label [] [ inputCheck "" (isset 16) (set 16), lbl 2 " 3D" ], br [] []
+  , label [] [ inputCheck "" (isset 32) (set 32), lbl 2 " Live action" ]
+  , if cut || v == Nothing || v == Just 0 || v == Just 1 then text "" else span []
+    [ br [] []
+    , inputSelect ""
+      (B.and (256+512) (Maybe.withDefault 0 v))
+      (\i -> m (Just (B.or i (B.and (Maybe.withDefault 0 v) (B.xor (B.complement 0) (256+512))))))
+      [style "width" "150px"]
+      [ (0, "- frequency -"), (256, "Some scenes"), (512, "All scenes") ]
+    ]
+  ]
+
 viewGen : Model -> Html Msg
 viewGen model =
-  table [ class "formtable" ]
+  table [ class "formtable" ] <|
   [ formField "title::Title (romaji)"
     [ inputText "title" model.title Title (style "width" "500px" :: GRE.valTitle)
     , if containsNonLatin model.title
@@ -345,12 +418,6 @@ viewGen model =
     ]
   , if model.patch then text "" else
     formField "voiced::Voiced" [ inputSelect "voiced" model.voiced Voiced [] GT.voiced ]
-  , if model.patch then text "" else
-    formField "ani_story::Animations"
-    [ inputSelect "ani_story" model.ani_story AniStory [] GT.animated
-    , if model.minage == Just 18 then text " <= story | ero scenes => " else text ""
-    , if model.minage == Just 18 then inputSelect "" model.ani_ero AniEro [] GT.animated else text ""
-    ]
   , if model.minage /= Just 18 then text "" else
     formField "uncensored::Censoring"
     [ inputSelect "uncensored" model.uncensored Uncensored []
@@ -359,7 +426,45 @@ viewGen model =
       , (Just True, "Uncensored graphics") ]
     , text " Whether erotic graphics are censored with mosaic or other optical censoring." ]
 
-  , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "External identifiers & links" ] ]
+  ] ++ (if model.patch then [] else
+  [ tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Animation" ] ]
+  , formField "Presets"
+    [ a [ href "#", onClickD AniUnknown ] [ text "Unknown" ], text " | "
+    , a [ href "#", onClickD AniNoAni ] [ text "No animation" ]
+    ]
+  , formField "Story scenes" [ table [] [ tr []
+      [ td [ style "width" "170px" ] <| [ b [] [ text "Character sprites:"  ], br [] [] ] ++ viewAnimation False " No sprites" AniStorySp model.ani_story_sp
+      , td [ style "width" "170px" ] <| [ b [] [ text "CGs:" ], br [] [] ] ++ viewAnimation False " No CGs" AniStoryCg model.ani_story_cg
+      , td [] <| [ b [] [ text "Cutscenes:" ], br [] [] ] ++ viewAnimation True " No cutscenes" AniCutscene model.ani_cutscene
+      ]
+    ] ]
+  , if model.minage /= Just 18 then text "" else
+    formField "Erotic scenes" [ table [] [ tr []
+      [ td [ style "width" "170px" ] <| [ b [] [ text "Character sprites:"  ], br [] [] ] ++ viewAnimation False " No sprites" AniEroSp model.ani_ero_sp
+      , td [] <| [ b [] [ text "CGs:" ], br [] [] ] ++ viewAnimation False " No CGs" AniEroCg model.ani_ero_cg
+      ]
+    ] ]
+  , formField "Effects" [ table []
+    [ tr []
+      [ td [] [ text "Character lip movement and/or eye blink: " ]
+      , td []
+        [ label [] [ inputRadio "ani_face" (model.ani_face == Nothing) (always (AniFace Nothing)), text " Unknown or N/A" ], text " / "
+        , label [] [ inputRadio "ani_face" (model.ani_face == Just False) (always (AniFace (Just False))), text " No" ], text " / "
+        , label [] [ inputRadio "ani_face" (model.ani_face == Just True) (always (AniFace (Just True))), text " Yes" ]
+        ]
+      ]
+    , tr []
+      [ td [] [ text "Background effects: " ]
+      , td []
+        [ label [] [ inputRadio "ani_bg" (model.ani_bg == Nothing) (always (AniBg Nothing)), text " Unknown or N/A" ], text " / "
+        , label [] [ inputRadio "ani_bg" (model.ani_bg == Just False) (always (AniBg (Just False))), text " No" ], text " / "
+        , label [] [ inputRadio "ani_bg" (model.ani_bg == Just True) (always (AniBg (Just True))), text " Yes" ]
+        ]
+      ]
+    ] ]
+
+  ]) ++
+  [ tr [ class "newpart" ] [ td [ colspan 2 ] [ text "External identifiers & links" ] ]
   , formField "gtin::JAN/UPC/EAN"
     [ inputText "gtin" model.gtin Gtin [pattern "[0-9]+"]
     , if not model.gtinValid then b [ class "standout" ] [ text "Invalid GTIN code" ] else text ""
