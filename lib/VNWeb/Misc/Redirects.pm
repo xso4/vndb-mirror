@@ -11,7 +11,6 @@ TUWF::get qr{(/.+?)/+}, sub { tuwf->resRedirect(tuwf->capture(1).tuwf->reqQuery(
 TUWF::get qr{/notes}, sub { tuwf->resRedirect('/d8', 'perm') };
 TUWF::get qr{/faq},   sub { tuwf->resRedirect('/d6', 'perm') };
 
-TUWF::get qr{/p},        sub { tuwf->resRedirect('/p/all'.tuwf->reqQuery(), 'perm') };
 TUWF::get qr{/v/search}, sub { tuwf->resRedirect('/v'.tuwf->reqQuery(), 'perm') };
 
 TUWF::get qr{/experimental/v}, sub { tuwf->resRedirect('/v'.tuwf->reqQuery(), 'perm') };

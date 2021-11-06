@@ -177,6 +177,7 @@ nestView dat dd model =
               (_,C) -> "Character"
               (C,S) -> "VA"
               (_,S) -> "Staff"
+              (_,P) -> "Producer"
           breads pre par l =
             case l of
               [] -> []
@@ -293,6 +294,7 @@ type FieldModel
   | FMLabel      (AS.Model Int)
   | FMRList      (AS.Model Int)
   | FMSRole      (AS.Model String)
+  | FMPType      (AS.Model String)
   | FMHeight     (AR.Model Int)
   | FMWeight     (AR.Model Int)
   | FMBust       (AR.Model Int)
@@ -336,6 +338,7 @@ type FieldMsg
   | FSLabel      (AS.Msg Int)
   | FSRList      (AS.Msg Int)
   | FSSRole      (AS.Msg String)
+  | FSPType      (AS.Msg String)
   | FSHeight     AR.Msg
   | FSWeight     AR.Msg
   | FSBust       AR.Msg
@@ -473,6 +476,10 @@ fields =
   , f S "Language"           1  FMLang        AS.init                 AS.langFromQuery
   , f S "Gender"             2  FMGender      AS.init                 AS.genderFromQuery
   , f S "Role"               3  FMSRole       AS.init                 AS.sroleFromQuery
+
+  , n P P "And/Or"
+  , f P "Language"           1  FMLang        AS.init                 AS.langFromQuery
+  , f P "Type"               2  FMPType       AS.init                 AS.ptypeFromQuery
   ]
 
 
@@ -540,6 +547,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSLabel  msg,   FMLabel m)    -> maps FMLabel    (AS.update msg m)
       (FSRList  msg,   FMRList m)    -> maps FMRList    (AS.update msg m)
       (FSSRole  msg,   FMSRole m)    -> maps FMSRole    (AS.update msg m)
+      (FSPType  msg,   FMPType m)    -> maps FMPType    (AS.update msg m)
       (FSHeight msg,   FMHeight m)   -> maps FMHeight   (AR.update msg m)
       (FSWeight msg,   FMWeight m)   -> maps FMWeight   (AR.update msg m)
       (FSBust msg,     FMBust m)     -> maps FMBust     (AR.update msg m)
@@ -606,6 +614,7 @@ fieldView dat (_, dd, model) =
       FMLabel m      -> f FSLabel      (AS.labelView dat m)
       FMRList m      -> f FSRList      (AS.rlistView m)
       FMSRole m      -> f FSSRole      (AS.sroleView m)
+      FMPType m      -> f FSPType      (AS.ptypeView m)
       FMHeight m     -> f FSHeight     (AR.heightView m)
       FMWeight m     -> f FSWeight     (AR.weightView m)
       FMBust m       -> f FSBust       (AR.bustView m)
@@ -653,6 +662,7 @@ fieldToQuery dat (_, _, model) =
     FMLabel m    -> AS.toQuery (\op v -> QTuple 12 op (Maybe.withDefault 0 (Maybe.map vndbidNum dat.uid)) v) m
     FMRList m    -> AS.toQuery (QInt 18) m
     FMSRole m    -> AS.toQuery (QStr 5) m
+    FMPType m    -> AS.toQuery (QStr 4) m
     FMHeight m   -> AR.toQuery (QInt 6) (QStr 6) m
     FMWeight m   -> AR.toQuery (QInt 7) (QStr 7) m
     FMBust m     -> AR.toQuery (QInt 8) (QStr 8) m

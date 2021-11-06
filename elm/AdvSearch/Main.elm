@@ -109,6 +109,7 @@ loadQuery odat arg =
           "v" -> V
           "c" -> C
           "s" -> S
+          "p" -> P
           _ -> R
 
       (dat2, query) = JD.decodeValue decodeQuery arg.query |> Result.toMaybe |> Maybe.withDefault (QAnd []) |> fieldFromQuery qtype dat
@@ -206,7 +207,12 @@ view model = div [ class "advsearch" ] <|
             , if model.saveAct == 2 then b [] [ text "Delete" ] else a [ href "#", onClickD (SaveAct 2) ] [ text "Delete" ]
             , if model.saveAct == 3 then b [] [ text "Default"] else a [ href "#", onClickD (SaveAct 3) ] [ text "Default" ]
             ]
-          , h3 [] [ text <| if model.saveAct == 0 then "Save current filter" else if model.saveAct == 1 then "Load filter" else "Delete saved filter" ]
+          , h3 [] [ text <| case model.saveAct of
+                              0 -> "Save current filter" 
+                              1 -> "Load filter"
+                              2 -> "Delete saved filter"
+                              3 -> "Default filter"
+                              _ -> "" ]
           ]
         , case (List.filter (\e -> e.name /= "") model.saved, model.saveAct) of
             (_, 0) ->

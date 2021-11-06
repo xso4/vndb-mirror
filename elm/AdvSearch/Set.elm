@@ -461,3 +461,26 @@ rlistFromQuery = fromQuery (\q ->
   case q of
     QInt 18 op v -> Just (op, v)
     _ -> Nothing)
+
+
+
+
+-- Producer type
+
+ptypeView model =
+  ( case Set.toList model.sel of
+      []  -> b [ class "grayedout" ] [ text "Type" ]
+      [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" (lookup v GT.producerTypes) ]
+      l   -> span [ class "nowrap" ] [ lblPrefix model, text <| "Types (" ++ String.fromInt (List.length l) ++ ")" ]
+  , \() ->
+    [ div [ class "advheader" ]
+      [ h3 [] [ text "Producer type" ]
+      , opts model False True ]
+    , ul [] <| List.map (\(k,l) -> li [] [ linkRadio (Set.member k model.sel) (Sel k) [ text l ] ]) GT.producerTypes
+    ]
+  )
+
+ptypeFromQuery = fromQuery (\q ->
+  case q of
+    QStr 4 op v -> Just (op, v)
+    _ -> Nothing)

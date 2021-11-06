@@ -446,6 +446,9 @@ f s =>  5 => 'role',      { enum => [ 'seiyuu', keys %CREDIT_TYPE ] },
         }
     };
 
+f p =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 'p.lang =', \$_ };
+f p =>  3 => 'id',        { vndbid => 'p' }, '=' => sub { sql 'p.id = ', \$_ };
+f p =>  4 => 'type',      { enum => \%PRODUCER_TYPE }, '=' => sub { sql 'p.type =', \$_ };
 
 
 
