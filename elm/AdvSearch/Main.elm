@@ -41,6 +41,8 @@ type alias Recv =
   , query        : GApi.ApiAdvSearchQuery
   }
 
+type SaveAct = Save | Load | Delete | Default
+
 type alias Model =
   { query      : Field
   , qtype      : QType
@@ -49,7 +51,7 @@ type alias Model =
   , saved      : List SQuery
   , saveState  : Api.State
   , saveDd     : DD.Config Msg
-  , saveAct    : Int
+  , saveAct    : SaveAct
   , saveName   : String
   , saveDel    : Set.Set String
   }
@@ -58,7 +60,7 @@ type Msg
   = Noop
   | Field FieldMsg
   | SaveToggle Bool
-  | SaveAct Int
+  | SaveAct SaveAct
   | SaveName String
   | SaveSave String
   | SaveSaved SQuery GApi.Response
@@ -147,7 +149,7 @@ init arg =
       , saved      = arg.saved
       , saveState  = Api.Normal
       , saveDd     = DD.init "advsearch_save" SaveToggle
-      , saveAct    = 0
+      , saveAct    = Save
       , saveName   = ""
       , saveDel    = Set.empty
       }
@@ -161,9 +163,9 @@ update msg model =
       let (ndat, nm, nc) = fieldUpdate model.data m model.query
       in ({ model | data = ndat, query = nm, error = False }, Cmd.map Field nc)
     SaveToggle b ->
-      let act = if model.saveAct == 0 && not (List.isEmpty model.saved) && fieldToQuery model.data model.query == Nothing then 1 else model.saveAct
+      let act = if model.saveAct == Save && not (List.isEmpty model.saved) && fieldToQuery model.data model.query == Nothing then Load else model.saveAct
       in ( { model | saveDd = DD.toggle model.saveDd b, saveAct = act, saveDel = Set.empty }
-         , if b && act == 0 then Task.attempt (always Noop) (Dom.focus "advsearch_saveinput") else Cmd.none)
+         , if b && act == Save then Task.attempt (always Noop) (Dom.focus "advsearch_saveinput") else Cmd.none)
     SaveAct  n -> ({ model | saveAct  = n, saveDel = Set.empty }, Cmd.none)
     SaveName n -> ({ model | saveName = n }, Cmd.none)
     SaveSave s ->
@@ -202,20 +204,19 @@ view model = div [ class "advsearch" ] <|
       [ DD.view model.saveDd model.saveState (text "Save/Load") <| \() ->
         [ div [ class "advheader", style "min-width" "300px" ]
           [ div [ class "opts", style "margin-bottom" "5px" ]
-            [ if model.saveAct == 0 then b [] [ text "Save"   ] else a [ href "#", onClickD (SaveAct 0) ] [ text "Save" ]
-            , if model.saveAct == 1 then b [] [ text "Load"   ] else a [ href "#", onClickD (SaveAct 1) ] [ text "Load" ]
-            , if model.saveAct == 2 then b [] [ text "Delete" ] else a [ href "#", onClickD (SaveAct 2) ] [ text "Delete" ]
-            , if model.saveAct == 3 then b [] [ text "Default"] else a [ href "#", onClickD (SaveAct 3) ] [ text "Default" ]
+            [ if model.saveAct == Save    then b [] [ text "Save"   ] else a [ href "#", onClickD (SaveAct Save   ) ] [ text "Save" ]
+            , if model.saveAct == Load    then b [] [ text "Load"   ] else a [ href "#", onClickD (SaveAct Load   ) ] [ text "Load" ]
+            , if model.saveAct == Delete  then b [] [ text "Delete" ] else a [ href "#", onClickD (SaveAct Delete ) ] [ text "Delete" ]
+            , if model.saveAct == Default then b [] [ text "Default"] else a [ href "#", onClickD (SaveAct Default) ] [ text "Default" ]
             ]
           , h3 [] [ text <| case model.saveAct of
-                              0 -> "Save current filter" 
-                              1 -> "Load filter"
-                              2 -> "Delete saved filter"
-                              3 -> "Default filter"
-                              _ -> "" ]
+                              Save -> "Save current filter"
+                              Load -> "Load filter"
+                              Delete -> "Delete saved filter"
+                              Default -> "Default filter" ]
           ]
         , case (List.filter (\e -> e.name /= "") model.saved, model.saveAct) of
-            (_, 0) ->
+            (_, Save) ->
               if encQ == "" then text "Nothing to save." else
               form_ "" (SaveSave model.saveName) False
               [ inputText "advsearch_saveinput" model.saveName SaveName [ required True, maxlength 50, placeholder "Name...", style "width" "290px" ]
@@ -224,7 +225,7 @@ view model = div [ class "advsearch" ] <|
                 else text ""
               , submitButton "Save" model.saveState True
               ]
-            (_, 3) ->
+            (_, Default) ->
               div []
               [ p [ class "center", style "padding" "0px 5px" ] <|
                 case model.qtype of
@@ -248,13 +249,13 @@ view model = div [ class "advsearch" ] <|
               , if encQ /= "" then inputButton "Save current filters as default" (SaveSave "") [ style "width" "100%" ] else text ""
               ]
             ([], _) -> text "You don't have any saved queries."
-            (l, 1) ->
+            (l, Load) ->
               div []
               [ if encQ == "" || List.any (\e -> encQ == e.query) l
                 then text "" else text "Unsaved changes will be lost when loading a saved filter."
               , ul [] <| List.map (\e -> li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ] [ a [ href "#", onClickD (SaveLoad e.query) ] [ text e.name ] ]) l
               ]
-            (l, _) ->
+            (l, Delete) ->
               div []
               [ ul [] <| List.map (\e -> li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ] [ linkRadio (Set.member e.name model.saveDel) (always (SaveDelSel e.name)) [ text e.name ] ]) l
               , inputButton "Delete selected" (SaveDel model.saveDel) [ disabled (Set.isEmpty model.saveDel) ]
