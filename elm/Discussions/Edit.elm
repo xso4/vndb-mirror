@@ -24,43 +24,45 @@ main = Browser.element
 
 
 type alias Model =
-  { state       : Api.State
-  , tid         : Maybe String
-  , can_mod     : Bool
-  , can_private : Bool
-  , locked      : Bool
-  , hidden      : Bool
-  , private     : Bool
-  , nolastmod   : Bool
-  , delete      : Bool
-  , title       : Maybe String
-  , boards      : Maybe (List GDE.SendBoards)
-  , boardAdd    : A.Model GApi.ApiBoardResult
-  , msg         : TP.Model
-  , poll        : Maybe GDE.SendPoll
-  , pollEnabled : Bool
-  , pollEdit    : Bool
+  { state        : Api.State
+  , tid          : Maybe String
+  , can_mod      : Bool
+  , can_private  : Bool
+  , locked       : Bool
+  , hidden       : Bool
+  , private      : Bool
+  , nolastmod    : Bool
+  , delete       : Bool
+  , title        : Maybe String
+  , boards       : Maybe (List GDE.SendBoards)
+  , boardAdd     : A.Model GApi.ApiBoardResult
+  , boardsLocked : Bool
+  , msg          : TP.Model
+  , poll         : Maybe GDE.SendPoll
+  , pollEnabled  : Bool
+  , pollEdit     : Bool
   }
 
 
 init : GDE.Recv -> Model
 init d =
-  { state       = Api.Normal
-  , can_mod     = d.can_mod
-  , can_private = d.can_private
-  , tid         = d.tid
-  , locked      = d.locked
-  , hidden      = d.hidden
-  , private     = d.private
-  , nolastmod   = False
-  , delete      = False
-  , title       = d.title
-  , boards      = d.boards
-  , boardAdd    = A.init ""
-  , msg         = TP.bbcode d.msg
-  , poll        = d.poll
-  , pollEnabled = isJust d.poll
-  , pollEdit    = isJust d.poll
+  { state        = Api.Normal
+  , can_mod      = d.can_mod
+  , can_private  = d.can_private
+  , tid          = d.tid
+  , locked       = d.locked
+  , hidden       = d.hidden
+  , private      = d.private
+  , nolastmod    = False
+  , delete       = False
+  , title        = d.title
+  , boards       = d.boards
+  , boardAdd     = A.init ""
+  , boardsLocked = d.boards_locked
+  , msg          = TP.bbcode d.msg
+  , poll         = d.poll
+  , pollEnabled  = isJust d.poll
+  , pollEdit     = isJust d.poll
   }
 
 
@@ -70,16 +72,17 @@ searchConfig = { wrap = BoardSearch, id = "boardadd", source = A.boardSource }
 
 encode : Model -> GDE.Send
 encode m =
-  { tid       = m.tid
-  , locked    = m.locked
-  , hidden    = m.hidden
-  , private   = m.private
-  , nolastmod = m.nolastmod
-  , delete    = m.delete
-  , boards    = m.boards
-  , poll      = if m.pollEnabled then m.poll else Nothing
-  , title     = m.title
-  , msg       = m.msg.data
+  { tid           = m.tid
+  , locked        = m.locked
+  , hidden        = m.hidden
+  , private       = m.private
+  , nolastmod     = m.nolastmod
+  , delete        = m.delete
+  , boards        = m.boards
+  , boards_locked = m.boardsLocked
+  , poll          = if m.pollEnabled then m.poll else Nothing
+  , title         = m.title
+  , msg           = m.msg.data
   }
 
 
@@ -101,6 +104,7 @@ type Msg
   | Delete Bool
   | Content TP.Msg
   | Title String
+  | BoardsLocked Bool
   | BoardDel Int
   | BoardSearch (A.Msg GApi.ApiBoardResult)
   | PollEnabled Bool
@@ -130,6 +134,7 @@ update msg model =
     PollRem n     -> ({ model | poll = Maybe.map (\p -> { p | options = delidx n p.options }) model.poll }, Cmd.none)
     PollAdd       -> ({ model | poll = Maybe.map (\p -> { p | options = p.options ++ [""] }) model.poll }, Cmd.none)
 
+    BoardsLocked b-> ({ model | boardsLocked = b }, Cmd.none)
     BoardDel i    -> ({ model | boards  = Maybe.map (\b -> delidx i b) model.boards }, Cmd.none)
     BoardSearch m ->
       let (nm, c, res) = A.update searchConfig m model.boardAdd
@@ -147,9 +152,11 @@ view model =
   let
     board n bd =
       li [] <|
-        [ text "["
-        , a [ href "#", onClickD (BoardDel n), tabindex 10 ] [ text "remove" ]
-        , text "] "
+        [ if model.boardsLocked then text "" else span []
+          [ text "["
+          , a [ href "#", onClickD (BoardDel n), tabindex 10 ] [ text "remove" ]
+          , text "] "
+          ]
         , text (Maybe.withDefault "" (lookup bd.btype boardTypes))
         ] ++ case (bd.btype, bd.iid, bd.title) of
           (_, Just iid, Just title) ->
@@ -160,10 +167,14 @@ view model =
           _ -> []
 
     boards () =
-      [ text "You can link this thread to multiple boards. Every visual novel, producer and user in the database has its own board,"
+      [ if not model.can_mod then text ""
+        else label [] [ inputCheck "" model.boardsLocked BoardsLocked, text " Lock boards.", br [] [] ]
+      , text "You can link this thread to multiple boards. Every visual novel, producer and user in the database has its own board,"
       , text " but you can also use the \"General Discussions\" and \"VNDB Discussions\" boards for threads that do not fit at a particular database entry."
       , ul [ style "list-style-type" "none", style "margin" "10px" ] <| List.indexedMap board (Maybe.withDefault [] model.boards)
-      , A.view searchConfig model.boardAdd [placeholder "Add boards..."]
+      , if model.boardsLocked
+        then text "Boards are locked, only a moderator can move this thread."
+        else A.view searchConfig model.boardAdd [placeholder "Add boards..."]
       ] ++
         if model.boards == Just []
         then [ b [ class "standout" ] [ text "Please add at least one board." ] ]

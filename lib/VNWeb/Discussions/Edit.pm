@@ -5,25 +5,26 @@ use VNWeb::Discussions::Lib;
 
 
 my $FORM = {
-    tid         => { required => 0, vndbid => 't' }, # Thread ID, only when editing a post
+    tid           => { required => 0, vndbid => 't' }, # Thread ID, only when editing a post
 
-    title       => { required => 0, maxlength => 50 },
-    boards      => { required => 0, sort_keys => [ 'boardtype', 'iid' ], aoh => $VNWeb::Elm::apis{BoardResult}[0]{aoh} },
-    poll        => { required => 0, type => 'hash', keys => {
+    title         => { required => 0, maxlength => 50 },
+    boards        => { required => 0, sort_keys => [ 'boardtype', 'iid' ], aoh => $VNWeb::Elm::apis{BoardResult}[0]{aoh} },
+    poll          => { required => 0, type => 'hash', keys => {
         question    => { maxlength => 100 },
         max_options => { uint => 1, min => 1, max => 20 }, #
         options     => { type => 'array', values => { maxlength => 100 }, minlength => 2, maxlength => 20 },
     } },
 
-    can_mod     => { anybool => 1, _when => 'out' },
-    can_private => { anybool => 1, _when => 'out' },
-    locked      => { anybool => 1 }, # When can_mod
-    hidden      => { anybool => 1 }, # When can_mod
-    private     => { anybool => 1 }, # When can_private
-    nolastmod   => { anybool => 1, _when => 'in' }, # When can_mod
-    delete      => { anybool => 1 }, # When can_mod
+    can_mod       => { anybool => 1, _when => 'out' },
+    can_private   => { anybool => 1, _when => 'out' },
+    locked        => { anybool => 1 }, # When can_mod
+    hidden        => { anybool => 1 }, # When can_mod
+    boards_locked => { anybool => 1 }, # When can_mod
+    private       => { anybool => 1 }, # When can_private
+    nolastmod     => { anybool => 1, _when => 'in' }, # When can_mod
+    delete        => { anybool => 1 }, # When can_mod
 
-    msg         => { maxlength => 32768 },
+    msg           => { maxlength => 32768 },
 };
 
 my $FORM_OUT = form_compile out => $FORM;
@@ -35,7 +36,7 @@ elm_api DiscussionsEdit => $FORM_OUT, $FORM_IN, sub {
     my $tid = $data->{tid};
 
     my $t = !$tid ? {} : tuwf->dbRowi('
-        SELECT t.id, t.poll_question, t.poll_max_options, t.hidden, tp.num, tp.uid AS user_id,', sql_totime('tp.date'), 'AS date
+        SELECT t.id, t.poll_question, t.poll_max_options, t.boards_locked, t.hidden, tp.num, tp.uid AS user_id,', sql_totime('tp.date'), 'AS date
           FROM threads t
           JOIN threads_posts tp ON tp.tid = t.id AND tp.num = 1
          WHERE t.id =', \$tid,
@@ -75,6 +76,7 @@ elm_api DiscussionsEdit => $FORM_OUT, $FORM_IN, sub {
         auth->permBoardmod ? (
             hidden => $data->{hidden},
             locked => $data->{locked},
+            boards_locked => $data->{boards_locked},
         ) : (),
         auth->isMod ? (
             private => $data->{private}
@@ -83,8 +85,10 @@ elm_api DiscussionsEdit => $FORM_OUT, $FORM_IN, sub {
     tuwf->dbExeci('UPDATE threads SET', $thread, 'WHERE id =', \$tid) if $tid;
     $tid = tuwf->dbVali('INSERT INTO threads', $thread, 'RETURNING id') if !$tid;
 
-    tuwf->dbExeci('DELETE FROM threads_boards WHERE tid =', \$tid);
-    tuwf->dbExeci('INSERT INTO threads_boards', { tid => $tid, type => $_->{btype}, iid => $_->{iid} }) for $data->{boards}->@*;
+    if(auth->permBoardmod || !$t->{boards_locked}) {
+        tuwf->dbExeci('DELETE FROM threads_boards WHERE tid =', \$tid);
+        tuwf->dbExeci('INSERT INTO threads_boards', { tid => $tid, type => $_->{btype}, iid => $_->{iid} }) for $data->{boards}->@*;
+    }
 
     if($pollchanged) {
         tuwf->dbExeci('DELETE FROM threads_poll_options WHERE tid =', \$tid);
@@ -114,7 +118,7 @@ TUWF::get qr{(?:/t/(?<board>$BOARD_RE)/new|/$RE{tid}\.1/edit)}, sub {
     $board_type = 'ge' if $board_type && $board_type eq 'an' && !auth->permBoardmod;
 
     my $t = !$tid ? {} : tuwf->dbRowi('
-        SELECT t.id, tp.tid, t.title, t.locked, t.private, t.hidden, t.poll_question, t.poll_max_options, tp.msg, tp.uid AS user_id,', sql_totime('tp.date'), 'AS date
+        SELECT t.id, tp.tid, t.title, t.locked, t.boards_locked, t.private, t.hidden, t.poll_question, t.poll_max_options, tp.msg, tp.uid AS user_id,', sql_totime('tp.date'), 'AS date
           FROM threads t
           JOIN threads_posts tp ON tp.tid = t.id AND tp.num = 1
          WHERE t.id =', \$tid,
@@ -150,6 +154,7 @@ TUWF::get qr{(?:/t/(?<board>$BOARD_RE)/new|/$RE{tid}\.1/edit)}, sub {
     $t->{tid}     //= undef;
     $t->{private} //= auth->isMod && tuwf->reqGet('priv') ? 1 : 0;
     $t->{locked}  //= 0;
+    $t->{boards_locked} //= 0;
     $t->{delete}  =   0;
 
     framework_ title => $tid ? 'Edit thread' : 'Create new thread', sub {

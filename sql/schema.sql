@@ -804,7 +804,8 @@ CREATE TABLE threads (
   hidden           boolean NOT NULL DEFAULT FALSE,
   private          boolean NOT NULL DEFAULT FALSE,
   title            varchar(50) NOT NULL DEFAULT '',
-  poll_question    varchar(100)
+  poll_question    varchar(100),
+  boards_locked    boolean NOT NULL DEFAULT FALSE
 );
 
 -- threads_poll_options
