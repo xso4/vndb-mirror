@@ -25,7 +25,7 @@ type alias Model =
   , id          : String
   , num         : Int
   , can_mod     : Bool
-  , hidden      : Bool
+  , hidden      : Maybe String
   , nolastmod   : Bool
   , delete      : Bool
   , msg         : TP.Model
@@ -56,7 +56,7 @@ encode m =
 
 
 type Msg
-  = Hidden Bool
+  = Hidden (Maybe String)
   | Nolastmod Bool
   | Delete Bool
   | Content TP.Msg
@@ -67,9 +67,9 @@ type Msg
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    Hidden  b     -> ({ model | hidden  = b }, Cmd.none)
-    Nolastmod b   -> ({ model | nolastmod=b }, Cmd.none)
-    Delete  b     -> ({ model | delete  = b }, Cmd.none)
+    Hidden  s     -> ({ model | hidden    = s }, Cmd.none)
+    Nolastmod b   -> ({ model | nolastmod = b }, Cmd.none)
+    Delete  b     -> ({ model | delete    = b }, Cmd.none)
     Content m     -> let (nm,nc) = TP.update m model.msg in ({ model | msg = nm }, Cmd.map Content nc)
 
     Submit -> ({ model | state = Api.Loading }, GPE.send (encode model) Submitted)
@@ -85,7 +85,12 @@ view model =
     , table [ class "formtable" ] <|
       [ formField "Post" [ a [ href <| "/" ++ model.id ++ "." ++ String.fromInt model.num ] [ text <| "#" ++ String.fromInt model.num ++ " on " ++ model.id ] ]
       , if model.can_mod
-        then formField "" [ label [] [ inputCheck "" model.hidden Hidden, text " Hidden" ] ]
+        then formField ""
+        [ label [] [ inputCheck "" (model.hidden /= Nothing) (\b -> Hidden (if b then Just "" else Nothing)), text " Hidden" ]
+        , Maybe.withDefault (text "") <| Maybe.map (\msg ->
+            span [] [ br [] [], inputText "" msg (Just >> Hidden) [placeholder "(Optional) reason for deletion", style "width" "500px"] ]
+          ) model.hidden
+        ]
         else text ""
       , if model.can_mod
         then formField "" [ label [] [ inputCheck "" model.nolastmod Nolastmod, text " Don't update last modification timestamp" ] ]

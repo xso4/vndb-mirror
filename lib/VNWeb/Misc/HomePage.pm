@@ -127,7 +127,7 @@ sub recent_vn_posts_ {
               JOIN reviews_posts wp ON wp.id = w.id AND wp.num = w.c_lastnum
               JOIN vn v ON v.id = w.vid
               LEFT JOIN users u ON wp.uid = u.id
-             WHERE NOT w.c_flagged AND NOT wp.hidden
+             WHERE NOT w.c_flagged AND wp.hidden IS NULL
              ORDER BY wp.date DESC LIMIT 10
         ) SELECT x.id, x.num, x.title,', sql_totime('x.date'), 'AS date, ', sql_user(), '
             FROM (SELECT * FROM tposts UNION ALL SELECT * FROM wposts) x

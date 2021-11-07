@@ -78,7 +78,7 @@ sub posts_ {
           FROM threads_posts tp
           JOIN threads t ON t.id = tp.tid
           LEFT JOIN users u ON u.id = tp.uid
-         WHERE NOT t.hidden AND NOT t.private AND NOT tp.hidden
+         WHERE NOT t.hidden AND NOT t.private AND tp.hidden IS NULL
            AND bb_tsvector(tp.msg) @@ to_tsquery(}, \$ts, ')',
                $filt->{b}->@* < keys %BOARD_TYPE ? ('AND t.id IN(SELECT tid FROM threads_boards WHERE type IN', $filt->{b}, ')') : (), q{
          ORDER BY tp.date DESC

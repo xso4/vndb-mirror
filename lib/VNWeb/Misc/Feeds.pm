@@ -69,7 +69,7 @@ TUWF::get qr{/feeds/posts.atom}, sub {
         FROM threads_posts tp
         JOIN threads t ON t.id = tp.tid
         LEFT JOIN users u ON u.id = tp.uid
-       WHERE NOT tp.hidden AND NOT t.hidden AND NOT t.private
+       WHERE tp.hidden IS NULL AND NOT t.hidden AND NOT t.private
        ORDER BY tp.date DESC
        LIMIT ', \25
     );

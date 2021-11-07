@@ -145,7 +145,7 @@ TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
             } if $newreview;
             review_ $w;
         };
-        if(grep !$_->{hidden}, @$posts) {
+        if(grep !defined $_->{hidden}, @$posts) {
             h1_ class => 'boxtitle', 'Comments';
             VNWeb::Discussions::Thread::posts_($w, $posts, $page);
         } else {

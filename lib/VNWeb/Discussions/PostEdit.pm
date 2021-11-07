@@ -10,7 +10,7 @@ my $FORM = {
     num         => { id => 1 },
 
     can_mod     => { anybool => 1, _when => 'out' },
-    hidden      => { anybool => 1 }, # When can_mod
+    hidden      => { required => 0 }, # When can_mod
     nolastmod   => { anybool => 1, _when => 'in' }, # When can_mod
     delete      => { anybool => 1 }, # When can_mod
 
@@ -44,7 +44,7 @@ elm_api DiscussionsPostEdit => $FORM_OUT, $FORM_IN, sub {
     return tuwf->resNotFound if !$t->{id};
     return elm_Unauth if !can_edit t => $t;
 
-    tuwf->dbExeci(q{DELETE FROM notifications WHERE iid =}, \$id, 'AND num =', \$num) if auth->permBoardmod && ($data->{delete} || $data->{hidden});
+    tuwf->dbExeci(q{DELETE FROM notifications WHERE iid =}, \$id, 'AND num =', \$num) if auth->permBoardmod && ($data->{delete} || defined $data->{hidden});
 
     if($data->{delete} && auth->permBoardmod) {
         auth->audit($t->{user_id}, 'post delete', "deleted $id.$num");

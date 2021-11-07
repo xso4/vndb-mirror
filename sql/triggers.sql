@@ -259,8 +259,8 @@ CREATE TRIGGER notify_review AFTER INSERT ON reviews FOR EACH ROW EXECUTE PROCED
 CREATE OR REPLACE FUNCTION update_threads_cache() RETURNS trigger AS $$
 BEGIN
   UPDATE threads
-     SET c_count   = (SELECT COUNT(*) FROM threads_posts WHERE NOT hidden AND tid = threads.id)
-       , c_lastnum = (SELECT MAX(num) FROM threads_posts WHERE NOT hidden AND tid = threads.id)
+     SET c_count   = (SELECT COUNT(*) FROM threads_posts WHERE hidden IS NULL AND tid = threads.id)
+       , c_lastnum = (SELECT MAX(num) FROM threads_posts WHERE hidden IS NULL AND tid = threads.id)
    WHERE id IN(OLD.tid,NEW.tid);
   RETURN NULL;
 END
@@ -276,8 +276,8 @@ CREATE TRIGGER update_threads_cache AFTER INSERT OR UPDATE OR DELETE ON threads_
 CREATE OR REPLACE FUNCTION update_reviews_cache() RETURNS trigger AS $$
 BEGIN
   UPDATE reviews
-     SET c_count   = COALESCE((SELECT COUNT(*) FROM reviews_posts WHERE NOT hidden AND id = reviews.id), 0)
-       , c_lastnum = (SELECT MAX(num) FROM reviews_posts WHERE NOT hidden AND id = reviews.id)
+     SET c_count   = COALESCE((SELECT COUNT(*) FROM reviews_posts WHERE hidden IS NULL AND id = reviews.id), 0)
+       , c_lastnum = (SELECT MAX(num) FROM reviews_posts WHERE hidden IS NULL AND id = reviews.id)
    WHERE id IN(OLD.id,NEW.id);
   RETURN NULL;
 END

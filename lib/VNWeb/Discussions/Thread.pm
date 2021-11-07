@@ -102,10 +102,10 @@ sub posts_ {
     paginate_ \&url, $page, [ $t->{count}, 25 ], 't';
     div_ class => 'mainbox thread', id => 'threadstart', sub {
         table_ class => 'stripe', sub {
-            tr_ mkclass(deleted => $_->{hidden}), id => $_->{num}, sub {
+            tr_ mkclass(deleted => defined $_->{hidden}), id => $_->{num}, sub {
                 td_ class => 'tc1', $_ == $posts->[$#$posts] ? (id => 'last') : (), sub {
                     a_ href => "/$t->{id}.$_->{num}", "#$_->{num}";
-                    if(!$_->{hidden} || auth->permBoard) {
+                    if(!defined $_->{hidden} || auth->permBoard) {
                         txt_ ' by ';
                         user_ $_;
                         br_;
@@ -121,9 +121,12 @@ sub posts_ {
                         }
                         a_ href => "/report/$t->{id}.$_->{num}", 'report';
                         txt_ ' >';
-                    } if !$_->{hidden} || can_edit t => $_;
-                    if($_->{hidden}) {
-                        i_ class => 'deleted', 'Post deleted.';
+                    } if !defined $_->{hidden} || can_edit t => $_;
+                    if(defined $_->{hidden}) {
+                        i_ class => 'deleted', sub {
+                            txt_ 'Post deleted';
+                            lit_ length $_->{hidden} ? ': '.bb_format $_->{hidden}, inline => 1 : '.';
+                        };
                     } else {
                         lit_ bb_format $_->{msg};
                         i_ class => 'lastmod', 'Last modified on '.fmtdate($_->{edited}, 'full') if $_->{edited};

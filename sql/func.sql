@@ -407,8 +407,8 @@ BEGIN
     WHEN 'g' THEN RETURN QUERY SELECT g.name ::text, NULL,              h.requester, h.ihid, h.ilock FROM changes h JOIN tags_hist g      ON h.id = g.chid WHERE h.itemid = $1 AND h.rev = $2;
     WHEN 'i' THEN RETURN QUERY SELECT i.name ::text, NULL,              h.requester, h.ihid, h.ilock FROM changes h JOIN traits_hist i    ON h.id = i.chid WHERE h.itemid = $1 AND h.rev = $2;
     WHEN 's' THEN RETURN QUERY SELECT sa.name::text, sa.original::text, h.requester, h.ihid, h.ilock FROM changes h JOIN staff_hist s     ON h.id = s.chid JOIN staff_alias_hist sa ON sa.chid = s.chid AND sa.aid = s.aid WHERE h.itemid = $1 AND h.rev = $2;
-    WHEN 't' THEN RETURN QUERY SELECT t.title::text, NULL,              tp.uid, t.hidden OR t.private OR tp.hidden, t.locked FROM threads t JOIN threads_posts tp ON tp.tid = t.id WHERE t.id = $1 AND tp.num = $2;
-    WHEN 'w' THEN RETURN QUERY SELECT v.title::text, v.original::text,  wp.uid, w.c_flagged OR wp.hidden, w.locked FROM reviews w JOIN vn v ON v.id = w.vid JOIN reviews_posts wp ON wp.id = w.id WHERE w.id = $1 AND wp.num = $2;
+    WHEN 't' THEN RETURN QUERY SELECT t.title::text, NULL,              tp.uid, t.hidden OR t.private OR tp.hidden IS NOT NULL, t.locked FROM threads t JOIN threads_posts tp ON tp.tid = t.id WHERE t.id = $1 AND tp.num = $2;
+    WHEN 'w' THEN RETURN QUERY SELECT v.title::text, v.original::text,  wp.uid, w.c_flagged OR wp.hidden IS NOT NULL, w.locked FROM reviews w JOIN vn v ON v.id = w.vid JOIN reviews_posts wp ON wp.id = w.id WHERE w.id = $1 AND wp.num = $2;
   END CASE;
   END IF;
 END;

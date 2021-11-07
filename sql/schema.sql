@@ -580,7 +580,7 @@ CREATE TABLE reviews_posts (
   date     timestamptz NOT NULL DEFAULT NOW(),
   edited   timestamptz,
   num      smallint NOT NULL,
-  hidden   boolean NOT NULL DEFAULT FALSE,
+  hidden   text,
   msg      text NOT NULL DEFAULT '',
   PRIMARY KEY(id, num)
 );
@@ -830,10 +830,10 @@ CREATE TABLE threads_posts (
   date     timestamptz NOT NULL DEFAULT NOW(),
   edited   timestamptz,
   num      smallint NOT NULL,
-  hidden   boolean NOT NULL DEFAULT FALSE,
+  hidden   text,
   msg      text NOT NULL DEFAULT '',
   PRIMARY KEY(tid, num),
-  CONSTRAINT threads_posts_first_nonhidden CHECK(num > 1 OR NOT hidden)
+  CONSTRAINT threads_posts_first_nonhidden CHECK(num > 1 OR hidden IS NULL)
 );
 
 -- threads_boards

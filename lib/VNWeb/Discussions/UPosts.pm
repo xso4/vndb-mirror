@@ -41,16 +41,16 @@ TUWF::get qr{/$RE{uid}/posts}, sub {
     my $page = tuwf->validate(get => p => { upage => 1 })->data;
 
     my $sql = sql '(
-        SELECT tp.tid, tp.num, tp.msg, t.title, tp.date, t.hidden OR tp.hidden
+        SELECT tp.tid, tp.num, tp.msg, t.title, tp.date, t.hidden OR tp.hidden IS NOT NULL
           FROM threads_posts tp
           JOIN threads t ON t.id = tp.tid
-         WHERE tp.uid =', \$u->{id}, 'AND NOT t.private', auth->permBoardmod ? () : 'AND NOT t.hidden AND NOT tp.hidden', '
+         WHERE tp.uid =', \$u->{id}, 'AND NOT t.private', auth->permBoardmod ? () : 'AND NOT t.hidden AND tp.hidden IS NULL', '
        UNION ALL
-        SELECT rp.id, rp.num, rp.msg, v.title, rp.date, rp.hidden
+        SELECT rp.id, rp.num, rp.msg, v.title, rp.date, rp.hidden IS NOT NULL
           FROM reviews_posts rp
           JOIN reviews r ON r.id = rp.id
           JOIN vn v ON v.id = r.vid
-         WHERE rp.uid =', \$u->{id}, auth->permBoardmod ? () : 'AND NOT rp.hidden', '
+         WHERE rp.uid =', \$u->{id}, auth->permBoardmod ? () : 'AND rp.hidden IS NULL', '
        ) p(id,num,msg,title,date,hidden)';
 
     my $count = tuwf->dbVali('SELECT count(*) FROM', $sql);
