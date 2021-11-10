@@ -50,12 +50,11 @@ update dat msg model =
                  , c )
 
 
-toQuery prod m = S.toQuery (QInt (if prod then 17 else 6)) m.sel
+toQuery n m = S.toQuery (QInt n) m.sel
 
-fromQuery prod dat qf = S.fromQuery (\q ->
-  case (prod, q) of
-    (False, QInt 6  op v) -> Just (op, v)
-    (True,  QInt 17 op v) -> Just (op, v)
+fromQuery n dat qf = S.fromQuery (\q ->
+  case q of
+    QInt id op v -> if id == n then Just (op, v) else Nothing
     _ -> Nothing) dat qf
   |> Maybe.map (\(ndat,sel) ->
     ( { ndat | objid = ndat.objid+1 }
@@ -67,10 +66,8 @@ fromQuery prod dat qf = S.fromQuery (\q ->
 
 
 
-view : Bool -> Data -> Model -> (Html Msg, () -> List (Html Msg))
-view prod dat model =
-  let lbl = if prod then "Producer" else "Developer"
-  in
+view : String -> Data -> Model -> (Html Msg, () -> List (Html Msg))
+view lbl dat model =
   ( case Set.toList model.sel.sel of
       []  -> b [ class "grayedout" ] [ text lbl ]
       [s] -> span [ class "nowrap" ]
@@ -78,11 +75,11 @@ view prod dat model =
              , b [ class "grayedout" ] [ text <| "p" ++ String.fromInt s ++ ":" ]
              , Dict.get (vndbid 'p' s) dat.producers |> Maybe.map (\p -> p.name) |> Maybe.withDefault "" |> text
              ]
-      l   -> span [] [ S.lblPrefix model.sel, text <| lbl ++ " (" ++ String.fromInt (List.length l) ++ ")" ]
+      l   -> span [] [ S.lblPrefix model.sel, text <| lbl ++ "s (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
     [ div [ class "advheader" ]
-      [ h3 [] [ text lbl ]
-      , Html.map Sel (S.opts model.sel True False)
+      [ h3 [] [ text "Producer identifier" ]
+      , Html.map Sel (S.opts model.sel False True)
       ]
     , ul [] <| List.map (\s ->
         li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ]

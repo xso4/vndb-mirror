@@ -311,7 +311,6 @@ my @TYPE; # stack of query types, $TYPE[0] is the top-level query, $TYPE[$#TYPE]
 f v =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_languages && ARRAY', \$_, '::language[]' };
 f v =>  3 => 'olang',     { enum => \%LANGUAGE }, '=' => sub { sql 'v.olang =', \$_ };
 f v =>  4 => 'platform',  { enum => \%PLATFORM }, '=' => sub { sql 'v.c_platforms && ARRAY', \$_, '::platform[]' };
-f v =>  6 => 'developer-id',{ vndbid => 'p' }, '=' => sub { sql 'v.c_developers && ARRAY', \$_, '::vndbid[]' };
 f v =>  5 => 'length',    { uint => 1, enum => \%VN_LENGTH },
     '=' => sub { sql 'COALESCE(v.c_length BETWEEN', \$VN_LENGTH{$_}{low}, 'AND', \$VN_LENGTH{$_}{high}, ', v.length =', \$_, ')' };
 f v =>  7 => 'released',  { fuzzyrdate => 1 }, sql => sub { sql 'v.c_released', $_[0], \($_ == 1 ? strftime('%Y%m%d', gmtime) : $_) };
@@ -347,6 +346,10 @@ f v => 52 => 'staff',    's', '=' => sub {
                    JOIN staff_alias sa ON sa.aid = vs.aid
                    JOIN staff s ON s.id = sa.id
                   WHERE NOT s.hidden AND', $_, ')' };
+f v => 55 => 'developer', 'p', '=' => sub { sql 'EXISTS(SELECT 1 FROM producers p, unnest(v.c_developers) vcd(x) WHERE p.id = vcd.x AND NOT p.hidden AND', $_, ')' };
+
+# Deprecated.
+f v =>  6 => 'developer-id', { vndbid => 'p' }, '=' => sub { sql 'v.c_developers && ARRAY', \$_, '::vndbid[]' };
 
 
 
@@ -364,8 +367,6 @@ f r =>  4 => 'platform', { required => 0, default => undef, enum => \%PLATFORM }
         sql 'r.id', $neg ? 'NOT' : '', 'IN(SELECT id FROM releases_platforms WHERE platform IN', $val, $all && @$val > 1 ? ('GROUP BY id HAVING COUNT(platform) =', \scalar @$val) : (), ')';
     };
 
-f r =>  6 => 'developer-id',{ vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE developer AND pid =', \$_, ')' };
-f r => 17 => 'producer-id', { vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE pid =', \$_, ')' };
 f r =>  7 => 'released', { fuzzyrdate => 1 }, sql => sub { sql 'r.released', $_[0], \($_ == 1 ? strftime('%Y%m%d', gmtime) : $_) };
 f r =>  8 => 'resolution',        { type => 'array', length => 2, values => { uint => 1, max => 32767 } },
     sql => sub { sql 'NOT r.patch AND r.reso_x', $_[0], \$_->[0], 'AND r.reso_y', $_[0], \$_->[1], $_->[0] ? 'AND r.reso_x > 0' : () };
@@ -387,11 +388,15 @@ f r => 18 => 'rlist',    { uint => 1, enum => \%RLIST_STATUS }, sql_list => sub 
     };
 f r => 61 => 'patch',    { uint => 1, range => [1,1] }, '=' => sub { 'r.patch' };
 f r => 62 => 'freeware', { uint => 1, range => [1,1] }, '=' => sub { 'r.freeware' };
-# TODO: This flag has been deprecated, replace with a subquery that checks the publisher instead?
-f r => 63 => 'doujin',   { uint => 1, range => [1,1] }, '=' => sub { 'r.doujin' };
 f r => 64 => 'uncensored',{uint => 1, range => [1,1] }, '=' => sub { 'r.uncensored' };
 f r => 65 => 'official', { uint => 1, range => [1,1] }, '=' => sub { 'r.official' };
-f r => 53 => 'vn', 'v', '=' => sub { sql 'r.id IN(SELECT rv.id FROM releases_vn rv JOIN vn v ON v.id = rv.vid WHERE NOT v.hidden AND', $_, ')' };
+f r => 53 => 'vn',       'v', '=' => sub { sql 'r.id IN(SELECT rv.id FROM releases_vn rv JOIN vn v ON v.id = rv.vid WHERE NOT v.hidden AND', $_, ')' };
+f r => 55 => 'producer', 'p', '=' => sub { sql 'r.id IN(SELECT rp.id FROM releases_producers rp JOIN producers p ON p.id = rp.pid WHERE NOT p.hidden AND', $_, ')' };
+
+# Deprecated.
+f r =>  6 => 'developer-id',{ vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE developer AND pid =', \$_, ')' }; # Does not have a new equivalent
+f r => 17 => 'producer-id', { vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE pid =', \$_, ')' };
+f r => 63 => 'doujin',      { uint => 1, range => [1,1] }, '=' => sub { 'r.doujin' }; # Not recognized by Elm anymore.
 
 
 

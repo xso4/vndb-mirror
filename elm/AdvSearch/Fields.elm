@@ -110,9 +110,11 @@ nestToQuery dat model =
       (V,  R) -> wrap (QQuery 50 op)
       (V,  C) -> wrap (QQuery 51 op)
       (V,  S) -> wrap (QQuery 52 op)
+      (V,  P) -> wrap (QQuery 55 op)
       (C,  S) -> wrap (QQuery 52 op)
       (C,  V) -> wrap (QQuery 53 op)
       (R,  V) -> wrap (QQuery 53 op)
+      (R,  P) -> wrap (QQuery 55 op)
       _       -> wrap identity
 
 
@@ -135,9 +137,11 @@ nestFromQuery ptype qtype dat q =
        (V, R, QQuery 50 op r) -> initSub op r
        (V, C, QQuery 51 op r) -> initSub op r
        (V, S, QQuery 52 op r) -> initSub op r
+       (V, P, QQuery 55 op r) -> initSub op r
        (C, S, QQuery 52 op r) -> initSub op r
        (C, V, QQuery 53 op r) -> initSub op r
        (R, V, QQuery 53 op r) -> initSub op r
+       (R, P, QQuery 55 op r) -> initSub op r
        (_, _, QAnd l) -> if ptype == qtype then Just (init True  l) else Nothing
        (_, _, QOr  l) -> if ptype == qtype then Just (init False l) else Nothing
        _ -> Nothing
@@ -177,6 +181,7 @@ nestView dat dd model =
               (_,C) -> "Character"
               (C,S) -> "VA"
               (_,S) -> "Staff"
+              (V,P) -> "Developer"
               (_,P) -> "Producer"
           breads pre par l =
             case l of
@@ -214,7 +219,9 @@ nestView dat dd model =
               (_, R) -> ("Has a release that matches these filters", "Does not have a release that matches these filters")
               (_, V) -> ("Linked to a visual novel that matches these filters", "Not linked to a visual novel that matches these filters")
               (V, S) -> ("Has staff that matches these filters", "Does not have staff that matches these filters")
+              (V, P) -> ("Has a developer that matches these filters", "Does not have a developer that matches these filters")
               (C, S) -> ("Has a voice actor that matches these filters", "Does not have a voice actor that matches these filters")
+              (R, P) -> ("Has a producer that matches these filters", "Does not have a producer that matches these filters")
               _ -> ("","")
       in [ ul []
         [ li [] [ linkRadio (not model.neg) (FSNest << NNeg False) [ text a ] ]
@@ -227,6 +234,8 @@ nestView dat dd model =
         (_, R) -> "Rel"
         (_, V) -> "VN"
         (V, S) -> "Staff"
+        (V, P) -> "Developer"
+        (R, P) -> "Producer"
         (C, S) -> "VA"
         _ -> ""
 
@@ -306,8 +315,9 @@ type FieldModel
   | FMRating     (AR.Model Int)
   | FMVotecount  (AR.Model Int)
   | FMMinAge     (AR.Model Int)
-  | FMDeveloper  AP.Model
+  | FMProdId     AP.Model
   | FMProducer   AP.Model
+  | FMDeveloper  AP.Model
   | FMStaff      AT.Model
   | FMAnime      AA.Model
   | FMRDate      AD.Model
@@ -350,8 +360,9 @@ type FieldMsg
   | FSRating     AR.Msg
   | FSVotecount  AR.Msg
   | FSMinAge     AR.Msg
-  | FSDeveloper  AP.Msg
+  | FSProdId     AP.Msg
   | FSProducer   AP.Msg
+  | FSDeveloper  AP.Msg
   | FSStaff      AT.Msg
   | FSAnime      AA.Msg
   | FSRDate      AD.Msg
@@ -409,6 +420,7 @@ fields =
   , n V R "Release »"
   , n V S "Staff »"
   , n V C "Character »"
+  , n V P "Developer »"
   , f V "Language"           1  FMLang        AS.init                 AS.langFromQuery
   , f V "Original language"  2  FMOLang       AS.init                 AS.olangFromQuery
   , f V "Platform"           3  FMVPlatform   AS.init                 AS.platformFromQuery
@@ -419,7 +431,6 @@ fields =
   , f V "My Labels"          0  FMLabel       AS.init                 AS.labelFromQuery
   , l V "My List"            0 [(QInt 65 Eq 1, "On my list"),         (QInt 65 Ne 1, "Not on my list")]
   , f V "Length"             0  FMLength      AS.init                 AS.lengthFromQuery
-  , f V "Developer"          0  FMDeveloper   AP.init                 (AP.fromQuery False)
   , f V "Release date"       0  FMRDate       AD.init                 AD.fromQuery
   , f V "Popularity"         0  FMPopularity  AR.popularityInit       AR.popularityFromQuery
   , f V "Rating"             0  FMRating      AR.ratingInit           AR.ratingFromQuery
@@ -429,9 +440,12 @@ fields =
   , l V "Has anime"          0 [(QInt 62 Eq 1, "Has anime relation"), (QInt 62 Ne 1, "No anime relation")]
   , l V "Has screenshot"     0 [(QInt 63 Eq 1, "Has screenshot(s)"),  (QInt 63 Ne 1, "No screenshot(s)")]
   , l V "Has review"         0 [(QInt 64 Eq 1, "Has review(s)"),      (QInt 64 Ne 1, "No review(s)")]
+  -- Deprecated
+  , f V ""                   0  FMDeveloper   AP.init                 (AP.fromQuery 6)
 
   , n R R "And/Or"
   , n R V "Visual Novel »"
+  , n R P "Producer »"
   , f R "Language"           1  FMLang        AS.init                 AS.langFromQuery
   , f R "Platform"           2  FMRPlatform   AS.init                 AS.platformFromQuery
   , f R "Type"               3  FMRType       AS.init                 AS.rtypeFromQuery
@@ -439,8 +453,6 @@ fields =
   , l R "Freeware"           0 [(QInt 62 Eq 1, "Freeware"),                (QInt 62 Ne 1, "Non-free")]
   , l R "Uncensored"         0 [(QInt 64 Eq 1, "Uncensored (no mosaic)"),  (QInt 64 Ne 1, "Censored (or no erotic content to censor)")]
   , l R "Official"           0 [(QInt 65 Eq 1, "Official"),                (QInt 65 Ne 1, "Unofficial")]
-  , f R "Developer"          0  FMDeveloper   AP.init                 (AP.fromQuery False)
-  , f R "Producer"           0  FMProducer    AP.init                 (AP.fromQuery True)
   , f R "Release date"       0  FMRDate       AD.init                 AD.fromQuery
   , f R "Resolution"         0  FMResolution  AE.init                 AE.fromQuery
   , f R "Age rating"         0  FMMinAge      AR.minageInit           AR.minageFromQuery
@@ -450,6 +462,10 @@ fields =
   , f R "Story animation"    0  FMAniStory    AS.init                 (AS.animatedFromQuery True)
   , f R "Engine"             0  FMEngine      AEng.init               AEng.fromQuery
   , f R "My List"            0  FMRList       AS.init                 AS.rlistFromQuery
+  -- Deprecated
+  , f R ""                   0  FMDeveloper   AP.init                 (AP.fromQuery 6)
+  , f R ""                   0  FMProducer    AP.init                 (AP.fromQuery 17)
+
 
   , n C C "And/Or"
   , n C S "Voice Actor »"
@@ -478,6 +494,7 @@ fields =
   , f S "Role"               3  FMSRole       AS.init                 AS.sroleFromQuery
 
   , n P P "And/Or"
+  , f P "Name"               0  FMProdId      AP.init                 (AP.fromQuery 3)
   , f P "Language"           1  FMLang        AS.init                 AS.langFromQuery
   , f P "Type"               2  FMPType       AS.init                 AS.ptypeFromQuery
   ]
@@ -495,8 +512,9 @@ fieldUpdate dat msg_ (num, dd, model) =
         case model of
           FMTag        m -> Cmd.map FSTag        (A.refocus m.conf)
           FMTrait      m -> Cmd.map FSTrait      (A.refocus m.conf)
-          FMDeveloper  m -> Cmd.map FSDeveloper  (A.refocus m.conf)
+          FMProdId     m -> Cmd.map FSProdId     (A.refocus m.conf)
           FMProducer   m -> Cmd.map FSProducer   (A.refocus m.conf)
+          FMDeveloper  m -> Cmd.map FSDeveloper  (A.refocus m.conf)
           FMStaff      m -> Cmd.map FSStaff      (A.refocus m.conf)
           FMAnime      m -> Cmd.map FSAnime      (A.refocus m.conf)
           FMResolution m -> Cmd.map FSResolution (A.refocus m.conf)
@@ -559,8 +577,9 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSRating msg,   FMRating m)   -> maps FMRating    (AR.update msg m)
       (FSVotecount msg,FMVotecount m)-> maps FMVotecount (AR.update msg m)
       (FSMinAge msg   ,FMMinAge m)   -> maps FMMinAge   (AR.update msg m)
-      (FSDeveloper msg,FMDeveloper m)-> mapf FMDeveloper FSDeveloper (AP.update dat msg m)
+      (FSProdId   msg, FMProdId m)   -> mapf FMProdId    FSProdId    (AP.update dat msg m)
       (FSProducer msg, FMProducer m) -> mapf FMProducer  FSProducer  (AP.update dat msg m)
+      (FSDeveloper msg,FMDeveloper m)-> mapf FMDeveloper FSDeveloper (AP.update dat msg m)
       (FSStaff msg,    FMStaff m)    -> mapf FMStaff     FSStaff     (AT.update dat msg m)
       (FSAnime msg,    FMAnime m)    -> mapf FMAnime     FSAnime     (AA.update dat msg m)
       (FSRDate msg,    FMRDate m)    -> maps FMRDate    (AD.update msg m)
@@ -626,8 +645,9 @@ fieldView dat (_, dd, model) =
       FMRating m     -> f FSRating     (AR.ratingView m)
       FMVotecount m  -> f FSVotecount  (AR.votecountView m)
       FMMinAge m     -> f FSMinAge     (AR.minageView m)
-      FMDeveloper m  -> f FSDeveloper  (AP.view False dat m)
-      FMProducer m   -> f FSProducer   (AP.view True dat m)
+      FMProdId m     -> f FSProdId     (AP.view "Name" dat m)
+      FMProducer m   -> f FSProducer   (AP.view "Producer" dat m)
+      FMDeveloper m  -> f FSDeveloper  (AP.view "Developer" dat m)
       FMStaff m      -> f FSStaff      (AT.view dat m)
       FMAnime m      -> f FSAnime      (AA.view dat m)
       FMRDate m      -> f FSRDate      (AD.view m)
@@ -674,8 +694,9 @@ fieldToQuery dat (_, _, model) =
     FMRating m   -> AR.toQuery (QInt 10) (QStr 10) m
     FMVotecount m-> AR.toQuery (QInt 11) (QStr 11) m
     FMMinAge m   -> AR.toQuery (QInt 10) (QStr 10) m
-    FMDeveloper m-> AP.toQuery False m
-    FMProducer m -> AP.toQuery True m
+    FMProdId m -> AP.toQuery 3 m
+    FMProducer m -> AP.toQuery 17 m
+    FMDeveloper m-> AP.toQuery 6 m
     FMStaff m    -> AT.toQuery m
     FMAnime m    -> AA.toQuery m
     FMRDate m    -> AD.toQuery m
