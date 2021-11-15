@@ -54,14 +54,12 @@ sub noresults_ {
 sub posts_ {
     my($filt) = @_;
 
-    # Turn query into something suitable for to_tsquery()
-    # TODO: Use Postgres 11 websearch_to_tsquery() instead.
-    (my $ts = $filt->{bq}) =~ y{+|&:*()="';!?$%^\\[]{}<>~` }{ }s;
-    $ts =~ s/ +/ /;
-    $ts =~ s/^ //;
-    $ts =~ s/ $//;
-    $ts =~ s/ / & /g;
-    $ts =~ s/(?:^| )-([^ ]+)/ !$1 /;
+    # Use websearch_to_tsquery() to convert the query string into a tsquery.
+    # Also match against an empty string to see if the query doesn't consist of only negative matches.
+    my $ts = tuwf->dbVali('
+        WITH q(q) AS (SELECT websearch_to_tsquery(', \$filt->{bq}, '))
+        SELECT CASE WHEN numnode(q) = 0 OR q @@ \'\' THEN NULL ELSE q END FROM q');
+    return noresults_ if !$ts;
 
     # HACK: The bbcodes are stripped from the original messages when creating
     # the headline, so they are guaranteed not to show up in the message. This
