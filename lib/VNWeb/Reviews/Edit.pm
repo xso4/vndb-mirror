@@ -71,6 +71,7 @@ elm_api ReviewsEdit => $FORM_OUT, $FORM_IN, sub {
     my $id = delete $data->{id};
 
     my $review = $id ? tuwf->dbRowi('SELECT id, locked, modnote, text, uid AS user_id FROM reviews WHERE id =', \$id) : {};
+    return tuwf->resNotFound if $id && !$review->{id};
     return elm_Unauth if !can_edit w => $review;
 
     if(!auth->permBoardmod) {
@@ -103,6 +104,7 @@ elm_api ReviewsEdit => $FORM_OUT, $FORM_IN, sub {
 elm_api ReviewsDelete => undef, { id => { vndbid => 'w' } }, sub {
     my($data) = @_;
     my $review = tuwf->dbRowi('SELECT id, uid AS user_id FROM reviews WHERE id =', \$data->{id});
+    return tuwf->resNotFound if !$review->{id};
     return elm_Unauth if !can_edit w => $review;
     auth->audit($review->{user_id}, 'review delete', "deleted $review->{id}");
     tuwf->dbExeci('DELETE FROM notifications WHERE iid =', \$data->{id});
