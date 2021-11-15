@@ -440,6 +440,12 @@ div.discussions td.tc2             { width: 60px; text-align: right }
 div.discussions td.tc3             { width: 110px;  }
 div.discussions td.tc4             { width: 250px; }
 div.discussions .pollflag          { color: $grayedout; padding-right: 6px; }
+.boardsearchoptions {
+    margin: 0 auto;
+    td { padding: 10px }
+    select { width: 150px; scrollbar-width: none }
+    select::-webkit-scrollbar { display: none }
+}
 div.postsearch td.tc1_1           { width: 60px; padding-left: 0; padding-right: 0; text-align: right }
 div.postsearch td.tc1_2           { width: 25px; padding-left: 0 }
 div.postsearch td.tc2             { width: 65px;  }

@@ -135,7 +135,9 @@ CREATE        INDEX reports_new            ON reports (date) WHERE status = 'new
 CREATE        INDEX reports_lastmod        ON reports (lastmod);
 CREATE UNIQUE INDEX reviews_vid_uid        ON reviews (vid,uid);
 CREATE        INDEX reviews_uid            ON reviews (uid);
+CREATE        INDEX reviews_ts             ON reviews USING gin(bb_tsvector(text));
 CREATE        INDEX reviews_posts_uid      ON reviews_posts (uid);
+CREATE        INDEX reviews_posts_ts       ON reviews_posts USING gin(bb_tsvector(msg));
 CREATE UNIQUE INDEX reviews_votes_id_uid   ON reviews_votes (id,uid);
 CREATE UNIQUE INDEX reviews_votes_id_ip    ON reviews_votes (id,ip);
 CREATE        INDEX staff_alias_id         ON staff_alias (id);

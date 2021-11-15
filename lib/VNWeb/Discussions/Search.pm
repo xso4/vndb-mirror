@@ -3,11 +3,12 @@ package VNWeb::Discussions::Search;
 use VNWeb::Prelude;
 use VNWeb::Discussions::Lib;
 
+my @BOARDS = (keys %BOARD_TYPE, 'w');
 
 sub filters_ {
     state $schema = tuwf->compile({ type => 'hash', keys => {
         bq => { required => 0, default => '' },
-        b  => { type => 'array', scalar => 1, onerror => [keys %BOARD_TYPE], values => { enum => \%BOARD_TYPE } },
+        b  => { type => 'array', scalar => 1, onerror => \@BOARDS, values => { enum => \@BOARDS } },
         t  => { anybool => 1 },
         p  => { page => 1 },
     }});
@@ -16,16 +17,13 @@ sub filters_ {
 
     form_ method => 'get', action => tuwf->reqPath(), sub {
         boardtypes_;
-        table_ style => 'margin: 0 auto', sub { tr_ sub {
-                td_ style => 'padding: 10px', sub {
-                    p_ class => 'linkradio', sub {
-                        join_ \&br_, sub {
-                            input_ type => 'checkbox', name => 'b', id => "b_$_", value => $_, $boards{$_} ? (checked => 'checked') : ();
-                            label_ for => "b_$_", $BOARD_TYPE{$_}{txt};
-                        }, keys %BOARD_TYPE;
+        table_ class => 'boardsearchoptions', sub { tr_ sub {
+                td_ sub {
+                    select_ multiple => 1, size => scalar @BOARDS, name => 'b', sub {
+                        option_ $boards{$_} ? (selected => 1) : (), value => $_, $_ eq 'w' ? 'Reviews' : $BOARD_TYPE{$_}{txt} for @BOARDS;
                     }
                 };
-                td_ style => 'padding: 10px', sub {
+                td_ sub {
                     input_ type => 'text', class => 'text', name => 'bq', style => 'width: 400px', placeholder => 'Search', value => $filt->{bq};
 
                     p_ class => 'linkradio', sub {
@@ -61,26 +59,44 @@ sub posts_ {
         SELECT CASE WHEN numnode(q) = 0 OR q @@ \'\' THEN NULL ELSE q END FROM q');
     return noresults_ if !$ts;
 
+    my $reviews = grep $_ eq 'w', $filt->{b}->@*;
+    my @tboards = grep $_ ne 'w', $filt->{b}->@*;
+    return noresults_ if !$reviews && !@tboards;
+
     # HACK: The bbcodes are stripped from the original messages when creating
     # the headline, so they are guaranteed not to show up in the message. This
     # means we can re-use them for highlighting without worrying that they
     # conflict with the message contents.
 
     my($posts, $np) = tuwf->dbPagei({ results => 20, page => $filt->{p} }, q{
-        SELECT tp.tid, tp.num, t.title
+        SELECT m.id, m.num, m.title
              , }, sql_user(), q{
-             , }, sql_totime('tp.date'), q{as date
-             , ts_headline('english', strip_bb_tags(strip_spoilers(tp.msg)), to_tsquery(}, \$ts, '),',
+             , }, sql_totime('m.date'), q{as date
+             , ts_headline('english', strip_bb_tags(strip_spoilers(m.msg)), to_tsquery(}, \$ts, '),',
                  \'MaxFragments=2,MinWords=15,MaxWords=40,StartSel=[raw],StopSel=[/raw],FragmentDelimiter=[code]',
-               q{) as headline
-          FROM threads_posts tp
-          JOIN threads t ON t.id = tp.tid
-          LEFT JOIN users u ON u.id = tp.uid
-         WHERE NOT t.hidden AND NOT t.private AND tp.hidden IS NULL
-           AND bb_tsvector(tp.msg) @@ to_tsquery(}, \$ts, ')',
-               $filt->{b}->@* < keys %BOARD_TYPE ? ('AND t.id IN(SELECT tid FROM threads_boards WHERE type IN', $filt->{b}, ')') : (), q{
-         ORDER BY tp.date DESC
-    });
+               ') as headline
+          FROM (', sql_join('UNION',
+             @tboards ?
+                sql('SELECT tp.tid, tp.num, t.title, tp.uid, tp.date, tp.msg
+                       FROM threads_posts tp
+                       JOIN threads t ON t.id = tp.tid
+                      WHERE NOT t.hidden AND NOT t.private AND tp.hidden IS NULL
+                        AND bb_tsvector(tp.msg) @@ to_tsquery(', \$ts, ')',
+                            @tboards < keys %BOARD_TYPE ? ('AND t.id IN(SELECT tid FROM threads_boards WHERE type IN', \@tboards, ')') : ()
+             ) : (), $reviews ? (
+                 sql('SELECT w.id, 0, v.title, w.uid, w.date, w.text
+                        FROM reviews w
+                        JOIN vn v ON v.id = w.vid
+                       WHERE NOT w.c_flagged AND bb_tsvector(w.text) @@ to_tsquery(', \$ts, ')'),
+                 sql('SELECT wp.id, wp.num, v.title, wp.uid, wp.date, wp.msg
+                        FROM reviews_posts wp
+                        JOIN reviews w ON w.id = wp.id
+                        JOIN vn v ON v.id = w.vid
+                       WHERE NOT w.c_flagged AND wp.hidden IS NULL AND bb_tsvector(wp.msg) @@ to_tsquery(', \$ts, ')'),
+             ) : ()), ') m (id, num, title, uid, date, msg)
+          LEFT JOIN users u ON u.id = m.uid
+         ORDER BY m.date DESC'
+    );
 
     return noresults_ if !@$posts;
 
@@ -97,9 +113,9 @@ sub posts_ {
             }};
             tr_ sub {
                 my $l = $_;
-                my $link = "/$l->{tid}.$l->{num}";
-                td_ class => 'tc1_1', sub { a_ href => $link, $l->{tid} };
-                td_ class => 'tc1_2', sub { a_ href => $link, '.'.$l->{num} };
+                my $link = "/$l->{id}".($l->{num}?".$l->{num}":'');
+                td_ class => 'tc1_1', sub { a_ href => $link, $l->{id} };
+                td_ class => 'tc1_2', sub { a_ href => $link, '.'.$l->{num} if $l->{num} };
                 td_ class => 'tc2', fmtdate $l->{date};
                 td_ class => 'tc3', sub { user_ $l };
                 td_ class => 'tc4', sub {
@@ -121,8 +137,11 @@ sub posts_ {
 sub threads_ {
     my($filt) = @_;
 
+    my @boards = grep $_ ne 'w', $filt->{b}->@*; # Can't search reviews by title
+    return noresults_ if !@boards;
+
     my $where = sql_and
-        $filt->{b}->@* < keys %BOARD_TYPE ? sql('t.id IN(SELECT tid FROM threads_boards WHERE type IN', $filt->{b}, ')') : (),
+        @boards < keys %BOARD_TYPE ? sql('t.id IN(SELECT tid FROM threads_boards WHERE type IN', \@boards, ')') : (),
         map sql('t.title ilike', \('%'.sql_like($_).'%')), grep length($_) > 0, split /[ ,._-]/, $filt->{bq};
 
     noresults_ if !threadlist_
