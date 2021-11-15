@@ -289,7 +289,7 @@ sub listing_ {
     enrich_flatten labels => id => vid => sql('SELECT vid, lbl FROM ulist_vns_labels WHERE uid =', \$uid, 'AND vid IN'), $lst;
 
     enrich rels => id => vid => sub { sql '
-        SELECT rv.vid, r.id, rl.status
+        SELECT rv.vid, r.id, rl.status, rv.rtype
           FROM rlists rl
           JOIN releases r ON rl.rid = r.id
           JOIN releases_vn rv ON rv.id = r.id

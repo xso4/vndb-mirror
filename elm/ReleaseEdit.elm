@@ -34,7 +34,6 @@ type alias Model =
   { state      : Api.State
   , title      : String
   , original   : String
-  , rtype      : String
   , official   : Bool
   , patch      : Bool
   , freeware   : Bool
@@ -73,7 +72,6 @@ init d =
   { state      = Api.Normal
   , title      = d.title
   , original   = d.original
-  , rtype      = d.rtype
   , official   = d.official
   , patch      = d.patch
   , freeware   = d.freeware
@@ -115,7 +113,6 @@ encode model =
   , locked      = model.editsum.locked
   , title       = model.title
   , original    = model.original
-  , rtype       = model.rtype
   , official    = model.official
   , patch       = model.patch
   , freeware    = model.freeware
@@ -136,7 +133,7 @@ encode model =
   , website     = model.website
   , engine      = model.engine.value
   , extlinks    = model.extlinks.links
-  , vn          = List.map (\l -> {vid=l.vid}) model.vn
+  , vn          = List.map (\l -> {vid=l.vid, rtype=l.rtype}) model.vn
   , producers   = List.map (\l -> {pid=l.pid, developer=l.developer, publisher=l.publisher}) model.prod
   , notes       = model.notes.data
   }
@@ -157,7 +154,6 @@ engineConfig = { wrap = Engine, id = "engine", source = A.engineSource }
 type Msg
   = Title String
   | Original String
-  | RType String
   | Official Bool
   | Patch Bool
   | Freeware Bool
@@ -181,6 +177,7 @@ type Msg
   | Website String
   | Engine (A.Msg GApi.ApiEngines)
   | ExtLinks (EL.Msg GRE.RecvExtlinks)
+  | VNRType Int String
   | VNDel Int
   | VNSearch (A.Msg GApi.ApiVNResult)
   | ProdDel Int
@@ -197,7 +194,6 @@ update msg model =
   case msg of
     Title s    -> ({ model | title    = s }, Cmd.none)
     Original s -> ({ model | original = s }, Cmd.none)
-    RType s    -> ({ model | rtype    = s }, Cmd.none)
     Official b -> ({ model | official = b }, Cmd.none)
     Patch b    -> ({ model | patch    = b }, Cmd.none)
     Freeware b -> ({ model | freeware = b }, Cmd.none)
@@ -233,6 +229,7 @@ update msg model =
       in ({ model | engine = nmod }, c)
     ExtLinks m -> ({ model | extlinks = EL.update m model.extlinks }, Cmd.none)
 
+    VNRType i s-> ({ model | vn = modidx i (\v -> { v | rtype = s }) model.vn }, Cmd.none)
     VNDel i    -> ({ model | vn = delidx i model.vn }, Cmd.none)
     VNSearch m ->
       let (nm, c, res) = A.update vnConfig m model.vnAdd
@@ -241,7 +238,7 @@ update msg model =
         Just v  ->
           if List.any (\vn -> vn.vid == v.id) model.vn
           then ({ model | vnAdd = nm }, c)
-          else ({ model | vnAdd = A.clear nm "", vn = model.vn ++ [{ vid = v.id, title = v.title}] }, c)
+          else ({ model | vnAdd = A.clear nm "", vn = model.vn ++ [{ vid = v.id, title = v.title, rtype = "complete" }] }, c)
 
     ProdDel i   -> ({ model | prod = delidx i model.prod }, Cmd.none)
     ProdRole i (d,p) -> ({ model | prod = modidx i (\e -> { e | developer = d, publisher = p }) model.prod }, Cmd.none)
@@ -295,7 +292,6 @@ viewGen model =
     ]
 
   , tr [ class "newpart" ] [ td [] [] ]
-  , formField "rtype::Type" [ inputSelect "rtype" model.rtype RType [] GT.releaseTypes ]
   , formField "minage::Age rating" [ inputSelect "minage" model.minage Minage [] ((Nothing, "Unknown") :: List.map (Tuple.mapFirst Just) GT.ageRatings), text " (*)" ]
   , formField "" [ label [] [ inputCheck "" model.official Official, text " Official (i.e. sanctioned by the original developer of the visual novel)" ] ]
   , formField "" [ label [] [ inputCheck "" model.patch    Patch   , text " This release is a patch to another release.", text " (*)" ] ]
@@ -370,6 +366,7 @@ viewGen model =
       else table [] <| List.indexedMap (\i v -> tr []
         [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| v.vid ++ ":" ] ]
         , td [] [ a [ href <| "/" ++ v.vid ] [ text v.title ] ]
+        , td [] [ inputSelect "" v.rtype (VNRType i) [style "width" "100px"] GT.releaseTypes ]
         , td [] [ inputButton "remove" (VNDel i) [] ]
         ]
       ) model.vn

@@ -22,8 +22,11 @@ sub enrich_item {
 sub _rev_ {
     my($r) = @_;
     revision_ $r, \&enrich_item,
-        [ vn         => 'Relations', fmt => sub { a_ href => "/$_->{vid}", title => $_->{original}||$_->{title}, $_->{title} } ],
-        [ type       => 'Type' ],
+        [ vn         => 'Relations',       fmt => sub {
+            abbr_ class => "icons rt$_->{rtype}", title => $_->{rtype}, ' ';
+            a_ href => "/$_->{vid}", title => $_->{original}||$_->{title}, $_->{title};
+            txt_ " ($_->{rtype})" if $_->{rtype} ne 'complete';
+        } ],
         [ official   => 'Official',        fmt => 'bool' ],
         [ patch      => 'Patch',           fmt => 'bool' ],
         [ freeware   => 'Freeware',        fmt => 'bool' ],
@@ -62,7 +65,9 @@ sub _infotable_ {
             td_ class => 'key', 'Relation';
             td_ sub {
                 join_ \&br_, sub {
+                    abbr_ class => "icons rt$_->{rtype}", title => $_->{rtype}, ' ';
                     a_ href => "/$_->{vid}", title => $_->{original}||$_->{title}, $_->{title};
+                    txt_ " ($_->{rtype})" if $_->{rtype} ne 'complete';
                 }, $r->{vn}->@*
             }
         };
@@ -79,13 +84,9 @@ sub _infotable_ {
 
         tr_ sub {
             td_ 'Type';
-            td_ sub {
-                abbr_ class => "icons rt$r->{type}", title => $r->{type}, ' ';
-                txt_ ' '.$RELEASE_TYPE{$r->{type}};
-                txt_ ', patch' if $r->{patch};
-                txt_ ', unofficial' if !$r->{official};
-            }
-        };
+            td_ !$r->{official} && $r->{patch} ? 'Unofficial patch' :
+                !$r->{official} ? 'Unofficial' : 'Patch';
+        } if !$r->{official} || $r->{patch};
 
         tr_ sub {
             td_ 'Language';

@@ -607,7 +607,7 @@ my %GET_RELEASE = (
   },
   flags => {
     basic => {
-      select => 'r.title, r.original, r.released, r.type, r.patch, r.freeware, r.doujin',
+      select => 'r.title, r.original, r.released, r.patch, r.freeware, r.doujin',
       proc   => sub {
         $_[0]{original} ||= undef;
         $_[0]{released} = formatdate($_[0]{released});
@@ -620,6 +620,11 @@ my %GET_RELEASE = (
           for my $i (@$n) {
             $i->{languages} = [ map $i->{id} eq $_->{id} ? $_->{lang} : (), @$r ];
           }
+        },
+      ], ['id', 'SELECT id, MAX(rtype) AS type FROM releases_vn WHERE id IN(%s) GROUP BY id',
+        sub { my($n, $r) = @_;
+          my %t = map +($_->{id},$_->{type}), @$r;
+          $_->{type} = $t{$_->{id}} for @$n;
         },
       ]],
     },
@@ -662,7 +667,7 @@ my %GET_RELEASE = (
       ]
     },
     vn => {
-      fetch => [[ 'id', 'SELECT rv.id AS rid, v.id, v.title, v.original FROM releases_vn rv JOIN vn v ON v.id = rv.vid
+      fetch => [[ 'id', 'SELECT rv.id AS rid, rv.rtype, v.id, v.title, v.original FROM releases_vn rv JOIN vn v ON v.id = rv.vid
                     WHERE NOT v.hidden AND rv.id IN(%s)',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
@@ -723,7 +728,7 @@ my %GET_RELEASE = (
     freeware => [ [ bool => 'r.freeware = :value:', {'=',1} ] ],
     doujin   => [ [ bool => 'r.doujin = :value:',   {'=',1} ] ],
     type => [
-      [ str   => 'r.type :op: :value:', {qw|= =  != <>|},
+      [ str   => 'r.id :op:(SELECT rv.id FROM releases_vn rv WHERE rv.rtype = :value:)', {'=' => 'IN', '!=' => 'NOT IN'},
         process => sub { !$RELEASE_TYPE{$_[0]} ? \'No such release type' : $_[0] } ],
     ],
     gtin => [

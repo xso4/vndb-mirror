@@ -7,7 +7,6 @@ my $FORM = {
     id         => { required => 0, vndbid => 'r' },
     title      => { maxlength => 300 },
     original   => { required => 0, default => '', maxlength => 250 },
-    rtype      => { default => 'complete', enum => \%RELEASE_TYPE },
     official   => { anybool => 1 },
     patch      => { anybool => 1 },
     freeware   => { anybool => 1 },
@@ -38,6 +37,7 @@ my $FORM = {
     vn         => { sort_keys => 'vid', aoh => {
         vid    => { vndbid => 'v' },
         title  => { _when => 'out' },
+        rtype  => { default => 'complete', enum => \%RELEASE_TYPE },
     } },
     producers  => { sort_keys => 'pid', aoh => {
         pid       => { vndbid => 'p' },
@@ -64,7 +64,6 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
     my $copy = tuwf->capture('action') eq 'copy';
     return tuwf->resDenied if !can_edit r => $copy ? {} : $e;
 
-    $e->{rtype} = delete $e->{type};
     $e->{editsum} = $copy ? "Copied from $e->{id}.$e->{chrev}" : $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
     $e->{authmod} = auth->permDbmod;
 
@@ -146,13 +145,11 @@ elm_api ReleaseEdit => $FORM_OUT, $FORM_IN, sub {
     die "Invalid resolution: ($data->{reso_x},$data->{reso_y})" if (!$data->{reso_x} && $data->{reso_y} > 1) || ($data->{reso_x} && !$data->{reso_y});
 
     to_extlinks $e;
-    $e->{rtype} = delete $e->{type};
 
     return elm_Unchanged if !$new && !form_changed $FORM_CMP, $data, $e;
 
     $data->{$_} = $data->{extlinks}{$_} for $data->{extlinks}->%*;
     delete $data->{extlinks};
-    $data->{type} = delete $data->{rtype};
 
     my $ch = db_edit r => $e->{id}, $data;
     elm_Redirect "/$ch->{nitemid}.$ch->{nrev}";

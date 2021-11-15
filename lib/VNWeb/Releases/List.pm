@@ -62,7 +62,7 @@ TUWF::get qr{/r}, sub {
     db_maytimeout {
         $count = tuwf->dbVali('SELECT count(*) FROM releases r WHERE', $where);
         $list = $count ? tuwf->dbPagei({results => 50, page => $opt->{p}}, '
-            SELECT r.id, r.type, r.patch, r.released, r.gtin, ', sql_extlinks(r => 'r.'), '
+            SELECT r.id, r.patch, r.released, r.gtin, ', sql_extlinks(r => 'r.'), '
               FROM releases r
              WHERE', $where, '
              ORDER BY', sprintf {

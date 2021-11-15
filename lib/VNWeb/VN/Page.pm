@@ -24,7 +24,7 @@ sub enrich_vn {
     # This fetches rather more information than necessary for infobox_(), but it'll have to do.
     # (And we'll need it for the releases tab anyway)
     $v->{releases} = tuwf->dbAlli('
-        SELECT r.id, r.type, r.patch, r.released, r.gtin,', sql_extlinks(r => 'r.'), '
+        SELECT r.id, rv.rtype, r.patch, r.released, r.gtin,', sql_extlinks(r => 'r.'), '
              , (SELECT COUNT(*) FROM releases_vn rv WHERE rv.id = r.id) AS num_vns
           FROM releases r
           JOIN releases_vn rv ON rv.id = r.id
@@ -157,7 +157,7 @@ sub infobox_length_ {
     my($v) = @_;
 
     my $today = strftime('%Y%m%d', gmtime);
-    return if !grep $_->{type} ne 'trial' && $_->{released} <= $today, $v->{releases}->@*;
+    return if !grep $_->{rtype} ne 'trial' && $_->{released} <= $today, $v->{releases}->@*;
 
     return if !$v->{c_length} && !$v->{c_lengthnum} && !VNWeb::VN::Length::can_vote();
 
@@ -194,7 +194,7 @@ sub infobox_producers_ {
     my($v) = @_;
 
     my $p = tuwf->dbAlli('
-        SELECT p.id, p.name, p.original, rl.lang, bool_or(rp.developer) as developer, bool_or(rp.publisher) as publisher, min(r.type) as type, bool_or(r.official) as official
+        SELECT p.id, p.name, p.original, rl.lang, bool_or(rp.developer) as developer, bool_or(rp.publisher) as publisher, min(rv.rtype) as rtype, bool_or(r.official) as official
           FROM releases_vn rv
           JOIN releases r ON r.id = rv.id
           JOIN releases_lang rl ON rl.id = rv.id
@@ -206,9 +206,9 @@ sub infobox_producers_ {
     ');
     return if !@$p;
 
-    my $hasfull = grep $_->{type} eq 'complete', @$p;
+    my $hasfull = grep $_->{rtype} eq 'complete', @$p;
     my %dev;
-    my @dev = grep $_->{developer} && (!$hasfull || $_->{type} ne 'trial') && !$dev{$_->{id}}++, @$p;
+    my @dev = grep $_->{developer} && (!$hasfull || $_->{rtype} ne 'trial') && !$dev{$_->{id}}++, @$p;
 
     tr_ sub {
         td_ 'Developer';
@@ -218,7 +218,7 @@ sub infobox_producers_ {
     } if @dev;
 
     my(%lang, @lang, $lang);
-    for(grep $_->{publisher} && (!$hasfull || $_->{type} ne 'trial'), @$p) {
+    for(grep $_->{publisher} && (!$hasfull || $_->{rtype} ne 'trial'), @$p) {
         push @lang, $_->{lang} if !$lang{$_->{lang}};
         push $lang{$_->{lang}}->@*, $_;
     }
@@ -262,10 +262,10 @@ sub infobox_affiliates_ {
     # url => [$title, $url, $price, $type]
     my %links;
     for my $rel ($v->{releases}->@*) {
-        my $type =    $rel->{patch} ? 4 :
-            $rel->{type} eq 'trial' ? 3 :
-          $rel->{type} eq 'partial' ? 2 :
-                $rel->{num_vns} > 1 ? 0 : 1;
+        my $type =     $rel->{patch} ? 4 :
+            $rel->{rtype} eq 'trial' ? 3 :
+          $rel->{rtype} eq 'partial' ? 2 :
+                 $rel->{num_vns} > 1 ? 0 : 1;
 
         $links{$_->[1]} = [ @$_, min $type, $links{$_->[1]}[3]||9 ] for grep $_->[2], $rel->{extlinks}->@*;
     }

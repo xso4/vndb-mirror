@@ -353,7 +353,6 @@ CREATE TABLE quotes (
 -- releases
 CREATE TABLE releases ( -- dbentry_type=r
   id           vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('r', nextval('releases_id_seq')::int) CONSTRAINT releases_id_check CHECK(vndbid_type(id) = 'r'), -- [pub]
-  type         release_type NOT NULL DEFAULT 'complete', -- [pub]
   gtin         bigint NOT NULL DEFAULT 0, -- [pub]
   l_toranoana  bigint NOT NULL DEFAULT 0, -- [pub]
   l_appstore   bigint NOT NULL DEFAULT 0, -- [pub]
@@ -408,7 +407,6 @@ CREATE TABLE releases ( -- dbentry_type=r
 -- releases_hist
 CREATE TABLE releases_hist (
   chid         integer NOT NULL PRIMARY KEY,
-  type         release_type NOT NULL DEFAULT 'complete',
   gtin         bigint NOT NULL DEFAULT 0,
   l_toranoana  bigint NOT NULL DEFAULT 0,
   l_appstore   bigint NOT NULL DEFAULT 0,
@@ -528,6 +526,7 @@ CREATE TABLE releases_producers_hist (
 CREATE TABLE releases_vn (
   id         vndbid NOT NULL, -- [pub]
   vid        vndbid NOT NULL, -- [pub] vn.id
+  rtype      release_type NOT NULL, -- [pub]
   PRIMARY KEY(id, vid)
 );
 
@@ -535,6 +534,7 @@ CREATE TABLE releases_vn (
 CREATE TABLE releases_vn_hist (
   chid       integer NOT NULL,
   vid        vndbid NOT NULL, -- vn.id
+  rtype      release_type NOT NULL,
   PRIMARY KEY(chid, vid)
 );
 

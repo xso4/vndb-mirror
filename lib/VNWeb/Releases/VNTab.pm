@@ -34,10 +34,10 @@ my @rel_cols = (
   }, { # Type
     id            => 'typ',
     sort_field    => 'type',
-    sort_sql      => 'r.patch %s, r.type %1$s, r.released %1$s, r.title %1$s',
+    sort_sql      => 'r.patch %s, rv.rtype %1$s, r.released %1$s, r.title %1$s',
     button_string => 'Type',
     default       => 1,
-    draw          => sub { abbr_ class => "icons rt$_[0]{type}", title => $_[0]{type}, ''; txt_ '(patch)' if $_[0]{patch} },
+    draw          => sub { abbr_ class => "icons rt$_[0]{rtype}", title => $_[0]{rtype}, ''; txt_ '(patch)' if $_[0]{patch} },
   }, { # Languages
     id            => 'lan',
     button_string => 'Language',
@@ -237,7 +237,7 @@ TUWF::get qr{/$RE{vid}/releases} => sub {
     $opt->{o} = 'd' if $opt->{o} eq 1;
 
     my $r = tuwf->dbAlli('
-        SELECT r.id, r.type, r.patch, r.released, r.gtin
+        SELECT r.id, rv.rtype, r.patch, r.released, r.gtin
           FROM releases r
           JOIN releases_vn rv ON rv.id = r.id
          WHERE NOT hidden AND rv.vid =', \$v->{id}, '

@@ -55,7 +55,7 @@ CREATE OR REPLACE FUNCTION update_vncache(vndbid) RETURNS void AS $$
         FROM releases r
         JOIN releases_vn rv ON r.id = rv.id
        WHERE rv.vid = $1
-         AND r.type <> 'trial'
+         AND rv.rtype <> 'trial'
          AND r.hidden = FALSE
          AND r.released <> 0
       GROUP BY rv.vid
@@ -66,7 +66,7 @@ CREATE OR REPLACE FUNCTION update_vncache(vndbid) RETURNS void AS $$
         JOIN releases r ON r.id = rl.id
         JOIN releases_vn rv ON r.id = rv.id
        WHERE rv.vid = $1
-         AND r.type <> 'trial'
+         AND rv.rtype <> 'trial'
          AND NOT rl.mtl
          AND r.released <= TO_CHAR('today'::timestamp, 'YYYYMMDD')::integer
          AND r.hidden = FALSE
@@ -79,7 +79,7 @@ CREATE OR REPLACE FUNCTION update_vncache(vndbid) RETURNS void AS $$
         JOIN releases r ON rp.id = r.id
         JOIN releases_vn rv ON rp.id = rv.id
        WHERE rv.vid = $1
-        AND r.type <> 'trial'
+        AND rv.rtype <> 'trial'
         AND r.released <= TO_CHAR('today'::timestamp, 'YYYYMMDD')::integer
         AND r.hidden = FALSE
       GROUP BY rp.platform

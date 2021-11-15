@@ -380,7 +380,7 @@ f r => 12 => 'voiced',   { uint => 1, enum => \%VOICED }, '=' => sub { sql 'NOT 
 f r => 13 => 'animation-ero',   { uint => 1, enum => \%ANIMATED }, '=' => sub { sql 'NOT r.patch AND r.ani_ero =', \$_ };
 f r => 14 => 'animation-story', { uint => 1, enum => \%ANIMATED }, '=' => sub { sql 'NOT r.patch AND r.ani_story =', \$_ };
 f r => 15 => 'engine',   { required => 0, default => '' }, '=' => sub { sql 'r.engine =', \$_ };
-f r => 16 => 'rtype',    { enum => \%RELEASE_TYPE }, '=' => sub { sql 'r.type =', \$_ };
+f r => 16 => 'rtype',    { enum => \%RELEASE_TYPE }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_vn WHERE rtype =', \$_, ')' };
 f r => 18 => 'rlist',    { uint => 1, enum => \%RLIST_STATUS }, sql_list => sub {
         my($neg, $all, $val) = @_;
         return '1=0' if !auth;

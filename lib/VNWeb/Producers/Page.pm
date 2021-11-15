@@ -68,16 +68,17 @@ sub rel_ {
     my($p) = @_;
 
     my $r = tuwf->dbAlli('
-        SELECT r.id, r.type, r.patch, r.released, r.gtin, rp.publisher, rp.developer, ', sql_extlinks(r => 'r.'), '
+        SELECT r.id, r.patch, r.released, r.gtin, rp.publisher, rp.developer, ', sql_extlinks(r => 'r.'), '
           FROM releases r
           JOIN releases_producers rp ON rp.id = r.id
          WHERE rp.pid =', \$p->{id}, ' AND NOT r.hidden
          ORDER BY r.released, r.title, r.id
     ');
+    $_->{rtype} = 1 for @$r; # prevent enrich_release() from fetching rtypes
     enrich_extlinks r => $r;
     enrich_release $r;
     enrich vn => id => rid => sub { sql '
-        SELECT rv.id as rid, v.id, v.title, v.original
+        SELECT rv.id as rid, rv.rtype, v.id, v.title, v.original
           FROM vn v
           JOIN releases_vn rv ON rv.vid = v.id
          WHERE NOT v.hidden AND rv.id IN', $_, '
@@ -88,7 +89,7 @@ sub rel_ {
     for my $rel (@$r) {
         for ($rel->{vn}->@*) {
             push @vn, $_ if !$vn{$_->{id}};
-            push $vn{$_->{id}}->@*, $rel;
+            push $vn{$_->{id}}->@*, [ $_->{rtype}, $rel ];
         }
     }
     enrich_ulists_widget \@vn;
@@ -103,7 +104,10 @@ sub rel_ {
                     a_ href => "/$v->{id}", title => $v->{original}||$v->{title}, $v->{title};
                 };
                 my $ropt = { id => $v->{id}, prod => 1 };
-                release_row_ $_, $ropt for $vn{$v->{id}}->@*;
+                for my $rel ($vn{$v->{id}}->@*) {
+                    $rel->[1]{rtype} = $rel->[0];
+                    release_row_ $rel->[1], $ropt;
+                }
             };
         }
     } if @$r;
@@ -118,7 +122,7 @@ sub vns_ {
           FROM vn v
           JOIN (
                SELECT rv.vid, bool_or(rp.developer), bool_or(rp.publisher)
-                    , COALESCE(MIN(r.released) FILTER(WHERE r.type <> 'trial'), MIN(r.released))
+                    , COALESCE(MIN(r.released) FILTER(WHERE rv.rtype <> 'trial'), MIN(r.released))
                  FROM releases_vn rv
                  JOIN releases r ON r.id = rv.id
                  JOIN releases_producers rp ON rp.id = rv.id
