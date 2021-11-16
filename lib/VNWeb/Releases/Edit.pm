@@ -95,7 +95,7 @@ TUWF::get qr{/$RE{vid}/add}, sub {
         elm_empty($FORM_OUT)->%*,
         title    => $v->{title},
         original => $v->{original},
-        vn       => [{vid => $v->{id}, title => $v->{title}}],
+        vn       => [{vid => $v->{id}, title => $v->{title}, rtype => 'complete'}],
         official => 1,
     };
     $e->{authmod} = auth->permDbmod;
