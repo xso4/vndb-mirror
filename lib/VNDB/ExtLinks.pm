@@ -40,7 +40,7 @@ our %WIKIDATA = (
     crunchyroll        => { type => 'text[]',     property => 'P4110', label => undef,            fmt => undef },
     igdb_game          => { type => 'text[]',     property => 'P5794', label => 'IGDB',           fmt => 'https://www.igdb.com/games/%s' },
     giantbomb          => { type => 'text[]',     property => 'P5247', label => undef,            fmt => undef },
-    pcgamingwiki       => { type => 'text[]',     property => 'P6337', label => undef,            fmt => undef },
+    pcgamingwiki       => { type => 'text[]',     property => 'P6337', label => 'PCGamingWiki',   fmt => 'https://www.pcgamingwiki.com/wiki/%s' },
     steam              => { type => 'integer[]',  property => 'P1733', label => undef,            fmt => undef },
     gog                => { type => 'text[]',     property => 'P2725', label => 'GOG',            fmt => 'https://www.gog.com/game/%s' },
     pixiv_user         => { type => 'integer[]',  property => 'P5435', label => 'Pixiv',          fmt => 'https://www.pixiv.net/member.php?id=%d' },
@@ -48,7 +48,6 @@ our %WIKIDATA = (
     soundcloud         => { type => 'text[]',     property => 'P3040', label => 'Soundcloud',     fmt => 'https://soundcloud.com/%s' },
     humblestore        => { type => 'text[]',     property => 'P4477', label => undef,            fmt => undef },
     itchio             => { type => 'text[]',     property => 'P7294', label => undef,            fmt => undef },
-
 );
 
 
@@ -266,6 +265,7 @@ sub enrich_extlinks {
             w 'indiedb_game';
             w 'howlongtobeat';
             w 'igdb_game';
+            w 'pcgamingwiki';
             l 'l_renai';
             push @links, [ 'VNStat', sprintf('https://vnstat.net/novel/%d', $obj->{id} =~ s/^.//r), undef ] if $obj->{c_votecount}>=20;
         }
