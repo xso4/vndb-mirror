@@ -11,5 +11,7 @@ CREATE DATABASE vndb OWNER vndb;
 
 -- The website
 CREATE ROLE vndb_site;
+ALTER ROLE vndb_site SET client_min_messages TO WARNING;
+ALTER ROLE vndb_site SET statement_timeout TO 10000;
 -- Multi
 CREATE ROLE vndb_multi;

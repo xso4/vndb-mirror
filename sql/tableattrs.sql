@@ -4,6 +4,54 @@ ALTER TABLE releases ADD COLUMN c_search text NOT NULL GENERATED ALWAYS AS (publ
 
 
 
+-- Indices
+
+CREATE        INDEX chars_main             ON chars (main) WHERE main IS NOT NULL AND NOT hidden; -- Only used on /c+
+CREATE        INDEX chars_vns_vid          ON chars_vns (vid);
+CREATE        INDEX chars_image            ON chars (image);
+CREATE UNIQUE INDEX image_votes_pkey       ON image_votes (uid, id);
+CREATE        INDEX image_votes_id         ON image_votes (id);
+CREATE        INDEX notifications_uid_iid  ON notifications (uid,iid);
+CREATE        INDEX releases_released      ON releases (released) WHERE NOT hidden; -- Mainly for the homepage
+CREATE        INDEX releases_producers_pid ON releases_producers (pid);
+CREATE        INDEX releases_vn_vid        ON releases_vn (vid);
+CREATE        INDEX reports_new            ON reports (date) WHERE status = 'new';
+CREATE        INDEX reports_lastmod        ON reports (lastmod);
+CREATE UNIQUE INDEX reviews_vid_uid        ON reviews (vid,uid);
+CREATE        INDEX reviews_uid            ON reviews (uid);
+CREATE        INDEX reviews_ts             ON reviews USING gin(bb_tsvector(text));
+CREATE        INDEX reviews_posts_uid      ON reviews_posts (uid);
+CREATE        INDEX reviews_posts_ts       ON reviews_posts USING gin(bb_tsvector(msg));
+CREATE UNIQUE INDEX reviews_votes_id_uid   ON reviews_votes (id,uid);
+CREATE UNIQUE INDEX reviews_votes_id_ip    ON reviews_votes (id,ip);
+CREATE        INDEX staff_alias_id         ON staff_alias (id);
+CREATE UNIQUE INDEX tags_vn_pkey           ON tags_vn (tag,vid,uid);
+CREATE UNIQUE INDEX threads_boards_pkey    ON threads_boards (tid,type,COALESCE(iid, 'r1')); -- 'r1' is an invalid board id
+CREATE        INDEX tags_vn_date           ON tags_vn (date);
+CREATE        INDEX tags_vn_inherit_tag_vid ON tags_vn_inherit (tag, vid);
+CREATE        INDEX tags_vn_uid            ON tags_vn (uid) WHERE uid IS NOT NULL;
+CREATE        INDEX tags_vn_vid            ON tags_vn (vid);
+CREATE        INDEX shop_playasia__gtin    ON shop_playasia (gtin);
+CREATE        INDEX threads_posts_date     ON threads_posts (date);
+CREATE        INDEX threads_posts_ts       ON threads_posts USING gin(bb_tsvector(msg));
+CREATE        INDEX threads_posts_uid      ON threads_posts (uid); -- Only really used on /u+ pages to get stats
+CREATE        INDEX traits_chars_tid       ON traits_chars (tid);
+CREATE        INDEX vn_image               ON vn (image);
+CREATE        INDEX vn_screenshots_scr     ON vn_screenshots (scr);
+CREATE        INDEX vn_seiyuu_aid          ON vn_seiyuu (aid); -- Only used on /s+?
+CREATE        INDEX vn_seiyuu_cid          ON vn_seiyuu (cid); -- Only used on /c+?
+CREATE        INDEX vn_staff_aid           ON vn_staff (aid);
+CREATE UNIQUE INDEX vn_length_votes_vid_uid ON vn_length_votes (vid, uid);
+CREATE        INDEX vn_length_votes_uid    ON vn_length_votes (uid);
+CREATE UNIQUE INDEX changes_itemrev        ON changes (itemid, rev);
+CREATE UNIQUE INDEX chars_vns_pkey         ON chars_vns (id, vid, COALESCE(rid, 'v1')); -- 'v1' is an invalid release id, but works as a 'no release specified' value in the UNIQUE qualifier.
+CREATE UNIQUE INDEX chars_vns_hist_pkey    ON chars_vns_hist (chid, vid, COALESCE(rid, 'v1'));
+CREATE        INDEX ulist_vns_voted        ON ulist_vns (vid, vote_date) WHERE vote IS NOT NULL; -- For VN recent votes & vote graph. INCLUDE(vote) speeds up vote graph even more
+CREATE UNIQUE INDEX users_username_key     ON users (lower(username));
+CREATE        INDEX users_ign_votes        ON users (id) WHERE ign_votes;
+
+
+
 -- Constraints
 
 ALTER TABLE changes                  ADD CONSTRAINT changes_requester_fkey             FOREIGN KEY (requester) REFERENCES users         (id) ON DELETE SET DEFAULT;
@@ -123,51 +171,3 @@ ALTER TABLE vn_staff                 ADD CONSTRAINT vn_staff_aid_fkey           
 ALTER TABLE vn_staff_hist            ADD CONSTRAINT vn_staff_hist_chid_fkey            FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE vn_length_votes          ADD CONSTRAINT vn_length_votes_vid_fkey           FOREIGN KEY (vid)       REFERENCES vn            (id);
 ALTER TABLE vn_length_votes          ADD CONSTRAINT vn_length_votes_uid_fkey           FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE SET DEFAULT;
-
-
-
--- Indices
-
-CREATE        INDEX chars_main             ON chars (main) WHERE main IS NOT NULL AND NOT hidden; -- Only used on /c+
-CREATE        INDEX chars_vns_vid          ON chars_vns (vid);
-CREATE        INDEX chars_image            ON chars (image);
-CREATE UNIQUE INDEX image_votes_pkey       ON image_votes (uid, id);
-CREATE        INDEX image_votes_id         ON image_votes (id);
-CREATE        INDEX notifications_uid_iid  ON notifications (uid,iid);
-CREATE        INDEX releases_released      ON releases (released) WHERE NOT hidden; -- Mainly for the homepage
-CREATE        INDEX releases_producers_pid ON releases_producers (pid);
-CREATE        INDEX releases_vn_vid        ON releases_vn (vid);
-CREATE        INDEX reports_new            ON reports (date) WHERE status = 'new';
-CREATE        INDEX reports_lastmod        ON reports (lastmod);
-CREATE UNIQUE INDEX reviews_vid_uid        ON reviews (vid,uid);
-CREATE        INDEX reviews_uid            ON reviews (uid);
-CREATE        INDEX reviews_ts             ON reviews USING gin(bb_tsvector(text));
-CREATE        INDEX reviews_posts_uid      ON reviews_posts (uid);
-CREATE        INDEX reviews_posts_ts       ON reviews_posts USING gin(bb_tsvector(msg));
-CREATE UNIQUE INDEX reviews_votes_id_uid   ON reviews_votes (id,uid);
-CREATE UNIQUE INDEX reviews_votes_id_ip    ON reviews_votes (id,ip);
-CREATE        INDEX staff_alias_id         ON staff_alias (id);
-CREATE UNIQUE INDEX tags_vn_pkey           ON tags_vn (tag,vid,uid);
-CREATE UNIQUE INDEX threads_boards_pkey    ON threads_boards (tid,type,COALESCE(iid, 'r1')); -- 'r1' is an invalid board id
-CREATE        INDEX tags_vn_date           ON tags_vn (date);
-CREATE        INDEX tags_vn_inherit_tag_vid ON tags_vn_inherit (tag, vid);
-CREATE        INDEX tags_vn_uid            ON tags_vn (uid) WHERE uid IS NOT NULL;
-CREATE        INDEX tags_vn_vid            ON tags_vn (vid);
-CREATE        INDEX shop_playasia__gtin    ON shop_playasia (gtin);
-CREATE        INDEX threads_posts_date     ON threads_posts (date);
-CREATE        INDEX threads_posts_ts       ON threads_posts USING gin(bb_tsvector(msg));
-CREATE        INDEX threads_posts_uid      ON threads_posts (uid); -- Only really used on /u+ pages to get stats
-CREATE        INDEX traits_chars_tid       ON traits_chars (tid);
-CREATE        INDEX vn_image               ON vn (image);
-CREATE        INDEX vn_screenshots_scr     ON vn_screenshots (scr);
-CREATE        INDEX vn_seiyuu_aid          ON vn_seiyuu (aid); -- Only used on /s+?
-CREATE        INDEX vn_seiyuu_cid          ON vn_seiyuu (cid); -- Only used on /c+?
-CREATE        INDEX vn_staff_aid           ON vn_staff (aid);
-CREATE UNIQUE INDEX vn_length_votes_vid_uid ON vn_length_votes (vid, uid);
-CREATE        INDEX vn_length_votes_uid    ON vn_length_votes (uid);
-CREATE UNIQUE INDEX changes_itemrev        ON changes (itemid, rev);
-CREATE UNIQUE INDEX chars_vns_pkey         ON chars_vns (id, vid, COALESCE(rid, 'v1')); -- 'v1' is an invalid release id, but works as a 'no release specified' value in the UNIQUE qualifier.
-CREATE UNIQUE INDEX chars_vns_hist_pkey    ON chars_vns_hist (chid, vid, COALESCE(rid, 'v1'));
-CREATE        INDEX ulist_vns_voted        ON ulist_vns (vid, vote_date) WHERE vote IS NOT NULL; -- For VN recent votes & vote graph. INCLUDE(vote) speeds up vote graph even more
-CREATE UNIQUE INDEX users_username_key     ON users (lower(username));
-CREATE        INDEX users_ign_votes        ON users (id) WHERE ign_votes;
