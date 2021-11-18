@@ -1,3 +1,9 @@
+-- Generated columns
+
+ALTER TABLE releases ADD COLUMN c_search text NOT NULL GENERATED ALWAYS AS (public.search_gen(hidden, ARRAY[title, original])) STORED;
+
+
+
 -- Constraints
 
 ALTER TABLE changes                  ADD CONSTRAINT changes_requester_fkey             FOREIGN KEY (requester) REFERENCES users         (id) ON DELETE SET DEFAULT;

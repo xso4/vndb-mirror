@@ -47,6 +47,58 @@ END;
 $$ LANGUAGE SQL;
 
 
+-- Helper function for search normalization
+CREATE OR REPLACE FUNCTION search_norm_term(str text) RETURNS text AS $$
+  SELECT regexp_replace(regexp_replace(regexp_replace(regexp_replace(
+            translate(lower(public.unaccent(str)), $s$@,_-.~～〜∼ー῀:[]()%+!?#$`♥★☆♪†「」『』【】・<>'$s$, 'a'), -- '
+            '\s+', '', 'g'),
+            '&', 'and', 'g'),
+            'fandisc', 'fandisk', 'g'),
+            'senpai', 'sempai', 'g');
+$$ LANGUAGE SQL IMMUTABLE;
+
+
+CREATE OR REPLACE FUNCTION search_gen(hidden boolean, terms text[]) RETURNS text AS $$
+  SELECT coalesce(string_agg(t, ' '), '') FROM (
+    SELECT t FROM (
+      SELECT public.search_norm_term(t) FROM unnest(terms) x(t)
+    ) x(t) WHERE NOT hidden AND t IS NOT NULL AND t <> '' GROUP BY t ORDER BY t
+  ) x(t);
+$$ LANGUAGE SQL IMMUTABLE;
+
+
+-- Split a search query into LIKE patterns.
+-- Supports double quoting for adjacent terms.
+-- e.g. 'SEARCH que.ry "word here"' -> '{%search%,%query%,%wordhere%}'
+--
+-- Can be efficiently used as follows: c_search LIKE ALL (search_query('query here'))
+CREATE OR REPLACE FUNCTION search_query(q text) RETURNS text[] AS $$
+DECLARE
+  tmp text;
+  ret text[];
+BEGIN
+  ret := ARRAY[]::text[];
+  LOOP
+    q := regexp_replace(q, '^\s+', '');
+    IF q = '' THEN EXIT;
+    ELSIF q ~ '^"[^"]+"' THEN
+      tmp := regexp_replace(q, '^"([^"]+)".*$', '\1', '');
+      q := regexp_replace(q, '^"[^"]+"', '', '');
+    ELSE
+      tmp := regexp_replace(q, '^([^\s]+).*$', '\1', '');
+      q := regexp_replace(q, '^[^\s]+', '', '');
+    END IF;
+
+    tmp := '%'||search_norm_term(tmp)||'%';
+    IF length(tmp) > 2 AND NOT (ARRAY[tmp] <@ ret) THEN
+      ret := array_append(ret, tmp);
+    END IF;
+  END LOOP;
+  RETURN ret;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+
 -- update_vncache(id) - updates some c_* columns in the vn table
 CREATE OR REPLACE FUNCTION update_vncache(vndbid) RETURNS void AS $$
   UPDATE vn SET

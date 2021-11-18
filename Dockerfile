@@ -1,7 +1,7 @@
 FROM alpine:3.13
 MAINTAINER Yorhel <contact@vndb.org>
 
-ENV VNDB_DOCKER_VERSION=7
+ENV VNDB_DOCKER_VERSION=8
 CMD /var/www/util/docker-init.sh
 
 RUN apk add --no-cache \
@@ -18,6 +18,7 @@ RUN apk add --no-cache \
         perl-json-xs \
         perl-module-build \
         postgresql \
+        postgresql-contrib \
         postgresql-dev \
         sassc \
         wget \

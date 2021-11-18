@@ -84,7 +84,7 @@ sub copy_entry {
     for(@$tables) {
         my $add = '';
         $add = " AND vid IN($vids)" if /^releases_vn/ || /^vn_relations/ || /^chars_vns/;
-        copy $_          => "SELECT *   FROM $_ WHERE id IN($ids) $add";
+        copy $_          => "SELECT *   FROM $_ WHERE id IN($ids) $add", $_ eq 'releases' ? { c_search => 'del' } : ();
         copy "${_}_hist" => "SELECT x.* FROM ${_}_hist x JOIN changes c ON c.id = x.chid WHERE c.itemid IN($ids) $add";
     }
 }

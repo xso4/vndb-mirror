@@ -50,12 +50,11 @@ TUWF::get qr{/r}, sub {
 
     $opt->{f} = advsearch_default 'r' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
 
-    my @search = map {
-        my $l = '%'.sql_like($_).'%';
-        /^\d+$/ && gtintype($_) ? sql 'r.gtin =', \"$_" :
-                  length $_ > 0 ? sql '(r.title ILIKE', \$l, 'OR r.original ILIKE', \$l, 'OR r.catalog =', \"$_", ')' : ();
-    } split /[ -,._]/, $opt->{q}||'';
-    my $where = sql_and 'NOT r.hidden', $opt->{f}->sql_where(), @search;
+    my $where = sql_and 'NOT r.hidden', $opt->{f}->sql_where(),
+        !$opt->{q} ? () : sql_or
+            sql('r.c_search LIKE ALL (search_query(', \$opt->{q}, '))'),
+            $opt->{q} =~ /^\d+$/ && gtintype($opt->{q}) ? sql 'r.gtin =', \$opt->{q} : (),
+            $opt->{q} =~ /^[a-zA-Z0-9-]+$/ ? sql 'r.catalog =', \$opt->{q} : ();
 
     my $time = time;
     my($count, $list);

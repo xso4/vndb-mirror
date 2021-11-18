@@ -402,6 +402,7 @@ CREATE TABLE releases ( -- dbentry_type=r
   l_gyutto     integer[] NOT NULL DEFAULT '{}', -- [pub]
   l_dmm        text[] NOT NULL DEFAULT '{}', -- [pub]
   l_freegame   text NOT NULL DEFAULT '' -- [pub]
+  --c_search     text NOT NULL -- generated column, see tableattrs.sql
 );
 
 -- releases_hist

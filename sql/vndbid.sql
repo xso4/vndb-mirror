@@ -81,3 +81,7 @@ CREATE OPERATOR CLASS vndbid_btree_ops DEFAULT FOR TYPE vndbid USING btree AS
 CREATE OPERATOR CLASS vndbid_hash_ops DEFAULT FOR TYPE vndbid USING hash AS
     OPERATOR 1 =,
     FUNCTION 1 vndbid_hash(vndbid);
+
+
+-- Unrelated to the vndbid type, but put here because this file is, ultimately, where all extensions are loaded.
+CREATE EXTENSION unaccent;
