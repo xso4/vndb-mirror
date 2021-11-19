@@ -84,7 +84,7 @@ sub copy_entry {
     for(@$tables) {
         my $add = '';
         $add = " AND vid IN($vids)" if /^releases_vn/ || /^vn_relations/ || /^chars_vns/;
-        copy $_          => "SELECT *   FROM $_ WHERE id IN($ids) $add", $_ eq 'releases' ? { c_search => 'del' } : ();
+        copy $_          => "SELECT *   FROM $_ WHERE id IN($ids) $add", { c_search => 'del' };
         copy "${_}_hist" => "SELECT x.* FROM ${_}_hist x JOIN changes c ON c.id = x.chid WHERE c.itemid IN($ids) $add";
     }
 }
@@ -182,6 +182,7 @@ sub copy_entry {
     print "SELECT update_vnvotestats();\n";
     print "SELECT update_users_ulist_stats(NULL);\n";
     print "SELECT update_images_cache(NULL);\n";
+    print "UPDATE vn SET c_search = search_gen_vn(id);\n";
     print "UPDATE users u SET c_tags = (SELECT COUNT(*) FROM tags_vn v WHERE v.uid = u.id);\n";
     print "UPDATE users u SET c_changes = (SELECT COUNT(*) FROM changes c WHERE c.requester = u.id);\n";
 

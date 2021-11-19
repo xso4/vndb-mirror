@@ -203,15 +203,6 @@ CREATE TRIGGER insert_notify AFTER INSERT ON reviews       FOR EACH STATEMENT EX
 
 
 
--- Send a vnsearch notification when the c_search column is set to NULL.
-
-CREATE OR REPLACE FUNCTION vn_vnsearch_notify() RETURNS trigger AS 'BEGIN NOTIFY vnsearch; RETURN NULL; END;' LANGUAGE plpgsql;
-
-CREATE TRIGGER vn_vnsearch_notify AFTER UPDATE ON vn FOR EACH ROW WHEN (OLD.c_search IS NOT NULL AND NEW.c_search IS NULL) EXECUTE PROCEDURE vn_vnsearch_notify();
-
-
-
-
 -- Create notifications for new posts.
 
 CREATE OR REPLACE FUNCTION notify_post() RETURNS trigger AS $$

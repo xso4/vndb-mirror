@@ -69,6 +69,35 @@ CREATE OR REPLACE FUNCTION search_gen(terms text[]) RETURNS text AS $$
 $$ LANGUAGE SQL IMMUTABLE;
 
 
+CREATE OR REPLACE FUNCTION search_gen_vn(vnid vndbid) RETURNS text AS $$
+  SELECT coalesce(string_agg(t, ' '), '') FROM (
+    SELECT t FROM (
+                SELECT search_norm_term(title) FROM vn WHERE id = vnid
+      UNION ALL SELECT search_norm_term(original) FROM vn WHERE vnid = id
+      UNION ALL SELECT search_norm_term(a) FROM vn, regexp_split_to_table(alias, E'\n') a(a) WHERE vnid = id
+      -- Remove the various editions/version strings from release titles,
+      -- this reduces the index size and makes VN search more relevant.
+      -- People looking for editions should be using the release search.
+      -- (This regex is rather incomplete, sadly)
+      UNION ALL SELECT regexp_replace(search_norm_term(t), '(?:体験|ダウンロド|dvdpg|(?:
+          first|firstpress|firstpresslimited|limited|regular|standard
+          |package|boxed|download|complete|popular|premium|deluxe|collectors?
+          |lowprice|best|thebest|cheap|budget|reprint|bundle|renewal
+          |special|trial|allages|fullvoice|web|demo|fulldemo
+          |cd|cdr|cdrom|dvdrom|dvd|dvdpack|windows|windows7|windows7support|windows10
+          |初回限定|初回|限定|通常|廉価|豪華|パッケージ|ダウンロード|ベスト|復刻|新装|7対応
+          )?(?:edition|version|thebest|pack|package|版|生産))+$', '', 'xg')
+        FROM (
+          SELECT title FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE NOT r.hidden AND rv.vid = vnid
+          UNION ALL
+          SELECT original FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE NOT r.hidden AND rv.vid = vnid
+        ) r(t)
+    ) x(t) WHERE t IS NOT NULL AND t <> '' GROUP BY t ORDER BY t
+  ) x(t);
+$$ LANGUAGE SQL;
+
+
+
 -- Split a search query into LIKE patterns.
 -- Supports double quoting for adjacent terms.
 -- e.g. 'SEARCH que.ry "word here"' -> '{%search%,%query%,%wordhere%}'
@@ -507,7 +536,7 @@ DECLARE
 BEGIN
   SELECT id INTO xoldchid FROM changes WHERE itemid = nitemid AND rev = nrev-1;
 
-  -- Set c_search to NULL and notify when
+  -- Update c_search when
   -- 1. A new VN entry is created
   -- 2. The vn title/original/alias has changed
   IF vndbid_type(nitemid) = 'v' THEN
@@ -516,12 +545,11 @@ BEGIN
        -- 2.
        EXISTS(SELECT 1 FROM vn_hist v1, vn_hist v2 WHERE (v2.title <> v1.title OR v2.original <> v1.original OR v2.alias <> v1.alias) AND v1.chid = xoldchid AND v2.chid = nchid)
     THEN
-      UPDATE vn SET c_search = NULL WHERE id = nitemid;
-      NOTIFY vnsearch;
+      UPDATE vn SET c_search = search_gen_vn(id) WHERE id = nitemid;
     END IF;
   END IF;
 
-  -- Set related vn.c_search columns to NULL and notify when
+  -- Update vn.c_search when
   -- 1. A new release is created
   -- 2. A release has been hidden or unhidden
   -- 3. The release title/original has changed
@@ -537,8 +565,7 @@ BEGIN
        EXISTS(SELECT vid FROM releases_vn_hist WHERE chid = xoldchid EXCEPT SELECT vid FROM releases_vn_hist WHERE chid = nchid) OR
        EXISTS(SELECT vid FROM releases_vn_hist WHERE chid = nchid    EXCEPT SELECT vid FROM releases_vn_hist WHERE chid = xoldchid)
     THEN
-      UPDATE vn SET c_search = NULL WHERE id IN(SELECT vid FROM releases_vn_hist WHERE chid IN(nchid, xoldchid));
-      NOTIFY vnsearch;
+      UPDATE vn SET c_search = search_gen_vn(id) WHERE id IN(SELECT vid FROM releases_vn_hist WHERE chid IN(nchid, xoldchid));
     END IF;
   END IF;
 

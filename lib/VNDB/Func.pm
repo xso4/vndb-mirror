@@ -5,8 +5,6 @@ use warnings;
 use TUWF::Misc 'uri_escape';
 use Exporter 'import';
 use POSIX 'strftime';
-use Encode 'encode_utf8';
-use Unicode::Normalize 'NFKD', 'compose';
 use Socket 'inet_pton', 'inet_ntop', 'AF_INET', 'AF_INET6';
 use VNDB::Config;
 use VNDB::Types;
@@ -17,7 +15,6 @@ our @EXPORT = ('bb_format', qw|
   shorten
   resolution
   gtintype
-  normalize_titles normalize_query
   imgsize
   norm_ip
   minage
@@ -90,55 +87,6 @@ sub gtintype {
   return 'UPC' if /^(?:0[01]|0[6-9]|13|75[45])/; # prefix code 000-019 & 060-139 & 754-755
   return  undef if /^(?:0[2-5]|2|97[789]|9[6-9])/; # some codes we don't want: 020–059 & 200-299 & 977-999
   return 'EAN'; # let's just call everything else EAN :)
-}
-
-
-# a rather aggressive normalization
-sub normalize {
-  local $_ = lc shift;
-  use utf8;
-  # Remove combining markings, except for kana.
-  # This effectively removes all accents from the characters (e.g. é -> e)
-  $_ = compose(NFKD($_) =~ s/(?<=[^ア-ンあ-ん])\pM//rg);
-  # remove some characters that have no significance when searching
-  tr/\r\n\t,_\-.~～〜∼ー῀:[]()%+!?#$"'`♥★☆♪†「」『』【】・‟“”‛’‘‚„«‹»›//d;
-  tr/@/a/;
-  tr/ı/i/; # Turkish lowercase i
-  tr/×/x/;
-  s/&/and/;
-  # Remove spaces. We're doing substring search, so let it cross word boundary to find more stuff
-  tr/ //d;
-  # remove commonly used release titles ("x Edition" and "x Version")
-  # this saves some space and speeds up the search
-  s/(?:
-    first|firstpress|firstpresslimited|limited|regular|standard
-   |package|boxed|download|complete|popular
-   |lowprice|best|cheap|budget
-   |special|trial|allages|fullvoice
-   |cd|cdr|cdrom|dvdrom|dvd|dvdpack|dvdpg|windows
-   |初回限定|初回|限定|通常|廉価|パッケージ|ダウンロード
-   )(?:edition|version|版|生産)//xg;
-  # other common things
-  s/fandisk/fandisc/g;
-  s/sempai/senpai/g;
-  no utf8;
-  return $_;
-}
-
-
-# normalizes each title and returns a concatenated string of unique titles
-sub normalize_titles {
-  my %t = map +(normalize($_), 1), @_;
-  return join ' ', grep length $_, sort keys %t;
-}
-
-
-sub normalize_query {
-  my $q = shift;
-  # remove spaces within quotes, so that it's considered as one search word
-  $q =~ s/"([^"]+)"/(my $s=$1)=~y{ }{}d;$s/ge;
-  # split into search words and normalize
-  return map quotemeta($_), grep length $_, map normalize($_), split / /, $q;
 }
 
 

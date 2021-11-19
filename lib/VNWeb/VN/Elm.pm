@@ -13,15 +13,10 @@ elm_api VN => undef, {
     elm_VNResult tuwf->dbPagei({ results => $data->{hidden}?50:15, page => 1 },
         'SELECT v.id, v.title, v.original, v.hidden
            FROM (',
-			sql_join('UNION ALL', map {
-                my $qs = sql_like $_;
-                my @qs = normalize_query $_;
-                (
-                    /^$RE{vid}$/ ? sql('SELECT 1, id FROM vn WHERE id =', \"$+{id}") : (),
-                    sql('SELECT 1+substr_score(lower(title),', \$qs, '), id FROM vn WHERE title ILIKE', \"$qs%"),
-                    @qs ? (sql 'SELECT 10, id FROM vn WHERE', sql_and map sql('c_search ILIKE', \"%$_%"), @qs) : ()
-                )
-            } @q),
+            sql_join('UNION ALL', map +(
+                /^$RE{vid}$/ ? sql('SELECT 1, id FROM vn WHERE id =', \"$+{id}") : (),
+                sql('SELECT 1+substr_score(lower(title),', \sql_like($_), '), id FROM vn WHERE c_search LIKE ALL (search_query(', \"$_", '))'),
+            ), @q),
             ') x(prio, id)
            JOIN vn v ON v.id = x.id
           WHERE', sql_and($data->{hidden} ? () : 'NOT v.hidden'), '

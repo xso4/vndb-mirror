@@ -9,7 +9,6 @@ use strict;
 use warnings;
 use Multi::Core;
 use PerlIO::gzip;
-use VNDB::Func 'normalize_titles';
 use VNDB::Config;
 
 
@@ -18,8 +17,6 @@ my $monthly;
 
 sub run {
   push_watcher schedule 7*3600+1800, 24*3600, \&daily; # 7:30 UTC, 30 minutes before the daily DB dumps are created
-  push_watcher schedule 0, 3600, \&vnsearch_check;
-  push_watcher pg->listen(vnsearch => on_notify => \&vnsearch_check);
   set_monthly();
 }
 
@@ -173,43 +170,6 @@ sub monthly {
 
   logrotate;
   set_monthly;
-}
-
-
-
-#
-#  V N   S E A R C H   C A C H E
-#
-
-
-sub vnsearch_check {
-  pg_cmd 'SELECT id FROM vn WHERE c_search IS NULL LIMIT 1', undef, sub {
-    my $res = shift;
-    return if pg_expect $res, 1 or !$res->rows;
-
-    my $id = $res->value(0,0);
-    pg_cmd q|SELECT title, original, alias FROM vn WHERE id = $1
-       UNION SELECT r.title, r.original, NULL FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE rv.vid = $1 AND NOT r.hidden|,
-       [ $id ], sub { vnsearch_update($id, @_) };
-  };
-}
-
-
-sub vnsearch_update { # id, res, time
-  my($id, $res, $time) = @_;
-  return if pg_expect $res, 1;
-
-  my $t = normalize_titles(grep length, map
-    +($_->{title}, $_->{original}, split /[\n,]/, $_->{alias}||''),
-    $res->rowsAsHashes
-  );
-
-  pg_cmd 'UPDATE vn SET c_search = $1 WHERE id = $2', [ $t, $id ], sub {
-    my($res, $t2) = @_;
-    return if pg_expect $res, 0;
-    AE::log info => sprintf 'Updated search cache for %s (%3dms SQL)', $id, ($time+$t2)*1000;
-    vnsearch_check;
-  };
 }
 
 

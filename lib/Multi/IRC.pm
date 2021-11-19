@@ -10,7 +10,6 @@ use warnings;
 use Multi::Core;
 use AnyEvent::IRC::Client;
 use AnyEvent::IRC::Util 'prefix_nick';
-use VNDB::Func 'normalize_query';
 use VNDB::Config;
 use TUWF::Misc 'uri_escape';
 use POSIX 'strftime';
@@ -366,18 +365,13 @@ vn => [ 0, 0, sub {
   my($nick, $chan, $q) = @_;
   return $irc->send_msg(PRIVMSG => $chan, 'You forgot the search query, dummy~~!') if !$q;
 
-  my @q = normalize_query($q);
-  return $irc->send_msg(PRIVMSG => $chan,
-    "Couldn't do anything with that search query, you might want to add quotes or use longer words.") if !@q;
-
-  my $w = join ' AND ', map "c_search LIKE \$$_", 1..@q;
   pg_cmd qq{
     SELECT id, title
       FROM vn
-     WHERE NOT hidden AND $w
+     WHERE NOT hidden AND c_search LIKE ALL (search_query($1))
      ORDER BY title
      LIMIT 6
-  }, [ map "%$_%", @q ], sub {
+  }, [ $q ], sub {
     my $res = shift;
     return if pg_expect $res, 1;
     return $irc->send_msg(PRIVMSG => $chan, 'No visual novels found.') if !$res->nRows;

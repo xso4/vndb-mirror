@@ -15,7 +15,7 @@ use POE::Filter::VNDBAPI 'encode_filters';
 use Encode 'encode_utf8', 'decode_utf8';
 use Crypt::URandom 'urandom';
 use Crypt::ScryptKDF 'scrypt_raw';;
-use VNDB::Func 'imgurl', 'normalize_query', 'norm_ip', 'resolution';
+use VNDB::Func 'imgurl', 'norm_ip', 'resolution';
 use VNDB::Types;
 use VNDB::Config;
 use JSON::XS;
@@ -583,8 +583,7 @@ my %GET_VN = (
       [ stra  => 'v.olang :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, join => ',', process => \'lang' ],
     ],
     search => [
-      [ str   => '(:value:)', {'~',1}, split => \&normalize_query,
-                  join => ' AND ', serialize => 'v.c_search LIKE :value:', process => \'like' ],
+      [ str   => 'v.c_search LIKE ALL (search_query(:value:))', {'~',1} ],
     ],
     tags => [
       [ int   => 'v.id :op:(SELECT vid FROM tags_vn_inherit WHERE tag = :value:)',   {'=' => 'IN', '!=' => 'NOT IN'}, process => \'g' ],
