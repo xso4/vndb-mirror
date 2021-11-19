@@ -25,7 +25,7 @@ sub gensql {
   my %replace = ( item => $item, itemtype => $schema->{$item}{dbentry_type} );
 
   $replace{createtemptables} = join "\n", map sprintf(
-    "    CREATE TEMPORARY TABLE edit_%s (LIKE %s INCLUDING DEFAULTS INCLUDING CONSTRAINTS);\n".
+    "    CREATE TEMPORARY TABLE edit_%s (LIKE %s INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING GENERATED);\n".
     "    ALTER TABLE edit_%1\$s DROP COLUMN %s;",
     $_, $_ eq 'staff_alias' ? ($_, 'id') : ("${_}_hist", 'chid') # staff_alias copies from the non-_hist table, because it needs the sequence
   ), sort keys %ts;
