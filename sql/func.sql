@@ -49,20 +49,22 @@ $$ LANGUAGE SQL;
 
 -- Helper function for search normalization
 CREATE OR REPLACE FUNCTION search_norm_term(str text) RETURNS text AS $$
-  SELECT regexp_replace(regexp_replace(regexp_replace(regexp_replace(
+  SELECT regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(
             translate(lower(public.unaccent(str)), $s$@,_-.~～〜∼ー῀:[]()%+!?#$`♥★☆♪†「」『』【】・<>'$s$, 'a'), -- '
             '\s+', '', 'g'),
             '&', 'and', 'g'),
             'fandisc', 'fandisk', 'g'),
+            'gray', 'grey', 'g'),
+            'colour', 'color', 'g'),
             'senpai', 'sempai', 'g');
 $$ LANGUAGE SQL IMMUTABLE;
 
 
-CREATE OR REPLACE FUNCTION search_gen(hidden boolean, terms text[]) RETURNS text AS $$
+CREATE OR REPLACE FUNCTION search_gen(terms text[]) RETURNS text AS $$
   SELECT coalesce(string_agg(t, ' '), '') FROM (
     SELECT t FROM (
       SELECT public.search_norm_term(t) FROM unnest(terms) x(t)
-    ) x(t) WHERE NOT hidden AND t IS NOT NULL AND t <> '' GROUP BY t ORDER BY t
+    ) x(t) WHERE t IS NOT NULL AND t <> '' GROUP BY t ORDER BY t
   ) x(t);
 $$ LANGUAGE SQL IMMUTABLE;
 

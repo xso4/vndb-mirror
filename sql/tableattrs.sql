@@ -1,9 +1,3 @@
--- Generated columns
-
-ALTER TABLE releases ADD COLUMN c_search text NOT NULL GENERATED ALWAYS AS (public.search_gen(hidden, ARRAY[title, original])) STORED;
-
-
-
 -- Indices
 
 CREATE        INDEX chars_main             ON chars (main) WHERE main IS NOT NULL AND NOT hidden; -- Only used on /c+

@@ -51,14 +51,10 @@ TUWF::get qr{/s(?:/(?<char>all|[a-z0]))?}, sub {
 
     $opt->{f} = advsearch_default 's' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
 
-    my @search = map {
-        my $l = '%'.sql_like($_).'%';
-        length $_ > 0 ? sql '(sa.name ILIKE', \$l, "OR translate(sa.original,' ','') ILIKE", \$l, ')' : ();
-    } split /[ -,._]/, $opt->{q}||'';
-
     my $where = sql_and
         $opt->{n} ? 's.aid = sa.aid' : (),
-        'NOT s.hidden', $opt->{f}->sql_where(), @search,
+        'NOT s.hidden', $opt->{f}->sql_where(),
+        $opt->{q} ? sql 'sa.c_search LIKE ALL (search_query(', \$opt->{q}, '))' : (),
         defined($opt->{ch}) && $opt->{ch} ? sql('LOWER(SUBSTR(sa.name, 1, 1)) =', \$opt->{ch}) : (),
         defined($opt->{ch}) && !$opt->{ch} ? sql('(ASCII(sa.name) <', \97, 'OR ASCII(sa.name) >', \122, ') AND (ASCII(sa.name) <', \65, 'OR ASCII(sa.name) >', \90, ')') : ();
 

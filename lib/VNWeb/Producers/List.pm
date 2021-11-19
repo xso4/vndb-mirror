@@ -39,9 +39,8 @@ TUWF::get qr{/p(?:/(?<char>all|[a-z0]))?}, sub {
 
     $opt->{f} = advsearch_default 'p' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
 
-    my $qs = length $opt->{q} && '%'.sql_like($opt->{q}).'%';
     my $where = sql_and 'NOT p.hidden', $opt->{f}->sql_where(),
-        $qs ? sql('p.name ILIKE', \$qs, 'OR p.original ILIKE', \$qs, 'OR p.alias ILIKE', \$qs) : (),
+        $opt->{q} ? sql 'p.c_search LIKE ALL (search_query(', \$opt->{q}, '))' : (),
         defined($opt->{ch}) && $opt->{ch} ? sql('LOWER(SUBSTR(p.name, 1, 1)) =', \$opt->{ch}) : (),
         defined($opt->{ch}) && !$opt->{ch} ? sql('(ASCII(p.name) <', \97, 'OR ASCII(p.name) >', \122, ') AND (ASCII(p.name) <', \65, 'OR ASCII(p.name) >', \90, ')') : ();
 

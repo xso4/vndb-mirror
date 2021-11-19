@@ -89,6 +89,8 @@ CREATE SEQUENCE threads_id_seq;
 CREATE SEQUENCE vn_id_seq;
 CREATE SEQUENCE users_id_seq;
 
+-- Forward declaration for required functions. These are fully defined in func.sql
+CREATE FUNCTION search_gen(terms text[]) RETURNS text AS 'SELECT NULL' LANGUAGE SQL IMMUTABLE;
 
 
 -- anime
@@ -151,7 +153,8 @@ CREATE TABLE chars ( -- dbentry_type=c
   name         varchar(250) NOT NULL DEFAULT '', -- [pub]
   original     varchar(250) NOT NULL DEFAULT '', -- [pub]
   alias        varchar(500) NOT NULL DEFAULT '', -- [pub]
-  "desc"       text     NOT NULL DEFAULT '' -- [pub]
+  "desc"       text NOT NULL DEFAULT '', -- [pub]
+  c_search     text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[name, original]::text[]||string_to_array(alias,E'\n'))) STORED
 );
 
 -- chars_hist
@@ -310,7 +313,8 @@ CREATE TABLE producers ( -- dbentry_type=p
   alias      varchar(500) NOT NULL DEFAULT '', -- [pub]
   website    varchar(1024) NOT NULL DEFAULT '', -- [pub]
   "desc"     text NOT NULL DEFAULT '', -- [pub]
-  l_wp       varchar(150) -- (deprecated)
+  l_wp       varchar(150), -- (deprecated)
+  c_search   text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[name, original]::text[]||string_to_array(alias,E'\n'))) STORED
 );
 
 -- producers_hist
@@ -401,8 +405,8 @@ CREATE TABLE releases ( -- dbentry_type=r
   l_fakku      text NOT NULL DEFAULT '', -- [pub]
   l_gyutto     integer[] NOT NULL DEFAULT '{}', -- [pub]
   l_dmm        text[] NOT NULL DEFAULT '{}', -- [pub]
-  l_freegame   text NOT NULL DEFAULT '' -- [pub]
-  --c_search     text NOT NULL -- generated column, see tableattrs.sql
+  l_freegame   text NOT NULL DEFAULT '', -- [pub]
+  c_search     text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[title, original])) STORED
 );
 
 -- releases_hist
@@ -713,7 +717,8 @@ CREATE TABLE staff_alias (
   id         vndbid NOT NULL, -- [pub]
   aid        SERIAL PRIMARY KEY, -- [pub] Globally unique ID of this alias
   name       varchar(200) NOT NULL DEFAULT '', -- [pub]
-  original   varchar(200) NOT NULL DEFAULT '' -- [pub]
+  original   varchar(200) NOT NULL DEFAULT '', -- [pub]
+  c_search   text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[name, original])) STORED
 );
 
 -- staff_alias_hist

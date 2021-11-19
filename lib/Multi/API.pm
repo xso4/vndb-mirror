@@ -817,7 +817,7 @@ my %GET_PRODUCER = (
       [ stra  => 'p.lang :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, join => ',', process => \'lang' ],
     ],
     search => [
-      [ str   => '(p.name ILIKE :value: OR p.original ILIKE :value: OR p.alias ILIKE :value:)', {'~',1}, process => \'like' ],
+      [ str   => 'p.c_search LIKE ALL (search_query(:value:))', {'~',1} ],
     ],
   },
 );
@@ -928,7 +928,7 @@ my %GET_CHARACTER = (
       [ str   => 'c.original ILIKE :value:', {'~',1}, process => \'like' ]
     ],
     search => [
-      [ str   => '(c.name ILIKE :value: OR c.original ILIKE :value: OR c.alias ILIKE :value:)', {'~',1}, process => \'like' ],
+      [ str   => 'c.c_search LIKE ALL (search_query(:value:))', {'~',1} ],
     ],
     vn => [
       [ 'int' => 'c.id IN(SELECT cv.id FROM chars_vns cv WHERE cv.vid = :value:)', {'=',1}, process => \'v' ],
@@ -1033,7 +1033,7 @@ my %GET_STAFF = (
       [ inta  => 's.id IN(SELECT sa.id FROM staff_alias sa WHERE sa.aid IN(:value:))', {'=',1}, range => [1,1e6], join => ',' ],
     ],
     search => [
-      [ str   => 's.id IN(SELECT sa.id FROM staff_alias sa WHERE sa.name ILIKE :value: OR sa.original ILIKE :value:)', {'~',1}, process => \'like' ],
+      [ str   => 's.id IN(SELECT sa.id FROM staff_alias sa WHERE sa.c_search LIKE ALL (search_query(:value:)))', {'~',1} ],
     ],
   },
 );

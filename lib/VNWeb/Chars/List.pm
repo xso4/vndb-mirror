@@ -106,13 +106,9 @@ TUWF::get qr{/c(?:/(?<char>all|[a-z0]))?}, sub {
 
     $opt->{f} = advsearch_default 'c' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
 
-    my @search = map {
-        my $l = '%'.sql_like($_).'%';
-        length $_ > 0 ? sql '(c.name ILIKE', \$l, "OR translate(c.original,' ','') ILIKE", \$l, "OR translate(c.alias,' ','') ILIKE", \$l, ')' : ();
-    } split /[ -,._]/, $opt->{q}||'';
-
     my $where = sql_and
-        'NOT c.hidden', $opt->{f}->sql_where(), @search,
+        'NOT c.hidden', $opt->{f}->sql_where(),
+        $opt->{q} ? sql 'c.c_search LIKE ALL (search_query(', \$opt->{q}, '))' : (),
         defined($opt->{ch}) && $opt->{ch} ? sql('LOWER(SUBSTR(c.name, 1, 1)) =', \$opt->{ch}) : (),
         defined($opt->{ch}) && !$opt->{ch} ? sql('(ASCII(c.name) <', \97, 'OR ASCII(c.name) >', \122, ') AND (ASCII(c.name) <', \65, 'OR ASCII(c.name) >', \90, ')') : ();
 

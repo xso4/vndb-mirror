@@ -393,10 +393,10 @@ p => [ 0, 0, sub {
   pg_cmd q{
     SELECT id, name AS title
     FROM producers p
-    WHERE hidden = FALSE AND (name ILIKE $1 OR original ILIKE $1 OR alias ILIKE $1)
+    WHERE hidden = FALSE AND c_search LIKE ALL (search_query($1))
     ORDER BY name
     LIMIT 6
-  }, [ "%$q%" ], sub {
+  }, [ $q ], sub {
     my $res = shift;
     return if pg_expect $res, 1;
     return $irc->send_msg(PRIVMSG => $chan, 'No producers novels found.') if !$res->nRows;
