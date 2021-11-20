@@ -47,6 +47,16 @@ END;
 $$ LANGUAGE SQL;
 
 
+-- Convenient function to match the first character of a string. Second argument must be lowercase 'a'-'z' or '0'.
+-- Postgres can inline and partially evaluate this function into the query plan, so it's fairly efficient.
+CREATE OR REPLACE FUNCTION match_firstchar(str text, chr text) RETURNS boolean AS $$
+  SELECT CASE WHEN chr = '0'
+         THEN (ascii(str) < 97 OR ascii(str) > 122) AND (ascii(str) < 65 OR ascii(str) > 90)
+         ELSE ascii(str) IN(ascii(chr),ascii(upper(chr)))
+         END;
+$$ LANGUAGE SQL IMMUTABLE;
+
+
 -- Helper function for search normalization
 CREATE OR REPLACE FUNCTION search_norm_term(str text) RETURNS text AS $$
   SELECT regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(

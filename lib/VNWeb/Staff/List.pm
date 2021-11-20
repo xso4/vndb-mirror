@@ -55,8 +55,7 @@ TUWF::get qr{/s(?:/(?<char>all|[a-z0]))?}, sub {
         $opt->{n} ? 's.aid = sa.aid' : (),
         'NOT s.hidden', $opt->{f}->sql_where(),
         $opt->{q} ? sql 'sa.c_search LIKE ALL (search_query(', \$opt->{q}, '))' : (),
-        defined($opt->{ch}) && $opt->{ch} ? sql('LOWER(SUBSTR(sa.name, 1, 1)) =', \$opt->{ch}) : (),
-        defined($opt->{ch}) && !$opt->{ch} ? sql('(ASCII(sa.name) <', \97, 'OR ASCII(sa.name) >', \122, ') AND (ASCII(sa.name) <', \65, 'OR ASCII(sa.name) >', \90, ')') : ();
+        defined($opt->{ch}) ? sql 'match_firstchar(sa.name, ', \$opt->{ch}, ')' : ();
 
     my $time = time;
     my($count, $list);

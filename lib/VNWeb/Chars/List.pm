@@ -109,8 +109,7 @@ TUWF::get qr{/c(?:/(?<char>all|[a-z0]))?}, sub {
     my $where = sql_and
         'NOT c.hidden', $opt->{f}->sql_where(),
         $opt->{q} ? sql 'c.c_search LIKE ALL (search_query(', \$opt->{q}, '))' : (),
-        defined($opt->{ch}) && $opt->{ch} ? sql('LOWER(SUBSTR(c.name, 1, 1)) =', \$opt->{ch}) : (),
-        defined($opt->{ch}) && !$opt->{ch} ? sql('(ASCII(c.name) <', \97, 'OR ASCII(c.name) >', \122, ') AND (ASCII(c.name) <', \65, 'OR ASCII(c.name) >', \90, ')') : ();
+        defined($opt->{ch}) ? sql 'match_firstchar(c.name, ', \$opt->{ch}, ')' : ();
 
     my $time = time;
     my($count, $list);
