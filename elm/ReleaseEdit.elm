@@ -303,7 +303,7 @@ viewGen model =
     [ table [] <| List.indexedMap (\i l ->
         tr []
         [ td [] [ inputSelect "" l.lang (Lang i) [] <| (if l.lang == "" then [("", "- Add language -")] else []) ++ GT.languages ]
-        , td [] [ if l.lang == "" || not model.editsum.authmod then text "" else label [] [ inputCheck "" l.mtl (LangMtl i), text " machine translation" ] ]
+        , td [] [ if l.lang == "" then text "" else label [] [ inputCheck "" l.mtl (LangMtl i), text " machine translation" ] ]
         , td [] [ if l.lang == "" || List.length model.lang == 1 then text "" else inputButton "remove" (LangDel i) [] ]
         ]
       ) <| model.lang ++ [{lang = "", mtl = False}]
