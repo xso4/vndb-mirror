@@ -33,7 +33,7 @@ elm_api Boards => undef, {
                      keys %BOARD_TYPE),
                  item('vn', 'v', 'title', 'NOT hidden', sql 'c_search LIKE ALL (search_query(', \$q, '))'),
                  item('producers', 'p', 'name', 'NOT hidden', sql 'c_search LIKE ALL (search_query(', \$q, '))'),
-                 item('users', 'u', 'username', 'true', sql 'lower(username) LIKE', \"%$qs%"),
+                 item('users', 'u', 'username', 'true', sql 'lower(username) LIKE', \lc "%$qs%"),
              ), ') x(prio, btype, iid, title)
            ORDER BY prio, btype, title'
     )
