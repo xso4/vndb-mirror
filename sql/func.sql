@@ -298,8 +298,8 @@ CREATE OR REPLACE FUNCTION update_reviews_votes_cache(vndbid) RETURNS void AS $$
 BEGIN
   WITH stats(id,up,down) AS (
     SELECT r.id
-         , COALESCE(SUM(CASE WHEN rv.overrule THEN 100000 WHEN rv.ip IS NULL THEN 100 ELSE 1 END) FILTER(WHERE     rv.vote AND u.ign_votes IS DISTINCT FROM true AND r2.id IS NULL), 0)
-         , COALESCE(SUM(CASE WHEN rv.overrule THEN 100000 WHEN rv.ip IS NULL THEN 100 ELSE 1 END) FILTER(WHERE NOT rv.vote AND u.ign_votes IS DISTINCT FROM true AND r2.id IS NULL), 0)
+         , COALESCE(SUM(CASE WHEN rv.overrule THEN 100000 WHEN rv.ip IS NULL THEN 100 ELSE 1 END) FILTER(WHERE     rv.vote AND u.ign_votes IS DISTINCT FROM true AND (rv.overrule OR r2.id IS NULL)), 0)
+         , COALESCE(SUM(CASE WHEN rv.overrule THEN 100000 WHEN rv.ip IS NULL THEN 100 ELSE 1 END) FILTER(WHERE NOT rv.vote AND u.ign_votes IS DISTINCT FROM true AND (rv.overrule OR r2.id IS NULL)), 0)
       FROM reviews r
       LEFT JOIN reviews_votes rv ON rv.id = r.id
       LEFT JOIN users u ON u.id = rv.uid
