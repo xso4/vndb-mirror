@@ -60,7 +60,7 @@ $$ LANGUAGE SQL IMMUTABLE;
 -- Helper function for search normalization
 CREATE OR REPLACE FUNCTION search_norm_term(str text) RETURNS text AS $$
   SELECT regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(
-            translate(lower(public.unaccent(str)), $s$@,_-.~～〜∼ー῀:[]()%+!?#$`♥★☆♪†「」『』【】・<>'$s$, 'a'), -- '
+            translate(lower(public.unaccent(str)), $s$@,_-‐.~～〜∼ー῀:[]()%+!?#$`♥★☆♪†「」『』【】・<>'$s$, 'a'), -- '
             '\s+', '', 'g'),
             '&', 'and', 'g'),
             'fandisc', 'fandisk', 'g'),
@@ -88,15 +88,17 @@ CREATE OR REPLACE FUNCTION search_gen_vn(vnid vndbid) RETURNS text AS $$
       -- Remove the various editions/version strings from release titles,
       -- this reduces the index size and makes VN search more relevant.
       -- People looking for editions should be using the release search.
-      -- (This regex is rather incomplete, sadly)
-      UNION ALL SELECT regexp_replace(search_norm_term(t), '(?:体験|ダウンロド|dvdpg|(?:
-          first|firstpress|firstpresslimited|limited|regular|standard
-          |package|boxed|download|complete|popular|premium|deluxe|collectors?
-          |lowprice|best|thebest|cheap|budget|reprint|bundle|renewal
-          |special|trial|allages|fullvoice|web|demo|fulldemo
-          |cd|cdr|cdrom|dvdrom|dvd|dvdpack|windows|windows7|windows7support|windows10
-          |初回限定|初回|限定|通常|廉価|豪華|パッケージ|ダウンロード|ベスト|復刻|新装|7対応
-          )?(?:edition|version|thebest|pack|package|版|生産))+$', '', 'xg')
+      UNION ALL SELECT regexp_replace(search_norm_term(t), '(?:
+           体験|ダウンロド|初回限定|初回|限定|通常|廉価|豪華|追加|コレクション
+          |パッケージ|ダウンロード|ベスト|復刻|新装|7対応|版|生産|リメイク
+          |first|press|limited|regular|standard|full|remake
+          |pack|package|boxed|download|complete|popular|premium|deluxe|collectors?|collection
+          |lowprice|price|free|best|thebest|cheap|budget|reprint|bundle|set|renewal|extended
+          |special|trial|demo|allages|voiced?|uncensored|web|patch|port|r18|18|earlyaccess
+          |cd|cdr|cdrom|dvdrom|dvd|dvdpg|disk|disc|steam|for
+          |(?:win|windows)(?:7|10|95)?|vista|pc9821|support(?:ed)?
+          |(?:parts?|vol|volumes?|chapters?|v|ver|versions?)(?:[0-9]+)
+          |editions?|version|production|thebest|append|scenario|dlc)+$', '', 'xg')
         FROM (
           SELECT title FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE NOT r.hidden AND rv.vid = vnid
           UNION ALL
