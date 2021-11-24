@@ -10,9 +10,8 @@ elm_api Tags => undef, { search => {} }, sub {
         'SELECT t.id, t.name, t.searchable, t.applicable, t.hidden, t.locked
            FROM (',
              sql_join('UNION ALL',
-                 $q =~ /^$RE{gid}$/ ? sql('SELECT 1, id FROM tags WHERE id =', \"$+{id}") : (),
-                 sql('SELECT  1+substr_score(lower(name),',  \$qs, '), id FROM tags WHERE name  ILIKE', \"%$qs%"),
-                 sql('SELECT 10+substr_score(lower(alias),', \$qs, '), id FROM tags WHERE alias ILIKE', \"%$qs%"),
+                 $q =~ /^$RE{gid}$/ ? sql('SELECT 0, id FROM tags WHERE id =', \"$+{id}") : (),
+                 sql('SELECT  1+substr_score(lower(name),',  \$qs, '), id FROM tags WHERE c_search LIKE ALL(search_query(', \$q, '))'),
              ), ') x (prio, id)
            JOIN tags t ON t.id = x.id
           WHERE NOT (t.hidden AND t.locked)
@@ -30,9 +29,8 @@ elm_api Traits => undef, { search => {} }, sub {
         'SELECT t.id, t.name, t.searchable, t.applicable, t.defaultspoil, t.hidden, t.locked, g.id AS group_id, g.name AS group_name
            FROM (SELECT MIN(prio), id FROM (',
              sql_join('UNION ALL',
-                 $q =~ /^$RE{iid}$/ ? sql('SELECT 1, id FROM traits WHERE id =', \"$+{id}") : (),
-                 sql('SELECT  1+substr_score(lower(name),',  \$qs, '), id FROM traits WHERE name  ILIKE', \"%$qs%"),
-                 sql('SELECT 10+substr_score(lower(alias),', \$qs, '), id FROM traits WHERE alias ILIKE', \"%$qs%"),
+                 $q =~ /^$RE{iid}$/ ? sql('SELECT 0, id FROM traits WHERE id =', \"$+{id}") : (),
+                 sql('SELECT  1+substr_score(lower(name),',  \$qs, '), id FROM traits WHERE c_search LIKE ALL(search_query(', \$q, '))'),
              ), ') x(prio, id) GROUP BY id) x(prio,id)
            JOIN traits t ON t.id = x.id
            LEFT JOIN traits g ON g.id = t.group

@@ -49,14 +49,13 @@ TUWF::get qr{/(?<type>[gi])/list}, sub {
     $opt->{s} = 'items' if $opt->{s} eq 'vns';
     $opt->{t} = undef if $opt->{t} && $opt->{t} == -1; # for legacy URLs
 
-    my $qs = $opt->{q} && '%'.sql_like($opt->{q}).'%';
     my $where = sql_and
         !defined $opt->{t} ? () :
             $opt->{t} == 0 ? 'hidden AND NOT locked' :
             $opt->{t} == 1 ? 'hidden AND locked' : 'NOT hidden',
         defined $opt->{a} ? sql 'applicable =', \$opt->{a} : (),
         defined $opt->{b} ? sql 'searchable =', \$opt->{b} : (),
-        $opt->{q} ? sql 'name ILIKE', \$qs, 'OR alias ILIKE', \$qs : ();
+        $opt->{q} ? sql 'c_search LIKE ALL (search_query(', \$opt->{q}, '))' : ();
 
     my $table = $type eq 'g' ? 'tags' : 'traits';
     my $count = tuwf->dbVali("SELECT COUNT(*) FROM $table t WHERE", $where);

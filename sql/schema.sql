@@ -749,7 +749,8 @@ CREATE TABLE tags ( -- dbentry_type=g
   description  text NOT NULL DEFAULT '', -- [pub]
   alias        varchar(500) NOT NULL DEFAULT '', -- [pub]
   locked       boolean NOT NULL DEFAULT FALSE,
-  hidden       boolean NOT NULL DEFAULT TRUE
+  hidden       boolean NOT NULL DEFAULT TRUE,
+  c_search     text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[name]::text[]||string_to_array(alias,E'\n'))) STORED
 );
 
 -- tags_hist
@@ -880,7 +881,8 @@ CREATE TABLE traits ( -- dbentry_type=i
   alias         varchar(500) NOT NULL DEFAULT '', -- [pub]
   description   text NOT NULL DEFAULT '', -- [pub]
   hidden        boolean NOT NULL DEFAULT TRUE,
-  locked        boolean NOT NULL DEFAULT FALSE
+  locked        boolean NOT NULL DEFAULT FALSE,
+  c_search     text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[name]::text[]||string_to_array(alias,E'\n'))) STORED
 );
 
 -- traits_hist
