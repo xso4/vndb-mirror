@@ -4,7 +4,7 @@ use VNWeb::Prelude;
 
 my $VOTE = {
     id       => { vndbid => 'w' },
-    my       => { required => 0, jsonbool => 1 },
+    my       => { undefbool => 1 },
     overrule => { anybool => 1 },
     mod      => { _when => 'out', anybool => 1 },
 };
@@ -15,7 +15,7 @@ our $VOTE_OUT = form_compile out => $VOTE;
 elm_api ReviewsVote => $VOTE_OUT, $VOTE_IN, sub {
     my($data) = @_;
     my %id = (auth ? (uid => auth->uid) : (ip => norm_ip tuwf->reqIP), id => $data->{id});
-    my %val = (vote => $data->{my}?1:0, overrule => auth->permBoardmod ? $data->{overrule}?1:0 : 0, date => sql 'NOW()');
+    my %val = (vote => $data->{my}, overrule => auth->permBoardmod ? $data->{overrule} : 0, date => sql 'NOW()');
     tuwf->dbExeci(
         defined $data->{my}
         ? sql 'INSERT INTO reviews_votes', {%id,%val}, 'ON CONFLICT (id,', auth ? 'uid' : 'ip', ') DO UPDATE SET', \%val

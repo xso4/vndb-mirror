@@ -220,7 +220,7 @@ TUWF::hook before => sub {
 
 our $SUB = form_compile any => {
     id        => { vndbid => [qw|t w v r p c s d i g|] },
-    subnum    => { required => 0, jsonbool => 1 },
+    subnum    => { undefbool => 1 },
     subreview => { anybool => 1 },
     subapply  => { anybool => 1 },
     noti      => { uint => 1 }, # Whether the user already gets 'subnum' notifications for this entry (see HTML.pm for possible values)
@@ -230,7 +230,6 @@ elm_api Subscribe => undef, $SUB, sub {
     my($data) = @_;
 
     delete $data->{noti};
-    $data->{subnum} = $data->{subnum}?1:0 if defined $data->{subnum}; # 'jsonbool' isn't understood by SQL
     $data->{subreview} = 0 if $data->{id} !~ /^v/;
 
     my %where = (iid => delete $data->{id}, uid => auth->uid);

@@ -1,7 +1,7 @@
 FROM alpine:3.13
 MAINTAINER Yorhel <contact@vndb.org>
 
-ENV VNDB_DOCKER_VERSION=8
+ENV VNDB_DOCKER_VERSION=9
 CMD /var/www/util/docker-init.sh
 
 RUN apk add --no-cache \

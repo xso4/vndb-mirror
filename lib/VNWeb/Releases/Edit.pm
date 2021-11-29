@@ -24,7 +24,7 @@ my $FORM = {
     catalog    => { required => 0, default => '', maxlength => 50 },
     released   => { default => 99999999, min => 1, rdate => 1 },
     minage     => { required => 0, default => undef, int => 1, enum => \%AGE_RATING },
-    uncensored => { required => 0, jsonbool => 1 },
+    uncensored => { undefbool => 1 },
     reso_x     => { uint => 1, range => [0,32767] },
     reso_y     => { uint => 1, range => [0,32767] },
     voiced     => { uint => 1, enum => \%VOICED },
@@ -130,8 +130,6 @@ elm_api ReleaseEdit => $FORM_OUT, $FORM_IN, sub {
     my $new = !$data->{id};
     my $e = $new ? { id => 0 } : db_entry $data->{id} or return tuwf->resNotFound;
     return elm_Unauth if !can_edit r => $e;
-
-    $data->{uncensored} = $data->{uncensored}?1:0 if defined $data->{uncensored};
 
     if(!auth->permDbmod) {
         $data->{hidden} = $e->{hidden}||0;
