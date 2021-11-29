@@ -47,7 +47,7 @@ type alias Model =
   , catalog    : String
   , released   : D.RDate
   , minage     : Maybe Int
-  , uncensored : Bool
+  , uncensored : Maybe Bool
   , resoX      : Int
   , resoY      : Int
   , reso       : A.Model GApi.ApiResolutions
@@ -169,7 +169,7 @@ type Msg
   | Catalog String
   | Released D.RDate
   | Minage (Maybe Int)
-  | Uncensored Bool
+  | Uncensored (Maybe Bool)
   | Resolution (A.Msg GApi.ApiResolutions)
   | Voiced Int
   | AniStory Int
@@ -348,7 +348,12 @@ viewGen model =
     , if model.minage == Just 18 then inputSelect "" model.ani_ero AniEro [] GT.animated else text ""
     ]
   , if model.minage /= Just 18 then text "" else
-    formField "" [ label [] [ inputCheck "" model.uncensored Uncensored, text " Uncensored (No mosaic or other optical censoring, only check if this release has erotic content)" ] ]
+    formField "uncensored::Censoring"
+    [ inputSelect "uncensored" model.uncensored Uncensored []
+      [ (Nothing, "Unknown")
+      , (Just False, "Censored graphics")
+      , (Just True, "Uncensored graphics") ]
+    , text " Whether erotic graphics are censored with mosaic or other optical censoring." ]
 
   , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "External identifiers & links" ] ]
   , formField "gtin::JAN/UPC/EAN"

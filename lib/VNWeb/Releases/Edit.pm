@@ -24,7 +24,7 @@ my $FORM = {
     catalog    => { required => 0, default => '', maxlength => 50 },
     released   => { default => 99999999, min => 1, rdate => 1 },
     minage     => { required => 0, default => undef, int => 1, enum => \%AGE_RATING },
-    uncensored => { anybool => 1 },
+    uncensored => { required => 0, jsonbool => 1 },
     reso_x     => { uint => 1, range => [0,32767] },
     reso_y     => { uint => 1, range => [0,32767] },
     voiced     => { uint => 1, enum => \%VOICED },
@@ -131,14 +131,24 @@ elm_api ReleaseEdit => $FORM_OUT, $FORM_IN, sub {
     my $e = $new ? { id => 0 } : db_entry $data->{id} or return tuwf->resNotFound;
     return elm_Unauth if !can_edit r => $e;
 
+    $data->{uncensored} = $data->{uncensored}?1:0 if defined $data->{uncensored};
+
     if(!auth->permDbmod) {
         $data->{hidden} = $e->{hidden}||0;
         $data->{locked} = $e->{locked}||0;
     }
-    $data->{doujin} = $data->{voiced} = $data->{ani_story} = $data->{ani_ero} = 0 if $data->{patch};
-    $data->{reso_x} = $data->{reso_y} = 0 if $data->{patch};
-    $data->{engine} = '' if $data->{patch};
-    $data->{uncensored} = $data->{ani_ero} = 0 if !defined $data->{minage} || $data->{minage} != 18;
+
+    if($data->{patch}) {
+        $data->{doujin} = $data->{voiced} = $data->{ani_story} = $data->{ani_ero} = 0;
+        $data->{reso_x} = $data->{reso_y} = 0;
+        $data->{engine} = '';
+    }
+
+    if(!defined $data->{minage} || $data->{minage} != 18) {
+        $data->{uncensored} = undef;
+        $data->{ani_ero} = 0;
+    }
+
     $_->{qty} = $MEDIUM{$_->{medium}}{qty} ? $_->{qty}||1 : 0 for $data->{media}->@*;
     $data->{notes} = bb_subst_links $data->{notes};
     die "No VNs selected" if !$data->{vn}->@*;

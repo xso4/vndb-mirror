@@ -164,8 +164,8 @@ sub _infotable_ {
 
         tr_ sub {
             td_ 'Censoring';
-            td_ $r->{uncensored} ? 'No optical censoring (e.g. mosaics)' : 'May include optical censoring (e.g. mosaics)';
-        } if $r->{minage} && $r->{minage} == 18;
+            td_ $r->{uncensored} ? 'No optical censoring (like mosaics)' : 'Includes optical censoring (e.g. mosaics)';
+        } if defined $r->{uncensored};
 
         for my $t (qw|developer publisher|) {
             my @prod = grep $_->{$t}, @{$r->{producers}};

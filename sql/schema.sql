@@ -383,7 +383,7 @@ CREATE TABLE releases ( -- dbentry_type=r
   patch        boolean NOT NULL DEFAULT FALSE, -- [pub]
   freeware     boolean NOT NULL DEFAULT FALSE, -- [pub]
   doujin       boolean NOT NULL DEFAULT FALSE, -- [pub] (deprecated)
-  uncensored   boolean NOT NULL DEFAULT FALSE, -- [pub]
+  uncensored   boolean, -- [pub]
   official     boolean NOT NULL DEFAULT TRUE, -- [pub]
   locked       boolean NOT NULL DEFAULT FALSE,
   hidden       boolean NOT NULL DEFAULT FALSE,
@@ -438,7 +438,7 @@ CREATE TABLE releases_hist (
   patch        boolean NOT NULL DEFAULT FALSE,
   freeware     boolean NOT NULL DEFAULT FALSE,
   doujin       boolean NOT NULL DEFAULT FALSE,
-  uncensored   boolean NOT NULL DEFAULT FALSE,
+  uncensored   boolean,
   official     boolean NOT NULL DEFAULT TRUE,
   title        varchar(300) NOT NULL DEFAULT '',
   original     varchar(250) NOT NULL DEFAULT '',
