@@ -134,6 +134,7 @@ sub opts_ {
 
 
 TUWF::get qr{/img/list}, sub {
+    not_moe;
     # TODO filters: sexual / violence?
     my $opt = tuwf->validate(get =>
         s  => { onerror => 'date', enum => [qw/ weight sdev vdev date diff/] },

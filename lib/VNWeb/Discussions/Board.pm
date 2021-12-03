@@ -5,6 +5,7 @@ use VNWeb::Discussions::Lib;
 
 
 TUWF::get qr{/t/(all|$BOARD_RE)}, sub {
+    not_moe;
     my $id = tuwf->capture(1);
     my($type) = $id =~ /^([^0-9]+)/;
     $id = undef if $id !~ /[0-9]$/;

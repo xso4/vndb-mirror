@@ -198,6 +198,7 @@ sub reply_ {
 my $PATH = qr{/$RE{tid}(?:(?<sep>[\./])$RE{num})?};
 
 TUWF::get $PATH, sub {
+    not_moe;
     my($id, $sep, $num) = (tuwf->capture('id'), tuwf->capture('sep')||'', tuwf->capture('num'));
     mark_patrolled $id, $num if $sep eq '.';
 

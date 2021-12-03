@@ -260,14 +260,18 @@ sub _menu_ {
             a_ href => '/s',     'Staff'; br_;
             a_ href => '/c',     'Characters'; br_;
             small_ '> '; a_ href => '/i', 'Traits'; br_;
-            a_ href => '/u/all', 'Users'; br_;
-            a_ href => '/hist',  'Recent changes'; br_;
-            a_ href => '/t',     'Discussion board'; br_;
+            if(!config->{moe}) {
+                a_ href => '/u/all', 'Users'; br_;
+                a_ href => '/hist',  'Recent changes'; br_;
+                a_ href => '/t',     'Discussion board'; br_;
+            }
             a_ href => '/d6',    'FAQ'; br_;
             a_ href => '/v/rand','Random visual novel'; br_;
-            a_ href => 'https://api.vndb.org/kana', 'API'; lit_ ' - ';
-            a_ href => '/d14',   'Dumps'; lit_ ' - ';
-            a_ href => 'https://query.vndb.org/about', 'Query';
+            if(!config->{moe}) {
+                a_ href => 'https://api.vndb.org/kana', 'API'; lit_ ' - ';
+                a_ href => '/d14',   'Dumps'; lit_ ' - ';
+                a_ href => 'https://query.vndb.org/about', 'Query';
+            }
         };
         form_ action => '/v', method => 'get', sub {
             fieldset_ sub {
@@ -325,7 +329,7 @@ sub _menu_ {
             a_ href => "/u/login?ref=$ref", 'Login'; br_;
             a_ href => '/u/register', 'Register'; br_;
         }
-    } if !auth && !config->{read_only};
+    } if !auth && !config->{read_only} && !config->{moe};
 
     article_ sub {
         h2_ 'Database Statistics';
@@ -451,7 +455,7 @@ sub _maintabs_ {
             t '' => "/$id", $id if $o && $t ne 't';
 
             t rg => "/$id/rg", 'relations'
-                if $t =~ /[vp]/ && tuwf->dbVali('SELECT 1 FROM', $t eq 'v' ? 'vn_relations' : 'producers_relations', 'WHERE id =', \$o->{id}, 'LIMIT 1');
+                if $t =~ /[vp]/ && !config->{moe} && tuwf->dbVali('SELECT 1 FROM', $t eq 'v' ? 'vn_relations' : 'producers_relations', 'WHERE id =', \$o->{id}, 'LIMIT 1');
 
             t releases => "/$id/releases", 'releases' if $t eq 'v';
             t edit => "/$id/edit", 'edit' if $o && $t ne 't' && can_edit $t, $o;
@@ -467,7 +471,7 @@ sub _maintabs_ {
                 t posts => "/$id/posts", 'posts';
             } if $t eq 'u';
 
-            if($t =~ /[uvp]/) {
+            if($t =~ /[uvp]/ && !config->{moe}) {
                 my $cnt = tuwf->dbVali(q{
                     SELECT COUNT(*)
                     FROM threads_boards tb
@@ -476,7 +480,7 @@ sub _maintabs_ {
                 t disc => "/t/$id", "discussions ($cnt)";
             };
 
-            t hist => "/$id/hist", 'history' if $t =~ /[uvrpcsdgi]/;
+            t hist => "/$id/hist", 'history' if $t =~ /[uvrpcsdgi]/ && !config->{moe};
             _maintabs_subscribe_ $o, $id;
         }
     }

@@ -294,9 +294,11 @@ TUWF::get qr{/}, sub {
             } if $slowscreens || $slowrel;
         };
         div_ class => 'homepage', sub {
-            article_ \&recent_changes_;
-            article_ \&recent_db_posts_;
-            article_ \&recent_vn_posts_;
+            if(!config->{moe}) {
+                article_ \&recent_changes_;
+                article_ \&recent_db_posts_;
+                article_ \&recent_vn_posts_;
+            }
             article_ sub { reviews_ };
             article_ sub { releases_ $rel0, $filt0, 0 };
             article_ sub { releases_ $rel1, $filt1, 1 };

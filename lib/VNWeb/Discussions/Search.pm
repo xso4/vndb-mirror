@@ -164,6 +164,7 @@ sub threads_ {
 
 
 TUWF::get qr{/t/search}, sub {
+    not_moe;
     framework_ title => 'Search the discussion board',
     sub {
         my($filt, $u);

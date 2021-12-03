@@ -80,7 +80,7 @@ TUWF::get qr{/(?<type>[gi])}, sub {
         div_ class => 'threelayout', sub {
             article_ sub { recent_ $type };
             article_ sub { popular_ $type };
-            article_ sub { moderation_ $type };
+            article_ sub { moderation_ $type } if !config->{moe};
         };
     };
 };

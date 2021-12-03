@@ -68,6 +68,9 @@ TUWF::hook before => sub {
         tuwf->done;
     }
 
+    # Load the 'moe' schema if we're in moe mode
+    tuwf->dbExeci('SET search_path TO moe, public') if config->{moe};
+
     # Use a 'SameSite=Strict' cookie to determine whether this page was loaded from internal or external.
     # Ought to be more reliable than checking the Referer header, but it's unfortunately a bit uglier.
     tuwf->resCookie(samesite => 1, httponly => 1, samesite => 'Strict')

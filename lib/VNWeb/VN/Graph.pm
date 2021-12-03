@@ -6,6 +6,7 @@ use VNWeb::VN::Lib;
 
 
 TUWF::get qr{/$RE{vid}/rg}, sub {
+    not_moe;
     my $id = tuwf->capture(1);
     my $num = tuwf->validate(get => num => { uint => 1, onerror => 15 })->data;
     my $unoff = tuwf->validate(get => unoff => { default => 1, anybool => 1 })->data;

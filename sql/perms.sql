@@ -12,6 +12,9 @@ GRANT USAGE ON SCHEMA public TO vndb_site;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO vndb_site;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO vndb_site;
 
+GRANT USAGE ON SCHEMA moe TO vndb_site;
+GRANT SELECT ON ALL TABLES IN SCHEMA moe TO vndb_site;
+
 GRANT SELECT, INSERT                 ON anime                    TO vndb_site;
 GRANT         INSERT                 ON audit_log                TO vndb_site;
 GRANT SELECT, INSERT                 ON changes                  TO vndb_site;

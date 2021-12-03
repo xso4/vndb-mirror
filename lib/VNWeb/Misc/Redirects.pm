@@ -35,7 +35,7 @@ TUWF::get qr{/v/rand}, sub {
     my $filt = advsearch_default 'v';
     my $vn = tuwf->dbVali('
         SELECT id
-          FROM vn v', $filt->{query} ? '' : ('TABLESAMPLE SYSTEM (', \$sample, ')'), '
+          FROM vn v', $filt->{query} || config->{moe} ? '' : ('TABLESAMPLE SYSTEM (', \$sample, ')'), '
          WHERE NOT hidden AND', $filt->sql_where(), '
          ORDER BY random() LIMIT 1'
     );

@@ -1421,7 +1421,8 @@ CREATE TABLE vn ( -- dbentry_type=v
   description   text NOT NULL DEFAULT '', -- [pub]
   c_languages   language[] NOT NULL DEFAULT '{}',
   c_platforms   platform[] NOT NULL DEFAULT '{}',
-  c_developers  vndbid[] NOT NULL DEFAULT '{}'
+  c_developers  vndbid[] NOT NULL DEFAULT '{}',
+  c_moe         boolean NOT NULL DEFAULT false
 );
 
 -- vn_hist
@@ -1681,3 +1682,39 @@ CREATE VIEW staff_aliast AS
          , COALESCE(sa.latin, sa.name) AS sorttitle
       FROM staff s
       JOIN staff_alias sa ON sa.id = s.id;
+
+
+-- Moe
+
+CREATE SCHEMA moe;
+
+CREATE VIEW moe.tags     AS SELECT * FROM public.tags WHERE NOT hidden AND cat <> 'ero';
+CREATE VIEW moe.traits   AS SELECT * FROM public.traits WHERE NOT hidden AND NOT sexual;
+CREATE VIEW moe.vn       AS SELECT * FROM public.vn WHERE c_moe;
+CREATE VIEW moe.releases AS SELECT * FROM public.releases r WHERE NOT hidden AND minage IS DISTINCT FROM 18 AND EXISTS(SELECT 1 FROM public.releases_vn rv JOIN vn v ON v.id = rv.vid WHERE rv.id = r.id AND v.c_moe);
+CREATE VIEW moe.chars    AS SELECT * FROM public.chars c WHERE NOT hidden AND EXISTS(SELECT 1 FROM public.chars_vns cv JOIN vn v ON v.id = cv.vid WHERE cv.id = c.id AND v.c_moe);
+
+-- Need to replicate the '*t' VIEWs because they don't use search_path
+
+CREATE VIEW moe.vnt AS
+    SELECT v.*
+         , ARRAY[ v.olang::text, COALESCE(vo.latin, vo.title)
+                , v.olang::text, vo.title ] AS title
+         , COALESCE(vo.latin, vo.title) AS sorttitle
+      FROM moe.vn v
+      JOIN vn_titles vo ON vo.id = v.id AND vo.lang = v.olang;
+
+CREATE VIEW moe.releasest AS
+    SELECT r.*
+         , ARRAY[ r.olang::text, COALESCE(ro.latin, ro.title)
+                , r.olang::text, ro.title ] AS title
+         , COALESCE(ro.latin, ro.title) AS sorttitle
+      FROM moe.releases r
+      JOIN releases_titles ro ON ro.id = r.id AND ro.lang = r.olang;
+
+CREATE VIEW moe.charst AS
+    SELECT *
+         , ARRAY [ c_lang::text, COALESCE(latin, name)
+                 , c_lang::text, name ] AS title
+         , COALESCE(latin, name) AS sorttitle
+      FROM chars;

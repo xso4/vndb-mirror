@@ -18,6 +18,8 @@ sub enrich_vn {
     enrich_vnimage $v;
     enrich_image_obj scr => $v->{screenshots};
 
+    $v->{relations} = [ grep length $_->{title}, $v->{relations}->@* ];
+
     # The queries below are not relevant for revisions
     return if $revonly;
 
@@ -408,7 +410,7 @@ sub infobox_tags_ {
     my($v) = @_;
     div_ id => 'tagops', sub {
         debug_ $v->{tags};
-        my @ero = grep($_->{cat} eq 'ero', $v->{tags}->@*) ? ('ero') : ();
+        my @ero = !config->{moe} && grep($_->{cat} eq 'ero', $v->{tags}->@*) ? ('ero') : ();
         for ('cont', @ero, 'tech') {
             input_ id => "cat_$_", type => 'checkbox', class => 'hidden',
                 (auth ? auth->pref("tags_$_") : $_ ne 'ero') ? (checked => 'checked') : ();
@@ -866,6 +868,7 @@ sub stats_ {
 sub screenshots_ {
     my($v) = @_;
     my $s = $v->{screenshots};
+    $s = [ grep !$_->{scr}{sexual} && !$_->{scr}{violence}, @$s ] if config->{moe};
     return if !@$s;
 
     my $sexp = auth->pref('max_sexual')||0;

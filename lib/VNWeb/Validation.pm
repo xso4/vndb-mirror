@@ -17,6 +17,7 @@ our @EXPORT = qw/
     %RE
     samesite
     is_api
+    not_moe
     is_unique_username
     ipinfo
     form_compile
@@ -156,6 +157,10 @@ sub _validate_extlinks($t) {
         }
     } };
 }
+
+
+# Aborts this requests and throws a 404 when configured in moe mode.
+sub not_moe { if(config->{moe}) { tuwf->resNotFound; tuwf->done; } }
 
 
 # returns true if this request originated from the same site, i.e. not an external referer.

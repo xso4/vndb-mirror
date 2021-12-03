@@ -185,6 +185,7 @@ sub filters_ {
 
 
 TUWF::get qr{/(?:([upvrcsdgi][1-9][0-9]{0,6})/)?hist} => sub {
+    not_moe;
     my $id = tuwf->capture(1)||'';
     my $obj = dbobj $id;
 

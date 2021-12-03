@@ -45,7 +45,7 @@ sub enrich_item {
        WHERE t.id IN', $_
     }, $c->{traits};
 
-    $c->{traits} = [ sort { $a->{order} <=> $b->{order} || $a->{groupname} cmp $b->{groupname} || $a->{name} cmp $b->{name} } $c->{traits}->@* ];
+    $c->{traits} = [ sort { $a->{order} <=> $b->{order} || $a->{groupname} cmp $b->{groupname} || $a->{name} cmp $b->{name} } grep length $_->{name}, $c->{traits}->@* ];
 
     $c->{quotes} = tuwf->dbAlli('
         SELECT q.vid, q.id, q.score, q.quote,', sql_totime('q.added'), 'AS added, q.addedby
@@ -54,6 +54,8 @@ sub enrich_item {
          ORDER BY q.score DESC, q.quote
     ');
     enrich_merge id => sql('SELECT id, vote FROM quotes_votes WHERE uid =', \auth->uid, 'AND id IN'), $c->{quotes} if auth;
+
+    $c->{vns} = [ grep length $_->{title}, $c->{vns}->@* ];
 }
 
 

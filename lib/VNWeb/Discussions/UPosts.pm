@@ -35,6 +35,7 @@ sub listing_ {
 
 
 TUWF::get qr{/$RE{uid}/posts}, sub {
+    not_moe;
     my $u = tuwf->dbRowi('SELECT id, ', sql_user(), 'FROM users u WHERE id =', \tuwf->capture('id'));
     return tuwf->resNotFound if !$u->{id} || (!$u->{user_name} && !auth->isMod);
 

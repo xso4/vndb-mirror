@@ -4,6 +4,7 @@ use VNWeb::Prelude;
 
 
 TUWF::get '/u/register', sub {
+    not_moe;
     return tuwf->resRedirect('/', 'temp') if auth;
     framework_ title => 'Register', sub {
         if(global_settings->{lockdown_registration} || config->{read_only}) {

@@ -38,8 +38,8 @@ our @EXPORT = ('auth');
 sub auth {
     tuwf->req->{auth} ||= do {
         my $auth = __PACKAGE__->new();
-        if(config->{read_only}) {
-            # Account functionality disabled in read-only mode.
+        if(config->{read_only} || config->{moe}) {
+            # Account functionality disabled in read-only or moe mode.
 
         # API requests have two authentication methods:
         # - If the origin equals the site, use the same Cookie auth as the rest of the site (handy for userscripts)

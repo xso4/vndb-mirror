@@ -39,6 +39,7 @@ sub _rev_ {
 TUWF::get qr{/$RE{drev}} => sub {
     my $d = db_entry tuwf->captures('id', 'rev');
     return tuwf->resNotFound if !$d;
+    not_moe if $d->{id} !~ /^(d6|d7)$/;
 
     framework_ title => $d->{title}, index => !tuwf->capture('rev'), dbobj => $d, hiddenmsg => 1,
     sub {
@@ -47,7 +48,7 @@ TUWF::get qr{/$RE{drev}} => sub {
             itemmsg_ $d;
             h1_ $d->{title};
             div_ class => 'docs', sub {
-                _index_;
+                _index_ if  !config->{moe};
                 lit_ enrich_html($d->{html} || md2html $d->{content});
                 clearfloat_;
             };

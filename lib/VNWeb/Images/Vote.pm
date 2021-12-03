@@ -159,6 +159,7 @@ TUWF::get qr{/img/vote}, sub {
 
 
 TUWF::get qr{/$RE{imgid}}, sub {
+    not_moe;
     my $id = tuwf->capture('id');
 
     my $l = [{ id => $id }];

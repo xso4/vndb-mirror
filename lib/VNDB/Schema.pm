@@ -38,7 +38,7 @@ sub schema {
     while(<$F>) {
         chomp;
         next if /^\s*--/ || /^\s*$/;
-        next if /^\s*CREATE\s+(?:TYPE|SEQUENCE|FUNCTION|DOMAIN|VIEW)/;
+        next if /^\s*CREATE\s+(?:TYPE|SEQUENCE|FUNCTION|DOMAIN|VIEW|SCHEMA)/;
 
         if(/^\s*CREATE\s+TABLE\s+([^ ]+)/) {
             die "schema.sql: Unexpected 'CREATE TABLE $1'\n" if $table;

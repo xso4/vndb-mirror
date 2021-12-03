@@ -23,6 +23,7 @@ my $config = {
     },
 
     skin_default      => 'angel',
+    moe               => 0, # vndb.moe mode
     placeholder_img   => 'https://s.vndb.org/s/angel-bg.jpg', # Used in the og:image meta tag
     scrypt_args       => [ 65536, 8, 1 ], # N, r, p
     scrypt_salt       => 'another-random-string',

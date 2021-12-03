@@ -12,8 +12,9 @@ my @VIO = qw/Tame Violent    Brutal  /;
 sub set_verdict {
     my($i) = @_;
     # Still no clue why I chose these thresholds, but they seem to work.
-    $i->{sexual}   = !$i->{votecount} ? 2 : $i->{sexual_avg}   > 1.3 ? 2 : $i->{sexual_avg}   > 0.4 ? 1 : 0;
-    $i->{violence} = !$i->{votecount} ? 2 : $i->{violence_avg} > 1.3 ? 2 : $i->{violence_avg} > 0.4 ? 1 : 0;
+    my $minvotes = config->{moe} ? 2 : 1;
+    $i->{sexual}   = $i->{votecount} < $minvotes ? 2 : $i->{sexual_avg}   > 1.3 ? 2 : $i->{sexual_avg}   > 0.4 ? 1 : 0;
+    $i->{violence} = $i->{votecount} < $minvotes ? 2 : $i->{violence_avg} > 1.3 ? 2 : $i->{violence_avg} > 0.4 ? 1 : 0;
 }
 
 
@@ -135,6 +136,7 @@ sub image_hidden {
 sub image_ {
     my($img, %opt) = @_;
     return p_ 'No image' if !$img;
+    return p_ 'Image not available' if config->{moe} && ($img->{sexual} || $img->{violence});
 
     my($w,$h) = $opt{width} ? @opt{'width','height'} : @{$img}{'width', 'height'};
     if($opt{thumb}) {

@@ -39,6 +39,7 @@ sub feed {
 
 
 TUWF::get qr{/feeds/announcements.atom}, sub {
+    not_moe;
     feed '/t/an', 'VNDB Site Announcements', tuwf->dbAlli('
       SELECT t.id, t.title, tp.msg AS summary
            , ', sql_totime('tp.date'), 'AS published,', sql_totime('tp.edited'), 'AS updated,', sql_user(), '
@@ -66,6 +67,7 @@ TUWF::get qr{/feeds/changes.atom}, sub {
 
 
 TUWF::get qr{/feeds/posts.atom}, sub {
+    not_moe;
     feed '/t', 'VNDB Recent Posts', tuwf->dbAlli('
       SELECT t.id||\'.\'||tp.num AS id, t.title||\' (#\'||tp.num||\')\' AS title, tp.msg AS summary
            , ', sql_totime('tp.date'), 'AS published,', sql_totime('tp.edited'), 'AS updated,', sql_user(), '

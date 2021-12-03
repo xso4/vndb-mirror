@@ -55,6 +55,7 @@ sub listing_ {
 
 
 TUWF::get qr{/g/links}, sub {
+    not_moe;
     my $opt = tuwf->validate(get =>
         o => { onerror => 'd', enum => ['a', 'd'] },
         s => { onerror => 'date', enum => [qw|date tag|] },

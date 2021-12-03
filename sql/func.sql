@@ -257,42 +257,58 @@ $$ LANGUAGE SQL STABLE;
 -- update_vncache(id) - updates some c_* columns in the vn table
 CREATE OR REPLACE FUNCTION update_vncache(vndbid) RETURNS void AS $$
 BEGIN
-  WITH rel(vid, val) AS (
+  WITH rel(vid, val) AS MATERIALIZED (
     SELECT rv.vid, MIN(r.released)
       FROM releases r
       JOIN releases_vn rv ON r.id = rv.id
-      WHERE NOT r.hidden
-        AND rv.rtype <> 'trial'
-        AND r.released <> 0
-        AND r.official
-      GROUP BY rv.vid
-  ), langs(vid, val) AS (
+     WHERE ($1 IS NULL OR rv.vid = $1)
+       AND NOT r.hidden
+       AND rv.rtype <> 'trial'
+       AND r.released <> 0
+       AND r.official
+     GROUP BY rv.vid
+  ), moe(vid) AS MATERIALIZED (
+    SELECT DISTINCT v.id
+      FROM vn v
+      JOIN releases_vn rv ON rv.vid = v.id
+      JOIN releases r ON r.id = rv.id
+     WHERE ($1 IS NULL OR v.id = $1)
+       AND NOT r.hidden AND NOT v.hidden
+       AND rv.rtype <> 'trial'
+       AND r.official
+       AND NOT r.patch
+       AND r.olang = v.olang
+       AND r.minage IS DISTINCT FROM 18
+  ), langs(vid, val) AS MATERIALIZED (
     SELECT rv.vid, array_agg(DISTINCT rl.lang ORDER BY rl.lang)
       FROM releases_titles rl
       JOIN releases r ON r.id = rl.id
       JOIN releases_vn rv ON r.id = rv.id
-     WHERE NOT r.hidden
+     WHERE ($1 IS NULL OR rv.vid = $1)
+       AND NOT r.hidden
        AND rv.rtype <> 'trial'
        AND NOT rl.mtl
        AND r.released <= TO_CHAR('today'::timestamp, 'YYYYMMDD')::integer
      GROUP BY rv.vid
-  ), plats(vid, val) AS (
+  ), plats(vid, val) AS MATERIALIZED (
     SELECT rv.vid, array_agg(DISTINCT rp.platform ORDER BY rp.platform)
       FROM releases_platforms rp
       JOIN releases r ON rp.id = r.id
       JOIN releases_vn rv ON rp.id = rv.id
-     WHERE NOT r.hidden
+     WHERE ($1 IS NULL OR rv.vid = $1)
+       AND NOT r.hidden
        AND rv.rtype <> 'trial'
        AND r.released <= TO_CHAR('today'::timestamp, 'YYYYMMDD')::integer
      GROUP BY rv.vid
-  ), prod(vid, val) AS (
+  ), prod(vid, val) AS MATERIALIZED (
     SELECT rv.vid, array_agg(DISTINCT rp.pid ORDER BY rp.pid)
       FROM releases_producers rp
       JOIN releases r ON rp.id = r.id
       JOIN releases_vn rv ON rv.id = r.id
-     WHERE NOT r.hidden AND r.official AND rp.developer
+     WHERE ($1 IS NULL OR rv.vid = $1)
+       AND NOT r.hidden AND r.official AND rp.developer
      GROUP BY rv.vid
-  ), img(vid, first, last, def) AS (
+  ), img(vid, first, last, def) AS MATERIALIZED (
     SELECT DISTINCT rv.vid
          , first_value(ri.img) OVER (PARTITION BY rv.vid ORDER BY
               v.olang <> ALL(COALESCE(ri.lang, ARRAY[rl.lang])), -- prefer original language
@@ -337,12 +353,14 @@ BEGIN
       LEFT JOIN (
         SELECT vid, img, COUNT(*) AS votes FROM vn_image_votes GROUP BY vid, img
       ) vo ON vo.img = ri.img AND vo.vid = rv.vid
-     WHERE NOT r.hidden AND r.official
+     WHERE ($1 IS NULL OR rv.vid = $1)
+       AND NOT r.hidden AND r.official
        AND ri.itype IN('pkgfront', 'dig') AND NOT ri.photo
        AND (ri.vid IS NULL OR ri.vid = rv.vid)
-  ), comp (vid, date, langs, plats, prods, img, imgfirst, imglast) AS (
+  ), comp (vid, date, moe, langs, plats, prods, img, imgfirst, imglast) AS (
     SELECT vn.id
           , COALESCE(rel.val, 0)
+          , NOT vn.hidden AND moe.vid IS NOT NULL
           , COALESCE(langs.val, '{}')
           , COALESCE(plats.val, '{}')
           , COALESCE(prod.val, '{}')
@@ -351,12 +369,14 @@ BEGIN
           , COALESCE(img.last, vn.image)
       FROM vn
       LEFT JOIN rel ON rel.vid = vn.id
+      LEFT JOIN moe ON moe.vid = vn.id
       LEFT JOIN langs ON langs.vid = vn.id
       LEFT JOIN plats ON plats.vid = vn.id
       LEFT JOIN prod ON prod.vid = vn.id
       LEFT JOIN img ON img.vid = vn.id
   ) UPDATE vn
        SET c_released   = c.date
+         , c_moe        = c.moe
          , c_languages  = c.langs
          , c_platforms  = c.plats
          , c_developers = c.prods
@@ -365,8 +385,8 @@ BEGIN
          , c_imglast    = c.imglast
       FROM comp c
      WHERE ($1 IS NULL OR vn.id = $1)
-       AND c.vid = vn.id AND (c_released, c_languages, c_platforms, c_developers, c_image, c_imgfirst, c_imglast)
-            IS DISTINCT FROM (c.date,     c.langs,     c.plats,     c.prods,      c.img,   c.imgfirst, c.imglast);
+       AND c.vid = vn.id AND (c_released, c_moe, c_languages, c_platforms, c_developers, c_image, c_imgfirst, c_imglast)
+            IS DISTINCT FROM (c.date,     c.moe, c.langs,     c.plats,     c.prods,      c.img,   c.imgfirst, c.imglast);
 END;
 $$ LANGUAGE plpgsql;
 

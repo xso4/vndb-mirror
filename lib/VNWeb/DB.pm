@@ -6,6 +6,7 @@ use SQL::Interp ':all';
 use Carp 'carp';
 use Exporter 'import';
 use VNDB::Schema;
+use VNDB::Config;
 
 our @EXPORT = qw/
     sql
@@ -326,6 +327,7 @@ sub db_entry {
     my($id, $rev) = @_;
     my $t = $entry_types->{ substr $id, 0, 1 }||die;
 
+    return undef if config->{moe} && $rev;
     my $entry = tuwf->dbRowi('
         WITH maxrev (iid, maxrev) AS (SELECT itemid, MAX(rev) FROM changes WHERE itemid =', \$id, 'GROUP BY itemid)
            , lastrev (entry_hidden, entry_locked) AS (SELECT ihid, ilock FROM maxrev, changes WHERE itemid = iid AND rev = maxrev)
@@ -343,10 +345,12 @@ sub db_entry {
                                             : sql $_[0], 'x', $join, 'WHERE x.chid =', \$entry->{chid}
     }
 
-    %$entry = (%$entry, tuwf->dbRowi(
+    my $toplvl = tuwf->dbRowi(
         SELECT => sql_comma(map $_->{name}, grep $_->{name} ne 'chid', $t->{base}{cols}->@*),
         FROM   => data_table $t->{base}{name}, ''
-    )->%*);
+    );
+    return undef if !keys %$toplvl;
+    %$entry = (%$entry, %$toplvl);
 
     while(my($name, $tbl) = each $t->{tables}->%*) {
         my $enrich = $enrich{ $tbl->{name} =~ s/_hist$//r } || [];
