@@ -31,12 +31,16 @@ tuwf->{elmgen} = $ARGV[0] && $ARGV[0] eq 'elmgen';
 
 
 TUWF::hook before => sub {
-    # If we're running standalone, serve www/ and static/ too.
-    if(tuwf->{_TUWF}{http}) {
-        if(tuwf->resFile("$ROOT/www", tuwf->reqPath) || tuwf->resFile("$ROOT/static", tuwf->reqPath)) {
-            tuwf->resHeader('Cache-Control' => 'max-age=31536000');
-            tuwf->done;
-        }
+    # Serve static files from www/
+    if(tuwf->resFile("$ROOT/www", tuwf->reqPath)) {
+        tuwf->resHeader('Cache-Control' => 'max-age=86400');
+        tuwf->done;
+    }
+
+    # If we're running standalone, serve static/ too.
+    if(tuwf->{_TUWF}{http} && tuwf->resFile("$ROOT/static", tuwf->reqPath)) {
+        tuwf->resHeader('Cache-Control' => 'max-age=31536000');
+        tuwf->done;
     }
 
     # Use a 'SameSite=Strict' cookie to determine whether this page was loaded from internal or external.
