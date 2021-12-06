@@ -161,6 +161,7 @@ sub _cast_ {
                 td_ class => 'tc2', sub { rdate_ $v->{c_released} };
                 td_ class => 'tc3', sub {
                     a_ href => "/$v->{cid}", title => $v->{c_original}||$v->{c_name}, $v->{c_name};
+                    spoil_ $_->{spoil};
                 };
                 td_ class => 'tc4', title => $a->{original}||$a->{name}, $a->{name};
                 td_ class => 'tc5', $v->{note};
