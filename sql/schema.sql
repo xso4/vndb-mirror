@@ -406,7 +406,10 @@ CREATE TABLE releases ( -- dbentry_type=r
   l_gyutto     integer[] NOT NULL DEFAULT '{}', -- [pub]
   l_dmm        text[] NOT NULL DEFAULT '{}', -- [pub]
   l_freegame   text NOT NULL DEFAULT '', -- [pub]
-  c_search     text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[title, original])) STORED
+  c_search     text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[title, original])) STORED,
+  l_playstation_jp text NOT NULL DEFAULT '', -- [pub]
+  l_playstation_na text NOT NULL DEFAULT '', -- [pub]
+  l_playstation_eu text NOT NULL DEFAULT ''  -- [pub]
 );
 
 -- releases_hist
@@ -458,7 +461,10 @@ CREATE TABLE releases_hist (
   l_fakku      text NOT NULL DEFAULT '',
   l_gyutto     integer[] NOT NULL DEFAULT '{}',
   l_dmm        text[] NOT NULL DEFAULT '{}',
-  l_freegame   text NOT NULL DEFAULT ''
+  l_freegame   text NOT NULL DEFAULT '',
+  l_playstation_jp text NOT NULL DEFAULT '',
+  l_playstation_na text NOT NULL DEFAULT '',
+  l_playstation_eu text NOT NULL DEFAULT ''
 );
 
 -- releases_lang
@@ -1221,5 +1227,8 @@ CREATE TABLE wikidata (
   doujinshi_author   integer[], -- [pub] P7511
   soundcloud         text[],    -- [pub] P3040
   humblestore        text[],    -- [pub] P4477
-  itchio             text[]     -- [pub] P7294
+  itchio             text[],    -- [pub] P7294
+  playstation_jp     text[],    -- [pub] P5999
+  playstation_na     text[],    -- [pub] P5944
+  playstation_eu     text[]     -- [pub] P5971
 );

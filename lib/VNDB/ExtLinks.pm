@@ -48,6 +48,9 @@ our %WIKIDATA = (
     soundcloud         => { type => 'text[]',     property => 'P3040', label => 'Soundcloud',     fmt => 'https://soundcloud.com/%s' },
     humblestore        => { type => 'text[]',     property => 'P4477', label => undef,            fmt => undef },
     itchio             => { type => 'text[]',     property => 'P7294', label => undef,            fmt => undef },
+    playstation_jp     => { type => 'text[]',     property => 'P5999', label => undef,            fmt => undef },
+    playstation_na     => { type => 'text[]',     property => 'P5944', label => undef,            fmt => undef },
+    playstation_eu     => { type => 'text[]',     property => 'P5971', label => undef,            fmt => undef },
 );
 
 
@@ -167,6 +170,15 @@ our %LINKS = (
         l_nutaku   => { label => 'Nutaku'
                       , fmt   => 'https://www.nutaku.net/games/%s/'
                       , regex => qr{(?:www\.)?nutaku\.net/games/(?:mobile/|download/|app/)?([a-z0-9-]+)/?} }, # The section part does sometimes link to different pages, but it's the same game and the non-section link always works.
+        l_playstation_jp => { label => 'PlayStation Store (JP)'
+                            , fmt => 'https://store.playstation.com/ja-jp/product/%s'
+                            , regex => qr{store\.playstation\.com/(?:[-a-z]+\/)?product\/(JP\d{4}-[A-Z]{4}\d{5}_00-[\dA-Z_]{16})} },
+        l_playstation_na => { label => 'PlayStation Store (NA)'
+                            , fmt => 'https://store.playstation.com/en-us/product/%s'
+                            , regex => qr{store\.playstation\.com/(?:[-a-z]+\/)?product\/(UP\d{4}-[A-Z]{4}\d{5}_00-[\dA-Z_]{16})} },
+        l_playstation_eu => { label => 'PlayStation Store (EU)'
+                            , fmt => 'https://store.playstation.com/en-gb/product/%s'
+                            , regex => qr{store\.playstation\.com/(?:[-a-z]+\/)?product\/(EP\d{4}-[A-Z]{4}\d{5}_00-[\dA-Z_]{16})} },
         # deprecated
         l_dlsiteen => { label => 'DLsite (eng)', fmt => 'https://www.dlsite.com/eng/work/=/product_id/%s.html' },
     },
@@ -300,6 +312,9 @@ sub enrich_extlinks {
             l 'l_getchudl';
             l 'l_dmm';
             l 'l_toranoana';
+            l 'l_playstation_jp';
+            l 'l_playstation_na';
+            l 'l_playstation_eu';
             push @links, map [ 'PlayAsia', $_->{url}, $_->{price} ], @{$obj->{l_playasia}} if $obj->{l_playasia};
         }
 
