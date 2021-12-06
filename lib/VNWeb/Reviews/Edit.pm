@@ -25,6 +25,12 @@ my $FORM_OUT = form_compile out => $FORM;
 
 sub throttled { tuwf->dbVali('SELECT COUNT(*) FROM reviews WHERE uid =', \auth->uid, 'AND date > date_trunc(\'day\', NOW())') >= 5 }
 
+sub releases {
+    my($vid) = @_;
+    my $today = strftime '%Y%m%d', gmtime;
+    [ grep $_->{released} <= $today, releases_by_vn($vid)->@* ]
+}
+
 
 TUWF::get qr{/$RE{vid}/addreview}, sub {
     my $v = tuwf->dbRowi('SELECT id, title FROM vn WHERE NOT hidden AND id =', \tuwf->capture('id'));
@@ -42,7 +48,7 @@ TUWF::get qr{/$RE{vid}/addreview}, sub {
             };
         } else {
             elm_ 'Reviews.Edit' => $FORM_OUT, { elm_empty($FORM_OUT)->%*,
-                vid => $v->{id}, vntitle => $v->{title}, releases => releases_by_vn($v->{id}), mod => auth->permBoardmod()
+                vid => $v->{id}, vntitle => $v->{title}, releases => releases($v->{id}), mod => auth->permBoardmod()
             };
         }
     };
@@ -57,7 +63,7 @@ TUWF::get qr{/$RE{wid}/edit}, sub {
     return tuwf->resNotFound if !$e->{id};
     return tuwf->resDenied if !can_edit w => $e;
 
-    $e->{releases} = releases_by_vn $e->{vid};
+    $e->{releases} = releases $e->{vid};
     $e->{mod} = auth->permBoardmod;
     framework_ title => "Edit review for $e->{vntitle}", dbobj => $e, tab => 'edit', sub {
         elm_ 'Reviews.Edit' => $FORM_OUT, $e;
