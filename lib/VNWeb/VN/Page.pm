@@ -112,11 +112,12 @@ sub rev_ {
         }],
         [ anime       => 'Anime',         fmt => sub { a_ href => "https://anidb.net/anime/$_->{aid}", "a$_->{aid}" }],
         [ screenshots => 'Screenshots',   fmt => sub {
+            my $rev = $_[0]{chid} == $v->{chid} ? 'new' : 'old';
             txt_ '[';
             a_ href => "/$_->{rid}", $_->{rid} if $_->{rid};
             txt_ 'no release' if !$_->{rid};
             txt_ '] ';
-            a_ href => imgurl($_->{scr}{id}), 'data-iv' => "$_->{scr}{width}x$_->{scr}{height}::$_->{scr}{sexual}$_->{scr}{violence}$_->{scr}{votecount}", $_->{scr}{id};
+            a_ href => imgurl($_->{scr}{id}), 'data-iv' => "$_->{scr}{width}x$_->{scr}{height}:$rev:$_->{scr}{sexual}$_->{scr}{violence}$_->{scr}{votecount}", $_->{scr}{id};
             txt_ ' [';
             a_ href => "/img/$_->{scr}{id}", image_flagging_display $_->{scr};
             txt_ '] ';
