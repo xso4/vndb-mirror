@@ -118,7 +118,7 @@ sub rev_ {
             txt_ 'no release' if !$_->{rid};
             txt_ '] ';
             a_ href => imgurl($_->{scr}{id}), 'data-iv' => "$_->{scr}{width}x$_->{scr}{height}:$rev:$_->{scr}{sexual}$_->{scr}{violence}$_->{scr}{votecount}", $_->{scr}{id};
-            txt_ ' [';
+            txt_ " [$_->{scr}{width}x$_->{scr}{height}; ";
             a_ href => "/img/$_->{scr}{id}", image_flagging_display $_->{scr};
             txt_ '] ';
             # The old NSFW flag has been removed around 2020-07-14, so not relevant for edits made later on.
