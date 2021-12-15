@@ -216,6 +216,7 @@ hash VOICED =>
 
 hash AGE_RATING =>
      0 => { txt => 'All ages', ex => 'CERO A' },
+     3 => { txt => '3+',       ex => '' },
      6 => { txt => '6+',       ex => '' },
      7 => { txt => '7+',       ex => '' },
      8 => { txt => '8+',       ex => '' },
