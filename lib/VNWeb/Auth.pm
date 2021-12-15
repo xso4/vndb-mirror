@@ -127,7 +127,7 @@ sub _create_session {
     my $token = urandom 20;
     my $token_db = sha1_hex $token;
     return 0 if !tuwf->dbVali('SELECT ',
-        sql_func(user_login => \$uid, sql_fromhex($encpass), sql_fromhex $token_db)
+        sql_func(user_login => \$uid, \'web', sql_fromhex($encpass), sql_fromhex $token_db)
     );
 
     if($pretend) {

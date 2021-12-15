@@ -772,25 +772,25 @@ CREATE OR REPLACE FUNCTION user_getscryptargs(vndbid) RETURNS bytea AS $$
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 
--- Create a new web session for this user (uid, scryptpass, token)
-CREATE OR REPLACE FUNCTION user_login(vndbid, bytea, bytea) RETURNS boolean AS $$
-  INSERT INTO sessions (uid, token, expires, type) SELECT $1, $3, NOW() + '1 month', 'web' FROM users_shadow
-   WHERE length($2) = 46 AND length($3) = 20
-     AND id = $1 AND passwd = $2
+-- Create a new session for this user (uid, type, scryptpass, token)
+CREATE OR REPLACE FUNCTION user_login(vndbid, session_type, bytea, bytea) RETURNS boolean AS $$
+  INSERT INTO sessions (uid, token, expires, type) SELECT $1, $4, NOW() + '1 month', $2 FROM users_shadow
+   WHERE length($3) = 46 AND length($4) = 20
+     AND id = $1 AND passwd = $3
   RETURNING true
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 
 CREATE OR REPLACE FUNCTION user_logout(vndbid, bytea) RETURNS void AS $$
-  DELETE FROM sessions WHERE uid = $1 AND token = $2 AND type = 'web'
+  DELETE FROM sessions WHERE uid = $1 AND token = $2 AND type IN('web','api')
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 
 -- Returns true if the given session token is valid.
--- As a side effect, this also extends the expiration time of web sessions.
+-- As a side effect, this also extends the expiration time of web and api sessions.
 CREATE OR REPLACE FUNCTION user_isvalidsession(vndbid, bytea, session_type) RETURNS bool AS $$
   UPDATE sessions SET expires = NOW() + '1 month'
-   WHERE uid = $1 AND token = $2 AND type = $3 AND $3 = 'web'
+   WHERE uid = $1 AND token = $2 AND type = $3 AND $3 IN('web', 'api')
      AND expires < NOW() + '1 month'::interval - '6 hours'::interval;
   SELECT true FROM sessions WHERE uid = $1 AND token = $2 AND type = $3 AND expires > NOW();
 $$ LANGUAGE SQL SECURITY DEFINER;

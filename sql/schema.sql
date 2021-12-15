@@ -71,7 +71,7 @@ CREATE TYPE release_type      AS ENUM ('complete', 'partial', 'trial');
 CREATE TYPE report_status     AS ENUM ('new', 'busy', 'done', 'dismissed');
 CREATE TYPE tag_category      AS ENUM('cont', 'ero', 'tech');
 CREATE TYPE vn_relation       AS ENUM ('seq', 'preq', 'set', 'alt', 'char', 'side', 'par', 'ser', 'fan', 'orig');
-CREATE TYPE session_type      AS ENUM ('web', 'pass', 'mail');
+CREATE TYPE session_type      AS ENUM ('web', 'pass', 'mail', 'api');
 
 -- Sequences used for ID generation
 CREATE SEQUENCE charimg_seq;

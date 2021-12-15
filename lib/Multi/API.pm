@@ -146,7 +146,8 @@ sub cres {
   writelog $c, '[%2d/%4.0fms %5.0f] %s',
     $c->{sqlq}, $c->{sqlt}*1000, length($msg),
     @arg ? sprintf $log, @arg : $log;
-  cmd_read($c);
+  if($c->{disconnect}) { $c->{h}->push_shutdown() }
+  else { cmd_read($c); }
 }
 
 
@@ -229,6 +230,16 @@ sub cmd_handle {
   return login($c, @arg) if $cmd eq 'login';
   return cerr $c, needlogin => 'Not logged in.' if !$c->{client};
 
+  # logout
+  if($cmd eq 'logout') {
+    return cerr $c, parse => 'Too many arguments to logout command' if @arg > 0;
+    return cerr $c, needlogin => 'No session token associated with this connection' if !$c->{sessiontoken};
+    return pg_cmd 'SELECT user_logout($1, decode($2, \'hex\'))', [ $c->{uid}, $c->{sessiontoken} ], sub {
+      $c->{disconnect} = 1;
+      cres $c, ['ok'], 'Logged out, session invalidated';
+    }
+  }
+
   # dbstats
   if($cmd eq 'dbstats') {
     return cerr $c, parse => 'Too many arguments to dbstats command' if @arg > 0;
@@ -260,34 +271,53 @@ sub login {
 
   !exists $arg->{$_} && return cerr $c, missing => "Required field '$_' is missing", field => $_
     for(qw|protocol client clientver|);
-  for(qw|protocol client clientver username password|) {
+  for(qw|protocol client clientver username password sessiontoken|) {
     exists $arg->{$_} && !defined $arg->{$_} && return cerr $c, badarg  => "Field '$_' cannot be null", field => $_;
     exists $arg->{$_} && ref $arg->{$_}      && return cerr $c, badarg  => "Field '$_' must be a scalar", field => $_;
   }
   return cerr $c, badarg => 'Unknown protocol version', field => 'protocol' if $arg->{protocol}  ne '1';
-  return cerr $c, badarg => 'The fields "username" and "password" must either both be present or both be missing.', field => 'username'
-    if exists $arg->{username} && !exists $arg->{password} || exists $arg->{password} && !exists $arg->{username};
   return cerr $c, badarg => 'Invalid client name', field => 'client'        if $arg->{client}    !~ /^[a-zA-Z0-9 _-]{3,50}$/;
   return cerr $c, badarg => 'Invalid client version', field => 'clientver'  if $arg->{clientver} !~ /^[a-zA-Z0-9_.\/-]{1,25}$/;
+
+  return cerr $c, badarg => '"createsession" can only be used when logging in with a password.' if !exists $arg->{password} && exists $arg->{createsession};
+  return cerr $c, badarg => 'Missing "username" field.', field => 'username' if !exists $arg->{username} && (exists $arg->{password} || exists $arg->{sessiontoken});
 
   if(!exists $arg->{username}) {
     $c->{client} = $arg->{client};
     $c->{clientver} = $arg->{clientver};
     cres $c, ['ok'], 'Login using client "%s" ver. %s', $c->{client}, $c->{clientver};
-    return;
-  } else {
+
+  } elsif(exists $arg->{password}) {
     return cerr $c, auth => "Password too weak, please log in on the site and change your password"
       if config->{password_db} && PWLookup::lookup(config->{password_db}, $arg->{password});
-  }
+    login_auth($c, $arg);
 
-  login_auth($c, $arg);
+  } elsif(exists $arg->{sessiontoken}) {
+    return cerr $c, badarg => 'Invalid session token', field => 'sessiontoken' if $arg->{sessiontoken} !~ /^[a-fA-F0-9]{40}$/;
+    cpg $c, 'SELECT id, username FROM users WHERE lower(username) = lower($1) AND user_isvalidsession(id, decode($2, \'hex\'), \'api\')',
+      [ $arg->{username}, $arg->{sessiontoken} ], sub {
+      if($_[0]->nRows == 1) {
+        $c->{uid} = $_[0]->value(0,0);
+        $c->{username} = $_[0]->value(0,1);
+        $c->{client} = $arg->{client};
+        $c->{clientver} = $arg->{clientver};
+        $c->{sessiontoken} = $arg->{sessiontoken};
+        cres $c, ['ok'], 'Successful login with session by %s (%s) using client "%s" ver. %s', $c->{username}, $c->{uid}, $c->{client}, $c->{clientver};
+      } else {
+        cerr $c, auth => "Wrong session token for user '$arg->{username}'";
+      }
+    };
+
+  } else {
+    return cerr $c, badarg => 'Missing "password" or "sessiontoken" field.';
+  }
 }
 
 
 sub login_auth {
   my($c, $arg) = @_;
 
-  # check login throttle
+  # check login throttle (also used when logging in with a session... oh well)
   cpg $c, 'SELECT extract(\'epoch\' from timeout) FROM login_throttle WHERE ip = $1', [ norm_ip($c->{ip}) ], sub {
     my $tm = $_[0]->nRows ? $_[0]->value(0,0) : AE::time;
     return cerr $c, auth => "Too many failed login attempts"
@@ -310,18 +340,23 @@ sub login_verify {
   my $sargs = $res->value(0,2);
   return cerr $c, auth => "Account disabled" if !$sargs || length($sargs) != 14*2;
 
-  my $token = urandom(20);
+  my $token = unpack 'H*', urandom(20);
   my($N, $r, $p, $salt) = unpack 'NCCa8', pack 'H*', $sargs;
   my $passwd = pack 'NCCa8a*', $N, $r, $p, $salt, scrypt_raw(encode_utf8($arg->{password}), config->{scrypt_salt} . $salt, $N, $r, $p, 32);
 
-  cpg $c, 'SELECT user_login($1, decode($2, \'hex\'), decode($3, \'hex\'))', [ $uid, unpack('H*', $passwd), unpack('H*', $token) ], sub {
+  cpg $c, 'SELECT user_login($1, \'api\', decode($2, \'hex\'), decode($3, \'hex\'))', [ $uid, unpack('H*', $passwd), $token ], sub {
     if($_[0]->nRows == 1 && ($_[0]->value(0,0)||'') =~ /t/) {
       $c->{uid} = $uid;
       $c->{username} = $username;
       $c->{client} = $arg->{client};
       $c->{clientver} = $arg->{clientver};
-      pg_cmd 'SELECT user_logout($1, decode($2, \'hex\'))', [ $uid, unpack('H*', $token) ];
-      cres $c, ['ok'], 'Successful login by %s (%s) using client "%s" ver. %s', $username, $c->{uid}, $c->{client}, $c->{clientver};
+      if($arg->{createsession}) {
+        $c->{sessiontoken} = $token;
+        cres $c, ['session', $token], 'Successful login with password+session by %s (%s) using client "%s" ver. %s', $username, $c->{uid}, $c->{client}, $c->{clientver};
+      } else {
+        pg_cmd 'SELECT user_logout($1, decode($2, \'hex\'))', [ $uid, $token ];
+        cres $c, ['ok'], 'Successful login with password by %s (%s) using client "%s" ver. %s', $username, $c->{uid}, $c->{client}, $c->{clientver};
+      }
     } else {
       my @a = ( $tm + config->{login_throttle}[0], norm_ip($c->{ip}) );
       pg_cmd 'UPDATE login_throttle SET timeout = to_timestamp($1) WHERE ip = $2', \@a;
