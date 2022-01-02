@@ -332,8 +332,6 @@ sub _footer_ {
     txt_ ' | ';
     a_ href => '/d7', 'about us';
     lit_ ' | ';
-    a_ href => 'irc://irc.synirc.net/vndb', '#vndb';
-    lit_ ' | ';
     a_ href => sprintf('mailto:%s', config->{admin_email}), config->{admin_email};
 
     if(tuwf->debug) {
