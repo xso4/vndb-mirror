@@ -243,7 +243,9 @@ sub can_edit {
         } else {
             die "Can't do authorization test when hidden/date/user_id fields aren't present"
                 if !exists $entry->{hidden} || !exists $entry->{date} || !exists $entry->{user_id};
-            return auth && $entry->{user_id} eq auth->uid && !defined $entry->{hidden} && $entry->{date} > time-config->{board_edit_time};
+            # beware: for threads the 'hidden' field is a non-undef boolean flag, for posts it is a possibly-undef text field.
+            my $hidden = $entry->{id} =~ /^t/ && $entry->{num} == 1 ? $entry->{hidden} : defined $entry->{hidden};
+            return auth && $entry->{user_id} eq auth->uid && !$hidden && $entry->{date} > time-config->{board_edit_time};
         }
     }
 
