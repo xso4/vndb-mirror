@@ -46,7 +46,7 @@ sub listing_ {
                 td_ class => 'tc1', fmtdate $_->{date};
                 td_ class => 'tc2', sub { user_ $_ } if $mode ne 'u';
                 td_ class => 'tc2', sub {
-                    a_ href => "/$_->{vid}", title => $_->{original}||$_->{title}, $_->{title};
+                    a_ href => "/$_->{vid}", title => $_->{alttitle}||$_->{title}, $_->{title};
                 } if $mode ne 'v';
                 td_ class => 'tc3'.($_->{ignore}?' grayedout':''), sub { vnlength_ $_->{length} };
                 td_ class => 'tc4'.($_->{ignore}?' grayedout':''), ['Slow','Normal','Fast']->[$_->{speed}];
@@ -129,10 +129,10 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
       'SELECT l.id, l.uid, l.vid, l.length, l.speed, l.notes, l.rid::text[] AS rel, '
             , sql_totime('l.date'), 'AS date, l.ignore OR u.perm_lengthvote IS NOT DISTINCT FROM false AS ignore',
               $mode ne 'u' ? (', ', sql_user()) : (),
-              $mode ne 'v' ? ', v.title, v.original' : (), '
+              $mode ne 'v' ? ', v.title, v.alttitle' : (), '
          FROM vn_length_votes l
          LEFT JOIN users u ON u.id = l.uid',
-         $mode ne 'v' ? 'JOIN vn v ON v.id = l.vid' : (),
+         $mode ne 'v' ? 'JOIN vnt v ON v.id = l.vid' : (),
        'WHERE', $where,
        'ORDER BY', $opt->{s}->sql_order(),
     );

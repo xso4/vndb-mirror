@@ -219,7 +219,7 @@ sub vn_ {
         } if $opt->{s}->vis('label');
 
         td_ class => 'tc_title', sub {
-            a_ href => "/$v->{id}", title => $v->{original}||$v->{title}, shorten $v->{title}, 70;
+            a_ href => "/$v->{id}", title => $v->{alttitle}||$v->{title}, shorten $v->{title}, 70;
             b_ class => 'grayedout', id => 'ulist_notes_'.$v->{id}, $v->{notes} if $v->{notes} || $own;
         };
 
@@ -272,15 +272,15 @@ sub listing_ {
         $opt->{q} ? sql 'v.c_search LIKE ALL (search_query(', \$opt->{q}, '))' : (),
         defined($opt->{ch}) ? sql 'match_firstchar(v.title, ', \$opt->{ch}, ')' : ();
 
-    my $count = tuwf->dbVali('SELECT count(*) FROM ulist_vns uv JOIN vn v ON v.id = uv.vid WHERE', $where);
+    my $count = tuwf->dbVali('SELECT count(*) FROM ulist_vns uv JOIN vnt v ON v.id = uv.vid WHERE', $where);
 
     my $lst = tuwf->dbPagei({ page => $opt->{p}, results => $opt->{s}->results },
-        'SELECT v.id, v.title, v.original, uv.vote, uv.notes, uv.started, uv.finished, v.c_rating, v.c_votecount, v.c_released
+        'SELECT v.id, v.title, v.alttitle, uv.vote, uv.notes, uv.started, uv.finished, v.c_rating, v.c_votecount, v.c_released
               ,', sql_totime('uv.added'), ' as added
               ,', sql_totime('uv.lastmod'), ' as lastmod
               ,', sql_totime('uv.vote_date'), ' as vote_date
            FROM ulist_vns uv
-           JOIN vn v ON v.id = uv.vid
+           JOIN vnt v ON v.id = uv.vid
           WHERE', $where, '
           ORDER BY', $opt->{s}->sql_order(), 'NULLS LAST, v.title'
     );

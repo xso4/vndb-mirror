@@ -11,8 +11,8 @@ use VNDB::Func 'fmtrating';
 # Also used by Chars::VNTab & Reviews::VNTab
 sub enrich_vn {
     my($v, $revonly) = @_;
-    enrich_merge id => 'SELECT id, c_votecount, c_length, c_lengthnum FROM vn WHERE id IN', $v;
-    enrich_merge vid => 'SELECT id AS vid, title, original, c_released FROM vn WHERE id IN', $v->{relations};
+    enrich_merge id => 'SELECT id, c_votecount, c_length, c_lengthnum, title, alttitle FROM vnt WHERE id IN', $v;
+    enrich_merge vid => 'SELECT id AS vid, title, alttitle, c_released FROM vnt WHERE id IN', $v->{relations};
     enrich_merge aid => 'SELECT id AS aid, title_romaji, title_kanji, year, type, ann_id, lastfetch FROM anime WHERE id IN', $v->{anime};
     enrich_extlinks v => $v;
     enrich_image_obj image => $v;
@@ -87,8 +87,15 @@ sub canvote {
 sub rev_ {
     my($v) = @_;
     revision_ $v, \&enrich_item,
-        [ title       => 'Title (romaji)' ],
-        [ original    => 'Original title' ],
+        [ titles      => 'Title(s)',      fmt => sub {
+            abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, '';
+            txt_ $_->{title};
+            if($_->{latin}) {
+                b_ class => 'grayedout', ' / ';
+                txt_ $_->{latin};
+            }
+            b_ class => 'grayedout', ' (unofficial)' if !$_->{official};
+        }],
         [ alias       => 'Alias'          ],
         [ olang       => 'Original language', fmt => \%LANGUAGE ],
         [ desc        => 'Description'    ],
@@ -108,7 +115,7 @@ sub rev_ {
         }],
         [ relations   => 'Relations',     fmt => sub {
             txt_ sprintf '[%s] %s: ', $_->{official} ? 'official' : 'unofficial', $VN_RELATION{$_->{relation}}{txt};
-            a_ href => "/$_->{vid}", title => $_->{original}||$_->{title}, $_->{title};
+            a_ href => "/$_->{vid}", title => $_->{alttitle}||$_->{title}, $_->{title};
         }],
         [ anime       => 'Anime',         fmt => sub { a_ href => "https://anidb.net/anime/$_->{aid}", "a$_->{aid}" }],
         [ screenshots => 'Screenshots',   fmt => sub {
@@ -145,7 +152,7 @@ sub infobox_relations_ {
                 dd_ sub {
                     join_ \&br_, sub {
                         b_ class => 'grayedout', '[unofficial] ' if !$_->{official};
-                        a_ href => "/$_->{vid}", title => $_->{original}||$_->{title}, shorten $_->{title}, 40;
+                        a_ href => "/$_->{vid}", title => $_->{alttitle}||$_->{title}, shorten $_->{title}, 40;
                     }, $rel{$_}->@*;
                 }
             }
@@ -366,25 +373,35 @@ sub infobox_ {
     div_ class => 'mainbox', sub {
         itemmsg_ $v;
         h1_ $v->{title};
-        h2_ class => 'alttitle', lang_attr($v->{olang}), $v->{original} if $v->{original};
+        h2_ class => 'alttitle', lang_attr($v->{olang}), $v->{alttitle} if $v->{alttitle};
 
         div_ class => 'vndetails', sub {
             div_ class => 'vnimg', sub { image_ $v->{image}, alt => $v->{title}; };
 
             table_ class => 'stripe', sub {
                 tr_ sub {
-                    td_ class => 'key', 'Title';
-                    td_ class => 'title', sub {
-                        txt_ $v->{title};
+                    td_ class => 'key', sub{
+                        txt_ $v->{titles}->@* > 1 ? 'Titles' : 'Title';
                         debug_ $v;
-                        abbr_ class => "icons lang $v->{olang}", title => "Original language: $LANGUAGE{$v->{olang}}", '';
+                    };
+                    td_ class => 'title', sub {
+                        table_ sub {
+                            tr_ class => $_->{official}?undef:'grayedout', sub {
+                                td_ sub {
+                                    abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, '';
+                                };
+                                td_ sub {
+                                    span_ lang_attr($_->{lang}), $_->{title};
+                                    if($_->{latin}) {
+                                        br_;
+                                        txt_ $_->{latin};
+                                    }
+                                }
+                            } for (grep $_->{lang} eq $v->{olang}, $v->{titles}->@*),
+                                grep $_->{lang} ne $v->{olang}, sort { $a->{official} cmp $b->{official} || $a->{lang} cmp $b->{lang} } $v->{titles}->@*
+                        };
                     };
                 };
-
-                tr_ sub {
-                    td_ 'Original title';
-                    td_ lang_attr($v->{olang}), $v->{original};
-                } if $v->{original};
 
                 tr_ sub {
                     td_ 'Aliases';

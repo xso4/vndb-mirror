@@ -107,6 +107,7 @@ my %tables = (
                                 .' AND aid IN(SELECT sa.aid FROM staff_alias sa JOIN staff s ON s.id = sa.id WHERE NOT s.hidden)'
                                 .' AND cid IN(SELECT id FROM chars WHERE NOT hidden)' },
     vn_staff            => { where => 'id IN(SELECT id FROM vn WHERE NOT hidden) AND aid IN(SELECT sa.aid FROM staff_alias sa JOIN staff s ON s.id = sa.id WHERE NOT s.hidden)' },
+    vn_titles           => { where => 'id IN(SELECT id FROM vn WHERE NOT hidden)' },
     vn_length_votes     => { where => 'vid IN(SELECT id FROM vn WHERE NOT hidden)'
                            , order => 'vid, uid' },
     wikidata            => { where => q{id IN(SELECT l_wikidata FROM producers WHERE NOT hidden

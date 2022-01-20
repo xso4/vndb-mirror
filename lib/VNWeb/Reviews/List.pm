@@ -62,7 +62,7 @@ TUWF::get qr{/w}, sub {
              , ', sql_user(), ',', sql_totime('w.date'), 'as date
              , ', sql_user('wpu','lu_'), ',', sql_totime('wp.date'), 'as ldate
           FROM reviews w
-          JOIN vn v ON v.id = w.vid
+          JOIN vnt v ON v.id = w.vid
           LEFT JOIN users u ON u.id = w.uid
           LEFT JOIN reviews_posts wp ON w.id = wp.id AND w.c_lastnum = wp.num
           LEFT JOIN users wpu ON wpu.id = wp.uid

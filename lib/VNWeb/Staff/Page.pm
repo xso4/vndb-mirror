@@ -74,9 +74,9 @@ sub _roles_ {
     my %alias = map +($_->{aid}, $_), $s->{alias}->@*;
 
     my $roles = tuwf->dbAlli(q{
-        SELECT v.id, vs.aid, vs.role, vs.note, v.c_released, v.title, v.original
+        SELECT v.id, vs.aid, vs.role, vs.note, v.c_released, v.title, v.alttitle
           FROM vn_staff vs
-          JOIN vn v ON v.id = vs.id
+          JOIN vnt v ON v.id = vs.id
          WHERE vs.aid IN}, [ keys %alias ], q{
            AND NOT v.hidden
          ORDER BY v.c_released ASC, v.title ASC, vs.role ASC
@@ -100,7 +100,7 @@ sub _roles_ {
                 my($v, $a) = ($_, $alias{$_->{aid}});
                 td_ class => 'tc_ulist', sub { ulists_widget_ $v if !$vns{$v->{id}}++ } if auth;
                 td_ class => 'tc1', sub {
-                    a_ href => "/$v->{id}", title => $v->{original}||$v->{title}, shorten $v->{title}, 60;
+                    a_ href => "/$v->{id}", title => $v->{alttitle}||$v->{title}, shorten $v->{title}, 60;
                 };
                 td_ class => 'tc2', sub { rdate_ $v->{c_released} };
                 td_ class => 'tc3', $CREDIT_TYPE{$v->{role}};
@@ -117,10 +117,10 @@ sub _cast_ {
     my %alias = map +($_->{aid}, $_), $s->{alias}->@*;
 
     my $cast = tuwf->dbAlli(q{
-        SELECT vs.aid, v.id, v.c_released, v.title, v.original, c.id AS cid, c.name AS c_name, c.original AS c_original, vs.note,
+        SELECT vs.aid, v.id, v.c_released, v.title, v.alttitle, c.id AS cid, c.name AS c_name, c.original AS c_original, vs.note,
                (SELECT MIN(cv.spoil) FROM chars_vns cv WHERE cv.id = c.id AND cv.vid = v.id) AS spoil
           FROM vn_seiyuu vs
-          JOIN vn v ON v.id = vs.id
+          JOIN vnt v ON v.id = vs.id
           JOIN chars c ON c.id = vs.cid
          WHERE vs.aid IN}, [ keys %alias ], q{
            AND NOT v.hidden
@@ -156,7 +156,7 @@ sub _cast_ {
                 my($v, $a) = ($_, $alias{$_->{aid}});
                 td_ class => 'tc_ulist', sub { ulists_widget_ $v if !$vns{$v->{id}}++ } if auth;
                 td_ class => 'tc1', sub {
-                    a_ href => "/$v->{id}", title => $v->{original}||$v->{title}, shorten $v->{title}, 60;
+                    a_ href => "/$v->{id}", title => $v->{alttitle}||$v->{title}, shorten $v->{title}, 60;
                 };
                 td_ class => 'tc2', sub { rdate_ $v->{c_released} };
                 td_ class => 'tc3', sub {

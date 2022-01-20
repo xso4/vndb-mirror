@@ -78,8 +78,8 @@ sub rel_ {
     enrich_extlinks r => $r;
     enrich_release $r;
     enrich vn => id => rid => sub { sql '
-        SELECT rv.id as rid, rv.rtype, v.id, v.title, v.original
-          FROM vn v
+        SELECT rv.id as rid, rv.rtype, v.id, v.title, v.alttitle
+          FROM vnt v
           JOIN releases_vn rv ON rv.vid = v.id
          WHERE NOT v.hidden AND rv.id IN', $_, '
          ORDER BY v.title
@@ -101,7 +101,7 @@ sub rel_ {
             tr_ class => 'vn', sub {
                 td_ colspan => 8, sub {
                     ulists_widget_ $v;
-                    a_ href => "/$v->{id}", title => $v->{original}||$v->{title}, $v->{title};
+                    a_ href => "/$v->{id}", title => $v->{alttitle}||$v->{title}, $v->{title};
                 };
                 my $ropt = { id => $v->{id}, prod => 1 };
                 for my $rel ($vn{$v->{id}}->@*) {
@@ -118,8 +118,8 @@ sub rel_ {
 sub vns_ {
     my($p) = @_;
     my $v = tuwf->dbAlli(q{
-        SELECT v.id, v.title, v.original, rels.developer, rels.publisher, rels.released
-          FROM vn v
+        SELECT v.id, v.title, v.alttitle, rels.developer, rels.publisher, rels.released
+          FROM vnt v
           JOIN (
                SELECT rv.vid, bool_or(rp.developer), bool_or(rp.publisher)
                     , COALESCE(MIN(r.released) FILTER(WHERE rv.rtype <> 'trial'), MIN(r.released))
@@ -141,7 +141,7 @@ sub vns_ {
         li_ sub {
             span_ sub { rdate_ $_->{released} };
             ulists_widget_ $_;
-            a_ href => "/$_->{id}", title => $_->{original}||$_->{title}, $_->{title};
+            a_ href => "/$_->{id}", title => $_->{alttitle}||$_->{title}, $_->{title};
             span_ join ' & ',
                 $_->{publisher} ? 'Publisher' : (),
                 $_->{developer} ? 'Developer' : ();

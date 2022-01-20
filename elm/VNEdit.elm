@@ -6,6 +6,7 @@ import Html.Keyed as K
 import Html.Attributes exposing (..)
 import Browser
 import Browser.Navigation exposing (load)
+import Browser.Dom as Dom
 import Dict
 import Set
 import Task
@@ -51,8 +52,7 @@ type alias Model =
   , tab         : Tab
   , invalidDis  : Bool
   , editsum     : Editsum.Model
-  , title       : String
-  , original    : String
+  , titles      : List GVE.RecvTitles
   , alias       : String
   , desc        : TP.Model
   , olang       : String
@@ -88,8 +88,7 @@ init d =
   , tab         = General
   , invalidDis  = False
   , editsum     = { authmod = d.authmod, editsum = TP.bbcode d.editsum, locked = d.locked, hidden = d.hidden, hasawait = False }
-  , title       = d.title
-  , original    = d.original
+  , titles      = d.titles
   , alias       = d.alias
   , desc        = TP.bbcode d.desc
   , olang       = d.olang
@@ -125,8 +124,7 @@ encode model =
   , editsum     = model.editsum.editsum.data
   , hidden      = model.editsum.hidden
   , locked      = model.editsum.locked
-  , title       = model.title
-  , original    = model.original
+  , titles      = model.titles
   , alias       = model.alias
   , desc        = model.desc.data
   , olang       = model.olang
@@ -154,20 +152,25 @@ seiyuuConfig : A.Config Msg GApi.ApiStaffResult
 seiyuuConfig = { wrap = SeiyuuSearch, id = "seiyuuadd", source = A.staffSource }
 
 type Msg
-  = Editsum Editsum.Msg
+  = Noop
+  | Editsum Editsum.Msg
   | Tab Tab
   | Invalid Tab
   | InvalidEnable
   | Submit
   | Submitted GApi.Response
-  | Title String
-  | Original String
   | Alias String
   | Desc TP.Msg
-  | OLang String
   | Length Int
   | LWikidata (Maybe Int)
   | LRenai String
+  | TitleAdd String
+  | TitleDel Int
+  | TitleLang Int String
+  | TitleTitle Int String
+  | TitleLatin Int String
+  | TitleOfficial Int Bool
+  | TitleMain Int String
   | VNDel Int
   | VNRel Int String
   | VNOfficial Int Bool
@@ -213,19 +216,27 @@ scrProcessQueue (model, msg) =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+    Noop       -> (model, Cmd.none)
     Editsum m  -> let (nm,nc) = Editsum.update m model.editsum in ({ model | editsum = nm }, Cmd.map Editsum nc)
     Tab t      -> ({ model | tab = t }, Cmd.none)
     Invalid t  -> if model.invalidDis || model.tab == All || model.tab == t then (model, Cmd.none) else
                   ({ model | tab = t, invalidDis = True }, Task.attempt (always InvalidEnable) (Ffi.elemCall "reportValidity" "mainform" |> Task.andThen (\_ -> Process.sleep 100)))
     InvalidEnable -> ({ model | invalidDis = False }, Cmd.none)
-    Title s    -> ({ model | title    = s, dupVNs = [] }, Cmd.none)
-    Original s -> ({ model | original = s, dupVNs = [] }, Cmd.none)
     Alias s    -> ({ model | alias    = s, dupVNs = [] }, Cmd.none)
     Desc m     -> let (nm,nc) = TP.update m model.desc in ({ model | desc = nm }, Cmd.map Desc nc)
-    OLang s    -> ({ model | olang    = s }, Cmd.none)
     Length n   -> ({ model | length = n }, Cmd.none)
     LWikidata n-> ({ model | lWikidata = n }, Cmd.none)
     LRenai s   -> ({ model | lRenai = s }, Cmd.none)
+
+    TitleAdd s ->
+      ({ model | titles = model.titles ++ [{ lang = s, title = "", latin = Nothing, official = True }], olang = if List.isEmpty model.titles then s else model.olang }
+      , Task.attempt (always Noop) (Dom.focus ("title_" ++ s)))
+    TitleDel i        -> ({ model | titles = delidx i model.titles }, Cmd.none)
+    TitleLang i s     -> ({ model | titles = modidx i (\e -> { e | lang = s }) model.titles }, Cmd.none)
+    TitleTitle i s    -> ({ model | titles = modidx i (\e -> { e | title = s }) model.titles }, Cmd.none)
+    TitleLatin i s    -> ({ model | titles = modidx i (\e -> { e | latin = if s == "" then Nothing else Just s }) model.titles }, Cmd.none)
+    TitleOfficial i s -> ({ model | titles = modidx i (\e -> { e | official = s }) model.titles }, Cmd.none)
+    TitleMain i s     -> ({ model | olang = s, titles = modidx i (\e -> { e | official = True }) model.titles }, Cmd.none)
 
     VNDel idx        -> ({ model | vns = delidx idx model.vns }, Cmd.none)
     VNRel idx rel    -> ({ model | vns = modidx idx (\v -> { v | relation = rel }) model.vns }, Cmd.none)
@@ -237,7 +248,7 @@ update msg model =
         Just v ->
           if List.any (\l -> l.vid == v.id) model.vns
           then ({ model | vnSearch = A.clear nm "" }, c)
-          else ({ model | vnSearch = A.clear nm "", vns = model.vns ++ [{ vid = v.id, title = v.title, original = v.original, relation = "seq", official = True }] }, c)
+          else ({ model | vnSearch = A.clear nm "", vns = model.vns ++ [{ vid = v.id, title = v.title, relation = "seq", official = True }] }, c)
 
     AnimeDel i -> ({ model | anime = delidx i model.anime }, Cmd.none)
     AnimeSearch m ->
@@ -290,7 +301,7 @@ update msg model =
 
     DupSubmit ->
       if List.isEmpty model.dupVNs
-      then ({ model | state = Api.Loading }, GV.send { hidden = True, search = model.title :: model.original :: String.lines model.alias } DupResults)
+      then ({ model | state = Api.Loading }, GV.send { hidden = True, search = (List.concatMap (\e -> [e.title, Maybe.withDefault "" e.latin]) model.titles) ++ String.lines model.alias } DupResults)
       else ({ model | dupCheck = True, dupVNs = [] }, Cmd.none)
     DupResults (GApi.VNResult vns) ->
       if List.isEmpty vns
@@ -312,7 +323,8 @@ relAlias model =
 
 isValid : Model -> Bool
 isValid model = not
-  (  (model.title /= "" && model.title == model.original)
+  (  List.any (\e -> e.title /= "" && Just e.title == e.latin) model.titles
+  || List.isEmpty model.titles
   || relAlias model /= Nothing
   || not (Img.isValid model.image)
   || List.any (\(_,i,r) -> r == Nothing || not (Img.isValid i)) model.screenshots
@@ -325,26 +337,46 @@ isValid model = not
 view : Model -> Html Msg
 view model =
   let
-    titles =
-      [ formField "title::Title (romaji)"
-        [ inputText "title" model.title Title (style "width" "500px" :: onInvalid (Invalid General) :: GVE.valTitle)
-        , if containsNonLatin model.title
-          then b [ class "standout" ] [ br [] [], text "This title field should only contain latin-alphabet characters, please put the \"actual\" title in the field below and the romanization above." ]
-          else text ""
+    title i e = tr []
+      [ td [] [ langIcon e.lang ]
+      , td []
+        [ inputText ("title_"++e.lang) e.title (TitleTitle i) (style "width" "500px" :: onInvalid (Invalid General) :: placeholder "Title (in the original script)" :: GVE.valTitlesTitle)
+        , if not (e.latin /= Nothing || containsNonLatin e.title) then text "" else span []
+          [ br [] []
+          , inputText "" (Maybe.withDefault "" e.latin) (TitleLatin i) (style "width" "500px" :: onInvalid (Invalid General) :: placeholder "Romanization" :: GVE.valTitlesLatin)
+          , case e.latin of
+              Just s -> if containsNonLatin s then b [ class "standout" ] [ br [] [], text "Romanization should only consist of characters in the latin alphabet." ] else text ""
+              Nothing -> text ""
+          ]
+        , if List.length model.titles == 1 then text "" else span []
+          [ br [] []
+          , label [] [ inputRadio "olang" (e.lang == model.olang) (\_ -> TitleMain i e.lang), text " main title (the language the VN was originally written in)" ]
+          ]
+        , if e.lang == model.olang then text "" else span []
+          [ br [] []
+          , label [] [ inputCheck "" e.official (TitleOfficial i), text " official title (from the developer or licensed localization; not from a fan translation)" ]
+          , br [] []
+          , inputButton "remove" (TitleDel i) []
+          ]
+        , br_ 2
         ]
-      , formField "original::Original title"
-        [ inputText "original" model.original Original (style "width" "500px" :: onInvalid (Invalid General) :: GVE.valOriginal)
-        , if model.title /= "" && model.title == model.original
-          then b [ class "standout" ] [ br [] [], text "Should not be the same as the Title (romaji). Leave blank if the original title is already in the latin alphabet" ]
-          else if model.original /= "" && String.toLower model.title /= String.toLower model.original && not (containsNonLatin model.original)
-          then b [ class "standout" ] [ br [] [], text "Original title does not seem to contain any non-latin characters. Leave this field empty if the title is already in the latin alphabet" ]
-          else text ""
+      ]
+
+    titles =
+      let lines = List.filter (\e -> e /= "") <| String.lines <| String.toLower model.alias
+      in
+      [ formField "Title(s)"
+        [ table [] <| List.indexedMap title model.titles
+        , inputSelect "" "" TitleAdd [] <| ("", "- Add title -") :: List.filter (\(l,_) -> not <| List.any (\e -> e.lang == l) model.titles) GT.languages
+        , br_ 2
         ]
       , formField "alias::Aliases"
         [ inputTextArea "alias" model.alias Alias (rows 3 :: onInvalid (Invalid General) :: GVE.valAlias)
         , br [] []
-        , if hasDuplicates <| String.lines <| String.toLower model.alias
+        , if hasDuplicates lines
           then b [ class "standout" ] [ text "List contains duplicate aliases.", br [] [] ]
+          else if contains lines <| List.map String.toLower <| List.concatMap (\e -> [e.title, Maybe.withDefault "" e.latin]) model.titles
+          then b [ class "standout" ] [ text "Titles listed above should not also be added as alias.", br [] [] ]
           else
             case relAlias model of
               Nothing -> text ""
@@ -355,7 +387,7 @@ view model =
                 , a [ href <| "/"++r.id ] [ text r.title ]
                 , br [] [], br [] []
                 ]
-        , text "List of alternative titles or abbreviations. One line for each alias. Can include both official (japanese/english) titles and unofficial titles used around net."
+        , text "List of additional titles or abbreviations. One line for each alias. Can include both official (japanese/english) titles and unofficial titles used around net."
         , br [] []
         , text "Titles that are listed in the releases should not be added here!"
         ]
@@ -366,7 +398,6 @@ view model =
         [ TP.view "desc" model.desc Desc 600 (style "height" "180px" :: onInvalid (Invalid General) :: GVE.valDesc) [ b [ class "standout" ] [ text "English please!" ] ]
         , text "Short description of the main story. Please do not include spoilers, and don't forget to list the source in case you didn't write the description yourself."
         ]
-      , formField "olang::Original language" [ inputSelect "olang" model.olang OLang [] GT.languages ]
       , formField "length::Length"
         [ inputSelect "length" model.length Length [] GT.vnLengths
         , text " (only displayed if there are no length votes)" ]

@@ -138,9 +138,11 @@ ALTER TABLE users_shadow             ADD CONSTRAINT users_shadow_id_fkey        
 ALTER TABLE users_username_hist      ADD CONSTRAINT users_username_hist_id_fkey        FOREIGN KEY (id)        REFERENCES users         (id) ON DELETE CASCADE;
 ALTER TABLE vn                       ADD CONSTRAINT vn_image_fkey                      FOREIGN KEY (image)     REFERENCES images        (id);
 ALTER TABLE vn                       ADD CONSTRAINT vn_l_wikidata_fkey                 FOREIGN KEY (l_wikidata)REFERENCES wikidata      (id);
+ALTER TABLE vn                       ADD CONSTRAINT vn_olang_fkey                      FOREIGN KEY (id,olang)  REFERENCES vn_titles     (id,lang)   DEFERRABLE INITIALLY DEFERRED;
 ALTER TABLE vn_hist                  ADD CONSTRAINT vn_hist_chid_fkey                  FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE vn_hist                  ADD CONSTRAINT vn_hist_image_fkey                 FOREIGN KEY (image)     REFERENCES images        (id);
 ALTER TABLE vn_hist                  ADD CONSTRAINT vn_hist_l_wikidata_fkey            FOREIGN KEY (l_wikidata)REFERENCES wikidata      (id);
+ALTER TABLE vn_hist                  ADD CONSTRAINT vn_hist_olang_fkey                 FOREIGN KEY (chid,olang)REFERENCES vn_titles_hist(chid,lang) DEFERRABLE INITIALLY DEFERRED;
 ALTER TABLE vn_anime                 ADD CONSTRAINT vn_anime_id_fkey                   FOREIGN KEY (id)        REFERENCES vn            (id);
 ALTER TABLE vn_anime                 ADD CONSTRAINT vn_anime_aid_fkey                  FOREIGN KEY (aid)       REFERENCES anime         (id);
 ALTER TABLE vn_anime_hist            ADD CONSTRAINT vn_anime_hist_chid_fkey            FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
@@ -163,5 +165,7 @@ ALTER TABLE vn_seiyuu_hist           ADD CONSTRAINT vn_seiyuu_hist_cid_fkey     
 ALTER TABLE vn_staff                 ADD CONSTRAINT vn_staff_id_fkey                   FOREIGN KEY (id)        REFERENCES vn            (id);
 ALTER TABLE vn_staff                 ADD CONSTRAINT vn_staff_aid_fkey                  FOREIGN KEY (aid)       REFERENCES staff_alias   (aid) DEFERRABLE INITIALLY DEFERRED;
 ALTER TABLE vn_staff_hist            ADD CONSTRAINT vn_staff_hist_chid_fkey            FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
+ALTER TABLE vn_titles                ADD CONSTRAINT vn_titles_id_fkey                  FOREIGN KEY (id)        REFERENCES vn            (id);
+ALTER TABLE vn_titles_hist           ADD CONSTRAINT vn_titles_hist_chid_fkey           FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE vn_length_votes          ADD CONSTRAINT vn_length_votes_vid_fkey           FOREIGN KEY (vid)       REFERENCES vn            (id);
 ALTER TABLE vn_length_votes          ADD CONSTRAINT vn_length_votes_uid_fkey           FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE SET DEFAULT;

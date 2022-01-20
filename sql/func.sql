@@ -82,8 +82,8 @@ $$ LANGUAGE SQL IMMUTABLE;
 CREATE OR REPLACE FUNCTION search_gen_vn(vnid vndbid) RETURNS text AS $$
   SELECT coalesce(string_agg(t, ' '), '') FROM (
     SELECT t FROM (
-                SELECT search_norm_term(title) FROM vn WHERE id = vnid
-      UNION ALL SELECT search_norm_term(original) FROM vn WHERE vnid = id
+                SELECT search_norm_term(title) FROM vn_titles WHERE id = vnid
+      UNION ALL SELECT search_norm_term(latin) FROM vn_titles WHERE id = vnid
       UNION ALL SELECT search_norm_term(a) FROM vn, regexp_split_to_table(alias, E'\n') a(a) WHERE vnid = id
       -- Remove the various editions/version strings from release titles,
       -- this reduces the index size and makes VN search more relevant.
@@ -464,11 +464,12 @@ $$ LANGUAGE SQL;
 
 -- Returns generic information for almost every supported vndbid + num.
 -- Not currently supported: ch#, cv#, sf#
+-- XXX: user title preferences (through the 'vnt' VIEW) are not used for explicit revisions.
 --
 -- Returned fields:
 --   * title    - Main/romanized title.
 --                For users this is their username, not displayname.
---   * original - Original title (if applicable). Used in edit histories
+--   * original - Original/alternative title (if applicable). Used in edit histories
 --   * uid      - User who created/initiated this entry. Used in notification listings and reports
 --   * hidden   - Whether this entry is 'hidden' or private. Used for the reporting function & framework_ object.
 --                For edits this info comes from the revision itself, not the final entry.
@@ -480,7 +481,9 @@ CREATE OR REPLACE FUNCTION item_info(id vndbid, num int) RETURNS TABLE(title tex
 BEGIN
   -- x#
   IF $2 IS NULL THEN CASE vndbid_type($1)
-    WHEN 'v' THEN RETURN QUERY SELECT v.title   ::text, v.original::text,  NULL::vndbid,  v.hidden, v.locked FROM vn v        WHERE v.id = $1;
+    --WHEN 'v' THEN RETURN QUERY SELECT COALESCE(vo.latin, vo.title), CASE WHEN vo.latin IS NULL THEN '' ELSE vo.title END, NULL::vndbid, v.hidden, v.locked
+    --                      FROM vn v JOIN vn_titles vo ON vo.id = v.id AND vo.lang = v.olang WHERE v.id = $1;
+    WHEN 'v' THEN RETURN QUERY SELECT v.title   ::text, v.alttitle::text,  NULL::vndbid,  v.hidden, v.locked FROM vnt v       WHERE v.id = $1;
     WHEN 'r' THEN RETURN QUERY SELECT r.title   ::text, r.original::text,  NULL::vndbid,  r.hidden, r.locked FROM releases r  WHERE r.id = $1;
     WHEN 'p' THEN RETURN QUERY SELECT p.name    ::text, p.original::text,  NULL::vndbid,  p.hidden, p.locked FROM producers p WHERE p.id = $1;
     WHEN 'c' THEN RETURN QUERY SELECT c.name    ::text, c.original::text,  NULL::vndbid,  c.hidden, c.locked FROM chars c     WHERE c.id = $1;
@@ -489,12 +492,13 @@ BEGIN
     WHEN 'i' THEN RETURN QUERY SELECT i.name    ::text, NULL,              NULL::vndbid,  i.hidden, i.locked FROM traits i    WHERE i.id = $1;
     WHEN 's' THEN RETURN QUERY SELECT sa.name   ::text, sa.original::text, NULL::vndbid,  s.hidden, s.locked FROM staff s   JOIN staff_alias sa ON sa.aid = s.aid WHERE s.id = $1;
     WHEN 't' THEN RETURN QUERY SELECT t.title   ::text, NULL,              NULL::vndbid,  t.hidden OR t.private, t.locked FROM threads t WHERE t.id = $1;
-    WHEN 'w' THEN RETURN QUERY SELECT v.title   ::text, v.original::text,  w.uid, w.c_flagged, w.locked FROM reviews w JOIN vn v ON v.id = w.vid WHERE w.id = $1;
+    WHEN 'w' THEN RETURN QUERY SELECT v.title   ::text, v.alttitle::text,  w.uid, w.c_flagged, w.locked FROM reviews w JOIN vnt v ON v.id = w.vid WHERE w.id = $1;
     WHEN 'u' THEN RETURN QUERY SELECT u.username::text, NULL,              NULL::vndbid,  FALSE,  FALSE  FROM users u WHERE u.id = $1;
   END CASE;
   -- x#.#
   ELSE CASE vndbid_type($1)
-    WHEN 'v' THEN RETURN QUERY SELECT v.title::text, v.original::text,  h.requester, h.ihid, h.ilock FROM changes h JOIN vn_hist v        ON h.id = v.chid WHERE h.itemid = $1 AND h.rev = $2;
+    WHEN 'v' THEN RETURN QUERY SELECT COALESCE(vo.latin, vo.title), CASE WHEN vo.latin IS NULL THEN '' ELSE vo.title END, h.requester, h.ihid, h.ilock
+                          FROM changes h JOIN vn_hist v ON h.id = v.chid JOIN vn_titles_hist vo ON h.id = vo.chid AND vo.lang = v.olang WHERE h.itemid = $1 AND h.rev = $2;
     WHEN 'r' THEN RETURN QUERY SELECT r.title::text, r.original::text,  h.requester, h.ihid, h.ilock FROM changes h JOIN releases_hist r  ON h.id = r.chid WHERE h.itemid = $1 AND h.rev = $2;
     WHEN 'p' THEN RETURN QUERY SELECT p.name ::text, p.original::text,  h.requester, h.ihid, h.ilock FROM changes h JOIN producers_hist p ON h.id = p.chid WHERE h.itemid = $1 AND h.rev = $2;
     WHEN 'c' THEN RETURN QUERY SELECT c.name ::text, c.original::text,  h.requester, h.ihid, h.ilock FROM changes h JOIN chars_hist c     ON h.id = c.chid WHERE h.itemid = $1 AND h.rev = $2;
@@ -503,7 +507,7 @@ BEGIN
     WHEN 'i' THEN RETURN QUERY SELECT i.name ::text, NULL,              h.requester, h.ihid, h.ilock FROM changes h JOIN traits_hist i    ON h.id = i.chid WHERE h.itemid = $1 AND h.rev = $2;
     WHEN 's' THEN RETURN QUERY SELECT sa.name::text, sa.original::text, h.requester, h.ihid, h.ilock FROM changes h JOIN staff_hist s     ON h.id = s.chid JOIN staff_alias_hist sa ON sa.chid = s.chid AND sa.aid = s.aid WHERE h.itemid = $1 AND h.rev = $2;
     WHEN 't' THEN RETURN QUERY SELECT t.title::text, NULL,              tp.uid, t.hidden OR t.private OR tp.hidden IS NOT NULL, t.locked FROM threads t JOIN threads_posts tp ON tp.tid = t.id WHERE t.id = $1 AND tp.num = $2;
-    WHEN 'w' THEN RETURN QUERY SELECT v.title::text, v.original::text,  wp.uid, w.c_flagged OR wp.hidden IS NOT NULL, w.locked FROM reviews w JOIN vn v ON v.id = w.vid JOIN reviews_posts wp ON wp.id = w.id WHERE w.id = $1 AND wp.num = $2;
+    WHEN 'w' THEN RETURN QUERY SELECT v.title::text, v.alttitle::text,  wp.uid, w.c_flagged OR wp.hidden IS NOT NULL, w.locked FROM reviews w JOIN vnt v ON v.id = w.vid JOIN reviews_posts wp ON wp.id = w.id WHERE w.id = $1 AND wp.num = $2;
   END CASE;
   END IF;
 END;
@@ -548,17 +552,9 @@ DECLARE
 BEGIN
   SELECT id INTO xoldchid FROM changes WHERE itemid = nitemid AND rev = nrev-1;
 
-  -- Update c_search when
-  -- 1. A new VN entry is created
-  -- 2. The vn title/original/alias has changed
+  -- Update c_search
   IF vndbid_type(nitemid) = 'v' THEN
-    IF -- 1.
-       xoldchid IS NULL OR
-       -- 2.
-       EXISTS(SELECT 1 FROM vn_hist v1, vn_hist v2 WHERE (v2.title <> v1.title OR v2.original <> v1.original OR v2.alias <> v1.alias) AND v1.chid = xoldchid AND v2.chid = nchid)
-    THEN
-      UPDATE vn SET c_search = search_gen_vn(id) WHERE id = nitemid;
-    END IF;
+    UPDATE vn SET c_search = search_gen_vn(id) WHERE id = nitemid;
   END IF;
 
   -- Update vn.c_search when

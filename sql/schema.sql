@@ -1060,8 +1060,6 @@ CREATE TABLE vn ( -- dbentry_type=v
   img_nsfw      boolean NOT NULL DEFAULT FALSE, -- (deprecated)
   locked        boolean NOT NULL DEFAULT FALSE,
   hidden        boolean NOT NULL DEFAULT FALSE,
-  title         varchar(250) NOT NULL DEFAULT '', -- [pub]
-  original      varchar(250) NOT NULL DEFAULT '', -- [pub]
   alias         varchar(500) NOT NULL DEFAULT '', -- [pub]
   l_wp          varchar(150) NOT NULL DEFAULT '', -- (deprecated)
   l_encubed     varchar(100) NOT NULL DEFAULT '', -- (deprecated)
@@ -1084,8 +1082,6 @@ CREATE TABLE vn_hist (
   l_wikidata   integer,
   length       smallint NOT NULL DEFAULT 0,
   img_nsfw     boolean NOT NULL DEFAULT FALSE,
-  title        varchar(250) NOT NULL DEFAULT '',
-  original     varchar(250) NOT NULL DEFAULT '',
   alias        varchar(500) NOT NULL DEFAULT '',
   l_wp         varchar(150) NOT NULL DEFAULT '',
   l_encubed    varchar(100) NOT NULL DEFAULT '',
@@ -1179,6 +1175,26 @@ CREATE TABLE vn_staff_hist (
   PRIMARY KEY (chid, aid, role)
 );
 
+-- vn_titles
+CREATE TABLE vn_titles (
+  id         vndbid NOT NULL, -- [pub]
+  lang       language NOT NULL, -- [pub]
+  title      text NOT NULL, -- [pub]
+  latin      text, -- [pub]
+  official   boolean NOT NULL, -- [pub]
+  PRIMARY KEY(id, lang)
+);
+
+-- vn_titles_hist
+CREATE TABLE vn_titles_hist (
+  chid       integer NOT NULL,
+  lang       language NOT NULL,
+  title      text NOT NULL,
+  latin      text,
+  official   boolean NOT NULL,
+  PRIMARY KEY(chid, lang)
+);
+
 -- vn_length_votes
 CREATE TABLE vn_length_votes (
   id         serial PRIMARY KEY,
@@ -1232,3 +1248,12 @@ CREATE TABLE wikidata (
   playstation_na     text[],    -- [pub] P5944
   playstation_eu     text[]     -- [pub] P5971
 );
+
+
+-- The 'vnt' view is equivalent to the 'vn' table with two additional columns:
+-- 'title' and 'alttitle', which represent the display title and the
+-- alternative (mouse-hover) title. The view defined here displays the
+-- latin/title name of the original language as main title and the title in the
+-- original script as alttitle, but this view can be redefined as a TEMPORARY
+-- VIEW in sessions to override the default behavior.
+CREATE VIEW vnt AS SELECT v.*, COALESCE(vo.latin, vo.title) AS title, CASE WHEN vo.latin IS NULL THEN '' ELSE vo.title END AS alttitle FROM vn v JOIN vn_titles vo ON vo.id = v.id AND vo.lang = v.olang;

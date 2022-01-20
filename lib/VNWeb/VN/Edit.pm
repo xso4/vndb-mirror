@@ -7,8 +7,12 @@ use VNWeb::Releases::Lib;
 
 my $FORM = {
     id         => { required => 0, vndbid => 'v' },
-    title      => { maxlength => 250 },
-    original   => { required => 0, default => '', maxlength => 250 },
+    titles     => { sort_keys => 'lang', aoh => {
+        lang     => { enum => \%LANGUAGE },
+        title    => { maxlength => 250 },
+        latin    => { required => 0, default => undef, maxlength => 250 },
+        official => { anybool => 1 },
+    } },
     alias      => { required => 0, default => '', maxlength => 500 },
     desc       => { required => 0, default => '', maxlength => 10240 },
     olang      => { enum => \%LANGUAGE, default => 'ja' },
@@ -20,7 +24,6 @@ my $FORM = {
         relation => { enum => \%VN_RELATION },
         official => { anybool => 1 },
         title    => { _when => 'out' },
-        original => { _when => 'out', required => 0, default => '' },
     } },
     anime      => { sort_keys => 'aid', aoh => {
         aid      => { id => 1 },
@@ -76,6 +79,7 @@ TUWF::get qr{/$RE{vrev}/edit} => sub {
     $e->{authmod} = auth->permDbmod;
     $e->{editsum} = $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
 
+    $e->{titles} = [ sort { $a->{lang} cmp $b->{lang} } $e->{titles}->@* ];
     if($e->{image}) {
         $e->{image_info} = { id => $e->{image} };
         enrich_image 0, [$e->{image_info}];
@@ -85,7 +89,7 @@ TUWF::get qr{/$RE{vrev}/edit} => sub {
     $_->{info} = {id=>$_->{scr}} for $e->{screenshots}->@*;
     enrich_image 0, [map $_->{info}, $e->{screenshots}->@*];
 
-    enrich_merge vid => 'SELECT id AS vid, title, original FROM vn WHERE id IN', $e->{relations};
+    enrich_merge vid => 'SELECT id AS vid, title, alttitle FROM vnt WHERE id IN', $e->{relations};
     enrich_merge aid => 'SELECT id AS aid, title_romaji AS title, COALESCE(title_kanji, \'\') AS original FROM anime WHERE id IN', $e->{anime};
 
     enrich_merge aid => 'SELECT id, aid, name, original FROM staff_alias WHERE aid IN', $e->{staff}, $e->{seiyuu};
@@ -134,6 +138,7 @@ elm_api VNEdit => $FORM_OUT, $FORM_IN, sub {
     }
     $data->{desc} = bb_subst_links $data->{desc};
     $data->{alias} =~ s/\n\n+/\n/;
+    die "No title in original language" if !grep $_->{lang} eq $data->{olang}, $data->{titles}->@*;
 
     validate_dbid 'SELECT id FROM anime WHERE id IN', map $_->{aid}, $data->{anime}->@*;
     validate_dbid 'SELECT id FROM images WHERE id IN', $data->{image} if $data->{image};

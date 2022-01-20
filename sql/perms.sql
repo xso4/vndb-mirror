@@ -92,6 +92,9 @@ GRANT SELECT, INSERT,         DELETE ON vn_seiyuu                TO vndb_site;
 GRANT SELECT, INSERT                 ON vn_seiyuu_hist           TO vndb_site;
 GRANT SELECT, INSERT,         DELETE ON vn_staff                 TO vndb_site;
 GRANT SELECT, INSERT                 ON vn_staff_hist            TO vndb_site;
+GRANT SELECT, INSERT,         DELETE ON vn_titles                TO vndb_site;
+GRANT SELECT, INSERT                 ON vn_titles_hist           TO vndb_site;
+GRANT SELECT                         ON vnt                      TO vndb_site;
 GRANT SELECT, INSERT                 ON wikidata                 TO vndb_site;
 
 
@@ -174,4 +177,7 @@ GRANT SELECT                         ON vn_screenshots_hist      TO vndb_multi;
 GRANT SELECT                         ON vn_seiyuu                TO vndb_multi;
 GRANT SELECT                         ON vn_staff                 TO vndb_multi;
 GRANT SELECT                         ON vn_staff_hist            TO vndb_multi;
+GRANT SELECT                         ON vn_titles                TO vndb_multi;
+GRANT SELECT                         ON vn_titles_hist           TO vndb_multi;
+GRANT SELECT                         ON vnt                      TO vndb_multi;
 GRANT SELECT, INSERT, UPDATE         ON wikidata                 TO vndb_multi;

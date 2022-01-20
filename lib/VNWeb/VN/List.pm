@@ -107,7 +107,7 @@ sub listing_ {
             tr_ sub {
                 td_ class => 'tc_score', sub { tagscore_ $_->{tagscore} } if $tagscore;
                 td_ class => 'tc_ulist', sub { ulists_widget_ $_ } if auth;
-                td_ class => 'tc_title', sub { a_ href => "/$_->{id}", title => $_->{original}||$_->{title}, $_->{title} };
+                td_ class => 'tc_title', sub { a_ href => "/$_->{id}", title => $_->{alttitle}||$_->{title}, $_->{title} };
                 td_ class => 'tc_dev',   sub {
                     join_ ' & ', sub {
                         a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
@@ -138,7 +138,7 @@ sub listing_ {
             a_ href => $url, title => $title, $label if $canlink;
             span_ $label if !$canlink;
         }
-        lnk_ "/$_->{id}", $_->{original}||$_->{title}, $_->{title};
+        lnk_ "/$_->{id}", $_->{alttitle}||$_->{title}, $_->{title};
         br_;
         join_ '', sub { platform_ $_ if $_ ne 'unk' }, sort $_->{platforms}->@*;
         join_ '', sub { abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' }, reverse sort $_->{lang}->@*;
@@ -200,7 +200,7 @@ sub listing_ {
     div_ class => 'mainbox vngrid', sub {
         div_ !$_->{image} || image_hidden($_->{image}) ? (class => 'noimage') : (style => 'background-image: url("'.imgurl($_->{image}{id}).'")'), sub {
             ulists_widget_ $_;
-            a_ href => "/$_->{id}", title => $_->{original}||$_->{title}, sub { infoblock_ 0 };
+            a_ href => "/$_->{id}", title => $_->{alttitle}||$_->{title}, sub { infoblock_ 0 };
         } for @$list;
     } if $opt->{s}->grid;
 
@@ -269,12 +269,12 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = tuwf->dbVali('SELECT count(*) FROM vn v WHERE', $where);
+        $count = tuwf->dbVali('SELECT count(*) FROM vnt v WHERE', $where);
         $list = $count ? tuwf->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
-            SELECT v.id, v.title, v.original, v.c_released, v.c_popularity, v.c_votecount, v.c_rating, v.c_average
+            SELECT v.id, v.title, v.alttitle, v.c_released, v.c_popularity, v.c_votecount, v.c_rating, v.c_average
                  , v.image, v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang',
                    $opt->{s}->vis('length') ? ', v.length, v.c_length, v.c_lengthnum' : (), '
-              FROM vn v
+              FROM vnt v
              WHERE', $where, '
              ORDER BY', $opt->{s}->sql_order(),
         ) : [];

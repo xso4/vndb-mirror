@@ -27,11 +27,11 @@ elm_api Boards => undef, {
         'SELECT btype, iid, title
            FROM (',
              sql_join('UNION ALL',
-                 (map sql('SELECT 1, ', \$_, '::board_type, NULL::vndbid, NULL'),#, \$BOARD_TYPE{$_}{txt}),
+                 (map sql('SELECT 1, ', \$_, '::board_type, NULL::vndbid, NULL'),
                      grep $q eq $_ || $BOARD_TYPE{$_}{txt} =~ /\Q$q/i,
                      grep !$BOARD_TYPE{$_}{dbitem} && ($BOARD_TYPE{$_}{post_perm} eq 'board' || auth->permBoardmod),
                      keys %BOARD_TYPE),
-                 item('vn', 'v', 'title', 'NOT hidden', sql 'c_search LIKE ALL (search_query(', \$q, '))'),
+                 item('vnt', 'v', 'title', 'NOT hidden', sql 'c_search LIKE ALL (search_query(', \$q, '))'),
                  item('producers', 'p', 'name', 'NOT hidden', sql 'c_search LIKE ALL (search_query(', \$q, '))'),
                  item('users', 'u', 'username', 'true', sql 'lower(username) LIKE', \lc "%$qs%"),
              ), ') x(prio, btype, iid, title)

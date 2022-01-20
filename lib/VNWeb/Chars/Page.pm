@@ -20,7 +20,7 @@ sub enrich_item {
     my($c) = @_;
 
     enrich_image_obj image => $c;
-    enrich_merge vid => 'SELECT id AS vid, title, original FROM vn WHERE id IN', $c->{vns};
+    enrich_merge vid => 'SELECT id AS vid, title, alttitle FROM vnt WHERE id IN', $c->{vns};
     enrich_merge rid => 'SELECT id AS rid, title AS rtitle, original AS roriginal FROM releases WHERE id IN', grep $_->{rid}, $c->{vns}->@*;
     enrich_merge tid =>
      'SELECT t.id AS tid, t.name, t.hidden, t.locked, t.applicable, t.sexual, coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.order,0) AS order
@@ -42,9 +42,9 @@ sub fetch_chars {
     ');
 
     enrich vns => id => id => sub { sql '
-        SELECT cv.id, cv.vid, cv.rid, cv.spoil, cv.role, v.title, v.original, r.title AS rtitle, r.original AS roriginal
+        SELECT cv.id, cv.vid, cv.rid, cv.spoil, cv.role, v.title, v.alttitle, r.title AS rtitle, r.original AS roriginal
           FROM chars_vns cv
-          JOIN vn v ON v.id = cv.vid
+          JOIN vnt v ON v.id = cv.vid
           LEFT JOIN releases r ON r.id = cv.rid
          WHERE cv.id IN', $_, $vid ? ('AND cv.vid =', \$vid) : (), '
          ORDER BY v.title, cv.vid, cv.rid NULLS LAST'
@@ -91,7 +91,7 @@ sub _rev_ {
         [ main_spoil => 'Spoiler',       fmt => sub { txt_ fmtspoil $_ } ],
         [ image      => 'Image',         fmt => sub { image_ $_ } ],
         [ vns        => 'Visual novels', fmt => sub {
-            a_ href => "/$_->{vid}", title => $_->{original}||$_->{title}, $_->{vid};
+            a_ href => "/$_->{vid}", title => $_->{alttitle}||$_->{title}, $_->{vid};
             if($_->{rid}) {
                 txt_ ' ['; a_ href => "/$_->{rid}", $_->{rid}; txt_ ']';
             }
@@ -181,11 +181,11 @@ sub chartable_ {
                         # Just a VN link, no releases
                         if(!$vn && $v->{rels}->@* == 1 && !$v->{rels}[0]{rid}) {
                             txt_ $CHAR_ROLE{$v->{role}}{txt}.' - ';
-                            a_ href => "/$v->{vid}", title => $v->{original}||$v->{title}, $v->{title};
+                            a_ href => "/$v->{vid}", title => $v->{alttitle}||$v->{title}, $v->{title};
                             spoil_ $v->{spoil};
                         # With releases
                         } else {
-                            a_ href => "/$v->{vid}", title => $v->{original}||$v->{title}, $v->{title} if !$vn;
+                            a_ href => "/$v->{vid}", title => $v->{alttitle}||$v->{title}, $v->{title} if !$vn;
                             br_ if !$vn;
                             join_ \&br_, sub {
                                 b_ class => 'grayedout', '> ';

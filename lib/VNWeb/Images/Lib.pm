@@ -29,10 +29,10 @@ sub enrich_image {
            , COALESCE(v.title, c.name, vsv.title) AS entry_title
         FROM images i
         LEFT JOIN image_votes iv ON iv.id = i.id AND iv.uid =}, \auth->uid, q{
-        LEFT JOIN vn v ON i.id BETWEEN 'cv1' AND vndbid_max('cv') AND v.image = i.id
+        LEFT JOIN vnt v ON i.id BETWEEN 'cv1' AND vndbid_max('cv') AND v.image = i.id
         LEFT JOIN chars c ON i.id BETWEEN 'ch1' AND vndbid_max('ch') AND c.image = i.id
         LEFT JOIN vn_screenshots vs ON i.id BETWEEN 'sf1' AND vndbid_max('sf') AND vs.scr = i.id
-        LEFT JOIN vn vsv ON i.id BETWEEN 'sf1' AND vndbid_max('sf') AND vsv.id = vs.id
+        LEFT JOIN vnt vsv ON i.id BETWEEN 'sf1' AND vndbid_max('sf') AND vsv.id = vs.id
        WHERE i.id IN}, $_
     }, $l;
 

@@ -1,6 +1,6 @@
 module Lib.Util exposing (..)
 
-import Dict
+import Set
 import Task
 import Regex
 import Lib.Ffi as Ffi
@@ -29,11 +29,18 @@ hasDuplicates l =
     step e acc =
       case acc of
         Nothing -> Nothing
-        Just m -> if Dict.member e m then Nothing else Just (Dict.insert e True m)
+        Just m -> if Set.member e m then Nothing else Just (Set.insert e m)
   in
-    case List.foldr step (Just Dict.empty) l of
+    case List.foldr step (Just Set.empty) l of
       Nothing -> True
       Just _  -> False
+
+
+-- Returns true if list a contains elements also in list b
+contains : List comparable -> List comparable -> Bool
+contains a b =
+  let d = Set.fromList b
+  in List.any (\e -> Set.member e d) a
 
 
 -- Haskell's 'lookup' - find an entry in an association list
@@ -82,7 +89,7 @@ jap_ = Maybe.withDefault Regex.never (Regex.fromString "[\\u3000-\\u9fff\\uff00-
 
 -- Not even close to comprehensive, just excludes a few scripts commonly found on VNDB.
 nonlatin_ : Regex.Regex
-nonlatin_ = Maybe.withDefault Regex.never (Regex.fromString "[\\u3000-\\u9fff\\uff00-\\uff9f\\u0400-\\u04ff\\u1100-\\u11ff\\uac00-\\ud7af\\u0600-\\u06ff]")
+nonlatin_ = Maybe.withDefault Regex.never (Regex.fromString "[\\u3000-\\u9fff\\uff00-\\uff9f\\u0400-\\u04ff\\u1100-\\u11ff\\uac00-\\ud7af\\u0600-\\u06ff\\u0e00-\\u0e7f]")
 
 -- This regex can't differentiate between Japanese and Chinese, so has a good chance of returning true for Chinese as well.
 containsJapanese : String -> Bool

@@ -83,7 +83,7 @@ sub metabox_ {
                     a_ style => 'font-weight: bold', href => "/t/$_->{iid}", $_->{iid};
                     txt_ ':';
                     if($_->{title}) {
-                        a_ href => "/$_->{iid}", title => $_->{original}||$_->{title}, $_->{title};
+                        a_ href => "/$_->{iid}", title => $_->{alttitle}||$_->{title}, $_->{title};
                     } else {
                         b_ '[deleted]';
                     }

@@ -33,7 +33,7 @@ sub releases {
 
 
 TUWF::get qr{/$RE{vid}/addreview}, sub {
-    my $v = tuwf->dbRowi('SELECT id, title FROM vn WHERE NOT hidden AND id =', \tuwf->capture('id'));
+    my $v = tuwf->dbRowi('SELECT id, title FROM vnt WHERE NOT hidden AND id =', \tuwf->capture('id'));
     return tuwf->resNotFound if !$v->{id};
 
     my $id = tuwf->dbVali('SELECT id FROM reviews WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
@@ -58,7 +58,7 @@ TUWF::get qr{/$RE{vid}/addreview}, sub {
 TUWF::get qr{/$RE{wid}/edit}, sub {
     my $e = tuwf->dbRowi(
         'SELECT r.id, r.uid AS user_id, r.vid, r.rid, r.isfull, r.modnote, r.text, r.spoiler, r.locked, v.title AS vntitle
-          FROM reviews r JOIN vn v ON v.id = r.vid WHERE r.id =', \tuwf->capture('id')
+          FROM reviews r JOIN vnt v ON v.id = r.vid WHERE r.id =', \tuwf->capture('id')
     );
     return tuwf->resNotFound if !$e->{id};
     return tuwf->resDenied if !can_edit w => $e;

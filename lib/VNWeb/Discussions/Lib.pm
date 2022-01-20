@@ -3,7 +3,7 @@ package VNWeb::Discussions::Lib;
 use VNWeb::Prelude;
 use Exporter 'import';
 
-our @EXPORT = qw/$BOARD_RE sql_visible_threads sql_boards enrich_boards threadlist_ boardsearch_ boardtypes_/;
+our @EXPORT = qw/$BOARD_RE sql_visible_threads enrich_boards threadlist_ boardsearch_ boardtypes_/;
 
 
 our $BOARD_RE = join '|', map $_.($BOARD_TYPE{$_}{dbitem}?'(?:[1-9][0-9]{0,5})?':''), keys %BOARD_TYPE;
@@ -18,25 +18,20 @@ sub sql_visible_threads {
 }
 
 
-# Returns a SELECT subquery with all board IDs
-sub sql_boards {
-    sql q{(   SELECT 'v'::board_type AS btype, id AS iid, title,    original, hidden FROM vn
-    UNION ALL SELECT 'p'::board_type AS btype, id AS iid, name,     original, hidden FROM producers
-    UNION ALL SELECT 'u'::board_type AS btype, id AS iid, username, NULL,     false  FROM users
-    )}
-}
-
-
 # Adds a 'boards' array to threads.
 sub enrich_boards {
     my($filt, @lst) = @_;
-    enrich boards => id => tid => sub { sql q{
-        SELECT tb.tid, tb.type AS btype, tb.iid, b.title, b.original
+    enrich boards => id => tid => sub { sql '
+        SELECT tb.tid, tb.type AS btype, tb.iid
+              , COALESCE(v.title, p.name, u.username) AS title
+              , COALESCE(v.alttitle, p.original) AS alttitle
           FROM threads_boards tb
-          LEFT JOIN }, sql_boards(), q{b ON b.btype = tb.type AND b.iid = tb.iid
-         WHERE }, sql_and(sql('tb.tid IN', $_[0]), $filt||()), q{
+          LEFT JOIN vnt v ON tb.type = \'v\' AND v.id = tb.iid
+          LEFT JOIN producers p ON tb.type = \'p\' AND p.id = tb.iid
+          LEFT JOIN users u ON tb.type = \'u\' AND u.id = tb.iid
+         WHERE ', sql_and(sql('tb.tid IN', $_[0]), $filt||()), '
          ORDER BY tb.type, tb.iid
-    }}, @lst;
+    '}, @lst;
 }
 
 
@@ -94,7 +89,7 @@ sub threadlist_ {
                     b_ class => 'boards', sub {
                         join_ ', ', sub {
                             a_ href => '/t/'.($_->{iid}||$_->{btype}),
-                                title => $_->{original}||$BOARD_TYPE{$_->{btype}}{txt},
+                                title => $_->{alttitle}||$BOARD_TYPE{$_->{btype}}{txt},
                                 shorten $_->{title}||$BOARD_TYPE{$_->{btype}}{txt}, 30;
                         }, $l->{boards}->@[0 .. min 4, $#{$l->{boards}}];
                         txt_ ', ...' if $l->{boards}->@* > 4;

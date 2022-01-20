@@ -86,12 +86,12 @@ sub posts_ {
              ) : (), $reviews ? (
                  sql('SELECT w.id, 0, v.title, w.uid, w.date, w.text
                         FROM reviews w
-                        JOIN vn v ON v.id = w.vid
+                        JOIN vnt v ON v.id = w.vid
                        WHERE NOT w.c_flagged AND bb_tsvector(w.text) @@ to_tsquery(', \$ts, ')'),
                  sql('SELECT wp.id, wp.num, v.title, wp.uid, wp.date, wp.msg
                         FROM reviews_posts wp
                         JOIN reviews w ON w.id = wp.id
-                        JOIN vn v ON v.id = w.vid
+                        JOIN vnt v ON v.id = w.vid
                        WHERE NOT w.c_flagged AND wp.hidden IS NULL AND bb_tsvector(wp.msg) @@ to_tsquery(', \$ts, ')'),
              ) : ()), ') m (id, num, title, uid, date, msg)
           LEFT JOIN users u ON u.id = m.uid

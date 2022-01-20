@@ -97,7 +97,7 @@ TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
               , v.title, rel.title AS rtitle, rel.original AS roriginal, relv.rtype, rv.vote AS my, COALESCE(rv.overrule,false) AS overrule
               , ', sql_user(), ',', sql_totime('r.date'), 'AS date,', sql_totime('r.lastmod'), 'AS lastmod
            FROM reviews r
-           JOIN vn v ON v.id = r.vid
+           JOIN vnt v ON v.id = r.vid
            LEFT JOIN releases rel ON rel.id = r.rid
            LEFT JOIN releases_vn relv ON relv.id = r.rid AND relv.vid = r.vid
            LEFT JOIN users u ON u.id = r.uid

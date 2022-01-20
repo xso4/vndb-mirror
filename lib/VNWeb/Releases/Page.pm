@@ -7,7 +7,7 @@ sub enrich_item {
     my($r) = @_;
 
     enrich_merge pid => 'SELECT id AS pid, name, original FROM producers WHERE id IN', $r->{producers};
-    enrich_merge vid => 'SELECT id AS vid, title, original FROM vn WHERE id IN', $r->{vn};
+    enrich_merge vid => 'SELECT id AS vid, title, alttitle FROM vnt WHERE id IN', $r->{vn};
 
     $r->{lang}      = [ sort { ($a->{mtl}?1:0) <=> ($b->{mtl}?1:0) || $a->{lang} cmp $b->{lang} } $r->{lang}->@* ];
     $r->{platforms} = [ sort map $_->{platform}, $r->{platforms}->@* ];
@@ -24,7 +24,7 @@ sub _rev_ {
     revision_ $r, \&enrich_item,
         [ vn         => 'Relations',       fmt => sub {
             abbr_ class => "icons rt$_->{rtype}", title => $_->{rtype}, ' ';
-            a_ href => "/$_->{vid}", title => $_->{original}||$_->{title}, $_->{title};
+            a_ href => "/$_->{vid}", title => $_->{alttitle}||$_->{title}, $_->{title};
             txt_ " ($_->{rtype})" if $_->{rtype} ne 'complete';
         } ],
         [ official   => 'Official',        fmt => 'bool' ],
@@ -66,7 +66,7 @@ sub _infotable_ {
             td_ sub {
                 join_ \&br_, sub {
                     abbr_ class => "icons rt$_->{rtype}", title => $_->{rtype}, ' ';
-                    a_ href => "/$_->{vid}", title => $_->{original}||$_->{title}, $_->{title};
+                    a_ href => "/$_->{vid}", title => $_->{alttitle}||$_->{title}, $_->{title};
                     txt_ " ($_->{rtype})" if $_->{rtype} ne 'complete';
                 }, $r->{vn}->@*
             }

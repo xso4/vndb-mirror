@@ -69,7 +69,7 @@ TUWF::get qr{/g/links}, sub {
     my($lst, $np) = tuwf->dbPagei({ page => $opt->{p}, results => 50 }, '
         SELECT tv.vid, tv.uid, tv.tag, tv.vote, tv.spoiler,', sql_totime('tv.date'), 'as date, tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) AS ignore, tv.notes, v.title,', sql_user(), ', t.name
           FROM tags_vn tv
-          JOIN vn v ON v.id = tv.vid
+          JOIN vnt v ON v.id = tv.vid
           LEFT JOIN users u ON u.id = tv.uid
           JOIN tags t ON t.id = tv.tag
          WHERE', $where, '
@@ -98,7 +98,7 @@ TUWF::get qr{/g/links}, sub {
                     li_ sub {
                         txt_ '['; a_ href => url(v=>undef, p=>undef), 'remove'; txt_ '] ';
                         txt_ 'Visual novel'; txt_ ' ';
-                        a_ href => "/$opt->{v}", tuwf->dbVali('SELECT title FROM vn WHERE id=', \$opt->{v})||'Unknown VN';
+                        a_ href => "/$opt->{v}", tuwf->dbVali('SELECT title FROM vnt WHERE id=', \$opt->{v})||'Unknown VN';
                     } if defined $opt->{v};
                 }
             }

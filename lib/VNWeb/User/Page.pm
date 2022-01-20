@@ -142,9 +142,9 @@ sub _votestats_ {
     };
 
     my $recent = tuwf->dbAlli('
-        SELECT vn.id, vn.title, vn.original, uv.vote,', sql_totime('uv.vote_date'), 'AS date
+        SELECT v.id, v.title, v.alttitle, uv.vote,', sql_totime('uv.vote_date'), 'AS date
           FROM ulist_vns uv
-          JOIN vn ON vn.id = uv.vid
+          JOIN vnt v ON v.id = uv.vid
          WHERE uv.vote IS NOT NULL AND uv.uid =', \$u->{id},
           $own ? () : (
               'AND EXISTS(SELECT 1 FROM ulist_vns_labels uvl JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl WHERE uvl.uid = uv.uid AND uvl.vid = uv.vid AND NOT ul.private)'
@@ -159,7 +159,7 @@ sub _votestats_ {
         } } };
         tr_ sub {
             my $v = $_;
-            td_ sub { a_ href => "/$v->{id}", title => $v->{original}||$v->{title}, shorten $v->{title}, 30 };
+            td_ sub { a_ href => "/$v->{id}", title => $v->{alttitle}||$v->{title}, shorten $v->{title}, 30 };
             td_ fmtvote $v->{vote};
             td_ fmtdate $v->{date};
         } for @$recent;

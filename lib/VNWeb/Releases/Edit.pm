@@ -69,7 +69,7 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
 
     to_extlinks $e;
 
-    enrich_merge vid => 'SELECT id AS vid, title FROM vn WHERE id IN', $e->{vn};
+    enrich_merge vid => 'SELECT id AS vid, title FROM vnt WHERE id IN', $e->{vn};
     enrich_merge pid => 'SELECT id AS pid, name FROM producers WHERE id IN', $e->{producers};
 
     $e->@{qw/gtin catalog extlinks/} = elm_empty($FORM_OUT)->@{qw/gtin catalog extlinks/} if $copy;
@@ -85,7 +85,12 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
 
 TUWF::get qr{/$RE{vid}/add}, sub {
     return tuwf->resDenied if !can_edit r => undef;
-    my $v = tuwf->dbRowi('SELECT id, title, original FROM vn WHERE id =', \tuwf->capture('id'));
+    my $v = tuwf->dbRowi('
+        SELECT v.id, v.title AS displaytitle, vo.title, vo.latin
+          FROM vnt v
+          JOIN vn_titles vo ON vo.id = v.id AND vo.lang = v.olang
+         WHERE v.id =', \tuwf->capture('id')
+    );
     return tuwf->resNotFound if !$v->{id};
 
     my $delrel = tuwf->dbAlli('SELECT r.id, r.title, r.original FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE r.hidden AND rv.vid =', \$v->{id}, 'ORDER BY id');
@@ -93,16 +98,16 @@ TUWF::get qr{/$RE{vid}/add}, sub {
 
     my $e = {
         elm_empty($FORM_OUT)->%*,
-        title    => $v->{title},
-        original => $v->{original},
-        vn       => [{vid => $v->{id}, title => $v->{title}, rtype => 'complete'}],
+        title    => $v->{latin}//$v->{title},
+        original => $v->{latin} ? $v->{title} : '',
+        vn       => [{vid => $v->{id}, title => $v->{displaytitle}, rtype => 'complete'}],
         official => 1,
     };
     $e->{authmod} = auth->permDbmod;
 
-    framework_ title => "Add release to $v->{title}",
+    framework_ title => "Add release to $v->{displaytitle}",
     sub {
-        editmsg_ r => undef, "Add release to $v->{title}";
+        editmsg_ r => undef, "Add release to $v->{displaytitle}";
 
         div_ class => 'mainbox', sub {
             h1_ 'Deleted releases';

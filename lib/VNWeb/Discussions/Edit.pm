@@ -112,8 +112,10 @@ elm_api DiscussionsEdit => $FORM_OUT, $FORM_IN, sub {
 TUWF::get qr{(?:/t/(?<board>$BOARD_RE)/new|/$RE{tid}\.1/edit)}, sub {
     my $board_id = tuwf->capture('board')||'';
     my($board_type) = $board_id =~ /^([^0-9]+)/;
-    $board_id = undef if $board_id !~ /[0-9]$/;
+    $board_id = $board_id =~ /[0-9]$/ ? dbobj $board_id : undef;
     my $tid = tuwf->capture('id');
+
+    return tuwf->resNotFound if $board_id && !$board_id->{id};
 
     $board_type = 'ge' if $board_type && $board_type eq 'an' && !auth->permBoardmod;
 
@@ -136,13 +138,11 @@ TUWF::get qr{(?:/t/(?<board>$BOARD_RE)/new|/$RE{tid}\.1/edit)}, sub {
     } else {
         $t->{boards} = [ {
             btype => $board_type,
-            iid   => $board_id||undef,
-            title => !$board_id ? undef :
-                tuwf->dbVali('SELECT title FROM', sql_boards(), 'x WHERE btype =', \$board_type, 'AND iid =', \$board_id)
+            iid   => $board_id ? $board_id->{id} : undef,
+            title => $board_id ? $board_id->{title} : undef,
         } ];
-        return tuwf->resNotFound if $board_id && !length $t->{boards}[0]{title};
         push $t->{boards}->@*, { btype => 'u', iid => auth->uid, title => auth->user->{user_name} }
-            if $board_type eq 'u' && $board_id ne auth->uid;
+            if $board_type eq 'u' && $board_id->{id} ne auth->uid;
     }
 
     $t->{can_mod}     = auth->permBoardmod;

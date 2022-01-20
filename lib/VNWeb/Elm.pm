@@ -104,7 +104,7 @@ our %apis = (
     VNResult       => [ { aoh => { # Response to 'VN'
         id       => { vndbid => 'v' },
         title    => {},
-        original => { required => 0, default => '' },
+        alttitle => { required => 0, default => '' },
         hidden   => { anybool => 1 },
     } } ],
     ProducerResult => [ { aoh => { # Response to 'Producers'

@@ -15,17 +15,21 @@ sub data {
     # We'd like ISO7601/RFC3339 timestamps in UTC with accuracy to the second.
     my sub tz { sql 'to_char(', $_[0], ' at time zone \'utc\',', \'YYYY-MM-DD"T"HH24:MM:SS"Z"', ') as', $_[1] }
 
+    # XXX: This keeps the old "title"/"original" fields for compatibility, but
+    # should the export take user title preferences into account instead? Or
+    # export all known titles?
     my $d = {
         'export-date' => tuwf->dbVali(select => tz('NOW()', 'now')),
         user   => tuwf->dbRowi('SELECT id, username as name FROM users WHERE id =', \$uid),
         labels => tuwf->dbAlli('SELECT id, label, private FROM ulist_labels WHERE uid =', \$uid, 'ORDER BY id'),
         vns    => tuwf->dbAlli('
-            SELECT v.id, v.title, v.original, uv.vote, uv.started, uv.finished, uv.notes
+            SELECT v.id, COALESCE(vo.latin, vo.title) AS title, CASE WHEN vo.latin IS NULL THEN \'\' ELSE vo.title END AS original, uv.vote, uv.started, uv.finished, uv.notes
                  , ', sql_comma(tz('uv.added', 'added'), tz('uv.lastmod', 'lastmod'), tz('uv.vote_date', 'vote_date')), '
               FROM ulist_vns uv
               JOIN vn v ON v.id = uv.vid
+              JOIN vn_titles vo ON vo.id = v.id AND vo.lang = v.olang
              WHERE uv.uid =', \$uid, '
-             ORDER BY v.title')
+             ORDER BY title')
     };
     enrich labels => id => vid => sub { sql '
         SELECT uvl.vid, ul.id, ul.label, ul.private
