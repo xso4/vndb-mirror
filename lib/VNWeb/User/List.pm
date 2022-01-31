@@ -70,7 +70,7 @@ TUWF::get qr{/u/(?<char>[0a-z]|all)}, sub {
         $char eq 'all' ? () : sql('match_firstchar(username, ', \$char, ')'),
         $opt->{q} ? sql_or(
             auth->permUsermod && $opt->{q} =~ /@/ ? sql('id IN(SELECT y FROM user_emailtoid(', \$opt->{q}, ') x(y))') : (),
-            $opt->{q} =~ /^u?([0-9]{1,6})$/ ? sql 'id =', \"u$1" : (),
+            $opt->{q} =~ /^u?$RE{num}$/ ? sql 'id =', \"u$1" : (),
             sql('username ILIKE', \('%'.sql_like($opt->{q}).'%')),
         ) : ()
     );
