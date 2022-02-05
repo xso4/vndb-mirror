@@ -44,7 +44,7 @@ sub TABLEOPTS {
             name => 'Popularity score',
             compat => 'pop',
             sort_id => 3,
-            sort_sql => 'v.c_popularity ?o NULLS LAST, v.title',
+            sort_sql => 'v.c_popularity ?o, v.title',
             vis_id => 0,
             vis_default => 1,
         },

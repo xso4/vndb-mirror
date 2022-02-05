@@ -219,8 +219,8 @@ CREATE OR REPLACE FUNCTION update_vnvotestats() RETURNS void AS $$
      GROUP BY vid
   ), stats(vid, rating, count, average, popularity, pop_rank, rat_rank) AS ( -- Combined stats
     SELECT v.id, (r.rating*10)::smallint, COALESCE(r.count, 0), r.average
-         , (p.win/(SELECT MAX(win) FROM popularities)*10000)::smallint
-         , CASE WHEN p.win    IS NULL THEN NULL ELSE rank() OVER(ORDER BY hidden, p.win    DESC NULLS LAST) END
+         , COALESCE((p.win/(SELECT MAX(win) FROM popularities)*10000)::smallint, 0)
+         , rank() OVER(ORDER BY hidden, p.win DESC NULLS LAST)
          , CASE WHEN r.rating IS NULL THEN NULL ELSE rank() OVER(ORDER BY hidden, r.rating DESC NULLS LAST) END
       FROM vn v
       LEFT JOIN ratings r ON r.vid = v.id
