@@ -88,6 +88,7 @@ my @pref_columns = qw/
     tags_all tags_cont tags_ero tags_tech
     spoilers traits_sexual max_sexual max_violence
     nodistract_can nodistract_noads nodistract_nofancy
+    title_langs alttitle_langs
 /;
 
 

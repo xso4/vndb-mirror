@@ -373,7 +373,7 @@ sub infobox_ {
     div_ class => 'mainbox', sub {
         itemmsg_ $v;
         h1_ $v->{title};
-        h2_ class => 'alttitle', lang_attr($v->{olang}), $v->{alttitle} if $v->{alttitle};
+        h2_ class => 'alttitle', lang_attr($v->{olang}), $v->{alttitle} if $v->{alttitle} && $v->{alttitle} ne $v->{title};
 
         div_ class => 'vndetails', sub {
             div_ class => 'vnimg', sub { image_ $v->{image}, alt => $v->{title}; };

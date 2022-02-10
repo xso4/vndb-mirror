@@ -2,6 +2,7 @@ package VNWeb::User::Edit;
 
 use VNWeb::Prelude;
 use VNDB::Skins;
+use VNWeb::LangPref;
 
 
 my $FORM = {
@@ -43,6 +44,9 @@ my $FORM = {
         skin            => { enum => skins },
         customcss       => { required => 0, default => '', maxlength => 2000 },
 
+        title_langs     => { langpref => 1 },
+        alttitle_langs  => { langpref => 1 },
+
         # Supporter options
         nodistract_noads   => { anybool => 1 },
         nodistract_nofancy => { anybool => 1 },
@@ -80,11 +84,13 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
     $u->{prefs} = $u->{id} eq auth->uid || auth->permUsermod ?
         tuwf->dbRowi(
             'SELECT max_sexual, max_violence, traits_sexual, tags_all, tags_cont, tags_ero, tags_tech, spoilers, skin, customcss
-                  , nodistract_noads, nodistract_nofancy, support_enabled, uniname, pubskin_enabled
+                  , nodistract_noads, nodistract_nofancy, support_enabled, uniname, pubskin_enabled, title_langs, alttitle_langs
                FROM users WHERE id =', \$u->{id}
         ) : undef;
     $u->{prefs}{email} = _getmail $u->{id} if $u->{prefs};
     $u->{prefs}{skin} ||= config->{skin_default} if $u->{prefs};
+    $u->{prefs}{title_langs}    = langpref_parse($u->{prefs}{title_langs})    // $DEFAULT_TITLE_LANGS;
+    $u->{prefs}{alttitle_langs} = langpref_parse($u->{prefs}{alttitle_langs}) // $DEFAULT_ALTTITLE_LANGS;
 
     $u->{admin} = auth->permDbmod || auth->permUsermod || auth->permTagmod || auth->permBoardmod ?
         tuwf->dbRowi('SELECT ign_votes, ', sql_comma(map "perm_$_", auth->listPerms), 'FROM users u JOIN users_shadow us ON us.id = u.id WHERE u.id =', \$u->{id}) : undef;
@@ -115,9 +121,13 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
         $p->{uniname} = '' if $p->{uniname} eq $username;
         return elm_Taken if $p->{uniname} && tuwf->dbVali('SELECT 1 FROM users WHERE id <>', \$data->{id}, 'AND username =', \lc($p->{uniname}));
 
+        $p->{title_langs}    = langpref_fmt $p->{title_langs};
+        $p->{alttitle_langs} = langpref_fmt $p->{alttitle_langs};
+        $p->{title_langs}    = undef if $p->{title_langs}    && $p->{title_langs}    eq langpref_fmt $DEFAULT_TITLE_LANGS;
+        $p->{alttitle_langs} = undef if $p->{alttitle_langs} && $p->{alttitle_langs} eq langpref_fmt $DEFAULT_ALTTITLE_LANGS;
         $set{$_} = $p->{$_} for qw/
             max_sexual max_violence traits_sexual tags_all tags_cont tags_ero tags_tech spoilers skin customcss
-            nodistract_noads nodistract_nofancy support_enabled uniname pubskin_enabled
+            nodistract_noads nodistract_nofancy support_enabled uniname pubskin_enabled title_langs alttitle_langs
         /;
     }
 

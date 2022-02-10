@@ -22,6 +22,7 @@ use VNDB::Config;
 use VNWeb::Auth;
 use VNWeb::HTML ();
 use VNWeb::Validation ();
+use VNWeb::LangPref ();
 
 TUWF::set %{ config->{tuwf} };
 

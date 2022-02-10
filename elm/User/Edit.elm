@@ -8,6 +8,7 @@ import Html.Keyed as K
 import Browser
 import Browser.Navigation exposing (load)
 import Lib.Html exposing (..)
+import Lib.Util exposing (..)
 import Lib.Api as Api
 import Gen.Api as GApi
 import Gen.Types as GT
@@ -76,6 +77,13 @@ type AdminMsg
   | PermNone
   | PermDefault
 
+type LangPrefMsg
+  = LangAdd
+  | LangDel Int
+  | LangSet Int String
+  | LangOfficial Int Bool
+  | LangLatin Int Bool
+
 type PrefMsg
   = EMail String
   | MaxSexual Int
@@ -93,6 +101,8 @@ type PrefMsg
   | Support Bool
   | PubSkin Bool
   | Uniname String
+  | TitleLang LangPrefMsg
+  | AltTitleLang LangPrefMsg
 
 type PassMsg
   = CPass Bool
@@ -150,6 +160,19 @@ updateAdmin msg model =
       , ign_votes     = model.ign_votes
       }
 
+updateLangPrefs : LangPrefMsg -> List GUE.SendPrefsTitle_Langs -> List GUE.SendPrefsTitle_Langs
+updateLangPrefs msg model =
+  case msg of
+    LangAdd ->
+      let new = { lang = Just "en", official = True, latin = False }
+      in if List.any (\e -> e.lang == Nothing) model
+         then List.concatMap (\e -> if e.lang == Nothing then [new, e] else [e]) model
+         else model ++ [new]
+    LangDel n -> delidx n model
+    LangSet n s -> modidx n (\e -> { e | lang = if s == "" then Nothing else Just s }) model
+    LangOfficial n b -> modidx n (\e -> { e | official = b }) model
+    LangLatin n b -> modidx n (\e -> { e | latin = b }) model
+
 updatePrefs : PrefMsg -> GUE.SendPrefs -> GUE.SendPrefs
 updatePrefs msg model =
   case msg of
@@ -169,6 +192,8 @@ updatePrefs msg model =
     Support b  -> { model | support_enabled = b }
     PubSkin b  -> { model | pubskin_enabled = b }
     Uniname n  -> { model | uniname = n }
+    TitleLang m   -> { model | title_langs    = updateLangPrefs m model.title_langs }
+    AltTitleLang m-> { model | alttitle_langs = updateLangPrefs m model.alttitle_langs }
 
 updatePass : PassMsg -> PassData -> PassData
 updatePass msg model =
@@ -260,6 +285,24 @@ view model =
       , perm opts.uniname_can    <| formField "uniname::Display name" [ inputText "uniname" (if m.uniname == "" then model.username else m.uniname) (Prefs << Uniname) GUE.valPrefsUniname ]
       ]
 
+    langprefsform m alt = table [] <|
+        tfoot [] [ tr [] [ td [ colspan 5 ]
+          [ if List.length m < 3
+            then inputButton "Add language" LangAdd []
+            else text ""
+          ]
+        ] ] :: List.indexedMap (\n e -> tr []
+        [ td [] [ text ("#" ++ String.fromInt (n+1)) ]
+        , td [] [ if not alt && e.lang == Nothing
+                  then text "Original language"
+                  else inputSelect "" (Maybe.withDefault "" e.lang) (LangSet n) [style "width" "200px"] ((if alt then [("", "Original language")] else []) ++ GT.languages) ]
+          -- TODO: Only display this flag for languages for which it makes sense
+        , td [] [ label [] [ inputCheck "" e.latin (LangLatin n), text " romanized" ] ]
+        , td [] [ if e.lang == Nothing then text "" else label [] [ inputCheck "" e.official (LangOfficial n), text " only official titles" ] ]
+        , td [] [ if not alt && e.lang == Nothing then text "" else inputButton "remove" (LangDel n) [] ]
+        ]
+      ) m
+
     prefsform m =
       [ tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Preferences" ] ]
       , formField "NSFW"
@@ -278,6 +321,14 @@ view model =
           ]
         ]
       , formField ""     [ label [] [ inputCheck "" m.traits_sexual (Prefs << TraitsSexual), text " Show sexual traits by default on character pages" ], br_ 2 ]
+      , formField "Title language" <|
+        [ Html.map (Prefs << TitleLang) (langprefsform m.title_langs False) ]
+      , formField "Alternative title" <|
+        [ text "The alternative title is displayed below the main title and when hovering your cursor over links."
+        , br [] []
+        , Html.map (Prefs << AltTitleLang) (langprefsform m.alttitle_langs True)
+        , br [] []
+        ]
       , formField "Tags" [ label [] [ inputCheck "" m.tags_all      (Prefs << TagsAll),      text " Show all tags by default on visual novel pages (don't summarize)" ] ]
       , formField ""
         [ text "Default tag categories on visual novel pages:", br_ 1
