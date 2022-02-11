@@ -20,7 +20,7 @@ use Encode 'decode_utf8', 'encode_utf8';
 my $GETBOARDS = q{array_to_string(array(
       SELECT tb.type||COALESCE(':'||COALESCE(u.username, v.title, p.name), '')
       FROM threads_boards tb
-      LEFT JOIN vn v ON tb.type = 'v' AND v.id = tb.iid
+      LEFT JOIN vnt v ON tb.type = 'v' AND v.id = tb.iid
       LEFT JOIN producers p ON tb.type = 'p' AND p.id = tb.iid
       LEFT JOIN users u ON tb.type = 'u' AND u.id = tb.iid
       WHERE tb.tid = t.id
@@ -269,7 +269,7 @@ sub handleid {
   # plain vn/user/producer/thread/tag/trait/release
   pg_cmd 'SELECT $1::vndbid AS id, '.(
     $id =~ /^t/ ? 'title, '.$GETBOARDS.' FROM threads t WHERE NOT t.hidden AND NOT t.private AND t.id = $1' :
-    $id =~ /^w/ ? 'v.title, u.username FROM reviews w JOIN vn v ON v.id = w.vid LEFT JOIN users u ON u.id = w.uid WHERE w.id = $1' :
+    $id =~ /^w/ ? 'v.title, u.username FROM reviews w JOIN vnt v ON v.id = w.vid LEFT JOIN users u ON u.id = w.uid WHERE w.id = $1' :
                   'title FROM item_info($1,NULL) x'),
     [ $id ], $c if !$rev && $id =~ /^[dvprtugicsw]/;
 
@@ -322,7 +322,7 @@ sub notify {
   review => q{
     SELECT w.id, v.title, u.username, w.id AS lastid
     FROM reviews w
-    JOIN vn v ON v.id = w.vid
+    JOIN vnt v ON v.id = w.vid
     LEFT JOIN users u ON u.id = w.uid
     WHERE w.id > $1
     ORDER BY w.id}
@@ -365,9 +365,9 @@ vn => [ 0, 0, sub {
   my($nick, $chan, $q) = @_;
   return $irc->send_msg(PRIVMSG => $chan, 'You forgot the search query, dummy~~!') if !$q;
 
-  pg_cmd qq{
+  pg_cmd q{
     SELECT id, title
-      FROM vn
+      FROM vnt
      WHERE NOT hidden AND c_search LIKE ALL (search_query($1))
      ORDER BY title
      LIMIT 6

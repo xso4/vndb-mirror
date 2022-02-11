@@ -444,7 +444,7 @@ sub image_flagging {
 # }
 # filters => filters args for get_filters() (TODO: Document)
 my %GET_VN = (
-  sql     => 'SELECT %s FROM vn v LEFT JOIN images i ON i.id = v.image WHERE NOT v.hidden AND (%s) %s',
+  sql     => 'SELECT %s FROM vnt v LEFT JOIN images i ON i.id = v.image WHERE NOT v.hidden AND (%s) %s',
   select  => 'v.id',
   proc    => sub {
     $_[0]{id} = idnum $_[0]{id};
@@ -460,7 +460,7 @@ my %GET_VN = (
   },
   flags  => {
     basic => {
-      select => 'v.title, v.original, v.c_released, v.c_languages, v.olang, v.c_platforms',
+      select => 'v.title, v.alttitle AS original, v.c_released, v.c_languages, v.olang, v.c_platforms',
       proc   => sub {
         $_[0]{original}  ||= undef;
         $_[0]{platforms} = splitarray delete $_[0]{c_platforms};
@@ -514,8 +514,8 @@ my %GET_VN = (
       ]],
     },
     relations => {
-      fetch => [[ 'id', 'SELECT vr.id AS vid, v.id, vr.relation, v.title, v.original, vr.official FROM vn_relations vr
-                     JOIN vn v ON v.id = vr.vid WHERE vr.id IN(%s)',
+      fetch => [[ 'id', 'SELECT vr.id AS vid, v.id, vr.relation, v.title, v.alttitle AS original, vr.official FROM vn_relations vr
+                     JOIN vnt v ON v.id = vr.vid WHERE vr.id IN(%s)',
         sub { my($r, $n) = @_;
           for my $i (@$r) {
             $i->{relations} = [ grep $i->{id} eq $_->{vid}, @$n ];
@@ -591,13 +591,13 @@ my %GET_VN = (
       [ str   => 'v.title ILIKE :value:', {'~',1}, process => \'like' ],
     ],
     original => [
-      [ undef,   "v.original :op: ''", {qw|= =  != <>|} ],
-      [ str   => 'v.original :op: :value:', {qw|= =  != <>|} ],
-      [ str   => 'v.original ILIKE :value:', {'~',1}, process => \'like' ]
+      [ undef,   "v.alttitle :op: ''", {qw|= =  != <>|} ],
+      [ str   => 'v.alttitle :op: :value:', {qw|= =  != <>|} ],
+      [ str   => 'v.alttitle ILIKE :value:', {'~',1}, process => \'like' ]
     ],
     firstchar => [
-      [ undef,   '(:op: ((ASCII(v.title) < 97 OR ASCII(v.title) > 122) AND (ASCII(v.title) < 65 OR ASCII(v.title) > 90)))', {'=', '', '!=', 'NOT'} ],
-      [ str   => 'LOWER(SUBSTR(v.title, 1, 1)) :op: :value:' => {qw|= = != <>|}, process => sub { shift =~ /^([a-z])$/ ? $1 : \'Invalid character' } ],
+      [ undef,   ':op: match_firstchar(v.title, \'0\')', {'=', '', '!=', 'NOT'} ],
+      [ str   => ':op: match_firstchar(v.title, :value:)', {'=', '', '!=', 'NOT'}, process => sub { shift =~ /^([a-z])$/ ? $1 : \'Invalid character' } ],
     ],
     released => [
       [ undef,   'v.c_released :op: 0', {qw|= =  != <>|} ],
@@ -701,7 +701,7 @@ my %GET_RELEASE = (
       ]
     },
     vn => {
-      fetch => [[ 'id', 'SELECT rv.id AS rid, rv.rtype, v.id, v.title, v.original FROM releases_vn rv JOIN vn v ON v.id = rv.vid
+      fetch => [[ 'id', 'SELECT rv.id AS rid, rv.rtype, v.id, v.title, v.alttitle AS original FROM releases_vn rv JOIN vnt v ON v.id = rv.vid
                     WHERE NOT v.hidden AND rv.id IN(%s)',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
@@ -1074,7 +1074,7 @@ my %GET_STAFF = (
 
 
 my %GET_QUOTE = (
-  sql     => "SELECT %s FROM quotes q JOIN vn v ON v.id = q.vid WHERE NOT v.hidden AND (%s) %s",
+  sql     => "SELECT %s FROM quotes q JOIN vnt v ON v.id = q.vid WHERE NOT v.hidden AND (%s) %s",
   select  => "v.id, v.title, q.quote",
   proc    => sub {
     $_[0]{id} = idnum $_[0]{id};
