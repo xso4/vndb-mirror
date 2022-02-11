@@ -33,7 +33,7 @@ sub review_ {
         tr_ sub {
             td_ 'Subject';
             td_ sub {
-                a_ href => "/$w->{vid}", $w->{title};
+                a_ href => "/$w->{vid}", title => $w->{alttitle}||$w->{title}, $w->{title};
                 if($w->{rid}) {
                     br_;
                     platform_ $_ for $w->{platforms}->@*;
@@ -94,7 +94,7 @@ TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
     my($id, $sep, $num) = (tuwf->capture('id'), tuwf->capture('sep')||'', tuwf->capture('num'));
     my $w = tuwf->dbRowi(
         'SELECT r.id, r.vid, r.rid, r.isfull, r.modnote, r.text, r.spoiler, r.locked, COALESCE(c.count,0) AS count, r.c_flagged, r.c_up, r.c_down, uv.vote, rm.id IS NULL AS can
-              , v.title, rel.title AS rtitle, rel.original AS roriginal, relv.rtype, rv.vote AS my, COALESCE(rv.overrule,false) AS overrule
+              , v.title, v.alttitle, rel.title AS rtitle, rel.original AS roriginal, relv.rtype, rv.vote AS my, COALESCE(rv.overrule,false) AS overrule
               , ', sql_user(), ',', sql_totime('r.date'), 'AS date,', sql_totime('r.lastmod'), 'AS lastmod
            FROM reviews r
            JOIN vnt v ON v.id = r.vid

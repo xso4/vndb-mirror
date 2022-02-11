@@ -205,7 +205,7 @@ sub releases_ {
 
 sub reviews_ {
     my $lst = tuwf->dbAlli('
-        SELECT w.id, v.title, w.isfull, ', sql_user(), ',', sql_totime('w.date'), 'AS date
+        SELECT w.id, v.title, v.alttitle, w.isfull, ', sql_user(), ',', sql_totime('w.date'), 'AS date
           FROM reviews w
           JOIN vnt v ON v.id = w.vid
           LEFT JOIN users u ON u.id = w.uid
@@ -220,7 +220,7 @@ sub reviews_ {
             span_ sub {
                 txt_ fmtage($_->{date}).' ';
                 b_ class => 'grayedout', $_->{isfull} ? ' Full ' : ' Mini ';
-                a_ href => "/$_->{id}", title => $_->{title}, $_->{title};
+                a_ href => "/$_->{id}", title => $_->{alttitle}||$_->{title}, $_->{title};
             };
             span_ sub {
                 lit_ 'by ';
