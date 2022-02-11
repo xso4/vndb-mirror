@@ -107,9 +107,10 @@ TUWF::get qr{/$RE{vrev}/edit} => sub {
          ORDER BY name, id'
     );
 
-    framework_ title => "Edit $e->{title}", dbobj => $e, tab => 'edit',
+    my $title = tuwf->dbVali('SELECT title FROM vnt WHERE id =', \$e->{id});
+    framework_ title => "Edit $title", dbobj => $e, tab => 'edit',
     sub {
-        editmsg_ v => $e, "Edit $e->{title}";
+        editmsg_ v => $e, "Edit $title";
         elm_ VNEdit => $FORM_OUT, $e;
     };
 };
