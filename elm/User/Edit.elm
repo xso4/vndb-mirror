@@ -1,6 +1,7 @@
 module User.Edit exposing (main)
 
 import Bitwise exposing (..)
+import Set
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -233,6 +234,9 @@ update msg model =
     Submitted r -> ({ model | state = Api.Error r }, Cmd.none)
 
 
+-- Languages with different writing systems than Latin
+romanizedLangs = Set.fromList [ "ar", "fa", "he", "hi", "ja", "ko", "ru", "sk", "th", "uk", "ur", "zh" ]
+
 
 view : Model -> Html Msg
 view model =
@@ -296,8 +300,7 @@ view model =
         , td [] [ if not alt && e.lang == Nothing
                   then text "Original language"
                   else inputSelect "" (Maybe.withDefault "" e.lang) (LangSet n) [style "width" "200px"] ((if alt then [("", "Original language")] else []) ++ GT.languages) ]
-          -- TODO: Only display this flag for languages for which it makes sense
-        , td [] [ label [] [ inputCheck "" e.latin (LangLatin n), text " romanized" ] ]
+        , td [] [ if Set.member (Maybe.withDefault "" e.lang) romanizedLangs then label [] [ inputCheck "" e.latin (LangLatin n), text " romanized" ] else text "" ]
         , td [] [ if e.lang == Nothing then text "" else label [] [ inputCheck "" e.official (LangOfficial n), text " only official titles" ] ]
         , td [] [ if not alt && e.lang == Nothing then text "" else inputButton "remove" (LangDel n) [] ]
         ]
