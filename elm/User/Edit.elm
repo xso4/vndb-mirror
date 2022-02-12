@@ -235,7 +235,7 @@ update msg model =
 
 
 -- Languages with different writing systems than Latin
-romanizedLangs = Set.fromList [ "", "ar", "fa", "he", "hi", "ja", "ko", "ru", "sk", "th", "uk", "ur", "zh" ]
+romanizedLangs = Set.fromList [ "", "ar", "fa", "he", "hi", "ja", "ko", "ru", "sk", "th", "uk", "ur", "zh", "zh-Hans", "zh-Hant" ]
 
 
 view : Model -> Html Msg

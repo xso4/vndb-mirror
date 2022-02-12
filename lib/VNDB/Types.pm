@@ -60,7 +60,9 @@ hash LANGUAGE =>
     uk => 'Ukrainian',
     ur => 'Urdu',
     vi => 'Vietnamese',
-    zh => 'Chinese';
+    zh => 'Chinese',
+    'zh-Hans' => 'Chinese (simplified)',
+    'zh-Hant' => 'Chinese (traditional)';
 
 
 
