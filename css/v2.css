@@ -18,6 +18,8 @@ a,
 a:hover,
 .fake_link:hover { border-bottom: 1px dotted $maintext; }
 
+summary { cursor: pointer }
+
 table tr.odd,
 table.stripe tbody tr:nth-child(odd):not(.nostripe),
 .docs table tbody tr:nth-child(odd) { background: $boxbg; }
@@ -470,7 +472,7 @@ div.postsearch td.tc3             { width: 90px; }
 
 .vnreleases details { margin: 7px 0 3px 0 }
 .vnreleases details[open] summary b.grayedout { display: none }
-.vnreleases summary { background: $boxbg; font-weight: bold; width: 100%; cursor: pointer }
+.vnreleases summary { background: $boxbg; font-weight: bold; width: 100% }
 .vnreleases summary.mtl { color: $grayedout; }
 
 /***** VN page *******/

@@ -385,21 +385,28 @@ sub infobox_ {
                         debug_ $v;
                     };
                     td_ class => 'title', sub {
-                        table_ sub {
-                            tr_ class => $_->{official}?undef:'grayedout', sub {
+                        sub tlang_ {
+                            my($t) = @_;
+                            tr_ class => $t->{official}?undef:'grayedout', sub {
                                 td_ sub {
-                                    abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, '';
+                                    abbr_ class => "icons lang $t->{lang}", title => $LANGUAGE{$t->{lang}}, '';
                                 };
                                 td_ sub {
-                                    span_ lang_attr($_->{lang}), $_->{title};
-                                    if($_->{latin}) {
+                                    span_ lang_attr($t->{lang}), $t->{title};
+                                    if($t->{latin}) {
                                         br_;
-                                        txt_ $_->{latin};
+                                        txt_ $t->{latin};
                                     }
                                 }
-                            } for (grep $_->{lang} eq $v->{olang}, $v->{titles}->@*),
-                                grep $_->{lang} ne $v->{olang}, sort { $a->{official} cmp $b->{official} || $a->{lang} cmp $b->{lang} } $v->{titles}->@*
-                        };
+                            }
+                        }
+                        table_ sub { tlang_ grep $_->{lang} eq $v->{olang}, $v->{titles}->@* };
+                        details_ sub {
+                            tag_ 'summary', 'Alternative titles...';
+                            table_ sub {
+                                tlang_ $_ for grep $_->{lang} ne $v->{olang}, sort { $b->{official} cmp $a->{official} || $a->{lang} cmp $b->{lang} } $v->{titles}->@*;
+                            };
+                        } if $v->{titles}->@* > 1;
                     };
                 };
 
