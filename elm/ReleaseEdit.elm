@@ -302,13 +302,17 @@ viewGen model =
   , formField "Language(s)"
     [ table [] <| List.indexedMap (\i l ->
         tr []
-        [ td [] [ inputSelect "" l.lang (Lang i) [] <| (if l.lang == "" then [("", "- Add language -")] else []) ++ GT.languages ]
+        [ td [] [ inputSelect "" l.lang (Lang i) [] <| if l.lang == ""
+          then ("", "- Add language -") :: List.filter (\(e,_) -> e /= "zh") GT.languages
+          else GT.languages ]
         , td [] [ if l.lang == "" then text "" else label [] [ inputCheck "" l.mtl (LangMtl i), text " machine translation" ] ]
         , td [] [ if l.lang == "" || List.length model.lang == 1 then text "" else inputButton "remove" (LangDel i) [] ]
         ]
       ) <| model.lang ++ [{lang = "", mtl = False}]
     , if hasDuplicates (List.map (\l -> l.lang) model.lang)
       then b [ class "standout" ] [ text "List contains duplicates", br [] [] ]
+      else if List.any (\e -> e.lang == "zh") model.lang
+      then b [ class "standout" ] [ text "The \"Chinese\" language option should not be used anymore, please indicate whether it is Simplified or Traditional (or both).", br [] [] ]
       else text ""
     ]
   , formField "Platform(s)"

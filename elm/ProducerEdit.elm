@@ -175,7 +175,7 @@ view model =
     geninfo =
       [ formField "ptype::Type" [ inputSelect "ptype" model.ptype PType [] GT.producerTypes ] ]
       ++ titles ++
-      [ formField "lang::Primary language" [ inputSelect "lang" model.lang Lang [] GT.languages ]
+      [ formField "lang::Primary language" [ inputSelect "lang" model.lang Lang [] (List.filter (\(e,_) -> e /= "zh-Hans" && e /= "zh-Hant") GT.languages) ]
       , formField "website::Website" [ inputText "website" model.website Website GPE.valWebsite ]
       , formField "l_wikidata::Wikidata ID" [ inputWikidata "l_wikidata" model.lWikidata LWikidata [] ]
       , formField "desc::Description"

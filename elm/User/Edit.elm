@@ -327,7 +327,7 @@ view model =
       , formField "Title language" <|
         [ Html.map (Prefs << TitleLang) (langprefsform m.title_langs False) ]
       , formField "Alternative title" <|
-        [ text "The alternative title is displayed below the main title and when hovering your cursor over links."
+        [ text "The alternative title is displayed below the main title and as tooltip for links."
         , br [] []
         , Html.map (Prefs << AltTitleLang) (langprefsform m.alttitle_langs True)
         , br [] []

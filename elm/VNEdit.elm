@@ -367,7 +367,7 @@ view model =
       in
       [ formField "Title(s)"
         [ table [] <| List.indexedMap title model.titles
-        , inputSelect "" "" TitleAdd [] <| ("", "- Add title -") :: List.filter (\(l,_) -> not <| List.any (\e -> e.lang == l) model.titles) GT.languages
+        , inputSelect "" "" TitleAdd [] <| ("", "- Add title -") :: List.filter (\(l,_) -> l /= "zh" && not (List.any (\e -> e.lang == l) model.titles)) GT.languages
         , br_ 2
         ]
       , formField "alias::Aliases"
