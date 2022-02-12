@@ -30,9 +30,15 @@ our $DEFAULT_TITLE_LANGS    = [{ lang => undef, latin => 1, official => 1 }];
 our $DEFAULT_ALTTITLE_LANGS = [{ lang => undef, latin => 0, official => 1 }];
 
 
+my $current = '';
+
 TUWF::hook before => sub {
     my $titles    = langpref_parse(auth->pref('title_langs'))    // $DEFAULT_TITLE_LANGS;
     my $alttitles = langpref_parse(auth->pref('alttitle_langs')) // $DEFAULT_ALTTITLE_LANGS;
+
+    my $new = langpref_fmt($titles).langpref_fmt($alttitles);
+    return if $new eq $current;
+    $current = $new;
 
     sub id { ($_[0]{official}?'o':'u').($_[0]{lang}//'') }
 
