@@ -20,13 +20,14 @@ sub enrich_item {
     my($c) = @_;
 
     enrich_image_obj image => $c;
-    enrich_merge vid => 'SELECT id AS vid, title, alttitle FROM vnt WHERE id IN', $c->{vns};
-    enrich_merge rid => 'SELECT id AS rid, title AS rtitle, original AS roriginal FROM releases WHERE id IN', grep $_->{rid}, $c->{vns}->@*;
+    enrich_merge vid => 'SELECT id AS vid, title, alttitle, c_released AS vn_released FROM vnt WHERE id IN', $c->{vns};
+    enrich_merge rid => 'SELECT id AS rid, title AS rtitle, original AS roriginal, released AS rel_released FROM releases WHERE id IN', grep $_->{rid}, $c->{vns}->@*;
     enrich_merge tid =>
      'SELECT t.id AS tid, t.name, t.hidden, t.locked, t.applicable, t.sexual, coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.order,0) AS order
         FROM traits t LEFT JOIN traits g ON t.group = g.id WHERE t.id IN', $c->{traits};
 
-    $c->{vns}    = [ sort { $a->{title} cmp $b->{title} || idcmp($a->{vid}, $b->{vid}) || idcmp($a->{rid}||'r999999', $b->{rid}||'r999999') } $c->{vns}->@* ];
+    $c->{vns}    = [ sort { $a->{vn_released} <=> $b->{vn_released} || ($a->{rel_released}||0) <=> ($b->{rel_released}||0)
+                          || $a->{title} cmp $b->{title} || idcmp($a->{vid}, $b->{vid}) || idcmp($a->{rid}||'r999999', $b->{rid}||'r999999') } $c->{vns}->@* ];
     $c->{traits} = [ sort { $a->{order} <=> $b->{order} || $a->{groupname} cmp $b->{groupname} || $a->{name} cmp $b->{name} } $c->{traits}->@* ];
 }
 
