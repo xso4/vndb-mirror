@@ -63,7 +63,7 @@ CREATE OR REPLACE FUNCTION search_norm_term(str text) RETURNS text AS $$
             translate(lower(public.unaccent(str)), $s$@,_-‐.~～〜∼ー῀:[]()%+!?#$`♥★☆♪†「」『』【】・<>'$s$, 'a'), -- '
             '\s+', '', 'g'),
             '&', 'and', 'g'),
-            'fandisc', 'fandisk', 'g'),
+            'disc', 'disk', 'g'),
             'gray', 'grey', 'g'),
             'colour', 'color', 'g'),
             'senpai', 'sempai', 'g');
