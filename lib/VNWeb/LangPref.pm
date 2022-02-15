@@ -32,6 +32,8 @@ our $DEFAULT_ALTTITLE_LANGS = [{ lang => undef, latin => 0, official => 1 }];
 
 my $current = '';
 
+TUWF::hook db_connect => sub { $current = '' };
+
 TUWF::hook before => sub {
     my $titles    = langpref_parse(auth->pref('title_langs'))    // $DEFAULT_TITLE_LANGS;
     my $alttitles = langpref_parse(auth->pref('alttitle_langs')) // $DEFAULT_ALTTITLE_LANGS;

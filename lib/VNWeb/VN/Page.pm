@@ -402,7 +402,7 @@ sub infobox_ {
                         }
                         table_ sub { tlang_ grep $_->{lang} eq $v->{olang}, $v->{titles}->@* };
                         details_ sub {
-                            tag_ 'summary', 'Alternative titles...';
+                            summary_ 'Alternative titles...';
                             table_ sub {
                                 tlang_ $_ for grep $_->{lang} ne $v->{olang}, sort { $b->{official} cmp $a->{official} || $a->{lang} cmp $b->{lang} } $v->{titles}->@*;
                             };
@@ -512,7 +512,7 @@ sub releases_ {
         my $prefid = $lang.($mtl?'-mtl':'');
         my $open = $pref->{$prefid} // ($lang eq $v->{olang} || !$mtl);
         tag_ 'details', $open ? (open => 'open') : (), auth ? 'data-save-id' : 'data-remember-id', "vnlang-$prefid", sub {
-            tag_ 'summary', $mtl ? (class => 'mtl') : (), sub {
+            summary_ $mtl ? (class => 'mtl') : (), sub {
                 abbr_ class => "icons lang $lang".($mtl?' mtl':''), title => $LANGUAGE{$lang}, '';
                 txt_ $LANGUAGE{$lang};
                 b_ class => 'grayedout', sprintf ' (%d)', scalar $lang{$lang}->@*;
