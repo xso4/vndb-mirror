@@ -286,7 +286,7 @@ viewGen model =
       then b [ class "standout" ] [ br [] [], text "Should not be the same as the Title (romaji). Leave blank if the original title is already in the latin alphabet" ]
       else if model.original /= "" && not (containsNonLatin model.original)
       then b [ class "standout" ] [ br [] [], text "Original title does not seem to contain any non-latin characters. Leave this field empty if the title is already in the latin alphabet" ]
-      else if containsJapanese model.original && not (List.isEmpty model.lang) && not (List.any (\l -> l.lang == "ja" || l.lang == "zh") model.lang)
+      else if containsJapanese model.original && not (List.isEmpty model.lang) && not (List.any (\l -> l.lang == "ja" || l.lang == "zh" || l.lang == "zh-Hans" || l.lang == "zh-Hant") model.lang)
       then b [ class "standout" ] [ br [] [], text "Non-Japanese releases should (probably) not have a Japanese original title." ]
       else text ""
     ]
