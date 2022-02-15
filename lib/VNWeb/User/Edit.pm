@@ -87,10 +87,12 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
                   , nodistract_noads, nodistract_nofancy, support_enabled, uniname, pubskin_enabled, title_langs, alttitle_langs
                FROM users WHERE id =', \$u->{id}
         ) : undef;
-    $u->{prefs}{email} = _getmail $u->{id} if $u->{prefs};
-    $u->{prefs}{skin} ||= config->{skin_default} if $u->{prefs};
-    $u->{prefs}{title_langs}    = langpref_parse($u->{prefs}{title_langs})    // $DEFAULT_TITLE_LANGS;
-    $u->{prefs}{alttitle_langs} = langpref_parse($u->{prefs}{alttitle_langs}) // $DEFAULT_ALTTITLE_LANGS;
+    if($u->{prefs}) {
+        $u->{prefs}{email} = _getmail $u->{id};
+        $u->{prefs}{skin} ||= config->{skin_default};
+        $u->{prefs}{title_langs}    = langpref_parse($u->{prefs}{title_langs})    // $DEFAULT_TITLE_LANGS;
+        $u->{prefs}{alttitle_langs} = langpref_parse($u->{prefs}{alttitle_langs}) // $DEFAULT_ALTTITLE_LANGS;
+    }
 
     $u->{admin} = auth->permDbmod || auth->permUsermod || auth->permTagmod || auth->permBoardmod ?
         tuwf->dbRowi('SELECT ign_votes, ', sql_comma(map "perm_$_", auth->listPerms), 'FROM users u JOIN users_shadow us ON us.id = u.id WHERE u.id =', \$u->{id}) : undef;
