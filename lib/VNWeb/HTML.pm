@@ -655,6 +655,9 @@ sub _revision_diff_ {
     my @old = ref $old->{$field} eq 'ARRAY' ? $old->{$field}->@* : ($old->{$field});
     my @new = ref $new->{$field} eq 'ARRAY' ? $new->{$field}->@* : ($new->{$field});
 
+    @old = map $opt{txt}->(), @old if $opt{txt};
+    @new = map $opt{txt}->(), @new if $opt{txt};
+
     my $JS = JSON::XS->new->utf8->canonical->allow_nonref;
     my $l = sdiff \@old, \@new, sub { _stringify_scalars_rec($_[0]); $JS->encode($_[0]) };
     return if !grep $_->[0] ne 'u', @$l;
@@ -735,6 +738,8 @@ sub _revision_cmp_ {
 #                 If not given, the field is rendered as plain text and changes are highlighted with a diff.
 #                 \%HASH -> Look the field up in the hash table (values should be string or {txt=>string}.
 #                 sub($value) {$_} -> Custom formatting function, should output TUWF::XML data HTML.
+#   txt     => sub{$_} - Text formatting function for individual values.
+#                 Alternative to 'fmt' above; the returned value is treated as a text field with diffing support.
 #   join    => sub{}  - HTML to join multi-value fields, defaults to \&br_.
 #   empty   => str    - What value should be considered "empty", e.g. (empty => 0) for integer fields.
 #                 undef or empty string are always considered empty values.

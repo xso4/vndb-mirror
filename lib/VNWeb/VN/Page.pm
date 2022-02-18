@@ -90,14 +90,8 @@ sub canvote {
 sub rev_ {
     my($v) = @_;
     revision_ $v, \&enrich_item,
-        [ titles      => 'Title(s)',      fmt => sub {
-            abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, '';
-            txt_ $_->{title};
-            if($_->{latin}) {
-                b_ class => 'grayedout', ' / ';
-                txt_ $_->{latin};
-            }
-            b_ class => 'grayedout', ' (unofficial)' if !$_->{official};
+        [ titles      => 'Title(s)',      txt => sub {
+            "[$_->{lang}] $_->{title}".($_->{latin} ? " / $_->{latin}" : '').($_->{official} ? '' : ' (unofficial)')
         }],
         [ alias       => 'Alias'          ],
         [ olang       => 'Original language', fmt => \%LANGUAGE ],
