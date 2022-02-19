@@ -8,7 +8,7 @@ use VNWeb::Releases::Lib;
 my $TABLEOPTS = tableopts
     title => {
         name => 'Title',
-        sort_sql => 'v.title',
+        sort_sql => 'v.sorttitle',
         sort_id => 0,
         compat => 'title',
         sort_default => 'asc',
@@ -270,7 +270,7 @@ sub listing_ {
         !$own ? sql('uv.vid IN(SELECT vid FROM ulist_vns_labels WHERE uid =', \$uid, 'AND lbl IN(SELECT id FROM ulist_labels WHERE uid =', \$uid, 'AND NOT private))') : (),
         @where_vns ? sql_or(@where_vns) : (),
         $opt->{q} ? sql 'v.c_search LIKE ALL (search_query(', \$opt->{q}, '))' : (),
-        defined($opt->{ch}) ? sql 'match_firstchar(v.title, ', \$opt->{ch}, ')' : ();
+        defined($opt->{ch}) ? sql 'match_firstchar(v.sorttitle, ', \$opt->{ch}, ')' : ();
 
     my $count = tuwf->dbVali('SELECT count(*) FROM ulist_vns uv JOIN vnt v ON v.id = uv.vid WHERE', $where);
 
@@ -282,7 +282,7 @@ sub listing_ {
            FROM ulist_vns uv
            JOIN vnt v ON v.id = uv.vid
           WHERE', $where, '
-          ORDER BY', $opt->{s}->sql_order(), 'NULLS LAST, v.title'
+          ORDER BY', $opt->{s}->sql_order(), 'NULLS LAST, v.sorttitle'
     );
 
     enrich_flatten labels => id => vid => sql('SELECT vid, lbl FROM ulist_vns_labels WHERE uid =', \$uid, 'AND vid IN'), $lst;

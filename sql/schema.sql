@@ -1252,10 +1252,10 @@ CREATE TABLE wikidata (
 );
 
 
--- The 'vnt' view is equivalent to the 'vn' table with two additional columns:
--- 'title' and 'alttitle', which represent the display title and the
--- alternative (mouse-hover) title. The view defined here displays the
--- latin/title name of the original language as main title and the title in the
--- original script as alttitle, but this view can be redefined as a TEMPORARY
--- VIEW in sessions to override the default behavior.
-CREATE VIEW vnt AS SELECT v.*, COALESCE(vo.latin, vo.title) AS title, CASE WHEN vo.latin IS NULL THEN '' ELSE vo.title END AS alttitle FROM vn v JOIN vn_titles vo ON vo.id = v.id AND vo.lang = v.olang;
+-- The 'vnt' view is equivalent to the 'vn' table with three additional columns:
+--   title      - main display title
+--   sorttitle  - title used for sorting and alphabet filter (i.e. latin version of 'title')
+--   alttitle   - alternative display title (for e.g. tooltips)
+-- This view can be redefined as a TEMPORARY VIEW in sessions to override the
+-- default behavior.
+CREATE VIEW vnt AS SELECT v.*, COALESCE(vo.latin, vo.title) AS title, COALESCE(vo.latin, vo.title) AS sorttitle, CASE WHEN vo.latin IS NULL THEN '' ELSE vo.title END AS alttitle FROM vn v JOIN vn_titles vo ON vo.id = v.id AND vo.lang = v.olang;

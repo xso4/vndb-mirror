@@ -23,7 +23,7 @@ sub TABLEOPTS {
             name => 'Title',
             compat => 'title',
             sort_id => 1,
-            sort_sql => 'v.title',
+            sort_sql => 'v.sorttitle',
             sort_default => $tags ? undef : 'asc',
         },
         released => {
@@ -44,7 +44,7 @@ sub TABLEOPTS {
             name => 'Popularity score',
             compat => 'pop',
             sort_id => 3,
-            sort_sql => 'v.c_popularity ?o, v.title',
+            sort_sql => 'v.c_popularity ?o, v.sorttitle',
             vis_id => 0,
             vis_default => 1,
         },
@@ -52,20 +52,20 @@ sub TABLEOPTS {
             name => 'Bayesian rating',
             compat => 'rating',
             sort_id => 4,
-            sort_sql => 'v.c_rating ?o NULLS LAST, v.title',
+            sort_sql => 'v.c_rating ?o NULLS LAST, v.sorttitle',
             vis_id => 1,
             vis_default => 1,
         },
         average => {
             name => 'Vote average',
             sort_id => 5,
-            sort_sql => 'v.c_average ?o NULLS LAST, v.title',
+            sort_sql => 'v.c_average ?o NULLS LAST, v.sorttitle',
             vis_id => 3,
         },
         votes => {
             name => 'Number of votes',
             sort_id => 6,
-            sort_sql => 'v.c_votecount ?o, v.title',
+            sort_sql => 'v.c_votecount ?o, v.sorttitle',
         }
 }
 
@@ -264,7 +264,7 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
     my $where = sql_and
         'NOT v.hidden', $opt->{f}->sql_where(),
         $opt->{q} ? sql 'v.c_search LIKE ALL (search_query(', \$opt->{q}, '))' : (),
-        defined($opt->{ch}) ? sql 'match_firstchar(v.title, ', \$opt->{ch}, ')' : ();
+        defined($opt->{ch}) ? sql 'match_firstchar(v.sorttitle, ', \$opt->{ch}, ')' : ();
 
     my $time = time;
     my($count, $list);

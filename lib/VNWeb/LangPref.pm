@@ -59,11 +59,14 @@ sub gen_sql {
     my $title = 'COALESCE('.join(',',
         map +($_->{latin} ? ($joins{ id($_) }.'.latin') : (), $joins{ id($_) }.'.title'), $p->[0]->@*
     ).')';
+    my $sorttitle = 'COALESCE('.join(',',
+        map +($joins{ id($_) }.'.latin', $joins{ id($_) }.'.title'), $p->[0]->@*
+    ).')';
     my $alttitle = 'COALESCE('.join(',',
         (map +($_->{latin} ? ($joins{ id($_) }.'.latin') : (), $joins{ id($_) }.'.title'), $p->[1]->@*), "''"
     ).')';
 
-    sql "SELECT x.*, $title AS title, $alttitle AS alttitle FROM $tbl_main x", @joins;
+    sql "SELECT x.*, $title AS title, $sorttitle AS sorttitle, $alttitle AS alttitle FROM $tbl_main x", @joins;
 }
 
 
