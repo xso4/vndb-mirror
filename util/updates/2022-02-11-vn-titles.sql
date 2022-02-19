@@ -26,12 +26,10 @@ ALTER TABLE vn_titles_hist           ADD CONSTRAINT vn_titles_hist_chid_fkey    
 ALTER TABLE vn                       ADD CONSTRAINT vn_olang_fkey                      FOREIGN KEY (id,olang)  REFERENCES vn_titles     (id,lang)   DEFERRABLE INITIALLY DEFERRED;
 ALTER TABLE vn_hist                  ADD CONSTRAINT vn_hist_olang_fkey                 FOREIGN KEY (chid,olang)REFERENCES vn_titles_hist(chid,lang) DEFERRABLE INITIALLY DEFERRED;
 
--- TODO: actually drop
-ALTER TABLE vn RENAME COLUMN original TO old_original;
-ALTER TABLE vn RENAME COLUMN title TO old_title;
---ALTER TABLE vn RENAME COLUMN old_original TO original;
---ALTER TABLE vn RENAME COLUMN old_title TO title;
---ALTER TABLE vn DROP COLUMN original, DROP COLUMN title;
+ALTER TABLE vn DROP COLUMN original
+ALTER TABLE vn DROP COLUMN title;
+ALTER TABLE vn_hist DROP COLUMN original
+ALTER TABLE vn_hist DROP COLUMN title;
 
 CREATE VIEW vnt AS SELECT v.*, COALESCE(vo.latin, vo.title) AS title, CASE WHEN vo.latin IS NULL THEN '' ELSE vo.title END AS alttitle FROM vn v JOIN vn_titles vo ON vo.id = v.id AND vo.lang = v.olang;
 
