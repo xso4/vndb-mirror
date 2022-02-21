@@ -1016,7 +1016,7 @@ CREATE TABLE users (
   tableopts_vt        integer, -- VN listing on tag pages
   perm_lengthvote     boolean NOT NULL DEFAULT true, -- [pub] (public because this is used in calculating VN lengths)
   title_langs jsonb,
-  alttitle_langs jsonb,
+  alttitle_langs jsonb
 );
 
 -- Additional fields for the 'users' table, but with some protected columns.
