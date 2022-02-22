@@ -16,19 +16,36 @@ our @EXPORT = qw/
     sql_vn_hist
 /;
 
-TUWF::set('custom_validations')->{langpref} = { type => 'array', maxlength => 3, values => { type => 'hash', keys => {
+TUWF::set('custom_validations')->{langpref} = { type => 'array', maxlength => 5, values => { type => 'hash', keys => {
     lang     => { required => 0, enum => \%LANGUAGE }, # undef referring to the original title language
     latin    => { anybool => 1 },
+    original => { anybool => 1 },
     official => { anybool => 1 },
 }}};
 
 my $LANGPREF = tuwf->compile({langpref=>1});
 
-sub langpref_parse { defined $_[0] ? $LANGPREF->validate(JSON::XS->new->decode($_[0]))->data : undef }
-sub langpref_fmt { defined $_[0] ? JSON::XS->new->canonical(1)->encode($LANGPREF->analyze->coerce_for_json($_[0])) : undef }
+sub langpref_parse {
+    return undef if !defined $_[0];
+    my $p = $LANGPREF->validate(JSON::XS->new->decode($_[0]))->data;
+    for (@$p) {
+        $_->{official} = $_->{original} = 1 if !defined $_->{lang};
+    }
+    $p
+}
 
-our $DEFAULT_TITLE_LANGS    = [{ lang => undef, latin => 1, official => 1 }];
-our $DEFAULT_ALTTITLE_LANGS = [{ lang => undef, latin => 0, official => 1 }];
+sub langpref_fmt {
+    return undef if !defined $_[0];
+    JSON::XS->new->canonical(1)->encode([ map +{
+        lang => $_->{lang},
+        $_->{latin} ? (latin => \1) : (),
+        $_->{lang} && $_->{original} ? (original => \1) : (),
+        $_->{lang} && $_->{official} ? (official => \1) : (),
+    }, $_[0]->@*]);
+}
+
+our $DEFAULT_TITLE_LANGS    = [{ lang => undef, latin => 1, official => 1, original => 1 }];
+our $DEFAULT_ALTTITLE_LANGS = [{ lang => undef, latin => 0, official => 1, original => 1 }];
 
 my $DEFAULT_SESSION = langpref_fmt($DEFAULT_TITLE_LANGS).langpref_fmt($DEFAULT_ALTTITLE_LANGS);
 my $CURRENT_SESSION = $DEFAULT_SESSION;
@@ -45,15 +62,17 @@ sub gen_sql {
     my($tbl_main, $tbl_titles, $join_col) = @_;
     my $p = pref;
 
-    sub id { ($_[0]{official}?'o':'u').($_[0]{lang}//'') }
+    sub id { ($_[0]{original}?'r':$_[0]{official}?'o':'u').($_[0]{lang}//'') }
 
     my %joins = map +(id($_),1), $p->[0]->@*, $p->[1]->@*;
     my $var = 'a';
     $joins{$_} = 'x_'.$var++ for sort keys %joins;
     my @joins = map sql(
-        "LEFT JOIN $tbl_titles $joins{$_} ON $joins{$_}.$join_col = x.$join_col
-               AND $joins{$_}.lang =", length($_) > 1 ? \(''.substr($_,1)) : 'x.olang',
-         $_ =~ /^o./ ? "AND $joins{$_}.official" : (),
+        "LEFT JOIN $tbl_titles $joins{$_} ON", sql_and
+            "$joins{$_}.$join_col = x.$join_col",
+            $_ =~ /^r/ ? "$joins{$_}.lang = x.olang" : (),
+            length($_) > 1 ? sql("$joins{$_}.lang =", \(''.substr($_,1))) : (),
+            $_ =~ /^o./ ? "$joins{$_}.official" : (),
     ), sort keys %joins;
 
     my $title = 'COALESCE('.join(',',

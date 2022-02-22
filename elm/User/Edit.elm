@@ -82,7 +82,7 @@ type LangPrefMsg
   = LangAdd
   | LangDel Int
   | LangSet Int String
-  | LangOfficial Int Bool
+  | LangType Int (Bool,Bool)
   | LangLatin Int Bool
 
 type PrefMsg
@@ -165,13 +165,13 @@ updateLangPrefs : LangPrefMsg -> List GUE.SendPrefsTitle_Langs -> List GUE.SendP
 updateLangPrefs msg model =
   case msg of
     LangAdd ->
-      let new = { lang = Just "en", official = True, latin = False }
+      let new = { lang = Just "en", official = True, original = False, latin = False }
       in if List.any (\e -> e.lang == Nothing) model
          then List.concatMap (\e -> if e.lang == Nothing then [new, e] else [e]) model
          else model ++ [new]
     LangDel n -> delidx n model
     LangSet n s -> modidx n (\e -> { e | lang = if s == "" then Nothing else Just s }) model
-    LangOfficial n b -> modidx n (\e -> { e | official = b }) model
+    LangType n (f,r) -> modidx n (\e -> { e | official = f, original = r }) model
     LangLatin n b -> modidx n (\e -> { e | latin = b }) model
 
 updatePrefs : PrefMsg -> GUE.SendPrefs -> GUE.SendPrefs
@@ -291,7 +291,7 @@ view model =
 
     langprefsform m alt = table [] <|
         tfoot [] [ tr [] [ td [ colspan 5 ]
-          [ if List.length m < 3
+          [ if List.length m < 5
             then inputButton "Add language" LangAdd []
             else text ""
           ]
@@ -301,7 +301,8 @@ view model =
                   then text "Original language"
                   else inputSelect "" (Maybe.withDefault "" e.lang) (LangSet n) [style "width" "200px"] ((if alt then [("", "Original language")] else []) ++ GT.languages) ]
         , td [] [ if Set.member (Maybe.withDefault "" e.lang) romanizedLangs then label [] [ inputCheck "" e.latin (LangLatin n), text " romanized" ] else text "" ]
-        , td [] [ if e.lang == Nothing then text "" else label [] [ inputCheck "" e.official (LangOfficial n), text " only official titles" ] ]
+        , td [] [ if e.lang == Nothing then text "" else inputSelect "" (e.official, e.original) (LangType n) []
+                  [ ((True,True), "Only if original title"), ((True,False), "Only if official title"), ((False,False), "Include non-official titles") ] ]
         , td [] [ if not alt && e.lang == Nothing then text "" else inputButton "remove" (LangDel n) [] ]
         ]
       ) m
