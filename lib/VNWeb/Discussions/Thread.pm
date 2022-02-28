@@ -68,9 +68,14 @@ elm_api DiscussionsReply => $REPLY_OUT, $REPLY_IN, sub {
 
 
 sub metabox_ {
-    my($t) = @_;
+    my($t, $posts) = @_;
     div_ class => 'mainbox', sub {
         h1_ sub { lit_ bb_format $t->{title}, idonly => 1 };
+        # UGLY hack: private threads from Multi (u1) are sometimes (ab)used for system notifications, treat that case differently.
+        if ($t->{private} && $posts->[0]{user_id} eq 'u1') {
+            h2_ 'System notification';
+            return;
+        }
         h2_ 'Hidden' if $t->{hidden};
         h2_ 'Private' if $t->{private};
         h2_ 'Locked' if $t->{locked};
@@ -198,7 +203,7 @@ TUWF::get qr{/$RE{tid}(?:(?<sep>[\./])$RE{num})?}, sub {
     auth->notiRead($id, [ map $_->{num}, $posts->@* ]) if @$posts;
 
     framework_ title => $t->{title}, dbobj => $t, $num ? (js => 1, pagevars => {sethash=>$num}) : (), sub {
-        metabox_ $t;
+        metabox_ $t, $posts;
         elm_ 'Discussions.Poll' => $POLL_OUT, {
             question    => $t->{poll_question},
             max_options => $t->{poll_max_options},
