@@ -80,7 +80,7 @@ sub threadlist_ {
             tr_ sub {
                 my $l = $_;
                 td_ class => 'tc1', sub {
-                    my $system = $l->{private} && $l->{firstpost_id} eq 'u1';
+                    my $system = $l->{private} && $l->{firstpost_id} && $l->{firstpost_id} eq 'u1';
                     a_ mkclass(locked => !$system && $l->{locked}), href => "/$l->{id}", sub {
                         span_ class => 'pollflag', '[poll]' if $l->{haspoll};
                         span_ class => 'pollflag', $system ? '[system]' : '[private]' if $l->{private};

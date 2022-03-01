@@ -72,7 +72,7 @@ sub metabox_ {
     div_ class => 'mainbox', sub {
         h1_ sub { lit_ bb_format $t->{title}, idonly => 1 };
         # UGLY hack: private threads from Multi (u1) are sometimes (ab)used for system notifications, treat that case differently.
-        if ($t->{private} && $posts->[0]{user_id} eq 'u1') {
+        if ($t->{private} && $posts->[0]{user_id} && $posts->[0]{user_id} eq 'u1') {
             h2_ 'System notification';
             return;
         }
