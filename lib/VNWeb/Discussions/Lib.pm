@@ -80,9 +80,10 @@ sub threadlist_ {
             tr_ sub {
                 my $l = $_;
                 td_ class => 'tc1', sub {
-                    a_ mkclass(locked => $l->{locked}), href => "/$l->{id}", sub {
+                    my $system = $l->{private} && $l->{firstpost_id} eq 'u1';
+                    a_ mkclass(locked => !$system && $l->{locked}), href => "/$l->{id}", sub {
                         span_ class => 'pollflag', '[poll]' if $l->{haspoll};
-                        span_ class => 'pollflag', '[private]' if $l->{private};
+                        span_ class => 'pollflag', $system ? '[system]' : '[private]' if $l->{private};
                         span_ class => 'pollflag', '[hidden]' if $l->{hidden};
                         txt_ shorten $l->{title}, 50;
                     };
@@ -93,7 +94,7 @@ sub threadlist_ {
                                 shorten $_->{title}||$BOARD_TYPE{$_->{btype}}{txt}, 30;
                         }, $l->{boards}->@[0 .. min 4, $#{$l->{boards}}];
                         txt_ ', ...' if $l->{boards}->@* > 4;
-                    };
+                    } if !$system;
                 };
                 td_ class => 'tc2', $l->{c_count}-1;
                 td_ class => 'tc3', sub { user_ $l, 'firstpost_' };
