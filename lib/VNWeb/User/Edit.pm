@@ -44,6 +44,12 @@ my $FORM = {
         skin            => { enum => skins },
         customcss       => { required => 0, default => '', maxlength => 2000 },
 
+        traits          => { sort_keys => 'tid', maxlength => 100, aoh => {
+            tid     => { vndbid => 'i' },
+            name    => {},
+            group   => { required => 0 },
+        } },
+
         title_langs     => { langpref => 1 },
         alttitle_langs  => { langpref => 1 },
 
@@ -92,6 +98,7 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
         $u->{prefs}{skin} ||= config->{skin_default};
         $u->{prefs}{title_langs}    = langpref_parse($u->{prefs}{title_langs})    // $DEFAULT_TITLE_LANGS;
         $u->{prefs}{alttitle_langs} = langpref_parse($u->{prefs}{alttitle_langs}) // $DEFAULT_ALTTITLE_LANGS;
+        $u->{prefs}{traits} = tuwf->dbAlli('SELECT u.tid, t.name, g.name AS "group" FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.group WHERE u.id =', \$u->{id}, 'ORDER BY g.order, t.name');
     }
 
     $u->{admin} = auth->permDbmod || auth->permUsermod || auth->permTagmod || auth->permBoardmod ?
@@ -131,6 +138,9 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
             max_sexual max_violence traits_sexual tags_all tags_cont tags_ero tags_tech spoilers skin customcss
             nodistract_noads nodistract_nofancy support_enabled uniname pubskin_enabled title_langs alttitle_langs
         /;
+
+        tuwf->dbExeci('DELETE FROM users_traits WHERE id =', \$data->{id});
+        tuwf->dbExeci('INSERT INTO users_traits', { id => $data->{id}, tid => $_->{tid} }) for $p->{traits}->@*;
     }
 
     if(auth->permUsermod) {

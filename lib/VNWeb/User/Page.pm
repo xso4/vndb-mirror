@@ -117,6 +117,17 @@ sub _info_table_ {
             a_ href => "/$u->{id}/posts", 'Browse posts »';
         };
     };
+
+    my $traits = tuwf->dbAlli('SELECT u.tid, t.name, g.id as "group", g.name AS groupname FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.group WHERE u.id =', \$u->{id}, 'ORDER BY g.order, t.name');
+    my @groups;
+    for (@$traits) {
+        push @groups, $_ if !@groups || $groups[$#groups]{group} ne $_->{group};
+        push $groups[$#groups]{traits}->@*, $_;
+    }
+    tr_ sub {
+        td_ class => 'key', sub { a_ href => "/$_->{group}", $_->{groupname} };
+        td_ sub { join_ ', ', sub { a_ href => "/$_->{tid}", $_->{name} }, $_->{traits}->@* };
+    } for @groups;
 }
 
 

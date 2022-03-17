@@ -11,6 +11,7 @@ import Browser.Navigation exposing (load)
 import Lib.Html exposing (..)
 import Lib.Util exposing (..)
 import Lib.Api as Api
+import Lib.Autocomplete as A
 import Gen.Api as GApi
 import Gen.Types as GT
 import Gen.UserEdit as GUE
@@ -44,6 +45,7 @@ type alias Model =
   , pass        : Maybe PassData
   , passNeq     : Bool
   , mailConfirm : Bool
+  , traitSearch : A.Model GApi.ApiTraitResult
   }
 
 
@@ -60,6 +62,7 @@ init d =
   , pass        = Maybe.map (always { cpass = False, pass1 = "", pass2 = "", opass = "" }) d.prefs
   , passNeq     = False
   , mailConfirm = False
+  , traitSearch = A.init ""
   }
 
 
@@ -104,6 +107,7 @@ type PrefMsg
   | Uniname String
   | TitleLang LangPrefMsg
   | AltTitleLang LangPrefMsg
+  | TraitDel Int
 
 type PassMsg
   = CPass Bool
@@ -116,8 +120,13 @@ type Msg
   | Admin AdminMsg
   | Prefs PrefMsg
   | Pass PassMsg
+  | TraitSearch (A.Msg GApi.ApiTraitResult)
   | Submit
   | Submitted GApi.Response
+
+
+traitConfig : A.Config Msg GApi.ApiTraitResult
+traitConfig = { wrap = TraitSearch, id = "traitadd", source = A.traitSource }
 
 
 updateAdmin : AdminMsg -> GUE.SendAdmin -> GUE.SendAdmin
@@ -195,6 +204,7 @@ updatePrefs msg model =
     Uniname n  -> { model | uniname = n }
     TitleLang m   -> { model | title_langs    = updateLangPrefs m model.title_langs }
     AltTitleLang m-> { model | alttitle_langs = updateLangPrefs m model.alttitle_langs }
+    TraitDel idx  -> { model | traits = delidx idx model.traits }
 
 updatePass : PassMsg -> PassData -> PassData
 updatePass msg model =
@@ -222,6 +232,17 @@ update msg model =
     Prefs m -> ({ model | prefs = Maybe.map (updatePrefs m) model.prefs }, Cmd.none)
     Pass  m -> ({ model | pass  = Maybe.map (updatePass  m) model.pass, passNeq = False }, Cmd.none)
     Username s -> ({ model | nusername = s }, Cmd.none)
+
+    TraitSearch m ->
+      let (nm, c, res) = A.update traitConfig m model.traitSearch
+      in case (res, model.prefs) of
+        (Just t, Just p) ->
+          if not t.applicable || t.hidden || List.any (\l -> l.tid == t.id) p.traits
+          then ({ model | traitSearch = A.clear nm "" }, c)
+          else
+            let np = { p | traits = p.traits ++ [{ tid = t.id, name = t.name, group = t.group_name }] }
+            in ({ model | traitSearch = A.clear nm "", prefs = Just np }, c)
+        _ -> ({ model | traitSearch = nm }, c)
 
     Submit ->
       if Maybe.withDefault False (Maybe.map (\p -> p.cpass && p.pass1 /= p.pass2) model.pass)
@@ -349,6 +370,23 @@ view model =
         ]
       , formField "skin::Skin" [ inputSelect "skin" m.skin (Prefs << Skin) [ style "width" "300px" ] GT.skins ]
       , formField "css::Custom CSS" [ inputTextArea "css" m.customcss (Prefs << Css) ([ rows 5, cols 60 ] ++ GUE.valPrefsCustomcss) ]
+
+      , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Public profile" ] ]
+      , formField "Traits"
+        [ p [ style "padding-bottom" "4px" ]
+          [ text "You can add ", a [ href "/i" ] [ text "character traits" ], text " to your account. These will be displayed on your public profile." ]
+        , if List.isEmpty m.traits then text ""
+          else table [] <| List.indexedMap (\i t -> tr []
+            [ td []
+              [ Maybe.withDefault (text "") <| Maybe.map (\g -> b [ class "grayedout" ] [ text <| g ++ " / " ]) t.group
+              , a [ href <| "/" ++ t.tid ] [ text t.name ]
+              ]
+            , td [] [ inputButton "remove" (Prefs (TraitDel i)) [] ]
+            ]
+          ) m.traits
+        , if List.length m.traits >= 100 then text ""
+          else A.view traitConfig model.traitSearch [placeholder "Add trait..."]
+        ]
       ]
 
   in form_ "" Submit (model.state == Api.Loading)

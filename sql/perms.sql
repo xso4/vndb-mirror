@@ -79,6 +79,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON ulist_vns_labels         TO vndb_site;
 GRANT SELECT, INSERT, UPDATE         ON users                    TO vndb_site;
 GRANT SELECT (id, perm_usermod), INSERT (id, mail) ON users_shadow TO vndb_site;
 GRANT SELECT, INSERT                 ON users_username_hist      TO vndb_site;
+GRANT SELECT, INSERT, UPDATE, DELETE ON users_traits             TO vndb_site;
 GRANT SELECT, INSERT, UPDATE         ON vn                       TO vndb_site;
 GRANT SELECT, INSERT,         DELETE ON vn_anime                 TO vndb_site;
 GRANT SELECT, INSERT                 ON vn_anime_hist            TO vndb_site;

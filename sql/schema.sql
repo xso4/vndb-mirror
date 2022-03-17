@@ -1071,6 +1071,13 @@ CREATE TABLE users_shadow (
   passwd         bytea NOT NULL DEFAULT ''
 );
 
+-- users_traits
+CREATE TABLE users_traits (
+  id  vndbid NOT NULL,
+  tid vndbid NOT NULL,
+  PRIMARY KEY(id, tid)
+);
+
 -- users_username_hist
 CREATE TABLE users_username_hist (
   id    vndbid NOT NULL,
