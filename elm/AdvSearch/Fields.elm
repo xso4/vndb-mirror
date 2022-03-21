@@ -286,8 +286,7 @@ type FieldModel
   = FMCustom     Query -- A read-only placeholder for Query values that failed to parse into a Field
   | FMNest       NestModel
   | FMList       ListModel
-  | FMLang       (AS.Model String)
-  | FMOLang      (AS.Model String)
+  | FMLang       AS.LangModel
   | FMRPlatform  (AS.Model String)
   | FMVPlatform  (AS.Model String)
   | FMLength     (AS.Model Int)
@@ -332,7 +331,6 @@ type FieldMsg
   | FSNest       NestMsg
   | FSList       Int
   | FSLang       (AS.Msg String)
-  | FSOLang      (AS.Msg String)
   | FSRPlatform  (AS.Msg String)
   | FSVPlatform  (AS.Msg String)
   | FSLength     (AS.Msg Int)
@@ -421,8 +419,8 @@ fields =
   , n V S "Staff »"
   , n V C "Character »"
   , n V P "Developer »"
-  , f V "Language"           1  FMLang        AS.init                 AS.langFromQuery
-  , f V "Original language"  2  FMOLang       AS.init                 AS.olangFromQuery
+  , f V "Language"           1  FMLang       (AS.langInit AS.LangVN)  (AS.langFromQuery AS.LangVN)
+  , f V "Original language"  2  FMLang       (AS.langInit AS.LangVNO) (AS.langFromQuery AS.LangVNO)
   , f V "Platform"           3  FMVPlatform   AS.init                 AS.platformFromQuery
   , f V "Tags"               4  FMTag         AG.init                 (AG.fromQuery -1)
   , f V ""                  -4  FMTag         AG.init                 (AG.fromQuery 0)
@@ -446,7 +444,7 @@ fields =
   , n R R "And/Or"
   , n R V "Visual Novel »"
   , n R P "Producer »"
-  , f R "Language"           1  FMLang        AS.init                 AS.langFromQuery
+  , f R "Language"           1  FMLang       (AS.langInit AS.LangRel) (AS.langFromQuery AS.LangRel)
   , f R "Platform"           2  FMRPlatform   AS.init                 AS.platformFromQuery
   , f R "Type"               3  FMRType       AS.init                 AS.rtypeFromQuery
   , l R "Patch"              0 [(QInt 61 Eq 1, "Patch to another release"),(QInt 61 Ne 1, "Standalone release")]
@@ -489,13 +487,13 @@ fields =
 
   , n S S "And/Or"
   , f S "Name"               0  FMStaff       AT.init                 AT.fromQuery
-  , f S "Language"           1  FMLang        AS.init                 AS.langFromQuery
+  , f S "Language"           1  FMLang        (AS.langInit AS.LangStaff) (AS.langFromQuery AS.LangStaff)
   , f S "Gender"             2  FMGender      AS.init                 AS.genderFromQuery
   , f S "Role"               3  FMSRole       AS.init                 AS.sroleFromQuery
 
   , n P P "And/Or"
   , f P "Name"               0  FMProdId      AP.init                 (AP.fromQuery 3)
-  , f P "Language"           1  FMLang        AS.init                 AS.langFromQuery
+  , f P "Language"           1  FMLang        (AS.langInit AS.LangProd) (AS.langFromQuery AS.LangProd)
   , f P "Type"               2  FMPType       AS.init                 AS.ptypeFromQuery
   ]
 
@@ -548,8 +546,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSNest (NNeg a b), FMNest m)  -> mapc FMNest FSNest (nestUpdate dat (NNeg a b) m)
       (FSNest msg,     FMNest m)     -> mapf FMNest FSNest (nestUpdate dat msg m)
       (FSList msg,     FMList m)     -> (dat, (num,DD.toggle dd False,FMList { m | val = msg }), Cmd.none)
-      (FSLang msg,     FMLang m)     -> maps FMLang     (AS.update msg m)
-      (FSOLang msg,    FMOLang m)    -> maps FMOLang    (AS.update msg m)
+      (FSLang msg,     FMLang m)     -> maps FMLang     (AS.langUpdate msg m)
       (FSRPlatform msg,FMRPlatform m)-> maps FMRPlatform(AS.update msg m)
       (FSVPlatform msg,FMVPlatform m)-> maps FMVPlatform(AS.update msg m)
       (FSLength msg,   FMLength m)   -> maps FMLength   (AS.update msg m)
@@ -616,8 +613,7 @@ fieldView dat (_, dd, model) =
   in case model of
       FMCustom m     -> f FSCustom     (text "Unrecognized query", \() -> [text ""]) -- TODO: Display the Query
       FMList m       -> f FSList       (l m)
-      FMLang  m      -> f FSLang       (AS.langView False m)
-      FMOLang m      -> f FSOLang      (AS.langView True  m)
+      FMLang  m      -> f FSLang       (AS.langView m)
       FMVPlatform m  -> f FSVPlatform  (AS.platformView False m)
       FMRPlatform m  -> f FSRPlatform  (AS.platformView True m)
       FMLength m     -> f FSLength     (AS.lengthView m)
@@ -665,8 +661,7 @@ fieldToQuery dat (_, _, model) =
     FMCustom m   -> Just m
     FMList m     -> List.drop m.val m.lst |> List.head |> Maybe.map Tuple.first
     FMNest m     -> nestToQuery dat m
-    FMLang  m    -> AS.toQuery (QStr 2) m
-    FMOLang m    -> AS.toQuery (QStr 3) m
+    FMLang m     -> AS.langToQuery m
     FMRPlatform m-> AS.toQuery (QStr 4) m
     FMVPlatform m-> AS.toQuery (QStr 4) m
     FMLength m   -> AS.toQuery (QInt 5) m

@@ -101,32 +101,64 @@ opts m canAnd canSingle = div [ class "opts" ]
 
 -- Language
 
-langView orig model =
-  let tprefix = if orig then "O " else "L "
+type LangField
+  = LangVN
+  | LangVNO
+  | LangRel
+  | LangProd
+  | LangStaff
+
+type alias LangModel = (LangField, Model String)
+
+langInit field dat = init dat |> Tuple.mapSecond (\m -> (field,m))
+
+langUpdate msg (field, model) = (field, update msg model)
+
+langView (field, model) =
+  let tprefix = if field == LangVNO then "O " else "L "
+      label = if field == LangVNO then "Orig language" else "Language"
+      msg = case field of
+              LangVN -> "Language(s) in which the visual novel is available."
+              LangVNO -> "Language the visual novel has been originally written in."
+              LangRel -> "Language(s) in which the release is available."
+              LangProd -> "Primary language of the producer."
+              LangStaff ->  "Primary language of the staff."
+      canAnd = case field of
+                LangVN -> True
+                LangVNO -> False
+                LangRel -> True
+                LangProd -> False
+                LangStaff -> False
+      splitChinese = case field of
+                      LangVN -> True
+                      LangVNO -> True
+                      LangRel -> True
+                      LangProd -> False
+                      LangStaff -> False
+      lst = if splitChinese
+            then List.filter (\(e,_) -> e /= "zh") GT.languages
+            else List.filter (\(e,_) -> e /= "zh-Hans" && e /= "zh-Hant") GT.languages
   in
   ( case Set.toList model.sel of
-      []  -> b [ class "grayedout" ] [ text <| if orig then "Orig language" else "Language" ]
+      []  -> b [ class "grayedout" ] [ text label ]
       [v] -> span [ class "nowrap" ] [ text tprefix, lblPrefix model, langIcon v, text <| Maybe.withDefault "" (lookup v GT.languages) ]
       l   -> span [ class "nowrap" ] <| text tprefix :: lblPrefix model :: List.intersperse (text "") (List.map langIcon l)
   , \() ->
     [ div [ class "advheader" ]
-      [ h3 [] [ text <| if orig then "Language the visual novel has been originally written in." else "Language(s) in which the visual novel is available." ]
-      , opts model (not orig) True
+      [ h3 [] [ text msg ]
+      , opts model canAnd True
       ]
-    , ul [ style "columns" "2"] <| List.map (\(l,t) -> li [] [ linkRadio (Set.member l model.sel) (Sel l) [ langIcon l, text t ] ]) GT.languages
+    , ul [ style "columns" "2"] <| List.map (\(l,t) -> li [] [ linkRadio (Set.member l model.sel) (Sel l) [ langIcon l, text t ] ]) lst
     ]
   )
 
-langFromQuery = fromQuery (\q ->
-  case q of
-    QStr 2 op v -> Just (op, v)
-    _ -> Nothing)
+langFromQuery field dat qs = Maybe.map (\(d,m) -> (d,(field,m))) <| fromQuery (\q ->
+  case (field, q) of
+    (LangVNO, QStr 3 op v) -> Just (op, v)
+    (_, QStr 2 op v) -> Just (op, v)
+    _ -> Nothing) dat qs
 
-olangFromQuery = fromQuery (\q ->
-  case q of
-    QStr 3 op v -> Just (op, v)
-    _ -> Nothing)
-
+langToQuery (field, model) = toQuery (QStr (if field == LangVNO then 3 else 2)) model
 
 
 
