@@ -155,6 +155,7 @@ langView (field, model) =
 langFromQuery field dat qs = Maybe.map (\(d,m) -> (d,(field,m))) <| fromQuery (\q ->
   case (field, q) of
     (LangVNO, QStr 3 op v) -> Just (op, v)
+    (LangVNO, _) -> Nothing
     (_, QStr 2 op v) -> Just (op, v)
     _ -> Nothing) dat qs
 
