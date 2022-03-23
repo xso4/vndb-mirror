@@ -1203,9 +1203,8 @@ CREATE TABLE vn_length_votes (
   vid        vndbid NOT NULL, -- [pub]
   date       timestamptz NOT NULL DEFAULT NOW(), -- [pub]
   length     smallint NOT NULL, -- [pub] minutes
-  speed      smallint NOT NULL, -- [pub] 0=slow, 1=normal, 2=fast
+  speed      smallint, -- [pub] NULL=uncounted/ignored, 0=slow, 1=normal, 2=fast
   uid        vndbid, -- [pub]
-  ignore     boolean NOT NULL DEFAULT false, -- [pub]
   rid        vndbid[] NOT NULL, -- [pub]
   notes      text NOT NULL DEFAULT '' -- [pub]
 );

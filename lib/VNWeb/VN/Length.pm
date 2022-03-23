@@ -10,7 +10,7 @@ sub opts {
     tableopts
         date     => { name => 'Date',   sort_id => 0, sort_sql => 'l.date', sort_default => 'desc' },
         length   => { name => 'Time',   sort_id => 1, sort_sql => 'l.length' },
-        speed    => { name => 'Speed',  sort_id => 2, sort_sql => 'l.speed ?o, l.length' },
+        speed    => { name => 'Speed',  sort_id => 2, sort_sql => 'l.speed ?o NULLS LAST, l.length' },
         $mode ne 'u' ? (
         username => { name => 'User',   sort_id => 3, sort_sql => 'u.username' } ) : (),
         $mode ne 'v' ? (
@@ -49,7 +49,7 @@ sub listing_ {
                     a_ href => "/$_->{vid}", title => $_->{alttitle}||$_->{title}, $_->{title};
                 } if $mode ne 'v';
                 td_ class => 'tc3'.($_->{ignore}?' grayedout':''), sub { vnlength_ $_->{length} };
-                td_ class => 'tc4'.($_->{ignore}?' grayedout':''), ['Slow','Normal','Fast']->[$_->{speed}];
+                td_ class => 'tc4'.($_->{ignore}?' grayedout':''), ['Slow','Normal','Fast','-']->[$_->{speed}//3];
                 td_ class => 'tc5', sub {
                     my %l = map +($_,1), map $_->{lang}->@*, $_->{rel}->@*;
                     abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for sort keys %l;
@@ -58,11 +58,11 @@ sub listing_ {
                 td_ class => 'tc6'.($_->{ignore}?' grayedout':''), sub { lit_ bb_format $_->{notes}, inline => 1 };
                 td_ class => 'tc7', sub {
                     select_ name => "lv$_->{id}", sub {
-                        option_ value => $_->{ignore} ? 'noign' : '', '--';
+                        option_ value => '', '--';
                         option_ value => 's0', 'slow';
                         option_ value => 's1', 'normal';
                         option_ value => 's2', 'fast';
-                        option_ value => $_->{ignore} ? '' : 'ign', selected => $_->{ignore}?'':undef, 'ignore';
+                        option_ value => 'sn', 'uncounted';
                     };
                 } if auth->permDbmod;
             } for @$list;
@@ -82,7 +82,7 @@ sub stats_ {
              , percentile_cont(', \0.5, ') WITHIN GROUP (ORDER BY l.length) AS median
           FROM vn_length_votes l
           LEFT JOIN users u ON u.id = l.uid
-         WHERE u.perm_lengthvote IS DISTINCT FROM false AND NOT l.ignore AND l.vid =', \$o->{id}, '
+         WHERE u.perm_lengthvote IS DISTINCT FROM false AND l.speed IS NOT NULL AND l.vid =', \$o->{id}, '
          GROUP BY GROUPING SETS ((speed),()) ORDER BY speed'
     );
     return if !$stats->[0]{count};
@@ -122,12 +122,12 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
 
     my $where = sql_and
         $mode ? sql($mode eq 'v' ? 'l.vid =' : 'l.uid =', \$o->{id}) : (),
-        defined $opt->{ign} ? sql('l.ignore =', \$opt->{ign}) : ();
+        defined $opt->{ign} ? sql('l.speed IS', $opt->{ign} ? 'NULL' : 'NOT NULL') : ();
     my $count = tuwf->dbVali('SELECT COUNT(*) FROM vn_length_votes l WHERE', $where);
 
     my $lst = tuwf->dbPagei({results => $opt->{s}->results, page => $opt->{p}},
       'SELECT l.id, l.uid, l.vid, l.length, l.speed, l.notes, l.rid::text[] AS rel, '
-            , sql_totime('l.date'), 'AS date, l.ignore OR u.perm_lengthvote IS NOT DISTINCT FROM false AS ignore',
+            , sql_totime('l.date'), 'AS date, u.perm_lengthvote IS NOT DISTINCT FROM false AS ignore',
               $mode ne 'u' ? (', ', sql_user()) : (),
               $mode ne 'v' ? ', v.title, v.alttitle' : (), '
          FROM vn_length_votes l
@@ -167,8 +167,7 @@ TUWF::post '/lengthvotes-edit', sub {
         next if !$act;
         my $r = tuwf->dbRowi('
             UPDATE vn_length_votes SET',
-              $act eq 'ign' ? 'ignore = true' :
-            $act eq 'noign' ? 'ignore = false' :
+               $act eq 'sn' ? 'speed = NULL' :
                $act eq 's0' ? 'speed = 0' :
                $act eq 's1' ? 'speed = 1' :
                $act eq 's2' ? ('speed =', \2) : die,
@@ -187,7 +186,7 @@ our $LENGTHVOTE = form_compile any => {
     vote   => { type => 'hash', required => 0, keys => {
         rid    => { type => 'array', minlength => 1, values => { vndbid => 'r' } },
         length => { uint => 1, range => [1,26159] }, # 435h59m, largest round-ish number where the 'fast' speed adjustment doesn't overflow a smallint
-        speed  => { uint => 1, enum => [0,1,2] },
+        speed  => { required => 0, uint => 1, enum => [0,1,2] },
         notes  => { required => 0, default => '' },
     } },
 };

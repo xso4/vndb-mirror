@@ -34,7 +34,7 @@ type alias Model =
   , defrid  : String
   , hours   : Maybe Int
   , minutes : Maybe Int
-  , speed   : Int
+  , speed   : Maybe Int
   , length  : Int -- last saved length
   , notes   : String
   , rels    : Maybe (List (String, String))
@@ -51,7 +51,7 @@ init f =
   , defrid  = ""
   , hours   = Maybe.map (\v -> v.length // 60   ) f.vote
   , minutes = Maybe.andThen (\v -> let n = modBy 60 v.length in if n == 0 then Nothing else Just n) f.vote
-  , speed   = Maybe.map (\v -> v.speed)  f.vote |> Maybe.withDefault -1
+  , speed   = Maybe.map (\v -> v.speed)  f.vote |> Maybe.withDefault (Just 9)
   , length  = Maybe.map (\v -> v.length) f.vote |> Maybe.withDefault 0
   , notes   = Maybe.map (\v -> v.notes)  f.vote |> Maybe.withDefault ""
   , rels    = Nothing
@@ -73,7 +73,7 @@ type Msg
   | Today Date.Date
   | Hours (Maybe Int)
   | Minutes (Maybe Int)
-  | Speed Int
+  | Speed (Maybe Int)
   | Release Int String
   | ReleaseAdd
   | ReleaseDel Int
@@ -124,17 +124,13 @@ update msg model =
 view : Model -> Html Msg
 view model = div [class "lengthvotefrm"] <|
   let
-    cansubmit = enclen model > 0 && model.speed /= -1
+    cansubmit = enclen model > 0 && model.speed /= Just 9
       && not (List.isEmpty model.rid)
       && not (List.any (\r -> r == "") model.rid)
     rels = Maybe.withDefault [] model.rels
     frm = [ form_ "" (if cansubmit then Submit else Noop) False
       [ br [] []
       , text "How long did you take to finish this VN?"
-      , br [] []
-      , text "- Only vote if you've completed all normal/true endings."
-      , br [] []
-      , text "- Exact measurements preferred, but rough estimates are accepted too."
       , br [] []
       , text "Play time: "
       , inputNumber "vnlengthhours" model.hours Hours [ Html.Attributes.min "0", Html.Attributes.max "435" ]
@@ -151,11 +147,24 @@ view model = div [class "lengthvotefrm"] <|
           else inputButton "-" (ReleaseDel n) [title "Remove release"]
         ]) model.rid
       , inputSelect "" model.speed Speed [style "width" "100%"]
-        [ (-1, "-- how do you estimate your read/play speed? --")
-        , (0, "Slow (e.g. low language proficiency or extra time spent on gameplay)")
-        , (1, "Normal (no content skipped, all voices listened to end)")
-        , (2, "Fast (e.g. fast reader or skipping through voices and gameplay)")
+        [ (Just 9, "-- how do you estimate your read/play speed? --")
+        , (Just 0, "Slow (e.g. low language proficiency or extra time spent on gameplay)")
+        , (Just 1, "Normal (no content skipped, all voices listened to end)")
+        , (Just 2, "Fast (e.g. fast reader or skipping through voices and gameplay)")
+        , (Nothing, "Don't count my play time")
         ]
+      , case model.speed of
+          Just 9 -> span [] []
+          Nothing -> span []
+            [ text "Your play time is not counted towards the VN's average, but is still visible in the listings and saved for your own administration."
+            , br [] []
+            ]
+          _ -> span []
+            [ text "- Only vote if you've completed all normal/true endings."
+            , br [] []
+            , text "- Exact measurements preferred, but rough estimates are accepted too."
+            , br [] []
+            ]
       , inputTextArea "" model.notes Notes
         [rows 2, cols 30, style "width" "100%", placeholder "(Optional) comments that may be helpful. For example, did you complete all the bad endings, how did you measure? etc." ]
       , if model.length == 0 then text "" else inputButton "Delete my vote" Delete [style "float" "right"]
