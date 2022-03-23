@@ -8,6 +8,9 @@ sub reviews_vote_ {
     my($w) = @_;
     span_ sub {
         elm_ 'Reviews.Vote' => $VNWeb::Reviews::Elm::VOTE_OUT, {%$w, mod => auth->permBoardmod||0} if $w->{can} || auth->permBoardmod;
+        my ($uup, $aup, $udown, $adown) = (floor($w->{c_up}/100), $w->{c_up}%100, floor($w->{c_down}/100), $w->{c_down}%100);
+        my $p = max 0, sprintf '%.0f', ($uup + 0.3*$aup) - ($udown + 0.3*$adown);
+        b_ class => 'grayedout', sprintf ' %d point%s', $p, $p == 1 ? '' : 's';
         b_ class => 'grayedout', sprintf ' %.2f/%.2f', $w->{c_up}/100, $w->{c_down}/100 if auth->permBoardmod;
     }
 }
