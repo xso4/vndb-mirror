@@ -75,7 +75,11 @@ sub _infotable_animation_ {
     my($r) = @_;
     state @fields = qw|ani_story_sp ani_story_cg ani_cutscene ani_ero_sp ani_ero_cg ani_bg ani_face|;
 
-    my $ani = (grep defined $r->{$_}, @fields) ? sub {
+    # Detect conversion of old "not animated" to the new fields, and keep displaying the old fields.
+    my $oldani = ($r->{ani_story} > 1 && !defined $r->{ani_story_sp} && !defined $r->{ani_story_cg} && !defined $r->{ani_cutscene})
+              || ($r->{ani_ero} > 1 && !defined $r->{ani_ero_sp} && !defined $r->{ani_ero_cg});
+
+    my $ani = !$oldani && (grep defined $r->{$_}, @fields) ? sub {
         # new info
         return txt_ 'Not animated.' if !grep $r->{$_}, @fields;
 
