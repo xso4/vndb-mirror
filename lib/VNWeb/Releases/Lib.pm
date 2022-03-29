@@ -84,26 +84,21 @@ sub release_row_ {
         ? [grep $_->{lang} eq $opt->{lang}, $r->{lang}->@*]->[0]{mtl}
         : (grep $_->{mtl}, $r->{lang}->@*) == $r->{lang}->@*;
 
-    my @boolani = (
-        defined $r->{ani_bg}   ? ($r->{ani_bg} ? 'Animated background effects' : 'No background effects') : (),
-        defined $r->{ani_face} ? ($r->{ani_face} ? 'Lip and/or eye movement' : 'No facial animations') : (),
-    );
-
     my $storyani = join "\n", map "$_.",
         $r->{ani_story} == 1 ? 'Not animated' :
-        @boolani || defined $r->{ani_story_sp} || defined $r->{ani_story_cg} || defined $r->{ani_cutscene} ? (
+        defined $r->{ani_story_sp} || defined $r->{ani_story_cg} || defined $r->{ani_cutscene} || defined $r->{ani_bg} || defined $r->{ani_face} ? (
             defined $r->{ani_story_sp} ? fmtanimation $r->{ani_story_sp}, 'sprites' : (),
             defined $r->{ani_story_cg} ? fmtanimation $r->{ani_story_cg}, 'CGs' : (),
             defined $r->{ani_cutscene} ? fmtanimation $r->{ani_cutscene}, 'cutscenes' : (),
-            @boolani
+            defined $r->{ani_bg}   ? ($r->{ani_bg} ? 'Animated background effects' : 'No background effects') : (),
+            defined $r->{ani_face} ? ($r->{ani_face} ? 'Lip and/or eye movement' : 'No facial animations') : (),
         ) : $ANIMATED{$r->{ani_story}}{txt};
 
     my $eroani = join "\n", map "$_.",
         $r->{ani_ero} == 1 ? 'Not animated' :
-        @boolani || defined $r->{ani_ero_sp} || defined $r->{ani_ero_cg} ? (
+        defined $r->{ani_ero_sp} || defined $r->{ani_ero_cg} ? (
             defined $r->{ani_ero_sp} ? fmtanimation $r->{ani_ero_sp}, 'sprites' : (),
             defined $r->{ani_ero_cg} ? fmtanimation $r->{ani_ero_cg}, 'CGs' : (),
-            @boolani
         ) : $ANIMATED{$r->{ani_ero}}{txt};
 
     my sub icon_ {
