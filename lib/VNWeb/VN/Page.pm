@@ -167,7 +167,7 @@ sub infobox_length_ {
     return if !$v->{c_length} && !$v->{c_lengthnum} && !VNWeb::VN::Length::can_vote();
 
     my $my = VNWeb::VN::Length::can_vote()
-        && tuwf->dbRowi('SELECT rid::text[] AS rid, length, speed, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
+        && tuwf->dbRowi('SELECT rid::text[] AS rid, length, speed, private, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
 
     tr_ sub {
         td_ 'Play time';

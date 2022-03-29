@@ -239,7 +239,7 @@ CREATE OR REPLACE FUNCTION update_vn_length_cache(vndbid) RETURNS void AS $$
     SELECT v.id, count(l.vid) FILTER (WHERE u.id IS NOT NULL AND l.vid IS NOT NULL)
          , percentile_cont(0.5) WITHIN GROUP (ORDER BY l.length + (l.length/4 * (l.speed-1))) FILTER (WHERE u.id IS NOT NULL AND l.vid IS NOT NULL)
       FROM vn v
-      LEFT JOIN vn_length_votes l ON l.vid = v.id AND l.speed IS NOT NULL
+      LEFT JOIN vn_length_votes l ON l.vid = v.id AND l.speed IS NOT NULL AND NOT l.private
       LEFT JOIN users u ON u.id = l.uid AND u.perm_lengthvote
      WHERE ($1 IS NULL OR v.id = $1)
      GROUP BY v.id

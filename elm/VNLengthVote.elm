@@ -51,7 +51,7 @@ init f =
   , defrid  = ""
   , hours   = Maybe.map (\v -> v.length // 60   ) f.vote
   , minutes = Maybe.andThen (\v -> let n = modBy 60 v.length in if n == 0 then Nothing else Just n) f.vote
-  , speed   = Maybe.map (\v -> v.speed)  f.vote |> Maybe.withDefault (Just 9)
+  , speed   = Maybe.map (\v -> if v.private then Just 8 else v.speed) f.vote |> Maybe.withDefault (Just 9)
   , length  = Maybe.map (\v -> v.length) f.vote |> Maybe.withDefault 0
   , notes   = Maybe.map (\v -> v.notes)  f.vote |> Maybe.withDefault ""
   , rels    = Nothing
@@ -64,7 +64,13 @@ encode : Model -> GV.Send
 encode m =
   { uid = m.uid
   , vid = m.vid
-  , vote = if enclen m == 0 then Nothing else Just { rid = m.rid, notes = m.notes, speed = m.speed, length = enclen m }
+  , vote = if enclen m == 0 then Nothing else Just
+      { rid     = m.rid
+      , notes   = m.notes
+      , speed   = if m.speed == Just 8 then Nothing else m.speed
+      , length  = enclen m
+      , private = m.speed == Just 8
+      }
   }
 
 type Msg
@@ -151,10 +157,16 @@ view model = div [class "lengthvotefrm"] <|
         , (Just 0, "Slow (e.g. low language proficiency or extra time spent on gameplay)")
         , (Just 1, "Normal (no content skipped, all voices listened to end)")
         , (Just 2, "Fast (e.g. fast reader or skipping through voices and gameplay)")
-        , (Nothing, "Don't count my play time")
+        , (Nothing, "Don't count my play time (public)")
+        , (Just 8, "Don't count my play time (private)")
         ]
       , case model.speed of
           Just 9 -> span [] []
+          Just 8 -> span []
+            [ text "Your play time is not counted towards the VN's average and is not visible in the listings."
+            , text " It is only saved for your own administration and counted towards the personal play time displayed on your profile."
+            , br [] []
+            ]
           Nothing -> span []
             [ text "Your play time is not counted towards the VN's average, but is still visible in the listings and saved for your own administration."
             , br [] []

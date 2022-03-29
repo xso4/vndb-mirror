@@ -1206,7 +1206,8 @@ CREATE TABLE vn_length_votes (
   speed      smallint, -- [pub] NULL=uncounted/ignored, 0=slow, 1=normal, 2=fast
   uid        vndbid, -- [pub]
   rid        vndbid[] NOT NULL, -- [pub]
-  notes      text NOT NULL DEFAULT '' -- [pub]
+  notes      text NOT NULL DEFAULT '', -- [pub]
+  private    boolean NOT NULL
 );
 
 -- wikidata

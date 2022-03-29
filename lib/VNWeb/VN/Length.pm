@@ -55,7 +55,10 @@ sub listing_ {
                     abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for sort keys %l;
                     join_ ',', sub { a_ href => "/$_->{id}", $_->{id} }, sort { idcmp $a->{id}, $b->{id} } $_->{rel}->@*;
                 };
-                td_ class => 'tc6'.($_->{ignore}?' grayedout':''), sub { lit_ bb_format $_->{notes}, inline => 1 };
+                td_ class => 'tc6'.($_->{ignore}?' grayedout':''), sub {
+                    b_ class => 'grayedout', '(private) ' if $_->{private};
+                    lit_ bb_format $_->{notes}, inline => 1;
+                };
                 td_ class => 'tc7', sub {
                     select_ name => "lv$_->{id}", sub {
                         option_ value => '', '--';
@@ -82,7 +85,7 @@ sub stats_ {
              , percentile_cont(', \0.5, ') WITHIN GROUP (ORDER BY l.length) AS median
           FROM vn_length_votes l
           LEFT JOIN users u ON u.id = l.uid
-         WHERE u.perm_lengthvote IS DISTINCT FROM false AND l.speed IS NOT NULL AND l.vid =', \$o->{id}, '
+         WHERE u.perm_lengthvote IS DISTINCT FROM false AND l.speed IS NOT NULL AND NOT l.private AND l.vid =', \$o->{id}, '
          GROUP BY GROUPING SETS ((speed),()) ORDER BY speed'
     );
     return if !$stats->[0]{count};
@@ -122,11 +125,12 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
 
     my $where = sql_and
         $mode ? sql($mode eq 'v' ? 'l.vid =' : 'l.uid =', \$o->{id}) : (),
+        $mode eq 'u' && auth && $o->{id} eq auth->uid ? () : 'NOT l.private',
         defined $opt->{ign} ? sql('l.speed IS', $opt->{ign} ? 'NULL' : 'NOT NULL') : ();
     my $count = tuwf->dbVali('SELECT COUNT(*) FROM vn_length_votes l WHERE', $where);
 
     my $lst = tuwf->dbPagei({results => $opt->{s}->results, page => $opt->{p}},
-      'SELECT l.id, l.uid, l.vid, l.length, l.speed, l.notes, l.rid::text[] AS rel, '
+      'SELECT l.id, l.uid, l.vid, l.length, l.speed, l.notes, l.private, l.rid::text[] AS rel, '
             , sql_totime('l.date'), 'AS date, u.perm_lengthvote IS NOT DISTINCT FROM false AS ignore',
               $mode ne 'u' ? (', ', sql_user()) : (),
               $mode ne 'v' ? ', v.title, v.alttitle' : (), '
@@ -184,10 +188,11 @@ our $LENGTHVOTE = form_compile any => {
     uid    => { vndbid => 'u' },
     vid    => { vndbid => 'v' },
     vote   => { type => 'hash', required => 0, keys => {
-        rid    => { type => 'array', minlength => 1, values => { vndbid => 'r' } },
-        length => { uint => 1, range => [1,26159] }, # 435h59m, largest round-ish number where the 'fast' speed adjustment doesn't overflow a smallint
-        speed  => { required => 0, uint => 1, enum => [0,1,2] },
-        notes  => { required => 0, default => '' },
+        rid     => { type => 'array', minlength => 1, values => { vndbid => 'r' } },
+        length  => { uint => 1, range => [1,26159] }, # 435h59m, largest round-ish number where the 'fast' speed adjustment doesn't overflow a smallint
+        speed   => { required => 0, uint => 1, enum => [0,1,2] },
+        private => { anybool => 1 },
+        notes   => { required => 0, default => '' },
     } },
 };
 

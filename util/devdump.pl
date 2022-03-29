@@ -160,7 +160,7 @@ sub copy_entry {
     copy_entry [qw/vn vn_anime vn_seiyuu vn_staff vn_relations vn_screenshots vn_titles/], \@vids;
 
     # VN-related niceties
-    copy vn_length_votes => "SELECT DISTINCT ON (vid,vndbid_num(uid)%10) * FROM vn_length_votes WHERE vid IN($vids)", {uid => 'user'};
+    copy vn_length_votes => "SELECT DISTINCT ON (vid,vndbid_num(uid)%10) * FROM vn_length_votes WHERE NOT private AND vid IN($vids)", {uid => 'user'};
     copy tags_vn     => "SELECT DISTINCT ON (tag,vid,vndbid_num(uid)%10) * FROM tags_vn WHERE vid IN($vids)", {uid => 'user'};
     copy quotes      => "SELECT * FROM quotes WHERE vid IN($vids)";
     my $votes = "SELECT vid, vndbid('u', vndbid_num(uid)%8+2) AS uid, (percentile_cont((vndbid_num(uid)%8+1)::float/9) WITHIN GROUP (ORDER BY vote))::smallint AS vote, MIN(vote_date) AS vote_date"

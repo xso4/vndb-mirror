@@ -53,13 +53,13 @@ sub _info_table_ {
             a_ href => "/$u->{id}/ulist?votes=1", 'Browse votes »';
         }
     };
-    my $lengthvotes = tuwf->dbRowi('SELECT count(*) AS count, sum(length) AS sum FROM vn_length_votes WHERE uid =', \$u->{id});
+    my $lengthvotes = tuwf->dbRowi('SELECT count(*) AS count, sum(length) AS sum, bool_or(not private) as haspub FROM vn_length_votes WHERE uid =', \$u->{id});
     tr_ sub {
         td_ 'Play times';
         td_ sub {
             vnlength_ $lengthvotes->{sum};
             txt_ sprintf ' from %d submitted play times. ', $lengthvotes->{count};
-            a_ href => "/$u->{id}/lengthvotes", 'Browse votes »';
+            a_ href => "/$u->{id}/lengthvotes", 'Browse votes »' if $own || $lengthvotes->{haspub};
         };
     } if $lengthvotes->{count};
     tr_ sub {
