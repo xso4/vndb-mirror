@@ -200,10 +200,7 @@ sub ani_compat {
         !hasani 'ero_sp' && !hasani 'ero_cg' ? 1 :
         (fullani 'ero_sp' || fullani 'ero_cg') && !(someani 'ero_sp' || someani 'ero_cg') ? 4 : 3;
 
-    if($r->{ani_face} || $r->{ani_bg}) {
-        $r->{ani_story} = 2 if $r->{ani_story} < 2;
-        $r->{ani_ero} = 2 if $r->{ani_ero} < 2 && $r->{minage} && $r->{minage} == 18;
-    }
+    $r->{ani_story} = 2 if $r->{ani_story} < 2 && ($r->{ani_face} || $r->{ani_bg});
 }
 
 
