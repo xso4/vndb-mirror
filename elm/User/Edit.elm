@@ -167,7 +167,7 @@ updateLangPrefs msg model =
     LangAdd ->
       let new = { lang = Just "en", official = True, original = False, latin = False }
       in if List.any (\e -> e.lang == Nothing) model
-         then List.concatMap (\e -> if e.lang == Nothing then [new, e] else [e]) model
+         then List.foldl (\e l -> if e.lang == Nothing && not (List.any (\x -> x.lang == Nothing) l) then l ++ [new, e] else l ++ [e]) [] model
          else model ++ [new]
     LangDel n -> delidx n model
     LangSet n s -> modidx n (\e -> { e | lang = if s == "" then Nothing else Just s }) model
