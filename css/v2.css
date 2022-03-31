@@ -704,7 +704,8 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $bo
 
 .release table { width: 500px; margin: 0 auto; }
 .release .key  { width: 110px; }
-
+.release dt { float: none; font-style: normal; }
+.release dd { margin-left: 15px; }
 
 
 /***** Review page *****/

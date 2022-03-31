@@ -75,53 +75,48 @@ sub _infotable_animation_ {
     my($r) = @_;
     state @fields = qw|ani_story_sp ani_story_cg ani_cutscene ani_ero_sp ani_ero_cg ani_bg ani_face|;
 
-    # Detect conversion of old "not animated" to the new fields, and keep displaying the old fields.
-    my $oldani = ($r->{ani_story} > 1 && !defined $r->{ani_story_sp} && !defined $r->{ani_story_cg} && !defined $r->{ani_cutscene})
-              || ($r->{ani_ero} > 1 && !defined $r->{ani_ero_sp} && !defined $r->{ani_ero_cg});
+    return if !$r->{ani_story} && !$r->{ani_ero};
 
-    my $ani = !$oldani && (grep defined $r->{$_}, @fields) ? sub {
-        # new info
-        return txt_ 'Not animated.' if !grep $r->{$_}, @fields;
+    my sub txtc {
+        my($bool, $txt) = @_;
+        +(sub { $bool ? txt_ $txt : b_ class => 'grayedout', $txt })
+    }
 
-        my @sect;
+    my sub sect {
+        my($val, $lbl) = @_;
+        defined $val ? txtc $val > 2, fmtanimation $val, $lbl : ();
+    }
 
-        push @sect, sub {
-            b_ 'Story scenes';
-            br_;
-            return txt_ 'Not animated.' if !$r->{ani_story_sp} && !$r->{ani_story_cg} || !$r->{ani_cutscene};
-            join_ \&br_, sub { txt_ $_ },
-                defined $r->{ani_story_sp} ? fmtanimation $r->{ani_story_sp}, 'sprites' : (),
-                defined $r->{ani_story_cg} ? fmtanimation $r->{ani_story_cg}, 'CGs' : (),
-                defined $r->{ani_cutscene} ? fmtanimation $r->{ani_cutscene}, 'cutscenes' : ();
-        } if defined $r->{ani_story_sp} || defined $r->{ani_story_cg} || defined $r->{ani_cutscene};
+    my @story = !$r->{ani_story} ? () :
+        defined $r->{ani_story_sp} || defined $r->{ani_story_cg} || defined $r->{ani_cutscene} ? (
+            defined $r->{ani_story_sp} ? sect $r->{ani_story_sp}, 'sprites' : (),
+            defined $r->{ani_story_cg} ? sect $r->{ani_story_cg}, 'CGs' : (),
+            defined $r->{ani_cutscene} ? sect $r->{ani_cutscene}, 'cutscenes' : (),
+        ) : txtc $r->{ani_story} > 1, $ANIMATED{$r->{ani_story}}{txt};
 
-        push @sect, sub {
-            b_ 'Erotic scenes';
-            br_;
-            return txt_ 'Not animated.' if !$r->{ani_ero_sp} && !$r->{ani_ero_cg};
-            join_ \&br_, sub { txt_ $_ },
-                defined $r->{ani_ero_sp} ? fmtanimation $r->{ani_ero_sp}, 'sprites' : (),
-                defined $r->{ani_ero_cg} ? fmtanimation $r->{ani_ero_cg}, 'CGs' : (),
-        } if defined $r->{ani_ero_sp} || defined $r->{ani_ero_cg};
-
-        push @sect, sub {
-            join_ \&br_, sub { txt_ $_ },
-                defined $r->{ani_bg}   ? ($r->{ani_bg} ? 'Animated background effects' : 'No background effects') : (),
-                defined $r->{ani_face} ? ($r->{ani_face} ? 'Lip and/or eye movement' : 'No facial animations') : (),
-        } if defined $r->{ani_bg} || defined $r->{ani_face};
-
-        join_ sub { br_; br_; }, sub { $_->() }, @sect;
-
-    } : $r->{ani_story} || $r->{ani_ero} ? sub {
-        # old info
-        join_ \&br_, sub { txt_ $_ },
-            $r->{ani_story} ? "Story scenes: $ANIMATED{$r->{ani_story}}{txt}" : (),
-            $r->{ani_ero} ? "Erotic scenes: $ANIMATED{$r->{ani_ero}}{txt}" : ();
-    } : return;
+    my @ero = !$r->{ani_ero} ? () :
+        defined $r->{ani_ero_sp} || defined $r->{ani_ero_cg} ? (
+            defined $r->{ani_ero_sp} ? sect $r->{ani_ero_sp}, 'sprites' : (),
+            defined $r->{ani_ero_cg} ? sect $r->{ani_ero_cg}, 'CGs' : (),
+        ) : txtc $r->{ani_ero} > 1, $ANIMATED{$r->{ani_ero}}{txt};
 
     tr_ sub {
         td_ 'Animation';
-        td_ $ani;
+        td_ sub {
+            dl_ sub {
+                if(@story) {
+                    dt_ 'Story scenes';
+                    dd_ sub { join_ \&br_, sub { $_->() }, @story };
+                }
+                if(@ero) {
+                    dt_ 'Erotic scenes';
+                    dd_ sub { join_ \&br_, sub { $_->() }, @ero };
+                }
+            } if @story || @ero;
+            join_ \&br_, sub { $_->() },
+                defined $r->{ani_bg}   ? (txtc $r->{ani_bg},   $r->{ani_bg} ? 'Animated background effects' : 'No background effects') : (),
+                defined $r->{ani_face} ? (txtc $r->{ani_face}, $r->{ani_face} ? 'Lip and/or eye movement' : 'No facial animations') : ();
+        };
     };
 }
 
