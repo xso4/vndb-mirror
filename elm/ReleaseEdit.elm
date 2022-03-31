@@ -255,7 +255,7 @@ update msg model =
                    , ani_ero_sp = Nothing, ani_ero_cg = Nothing
                    , ani_face = Nothing, ani_bg = Nothing }, Cmd.none)
     AniNoAni   -> ({ model | ani_story_sp = Just 0,  ani_story_cg = Just 0,  ani_cutscene = Just 1
-                   , ani_ero_sp = if model.minage == Just 18 then Just 0 else Nothing
+                   , ani_ero_sp = if model.minage == Just 18 then Just 1 else Nothing
                    , ani_ero_cg = if model.minage == Just 18 then Just 0 else Nothing
                    , ani_face = Just False, ani_bg = Just False }, Cmd.none)
     AniStorySp i -> ({ model | ani_story_sp = i }, Cmd.none)
