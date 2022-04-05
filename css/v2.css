@@ -460,7 +460,8 @@ div.postsearch td.tc3             { width: 90px; }
 .releases tr.vn > td   { background: $boxbg; font-weight: bold; }
 .releases tr.vn .ulist-widget-icon { padding-right: 10px }
 .releases td.tc1       { padding-left: 30px; width: 80px; white-space: nowrap }
-.releases td.tc2       { text-align: center; width: 50px; white-space: nowrap }
+.releases td.tc2       { width: 70px; white-space: nowrap }
+.releases td.tc2 .release_icons { float: none }
 .releases td.tc3       { text-align: right; padding: 0; width: 120px; }
 .releases td.tc_icons  { padding: 0 4px }
 .releases td.tc_prod   { color: $grayedout; white-space: nowrap; width: 50px }
@@ -1356,9 +1357,9 @@ a .icons { cursor: pointer }
 @import 'data/icons/icons';
 
 .release_icons { width: 16px; height: 16px; float: right; margin-left: 4px; }
-.release_icon_voiced2, .release_icon_anim2 { filter: hue-rotate(30deg); }
+.release_icon_voiced2, .release_icon_anim2, .release_icon_erocen { filter: hue-rotate(30deg); }
 .release_icon_voiced3, .release_icon_anim3 { filter: invert(100%) hue-rotate(240deg); }
-.release_icon_voiced4, .release_icon_anim4 { filter: hue-rotate(80deg); }
+.release_icon_voiced4, .release_icon_anim4, .release_icon_erounc { filter: hue-rotate(80deg); }
 
 /* Relation graph colors */
 svg .border { fill: none; stroke: $border }

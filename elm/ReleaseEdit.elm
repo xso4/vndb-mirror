@@ -38,6 +38,7 @@ type alias Model =
   , official   : Bool
   , patch      : Bool
   , freeware   : Bool
+  , hasEro     : Bool
   , doujin     : Bool
   , lang       : List GRE.RecvLang
   , plat       : Set.Set String
@@ -83,6 +84,7 @@ init d =
   , official   = d.official
   , patch      = d.patch
   , freeware   = d.freeware
+  , hasEro     = d.has_ero
   , doujin     = d.doujin
   , lang       = d.lang
   , plat       = Set.fromList <| List.map (\e -> e.platform) d.platforms
@@ -131,6 +133,7 @@ encode model =
   , official    = model.official
   , patch       = model.patch
   , freeware    = model.freeware
+  , has_ero     = model.hasEro
   , doujin      = model.doujin
   , lang        = model.lang
   , platforms   = List.map (\l -> {platform=l}) <| Set.toList model.plat
@@ -179,6 +182,7 @@ type Msg
   | Official Bool
   | Patch Bool
   | Freeware Bool
+  | HasEro Bool
   | Lang Int String
   | LangMtl Int Bool
   | LangDel Int
@@ -228,6 +232,7 @@ update msg model =
     Official b -> ({ model | official = b }, Cmd.none)
     Patch b    -> ({ model | patch    = b }, Cmd.none)
     Freeware b -> ({ model | freeware = b }, Cmd.none)
+    HasEro b   -> ({ model | hasEro   = b }, Cmd.none)
     Lang n s   -> ({ model | lang     = if s /= "" && n == List.length model.lang then model.lang ++ [{lang=s, mtl=False}] else modidx n (\l -> { l | lang = s }) model.lang }, Cmd.none)
     LangMtl n b-> ({ model | lang     = modidx n (\l -> { l | mtl = b }) model.lang }, Cmd.none)
     LangDel n  -> ({ model | lang     = delidx n model.lang }, Cmd.none)
@@ -365,10 +370,11 @@ viewGen model =
     ]
 
   , tr [ class "newpart" ] [ td [] [] ]
-  , formField "minage::Age rating" [ inputSelect "minage" model.minage Minage [] ((Nothing, "Unknown") :: List.map (Tuple.mapFirst Just) GT.ageRatings), text " (*)" ]
   , formField "" [ label [] [ inputCheck "" model.official Official, text " Official (i.e. sanctioned by the original developer of the visual novel)" ] ]
   , formField "" [ label [] [ inputCheck "" model.patch    Patch   , text " This release is a patch to another release.", text " (*)" ] ]
   , formField "" [ label [] [ inputCheck "" model.freeware Freeware, text " Freeware (i.e. available at no cost)" ] ]
+  , formField "" [ label [] [ inputCheck "" model.hasEro   HasEro  , text " Contains erotic scenes", text " (*)" ] ]
+  , formField "minage::Age rating" [ inputSelect "minage" model.minage Minage [] ((Nothing, "Unknown") :: List.map (Tuple.mapFirst Just) GT.ageRatings) ]
   , formField "Release date" [ D.view model.released False False Released, text " Leave month or day blank if they are unknown." ]
 
   , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Format" ] ]
@@ -418,7 +424,7 @@ viewGen model =
     ]
   , if model.patch then text "" else
     formField "voiced::Voiced" [ inputSelect "voiced" model.voiced Voiced [] GT.voiced ]
-  , if model.minage /= Just 18 then text "" else
+  , if not model.hasEro then text "" else
     formField "uncensored::Censoring"
     [ inputSelect "uncensored" model.uncensored Uncensored []
       [ (Nothing, "Unknown")
@@ -438,7 +444,7 @@ viewGen model =
       , td [] <| [ b [] [ text "Cutscenes:" ], br [] [] ] ++ viewAnimation True " No cutscenes" AniCutscene model.ani_cutscene
       ]
     ] ]
-  , if model.minage /= Just 18 then text "" else
+  , if not model.hasEro then text "" else
     formField "Erotic scenes" [ table [] [ tr []
       [ td [ style "width" "170px" ] <| [ b [] [ text "Character sprites:"  ], br [] [] ] ++ viewAnimation False " No sprites" AniEroSp model.ani_ero_sp
       , td [] <| [ b [] [ text "CGs:" ], br [] [] ] ++ viewAnimation False " No CGs" AniEroCg model.ani_ero_cg

@@ -25,7 +25,7 @@ sub _rev_ {
     # The old ani_* fields are automatically inferred from the new ani_* fields
     # for edits made after the fields were introduced. Hide the old fields for
     # such revisions to remove some clutter.
-    my $newani = $r->{chid} > 1110896; # <- TODO: Update this to latest chid on release
+    my $newani = $r->{chid} > 1110896;
     revision_ $r, \&enrich_item,
         [ vn         => 'Relations',       fmt => sub {
             abbr_ class => "icons rt$_->{rtype}", title => $_->{rtype}, ' ';
@@ -35,6 +35,7 @@ sub _rev_ {
         [ official   => 'Official',        fmt => 'bool' ],
         [ patch      => 'Patch',           fmt => 'bool' ],
         [ freeware   => 'Freeware',        fmt => 'bool' ],
+        [ has_ero    => 'Has ero',         fmt => 'bool' ],
         [ doujin     => 'Doujin',          fmt => 'bool' ],
         [ uncensored => 'Uncensored',      fmt => 'bool' ],
         [ title      => 'Title (Romaji)' ],
@@ -220,9 +221,9 @@ sub _infotable_ {
         } if defined $r->{minage};
 
         tr_ sub {
-            td_ 'Censoring';
-            td_ $r->{uncensored} ? 'No optical censoring (like mosaics)' : 'Includes optical censoring (e.g. mosaics)';
-        } if defined $r->{uncensored};
+            td_ 'Erotic content';
+            td_ $r->{uncensored} ? 'Contains uncensored erotic scenes' : defined $r->{uncensored} ? 'Contains erotic scenes with optical censoring' : 'Contains erotic scenes',
+        } if $r->{has_ero};
 
         for my $t (qw|developer publisher|) {
             my @prod = grep $_->{$t}, @{$r->{producers}};

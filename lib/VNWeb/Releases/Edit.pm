@@ -11,6 +11,7 @@ my $FORM = {
     patch      => { anybool => 1 },
     freeware   => { anybool => 1 },
     doujin     => { anybool => 1 },
+    has_ero    => { anybool => 1 },
     lang       => { minlength => 1, sort_keys => 'lang', aoh => {
         lang      => { enum => \%LANGUAGE },
         mtl       => { anybool => 1 },
@@ -154,7 +155,7 @@ elm_api ReleaseEdit => $FORM_OUT, $FORM_IN, sub {
         $data->{ani_story_sp} = $data->{ani_story_cg} = $data->{ani_cutscene} = $data->{ani_ero_sp} = $data->{ani_ero_cg} = $data->{ani_face} = $data->{ani_bg} = undef;
         $data->{engine} = '';
     }
-    if(!defined $data->{minage} || $data->{minage} != 18) {
+    if(!$data->{has_ero}) {
         $data->{uncensored} = undef;
         $data->{ani_ero} = 0;
         $data->{ani_ero_sp} = $data->{ani_ero_cg} = undef;

@@ -28,7 +28,7 @@ sub releases_by_vn {
 sub enrich_release {
     my($r) = @_;
     enrich_merge id =>
-        'SELECT id, title, original, notes, minage, official, freeware, doujin, reso_x, reso_y, voiced, uncensored
+        'SELECT id, title, original, notes, minage, official, freeware, has_ero, reso_x, reso_y, voiced, uncensored
               , ani_story, ani_ero, ani_story_sp, ani_story_cg, ani_cutscene, ani_ero_sp, ani_ero_cg, ani_face, ani_bg
           FROM releases WHERE id IN', $r;
     enrich_merge id => sub { sql 'SELECT id, MAX(rtype) AS rtype FROM releases_vn WHERE id IN', $_, 'GROUP BY id' }, grep !$_->{rtype}, ref $r ? @$r : $r;
@@ -122,13 +122,17 @@ sub release_row_ {
             icon_ "resolution_$type", resolution $r;
         }
         icon_ $MEDIUM{ $r->{media}[0]{medium} }{icon}, join ', ', map fmtmedia($_->{medium}, $_->{qty}), $r->{media}->@* if $r->{media}->@*;
-        icon_ 'uncensor', 'Uncensored' if $r->{uncensored};
         icon_ 'notes', bb_format $r->{notes}, text => 1 if $r->{notes};
     }
 
     tr_ $mtl ? (class => 'mtl') : (), sub {
         td_ class => 'tc1', sub { rdate_ [grep $_->{lang} eq $opt->{lang}, $opt->{lang}?$r->{lang}->@*:()]->[0]{released}//$r->{released} };
-        td_ class => 'tc2', defined $r->{minage} ? minage $r->{minage} : '';
+        td_ class => 'tc2', sub {
+            txt_ defined $r->{minage} ? minage $r->{minage} : '';
+            icon_ 'ero',
+                $r->{uncensored} ? 'Contains uncensored erotic scenes' : defined $r->{uncensored} ? 'Contains erotic scenes with optical censoring' : 'Contains erotic scenes',
+                $r->{uncensored} ? 'erounc' : defined $r->{uncensored} ? 'erocen' : '' if $r->{has_ero};
+        };
         td_ class => 'tc3', sub {
             platform_ $_ for $r->{platforms}->@*;
             if(!$opt->{lang}) {

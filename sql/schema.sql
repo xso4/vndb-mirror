@@ -436,7 +436,8 @@ CREATE TABLE releases ( -- dbentry_type=r
   ani_ero_sp   animation, -- [pub]
   ani_ero_cg   animation, -- [pub]
   ani_bg       boolean, -- [pub]
-  ani_face     boolean -- [pub]
+  ani_face     boolean, -- [pub]
+  has_ero      boolean NOT NULL DEFAULT FALSE -- [pub]
 );
 
 -- releases_hist
@@ -498,7 +499,8 @@ CREATE TABLE releases_hist (
   ani_ero_sp   animation,
   ani_ero_cg   animation,
   ani_bg       boolean,
-  ani_face     boolean
+  ani_face     boolean,
+  has_ero      boolean NOT NULL DEFAULT FALSE
 );
 
 -- releases_lang
