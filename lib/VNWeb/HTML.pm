@@ -25,7 +25,7 @@ our @EXPORT = qw/
     platform_
     debug_
     join_
-    user_ user_displayname
+    user_maybebanned_ user_ user_displayname
     rdate rdate_
     vnlength_
     spoil_
@@ -73,6 +73,17 @@ sub join_($&@) {
 }
 
 
+sub user_maybebanned_ {
+    my($obj) = shift;
+    my($prefix) = shift||'user_';
+    my sub f($) { $obj->{"${prefix}$_[0]"} }
+    span_ title => join("\n",
+        !f 'perm_board' ? "Banned from posting" : (),
+        !f 'perm_edit' ? "Banned from editing" : (),
+    ), '🚫' if defined f 'perm_board' && (!f 'perm_board' || !f 'perm_edit');
+}
+
+
 # Display a user link, the given object must have the columns as fetched using DB::sql_user().
 # Args: $object, $prefix, $capital
 sub user_ {
@@ -88,6 +99,7 @@ sub user_ {
         $fancy && $uniname ? (title => f('name'), $uniname) :
         (!$fancy && $uniname ? (title => $uniname) : (), $capital ? f 'name' : f 'name');
     txt_ '⭐' if $fancy && f 'support_can' && f 'support_enabled';
+    user_maybebanned_ $obj, $prefix;
 }
 
 

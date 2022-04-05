@@ -24,6 +24,7 @@ sub _info_table_ {
         td_ class => 'key', 'Username';
         td_ sub {
             txt_ $u->{user_name};
+            user_maybebanned_ $u;
             txt_ ' ('; a_ href => "/$u->{id}", $u->{id};
             txt_ ')';
             debug_ $u;

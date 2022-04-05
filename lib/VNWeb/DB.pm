@@ -113,7 +113,11 @@ sub sql_user {
        "$tbl.support_can     as ${prefix}support_can",
        "$tbl.support_enabled as ${prefix}support_enabled",
        "$tbl.uniname_can     as ${prefix}uniname_can",
-       "$tbl.uniname         as ${prefix}uniname";
+       "$tbl.uniname         as ${prefix}uniname",
+       tuwf->req->{auth} && VNWeb::Auth::auth()->isMod ? (
+           "$tbl.perm_board      as ${prefix}perm_board",
+           "$tbl.perm_edit       as ${prefix}perm_edit"
+       ) : (),
 }
 
 
