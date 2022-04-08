@@ -128,10 +128,11 @@ sub release_row_ {
     tr_ $mtl ? (class => 'mtl') : (), sub {
         td_ class => 'tc1', sub { rdate_ [grep $_->{lang} eq $opt->{lang}, $opt->{lang}?$r->{lang}->@*:()]->[0]{released}//$r->{released} };
         td_ class => 'tc2', sub {
-            txt_ defined $r->{minage} ? minage $r->{minage} : '';
-            icon_ 'ero',
-                $r->{uncensored} ? 'Contains uncensored erotic scenes' : defined $r->{uncensored} ? 'Contains erotic scenes with optical censoring' : 'Contains erotic scenes',
-                $r->{uncensored} ? 'erounc' : defined $r->{uncensored} ? 'erocen' : '' if $r->{has_ero};
+            span_ class => 'releaseero releaseero_'.(!$r->{has_ero} ? 'no' : $r->{uncensored} ? 'unc' : defined $r->{uncensored} ? 'cen' : 'yes'),
+                  title => !$r->{has_ero} ? 'No erotic scenes' :
+                         $r->{uncensored} ? 'Contains uncensored erotic scenes'
+               : defined $r->{uncensored} ? 'Contains erotic scenes with optical censoring' : 'Contains erotic scenes', '♥';
+            txt_ !$r->{minage} ? 'All' : minage $r->{minage} if defined $r->{minage};
         };
         td_ class => 'tc3', sub {
             platform_ $_ for $r->{platforms}->@*;
