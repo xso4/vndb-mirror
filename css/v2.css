@@ -469,7 +469,7 @@ div.postsearch td.tc3             { width: 90px; }
 .releases tr.mtl a,
 .releases tr.mtl b,
 .releases tr.mtl td { color: $grayedout }
-.releaseero { cursor: pointer; color: transparent; opacity: 0.7 }
+.releaseero { cursor: default; color: transparent; opacity: 0.7 }
 .releaseero_no  { text-shadow: 0 0 $grayedout }
 .releaseero_yes { text-shadow: 0 0 $maintext }
 .releaseero_cen { text-shadow: 0 0 $statnok }
