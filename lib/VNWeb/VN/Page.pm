@@ -164,7 +164,7 @@ sub infobox_length_ {
     my $today = strftime('%Y%m%d', gmtime);
     return if !grep $_->{rtype} ne 'trial' && $_->{released} <= $today, $v->{releases}->@*;
 
-    return if !$v->{c_length} && !$v->{c_lengthnum} && !VNWeb::VN::Length::can_vote();
+    return if !$v->{length} && !$v->{c_lengthnum} && !VNWeb::VN::Length::can_vote();
 
     my $my = VNWeb::VN::Length::can_vote()
         && tuwf->dbRowi('SELECT rid::text[] AS rid, length, speed, private, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
