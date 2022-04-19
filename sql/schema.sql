@@ -1097,7 +1097,7 @@ CREATE TABLE vn ( -- dbentry_type=v
   l_wikidata    integer, -- [pub]
   c_votecount   integer NOT NULL DEFAULT 0, -- [pub]
   c_popularity  smallint NOT NULL DEFAULT 0, -- [pub], ratio between 0 and 10000
-  c_pop_rank    integer NOT NULL DEFAULT 0,
+  c_pop_rank    integer NOT NULL DEFAULT 10000000,
   c_rating      smallint, -- [pub], decimal vote*100, i.e. 100 - 1000
   c_rat_rank    integer,
   c_released    integer NOT NULL DEFAULT 0,
