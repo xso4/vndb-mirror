@@ -390,6 +390,7 @@ f r => 61 => 'patch',    { uint => 1, range => [1,1] }, '=' => sub { 'r.patch' }
 f r => 62 => 'freeware', { uint => 1, range => [1,1] }, '=' => sub { 'r.freeware' };
 f r => 64 => 'uncensored',{uint => 1, range => [1,1] }, '=' => sub { 'r.uncensored' };
 f r => 65 => 'official', { uint => 1, range => [1,1] }, '=' => sub { 'r.official' };
+f r => 66 => 'has-ero',  { uint => 1, range => [1,1] }, '=' => sub { 'r.has_ero' };
 f r => 53 => 'vn',       'v', '=' => sub { sql 'r.id IN(SELECT rv.id FROM releases_vn rv JOIN vn v ON v.id = rv.vid WHERE NOT v.hidden AND', $_, ')' };
 f r => 55 => 'producer', 'p', '=' => sub { sql 'r.id IN(SELECT rp.id FROM releases_producers rp JOIN producers p ON p.id = rp.pid WHERE NOT p.hidden AND', $_, ')' };
 

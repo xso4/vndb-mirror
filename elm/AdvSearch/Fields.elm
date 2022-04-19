@@ -449,6 +449,7 @@ fields =
   , f R "Type"               3  FMRType       AS.init                 AS.rtypeFromQuery
   , l R "Patch"              0 [(QInt 61 Eq 1, "Patch to another release"),(QInt 61 Ne 1, "Standalone release")]
   , l R "Freeware"           0 [(QInt 62 Eq 1, "Freeware"),                (QInt 62 Ne 1, "Non-free")]
+  , l R "Erotic scenes"      0 [(QInt 66 Eq 1, "Has erotic scenes"),       (QInt 66 Ne 1, "No erotic scenes")]
   , l R "Uncensored"         0 [(QInt 64 Eq 1, "Uncensored (no mosaic)"),  (QInt 64 Ne 1, "Censored (or no erotic content to censor)")]
   , l R "Official"           0 [(QInt 65 Eq 1, "Official"),                (QInt 65 Ne 1, "Unofficial")]
   , f R "Release date"       0  FMRDate       AD.init                 AD.fromQuery
