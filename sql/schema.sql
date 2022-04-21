@@ -386,7 +386,7 @@ CREATE TABLE releases ( -- dbentry_type=r
   l_getchu     integer NOT NULL DEFAULT 0, -- [pub]
   l_getchudl   integer NOT NULL DEFAULT 0, -- [pub]
   l_egs        integer NOT NULL DEFAULT 0, -- [pub]
-  l_erotrail   integer NOT NULL DEFAULT 0, -- [pub]
+  l_erotrail   integer NOT NULL DEFAULT 0, -- [pub] (deprecated, site hasn't been reachable for a while)
   l_melonjp    integer NOT NULL DEFAULT 0, -- [pub]
   l_gamejolt   integer NOT NULL DEFAULT 0, -- [pub]
   l_animateg   integer NOT NULL DEFAULT 0, -- [pub]

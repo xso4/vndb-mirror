@@ -79,9 +79,6 @@ our %LINKS = (
         l_egs      => { label => 'ErogameScape'
                       , fmt   => 'https://erogamescape.dyndns.org/~ap2/ero/toukei_kaiseki/game.php?game=%d'
                       , regex => qr{erogamescape\.dyndns\.org/~ap2/ero/toukei_kaiseki/(?:before_)?game\.php\?(?:.*&)?game=([0-9]+)(?:&.*)?} },
-        l_erotrail => { label => 'ErogeTrailers'
-                      , fmt   => 'http://erogetrailers.com/soft/%d'
-                      , regex => qr{(?:www\.)?erogetrailers\.com/soft/([0-9]+)} },
         l_steam    => { label => 'Steam'
                       , fmt   => 'https://store.steampowered.com/app/%d/'
                       , fmt2  => 'https://store.steampowered.com/app/%d/?utm_source=vndb'
@@ -181,6 +178,7 @@ our %LINKS = (
                             , regex => qr{store\.playstation\.com/(?:[-a-z]+\/)?product\/(EP\d{4}-[A-Z]{4}\d{5}_00-[\dA-Z_]{16})} },
         # deprecated
         l_dlsiteen => { label => 'DLsite (eng)', fmt => 'https://www.dlsite.com/eng/work/=/product_id/%s.html' },
+        l_erotrail => { label => 'ErogeTrailers', fmt => 'http://erogetrailers.com/soft/%d' },
     },
     s => {
         l_site     => { label => 'Official website', fmt => '%s' },
@@ -285,7 +283,6 @@ sub enrich_extlinks {
         # Release links
         if($type eq 'r') {
             l 'l_egs';
-            l 'l_erotrail';
             l 'l_steam';
             push @links, [ 'SteamDB', sprintf('https://steamdb.info/app/%d/info', $obj->{l_steam}), undef ] if $obj->{l_steam};
             l 'l_dlsite', $obj->{l_dlsite_price};
