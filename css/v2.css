@@ -25,7 +25,16 @@ table.stripe tbody tr:nth-child(odd):not(.nostripe),
 .docs table tbody tr:nth-child(odd) { background: $boxbg; }
 
 #bgright { position: absolute; top: 0px; right: 0px; @include bgright }
-#header  { position: absolute; top: 80px; left: 400px; }
+#header {
+  position: absolute;
+  top: 80px;
+  width: 100%;
+  max-width: 721px;
+  text-align: right;
+}
+#header h1 {
+  padding: 0 30px;
+}
 #header h1, #header h1 a {
   font-family: "Futura", "Century New Gothic", "Arial", Serif;
   font-size: 24px;
