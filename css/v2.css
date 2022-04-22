@@ -846,7 +846,7 @@ table.aliases td.key { padding: 0 5px 0 0; width: auto }
 @media(min-width:1250px) { .vnstaff-2{display:none} .vnstaff-3{display:none} .vnstaff-4{display:flex} }
 
 div.charsum_list { text-align: center }
-div.charsum_list .name { white-space: nowrap; display: flex; justify-content: space-between }
+div.charsum_list .name { white-space: nowrap; display: flex; justify-content: space-between; padding: 3px 10px; }
 div.charsum_list .name span { overflow: hidden; text-overflow: ellipsis; padding-bottom: 1px }
 div.charsum_list .name a { font-weight: bold }
 div.charsum_list .actor { border-top: 1px solid $border; padding-top: 3px }
@@ -856,9 +856,9 @@ div.charsum_list .charsum_bubble {
   display: inline-block;
   text-align: left;
   vertical-align: top;
-  width: 320px;
+  width: 100%;
+  max-width: 320px;
   margin: 3px;
-  padding: 3px 10px;
 }
 
 
