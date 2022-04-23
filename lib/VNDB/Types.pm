@@ -37,6 +37,7 @@ hash LANGUAGE =>
     hu => 'Hungarian',
     id => 'Indonesian',
     it => 'Italian',
+    iu => 'Inuktitut',
     ja => 'Japanese',
     ko => 'Korean',
     mk => 'Macedonian',
