@@ -558,7 +558,7 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $bo
   text-align: center;
 }
 #screenshots a.scrlnk     { margin: 2px; border: none }
-#screenshots div.scr      { display: block; padding-left: 30px; text-align: center }
+#screenshots div.scr      { display: block; padding: 0 15px; text-align: center }
 #screenshots a img        { border: 3px solid transparent; }
 #screenshots a.nsfw img   { border: 3px solid $statnok; }
 #screenshots a:hover img  { border: 3px solid $border; }
