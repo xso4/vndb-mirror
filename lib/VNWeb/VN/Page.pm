@@ -162,7 +162,13 @@ sub infobox_length_ {
     my($v) = @_;
 
     my $today = strftime('%Y%m%d', gmtime);
-    return if !grep $_->{rtype} ne 'trial' && $_->{released} <= $today, $v->{releases}->@*;
+
+    # Length is only relevant if this VN has been released. Some VNs have been
+    # cancelled and only have a trial, but we allow votes on those as well.
+    my $hastrial = grep $_->{rtype} eq 'trial' && $_->{released} <= $today, $v->{releases}->@*;
+    my $hasnontba = grep $_->{rtype} ne 'trial' && $_->{released} <= $today, $v->{releases}->@*;
+    my $hastba = grep $_->{rtype} ne 'trial' && $_->{released} > $today, $v->{releases}->@*;
+    return if !($hasnontba || ($hastrial && !$hastba));
 
     return if !$v->{length} && !$v->{c_lengthnum} && !VNWeb::VN::Length::can_vote();
 
