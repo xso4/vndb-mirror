@@ -305,6 +305,7 @@ sub export_data {
     binmode($F, ":utf8");
     select $F;
     print "\\set ON_ERROR_STOP 1\n";
+    print "\\i sql/util.sql\n";
     print "\\i sql/schema.sql\n";
     # Would be nice if VNDB::Schema could list sequences, too.
     my @seq = sort @{ $db->selectcol_arrayref(
@@ -312,7 +313,7 @@ sub export_data {
     ) };
     printf "SELECT setval('%s', %d);\n", $_, $db->selectrow_array("SELECT last_value FROM \"$_\"", {}) for @seq;
     for my $t (sort { $a->{name} cmp $b->{name} } values %$schema) {
-        my $cols = join ',', map "\"$_->{name}\"", $t->{cols}->@*;
+        my $cols = join ',', map "\"$_->{name}\"", grep $_->{decl} !~ /\sGENERATED\s/, $t->{cols}->@*;
         my $order = table_order $t->{name};
         print "\nCOPY \"$t->{name}\" ($cols) FROM STDIN;\n";
         $db->do("COPY (SELECT $cols FROM \"$t->{name}\" $order) TO STDOUT");

@@ -107,9 +107,6 @@ CREATE SEQUENCE threads_id_seq;
 CREATE SEQUENCE vn_id_seq;
 CREATE SEQUENCE users_id_seq;
 
--- Forward declaration for required functions. These are fully defined in func.sql
-CREATE FUNCTION search_gen(terms text[]) RETURNS text AS 'SELECT NULL' LANGUAGE SQL IMMUTABLE;
-
 
 -- anime
 CREATE TABLE anime (

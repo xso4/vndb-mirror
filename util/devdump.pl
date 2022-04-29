@@ -96,6 +96,7 @@ sub copy_entry {
 
     print "-- This file replaces 'sql/all.sql'.\n";
     print "\\set ON_ERROR_STOP 1\n";
+    print "\\i sql/util.sql\n";
     print "\\i sql/schema.sql\n";
     print "\\i sql/data.sql\n";
     print "\\i sql/func.sql\n";
