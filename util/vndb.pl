@@ -25,6 +25,9 @@ use VNWeb::Validation ();
 use VNWeb::LangPref ();
 
 TUWF::set %{ config->{tuwf} };
+TUWF::set db_login => sub {
+    DBI->connect(config->{tuwf}{db_login}->@*, { PrintError => 0, RaiseError => 1, AutoCommit => 0, pg_enable_utf8 => 1, ReadOnly => 1 })
+} if config->{read_only};
 
 # Signal to VNWeb::Elm whether it should generate the Elm files.
 # Should be done before loading any more modules.

@@ -29,6 +29,8 @@ my $config = {
     convert_path      => '/usr/bin/convert',
     identify_path     => '/usr/bin/identify',
     trace_log         => 0,
+    # Put the site in full read-only mode; Login is disabled and nothing is written to the DB. Handy for migrations.
+    read_only         => 0,
 
     scr_size          => [ 136, 102 ], # w*h of screenshot thumbnails
     ch_size           => [ 256, 300 ], # max. w*h of char images

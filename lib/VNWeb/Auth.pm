@@ -42,7 +42,7 @@ sub auth {
         my($uid, $token_e) = $cookie =~ /^([a-fA-F0-9]{40})\.?u?(\d+)$/ ? ('u'.$2, sha1_hex pack 'H*', $1) : (0, '');
 
         my $auth = __PACKAGE__->new();
-        $auth->_load_session($uid, $token_e);
+        $auth->_load_session($uid, $token_e) if !config->{read_only};
         $auth
     };
     tuwf->req->{auth};
@@ -165,6 +165,7 @@ sub new {
         scrypt_salt => config->{scrypt_salt}||die(),
         scrypt_args => config->{scrypt_args}||[ 65536, 8, 1 ],
         csrf_key    => config->{form_salt}||die(),
+        user        => {},
     }, shift;
 }
 

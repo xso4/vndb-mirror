@@ -78,7 +78,7 @@ elm_api Report => undef, $FORM, sub {
 
 TUWF::get qr{/report/(?<object>[vrpcsdtw]$RE{num})(?:\.(?<subid>$RE{num}))?}, sub {
     my $obj = obj tuwf->captures('object', 'subid');
-    return tuwf->resNotFound if !$obj;
+    return tuwf->resNotFound if !$obj || config->{read_only};
 
     framework_ title => 'Submit report', sub {
         if(is_throttled) {

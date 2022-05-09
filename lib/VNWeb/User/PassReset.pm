@@ -3,7 +3,7 @@ package VNWeb::User::PassReset;
 use VNWeb::Prelude;
 
 TUWF::get '/u/newpass' => sub {
-    return tuwf->resRedirect('/', 'temp') if auth;
+    return tuwf->resRedirect('/', 'temp') if auth || config->{read_only};
     framework_ title => 'Password reset', sub {
         elm_ 'User.PassReset';
     };

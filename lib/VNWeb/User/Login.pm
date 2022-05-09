@@ -4,7 +4,7 @@ use VNWeb::Prelude;
 
 
 TUWF::get '/u/login' => sub {
-    return tuwf->resRedirect('/', 'temp') if auth;
+    return tuwf->resRedirect('/', 'temp') if auth || config->{read_only};
 
     my $ref = tuwf->reqGet('ref');
     $ref = '/' if !$ref || $ref !~ /^\//;

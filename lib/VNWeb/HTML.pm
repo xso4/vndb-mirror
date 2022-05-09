@@ -309,7 +309,7 @@ sub _menu_ {
             a_ href => '/u/newpass', 'Password reset'; br_;
             a_ href => '/u/register', 'Register'; br_;
         }
-    } if !auth;
+    } if !auth && !config->{read_only};
 
     div_ class => 'menubox', sub {
         h2_ 'Database Statistics';
@@ -543,6 +543,7 @@ sub framework_ {
         head_ sub { _head_ \%o };
         body_ sub {
             div_ id => 'bgright', ' ';
+            div_ id => 'readonlymode', config->{read_only} eq 1 ? 'The site is in read-only mode, account functionality is currently disabled.' : config->{read_only} if config->{read_only};
             div_ id => 'header', sub { h1_ sub { a_ href => '/', 'the visual novel database' } };
             div_ id => 'menulist', sub { _menu_ \%o };
             div_ id => 'maincontent', sub {
@@ -884,7 +885,7 @@ sub itemmsg_ {
             }
         }
         a_ href => "/report/$obj->{id}", 'Report an issue on this page.';
-    };
+    } if !config->{read_only};
 }
 
 

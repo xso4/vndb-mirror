@@ -13,7 +13,7 @@ my $FORM_OUT = form_compile out => $FORM;
 
 
 TUWF::get qr{/$RE{uid}/setpass/(?<token>[a-f0-9]{40})}, sub {
-    return tuwf->resRedirect('/', 'temp') if auth;
+    return tuwf->resRedirect('/', 'temp') if auth || config->{read_only};
 
     my $id = tuwf->capture('id');
     my $token = tuwf->capture('token');
