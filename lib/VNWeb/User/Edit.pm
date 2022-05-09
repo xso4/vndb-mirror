@@ -132,7 +132,7 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
 
         $p->{title_langs}    = langpref_fmt $p->{title_langs};
         $p->{alttitle_langs} = langpref_fmt $p->{alttitle_langs};
-        $p->{title_langs}    = undef if $p->{title_langs}    && $p->{title_langs}    eq langpref_fmt $DEFAULT_TITLE_LANGS;
+        $p->{title_langs}    = undef if $p->{title_langs}    && ($p->{title_langs}   eq langpref_fmt($DEFAULT_TITLE_LANGS) || $p->{title_langs} eq '[]');
         $p->{alttitle_langs} = undef if $p->{alttitle_langs} && $p->{alttitle_langs} eq langpref_fmt $DEFAULT_ALTTITLE_LANGS;
         $set{$_} = $p->{$_} for qw/
             max_sexual max_violence traits_sexual tags_all tags_cont tags_ero tags_tech spoilers skin customcss
