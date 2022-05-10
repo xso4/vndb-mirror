@@ -51,6 +51,7 @@ CREATE OR REPLACE FUNCTION update_vncache(vndbid) RETURNS void AS $$
          AND rv.rtype <> 'trial'
          AND r.hidden = FALSE
          AND r.released <> 0
+         AND r.official
       GROUP BY rv.vid
     ), 0),
     c_languages = ARRAY(
