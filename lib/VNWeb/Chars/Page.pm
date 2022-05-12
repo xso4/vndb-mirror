@@ -9,8 +9,9 @@ sub enrich_seiyuu {
     enrich seiyuu => id => cid => sub { sql '
         SELECT DISTINCT vs.cid, sa.id, sa.name, sa.original, vs.note
           FROM vn_seiyuu vs
+          ', $vid ? () : ('JOIN vn v ON v.id = vs.id'), '
           JOIN staff_alias sa ON sa.aid = vs.aid
-         WHERE vs.cid IN', $_, $vid ? ('AND vs.id =', \$vid) : (), '
+         WHERE ', $vid ? ('vs.id =', \$vid) : ('NOT v.hidden'), 'AND vs.cid IN', $_, '
          ORDER BY sa.name'
     }, @chars;
 }
