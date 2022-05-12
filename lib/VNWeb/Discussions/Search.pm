@@ -72,7 +72,7 @@ sub posts_ {
         SELECT m.id, m.num, m.title
              , }, sql_user(), q{
              , }, sql_totime('m.date'), q{as date
-             , ts_headline('english', strip_bb_tags(strip_spoilers(m.msg)), to_tsquery(}, \$ts, '),',
+             , ts_headline('english', strip_bb_tags(strip_spoilers(m.msg)),}, \$ts, ',',
                  \'MaxFragments=2,MinWords=15,MaxWords=40,StartSel=[raw],StopSel=[/raw],FragmentDelimiter=[code]',
                ') as headline
           FROM (', sql_join('UNION',
@@ -81,18 +81,18 @@ sub posts_ {
                        FROM threads_posts tp
                        JOIN threads t ON t.id = tp.tid
                       WHERE NOT t.hidden AND NOT t.private AND tp.hidden IS NULL
-                        AND bb_tsvector(tp.msg) @@ to_tsquery(', \$ts, ')',
+                        AND bb_tsvector(tp.msg) @@', \$ts,
                             @tboards < keys %BOARD_TYPE ? ('AND t.id IN(SELECT tid FROM threads_boards WHERE type IN', \@tboards, ')') : ()
              ) : (), $reviews ? (
                  sql('SELECT w.id, 0, v.title, w.uid, w.date, w.text
                         FROM reviews w
                         JOIN vnt v ON v.id = w.vid
-                       WHERE NOT w.c_flagged AND bb_tsvector(w.text) @@ to_tsquery(', \$ts, ')'),
+                       WHERE NOT w.c_flagged AND bb_tsvector(w.text) @@', \$ts),
                  sql('SELECT wp.id, wp.num, v.title, wp.uid, wp.date, wp.msg
                         FROM reviews_posts wp
                         JOIN reviews w ON w.id = wp.id
                         JOIN vnt v ON v.id = w.vid
-                       WHERE NOT w.c_flagged AND wp.hidden IS NULL AND bb_tsvector(wp.msg) @@ to_tsquery(', \$ts, ')'),
+                       WHERE NOT w.c_flagged AND wp.hidden IS NULL AND bb_tsvector(wp.msg) @@', \$ts),
              ) : ()), ') m (id, num, title, uid, date, msg)
           LEFT JOIN users u ON u.id = m.uid
          ORDER BY m.date DESC'
