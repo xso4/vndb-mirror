@@ -59,7 +59,8 @@ sub enrich_item {
 
     $v->{relations}   = [ sort { idcmp($a->{vid}, $b->{vid}) } $v->{relations}->@* ];
     $v->{anime}       = [ sort { $a->{aid} <=> $b->{aid} } $v->{anime}->@* ];
-    $v->{staff}       = [ sort { $a->{aid} <=> $b->{aid} || $a->{role} cmp $b->{role} } $v->{staff}->@* ];
+    $v->{editions}    = [ sort { ($a->{lang}||'') cmp ($b->{lang}||'') || $b->{official} cmp $a->{official} || $a->{name} cmp $b->{name} } $v->{editions}->@* ];
+    $v->{staff}       = [ sort { ($a->{eid}//-1) <=> ($b->{eid}//-1) || $a->{aid} <=> $b->{aid} || $a->{role} cmp $b->{role} } $v->{staff}->@* ];
     $v->{seiyuu}      = [ sort { $a->{aid} <=> $b->{aid} || idcmp($a->{cid}, $b->{cid}) || $a->{note} cmp $b->{note} } $v->{seiyuu}->@* ];
     $v->{screenshots} = [ sort { idcmp($a->{scr}{id}, $b->{scr}{id}) } $v->{screenshots}->@* ];
 }
@@ -72,6 +73,25 @@ sub og {
         image => $v->{image} && !$v->{image}{sexual} && !$v->{image}{violence} ? imgurl($v->{image}{id}) :
                  [map $_->{scr}{sexual}||$_->{scr}{violence}?():(imgurl($_->{scr}{id})), $v->{screenshots}->@*]->[0]
     }
+}
+
+
+sub prefs {
+    state $default = {
+        vnrel_langs   => \%LANGUAGE, vnrel_olang   => 1, vnrel_mtl     => 0,
+        staffed_langs => \%LANGUAGE, staffed_olang => 1, staffed_unoff => 0,
+    };
+    tuwf->req->{vnpage_prefs} //= auth ? do {
+        my $v = tuwf->dbRowi('
+            SELECT vnrel_langs::text[], vnrel_olang, vnrel_mtl
+                 , staffed_langs::text[], staffed_olang, staffed_unoff
+              FROM users_prefs
+             WHERE id =', \auth->uid
+        );
+        $v->{vnrel_langs} = $v->{vnrel_langs} ? { map +($_,1), $v->{langs}->@* } : \%LANGUAGE;
+        $v->{staffed_langs} = $v->{staffed_langs} ? { map +($_,1), $v->{langs}->@* } : \%LANGUAGE;
+        $v
+    } : $default;
 }
 
 
@@ -96,7 +116,15 @@ sub rev_ {
         [ desc        => 'Description'    ],
         [ devstatus   => 'Development status',fmt => \%DEVSTATUS ],
         [ length      => 'Length',        fmt => \%VN_LENGTH ],
+        [ editions    => 'Editions',      fmt => sub {
+            abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, '' if $_->{lang};
+            txt_ $_->{name};
+            b_ class => 'grayedout', ' (unofficial)' if !$_->{official};
+        }],
         [ staff       => 'Credits',       fmt => sub {
+            my $eid = $_->{eid};
+            my $e = defined $eid && (grep $eid == $_->{eid}, $_[0]{editions}->@*)[0];
+            txt_ "[$e->{name}] " if $e;
             a_ href => "/$_->{sid}", title => $_->{original}||$_->{name}, $_->{name} if $_->{sid};
             b_ class => 'grayedout', '[removed alias]' if !$_->{sid};
             txt_ " [$CREDIT_TYPE{$_->{role}}]";
@@ -498,8 +526,6 @@ sub tabs_ {
 sub releases_ {
     my($v) = @_;
 
-    # TODO: Organize a long list of releases a bit better somehow? Collapsable language sections?
-
     enrich_release $v->{releases};
     $v->{releases} = sort_releases $v->{releases};
 
@@ -512,18 +538,13 @@ sub releases_ {
     }
     $langrel{$_} = min map $_->{released}, $lang{$_}->@* for keys %lang;
     my @lang = sort { $langrel{$a} <=> $langrel{$b} || ($b eq $v->{olang}) cmp ($a eq $v->{olang}) || $a cmp $b } keys %lang;
-
-    my $pref = auth ? do {
-        my $v = tuwf->dbRowi('SELECT vnrel_langs::text[] AS langs, vnrel_olang AS olang, vnrel_mtl AS mtl FROM users_prefs WHERE id =', \auth->uid);
-        $v->{langs} = $v->{langs} ? { map +($_,1), $v->{langs}->@* } : \%LANGUAGE;
-        $v
-    } : { langs => \%LANGUAGE, olang => 1, mtl => 0 };
+    my $pref = prefs;
 
     my sub lang_ {
         my($lang) = @_;
         my $ropt = { id => $lang, lang => $lang };
         my $mtl = $langmtl{$lang};
-        my $open = ($pref->{olang} && $lang eq $v->{olang} && !$mtl) || ($pref->{langs}{$lang} && (!$mtl || $pref->{mtl}));
+        my $open = ($pref->{vnrel_olang} && $lang eq $v->{olang} && !$mtl) || ($pref->{vnrel_langs}{$lang} && (!$mtl || $pref->{vnrel_mtl}));
         details_ open => $open?'open':undef, sub {
             summary_ $mtl ? (class => 'mtl') : (), sub {
                 abbr_ class => "icons lang $lang".($mtl?' mtl':''), title => $LANGUAGE{$lang}, '';
@@ -547,8 +568,8 @@ sub releases_ {
 }
 
 
-sub staff_ {
-    my($v) = @_;
+sub staff_cols_ {
+    my($lst) = @_;
 
     # XXX: The staff listing is included in the page 3 times, for 3 different
     # layouts. A better approach to get the same layout is to add the boxes to
@@ -560,7 +581,7 @@ sub staff_ {
     # Step 1: Get a list of 'boxes'; Each 'box' represents a role with a list of staff entries.
     # @boxes = [ $height, $roleimp, $html ]
     my %roles;
-    push $roles{$_->{role}}->@*, $_ for grep $_->{sid}, $v->{staff}->@*;
+    push $roles{$_->{role}}->@*, $_ for grep $_->{sid}, @$lst;
     my $i=0;
     my @boxes =
         sort { $b->[0] <=> $a->[0] || $a->[1] <=> $b->[1] }
@@ -569,7 +590,7 @@ sub staff_ {
                 li_ class => 'vnstaff_head', $CREDIT_TYPE{$_};
                 li_ sub {
                     a_ href => "/$_->{sid}", title => $_->{original}||$_->{name}, $_->{name};
-                    b_ title => $_->{note}, class => 'grayedout', $_->{note} if $_->{note};
+                    b_ class => 'grayedout', $_->{note} if $_->{note};
                 } for sort { $a->{name} cmp $b->{name} } $roles{$_}->@*;
             }
         ], grep $roles{$_}, keys %CREDIT_TYPE;
@@ -591,14 +612,45 @@ sub staff_ {
         @$c = sort { $a->[1] <=> $b->[1] } @$c;
     }
 
-    div_ class => 'mainbox', id => 'staff', 'data-mainbox-summarize' => 200, sub {
+    div_ class => sprintf('vnstaff-%d', scalar @$_), sub {
+        ul_ sub {
+            lit_ $_->[2] for $_->[2]->@*;
+        } for @$_
+    } for @cols;
+}
+
+
+sub staff_ {
+    my($v) = @_;
+    return if !$v->{staff}->@*;
+
+    my %staff;
+    push $staff{ $_->{eid} // '' }->@*, $_ for $v->{staff}->@*;
+    my $pref = prefs;
+
+    div_ class => 'mainbox vnstaff', id => 'staff', sub {
         h1_ 'Staff';
-        div_ class => sprintf('vnstaff vnstaff-%d', scalar @$_), sub {
-            ul_ sub {
-                lit_ $_->[2] for $_->[2]->@*;
-            } for @$_
-        } for @cols;
-    } if $v->{staff}->@*;
+        if (!$v->{editions}->@*) {
+            staff_cols_ $v->{staff};
+            return;
+        }
+        for my $e (undef, $v->{editions}->@*) {
+            my $lst = $staff{ $e ? $e->{eid} : '' };
+            next if !$lst;
+            my $lang = ($e && $e->{lang}) || $v->{olang};
+            my $unoff = $e && !$e->{official};
+            my $open = ($pref->{staffed_olang} && !$e) || ($pref->{staffed_langs}{$lang} && (!$unoff || $pref->{staffed_mtl}));
+            details_ open => $open?'open':undef, sub {
+                summary_ sub {
+                    abbr_ class => "icons lang $e->{lang}", title => $LANGUAGE{$e->{lang}}, '' if $e && $e->{lang};
+                    txt_ 'Original edition' if !$e;
+                    txt_ $e->{name} if $e;
+                    b_ class => 'grayedout', ' (unofficial)' if $unoff;
+                };
+                staff_cols_ $lst;
+            };
+        }
+    };
 }
 
 

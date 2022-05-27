@@ -88,6 +88,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON users_traits             TO vndb_site;
 GRANT SELECT, INSERT, UPDATE         ON vn                       TO vndb_site;
 GRANT SELECT, INSERT,         DELETE ON vn_anime                 TO vndb_site;
 GRANT SELECT, INSERT                 ON vn_anime_hist            TO vndb_site;
+GRANT SELECT, INSERT,         DELETE ON vn_editions              TO vndb_site;
+GRANT SELECT, INSERT                 ON vn_editions_hist         TO vndb_site;
 GRANT SELECT, INSERT                 ON vn_hist                  TO vndb_site;
 GRANT SELECT, INSERT, UPDATE, DELETE ON vn_length_votes          TO vndb_site;
 GRANT SELECT, INSERT,         DELETE ON vn_relations             TO vndb_site;

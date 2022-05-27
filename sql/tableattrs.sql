@@ -37,6 +37,8 @@ CREATE        INDEX vn_image               ON vn (image);
 CREATE        INDEX vn_screenshots_scr     ON vn_screenshots (scr);
 CREATE        INDEX vn_seiyuu_aid          ON vn_seiyuu (aid); -- Only used on /s+?
 CREATE        INDEX vn_seiyuu_cid          ON vn_seiyuu (cid); -- Only used on /c+?
+CREATE UNIQUE INDEX vn_staff_pkey          ON vn_staff (id, COALESCE(eid,-1::smallint), aid, role);
+CREATE UNIQUE INDEX vn_staff_hist_pkey     ON vn_staff_hist (chid, COALESCE(eid,-1::smallint), aid, role);
 CREATE        INDEX vn_staff_aid           ON vn_staff (aid);
 CREATE UNIQUE INDEX vn_length_votes_vid_uid ON vn_length_votes (vid, uid);
 CREATE        INDEX vn_length_votes_uid    ON vn_length_votes (uid);
@@ -170,9 +172,9 @@ ALTER TABLE vn_seiyuu                ADD CONSTRAINT vn_seiyuu_aid_fkey          
 ALTER TABLE vn_seiyuu                ADD CONSTRAINT vn_seiyuu_cid_fkey                 FOREIGN KEY (cid)       REFERENCES chars         (id);
 ALTER TABLE vn_seiyuu_hist           ADD CONSTRAINT vn_seiyuu_hist_chid_fkey           FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE vn_seiyuu_hist           ADD CONSTRAINT vn_seiyuu_hist_cid_fkey            FOREIGN KEY (cid)       REFERENCES chars         (id);
-ALTER TABLE vn_staff                 ADD CONSTRAINT vn_staff_id_fkey                   FOREIGN KEY (id)        REFERENCES vn            (id);
+ALTER TABLE vn_staff                 ADD CONSTRAINT vn_staff_id_eid_fkey               FOREIGN KEY (id,eid)    REFERENCES vn_editions   (id,eid) DEFERRABLE INITIALLY DEFERRED;
 ALTER TABLE vn_staff                 ADD CONSTRAINT vn_staff_aid_fkey                  FOREIGN KEY (aid)       REFERENCES staff_alias   (aid) DEFERRABLE INITIALLY DEFERRED;
-ALTER TABLE vn_staff_hist            ADD CONSTRAINT vn_staff_hist_chid_fkey            FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
+ALTER TABLE vn_staff_hist            ADD CONSTRAINT vn_staff_hist_chid_eid_fkey        FOREIGN KEY (chid,eid)  REFERENCES vn_editions_hist (chid,eid) DEFERRABLE INITIALLY DEFERRED;
 ALTER TABLE vn_titles                ADD CONSTRAINT vn_titles_id_fkey                  FOREIGN KEY (id)        REFERENCES vn            (id);
 ALTER TABLE vn_titles_hist           ADD CONSTRAINT vn_titles_hist_chid_fkey           FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE vn_length_votes          ADD CONSTRAINT vn_length_votes_vid_fkey           FOREIGN KEY (vid)       REFERENCES vn            (id);

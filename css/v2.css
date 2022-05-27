@@ -846,14 +846,17 @@ table.aliases td.key { padding: 0 5px 0 0; width: auto }
 
 /***** Staff display on VN pages *****/
 
-.vnstaff { width: 97%; margin: -15px auto 5px auto; justify-content: space-between }
+.vnstaff div { width: 97%; margin: 0 auto 5px auto; justify-content: space-between }
 .vnstaff ul { list-style: none; margin: 0 }
 .vnstaff-2 ul { width: 100% } .vnstaff-2 { flex-wrap: wrap }
 .vnstaff-3 ul { width: 32% }
 .vnstaff-4 ul { width: 24% }
-.vnstaff li { white-space: nowrap; overflow-x: hidden; text-overflow: ellipsis; padding-bottom: 1px }
-.vnstaff li.vnstaff_head { font-weight: bold; margin-top: 15px }
-.vnstaff li b.grayedout { margin-left: 10px }
+.vnstaff li { padding-bottom: 1px; padding-left: 10px; }
+.vnstaff li a { display: inline-block; margin-left: -10px }
+.vnstaff li b { padding-left: 10px }
+.vnstaff li.vnstaff_head { font-weight: bold; padding-left: 0 }
+.vnstaff li:not(:first-child).vnstaff_head { margin-top: 15px }
+.vnstaff summary { background: $boxbg; font-weight: bold; width: 100% }
 @media(min-width:   0px) { .vnstaff-2{display:flex} .vnstaff-3{display:none} .vnstaff-4{display:none} }
 @media(min-width: 850px) { .vnstaff-2{display:flex} .vnstaff-3{display:none} .vnstaff-4{display:none} .vnstaff-2 ul {width:49%} .vnstaff-2{flex-wrap:nowrap} }
 @media(min-width:1000px) { .vnstaff-2{display:none} .vnstaff-3{display:flex} .vnstaff-4{display:none} }

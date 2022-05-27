@@ -65,8 +65,10 @@ type alias Model =
   , anime       : List GVE.RecvAnime
   , animeSearch : A.Model GApi.ApiAnimeResult
   , image       : Img.Image
+  , editions    : List GVE.RecvEditions
   , staff       : List GVE.RecvStaff
-  , staffSearch : A.Model GApi.ApiStaffResult
+    -- Search boxes matching the list of editions (n+1), first entry is for the NULL edition.
+  , staffSearch : List (A.Config Msg GApi.ApiStaffResult, A.Model GApi.ApiStaffResult)
   , seiyuu      : List GVE.RecvSeiyuu
   , seiyuuSearch: A.Model GApi.ApiStaffResult
   , seiyuuDef   : String -- character id for newly added seiyuu
@@ -102,8 +104,9 @@ init d =
   , anime       = d.anime
   , animeSearch = A.init ""
   , image       = Img.info d.image_info
+  , editions    = d.editions
   , staff       = d.staff
-  , staffSearch = A.init ""
+  , staffSearch = (staffConfig Nothing, A.init "") :: List.map (\e -> (staffConfig (Just e.eid), A.init "")) d.editions
   , seiyuu      = d.seiyuu
   , seiyuuSearch= A.init ""
   , seiyuuDef   = Maybe.withDefault "" <| List.head <| List.map (\c -> c.id) d.chars
@@ -137,8 +140,9 @@ encode model =
   , relations   = List.map (\v -> { vid = v.vid, relation = v.relation, official = v.official }) model.vns
   , anime       = List.map (\a -> { aid = a.aid }) model.anime
   , image       = model.image.id
-  , staff       = List.map (\s -> { aid = s.aid, role = s.role, note = s.note }) model.staff
-  , seiyuu      = List.map (\s -> { aid = s.aid, cid  = s.cid,  note = s.note }) model.seiyuu
+  , editions    = model.editions
+  , staff       = List.map (\s -> { aid = s.aid, eid = s.eid, note = s.note, role = s.role }) model.staff
+  , seiyuu      = List.map (\s -> { aid = s.aid, cid = s.cid, note = s.note }) model.seiyuu
   , screenshots = List.map (\(_,i,r) -> { scr = Maybe.withDefault "" i.id, rid = r }) model.screenshots
   }
 
@@ -148,8 +152,12 @@ vnConfig = { wrap = VNSearch, id = "relationadd", source = A.vnSource }
 animeConfig : A.Config Msg GApi.ApiAnimeResult
 animeConfig = { wrap = AnimeSearch, id = "animeadd", source = A.animeSource False }
 
-staffConfig : A.Config Msg GApi.ApiStaffResult
-staffConfig = { wrap = StaffSearch, id = "staffadd", source = A.staffSource }
+staffConfig : Maybe Int -> A.Config Msg GApi.ApiStaffResult
+staffConfig eid =
+  { wrap = (StaffSearch eid)
+  , id = "staffadd-" ++ Maybe.withDefault "" (Maybe.map String.fromInt eid)
+  , source = A.staffSource
+  }
 
 seiyuuConfig : A.Config Msg GApi.ApiStaffResult
 seiyuuConfig = { wrap = SeiyuuSearch, id = "seiyuuadd", source = A.staffSource }
@@ -185,10 +193,15 @@ type Msg
   | ImageSelect
   | ImageSelected File
   | ImageMsg Img.Msg
+  | EditionAdd
+  | EditionLang Int (Maybe String)
+  | EditionName Int String
+  | EditionOfficial Int Bool
+  | EditionDel Int Int
   | StaffDel Int
   | StaffRole Int String
   | StaffNote Int String
-  | StaffSearch (A.Msg GApi.ApiStaffResult)
+  | StaffSearch (Maybe Int) (A.Msg GApi.ApiStaffResult)
   | SeiyuuDef String
   | SeiyuuDel Int
   | SeiyuuChar Int String
@@ -270,14 +283,43 @@ update msg model =
     ImageSelected f -> let (nm, nc) = Img.upload Api.Cv f in ({ model | image = nm }, Cmd.map ImageMsg nc)
     ImageMsg m -> let (nm, nc) = Img.update m model.image in ({ model | image = nm }, Cmd.map ImageMsg nc)
 
+    EditionAdd ->
+      let f n acc =
+            case acc of
+              Just x -> Just x
+              Nothing -> if not (List.isEmpty (List.filter (\i -> i.eid == n) model.editions)) then Nothing else Just n
+          newid = List.range 0 500 |> List.foldl f Nothing |> Maybe.withDefault 0
+      in ({ model
+          | editions = model.editions ++ [{ eid = newid, lang = Nothing, name = "", official = True }]
+          , staffSearch = model.staffSearch ++ [(staffConfig (Just newid), A.init "")]
+          }, Cmd.none)
+    EditionDel idx eid ->
+      ({ model
+      | editions = delidx idx model.editions
+      , staffSearch = delidx (idx + 1) model.staffSearch
+      , staff = List.filter (\s -> s.eid /= Just eid) model.staff
+      }, Cmd.none)
+    EditionLang idx v -> ({ model | editions = modidx idx (\s -> { s | lang = v }) model.editions }, Cmd.none)
+    EditionName idx v -> ({ model | editions = modidx idx (\s -> { s | name = v }) model.editions }, Cmd.none)
+    EditionOfficial idx v -> ({ model | editions = modidx idx (\s -> { s | official = v }) model.editions }, Cmd.none)
+
     StaffDel idx    -> ({ model | staff = delidx idx model.staff }, Cmd.none)
     StaffRole idx v -> ({ model | staff = modidx idx (\s -> { s | role = v }) model.staff }, Cmd.none)
     StaffNote idx v -> ({ model | staff = modidx idx (\s -> { s | note = v }) model.staff }, Cmd.none)
-    StaffSearch m ->
-      let (nm, c, res) = A.update staffConfig m model.staffSearch
-      in case res of
-        Nothing -> ({ model | staffSearch = nm }, c)
-        Just s -> ({ model | staffSearch = A.clear nm "", staff = model.staff ++ [{ id = s.id, aid = s.aid, name = s.name, original = s.original, role = "staff", note = "" }] }, c)
+    StaffSearch eid m ->
+      let idx = List.indexedMap Tuple.pair model.editions
+                |> List.filterMap (\(n,e) -> if Just e.eid == eid then Just (n+1) else Nothing)
+                |> List.head |> Maybe.withDefault 0
+      in case List.drop idx model.staffSearch |> List.head of
+        Nothing -> (model, Cmd.none)
+        Just (sconfig, smodel) ->
+          let (nm, c, res) = A.update sconfig m smodel
+              nnm = if res == Nothing then nm else A.clear nm ""
+              nsearch = modidx idx (\(oc,om) -> (oc,nnm)) model.staffSearch
+              nstaff s = [{ id = s.id, aid = s.aid, eid = eid, name = s.name, original = s.original, role = "staff", note = "" }]
+          in case res of
+            Nothing -> ({ model | staffSearch = nsearch }, c)
+            Just s -> ({ model | staffSearch = nsearch, staff = model.staff ++ nstaff s }, c)
 
     SeiyuuDef c      -> ({ model | seiyuuDef = c }, Cmd.none)
     SeiyuuDel idx    -> ({ model | seiyuu = delidx idx model.seiyuu }, Cmd.none)
@@ -334,7 +376,8 @@ isValid model = not
   || not (Img.isValid model.image)
   || List.any (\(_,i,r) -> r == Nothing || not (Img.isValid i)) model.screenshots
   || not (List.isEmpty model.scrQueue)
-  || hasDuplicates (List.map (\s -> (s.aid, s.role)) model.staff)
+  || hasDuplicates (List.map (\e -> e.name) model.editions)
+  || hasDuplicates (List.map (\s -> (s.aid, Maybe.withDefault -1 s.eid, s.role)) model.staff)
   || hasDuplicates (List.map (\s -> (s.aid, s.cid)) model.seiyuu)
   )
 
@@ -467,41 +510,65 @@ view model =
 
     staff =
       let
-        head =
-          if List.isEmpty model.staff then [] else [
+        head lst =
+          if List.isEmpty lst then text "" else
             thead [] [ tr []
             [ td [] []
             , td [] [ text "Staff" ]
             , td [] [ text "Role" ]
             , td [] [ text "Note" ]
             , td [] []
-            ] ] ]
-        foot =
+            ] ]
+        foot searchn lst (sconfig, smodel) =
           tfoot [] [ tr [] [ td [] [], td [ colspan 4 ]
-          [ br [] []
-          , if hasDuplicates (List.map (\s -> (s.aid, s.role)) model.staff)
+          [ text ""
+          , if hasDuplicates (List.map (\(_,s) -> (s.aid, s.role)) lst)
             then b [ class "standout" ] [ text "List contains duplicate staff roles.", br [] [] ]
             else text ""
-          , A.view staffConfig model.staffSearch [placeholder "Add staff..."]
-          , text "Can't find the person you're looking for? You can "
-          , a [ href "/s/new" ] [ text "create a new entry" ]
-          , text ", but "
-          , a [ href "/s/all" ] [ text "please check for aliasses first." ]
-          , br_ 2
-          , text "Some guidelines:"
-          , ul []
-            [ li [] [ text "Please add major staff only, i.e. people who had a significant and noticable impact on the work." ]
-            , li [] [ text "If one person performed several roles, you can add multiple entries with different major roles." ]
+          , A.view sconfig smodel [placeholder "Add staff..."]
+          , if searchn > 0 then text "" else span []
+            [ text "Can't find the person you're looking for? You can "
+            , a [ href "/s/new" ] [ text "create a new entry" ]
+            , text ", but "
+            , a [ href "/s/all" ] [ text "please check for aliasses first." ]
+            , br [] []
+            , text "If one person performed several roles, you can add multiple entries with different major roles."
             ]
           ] ] ]
-        item n s = tr []
+        item (n,s) = tr []
           [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| s.id ++ ":" ] ]
           , td [] [ a [ href <| "/" ++ s.id ] [ text s.name ] ]
           , td [] [ inputSelect "" s.role (StaffRole n) [style "width" "150px" ] GT.creditTypes ]
           , td [] [ inputText "" s.note (StaffNote n) (style "width" "300px" :: onInvalid (Invalid Staff) :: GVE.valStaffNote) ]
           , td [] [ inputButton "remove" (StaffDel n) [] ]
           ]
-      in table [] <| head ++ [ foot ] ++ List.indexedMap item model.staff
+        edition searchn edi =
+          let eid = Maybe.map (\e -> e.eid) edi
+              lst = List.indexedMap Tuple.pair model.staff |> List.filter (\(_,s) -> s.eid == eid)
+              sch = List.drop searchn model.staffSearch |> List.head
+          in div [style "margin" "0 0 30px 0"]
+             [ Maybe.withDefault (if List.isEmpty model.editions then text "" else h2 [] [ text "Original edition" ])
+               <| Maybe.map (\e -> h2 [] [ text (if e.name == "" then "New edition" else e.name) ]) edi
+             , case edi of
+                 Nothing -> text ""
+                 Just e ->
+                   div [style "margin" "5px 0 0 15px"]
+                   [ inputText "" e.name (EditionName (searchn-1)) (placeholder "Edition title" :: style "width" "300px" :: onInvalid (Invalid Staff) :: GVE.valEditionsName)
+                   , inputSelect "" e.lang (EditionLang (searchn-1)) [style "width" "150px"]
+                     ((Nothing, "Original language") :: List.map (\(i,l) -> (Just i, l)) GT.languages)
+                   , text " ", label [] [ inputCheck "" e.official (EditionOfficial (searchn-1)), text " official" ]
+                   , inputButton "remove edition" (EditionDel (searchn-1) e.eid) [style "margin-left" "30px"]
+                   ]
+             , table [style "margin" "5px 0 0 15px"]
+               <| head lst
+               :: Maybe.withDefault (text "") (Maybe.map (foot searchn lst) sch)
+               :: List.map item lst
+             ]
+      in edition 0 Nothing
+         :: List.indexedMap (\n e -> edition (n+1) (Just e)) model.editions
+         ++ [ br [] [], inputButton "Add edition" EditionAdd [] ]
+
+
 
     cast =
       let
@@ -679,7 +746,7 @@ view model =
         ]
       , div [ class "mainbox", classList [("hidden", model.tab /= General     && model.tab /= All)] ] [ h1 [] [ text "General info" ], table [ class "formtable" ] geninfo ]
       , div [ class "mainbox", classList [("hidden", model.tab /= Image       && model.tab /= All)] ] [ h1 [] [ text "Image" ], image ]
-      , div [ class "mainbox", classList [("hidden", model.tab /= Staff       && model.tab /= All)] ] [ h1 [] [ text "Staff" ], staff ]
+      , div [ class "mainbox", classList [("hidden", model.tab /= Staff       && model.tab /= All)] ] ( h1 [] [ text "Staff" ] :: staff )
       , div [ class "mainbox", classList [("hidden", model.tab /= Cast        && model.tab /= All)] ] [ h1 [] [ text "Cast" ], cast ]
       , div [ class "mainbox", classList [("hidden", model.tab /= Screenshots && model.tab /= All)] ] [ h1 [] [ text "Screenshots" ], screenshots ]
       , div [ class "mainbox" ] [ fieldset [ class "submit" ]

@@ -33,8 +33,15 @@ my $FORM = {
     } },
     image      => { required => 0, vndbid => 'cv' },
     image_info => { _when => 'out', required => 0, type => 'hash', keys => $VNWeb::Elm::apis{ImageResult}[0]{aoh} },
-    staff      => { sort_keys => ['aid','role'], aoh => {
+    editions   => { sort_keys => 'eid', aoh => {
+        eid      => { uint => 1, max => 500 },
+        lang     => { required => 0, language => 1 },
+        name     => {},
+        official => { anybool => 1 },
+    } },
+    staff      => { sort_keys => ['aid','eid','role'], aoh => {
         aid      => { id => 1 },
+        eid      => { required => 0, uint => 1 },
         role     => { enum => \%CREDIT_TYPE },
         note     => { required => 0, default => '', maxlength => 250 },
         id       => { _when => 'out', vndbid => 's' },
@@ -100,6 +107,8 @@ TUWF::get qr{/$RE{vrev}/edit} => sub {
     $e->{staff}  = [ grep $_->{id}, $e->{staff}->@* ];
     $e->{seiyuu} = [ grep $_->{id}, $e->{seiyuu}->@* ];
 
+    $e->{editions} = [ sort { ($a->{lang}||'') cmp ($b->{lang}||'') || $b->{official} cmp $a->{official} || $a->{name} cmp $b->{name} } $e->{editions}->@* ];
+
     $e->{releases} = releases_by_vn $e->{id};
 
     $e->{chars} = tuwf->dbAlli('
@@ -147,6 +156,10 @@ elm_api VNEdit => $FORM_OUT, $FORM_IN, sub {
     validate_dbid 'SELECT id FROM images WHERE id IN', map $_->{scr}, $data->{screenshots}->@*;
     validate_dbid 'SELECT aid FROM staff_alias WHERE aid IN', map $_->{aid}, $data->{staff}->@*;
     validate_dbid 'SELECT aid FROM staff_alias WHERE aid IN', map $_->{aid}, $data->{seiyuu}->@*;
+
+    # Drop unused staff editions
+    my %editions = map defined $_->{eid} ? +($_->{eid},1) : (), $data->{staff}->@*;
+    $data->{editions} = [ grep $editions{$_->{eid}}, $data->{editions}->@* ];
 
     $data->{relations} = [] if $data->{hidden};
     validate_dbid 'SELECT id FROM vn WHERE id IN', map $_->{vid}, $data->{relations}->@*;

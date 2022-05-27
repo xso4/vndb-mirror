@@ -101,12 +101,14 @@ my %tables = (
                                  .' OR id IN(SELECT DISTINCT uid FROM vn_length_votes WHERE NOT private)' },
     vn                  => { where => 'NOT hidden' },
     vn_anime            => { where => 'id IN(SELECT id FROM vn WHERE NOT hidden)' },
+    vn_editions         => { where => 'id IN(SELECT id FROM vn WHERE NOT hidden)' },
     vn_relations        => { where => 'id IN(SELECT id FROM vn WHERE NOT hidden)' },
     vn_screenshots      => { where => 'id IN(SELECT id FROM vn WHERE NOT hidden)' },
     vn_seiyuu           => { where => 'id IN(SELECT id FROM vn WHERE NOT hidden)'
                                 .' AND aid IN(SELECT sa.aid FROM staff_alias sa JOIN staff s ON s.id = sa.id WHERE NOT s.hidden)'
                                 .' AND cid IN(SELECT id FROM chars WHERE NOT hidden)' },
-    vn_staff            => { where => 'id IN(SELECT id FROM vn WHERE NOT hidden) AND aid IN(SELECT sa.aid FROM staff_alias sa JOIN staff s ON s.id = sa.id WHERE NOT s.hidden)' },
+    vn_staff            => { where => 'id IN(SELECT id FROM vn WHERE NOT hidden) AND aid IN(SELECT sa.aid FROM staff_alias sa JOIN staff s ON s.id = sa.id WHERE NOT s.hidden)'
+                           , order => 'id, eid, aid, role' },
     vn_titles           => { where => 'id IN(SELECT id FROM vn WHERE NOT hidden)' },
     vn_length_votes     => { where => 'vid IN(SELECT id FROM vn WHERE NOT hidden) AND NOT private'
                            , order => 'vid, uid' },

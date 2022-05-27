@@ -165,11 +165,14 @@ hash PRODUCER_TYPE =>
 # SQL: ENUM credit_type
 hash CREDIT_TYPE =>
     scenario   => 'Scenario',
+    director   => 'Director',
     chardesign => 'Character design',
     art        => 'Artist',
     music      => 'Composer',
     songs      => 'Vocals',
-    director   => 'Director',
+    translator => 'Translator',
+    editor     => 'Editor',
+    qa         => 'Quality assurance',
     staff      => 'Staff';
 
 

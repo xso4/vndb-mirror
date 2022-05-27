@@ -57,7 +57,7 @@ CREATE TYPE anime_type        AS ENUM ('tv', 'ova', 'mov', 'oth', 'web', 'spe', 
 CREATE TYPE blood_type        AS ENUM ('unknown', 'a', 'b', 'ab', 'o');
 CREATE TYPE board_type        AS ENUM ('an', 'db', 'ge', 'v', 'p', 'u');
 CREATE TYPE char_role         AS ENUM ('main', 'primary', 'side', 'appears');
-CREATE TYPE credit_type       AS ENUM ('scenario', 'chardesign', 'art', 'music', 'songs', 'director', 'staff');
+CREATE TYPE credit_type       AS ENUM ('scenario', 'chardesign', 'art', 'music', 'songs', 'director', 'translator', 'editor', 'qa', 'staff');
 CREATE TYPE cup_size          AS ENUM ('', 'AAA', 'AA', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z');
 CREATE TYPE dbentry_type      AS ENUM ('v', 'r', 'p', 'c', 's', 'd');
 CREATE TYPE gender            AS ENUM ('unknown', 'm', 'f', 'b');
@@ -1091,7 +1091,10 @@ CREATE TABLE users_prefs (
   prodrelexpand       boolean NOT NULL DEFAULT true,
   vnrel_langs         language[], -- NULL meaning "show all languages"
   vnrel_olang         boolean NOT NULL DEFAULT true,
-  vnrel_mtl           boolean NOT NULL DEFAULT false
+  vnrel_mtl           boolean NOT NULL DEFAULT false,
+  staffed_langs       language[],
+  staffed_olang       boolean NOT NULL DEFAULT true,
+  staffed_unoff       boolean NOT NULL DEFAULT false
 );
 
 -- Additional fields for the 'users' table, but with some protected columns.
@@ -1190,6 +1193,26 @@ CREATE TABLE vn_anime_hist (
   PRIMARY KEY(chid, aid)
 );
 
+-- vn_editions
+CREATE TABLE vn_editions (
+  id         vndbid NOT NULL, -- [pub]
+  lang       language, -- [pub]
+  eid        smallint NOT NULL, -- [pub] (not stable across revisions)
+  official   boolean NOT NULL DEFAULT TRUE, -- [pub]
+  name       text NOT NULL, -- [pub]
+  PRIMARY KEY(id, eid)
+);
+
+-- vn_editions_hist
+CREATE TABLE vn_editions_hist (
+  chid       integer NOT NULL,
+  lang       language,
+  eid        smallint NOT NULL,
+  official   boolean NOT NULL DEFAULT TRUE,
+  name       text NOT NULL,
+  PRIMARY KEY(chid, eid)
+);
+
 -- vn_relations
 CREATE TABLE vn_relations (
   id         vndbid NOT NULL, -- [pub]
@@ -1250,7 +1273,7 @@ CREATE TABLE vn_staff (
   aid        integer NOT NULL, -- [pub] staff_alias.aid
   role       credit_type NOT NULL DEFAULT 'staff', -- [pub]
   note       varchar(250) NOT NULL DEFAULT '', -- [pub]
-  PRIMARY KEY (id, aid, role)
+  eid        smallint -- [pub]
 );
 
 -- vn_staff_hist
@@ -1259,7 +1282,7 @@ CREATE TABLE vn_staff_hist (
   aid        integer NOT NULL, -- See note at vn_seiyuu_hist.aid
   role       credit_type NOT NULL DEFAULT 'staff',
   note       varchar(250) NOT NULL DEFAULT '',
-  PRIMARY KEY (chid, aid, role)
+  eid        smallint
 );
 
 -- vn_titles
