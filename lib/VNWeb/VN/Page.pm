@@ -185,10 +185,16 @@ sub infobox_length_ {
                 txt_ ' from ';
                 a_ href => "/$v->{id}/lengthvotes", sprintf '%d vote%s', $v->{c_lengthnum}, $v->{c_length}==1?'':'s';
                 txt_ ')';
-            } elsif($v->{length}) {
-                txt_ "$VN_LENGTH{$v->{length}}{txt} ($VN_LENGTH{$v->{length}}{time})";
             } else {
-                txt_ 'Unknown';
+                my $uncounted = tuwf->dbVali('SELECT count(*) FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND NOT private AND speed IS NULL');
+                txt_ $VN_LENGTH{$v->{length}}{txt};
+                if ($v->{length} || $uncounted) {
+                    lit_ ' (';
+                    txt_ $VN_LENGTH{$v->{length}}{time} if $v->{length};
+                    lit_ ', ' if $v->{length} && $uncounted;
+                    a_ href => "/$v->{id}/lengthvotes", sprintf '%d uncounted vote%s', $uncounted, $uncounted == 1 ? '' : 's' if $uncounted;
+                    lit_ ')';
+                }
             }
             if (auth->permLengthvote) {
                 elm_ VNLengthVote => $VNWeb::VN::Length::LENGTHVOTE, {
