@@ -7,7 +7,7 @@ our @EXPORT = qw/reviews_helpfulness reviews_vote_ reviews_format/;
 sub reviews_helpfulness {
     my($w) = @_;
     my ($uup, $aup, $udown, $adown) = (floor($w->{c_up}/100), $w->{c_up}%100, floor($w->{c_down}/100), $w->{c_down}%100);
-    return max 0, sprintf '%.0f', ($uup + 0.3*$aup) - ($udown + 0.3*$adown);
+    return sprintf '%.0f', max 0, ($uup + 0.3*$aup) - ($udown + 0.3*$adown);
 }
 
 sub reviews_vote_ {
