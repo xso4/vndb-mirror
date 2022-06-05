@@ -20,6 +20,7 @@ use VNWeb::DB;
 use VNWeb::Validation;
 use VNWeb::HTML ();
 use VNDB::Types;
+use VNDB::ExtLinks ();
 use Exporter 'import';
 our @EXPORT = qw/advsearch_default/;
 
@@ -385,6 +386,16 @@ f r => 18 => 'rlist',    { uint => 1, enum => \%RLIST_STATUS }, sql_list => sub 
         my($neg, $all, $val) = @_;
         return '1=0' if !auth;
         sql 'r.id', $neg ? 'NOT' : '', 'IN(SELECT rid FROM rlists WHERE uid =', \auth->uid, 'AND status IN', $val, $all && @$val > 1 ? ('GROUP BY rid HAVING COUNT(status) =', \scalar @$val) : (), ')';
+    };
+f r => 19 => 'extlink',  { enum => [map s/^l_//r, keys $VNDB::ExtLinks::LINKS{r}->%*] }, '=' => sub {
+        my $arg = $_;
+        state $schema = (grep +($_->{dbentry_type}||'') eq 'r', values VNDB::Schema::schema->%*)[0];
+        state %L = map {
+            my($f, $n, $p) = ($_, s/^l_//r, $VNDB::ExtLinks::LINKS{r}{$_});
+            my($s) = grep $_->{name} eq $f, $schema->{cols}->@*;
+            +($n, 'r.'.$f.' <> '.($s->{type} =~ /\[\]/ ? "'{}'" : $s->{type} =~ /^(big)?int/ ? 0 : "''"))
+        } keys $VNDB::ExtLinks::LINKS{r}->%*;
+        $L{$arg} // $L{"l_$arg"};
     };
 f r => 61 => 'patch',    { uint => 1, range => [1,1] }, '=' => sub { 'r.patch' };
 f r => 62 => 'freeware', { uint => 1, range => [1,1] }, '=' => sub { 'r.freeware' };

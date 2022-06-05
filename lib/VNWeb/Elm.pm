@@ -476,6 +476,7 @@ sub write_extlinks {
 
         type alias Site a =
           { name  : String
+          , advid : String
           , fmt   : String
           , regex : Regex.Regex
           , multi : Bool
@@ -503,6 +504,7 @@ sub write_extlinks {
             my $addval = $l->{int} ? 'toint v' : 'v';
             '{ '.join("\n  , ",
                 'name  = '.string($l->{name}),
+                'advid = '.string($l->{id} =~ s/^l_//r),
                 'fmt   = '.string($l->{fmt}),
                 'regex = reg '.string(TUWF::Validate::Interop::_re_compat($l->{regex})),
                 'multi = '.($l->{multi}?'True':'False'),

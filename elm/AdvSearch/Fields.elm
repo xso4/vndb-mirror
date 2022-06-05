@@ -303,6 +303,7 @@ type FieldModel
   | FMRList      (AS.Model Int)
   | FMSRole      (AS.Model String)
   | FMPType      (AS.Model String)
+  | FMExtLinks   (AS.Model String)
   | FMHeight     (AR.Model Int)
   | FMWeight     (AR.Model Int)
   | FMBust       (AR.Model Int)
@@ -347,6 +348,7 @@ type FieldMsg
   | FSRList      (AS.Msg Int)
   | FSSRole      (AS.Msg String)
   | FSPType      (AS.Msg String)
+  | FSExtLinks   (AS.Msg String)
   | FSHeight     AR.Msg
   | FSWeight     AR.Msg
   | FSBust       AR.Msg
@@ -460,6 +462,7 @@ fields =
   , f R "Ero animation"      0  FMAniEro      AS.init                 (AS.animatedFromQuery False)
   , f R "Story animation"    0  FMAniStory    AS.init                 (AS.animatedFromQuery True)
   , f R "Engine"             0  FMEngine      AEng.init               AEng.fromQuery
+  , f R "External links"     0  FMExtLinks    AS.init                 AS.extlinkFromQuery
   , f R "My List"            0  FMRList       AS.init                 AS.rlistFromQuery
   -- Deprecated
   , f R ""                   0  FMDeveloper   AP.init                 (AP.fromQuery 6)
@@ -564,6 +567,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSRList  msg,   FMRList m)    -> maps FMRList    (AS.update msg m)
       (FSSRole  msg,   FMSRole m)    -> maps FMSRole    (AS.update msg m)
       (FSPType  msg,   FMPType m)    -> maps FMPType    (AS.update msg m)
+      (FSExtLinks msg ,FMExtLinks m) -> maps FMExtLinks (AS.update msg m)
       (FSHeight msg,   FMHeight m)   -> maps FMHeight   (AR.update msg m)
       (FSWeight msg,   FMWeight m)   -> maps FMWeight   (AR.update msg m)
       (FSBust msg,     FMBust m)     -> maps FMBust     (AR.update msg m)
@@ -631,6 +635,7 @@ fieldView dat (_, dd, model) =
       FMRList m      -> f FSRList      (AS.rlistView m)
       FMSRole m      -> f FSSRole      (AS.sroleView m)
       FMPType m      -> f FSPType      (AS.ptypeView m)
+      FMExtLinks m   -> f FSExtLinks   (AS.extlinkView m)
       FMHeight m     -> f FSHeight     (AR.heightView m)
       FMWeight m     -> f FSWeight     (AR.weightView m)
       FMBust m       -> f FSBust       (AR.bustView m)
@@ -679,6 +684,7 @@ fieldToQuery dat (_, _, model) =
     FMRList m    -> AS.toQuery (QInt 18) m
     FMSRole m    -> AS.toQuery (QStr 5) m
     FMPType m    -> AS.toQuery (QStr 4) m
+    FMExtLinks m -> AS.toQuery (QStr 19) m
     FMHeight m   -> AR.toQuery (QInt 6) (QStr 6) m
     FMWeight m   -> AR.toQuery (QInt 7) (QStr 7) m
     FMBust m     -> AR.toQuery (QInt 8) (QStr 8) m

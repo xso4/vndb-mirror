@@ -55,6 +55,7 @@ our %WIKIDATA = (
 
 
 # dbentry_type => column name => \%info
+# Column names are also used for AdvSearch filters, so they should be stable.
 # info keys:
 #   label     Name of the link
 #   fmt       How to generate a url (basic version, printf-style only)

@@ -6,6 +6,7 @@ import Set
 import Lib.Html exposing (..)
 import Lib.Util exposing (..)
 import Gen.Types as GT
+import Gen.ExtLinks as GEL
 import AdvSearch.Lib exposing (..)
 
 
@@ -516,4 +517,29 @@ ptypeView model =
 ptypeFromQuery = fromQuery (\q ->
   case q of
     QStr 4 op v -> Just (op, v)
+    _ -> Nothing)
+
+
+
+
+-- Extlinks (releases only, for now)
+
+extlinkView model =
+  let lst = List.map (\l -> (l.advid, l.name)) GEL.releaseSites
+  in
+  ( case Set.toList model.sel of
+      []  -> b [ class "grayedout" ] [ text "External links" ]
+      [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" (lookup v lst) ]
+      l   -> span [ class "nowrap" ] [ lblPrefix model, text <| "Links (" ++ String.fromInt (List.length l) ++ ")" ]
+  , \() ->
+    [ div [ class "advheader" ]
+      [ h3 [] [ text "External links" ]
+      , opts model True True ]
+    , ul [ style "columns" "2" ] <| List.map (\(k,l) -> li [] [ linkRadio (Set.member k model.sel) (Sel k) [ text l ] ]) lst
+    ]
+  )
+
+extlinkFromQuery = fromQuery (\q ->
+  case q of
+    QStr 19 op v -> Just (op, v)
     _ -> Nothing)
