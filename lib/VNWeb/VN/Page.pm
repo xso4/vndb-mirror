@@ -499,6 +499,8 @@ sub releases_ {
     enrich_release $v->{releases};
     $v->{releases} = [ sort {
         $a->{released} <=> $b->{released} ||
+        $b->{rtype} cmp $a->{rtype} ||
+        $b->{official} cmp $a->{official} ||
         ($a->{platforms}[0]||'') cmp ($b->{platforms}[0]||'') ||
         $a->{title} cmp $b->{title} ||
         idcmp($a->{id}, $b->{id})
