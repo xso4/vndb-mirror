@@ -363,7 +363,9 @@ $$ LANGUAGE SQL;
 
 -- Returns generic information for almost every supported vndbid + num.
 -- Not currently supported: ch#, cv#, sf#
--- XXX: user title preferences (through the 'vnt' VIEW) are not used for explicit revisions.
+-- Some oddities:
+-- * User title preferences (through the 'vnt' VIEW) are not used for explicit revisions.
+-- * Trait names are prefixed with their group name ("Group > Trait"), but only for non-revisions.
 --
 -- Returned fields:
 --   * title    - Main/romanized title.
@@ -388,7 +390,7 @@ BEGIN
     WHEN 'c' THEN RETURN QUERY SELECT c.name    ::text, c.original::text,  NULL::vndbid,  c.hidden, c.locked FROM chars c     WHERE c.id = $1;
     WHEN 'd' THEN RETURN QUERY SELECT d.title   ::text, NULL,              NULL::vndbid,  d.hidden, d.locked FROM docs d      WHERE d.id = $1;
     WHEN 'g' THEN RETURN QUERY SELECT g.name    ::text, NULL,              NULL::vndbid,  g.hidden, g.locked FROM tags g      WHERE g.id = $1;
-    WHEN 'i' THEN RETURN QUERY SELECT i.name    ::text, NULL,              NULL::vndbid,  i.hidden, i.locked FROM traits i    WHERE i.id = $1;
+    WHEN 'i' THEN RETURN QUERY SELECT COALESCE(g.name||' > ', '')||i.name, NULL,NULL::vndbid,i.hidden, i.locked FROM traits i LEFT JOIN traits g ON g.id = i.group WHERE i.id = $1;
     WHEN 's' THEN RETURN QUERY SELECT sa.name   ::text, sa.original::text, NULL::vndbid,  s.hidden, s.locked FROM staff s   JOIN staff_alias sa ON sa.aid = s.aid WHERE s.id = $1;
     WHEN 't' THEN RETURN QUERY SELECT t.title   ::text, NULL,              NULL::vndbid,  t.hidden OR t.private, t.locked FROM threads t WHERE t.id = $1;
     WHEN 'w' THEN RETURN QUERY SELECT v.title   ::text, v.alttitle::text,  w.uid, w.c_flagged, w.locked FROM reviews w JOIN vnt v ON v.id = w.vid WHERE w.id = $1;
