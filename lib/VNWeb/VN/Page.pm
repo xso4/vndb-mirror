@@ -379,6 +379,23 @@ sub infobox_tags_ {
 # Also used by Chars::VNTab & Reviews::VNTab
 sub infobox_ {
     my($v, $notags) = @_;
+
+    sub tlang_ {
+        my($t) = @_;
+        tr_ class => 'title', class => $t->{official}?undef:'grayedout', sub {
+            td_ sub {
+                abbr_ class => "icons lang $t->{lang}", title => $LANGUAGE{$t->{lang}}, '';
+            };
+            td_ sub {
+                span_ lang_attr($t->{lang}), $t->{title};
+                if($t->{latin}) {
+                    br_;
+                    txt_ $t->{latin};
+                }
+            }
+        }
+    }
+
     div_ class => 'mainbox', sub {
         itemmsg_ $v;
         h1_ $v->{title};
@@ -389,35 +406,24 @@ sub infobox_ {
 
             table_ class => 'stripe', sub {
                 tr_ sub {
-                    td_ class => 'key', sub{
-                        txt_ $v->{titles}->@* > 1 ? 'Titles' : 'Title';
-                        debug_ $v;
+                    td_ 'Title';
+                    td_ sub {
+                        table_ sub { tlang_ $v->{titles}[0] };
                     };
-                    td_ class => 'title', sub {
-                        sub tlang_ {
-                            my($t) = @_;
-                            tr_ class => $t->{official}?undef:'grayedout', sub {
-                                td_ sub {
-                                    abbr_ class => "icons lang $t->{lang}", title => $LANGUAGE{$t->{lang}}, '';
-                                };
-                                td_ sub {
-                                    span_ lang_attr($t->{lang}), $t->{title};
-                                    if($t->{latin}) {
-                                        br_;
-                                        txt_ $t->{latin};
-                                    }
-                                }
-                            }
-                        }
-                        table_ sub { tlang_ grep $_->{lang} eq $v->{olang}, $v->{titles}->@* };
+                } if $v->{titles}->@* == 1;
+                tr_ sub {
+                    td_ class => 'titles', colspan => 2, sub {
                         details_ sub {
-                            summary_ 'Alternative titles...';
+                            summary_ sub {
+                                div_ 'Titles';
+                                table_ sub { tlang_ grep $_->{lang} eq $v->{olang}, $v->{titles}->@* };
+                            };
                             table_ sub {
                                 tlang_ $_ for grep $_->{lang} ne $v->{olang}, sort { $b->{official} cmp $a->{official} || $a->{lang} cmp $b->{lang} } $v->{titles}->@*;
                             };
-                        } if $v->{titles}->@* > 1;
+                        };
                     };
-                };
+                } if $v->{titles}->@* > 1;
 
                 tr_ sub {
                     td_ 'Aliases';
@@ -447,6 +453,7 @@ sub infobox_ {
                     td_ class => 'vndesc', colspan => 2, sub {
                         h2_ 'Description';
                         p_ sub { lit_ $v->{desc} ? bb_format $v->{desc} : '-' };
+                        debug_ $v;
                     }
                 }
             }
