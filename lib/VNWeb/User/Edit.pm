@@ -7,7 +7,6 @@ use VNWeb::LangPref;
 
 my $FORM = {
     id             => { vndbid => 'u' },
-    title          => { _when => 'out' },
     username       => { username => 1 }, # Can only be modified by the user itself or a perm_usermod
 
     opts => { _when => 'out', type => 'hash', keys => {
@@ -106,9 +105,12 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
 
     $u->{password} = undef;
 
-    $u->{title} = $u->{id} eq auth->uid ? 'My Account' : "Edit $u->{username}";
-    framework_ title => $u->{title}, dbobj => $u, tab => 'edit',
+    my $title = $u->{id} eq auth->uid ? 'My Account' : "Edit $u->{username}";
+    framework_ title => $title, dbobj => $u, tab => 'edit',
     sub {
+        div_ class => 'mainbox', sub {
+            h1_ $title;
+        };
         elm_ 'User.Edit', $FORM_OUT, $u;
     };
 };

@@ -2,12 +2,15 @@ module User.Edit exposing (main)
 
 import Bitwise exposing (..)
 import Set
+import Task
+import Process
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Html.Keyed as K
 import Browser
 import Browser.Navigation exposing (load)
+import Lib.Ffi as Ffi
 import Lib.Html exposing (..)
 import Lib.Util exposing (..)
 import Lib.Api as Api
@@ -25,6 +28,7 @@ main = Browser.element
   , subscriptions = always Sub.none
   }
 
+type Tab = Profile | Preferences
 
 type alias PassData =
   { cpass       : Bool
@@ -35,8 +39,9 @@ type alias PassData =
 
 type alias Model =
   { state       : Api.State
+  , tab         : Tab
+  , invalidDis  : Bool
   , id          : String
-  , title       : String
   , username    : String
   , nusername   : Maybe String
   , opts        : GUE.RecvOpts
@@ -52,8 +57,9 @@ type alias Model =
 init : GUE.Recv -> Model
 init d =
   { state       = Api.Normal
+  , tab         = Profile
+  , invalidDis  = False
   , id          = d.id
-  , title       = d.title
   , username    = d.username
   , nusername   = Nothing
   , opts        = d.opts
@@ -116,7 +122,10 @@ type PassMsg
   | Pass2 String
 
 type Msg
-  = Username (Maybe String)
+  = Tab Tab
+  | Invalid Tab
+  | InvalidEnable
+  | Username (Maybe String)
   | Admin AdminMsg
   | Prefs PrefMsg
   | Pass PassMsg
@@ -228,6 +237,10 @@ encode model =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+    Tab t   -> ({ model | tab = t }, Cmd.none)
+    Invalid t  -> if model.invalidDis || model.tab == t then (model, Cmd.none) else
+                  ({ model | tab = t, invalidDis = True }, Task.attempt (always InvalidEnable) (Ffi.elemCall "reportValidity" "mainform" |> Task.andThen (\_ -> Process.sleep 100)))
+    InvalidEnable -> ({ model | invalidDis = False }, Cmd.none)
     Admin m -> ({ model | admin = Maybe.map (updateAdmin m) model.admin }, Cmd.none)
     Prefs m -> ({ model | prefs = Maybe.map (updatePrefs m) model.prefs }, Cmd.none)
     Pass  m -> ({ model | pass  = Maybe.map (updatePass  m) model.pass, passNeq = False }, Cmd.none)
@@ -285,13 +298,14 @@ view model =
       ]
 
     passform m =
-      [ formField "" [ label [] [ inputCheck "" m.cpass (Pass << CPass), text " Change password" ] ]
+      [ tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Password" ] ]
+      , formField "" [ label [] [ inputCheck "" m.cpass (Pass << CPass), text " Change password" ] ]
       ] ++ if not m.cpass then [] else
         [ tr [] [ K.node "td" [colspan 2] [("pass_change", table []
-          [ formField "opass::Old password" [ inputPassword "opass" m.opass (Pass << OPass) GUE.valPasswordOld ]
-          , formField "pass1::New password" [ inputPassword "pass1" m.pass1 (Pass << Pass1) GUE.valPasswordNew ]
+          [ formField "opass::Old password" [ inputPassword "opass" m.opass (Pass << OPass) (onInvalid (Invalid Profile) :: GUE.valPasswordOld) ]
+          , formField "pass1::New password" [ inputPassword "pass1" m.pass1 (Pass << Pass1) (onInvalid (Invalid Profile) :: GUE.valPasswordNew) ]
           , formField "pass2::Repeat"
-            [ inputPassword "pass2" m.pass2 (Pass << Pass2) GUE.valPasswordNew
+            [ inputPassword "pass2" m.pass2 (Pass << Pass2) (onInvalid (Invalid Profile) :: GUE.valPasswordNew)
             , br_ 1
             , if model.passNeq
               then b [ class "standout" ] [ text "Passwords do not match" ]
@@ -308,6 +322,25 @@ view model =
       , perm opts.support_can    <| formField "" [ label [] [ inputCheck "" m.support_enabled    (Prefs << Support), text " Display my supporters badge" ] ]
       , perm opts.pubskin_can    <| formField "" [ label [] [ inputCheck "" m.pubskin_enabled    (Prefs << PubSkin), text " Apply my skin and custom CSS when others visit my profile" ] ]
       , perm opts.uniname_can    <| formField "uniname::Display name" [ inputText "uniname" (if m.uniname == "" then model.username else m.uniname) (Prefs << Uniname) GUE.valPrefsUniname ]
+      ]
+
+    traitsform m =
+      [ tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Public traits" ] ]
+      , formField "Traits"
+        [ p [ style "padding-bottom" "4px" ]
+          [ text "You can add ", a [ href "/i" ] [ text "character traits" ], text " to your account. These will be displayed on your public profile." ]
+        , if List.isEmpty m.traits then text ""
+          else table [] <| List.indexedMap (\i t -> tr []
+            [ td []
+              [ Maybe.withDefault (text "") <| Maybe.map (\g -> b [ class "grayedout" ] [ text <| g ++ " / " ]) t.group
+              , a [ href <| "/" ++ t.tid ] [ text t.name ]
+              ]
+            , td [] [ inputButton "remove" (Prefs (TraitDel i)) [] ]
+            ]
+          ) m.traits
+        , if List.length m.traits >= 100 then text ""
+          else A.view traitConfig model.traitSearch [placeholder "Add trait..."]
+        ]
       ]
 
     langprefsform m alt = table [] <|
@@ -329,8 +362,7 @@ view model =
       ) m
 
     prefsform m =
-      [ tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Preferences" ] ]
-      , formField "NSFW"
+      [ formField "NSFW"
         [ inputSelect "" m.max_sexual (Prefs << MaxSexual) [style "width" "400px"]
           [ (-1,"Hide all images")
           , (0, "Hide sexually suggestive or explicit images")
@@ -345,56 +377,47 @@ view model =
           , (2, "Don't hide violent or brutal images")
           ]
         ]
-      , formField ""     [ label [] [ inputCheck "" m.traits_sexual (Prefs << TraitsSexual), text " Show sexual traits by default on character pages" ], br_ 2 ]
-      , formField "Title language" <|
-        [ Html.map (Prefs << TitleLang) (langprefsform m.title_langs False) ]
-      , formField "Alternative title" <|
-        [ text "The alternative title is displayed below the main title and as tooltip for links."
-        , br [] []
-        , Html.map (Prefs << AltTitleLang) (langprefsform m.alttitle_langs True)
-        , br [] []
-        ]
-      , formField "Tags" [ label [] [ inputCheck "" m.tags_all      (Prefs << TagsAll),      text " Show all tags by default on visual novel pages (don't summarize)" ] ]
-      , formField ""
-        [ text "Default tag categories on visual novel pages:", br_ 1
-        , label [] [ inputCheck "" m.tags_cont (Prefs << TagsCont), text " Content" ], br_ 1
-        , label [] [ inputCheck "" m.tags_ero  (Prefs << TagsEro ), text " Sexual content" ], br_ 1
-        , label [] [ inputCheck "" m.tags_tech (Prefs << TagsTech), text " Technical" ]
-        ]
-      , formField "spoil::Spoiler level"
+      , formField "" [ label [] [ inputCheck "" m.traits_sexual (Prefs << TraitsSexual), text " Show sexual traits by default on character pages" ] ]
+      , formField "spoil::Default spoiler level"
         [ inputSelect "spoil" m.spoilers (Prefs << Spoilers) []
           [ (0, "Hide spoilers")
           , (1, "Show only minor spoilers")
           , (2, "Show all spoilers")
           ]
         ]
+      , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Language" ] ]
+      , formField "Titles" <|
+        [ Html.map (Prefs << TitleLang) (langprefsform m.title_langs False) ]
+      , formField "Alternative titles" <|
+        [ text "The alternative title is displayed below the main title and as tooltip for links."
+        , br [] []
+        , Html.map (Prefs << AltTitleLang) (langprefsform m.alttitle_langs True)
+        , br [] []
+        ]
+      , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Visual novel pages" ] ]
+      , formField "Tags" [ label [] [ inputCheck "" m.tags_all (Prefs << TagsAll), text " Show all tags by default (don't summarize)" ] ]
+      , formField ""
+        [ text "Default tag categories:", br_ 1
+        , label [] [ inputCheck "" m.tags_cont (Prefs << TagsCont), text " Content" ], br_ 1
+        , label [] [ inputCheck "" m.tags_ero  (Prefs << TagsEro ), text " Sexual content" ], br_ 1
+        , label [] [ inputCheck "" m.tags_tech (Prefs << TagsTech), text " Technical" ]
+        ]
+      , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Theme" ] ]
       , formField "skin::Skin" [ inputSelect "skin" m.skin (Prefs << Skin) [ style "width" "300px" ] GT.skins ]
       , formField "css::Custom CSS" [ inputTextArea "css" m.customcss (Prefs << Css) ([ rows 5, cols 60 ] ++ GUE.valPrefsCustomcss) ]
-
-      , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Public profile" ] ]
-      , formField "Traits"
-        [ p [ style "padding-bottom" "4px" ]
-          [ text "You can add ", a [ href "/i" ] [ text "character traits" ], text " to your account. These will be displayed on your public profile." ]
-        , if List.isEmpty m.traits then text ""
-          else table [] <| List.indexedMap (\i t -> tr []
-            [ td []
-              [ Maybe.withDefault (text "") <| Maybe.map (\g -> b [ class "grayedout" ] [ text <| g ++ " / " ]) t.group
-              , a [ href <| "/" ++ t.tid ] [ text t.name ]
-              ]
-            , td [] [ inputButton "remove" (Prefs (TraitDel i)) [] ]
-            ]
-          ) m.traits
-        , if List.length m.traits >= 100 then text ""
-          else A.view traitConfig model.traitSearch [placeholder "Add trait..."]
-        ]
       ]
 
-  in form_ "" Submit (model.state == Api.Loading)
-    [ div [ class "mainbox" ]
-      [ h1 [] [ text model.title ]
+  in form_ "mainform" Submit (model.state == Api.Loading)
+    [ if model.prefs == Nothing then text "" else div [ class "maintabs left" ]
+      [ ul []
+        [ li [ classList [("tabselected", model.tab == Profile    )] ] [ a [ href "#", onClickD (Tab Profile    ) ] [ text "Account" ] ]
+        , li [ classList [("tabselected", model.tab == Preferences)] ] [ a [ href "#", onClickD (Tab Preferences) ] [ text "Display preferences" ] ]
+        ]
+      ]
+    , div [ class "mainbox", classList [("hidden", model.tab /= Profile    )] ]
+      [ h1 [] [ text "Account" ]
       , table [ class "formtable" ] <|
-        [ tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Account settings" ] ]
-        , formField "Username"
+        [ formField "Username"
           [ text model.username, text " "
           , if model.prefs == Nothing then text "" else label []
             [ inputCheck "" (model.nusername /= Nothing) (\b -> Username <| if b then Just model.username else Nothing)
@@ -403,20 +426,24 @@ view model =
         , Maybe.withDefault (text "") <| Maybe.map (\u ->
            tr [] [ K.node "td" [colspan 2] [("username_change", table []
             [ formField "username::New username"
-              [ inputText "username" u (Username << Just) GUE.valUsername
+              [ inputText "username" u (Username << Just) (onInvalid (Invalid Profile) :: GUE.valUsername)
               , br [] []
               , text "You may only change your username once a day. Your old username(s) will be displayed on your profile for a month after the change."
               ]
             ])] ]
           ) model.nusername
         , Maybe.withDefault (text "") <| Maybe.map (\m ->
-            formField "email::E-Mail" [ inputText "email" m.email (Prefs << EMail) GUE.valPrefsEmail ]
+            formField "email::E-Mail" [ inputText "email" m.email (Prefs << EMail) (onInvalid (Invalid Profile) :: GUE.valPrefsEmail) ]
           ) model.prefs
         ]
         ++ (Maybe.withDefault [] (Maybe.map passform model.pass))
         ++ (Maybe.withDefault [] (Maybe.map adminform model.admin))
         ++ (Maybe.withDefault [] (Maybe.map supportform model.prefs))
-        ++ (Maybe.withDefault [] (Maybe.map prefsform model.prefs))
+        ++ (Maybe.withDefault [] (Maybe.map traitsform model.prefs))
+      ]
+    , div [ class "mainbox", classList [("hidden", model.tab /= Preferences)] ]
+      [ h1 [] [ text "Display preferences" ]
+      , table [ class "formtable" ] <| Maybe.withDefault [] (Maybe.map prefsform model.prefs)
       ]
     , div [ class "mainbox" ]
       [ fieldset [ class "submit" ] [ submitButton "Submit" model.state (not model.passNeq) ]
