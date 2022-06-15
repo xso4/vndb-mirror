@@ -1,4 +1,4 @@
-module User.Edit exposing (main)
+port module User.Edit exposing (main)
 
 import Bitwise exposing (..)
 import Set
@@ -27,6 +27,8 @@ main = Browser.element
   , update = update
   , subscriptions = always Sub.none
   }
+
+port skinChange : String -> Cmd msg
 
 type Tab = Profile | Preferences
 
@@ -242,7 +244,10 @@ update msg model =
                   ({ model | tab = t, invalidDis = True }, Task.attempt (always InvalidEnable) (Ffi.elemCall "reportValidity" "mainform" |> Task.andThen (\_ -> Process.sleep 100)))
     InvalidEnable -> ({ model | invalidDis = False }, Cmd.none)
     Admin m -> ({ model | admin = Maybe.map (updateAdmin m) model.admin }, Cmd.none)
-    Prefs m -> ({ model | prefs = Maybe.map (updatePrefs m) model.prefs }, Cmd.none)
+    Prefs m ->
+      let np = Maybe.map (updatePrefs m) model.prefs
+          s = Maybe.map (\x -> x.skin) >> Maybe.withDefault ""
+      in ({ model | prefs = np }, if (s np) /= (s model.prefs) then skinChange (s np) else Cmd.none)
     Pass  m -> ({ model | pass  = Maybe.map (updatePass  m) model.pass, passNeq = False }, Cmd.none)
     Username s -> ({ model | nusername = s }, Cmd.none)
 
