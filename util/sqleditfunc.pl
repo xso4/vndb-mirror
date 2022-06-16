@@ -96,8 +96,8 @@ BEGIN
     INSERT INTO {item} DEFAULT VALUES RETURNING id INTO nitemid;
   END IF;
   -- insert change
-  INSERT INTO changes (itemid, rev, requester, ip, comments, ihid, ilock)
-    SELECT nitemid, nrev, requester, ip, comments, ihid, ilock FROM edit_revision RETURNING id INTO nchid;
+  INSERT INTO changes (itemid, rev, requester, comments, ihid, ilock)
+    SELECT nitemid, nrev, requester, comments, ihid, ilock FROM edit_revision RETURNING id INTO nchid;
   -- insert data
 {copyfromtemp}
 {copymainfromtemp}

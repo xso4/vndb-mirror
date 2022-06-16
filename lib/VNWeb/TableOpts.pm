@@ -127,7 +127,7 @@ sub tableopts {
 TUWF::set('custom_validations')->{tableopts} = sub {
     my($t) = @_;
     +{ onerror => sub {
-        my $d = $t->{pref} && auth ? tuwf->dbVali('SELECT', $t->{pref}, 'FROM users WHERE id =', \auth->uid) : undef;
+        my $d = $t->{pref} && auth ? tuwf->dbVali('SELECT', $t->{pref}, 'FROM users_prefs WHERE id =', \auth->uid) : undef;
         bless([$d // $t->{default},$t], __PACKAGE__)
     }, func => sub {
         my $obj = bless [undef, $t], __PACKAGE__;
@@ -221,7 +221,7 @@ elm_api TableOptsSave => $FORM_OUT, {
 }, sub {
     my($f) = @_;
     return elm_Unauth if !auth;
-    tuwf->dbExeci('UPDATE users SET', { $f->{save} => $f->{value} }, 'WHERE id =', \auth->uid);
+    tuwf->dbExeci('UPDATE users_prefs SET', { $f->{save} => $f->{value} }, 'WHERE id =', \auth->uid);
     elm_Success
 };
 

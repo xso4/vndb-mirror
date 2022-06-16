@@ -339,7 +339,6 @@ sub db_edit {
     tuwf->dbExeci("SELECT edit_${type}_init(", \$id, ', (SELECT MAX(rev) FROM changes WHERE itemid = ', \$id, '))');
     tuwf->dbExeci('UPDATE edit_revision SET', {
         requester => $uid // scalar VNWeb::Auth::auth()->uid(),
-        ip        => scalar tuwf->reqIP(),
         comments  => $data->{editsum},
         ihid      => $data->{hidden},
         ilock     => $data->{locked},

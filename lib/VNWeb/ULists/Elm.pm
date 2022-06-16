@@ -252,7 +252,7 @@ our $SAVED_OPTS_OUT = form_compile out => $SAVED_OPTS;
 elm_api UListSaveDefault => $SAVED_OPTS_OUT, $SAVED_OPTS_IN, sub {
     my($data) = @_;
     return elm_Unauth if !ulists_own $data->{uid};
-    tuwf->dbExeci('UPDATE users SET ulist_'.$data->{field}, '=', \JSON::XS->new->encode($data->{opts}), 'WHERE id =', \$data->{uid});
+    tuwf->dbExeci('UPDATE users_prefs SET ulist_'.$data->{field}, '=', \JSON::XS->new->encode($data->{opts}), 'WHERE id =', \$data->{uid});
     elm_Success
 };
 

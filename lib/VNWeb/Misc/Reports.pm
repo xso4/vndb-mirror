@@ -159,7 +159,7 @@ TUWF::get qr{/report/list}, sub {
     );
 
     tuwf->dbExeci(
-        'UPDATE users SET last_reports = NOW()
+        'UPDATE users_prefs SET last_reports = NOW()
           WHERE (last_reports IS NULL OR EXISTS(SELECT 1 FROM reports WHERE lastmod > last_reports OR date > last_reports))
             AND id =', \auth->uid
     );

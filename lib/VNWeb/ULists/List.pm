@@ -327,7 +327,10 @@ sub listing_ {
 
 # TODO: Ability to add VNs from this page
 TUWF::get qr{/$RE{uid}/ulist}, sub {
-    my $u = tuwf->dbRowi('SELECT id,', sql_user(), ', ulist_votes, ulist_vnlist, ulist_wish FROM users u WHERE id =', \tuwf->capture('id'));
+    my $u = tuwf->dbRowi('
+        SELECT u.id,', sql_user(), ', ulist_votes, ulist_vnlist, ulist_wish
+          FROM users u JOIN users_prefs up ON up.id = u.id
+         WHERE u.id =', \tuwf->capture('id'));
     return tuwf->resNotFound if !$u->{id};
 
     my $own = ulists_own $u->{id};

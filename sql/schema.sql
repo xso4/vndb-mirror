@@ -141,7 +141,6 @@ CREATE TABLE changes (
   rev        integer NOT NULL DEFAULT 1,
   ihid       boolean NOT NULL DEFAULT FALSE,
   ilock      boolean NOT NULL DEFAULT FALSE,
-  ip         inet NOT NULL DEFAULT '0.0.0.0',
   comments   text NOT NULL DEFAULT ''
 );
 
@@ -367,6 +366,12 @@ CREATE TABLE quotes (
   vid        vndbid NOT NULL, -- [pub]
   quote      varchar(250) NOT NULL, -- [pub]
   PRIMARY KEY(vid, quote)
+);
+
+-- registration_throttle
+CREATE TABLE registration_throttle (
+  ip        inet NOT NULL PRIMARY KEY,
+  timeout   timestamptz NOT NULL
 );
 
 -- releases
@@ -997,7 +1002,6 @@ CREATE TABLE ulist_vns_labels (
 -- users
 CREATE TABLE users (
   registered          timestamptz NOT NULL DEFAULT NOW(),
-  last_reports        timestamptz, -- For mods: Most recent activity seen on the reports listing
   id                  vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('u', nextval('users_id_seq')::int) CONSTRAINT users_id_check CHECK(vndbid_type(id) = 'u'), -- [pub]
   c_votes             integer NOT NULL DEFAULT 0,
   c_changes           integer NOT NULL DEFAULT 0,
@@ -1005,19 +1009,10 @@ CREATE TABLE users (
   c_vns               integer NOT NULL DEFAULT 0,
   c_wish              integer NOT NULL DEFAULT 0,
   c_imgvotes          integer NOT NULL DEFAULT 0,
-  tableopts_c         integer,
-  spoilers            smallint NOT NULL DEFAULT 0,
-  max_sexual          smallint NOT NULL DEFAULT 0,
-  max_violence        smallint NOT NULL DEFAULT 0,
   ign_votes           boolean NOT NULL DEFAULT false, -- [pub]
   email_confirmed     boolean NOT NULL DEFAULT false,
   notify_dbedit       boolean NOT NULL DEFAULT true,
   notify_announce     boolean NOT NULL DEFAULT false,
-  tags_all            boolean NOT NULL DEFAULT false,
-  tags_cont           boolean NOT NULL DEFAULT true,
-  tags_ero            boolean NOT NULL DEFAULT false,
-  tags_tech           boolean NOT NULL DEFAULT true,
-  traits_sexual       boolean NOT NULL DEFAULT false,
   notify_post         boolean NOT NULL DEFAULT true,
   notify_comment      boolean NOT NULL DEFAULT true,
   nodistract_can      boolean NOT NULL DEFAULT false,
@@ -1038,18 +1033,33 @@ CREATE TABLE users (
   perm_review         boolean NOT NULL DEFAULT true,
   username            varchar(20) NOT NULL, -- [pub]
   uniname             text NOT NULL DEFAULT '',
-  ip                  inet NOT NULL DEFAULT '0.0.0.0',
+  perm_lengthvote     boolean NOT NULL DEFAULT true -- [pub] (public because this is used in calculating VN lengths)
+);
+
+-- Additional, less frequently accessed fields for the 'users' table.
+-- (Separated to debloat the main users table, which is often used in JOINs)
+CREATE TABLE users_prefs (
+  id                  vndbid NOT NULL PRIMARY KEY,
+  max_sexual          smallint NOT NULL DEFAULT 0,
+  max_violence        smallint NOT NULL DEFAULT 0,
+  last_reports        timestamptz, -- For mods: Most recent activity seen on the reports listing
+  tableopts_c         integer,
+  tableopts_v         integer,
+  tableopts_vt        integer, -- VN listing on tag pages
+  spoilers            smallint NOT NULL DEFAULT 0,
+  tags_all            boolean NOT NULL DEFAULT false,
+  tags_cont           boolean NOT NULL DEFAULT true,
+  tags_ero            boolean NOT NULL DEFAULT false,
+  tags_tech           boolean NOT NULL DEFAULT true,
+  traits_sexual       boolean NOT NULL DEFAULT false,
   skin                text NOT NULL DEFAULT '',
   customcss           text NOT NULL DEFAULT '',
   ulist_votes         jsonb,
   ulist_vnlist        jsonb,
   ulist_wish          jsonb,
   vnlang              jsonb, -- '$lang(-mtl)?' => true/false, which languages to expand/collapse on VN pages
-  tableopts_v         integer,
-  tableopts_vt        integer, -- VN listing on tag pages
-  perm_lengthvote     boolean NOT NULL DEFAULT true, -- [pub] (public because this is used in calculating VN lengths)
-  title_langs jsonb,
-  alttitle_langs jsonb
+  title_langs         jsonb,
+  alttitle_langs      jsonb
 );
 
 -- Additional fields for the 'users' table, but with some protected columns.
@@ -1067,7 +1077,8 @@ CREATE TABLE users_shadow (
   --   8 bytes: salt
   --   32 bytes: scrypt(passwd, global_salt + salt, N, r, p, 32)
   -- Anything else is invalid, account disabled.
-  passwd         bytea NOT NULL DEFAULT ''
+  passwd         bytea NOT NULL DEFAULT '',
+  ip             inet NOT NULL DEFAULT '0.0.0.0'
 );
 
 -- users_traits

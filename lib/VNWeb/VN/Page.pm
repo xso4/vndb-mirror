@@ -524,7 +524,7 @@ sub releases_ {
     my @lang = sort { $langrel{$a} <=> $langrel{$b} || ($b eq $v->{olang}) cmp ($a eq $v->{olang}) || $a cmp $b } keys %lang;
 
     my $pref = +(auth && do {
-        my $v = tuwf->dbVali('SELECT vnlang FROM users WHERE id =', \auth->uid);
+        my $v = tuwf->dbVali('SELECT vnlang FROM users_prefs WHERE id =', \auth->uid);
         $v && JSON::XS::decode_json($v)
     }) || {};
 

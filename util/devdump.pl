@@ -123,6 +123,7 @@ sub copy_entry {
     ) {
         printf "INSERT INTO users (id, username, email_confirmed) VALUES ('%s', '%s', true);\n", @{$_}[0,1];
         printf "INSERT INTO users_shadow (id, mail, perm_usermod, passwd) VALUES ('%s', '%s', %s, decode('%s', 'hex'));\n", @{$_}[0,2,3], $pass;
+        printf "INSERT INTO users_prefs (id) VALUES ('%s');\n", $_->[0];
     }
     print "SELECT ulist_labels_create(id) FROM users;\n";
 

@@ -90,7 +90,7 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
         tuwf->dbRowi(
             'SELECT max_sexual, max_violence, traits_sexual, tags_all, tags_cont, tags_ero, tags_tech, spoilers, skin, customcss
                   , nodistract_noads, nodistract_nofancy, support_enabled, uniname, pubskin_enabled, title_langs, alttitle_langs
-               FROM users WHERE id =', \$u->{id}
+               FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \$u->{id}
         ) : undef;
     if($u->{prefs}) {
         $u->{prefs}{email} = _getmail $u->{id};
@@ -124,7 +124,7 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
     return elm_Unauth if !can_edit u => $data;
 
     my $own = $data->{id} eq auth->uid || auth->permUsermod;
-    my %set;
+    my(%set, %setp);
 
     if($own) {
         my $p = $data->{prefs};
@@ -136,11 +136,10 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
         $p->{alttitle_langs} = langpref_fmt $p->{alttitle_langs};
         $p->{title_langs}    = undef if $p->{title_langs}    && ($p->{title_langs}   eq langpref_fmt($DEFAULT_TITLE_LANGS) || $p->{title_langs} eq '[]');
         $p->{alttitle_langs} = undef if $p->{alttitle_langs} && $p->{alttitle_langs} eq langpref_fmt $DEFAULT_ALTTITLE_LANGS;
-        $set{$_} = $p->{$_} for qw/
-            max_sexual max_violence traits_sexual tags_all tags_cont tags_ero tags_tech spoilers skin customcss
-            nodistract_noads nodistract_nofancy support_enabled uniname pubskin_enabled title_langs alttitle_langs
+        $set{$_} = $p->{$_} for qw/nodistract_noads nodistract_nofancy support_enabled uniname pubskin_enabled/;
+        $setp{$_} = $p->{$_} for qw/
+            max_sexual max_violence traits_sexual tags_all tags_cont tags_ero tags_tech spoilers skin customcss title_langs alttitle_langs
         /;
-
         tuwf->dbExeci('DELETE FROM users_traits WHERE id =', \$data->{id});
         tuwf->dbExeci('INSERT INTO users_traits', { id => $data->{id}, tid => $_->{tid} }) for $p->{traits}->@*;
     }
@@ -210,12 +209,13 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
         }
     }
 
-    my $old = tuwf->dbRowi('SELECT', sql_comma(keys %set), 'FROM users WHERE id =', \$data->{id});
+    my $old = tuwf->dbRowi('SELECT', sql_comma(keys %set, keys %setp), 'FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \$data->{id});
     tuwf->dbExeci('UPDATE users SET', \%set, 'WHERE id =', \$data->{id});
-    my $new = tuwf->dbRowi('SELECT', sql_comma(keys %set), 'FROM users WHERE id =', \$data->{id});
+    tuwf->dbExeci('UPDATE users_prefs SET', \%setp, 'WHERE id =', \$data->{id});
+    my $new = tuwf->dbRowi('SELECT', sql_comma(keys %set, keys %setp), 'FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \$data->{id});
 
     $_ = JSON::XS->new->allow_nonref->encode($_) for values %$old, %$new;
-    my @diff = grep $old->{$_} ne $new->{$_}, keys %set;
+    my @diff = grep $old->{$_} ne $new->{$_}, keys %set, keys %setp;
     auth->audit($data->{id}, 'user edit', join '; ', map "$_: $old->{$_} -> $new->{$_}", @diff)
         if @diff && (auth->uid ne $data->{id} || grep /^(perm_|ign_votes|username)/, @diff);
 

@@ -148,6 +148,7 @@ sub _load_session {
         'SELECT ', sql_user(), ',', sql_comma(@pref_columns, map "perm_$_", @perms), '
            FROM users u
            JOIN users_shadow us ON us.id = u.id
+           JOIN users_prefs up ON up.id = u.id
           WHERE u.id = ', \$uid,
            'AND', sql_func(user_isvalidsession => 'u.id', sql_fromhex($token_db), \'web')
     ) : {};

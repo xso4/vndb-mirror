@@ -32,13 +32,14 @@ elm_api UserRegister => undef, {
     return elm_DoubleEmail if tuwf->dbVali('SELECT 1 FROM user_emailtoid(', \$data->{email}, ') x');
 
     my $ip = tuwf->reqIP;
-    return elm_DoubleIP if tuwf->dbVali(
-        q{SELECT 1 FROM users WHERE registered >= NOW()-'1 day'::interval AND ip <<},
-        $ip =~ /:/ ? \"$ip/48" : \"$ip/30"
-    );
+    return elm_DoubleIP if tuwf->dbVali('SELECT 1 FROM registration_throttle WHERE timeout > NOW() AND ip =', \norm_ip($ip));
+    my %throttle = (timeout => sql("NOW()+'1 day'::interval"), ip => norm_ip($ip));
+    tuwf->dbExeci('INSERT INTO registration_throttle', \%throttle, 'ON CONFLICT (ip) DO UPDATE SET', \%throttle);
 
-    my $id = tuwf->dbVali('INSERT INTO users', {username => $data->{username}, ip => $ip}, 'RETURNING id');
-    tuwf->dbExeci('INSERT INTO users_shadow', {id => $id, mail => $data->{email}});
+    my $id = tuwf->dbVali('INSERT INTO users', {username => $data->{username}}, 'RETURNING id');
+    tuwf->dbExeci('INSERT INTO users_prefs', {id => $id});
+    tuwf->dbExeci('INSERT INTO users_shadow', {id => $id, ip => $ip, mail => $data->{email}});
+
     my(undef, $token) = auth->resetpass($data->{email});
 
     my $body = sprintf

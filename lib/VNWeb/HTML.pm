@@ -186,7 +186,7 @@ sub _head_ {
 
     my $fancy = !(auth->pref('nodistract_can') && auth->pref('nodistract_nofancy'));
     my $pubskin = $fancy && $o->{dbobj} && $o->{dbobj}{id} =~ /^u/ ? tuwf->dbRowi(
-        'SELECT customcss, skin FROM users WHERE pubskin_can AND pubskin_enabled AND id =', \$o->{dbobj}{id}
+        'SELECT customcss, skin FROM users u JOIN users_prefs up ON up.id = u.id WHERE pubskin_can AND pubskin_enabled AND u.id =', \$o->{dbobj}{id}
     ) : {};
     my $skin = tuwf->reqGet('skin') || $pubskin->{skin} || auth->pref('skin') || '';
     $skin = config->{skin_default} if !skins->{$skin};
@@ -283,8 +283,8 @@ sub _menu_ {
             if(auth->isMod) {
                 my $stats = tuwf->dbRowi("SELECT
                     (SELECT count(*) FROM reports WHERE status = 'new') as new,
-                    (SELECT count(*) FROM reports WHERE status = 'new' AND date > (SELECT last_reports FROM users WHERE id =", \auth->uid, ")) AS unseen,
-                    (SELECT count(*) FROM reports WHERE lastmod > (SELECT last_reports FROM users WHERE id =", \auth->uid, ")) AS upd
+                    (SELECT count(*) FROM reports WHERE status = 'new' AND date > (SELECT last_reports FROM users_prefs WHERE id =", \auth->uid, ")) AS unseen,
+                    (SELECT count(*) FROM reports WHERE lastmod > (SELECT last_reports FROM users_prefs WHERE id =", \auth->uid, ")) AS upd
                 ");
                 a_ $stats->{unseen} ? (class => 'standout') : (), href => '/report/list?status=new', sprintf 'Reports %d/%d', $stats->{unseen}, $stats->{new};
                 b_ class => 'grayedout', ' | ';

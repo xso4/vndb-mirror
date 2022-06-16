@@ -431,7 +431,6 @@ BEGIN
     CREATE TEMPORARY TABLE edit_revision (
       itemid vndbid,
       requester vndbid,
-      ip inet,
       comments text,
       ihid boolean,
       ilock boolean
