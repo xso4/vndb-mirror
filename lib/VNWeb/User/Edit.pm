@@ -210,8 +210,8 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
     }
 
     my $old = tuwf->dbRowi('SELECT', sql_comma(keys %set, keys %setp), 'FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \$data->{id});
-    tuwf->dbExeci('UPDATE users SET', \%set, 'WHERE id =', \$data->{id});
-    tuwf->dbExeci('UPDATE users_prefs SET', \%setp, 'WHERE id =', \$data->{id});
+    tuwf->dbExeci('UPDATE users SET', \%set, 'WHERE id =', \$data->{id}) if keys %set;
+    tuwf->dbExeci('UPDATE users_prefs SET', \%setp, 'WHERE id =', \$data->{id}) if keys %setp;
     my $new = tuwf->dbRowi('SELECT', sql_comma(keys %set, keys %setp), 'FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \$data->{id});
 
     $_ = JSON::XS->new->allow_nonref->encode($_) for values %$old, %$new;
