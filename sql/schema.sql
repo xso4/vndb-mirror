@@ -1059,7 +1059,8 @@ CREATE TABLE users_prefs (
   ulist_wish          jsonb,
   vnlang              jsonb, -- '$lang(-mtl)?' => true/false, which languages to expand/collapse on VN pages
   title_langs         jsonb,
-  alttitle_langs      jsonb
+  alttitle_langs      jsonb,
+  prodrelexpand       boolean NOT NULL DEFAULT true
 );
 
 -- Additional fields for the 'users' table, but with some protected columns.

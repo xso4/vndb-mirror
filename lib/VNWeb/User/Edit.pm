@@ -39,6 +39,7 @@ my $FORM = {
         tags_cont       => { anybool => 1 },
         tags_ero        => { anybool => 1 },
         tags_tech       => { anybool => 1 },
+        prodrelexpand   => { anybool => 1 },
         spoilers        => { uint => 1, range => [ 0, 2 ] },
         skin            => { enum => skins },
         customcss       => { required => 0, default => '', maxlength => 2000 },
@@ -88,7 +89,7 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
 
     $u->{prefs} = $u->{id} eq auth->uid || auth->permUsermod ?
         tuwf->dbRowi(
-            'SELECT max_sexual, max_violence, traits_sexual, tags_all, tags_cont, tags_ero, tags_tech, spoilers, skin, customcss
+            'SELECT max_sexual, max_violence, traits_sexual, tags_all, tags_cont, tags_ero, tags_tech, prodrelexpand, spoilers, skin, customcss
                   , nodistract_noads, nodistract_nofancy, support_enabled, uniname, pubskin_enabled, title_langs, alttitle_langs
                FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \$u->{id}
         ) : undef;
@@ -138,7 +139,7 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
         $p->{alttitle_langs} = undef if $p->{alttitle_langs} && $p->{alttitle_langs} eq langpref_fmt $DEFAULT_ALTTITLE_LANGS;
         $set{$_} = $p->{$_} for qw/nodistract_noads nodistract_nofancy support_enabled uniname pubskin_enabled/;
         $setp{$_} = $p->{$_} for qw/
-            max_sexual max_violence traits_sexual tags_all tags_cont tags_ero tags_tech spoilers skin customcss title_langs alttitle_langs
+            max_sexual max_violence traits_sexual tags_all tags_cont tags_ero tags_tech prodrelexpand spoilers skin customcss title_langs alttitle_langs
         /;
         tuwf->dbExeci('DELETE FROM users_traits WHERE id =', \$data->{id});
         tuwf->dbExeci('INSERT INTO users_traits', { id => $data->{id}, tid => $_->{tid} }) for $p->{traits}->@*;

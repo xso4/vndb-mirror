@@ -156,10 +156,9 @@ TUWF::get qr{/$RE{prev}(?:/(?<tab>vn|rel))?}, sub {
     return tuwf->resNotFound if !$p;
     enrich_item $p;
 
-    my $pref = tuwf->reqCookie('prodrelexpand') ? 'vn' : 'rel';
-    my $tab = tuwf->capture('tab') || $pref;
-    tuwf->resCookie(prodrelexpand => $tab eq 'vn' ? 1 : undef, expires => time + 315360000) if $tab && $tab ne $pref;
-    $tab = 'rel' if !$tab;
+    my $tab = tuwf->capture('tab')
+        || (auth && (tuwf->dbVali('SELECT prodrelexpand FROM users_prefs WHERE id=', \auth->uid) ? 'rel' : 'vn'))
+        || 'rel';
 
     framework_ title => $p->{name}, index => !tuwf->capture('rev'), dbobj => $p, hiddenmsg => 1,
     og => {

@@ -106,6 +106,7 @@ type PrefMsg
   | TagsCont Bool
   | TagsEro Bool
   | TagsTech Bool
+  | ProdRel Bool
   | Skin String
   | Css String
   | NoAds Bool
@@ -206,6 +207,7 @@ updatePrefs msg model =
     TagsCont b -> { model | tags_cont = b }
     TagsEro b  -> { model | tags_ero  = b }
     TagsTech b -> { model | tags_tech = b }
+    ProdRel b  -> { model | prodrelexpand = b }
     Skin n     -> { model | skin = n }
     Css n      -> { model | customcss = n }
     NoAds b    -> { model | nodistract_noads = b }
@@ -390,6 +392,8 @@ view model =
           , (2, "Show all spoilers")
           ]
         ]
+      , formField "prodrel::Default producer tab"
+        [ inputSelect "prodrel" m.prodrelexpand (Prefs << ProdRel) [] [ (False, "Visual Novels"), (True, "Releases") ] ]
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Language" ] ]
       , formField "Titles" <|
         [ Html.map (Prefs << TitleLang) (langprefsform m.title_langs False) ]
