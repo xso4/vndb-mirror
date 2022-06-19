@@ -1057,10 +1057,13 @@ CREATE TABLE users_prefs (
   ulist_votes         jsonb,
   ulist_vnlist        jsonb,
   ulist_wish          jsonb,
-  vnlang              jsonb, -- '$lang(-mtl)?' => true/false, which languages to expand/collapse on VN pages
+  vnlang              jsonb, -- Deprecated, replaced by vnrel_x. '$lang(-mtl)?' => true/false, which languages to expand/collapse on VN pages
   title_langs         jsonb,
   alttitle_langs      jsonb,
-  prodrelexpand       boolean NOT NULL DEFAULT true
+  prodrelexpand       boolean NOT NULL DEFAULT true,
+  vnrel_langs         language[], -- NULL meaning "show all languages"
+  vnrel_olang         boolean NOT NULL DEFAULT true,
+  vnrel_mtl           boolean NOT NULL DEFAULT false
 );
 
 -- Additional fields for the 'users' table, but with some protected columns.

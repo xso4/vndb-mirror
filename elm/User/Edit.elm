@@ -106,6 +106,9 @@ type PrefMsg
   | TagsCont Bool
   | TagsEro Bool
   | TagsTech Bool
+  | VNRelLangs (List String)
+  | VNRelOLang Bool
+  | VNRelMTL Bool
   | ProdRel Bool
   | Skin String
   | Css String
@@ -207,6 +210,9 @@ updatePrefs msg model =
     TagsCont b -> { model | tags_cont = b }
     TagsEro b  -> { model | tags_ero  = b }
     TagsTech b -> { model | tags_tech = b }
+    VNRelLangs l->{ model | vnrel_langs = l }
+    VNRelOLang b->{ model | vnrel_olang = b }
+    VNRelMTL b -> { model | vnrel_mtl = b }
     ProdRel b  -> { model | prodrelexpand = b }
     Skin n     -> { model | skin = n }
     Css n      -> { model | customcss = n }
@@ -410,6 +416,14 @@ view model =
         , label [] [ inputCheck "" m.tags_cont (Prefs << TagsCont), text " Content" ], br_ 1
         , label [] [ inputCheck "" m.tags_ero  (Prefs << TagsEro ), text " Sexual content" ], br_ 1
         , label [] [ inputCheck "" m.tags_tech (Prefs << TagsTech), text " Technical" ]
+        ]
+      , formField "Releases"
+        [ text "Expand releases for the following languages by default", br_ 1
+        , select [ tabindex 10, multiple True, onInputMultiple (Prefs << VNRelLangs), style "height" "200px" ]
+          <| List.map (\(k,v) -> option [ value k, selected (List.member k m.vnrel_langs) ] [ text v ]) GT.languages
+        , br_ 1
+        , label [] [ inputCheck "" m.vnrel_olang (Prefs << VNRelOLang), text " Always expand original language" ], br_ 1
+        , label [] [ inputCheck "" m.vnrel_mtl   (Prefs << VNRelMTL  ), text " Expand machine translations" ]
         ]
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Theme" ] ]
       , formField "skin::Skin" [ inputSelect "skin" m.skin (Prefs << Skin) [ style "width" "300px" ] GT.skins ]

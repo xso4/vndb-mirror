@@ -41,6 +41,9 @@ my $FORM = {
         tags_tech       => { anybool => 1 },
         prodrelexpand   => { anybool => 1 },
         spoilers        => { uint => 1, range => [ 0, 2 ] },
+        vnrel_langs     => { type => 'array', values => { enum => \%LANGUAGE }, sort => 'str', unique => 1 },
+        vnrel_olang     => { anybool => 1 },
+        vnrel_mtl       => { anybool => 1 },
         skin            => { enum => skins },
         customcss       => { required => 0, default => '', maxlength => 2000 },
 
@@ -89,13 +92,15 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
 
     $u->{prefs} = $u->{id} eq auth->uid || auth->permUsermod ?
         tuwf->dbRowi(
-            'SELECT max_sexual, max_violence, traits_sexual, tags_all, tags_cont, tags_ero, tags_tech, prodrelexpand, spoilers, skin, customcss
-                  , nodistract_noads, nodistract_nofancy, support_enabled, uniname, pubskin_enabled, title_langs, alttitle_langs
+            'SELECT max_sexual, max_violence, traits_sexual, tags_all, tags_cont, tags_ero, tags_tech, prodrelexpand
+                  , spoilers, vnrel_langs::text[], vnrel_olang, vnrel_mtl, skin, customcss, title_langs, alttitle_langs
+                  , nodistract_noads, nodistract_nofancy, support_enabled, uniname, pubskin_enabled
                FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \$u->{id}
         ) : undef;
     if($u->{prefs}) {
         $u->{prefs}{email} = _getmail $u->{id};
         $u->{prefs}{skin} ||= config->{skin_default};
+        $u->{prefs}{vnrel_langs} ||= [ keys %LANGUAGE ];
         $u->{prefs}{title_langs}    = langpref_parse($u->{prefs}{title_langs})    // $DEFAULT_TITLE_LANGS;
         $u->{prefs}{alttitle_langs} = langpref_parse($u->{prefs}{alttitle_langs}) // $DEFAULT_ALTTITLE_LANGS;
         $u->{prefs}{traits} = tuwf->dbAlli('SELECT u.tid, t.name, g.name AS "group" FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.group WHERE u.id =', \$u->{id}, 'ORDER BY g.order, t.name');
@@ -137,9 +142,11 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
         $p->{alttitle_langs} = langpref_fmt $p->{alttitle_langs};
         $p->{title_langs}    = undef if $p->{title_langs}    && ($p->{title_langs}   eq langpref_fmt($DEFAULT_TITLE_LANGS) || $p->{title_langs} eq '[]');
         $p->{alttitle_langs} = undef if $p->{alttitle_langs} && $p->{alttitle_langs} eq langpref_fmt $DEFAULT_ALTTITLE_LANGS;
+        $p->{vnrel_langs}    = $p->{vnrel_langs}->@* == keys %LANGUAGE ? undef : '{'.join(',',$p->{vnrel_langs}->@*).'}';
         $set{$_} = $p->{$_} for qw/nodistract_noads nodistract_nofancy support_enabled uniname pubskin_enabled/;
         $setp{$_} = $p->{$_} for qw/
-            max_sexual max_violence traits_sexual tags_all tags_cont tags_ero tags_tech prodrelexpand spoilers skin customcss title_langs alttitle_langs
+            max_sexual max_violence traits_sexual tags_all tags_cont tags_ero tags_tech prodrelexpand
+            vnrel_langs vnrel_olang vnrel_mtl spoilers skin customcss title_langs alttitle_langs
         /;
         tuwf->dbExeci('DELETE FROM users_traits WHERE id =', \$data->{id});
         tuwf->dbExeci('INSERT INTO users_traits', { id => $data->{id}, tid => $_->{tid} }) for $p->{traits}->@*;

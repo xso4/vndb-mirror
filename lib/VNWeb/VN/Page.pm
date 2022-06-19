@@ -523,18 +523,18 @@ sub releases_ {
     $langrel{$_} = min map $_->{released}, $lang{$_}->@* for keys %lang;
     my @lang = sort { $langrel{$a} <=> $langrel{$b} || ($b eq $v->{olang}) cmp ($a eq $v->{olang}) || $a cmp $b } keys %lang;
 
-    my $pref = +(auth && do {
-        my $v = tuwf->dbVali('SELECT vnlang FROM users_prefs WHERE id =', \auth->uid);
-        $v && JSON::XS::decode_json($v)
-    }) || {};
+    my $pref = auth ? do {
+        my $v = tuwf->dbRowi('SELECT vnrel_langs::text[] AS langs, vnrel_olang AS olang, vnrel_mtl AS mtl FROM users_prefs WHERE id =', \auth->uid);
+        $v->{langs} = $v->{langs} ? { map +($_,1), $v->{langs}->@* } : \%LANGUAGE;
+        $v
+    } : { langs => \%LANGUAGE, olang => 1, mtl => 0 };
 
     my sub lang_ {
         my($lang) = @_;
         my $ropt = { id => $lang, lang => $lang };
         my $mtl = $langmtl{$lang};
-        my $prefid = $lang.($mtl?'-mtl':'');
-        my $open = $pref->{$prefid} // ($lang eq $v->{olang} || !$mtl);
-        tag_ 'details', $open ? (open => 'open') : (), auth ? 'data-save-id' : 'data-remember-id', "vnlang-$prefid", sub {
+        my $open = ($pref->{olang} && $lang eq $v->{olang} && !$mtl) || ($pref->{langs}{$lang} && (!$mtl || $pref->{mtl}));
+        details_ open => $open?'open':undef, sub {
             summary_ $mtl ? (class => 'mtl') : (), sub {
                 abbr_ class => "icons lang $lang".($mtl?' mtl':''), title => $LANGUAGE{$lang}, '';
                 txt_ $LANGUAGE{$lang};
