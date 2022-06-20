@@ -565,7 +565,7 @@ sub framework_ {
 
 
 sub _revision_header_ {
-    my($obj) = @_;
+    my($obj, $main) = @_;
     b_ "Revision $obj->{chrev}";
     debug_ $obj;
     if(auth) {
@@ -574,6 +574,10 @@ sub _revision_header_ {
         if($obj->{rev_user_id}) {
             lit_ ' / ';
             a_ href => "/t/$obj->{rev_user_id}/new?title=Regarding%20$obj->{id}.$obj->{chrev}", 'msg user';
+        }
+        if($main && auth->permDbmod && !tuwf->dbVali('SELECT 1 FROM changes_patrolled WHERE id =', \$obj->{chid}, 'AND uid =', \auth->uid)) {
+            lit_ ' / ';
+            a_ href => '?patrolled=1', 'mark patrolled';
         }
         lit_ ')';
     }
@@ -708,7 +712,7 @@ sub _revision_cmp_ {
             tr_ sub {
                 td_ ' ';
                 td_ sub { _revision_header_ $old };
-                td_ sub { _revision_header_ $new };
+                td_ sub { _revision_header_ $new, 1 };
             };
             tr_ sub {
                 td_ ' ';
@@ -762,6 +766,9 @@ sub revision_ {
     my $old = $new->{chrev} == 1 ? undef : db_entry $new->{id}, $new->{chrev} - 1;
     $enrich->($old) if $old;
 
+    tuwf->dbExeci('INSERT INTO changes_patrolled', {id => $new->{chid}, uid => auth->uid}, 'ON CONFLICT (id,uid) DO NOTHING')
+        if auth->permDbmod && tuwf->reqGet('patrolled');
+
     enrich_merge chid => sql(
         'SELECT c.id AS chid, c.comments as rev_comments,', sql_totime('c.added'), 'as rev_added, ', sql_user('u', 'rev_user_'), '
            FROM changes c LEFT JOIN users u ON u.id = c.requester
@@ -776,7 +783,7 @@ sub revision_ {
         p_ class => 'center', sub { a_ href => "/$new->{id}", $new->{id} };
 
         div_ class => 'rev', sub {
-            _revision_header_ $new;
+            _revision_header_ $new, 1;
             br_;
             b_ 'Edit summary';
             br_; br_;

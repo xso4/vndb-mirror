@@ -29,12 +29,15 @@ sub fetch {
                   AND c_i.rev = (SELECT MAX(c_ii.rev) FROM changes c_ii WHERE c_ii.itemid = c.itemid))' : ();
 
     my $lst = tuwf->dbAlli('
-        SELECT c.id, c.itemid, c.comments, c.rev,', sql_totime('c.added'), 'AS added,', sql_user(), ', x.title, x.original
+        SELECT c.id, c.itemid, c.comments, c.rev,', sql_totime('c.added'), 'AS added,', sql_user(), ', x.title, x.original, u.perm_dbmod
           FROM (SELECT * FROM changes c WHERE', $where, ' ORDER BY c.id DESC LIMIT', \($num+1), 'OFFSET', \($num*($filt->{p}-1)), ') c
           JOIN item_info(c.itemid, c.rev) x ON true
           LEFT JOIN users u ON c.requester = u.id
          ORDER BY c.id DESC'
     );
+    enrich patrolled => id => id =>
+        sql('SELECT c.id,', sql_user(), 'FROM changes_patrolled c JOIN users u ON u.id = c.uid WHERE c.id IN'), $lst
+        if auth->permDbmod;
     my $np = @$lst > $num ? pop(@$lst)&&1 : 0;
     ($lst, $np)
 }
@@ -53,6 +56,7 @@ sub tablebox_ {
     div_ class => 'mainbox browse history mainbox-overflow-hack', sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
+                td_ class => 'tc1_0', '' if auth->permDbmod;
                 td_ class => 'tc1_1', 'Rev.';
                 td_ class => 'tc1_2', '';
                 td_ class => 'tc2', 'Date';
@@ -63,6 +67,12 @@ sub tablebox_ {
                 my $i = $_;
                 my $revurl = "/$i->{itemid}.$i->{rev}";
 
+                td_ class => 'tc1_0', sub {
+                    return b_ class => 'done', title =>
+                        "Patrolled by ".join(', ', map user_displayname($_), $i->{patrolled}->@*), '✓'
+                        if $i->{patrolled}->@*;
+                    return lit_ '✓' if $i->{perm_dbmod};
+                } if auth->permDbmod;
                 td_ class => 'tc1_1', sub { a_ href => $revurl, $i->{itemid} };
                 td_ class => 'tc1_2', sub { a_ href => $revurl, ".$i->{rev}" };
                 td_ class => 'tc2', fmtdate $i->{added}, 'full';

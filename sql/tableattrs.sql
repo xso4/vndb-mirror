@@ -49,6 +49,8 @@ CREATE        INDEX users_ign_votes        ON users (id) WHERE ign_votes;
 -- Constraints
 
 ALTER TABLE changes                  ADD CONSTRAINT changes_requester_fkey             FOREIGN KEY (requester) REFERENCES users         (id) ON DELETE SET DEFAULT;
+ALTER TABLE changes_patrolled        ADD CONSTRAINT changes_patrolled_id_fkey          FOREIGN KEY (id)        REFERENCES changes       (id) ON DELETE CASCADE;
+ALTER TABLE changes_patrolled        ADD CONSTRAINT changes_patrolled_uid_fkey         FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE CASCADE;
 ALTER TABLE chars                    ADD CONSTRAINT chars_main_fkey                    FOREIGN KEY (main)      REFERENCES chars         (id);
 ALTER TABLE chars                    ADD CONSTRAINT chars_image_fkey                   FOREIGN KEY (image)     REFERENCES images        (id);
 ALTER TABLE chars_hist               ADD CONSTRAINT chars_hist_chid_fkey               FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;

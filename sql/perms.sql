@@ -8,6 +8,7 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO vndb_site;
 GRANT SELECT, INSERT                 ON anime                    TO vndb_site;
 GRANT         INSERT                 ON audit_log                TO vndb_site;
 GRANT SELECT, INSERT                 ON changes                  TO vndb_site;
+GRANT SELECT, INSERT                 ON changes_patrolled        TO vndb_site;
 GRANT SELECT, INSERT, UPDATE         ON chars                    TO vndb_site;
 GRANT SELECT, INSERT                 ON chars_hist               TO vndb_site;
 GRANT SELECT, INSERT,         DELETE ON chars_traits             TO vndb_site;

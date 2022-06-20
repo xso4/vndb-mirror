@@ -144,6 +144,13 @@ CREATE TABLE changes (
   comments   text NOT NULL DEFAULT ''
 );
 
+-- changes_patrolled
+CREATE TABLE changes_patrolled (
+  id         integer NOT NULL,
+  uid        vndbid NOT NULL,
+  PRIMARY KEY(id,uid)
+);
+
 -- chars
 CREATE TABLE chars ( -- dbentry_type=c
   id           vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('c', nextval('chars_id_seq')::int) CONSTRAINT chars_id_check CHECK(vndbid_type(id) = 'c'), -- [pub]
