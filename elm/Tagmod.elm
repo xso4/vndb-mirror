@@ -111,7 +111,7 @@ update msg model =
                 if t.hidden && t.locked                            then ([], "Can't add deleted tags")
                 else if not t.applicable                           then ([], "Tag is not applicable")
                 else if List.any (\it -> it.id == t.id) model.tags then ([], "Tag is already in the list")
-                else ([{ id = t.id, vote = 2, spoil = Nothing, overrule = False, notes = "", cat = "new", name = t.name
+                else ([{ id = t.id, vote = 0, spoil = Nothing, overrule = False, notes = "", cat = "new", name = t.name
                        , rating = 0, count = 0, spoiler = 0, overruled = False, othnotes = "", hidden = t.hidden, locked = t.locked, applicable = t.applicable }], "")
           in (changed { model | add = if ms == "" then A.clear nm "" else nm, tags = model.tags ++ nl, addMsg = ms }, c)
 
