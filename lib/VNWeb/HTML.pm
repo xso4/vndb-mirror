@@ -31,7 +31,7 @@ our @EXPORT = qw/
     spoil_
     elm_
     framework_
-    revision_
+    revision_patrolled_ revision_
     paginate_
     sortable_
     searchbox_
@@ -563,9 +563,18 @@ sub framework_ {
 
 
 
+sub revision_patrolled_ {
+    my($r) = @_;
+    return b_ class => 'done', title =>
+        "Patrolled by ".join(', ', map user_displayname($_), $r->{rev_patrolled}->@*), '✓'
+        if $r->{rev_patrolled}->@*;
+    return lit_ '✓' if $r->{rev_dbmod};
+    span_ class => 'grayedout', '#';
+}
+
 
 sub _revision_header_ {
-    my($obj, $main) = @_;
+    my($obj) = @_;
     b_ "Revision $obj->{chrev}";
     debug_ $obj;
     if(auth) {
@@ -575,9 +584,15 @@ sub _revision_header_ {
             lit_ ' / ';
             a_ href => "/t/$obj->{rev_user_id}/new?title=Regarding%20$obj->{id}.$obj->{chrev}", 'msg user';
         }
-        if($main && auth->permDbmod && !tuwf->dbVali('SELECT 1 FROM changes_patrolled WHERE id =', \$obj->{chid}, 'AND uid =', \auth->uid)) {
+        if(auth->permDbmod) {
             lit_ ' / ';
-            a_ href => '?patrolled=1', 'mark patrolled';
+            revision_patrolled_ $obj;
+            if($obj->{rev_user_id} eq auth->uid) {}
+            elsif(grep $_->{user_id} eq auth->uid, $obj->{rev_patrolled}->@*) {
+                a_ href => "?unpatrolled=$obj->{chid}", 'unmark';
+            } else {
+                a_ href => "?patrolled=$obj->{chid}", 'mark patrolled';
+            }
         }
         lit_ ')';
     }
@@ -712,7 +727,7 @@ sub _revision_cmp_ {
             tr_ sub {
                 td_ ' ';
                 td_ sub { _revision_header_ $old };
-                td_ sub { _revision_header_ $new, 1 };
+                td_ sub { _revision_header_ $new };
             };
             tr_ sub {
                 td_ ' ';
@@ -766,14 +781,25 @@ sub revision_ {
     my $old = $new->{chrev} == 1 ? undef : db_entry $new->{id}, $new->{chrev} - 1;
     $enrich->($old) if $old;
 
-    tuwf->dbExeci('INSERT INTO changes_patrolled', {id => $new->{chid}, uid => auth->uid}, 'ON CONFLICT (id,uid) DO NOTHING')
-        if auth->permDbmod && tuwf->reqGet('patrolled');
+    if(auth->permDbmod) {
+        my $f = tuwf->validate(get =>
+            patrolled => { required => 0, uint => 1 },
+            unpatrolled => { required => 0, uint => 1 },
+        )->data;
+        tuwf->dbExeci('INSERT INTO changes_patrolled', {id => $f->{patrolled}, uid => auth->uid}, 'ON CONFLICT (id,uid) DO NOTHING') if $f->{patrolled};
+        tuwf->dbExeci('DELETE FROM changes_patrolled WHERE', {id => $f->{unpatrolled}, uid => auth->uid}) if $f->{unpatrolled};
+    }
 
     enrich_merge chid => sql(
-        'SELECT c.id AS chid, c.comments as rev_comments,', sql_totime('c.added'), 'as rev_added, ', sql_user('u', 'rev_user_'), '
+        'SELECT c.id AS chid, c.comments as rev_comments,', sql_totime('c.added'), 'as rev_added, ', sql_user('u', 'rev_user_'), ', u.perm_dbmod AS rev_dbmod
            FROM changes c LEFT JOIN users u ON u.id = c.requester
           WHERE c.id IN'),
         $new, $old||();
+
+    enrich rev_patrolled => chid => id =>
+        sql('SELECT c.id,', sql_user(), 'FROM changes_patrolled c JOIN users u ON u.id = c.uid WHERE c.id IN'),
+        $new, $old||()
+        if auth->permDbmod;
 
     div_ class => 'mainbox revision', sub {
         h1_ "Revision $new->{chrev}";
@@ -783,7 +809,7 @@ sub revision_ {
         p_ class => 'center', sub { a_ href => "/$new->{id}", $new->{id} };
 
         div_ class => 'rev', sub {
-            _revision_header_ $new, 1;
+            _revision_header_ $new;
             br_;
             b_ 'Edit summary';
             br_; br_;
