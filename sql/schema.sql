@@ -841,7 +841,8 @@ CREATE TABLE tags_vn (
   spoiler  smallint CHECK(spoiler >= 0 AND spoiler <= 2), -- [pub]
   date     timestamptz NOT NULL DEFAULT NOW(), -- [pub]
   ignore   boolean NOT NULL DEFAULT false, -- [pub]
-  notes    text NOT NULL DEFAULT '' -- [pub]
+  notes    text NOT NULL DEFAULT '', -- [pub]
+  lie      boolean -- [pub] implies spoiler=0
 );
 
 -- tags_vn_inherit

@@ -37,16 +37,17 @@ sub enrich_vn {
 
     $v->{reviews} = tuwf->dbRowi('SELECT COUNT(*) FILTER(WHERE isfull) AS full, COUNT(*) FILTER(WHERE NOT isfull) AS mini, COUNT(*) AS total FROM reviews WHERE NOT c_flagged AND vid =', \$v->{id});
 
-    my $rating = 'avg(CASE WHEN tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) THEN NULL ELSE tv.vote END)';
     $v->{tags} = tuwf->dbAlli("
-        SELECT t.id, t.name, t.cat, $rating as rating
-             , coalesce(avg(CASE WHEN tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) THEN NULL ELSE tv.spoiler END), t.defaultspoil) as spoiler
+        SELECT t.id, t.name, t.cat, avg(tv.vote) as rating
+             , coalesce(avg(tv.spoiler), t.defaultspoil) as spoiler
+             , count(lie) filter(where lie) > 0 AND count(lie) filter (where lie) >= count(lie)>>1 AS lie
           FROM tags t
           JOIN tags_vn tv ON tv.tag = t.id
           LEFT JOIN users u ON u.id = tv.uid
          WHERE NOT t.hidden AND tv.vid =", \$v->{id}, "
+           AND NOT tv.ignore AND (u.id IS NULL OR u.perm_tag)
          GROUP BY t.id, t.name, t.cat
-        HAVING $rating > 0
+        HAVING avg(tv.vote) > 0
          ORDER BY rating DESC, t.name"
     );
 }
@@ -366,7 +367,7 @@ sub infobox_tags_ {
                 $cnt->[0]++ if $spoil < 1;
                 my $cut = $cnt->[0] > 15 ? ' cut cut2 cut1 cut0' : $cnt->[1] > 15 ? ' cut cut2 cut1' : $cnt->[2] > 15 ? ' cut cut2' : '';
                 span_ class => "tagspl$spoil cat_$_->{cat} $cut", sub {
-                    a_ href => "/$_->{id}", style => sprintf('font-size: %dpx', $_->{rating}*3.5+6), $_->{name};
+                    a_ href => "/$_->{id}", class => $_->{lie}?'lie':undef, style => sprintf('font-size: %dpx', $_->{rating}*3.5+6), $_->{name};
                     spoil_ $spoil;
                     b_ class => 'grayedout', sprintf ' %.1f', $_->{rating};
                 }
@@ -859,7 +860,7 @@ sub tags_ {
         li_ $lvl == 1 ? (class => 'tagvnlist-parent') : $t->{inherited} ? (class => 'tagvnlist-inherited') : (), sub {
             VNWeb::TT::Lib::tagscore_($t->{rating}, $t->{inherited});
             b_ class => 'grayedout', '━━'x($lvl-1).' ' if $lvl > 1;
-            a_ href => "/$t->{id}", $t->{rating} ? () : (class => 'parent'), $t->{name};
+            a_ href => "/$t->{id}", class => $view->{spoilers} > 0 && $t->{lie} ? 'lie' : $t->{rating} ? undef : 'parent', $t->{name};
             spoil_ $t->{spoiler};
         } if $lvl;
 

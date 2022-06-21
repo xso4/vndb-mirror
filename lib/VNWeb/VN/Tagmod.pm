@@ -9,7 +9,7 @@ my $FORM = {
     tags  => { sort_keys => 'id', aoh => {
         id        => { vndbid => 'g' },
         vote      => { int => 1, enum => [ -3..3 ] },
-        spoil     => { required => 0, uint => 1, enum => [ 0..2 ] },
+        spoil     => { required => 0, uint => 1, enum => [ 0..3 ] },
         overrule  => { anybool => 1 },
         notes     => { required => 0, default => '', maxlength => 1000 },
         cat       => { _when => 'out' },
@@ -57,7 +57,11 @@ elm_api Tagmod => $FORM_OUT, $FORM_IN, sub {
 
     # Add & update tags
     for(@$tags) {
-        my $row = { uid => auth->uid, vid => $id, tag => $_->{id}, vote => $_->{vote}, spoiler => $_->{spoil}, ignore => ($_->{overruled} && !$_->{overrule})?1:0, notes => $_->{notes} };
+        my $row = { uid => auth->uid, vid => $id, tag => $_->{id}, vote => $_->{vote}, notes => $_->{notes}
+                  , spoiler => !defined $_->{spoil} ? undef : $_->{spoil} == 3 ? 0 : $_->{spoil}
+                  , lie => !defined $_->{spoil} ? undef : $_->{spoil} == 3 ? 1 : 0
+                  , ignore => ($_->{overruled} && !$_->{overrule})?1:0
+                  };
         tuwf->dbExeci('INSERT INTO tags_vn', $row, 'ON CONFLICT (uid, tag, vid) DO UPDATE SET', $row);
         tuwf->dbExeci('UPDATE tags_vn SET ignore = TRUE WHERE uid IS DISTINCT FROM (', \auth->uid, ') AND vid =', \$id, 'AND tag =', \$_->{id}) if $_->{overrule};
     }
@@ -79,7 +83,8 @@ TUWF::get qr{/$RE{vid}/tagmod}, sub {
     my $tags = tuwf->dbAlli('
         SELECT t.id, t.name, t.cat, count(*) as count, t.hidden, t.locked, t.applicable
              , coalesce(avg(CASE WHEN tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) THEN NULL ELSE tv.vote END), 0) as rating
-             , coalesce(avg(CASE WHEN tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) THEN NULL ELSE tv.spoiler END), t.defaultspoil) as spoiler
+             , CASE WHEN count(lie) filter(where lie) > 0 and count(lie) filter (where lie) >= count(lie)>>1 THEN -1
+               ELSE coalesce(avg(CASE WHEN tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) THEN NULL ELSE tv.spoiler END), t.defaultspoil) END as spoiler
              , bool_or(tv.ignore) as overruled
           FROM tags t
           JOIN tags_vn tv ON tv.tag = t.id
@@ -88,7 +93,7 @@ TUWF::get qr{/$RE{vid}/tagmod}, sub {
          GROUP BY t.id, t.name, t.cat
          ORDER BY t.name'
     );
-    enrich_merge id => sub { sql 'SELECT tag AS id, vote, spoiler AS spoil, ignore, notes FROM tags_vn WHERE', { uid => auth->uid, vid => $v->{id} } }, $tags;
+    enrich_merge id => sub { sql 'SELECT tag AS id, vote, CASE WHEN lie THEN', \3, 'ELSE spoiler END AS spoil, ignore, notes FROM tags_vn WHERE', { uid => auth->uid, vid => $v->{id} } }, $tags;
     enrich othnotes => id => tag => sub {
         sql('SELECT tv.tag, ', sql_user(), ', tv.notes FROM tags_vn tv JOIN users u ON u.id = tv.uid WHERE tv.notes <> \'\' AND uid IS DISTINCT FROM (', \auth->uid, ') AND vid=', \$v->{id})
     }, $tags;

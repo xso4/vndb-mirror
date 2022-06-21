@@ -556,6 +556,9 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $bo
 #tag_spoil_none:checked ~ #vntags .tagspl2  { display: none; }
 #tag_spoil_some:checked ~ #vntags .tagspl2  { display: none; }
 
+#tag_spoil_all:checked ~ #vntags .lie,
+#tag_spoil_some:checked ~ #vntags .lie { text-decoration: line-through }
+
 /* end of tag filter machinery */
 
 #screenshots table     { width: 100%; }
@@ -621,6 +624,7 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $bo
 .vntaglist li.tagvnlist-inherited a { color: $grayedout }
 .vntaglist li:not(.tagvnlist-inherited) b.grayedout { color: $link }
 .vntaglist h3 a { color: $maintext }
+.vntaglist .lie { text-decoration: line-through }
 .vntaglist li { list-style-type: none; padding-right: 30px }
 .vntaglist li .tagscore { margin-right: 10px }
 
@@ -1115,6 +1119,7 @@ table.tgl .buts a.sn        { border: none; background-color: $border }
 table.tgl .buts a.s0        { border: none; background-color: #0f0 }
 table.tgl .buts a.s1        { border: none; background-color: #f80 }
 table.tgl .buts a.s2        { border: none; background-color: #f40 }
+table.tgl .buts a.s3        { border: none; background-color: #cf0 }
 table.tgl .tc_allvote       { border-left: 1px solid $border; padding: 1px 0 0 30px; }
 table.tgl .tc_allvote i     { font-style: normal; font-size: 10px }
 table.tgl .tc_allspoil      { text-align: right; padding-right: 15px }

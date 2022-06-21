@@ -32,7 +32,7 @@ sub listing_ {
                     a_ href => "/$i->{tag}", $i->{name};
                 };
                 td_ class => 'tc5', sub {
-                    my $s = !defined $i->{spoiler} ? '' : fmtspoil $i->{spoiler};
+                    my $s = !defined $i->{spoiler} ? '' : $i->{lie} ? 'False' : fmtspoil $i->{spoiler};
                     b_ class => 'grayedout', $s if $i->{ignore};
                     txt_ $s if !$i->{ignore};
                 };
@@ -67,7 +67,7 @@ TUWF::get qr{/g/links}, sub {
 
     my $count = $filt && tuwf->dbVali('SELECT COUNT(*) FROM tags_vn tv WHERE', $where);
     my($lst, $np) = tuwf->dbPagei({ page => $opt->{p}, results => 50 }, '
-        SELECT tv.vid, tv.uid, tv.tag, tv.vote, tv.spoiler,', sql_totime('tv.date'), 'as date
+        SELECT tv.vid, tv.uid, tv.tag, tv.vote, tv.spoiler, tv.lie,', sql_totime('tv.date'), 'as date
              , tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) AS ignore, tv.notes, v.title, v.alttitle, ', sql_user(), ', t.name
           FROM tags_vn tv
           JOIN vnt v ON v.id = tv.vid

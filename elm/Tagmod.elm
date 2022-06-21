@@ -157,7 +157,8 @@ viewTag t sel vid mod =
     , td [ class "tc_myover" ] [ if mod && t.vote /= 0 then inputCheck "" t.overrule (SetOver t.id) else text "" ]
     , td [ class "tc_myspoil buts" ] <|
       if t.vote <= 0 then [] else
-      [ a [ href "#", onMouseOver (SetSel t.id (Spoil Nothing)),  onMouseOut (SetSel "" NoSel), onClickD (SetSpoil t.id Nothing),  classList [("sn", spoil == Nothing)], title "Unknown"       ] []
+      [ a [ href "#", onMouseOver (SetSel t.id (Spoil (Just 3))), onMouseOut (SetSel "" NoSel), onClickD (SetSpoil t.id (Just 3)), classList [("s3", spoil == Just 3 )], title "False"         ] []
+      , a [ href "#", onMouseOver (SetSel t.id (Spoil Nothing)),  onMouseOut (SetSel "" NoSel), onClickD (SetSpoil t.id Nothing),  classList [("sn", spoil == Nothing)], title "Unknown"       ] []
       , a [ href "#", onMouseOver (SetSel t.id (Spoil (Just 0))), onMouseOut (SetSel "" NoSel), onClickD (SetSpoil t.id (Just 0)), classList [("s0", spoil == Just 0 )], title "Not a spoiler" ] []
       , a [ href "#", onMouseOver (SetSel t.id (Spoil (Just 1))), onMouseOut (SetSel "" NoSel), onClickD (SetSpoil t.id (Just 1)), classList [("s1", spoil == Just 1 )], title "Minor spoiler" ] []
       , a [ href "#", onMouseOver (SetSel t.id (Spoil (Just 2))), onMouseOut (SetSel "" NoSel), onClickD (SetSpoil t.id (Just 2)), classList [("s2", spoil == Just 2 )], title "Major spoiler" ] []
@@ -178,8 +179,9 @@ viewTag t sel vid mod =
       Vote 2         -> [ td [ colspan 3 ] [ text "Vote +2" ] ]
       Vote 3         -> [ td [ colspan 3 ] [ text "Vote +3" ] ]
       Vote _         -> [ td [ colspan 3 ] [ text "Downvote (-3)" ] ]
+      Spoil (Just 3) -> [ td [ colspan 3 ] [ text "This eventually turns out to be false" ] ]
       Spoil Nothing  -> [ td [ colspan 3 ] [ text "Spoiler status not known" ] ]
-      Spoil (Just 0) -> [ td [ colspan 3 ] [ text "This is not spoiler" ] ]
+      Spoil (Just 0) -> [ td [ colspan 3 ] [ text "This is not a spoiler" ] ]
       Spoil (Just 1) -> [ td [ colspan 3 ] [ text "This is a minor spoiler" ] ]
       Spoil (Just 2) -> [ td [ colspan 3 ] [ text "This is a major spoiler" ] ]
       Note           -> [ td [ colspan 3 ] [ if t.notes == "" then text "Set note" else div [ class "noteview" ] [ text t.notes ] ] ]
@@ -198,7 +200,7 @@ viewTag t sel vid mod =
           , if not t.overruled then text ""
             else b [ class "standout", style "font-weight" "bold", title "Tag overruled. All votes other than that of the moderator who overruled it will be ignored." ] [ text "!" ]
           ]
-        , td [ class "tc_allspoil"] [ text <| Ffi.fmtFloat t.spoiler 2 ]
+        , td [ class "tc_allspoil"] [ text <| if t.spoiler < 0 then "False" else Ffi.fmtFloat t.spoiler 2 ]
         , td [ class "tc_allwho"  ]
           [ span [ style "opacity" <| if t.othnotes == "" then "0" else "1", style "cursor" "default", title t.othnotes ] [ text "💬 " ]
           , a [ href <| "/g/links?v="++vid++"&t="++t.id ] [ text "Who?" ]
