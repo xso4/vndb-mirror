@@ -154,7 +154,10 @@ viewTag t sel vid mod =
       , a [ href "#", onMouseOver (SetSel t.id (Vote  2)), onMouseOut (SetSel "" NoSel), onClickD (SetVote t.id  2), classList [("l2", vote >= 2)], title "+2"          ] []
       , a [ href "#", onMouseOver (SetSel t.id (Vote  3)), onMouseOut (SetSel "" NoSel), onClickD (SetVote t.id  3), classList [("l3", vote == 3)], title "+3"          ] []
       ]
-    , td [ class "tc_myover" ] [ if mod && t.vote /= 0 then inputCheck "" t.overrule (SetOver t.id) else text "" ]
+    ] ++ (if t.vote == 0 && t.count == 0 then
+    [ td [ colspan 3 ] [ text "<- don't forget to rate" ]
+    ] else
+    [ td [ class "tc_myover" ] [ if mod && t.vote /= 0 then inputCheck "" t.overrule (SetOver t.id) else text "" ]
     , td [ class "tc_myspoil buts" ] <|
       if t.vote <= 0 then [] else
       [ a [ href "#", onMouseOver (SetSel t.id (Spoil (Just 3))), onMouseOut (SetSel "" NoSel), onClickD (SetSpoil t.id (Just 3)), classList [("s3", spoil == Just 3 )], title "False"         ] []
@@ -172,7 +175,7 @@ viewTag t sel vid mod =
         , style "opacity" <| if t.notes == "" then "0.5" else "1.0"
         ] [ text "💬" ]
       ]
-    ] ++
+    ]) ++
     case sel of
       Vote 0         -> [ td [ colspan 3 ] [ text "Remove vote" ] ]
       Vote 1         -> [ td [ colspan 3 ] [ text "Vote +1" ] ]
