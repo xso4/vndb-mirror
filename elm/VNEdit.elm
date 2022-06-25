@@ -261,7 +261,7 @@ update msg model =
           else ({ model | animeSearch = A.clear nm "", anime = model.anime ++ [{ aid = a.id, title = a.title, original = a.original }] }, c)
 
     ImageSet s b -> let (nm, nc) = Img.new b s in ({ model | image = nm }, Cmd.map ImageMsg nc)
-    ImageSelect -> (model, FSel.file ["image/png", "image/jpg", "image/webp"] ImageSelected)
+    ImageSelect -> (model, FSel.file ["image/png", "image/jpeg", "image/webp"] ImageSelected)
     ImageSelected f -> let (nm, nc) = Img.upload Api.Cv f in ({ model | image = nm }, Cmd.map ImageMsg nc)
     ImageMsg m -> let (nm, nc) = Img.update m model.image in ({ model | image = nm }, Cmd.map ImageMsg nc)
 
@@ -285,7 +285,7 @@ update msg model =
         Just s -> ({ model | seiyuuSearch = A.clear nm "", seiyuu = model.seiyuu ++ [{ id = s.id, aid = s.aid, name = s.name, original = s.original, cid = model.seiyuuDef, note = "" }] }, c)
 
     ScrUplRel s -> ({ model | scrUplRel = s }, Cmd.none)
-    ScrUplSel -> (model, FSel.files ["image/png", "image/jpg", "image/webp"] ScrUpl)
+    ScrUplSel -> (model, FSel.files ["image/png", "image/jpeg", "image/webp"] ScrUpl)
     ScrUpl f1 fl ->
       if 1 + List.length fl > 10 - List.length model.screenshots
       then ({ model | scrUplNum = Just (1 + List.length fl) }, Cmd.none)
