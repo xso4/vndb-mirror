@@ -72,7 +72,7 @@ sub rel_ {
           FROM releases r
           JOIN releases_producers rp ON rp.id = r.id
          WHERE rp.pid =', \$p->{id}, ' AND NOT r.hidden
-         ORDER BY r.released, r.title, r.id
+         ORDER BY r.released
     ');
     $_->{rtype} = 1 for @$r; # prevent enrich_release() from fetching rtypes
     enrich_extlinks r => $r;
@@ -104,10 +104,9 @@ sub rel_ {
                     a_ href => "/$v->{id}", title => $v->{alttitle}||$v->{title}, $v->{title};
                 };
                 my $ropt = { id => $v->{id}, prod => 1 };
-                for my $rel ($vn{$v->{id}}->@*) {
-                    $rel->[1]{rtype} = $rel->[0];
-                    release_row_ $rel->[1], $ropt;
-                }
+                release_row_ $_, $ropt for sort_releases(
+                    [ map { $_->[1]{rtype} = $_->[0]; $_->[1] } $vn{$v->{id}}->@* ]
+                )->@*;
             };
         }
     } if @$r;

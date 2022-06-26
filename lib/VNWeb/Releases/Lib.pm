@@ -3,7 +3,7 @@ package VNWeb::Releases::Lib;
 use VNWeb::Prelude;
 use Exporter 'import';
 
-our @EXPORT = qw/enrich_release_elm releases_by_vn enrich_release release_row_/;
+our @EXPORT = qw/enrich_release_elm releases_by_vn enrich_release sort_releases release_row_/;
 
 
 # Enrich a list of releases so that it's suitable as 'Releases' Elm response.
@@ -36,6 +36,21 @@ sub enrich_release {
     enrich_flatten platforms => id => id => sub { sql 'SELECT id, platform FROM releases_platforms WHERE id IN', $_, 'ORDER BY id, platform' }, $r;
     enrich lang => id => id => sub { 'SELECT id, lang, mtl FROM releases_lang WHERE id IN', $_, 'ORDER BY id, mtl, lang' }, $r;
     enrich media => id => id => sub { 'SELECT id, medium, qty FROM releases_media WHERE id IN', $_, 'ORDER BY id, medium' }, $r;
+}
+
+
+# Sort an array of releases, assumes the objects come from enrich_release()
+# (Not always possible with an SQL ORDER BY due to rtype being context-dependent and platforms coming from other tables)
+sub sort_releases {
+    return [ sort {
+        $a->{released} <=> $b->{released} ||
+        $b->{rtype} cmp $a->{rtype} ||
+        $b->{official} cmp $a->{official} ||
+        $a->{patch} cmp $b->{patch} ||
+        ($a->{platforms}[0]||'') cmp ($b->{platforms}[0]||'') ||
+        $a->{title} cmp $b->{title} ||
+        idcmp($a->{id}, $b->{id})
+    } $_[0]->@* ];
 }
 
 

@@ -505,14 +505,7 @@ sub releases_ {
     # TODO: Organize a long list of releases a bit better somehow? Collapsable language sections?
 
     enrich_release $v->{releases};
-    $v->{releases} = [ sort {
-        $a->{released} <=> $b->{released} ||
-        $b->{rtype} cmp $a->{rtype} ||
-        $b->{official} cmp $a->{official} ||
-        ($a->{platforms}[0]||'') cmp ($b->{platforms}[0]||'') ||
-        $a->{title} cmp $b->{title} ||
-        idcmp($a->{id}, $b->{id})
-    } $v->{releases}->@* ];
+    $v->{releases} = sort_releases $v->{releases};
 
     my(%lang, %langrel, %langmtl);
     for my $r ($v->{releases}->@*) {
