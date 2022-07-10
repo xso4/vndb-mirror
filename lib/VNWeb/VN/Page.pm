@@ -853,7 +853,7 @@ sub tags_ {
         li_ $lvl == 1 ? (class => 'tagvnlist-parent') : $t->{inherited} ? (class => 'tagvnlist-inherited') : (), sub {
             VNWeb::TT::Lib::tagscore_($t->{rating}, $t->{inherited});
             b_ class => 'grayedout', '━━'x($lvl-1).' ' if $lvl > 1;
-            a_ href => "/$t->{id}", class => $view->{spoilers} > 0 && $t->{lie} ? 'lie' : $t->{rating} ? undef : 'parent', $t->{name};
+            a_ href => "/$t->{id}", class => $view->{spoilers} > 1 && $t->{lie} ? 'lie' : $t->{rating} ? undef : 'parent', $t->{name};
             spoil_ $t->{spoiler};
         } if $lvl;
 
@@ -863,7 +863,7 @@ sub tags_ {
     }
 
     div_ class => 'mainbox', sub {
-        my $max_spoil = max map $_->{spoiler}, values %tags;
+        my $max_spoil = max map $_->{lie}?2:$_->{spoiler}, values %tags;
         p_ class => 'mainopts', sub {
             if($max_spoil) {
                 a_ mkclass(checked => $view->{spoilers} == 0), href => '?view='.viewset(spoilers=>0).'#tags', 'Hide spoilers';
