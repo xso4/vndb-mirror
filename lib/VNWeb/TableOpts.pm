@@ -147,10 +147,7 @@ TUWF::set('custom_validations')->{tableopts} = sub {
     } }
 };
 
-sub query_encode {
-    my($v,$o) = $_[0]->@*;
-    $v == $o->{default} ? undef : _enc $v;
-}
+sub query_encode { _enc $_[0][0] }
 
 sub view  { $views[$_[0][0] & 3] || $views[$_[0][1]{views}[0]] }
 sub rows  { shift->view eq 'rows'  }
