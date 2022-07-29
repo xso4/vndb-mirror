@@ -115,6 +115,7 @@ our %apis = (
     } } ],
     StaffResult    => [ { aoh => { # Response to 'Staff'
         id       => { vndbid => 's' },
+        lang     => {},
         aid      => { id => 1 },
         name     => {},
         original => { required => 0, default => '' },

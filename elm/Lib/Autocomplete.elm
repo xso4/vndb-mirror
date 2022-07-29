@@ -165,8 +165,11 @@ staffSource =
       GApi.StaffResult e -> Just e
       _ -> Nothing
   , view    = \i ->
-    [ b [ class "grayedout" ] [ text <| i.id ++ ": " ]
-    , text i.name ]
+    [ langIcon i.lang
+    , b [ class "grayedout" ] [ text <| i.id ++ ": " ]
+    , text i.name
+    , b [ class "grayedout" ] [ text " ", text i.original ]
+    ]
   , key     = \i -> String.fromInt i.aid
   }
 

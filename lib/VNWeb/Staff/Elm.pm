@@ -6,7 +6,7 @@ elm_api Staff => undef, { search => {} }, sub {
     my $q = shift->{search};
 
     elm_StaffResult tuwf->dbPagei({ results => 15, page => 1 },
-        'SELECT s.id, sa.aid, sa.name, sa.original
+        'SELECT s.id, s.lang, sa.aid, sa.name, sa.original
            FROM (',
 			sql_join('UNION ALL',
                 $q =~ /^$RE{sid}$/ ? sql('SELECT 0, aid FROM staff_alias WHERE id =', \"$+{id}") : (),
