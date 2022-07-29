@@ -1,7 +1,5 @@
 module AdvSearch.Engine exposing (..)
 
--- TODO: Add "unknown" option? (= empty string)
-
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Set
@@ -65,7 +63,7 @@ view : Model -> (Html Msg, () -> List (Html Msg))
 view model =
   ( case Set.toList model.sel.sel of
       []  -> b [ class "grayedout" ] [ text "Engine" ]
-      [s] -> span [ class "nowrap" ] [  S.lblPrefix model.sel, text s ]
+      [s] -> span [ class "nowrap" ] [  S.lblPrefix model.sel, text (if s == "" then "Unknown engine" else s) ]
       l   -> span [] [ S.lblPrefix model.sel, text <| "Engines (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
     [ div [ class "advheader" ]
@@ -74,7 +72,8 @@ view model =
       ]
     , ul [] <| List.map (\s ->
         li [] [ inputButton "X" (Sel (S.Sel s False)) [], text " ", text s ]
-      ) (Set.toList model.sel.sel)
+      ) <| List.filter (\x -> x /= "") <| Set.toList model.sel.sel
     , A.view model.conf model.search [ placeholder "Search..." ]
+    , label [] [ inputCheck "" (Set.member "" model.sel.sel) (Sel << S.Sel ""), text " Unknown" ]
     ]
   )
