@@ -11,6 +11,7 @@ import Lib.TextPreview as TP
 import Lib.Api as Api
 import Lib.Editsum as Editsum
 import Gen.StaffEdit as GSE
+import Gen.Staff as GS
 import Gen.Types as GT
 import Gen.Api as GApi
 
@@ -39,6 +40,8 @@ type alias Model =
   , l_anidb     : Maybe Int
   , l_pixiv     : Int
   , id          : Maybe String
+  , dupCheck    : Bool
+  , dupStaff    : List GApi.ApiStaffResult
   }
 
 
@@ -58,6 +61,8 @@ init d =
   , l_anidb     = d.l_anidb
   , l_pixiv     = d.l_pixiv
   , id          = d.id
+  , dupCheck    = False
+  , dupStaff    = []
   }
 
 
@@ -103,6 +108,8 @@ type Msg
   | AliasOrig Int String
   | AliasMain Int Bool
   | AliasAdd
+  | DupSubmit
+  | DupResults GApi.Response
 
 
 validate : Model -> Model
@@ -122,11 +129,21 @@ update msg model =
     LPixiv s   -> ({ model | l_pixiv   = Maybe.withDefault 0 (String.toInt s) }, Cmd.none)
     Desc m     -> let (nm,nc) = TP.update m model.desc in ({ model | desc = nm }, Cmd.map Desc nc)
 
-    AliasDel i    -> (validate { model | alias = delidx i model.alias }, Cmd.none)
-    AliasName i s -> (validate { model | alias = modidx i (\e -> { e | name     = s }) model.alias }, Cmd.none)
-    AliasOrig i s -> (validate { model | alias = modidx i (\e -> { e | original = s }) model.alias }, Cmd.none)
+    AliasDel i    -> (validate { model | dupStaff = [], alias = delidx i model.alias }, Cmd.none)
+    AliasName i s -> (validate { model | dupStaff = [], alias = modidx i (\e -> { e | name     = s }) model.alias }, Cmd.none)
+    AliasOrig i s -> (validate { model | dupStaff = [], alias = modidx i (\e -> { e | original = s }) model.alias }, Cmd.none)
     AliasMain n _ -> ({ model | aid = n }, Cmd.none)
     AliasAdd      -> ({ model | alias = model.alias ++ [{ aid = newAid model, name = "", original = "", inuse = False, wantdel = False }] }, Cmd.none)
+
+    DupSubmit ->
+      if List.isEmpty model.dupStaff
+      then ({ model | state = Api.Loading }, GS.send { search = List.concatMap (\e -> [e.name, e.original]) model.alias } DupResults)
+      else ({ model | dupCheck = True, dupStaff = [] }, Cmd.none)
+    DupResults (GApi.StaffResult staff) ->
+      if List.isEmpty staff
+      then ({ model | state = Api.Normal, dupCheck = True, dupStaff = [] }, Cmd.none)
+      else ({ model | state = Api.Normal, dupStaff = staff }, Cmd.none)
+    DupResults r -> ({ model | state = Api.Error r }, Cmd.none)
 
     Submit -> ({ model | state = Api.Loading }, GSE.send (encode model) Submitted)
     Submitted (GApi.Redirect s) -> (model, load s)
@@ -177,30 +194,51 @@ view model =
         ]
       ]
 
-  in
-    form_ "" Submit (model.state == Api.Loading)
-    [ div [ class "mainbox staffedit" ]
-      [ h1 [] [ text "General info" ]
-      , table [ class "formtable" ]
-        [ formField "Names" [ names, br_ 1 ]
-        , formField "desc::Biography" [ TP.view "desc" model.desc Desc 500 GSE.valDesc [ b [ class "standout" ] [ text "English please!" ] ] ]
-        , formField "gender::Gender" [ inputSelect "gender" model.gender Gender []
-          [ ("unknown", "Unknown or N/A")
-          , ("f",       "Female")
-          , ("m",       "Male")
-          ] ]
-        , formField "lang::Primary Language" [ inputSelect "lang" model.lang Lang [] (List.filter (\(e,_) -> e /= "zh-Hans" && e /= "zh-Hant") GT.languages) ]
-        , formField "l_site::Official page" [ inputText "l_site" model.l_site Website (style "width" "400px" :: GSE.valL_Site) ]
-        , formField "l_wikidata::Wikidata ID" [ inputWikidata "l_wikidata" model.l_wikidata LWikidata [] ]
-        , formField "l_twitter::Twitter username" [ inputText "l_twitter" model.l_twitter LTwitter GSE.valL_Twitter ]
-        , formField "l_anidb::AniDB Creator ID" [ inputText "l_anidb" (Maybe.withDefault "" (Maybe.map String.fromInt model.l_anidb)) LAnidb GSE.valL_Anidb ]
-        , formField "l_pixiv::Pixiv ID" [ inputText "l_pixiv" (if model.l_pixiv == 0 then "" else String.fromInt model.l_pixiv) LPixiv GSE.valL_Pixiv ]
+    newform () =
+      form_ "" DupSubmit (model.state == Api.Loading)
+      [ div [ class "mainbox" ]
+        [ h1 [] [ text "Add new staff" ]
+        , table [ class "formtable" ] [ formField "Names" [ names, br_ 1 ] ]
+        ]
+      , div [ class "mainbox" ]
+        [ if List.isEmpty model.dupStaff then text "" else
+          div []
+          [ h1 [] [ text "Possible duplicates" ]
+          , text "The following is a list of staff that match the name(s) you gave. "
+          , text "Please check this list to avoid creating a duplicate staff entry. "
+          , ul [] <| List.map (\s -> li []
+              [ a [ href <| "/" ++ s.id, title s.original ] [ text s.name ] ]
+            ) model.dupStaff
+          ]
+        , fieldset [ class "submit" ] [ submitButton (if List.isEmpty model.dupStaff then "Continue" else "Continue anyway") model.state (isValid model) ]
         ]
       ]
-    , div [ class "mainbox" ]
-      [ fieldset [ class "submit" ]
-        [ Html.map Editsum (Editsum.view model.editsum)
-        , submitButton "Submit" model.state (isValid model)
+
+    fullform () =
+      form_ "" Submit (model.state == Api.Loading)
+      [ div [ class "mainbox staffedit" ]
+        [ h1 [] [ text "General info" ]
+        , table [ class "formtable" ]
+          [ formField "Names" [ names, br_ 1 ]
+          , formField "desc::Biography" [ TP.view "desc" model.desc Desc 500 GSE.valDesc [ b [ class "standout" ] [ text "English please!" ] ] ]
+          , formField "gender::Gender" [ inputSelect "gender" model.gender Gender []
+            [ ("unknown", "Unknown or N/A")
+            , ("f",       "Female")
+            , ("m",       "Male")
+            ] ]
+          , formField "lang::Primary Language" [ inputSelect "lang" model.lang Lang [] (List.filter (\(e,_) -> e /= "zh-Hans" && e /= "zh-Hant") GT.languages) ]
+          , formField "l_site::Official page" [ inputText "l_site" model.l_site Website (style "width" "400px" :: GSE.valL_Site) ]
+          , formField "l_wikidata::Wikidata ID" [ inputWikidata "l_wikidata" model.l_wikidata LWikidata [] ]
+          , formField "l_twitter::Twitter username" [ inputText "l_twitter" model.l_twitter LTwitter GSE.valL_Twitter ]
+          , formField "l_anidb::AniDB Creator ID" [ inputText "l_anidb" (Maybe.withDefault "" (Maybe.map String.fromInt model.l_anidb)) LAnidb GSE.valL_Anidb ]
+          , formField "l_pixiv::Pixiv ID" [ inputText "l_pixiv" (if model.l_pixiv == 0 then "" else String.fromInt model.l_pixiv) LPixiv GSE.valL_Pixiv ]
+          ]
+        ]
+      , div [ class "mainbox" ]
+        [ fieldset [ class "submit" ]
+          [ Html.map Editsum (Editsum.view model.editsum)
+          , submitButton "Submit" model.state (isValid model)
+          ]
         ]
       ]
-    ]
+  in if model.id == Nothing && not model.dupCheck then newform () else fullform ()

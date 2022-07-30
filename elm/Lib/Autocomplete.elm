@@ -160,7 +160,7 @@ producerSource =
 
 staffSource : SourceConfig m GApi.ApiStaffResult
 staffSource =
-  { source  = Endpoint (\s -> GS.send { search = s })
+  { source  = Endpoint (\s -> GS.send { search = [s] })
     <| \x -> case x of
       GApi.StaffResult e -> Just e
       _ -> Nothing
