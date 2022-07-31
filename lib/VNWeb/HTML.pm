@@ -587,7 +587,7 @@ sub _revision_header_ {
         if(auth->permDbmod) {
             lit_ ' / ';
             revision_patrolled_ $obj;
-            if($obj->{rev_user_id} eq auth->uid) {}
+            if($obj->{rev_user_id} && $obj->{rev_user_id} eq auth->uid) {}
             elsif(grep $_->{user_id} eq auth->uid, $obj->{rev_patrolled}->@*) {
                 a_ href => "?unpatrolled=$obj->{chid}", 'unmark';
             } else {
