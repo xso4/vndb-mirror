@@ -55,6 +55,7 @@ type alias Model =
   , titles      : List GVE.RecvTitles
   , alias       : String
   , desc        : TP.Model
+  , devStatus   : Int
   , olang       : String
   , length      : Int
   , lWikidata   : Maybe Int
@@ -91,6 +92,7 @@ init d =
   , titles      = d.titles
   , alias       = d.alias
   , desc        = TP.bbcode d.desc
+  , devStatus   = d.devstatus
   , olang       = d.olang
   , length      = d.length
   , lWikidata   = d.l_wikidata
@@ -126,6 +128,7 @@ encode model =
   , locked      = model.editsum.locked
   , titles      = model.titles
   , alias       = model.alias
+  , devstatus   = model.devStatus
   , desc        = model.desc.data
   , olang       = model.olang
   , length      = model.length
@@ -161,6 +164,7 @@ type Msg
   | Submitted GApi.Response
   | Alias String
   | Desc TP.Msg
+  | DevStatus Int
   | Length Int
   | LWikidata (Maybe Int)
   | LRenai String
@@ -224,6 +228,7 @@ update msg model =
     InvalidEnable -> ({ model | invalidDis = False }, Cmd.none)
     Alias s    -> ({ model | alias    = s, dupVNs = [] }, Cmd.none)
     Desc m     -> let (nm,nc) = TP.update m model.desc in ({ model | desc = nm }, Cmd.map Desc nc)
+    DevStatus b-> ({ model | devStatus = b }, Cmd.none)
     Length n   -> ({ model | length = n }, Cmd.none)
     LWikidata n-> ({ model | lWikidata = n }, Cmd.none)
     LRenai s   -> ({ model | lRenai = s }, Cmd.none)
@@ -398,6 +403,8 @@ view model =
         [ TP.view "desc" model.desc Desc 600 (style "height" "180px" :: onInvalid (Invalid General) :: GVE.valDesc) [ b [ class "standout" ] [ text "English please!" ] ]
         , text "Short description of the main story. Please do not include spoilers, and don't forget to list the source in case you didn't write the description yourself."
         ]
+      , formField "devstatus::Development status"
+        [ inputSelect "devstatus" model.devStatus DevStatus [] GT.devStatus ]
       , formField "length::Length"
         [ inputSelect "length" model.length Length [] GT.vnLengths
         , text " (only displayed if there are no length votes)" ]

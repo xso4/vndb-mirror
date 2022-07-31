@@ -1136,7 +1136,8 @@ CREATE TABLE vn ( -- dbentry_type=v
   c_developers  vndbid[] NOT NULL DEFAULT '{}',
   c_average     smallint, -- [pub], decimal vote*100, i.e. 100 - 1000
   c_length      smallint,
-  c_lengthnum   smallint NOT NULL DEFAULT 0
+  c_lengthnum   smallint NOT NULL DEFAULT 0,
+  devstatus     smallint NOT NULL DEFAULT 0 -- [pub] (0/finished 1/ongoing 2/cancelled)
 );
 
 -- vn_hist
@@ -1151,7 +1152,8 @@ CREATE TABLE vn_hist (
   l_wp         varchar(150) NOT NULL DEFAULT '',
   l_encubed    varchar(100) NOT NULL DEFAULT '',
   l_renai      varchar(100) NOT NULL DEFAULT '',
-  "desc"       text NOT NULL DEFAULT ''
+  "desc"       text NOT NULL DEFAULT '',
+  devstatus    smallint NOT NULL DEFAULT 0
 );
 
 -- vn_anime

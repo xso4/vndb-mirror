@@ -290,6 +290,7 @@ type FieldModel
   | FMRPlatform  (AS.Model String)
   | FMVPlatform  (AS.Model String)
   | FMLength     (AS.Model Int)
+  | FMDevStatus  (AS.Model Int)
   | FMRole       (AS.Model String)
   | FMBlood      (AS.Model String)
   | FMSex        (AS.SexModel)
@@ -335,6 +336,7 @@ type FieldMsg
   | FSRPlatform  (AS.Msg String)
   | FSVPlatform  (AS.Msg String)
   | FSLength     (AS.Msg Int)
+  | FSDevStatus  (AS.Msg Int)
   | FSRole       (AS.Msg String)
   | FSBlood      (AS.Msg String)
   | FSSex        AS.SexMsg
@@ -431,6 +433,7 @@ fields =
   , f V "My Labels"          0  FMLabel       AS.init                 AS.labelFromQuery
   , l V "My List"            0 [(QInt 65 Eq 1, "On my list"),         (QInt 65 Ne 1, "Not on my list")]
   , f V "Length"             0  FMLength      AS.init                 AS.lengthFromQuery
+  , f V "Development status" 0  FMDevStatus   AS.init                 AS.devStatusFromQuery
   , f V "Release date"       0  FMRDate       AD.init                 AD.fromQuery
   , f V "Popularity"         0  FMPopularity  AR.popularityInit       AR.popularityFromQuery
   , f V "Rating"             0  FMRating      AR.ratingInit           AR.ratingFromQuery
@@ -554,6 +557,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSRPlatform msg,FMRPlatform m)-> maps FMRPlatform(AS.update msg m)
       (FSVPlatform msg,FMVPlatform m)-> maps FMVPlatform(AS.update msg m)
       (FSLength msg,   FMLength m)   -> maps FMLength   (AS.update msg m)
+      (FSDevStatus msg,FMDevStatus m)-> maps FMDevStatus(AS.update msg m)
       (FSRole msg,     FMRole m)     -> maps FMRole     (AS.update msg m)
       (FSBlood msg,    FMBlood m)    -> maps FMBlood    (AS.update msg m)
       (FSSex msg,      FMSex m)      -> maps FMSex      (AS.sexUpdate msg m)
@@ -622,6 +626,7 @@ fieldView dat (_, dd, model) =
       FMVPlatform m  -> f FSVPlatform  (AS.platformView False m)
       FMRPlatform m  -> f FSRPlatform  (AS.platformView True m)
       FMLength m     -> f FSLength     (AS.lengthView m)
+      FMDevStatus m  -> f FSDevStatus  (AS.devStatusView m)
       FMRole m       -> f FSRole       (AS.roleView m)
       FMBlood m      -> f FSBlood      (AS.bloodView m)
       FMSex m        -> f FSSex        (AS.sexView m)
@@ -671,6 +676,7 @@ fieldToQuery dat (_, _, model) =
     FMRPlatform m-> AS.toQuery (QStr 4) m
     FMVPlatform m-> AS.toQuery (QStr 4) m
     FMLength m   -> AS.toQuery (QInt 5) m
+    FMDevStatus m-> AS.toQuery (QInt 66) m
     FMRole m     -> AS.toQuery (QStr 2) m
     FMBlood m    -> AS.toQuery (QStr 3) m
     FMSex (s,m)  -> AS.toQuery (QStr (if s then 5 else 4)) m

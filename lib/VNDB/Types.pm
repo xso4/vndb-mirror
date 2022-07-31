@@ -134,6 +134,11 @@ hash VN_RELATION =>
     orig => { reverse => 'fan',  pref => 0, txt => 'Original game'       };
 
 
+hash DEVSTATUS =>
+    0 => 'Finished',
+    1 => 'In development',
+    2 => 'Cancelled';
+
 
 # SQL: ENUM producer_relation
 # "Pref" relations are considered the "preferred" relation to show (as opposed to their reverse)

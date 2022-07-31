@@ -97,6 +97,7 @@ sub rev_ {
         [ alias       => 'Alias'          ],
         [ olang       => 'Original language', fmt => \%LANGUAGE ],
         [ desc        => 'Description'    ],
+        [ devstatus   => 'Development status',fmt => \%DEVSTATUS ],
         [ length      => 'Length',        fmt => \%VN_LENGTH ],
         [ staff       => 'Credits',       fmt => sub {
             a_ href => "/$_->{sid}", title => $_->{original}||$_->{name}, $_->{name} if $_->{sid};
@@ -162,14 +163,8 @@ sub infobox_relations_ {
 sub infobox_length_ {
     my($v) = @_;
 
-    my $today = strftime('%Y%m%d', gmtime);
-
-    # Length is only relevant if this VN has been released. Some VNs have been
-    # cancelled and only have a trial, but we allow votes on those as well.
-    my $hastrial = grep $_->{rtype} eq 'trial' && $_->{released} <= $today, $v->{releases}->@*;
-    my $hasnontba = grep $_->{rtype} ne 'trial' && $_->{released} <= $today, $v->{releases}->@*;
-    my $hastba = grep $_->{rtype} ne 'trial' && $_->{released} > $today, $v->{releases}->@*;
-    return if !($hasnontba || ($hastrial && !$hastba));
+    # Length is only relevant if this VN is finalized in some form.
+    return if $v->{devstatus} == 1;
 
     return if !$v->{length} && !$v->{c_lengthnum} && !VNWeb::VN::Length::can_vote();
 
@@ -430,6 +425,14 @@ sub infobox_ {
                     td_ 'Aliases';
                     td_ $v->{alias} =~ s/\n/, /gr;
                 } if $v->{alias};
+
+                tr_ sub {
+                    td_ 'Status';
+                    td_ sub {
+                        txt_ 'In development' if $v->{devstatus} == 1;
+                        txt_ 'Unfinished, no ongoing development' if $v->{devstatus} == 2;
+                    };
+                } if $v->{devstatus};
 
                 infobox_length_ $v;
                 infobox_producers_ $v;

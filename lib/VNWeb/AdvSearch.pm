@@ -323,6 +323,7 @@ f v => 62 => 'has-anime',       { uint => 1, range => [1,1] }, '=' => sub { 'EXI
 f v => 63 => 'has-screenshot',  { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM vn_screenshots vs WHERE vs.id = v.id)' };
 f v => 64 => 'has-review',      { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM reviews r WHERE r.vid = v.id AND NOT r.c_flagged)' };
 f v => 65 => 'on-list',         { uint => 1, range => [1,1] }, '=' => sub { auth ? sql 'v.id IN(SELECT vid FROM ulist_vns WHERE uid =', \auth->uid, ')' : '1=0' };
+f v => 66 => 'devstatus', { uint => 1, enum => \%DEVSTATUS }, '=' => sub { 'v.devstatus =', \$_ };
 
 f v =>  8 => 'tag',      { type => 'any', func => \&_validate_tag },
     compact => sub { my $id = ($_->[0] =~ s/^g//r)*1; $_->[1] == 0 && $_->[2] == 0 ? $id : [ $id, int($_->[2]*5)*3 + $_->[1] ] },

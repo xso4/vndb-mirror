@@ -216,6 +216,29 @@ lengthFromQuery = fromQuery (\q ->
 
 
 
+-- Development status
+
+devStatusView model =
+  ( case Set.toList model.sel of
+      []  -> b [ class "grayedout" ] [ text "Status" ]
+      [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" (lookup v GT.devStatus) ]
+      l   -> span [] [ lblPrefix model, text <| "Length (" ++ String.fromInt (List.length l) ++ ")" ]
+  , \() ->
+    [ div [ class "advheader" ]
+      [ h3 [] [ text "Development status" ]
+      , opts model False True ]
+    , ul [] <| List.map (\(l,t) -> li [] [ linkRadio (Set.member l model.sel) (Sel l) [ text t ] ]) GT.devStatus
+    ]
+  )
+
+devStatusFromQuery = fromQuery (\q ->
+  case q of
+    QInt 66 op v -> Just (op, v)
+    _ -> Nothing)
+
+
+
+
 -- Character role
 
 roleView model =
