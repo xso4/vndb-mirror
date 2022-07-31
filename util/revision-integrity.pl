@@ -22,7 +22,7 @@ use VNDB::Schema;
 my $schema = VNDB::Schema::schema;
 
 for my $table (sort { $a->{name} cmp $b->{name} } values %$schema) {
-    next if $table->{name} !~ /^(.+)_hist$/;
+    next if $table->{name} !~ /^(.+)_hist$/ || $table->{name} eq 'users_username_hist';
     my($main, $type) = ($1, $1);
     $type =~ s/_[^_]+$// while !$schema->{$type}{dbentry_type};
 
