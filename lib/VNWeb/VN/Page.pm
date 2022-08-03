@@ -35,20 +35,17 @@ sub enrich_vn {
     );
     enrich_extlinks r => $v->{releases};
 
-    $v->{reviews} = tuwf->dbRowi('SELECT COUNT(*) FILTER(WHERE isfull) AS full, COUNT(*) FILTER(WHERE NOT isfull) AS mini, COUNT(*) AS total FROM reviews WHERE NOT c_flagged AND vid =', \$v->{id});
-
-    $v->{tags} = tuwf->dbAlli("
-        SELECT t.id, t.name, t.cat, avg(tv.vote) as rating
-             , coalesce(avg(tv.spoiler), t.defaultspoil) as spoiler
-             , count(lie) filter(where lie) > 0 AND count(lie) filter (where lie) >= count(lie)>>1 AS lie
+    $v->{reviews} = tuwf->dbRowi('
+        SELECT COUNT(*) FILTER(WHERE isfull) AS full, COUNT(*) FILTER(WHERE NOT isfull) AS mini, COUNT(*) AS total
+          FROM reviews
+         WHERE NOT c_flagged AND vid =', \$v->{id}
+    );
+    $v->{tags} = tuwf->dbAlli('
+        SELECT t.id, t.name, t.cat, tv.rating, tv.spoiler, tv.lie
           FROM tags t
-          JOIN tags_vn tv ON tv.tag = t.id
-          LEFT JOIN users u ON u.id = tv.uid
-         WHERE NOT t.hidden AND tv.vid =", \$v->{id}, "
-           AND NOT tv.ignore AND (u.id IS NULL OR u.perm_tag)
-         GROUP BY t.id, t.name, t.cat
-        HAVING avg(tv.vote) > 0
-         ORDER BY rating DESC, t.name"
+          JOIN tags_vn_direct tv ON t.id = tv.tag
+         WHERE tv.vid =', \$v->{id}, '
+         ORDER BY rating DESC, t.name'
     );
 }
 

@@ -64,6 +64,7 @@ GRANT SELECT, INSERT                 ON tags_hist                TO vndb_site;
 GRANT SELECT, INSERT,         DELETE ON tags_parents             TO vndb_site;
 GRANT SELECT, INSERT                 ON tags_parents_hist        TO vndb_site;
 GRANT SELECT, INSERT, UPDATE, DELETE ON tags_vn                  TO vndb_site;
+GRANT SELECT                         ON tags_vn_direct           TO vndb_site;
 GRANT SELECT                         ON tags_vn_inherit          TO vndb_site;
 GRANT SELECT, INSERT, UPDATE, DELETE ON threads                  TO vndb_site;
 GRANT SELECT, INSERT, UPDATE, DELETE ON threads_boards           TO vndb_site;

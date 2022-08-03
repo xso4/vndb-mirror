@@ -235,13 +235,37 @@ $$ LANGUAGE plpgsql; -- Don't use "LANGUAGE SQL" here; Make sure to generate a n
 
 
 
--- Recalculate tags_vn_inherit.
+-- Recalculate tags_vn_direct & tags_vn_inherit.
 -- When a vid is given, only the tags for that vid will be updated. These
 -- incremental updates do not affect tags.c_items, so that may still get
 -- out-of-sync.
 CREATE OR REPLACE FUNCTION tag_vn_calc(uvid vndbid) RETURNS void AS $$
 BEGIN
   IF uvid IS NULL THEN
+    DROP INDEX IF EXISTS tags_vn_direct_tag_vid;
+    DROP INDEX IF EXISTS tags_vn_direct_vid;
+    TRUNCATE tags_vn_direct;
+  ELSE
+    DELETE FROM tags_vn_direct WHERE vid = uvid;
+  END IF;
+
+  INSERT INTO tags_vn_direct (tag, vid, rating, spoiler, lie)
+    SELECT tv.tag, tv.vid, avg(tv.vote)
+         , CASE WHEN COUNT(spoiler) = 0 THEN MIN(t.defaultspoil) WHEN AVG(spoiler) > 1.3 THEN 2 WHEN AVG(spoiler) > 0.4 THEN 1 ELSE 0 END
+         , count(lie) filter(where lie) > 0 AND count(lie) filter (where lie) >= count(lie)>>1
+      FROM tags_vn tv
+	  JOIN tags t ON t.id = tv.tag
+      LEFT JOIN users u ON u.id = tv.uid
+     WHERE NOT t.hidden
+       AND NOT tv.ignore AND (u.id IS NULL OR u.perm_tag)
+       AND vid NOT IN(SELECT id FROM vn WHERE hidden)
+       AND (uvid IS NULL OR vid = uvid)
+     GROUP BY tv.tag, tv.vid
+    HAVING avg(tv.vote) > 0;
+
+  IF uvid IS NULL THEN
+    CREATE INDEX tags_vn_direct_tag_vid ON tags_vn_direct (tag, vid);
+    CREATE INDEX tags_vn_direct_vid     ON tags_vn_direct (vid);
     DROP INDEX IF EXISTS tags_vn_inherit_tag_vid;
     TRUNCATE tags_vn_inherit;
   ELSE
@@ -249,31 +273,19 @@ BEGIN
   END IF;
 
   INSERT INTO tags_vn_inherit (tag, vid, rating, spoiler)
-    -- Group votes to generate a list of directly-upvoted (vid, tag) pairs.
-    -- This is essentually the same as the tag listing on VN pages.
-    WITH RECURSIVE t_avg(tag, vid, vote, spoiler) AS (
-        SELECT tv.tag, tv.vid, AVG(tv.vote)::real, CASE WHEN COUNT(tv.spoiler) = 0 THEN MIN(t.defaultspoil) ELSE AVG(tv.spoiler)::real END
-          FROM tags_vn tv
-          JOIN tags t ON t.id = tv.tag
-          LEFT JOIN users u ON u.id = tv.uid
-         WHERE NOT tv.ignore AND NOT t.hidden
-           AND (u.id IS NULL OR u.perm_tag)
-           AND vid NOT IN(SELECT id FROM vn WHERE hidden)
-           AND (uvid IS NULL OR vid = uvid)
-         GROUP BY tv.tag, tv.vid
-        HAVING AVG(tv.vote) > 0
-    -- Add parent tags
-    ), t_all(lvl, tag, vid, vote, spoiler) AS (
-        SELECT 15, * FROM t_avg
+    -- Add parent tags to each row in tags_vn_direct
+    WITH RECURSIVE t_all(lvl, tag, vid, vote, spoiler) AS (
+        SELECT 15, tag, vid, rating, spoiler
+          FROM tags_vn_direct
+         WHERE (uvid IS NULL OR vid = uvid)
         UNION ALL
         SELECT ta.lvl-1, tp.parent, ta.vid, ta.vote, ta.spoiler
           FROM t_all ta
           JOIN tags_parents tp ON tp.id = ta.tag
          WHERE ta.lvl > 0
     )
-    -- Merge
-    SELECT tag, vid, AVG(vote)
-         , (CASE WHEN MIN(spoiler) > 1.3 THEN 2 WHEN MIN(spoiler) > 0.4 THEN 1 ELSE 0 END)::smallint
+    -- Merge duplicates
+    SELECT tag, vid, AVG(vote), MIN(spoiler)
       FROM t_all
      WHERE tag IN(SELECT id FROM tags WHERE searchable)
      GROUP BY tag, vid;
@@ -452,9 +464,10 @@ DECLARE
 BEGIN
   SELECT id INTO xoldchid FROM changes WHERE itemid = nitemid AND rev = nrev-1;
 
-  -- Update c_search
+  -- Update vn.c_search and tags_vn_*
   IF vndbid_type(nitemid) = 'v' THEN
     UPDATE vn SET c_search = search_gen_vn(id) WHERE id = nitemid;
+    PERFORM tag_vn_calc(nitemid); -- actually only necessary when the hidden flag is changed
   END IF;
 
   -- Update vn.c_search when

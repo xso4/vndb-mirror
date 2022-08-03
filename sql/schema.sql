@@ -845,6 +845,15 @@ CREATE TABLE tags_vn (
   lie      boolean -- [pub] implies spoiler=0
 );
 
+-- tags_vn_direct
+CREATE TABLE tags_vn_direct (
+  tag     vndbid NOT NULL,
+  vid     vndbid NOT NULL,
+  rating  real NOT NULL,
+  spoiler smallint NOT NULL,
+  lie     boolean NOT NULL
+);
+
 -- tags_vn_inherit
 CREATE TABLE tags_vn_inherit (
   tag     vndbid NOT NULL,
