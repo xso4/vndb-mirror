@@ -303,6 +303,7 @@ sub f {
     $f{vndbid} = ref $v eq 'HASH' && $v->{vndbid} && !ref $v->{vndbid} && $v->{vndbid};
     $f{int} = ref $f{value} && ($v->{fuzzyrdate} || $f{value}->analyze->{type} eq 'int' || $f{value}->analyze->{type} eq 'bool');
     $FIELDS{$t}{$n} = \%f;
+    die "Duplicate number $num for $t\n" if $NUMFIELDS{$t}{$num};
     $NUMFIELDS{$t}{$num} = $n;
 }
 
@@ -325,9 +326,8 @@ f v => 64 => 'has-review',      { uint => 1, range => [1,1] }, '=' => sub { 'EXI
 f v => 65 => 'on-list',         { uint => 1, range => [1,1] }, '=' => sub { auth ? sql 'v.id IN(SELECT vid FROM ulist_vns WHERE uid =', \auth->uid, ')' : '1=0' };
 f v => 66 => 'devstatus', { uint => 1, enum => \%DEVSTATUS }, '=' => sub { 'v.devstatus =', \$_ };
 
-f v =>  8 => 'tag',      { type => 'any', func => \&_validate_tag },
-    compact => sub { my $id = ($_->[0] =~ s/^g//r)*1; $_->[1] == 0 && $_->[2] == 0 ? $id : [ $id, int($_->[2]*5)*3 + $_->[1] ] },
-    sql_list => \&_sql_where_tag;
+f v =>  8 => 'tag',      { type => 'any', func => \&_validate_tag }, compact => \&_compact_tag, sql_list => _sql_where_tag('tags_vn_inherit');
+f v => 14 => 'dtag',     { type => 'any', func => \&_validate_tag }, compact => \&_compact_tag, sql_list => _sql_where_tag('tags_vn_direct');
 
 f v => 12 => 'label',    { type => 'any', func => \&_validate_label },
     compact => sub { [ ($_->[0] =~ s/^u//r)*1, $_->[1]*1 ] },
@@ -487,6 +487,7 @@ sub _validate_tag {
     1
 }
 
+sub _compact_tag { my $id = ($_->[0] =~ s/^g//r)*1; $_->[1] == 0 && $_->[2] == 0 ? $id : [ $id, int($_->[2]*5)*3 + $_->[1] ] }
 
 # Accepts either $trait or [$trait, $maxspoil]. Normalizes to the latter.
 sub _validate_trait {
@@ -595,21 +596,24 @@ sub _canon {
 }
 
 
-# sql_list function for tags
+# returns an sql_list function for tags
 sub _sql_where_tag {
-    my($neg, $all, $val) = @_;
-    my %f; # spoiler -> rating -> list
-    my @l;
-    push $f{$_->[1]}{$_->[2]}->@*, $_->[0] for @$val;
-    for my $s (keys %f) {
-        for my $r (keys $f{$s}->%*) {
-            push @l, sql_and
-                $s < 2 ? sql('spoiler <=', \$s) : (),
-                $r > 0 ? sql('rating >=', \$r) : (),
-                sql('tag IN', $f{$s}{$r});
+    my($table) = @_;
+    sub {
+        my($neg, $all, $val) = @_;
+        my %f; # spoiler -> rating -> list
+        my @l;
+        push $f{$_->[1]}{$_->[2]}->@*, $_->[0] for @$val;
+        for my $s (keys %f) {
+            for my $r (keys $f{$s}->%*) {
+                push @l, sql_and
+                    $s < 2 ? sql('spoiler <=', \$s) : (),
+                    $r > 0 ? sql('rating >=', \$r) : (),
+                    sql('tag IN', $f{$s}{$r});
+            }
         }
+        sql 'v.id', $neg ? 'NOT' : (), 'IN(SELECT vid FROM', $table, 'WHERE', sql_or(@l), $all && @$val > 1 ? ('GROUP BY vid HAVING COUNT(tag) =', \scalar @$val) : (), ')'
     }
-    sql 'v.id', $neg ? 'NOT' : (), 'IN(SELECT vid FROM tags_vn_inherit WHERE', sql_or(@l), $all && @$val > 1 ? ('GROUP BY vid HAVING COUNT(tag) =', \scalar @$val) : (), ')'
 }
 
 sub _sql_where_trait {

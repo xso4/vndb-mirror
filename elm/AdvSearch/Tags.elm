@@ -18,12 +18,14 @@ type alias Model =
   , conf    : A.Config Msg GApi.ApiTagResult
   , search  : A.Model GApi.ApiTagResult
   , spoiler : Int
+  , inherit : Bool
   }
 
 type Msg
   = Sel (S.Msg (Int,Int))
   | Level (Int,Int) Int
   | Spoiler
+  | Inherit Bool
   | Search (A.Msg GApi.ApiTagResult)
 
 
@@ -35,6 +37,7 @@ init dat =
         , conf    = { wrap = Search, id = "advsearch_tag" ++ String.fromInt ndat.objid, source = A.tagSource }
         , search  = A.init ""
         , spoiler = dat.defaultSpoil
+        , inherit = True
         }
       )
 
@@ -45,6 +48,7 @@ update dat msg model =
     Sel m -> (dat, { model | sel = S.update m model.sel }, Cmd.none)
     Level (t,ol) nl -> (dat, { model | sel = S.update (S.Sel (t,ol) False) model.sel |> S.update (S.Sel (t,nl) True) }, Cmd.none)
     Spoiler -> (dat, { model | spoiler = if model.spoiler < 2 then model.spoiler + 1 else 0 }, Cmd.none)
+    Inherit b -> (dat, { model | inherit = b }, Cmd.none)
     Search m ->
       let (nm, c, res) = A.update model.conf m model.search
       in case res of
@@ -55,12 +59,15 @@ update dat msg model =
             , c )
 
 
-toQuery m = S.toQuery (\o (t,l) -> if m.spoiler == 0 && l == 0 then QInt 8 o t else QTuple 8 o t (l*3+m.spoiler)) m.sel
+toQuery m = S.toQuery (\o (t,l) ->
+  let id = if m.inherit then 8 else 14
+  in if m.spoiler == 0 && l == 0 then QInt id o t else QTuple id o t (l*3+m.spoiler)) m.sel
 
-fromQuery spoil dat q =
-  let f qr = case qr of
-              QInt 8 op t -> if spoil == 0 then Just (op, (t,0)) else Nothing
-              QTuple 8 op t v -> if modBy 3 v == spoil then Just (op, (t,v//3)) else Nothing
+fromQuery spoil inherit dat q =
+  let id = if inherit then 8 else 14
+      f qr = case qr of
+              QInt x op t -> if id == x && spoil == 0 then Just (op, (t,0)) else Nothing
+              QTuple x op t v -> if id == x && modBy 3 v == spoil then Just (op, (t,v//3)) else Nothing
               _ -> Nothing
   in
   S.fromQuery f dat q |> Maybe.map (\(ndat,sel) ->
@@ -69,6 +76,7 @@ fromQuery spoil dat q =
       , conf    = { wrap = Search, id = "advsearch_tag" ++ String.fromInt ndat.objid, source = A.tagSource }
       , search  = A.init ""
       , spoiler = spoil
+      , inherit = inherit
       }
     ))
 
@@ -92,6 +100,7 @@ view dat model =
           [ text <| if model.spoiler == 0 then "no spoilers" else if model.spoiler == 1 then "minor spoilers" else "major spoilers" ]
         , linkRadio model.sel.neg (Sel << S.Neg) [ text "invert" ]
         ]
+      , div [ class "opts" ] [ span [] [], linkRadio model.inherit Inherit [ text "child tags" ] ]
       ]
     , ul [] <| List.map (\(t,l) ->
         li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ]
