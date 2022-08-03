@@ -31,6 +31,7 @@ sub TABLEOPTS {
             compat => 'rel',
             sort_id => 2,
             sort_sql => 'v.c_released ?o, v.title',
+            sort_num => 1,
         },
         length => {
             name => 'Length',
@@ -45,6 +46,7 @@ sub TABLEOPTS {
             compat => 'pop',
             sort_id => 3,
             sort_sql => 'v.c_pop_rank !o, v.sorttitle',
+            sort_num => 1,
             vis_id => 0,
             vis_default => 1,
         },
@@ -53,6 +55,7 @@ sub TABLEOPTS {
             compat => 'rating',
             sort_id => 4,
             sort_sql => 'v.c_rat_rank !o NULLS LAST, v.sorttitle',
+            sort_num => 1,
             vis_id => 1,
             vis_default => 1,
         },
@@ -60,12 +63,14 @@ sub TABLEOPTS {
             name => 'Vote average',
             sort_id => 5,
             sort_sql => 'v.c_average ?o NULLS LAST, v.sorttitle',
+            sort_num => 1,
             vis_id => 3,
         },
         votes => {
             name => 'Number of votes',
             sort_id => 6,
             sort_sql => 'v.c_votecount ?o, v.sorttitle',
+            sort_num => 1,
         }
 }
 

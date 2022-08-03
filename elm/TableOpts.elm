@@ -50,7 +50,7 @@ type Msg
   = Open Bool
   | View Int Bool
   | Results Int Bool
-  | Sort Int Bool Bool
+  | Sort Int Bool
   | Cols Int Bool
   | Save
   | Saved GApi.Response
@@ -62,7 +62,7 @@ update msg model =
     Open b      -> ({ model | saved = False, dd = DD.toggle model.dd b }, Cmd.none)
     View n _    -> ({ model | saved = False, view = n }, Cmd.none)
     Results n _ -> ({ model | saved = False, results = n }, Cmd.none)
-    Sort n b _  -> ({ model | saved = False, sort = n, asc = b }, Cmd.none)
+    Sort n b    -> ({ model | saved = False, sort = n, asc = b }, Cmd.none)
     Cols n b    -> ({ model | cols = if b then B.or model.cols (B.shiftLeftBy n 1) else B.and model.cols (B.xor (B.complement 0) (B.shiftLeftBy n 1)) }, Cmd.none)
     Save        -> ( { model | saved = False, state = Api.Loading }
                    , GTO.send { save = Maybe.withDefault "" model.opts.save
@@ -102,11 +102,19 @@ view model = div []
             ) model.opts.views ]
 
         , if List.isEmpty model.opts.sorts then text "" else
-          tr [] [ td [] [ text "Order by" ], td [] <| List.intersperse (br [] []) <| List.map (\o ->
-              linkRadio (model.sort == o.id) (Sort o.id (if model.sort == o.id then not model.asc else True))
-              [ text o.name
-              , text <| if model.sort /= o.id then "" else if model.asc then " ▴" else " ▾" ]
-            ) model.opts.sorts ]
+          tr [] [ td [] [ text "Order by" ], td [] [ table [] <| List.map (\o ->
+            let but w = a [ href "#", onClickD (Sort o.id w), classList [("checked", model.sort == o.id && model.asc == w)] ]
+                        [ text <| case (o.num, w) of
+                                    (True, True) -> "1→9"
+                                    (True, False) -> "9→1"
+                                    (False, True) -> "A→Z"
+                                    (False, False) -> "Z→A" ]
+            in tr []
+               [ td [ style "padding" "0"      ] [ text o.name ]
+               , td [ style "padding" "0 15px" ] [ but True  ]
+               , td [ style "padding" "0"      ] [ but False ]
+               ]
+            ) model.opts.sorts ] ]
 
         , if List.isEmpty model.opts.vis then text "" else
           tr [] [ td [] [ text "Visible", br [] [], text "columns" ], td [] <| List.intersperse (br [] []) <| List.map (\o ->

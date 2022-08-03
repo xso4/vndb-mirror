@@ -31,6 +31,7 @@ package VNWeb::TableOpts;
 #                                  # may include '?o' placeholder that will be replaced with selected ASC/DESC,
 #                                  # or '!o' as placeholder for the opposite.
 #                                  # If no placeholders are present, the ASC/DESC will be added automatically.
+#           sort_num => 0/1,       # Whether this is a numeric field, used in the UI to display "1→9" instead of "A→Z".
 #           sort_default => 'asc', # Set to 'asc' or 'desc' if this column should be sorted on by default.
 #       },
 #       popularity => {
@@ -208,7 +209,7 @@ my $FORM_OUT = form_compile any => {
     views   => { type => 'array', values => { uint => 1 } },
     default => { uint => 1 },
     value   => { uint => 1 },
-    sorts   => { aoh => { id => { uint => 1 }, name => {} } },
+    sorts   => { aoh => { id => { uint => 1 }, name => {}, num => { anybool => 1 } } },
     vis     => { aoh => { id => { uint => 1 }, name => {} } },
 };
 
@@ -230,7 +231,7 @@ sub elm_ {
         views   => $o->{views},
         default => $o->{default},
         value   => $v,
-        sorts   => [ map +{ id => $_->{sort_id}, name => $_->{name} }, grep defined $_->{sort_id}, values $o->{col_order}->@* ],
+        sorts   => [ map +{ id => $_->{sort_id}, name => $_->{name}, num => $_->{sort_num}||0 }, grep defined $_->{sort_id}, values $o->{col_order}->@* ],
         vis     => [ map +{ id => $_->{vis_id}, name => $_->{name} }, grep defined $_->{vis_id}, values $o->{col_order}->@* ],
     }, sub {
         TUWF::XML::div_ @_, sub {

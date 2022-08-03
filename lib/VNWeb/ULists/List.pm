@@ -17,6 +17,7 @@ my $TABLEOPTS = tableopts
         name => 'Vote date',
         sort_sql => 'uv.vote_date',
         sort_id => 1,
+        sort_num => 1,
         vis_id => 0,
         compat => 'voted'
     },
@@ -24,6 +25,7 @@ my $TABLEOPTS = tableopts
         name => 'Vote',
         sort_sql => 'uv.vote',
         sort_id => 2,
+        sort_num => 1,
         vis_id => 1,
         compat => 'vote'
     },
@@ -31,6 +33,7 @@ my $TABLEOPTS = tableopts
         name => 'Rating',
         sort_sql => 'v.c_rating',
         sort_id => 3,
+        sort_num => 1,
         vis_id => 2,
         compat => 'rating'
     },
@@ -45,6 +48,7 @@ my $TABLEOPTS = tableopts
         name => 'Added',
         sort_sql => 'uv.added',
         sort_id => 5,
+        sort_num => 1,
         vis_id => 4,
         compat => 'added'
     },
@@ -52,6 +56,7 @@ my $TABLEOPTS = tableopts
         name => 'Modified',
         sort_sql => 'uv.lastmod',
         sort_id => 6,
+        sort_num => 1,
         vis_id => 5,
         compat => 'modified'
     },
@@ -59,6 +64,7 @@ my $TABLEOPTS = tableopts
         name => 'Start date',
         sort_sql => 'uv.started',
         sort_id => 7,
+        sort_num => 1,
         vis_id => 6,
         compat => 'started'
     },
@@ -66,6 +72,7 @@ my $TABLEOPTS = tableopts
         name => 'Finish date',
         sort_sql => 'uv.finished',
         sort_id => 8,
+        sort_num => 1,
         vis_id => 7,
         compat => 'finished'
     },
@@ -73,6 +80,7 @@ my $TABLEOPTS = tableopts
         name => 'Release date',
         sort_sql => 'v.c_released',
         sort_id => 9,
+        sort_num => 1,
         vis_id => 8,
         compat => 'rel'
     };
