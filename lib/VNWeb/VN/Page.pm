@@ -163,17 +163,10 @@ sub infobox_relations_ {
 sub infobox_length_ {
     my($v) = @_;
 
-    # Length is only relevant if this VN is finalized in some form.
-    return if $v->{devstatus} == 1;
-
-    return if !$v->{length} && !$v->{c_lengthnum} && !VNWeb::VN::Length::can_vote();
-
-    my $my = VNWeb::VN::Length::can_vote()
-        && tuwf->dbRowi('SELECT rid::text[] AS rid, length, speed, private, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
-
     tr_ sub {
         td_ 'Play time';
         td_ sub {
+            # Cached number, which means this VN has counted votes
             if($v->{c_lengthnum}) {
                 my $m = $v->{c_length};
                 txt_ +(grep $m >= $_->{low} && $m < $_->{high}, values %VN_LENGTH)[0]{txt}.' (';
@@ -181,8 +174,9 @@ sub infobox_length_ {
                 txt_ ' from ';
                 a_ href => "/$v->{id}/lengthvotes", sprintf '%d vote%s', $v->{c_lengthnum}, $v->{c_length}==1?'':'s';
                 txt_ ')';
+            # No cached number so no counted votes; fall back to old 'length' field and display number of uncounted votes
             } else {
-                my $uncounted = tuwf->dbVali('SELECT count(*) FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND NOT private AND speed IS NULL');
+                my $uncounted = tuwf->dbVali('SELECT count(*) FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND NOT private');
                 txt_ $VN_LENGTH{$v->{length}}{txt};
                 if ($v->{length} || $uncounted) {
                     lit_ ' (';
@@ -192,10 +186,12 @@ sub infobox_length_ {
                     lit_ ')';
                 }
             }
-            if (auth->permLengthvote) {
+            if (VNWeb::VN::Length::can_vote()) {
+                my $my = tuwf->dbRowi('SELECT rid::text[] AS rid, length, speed, private, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
                 elm_ VNLengthVote => $VNWeb::VN::Length::LENGTHVOTE, {
                     uid => auth->uid, vid => $v->{id},
                     vote => $my->{rid}?$my:undef,
+                    maycount => $v->{devstatus} != 1,
                 }, sub { span_ @_, ''};
             }
         };

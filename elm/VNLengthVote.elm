@@ -31,6 +31,7 @@ type alias Model =
   , uid     : String
   , vid     : String
   , rid     : List String
+  , maycount: Bool
   , defrid  : String
   , hours   : Maybe Int
   , minutes : Maybe Int
@@ -48,6 +49,7 @@ init f =
   , uid     = f.uid
   , vid     = f.vid
   , rid     = Maybe.map (\v -> v.rid) f.vote |> Maybe.withDefault []
+  , maycount= f.maycount
   , defrid  = ""
   , hours   = Maybe.map (\v -> v.length // 60   ) f.vote
   , minutes = Maybe.andThen (\v -> let n = modBy 60 v.length in if n == 0 then Nothing else Just n) f.vote
@@ -64,6 +66,7 @@ encode : Model -> GV.Send
 encode m =
   { uid = m.uid
   , vid = m.vid
+  , maycount = m.maycount
   , vote = if enclen m == 0 then Nothing else Just
       { rid     = m.rid
       , notes   = m.notes
@@ -130,12 +133,31 @@ update msg model =
 view : Model -> Html Msg
 view model = div [class "lengthvotefrm"] <|
   let
+    selcounted =
+        [ (Just 9, "-- how do you estimate your read/play speed? --")
+        , (Just 0, "Slow (e.g. low language proficiency or extra time spent on gameplay)")
+        , (Just 1, "Normal (no content skipped, all voices listened to end)")
+        , (Just 2, "Fast (e.g. fast reader or skipping through voices and gameplay)")
+        , (Nothing, "Don't count my play time (public)")
+        , (Just 8, "Don't count my play time (private)")
+        ]
+    seluncounted =
+        [ (Just 9, "-- visibility --")
+        , (Nothing, "Public (everyone can see your vote)")
+        , (Just 8, "Private (for your own administration)")
+        ]
     cansubmit = enclen model > 0 && model.speed /= Just 9
       && not (List.isEmpty model.rid)
       && not (List.any (\r -> r == "") model.rid)
     rels = Maybe.withDefault [] model.rels
     frm = [ form_ "" (if cansubmit then Submit else Noop) False
       [ br [] []
+      , if model.maycount then text "" else span []
+        [ b [ class "standout" ] [ text "This visual novel is still in development." ]
+        , br [] []
+        , text "Which means your vote will not count towards the VN's length statistics."
+        , br_ 2
+        ]
       , text "How long did you take to finish this VN?"
       , br [] []
       , text "Play time: "
@@ -152,14 +174,7 @@ view model = div [class "lengthvotefrm"] <|
           then inputButton "+" ReleaseAdd [title "Add release"]
           else inputButton "-" (ReleaseDel n) [title "Remove release"]
         ]) model.rid
-      , inputSelect "" model.speed Speed [style "width" "100%"]
-        [ (Just 9, "-- how do you estimate your read/play speed? --")
-        , (Just 0, "Slow (e.g. low language proficiency or extra time spent on gameplay)")
-        , (Just 1, "Normal (no content skipped, all voices listened to end)")
-        , (Just 2, "Fast (e.g. fast reader or skipping through voices and gameplay)")
-        , (Nothing, "Don't count my play time (public)")
-        , (Just 8, "Don't count my play time (private)")
-        ]
+      , inputSelect "" model.speed Speed [style "width" "100%"] (if model.maycount then selcounted else seluncounted)
       , case model.speed of
           Just 9 -> span [] []
           Just 8 -> span []

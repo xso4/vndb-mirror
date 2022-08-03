@@ -185,9 +185,10 @@ TUWF::post '/lengthvotes-edit', sub {
 
 
 our $LENGTHVOTE = form_compile any => {
-    uid    => { vndbid => 'u' },
-    vid    => { vndbid => 'v' },
-    vote   => { type => 'hash', required => 0, keys => {
+    uid      => { vndbid => 'u' },
+    vid      => { vndbid => 'v' },
+    maycount => { anybool => 1 },
+    vote     => { type => 'hash', required => 0, keys => {
         rid     => { type => 'array', minlength => 1, values => { vndbid => 'r' } },
         length  => { uint => 1, range => [1,26159] }, # 435h59m, largest round-ish number where the 'fast' speed adjustment doesn't overflow a smallint
         speed   => { required => 0, uint => 1, enum => [0,1,2] },
