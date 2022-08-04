@@ -18,11 +18,13 @@ type alias Model =
   , conf    : A.Config Msg GApi.ApiTraitResult
   , search  : A.Model GApi.ApiTraitResult
   , spoiler : Int
+  , inherit : Bool
   }
 
 type Msg
   = Sel (S.Msg Int)
   | Spoiler
+  | Inherit Bool
   | Search (A.Msg GApi.ApiTraitResult)
 
 
@@ -34,6 +36,7 @@ init dat =
         , conf    = { wrap = Search, id = "advsearch_trait" ++ String.fromInt ndat.objid, source = A.traitSource }
         , search  = A.init ""
         , spoiler = dat.defaultSpoil
+        , inherit = True
         }
       )
 
@@ -43,6 +46,7 @@ update dat msg model =
   case msg of
     Sel m -> (dat, { model | sel = S.update m model.sel }, Cmd.none)
     Spoiler -> (dat, { model | spoiler = if model.spoiler < 2 then model.spoiler + 1 else 0 }, Cmd.none)
+    Inherit b -> (dat, { model | inherit = b }, Cmd.none)
     Search m ->
       let (nm, c, res) = A.update model.conf m model.search
       in case res of
@@ -53,12 +57,15 @@ update dat msg model =
             , c )
 
 
-toQuery m = S.toQuery (\o t -> if m.spoiler == 0 then QInt 13 o t else QTuple 13 o t m.spoiler) m.sel
+toQuery m = S.toQuery (\o t ->
+  let id = if m.inherit then 13 else 15
+  in if m.spoiler == 0 then QInt id o t else QTuple id o t m.spoiler) m.sel
 
-fromQuery spoil dat q =
-  let f qr = case qr of
-              QInt 13 op t -> if spoil == 0 then Just (op, t) else Nothing
-              QTuple 13 op t v -> if v == spoil then Just (op, t) else Nothing
+fromQuery spoil inherit dat q =
+  let id = if inherit then 13 else 15
+      f qr = case qr of
+              QInt x op t -> if id == x && spoil == 0 then Just (op, t) else Nothing
+              QTuple x op t v -> if id == x && v == spoil then Just (op, t) else Nothing
               _ -> Nothing
   in
   S.fromQuery f dat q |> Maybe.map (\(ndat,sel) ->
@@ -67,6 +74,7 @@ fromQuery spoil dat q =
       , conf    = { wrap = Search, id = "advsearch_trait" ++ String.fromInt ndat.objid, source = A.traitSource }
       , search  = A.init ""
       , spoiler = spoil
+      , inherit = inherit
       }
     ))
 
@@ -90,6 +98,7 @@ view dat model =
           [ text <| if model.spoiler == 0 then "no spoilers" else if model.spoiler == 1 then "minor spoilers" else "major spoilers" ]
         , linkRadio model.sel.neg (Sel << S.Neg) [ text "invert" ]
         ]
+      , div [ class "opts" ] [ span [] [], linkRadio model.inherit Inherit [ text "child traits" ] ]
       ]
     , ul [] <| List.map (\t ->
         li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ]

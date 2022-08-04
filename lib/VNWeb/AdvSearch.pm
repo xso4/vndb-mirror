@@ -431,9 +431,8 @@ f c => 11 => 'cup',        { required => 0, default => undef, enum => \%CUP_SIZE
     sql => sub { !defined $_ ? sql 'c.cup_size', $_[0], "''" : sql 'c.cup_size <> \'\' AND c.cup_size', $_[0], \$_ };
 f c => 12 => 'age',        { required => 0, default => undef, uint => 1, max => 32767 },
     sql => sub { !defined $_ ? sql('c.age IS', $_[0] eq '=' ? '' : 'NOT', 'NULL') : sql 'c.age', $_[0], \$_ };
-f c => 13 => 'trait',      { type => 'any', func => \&_validate_trait },
-    compact => sub { my $id = ($_->[0] =~ s/^i//r)*1; $_->[1] == 0 ? $id : [ $id, int $_->[1] ] },
-    sql_list => \&_sql_where_trait;
+f c => 13 => 'trait',      { type => 'any', func => \&_validate_trait }, compact => \&_compact_trait, sql_list => _sql_where_trait('traits_chars', 'cid');
+f c => 15 => 'dtrait',     { type => 'any', func => \&_validate_trait }, compact => \&_compact_trait, sql_list => _sql_where_trait('chars_traits', 'id');
 f c => 14 => 'birthday',   { type => 'array', length => 2, values => { uint => 1, max => 31 } },
     '=' => sub { sql 'c.b_month =', \$_->[0], $_->[1] ? ('AND c.b_day =', \$_->[1]) : () };
 
@@ -488,6 +487,7 @@ sub _validate_tag {
 }
 
 sub _compact_tag { my $id = ($_->[0] =~ s/^g//r)*1; $_->[1] == 0 && $_->[2] == 0 ? $id : [ $id, int($_->[2]*5)*3 + $_->[1] ] }
+sub _compact_trait { my $id = ($_->[0] =~ s/^i//r)*1; $_->[1] == 0 ? $id : [ $id, int $_->[1] ] }
 
 # Accepts either $trait or [$trait, $maxspoil]. Normalizes to the latter.
 sub _validate_trait {
@@ -617,16 +617,19 @@ sub _sql_where_tag {
 }
 
 sub _sql_where_trait {
-    my($neg, $all, $val) = @_;
-    my %f; # spoiler -> list
-    my @l;
-    push $f{$_->[1]}->@*, $_->[0] for @$val;
-    for my $s (keys %f) {
-        push @l, sql_and
-            $s < 2 ? sql('spoil <=', \$s) : (),
-            sql('tid IN', $f{$s});
+    my($table, $cid) = @_;
+    sub {
+        my($neg, $all, $val) = @_;
+        my %f; # spoiler -> list
+        my @l;
+        push $f{$_->[1]}->@*, $_->[0] for @$val;
+        for my $s (keys %f) {
+            push @l, sql_and
+                $s < 2 ? sql('spoil <=', \$s) : (),
+                sql('tid IN', $f{$s});
+        }
+        sql 'c.id', $neg ? 'NOT' : (), 'IN(SELECT', $cid, 'FROM', $table, 'WHERE', sql_or(@l), $all && @$val > 1 ? ('GROUP BY', $cid, 'HAVING COUNT(tid) =', \scalar @$val) : (), ')'
     }
-    sql 'c.id', $neg ? 'NOT' : (), 'IN(SELECT cid FROM traits_chars WHERE', sql_or(@l), $all && @$val > 1 ? ('GROUP BY cid HAVING COUNT(tid) =', \scalar @$val) : (), ')'
 }
 
 
