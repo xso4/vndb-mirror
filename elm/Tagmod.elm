@@ -29,7 +29,9 @@ type alias Tag = GT.RecvTags
 type Sel
   = NoSel
   | Vote Int
+  | Over
   | Spoil (Maybe Int)
+  | Lie (Maybe Bool)
   | Note
   | NoteSet
 
@@ -77,6 +79,7 @@ type Msg
   | SetVote String Int
   | SetOver String Bool
   | SetSpoil String (Maybe Int)
+  | SetLie String (Maybe Bool)
   | SetNote String String
   | NegShow Bool
   | TagSearch (A.Msg GApi.ApiTagResult)
@@ -99,6 +102,7 @@ update msg model =
     SetVote  id v -> (modtag id (\t -> { t | vote = v }), Cmd.none)
     SetOver  id b -> (modtag id (\t -> { t | overrule = b }), Cmd.none)
     SetSpoil id s -> (modtag id (\t -> { t | spoil = s }), Cmd.none)
+    SetLie   id s -> (modtag id (\t -> { t | lie = s }), Cmd.none)
     SetNote  id s -> (modtag id (\t -> { t | notes = s }), Cmd.none)
     NegShow  b    -> ({ model | negShow = b }, Cmd.none)
 
@@ -111,13 +115,13 @@ update msg model =
                 if t.hidden && t.locked                            then ([], "Can't add deleted tags")
                 else if not t.applicable                           then ([], "Tag is not applicable")
                 else if List.any (\it -> it.id == t.id) model.tags then ([], "Tag is already in the list")
-                else ([{ id = t.id, vote = 0, spoil = Nothing, overrule = False, notes = "", cat = "new", name = t.name
-                       , rating = 0, count = 0, spoiler = 0, overruled = False, othnotes = "", hidden = t.hidden, locked = t.locked, applicable = t.applicable }], "")
+                else ([{ id = t.id, vote = 0, spoil = Nothing, lie = Nothing, overrule = False, notes = "", cat = "new", name = t.name
+                       , rating = 0, count = 0, spoiler = 0, islie = False, overruled = False, othnotes = "", hidden = t.hidden, locked = t.locked, applicable = t.applicable }], "")
           in (changed { model | add = if ms == "" then A.clear nm "" else nm, tags = model.tags ++ nl, addMsg = ms }, c)
 
     Submit ->
       ( { model | state = Api.Loading, addMsg = "" }
-      , GT.send { id = model.id, tags = List.map (\t -> { id = t.id, vote = t.vote, spoil = t.spoil, overrule = t.overrule, notes = t.notes }) model.tags } Submitted)
+      , GT.send { id = model.id, tags = List.map (\t -> { id = t.id, vote = t.vote, spoil = t.spoil, lie = t.lie, overrule = t.overrule, notes = t.notes }) model.tags } Submitted)
     Submitted GApi.Success -> (model, reload)
     Submitted r -> ({ model | state = Api.Error r }, Cmd.none)
 
@@ -132,11 +136,13 @@ viewTag t sel vid mod =
       [ span [] [ text <| Ffi.fmtFloat s 1 ]
       , div [ style "width" <| String.fromFloat (abs (s/3*30)) ++ "px" ] []
       ]
-
+    msg s = [ td [ colspan 4 ] [ text s ] ]
     vote  = case sel of Vote v  -> v
                         _       -> t.vote
     spoil = case sel of Spoil s -> s
                         _       -> t.spoil
+    lie   = case sel of Lie l   -> l
+                        _       -> t.lie
   in
     tr [] <|
     [ td [ class "tc_tagname" ]
@@ -155,16 +161,23 @@ viewTag t sel vid mod =
       , a [ href "#", onMouseOver (SetSel t.id (Vote  3)), onMouseOut (SetSel "" NoSel), onClickD (SetVote t.id  3), classList [("l3", vote == 3)], title "+3"          ] []
       ]
     ] ++ (if t.vote == 0 && t.count == 0 then
-    [ td [ colspan 3 ] [ text "<- don't forget to rate" ]
+    [ td [ colspan 4 ] [ text "<- don't forget to rate" ]
     ] else
-    [ td [ class "tc_myover" ] [ if mod && t.vote /= 0 then inputCheck "" t.overrule (SetOver t.id) else text "" ]
+    [ td [ class "tc_myover buts" ] <|
+      if t.vote <= 0 || not mod then [] else
+      [ a [ href "#", onMouseOver (SetSel t.id Over), onMouseOut (SetSel "" NoSel), onClickD (SetOver t.id (not t.overrule)), classList [("ov", t.overrule || sel == Over)], title "Overrule" ] [] ]
     , td [ class "tc_myspoil buts" ] <|
       if t.vote <= 0 then [] else
-      [ a [ href "#", onMouseOver (SetSel t.id (Spoil (Just 3))), onMouseOut (SetSel "" NoSel), onClickD (SetSpoil t.id (Just 3)), classList [("s3", spoil == Just 3 )], title "False"         ] []
-      , a [ href "#", onMouseOver (SetSel t.id (Spoil Nothing)),  onMouseOut (SetSel "" NoSel), onClickD (SetSpoil t.id Nothing),  classList [("sn", spoil == Nothing)], title "Unknown"       ] []
+      [ a [ href "#", onMouseOver (SetSel t.id (Spoil Nothing)),  onMouseOut (SetSel "" NoSel), onClickD (SetSpoil t.id Nothing),  classList [("sn", spoil == Nothing)], title "Unknown"       ] []
       , a [ href "#", onMouseOver (SetSel t.id (Spoil (Just 0))), onMouseOut (SetSel "" NoSel), onClickD (SetSpoil t.id (Just 0)), classList [("s0", spoil == Just 0 )], title "Not a spoiler" ] []
       , a [ href "#", onMouseOver (SetSel t.id (Spoil (Just 1))), onMouseOut (SetSel "" NoSel), onClickD (SetSpoil t.id (Just 1)), classList [("s1", spoil == Just 1 )], title "Minor spoiler" ] []
       , a [ href "#", onMouseOver (SetSel t.id (Spoil (Just 2))), onMouseOut (SetSel "" NoSel), onClickD (SetSpoil t.id (Just 2)), classList [("s2", spoil == Just 2 )], title "Major spoiler" ] []
+      ]
+    , td [ class "tc_mylie buts" ] <|
+      if t.vote <= 0 then [] else
+      [ a [ href "#", onMouseOver (SetSel t.id (Lie Nothing)),      onMouseOut (SetSel "" NoSel), onClickD (SetLie t.id Nothing    ),  classList [("fn", lie == Nothing   )], title "Unknown"       ] []
+      , a [ href "#", onMouseOver (SetSel t.id (Lie (Just False))), onMouseOut (SetSel "" NoSel), onClickD (SetLie t.id (Just False)), classList [("f0", lie == Just False)], title "This tag is not a lie" ] []
+      , a [ href "#", onMouseOver (SetSel t.id (Lie (Just True))),  onMouseOut (SetSel "" NoSel), onClickD (SetLie t.id (Just True )), classList [("f1", lie == Just True )], title "This tag is a lie"] []
       ]
     , td [ class "tc_mynote" ] <|
       if t.vote == 0 then [] else
@@ -177,25 +190,28 @@ viewTag t sel vid mod =
       ]
     ]) ++
     case sel of
-      Vote 0         -> [ td [ colspan 3 ] [ text "Remove vote" ] ]
-      Vote 1         -> [ td [ colspan 3 ] [ text "Vote +1" ] ]
-      Vote 2         -> [ td [ colspan 3 ] [ text "Vote +2" ] ]
-      Vote 3         -> [ td [ colspan 3 ] [ text "Vote +3" ] ]
-      Vote _         -> [ td [ colspan 3 ] [ text "Downvote (-3)" ] ]
-      Spoil (Just 3) -> [ td [ colspan 3 ] [ text "This eventually turns out to be false" ] ]
-      Spoil Nothing  -> [ td [ colspan 3 ] [ text "Spoiler status not known" ] ]
-      Spoil (Just 0) -> [ td [ colspan 3 ] [ text "This is not a spoiler" ] ]
-      Spoil (Just 1) -> [ td [ colspan 3 ] [ text "This is a minor spoiler" ] ]
-      Spoil (Just 2) -> [ td [ colspan 3 ] [ text "This is a major spoiler" ] ]
-      Note           -> [ td [ colspan 3 ] [ if t.notes == "" then text "Set note" else div [ class "noteview" ] [ text t.notes ] ] ]
+      Vote 0         -> msg "Remove vote"
+      Vote 1         -> msg "Vote +1"
+      Vote 2         -> msg "Vote +2"
+      Vote 3         -> msg "Vote +3"
+      Vote _         -> msg "Downvote (-3)"
+      Over           -> msg "Mod overrule (only your vote counts)"
+      Spoil Nothing  -> msg "Spoiler status not known"
+      Spoil (Just 0) -> msg "This is not a spoiler"
+      Spoil (Just 1) -> msg "This is a minor spoiler"
+      Spoil (Just 2) -> msg "This is a major spoiler"
+      Lie Nothing    -> msg "Truth status not known"
+      Lie (Just True)-> msg "This tag turns out to be false"
+      Lie (Just False)->msg "This tag is not a lie"
+      Note           -> [ td [ colspan 4 ] [ if t.notes == "" then text "Set note" else div [ class "noteview" ] [ text t.notes ] ] ]
       NoteSet ->
-        [ td [ colspan 3, class "compact" ]
+        [ td [ colspan 4, class "compact" ]
           [ Html.form [ onSubmit (SetSel t.id NoSel) ]
             [ inputText "tag_note" t.notes (SetNote t.id) (onBlur (SetSel t.id NoSel) :: style "width" "400px" :: style "position" "absolute" :: placeholder "Set note..." :: GT.valTagsNotes) ]
           ]
         ]
       _ ->
-        if t.count == 0 then [ td [ colspan 3 ] [] ]
+        if t.count == 0 then [ td [ colspan 4 ] [] ]
         else
         [ td [ class "tc_allvote" ]
           [ tagscore t.rating
@@ -203,7 +219,8 @@ viewTag t sel vid mod =
           , if not t.overruled then text ""
             else b [ class "standout", style "font-weight" "bold", title "Tag overruled. All votes other than that of the moderator who overruled it will be ignored." ] [ text "!" ]
           ]
-        , td [ class "tc_allspoil"] [ text <| if t.spoiler < 0 then "False" else Ffi.fmtFloat t.spoiler 2 ]
+        , td [ class "tc_allspoil"] [ text <| Ffi.fmtFloat t.spoiler 2 ]
+        , td [ class "tc_alllie"] [ text <| if t.islie then "lie" else "" ]
         , td [ class "tc_allwho"  ]
           [ span [ style "opacity" <| if t.othnotes == "" then "0" else "1", style "cursor" "default", title t.othnotes ] [ text "💬 " ]
           , a [ href <| "/g/links?v="++vid++"&t="++t.id ] [ text "Who?" ]
@@ -217,24 +234,26 @@ viewHead mod negCount negShow =
     [ td [ style "font-weight" "normal", style "text-align" "right" ] <|
       if negCount == 0 then []
       else [ linkRadio negShow NegShow [ text "Show downvoted tags " ], i [] [ text <| " (" ++ String.fromInt negCount ++ ")" ] ]
-    , td [ colspan 4, class "tc_you" ] [ text "You" ]
-    , td [ colspan 3, class "tc_others" ] [ text "Others" ]
+    , td [ colspan 5, class "tc_you" ] [ text "You" ]
+    , td [ colspan 4, class "tc_others" ] [ text "Others" ]
     ]
   , tr []
     [ td [ class "tc_tagname" ] [ text "Tag" ]
     , td [ class "tc_myvote"  ] [ text "Rating" ]
     , td [ class "tc_myover"  ] [ text (if mod then "O" else "") ]
     , td [ class "tc_myspoil" ] [ text "Spoiler" ]
+    , td [ class "tc_mylie"   ] [ text "Lie" ]
     , td [ class "tc_mynote"  ] []
     , td [ class "tc_allvote" ] [ text "Rating" ]
     , td [ class "tc_allspoil"] [ text "Spoiler" ]
+    , td [ class "tc_alllie"  ] []
     , td [ class "tc_allwho"  ] []
     ]
   ]
 
 viewFoot : Api.State -> Bool -> A.Model GApi.ApiTagResult -> String -> Html Msg
 viewFoot state changed add addMsg =
-  tfoot [] [ tr [] [ td [ colspan 8 ]
+  tfoot [] [ tr [] [ td [ colspan 10 ]
   [ div [ style "display" "flex", style "justify-content" "space-between" ]
     [ A.view searchConfig add [placeholder "Add tags..."]
     , if addMsg /= ""
@@ -272,7 +291,7 @@ view model =
             in
               if List.length lst == 0
               then []
-              else tr [class "tagmod_cat"] [ td [] [text nam], td [ class "tc_you", colspan 4 ] [], td [ class "tc_others", colspan 3 ] [] ]
+              else tr [class "tagmod_cat"] [ td [] [text nam], td [ class "tc_you", colspan 5 ] [], td [ class "tc_others", colspan 4 ] [] ]
                    :: List.map (\t -> Html.Lazy.lazy4 viewTag t (if t.id == model.selId then model.selType else NoSel) model.id model.mod) lst)
           [ ("cont", "Content")
           , ("ero",  "Sexual content")

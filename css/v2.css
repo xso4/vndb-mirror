@@ -1103,7 +1103,8 @@ table.tgl .tc_you           { border-right: 1px solid $border; border-left: 1px 
 table.tgl .tc_others        { border-left: 1px solid $border; text-align: center }
 table.tgl .tc_tagname       { min-width: 200px; border-right: 1px solid $border }
 table.tgl tbody .tc_tagname { padding-left: 15px }
-table.tgl .tc_myvote        { padding: 0 0 0 30px; min-width: 100px }
+table.tgl .tc_myvote        { padding: 0 0 0 10px; min-width: 80px }
+table.tgl .tc_mynote        { min-width: 15px }
 table.tgl .tc_mynote span   { cursor: pointer }
 table.tgl .noteview         { position: absolute; max-width: 400px; padding: 0 5px 5px 5px; background: $blendbg }
 table.tgl .buts a           { box-sizing: border-box; display: block; width: 15px; height: 14px; border: 1px solid $border; margin: 0; float: left }
@@ -1112,16 +1113,21 @@ table.tgl .buts a.l1        { border: none; background-color: #cf0 }
 table.tgl .buts a.l2        { border: none; background-color: #8f0 }
 table.tgl .buts a.l3        { border: none; background-color: #0f0 }
 table.tgl .buts a.ld        { border: none; background-color: #f00 }
-table.tgl tbody .tc_myover  { padding: 0 5px }
-table.tgl .tc_myspoil       { padding: 0 30px; min-width: 60px }
+table.tgl tbody .tc_myover  { padding: 0 }
+table.tgl .buts a.ov        { border: none; background-color: #f00 }
+table.tgl .tc_myspoil       { padding: 0; min-width: 75px }
 table.tgl .buts a.sn        { border: none; background-color: $border }
 table.tgl .buts a.s0        { border: none; background-color: #0f0 }
 table.tgl .buts a.s1        { border: none; background-color: #f80 }
 table.tgl .buts a.s2        { border: none; background-color: #f40 }
 table.tgl .buts a.s3        { border: none; background-color: #cf0 }
+table.tgl .tc_mylie         { padding: 0; min-width: 53px }
+table.tgl .buts a.fn        { border: none; background-color: $border }
+table.tgl .buts a.f0        { border: none; background-color: #0f0 }
+table.tgl .buts a.f1        { border: none; background-color: #f00 }
 table.tgl .tc_allvote       { border-left: 1px solid $border; padding: 1px 0 0 30px; }
 table.tgl .tc_allvote i     { font-style: normal; font-size: 10px }
-table.tgl .tc_allspoil      { text-align: right; padding-right: 15px }
+table.tgl .tc_allspoil      { text-align: right; padding-right: 5px }
 table.tgl .tagmod_cat td    { font-weight: bold; padding-top: 10px }
 
 

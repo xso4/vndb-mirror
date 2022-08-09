@@ -16,8 +16,9 @@ sub listing_ {
                     td_ class => 'tc3', 'Rating';
                     td_ class => 'tc4', sub { txt_ 'Tag';  sortable_ 'tag', $opt, $url };
                     td_ class => 'tc5', 'Spoiler';
-                    td_ class => 'tc6', 'Visual novel';
-                    td_ class => 'tc7', 'Note';
+                    td_ class => 'tc6', 'Lie';
+                    td_ class => 'tc7', 'Visual novel';
+                    td_ class => 'tc8', 'Note';
                 }};
             tr_ sub {
                 my $i = $_;
@@ -32,15 +33,20 @@ sub listing_ {
                     a_ href => "/$i->{tag}", $i->{name};
                 };
                 td_ class => 'tc5', sub {
-                    my $s = !defined $i->{spoiler} ? '' : $i->{lie} ? 'False' : fmtspoil $i->{spoiler};
+                    my $s = !defined $i->{spoiler} ? '' : fmtspoil $i->{spoiler};
                     b_ class => 'grayedout', $s if $i->{ignore};
                     txt_ $s if !$i->{ignore};
                 };
                 td_ class => 'tc6', sub {
+                    my $s = !defined $i->{lie} ? '' : $i->{lie} ? '+' : '-';
+                    b_ class => 'grayedout', $s if $i->{ignore};
+                    txt_ $s if !$i->{ignore};
+                };
+                td_ class => 'tc7', sub {
                     a_ href => $url->(v => $i->{vid}, p=>undef), title => $i->{alttitle}||$i->{title}, class => 'setfil', '> ' if !defined $opt->{v};
                     a_ href => "/$i->{vid}", title => $i->{alttitle}||$i->{title}, shorten $i->{title}, 50;
                 };
-                td_ class => 'tc7', sub { lit_ bb_format $i->{notes}, inline => 1 };
+                td_ class => 'tc8', sub { lit_ bb_format $i->{notes}, inline => 1 };
             } for @$lst;
         };
     };
