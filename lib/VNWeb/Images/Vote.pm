@@ -71,6 +71,9 @@ elm_api ImageVote => undef, {
     return elm_Unauth if !can_vote;
     return elm_CSRF if !validate_token $data->{votes};
 
+    # Lock the users table early to prevent deadlock with a concurrent DB edit that attempts to update c_changes.
+    tuwf->dbExeci('SELECT c_imgvotes FROM users WHERE id =', \auth->uid, 'FOR UPDATE');
+
     # Find out if any of these images are being overruled
     enrich_merge id => sub { sql 'SELECT id, bool_or(ignore) AS overruled FROM image_votes WHERE id IN', $_, 'GROUP BY id' }, $data->{votes};
     enrich_merge id => sql('SELECT id, NOT ignore AS my_overrule FROM image_votes WHERE uid =', \auth->uid, 'AND id IN'),
