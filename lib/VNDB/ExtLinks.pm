@@ -99,7 +99,7 @@ our %LINKS = (
         l_denpa    => { label => 'Denpasoft'
                       , fmt   => 'https://denpasoft.com/product/%s/'
                       , fmt2  => config->{denpa_url}
-                      , regex => qr{(?:www\.)?denpasoft\.com/products?/([a-z0-9-]+).*} },
+                      , regex => qr{(?:www\.)?denpasoft\.com/products?/([^/&#?:]+).*} },
         l_jlist    => { label => 'J-List'
                       , fmt   => 'https://www.jlist.com/%s'
                       , fmt2  => sub { config->{ shift->{l_jlist_jbox} ? 'jbox_url' : 'jlist_url' } }
