@@ -51,6 +51,9 @@ TUWF::hook before => sub {
     # Ought to be more reliable than checking the Referer header, but it's unfortunately a bit uglier.
     tuwf->resCookie(samesite => 1, httponly => 1, samesite => 'Strict') if !VNWeb::Validation::samesite;
 
+    # Remove an old cookie that is no longer used
+    tuwf->resCookie(prodrelexpand => undef) if tuwf->reqCookie('prodrelexpand');
+
     tuwf->req->{trace_start} = time if config->{trace_log};
 };
 
