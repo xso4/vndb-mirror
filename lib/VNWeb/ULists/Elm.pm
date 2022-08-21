@@ -11,6 +11,16 @@ sub updcache {
 }
 
 
+sub sql_labelid {
+    my($uid) = @_;
+    sql '(SELECT min(x.n)
+           FROM generate_series(10,
+                  greatest((SELECT max(id)+1 from ulist_labels ul WHERE ul.uid =', \$uid, '), 10)
+                ) x(n)
+          WHERE NOT EXISTS(SELECT 1 FROM ulist_labels ul WHERE ul.uid =', \$uid, 'AND ul.id = x.n))';
+}
+
+
 our $LABELS = form_compile any => {
     uid => { vndbid => 'u' },
     labels => { aoh => {
@@ -28,15 +38,7 @@ elm_api UListManageLabels => undef, $LABELS, sub {
 
     # Insert new labels
     my @new = grep $_->{id} < 0 && !$_->{delete}, @$labels;
-    # Subquery to get the lowest unused id
-    my $newid = sql '(
-        SELECT min(x.n)
-         FROM generate_series(10,
-                greatest((SELECT max(id)+1 from ulist_labels ul WHERE ul.uid =', \$uid, '), 10)
-              ) x(n)
-        WHERE NOT EXISTS(SELECT 1 FROM ulist_labels ul WHERE ul.uid =', \$uid, 'AND ul.id = x.n)
-    )';
-    tuwf->dbExeci('INSERT INTO ulist_labels', { id => $newid, uid => $uid, label => $_->{label}, private => $_->{private} }) for @new;
+    tuwf->dbExeci('INSERT INTO ulist_labels', { id => sql_labelid($uid), uid => $uid, label => $_->{label}, private => $_->{private} }) for @new;
 
     # Update private flag
     tuwf->dbExeci(
@@ -73,6 +75,35 @@ elm_api UListManageLabels => undef, $LABELS, sub {
     elm_Success
 };
 
+
+# Create a new label and add it to a VN
+elm_api UListLabelAdd => undef, {
+    uid   => { vndbid => 'u' },
+    vid   => { vndbid => 'v' },
+    label => { maxlength => 50 },
+}, sub {
+    my($data) = @_;
+    return elm_Unauth if !ulists_own $data->{uid};
+
+    my $id = tuwf->dbVali('
+        WITH x(id) AS (SELECT id FROM ulist_labels WHERE', { uid => $data->{uid}, label => $data->{label} }, '),
+             y(id) AS (INSERT INTO ulist_labels (id, uid, label, private) SELECT', sql_join(',',
+                sql_labelid($data->{uid}), \$data->{uid}, \$data->{label},
+                # Let's copy the private flag from the Voted label, seems like a sane default
+                sql('(SELECT private FROM ulist_labels WHERE', {uid => $data->{uid}, id => 7}, ')')
+            ), 'WHERE NOT EXISTS(SELECT 1 FROM x) RETURNING id)
+        SELECT id FROM x UNION SELECT id FROM y'
+    );
+    die "Attempt to set vote label" if $id == 7;
+
+    tuwf->dbExeci('INSERT INTO ulist_vns', {uid => $data->{uid}, vid => $data->{vid}}, 'ON CONFLICT (uid, vid) DO NOTHING');
+    tuwf->dbExeci(
+        'INSERT INTO ulist_vns_labels', { uid => $data->{uid}, vid => $data->{vid}, lbl => $id },
+        'ON CONFLICT (uid, vid, lbl) DO NOTHING'
+    );
+    updcache $data->{uid};
+    elm_LabelId $id
+};
 
 
 

@@ -46,6 +46,7 @@ showResponse res =
     BadCurPass                      -> "Current password is invalid."
     MailChange                      -> unexp
     ImgFormat                       -> "Unrecognized image format, only JPEG, PNG and WebP are accepted."
+    LabelId _                       -> unexp
     DupNames _                      -> "Name or alias already in the database."
     Releases _                      -> unexp
     Resolutions _                   -> unexp

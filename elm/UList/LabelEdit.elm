@@ -1,5 +1,3 @@
--- TODO: Would be nice to have a "create new label" option in this model, to make custom labels more discoverable.
-
 port module UList.LabelEdit exposing (main, init, update, view, isPublic, Model, Msg)
 
 import Html exposing (..)
@@ -14,6 +12,7 @@ import Lib.Html exposing (..)
 import Lib.Api as Api
 import Lib.DropDown as DD
 import Gen.Api as GApi
+import Gen.UListLabelAdd as GLA
 import Gen.UListLabelEdit as GLE
 
 
@@ -35,6 +34,8 @@ type alias Model =
   , tsel     : Set Int -- Set of label IDs applied on the client
   , state    : Dict Int Api.State -- Only for labels that are being changed
   , dd       : DD.Config Msg
+  , custom   : String
+  , customSt : Api.State
   }
 
 init : GLE.Recv -> Model
@@ -46,11 +47,16 @@ init f =
   , tsel     = Set.fromList f.selected
   , state    = Dict.empty
   , dd       = DD.init ("ulist_labeledit_dd" ++ f.vid) Open
+  , custom   = ""
+  , customSt = Api.Normal
   }
 
 type Msg
   = Open Bool
   | Toggle Int Bool Bool
+  | Custom String
+  | CustomSubmit
+  | CustomSaved GApi.Response
   | Saved Int Bool GApi.Response
 
 
@@ -74,6 +80,17 @@ update msg model =
            then (List.map (\i -> selfCmd (Toggle i False False)) <| List.filter (\i -> l >= 0 && l <= 4 && i >= 0 && i <= 4 && i /= l) <| Set.toList model.tsel)
            else []
       )
+
+    Custom t -> ({ model | custom = t }, Cmd.none)
+    CustomSubmit -> ({ model | customSt = Api.Loading }, GLA.send { uid = model.uid, vid = model.vid, label = model.custom } CustomSaved)
+    CustomSaved (GApi.LabelId id) ->
+      let new = List.filter (\l -> l.id == id) model.labels |> List.isEmpty
+      in ({ model | labels = if new then model.labels ++ [{ id = id, label = model.custom, private = True }] else model.labels
+                  , customSt = Api.Normal, custom = ""
+                  , sel = Set.insert id model.sel
+                  , tsel = Set.insert id model.tsel
+                  }, Cmd.none)
+    CustomSaved e -> ({ model | customSt = Api.Error e }, Cmd.none)
 
     Saved l b (GApi.Success) ->
       let nmodel = { model | sel = if b then Set.insert l model.sel else Set.remove l model.sel, state = Dict.remove l model.state }
@@ -102,8 +119,16 @@ view model txt =
             _ -> if l.id <= 6 then ulistIcon l.id l.label else text ""
         ]
       ]
+
+    custom =
+      li [] [
+        case model.customSt of
+          Api.Normal -> Html.form [ onSubmit CustomSubmit ]
+                        [ inputText "" model.custom Custom ([placeholder "new label", style "width" "150px"] ++ GLA.valLabel) ]
+          Api.Loading -> span [ class "spinner" ] []
+          Api.Error _ -> b [ class "standout" ] [ text "error" ] ]
   in
     DD.view model.dd
       (if List.any (\s -> s == Api.Loading) <| Dict.values model.state then Api.Loading else Api.Normal)
       (if List.isEmpty lbl then text txt else span [] lbl)
-      (\_ -> [ ul [] <| List.map item <| List.filter (\l -> l.id /= 7) model.labels ])
+      (\_ -> [ ul [] <| List.map item (List.filter (\l -> l.id /= 7) model.labels) ++ [ custom ] ])
