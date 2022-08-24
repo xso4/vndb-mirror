@@ -38,7 +38,7 @@ elm_api UserRegister => undef, {
 
     my $id = tuwf->dbVali('INSERT INTO users', {username => $data->{username}}, 'RETURNING id');
     tuwf->dbExeci('INSERT INTO users_prefs', {id => $id});
-    tuwf->dbExeci('INSERT INTO users_shadow', {id => $id, ip => $ip, mail => $data->{email}});
+    tuwf->dbExeci('INSERT INTO users_shadow', {id => $id, ip => ipinfo(), mail => $data->{email}});
 
     my(undef, $token) = auth->resetpass($data->{email});
 

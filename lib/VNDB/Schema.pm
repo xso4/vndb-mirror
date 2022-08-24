@@ -67,9 +67,6 @@ sub schema {
             }
             $col->{decl} = "\"$col->{name}\" $_";
             $col->{type} = lc s/^([^ ]+)\s.+/$1/r;
-
-        } else {
-            die "Unrecognized line in schema.sql: $_\n";
         }
     }
 

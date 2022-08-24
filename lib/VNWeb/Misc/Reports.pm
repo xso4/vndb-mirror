@@ -45,7 +45,7 @@ sub obj_ {
 
 
 sub is_throttled {
-    tuwf->dbVali('SELECT COUNT(*) FROM reports WHERE date > NOW()-\'1 day\'::interval AND', auth ? ('uid =', \auth->uid) : ('ip =', \tuwf->reqIP)) >= $reportsperday
+    tuwf->dbVali('SELECT COUNT(*) FROM reports WHERE date > NOW()-\'1 day\'::interval AND', auth ? ('uid =', \auth->uid) : ('(ip).ip =', \tuwf->reqIP)) >= $reportsperday
 }
 
 
@@ -66,7 +66,7 @@ elm_api Report => undef, $FORM, sub {
 
     tuwf->dbExeci('INSERT INTO reports', {
         uid      => auth->uid,
-        ip       => auth ? undef : tuwf->reqIP,
+        ip       => auth ? undef : ipinfo(),
         object   => $data->{object},
         objectnum=> $data->{objectnum},
         reason   => $data->{reason},

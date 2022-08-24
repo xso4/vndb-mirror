@@ -32,6 +32,9 @@ my $config = {
     # Put the site in full read-only mode; Login is disabled and nothing is written to the DB. Handy for migrations.
     read_only         => 0,
 
+    password_db       => undef, # Optional path to a database for password quality checking (see lib/PWLookup.pm)
+    location_db       => undef, # Optional path to a libloc database for IP geolocation
+
     scr_size          => [ 136, 102 ], # w*h of screenshot thumbnails
     ch_size           => [ 256, 300 ], # max. w*h of char images
     cv_size           => [ 256, 400 ], # max. w*h of cover images

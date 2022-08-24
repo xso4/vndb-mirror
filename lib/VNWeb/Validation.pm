@@ -16,6 +16,7 @@ our @EXPORT = qw/
     samesite
     is_insecurepass
     is_unique_username
+    ipinfo
     form_compile
     form_changed
     validate_dbid
@@ -112,6 +113,25 @@ sub is_unique_username {
     };
     !tuwf->dbVali('SELECT 1 FROM users WHERE', norm('username'), '=', norm(\$name),
         $excludeid ? ('AND id <>', \$excludeid) : ());
+}
+
+
+# Lookup IP and return an 'ipinfo' DB string.
+sub ipinfo {
+    my $ip = shift || tuwf->reqIP;
+    state $db = config->{location_db} && do {
+        require Location;
+        Location::init(config->{location_db});
+    };
+    sub esc { ($_[0]//'') =~ s/([,()\\'"])/\\$1/rg }
+    return sprintf "(%s,,,,,,,)", esc $ip if !$db;
+
+    my sub f { Location::lookup_network_has_flag($db, $ip, "LOC_NETWORK_FLAG_$_[0]") ? 't' : 'f' }
+    my $asn = Location::lookup_asn($db, $ip);
+    sprintf "(%s,%s,%d,%s,%s,%s,%s,%s)", esc($ip),
+        esc(Location::lookup_country_code($db,$ip)),
+        $asn, esc(Location::get_as_name($db,$asn)),
+        f('ANONYMOUS_PROXY'), f('SATELLITE_PROVIDER'), f('ANYCAST'), f('DROP');
 }
 
 

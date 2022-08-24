@@ -299,7 +299,7 @@ sub audit {
     tuwf->dbExeci('INSERT INTO audit_log', {
         by_uid  => $self->uid(),
         by_name => $self->{user}{user_name},
-        by_ip   => tuwf->reqIP(),
+        by_ip   => VNWeb::Validation::ipinfo(),
         affected_uid  => $affected_uid||undef,
         affected_name => $affected_uid ? sql('(SELECT username FROM users WHERE id =', \$affected_uid, ')') : undef,
         action => $action,

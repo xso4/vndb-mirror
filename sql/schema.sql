@@ -73,6 +73,17 @@ CREATE TYPE tag_category      AS ENUM('cont', 'ero', 'tech');
 CREATE TYPE vn_relation       AS ENUM ('seq', 'preq', 'set', 'alt', 'char', 'side', 'par', 'ser', 'fan', 'orig');
 CREATE TYPE session_type      AS ENUM ('web', 'pass', 'mail', 'api');
 
+CREATE TYPE ipinfo AS (
+    ip                 inet,
+    country            text,
+    asn                integer,
+    as_name            text,
+    anonymous_proxy    boolean,
+    sattelite_provider boolean,
+    anycast            boolean,
+    drop               boolean
+);
+
 -- Animation types & frequency encoded as bitflags in a smallint.
 -- Bitflags suck balls, but the alternatives suck too.
 -- Special values:
@@ -125,7 +136,7 @@ CREATE TABLE audit_log (
   date          timestamptz NOT NULL DEFAULT NOW(),
   by_uid        vndbid,
   affected_uid  vndbid,
-  by_ip         inet NOT NULL,
+  by_ip         ipinfo NOT NULL,
   by_name       text,
   affected_name text,
   action        text NOT NULL,
@@ -603,7 +614,7 @@ CREATE TABLE reports (
   status     report_status NOT NULL DEFAULT 'new',
   object     vndbid NOT NULL, -- The id of the thing being reported
   objectnum  integer, -- The sub-id of the thing to be reported
-  ip         inet, -- IP address of the visitor, if not logged in
+  ip         ipinfo, -- IP address of the visitor, if not logged in
   reason     text NOT NULL,
   message    text NOT NULL,
   log        text NOT NULL DEFAULT ''
@@ -1099,7 +1110,7 @@ CREATE TABLE users_shadow (
   --   32 bytes: scrypt(passwd, global_salt + salt, N, r, p, 32)
   -- Anything else is invalid, account disabled.
   passwd         bytea NOT NULL DEFAULT '',
-  ip             inet NOT NULL DEFAULT '0.0.0.0'
+  ip             ipinfo
 );
 
 -- users_traits
