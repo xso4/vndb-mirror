@@ -639,7 +639,7 @@ sub staff_ {
             next if !$lst;
             my $lang = ($e && $e->{lang}) || $v->{olang};
             my $unoff = $e && !$e->{official};
-            my $open = ($pref->{staffed_olang} && !$e) || ($pref->{staffed_langs}{$lang} && (!$unoff || $pref->{staffed_mtl}));
+            my $open = ($pref->{staffed_olang} && !$e) || ($pref->{staffed_langs}{$lang} && (!$unoff || $pref->{staffed_unoff}));
             details_ open => $open?'open':undef, sub {
                 summary_ sub {
                     abbr_ class => "icons lang $e->{lang}", title => $LANGUAGE{$e->{lang}}, '' if $e && $e->{lang};
