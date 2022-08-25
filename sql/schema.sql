@@ -1094,7 +1094,8 @@ CREATE TABLE users_prefs (
   vnrel_mtl           boolean NOT NULL DEFAULT false,
   staffed_langs       language[],
   staffed_olang       boolean NOT NULL DEFAULT true,
-  staffed_unoff       boolean NOT NULL DEFAULT false
+  staffed_unoff       boolean NOT NULL DEFAULT false,
+  customcss_csum      bigint NOT NULL DEFAULT 0
 );
 
 -- Additional fields for the 'users' table, but with some protected columns.

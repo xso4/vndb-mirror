@@ -160,37 +160,17 @@ sub elm_ {
 }
 
 
-
-sub _sanitize_css {
-    # This function is attempting to do the impossible: Sanitize user provided
-    # CSS against various attacks.  I'm not expecting this to be bullet-proof.
-    # Fortunately, we also have CSP in place to mitigate some problems if they
-    # arise, but I'd rather not rely on it.  I'd *love* to disable support for
-    # external url()'s, but unfortunately many people use that to load images.
-    # I'm afraid the only way to work around that is to fetch and cache those
-    # URLs on the server.
-    local $_ = $_[0];
-    s/\\//g; # Get rid of backslashes, could be used to bypass the other regexes.
-    s/@(import|charset|font-face)[^\n\;]*.//ig;
-    s/javascript\s*://ig; # Not sure 'javascript:' URLs do anything, but just in case.
-    s/expression\s*\(//ig; # An old IE thing I guess.
-    s/binding\s*://ig; # Definitely don't want bindings.
-    s/&/&amp;/g;
-    s/</&lt;/g;
-    $_;
-}
-
-
 sub _head_ {
     my $o = shift;
 
     my $fancy = !(auth->pref('nodistract_can') && auth->pref('nodistract_nofancy'));
     my $pubskin = $fancy && $o->{dbobj} && $o->{dbobj}{id} =~ /^u/ ? tuwf->dbRowi(
-        'SELECT customcss, skin FROM users u JOIN users_prefs up ON up.id = u.id WHERE pubskin_can AND pubskin_enabled AND u.id =', \$o->{dbobj}{id}
+        'SELECT u.id, customcss_csum, skin FROM users u JOIN users_prefs up ON up.id = u.id WHERE pubskin_can AND pubskin_enabled AND u.id =', \$o->{dbobj}{id}
     ) : {};
     my $skin = tuwf->reqGet('skin') || $pubskin->{skin} || auth->pref('skin') || '';
     $skin = config->{skin_default} if !skins->{$skin};
-    my $customcss = $pubskin->{customcss} || auth->pref('customcss');
+    my $customcss = $pubskin->{customcss_csum} ? [ $pubskin->{id}, $pubskin->{customcss_csum} ] :
+                  auth->pref('customcss_csum') ? [ auth->uid, auth->pref('customcss_csum') ] : undef;
 
     meta_ charset => 'utf-8';
     title_ $o->{title}.' | vndb';
@@ -198,7 +178,7 @@ sub _head_ {
     link_ rel => 'shortcut icon', href => '/favicon.ico', type => 'image/x-icon';
     link_ rel => 'stylesheet', href => config->{url_static}.'/g/'.$skin.'.css?'.config->{version}, type => 'text/css', media => 'all';
     link_ rel => 'search', type => 'application/opensearchdescription+xml', title => 'VNDB Visual Novel Search', href => tuwf->reqBaseURI().'/opensearch.xml';
-    style_ type => 'text/css', sub { lit_ _sanitize_css $customcss } if $customcss;
+    link_ rel => 'stylesheet', href => sprintf '/%s.css?%x', $customcss->[0], $customcss->[1] if $customcss;
     if($o->{feeds}) {
         link_ rel => 'alternate', type => 'application/atom+xml', href => "/feeds/announcements.atom", title => 'Site Announcements';
         link_ rel => 'alternate', type => 'application/atom+xml', href => "/feeds/changes.atom",       title => 'Recent Changes';
