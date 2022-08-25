@@ -88,8 +88,8 @@ sub prefs {
               FROM users_prefs
              WHERE id =', \auth->uid
         );
-        $v->{vnrel_langs} = $v->{vnrel_langs} ? { map +($_,1), $v->{langs}->@* } : \%LANGUAGE;
-        $v->{staffed_langs} = $v->{staffed_langs} ? { map +($_,1), $v->{langs}->@* } : \%LANGUAGE;
+        $v->{vnrel_langs} = $v->{vnrel_langs} ? { map +($_,1), $v->{vnrel_langs}->@* } : \%LANGUAGE;
+        $v->{staffed_langs} = $v->{staffed_langs} ? { map +($_,1), $v->{staffed_langs}->@* } : \%LANGUAGE;
         $v
     } : $default;
 }
