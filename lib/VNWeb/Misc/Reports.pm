@@ -148,7 +148,7 @@ TUWF::get qr{/report/list}, sub {
 
     my $cnt = tuwf->dbVali('SELECT count(*) FROM reports r WHERE', $where);
     my $lst = tuwf->dbPagei({results => 25, page => $opt->{p}},
-       'SELECT r.id,', sql_totime('r.date'), 'as date, r.uid, ur.username, r.ip, r.reason, r.status, r.message, r.log
+       'SELECT r.id,', sql_totime('r.date'), 'as date, r.uid, ur.username, fmtip(r.ip) as ip, r.reason, r.status, r.message, r.log
              , r.object, r.objectnum, x.title, x.uid as by_uid,', sql_user('uo'), '
           FROM reports r
           LEFT JOIN item_info(r.object, r.objectnum) x ON true

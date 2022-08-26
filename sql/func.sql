@@ -10,6 +10,18 @@
 -- with that, either.
 
 
+-- Handy function to format an ipinfo type for human consumption.
+CREATE OR REPLACE FUNCTION fmtip(n ipinfo) RETURNS text AS $$
+  SELECT COALESCE(COALESCE((n).country, 'X')||':'||(n).asn||COALESCE(':'||(n).as_name,'')||'/', (n).country||'/', '')
+      || abbrev((n).ip)
+      || CASE WHEN (n).anonymous_proxy    THEN ' ANON' ELSE '' END
+      || CASE WHEN (n).sattelite_provider THEN ' SAT'  ELSE '' END
+      || CASE WHEN (n).anycast            THEN ' ANY'  ELSE '' END
+      || CASE WHEN (n).drop               THEN ' DROP' ELSE '' END
+$$ LANGUAGE SQL IMMUTABLE;
+
+
+
 CREATE OR REPLACE FUNCTION search_gen_vn(vnid vndbid) RETURNS text AS $$
   SELECT coalesce(string_agg(t, ' '), '') FROM (
     SELECT t FROM (
