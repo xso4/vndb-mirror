@@ -74,7 +74,7 @@ sub _roles_ {
     my %alias = map +($_->{aid}, $_), $s->{alias}->@*;
 
     my $roles = tuwf->dbAlli(q{
-        SELECT v.id, vs.aid, vs.role, vs.note, ve.name, ve.official, v.c_released, v.title, v.alttitle
+        SELECT v.id, vs.aid, vs.role, vs.note, ve.name, ve.official, ve.lang, v.c_released, v.title, v.alttitle
           FROM vn_staff vs
           JOIN vnt v ON v.id = vs.id
           LEFT JOIN vn_editions ve ON ve.id = vs.id AND ve.eid = vs.eid
@@ -102,8 +102,10 @@ sub _roles_ {
                 td_ class => 'tc_ulist', sub { ulists_widget_ $v if !$vns{$v->{id}}++ } if auth;
                 td_ class => 'tc1', sub {
                     a_ href => "/$v->{id}", title => $v->{alttitle}||$v->{title}, shorten $v->{title}, 60;
-                    txt_ " $v->{name}" if $v->{name} && $v->{official};
-                    b_ class => 'grayedout', " $v->{name}" if $v->{name} && !$v->{official};
+                    lit_ ' ' if $v->{name};
+                    abbr_ class => "icons lang $v->{lang}", title => $LANGUAGE{$v->{lang}}, '' if $v->{lang};
+                    txt_ $v->{name} if $v->{name} && $v->{official};
+                    b_ class => 'grayedout', $v->{name} if $v->{name} && !$v->{official};
                 };
                 td_ class => 'tc2', sub { rdate_ $v->{c_released} };
                 td_ class => 'tc3', $CREDIT_TYPE{$v->{role}};
