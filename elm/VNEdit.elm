@@ -376,7 +376,7 @@ isValid model = not
   || not (Img.isValid model.image)
   || List.any (\(_,i,r) -> r == Nothing || not (Img.isValid i)) model.screenshots
   || not (List.isEmpty model.scrQueue)
-  || hasDuplicates (List.map (\e -> e.name) model.editions)
+  || hasDuplicates (List.map (\e -> (Maybe.withDefault "" e.lang, e.name)) model.editions)
   || hasDuplicates (List.map (\s -> (s.aid, Maybe.withDefault -1 s.eid, s.role)) model.staff)
   || hasDuplicates (List.map (\s -> (s.aid, s.cid)) model.seiyuu)
   )
