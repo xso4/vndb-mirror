@@ -555,7 +555,7 @@ view model =
                    div [style "margin" "5px 0 0 15px"]
                    [ inputText "" e.name (EditionName (searchn-1)) (placeholder "Edition title" :: style "width" "300px" :: onInvalid (Invalid Staff) :: GVE.valEditionsName)
                    , inputSelect "" e.lang (EditionLang (searchn-1)) [style "width" "150px"]
-                     ((Nothing, "Original language") :: List.map (\(i,l) -> (Just i, l)) GT.languages)
+                     ((Nothing, "Original language") :: List.map (\(i,l) -> (Just i, l)) (List.filter (\(l,_) -> l /= "zh") GT.languages))
                    , text " ", label [] [ inputCheck "" e.official (EditionOfficial (searchn-1)), text " official" ]
                    , inputButton "remove edition" (EditionDel (searchn-1) e.eid) [style "margin-left" "30px"]
                    ]
