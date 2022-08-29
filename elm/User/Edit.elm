@@ -41,6 +41,7 @@ type alias PassData =
 
 type alias Model =
   { state       : Api.State
+  , saved       : Bool
   , tab         : Tab
   , invalidDis  : Bool
   , id          : String
@@ -60,6 +61,7 @@ type alias Model =
 init : GUE.Recv -> Model
 init d =
   { state       = Api.Normal
+  , saved       = False
   , tab         = Profile
   , invalidDis  = False
   , id          = d.id
@@ -72,7 +74,7 @@ init d =
   , passNeq     = False
   , mailConfirm = False
   , traitSearch = A.init ""
-  , tagpSearch = A.init ""
+  , tagpSearch  = A.init ""
   }
 
 
@@ -265,17 +267,17 @@ encode model =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    Tab t   -> ({ model | tab = t }, Cmd.none)
+    Tab t   -> ({ model | saved = False, tab = t }, Cmd.none)
     Invalid t  -> if model.invalidDis || model.tab == t then (model, Cmd.none) else
                   ({ model | tab = t, invalidDis = True }, Task.attempt (always InvalidEnable) (Ffi.elemCall "reportValidity" "mainform" |> Task.andThen (\_ -> Process.sleep 100)))
     InvalidEnable -> ({ model | invalidDis = False }, Cmd.none)
-    Admin m -> ({ model | admin = Maybe.map (updateAdmin m) model.admin }, Cmd.none)
+    Admin m -> ({ model | saved = False, admin = Maybe.map (updateAdmin m) model.admin }, Cmd.none)
     Prefs m ->
       let np = Maybe.map (updatePrefs m) model.prefs
           s = Maybe.map (\x -> x.skin) >> Maybe.withDefault ""
-      in ({ model | prefs = np }, if (s np) /= (s model.prefs) then skinChange (s np) else Cmd.none)
-    Pass  m -> ({ model | pass  = Maybe.map (updatePass  m) model.pass, passNeq = False }, Cmd.none)
-    Username s -> ({ model | nusername = s }, Cmd.none)
+      in ({ model | saved = False, prefs = np }, if (s np) /= (s model.prefs) then skinChange (s np) else Cmd.none)
+    Pass  m -> ({ model | saved = False, pass = Maybe.map (updatePass m) model.pass, passNeq = False }, Cmd.none)
+    Username s -> ({ model | saved = False, nusername = s }, Cmd.none)
 
     TraitSearch m ->
       let (nm, c, res) = A.update traitConfig m model.traitSearch
@@ -285,7 +287,7 @@ update msg model =
           then ({ model | traitSearch = A.clear nm "" }, c)
           else
             let np = { p | traits = p.traits ++ [{ tid = t.id, name = t.name, group = t.group_name }] }
-            in ({ model | traitSearch = A.clear nm "", prefs = Just np }, c)
+            in ({ model | saved = False, traitSearch = A.clear nm "", prefs = Just np }, c)
         _ -> ({ model | traitSearch = nm }, c)
 
     TagPrefSearch m ->
@@ -296,7 +298,7 @@ update msg model =
           then ({ model | tagpSearch = A.clear nm "" }, c)
           else
             let np = { p | tagprefs = p.tagprefs ++ [{ tag = t.id, name = t.name, spoil = 0, childs = False }] }
-            in ({ model | tagpSearch = A.clear nm "", prefs = Just np }, c)
+            in ({ model | saved = False, tagpSearch = A.clear nm "", prefs = Just np }, c)
         _ -> ({ model | tagpSearch = nm }, c)
 
     Submit ->
@@ -304,8 +306,7 @@ update msg model =
       then ({ model | passNeq = True }, Cmd.none )
       else ({ model | state = Api.Loading }, GUE.send (encode model) Submitted)
 
-    -- TODO: This reload is only necessary for the skin and customcss options to apply, but it's nicer to do that directly from JS.
-    Submitted GApi.Success    -> (model, load <| "/" ++ model.id ++ "/edit")
+    Submitted GApi.Success    -> ({ model | saved = True, state = Api.Normal }, Cmd.none)
     Submitted GApi.MailChange -> ({ model | mailConfirm = True, state = Api.Normal }, Cmd.none)
     Submitted r -> ({ model | state = Api.Error r }, Cmd.none)
 
@@ -531,7 +532,9 @@ view model =
       , table [ class "formtable" ] <| Maybe.withDefault [] (Maybe.map ttprefsform model.prefs)
       ]
     , div [ class "mainbox" ]
-      [ fieldset [ class "submit" ] [ submitButton "Submit" model.state (not model.passNeq) ]
+      [ fieldset [ class "submit" ]
+        [ submitButton "Submit" model.state (not model.passNeq)
+        , if model.saved then span [] [ br [] [], text "Saved!" ] else text "" ]
       , if not model.mailConfirm then text "" else
           div [ class "notice" ]
           [ text "A confirmation email has been sent to your new address. Your address will be updated after following the instructions in that mail." ]
