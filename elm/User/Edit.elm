@@ -30,7 +30,7 @@ main = Browser.element
 
 port skinChange : String -> Cmd msg
 
-type Tab = Profile | Preferences
+type Tab = Profile | Preferences | TTPref
 
 type alias PassData =
   { cpass       : Bool
@@ -53,6 +53,7 @@ type alias Model =
   , passNeq     : Bool
   , mailConfirm : Bool
   , traitSearch : A.Model GApi.ApiTraitResult
+  , tagpSearch  : A.Model GApi.ApiTagResult
   }
 
 
@@ -71,6 +72,7 @@ init d =
   , passNeq     = False
   , mailConfirm = False
   , traitSearch = A.init ""
+  , tagpSearch = A.init ""
   }
 
 
@@ -123,6 +125,9 @@ type PrefMsg
   | TitleLang LangPrefMsg
   | AltTitleLang LangPrefMsg
   | TraitDel Int
+  | TagPSpoil Int Int
+  | TagPChilds Int Bool
+  | TagPDel Int
 
 type PassMsg
   = CPass Bool
@@ -139,12 +144,16 @@ type Msg
   | Prefs PrefMsg
   | Pass PassMsg
   | TraitSearch (A.Msg GApi.ApiTraitResult)
+  | TagPrefSearch (A.Msg GApi.ApiTagResult)
   | Submit
   | Submitted GApi.Response
 
 
 traitConfig : A.Config Msg GApi.ApiTraitResult
 traitConfig = { wrap = TraitSearch, id = "traitadd", source = A.traitSource }
+
+tagpConfig : A.Config Msg GApi.ApiTagResult
+tagpConfig = { wrap = TagPrefSearch, id = "tagpadd", source = A.tagSource }
 
 
 updateAdmin : AdminMsg -> GUE.SendAdmin -> GUE.SendAdmin
@@ -230,6 +239,9 @@ updatePrefs msg model =
     TitleLang m   -> { model | title_langs    = updateLangPrefs m model.title_langs }
     AltTitleLang m-> { model | alttitle_langs = updateLangPrefs m model.alttitle_langs }
     TraitDel idx  -> { model | traits = delidx idx model.traits }
+    TagPSpoil i s -> { model | tagprefs = modidx i (\e -> { e | spoil = s }) model.tagprefs }
+    TagPChilds i b-> { model | tagprefs = modidx i (\e -> { e | childs = b }) model.tagprefs }
+    TagPDel idx   -> { model | tagprefs = delidx idx model.tagprefs }
 
 updatePass : PassMsg -> PassData -> PassData
 updatePass msg model =
@@ -275,6 +287,17 @@ update msg model =
             let np = { p | traits = p.traits ++ [{ tid = t.id, name = t.name, group = t.group_name }] }
             in ({ model | traitSearch = A.clear nm "", prefs = Just np }, c)
         _ -> ({ model | traitSearch = nm }, c)
+
+    TagPrefSearch m ->
+      let (nm, c, res) = A.update tagpConfig m model.tagpSearch
+      in case (res, model.prefs) of
+        (Just t, Just p) ->
+          if t.hidden || List.any (\l -> l.tag == t.id) p.tagprefs
+          then ({ model | tagpSearch = A.clear nm "" }, c)
+          else
+            let np = { p | tagprefs = p.tagprefs ++ [{ tag = t.id, name = t.name, spoil = 0, childs = False }] }
+            in ({ model | tagpSearch = A.clear nm "", prefs = Just np }, c)
+        _ -> ({ model | tagpSearch = nm }, c)
 
     Submit ->
       if Maybe.withDefault False (Maybe.map (\p -> p.cpass && p.pass1 /= p.pass2) model.pass)
@@ -444,11 +467,32 @@ view model =
       , formField "css::Custom CSS" [ inputTextArea "css" m.customcss (Prefs << Css) ([ rows 5, cols 60 ] ++ GUE.valPrefsCustomcss) ]
       ]
 
+    ttprefsform m =
+      [ formField "Tags"
+        [ if List.isEmpty m.tagprefs then text ""
+          else table [] <| List.indexedMap (\i t -> tr []
+            [ td [] [ a [ href <| "/" ++ t.tag ] [ text t.name ] ]
+            , td [] [ inputSelect "" t.spoil (Prefs << TagPSpoil i) [ style "width" "200px" ]
+              [ (-1, "Always show & highlight")
+              , (0, "Always show")
+              , (1, "Force minor spoiler")
+              , (2, "Force major spoiler")
+              , (3, "Always hide") ] ]
+            , td [] [ label [] [ inputCheck "" t.childs (Prefs << TagPChilds i), text " also apply to child tags" ] ]
+            , td [] [ inputButton "remove" (Prefs (TagPDel i)) [] ]
+            ]
+          ) m.tagprefs
+        , if List.length m.traits >= 500 then text ""
+          else A.view tagpConfig model.tagpSearch [placeholder "Add tag..."]
+        ]
+      ]
+
   in form_ "mainform" Submit (model.state == Api.Loading)
     [ if model.prefs == Nothing then text "" else div [ class "maintabs left" ]
       [ ul []
         [ li [ classList [("tabselected", model.tab == Profile    )] ] [ a [ href "#", onClickD (Tab Profile    ) ] [ text "Account" ] ]
         , li [ classList [("tabselected", model.tab == Preferences)] ] [ a [ href "#", onClickD (Tab Preferences) ] [ text "Display preferences" ] ]
+        , li [ classList [("tabselected", model.tab == TTPref     )] ] [ a [ href "#", onClickD (Tab TTPref     ) ] [ text "Tags & Traits" ] ]
         ]
       ]
     , div [ class "mainbox", classList [("hidden", model.tab /= Profile    )] ]
@@ -481,6 +525,10 @@ view model =
     , div [ class "mainbox", classList [("hidden", model.tab /= Preferences)] ]
       [ h1 [] [ text "Display preferences" ]
       , table [ class "formtable" ] <| Maybe.withDefault [] (Maybe.map prefsform model.prefs)
+      ]
+    , div [ class "mainbox", classList [("hidden", model.tab /= TTPref)] ]
+      [ h1 [] [ text "Tags & traits" ]
+      , table [ class "formtable" ] <| Maybe.withDefault [] (Maybe.map ttprefsform model.prefs)
       ]
     , div [ class "mainbox" ]
       [ fieldset [ class "submit" ] [ submitButton "Submit" model.state (not model.passNeq) ]

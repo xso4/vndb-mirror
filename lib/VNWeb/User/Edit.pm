@@ -62,6 +62,13 @@ my $FORM = {
         title_langs     => { langpref => 1 },
         alttitle_langs  => { langpref => 1 },
 
+        tagprefs        => { sort_keys => 'tag', maxlength => 500, aoh => {
+            tag     => { vndbid => 'g' },
+            spoil   => { int => 1, range => [ -1, 3 ] },
+            childs  => { anybool => 1 },
+            name    => {},
+        } },
+
         # Supporter options
         nodistract_noads   => { anybool => 1 },
         nodistract_nofancy => { anybool => 1 },
@@ -112,6 +119,7 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
         $u->{prefs}{title_langs}    = langpref_parse($u->{prefs}{title_langs})    // $DEFAULT_TITLE_LANGS;
         $u->{prefs}{alttitle_langs} = langpref_parse($u->{prefs}{alttitle_langs}) // $DEFAULT_ALTTITLE_LANGS;
         $u->{prefs}{traits} = tuwf->dbAlli('SELECT u.tid, t.name, g.name AS "group" FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.group WHERE u.id =', \$u->{id}, 'ORDER BY g.order, t.name');
+        $u->{prefs}{tagprefs} = tuwf->dbAlli('SELECT u.tag, u.spoil, u.childs, t.name FROM users_prefs_tags u JOIN tags t ON t.id = u.tag WHERE u.id =', \$u->{id}, 'ORDER BY t.name');
     }
 
     $u->{admin} = auth->permDbmod || auth->permUsermod || auth->permTagmod || auth->permBoardmod ?
@@ -161,6 +169,9 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
         $setp{customcss_csum} = length $p->{customcss} ? unpack 'q', sha1 encode_utf8 $p->{customcss} : 0;
         tuwf->dbExeci('DELETE FROM users_traits WHERE id =', \$data->{id});
         tuwf->dbExeci('INSERT INTO users_traits', { id => $data->{id}, tid => $_->{tid} }) for $p->{traits}->@*;
+
+        tuwf->dbExeci('DELETE FROM users_prefs_tags WHERE id =', \$data->{id});
+        tuwf->dbExeci('INSERT INTO users_prefs_tags', { id => $data->{id}, tag => $_->{tag}, spoil => $_->{spoil}, childs => $_->{childs} }) for $p->{tagprefs}->@*;
     }
 
     if(auth->permUsermod) {

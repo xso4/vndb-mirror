@@ -1098,6 +1098,15 @@ CREATE TABLE users_prefs (
   customcss_csum      bigint NOT NULL DEFAULT 0
 );
 
+-- users_prefs_tags
+CREATE TABLE users_prefs_tags (
+  id     vndbid NOT NULL,
+  tag    vndbid NOT NULL,
+  spoil  smallint NOT NULL, -- -1 = always show & highlight, 0 = always show, 3 = always hide
+  childs boolean NOT NULL,
+  PRIMARY KEY(id, tag)
+);
+
 -- Additional fields for the 'users' table, but with some protected columns.
 -- (Separated from the users table to simplify permission management)
 CREATE TABLE users_shadow (

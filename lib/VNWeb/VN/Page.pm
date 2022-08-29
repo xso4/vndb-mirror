@@ -40,12 +40,28 @@ sub enrich_vn {
           FROM reviews
          WHERE NOT c_flagged AND vid =', \$v->{id}
     );
-    $v->{tags} = tuwf->dbAlli('
+    $v->{tags} = !prefs()->{has_tagprefs} ? tuwf->dbAlli('
         SELECT t.id, t.name, t.cat, tv.rating, tv.spoiler, tv.lie
           FROM tags t
           JOIN tags_vn_direct tv ON t.id = tv.tag
          WHERE tv.vid =', \$v->{id}, '
          ORDER BY rating DESC, t.name'
+    ) : tuwf->dbAlli('
+        WITH RECURSIVE tag_prefs (tag, spoil, childs) AS (
+          SELECT tag, spoil, childs FROM users_prefs_tags WHERE id =', \auth->uid, '
+        ), tag_overrides (tag, spoil, childs) AS (
+          SELECT tag, spoil, childs FROM tag_prefs
+           UNION ALL
+          SELECT tp.id, x.spoil, true
+            FROM tag_overrides x
+            JOIN tags_parents tp ON tp.parent = x.tag AND tp.main
+           WHERE x.childs AND NOT EXISTS(SELECT 1 FROM tag_prefs y WHERE y.tag = tp.id)
+        ) SELECT t.id, t.name, t.cat, tv.rating, COALESCE(x.spoil, tv.spoiler) AS spoiler, tv.lie, x.tag IS NOT NULL AS override
+            FROM tags t
+            JOIN tags_vn_direct tv ON t.id = tv.tag
+            LEFT JOIN tag_overrides x ON x.tag = tv.tag
+           WHERE tv.vid =', \$v->{id}, 'AND x.spoil IS DISTINCT FROM 1+1+1
+           ORDER BY rating DESC, t.name'
     );
 }
 
@@ -80,11 +96,13 @@ sub prefs {
     state $default = {
         vnrel_langs   => \%LANGUAGE, vnrel_olang   => 1, vnrel_mtl     => 0,
         staffed_langs => \%LANGUAGE, staffed_olang => 1, staffed_unoff => 0,
+        has_tagprefs => 0,
     };
     tuwf->req->{vnpage_prefs} //= auth ? do {
         my $v = tuwf->dbRowi('
             SELECT vnrel_langs::text[], vnrel_olang, vnrel_mtl
                  , staffed_langs::text[], staffed_olang, staffed_unoff
+                 , EXISTS(SELECT 1 FROM users_prefs_tags WHERE id =', \auth->uid, ') AS has_tagprefs
               FROM users_prefs
              WHERE id =', \auth->uid
         );
@@ -376,14 +394,15 @@ sub infobox_tags_ {
         div_ id => 'vntags', sub {
             my %counts = map +($_,[0,0,0]), keys %TAG_CATEGORY;
             join_ ' ', sub {
-                my $spoil = $_->{spoiler} > 1.3 ? 2 : $_->{spoiler} > 0.4 ? 1 : 0;
+                my $spoil = max 0, $_->{spoiler};
                 my $cnt = $counts{$_->{cat}};
                 $cnt->[2]++;
                 $cnt->[1]++ if $spoil < 2;
                 $cnt->[0]++ if $spoil < 1;
-                my $cut = $cnt->[0] > 15 ? ' cut cut2 cut1 cut0' : $cnt->[1] > 15 ? ' cut cut2 cut1' : $cnt->[2] > 15 ? ' cut cut2' : '';
+                my $cut = $_->{override} ? '' : $cnt->[0] > 15 ? ' cut cut2 cut1 cut0' : $cnt->[1] > 15 ? ' cut cut2 cut1' : $cnt->[2] > 15 ? ' cut cut2' : '';
                 span_ class => "tagspl$spoil cat_$_->{cat} $cut", sub {
-                    a_ href => "/$_->{id}", class => $_->{lie}?'lie':undef, style => sprintf('font-size: %dpx', $_->{rating}*3.5+6), $_->{name};
+                    a_ href => "/$_->{id}", mkclass(lie => $_->{lie}, standout => $_->{spoiler} == -1),
+                        style => sprintf('font-size: %dpx', $_->{rating}*3.5+6), $_->{name};
                     spoil_ $spoil;
                     b_ class => 'grayedout', sprintf ' %.1f', $_->{rating};
                 }
@@ -884,11 +903,10 @@ sub tags_ {
         return if !$t->{childs};
         __SUB__->($tags{$_}) for $t->{childs}->@*;
         $t->{inherited} = 1 if !defined $t->{rating};
-        $t->{spoiler} //= min map $tags{$_}{spoiler}, $t->{childs}->@*;
+        $t->{spoiler} //= max 0, min map $tags{$_}{spoiler}, $t->{childs}->@*;
         $t->{rating} //= sum(map $tags{$_}{rating}, $t->{childs}->@*) / $t->{childs}->@*;
     }
     scores $_ for @roots;
-    $_->{spoiler} = $_->{spoiler} > 1.3 ? 2 : $_->{spoiler} > 0.4 ? 1 : 0 for values %tags;
 
     my $view = viewget;
     my sub rec {
@@ -901,8 +919,11 @@ sub tags_ {
         li_ $lvl == 1 ? (class => 'tagvnlist-parent') : $t->{inherited} ? (class => 'tagvnlist-inherited') : (), sub {
             VNWeb::TT::Lib::tagscore_($t->{rating}, $t->{inherited});
             b_ class => 'grayedout', '━━'x($lvl-1).' ' if $lvl > 1;
-            a_ href => "/$t->{id}", class => $view->{spoilers} > 1 && $t->{lie} ? 'lie' : $t->{rating} ? undef : 'parent', $t->{name};
-            spoil_ $t->{spoiler};
+            a_ href => "/$t->{id}", mkclass(
+                standout => $t->{spoiler} == -1,
+                lie => $view->{spoilers} > 1 && $t->{lie},
+                parent => !$t->{rating}), $t->{name};
+            spoil_ max 0, $t->{spoiler};
         } if $lvl;
 
         if($t->{childs}) {
