@@ -159,7 +159,7 @@ sub copy_entry {
 
     # Visual novels
     copy anime => "SELECT DISTINCT a.* FROM anime a JOIN vn_anime_hist v ON v.aid = a.id JOIN changes c ON c.id = v.chid WHERE c.itemid IN($vids)";
-    copy_entry [qw/vn vn_anime vn_seiyuu vn_staff vn_relations vn_screenshots vn_titles/], \@vids;
+    copy_entry [qw/vn vn_anime vn_editions vn_seiyuu vn_staff vn_relations vn_screenshots vn_titles/], \@vids;
 
     # VN-related niceties
     copy vn_length_votes => "SELECT DISTINCT ON (vid,vndbid_num(uid)%10) * FROM vn_length_votes WHERE NOT private AND vid IN($vids)", {uid => 'user'};
