@@ -144,6 +144,8 @@ ALTER TABLE ulist_vns_labels         ADD CONSTRAINT ulist_vns_labels_uid_vid_fke
 ALTER TABLE users_prefs              ADD CONSTRAINT users_prefs_id_fkey                FOREIGN KEY (id)        REFERENCES users         (id) ON DELETE CASCADE;
 ALTER TABLE users_prefs_tags         ADD CONSTRAINT users_prefs_tags_id_fkey           FOREIGN KEY (id)        REFERENCES users         (id) ON DELETE CASCADE;
 ALTER TABLE users_prefs_tags         ADD CONSTRAINT users_prefs_tags_tag_fkey          FOREIGN KEY (tag)       REFERENCES tags          (id) ON DELETE CASCADE;
+ALTER TABLE users_prefs_traits       ADD CONSTRAINT users_prefs_traits_id_fkey         FOREIGN KEY (id)        REFERENCES users         (id) ON DELETE CASCADE;
+ALTER TABLE users_prefs_traits       ADD CONSTRAINT users_prefs_traits_tid_fkey        FOREIGN KEY (tid)       REFERENCES traits        (id) ON DELETE CASCADE;
 ALTER TABLE users_shadow             ADD CONSTRAINT users_shadow_id_fkey               FOREIGN KEY (id)        REFERENCES users         (id) ON DELETE CASCADE;
 ALTER TABLE users_traits             ADD CONSTRAINT users_traits_id_fkey               FOREIGN KEY (id)        REFERENCES users         (id) ON DELETE CASCADE;
 ALTER TABLE users_traits             ADD CONSTRAINT users_traits_tid_fkey              FOREIGN KEY (tid)       REFERENCES traits        (id);

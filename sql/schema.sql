@@ -1107,6 +1107,15 @@ CREATE TABLE users_prefs_tags (
   PRIMARY KEY(id, tid)
 );
 
+-- users_prefs_traits
+CREATE TABLE users_prefs_traits (
+  id     vndbid NOT NULL,
+  tid    vndbid NOT NULL,
+  spoil  smallint NOT NULL,
+  childs boolean NOT NULL,
+  PRIMARY KEY(id, tid)
+);
+
 -- Additional fields for the 'users' table, but with some protected columns.
 -- (Separated from the users table to simplify permission management)
 CREATE TABLE users_shadow (

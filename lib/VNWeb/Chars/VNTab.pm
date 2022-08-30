@@ -21,6 +21,7 @@ sub chars_ {
 
     my sub opts_ {
         p_ class => 'mainopts', sub {
+            debug_ $chars;
             if($max_spoil) {
                 a_ mkclass(checked => $view->{spoilers} == 0), href => '?view='.viewset(spoilers=>0,traits_sexual=>$view->{traits_sexual}).'#chars', 'Hide spoilers';
                 a_ mkclass(checked => $view->{spoilers} == 1), href => '?view='.viewset(spoilers=>1,traits_sexual=>$view->{traits_sexual}).'#chars', 'Show minor spoilers';

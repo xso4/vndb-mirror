@@ -55,6 +55,7 @@ type alias Model =
   , mailConfirm : Bool
   , traitSearch : A.Model GApi.ApiTraitResult
   , tagpSearch  : A.Model GApi.ApiTagResult
+  , traitpSearch: A.Model GApi.ApiTraitResult
   }
 
 
@@ -75,6 +76,7 @@ init d =
   , mailConfirm = False
   , traitSearch = A.init ""
   , tagpSearch  = A.init ""
+  , traitpSearch= A.init ""
   }
 
 
@@ -130,6 +132,9 @@ type PrefMsg
   | TagPSpoil Int Int
   | TagPChilds Int Bool
   | TagPDel Int
+  | TraitPSpoil Int Int
+  | TraitPChilds Int Bool
+  | TraitPDel Int
 
 type PassMsg
   = CPass Bool
@@ -147,6 +152,7 @@ type Msg
   | Pass PassMsg
   | TraitSearch (A.Msg GApi.ApiTraitResult)
   | TagPrefSearch (A.Msg GApi.ApiTagResult)
+  | TraitPrefSearch (A.Msg GApi.ApiTraitResult)
   | Submit
   | Submitted GApi.Response
 
@@ -156,6 +162,9 @@ traitConfig = { wrap = TraitSearch, id = "traitadd", source = A.traitSource }
 
 tagpConfig : A.Config Msg GApi.ApiTagResult
 tagpConfig = { wrap = TagPrefSearch, id = "tagpadd", source = A.tagSource }
+
+traitpConfig : A.Config Msg GApi.ApiTraitResult
+traitpConfig = { wrap = TraitPrefSearch, id = "traitpadd", source = A.traitSource }
 
 
 updateAdmin : AdminMsg -> GUE.SendAdmin -> GUE.SendAdmin
@@ -244,6 +253,9 @@ updatePrefs msg model =
     TagPSpoil i s -> { model | tagprefs = modidx i (\e -> { e | spoil = s }) model.tagprefs }
     TagPChilds i b-> { model | tagprefs = modidx i (\e -> { e | childs = b }) model.tagprefs }
     TagPDel idx   -> { model | tagprefs = delidx idx model.tagprefs }
+    TraitPSpoil i s -> { model | traitprefs = modidx i (\e -> { e | spoil = s }) model.traitprefs }
+    TraitPChilds i b-> { model | traitprefs = modidx i (\e -> { e | childs = b }) model.traitprefs }
+    TraitPDel idx   -> { model | traitprefs = delidx idx model.traitprefs }
 
 updatePass : PassMsg -> PassData -> PassData
 updatePass msg model =
@@ -297,9 +309,20 @@ update msg model =
           if t.hidden || List.any (\l -> l.tid == t.id) p.tagprefs
           then ({ model | tagpSearch = A.clear nm "" }, c)
           else
-            let np = { p | tagprefs = p.tagprefs ++ [{ tid = t.id, name = t.name, spoil = 0, childs = False }] }
+            let np = { p | tagprefs = p.tagprefs ++ [{ tid = t.id, name = t.name, spoil = 0, childs = True }] }
             in ({ model | saved = False, tagpSearch = A.clear nm "", prefs = Just np }, c)
         _ -> ({ model | tagpSearch = nm }, c)
+
+    TraitPrefSearch m ->
+      let (nm, c, res) = A.update traitpConfig m model.traitpSearch
+      in case (res, model.prefs) of
+        (Just t, Just p) ->
+          if t.hidden || List.any (\l -> l.tid == t.id) p.traitprefs
+          then ({ model | traitpSearch = A.clear nm "" }, c)
+          else
+            let np = { p | traitprefs = p.traitprefs ++ [{ tid = t.id, name = t.name, group = t.group_name, spoil = 0, childs = True }] }
+            in ({ model | saved = False, traitpSearch = A.clear nm "", prefs = Just np }, c)
+        _ -> ({ model | traitpSearch = nm }, c)
 
     Submit ->
       if Maybe.withDefault False (Maybe.map (\p -> p.cpass && p.pass1 /= p.pass2) model.pass)
@@ -468,23 +491,48 @@ view model =
       , formField "css::Custom CSS" [ inputTextArea "css" m.customcss (Prefs << Css) ([ rows 5, cols 60 ] ++ GUE.valPrefsCustomcss) ]
       ]
 
-    ttprefsform m =
-      [ formField "Tags"
+    ttspoil =
+      [ (-1, "Always show & highlight")
+      , (0, "Always show")
+      , (1, "Force minor spoiler")
+      , (2, "Force major spoiler")
+      , (3, "Always hide") ]
+
+    ttprefsform m = div []
+      [ p [ style "margin" "0 20px 20px 20px", style "max-width" "800px" ]
+        [ text "Here you can set display preferences for individual tags & traits."
+        , text " This feature can be used to completely hide tags/traits you'd rather not see at all"
+        , text " or you'd like to highlight as a possible trigger warning instead."
+        , br [] []
+        , text "These settings are applied on visual novel and character pages, other listings on the site are unaffected."
+        ]
+      , h2 [] [ text "Tags" ]
+      , div [ style "margin" "5px 0 20px 20px" ]
         [ if List.isEmpty m.tagprefs then text ""
           else table [] <| List.indexedMap (\i t -> tr []
             [ td [] [ a [ href <| "/" ++ t.tid ] [ text t.name ] ]
-            , td [] [ inputSelect "" t.spoil (Prefs << TagPSpoil i) [ style "width" "200px" ]
-              [ (-1, "Always show & highlight")
-              , (0, "Always show")
-              , (1, "Force minor spoiler")
-              , (2, "Force major spoiler")
-              , (3, "Always hide") ] ]
+            , td [] [ inputSelect "" t.spoil (Prefs << TagPSpoil i) [ style "width" "200px" ] ttspoil ]
             , td [] [ label [] [ inputCheck "" t.childs (Prefs << TagPChilds i), text " also apply to child tags" ] ]
             , td [] [ inputButton "remove" (Prefs (TagPDel i)) [] ]
             ]
           ) m.tagprefs
         , if List.length m.traits >= 500 then text ""
           else A.view tagpConfig model.tagpSearch [placeholder "Add tag..."]
+        ]
+      , h2 [] [ text "Traits" ]
+      , div [ style "margin" "5px 0 20px 20px" ]
+        [ if List.isEmpty m.traitprefs then text ""
+          else table [] <| List.indexedMap (\i t -> tr []
+            [ td []
+              [ Maybe.withDefault (text "") <| Maybe.map (\g -> b [ class "grayedout" ] [ text <| g ++ " / " ]) t.group
+              , a [ href <| "/" ++ t.tid ] [ text t.name ] ]
+            , td [] [ inputSelect "" t.spoil (Prefs << TraitPSpoil i) [ style "width" "200px" ] ttspoil ]
+            , td [] [ label [] [ inputCheck "" t.childs (Prefs << TraitPChilds i), text " also apply to child traits" ] ]
+            , td [] [ inputButton "remove" (Prefs (TraitPDel i)) [] ]
+            ]
+          ) m.traitprefs
+        , if List.length m.traits >= 500 then text ""
+          else A.view traitpConfig model.traitpSearch [placeholder "Add trait..."]
         ]
       ]
 
@@ -528,9 +576,7 @@ view model =
       , table [ class "formtable" ] <| Maybe.withDefault [] (Maybe.map prefsform model.prefs)
       ]
     , div [ class "mainbox", classList [("hidden", model.tab /= TTPref)] ]
-      [ h1 [] [ text "Tags & traits" ]
-      , table [ class "formtable" ] <| Maybe.withDefault [] (Maybe.map ttprefsform model.prefs)
-      ]
+      [ h1 [] [ text "Tags & traits" ], Maybe.withDefault (text "") (Maybe.map ttprefsform model.prefs) ]
     , div [ class "mainbox" ]
       [ fieldset [ class "submit" ]
         [ submitButton "Submit" model.state (not model.passNeq)

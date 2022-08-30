@@ -47,19 +47,19 @@ sub enrich_vn {
          WHERE tv.vid =', \$v->{id}, '
          ORDER BY rating DESC, t.name'
     ) : tuwf->dbAlli('
-        WITH RECURSIVE tag_prefs (tid, spoil, childs) AS (
-          SELECT tid, spoil, childs FROM users_prefs_tags WHERE id =', \auth->uid, '
-        ), tag_overrides (tid, spoil, childs) AS (
-          SELECT tid, spoil, childs FROM tag_prefs
+        WITH RECURSIVE tag_overrides (tid, spoil, childs, lvl) AS (
+          SELECT tid, spoil, childs, 0 FROM users_prefs_tags WHERE id =', \auth->uid, '
            UNION ALL
-          SELECT tp.id, x.spoil, true
+          SELECT tp.id, x.spoil, true, lvl+1
             FROM tag_overrides x
-            JOIN tags_parents tp ON tp.parent = x.tid AND tp.main
-           WHERE x.childs AND NOT EXISTS(SELECT 1 FROM tag_prefs y WHERE y.tid = tp.id)
+            JOIN tags_parents tp ON tp.parent = x.tid
+           WHERE x.childs
+        ), tag_overrides_grouped (tid, spoil) AS (
+          SELECT DISTINCT ON(tid) tid, spoil FROM tag_overrides ORDER BY tid, lvl
         ) SELECT t.id, t.name, t.cat, tv.rating, COALESCE(x.spoil, tv.spoiler) AS spoiler, tv.lie, x.tid IS NOT NULL AS override
             FROM tags t
             JOIN tags_vn_direct tv ON t.id = tv.tag
-            LEFT JOIN tag_overrides x ON x.tid = tv.tag
+            LEFT JOIN tag_overrides_grouped x ON x.tid = tv.tag
            WHERE tv.vid =', \$v->{id}, 'AND x.spoil IS DISTINCT FROM 1+1+1
            ORDER BY rating DESC, t.name'
     );
@@ -923,7 +923,7 @@ sub tags_ {
                 standout => $t->{spoiler} == -1,
                 lie => $view->{spoilers} > 1 && $t->{lie},
                 parent => !$t->{rating}), $t->{name};
-            spoil_ max 0, $t->{spoiler};
+            spoil_ $t->{spoiler};
         } if $lvl;
 
         if($t->{childs}) {

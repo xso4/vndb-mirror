@@ -16,6 +16,18 @@ sub enrich_seiyuu {
     }, @chars;
 }
 
+sub sql_trait_overrides {
+    sql '(
+        WITH RECURSIVE trait_overrides (tid, spoil, childs, lvl) AS (
+          SELECT tid, spoil, childs, 0 FROM users_prefs_traits WHERE id =', \auth->uid, '
+           UNION ALL
+          SELECT tp.id, x.spoil, true, lvl+1
+            FROM trait_overrides x
+            JOIN traits_parents tp ON tp.parent = x.tid
+           WHERE x.childs
+        ) SELECT DISTINCT ON(tid) tid, spoil FROM trait_overrides ORDER BY tid, lvl
+    )';
+}
 
 sub enrich_item {
     my($c) = @_;
@@ -23,9 +35,17 @@ sub enrich_item {
     enrich_image_obj image => $c;
     enrich_merge vid => 'SELECT id AS vid, title, alttitle, c_released AS vn_released FROM vnt WHERE id IN', $c->{vns};
     enrich_merge rid => 'SELECT id AS rid, title AS rtitle, original AS roriginal, released AS rel_released FROM releases WHERE id IN', grep $_->{rid}, $c->{vns}->@*;
-    enrich_merge tid =>
-     'SELECT t.id AS tid, t.name, t.hidden, t.locked, t.applicable, t.sexual, coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.order,0) AS order
-        FROM traits t LEFT JOIN traits g ON t.group = g.id WHERE t.id IN', $c->{traits};
+
+    # Even with trait overrides, we'll want to see the raw data in revision diffs,
+    # so fetch the raw spoil as a separate column and do filtering/processing later.
+    enrich_merge tid => sub { sql '
+      SELECT t.id AS tid, t.name, t.hidden, t.locked, t.applicable, t.sexual, x.spoil AS override
+           , coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.order,0) AS order
+        FROM traits t
+        LEFT JOIN traits g ON t.group = g.id
+        LEFT JOIN', sql_trait_overrides(), 'x ON x.tid = t.id
+       WHERE t.id IN', $_
+    }, $c->{traits};
 
     $c->{vns}    = [ sort { $a->{vn_released} <=> $b->{vn_released} || ($a->{rel_released}||0) <=> ($b->{rel_released}||0)
                           || $a->{title} cmp $b->{title} || idcmp($a->{vid}, $b->{vid}) || idcmp($a->{rid}||'r999999', $b->{rid}||'r999999') } $c->{vns}->@* ];
@@ -53,12 +73,14 @@ sub fetch_chars {
     }, $l;
 
     enrich traits => id => id => sub { sql '
-        SELECT ct.id, ct.tid, ct.spoil, t.name, t.hidden, t.locked, t.sexual, coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.order,0) AS order
-          FROM chars_traits ct
-          JOIN traits t ON t.id = ct.tid
-          LEFT JOIN traits g ON t.group = g.id
-         WHERE ct.id IN', $_, '
-         ORDER BY g.order NULLS FIRST, coalesce(g.name, t.name), t.name'
+        SELECT ct.id, ct.tid, COALESCE(x.spoil, ct.spoil) AS spoil, t.name, t.hidden, t.locked, t.sexual
+               , coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.order,0) AS order
+            FROM chars_traits ct
+            JOIN traits t ON t.id = ct.tid
+            LEFT JOIN traits g ON t.group = g.id
+            LEFT JOIN', sql_trait_overrides(), 'x ON x.tid = ct.tid
+           WHERE x.spoil IS DISTINCT FROM 1+1+1 AND ct.id IN', $_, '
+           ORDER BY g.order NULLS FIRST, coalesce(g.name, t.name), t.name'
     }, $l;
 
     enrich_seiyuu $vid, $l;
@@ -160,13 +182,16 @@ sub chartable_ {
             } if defined $c->{age};
 
             my @groups;
-            for(grep !$_->{hidden} && $_->{spoil} <= $view->{spoilers} && (!$_->{sexual} || $view->{traits_sexual}), $c->{traits}->@*) {
+            for(grep !$_->{hidden} && ($_->{override}//$_->{spoil}) <= $view->{spoilers} && (!$_->{sexual} || $view->{traits_sexual}), $c->{traits}->@*) {
                 push @groups, $_ if !@groups || $groups[$#groups]{group} ne $_->{group};
                 push $groups[$#groups]{traits}->@*, $_;
             }
             tr_ class => "trait_group_$_->{group}", sub {
                 td_ class => 'key', sub { a_ href => "/$_->{group}", $_->{groupname} };
-                td_ sub { join_ ', ', sub { a_ href => "/$_->{tid}", $_->{name}; spoil_ $_->{spoil} }, $_->{traits}->@* };
+                td_ sub { join_ ', ', sub {
+                    my $spoil = $_->{override}//$_->{spoil};
+                    a_ href => "/$_->{tid}", class => $spoil==-1?'standout':undef, $_->{name}; spoil_ $spoil
+                }, $_->{traits}->@* };
             } for @groups;
 
             my @visvns = grep $_->{spoil} <= $view->{spoilers}, $c->{vns}->@*;
@@ -246,7 +271,7 @@ TUWF::get qr{/$RE{crev}} => sub {
 
     my $max_spoil = max(
         $inst_maxspoil||0,
-        (map $_->{spoil}, grep !$_->{hidden}, $c->{traits}->@*),
+        (map $_->{override}//$_->{spoil}, grep !$_->{hidden} && !(($_->{override}//0) == 3), $c->{traits}->@*),
         (map $_->{spoil}, $c->{vns}->@*),
         defined $c->{spoil_gender} ? 2 : 0,
         $c->{desc} =~ /\[spoiler\]/i ? 2 : 0, # crude

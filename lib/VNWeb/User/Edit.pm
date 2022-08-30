@@ -62,11 +62,18 @@ my $FORM = {
         title_langs     => { langpref => 1 },
         alttitle_langs  => { langpref => 1 },
 
-        tagprefs        => { sort_keys => 'tag', maxlength => 500, aoh => {
+        tagprefs        => { sort_keys => 'tid', maxlength => 500, aoh => {
             tid     => { vndbid => 'g' },
             spoil   => { int => 1, range => [ -1, 3 ] },
             childs  => { anybool => 1 },
             name    => {},
+        } },
+        traitprefs      => { sort_keys => 'tid', maxlength => 500, aoh => {
+            tid     => { vndbid => 'i' },
+            spoil   => { int => 1, range => [ -1, 3 ] },
+            childs  => { anybool => 1 },
+            name    => {},
+            group   => { required => 0 },
         } },
 
         # Supporter options
@@ -120,6 +127,7 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
         $u->{prefs}{alttitle_langs} = langpref_parse($u->{prefs}{alttitle_langs}) // $DEFAULT_ALTTITLE_LANGS;
         $u->{prefs}{traits} = tuwf->dbAlli('SELECT u.tid, t.name, g.name AS "group" FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.group WHERE u.id =', \$u->{id}, 'ORDER BY g.order, t.name');
         $u->{prefs}{tagprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.childs, t.name FROM users_prefs_tags u JOIN tags t ON t.id = u.tid WHERE u.id =', \$u->{id}, 'ORDER BY t.name');
+        $u->{prefs}{traitprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.childs, t.name, g.name as "group" FROM users_prefs_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.group WHERE u.id =', \$u->{id}, 'ORDER BY g.order, t.name');
     }
 
     $u->{admin} = auth->permDbmod || auth->permUsermod || auth->permTagmod || auth->permBoardmod ?
@@ -172,6 +180,9 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
 
         tuwf->dbExeci('DELETE FROM users_prefs_tags WHERE id =', \$data->{id});
         tuwf->dbExeci('INSERT INTO users_prefs_tags', { id => $data->{id}, tid => $_->{tid}, spoil => $_->{spoil}, childs => $_->{childs} }) for $p->{tagprefs}->@*;
+
+        tuwf->dbExeci('DELETE FROM users_prefs_traits WHERE id =', \$data->{id});
+        tuwf->dbExeci('INSERT INTO users_prefs_traits', { id => $data->{id}, tid => $_->{tid}, spoil => $_->{spoil}, childs => $_->{childs} }) for $p->{traitprefs}->@*;
     }
 
     if(auth->permUsermod) {
