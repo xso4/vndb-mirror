@@ -1101,10 +1101,10 @@ CREATE TABLE users_prefs (
 -- users_prefs_tags
 CREATE TABLE users_prefs_tags (
   id     vndbid NOT NULL,
-  tag    vndbid NOT NULL,
+  tid    vndbid NOT NULL,
   spoil  smallint NOT NULL, -- -1 = always show & highlight, 0 = always show, 3 = always hide
   childs boolean NOT NULL,
-  PRIMARY KEY(id, tag)
+  PRIMARY KEY(id, tid)
 );
 
 -- Additional fields for the 'users' table, but with some protected columns.

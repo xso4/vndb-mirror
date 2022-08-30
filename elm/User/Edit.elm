@@ -294,10 +294,10 @@ update msg model =
       let (nm, c, res) = A.update tagpConfig m model.tagpSearch
       in case (res, model.prefs) of
         (Just t, Just p) ->
-          if t.hidden || List.any (\l -> l.tag == t.id) p.tagprefs
+          if t.hidden || List.any (\l -> l.tid == t.id) p.tagprefs
           then ({ model | tagpSearch = A.clear nm "" }, c)
           else
-            let np = { p | tagprefs = p.tagprefs ++ [{ tag = t.id, name = t.name, spoil = 0, childs = False }] }
+            let np = { p | tagprefs = p.tagprefs ++ [{ tid = t.id, name = t.name, spoil = 0, childs = False }] }
             in ({ model | saved = False, tagpSearch = A.clear nm "", prefs = Just np }, c)
         _ -> ({ model | tagpSearch = nm }, c)
 
@@ -472,7 +472,7 @@ view model =
       [ formField "Tags"
         [ if List.isEmpty m.tagprefs then text ""
           else table [] <| List.indexedMap (\i t -> tr []
-            [ td [] [ a [ href <| "/" ++ t.tag ] [ text t.name ] ]
+            [ td [] [ a [ href <| "/" ++ t.tid ] [ text t.name ] ]
             , td [] [ inputSelect "" t.spoil (Prefs << TagPSpoil i) [ style "width" "200px" ]
               [ (-1, "Always show & highlight")
               , (0, "Always show")

@@ -47,19 +47,19 @@ sub enrich_vn {
          WHERE tv.vid =', \$v->{id}, '
          ORDER BY rating DESC, t.name'
     ) : tuwf->dbAlli('
-        WITH RECURSIVE tag_prefs (tag, spoil, childs) AS (
-          SELECT tag, spoil, childs FROM users_prefs_tags WHERE id =', \auth->uid, '
-        ), tag_overrides (tag, spoil, childs) AS (
-          SELECT tag, spoil, childs FROM tag_prefs
+        WITH RECURSIVE tag_prefs (tid, spoil, childs) AS (
+          SELECT tid, spoil, childs FROM users_prefs_tags WHERE id =', \auth->uid, '
+        ), tag_overrides (tid, spoil, childs) AS (
+          SELECT tid, spoil, childs FROM tag_prefs
            UNION ALL
           SELECT tp.id, x.spoil, true
             FROM tag_overrides x
-            JOIN tags_parents tp ON tp.parent = x.tag AND tp.main
-           WHERE x.childs AND NOT EXISTS(SELECT 1 FROM tag_prefs y WHERE y.tag = tp.id)
-        ) SELECT t.id, t.name, t.cat, tv.rating, COALESCE(x.spoil, tv.spoiler) AS spoiler, tv.lie, x.tag IS NOT NULL AS override
+            JOIN tags_parents tp ON tp.parent = x.tid AND tp.main
+           WHERE x.childs AND NOT EXISTS(SELECT 1 FROM tag_prefs y WHERE y.tid = tp.id)
+        ) SELECT t.id, t.name, t.cat, tv.rating, COALESCE(x.spoil, tv.spoiler) AS spoiler, tv.lie, x.tid IS NOT NULL AS override
             FROM tags t
             JOIN tags_vn_direct tv ON t.id = tv.tag
-            LEFT JOIN tag_overrides x ON x.tag = tv.tag
+            LEFT JOIN tag_overrides x ON x.tid = tv.tag
            WHERE tv.vid =', \$v->{id}, 'AND x.spoil IS DISTINCT FROM 1+1+1
            ORDER BY rating DESC, t.name'
     );
