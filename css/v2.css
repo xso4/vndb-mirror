@@ -533,6 +533,7 @@ div.vndetails .lengthvotefrm {
 div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $border; padding: 3px 5% 0 5%; text-align: center; }
 #vntags span                  { white-space: nowrap; margin-left: 15px; }
 #vntags b                     { color: $grayedout; font-weight: normal; font-size: 10px }
+#vntags .lieo                 { text-decoration: line-through }
 #tagops                       { text-align: right; width: auto; }
 
 #tagops label                 { margin: 0 0 0 10px;  border: 0; outline: none; color: $link; cursor: pointer; }

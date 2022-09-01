@@ -401,7 +401,7 @@ sub infobox_tags_ {
                 $cnt->[0]++ if $spoil < 1;
                 my $cut = $_->{override} ? '' : $cnt->[0] > 15 ? ' cut cut2 cut1 cut0' : $cnt->[1] > 15 ? ' cut cut2 cut1' : $cnt->[2] > 15 ? ' cut cut2' : '';
                 span_ class => "tagspl$spoil cat_$_->{cat} $cut", sub {
-                    a_ href => "/$_->{id}", mkclass(lie => $_->{lie}, standout => $_->{spoiler} == -1),
+                    a_ href => "/$_->{id}", mkclass($_->{override} ? 'lieo' : 'lie', $_->{lie}, standout => $_->{spoiler} == -1),
                         style => sprintf('font-size: %dpx', $_->{rating}*3.5+6), $_->{name};
                     spoil_ $spoil;
                     b_ class => 'grayedout', sprintf ' %.1f', $_->{rating};
@@ -921,7 +921,7 @@ sub tags_ {
             b_ class => 'grayedout', '━━'x($lvl-1).' ' if $lvl > 1;
             a_ href => "/$t->{id}", mkclass(
                 standout => $t->{spoiler} == -1,
-                lie => $view->{spoilers} > 1 && $t->{lie},
+                lie => $t->{lie} && ($view->{spoilers} > 1 || $t->{override}),
                 parent => !$t->{rating}), $t->{name};
             spoil_ $t->{spoiler};
         } if $lvl;
