@@ -28,7 +28,7 @@ init dat =
   let (ndat, sel) = S.init dat
   in  ( { ndat | objid = ndat.objid + 1 }
       , { sel    = { sel | single = False }
-        , conf   = { wrap = Search, id = "advsearch_eng" ++ String.fromInt ndat.objid, source = A.engineSource }
+        , conf   = { wrap = Search, id = "xsearch_eng" ++ String.fromInt ndat.objid, source = A.engineSource }
         , search = A.init ""
         }
       )
@@ -54,7 +54,7 @@ fromQuery dat q =
   in S.fromQuery f dat q |> Maybe.map (\(ndat,sel) ->
       ( { ndat | objid = ndat.objid+1 }
       , { sel    = { sel | single = False }
-        , conf   = { wrap = Search, id = "advsearch_eng" ++ String.fromInt ndat.objid, source = A.engineSource }
+        , conf   = { wrap = Search, id = "xsearch_eng" ++ String.fromInt ndat.objid, source = A.engineSource }
         , search = A.init ""
         }
       ))

@@ -46,7 +46,7 @@ init dat =
   ( { dat | objid = dat.objid+1 }
   , { op     = Ge
     , reso   = Nothing
-    , conf   = { wrap = Search, id = "advsearch_reso" ++ String.fromInt dat.objid, source = A.resolutionSource }
+    , conf   = { wrap = Search, id = "xsearch_reso" ++ String.fromInt dat.objid, source = A.resolutionSource }
     , search = A.init ""
     , aspect = False
     }

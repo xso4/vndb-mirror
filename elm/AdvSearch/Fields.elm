@@ -55,8 +55,8 @@ nestInit and ptype qtype list dat =
     , qtype   = qtype
     , fields  = list
     , and     = and
-    , andDd   = DD.init ("advsearch_field"++String.fromInt (dat.objid+0)) (FSNest << NAndToggle)
-    , addDd   = DD.init ("advsearch_field"++String.fromInt (dat.objid+1)) (FSNest << NAddToggle)
+    , andDd   = DD.init ("xsearch_field"++String.fromInt (dat.objid+0)) (FSNest << NAndToggle)
+    , addDd   = DD.init ("xsearch_field"++String.fromInt (dat.objid+1)) (FSNest << NAddToggle)
     , addtype = [qtype]
     , neg     = False
     }
@@ -724,7 +724,7 @@ fieldToQuery dat (_, _, model) =
 fieldCreate : Int -> (Data,FieldModel) -> (Data,Field)
 fieldCreate fid (dat,fm) =
    ( {dat | objid = dat.objid + 1}
-   , (fid, DD.init ("advsearch_field" ++ String.fromInt dat.objid) FToggle, fm)
+   , (fid, DD.init ("xsearch_field" ++ String.fromInt dat.objid) FToggle, fm)
    )
 
 

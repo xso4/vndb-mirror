@@ -148,7 +148,7 @@ init arg =
       , error      = arg.error
       , saved      = arg.saved
       , saveState  = Api.Normal
-      , saveDd     = DD.init "advsearch_save" SaveToggle
+      , saveDd     = DD.init "xsearch_save" SaveToggle
       , saveAct    = Save
       , saveName   = ""
       , saveDel    = Set.empty
@@ -165,7 +165,7 @@ update msg model =
     SaveToggle b ->
       let act = if model.saveAct == Save && not (List.isEmpty model.saved) && fieldToQuery model.data model.query == Nothing then Load else model.saveAct
       in ( { model | saveDd = DD.toggle model.saveDd b, saveAct = act, saveDel = Set.empty }
-         , if b && act == Save then Task.attempt (always Noop) (Dom.focus "advsearch_saveinput") else Cmd.none)
+         , if b && act == Save then Task.attempt (always Noop) (Dom.focus "xsearch_saveinput") else Cmd.none)
     SaveAct  n -> ({ model | saveAct  = n, saveDel = Set.empty }, Cmd.none)
     SaveName n -> ({ model | saveName = n }, Cmd.none)
     SaveSave s ->
@@ -194,7 +194,7 @@ update msg model =
 
 
 view : Model -> Html Msg
-view model = div [ class "advsearch" ] <|
+view model = div [ class "xsearch" ] <|
   let encQ = Maybe.withDefault "" <| Maybe.map encQuery (fieldToQuery model.data model.query)
   in
   [ input [ type_ "hidden", id "f", name "f", value encQ ] []
@@ -219,7 +219,7 @@ view model = div [ class "advsearch" ] <|
             (_, Save) ->
               if encQ == "" then text "Nothing to save." else
               form_ "" (SaveSave model.saveName) False
-              [ inputText "advsearch_saveinput" model.saveName SaveName [ required True, maxlength 50, placeholder "Name...", style "width" "290px" ]
+              [ inputText "xsearch_saveinput" model.saveName SaveName [ required True, maxlength 50, placeholder "Name...", style "width" "290px" ]
               , if model.saveName /= "" && List.any (\e -> e.name == model.saveName) model.saved
                 then text "You already have a filter by that name, click save to overwrite it."
                 else text ""
