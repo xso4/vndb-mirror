@@ -14,6 +14,7 @@ our @EXPORT = qw/
     $DEFAULT_TITLE_LANGS
     $DEFAULT_ALTTITLE_LANGS
     sql_vn_hist
+    sql_releases_hist
 /;
 
 TUWF::set('custom_validations')->{langpref} = { type => 'array', maxlength => 5, values => { type => 'hash', keys => {
@@ -59,7 +60,7 @@ sub pref {
 
 
 sub gen_sql {
-    my($tbl_main, $tbl_titles, $join_col) = @_;
+    my($has_official, $tbl_main, $tbl_titles, $join_col) = @_;
     my $p = pref;
 
     sub id { ($_[0]{original}?'r':$_[0]{official}?'o':'u').($_[0]{lang}//'') }
@@ -72,7 +73,7 @@ sub gen_sql {
             "$joins{$_}.$join_col = x.$join_col",
             $_ =~ /^r/ ? "$joins{$_}.lang = x.olang" : (),
             length($_) > 1 ? sql("$joins{$_}.lang =", \(''.substr($_,1))) : (),
-            $_ =~ /^o./ ? "$joins{$_}.official" : (),
+            $has_official && $_ =~ /^o./ ? "$joins{$_}.official" : (),
     ), sort keys %joins;
 
     my $title = 'COALESCE('.join(',',
@@ -90,7 +91,8 @@ sub gen_sql {
 
 
 # Similar to the 'vnt' VIEW, except for vn_hist and it generates a SELECT query for inline use.
-sub sql_vn_hist { gen_sql 'vn_hist', 'vn_titles_hist', 'chid' }
+sub sql_vn_hist { gen_sql 1, 'vn_hist', 'vn_titles_hist', 'chid' }
+sub sql_releases_hist { gen_sql 0, 'releases_hist', 'releases_titles_hist', 'chid' }
 
 
 # Run the given subroutine with the default language preferences, by
@@ -114,7 +116,8 @@ TUWF::hook before => sub {
     my $p = pref;
     return if $p->[2] eq $CURRENT_SESSION;
     $CURRENT_SESSION = $p->[2];
-    tuwf->dbExeci('CREATE OR REPLACE TEMPORARY VIEW vnt AS', gen_sql('vn', 'vn_titles', 'id'));
+    tuwf->dbExeci('CREATE OR REPLACE TEMPORARY VIEW vnt AS', gen_sql(1, 'vn', 'vn_titles', 'id'));
+    tuwf->dbExeci('CREATE OR REPLACE TEMPORARY VIEW releasest AS', gen_sql(0, 'releases', 'releases_titles', 'id'));
 };
 
 1;

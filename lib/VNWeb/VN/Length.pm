@@ -141,7 +141,7 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
        'ORDER BY', $opt->{s}->sql_order(),
     );
     $_->{rel} = [ map +{ id => $_ }, $_->{rel}->@* ] for @$lst;
-    enrich_flatten lang => id => id => 'SELECT id, lang FROM releases_lang WHERE id IN', map $_->{rel}, @$lst;
+    enrich_flatten lang => id => id => 'SELECT id, lang FROM releases_titles WHERE id IN', map $_->{rel}, @$lst;
 
     my $title = 'Length votes'.($mode ? ($mode eq 'v' ? ' for ' : ' by ').$o->{title} : '');
     framework_ title => $title, dbobj => $o, sub {

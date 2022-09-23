@@ -5,17 +5,18 @@ use VNWeb::Prelude;
 
 my $FORM = {
     id         => { required => 0, vndbid => 'r' },
-    title      => { maxlength => 300 },
-    original   => { required => 0, default => '', maxlength => 250 },
     official   => { anybool => 1 },
     patch      => { anybool => 1 },
     freeware   => { anybool => 1 },
     doujin     => { anybool => 1 },
     has_ero    => { anybool => 1 },
-    lang       => { minlength => 1, sort_keys => 'lang', aoh => {
+    titles     => { minlength => 1, sort_keys => 'lang', aoh => {
         lang      => { enum => \%LANGUAGE },
         mtl       => { anybool => 1 },
+        title     => { maxlength => 300 },
+        latin     => { required => 0, default => undef, maxlength => 300 },
     } },
+    olang      => { enum => \%LANGUAGE, default => 'ja' },
     platforms  => { aoh => { platform => { enum => \%PLATFORM } } },
     media      => { aoh => {
         medium    => { enum => \%MEDIUM },
@@ -75,6 +76,7 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
     $e->{editsum} = $copy ? "Copied from $e->{id}.$e->{chrev}" : $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
     $e->{authmod} = auth->permDbmod;
 
+    $e->{titles} = [ sort { $a->{lang} cmp $b->{lang} } $e->{titles}->@* ];
     to_extlinks $e;
 
     enrich_merge vid => 'SELECT id AS vid, title FROM vnt WHERE id IN', $e->{vn};
@@ -161,6 +163,8 @@ elm_api ReleaseEdit => $FORM_OUT, $FORM_IN, sub {
         $data->{ani_ero_sp} = $data->{ani_ero_cg} = undef;
     }
     ani_compat($data, $e);
+
+    die "No title in main language" if !grep $_->{lang} eq $data->{olang}, $data->{titles}->@*;
 
     $_->{qty} = $MEDIUM{$_->{medium}}{qty} ? $_->{qty}||1 : 0 for $data->{media}->@*;
     $data->{notes} = bb_subst_links $data->{notes};

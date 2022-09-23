@@ -62,7 +62,7 @@ our %apis = (
     Releases       => [ { aoh => { # Response to 'Release'
         id       => { vndbid => 'r' },
         title    => {},
-        original => { required => 0, default => '' },
+        alttitle => { required => 0, default => '' },
         released => { uint => 1 },
         rtype    => {},
         reso_x   => { uint => 1 },

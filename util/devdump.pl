@@ -171,7 +171,7 @@ sub copy_entry {
     copy ulist_vns_labels => "SELECT vid, uid, 7 AS lbl FROM ($votes) x", {uid => 'user'};
 
     # Releases
-    copy_entry [qw/releases releases_lang releases_media releases_platforms releases_producers releases_vn/], $releases;
+    copy_entry [qw/releases releases_media releases_platforms releases_producers releases_titles releases_vn/], $releases;
 
     print "\\i sql/tableattrs.sql\n";
     print "\\i sql/triggers.sql\n";

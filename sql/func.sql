@@ -21,7 +21,6 @@ CREATE OR REPLACE FUNCTION fmtip(n ipinfo) RETURNS text AS $$
 $$ LANGUAGE SQL IMMUTABLE;
 
 
-
 CREATE OR REPLACE FUNCTION search_gen_vn(vnid vndbid) RETURNS text AS $$
   SELECT coalesce(string_agg(t, ' '), '') FROM (
     SELECT t FROM (
@@ -43,10 +42,20 @@ CREATE OR REPLACE FUNCTION search_gen_vn(vnid vndbid) RETURNS text AS $$
           |(?:parts?|vol|volumes?|chapters?|v|ver|versions?)(?:[0-9]+)
           |editions?|version|production|thebest|append|scenario|dlc)+$', '', 'xg')
         FROM (
-          SELECT title FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE NOT r.hidden AND rv.vid = vnid
+          SELECT title FROM releases r JOIN releases_vn rv ON rv.id = r.id JOIN releases_titles rt ON rt.id = r.id WHERE NOT r.hidden AND rv.vid = vnid
           UNION ALL
-          SELECT original FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE NOT r.hidden AND rv.vid = vnid
+          SELECT latin FROM releases r JOIN releases_vn rv ON rv.id = r.id JOIN releases_titles rt ON rt.id = r.id WHERE NOT r.hidden AND rv.vid = vnid
         ) r(t)
+    ) x(t) WHERE t IS NOT NULL AND t <> '' GROUP BY t ORDER BY t
+  ) x(t);
+$$ LANGUAGE SQL;
+
+
+CREATE OR REPLACE FUNCTION search_gen_release(relid vndbid) RETURNS text AS $$
+  SELECT coalesce(string_agg(t, ' '), '') FROM (
+    SELECT t FROM (
+                SELECT search_norm_term(title) FROM releases_titles WHERE id = relid
+      UNION ALL SELECT search_norm_term(latin) FROM releases_titles WHERE id = relid
     ) x(t) WHERE t IS NOT NULL AND t <> '' GROUP BY t ORDER BY t
   ) x(t);
 $$ LANGUAGE SQL;
@@ -68,7 +77,7 @@ CREATE OR REPLACE FUNCTION update_vncache(vndbid) RETURNS void AS $$
     ), 0),
     c_languages = ARRAY(
       SELECT rl.lang
-        FROM releases_lang rl
+        FROM releases_titles rl
         JOIN releases r ON r.id = rl.id
         JOIN releases_vn rv ON r.id = rv.id
        WHERE rv.vid = $1
@@ -409,7 +418,7 @@ BEGIN
     --WHEN 'v' THEN RETURN QUERY SELECT COALESCE(vo.latin, vo.title), CASE WHEN vo.latin IS NULL THEN '' ELSE vo.title END, NULL::vndbid, v.hidden, v.locked
     --                      FROM vn v JOIN vn_titles vo ON vo.id = v.id AND vo.lang = v.olang WHERE v.id = $1;
     WHEN 'v' THEN RETURN QUERY SELECT v.title   ::text, v.alttitle::text,  NULL::vndbid,  v.hidden, v.locked FROM vnt v       WHERE v.id = $1;
-    WHEN 'r' THEN RETURN QUERY SELECT r.title   ::text, r.original::text,  NULL::vndbid,  r.hidden, r.locked FROM releases r  WHERE r.id = $1;
+    WHEN 'r' THEN RETURN QUERY SELECT r.title   ::text, r.alttitle::text,  NULL::vndbid,  r.hidden, r.locked FROM releasest r WHERE r.id = $1;
     WHEN 'p' THEN RETURN QUERY SELECT p.name    ::text, p.original::text,  NULL::vndbid,  p.hidden, p.locked FROM producers p WHERE p.id = $1;
     WHEN 'c' THEN RETURN QUERY SELECT c.name    ::text, c.original::text,  NULL::vndbid,  c.hidden, c.locked FROM chars c     WHERE c.id = $1;
     WHEN 'd' THEN RETURN QUERY SELECT d.title   ::text, NULL,              NULL::vndbid,  d.hidden, d.locked FROM docs d      WHERE d.id = $1;
@@ -424,7 +433,8 @@ BEGIN
   ELSE CASE vndbid_type($1)
     WHEN 'v' THEN RETURN QUERY SELECT COALESCE(vo.latin, vo.title), CASE WHEN vo.latin IS NULL THEN '' ELSE vo.title END, h.requester, h.ihid, h.ilock
                           FROM changes h JOIN vn_hist v ON h.id = v.chid JOIN vn_titles_hist vo ON h.id = vo.chid AND vo.lang = v.olang WHERE h.itemid = $1 AND h.rev = $2;
-    WHEN 'r' THEN RETURN QUERY SELECT r.title::text, r.original::text,  h.requester, h.ihid, h.ilock FROM changes h JOIN releases_hist r  ON h.id = r.chid WHERE h.itemid = $1 AND h.rev = $2;
+    WHEN 'r' THEN RETURN QUERY SELECT COALESCE(ro.latin, ro.title), CASE WHEN ro.latin IS NULL THEN '' ELSE ro.title END, h.requester, h.ihid, h.ilock
+                          FROM changes h JOIN releases_hist r ON h.id = r.chid JOIN releases_titles_hist ro ON h.id = ro.chid AND ro.lang = r.olang WHERE h.itemid = $1 AND h.rev = $2;
     WHEN 'p' THEN RETURN QUERY SELECT p.name ::text, p.original::text,  h.requester, h.ihid, h.ilock FROM changes h JOIN producers_hist p ON h.id = p.chid WHERE h.itemid = $1 AND h.rev = $2;
     WHEN 'c' THEN RETURN QUERY SELECT c.name ::text, c.original::text,  h.requester, h.ihid, h.ilock FROM changes h JOIN chars_hist c     ON h.id = c.chid WHERE h.itemid = $1 AND h.rev = $2;
     WHEN 'd' THEN RETURN QUERY SELECT d.title::text, NULL,              h.requester, h.ihid, h.ilock FROM changes h JOIN docs_hist d      ON h.id = d.chid WHERE h.itemid = $1 AND h.rev = $2;
@@ -485,7 +495,7 @@ BEGIN
   -- Update vn.c_search when
   -- 1. A new release is created
   -- 2. A release has been hidden or unhidden
-  -- 3. The release title/original has changed
+  -- 3. The releases_titles have changed
   -- 4. The releases_vn table differs from a previous revision
   IF vndbid_type(nitemid) = 'r' THEN
     IF -- 1.
@@ -493,13 +503,19 @@ BEGIN
        -- 2.
        EXISTS(SELECT 1 FROM changes c1, changes c2 WHERE c1.ihid IS DISTINCT FROM c2.ihid AND c1.id = nchid AND c2.id = xoldchid) OR
        -- 3.
-       EXISTS(SELECT 1 FROM releases_hist r1, releases_hist r2 WHERE (r2.title <> r1.title OR r2.original <> r1.original) AND r1.chid = xoldchid AND r2.chid = nchid) OR
+       EXISTS(SELECT title, latin FROM releases_titles_hist WHERE chid = xoldchid EXCEPT SELECT title, latin FROM releases_titles_hist WHERE chid = nchid) OR
+       EXISTS(SELECT title, latin FROM releases_titles_hist WHERE chid = nchid    EXCEPT SELECT title, latin FROM releases_titles_hist WHERE chid = xoldchid) OR
        -- 4.
        EXISTS(SELECT vid FROM releases_vn_hist WHERE chid = xoldchid EXCEPT SELECT vid FROM releases_vn_hist WHERE chid = nchid) OR
        EXISTS(SELECT vid FROM releases_vn_hist WHERE chid = nchid    EXCEPT SELECT vid FROM releases_vn_hist WHERE chid = xoldchid)
     THEN
       UPDATE vn SET c_search = search_gen_vn(id) WHERE id IN(SELECT vid FROM releases_vn_hist WHERE chid IN(nchid, xoldchid));
     END IF;
+  END IF;
+
+  -- Update releases.c_search
+  IF vndbid_type(nitemid) = 'r' THEN
+    UPDATE releases SET c_search = search_gen_release(id) WHERE id = nitemid;
   END IF;
 
   -- Call update_vncache() for related VNs when a release has been created or edited

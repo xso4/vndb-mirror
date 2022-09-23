@@ -425,8 +425,6 @@ CREATE TABLE releases ( -- dbentry_type=r
   official     boolean NOT NULL DEFAULT TRUE, -- [pub]
   locked       boolean NOT NULL DEFAULT FALSE,
   hidden       boolean NOT NULL DEFAULT FALSE,
-  title        varchar(300) NOT NULL DEFAULT '', -- [pub]
-  original     varchar(250) NOT NULL DEFAULT '', -- [pub]
   website      varchar(1024) NOT NULL DEFAULT '', -- [pub]
   catalog      varchar(50) NOT NULL DEFAULT '', -- [pub]
   engine       varchar(50) NOT NULL DEFAULT '', -- [pub]
@@ -444,7 +442,7 @@ CREATE TABLE releases ( -- dbentry_type=r
   l_gyutto     integer[] NOT NULL DEFAULT '{}', -- [pub]
   l_dmm        text[] NOT NULL DEFAULT '{}', -- [pub]
   l_freegame   text NOT NULL DEFAULT '', -- [pub]
-  c_search     text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[title, original])) STORED,
+  c_search     text,
   l_playstation_jp text NOT NULL DEFAULT '', -- [pub]
   l_playstation_na text NOT NULL DEFAULT '', -- [pub]
   l_playstation_eu text NOT NULL DEFAULT '',  -- [pub]
@@ -457,7 +455,8 @@ CREATE TABLE releases ( -- dbentry_type=r
   ani_ero_cg   animation, -- [pub]
   ani_bg       boolean, -- [pub]
   ani_face     boolean, -- [pub]
-  has_ero      boolean NOT NULL DEFAULT FALSE -- [pub]
+  has_ero      boolean NOT NULL DEFAULT FALSE, -- [pub]
+  olang        language NOT NULL DEFAULT 'ja' -- [pub] Refers to the main title to use for display purposes, not necessarily the original language.
 );
 
 -- releases_hist
@@ -491,8 +490,6 @@ CREATE TABLE releases_hist (
   doujin       boolean NOT NULL DEFAULT FALSE,
   uncensored   boolean,
   official     boolean NOT NULL DEFAULT TRUE,
-  title        varchar(300) NOT NULL DEFAULT '',
-  original     varchar(250) NOT NULL DEFAULT '',
   website      varchar(1024) NOT NULL DEFAULT '',
   catalog      varchar(50) NOT NULL DEFAULT '',
   engine       varchar(50) NOT NULL DEFAULT '',
@@ -520,23 +517,8 @@ CREATE TABLE releases_hist (
   ani_ero_cg   animation,
   ani_bg       boolean,
   ani_face     boolean,
-  has_ero      boolean NOT NULL DEFAULT FALSE
-);
-
--- releases_lang
-CREATE TABLE releases_lang (
-  id         vndbid NOT NULL, -- [pub]
-  lang       language NOT NULL, -- [pub]
-  mtl        boolean NOT NULL DEFAULT false, -- [pub]
-  PRIMARY KEY(id, lang)
-);
-
--- releases_lang_hist
-CREATE TABLE releases_lang_hist (
-  chid       integer NOT NULL,
-  lang       language NOT NULL,
-  mtl        boolean NOT NULL DEFAULT false, -- [pub]
-  PRIMARY KEY(chid, lang)
+  has_ero      boolean NOT NULL DEFAULT FALSE,
+  olang        language NOT NULL DEFAULT 'ja'
 );
 
 -- releases_media
@@ -587,6 +569,26 @@ CREATE TABLE releases_producers_hist (
   publisher  boolean NOT NULL DEFAULT TRUE,
   CHECK(developer OR publisher),
   PRIMARY KEY(chid, pid)
+);
+
+-- releases_titles
+CREATE TABLE releases_titles (
+  id         vndbid NOT NULL, -- [pub]
+  lang       language NOT NULL, -- [pub]
+  mtl        boolean NOT NULL DEFAULT false, -- [pub]
+  title      text NOT NULL DEFAULT '', -- [pub]
+  latin      text, -- [pub]
+  PRIMARY KEY(id, lang)
+);
+
+-- releases_titles_hist
+CREATE TABLE releases_titles_hist (
+  chid       integer NOT NULL,
+  lang       language NOT NULL,
+  mtl        boolean NOT NULL DEFAULT false,
+  title      text NOT NULL DEFAULT '',
+  latin      text,
+  PRIMARY KEY(chid, lang)
 );
 
 -- releases_vn
@@ -1386,3 +1388,6 @@ CREATE TABLE wikidata (
 -- This view can be redefined as a TEMPORARY VIEW in sessions to override the
 -- default behavior.
 CREATE VIEW vnt AS SELECT v.*, COALESCE(vo.latin, vo.title) AS title, COALESCE(vo.latin, vo.title) AS sorttitle, CASE WHEN vo.latin IS NULL THEN '' ELSE vo.title END AS alttitle FROM vn v JOIN vn_titles vo ON vo.id = v.id AND vo.lang = v.olang;
+
+-- Same for releases
+CREATE VIEW releasest AS SELECT r.*, COALESCE(ro.latin, ro.title) AS title, COALESCE(ro.latin, ro.title) AS sorttitle, CASE WHEN ro.latin IS NULL THEN '' ELSE ro.title END AS alttitle FROM releases r JOIN releases_titles ro ON ro.id = r.id AND ro.lang = r.olang;

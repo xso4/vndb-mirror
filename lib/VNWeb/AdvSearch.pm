@@ -358,7 +358,7 @@ f v =>  6 => 'developer-id', { vndbid => 'p' }, '=' => sub { sql 'v.c_developers
 f r =>  2 => 'lang',     { enum => \%LANGUAGE },
     sql_list => sub {
         my($neg, $all, $val) = @_;
-        sql 'r.id', $neg ? 'NOT' : '', 'IN(SELECT id FROM releases_lang WHERE NOT mtl AND lang IN', $val, $all && @$val > 1 ? ('GROUP BY id HAVING COUNT(lang) =', \scalar @$val) : (), ')';
+        sql 'r.id', $neg ? 'NOT' : '', 'IN(SELECT id FROM releases_titles WHERE NOT mtl AND lang IN', $val, $all && @$val > 1 ? ('GROUP BY id HAVING COUNT(lang) =', \scalar @$val) : (), ')';
     };
 
 f r =>  4 => 'platform', { required => 0, default => undef, enum => \%PLATFORM },

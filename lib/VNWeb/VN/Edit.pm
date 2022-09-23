@@ -7,7 +7,7 @@ use VNWeb::Releases::Lib;
 
 my $FORM = {
     id         => { required => 0, vndbid => 'v' },
-    titles     => { sort_keys => 'lang', aoh => {
+    titles     => { minlength => 1, sort_keys => 'lang', aoh => {
         lang     => { enum => \%LANGUAGE },
         title    => { maxlength => 250 },
         latin    => { required => 0, default => undef, maxlength => 250 },

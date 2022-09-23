@@ -270,7 +270,7 @@ view model =
         <| List.map platformIcon nfo.platforms
         ++ List.map langIcon nfo.lang
         ++ [ releaseTypeIcon nfo.rtype ]
-      , td [ class "tco4" ] [ a [ href ("/"++nfo.id), title nfo.original ] [ text nfo.title ] ]
+      , td [ class "tco4" ] [ a [ href ("/"++nfo.id), title nfo.alttitle ] [ text nfo.title ] ]
       ]
 
     box () =

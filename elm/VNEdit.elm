@@ -362,10 +362,11 @@ update msg model =
 
 
 -- TODO: Fuzzier matching? Exclude stuff like 'x Edition', etc.
+-- TODO: Match on all titles associated with a release, not just the 'title' and 'alttitle'.
 relAlias : Model -> Maybe GVE.RecvReleases
 relAlias model =
   let a = String.toLower model.alias |> String.lines |> List.filter (\l -> l /= "") |> Set.fromList
-  in List.filter (\r -> Set.member (String.toLower r.title) a || Set.member (String.toLower r.original) a) model.releases |> List.head
+  in List.filter (\r -> Set.member (String.toLower r.title) a || Set.member (String.toLower r.alttitle) a) model.releases |> List.head
 
 
 isValid : Model -> Bool

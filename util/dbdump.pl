@@ -70,10 +70,10 @@ my %tables = (
     producers_relations => { where => 'id IN(SELECT id FROM producers WHERE NOT hidden)' },
     quotes              => { where => 'vid IN(SELECT id FROM vn WHERE NOT hidden)' },
     releases            => { where => 'NOT hidden' },
-    releases_lang       => { where => 'id IN(SELECT id FROM releases WHERE NOT hidden)' },
     releases_media      => { where => 'id IN(SELECT id FROM releases WHERE NOT hidden)' },
     releases_platforms  => { where => 'id IN(SELECT id FROM releases WHERE NOT hidden)' },
     releases_producers  => { where => 'id IN(SELECT id FROM releases WHERE NOT hidden) AND pid IN(SELECT id FROM producers WHERE NOT hidden)' },
+    releases_titles     => { where => 'id IN(SELECT id FROM releases WHERE NOT hidden)' },
     releases_vn         => { where => 'id IN(SELECT id FROM releases WHERE NOT hidden) AND vid IN(SELECT id FROM vn WHERE NOT hidden)' },
     rlists              => { where => 'EXISTS(SELECT 1 FROM releases r'
                                                     .' JOIN releases_vn rv ON rv.id = r.id'

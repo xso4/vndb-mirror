@@ -42,8 +42,7 @@ my @rel_cols = (
     id            => 'lan',
     button_string => 'Language',
     default       => 1,
-    has_data      => sub { !!@{$_[0]{lang}} },
-    draw          => sub { join_ \&br_, sub { abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, ''; }, $_[0]{lang}->@* },
+    draw          => sub { join_ \&br_, sub { abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, ''; }, $_[0]{titles}->@* },
   }, { # Publication
     id            => 'pub',
     sort_field    => 'publication',
@@ -168,7 +167,7 @@ sub buttons_ {
         }
     };
     pl 'os',  \&platform_, map $_->{platforms}->@*, @$r if $opt->{pla};
-    pl 'lang', sub { abbr_ class => "icons lang $_[0]", title => $LANGUAGE{$_[0]}, '' }, map $_->{lang}, map $_->{lang}->@*, @$r if $opt->{lan};
+    pl 'lang', sub { abbr_ class => "icons lang $_[0]", title => $LANGUAGE{$_[0]}, '' }, map $_->{lang}, map $_->{titles}->@*, @$r if $opt->{lan};
 }
 
 
@@ -178,7 +177,7 @@ sub listing_ {
     # Apply language and platform filters
     my @r = grep +
         ($opt->{os}   eq 'all' || ($_->{platforms} && grep $_ eq $opt->{os},   $_->{platforms}->@*)) &&
-        ($opt->{lang} eq 'all' || ($_->{lang}      && grep $_ eq $opt->{lang}, map $_->{lang}, $_->{lang}->@*)), @$r;
+        ($opt->{lang} eq 'all' || ($_->{titles}    && grep $_ eq $opt->{lang}, map $_->{lang}, $_->{titles}->@*)), @$r;
 
     # Figure out which columns to display
     my @col;
@@ -238,7 +237,7 @@ TUWF::get qr{/$RE{vid}/releases} => sub {
 
     my $r = tuwf->dbAlli('
         SELECT r.id, rv.rtype, r.patch, r.released, r.gtin
-          FROM releases r
+          FROM releasest r
           JOIN releases_vn rv ON rv.id = r.id
          WHERE NOT hidden AND rv.vid =', \$v->{id}, '
          ORDER BY', sprintf(+(grep $opt->{s} eq ($_->{sort_field}//''), @rel_cols)[0]{sort_sql}, $opt->{o} eq 'a' ? 'ASC' : 'DESC')

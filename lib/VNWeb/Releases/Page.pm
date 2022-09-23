@@ -2,6 +2,7 @@ package VNWeb::Releases::Page;
 
 use VNWeb::Prelude;
 use VNWeb::Releases::Lib;
+use VNWeb::LangPref 'sql_releases_hist';
 
 
 sub enrich_item {
@@ -10,7 +11,7 @@ sub enrich_item {
     enrich_merge pid => 'SELECT id AS pid, name, original FROM producers WHERE id IN', $r->{producers};
     enrich_merge vid => 'SELECT id AS vid, title, alttitle FROM vnt WHERE id IN', $r->{vn};
 
-    $r->{lang}      = [ sort { ($a->{mtl}?1:0) <=> ($b->{mtl}?1:0) || $a->{lang} cmp $b->{lang} } $r->{lang}->@* ];
+    $r->{titles}    = [ sort { ($a->{mtl}?1:0) <=> ($b->{mtl}?1:0) || $a->{lang} cmp $b->{lang} } $r->{titles}->@* ];
     $r->{platforms} = [ sort map $_->{platform}, $r->{platforms}->@* ];
     $r->{vn}        = [ sort { $a->{title}  cmp $b->{title}  || idcmp($a->{vid}, $b->{vid}) } $r->{vn}->@*        ];
     $r->{producers} = [ sort { $a->{name}   cmp $b->{name}   || idcmp($a->{pid}, $b->{pid}) } $r->{producers}->@* ];
@@ -38,11 +39,12 @@ sub _rev_ {
         [ has_ero    => 'Has ero',         fmt => 'bool' ],
         [ doujin     => 'Doujin',          fmt => 'bool' ],
         [ uncensored => 'Uncensored',      fmt => 'bool' ],
-        [ title      => 'Title (Romaji)' ],
-        [ original   => 'Original title' ],
         [ gtin       => 'JAN/EAN/UPC',     empty => 0 ],
         [ catalog    => 'Catalog number' ],
-        [ lang       => 'Languages',       fmt => sub { txt_ $LANGUAGE{$_->{lang}}; txt_ ' (machine translation)' if $_->{mtl} } ],
+        [ titles     => 'Languages',       txt => sub {
+            '['.$_->{lang}.($_->{mtl} ? ' machine translation' : '').'] '.$_->{title}.($_->{latin} ? " / $_->{latin}" : '')
+        }],
+        [ olang      => 'Main title',      fmt => \%LANGUAGE ],
         [ released   => 'Release date',    fmt => sub { rdate_ $_ } ],
         [ minage     => 'Age rating',      fmt => sub { txt_ minage $_ } ],
         [ notes      => 'Notes' ],
@@ -137,37 +139,32 @@ sub _infotable_ {
             }
         };
 
-        tr_ sub {
-            td_ 'Title';
-            td_ $r->{title};
+        tr_ class => 'titles', sub {
+            td_ $r->{titles}->@* == 1 ? 'Title' : 'Titles';
+            td_ sub {
+                table_ sub {
+                    tr_ class => 'nostripe title', sub {
+                        td_ sub {
+                            abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, '';
+                        };
+                        td_ sub {
+                            span_ lang_attr($_->{lang}), $_->{title};
+                            b_ class => 'grayedout', ' (machine translation)' if $_->{mtl};
+                            if($_->{latin}) {
+                                br_;
+                                txt_ $_->{latin};
+                            }
+                        }
+                    } for $r->{titles}->@*;
+                };
+            };
         };
-
-        tr_ sub {
-            td_ 'Original title';
-            td_ lang_attr($r->{lang}), $r->{original};
-        } if $r->{original};
 
         tr_ sub {
             td_ 'Type';
             td_ !$r->{official} && $r->{patch} ? 'Unofficial patch' :
                 !$r->{official} ? 'Unofficial' : 'Patch';
         } if !$r->{official} || $r->{patch};
-
-        tr_ sub {
-            td_ 'Language';
-            td_ sub {
-                join_ \&br_, sub {
-                    abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, ' ';
-                    txt_ ' ';
-                    if($_->{mtl}) {
-                        b_ class => 'grayedout', $LANGUAGE{$_->{lang}};
-                        txt_ ' (machine translation)';
-                    } else {
-                        txt_ $LANGUAGE{$_->{lang}};
-                    }
-                }, $r->{lang}->@*;
-            }
-        };
 
         tr_ sub {
             td_ 'Publication';
@@ -271,6 +268,8 @@ TUWF::get qr{/$RE{rrev}} => sub {
     my $r = db_entry tuwf->captures('id','rev');
     return tuwf->resNotFound if !$r;
 
+    enrich_merge chid => sql('SELECT chid, x.title, x.alttitle FROM (', sql_releases_hist(), ') x WHERE chid IN'), $r if $r->{chrev} != $r->{maxrev};
+    enrich_merge id => sql('SELECT id, title, alttitle FROM releasest WHERE id IN'), $r if $r->{chrev} == $r->{maxrev};
     enrich_item $r;
     enrich_extlinks r => $r;
 
@@ -283,7 +282,7 @@ TUWF::get qr{/$RE{rrev}} => sub {
         div_ class => 'mainbox release', sub {
             itemmsg_ $r;
             h1_ sub { txt_ $r->{title}; debug_ $r };
-            h2_ class => 'alttitle', lang_attr($r->{lang}), $r->{original} if length $r->{original};
+            h2_ class => 'alttitle', lang_attr($r->{olang}), $r->{alttitle} if length $r->{alttitle} && $r->{alttitle} ne $r->{title};
             _infotable_ $r;
             div_ class => 'description', sub { lit_ bb_format $r->{notes} } if $r->{notes};
         };

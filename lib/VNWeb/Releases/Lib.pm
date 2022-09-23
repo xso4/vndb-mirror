@@ -9,8 +9,8 @@ our @EXPORT = qw/enrich_release_elm releases_by_vn enrich_release sort_releases 
 # Enrich a list of releases so that it's suitable as 'Releases' Elm response.
 # Given objects must have 'id' and 'rtype' fields (appropriate for the VN in context).
 sub enrich_release_elm {
-    enrich_merge id => 'SELECT id, title, original, released, reso_x, reso_y FROM releases WHERE id IN', @_;
-    enrich_flatten lang => id => id => sub { sql('SELECT id, lang FROM releases_lang WHERE id IN', $_, 'ORDER BY lang') }, @_;
+    enrich_merge id => 'SELECT id, title, alttitle, released, reso_x, reso_y FROM releasest WHERE id IN', @_;
+    enrich_flatten lang => id => id => sub { sql('SELECT id, lang FROM releases_titles WHERE id IN', $_, 'ORDER BY lang') }, @_;
     enrich_flatten platforms => id => id => sub { sql('SELECT id, platform FROM releases_platforms WHERE id IN', $_, 'ORDER BY platform') }, @_;
 }
 
@@ -28,13 +28,13 @@ sub releases_by_vn {
 sub enrich_release {
     my($r) = @_;
     enrich_merge id =>
-        'SELECT id, title, original, notes, minage, official, freeware, has_ero, reso_x, reso_y, voiced, uncensored
+        'SELECT id, title, alttitle, notes, minage, official, freeware, has_ero, reso_x, reso_y, voiced, uncensored
               , ani_story, ani_ero, ani_story_sp, ani_story_cg, ani_cutscene, ani_ero_sp, ani_ero_cg, ani_face, ani_bg
-          FROM releases WHERE id IN', $r;
+          FROM releasest WHERE id IN', $r;
     enrich_merge id => sub { sql 'SELECT id, MAX(rtype) AS rtype FROM releases_vn WHERE id IN', $_, 'GROUP BY id' }, grep !$_->{rtype}, ref $r ? @$r : $r;
     enrich_merge id => sql('SELECT rid as id, status as rlist_status FROM rlists WHERE uid =', \auth->uid, 'AND rid IN'), $r if auth;
     enrich_flatten platforms => id => id => sub { sql 'SELECT id, platform FROM releases_platforms WHERE id IN', $_, 'ORDER BY id, platform' }, $r;
-    enrich lang => id => id => sub { 'SELECT id, lang, mtl FROM releases_lang WHERE id IN', $_, 'ORDER BY id, mtl, lang' }, $r;
+    enrich titles => id => id => sub { 'SELECT id, lang, mtl, title, latin FROM releases_titles WHERE id IN', $_, 'ORDER BY id, mtl, lang' }, $r;
     enrich media => id => id => sub { 'SELECT id, medium, qty FROM releases_media WHERE id IN', $_, 'ORDER BY id, medium' }, $r;
 }
 
@@ -90,14 +90,13 @@ sub release_extlinks_ {
 
 # Options
 #   id:   unique identifier if the same release may be listed on a page twice.
-#   lang: $lang, whether to display language icons and which language to use for the MTL flag.
+#   lang: $lang, whether to display language icons and which language to use for the title and MTL flag.
 #   prod: 0/1 whether to display Pub/Dev indication
 sub release_row_ {
     my($r, $opt) = @_;
 
-    my $mtl = $opt->{lang}
-        ? [grep $_->{lang} eq $opt->{lang}, $r->{lang}->@*]->[0]{mtl}
-        : (grep $_->{mtl}, $r->{lang}->@*) == $r->{lang}->@*;
+    my $lang = $opt->{lang} && (grep $_->{lang} eq $opt->{lang}, $r->{titles}->@*)[0];
+    my $mtl = $lang ? $lang->{mtl} : (grep $_->{mtl}, $r->{titles}->@*) == $r->{titles}->@*;
 
     my $storyani = join "\n", map "$_.",
         $r->{ani_story} == 1 ? 'Not animated' :
@@ -141,7 +140,7 @@ sub release_row_ {
     }
 
     tr_ $mtl ? (class => 'mtl') : (), sub {
-        td_ class => 'tc1', sub { rdate_ [grep $_->{lang} eq $opt->{lang}, $opt->{lang}?$r->{lang}->@*:()]->[0]{released}//$r->{released} };
+        td_ class => 'tc1', sub { rdate_ $r->{released} };
         td_ class => 'tc2', sub {
             span_ class => 'releaseero releaseero_'.(!$r->{has_ero} ? 'no' : $r->{uncensored} ? 'unc' : defined $r->{uncensored} ? 'cen' : 'yes'),
                   title => !$r->{has_ero} ? 'No erotic scenes' :
@@ -152,12 +151,13 @@ sub release_row_ {
         td_ class => 'tc3', sub {
             platform_ $_ for $r->{platforms}->@*;
             if(!$opt->{lang}) {
-                abbr_ class => "icons lang $_->{lang}".($_->{mtl}?' mtl':''), title => $LANGUAGE{$_->{lang}}, '' for $r->{lang}->@*;
+                abbr_ class => "icons lang $_->{lang}".($_->{mtl}?' mtl':''), title => $LANGUAGE{$_->{lang}}, '' for $r->{titles}->@*;
             }
             abbr_ class => "icons rt$r->{rtype}", title => $r->{rtype}, '';
         };
         td_ class => 'tc4', sub {
-            a_ href => "/$r->{id}", title => $r->{original}||$r->{title}, $r->{title};
+            # TODO: Read user preferences to see whether to display the 'title' or 'latin' here.
+            a_ href => "/$r->{id}", title => $lang ? $lang->{latin} : $r->{alttitle}||$r->{title}, $lang ? $lang->{title} : $r->{title};
             my $note = join ' ', $r->{official} ? () : 'unofficial', $mtl ? 'machine translation' : (), $r->{patch} ? 'patch' : ();
             b_ class => 'grayedout', " ($note)" if $note;
         };

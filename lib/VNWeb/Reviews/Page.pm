@@ -39,7 +39,7 @@ sub review_ {
                     platform_ $_ for $w->{platforms}->@*;
                     abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for $w->{lang}->@*;
                     abbr_ class => "icons rt$w->{rtype}", title => $w->{rtype}, '';
-                    a_ href => "/$w->{rid}", title => $w->{roriginal}||$w->{rtitle}, $w->{rtitle};
+                    a_ href => "/$w->{rid}", title => $w->{ralttitle}||$w->{rtitle}, $w->{rtitle};
                 }
             };
         };
@@ -98,11 +98,11 @@ TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
     my($id, $sep, $num) = (tuwf->capture('id'), tuwf->capture('sep')||'', tuwf->capture('num'));
     my $w = tuwf->dbRowi(
         'SELECT r.id, r.vid, r.rid, r.isfull, r.modnote, r.text, r.spoiler, r.locked, COALESCE(c.count,0) AS count, r.c_flagged, r.c_up, r.c_down, uv.vote, rm.id IS NULL AS can
-              , v.title, v.alttitle, rel.title AS rtitle, rel.original AS roriginal, relv.rtype, rv.vote AS my, COALESCE(rv.overrule,false) AS overrule
+              , v.title, v.alttitle, rel.title AS rtitle, rel.alttitle AS ralttitle, relv.rtype, rv.vote AS my, COALESCE(rv.overrule,false) AS overrule
               , ', sql_user(), ',', sql_totime('r.date'), 'AS date,', sql_totime('r.lastmod'), 'AS lastmod
            FROM reviews r
            JOIN vnt v ON v.id = r.vid
-           LEFT JOIN releases rel ON rel.id = r.rid
+           LEFT JOIN releasest rel ON rel.id = r.rid
            LEFT JOIN releases_vn relv ON relv.id = r.rid AND relv.vid = r.vid
            LEFT JOIN users u ON u.id = r.uid
            LEFT JOIN ulist_vns uv ON uv.uid = r.uid AND uv.vid = r.vid
@@ -113,7 +113,7 @@ TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
     );
     return tuwf->resNotFound if !$w->{id};
 
-    enrich_flatten lang => rid => id => sub { sql 'SELECT id, lang FROM releases_lang WHERE id IN', $_, 'ORDER BY id, lang' }, $w;
+    enrich_flatten lang => rid => id => sub { sql 'SELECT id, lang FROM releases_titles WHERE id IN', $_, 'ORDER BY id, lang' }, $w;
     enrich_flatten platforms => rid => id => sub { sql 'SELECT id, platform FROM releases_platforms WHERE id IN', $_, 'ORDER BY id, platform' }, $w;
 
     my $page = $sep eq '/' ? $num||1 : $sep ne '.' ? 1

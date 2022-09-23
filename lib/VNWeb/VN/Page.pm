@@ -249,7 +249,7 @@ sub infobox_producers_ {
         SELECT p.id, p.name, p.original, rl.lang, bool_or(rp.developer) as developer, bool_or(rp.publisher) as publisher, min(rv.rtype) as rtype, bool_or(r.official) as official
           FROM releases_vn rv
           JOIN releases r ON r.id = rv.id
-          JOIN releases_lang rl ON rl.id = rv.id
+          JOIN releases_titles rl ON rl.id = rv.id
           JOIN releases_producers rp ON rp.id = rv.id
           JOIN producers p ON p.id = rp.pid
          WHERE NOT r.hidden AND (r.official OR NOT rl.mtl) AND rv.vid =', \$v->{id}, '
@@ -550,7 +550,7 @@ sub releases_ {
 
     my(%lang, %langrel, %langmtl);
     for my $r ($v->{releases}->@*) {
-        for ($r->{lang}->@*) {
+        for ($r->{titles}->@*) {
             push $lang{$_->{lang}}->@*, $r;
             $langmtl{$_->{lang}} = ($langmtl{$_->{lang}}//1) && $_->{mtl};
         }

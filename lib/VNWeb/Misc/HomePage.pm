@@ -173,16 +173,15 @@ sub releases_ {
     # Add the release date as filter, we need to construct a filter for the header link anyway
     $filt->{query} = [ 'and', [ released => $released ? '<=' : '>', 1 ], $filt->{query} || () ];
 
-    # XXX This query is kinda slow, an index on releases.released would probably help.
     my $lst = tuwf->dbAlli('
-        SELECT id, title, original, released
-          FROM releases r
+        SELECT id, title, alttitle, released
+          FROM releasest r
          WHERE NOT hidden AND ', $filt->sql_where(), '
-           AND NOT EXISTS(SELECT 1 FROM releases_lang rl WHERE rl.id = r.id AND rl.mtl)
+           AND NOT EXISTS(SELECT 1 FROM releases_titles rt WHERE rt.id = r.id AND rt.mtl)
          ORDER BY released', $released ? 'DESC' : '', ', id LIMIT 10'
     );
     enrich_flatten plat => id => id => 'SELECT id, platform FROM releases_platforms WHERE id IN', $lst;
-    enrich_flatten lang => id => id => 'SELECT id, lang     FROM releases_lang      WHERE id IN', $lst;
+    enrich_flatten lang => id => id => 'SELECT id, lang     FROM releases_titles    WHERE id IN', $lst;
 
     h1_ sub {
         a_ href => '/r?f='.$filt->query_encode().';o=a;s=released', 'Upcoming Releases' if !$released;
@@ -196,7 +195,7 @@ sub releases_ {
                 platform_ $_ for $_->{plat}->@*;
                 abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for $_->{lang}->@*;
                 txt_ ' ';
-                a_ href => "/$_->{id}", title => $_->{original}||$_->{title}, $_->{title};
+                a_ href => "/$_->{id}", title => $_->{alttitle}||$_->{title}, $_->{title};
             }
         } for @$lst;
     };

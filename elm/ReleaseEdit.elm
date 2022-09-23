@@ -5,8 +5,11 @@ import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import Browser
 import Browser.Navigation exposing (load)
+import Browser.Dom as Dom
 import Bitwise as B
 import Set
+import Task
+import Process
 import Lib.Util exposing (..)
 import Lib.Html exposing (..)
 import Lib.TextPreview as TP
@@ -33,14 +36,13 @@ main = Browser.element
 
 type alias Model =
   { state      : Api.State
-  , title      : String
-  , original   : String
+  , titles     : List GRE.RecvTitles
+  , olang      : String
   , official   : Bool
   , patch      : Bool
   , freeware   : Bool
   , hasEro     : Bool
   , doujin     : Bool
-  , lang       : List GRE.RecvLang
   , plat       : Set.Set String
   , platDd     : DD.Config Msg
   , media      : List GRE.RecvMedia
@@ -79,14 +81,13 @@ type alias Model =
 init : GRE.Recv -> Model
 init d =
   { state      = Api.Normal
-  , title      = d.title
-  , original   = d.original
+  , titles     = d.titles
+  , olang      = d.olang
   , official   = d.official
   , patch      = d.patch
   , freeware   = d.freeware
   , hasEro     = d.has_ero
   , doujin     = d.doujin
-  , lang       = d.lang
   , plat       = Set.fromList <| List.map (\e -> e.platform) d.platforms
   , platDd     = DD.init "platforms" PlatOpen
   , media      = List.map (\m -> { m | qty = if m.qty == 0 then 1 else m.qty }) d.media
@@ -128,14 +129,13 @@ encode model =
   , editsum     = model.editsum.editsum.data
   , hidden      = model.editsum.hidden
   , locked      = model.editsum.locked
-  , title       = model.title
-  , original    = model.original
+  , titles      = model.titles
+  , olang       = model.olang
   , official    = model.official
   , patch       = model.patch
   , freeware    = model.freeware
   , has_ero     = model.hasEro
   , doujin      = model.doujin
-  , lang        = model.lang
   , platforms   = List.map (\l -> {platform=l}) <| Set.toList model.plat
   , media       = model.media
   , gtin        = model.gtin
@@ -177,15 +177,18 @@ engineConfig = { wrap = Engine, id = "engine", source = A.engineSource }
 
 
 type Msg
-  = Title String
-  | Original String
+  = Noop
+  | TitleAdd String
+  | TitleDel Int
+  | TitleLang Int String
+  | TitleTitle Int String
+  | TitleLatin Int String
+  | TitleMtl Int Bool
+  | TitleMain String
   | Official Bool
   | Patch Bool
   | Freeware Bool
   | HasEro Bool
-  | Lang Int String
-  | LangMtl Int Bool
-  | LangDel Int
   | Plat String Bool
   | PlatOpen Bool
   | MediaType Int String
@@ -227,15 +230,21 @@ type Msg
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    Title s    -> ({ model | title    = s }, Cmd.none)
-    Original s -> ({ model | original = s }, Cmd.none)
+    Noop -> (model, Cmd.none)
+    TitleAdd s ->
+      ({ model | titles = model.titles ++ [{ lang = s, title = "", latin = Nothing, mtl = False }], olang = if List.isEmpty model.titles then s else model.olang }
+      , Task.attempt (always Noop) (Dom.focus ("title_" ++ s)))
+    TitleDel i     -> ({ model | titles = delidx i model.titles }, Cmd.none)
+    TitleLang i s  -> ({ model | titles = modidx i (\e -> { e | lang = s }) model.titles }, Cmd.none)
+    TitleTitle i s -> ({ model | titles = modidx i (\e -> { e | title = s }) model.titles }, Cmd.none)
+    TitleLatin i s -> ({ model | titles = modidx i (\e -> { e | latin = if s == "" then Nothing else Just s }) model.titles }, Cmd.none)
+    TitleMtl i s   -> ({ model | titles = modidx i (\e -> { e | mtl = s }) model.titles }, Cmd.none)
+    TitleMain s    -> ({ model | olang = s }, Cmd.none)
+
     Official b -> ({ model | official = b }, Cmd.none)
     Patch b    -> ({ model | patch    = b }, Cmd.none)
     Freeware b -> ({ model | freeware = b }, Cmd.none)
     HasEro b   -> ({ model | hasEro   = b }, Cmd.none)
-    Lang n s   -> ({ model | lang     = if s /= "" && n == List.length model.lang then model.lang ++ [{lang=s, mtl=False}] else modidx n (\l -> { l | lang = s }) model.lang }, Cmd.none)
-    LangMtl n b-> ({ model | lang     = modidx n (\l -> { l | mtl = b }) model.lang }, Cmd.none)
-    LangDel n  -> ({ model | lang     = delidx n model.lang }, Cmd.none)
     Plat s b   -> ({ model | plat     = if b then Set.insert s model.plat else Set.remove s model.plat }, Cmd.none)
     PlatOpen b -> ({ model | platDd   = DD.toggle model.platDd b }, Cmd.none)
     MediaType n s -> ({ model | media = if s /= "unk" && n == List.length model.media then model.media ++ [{medium = s, qty = 1}] else modidx n (\m -> { m | medium = s }) model.media }, Cmd.none)
@@ -311,9 +320,8 @@ update msg model =
 
 isValid : Model -> Bool
 isValid model = not
-  (  model.title == model.original
-  || List.isEmpty model.lang
-  || hasDuplicates (List.map (\l -> l.lang) model.lang)
+  (  List.any (\e -> e.title /= "" && Just e.title == e.latin) model.titles
+  || List.isEmpty model.titles
   || hasDuplicates (List.map (\m -> (m.medium, m.qty)) model.media)
   || not model.gtinValid
   || List.isEmpty model.vn
@@ -349,24 +357,36 @@ viewAnimation cut na m v =
     ]
   ]
 
+viewTitle : Model -> Int -> GRE.RecvTitles -> Html Msg
+viewTitle model i e = tr []
+  [ td [] [ langIcon e.lang ]
+  , td []
+    [ inputText ("title_"++e.lang) e.title (TitleTitle i) (style "width" "500px" :: placeholder "Title (in the original script)" :: GRE.valTitlesTitle)
+    , if not (e.latin /= Nothing || containsNonLatin e.title) then text "" else span []
+      [ br [] []
+      , inputText "" (Maybe.withDefault "" e.latin) (TitleLatin i) (style "width" "500px" :: placeholder "Romanization" :: GRE.valTitlesLatin)
+      , case e.latin of
+          Just s -> if containsNonLatin s then b [ class "standout" ] [ br [] [], text "Romanization should only consist of characters in the latin alphabet." ] else text ""
+          Nothing -> text ""
+      ]
+    , if List.length model.titles == 1 then text "" else span []
+      [ br [] []
+      , label [] [ inputRadio "olang" (e.lang == model.olang) (\_ -> TitleMain e.lang), text " main title" ]
+      ]
+    , br [] []
+    , label [] [ inputCheck "" e.mtl (TitleMtl i), text " Machine translation" ]
+    , if e.lang == model.olang then text "" else span []
+      [ br [] [], inputButton "remove" (TitleDel i) [] ]
+    , br_ 2
+    ]
+  ]
+
 viewGen : Model -> Html Msg
 viewGen model =
   table [ class "formtable" ] <|
-  [ formField "title::Title (romaji)"
-    [ inputText "title" model.title Title (style "width" "500px" :: GRE.valTitle)
-    , if containsNonLatin model.title
-      then b [ class "standout" ] [ br [] [], text "This title field should only contain latin-alphabet characters, please put the \"actual\" title in the field below and the romanization above." ]
-      else text ""
-    ]
-  , formField "original::Original title"
-    [ inputText "original" model.original Original (style "width" "500px" :: GRE.valOriginal)
-    , if model.title /= "" && model.title == model.original
-      then b [ class "standout" ] [ br [] [], text "Should not be the same as the Title (romaji). Leave blank if the original title is already in the latin alphabet" ]
-      else if model.original /= "" && not (containsNonLatin model.original)
-      then b [ class "standout" ] [ br [] [], text "Original title does not seem to contain any non-latin characters. Leave this field empty if the title is already in the latin alphabet" ]
-      else if containsJapanese model.original && not (List.isEmpty model.lang) && not (List.any (\l -> l.lang == "ja" || l.lang == "zh" || l.lang == "zh-Hans" || l.lang == "zh-Hant") model.lang)
-      then b [ class "standout" ] [ br [] [], text "Non-Japanese releases should (probably) not have a Japanese original title." ]
-      else text ""
+  [ formField "Languages & titles"
+    [ table [] <| List.indexedMap (viewTitle model) model.titles
+    , inputSelect "" "" TitleAdd [] <| ("", "- Add language -") :: List.filter (\(l,_) -> l /= "zh" && not (List.any (\e -> e.lang == l) model.titles)) GT.languages
     ]
 
   , tr [ class "newpart" ] [ td [] [] ]
@@ -378,22 +398,6 @@ viewGen model =
   , formField "Release date" [ D.view model.released False False Released, text " Leave month or day blank if they are unknown." ]
 
   , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Format" ] ]
-  , formField "Language(s)"
-    [ table [] <| List.indexedMap (\i l ->
-        tr []
-        [ td [] [ inputSelect "" l.lang (Lang i) [] <| if l.lang == ""
-          then ("", "- Add language -") :: List.filter (\(e,_) -> e /= "zh") GT.languages
-          else GT.languages ]
-        , td [] [ if l.lang == "" then text "" else label [] [ inputCheck "" l.mtl (LangMtl i), text " machine translation" ] ]
-        , td [] [ if l.lang == "" || List.length model.lang == 1 then text "" else inputButton "remove" (LangDel i) [] ]
-        ]
-      ) <| model.lang ++ [{lang = "", mtl = False}]
-    , if hasDuplicates (List.map (\l -> l.lang) model.lang)
-      then b [ class "standout" ] [ text "List contains duplicates", br [] [] ]
-      else if List.any (\e -> e.lang == "zh") model.lang
-      then b [ class "standout" ] [ text "The \"Chinese\" language option should not be used anymore, please indicate whether it is Simplified or Traditional (or both).", br [] [] ]
-      else text ""
-    ]
   , formField "Platform(s)"
     [ div [ class "elm_dd_input", style "width" "500px" ] [ DD.view model.platDd Api.Normal
       (if Set.isEmpty model.plat

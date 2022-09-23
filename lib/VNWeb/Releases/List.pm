@@ -62,10 +62,10 @@ TUWF::get qr{/r}, sub {
         $count = tuwf->dbVali('SELECT count(*) FROM releases r WHERE', $where);
         $list = $count ? tuwf->dbPagei({results => 50, page => $opt->{p}}, '
             SELECT r.id, r.patch, r.released, r.gtin, ', sql_extlinks(r => 'r.'), '
-              FROM releases r
+              FROM releasest r
              WHERE', $where, '
              ORDER BY', sprintf {
-                 title    => 'r.title %s, r.released %1$s',
+                 title    => 'r.sorttitle %s, r.released %1$s',
                  minage   => 'r.minage %s, r.title %1$s, r.released %1$s',
                  released => 'r.released %s, r.title %1$s, r.id %1$s',
              }->{$opt->{s}}, $opt->{o} eq 'a' ? 'ASC' : 'DESC'

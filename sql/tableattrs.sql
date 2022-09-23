@@ -82,9 +82,11 @@ ALTER TABLE producers_relations      ADD CONSTRAINT producers_relations_pid_fkey
 ALTER TABLE producers_relations_hist ADD CONSTRAINT producers_relations_hist_id_fkey   FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE producers_relations_hist ADD CONSTRAINT producers_relations_hist_pid_fkey  FOREIGN KEY (pid)       REFERENCES producers     (id);
 ALTER TABLE quotes                   ADD CONSTRAINT quotes_vid_fkey                    FOREIGN KEY (vid)       REFERENCES vn            (id);
+ALTER TABLE releases                 ADD CONSTRAINT releases_olang_fkey                FOREIGN KEY (id,olang)  REFERENCES releases_titles(id,lang) DEFERRABLE INITIALLY DEFERRED;
 ALTER TABLE releases_hist            ADD CONSTRAINT releases_hist_chid_fkey            FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
-ALTER TABLE releases_lang            ADD CONSTRAINT releases_lang_id_fkey              FOREIGN KEY (id)        REFERENCES releases      (id);
-ALTER TABLE releases_lang_hist       ADD CONSTRAINT releases_lang_hist_chid_fkey       FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
+ALTER TABLE releases_hist            ADD CONSTRAINT releases_hist_olang_fkey           FOREIGN KEY (chid,olang)REFERENCES releases_titles_hist(chid,lang) DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE releases_titles          ADD CONSTRAINT releases_titles_id_fkey            FOREIGN KEY (id)        REFERENCES releases      (id);
+ALTER TABLE releases_titles_hist     ADD CONSTRAINT releases_titles_hist_chid_fkey     FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE releases_media           ADD CONSTRAINT releases_media_id_fkey             FOREIGN KEY (id)        REFERENCES releases      (id);
 ALTER TABLE releases_media_hist      ADD CONSTRAINT releases_media_hist_chid_fkey      FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE releases_platforms       ADD CONSTRAINT releases_platforms_id_fkey         FOREIGN KEY (id)        REFERENCES releases      (id);

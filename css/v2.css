@@ -732,6 +732,9 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $bo
 /***** Release page *****/
 
 .release table { width: 500px; margin: 0 auto; }
+.release td.titles table  { margin-left: 96px }
+.release tr.title td     { padding: 0 0px }
+.release tr.title td:first-child { width: 20px }
 .release .key  { width: 110px; }
 .release dt { float: none; font-style: normal; }
 .release dd { margin-left: 15px; }
