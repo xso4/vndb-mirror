@@ -84,7 +84,7 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
 
     $e->@{qw/gtin catalog extlinks/} = elm_empty($FORM_OUT)->@{qw/gtin catalog extlinks/} if $copy;
 
-    my $title = ($copy ? 'Copy ' : 'Edit ').$e->{title};
+    my $title = ($copy ? 'Copy ' : 'Edit ').tuwf->dbVali('SELECT title FROM releasest WHERE id =', \$e->{id});
     framework_ title => $title, dbobj => $e, tab => tuwf->capture('action'),
     sub {
         editmsg_ r => $e, $title, $copy;
