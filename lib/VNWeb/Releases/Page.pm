@@ -2,7 +2,7 @@ package VNWeb::Releases::Page;
 
 use VNWeb::Prelude;
 use VNWeb::Releases::Lib;
-use VNWeb::LangPref 'sql_releases_hist';
+use VNWeb::LangPref 'langpref_titles';
 
 
 sub enrich_item {
@@ -11,7 +11,7 @@ sub enrich_item {
     enrich_merge pid => 'SELECT id AS pid, name, original FROM producers WHERE id IN', $r->{producers};
     enrich_merge vid => 'SELECT id AS vid, title, alttitle FROM vnt WHERE id IN', $r->{vn};
 
-    $r->{titles}    = [ sort { ($a->{mtl}?1:0) <=> ($b->{mtl}?1:0) || $a->{lang} cmp $b->{lang} } $r->{titles}->@* ];
+    $r->{titles}    = [ sort { ($b->{lang} eq $r->{olang}) cmp ($a->{lang} eq $r->{olang}) || ($a->{mtl}?1:0) <=> ($b->{mtl}?1:0) || $a->{lang} cmp $b->{lang} } $r->{titles}->@* ];
     $r->{platforms} = [ sort map $_->{platform}, $r->{platforms}->@* ];
     $r->{vn}        = [ sort { $a->{title}  cmp $b->{title}  || idcmp($a->{vid}, $b->{vid}) } $r->{vn}->@*        ];
     $r->{producers} = [ sort { $a->{name}   cmp $b->{name}   || idcmp($a->{pid}, $b->{pid}) } $r->{producers}->@* ];
@@ -268,8 +268,7 @@ TUWF::get qr{/$RE{rrev}} => sub {
     my $r = db_entry tuwf->captures('id','rev');
     return tuwf->resNotFound if !$r;
 
-    enrich_merge chid => sql('SELECT chid, x.title, x.alttitle FROM (', sql_releases_hist(), ') x WHERE chid IN'), $r if $r->{chrev} != $r->{maxrev};
-    enrich_merge id => sql('SELECT id, title, alttitle FROM releasest WHERE id IN'), $r if $r->{chrev} == $r->{maxrev};
+    @{$r}{'title', 'alttitle'} = langpref_titles $r->{olang}, $r->{titles};
     enrich_item $r;
     enrich_extlinks r => $r;
 

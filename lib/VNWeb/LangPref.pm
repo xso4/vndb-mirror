@@ -11,10 +11,9 @@ use Exporter 'import';
 our @EXPORT = qw/
     langpref_parse
     langpref_fmt
+    langpref_titles
     $DEFAULT_TITLE_LANGS
     $DEFAULT_ALTTITLE_LANGS
-    sql_vn_hist
-    sql_releases_hist
 /;
 
 TUWF::set('custom_validations')->{langpref} = { type => 'array', maxlength => 5, values => { type => 'hash', keys => {
@@ -44,6 +43,29 @@ sub langpref_fmt {
         $_->{lang} && $_->{official} ? (official => \1) : (),
     }, $_[0]->@*]);
 }
+
+
+# Returns the preferred (title, alttitle) given an array of
+# (vn|releases)_titles-like objects. Same functionality as the SQL view, except
+# implemented in perl.
+sub langpref_titles {
+    my($olang, $titles) = @_;
+    my $p = pref();
+    my %l = map +($_->{lang},$_), $titles->@*;
+
+    my @title = ('','');
+    for my $t (0,1) {
+        for ($p->[$t]->@*) {
+            next if $_->{original} && $_->{lang} && $_->{lang} ne $olang;
+            my $o = $l{ $_->{lang} // $olang } or next;
+            next if $_->{official} && defined $o->{official} && !$o->{official};
+            $title[$t] = $_->{latin} && length $o->{latin} ? $o->{latin} : $o->{title};
+            last;
+        }
+    }
+    return @title;
+}
+
 
 our $DEFAULT_TITLE_LANGS    = [{ lang => undef, latin => 1, official => 1, original => 1 }];
 our $DEFAULT_ALTTITLE_LANGS = [{ lang => undef, latin => 0, official => 1, original => 1 }];
@@ -91,6 +113,7 @@ sub gen_sql {
 
 
 # Similar to the 'vnt' VIEW, except for vn_hist and it generates a SELECT query for inline use.
+# (These functions are not currently used)
 sub sql_vn_hist { gen_sql 1, 'vn_hist', 'vn_titles_hist', 'chid' }
 sub sql_releases_hist { gen_sql 0, 'releases_hist', 'releases_titles_hist', 'chid' }
 

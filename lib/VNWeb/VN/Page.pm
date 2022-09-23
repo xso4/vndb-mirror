@@ -4,7 +4,7 @@ use VNWeb::Prelude;
 use VNWeb::Releases::Lib;
 use VNWeb::Images::Lib qw/image_flagging_display image_ enrich_image_obj/;
 use VNWeb::ULists::Lib 'ulists_widget_full_data';
-use VNWeb::LangPref 'sql_vn_hist';
+use VNWeb::LangPref 'langpref_titles';
 use VNDB::Func 'fmtrating';
 
 
@@ -12,9 +12,8 @@ use VNDB::Func 'fmtrating';
 # Also used by Chars::VNTab & Reviews::VNTab
 sub enrich_vn {
     my($v, $revonly) = @_;
-    enrich_merge chid => sql('SELECT chid, x.title, x.alttitle FROM (', sql_vn_hist(), ') x WHERE chid IN'), $v if $v->{chrev} != $v->{maxrev};
-    enrich_merge id => sql('SELECT id, c_votecount, c_length, c_lengthnum',
-        $v->{chrev} == $v->{maxrev} ? ', title, alttitle' : (), 'FROM vnt WHERE id IN'), $v;
+    @{$v}{'title', 'alttitle'} = langpref_titles $v->{olang}, $v->{titles};
+    enrich_merge id => sql('SELECT id, c_votecount, c_length, c_lengthnum FROM vnt WHERE id IN'), $v;
     enrich_merge vid => 'SELECT id AS vid, title, alttitle, c_released FROM vnt WHERE id IN', $v->{relations};
     enrich_merge aid => 'SELECT id AS aid, title_romaji, title_kanji, year, type, ann_id, lastfetch FROM anime WHERE id IN', $v->{anime};
     enrich_extlinks v => $v;

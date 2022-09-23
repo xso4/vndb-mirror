@@ -1,6 +1,7 @@
 package VNWeb::Releases::Lib;
 
 use VNWeb::Prelude;
+use VNWeb::LangPref 'langpref_titles';
 use Exporter 'import';
 
 our @EXPORT = qw/enrich_release_elm releases_by_vn enrich_release sort_releases release_row_/;
@@ -156,8 +157,8 @@ sub release_row_ {
             abbr_ class => "icons rt$r->{rtype}", title => $r->{rtype}, '';
         };
         td_ class => 'tc4', sub {
-            # TODO: Read user preferences to see whether to display the 'title' or 'latin' here.
-            a_ href => "/$r->{id}", title => $lang ? $lang->{latin} : $r->{alttitle}||$r->{title}, $lang ? $lang->{title} : $r->{title};
+            my($title, $alttitle) = $lang ? langpref_titles $lang->{lang}, [$lang] : @{$r}{'title', 'alttitle'};
+            a_ href => "/$r->{id}", title => $alttitle||$title, $title;
             my $note = join ' ', $r->{official} ? () : 'unofficial', $mtl ? 'machine translation' : (), $r->{patch} ? 'patch' : ();
             b_ class => 'grayedout', " ($note)" if $note;
         };
