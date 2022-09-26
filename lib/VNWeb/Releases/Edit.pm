@@ -16,6 +16,12 @@ my $FORM = {
         title     => { required => 0, default => undef, maxlength => 300 },
         latin     => { required => 0, default => undef, maxlength => 300 },
     } },
+    # Titles fetched from the VN entry, for auto-filling
+    vntitles   => { _when => 'out', aoh => {
+        lang      => {},
+        title     => {},
+        latin     => { required => 0 },
+    } },
     olang      => { enum => \%LANGUAGE, default => 'ja' },
     platforms  => { aoh => { platform => { enum => \%PLATFORM } } },
     media      => { aoh => {
@@ -79,6 +85,8 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
     $e->{titles} = [ sort { $a->{lang} cmp $b->{lang} } $e->{titles}->@* ];
     to_extlinks $e;
 
+    $e->{vntitles} = tuwf->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$e->{vn}[0]{vid}) if $e->{vn}->@* == 1;
+
     enrich_merge vid => 'SELECT id AS vid, title FROM vnt WHERE id IN', $e->{vn};
     enrich_merge pid => 'SELECT id AS pid, name FROM producers WHERE id IN', $e->{producers};
 
@@ -109,6 +117,7 @@ TUWF::get qr{/$RE{vid}/add}, sub {
     my $e = {
         elm_empty($FORM_OUT)->%*,
         vn       => [{vid => $v->{id}, title => $v->{title}, rtype => 'complete'}],
+        vntitles => tuwf->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$v->{id}),
         official => 1,
     };
     $e->{authmod} = auth->permDbmod;

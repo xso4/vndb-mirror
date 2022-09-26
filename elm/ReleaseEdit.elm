@@ -37,6 +37,7 @@ main = Browser.element
 type alias Model =
   { state      : Api.State
   , titles     : List GRE.RecvTitles
+  , vntitles   : List GRE.RecvVntitles
   , olang      : String
   , official   : Bool
   , patch      : Bool
@@ -82,6 +83,7 @@ init : GRE.Recv -> Model
 init d =
   { state      = Api.Normal
   , titles     = d.titles
+  , vntitles   = d.vntitles
   , olang      = d.olang
   , official   = d.official
   , patch      = d.patch
@@ -232,8 +234,11 @@ update msg model =
   case msg of
     Noop -> (model, Cmd.none)
     TitleAdd s ->
-      ({ model | titles = model.titles ++ [{ lang = s, title = Nothing, latin = Nothing, mtl = False }], olang = if List.isEmpty model.titles then s else model.olang }
-      , Task.attempt (always Noop) (Dom.focus ("title_" ++ s)))
+      let def = List.filter (\e -> e.lang == s) model.vntitles |> List.head
+          title = Maybe.map (\e -> e.title) def
+          latin = Maybe.andThen (\e -> e.latin) def
+      in ({ model | titles = model.titles ++ [{ lang = s, title = title, latin = latin, mtl = False }], olang = if List.isEmpty model.titles then s else model.olang }
+         , Task.attempt (always Noop) (Dom.focus ("title_" ++ s)))
     TitleDel i     -> ({ model | titles = delidx i model.titles }, Cmd.none)
     TitleLang i s  -> ({ model | titles = modidx i (\e -> { e | lang = s }) model.titles }, Cmd.none)
     TitleTitle i s -> ({ model | titles = modidx i (\e -> { e | title = if s == "" then Nothing else Just s }) model.titles }, Cmd.none)
