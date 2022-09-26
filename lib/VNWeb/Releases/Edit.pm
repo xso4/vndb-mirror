@@ -96,28 +96,26 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
 TUWF::get qr{/$RE{vid}/add}, sub {
     return tuwf->resDenied if !can_edit r => undef;
     my $v = tuwf->dbRowi('
-        SELECT v.id, v.title AS displaytitle, vo.title, vo.latin
+        SELECT v.id, v.title
           FROM vnt v
           JOIN vn_titles vo ON vo.id = v.id AND vo.lang = v.olang
          WHERE v.id =', \tuwf->capture('id')
     );
     return tuwf->resNotFound if !$v->{id};
 
-    my $delrel = tuwf->dbAlli('SELECT r.id, r.title, r.original FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE r.hidden AND rv.vid =', \$v->{id}, 'ORDER BY id');
-    enrich_flatten languages => id => id => 'SELECT id, lang FROM releases_lang WHERE id IN', $delrel;
+    my $delrel = tuwf->dbAlli('SELECT r.id, r.title, r.alttitle FROM releasest r JOIN releases_vn rv ON rv.id = r.id WHERE r.hidden AND rv.vid =', \$v->{id}, 'ORDER BY id');
+    enrich_flatten languages => id => id => 'SELECT id, lang FROM releases_titles WHERE id IN', $delrel;
 
     my $e = {
         elm_empty($FORM_OUT)->%*,
-        title    => $v->{latin}//$v->{title},
-        original => $v->{latin} ? $v->{title} : '',
-        vn       => [{vid => $v->{id}, title => $v->{displaytitle}, rtype => 'complete'}],
+        vn       => [{vid => $v->{id}, title => $v->{title}, rtype => 'complete'}],
         official => 1,
     };
     $e->{authmod} = auth->permDbmod;
 
-    framework_ title => "Add release to $v->{displaytitle}",
+    framework_ title => "Add release to $v->{title}",
     sub {
-        editmsg_ r => undef, "Add release to $v->{displaytitle}";
+        editmsg_ r => undef, "Add release to $v->{title}";
 
         div_ class => 'mainbox', sub {
             h1_ 'Deleted releases';
@@ -129,7 +127,7 @@ TUWF::get qr{/$RE{vid}/add}, sub {
                 ul_ sub {
                     li_ sub {
                         txt_ '['.join(',', $_->{languages}->@*)."] $_->{id}:";
-                        a_ href => "/$_->{id}", title => $_->{original}||$_->{title}, $_->{title};
+                        a_ href => "/$_->{id}", title => $_->{alttitle}||$_->{title}, $_->{title};
                     } for @$delrel;
                 }
             }
