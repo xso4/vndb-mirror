@@ -59,6 +59,7 @@ sub langpref_titles {
             next if $_->{original} && $_->{lang} && $_->{lang} ne $olang;
             my $o = $l{ $_->{lang} // $olang } or next;
             next if $_->{official} && defined $o->{official} && !$o->{official};
+            next if !defined $o->{title};
             $title[$t] = $_->{latin} && length $o->{latin} ? $o->{latin} : $o->{title};
             last;
         }

@@ -13,7 +13,7 @@ my $FORM = {
     titles     => { minlength => 1, sort_keys => 'lang', aoh => {
         lang      => { enum => \%LANGUAGE },
         mtl       => { anybool => 1 },
-        title     => { maxlength => 300 },
+        title     => { required => 0, default => undef, maxlength => 300 },
         latin     => { required => 0, default => undef, maxlength => 300 },
     } },
     olang      => { enum => \%LANGUAGE, default => 'ja' },

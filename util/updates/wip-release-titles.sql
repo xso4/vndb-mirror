@@ -4,7 +4,7 @@ CREATE TABLE releases_titles (
   id         vndbid NOT NULL,
   lang       language NOT NULL,
   mtl        boolean NOT NULL DEFAULT false,
-  title      text NOT NULL DEFAULT '',
+  title      text,
   latin      text,
   PRIMARY KEY(id, lang)
 );
@@ -13,7 +13,7 @@ CREATE TABLE releases_titles_hist (
   chid       integer NOT NULL,
   lang       language NOT NULL,
   mtl        boolean NOT NULL DEFAULT false,
-  title      text NOT NULL DEFAULT '',
+  title      text,
   latin      text,
   PRIMARY KEY(chid, lang)
 );
@@ -21,22 +21,6 @@ CREATE TABLE releases_titles_hist (
 -- Fixup some old (deleted) entries that are missing a language field
 INSERT INTO releases_lang SELECT rv.id, v.olang, false FROM releases_vn rv JOIN vn v ON v.id = rv.vid WHERE NOT EXISTS(SELECT 1 FROM releases_lang rl WHERE rl.id = rv.id);
 INSERT INTO releases_lang_hist SELECT rv.chid, v.olang, false FROM releases_vn_hist rv JOIN vn v ON v.id = rv.vid WHERE NOT EXISTS(SELECT 1 FROM releases_lang_hist rl WHERE rl.chid = rv.chid);
-
--- Copy the existing titles to every language.
--- TODO: Is this the right solution? Not sure :/
-INSERT INTO releases_titles
-    SELECT rl.id, rl.lang, rl.mtl
-         , CASE WHEN r.original = '' THEN r.title ELSE r.original END
-         , CASE WHEN r.original = '' THEN NULL ELSE r.title END
-      FROM releases_lang rl
-      JOIN releases r ON r.id = rl.id;
-
-INSERT INTO releases_titles_hist
-    SELECT rl.chid, rl.lang, rl.mtl
-         , CASE WHEN r.original = '' THEN r.title ELSE r.original END
-         , CASE WHEN r.original = '' THEN NULL ELSE r.title END
-      FROM releases_lang_hist rl
-      JOIN releases_hist r ON r.chid = rl.chid;
 
 ALTER TABLE releases      ADD COLUMN olang language NOT NULL DEFAULT 'ja';
 ALTER TABLE releases_hist ADD COLUMN olang language NOT NULL DEFAULT 'ja';
@@ -64,6 +48,21 @@ WITH rl (id, ol) AS (
       LEFT JOIN releases_lang_hist rf ON rf.chid = rv.chid AND (rf.lang <> v.olang AND rf.lang <> 'en')
      ORDER BY rv.chid, rl.chid NULLS LAST, rv.vid, rl.lang
 ) UPDATE releases_hist SET olang = ol FROM rl WHERE chid = id AND ol <> 'ja';
+
+-- Copy all languages and set the title only for the "main" language as determined above.
+INSERT INTO releases_titles
+    SELECT rl.id, rl.lang, rl.mtl
+         , CASE WHEN rl.lang <> r.olang THEN NULL WHEN r.original = '' THEN r.title ELSE r.original END
+         , CASE WHEN rl.lang <> r.olang THEN NULL WHEN r.original = '' THEN NULL ELSE r.title END
+      FROM releases_lang rl
+      JOIN releases r ON r.id = rl.id;
+
+INSERT INTO releases_titles_hist
+    SELECT rl.chid, rl.lang, rl.mtl
+         , CASE WHEN rl.lang <> r.olang THEN NULL WHEN r.original = '' THEN r.title ELSE r.original END
+         , CASE WHEN rl.lang <> r.olang THEN NULL WHEN r.original = '' THEN NULL ELSE r.title END
+      FROM releases_lang_hist rl
+      JOIN releases_hist r ON r.chid = rl.chid;
 
 ALTER TABLE releases ALTER COLUMN c_search DROP NOT NULL, ALTER COLUMN c_search DROP EXPRESSION;
 

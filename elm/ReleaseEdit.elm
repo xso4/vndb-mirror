@@ -232,11 +232,11 @@ update msg model =
   case msg of
     Noop -> (model, Cmd.none)
     TitleAdd s ->
-      ({ model | titles = model.titles ++ [{ lang = s, title = "", latin = Nothing, mtl = False }], olang = if List.isEmpty model.titles then s else model.olang }
+      ({ model | titles = model.titles ++ [{ lang = s, title = Nothing, latin = Nothing, mtl = False }], olang = if List.isEmpty model.titles then s else model.olang }
       , Task.attempt (always Noop) (Dom.focus ("title_" ++ s)))
     TitleDel i     -> ({ model | titles = delidx i model.titles }, Cmd.none)
     TitleLang i s  -> ({ model | titles = modidx i (\e -> { e | lang = s }) model.titles }, Cmd.none)
-    TitleTitle i s -> ({ model | titles = modidx i (\e -> { e | title = s }) model.titles }, Cmd.none)
+    TitleTitle i s -> ({ model | titles = modidx i (\e -> { e | title = if s == "" then Nothing else Just s }) model.titles }, Cmd.none)
     TitleLatin i s -> ({ model | titles = modidx i (\e -> { e | latin = if s == "" then Nothing else Just s }) model.titles }, Cmd.none)
     TitleMtl i s   -> ({ model | titles = modidx i (\e -> { e | mtl = s }) model.titles }, Cmd.none)
     TitleMain s    -> ({ model | olang = s }, Cmd.none)
@@ -320,7 +320,7 @@ update msg model =
 
 isValid : Model -> Bool
 isValid model = not
-  (  List.any (\e -> e.title /= "" && Just e.title == e.latin) model.titles
+  (  List.any (\e -> e.title /= Nothing && e.title == e.latin) model.titles
   || List.isEmpty model.titles
   || hasDuplicates (List.map (\m -> (m.medium, m.qty)) model.media)
   || not model.gtinValid
@@ -361,8 +361,9 @@ viewTitle : Model -> Int -> GRE.RecvTitles -> Html Msg
 viewTitle model i e = tr []
   [ td [] [ langIcon e.lang ]
   , td []
-    [ inputText ("title_"++e.lang) e.title (TitleTitle i) (style "width" "500px" :: placeholder "Title (in the original script)" :: GRE.valTitlesTitle)
-    , if not (e.latin /= Nothing || containsNonLatin e.title) then text "" else span []
+    [ inputText ("title_"++e.lang) (Maybe.withDefault "" e.title) (TitleTitle i)
+        (style "width" "500px" :: placeholder "Title (in the original script)" :: required (e.lang == model.olang) :: GRE.valTitlesTitle)
+    , if not (e.latin /= Nothing || containsNonLatin (Maybe.withDefault "" e.title)) then text "" else span []
       [ br [] []
       , inputText "" (Maybe.withDefault "" e.latin) (TitleLatin i) (style "width" "500px" :: placeholder "Romanization" :: GRE.valTitlesLatin)
       , case e.latin of

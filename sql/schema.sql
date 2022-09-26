@@ -571,12 +571,12 @@ CREATE TABLE releases_producers_hist (
   PRIMARY KEY(chid, pid)
 );
 
--- releases_titles
+-- releases_titles (also: languages this release is available in)
 CREATE TABLE releases_titles (
   id         vndbid NOT NULL, -- [pub]
   lang       language NOT NULL, -- [pub]
   mtl        boolean NOT NULL DEFAULT false, -- [pub]
-  title      text NOT NULL DEFAULT '', -- [pub]
+  title      text, -- [pub]
   latin      text, -- [pub]
   PRIMARY KEY(id, lang)
 );
@@ -586,7 +586,7 @@ CREATE TABLE releases_titles_hist (
   chid       integer NOT NULL,
   lang       language NOT NULL,
   mtl        boolean NOT NULL DEFAULT false,
-  title      text NOT NULL DEFAULT '',
+  title      text,
   latin      text,
   PRIMARY KEY(chid, lang)
 );

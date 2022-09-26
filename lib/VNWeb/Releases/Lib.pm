@@ -29,7 +29,7 @@ sub releases_by_vn {
 sub enrich_release {
     my($r) = @_;
     enrich_merge id =>
-        'SELECT id, title, alttitle, notes, minage, official, freeware, has_ero, reso_x, reso_y, voiced, uncensored
+        'SELECT id, title, alttitle, olang, notes, minage, official, freeware, has_ero, reso_x, reso_y, voiced, uncensored
               , ani_story, ani_ero, ani_story_sp, ani_story_cg, ani_cutscene, ani_ero_sp, ani_ero_cg, ani_face, ani_bg
           FROM releasest WHERE id IN', $r;
     enrich_merge id => sub { sql 'SELECT id, MAX(rtype) AS rtype FROM releases_vn WHERE id IN', $_, 'GROUP BY id' }, grep !$_->{rtype}, ref $r ? @$r : $r;
@@ -157,7 +157,10 @@ sub release_row_ {
             abbr_ class => "icons rt$r->{rtype}", title => $r->{rtype}, '';
         };
         td_ class => 'tc4', sub {
-            my($title, $alttitle) = $lang ? langpref_titles $lang->{lang}, [$lang] : @{$r}{'title', 'alttitle'};
+            my($title, $alttitle) =
+                $lang && defined $lang->{title} ? langpref_titles $lang->{lang}, [$lang] :
+                                          $lang ? langpref_titles $r->{olang}, [grep $_->{lang} eq $r->{olang}, $r->{titles}->@*]
+                                                : @{$r}{'title', 'alttitle'};
             a_ href => "/$r->{id}", title => $alttitle||$title, $title;
             my $note = join ' ', $r->{official} ? () : 'unofficial', $mtl ? 'machine translation' : (), $r->{patch} ? 'patch' : ();
             b_ class => 'grayedout', " ($note)" if $note;
