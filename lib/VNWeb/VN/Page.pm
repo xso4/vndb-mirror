@@ -418,7 +418,7 @@ sub infobox_ {
 
     sub tlang_ {
         my($t) = @_;
-        tr_ class => 'title', class => $t->{official}?undef:'grayedout', sub {
+        tr_ mkclass(title => 1, grayedout => !$t->{official}), sub {
             td_ sub {
                 abbr_ class => "icons lang $t->{lang}", title => $LANGUAGE{$t->{lang}}, '';
             };
