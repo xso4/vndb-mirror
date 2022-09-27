@@ -367,7 +367,10 @@ viewTitle model i e = tr []
   [ td [] [ langIcon e.lang ]
   , td []
     [ inputText ("title_"++e.lang) (Maybe.withDefault "" e.title) (TitleTitle i)
-        (style "width" "500px" :: placeholder "Title (in the original script)" :: required (e.lang == model.olang) :: GRE.valTitlesTitle)
+        (  style "width" "500px"
+        :: placeholder (if e.lang == model.olang then "Title (in the original script)" else "Title (leave empty to use the main title)")
+        :: required (e.lang == model.olang)
+        :: GRE.valTitlesTitle)
     , if not (e.latin /= Nothing || containsNonLatin (Maybe.withDefault "" e.title)) then text "" else span []
       [ br [] []
       , inputText "" (Maybe.withDefault "" e.latin) (TitleLatin i) (style "width" "500px" :: placeholder "Romanization" :: GRE.valTitlesLatin)
