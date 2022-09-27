@@ -628,12 +628,12 @@ my %GET_VN = (
 );
 
 my %GET_RELEASE = (
-  sql     => 'SELECT %s FROM releases r WHERE NOT hidden AND (%s) %s',
+  sql     => 'SELECT %s FROM releasest r WHERE NOT hidden AND (%s) %s',
   select  => 'r.id',
   sortdef => 'id',
   sorts   => {
     id => 'r.id %s',
-    title => 'r.title %s',
+    title => 'r.sorttitle %s',
     released => 'r.released %s',
   },
   proc    => sub {
@@ -641,7 +641,7 @@ my %GET_RELEASE = (
   },
   flags => {
     basic => {
-      select => 'r.title, r.original, r.released, r.patch, r.freeware, r.doujin',
+      select => 'r.title, r.alttitle AS original, r.released, r.patch, r.freeware, r.doujin',
       proc   => sub {
         $_[0]{original} ||= undef;
         $_[0]{released} = formatdate($_[0]{released});
@@ -649,7 +649,7 @@ my %GET_RELEASE = (
         $_[0]{freeware} = $_[0]{freeware} =~ /^t/ ? TRUE : FALSE;
         $_[0]{doujin}   = $_[0]{doujin}   =~ /^t/ ? TRUE : FALSE;
       },
-      fetch => [[ 'id', 'SELECT id, lang FROM releases_lang WHERE id IN(%s)',
+      fetch => [[ 'id', 'SELECT id, lang FROM releases_titles WHERE id IN(%s)',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
             $i->{languages} = [ map $i->{id} eq $_->{id} ? $_->{lang} : (), @$r ];
@@ -772,8 +772,8 @@ my %GET_RELEASE = (
       [ str   => 'r.catalog :op: :value:', {qw|= =  != <>|} ],
     ],
     languages => [
-      [ str   => 'r.id :op:(SELECT rl.id FROM releases_lang rl WHERE rl.lang = :value:)', {'=' => 'IN', '!=' => 'NOT IN'}, process => \'lang' ],
-      [ stra  => 'r.id :op:(SELECT rl.id FROM releases_lang rl WHERE rl.lang IN(:value:))', {'=' => 'IN', '!=' => 'NOT IN'}, join => ',', process => \'lang' ],
+      [ str   => 'r.id :op:(SELECT rl.id FROM releases_titles rl WHERE rl.lang = :value:)', {'=' => 'IN', '!=' => 'NOT IN'}, process => \'lang' ],
+      [ stra  => 'r.id :op:(SELECT rl.id FROM releases_titles rl WHERE rl.lang IN(:value:))', {'=' => 'IN', '!=' => 'NOT IN'}, join => ',', process => \'lang' ],
     ],
     platforms => [
       [ str   => 'r.id :op:(SELECT rp.id FROM releases_platforms rp WHERE rp.platform = :value:)', {'=' => 'IN', '!=' => 'NOT IN'}, process => \'plat' ],
