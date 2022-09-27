@@ -80,7 +80,12 @@ nestUpdate dat msg model =
                 in addPar (b::xs) (nestInit True b a nf ndat |> Tuple.mapSecond FMNest |> fieldCreate -1)
               _ -> (ndat,f)
           (ndat2,f2) = addPar model.addtype (fieldInit n dat)
-      in (ndat2, { model | addDd = DD.toggle model.addDd False, addtype = [model.qtype], fields = model.fields ++ [f2] }, Cmd.none)
+          nestMsg lst i =
+            case lst of
+              (a::xs) -> NField i (FSNest (nestMsg xs 0))
+              _ -> NField i (FToggle True)
+      in (ndat2, { model | addDd = DD.toggle model.addDd False, addtype = [model.qtype], fields = model.fields ++ [f2] }
+         , selfCmd (nestMsg (List.drop 1 model.addtype) (List.length model.fields)))
     NAddType t -> (dat, { model | addtype = t }, Cmd.none)
     NField n FDel -> (dat, { model | fields = delidx n model.fields }, Cmd.none)
     NField n FMoveSub ->

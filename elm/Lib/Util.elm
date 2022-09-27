@@ -2,6 +2,7 @@ module Lib.Util exposing (..)
 
 import Set
 import Task
+import Process
 import Regex
 import Lib.Ffi as Ffi
 import Gen.Api as GApi
@@ -48,8 +49,10 @@ lookup : a -> List (a,b) -> Maybe b
 lookup n l = List.filter (\(a,_) -> a == n) l |> List.head |> Maybe.map Tuple.second
 
 
+-- Have to use Process.sleep instead of Task.succeed here, otherwise any
+-- subscriptions are not updated.
 selfCmd : msg -> Cmd msg
-selfCmd m = Task.perform (always m) (Task.succeed True)
+selfCmd m = Task.perform (always m) (Process.sleep 1.0)
 
 
 -- Based on VNDBUtil::gtintype()
