@@ -18,7 +18,7 @@ sub enrich_release_elm {
 # Return the list of releases associated with a VN in the format suitable as 'Releases' Elm response.
 sub releases_by_vn {
     my($id) = @_;
-    my $l = tuwf->dbAlli('SELECT r.id, rv.rtype FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE NOT r.hidden AND rv.vid =', \$id, 'ORDER BY r.released, r.title, r.id');
+    my $l = tuwf->dbAlli('SELECT r.id, rv.rtype FROM releasest r JOIN releases_vn rv ON rv.id = r.id WHERE NOT r.hidden AND rv.vid =', \$id, 'ORDER BY r.released, r.sorttitle, r.id');
     enrich_release_elm $l;
     $l
 }

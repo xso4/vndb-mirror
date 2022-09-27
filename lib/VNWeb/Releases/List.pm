@@ -66,8 +66,8 @@ TUWF::get qr{/r}, sub {
              WHERE', $where, '
              ORDER BY', sprintf {
                  title    => 'r.sorttitle %s, r.released %1$s',
-                 minage   => 'r.minage %s, r.title %1$s, r.released %1$s',
-                 released => 'r.released %s, r.title %1$s, r.id %1$s',
+                 minage   => 'r.minage %s, r.sorttitle %1$s, r.released %1$s',
+                 released => 'r.released %s, r.sorttitle %1$s, r.id %1$s',
              }->{$opt->{s}}, $opt->{o} eq 'a' ? 'ASC' : 'DESC'
         ) : [];
     } || (($count, $list) = (undef, []));
