@@ -144,8 +144,9 @@ sub _infotable_ {
             td_ sub {
                 table_ sub {
                     tr_ class => 'nostripe title', sub {
-                        td_ sub {
-                            abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, '';
+                        td_ style => 'white-space: nowrap', sub {
+                            abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, ''
+                                for ($_, $_->{lang} eq $r->{olang} ? grep !defined $_->{title}, $r->{titles}->@* : ());
                         };
                         td_ sub {
                             span_ lang_attr($_->{lang}), $_->{title};
@@ -155,7 +156,7 @@ sub _infotable_ {
                                 txt_ $_->{latin};
                             }
                         }
-                    } for $r->{titles}->@*;
+                    } for grep defined $_->{title}, $r->{titles}->@*;
                 };
             };
         };
