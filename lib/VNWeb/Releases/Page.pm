@@ -42,7 +42,7 @@ sub _rev_ {
         [ gtin       => 'JAN/EAN/UPC',     empty => 0 ],
         [ catalog    => 'Catalog number' ],
         [ titles     => 'Languages',       txt => sub {
-            '['.$_->{lang}.($_->{mtl} ? ' machine translation' : '').'] '.$_->{title}.($_->{latin} ? " / $_->{latin}" : '')
+            '['.$_->{lang}.($_->{mtl} ? ' machine translation' : '').'] '.($_->{title}//'').(length $_->{latin} ? " / $_->{latin}" : '')
         }],
         [ olang      => 'Main title',      fmt => \%LANGUAGE ],
         [ released   => 'Release date',    fmt => sub { rdate_ $_ } ],
