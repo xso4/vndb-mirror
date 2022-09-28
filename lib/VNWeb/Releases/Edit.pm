@@ -85,7 +85,7 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
     $e->{titles} = [ sort { $a->{lang} cmp $b->{lang} } $e->{titles}->@* ];
     to_extlinks $e;
 
-    $e->{vntitles} = tuwf->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$e->{vn}[0]{vid}) if $e->{vn}->@* == 1;
+    $e->{vntitles} = $e->{vn}->@* == 1 ? tuwf->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$e->{vn}[0]{vid}) : [];
 
     enrich_merge vid => 'SELECT id AS vid, title FROM vnt WHERE id IN', $e->{vn};
     enrich_merge pid => 'SELECT id AS pid, name FROM producers WHERE id IN', $e->{producers};
