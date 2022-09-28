@@ -39,9 +39,9 @@ sub data {
          ORDER BY lbl'
     }, $d->{vns};
     enrich releases => id => vid => sub { sql '
-        SELECT rv.vid, r.id, r.title, r.original, r.released, rl.status, ', tz('rl.added', 'added'), '
+        SELECT rv.vid, r.id, r.title, r.alttitle, r.released, rl.status, ', tz('rl.added', 'added'), '
           FROM rlists rl
-          JOIN releases r ON r.id = rl.rid
+          JOIN releasest r ON r.id = rl.rid
           JOIN releases_vn rv ON rv.id = rl.rid
          WHERE rl.uid =', \$uid, '
          ORDER BY r.released, r.id'
@@ -92,7 +92,10 @@ TUWF::get qr{/$RE{uid}/list-export/xml}, sub {
                 tag finished => $_->{finished} if $_->{finished};
                 tag notes => $_->{notes} if length $_->{notes};
                 tag release => id => $_->{id}, sub {
-                    tag title => length($_->{original}) ? (original => $_->{original}) : (), $_->{title};
+                    # "original" is not entirely correct here if the user has
+                    # another alttitle selected, but let's keep it for
+                    # compatibility.
+                    tag title => length($_->{alttitle}) ? (original => $_->{alttitle}) : (), $_->{title};
                     tag 'release-date' => rdate $_->{released};
                     tag status => $RLIST_STATUS{$_->{status}};
                     tag added => $_->{added};
