@@ -298,11 +298,11 @@ sub listing_ {
     enrich rels => id => vid => sub { sql '
         SELECT rv.vid, r.id, rl.status, rv.rtype
           FROM rlists rl
-          JOIN releases r ON rl.rid = r.id
+          JOIN releasest r ON rl.rid = r.id
           JOIN releases_vn rv ON rv.id = r.id
          WHERE rl.uid =', \$uid, '
            AND rv.vid IN', $_, '
-         ORDER BY r.released, r.title, r.id'
+         ORDER BY r.released, r.sorttitle, r.id'
     }, $lst;
     enrich_release_elm map $_->{rels}, @$lst;
 
