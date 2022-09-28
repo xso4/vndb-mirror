@@ -416,7 +416,7 @@ view model =
       in
       [ formField "Title(s)"
         [ table [] <| List.indexedMap title model.titles
-        , inputSelect "" "" TitleAdd [] <| ("", "- Add title -") :: List.filter (\(l,_) -> l /= "zh" && not (List.any (\e -> e.lang == l) model.titles)) GT.languages
+        , inputSelect "" "" TitleAdd [] <| ("", "- Add title -") :: List.filter (\(l,_) -> not (List.any (\e -> e.lang == l) model.titles)) scriptLangs
         , br_ 2
         ]
       , formField "alias::Aliases"
@@ -556,7 +556,7 @@ view model =
                    div [style "margin" "5px 0 0 15px"]
                    [ inputText "" e.name (EditionName (searchn-1)) (placeholder "Edition title" :: style "width" "300px" :: onInvalid (Invalid Staff) :: GVE.valEditionsName)
                    , inputSelect "" e.lang (EditionLang (searchn-1)) [style "width" "150px"]
-                     ((Nothing, "Original language") :: List.map (\(i,l) -> (Just i, l)) (List.filter (\(l,_) -> l /= "zh") GT.languages))
+                     ((Nothing, "Original language") :: List.map (\(i,l) -> (Just i, l)) scriptLangs)
                    , text " ", label [] [ inputCheck "" e.official (EditionOfficial (searchn-1)), text " official" ]
                    , inputButton "remove edition" (EditionDel (searchn-1) e.eid) [style "margin-left" "30px"]
                    ]

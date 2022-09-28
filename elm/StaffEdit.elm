@@ -226,7 +226,7 @@ view model =
             , ("f",       "Female")
             , ("m",       "Male")
             ] ]
-          , formField "lang::Primary Language" [ inputSelect "lang" model.lang Lang [] (List.filter (\(e,_) -> e /= "zh-Hans" && e /= "zh-Hant") GT.languages) ]
+          , formField "lang::Primary Language" [ inputSelect "lang" model.lang Lang [] locLangs ]
           , formField "l_site::Official page" [ inputText "l_site" model.l_site Website (style "width" "400px" :: GSE.valL_Site) ]
           , formField "l_wikidata::Wikidata ID" [ inputWikidata "l_wikidata" model.l_wikidata LWikidata [] ]
           , formField "l_twitter::Twitter username" [ inputText "l_twitter" model.l_twitter LTwitter GSE.valL_Twitter ]

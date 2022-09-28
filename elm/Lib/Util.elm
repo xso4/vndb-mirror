@@ -6,6 +6,7 @@ import Process
 import Regex
 import Lib.Ffi as Ffi
 import Gen.Api as GApi
+import Gen.Types as GT
 
 -- Delete an element from a List
 delidx : Int -> List a -> List a
@@ -100,6 +101,21 @@ containsJapanese = Regex.contains jap_
 
 containsNonLatin : String -> Bool
 containsNonLatin = Regex.contains nonlatin_
+
+
+-- List of script-languages (i.e. not the generic "Chinese" option), with JA and EN ordered first.
+scriptLangs : List (String, String)
+scriptLangs =
+     (List.filter (\(l,_) -> l == "ja") GT.languages)
+  ++ (List.filter (\(l,_) -> l == "en") GT.languages)
+  ++ (List.filter (\(l,_) -> l /= "zh" && l /= "en" && l /= "ja") GT.languages)
+
+-- "Location languages", i.e. generic language without script indicator, again with JA and EN ordered first.
+locLangs : List (String, String)
+locLangs =
+     (List.filter (\(l,_) -> l == "ja") GT.languages)
+  ++ (List.filter (\(l,_) -> l == "en") GT.languages)
+  ++ (List.filter (\(l,_) -> l /= "zh-Hans" && l /= "zh-Hant" && l /= "en" && l /= "ja") GT.languages)
 
 
 -- Format a release resolution, first argument indicates whether empty string is to be used for "unknown"

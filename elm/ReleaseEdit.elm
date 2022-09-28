@@ -395,7 +395,7 @@ viewGen model =
   table [ class "formtable" ] <|
   [ formField "Languages & titles"
     [ table [] <| List.indexedMap (viewTitle model) model.titles
-    , inputSelect "" "" TitleAdd [] <| ("", "- Add language -") :: List.filter (\(l,_) -> l /= "zh" && not (List.any (\e -> e.lang == l) model.titles)) GT.languages
+    , inputSelect "" "" TitleAdd [] <| ("", "- Add language -") :: List.filter (\(l,_) -> not (List.any (\e -> e.lang == l) model.titles)) scriptLangs
     ]
 
   , tr [ class "newpart" ] [ td [] [] ]

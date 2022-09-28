@@ -130,15 +130,12 @@ langView (field, model) =
                 LangRel -> True
                 LangProd -> False
                 LangStaff -> False
-      splitChinese = case field of
-                      LangVN -> True
-                      LangVNO -> True
-                      LangRel -> True
-                      LangProd -> False
-                      LangStaff -> False
-      lst = if splitChinese
-            then List.filter (\(e,_) -> e /= "zh") GT.languages
-            else List.filter (\(e,_) -> e /= "zh-Hans" && e /= "zh-Hant") GT.languages
+      lst = case field of
+                      LangVN -> scriptLangs
+                      LangVNO -> scriptLangs
+                      LangRel -> scriptLangs
+                      LangProd -> locLangs
+                      LangStaff -> locLangs
   in
   ( case Set.toList model.sel of
       []  -> b [ class "grayedout" ] [ text label ]
