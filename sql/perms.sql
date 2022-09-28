@@ -141,6 +141,7 @@ GRANT SELECT                         ON releases                 TO vndb_multi;
 GRANT SELECT                         ON releasest                TO vndb_multi;
 GRANT SELECT                         ON releases_hist            TO vndb_multi;
 GRANT SELECT                         ON releases_titles          TO vndb_multi;
+GRANT SELECT                         ON releases_titles_hist     TO vndb_multi;
 GRANT SELECT                         ON releases_media           TO vndb_multi;
 GRANT SELECT                         ON releases_platforms       TO vndb_multi;
 GRANT SELECT                         ON releases_producers       TO vndb_multi;
