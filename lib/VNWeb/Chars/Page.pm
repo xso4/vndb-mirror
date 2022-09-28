@@ -34,7 +34,7 @@ sub enrich_item {
 
     enrich_image_obj image => $c;
     enrich_merge vid => 'SELECT id AS vid, title, alttitle, c_released AS vn_released FROM vnt WHERE id IN', $c->{vns};
-    enrich_merge rid => 'SELECT id AS rid, title AS rtitle, original AS roriginal, released AS rel_released FROM releases WHERE id IN', grep $_->{rid}, $c->{vns}->@*;
+    enrich_merge rid => 'SELECT id AS rid, title AS rtitle, alttitle AS ralttitle, released AS rel_released FROM releasest WHERE id IN', grep $_->{rid}, $c->{vns}->@*;
 
     # Even with trait overrides, we'll want to see the raw data in revision diffs,
     # so fetch the raw spoil as a separate column and do filtering/processing later.
@@ -64,10 +64,10 @@ sub fetch_chars {
     ');
 
     enrich vns => id => id => sub { sql '
-        SELECT cv.id, cv.vid, cv.rid, cv.spoil, cv.role, v.title, v.alttitle, r.title AS rtitle, r.original AS roriginal
+        SELECT cv.id, cv.vid, cv.rid, cv.spoil, cv.role, v.title, v.alttitle, r.title AS rtitle, r.alttitle AS ralttitle
           FROM chars_vns cv
           JOIN vnt v ON v.id = cv.vid
-          LEFT JOIN releases r ON r.id = cv.rid
+          LEFT JOIN releasest r ON r.id = cv.rid
          WHERE cv.id IN', $_, $vid ? ('AND cv.vid =', \$vid) : (), '
          ORDER BY v.title, cv.vid, cv.rid NULLS LAST'
     }, $l;
@@ -219,7 +219,7 @@ sub chartable_ {
                                 txt_ $CHAR_ROLE{$_->{role}}{txt}.' - ';
                                 if($_->{rid}) {
                                     b_ class => 'grayedout', "$_->{rid}:";
-                                    a_ href => "/$_->{rid}", title => $_->{roriginal}||$_->{rtitle}, $_->{rtitle};
+                                    a_ href => "/$_->{rid}", title => $_->{ralttitle}||$_->{rtitle}, $_->{rtitle};
                                 } else {
                                     txt_ 'All other releases';
                                 }
