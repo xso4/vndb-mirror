@@ -143,20 +143,21 @@ sub _infotable_ {
             td_ $r->{titles}->@* == 1 ? 'Title' : 'Titles';
             td_ sub {
                 table_ sub {
+                    my($olang) = grep $_->{lang} eq $r->{olang}, $r->{titles}->@*;
                     tr_ class => 'nostripe title', sub {
                         td_ style => 'white-space: nowrap', sub {
-                            abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, ''
-                                for ($_, $_->{lang} eq $r->{olang} ? grep !defined $_->{title}, $r->{titles}->@* : ());
+                            abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, '';
                         };
                         td_ sub {
-                            span_ lang_attr($_->{lang}), $_->{title};
+                            span_ lang_attr($_->{lang}), $_->{title}//$olang->{title};
                             b_ class => 'grayedout', ' (machine translation)' if $_->{mtl};
-                            if($_->{latin}) {
+                            my $latin = defined $_->{title} ? $_->{latin} : $olang->{latin};
+                            if(defined $latin) {
                                 br_;
-                                txt_ $_->{latin};
+                                txt_ $latin;
                             }
                         }
-                    } for grep defined $_->{title}, $r->{titles}->@*;
+                    } for $r->{titles}->@*;
                 };
             };
         };
