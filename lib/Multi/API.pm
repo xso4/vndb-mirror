@@ -495,6 +495,19 @@ my %GET_VN = (
         $_[0]{votecount}  *= 1;
       },
     },
+    titles => {
+      fetch => [[ 'id', 'SELECT id, lang, title, latin, official FROM vn_titles WHERE id IN(%s)',
+        sub { my($r, $n) = @_;
+          for my $i (@$r) {
+            $i->{titles} = [ grep $i->{id} eq $_->{id}, @$n ];
+          }
+          for (@$n) {
+            delete $_->{id};
+            $_->{official} = $_->{official} =~ /t/ ? TRUE : FALSE,
+          }
+        }
+      ]],
+    },
     anime => {
       fetch => [[ 'id', 'SELECT va.id AS vid, a.id, a.year, a.ann_id, a.nfo_id, a.type, a.title_romaji, a.title_kanji
                      FROM anime a JOIN vn_anime va ON va.aid = a.id WHERE va.id IN(%s)',
@@ -699,6 +712,19 @@ my %GET_RELEASE = (
             }
           } ],
       ]
+    },
+    lang => {
+      fetch => [[ 'id', 'SELECT id, lang, title, latin, mtl FROM releases_titles WHERE id IN(%s)',
+        sub { my($r, $n) = @_;
+          for my $i (@$r) {
+            $i->{lang} = [ grep $i->{id} eq $_->{id}, @$n ];
+          }
+          for (@$n) {
+            delete $_->{id};
+            $_->{mtl} = $_->{mtl} =~ /t/ ? TRUE : FALSE,
+          }
+        }
+      ]],
     },
     vn => {
       fetch => [[ 'id', 'SELECT rv.id AS rid, rv.rtype, v.id, v.title, v.alttitle AS original FROM releases_vn rv JOIN vnt v ON v.id = rv.vid
