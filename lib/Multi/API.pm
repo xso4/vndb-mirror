@@ -471,11 +471,14 @@ my %GET_VN = (
       },
     },
     details => {
-      select => 'v.image, i.c_sexual_avg, i.c_violence_avg, i.c_votecount, v.alias AS aliases, v.length, v.desc AS description, v.l_wp, v.l_encubed, v.l_renai, l_wikidata',
+      select => 'v.image, i.c_sexual_avg, i.c_violence_avg, i.c_votecount, v.alias AS aliases,
+            v.length, v.c_length AS length_minutes, v.c_lengthnum AS length_votes, v.desc AS description, v.l_wp, v.l_encubed, v.l_renai, l_wikidata',
       proc   => sub {
         $_[0]{aliases}     ||= undef;
         $_[0]{length}      *= 1;
         $_[0]{length}      ||= undef;
+        $_[0]{length_votes}*= 1;
+        $_[0]{length_minutes}*=1 if defined $_[0]{length_minutes};
         $_[0]{description} ||= undef;
         $_[0]{links} = {
           wikipedia => delete($_[0]{l_wp})     ||undef,
