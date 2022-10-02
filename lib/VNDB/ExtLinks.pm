@@ -204,7 +204,7 @@ sub sql_extlinks {
     my($type, $prefix) = @_;
     $prefix ||= '';
     my $l = $LINKS{$type} || die "DB entry type $type has no links";
-    VNWeb::DB::sql_comma(map $prefix.$_, sort keys %$l)
+    join ',', map $prefix.$_, sort keys %$l
 }
 
 

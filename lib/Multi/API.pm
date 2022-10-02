@@ -20,6 +20,7 @@ use VNDB::Types;
 use VNDB::Config;
 use JSON::XS;
 use PWLookup;
+use VNDB::ExtLinks 'sql_extlinks';
 
 # Linux-specific, not exported by the Socket module.
 sub TCP_KEEPIDLE  () { 4 }
@@ -714,7 +715,8 @@ my %GET_RELEASE = (
       ]
     },
     lang => {
-      fetch => [[ 'id', 'SELECT id, lang, title, latin, mtl FROM releases_titles WHERE id IN(%s)',
+      fetch => [[ 'id', 'SELECT rt.id, rt.lang, rt.title, rt.latin, rt.mtl, rt.lang = r.olang AS main
+                    FROM releases_titles rt JOIN releases r ON r.id = rt.id WHERE rt.id IN(%s)',
         sub { my($r, $n) = @_;
           for my $i (@$r) {
             $i->{lang} = [ grep $i->{id} eq $_->{id}, @$n ];
@@ -722,6 +724,7 @@ my %GET_RELEASE = (
           for (@$n) {
             delete $_->{id};
             $_->{mtl} = $_->{mtl} =~ /t/ ? TRUE : FALSE,
+            $_->{main} = $_->{main} =~ /t/ ? TRUE : FALSE,
           }
         }
       ]],
@@ -757,7 +760,22 @@ my %GET_RELEASE = (
           }
         }
       ]],
-    }
+    },
+    links => {
+      select => sql_extlinks('r'),
+      proc => sub {
+        my($e) = @_;
+        $e->{links} = [];
+        for my $l (keys $VNDB::ExtLinks::LINKS{r}->%*) {
+          my $i = $VNDB::ExtLinks::LINKS{r}{$l};
+          my $v = $e->{$l};
+          push $e->{links}->@*,
+            map +{ label => $i->{label}, url => sprintf($i->{fmt}, $_) },
+            !$v || $v eq '{}' ? () : $v =~ /^{(.+)}$/ ? split /,/, $1 : ($v);
+          delete $e->{$l};
+        }
+      },
+    },
   },
   filters => {
     id => [
