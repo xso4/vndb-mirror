@@ -453,11 +453,11 @@ my %GET_VN = (
   sortdef => 'id',
   sorts   => {
     id => 'v.id %s',
-    title => 'v.title %s',
-    released => 'v.c_released %s',
-    popularity => 'v.c_popularity %s NULLS LAST',
-    rating => 'v.c_rating %s NULLS LAST',
-    votecount => 'v.c_votecount %s',
+    title => 'v.title %s, v.id',
+    released => 'v.c_released %s, v.id',
+    popularity => '-v.c_pop_rank %s NULLS LAST, v.id',
+    rating => '-v.c_rat_rank %s NULLS LAST, v.id',
+    votecount => 'v.c_votecount %s, v.id',
   },
   flags  => {
     basic => {
@@ -650,8 +650,8 @@ my %GET_RELEASE = (
   sortdef => 'id',
   sorts   => {
     id => 'r.id %s',
-    title => 'r.sorttitle %s',
-    released => 'r.released %s',
+    title => 'r.sorttitle %s, r.id',
+    released => 'r.released %s, r.id',
   },
   proc    => sub {
     $_[0]{id} = idnum $_[0]{id};
@@ -838,7 +838,7 @@ my %GET_PRODUCER = (
   sortdef => 'id',
   sorts   => {
     id => 'p.id %s',
-    name => 'p.name %s',
+    name => 'p.name %s, p.id',
   },
   flags  => {
     basic => {
@@ -912,7 +912,7 @@ my %GET_CHARACTER = (
   sortdef => 'id',
   sorts   => {
     id => 'c.id %s',
-    name => 'c.name %s',
+    name => 'c.name %s, c.id',
   },
   flags  => {
     basic => {
