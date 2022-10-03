@@ -154,7 +154,7 @@ our %LINKS = (
                       , regex => qr{(?:dl|order)\.getchu\.com/(?:i/item|(?:r|index).php.*[?&]gcd=D?0*)([0-9]+).*} },
         l_dmm      => { label => 'DMM'
                       , fmt   => 'https://%s'
-                      , regex => qr{((?:www\.|dlsoft\.)?dmm\.(?:com|co\.jp)/[^\s]+)}
+                      , regex => qr{((?:www\.|dlsoft\.)?dmm\.(?:com|co\.jp)/[^\s?]+)(?:\?.*)?}
                       , patt  => 'https://<any link to dmm.com or dmm.co.jp>' },
         l_toranoana=> { label => 'Toranoana'
                         # ec.* is for 18+, ecs.toranoana.jp is for non-18+.
