@@ -15,7 +15,7 @@ use POE::Filter::VNDBAPI 'encode_filters';
 use Encode 'encode_utf8', 'decode_utf8';
 use Crypt::URandom 'urandom';
 use Crypt::ScryptKDF 'scrypt_raw';;
-use VNDB::Func 'imgurl', 'norm_ip', 'resolution';
+use VNDB::Func 'imgurl', 'imgsize', 'norm_ip', 'resolution';
 use VNDB::Types;
 use VNDB::Config;
 use JSON::XS;
@@ -471,7 +471,7 @@ my %GET_VN = (
       },
     },
     details => {
-      select => 'v.image, i.c_sexual_avg, i.c_violence_avg, i.c_votecount, v.alias AS aliases,
+      select => 'v.image, i.c_sexual_avg, i.c_violence_avg, i.c_votecount, i.width AS image_width, i.height AS image_height, v.alias AS aliases,
             v.length, v.c_length AS length_minutes, v.c_lengthnum AS length_votes, v.desc AS description, v.l_wp, v.l_encubed, v.l_renai, l_wikidata',
       proc   => sub {
         $_[0]{aliases}     ||= undef;
@@ -489,6 +489,8 @@ my %GET_VN = (
         $_[0]{image} = $_[0]{image} ? imgurl $_[0]{image} : undef;
         $_[0]{image_nsfw}  = !$_[0]{image} ? FALSE : !$_[0]{c_votecount} || $_[0]{c_sexual_avg} > 0.4 || $_[0]{c_violence_avg} > 0.4 ? TRUE : FALSE;
         $_[0]{image_flagging} = image_flagging $_[0]{image}, $_[0];
+        $_[0]{image_width} *= 1 if defined $_[0]{image_width};
+        $_[0]{image_height} *= 1 if defined $_[0]{image_height};
       },
     },
     stats => {
@@ -568,11 +570,14 @@ my %GET_VN = (
             $i->{screens} = [ grep $i->{id} eq $_->{vid}, @$n ];
           }
           for (@$n) {
+            $_->{id} = $_->{scr};
+            $_->{thumbnail} = imgurl($_->{scr}, 1);
             $_->{image} = imgurl delete $_->{scr};
             $_->{rid} = idnum $_->{rid};
             $_->{nsfw} = !$_->{c_votecount} || $_->{c_sexual_avg} > 0.4 || $_->{c_violence_avg} > 0.4 ? TRUE : FALSE;
             $_->{width} *= 1;
             $_->{height} *= 1;
+            ($_->{thumbnail_width}, $_->{thumbnail_height}) = imgsize $_->{width}, $_->{height}, config->{scr_size}->@*;
             $_->{flagging} = image_flagging(1, $_);
             delete $_->{vid};
           }
@@ -658,13 +663,14 @@ my %GET_RELEASE = (
   },
   flags => {
     basic => {
-      select => 'r.title, r.alttitle AS original, r.released, r.patch, r.freeware, r.doujin',
+      select => 'r.title, r.alttitle AS original, r.released, r.patch, r.freeware, r.doujin, r.official',
       proc   => sub {
         $_[0]{original} ||= undef;
         $_[0]{released} = formatdate($_[0]{released});
         $_[0]{patch}    = $_[0]{patch}    =~ /^t/ ? TRUE : FALSE;
         $_[0]{freeware} = $_[0]{freeware} =~ /^t/ ? TRUE : FALSE;
         $_[0]{doujin}   = $_[0]{doujin}   =~ /^t/ ? TRUE : FALSE;
+        $_[0]{official} = $_[0]{official} =~ /^t/ ? TRUE : FALSE;
       },
       fetch => [[ 'id', 'SELECT id, lang FROM releases_titles WHERE id IN(%s)',
         sub { my($n, $r) = @_;
@@ -925,12 +931,14 @@ my %GET_CHARACTER = (
       },
     },
     details => {
-      select => 'c.alias AS aliases, c.image, i.c_sexual_avg, i.c_violence_avg, i.c_votecount, c."desc" AS description, c.age',
+      select => 'c.alias AS aliases, c.image, i.c_sexual_avg, i.c_violence_avg, i.c_votecount, i.width AS image_width, i.height AS image_height, c."desc" AS description, c.age',
       proc => sub {
         $_[0]{aliases}     ||= undef;
         $_[0]{description} ||= undef;
         $_[0]{image}       = $_[0]{image} ? imgurl $_[0]{image} : undef;
         $_[0]{image_flagging} = image_flagging $_[0]{image}, $_[0];
+        $_[0]{image_width}  *=1 if defined $_[0]{image_width};
+        $_[0]{image_height} *=1 if defined $_[0]{image_height};
         $_[0]{age}*=1 if defined $_[0]{age};
       },
     },
