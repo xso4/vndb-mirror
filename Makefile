@@ -5,6 +5,7 @@
 #   Create static assets for production. Requires the following additional dependencies:
 #   - uglifyjs
 #   - zopfli
+#   - pandoc
 #
 # chmod
 #   For when the http process is run from a different user than the files are
@@ -35,6 +36,7 @@ ALL_CLEAN=\
 	$(shell ls css/skins/*.sass | sed -e 's/css\/skins\/\(.\+\)\.sass/static\/g\/\1.css/g')
 
 PROD=\
+	static/g/api-kana.html \
 	static/g/plain.min.js static/g/plain.min.js.gz \
 	static/g/elm.min.js static/g/elm.min.js.gz \
 	static/g/icons.opt.png \
@@ -153,6 +155,11 @@ static/g/elm.min.js: ${ELM_FILES} elm/Gen/.generated | static/g
 		'pure_funcs="F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9",pure_getters,keep_fargs=false,unsafe_comps,unsafe'\
 		| uglifyjs --mangle --comments all -o $@~
 	mv $@~ $@
+
+
+
+static/g/api-kana.html: data/api-kana.md
+	pandoc "$<" -st html5 --toc -o "$@"
 
 
 

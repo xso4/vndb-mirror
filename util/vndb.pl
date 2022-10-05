@@ -35,6 +35,8 @@ tuwf->{elmgen} = $ARGV[0] && $ARGV[0] eq 'elmgen';
 
 
 TUWF::hook before => sub {
+    return if tuwf->reqPath =~ qr{^/api/};
+
     # Serve static files from www/
     if(tuwf->resFile("$ROOT/www", tuwf->reqPath)) {
         tuwf->resHeader('Cache-Control' => 'max-age=86400');
@@ -60,6 +62,11 @@ TUWF::hook before => sub {
 
 TUWF::set error_404_handler => sub {
     tuwf->resStatus(404);
+    if(tuwf->reqPath =~ /^\/api\//) {
+        tuwf->resHeader('Content-Type', 'text/plain');
+        lit_ "Not found.\n";
+        return;
+    }
     VNWeb::HTML::framework_ title => 'Page Not Found', noindex => 1, sub {
         div_ class => 'mainbox', sub {
             h1_ 'Page not found';
@@ -124,6 +131,7 @@ TUWF::set import_modules => 0;
 TUWF::load_recursive('VNWeb');
 
 TUWF::hook after => sub {
+    return if tuwf->reqPath =~ qr{^/api/};
     return if rand() > config->{trace_log} || !tuwf->req->{trace_start};
     my $sqlt = List::Util::sum(map $_->[2], tuwf->{_TUWF}{DB}{queries}->@*);
     my %elm = (

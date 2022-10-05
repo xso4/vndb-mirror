@@ -310,6 +310,7 @@ sub f {
 my @TYPE; # stack of query types, $TYPE[0] is the top-level query, $TYPE[$#TYPE] the query currently being processed.
 
 
+f v => 80 => 'id',        { vndbid => 'v' }, '=' => sub { sql 'v.id = ', \$_ };
 f v =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_languages && ARRAY', \$_, '::language[]' };
 f v =>  3 => 'olang',     { enum => \%LANGUAGE }, '=' => sub { sql 'v.olang =', \$_ };
 f v =>  4 => 'platform',  { enum => \%PLATFORM }, '=' => sub { sql 'v.c_platforms && ARRAY', \$_, '::platform[]' };
@@ -318,12 +319,12 @@ f v =>  5 => 'length',    { uint => 1, enum => \%VN_LENGTH },
 f v =>  7 => 'released',  { fuzzyrdate => 1 }, sql => sub { sql 'v.c_released', $_[0], \($_ == 1 ? strftime('%Y%m%d', gmtime) : $_) };
 f v =>  9 => 'popularity',{ uint => 1, range => [ 0,  100] }, sql => sub { sql 'v.c_popularity', $_[0], \($_*100) };
 f v => 10 => 'rating',    { uint => 1, range => [10,  100] }, sql => sub { sql 'v.c_rating', $_[0], \($_*10) };
-f v => 11 => 'vote-count',{ uint => 1, range => [ 0,1<<30] }, sql => sub { sql 'v.c_votecount', $_[0], \$_ };
-f v => 61 => 'has-description', { uint => 1, range => [1,1] }, '=' => sub { 'v."desc" <> \'\'' };
-f v => 62 => 'has-anime',       { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM vn_anime va WHERE va.id = v.id)' };
-f v => 63 => 'has-screenshot',  { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM vn_screenshots vs WHERE vs.id = v.id)' };
-f v => 64 => 'has-review',      { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM reviews r WHERE r.vid = v.id AND NOT r.c_flagged)' };
-f v => 65 => 'on-list',         { uint => 1, range => [1,1] }, '=' => sub { auth ? sql 'v.id IN(SELECT vid FROM ulist_vns WHERE uid =', \auth->uid, ')' : '1=0' };
+f v => 11 => 'votecount', { uint => 1, range => [ 0,1<<30] }, sql => sub { sql 'v.c_votecount', $_[0], \$_ };
+f v => 61 => 'has_description', { uint => 1, range => [1,1] }, '=' => sub { 'v."desc" <> \'\'' };
+f v => 62 => 'has_anime',       { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM vn_anime va WHERE va.id = v.id)' };
+f v => 63 => 'has_screenshot',  { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM vn_screenshots vs WHERE vs.id = v.id)' };
+f v => 64 => 'has_review',      { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM reviews r WHERE r.vid = v.id AND NOT r.c_flagged)' };
+f v => 65 => 'on_list',         { uint => 1, range => [1,1] }, '=' => sub { auth ? sql 'v.id IN(SELECT vid FROM ulist_vns WHERE uid =', \auth->uid, ')' : '1=0' };
 f v => 66 => 'devstatus', { uint => 1, enum => \%DEVSTATUS }, '=' => sub { 'v.devstatus =', \$_ };
 
 f v =>  8 => 'tag',      { type => 'any', func => \&_validate_tag }, compact => \&_compact_tag, sql_list => _sql_where_tag('tags_vn_inherit');
@@ -333,7 +334,7 @@ f v => 12 => 'label',    { type => 'any', func => \&_validate_label },
     compact => sub { [ ($_->[0] =~ s/^u//r)*1, $_->[1]*1 ] },
     sql_list => \&_sql_where_label, sql_list_grp => sub { $_->[1] == 0 ? undef : $_->[0] };
 
-f v => 13 => 'anime-id',  { id => 1 },
+f v => 13 => 'anime_id',  { id => 1 },
     sql_list => sub {
         my($neg, $all, $val) = @_;
         sql 'v.id', $neg ? 'NOT' : '', 'IN(SELECT id FROM vn_anime WHERE aid IN', $val, $all && @$val > 1 ? ('GROUP BY id HAVING COUNT(aid) =', \scalar @$val) : (), ')';
@@ -546,6 +547,10 @@ sub _validate_adv {
         my($v,$i) = ($_[0],0);
         return { msg => 'Invalid compact encoded form', character_index => $i } if !($_[0] = _dec_query($v, \$i));
         return { msg => 'Trailing garbage' } if $i != length $v;
+    }
+    if(ref $_[0] eq 'ARRAY' && $_[0]->@* == 0) {
+        $_[0] = bless {type=>$t}, __PACKAGE__;
+        return 1;
     }
     my $v = _validate($t, @_);
     $_[0] = bless { type => $t, query => $_[0] }, __PACKAGE__ if $v;

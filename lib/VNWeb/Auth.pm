@@ -37,7 +37,8 @@ use VNWeb::DB;
 our @EXPORT = ('auth');
 
 sub auth {
-    tuwf->req->{auth} ||= do {
+    # API requests do not (currently) use this Auth system.
+    tuwf->req->{auth} ||= tuwf->reqPath =~ qr{^/api/} ? __PACKAGE__->new() : do {
         my $cookie = tuwf->reqCookie('auth')||'';
         my($uid, $token_e) = $cookie =~ /^([a-fA-F0-9]{40})\.?u?(\d+)$/ ? ('u'.$2, sha1_hex pack 'H*', $1) : (0, '');
 

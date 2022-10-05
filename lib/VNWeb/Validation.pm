@@ -43,7 +43,7 @@ TUWF::set custom_validations => {
     language    => { enum => \%LANGUAGE },
     gtin        => { required => 0, default => 0, func => sub { $_[0] = 0 if !length $_[0]; $_[0] eq 0 || gtintype($_[0]) } },
     rdate       => { uint => 1, func => \&_validate_rdate },
-    fuzzyrdate  => { func => \&_validate_fuzzyrdate },
+    fuzzyrdate  => { required => 0, default => 0, func => \&_validate_fuzzyrdate },
     # An array that may be either missing (returns undef), a single scalar (returns single-element array) or a proper array
     undefarray  => sub { +{ required => 0, default => undef, type => 'array', scalar => 1, values => $_[0] } },
     # Accepts a user-entered vote string (or '-' or empty) and converts that into a DB vote number (or undef) - opposite of fmtvote()
@@ -81,9 +81,9 @@ sub _validate_rdate {
 
 
 sub _validate_fuzzyrdate {
-    $_[0] = 0 if $_[0] =~ /^unknown$/;
-    $_[0] = 1 if $_[0] =~ /^today$/;
-    $_[0] = 99999999 if $_[0] =~ /^tba$/;
+    $_[0] = 0 if $_[0] =~ /^unknown$/i;
+    $_[0] = 1 if $_[0] =~ /^today$/i;
+    $_[0] = 99999999 if $_[0] =~ /^tba$/i;
     $_[0] = "${1}9999" if $_[0] =~ /^([0-9]{4})$/;
     $_[0] = "${1}${2}99" if $_[0] =~ /^([0-9]{4})-([0-9]{2})$/;
     $_[0] = "${1}${2}$3" if $_[0] =~ /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/;
