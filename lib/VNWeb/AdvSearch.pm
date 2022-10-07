@@ -311,6 +311,7 @@ my @TYPE; # stack of query types, $TYPE[0] is the top-level query, $TYPE[$#TYPE]
 
 
 f v => 80 => 'id',        { vndbid => 'v' }, '=' => sub { sql 'v.id = ', \$_ };
+f v => 81 => 'search',    {}, '=' => sub { sql 'v.c_search LIKE ALL (search_query(', \$_, '))' };
 f v =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_languages && ARRAY', \$_, '::language[]' };
 f v =>  3 => 'olang',     { enum => \%LANGUAGE }, '=' => sub { sql 'v.olang =', \$_ };
 f v =>  4 => 'platform',  { enum => \%PLATFORM }, '=' => sub { sql 'v.c_platforms && ARRAY', \$_, '::platform[]' };

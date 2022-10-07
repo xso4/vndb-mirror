@@ -220,8 +220,9 @@ sub proc_results {
         # nested 1-to-1 objects
         } elsif($d->{fields}) {
             for my $o (@$results) {
-                if($d->{nullif} && $o->{"${f}_nullif"}) {
+                if($d->{nullif} && delete $o->{"${f}_nullif"}) {
                     $o->{$f} = undef;
+                    delete $o->{ $d->{fields}{$_}{col}||$_ } for (keys $d->{fields}->%*);
                 } else {
                     $o->{$f} = {};
                     proc_field($_, $d->{fields}{$_}, $o, $o->{$f})

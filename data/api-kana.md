@@ -258,6 +258,9 @@ Name              [^F]  Description
 ----------------  --    -------------------------------------------------------
 `id`              o     vndbid
 
+`search`          m     String search, matches on the VN titles, aliases and release titles.
+                        The search algorithm is the same as used on the site.
+
 `lang`            m     Language availability.
 
 `olang`                 Original language.
@@ -313,8 +316,6 @@ Protagonist](https://vndb.org/g505) with a vote of at least 1.2 at any spoiler
 level. If only an ID is given, `0` is assumed for both the spoiler and tag
 levels. For example, `["tag","=","g505"]` is equivalent to
 `["tag","=",["g505",0,0]]`.
-
-*TODO: Search. The site doesn't currently use filters for that, hmm.*
 
 *TODO: old API has a firstchar filter, do we need that?*
 
