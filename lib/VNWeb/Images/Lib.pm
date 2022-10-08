@@ -21,8 +21,8 @@ sub enrich_image {
     my($canvote, $l) = @_;
     enrich_merge id => sub { sql q{
       SELECT i.id, i.width, i.height, i.c_votecount AS votecount
-           , i.c_sexual_avg AS sexual_avg, i.c_sexual_stddev AS sexual_stddev
-           , i.c_violence_avg AS violence_avg, i.c_violence_stddev AS violence_stddev
+           , i.c_sexual_avg::real/100 AS sexual_avg, i.c_sexual_stddev::real/100 AS sexual_stddev
+           , i.c_violence_avg::real/100 AS violence_avg, i.c_violence_stddev::real/100 AS violence_stddev
            , iv.sexual AS my_sexual, iv.violence AS my_violence
            , COALESCE(EXISTS(SELECT 1 FROM image_votes iv0 WHERE iv0.id = i.id AND iv0.ignore) AND NOT iv.ignore, FALSE) AS my_overrule
            , COALESCE(v.id, c.id, vsv.id) AS entry_id
@@ -149,7 +149,7 @@ sub image_ {
 
 sub enrich_image_obj {
     my $field = shift;
-    enrich_obj $field => id => 'SELECT id, width, height, c_votecount AS votecount, c_sexual_avg AS sexual_avg, c_violence_avg AS violence_avg FROM images WHERE id IN', @_;
+    enrich_obj $field => id => 'SELECT id, width, height, c_votecount AS votecount, c_sexual_avg::real/100 AS sexual_avg, c_violence_avg::real/100 AS violence_avg FROM images WHERE id IN', @_;
 
     # Also add our final verdict. Still no clue why I chose these thresholds, but they seem to work.
     for (map +(ref $_ eq 'ARRAY' ? @$_ : $_), @_) {

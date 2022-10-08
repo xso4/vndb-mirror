@@ -24,7 +24,7 @@ elm_api Images => $SEND, { excl_voted => { anybool => 1 } }, sub {
     my($data) = @_;
     return elm_Unauth if !can_vote;
 
-    state $stats = tuwf->dbRowi('SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE c_weight > 0) AS referenced FROM images');
+    state $stats = tuwf->dbRowi('SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE c_weight > 1) AS referenced FROM images');
 
     # Performing a proper weighted sampling on the entire images table is way
     # too slow, so we do a TABLESAMPLE to first randomly select a number of
@@ -47,7 +47,7 @@ elm_api Images => $SEND, { excl_voted => { anybool => 1 } }, sub {
     my $l = tuwf->dbAlli('
         SELECT id
           FROM images TABLESAMPLE SYSTEM (', \$tablesample, ')
-         WHERE c_weight > 0',
+         WHERE c_weight > 1',
             $data->{excl_voted} ? ('AND NOT (c_uids && ARRAY[', \auth->uid, '::vndbid])') : (), '
          ORDER BY random() ^ (1.0/c_weight) DESC
          LIMIT', \30

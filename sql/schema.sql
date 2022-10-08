@@ -281,13 +281,15 @@ CREATE TABLE images (
   id                vndbid NOT NULL PRIMARY KEY CONSTRAINT images_id_check CHECK(vndbid_type(id) IN('ch', 'cv', 'sf')), -- [pub]
   width             smallint NOT NULL, -- [pub]
   height            smallint NOT NULL, -- [pub]
-  c_votecount       integer  NOT NULL DEFAULT 0, -- [pub] (cached columns are marked [pub] for easy querying...)
-  c_sexual_avg      real, -- [pub]
-  c_sexual_stddev   real, -- [pub]
-  c_violence_avg    real, -- [pub]
-  c_violence_stddev real, -- [pub]
-  c_weight          real NOT NULL DEFAULT 0, -- [pub]
+  c_votecount       smallint NOT NULL DEFAULT 0, -- [pub] (cached columns are marked [pub] for easy querying)
+  c_sexual_avg      smallint NOT NULL DEFAULT 200, -- [pub] (0 - 200, so average vote * 100)
+  c_sexual_stddev   smallint NOT NULL DEFAULT 0, -- [pub]
+  c_violence_avg    smallint NOT NULL DEFAULT 200, -- [pub]
+  c_violence_stddev smallint NOT NULL DEFAULT 0, -- [pub]
+  c_weight          smallint NOT NULL DEFAULT 0, -- [pub]
   c_uids            vndbid[] NOT NULL DEFAULT '{}'
+  -- (technically, c_votecount is redundant as it can be easily derived from
+  --  c_uids, but otherwise we'd lose the space to padding anyway)
 );
 
 -- image_votes

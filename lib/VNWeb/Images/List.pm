@@ -34,10 +34,10 @@ sub graph_ {
 
     tag_ 'svg', width => '190px', height => '100px', viewBox => '0 0 190 100', sub {
         tag_ 'g', sub {
-            subgraph_ 'Safe', 'Explicit', $i->{c_sexual_avg}, $i->{c_sexual_stddev}, $i->{my_sexual}, $i->{user_sexual}
+            subgraph_ 'Safe', 'Explicit', $i->{sexual_avg}, $i->{sexual_stddev}, $i->{my_sexual}, $i->{user_sexual}
         };
         tag_ 'g', transform => 'translate(0,51)', sub {
-            subgraph_ 'Tame', 'Brutal', $i->{c_violence_avg}, $i->{c_violence_stddev}, $i->{my_violence}, $i->{user_violence}
+            subgraph_ 'Tame', 'Brutal', $i->{violence_avg}, $i->{violence_stddev}, $i->{my_violence}, $i->{user_violence}
         };
     };
 }
@@ -54,7 +54,7 @@ sub listing_ {
             div_ sub {
                 a_ href => "/img/$_->{id}?view=$view", $_->{id};
                 txt_ sprintf ' / %d', $_->{c_votecount},;
-                b_ class => 'grayedout', sprintf ' / w%.0f', $_->{c_weight};
+                b_ class => 'grayedout', sprintf ' / w%d', $_->{c_weight};
                 br_;
                 graph_ $_, $opt;
             };
@@ -158,7 +158,8 @@ TUWF::get qr{/img/list}, sub {
 
     my($lst, $np) = tuwf->dbPagei({ results => 100, page => $opt->{p} }, '
         SELECT i.id, i.width, i.height, i.c_votecount, i.c_weight
-             , i.c_sexual_avg, i.c_sexual_stddev, i.c_violence_avg, i.c_violence_stddev
+             , i.c_sexual_avg::real/100 AS sexual_avg, i.c_sexual_stddev::real/100 AS sexual_stddev
+             , i.c_violence_avg::real/100 AS violence_avg, i.c_violence_stddev::real/100 AS violence_stddev
              , iv.sexual as my_sexual, iv.violence as my_violence',
           $opt->{u} ? ', iu.sexual as user_sexual, iu.violence as user_violence' : (), '
           FROM images i',
@@ -170,7 +171,7 @@ TUWF::get qr{/img/list}, sub {
              sdev   => 'i.c_sexual_stddev DESC NULLS LAST',
              vdev   => 'i.c_violence_stddev DESC NULLS LAST',
              date   => 'iu.date DESC',
-             diff   => 'abs(iu.sexual-i.c_sexual_avg) + abs(iu.violence-i.c_violence_avg) DESC',
+             diff   => 'abs(iu.sexual*100-i.c_sexual_avg) + abs(iu.violence*100-i.c_violence_avg) DESC',
          }->{$opt->{s}}, ', i.id'
     );
 

@@ -418,8 +418,8 @@ sub image_flagging {
     violence_avg => delete $obj->{c_violence_avg},
   };
   $flag->{votecount}    *= 1 if defined $flag->{votecount};
-  $flag->{sexual_avg}   *= 1 if defined $flag->{sexual_avg};
-  $flag->{violence_avg} *= 1 if defined $flag->{violence_avg};
+  $flag->{sexual_avg}   /= 100 if defined $flag->{sexual_avg};
+  $flag->{violence_avg} /= 100 if defined $flag->{violence_avg};
   $image ? $flag : undef;
 }
 
@@ -487,7 +487,7 @@ my %GET_VN = (
           wikidata  => formatwd(delete $_[0]{l_wikidata}),
         };
         $_[0]{image} = $_[0]{image} ? imgurl $_[0]{image} : undef;
-        $_[0]{image_nsfw}  = !$_[0]{image} ? FALSE : !$_[0]{c_votecount} || $_[0]{c_sexual_avg} > 0.4 || $_[0]{c_violence_avg} > 0.4 ? TRUE : FALSE;
+        $_[0]{image_nsfw}  = !$_[0]{image} ? FALSE : !$_[0]{c_votecount} || $_[0]{c_sexual_avg} > 40 || $_[0]{c_violence_avg} > 40 ? TRUE : FALSE;
         $_[0]{image_flagging} = image_flagging $_[0]{image}, $_[0];
         $_[0]{image_width} *= 1 if defined $_[0]{image_width};
         $_[0]{image_height} *= 1 if defined $_[0]{image_height};
@@ -574,7 +574,7 @@ my %GET_VN = (
             $_->{thumbnail} = imgurl($_->{scr}, 1);
             $_->{image} = imgurl delete $_->{scr};
             $_->{rid} = idnum $_->{rid};
-            $_->{nsfw} = !$_->{c_votecount} || $_->{c_sexual_avg} > 0.4 || $_->{c_violence_avg} > 0.4 ? TRUE : FALSE;
+            $_->{nsfw} = !$_->{c_votecount} || $_->{c_sexual_avg} > 40 || $_->{c_violence_avg} > 40 ? TRUE : FALSE;
             $_->{width} *= 1;
             $_->{height} *= 1;
             ($_->{thumbnail_width}, $_->{thumbnail_height}) = imgsize $_->{width}, $_->{height}, config->{scr_size}->@*;

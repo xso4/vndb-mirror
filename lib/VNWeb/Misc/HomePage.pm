@@ -6,7 +6,7 @@ use VNWeb::Discussions::Lib 'enrich_boards';
 
 
 sub screens_ {
-    state $where  ||= sql 'i.c_weight > 0 and vndbid_type(i.id) =', \'sf', 'and i.c_sexual_avg <', \0.4, 'and i.c_violence_avg <', \0.4;
+    state $where  ||= sql 'i.c_weight > 0 and vndbid_type(i.id) =', \'sf', 'and i.c_sexual_avg <', \40, 'and i.c_violence_avg <', \40;
     state $stats  ||= tuwf->dbRowi('SELECT count(*) as total, count(*) filter(where', $where, ') as subset from images i');
     state $sample ||= 100*min 1, (200 / $stats->{subset}) * ($stats->{total} / $stats->{subset});
 

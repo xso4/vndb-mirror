@@ -186,20 +186,23 @@ BEGIN
      SET c_votecount = votecount, c_sexual_avg = sexual_avg, c_sexual_stddev = sexual_stddev
        , c_violence_avg = violence_avg, c_violence_stddev = violence_stddev, c_weight = weight, c_uids = uids
     FROM (
-      SELECT s.*,
-             CASE WHEN EXISTS(
+      SELECT s.id, s.votecount, s.uids
+           , COALESCE(s.sexual_avg  *100, 200) AS sexual_avg,   COALESCE(s.sexual_stddev  *100, 0) AS sexual_stddev
+           , COALESCE(s.violence_avg*100, 200) AS violence_avg, COALESCE(s.violence_stddev*100, 0) AS violence_stddev
+           , CASE WHEN s.votecount >= 15 THEN 1 -- Lock the weight at 1 at 15 votes, collecting more votes is just inefficient
+             WHEN EXISTS(
                           SELECT 1 FROM vn v                                        WHERE s.id BETWEEN 'cv1' AND vndbid_max('cv') AND NOT v.hidden AND v.image = s.id
                 UNION ALL SELECT 1 FROM vn_screenshots vs JOIN vn v ON v.id = vs.id WHERE s.id BETWEEN 'sf1' AND vndbid_max('sf') AND NOT v.hidden AND vs.scr = s.id
                 UNION ALL SELECT 1 FROM chars c                                     WHERE s.id BETWEEN 'ch1' AND vndbid_max('ch') AND NOT c.hidden AND c.image = s.id
              )
-             THEN ceil(pow(2, greatest(0, 14 - s.votecount)) + coalesce(pow(s.sexual_stddev, 2), 0)*100 + coalesce(pow(s.violence_stddev, 2), 0)*100)::real
+             THEN ceil(pow(2, greatest(0, 14 - s.votecount)) + coalesce(pow(s.sexual_stddev, 2), 0)*100 + coalesce(pow(s.violence_stddev, 2), 0)*100)
              ELSE 0 END AS weight
         FROM (
             SELECT i.id, count(iv.id) AS votecount
-                 , round(avg(sexual)   FILTER(WHERE NOT iv.ignore), 2)::real AS sexual_avg
-                 , round(avg(violence) FILTER(WHERE NOT iv.ignore), 2)::real AS violence_avg
-                 , round(stddev_pop(sexual)   FILTER(WHERE NOT iv.ignore), 2)::real AS sexual_stddev
-                 , round(stddev_pop(violence) FILTER(WHERE NOT iv.ignore), 2)::real AS violence_stddev
+                 , round(avg(sexual)   FILTER(WHERE NOT iv.ignore), 2) AS sexual_avg
+                 , round(avg(violence) FILTER(WHERE NOT iv.ignore), 2) AS violence_avg
+                 , round(stddev_pop(sexual)   FILTER(WHERE NOT iv.ignore), 2) AS sexual_stddev
+                 , round(stddev_pop(violence) FILTER(WHERE NOT iv.ignore), 2) AS violence_stddev
                  , coalesce(array_agg(u.id) FILTER(WHERE u.id IS NOT NULL), '{}') AS uids
               FROM images i
               LEFT JOIN image_votes iv ON iv.id = i.id
