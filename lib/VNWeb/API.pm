@@ -10,7 +10,7 @@ TUWF::get qr{/api/kana}, sub {
         <$F> =~ s/%endpoint%/$url/rg;
     };
     tuwf->resHeader('Content-Type' => "text/html; charset=UTF-8");
-    tuwf->resBinary($data);
+    tuwf->resBinary($data, 'auto');
 };
 
 
@@ -255,8 +255,8 @@ sub IMG {
         id        => { select => "$main_col AS image_id", col => 'image_id' },
         url       => { select => "$main_col AS image_url", col => 'image_url', proc => sub { $_[0] = imgurl $_[0] } },
         dims      => { join => $join_id, col => 'image_dims', select => "ARRAY[${join_prefix}width, ${join_prefix}height] AS image_dims" },
-        sexual    => { join => $join_id, select => "${join_prefix}c_sexual_avg", col => 'c_sexual_avg' },
-        violence  => { join => $join_id, select => "${join_prefix}c_violence_avg", col => 'c_violence_avg' },
+        sexual    => { join => $join_id, select => "${join_prefix}c_sexual_avg::real/100 AS image_sexual", col => 'image_sexual' },
+        violence  => { join => $join_id, select => "${join_prefix}c_violence_avg::real/100 AS image_violence", col => 'image_violence' },
         votecount => { join => $join_id, select => "${join_prefix}c_votecount AS image_votecount", col => 'image_votecount' },
     );
 }
