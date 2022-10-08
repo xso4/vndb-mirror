@@ -23,15 +23,38 @@ TUWF::options qr{/api/kana.*}, sub {
 };
 
 
-# TODO: accounting & logging
+# TODO: accounting, this function only logs for now.
+# Should be called after resJSON so we have output stats.
+sub count_request {
+    my($start, $rows, $call) = @_;
+    tuwf->resFd->flush;
+    my $time = time-$start;
+    tuwf->log(sprintf '%4dms %3dr%6db [%s] %s "%s"',
+        $time*1000, $rows, length(tuwf->{_TUWF}{Res}{content}),
+        tuwf->reqIP(), $call, tuwf->reqHeader('user-agent')||'-'
+    );
+}
+
+
+sub err {
+    my($status, $msg) = @_;
+    tuwf->resStatus($status);
+    tuwf->resHeader('Content-type', 'text');
+    print { tuwf->resFd } $msg, "\n";
+    tuwf->done;
+}
+
+
 sub api_get {
     my($path, $schema, $sub) = @_;
     my $s = tuwf->compile({ type => 'hash', keys => $schema });
     TUWF::get qr{/api/kana\Q$path}, sub {
+        my $start = time;
         my $res = $sub->();
         $s->analyze->coerce_for_json($res, unknown => 'reject');
         tuwf->resJSON($res);
         tuwf->resHeader('Access-Control-Allow-Origin', '*') if tuwf->reqHeader('Origin');
+        count_request($start, 1, '-');
     };
 }
 
@@ -83,15 +106,13 @@ sub api_get {
 #   col    => 'id',  # $merge_col argument to enrich()
 #   joins  => {},    # Nested join definitions
 #   fields => {},    # Nested field definitions
-#
-# TODO: enrich_merge?
 sub api_query {
     my($path, %opt) = @_;
 
     my %sort = $opt{sort}->@*;
     my $req_schema = tuwf->compile({ type => 'hash', keys => {
         filters => { required => 0, advsearch => $opt{filters} },
-        fields => { required => 0, default => $opt{fields}, func => sub { parse_fields($opt{fields}, $_[0]) } },
+        fields => { required => 0, default => '', func => sub { parse_fields($opt{fields}, $_[0]) } },
         sort => { required => 0, default => $opt{sort}[0], enum => [ keys %sort ] },
         reverse => { required => 0, default => 0, jsonbool => 1 },
         results => { required => 0, default => 10, uint => 1, range => [1,100] },
@@ -102,6 +123,7 @@ sub api_query {
     }});
 
     TUWF::post qr{/api/kana\Q$path}, sub {
+        my $start = time;
         # First make sure to reset any existing 'enabled' flags from a previous call,
         # so these can be filled again with parse_fields() during validation.
         # Writing directly to our config structure is a bit ugly, but at least it's simple and efficient.
@@ -110,13 +132,13 @@ sub api_query {
         })->($opt{fields});
 
         my $req = tuwf->validate(json => $req_schema);
-        if (!$req) {
-            tuwf->resStatus(400);
-            tuwf->resHeader('Content-type', 'text');
-            lit_ "Invalid query.\n";
+        if(!$req) {
             eval { $req->data }; warn $@;
-            return;
-        }
+            my($err) = $req->err->{errors} ? $req->err->{errors}->@* : ();
+            err 400, "Invalid '$err->{key}' member: $err->{msg}" if $err->{key} && $err->{msg};
+            err 400, "Invalid '$err->{key}' member." if $err->{key};
+            err 400, 'Invalid query.';
+        };
         $req = $req->data;
 
         my $sort = $sort{$req->{sort}};
@@ -124,13 +146,13 @@ sub api_query {
         my $opposite_order = $req->{reverse} ? 'ASC' : 'DESC';
         $sort = $sort =~ /[?!]o/ ? ($sort =~ s/\?o/$order/rg =~ s/!o/$opposite_order/rg) : "$sort $order";
 
-        my($select, $joins) = prepare_fields($req->{fields}, $opt{joins});
+        my($select, $joins) = prepare_fields($opt{fields}, $opt{joins});
 
         # TODO: Handle query timeouts
         my($results, $more) = tuwf->dbPagei($req, $opt{sql}->($select, $joins, $req->{filters}->sql_where), 'ORDER BY', $sort);
         my $count = $req->{count} && tuwf->dbVali('SELECT count(*) FROM (', $opt{sql}->('', '', $req->{filters}->sql_where), ') x');
 
-        proc_results($req->{fields}, $results);
+        proc_results($opt{fields}, $results);
 
         tuwf->resJSON({
             results => $results,
@@ -140,31 +162,33 @@ sub api_query {
             $req->{normalized_filters} ? (normalized_filters => $req->{filters}->json) : (),
         });
         tuwf->resHeader('Access-Control-Allow-Origin', '*') if tuwf->reqHeader('Origin');
+        count_request($start, scalar @$results, sprintf '[%s] {%s %s r%dp%d} %s', $req->{fields},
+            $req->{sort}, $req->{reverse}?'asc':'desc', $req->{results}, $req->{page},
+            $req->{filters}->query_encode()||'-');
     };
 }
 
 
 sub parse_fields {
     my @tokens = split /\s*([,.{}])\s*/, $_[1];
-    $_[1] = $_[0];
     return (sub {
         my($lvl, $f) = @_;
         my $nf = $f;
         while(defined (my $t = shift @tokens)) {
             next if !length $t;
             if($t eq '}') {
-                return { msg => "Invalid '}' after non-terminal field" } if $nf;
+                return { msg => "Expected (sub)field, got '}'" } if $nf;
                 return $lvl > 0 ? 1 : { msg => "Unmatched '}'" } ;
             } elsif($t eq '{') {
-                return { msg => "Invalid '{' after terminal field" } if !$nf;
+                return { msg => "Unexpected '{' after non-object field" } if !$nf;
                 my $r = __SUB__->($lvl+1, $nf);
                 return $r if ref $r;
                 $nf = undef;
             } elsif($t eq ',') {
-                return { msg => 'Invalid comma after non-terminal field' } if $nf;
+                return { msg => 'Expected (sub)field, got comma' } if $nf;
                 $nf = $f;
             } else {
-                return { msg => 'Invalid attempt to enter terminal field' } if !$nf;
+                return { msg => 'Unexpected (sub)field after non-object field' } if !$nf;
                 if($t eq '.') {
                     $t = shift(@tokens) // return { msg => "Expected name after '.'" };
                 }
@@ -173,9 +197,9 @@ sub parse_fields {
                 $nf = $d->{fields};
             }
         }
-        return { msg => "Requested non-terminal field" } if $nf;
+        return { msg => "Expected sub-field" } if $nf;
         return $lvl > 0 ? { msg => "Unmatched '{'" } : 1;
-    })->(0, $_[1]);
+    })->(0, $_[0]);
 }
 
 

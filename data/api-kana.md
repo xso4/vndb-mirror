@@ -422,7 +422,7 @@ expect to see:
 
   Code  Reason
 ------  -------
-   400  Invalid request body or query, the included error message is sadly not always very helpful. I may fix that, sometime™.
+   400  Invalid request body or query, the included error message hopefully points at the problem.
    404  Invalid API path or HTTP method
    429  Throttled *(not yet implemented)*
    500  Server error, usually points to a bug if this persists
