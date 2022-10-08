@@ -272,6 +272,7 @@ api_get '/stats', { map +($_, { uint => 1 }), @STATS }, sub {
 
 my @BOOL = (proc => sub { $_[0] = $_[0] ? \1 : \0 if defined $_[0] });
 my @INT = (proc => sub { $_[0] *= 1 if defined $_[0] });
+my @RDATE = (proc => sub { $_[0] = $_[0] ? rdate $_[0] : undef });
 
 sub IMG {
     my($main_col, $join_id, $join_prefix) = @_;
@@ -308,11 +309,19 @@ api_query '/vn',
                 main => { join => 'main', select => 'vt.lang = v.olang AS main', @BOOL },
             },
         },
+        aliases => { select => 'v.alias AS aliases', proc => sub { $_[0] = [ grep length($_), split /\n/, $_[0] ] } },
         olang => { select => 'v.olang' },
+        released => { select => 'v.c_released AS released', @RDATE },
+        languages => { select => 'v.c_languages::text[] AS languages' },
+        platforms => { select => 'v.c_platforms::text[] AS platforms' },
         image => {
             fields => { IMG 'v.image', 'image', 'i.' },
             nullif => 'v.image IS NULL AS image_nullif',
         },
+        length => { select => 'v.length', proc => sub { $_[0] = undef if !$_[0] } },
+        length_minutes => { select => 'v.c_length AS length_minutes' },
+        length_votes => { select => 'v.c_lengthnum AS length_votes' },
+        description => { select => 'v.desc AS description', proc => sub { $_[0] = undef if !length $_[0] } },
         screenshots => {
             enrich => sub { sql 'SELECT vs.id AS vid', $_[0], 'FROM vn_screenshots vs', $_[1], 'WHERE vs.id IN' },
             key => 'id', col => 'vid',
@@ -326,6 +335,21 @@ api_query '/vn',
                                   , select => "ARRAY[i.width, i.height] AS thumbnail_dims"
                                   , proc => sub { @{$_[0]} = imgsize @{$_[0]}, config->{scr_size}->@* } },
                 # TODO: release info
+            },
+        },
+        tags => {
+            enrich => sub { sql 'SELECT tv.vid', $_[0], 'FROM tags_vn_direct tv', $_[1], 'WHERE tv.vid IN' },
+            key => 'id', col => 'vid',
+            joins => {
+                tag => 'JOIN tags t ON t.id = tv.tag',
+            },
+            fields => {
+                id       => { select => 'tv.tag AS id' },
+                rating   => { select => 'tv.rating' },
+                spoiler  => { select => 'tv.spoiler' },
+                lie      => { select => 'tv.lie', @BOOL },
+                name     => { join => 'tag', select => 't.name' },
+                category => { join => 'tag', select => 't.cat AS category' },
             },
         },
     },

@@ -19,6 +19,7 @@ our @EXPORT = ('bb_format', qw|
   norm_ip
   minage
   fmtvote fmtmedia fmtage fmtdate fmtrating fmtspoil fmtanimation
+  rdate
   imgpath imgurl
   lang_attr
   query_encode
@@ -223,6 +224,17 @@ sub fmtanimation {
         $a & 16 ? '3D' : (),
         $a & 32 ? 'Live action' : ()
     ).($cat ? " $cat" : '');
+}
+
+
+# Format a release date as a string.
+sub rdate {
+    my($y, $m, $d) = ($1, $2, $3) if sprintf('%08d', shift||0) =~ /^([0-9]{4})([0-9]{2})([0-9]{2})$/;
+    $y ==    0 ? 'unknown' :
+    $y == 9999 ? 'TBA' :
+    $m ==   99 ? sprintf('%04d', $y) :
+    $d ==   99 ? sprintf('%04d-%02d', $y, $m) :
+                 sprintf('%04d-%02d-%02d', $y, $m, $d);
 }
 
 

@@ -330,7 +330,8 @@ alttitle
     in the original script.[^title]
 
 titles
-:   Array of objects, full list of titles associated with the VN.
+:   Array of objects, full list of titles associated with the VN, always
+    contains at least one title.
 
 titles.lang
 :   String, language. Each language appears at most once in the titles list.
@@ -351,8 +352,21 @@ titles.main
     included for convenience, you can of course also use the `olang` field to
     grab the main title.
 
+aliases
+:   Array of strings, list of aliases.
+
 olang
 :   String, language the VN has originally been written in.
+
+released
+:   Release date, possibly null.
+
+languages
+:   Array of strings, list of languages this VN is available in. Does not
+    include machine translations.
+
+platforms
+:   Array of strings, list of platforms for which this VN is available.
 
 image
 :   Object, can be null.
@@ -377,6 +391,21 @@ image.violence
 image.votecount
 :   Integer, number of image flagging votes.
 
+length
+:   Integer, possibly null, rough length estimate of the VN between 1 (very
+    short) and 5 (very long). This field is only used as a fallback for when
+    there are no length votes, so you'll probably want to fetch
+    `length_minutes` too.
+
+length\_minutes
+:   Integer, possibly null, average of user-submitted play times in minutes.
+
+length\_votes
+:   Integer, number of submitted play times.
+
+description
+:   String, possibly null, may contain [formatting codes](https://vndb.org/d9#4).
+
 screenshots
 :   Array of objects, possibly empty. *TODO: objects don't include release info yet.*
 
@@ -388,6 +417,31 @@ screenshots.thumbnail
 
 screenshots.thumbnail\_dims
 :   Pixel dimensions of the thumbnail, array with two integer elements.
+
+tags
+:   Array of objects, possibly empty.
+
+tags.id
+:   String
+
+tags.rating
+:   Number, tag rating between 0 (exclusive) and 3 (inclusive).
+
+tags.spoiler
+:   Integer, 0, 1 or 2, spoiler level.
+
+tags.lie
+:   Boolean.
+
+tags.name
+:   String
+
+tags.category
+:   String, `"cont"` for content, `"ero"` for sexual content and `"tech"` for technical tags.
+
+*Currently missing from the old API: VN relations, anime relations and external
+links. Can add if there's interest.*
+
 
 ## POST /release
 

@@ -18,7 +18,7 @@ use VNDB::Types;
 use VNWeb::Auth;
 use VNWeb::Validation;
 use VNWeb::DB;
-use VNDB::Func 'fmtdate';
+use VNDB::Func 'fmtdate', 'rdate';
 
 our @EXPORT = qw/
     clearfloat_
@@ -26,7 +26,7 @@ our @EXPORT = qw/
     debug_
     join_
     user_maybebanned_ user_ user_displayname
-    rdate rdate_
+    rdate_
     vnlength_
     spoil_
     elm_
@@ -112,17 +112,6 @@ sub user_displayname {
     return 'anonymous' if !f 'id';
     my $fancy = !(auth->pref('nodistract_can') && auth->pref('nodistract_nofancy'));
     $fancy && f 'uniname_can' && f 'uniname' ? f 'uniname' : f 'name'
-}
-
-
-# Format a release date as a string.
-sub rdate {
-    my($y, $m, $d) = ($1, $2, $3) if sprintf('%08d', shift||0) =~ /^([0-9]{4})([0-9]{2})([0-9]{2})$/;
-    $y ==    0 ? 'unknown' :
-    $y == 9999 ? 'TBA' :
-    $m ==   99 ? sprintf('%04d', $y) :
-    $d ==   99 ? sprintf('%04d-%02d', $y, $m) :
-                 sprintf('%04d-%02d-%02d', $y, $m, $d);
 }
 
 # Display a release date.
