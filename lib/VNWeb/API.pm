@@ -1,6 +1,17 @@
 package VNWeb::API::Index;
 
-use VNWeb::Prelude;
+use v5.26;
+use warnings;
+use TUWF;
+use Time::HiRes 'time';
+use VNDB::Config;
+use VNDB::Func;
+use VNWeb::DB;
+use VNWeb::Validation;
+use VNWeb::AdvSearch;
+
+return 1 if $main::NOAPI;
+
 
 TUWF::get qr{/api/kana}, sub {
     state $data = do {

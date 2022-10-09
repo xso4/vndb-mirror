@@ -35,7 +35,6 @@ use VNWeb::Elm;
 use VNWeb::Auth;
 use VNWeb::DB;
 use TUWF;
-use JSON::XS;
 
 
 sub import {
