@@ -357,6 +357,8 @@ f v =>  6 => 'developer-id', { vndbid => 'p' }, '=' => sub { sql 'v.c_developers
 
 
 
+f r => 80 => 'id',       { vndbid => 'r' }, '=' => sub { sql 'r.id = ', \$_ };
+f r => 81 => 'search',   {}, '=' => sub { sql 'r.c_search LIKE ALL (search_query(', \$_, '))' };
 f r =>  2 => 'lang',     { enum => \%LANGUAGE },
     sql_list => sub {
         my($neg, $all, $val) = @_;

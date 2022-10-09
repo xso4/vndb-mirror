@@ -109,21 +109,30 @@ sub api_get {
 #                    # The SQL string must return a column named "${fieldname}_nullif}".
 #
 # %field_definition for nested 1-to-many objects:
-#   enrich => sub { sql('SELECT id', $_[0], 'FROM x', $_[1], 'WHERE id IN') },
-#             # Subroutine that returns the $sql argument to enrich()
+#   enrich => sub { sql 'SELECT id', $_[0], 'FROM x', $_[1], 'WHERE id IN', $_[2] },
+#             # Subroutine that returns an SQL statement
 #             #    $_[0] is the list of fields to fetch
 #             #    $_[1] is a list of JOIN clauses
+#             #    $_[2] is a list of identifiers to fetch
 #   key    => 'id',  # $key argument to enrich()
 #   col    => 'id',  # $merge_col argument to enrich()
+#   select => 'SQL', # SQL to return $key, if it's not already part of the object.
+#                    # (The $key will then not be included in the output)
+#   atmostone => 1,  # If this is a 1-to-[01] relation, removes the array in JSON output
+#                    # and sets the object to null if there's no result.
 #   joins  => {},    # Nested join definitions
 #   fields => {},    # Nested field definitions
+#   inherit=> '/path'# Inherit joins+fields from another API.
 sub api_query {
     my($path, %opt) = @_;
+
+    state %objs;
+    $objs{$path} = \%opt;
 
     my %sort = $opt{sort}->@*;
     my $req_schema = tuwf->compile({ type => 'hash', keys => {
         filters => { required => 0, advsearch => $opt{filters} },
-        fields => { required => 0, default => '', func => sub { parse_fields($opt{fields}, $_[0]) } },
+        fields => { required => 0, default => {}, func => sub { parse_fields($opt{fields}, $_[0]) } },
         sort => { required => 0, default => $opt{sort}[0], enum => [ keys %sort ] },
         reverse => { required => 0, default => 0, jsonbool => 1 },
         results => { required => 0, default => 10, uint => 1, range => [1,100] },
@@ -134,14 +143,19 @@ sub api_query {
     }});
 
     TUWF::post qr{/api/kana\Q$path}, sub {
-        my $start = time;
-        # First make sure to reset any existing 'enabled' flags from a previous call,
-        # so these can be filled again with parse_fields() during validation.
-        # Writing directly to our config structure is a bit ugly, but at least it's simple and efficient.
-        (sub {
-            $_->{enabled} && (do{$_->{enabled} = 0} || $_->{fields}) && __SUB__->($_->{fields}) for values $_[0]->%*;
-        })->($opt{fields});
+        # Resolve all 'inherit' fields on first API hit.
+        state $inherit_done = (sub {
+            for my $f (values $_[0]->%*) {
+                if($f->{inherit}) {
+                    my $o = $objs{$f->{inherit}};
+                    $f->{fields}{$_} = $o->{fields}{$_} for keys %{ $o->{fields}||{} };
+                    $f->{joins}{$_} = $o->{joins}{$_} for keys %{ $o->{joins}||{} };
+                }
+                __SUB__->($f->{fields}, $_[1]) if $f->{fields} && !$_[1]{$f}++;
+            }
+        })->($opt{fields}, {});
 
+        my $start = time;
         my $req = tuwf->validate(json => $req_schema);
         if(!$req) {
             eval { $req->data }; warn $@;
@@ -157,13 +171,13 @@ sub api_query {
         my $opposite_order = $req->{reverse} ? 'ASC' : 'DESC';
         $sort = $sort =~ /[?!]o/ ? ($sort =~ s/\?o/$order/rg =~ s/!o/$opposite_order/rg) : "$sort $order";
 
-        my($select, $joins) = prepare_fields($opt{fields}, $opt{joins});
+        my($select, $joins) = prepare_fields($opt{fields}, $opt{joins}, $req->{fields});
 
         # TODO: Handle query timeouts
         my($results, $more) = tuwf->dbPagei($req, $opt{sql}->($select, $joins, $req->{filters}->sql_where), 'ORDER BY', $sort);
         my $count = $req->{count} && tuwf->dbVali('SELECT count(*) FROM (', $opt{sql}->('', '', $req->{filters}->sql_where), ') x');
 
-        proc_results($opt{fields}, $results);
+        proc_results($opt{fields}, $req->{fields}, $results);
 
         tuwf->resJSON({
             results => $results,
@@ -173,7 +187,7 @@ sub api_query {
             $req->{normalized_filters} ? (normalized_filters => $req->{filters}->json) : (),
         });
         tuwf->resHeader('Access-Control-Allow-Origin', '*') if tuwf->reqHeader('Origin');
-        count_request($start, scalar @$results, sprintf '[%s] {%s %s r%dp%d} %s', $req->{fields},
+        count_request($start, scalar @$results, sprintf '[%s] {%s %s r%dp%d} %s', tuwf->reqJSON->{fields}//'',
             $req->{sort}, $req->{reverse}?'asc':'desc', $req->{results}, $req->{page},
             $req->{filters}->query_encode()||'-');
     };
@@ -182,9 +196,11 @@ sub api_query {
 
 sub parse_fields {
     my @tokens = split /\s*([,.{}])\s*/, $_[1];
+    $_[1] = {};
     return (sub {
-        my($lvl, $f) = @_;
+        my($lvl, $f, $out) = @_;
         my $nf = $f;
+        my $of = $out;
         while(defined (my $t = shift @tokens)) {
             next if !length $t;
             if($t eq '}') {
@@ -192,41 +208,41 @@ sub parse_fields {
                 return $lvl > 0 ? 1 : { msg => "Unmatched '}'" } ;
             } elsif($t eq '{') {
                 return { msg => "Unexpected '{' after non-object field" } if !$nf;
-                my $r = __SUB__->($lvl+1, $nf);
+                my $r = __SUB__->($lvl+1, $nf, $of);
                 return $r if ref $r;
-                $nf = undef;
+                ($nf, $of) = ();
             } elsif($t eq ',') {
                 return { msg => 'Expected (sub)field, got comma' } if $nf;
-                $nf = $f;
+                ($nf, $of) = ($f, $out);
             } else {
                 return { msg => 'Unexpected (sub)field after non-object field' } if !$nf;
                 if($t eq '.') {
                     $t = shift(@tokens) // return { msg => "Expected name after '.'" };
                 }
                 my $d = $nf->{$t} // return { msg => "Field not found", name => $t };
-                $d->{enabled} = 1;
                 $nf = $d->{fields};
+                $of->{$t} ||= {};
+                $of = $of->{$t};
             }
         }
         return { msg => "Expected sub-field" } if $nf;
         return $lvl > 0 ? { msg => "Unmatched '{'" } : 1;
-    })->(0, $_[0]);
+    })->(0, $_[0], $_[1]);
 }
 
 
 sub prepare_fields {
-    my($fields, $joins) = @_;
+    my($fields, $joins, $enabled) = @_;
     my(@select, %join);
     (sub {
-        for my $f (keys $_[0]->%*) {
+        for my $f (keys $_[1]->%*) {
             my $d = $_[0]{$f};
-            next if !$d->{enabled};
             $join{$d->{join}} = 1 if $d->{join};
             push @select, $d->{select} if $d->{select};
             push @select, $d->{nullif} if $d->{nullif};
-            __SUB__->($d->{fields}) if $d->{fields} && !$d->{enrich};
+            __SUB__->($d->{fields}, $_[1]{$f}) if $d->{fields} && !$d->{enrich};
         }
-    })->($fields);
+    })->($fields, $enabled);
     return (
         join('', map ",$_", @select),
         join(' ', map $joins->{$_}, keys %join),
@@ -240,28 +256,39 @@ sub proc_field {
     $d->{proc}->($out->{$n}) if $d->{proc};
 }
 
+
 sub proc_results {
-    my($fields, $results) = @_;
-    for my $f (keys %$fields) {
+    my($fields, $enabled, $results) = @_;
+    for my $f (keys %$enabled) {
         my $d = $fields->{$f};
-        next if !$d->{enabled};
 
         # nested 1-to-many objects
         if($d->{enrich}) {
-            my($select, $join) = prepare_fields($d->{fields}, $d->{joins});
-            enrich $f, $d->{key}, $d->{col}, $d->{enrich}->($select, $join), $results;
-            proc_results($d->{fields}, [map $_->{$f}->@*, @$results]);
+            my($select, $join) = prepare_fields($d->{fields}, $d->{joins}, $enabled->{$f});
+            # DB::enrich() logic has been duplicated here to allow for
+            # efficient handling of nested proc_results() and `atmostone`.
+            my %ids = map defined($_->{$d->{key}}) ? ($_->{$d->{key}},[]) : (), @$results;
+            next if !keys %ids;
+            my $rows = tuwf->dbAlli($d->{enrich}->($select, $join, [keys %ids]));
+            proc_results($d->{fields}, $enabled->{$f}, $rows);
+            push $ids{ delete $_->{$d->{col}} }->@*, $_ for @$rows;
+            if($d->{atmostone}) {
+                if($d->{select}) { $_->{$f} = $ids{ delete $_->{$d->{key}} }[0] for @$results }
+                else             { $_->{$f} = $ids{        $_->{$d->{key}} }[0] for @$results }
+            } else {
+                if($d->{select}) { $_->{$f} = $ids{ delete $_->{$d->{key}} }||[] for @$results }
+                else             { $_->{$f} = $ids{        $_->{$d->{key}} }||[] for @$results }
+            }
 
         # nested 1-to-1 objects
         } elsif($d->{fields}) {
             for my $o (@$results) {
                 if($d->{nullif} && delete $o->{"${f}_nullif"}) {
                     $o->{$f} = undef;
-                    delete $o->{ $d->{fields}{$_}{col}||$_ } for (keys $d->{fields}->%*);
+                    delete $o->{ $d->{fields}{$_}{col}||$_ } for keys $enabled->{$f}->%*;
                 } else {
                     $o->{$f} = {};
-                    proc_field($_, $d->{fields}{$_}, $o, $o->{$f})
-                        for grep $d->{fields}{$_}{enabled}, keys $d->{fields}->%*;
+                    proc_field($_, $d->{fields}{$_}, $o, $o->{$f}) for keys $enabled->{$f}->%*;
                 }
             }
 
@@ -297,6 +324,7 @@ sub IMG {
     );
 }
 
+
 api_query '/vn',
     filters => 'v',
     sql => sub { sql 'SELECT v.id', $_[0], 'FROM vnt v', $_[1], 'WHERE NOT v.hidden AND (', $_[2], ')' },
@@ -304,10 +332,11 @@ api_query '/vn',
         image => 'LEFT JOIN images i ON i.id = v.image',
     },
     fields => {
+        id => {},
         title => { select => 'v.title' },
         alttitle => { select => 'v.alttitle' },
         titles => {
-            enrich => sub { sql 'SELECT vt.id', $_[0], 'FROM vn_titles vt', $_[1], 'WHERE vt.id IN' },
+            enrich => sub { sql 'SELECT vt.id', $_[0], 'FROM vn_titles vt', $_[1], 'WHERE vt.id IN', $_[2] },
             key => 'id', col => 'id',
             joins => {
                 main => 'JOIN vn v ON v.id = vt.id',
@@ -334,7 +363,7 @@ api_query '/vn',
         length_votes => { select => 'v.c_lengthnum AS length_votes' },
         description => { select => 'v.desc AS description', proc => sub { $_[0] = undef if !length $_[0] } },
         screenshots => {
-            enrich => sub { sql 'SELECT vs.id AS vid', $_[0], 'FROM vn_screenshots vs', $_[1], 'WHERE vs.id IN' },
+            enrich => sub { sql 'SELECT vs.id AS vid', $_[0], 'FROM vn_screenshots vs', $_[1], 'WHERE vs.id IN', $_[2] },
             key => 'id', col => 'vid',
             joins => {
                 image => 'JOIN images i ON i.id = vs.scr',
@@ -345,11 +374,16 @@ api_query '/vn',
                 thumbnail_dims => { join => 'image', col => 'thumbnail_dims'
                                   , select => "ARRAY[i.width, i.height] AS thumbnail_dims"
                                   , proc => sub { @{$_[0]} = imgsize @{$_[0]}, config->{scr_size}->@* } },
-                # TODO: release info
+                release => {
+                    select => 'vs.rid AS screen_rid',
+                    enrich => sub { sql 'SELECT r.id AS screen_rid, r.id', $_[0], 'FROM releasest r', $_[1], 'WHERE NOT r.hidden AND r.id IN', $_[2] },
+                    key => 'screen_rid', col => 'screen_rid', atmostone => 1,
+                    inherit => '/release',
+                }
             },
         },
         tags => {
-            enrich => sub { sql 'SELECT tv.vid', $_[0], 'FROM tags_vn_direct tv', $_[1], 'WHERE tv.vid IN' },
+            enrich => sub { sql 'SELECT tv.vid', $_[0], 'FROM tags_vn_direct tv', $_[1], 'WHERE tv.vid IN', $_[2] },
             key => 'id', col => 'vid',
             joins => {
                 tag => 'JOIN tags t ON t.id = tv.tag',
@@ -371,6 +405,26 @@ api_query '/vn',
         popularity => 'v.c_pop_rank !o NULLS LAST, v.id',
         rating => 'v.c_rat_rank !o NULLS LAST, v.id',
         votecount => 'v.c_votecount ?o, v.id',
+    ];
+
+
+api_query '/release',
+    filters => 'r',
+    sql => sub { sql 'SELECT r.id', $_[0], 'FROM releasest r', $_[1], 'WHERE NOT r.hidden AND (', $_[2], ')' },
+    fields => {
+        id => {},
+        title => { select => 'r.title' },
+        vns => {
+            enrich => sub { sql 'SELECT rv.id AS rid, v.id', $_[0], 'FROM releases_vn rv JOIN vnt v ON v.id = rv.vid', $_[1], 'WHERE rv.id IN', $_[2] },
+            key => 'id', col => 'rid',
+            inherit => '/vn',
+            fields => {
+                rtype => { select => 'rv.rtype' },
+            },
+        },
+    },
+    sort => [
+        id => 'r.id',
     ];
 
 1;

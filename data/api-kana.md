@@ -407,7 +407,7 @@ description
 :   String, possibly null, may contain [formatting codes](https://vndb.org/d9#4).
 
 screenshots
-:   Array of objects, possibly empty. *TODO: objects don't include release info yet.*
+:   Array of objects, possibly empty.
 
 screenshots.\*
 :   The above `image.*` fields are also available for screenshots.
@@ -417,6 +417,14 @@ screenshots.thumbnail
 
 screenshots.thumbnail\_dims
 :   Pixel dimensions of the thumbnail, array with two integer elements.
+
+screenshots.release.\*
+:   Release object. All [release fields](#release-fields) can be selected. It
+    is very common for all screenshots of a VN to be assigned to the same
+    release, so the fields you select here are likely to get duplicated several
+    times in the response. If you want to fetch more than just a few fields, it
+    is likely more efficient to only select the `release.id` here and then grab
+    detailed release info with a separate request.
 
 tags
 :   Array of objects, possibly empty.
@@ -447,7 +455,7 @@ links. Can add if there's interest.*
 
 ### Filters {#release-filters}
 
-### Fields
+### Fields {#release-fields}
 
 ## POST /producer
 
