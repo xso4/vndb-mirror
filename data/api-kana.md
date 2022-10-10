@@ -1,4 +1,15 @@
-% VNDB.org API v2 (Kana)
+---
+title: VNDB.org API v2 (Kana)
+header-includes: |
+  <style>
+  td { vertical-align: top }
+  header, header h1 { margin: 0 }
+  @media (min-width: 1100px) {
+      body { margin: 0 0 0 250px }
+      nav { box-sizing: border-box; position: fixed; padding: 50px 20px 10px 10px; top: 0; left: 0; height: 100%; overflow: scroll }
+  }
+  </style>
+---
 
 # Introduction
 
@@ -119,8 +130,8 @@ fields
 :   Every field of interest must be explicitely mentioned, there is no support
     for wildcard matching. The same applies to nested objects, it is an error
     to list `image` without sub-fields in the example above.
-:   The top-level `id` field is an exception and should **not** be specified in
-    this list since it is always included in the response.
+:   The top-level `id` field is always selected by default and does not have to
+    be mentioned in this list.
 
 sort
 :   Field to sort on. Supported values depend on the type of data being queried
@@ -238,6 +249,36 @@ Note that the advanced search editing UI on the site does not support all
 filter types, for unsupported filters you will see an "Unrecognized filter"
 block.  These are pretty harmless, the filter still works.
 
+#### Filter flags
+
+These flags are used in the documentation below to describe a few common filter
+properties.
+
+------------------------------------------------------------------------
+ Flag  Description
+-----  -----------------------------------------------------------------
+    o  Ordering operators (such as `>` and `<`) can be used with this filter.
+
+    n  This filter accepts `null` as value.
+
+    m  A single entry can match multiple values. For example, a visual novel
+       available in both English and Japanese matches both `["lang","=","en"]`
+       and `["lang","=","ja"]`).
+
+    i  Inverting or negating this filter (e.g. by changing the operator from
+       '=' to '!=' or from '>' to '<=') is not always equivalent to inverting
+       the selection of matching entries. This often means that the filter
+       implies another requirement (e.g. that the information must be known in
+       the first place), but the exact details depend on the filter.
+------------------------------------------------------------------------
+
+Be careful with applying boolean algebra to filters with the 'm' or 'i' flags,
+the results may be unintuitive. For example, searching for releases matching
+`["or",["minage","=",0],["minage","!=",0]]` will **not** find all releases in
+the database, but only those for which the `minage` field is known. Exact
+semantics regarding unknown or missing information often depends on how the
+filter is implemented and may be subject to change.
+
 ## POST /vn
 
 Query visual novel entries.
@@ -254,58 +295,58 @@ Accepted values for `"sort"`: `id`, `title`, `released`, `popularity`, `rating`,
 ### Filters {#vn-filters}
 
 -----------------------------------------------------------------------------
-Name              [^F]  Description
-----------------  --    -------------------------------------------------------
-`id`              o     vndbid
+Name              [F]  Description
+----------------  ---- -------------------------------------------------------
+`id`              o    vndbid
 
-`search`          m     String search, matches on the VN titles, aliases and release titles.
-                        The search algorithm is the same as used on the site.
+`search`          m    String search, matches on the VN titles, aliases and release titles.
+                       The search algorithm is the same as used on the site.
 
-`lang`            m     Language availability.
+`lang`            m    Language availability.
 
-`olang`                 Original language.
+`olang`                Original language.
 
-`platform`        m     Platform availability.
+`platform`        m    Platform availability.
 
-`length`          o     Play time estimate, integer between 1 (Very short) and 5 (Very long).
-                        This filter uses the length votes average when available but
-                        falls back to the entries' `length` field when there are no votes.
+`length`          o    Play time estimate, integer between 1 (Very short) and 5 (Very long).
+                       This filter uses the length votes average when available but
+                       falls back to the entries' `length` field when there are no votes.
 
-`released`        o,n   Release date.
+`released`        o,n  Release date.
 
-`popularity`      o     Popularity score, integer between 0 and 100.
+`popularity`      o    Popularity score, integer between 0 and 100.
 
-`rating`          o     Bayesian rating, integer between 10 and 100.
+`rating`          o,i  Bayesian rating, integer between 10 and 100.
 
-`votecount`       o     Integer, number of votes.
+`votecount`       o    Integer, number of votes.
 
-`has_description`       Only accepts a single value, integer `1`.
-                        Can of course still be negated with the `!=` operator.
+`has_description`      Only accepts a single value, integer `1`.
+                       Can of course still be negated with the `!=` operator.
 
-`has_anime`             See `has_description`.
+`has_anime`            See `has_description`.
 
-`has_screenshot`        See `has_description`.
+`has_screenshot`       See `has_description`.
 
-`has_review`            See `has_description`.
+`has_review`           See `has_description`.
 
-`devstatus`             Development status, integer. See `devstatus` field.
+`devstatus`            Development status, integer. See `devstatus` field.
 
-`tag`             m     Tags applied to this VN, also matches parent tags. See below for more details.
+`tag`             m    Tags applied to this VN, also matches parent tags. See below for more details.
 
-`dtag`            m     Tags applied directly to this VN, does not match parent tags. See below for details.
+`dtag`            m    Tags applied directly to this VN, does not match parent tags. See below for details.
 
-`anime_id`              Integer, AniDB anime identifier.
+`anime_id`             Integer, AniDB anime identifier.
 
-`release`               Match visual novels that have at least one release
-                        matching the given [release filters](#release-filters).
+`release`              Match visual novels that have at least one release
+                       matching the given [release filters](#release-filters).
 
-`character`             Match visual novels that have at least one character
-                        matching the given [character filters](#character-filters).
+`character`            Match visual novels that have at least one character
+                       matching the given [character filters](#character-filters).
 
-`staff`                 Match visual novels that have at least one staff member
-                        matching the given [staff filters](#staff-filters).
+`staff`                Match visual novels that have at least one staff member
+                       matching the given [staff filters](#staff-filters).
 
-`developer`             Match visual novels developed by the given [producer filters](#producer-filters).
+`developer`            Match visual novels developed by the given [producer filters](#producer-filters).
 ------------------------------------------------------------------------------
 
 The `tag` and `dtag` filters accept either a plain tag ID or a three-element
@@ -357,6 +398,10 @@ aliases
 
 olang
 :   String, language the VN has originally been written in.
+
+devstatus
+:   Integer, development status. 0 meaning 'Finished', 1 is 'In development'
+    and 2 for 'Cancelled'.
 
 released
 :   Release date, possibly null.
@@ -447,13 +492,70 @@ tags.name
 tags.category
 :   String, `"cont"` for content, `"ero"` for sexual content and `"tech"` for technical tags.
 
-*Currently missing from the old API: VN relations, anime relations and external
-links. Can add if there's interest.*
+*Currently missing from the old API: VN relations, staff, anime relations and
+external links. Also potentially useful: list of developers and VA's(?). Can
+add if there's interest.*
 
 
 ## POST /release
 
 ### Filters {#release-filters}
+
+-----------------------------------------------------------------------------
+Name                [F]   Description
+------------------  ----  -------------------------------------------------------
+`id`                o     vndbid
+
+`search`            m     String search.
+
+`lang`              m     Match on available languages.
+
+`platform`          m     Match on available platforms.
+
+`released`          o     Release date.
+
+`resolution`        o,i   Match on the image resolution, in pixels. Value must
+                          be a two-element integer array to which the width and
+                          height, respectively, are compared. For example,
+                          `["resolution","<=",[640,480]]` matches releases with a
+                          resolution smaller than or equal to 640x480.
+
+`resolution_aspect` o,i   Same as the `resolution` filter, but additionally
+                          requires that the aspect ratio matches that of the
+                          given resolution.
+
+`minage`            o,n,i Integer (0-18), age rating.
+
+`medium`            m,n   String.
+
+`voiced`            n     Integer, see `voiced` field.
+
+`engine`            n     String.
+
+`rtype`             m     String, see `vns.rtype` field. If this filter is used
+                          when nested inside a visual novel filter, then this
+                          matches the `rtype` of the particular visual novel.
+                          Otherwise, this matches the `rtype` of any linked
+                          visual novel.
+
+`patch`                   Integer, only accepts the value `1`.
+
+`freeware`                See `patch`.
+
+`uncensored`        i     See `patch`.
+
+`official`                See `patch`.
+
+`has_ero`                 See `patch`.
+
+`vn`                      Match releases that are linked to at least one visual novel
+                          matching the given [visual novel filters](#vn-filters).
+
+`producer`                Match releases that have at least one producer
+                          matching the given [producer filters](#producer-filters).
+-----------------------------------------------------------------------------
+
+*Undocumented: animation, extlinks*
 
 ### Fields {#release-fields}
 
@@ -494,13 +596,8 @@ expect to see:
 weird](https://github.com/jgm/pandoc/issues/1603). Need a workaround, because
 this will get annoying really fast. :(*
 
-[^F]: Filter flags.
-    
-     Flag  Description
-    -----  ------------
-        o  Ordering operators (such as `>` and `<`) can be used with this filter.
-        n  This filter accepts `null` as value.
-        m  A single entry can match multiple values. For example, a visual novel available in both English and Japanese matches both `["lang","=","en"]` and `["lang","=","ja"]`).
+
+[F]: #filter-flags
 
 [^title]: Title fields may be subject to user language preferences when
   authentication gets implemented later on. You can always fetch the full list

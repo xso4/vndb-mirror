@@ -382,7 +382,7 @@ f r => 10 => 'minage',   { required => 0, default => undef, uint => 1, enum => \
     sql => sub { defined $_ ? sql 'r.minage', $_[0], \$_ : $_[0] eq '=' ? 'r.minage IS NULL' : 'r.minage IS NOT NULL' };
 f r => 11 => 'medium',   { required => 0, default => undef, enum => \%MEDIUM },
     '=' => sub { !defined $_ ? 'NOT EXISTS(SELECT 1 FROM releases_media rm WHERE rm.id = r.id)' : sql 'EXISTS(SELECT 1 FROM releases_media rm WHERE rm.id = r.id AND rm.medium =', \$_, ')' };
-f r => 12 => 'voiced',   { uint => 1, enum => \%VOICED }, '=' => sub { sql 'NOT r.patch AND r.voiced =', \$_ };
+f r => 12 => 'voiced',   { required => 0, default => 0, uint => 1, enum => \%VOICED }, '=' => sub { sql 'NOT r.patch AND r.voiced =', \$_ };
 f r => 13 => 'animation-ero',   { uint => 1, enum => \%ANIMATED }, '=' => sub { sql 'NOT r.patch AND r.ani_ero =', \$_ };
 f r => 14 => 'animation-story', { uint => 1, enum => \%ANIMATED }, '=' => sub { sql 'NOT r.patch AND r.ani_story =', \$_ };
 f r => 15 => 'engine',   { required => 0, default => '' }, '=' => sub { sql 'r.engine =', \$_ };
@@ -406,7 +406,7 @@ f r => 61 => 'patch',    { uint => 1, range => [1,1] }, '=' => sub { 'r.patch' }
 f r => 62 => 'freeware', { uint => 1, range => [1,1] }, '=' => sub { 'r.freeware' };
 f r => 64 => 'uncensored',{uint => 1, range => [1,1] }, '=' => sub { 'r.uncensored' };
 f r => 65 => 'official', { uint => 1, range => [1,1] }, '=' => sub { 'r.official' };
-f r => 66 => 'has-ero',  { uint => 1, range => [1,1] }, '=' => sub { 'r.has_ero' };
+f r => 66 => 'has_ero',  { uint => 1, range => [1,1] }, '=' => sub { 'r.has_ero' };
 f r => 53 => 'vn',       'v', '=' => sub { sql 'r.id IN(SELECT rv.id FROM releases_vn rv JOIN vn v ON v.id = rv.vid WHERE NOT v.hidden AND', $_, ')' };
 f r => 55 => 'producer', 'p', '=' => sub { sql 'r.id IN(SELECT rp.id FROM releases_producers rp JOIN producers p ON p.id = rp.pid WHERE NOT p.hidden AND', $_, ')' };
 

@@ -130,7 +130,7 @@ sub api_query {
     $objs{$path} = \%opt;
 
     my %sort = $opt{sort}->@*;
-    my $req_schema = tuwf->compile({ type => 'hash', keys => {
+    my $req_schema = tuwf->compile({ type => 'hash', unknown => 'reject', keys => {
         filters => { required => 0, advsearch => $opt{filters} },
         fields => { required => 0, default => {}, func => sub { parse_fields($opt{fields}, $_[0]) } },
         sort => { required => 0, default => $opt{sort}[0], enum => [ keys %sort ] },
@@ -351,6 +351,7 @@ api_query '/vn',
         },
         aliases => { select => 'v.alias AS aliases', proc => sub { $_[0] = [ grep length($_), split /\n/, $_[0] ] } },
         olang => { select => 'v.olang' },
+        devstatus => { select => 'v.devstatus' },
         released => { select => 'v.c_released AS released', @RDATE },
         languages => { select => 'v.c_languages::text[] AS languages' },
         platforms => { select => 'v.c_platforms::text[] AS platforms' },
