@@ -123,20 +123,21 @@ sub api_get {
 #                    # The SQL string must return a column named "${fieldname}_nullif}".
 #
 # %field_definition for nested 1-to-many objects:
-#   enrich => sub { sql 'SELECT id', $_[0], 'FROM x', $_[1], 'WHERE id IN', $_[2] },
-#             # Subroutine that returns an SQL statement
-#             #    $_[0] is the list of fields to fetch
-#             #    $_[1] is a list of JOIN clauses
-#             #    $_[2] is a list of identifiers to fetch
-#   key    => 'id',  # $key argument to enrich()
-#   col    => 'id',  # $merge_col argument to enrich()
-#   select => 'SQL', # SQL to return $key, if it's not already part of the object.
-#                    # (The $key will then not be included in the output)
-#   atmostone => 1,  # If this is a 1-to-[01] relation, removes the array in JSON output
-#                    # and sets the object to null if there's no result.
-#   joins  => {},    # Nested join definitions
-#   fields => {},    # Nested field definitions
-#   inherit=> '/path'# Inherit joins+fields from another API.
+#   enrich   => sub { sql 'SELECT id', $_[0], 'FROM x', $_[1], 'WHERE id IN', $_[2] },
+#                # Subroutine that returns an SQL statement
+#                #    $_[0] is the list of fields to fetch
+#                #    $_[1] is a list of JOIN clauses
+#                #    $_[2] is a list of identifiers to fetch
+#   key      => 'id',  # $key argument to enrich()
+#   col      => 'id',  # $merge_col argument to enrich()
+#   select   => 'SQL', # SQL to return $key, if it's not already part of the object.
+#                      # (The $key will then not be included in the output)
+#   atmostone=> 1,     # If this is a 1-to-[01] relation, removes the array in JSON output
+#                      # and sets the object to null if there's no result.
+#   joins    => {},    # Nested join definitions
+#   fields   => {},    # Nested field definitions
+#   inherit  => '/path'# Inherit joins+fields from another API.
+#   proc     => sub {} # Subroutine to do processing on the final value.
 sub api_query {
     my($path, %opt) = @_;
 
@@ -308,6 +309,7 @@ sub proc_results {
                 if($d->{select}) { $_->{$f} = $ids{ delete $_->{$d->{key}} }||[] for @$results }
                 else             { $_->{$f} = $ids{        $_->{$d->{key}} }||[] for @$results }
             }
+            $d->{proc}->($_->{$f}) for $d->{proc} ? @$results : ();
 
         # nested 1-to-1 objects
         } elsif($d->{fields}) {
@@ -340,6 +342,7 @@ api_get '/stats', { map +($_, { uint => 1 }), @STATS }, sub {
 my @BOOL = (proc => sub { $_[0] = $_[0] ? \1 : \0 if defined $_[0] });
 my @INT = (proc => sub { $_[0] *= 1 if defined $_[0] });
 my @RDATE = (proc => sub { $_[0] = $_[0] ? rdate $_[0] : undef });
+my @NSTR = (proc => sub { $_[0] = undef if !length $_[0] });
 
 sub IMG {
     my($main_col, $join_id, $join_prefix) = @_;
@@ -391,7 +394,7 @@ api_query '/vn',
         length => { select => 'v.length', proc => sub { $_[0] = undef if !$_[0] } },
         length_minutes => { select => 'v.c_length AS length_minutes' },
         length_votes => { select => 'v.c_lengthnum AS length_votes' },
-        description => { select => 'v.desc AS description', proc => sub { $_[0] = undef if !length $_[0] } },
+        description => { select => 'v.desc AS description', @NSTR },
         screenshots => {
             enrich => sub { sql 'SELECT vs.id AS vid', $_[0], 'FROM vn_screenshots vs', $_[1], 'WHERE vs.id IN', $_[2] },
             key => 'id', col => 'vid',
@@ -442,8 +445,35 @@ api_query '/release',
     filters => 'r',
     sql => sub { sql 'SELECT r.id', $_[0], 'FROM releasest r', $_[1], 'WHERE NOT r.hidden AND (', $_[2], ')' },
     fields => {
-        id => {},
-        title => { select => 'r.title' },
+        id       => {},
+        title    => { select => 'r.title' },
+        alttitle => { select => 'r.alttitle' },
+        languages => {
+            enrich => sub { sql 'SELECT rt.id', $_[0], 'FROM releases_titles rt', $_[1], 'WHERE rt.id IN', $_[2] },
+            key => 'id', col => 'id',
+            joins => {
+                main => 'JOIN releases r ON r.id = rt.id',
+            },
+            fields => {
+                lang  => { select => 'rt.lang' },
+                title => { select => 'rt.title' },
+                latin => { select => 'rt.latin' },
+                mtl   => { select => 'rt.mtl', @BOOL },
+                main  => { join => 'main', select => 'rt.lang = r.olang AS main', @BOOL },
+            },
+        },
+        platforms => {
+            enrich => sub { sql 'SELECT id, platform FROM releases_platforms WHERE id IN', $_[2] },
+            key => 'id', col => 'id', proc => sub { $_[0] = [ map $_->{platform}, $_[0]->@* ] },
+        },
+        media => {
+            enrich => sub { sql 'SELECT id', $_[0], 'FROM releases_media WHERE id IN', $_[2] },
+            key => 'id', col => 'id',
+            fields => {
+                medium => { select => 'medium' },
+                qty => { select => 'qty' },
+            },
+        },
         vns => {
             enrich => sub { sql 'SELECT rv.id AS rid, v.id', $_[0], 'FROM releases_vn rv JOIN vnt v ON v.id = rv.vid', $_[1], 'WHERE rv.id IN', $_[2] },
             key => 'id', col => 'rid',
@@ -452,6 +482,17 @@ api_query '/release',
                 rtype => { select => 'rv.rtype' },
             },
         },
+        released   => { select => 'r.released', @RDATE },
+        minage     => { select => 'r.minage' },
+        patch      => { select => 'r.patch', @BOOL },
+        freeware   => { select => 'r.freeware', @BOOL },
+        uncensored => { select => 'r.uncensored', @BOOL },
+        official   => { select => 'r.official', @BOOL },
+        has_ero    => { select => 'r.has_ero', @BOOL },
+        resolution => { select => 'ARRAY[r.reso_x,r.reso_y] AS resolution'
+                      , proc => sub { $_[0] = $_[0][1] == 0 ? undef : 'non-standard' if $_[0][0] == 0 } },
+        engine     => { select => 'r.engine', @NSTR },
+        notes      => { select => 'r.notes', @NSTR },
     },
     sort => [
         id => 'r.id',

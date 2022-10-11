@@ -310,7 +310,7 @@ sub f {
 my @TYPE; # stack of query types, $TYPE[0] is the top-level query, $TYPE[$#TYPE] the query currently being processed.
 
 
-f v => 80 => 'id',        { vndbid => 'v' }, '=' => sub { sql 'v.id = ', \$_ };
+f v => 80 => 'id',        { vndbid => 'v' }, sql => sub { sql 'v.id', $_[0], \$_ };
 f v => 81 => 'search',    {}, '=' => sub { sql 'v.c_search LIKE ALL (search_query(', \$_, '))' };
 f v =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_languages && ARRAY', \$_, '::language[]' };
 f v =>  3 => 'olang',     { enum => \%LANGUAGE }, '=' => sub { sql 'v.olang =', \$_ };
@@ -357,7 +357,7 @@ f v =>  6 => 'developer-id', { vndbid => 'p' }, '=' => sub { sql 'v.c_developers
 
 
 
-f r => 80 => 'id',       { vndbid => 'r' }, '=' => sub { sql 'r.id = ', \$_ };
+f r => 80 => 'id',       { vndbid => 'r' }, sql => sub { sql 'r.id', $_[0], \$_ };
 f r => 81 => 'search',   {}, '=' => sub { sql 'r.c_search LIKE ALL (search_query(', \$_, '))' };
 f r =>  2 => 'lang',     { enum => \%LANGUAGE },
     sql_list => sub {
@@ -449,7 +449,7 @@ f c => 53 => 'vn',     'v', '=' => sub { sql 'c.id IN(SELECT cv.id FROM chars_vn
 
 # Staff filters need both 'staff s' and 'staff_alias sa' - aliases are treated as separate rows.
 f s =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 's.lang =', \$_ };
-f s =>  3 => 'id',        { vndbid => 's' }, '=' => sub { sql 's.id = ', \$_ };
+f s =>  3 => 'id',        { vndbid => 's' }, sql => sub { sql 's.id', $_[0], \$_ };
 f s =>  4 => 'gender',    { enum => \%GENDER }, '=' => sub { sql 's.gender =', \$_ };
 f s =>  5 => 'role',      { enum => [ 'seiyuu', keys %CREDIT_TYPE ] },
     sql_list_grp => sub { $_ eq 'seiyuu' ? undef : '' },
@@ -468,7 +468,7 @@ f s =>  5 => 'role',      { enum => [ 'seiyuu', keys %CREDIT_TYPE ] },
     };
 
 f p =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 'p.lang =', \$_ };
-f p =>  3 => 'id',        { vndbid => 'p' }, '=' => sub { sql 'p.id = ', \$_ };
+f p =>  3 => 'id',        { vndbid => 'p' }, sql => sub { sql 'p.id', $_[0], \$_ };
 f p =>  4 => 'type',      { enum => \%PRODUCER_TYPE }, '=' => sub { sql 'p.type =', \$_ };
 
 

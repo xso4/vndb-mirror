@@ -46,7 +46,7 @@ applications, but if this is still too limiting for you, don't hesitate to [get
 in touch](mailto:contact@vndb.org).
 
 
-# Some Common Data Types
+# Common Data Types
 
 vndbid
 :   A 'vndbid' is an identifier for an entry in the database, typically
@@ -69,6 +69,7 @@ release date
     `["released", "=", "2022"]` only matches items for which the release date
     is exactly `"2022"`, not any other date in that year.
 
+*TODO: Something about languages, platforms and other enumeration types.*
 
 # Simple Requests
 
@@ -364,7 +365,10 @@ levels. For example, `["tag","=","g505"]` is equivalent to
 
 *TODO: old API has a firstchar filter, do we need that?*
 
-### Fields
+### Fields {#vn-fields}
+
+id
+:   vndbid.
 
 title
 :   String, main title as displayed on the site, typically romanized from the
@@ -562,6 +566,96 @@ Name                [F]   Description
 *Undocumented: animation, extlinks*
 
 ### Fields {#release-fields}
+
+id
+:   vndbid.
+
+title
+:   String, main title as displayed on the site, typically romanized from the
+    original script.[^title]
+
+alttitle
+:   String, can be null. Alternative title, typically the same as `title` but
+    in the original script.[^title]
+
+languages
+:   Array of objects, languages this release is available in. There is always
+    exactly one language that is considered the "main" language of this
+    release, which is only used to select the titles for the `title` and
+    `alttitle` fields.
+
+languages.lang
+:   String, language. Each language appears at most once.
+
+languages.title
+:   String, title in the original script. Can be null, in which case the title
+    for this language is the same as the "main" language.
+
+languages.latin
+:   String, can be null, romanized version of `title`.
+
+languages.mtl
+:   Boolean, whether this is a machine translation.
+
+languages.main
+:   Boolean, whether this language is used to determine the "main" title for
+    the release entry.
+
+platforms
+:   Array of strings.
+
+media
+:   Array of objects.
+
+media.medium
+:   String.
+
+media.qty
+:   Integer, quantity. This is `0` for media where a quantity does not make
+    sense, like "internet download".
+
+vns
+:   Array of objects, the list of visual novels this release is linked to.
+
+vns.rtype
+:   The release type for this visual novel, can be `"trial"`, `"partial"` or
+    `"complete"`.
+
+vns.\*
+:   All [visual novel fields](#vn-fields) are available.
+
+released
+:   Release date.
+
+minage
+:   Integer, possibly null, age rating.
+
+patch
+:   Boolean.
+
+freeware
+:   Boolean.
+
+uncensored
+:   Boolean, can be null.
+
+official
+:   Boolean.
+
+has\_ero
+:   Boolean.
+
+resolution
+:   Can either be null, the string `"non-standard"` or an array of two integers
+    indicating the width and height.
+
+engine
+:   String, possibly null.
+
+notes
+:   String, possibly null, may contain [formatting codes](https://vndb.org/d9#4).
+
+*Missing: External links, gtin, catalog number, animation, voiced, producers.*
 
 ## POST /producer
 
