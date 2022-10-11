@@ -17,7 +17,7 @@ TUWF::get qr{/api/kana}, sub {
     state $data = do {
         open my $F, '<', config->{root}.'/static/g/api-kana.html' or die $!;
         local $/=undef;
-        my $url = tuwf->reqURI;
+        my $url = config->{api_endpoint}||tuwf->reqURI;
         <$F> =~ s/%endpoint%/$url/rg;
     };
     tuwf->resHeader('Content-Type' => "text/html; charset=UTF-8");
@@ -34,19 +34,6 @@ TUWF::options qr{/api/kana.*}, sub {
 };
 
 
-# TODO: accounting, this function only logs for now.
-# Should be called after resJSON so we have output stats.
-sub count_request {
-    my($start, $rows, $call) = @_;
-    tuwf->resFd->flush;
-    my $time = time-$start;
-    tuwf->log(sprintf '%4dms %3dr%6db [%s] %s "%s"',
-        $time*1000, $rows, length(tuwf->{_TUWF}{Res}{content}),
-        tuwf->reqIP(), $call, tuwf->reqHeader('user-agent')||'-'
-    );
-}
-
-
 sub err {
     my($status, $msg) = @_;
     tuwf->resStatus($status);
@@ -56,10 +43,37 @@ sub err {
 }
 
 
+# Production API is currently running as a single process, so we can safely and
+# efficiently keep the throttle state as a local variable.
+# This throttle state only handles execution time limiting; request limiting
+# is done in nginx.
+my %throttle; # IP -> SQL time
+
+sub count_request {
+    my($start, $rows, $call) = @_;
+    tuwf->resFd->flush;
+    my $now = time;
+    my $time = $now-$start;
+    my $norm = norm_ip tuwf->reqIP();
+    $throttle{$norm} = $now if !$throttle{$norm} || $throttle{$norm} < $now;
+    $throttle{$norm} += $time * config->{api_throttle}[0];
+    tuwf->log(sprintf '%4dms %3dr%6db [%s] %s "%s"',
+        $time*1000, $rows, length(tuwf->{_TUWF}{Res}{content}),
+        tuwf->reqIP(), $call, tuwf->reqHeader('user-agent')||'-'
+    );
+}
+
+sub check_throttle {
+    err(429, 'Throttled on query execution time.')
+        if ($throttle{ norm_ip tuwf->reqIP }||0) >= time + (config->{api_throttle}[0] * config->{api_throttle}[1]);
+}
+
+
 sub api_get {
     my($path, $schema, $sub) = @_;
     my $s = tuwf->compile({ type => 'hash', keys => $schema });
     TUWF::get qr{/api/kana\Q$path}, sub {
+        check_throttle;
         my $start = time;
         my $res = $sub->();
         $s->analyze->coerce_for_json($res, unknown => 'reject');
@@ -140,6 +154,7 @@ sub api_query {
         count => { required => 0, default => 0, jsonbool => 1 },
         compact_filters => { required => 0, default => 0, jsonbool => 1 },
         normalized_filters => { required => 0, default => 0, jsonbool => 1 },
+        time => { required => 0, default => 0, jsonbool => 1 },
     }});
 
     TUWF::post qr{/api/kana\Q$path}, sub {
@@ -155,6 +170,7 @@ sub api_query {
             }
         })->($opt{fields}, {});
 
+        check_throttle;
         my $start = time;
         my $req = tuwf->validate(json => $req_schema);
         if(!$req) {
@@ -175,7 +191,10 @@ sub api_query {
 
         # TODO: Handle query timeouts
         my($results, $more) = tuwf->dbPagei($req, $opt{sql}->($select, $joins, $req->{filters}->sql_where), 'ORDER BY', $sort);
-        my $count = $req->{count} && tuwf->dbVali('SELECT count(*) FROM (', $opt{sql}->('', '', $req->{filters}->sql_where), ') x');
+        my $count = $req->{count} && (
+            !$more && @$results <= $req->{results} ? ($req->{results}*($req->{page}-1))+@$results :
+            tuwf->dbVali('SELECT count(*) FROM (', $opt{sql}->('', '', $req->{filters}->sql_where), ') x')
+        );
 
         proc_results($opt{fields}, $req->{fields}, $results);
 
@@ -185,9 +204,10 @@ sub api_query {
             $req->{count} ? (count => $count) : (),
             $req->{compact_filters} ? (compact_filters => $req->{filters}->query_encode) : (),
             $req->{normalized_filters} ? (normalized_filters => $req->{filters}->json) : (),
+            $req->{time} ? (time => int(1000*(time()-$start))) : (),
         });
         tuwf->resHeader('Access-Control-Allow-Origin', '*') if tuwf->reqHeader('Origin');
-        count_request($start, scalar @$results, sprintf '[%s] {%s %s r%dp%d} %s', tuwf->reqJSON->{fields}//'',
+        count_request($start, scalar @$results, sprintf '[%s] {%s %s r%dp%d} %s', fmt_fields($req->{fields}),
             $req->{sort}, $req->{reverse}?'asc':'desc', $req->{results}, $req->{page},
             $req->{filters}->query_encode()||'-');
     };
@@ -228,6 +248,15 @@ sub parse_fields {
         return { msg => "Expected sub-field" } if $nf;
         return $lvl > 0 ? { msg => "Unmatched '{'" } : 1;
     })->(0, $_[0], $_[1]);
+}
+
+sub fmt_fields {
+    (sub {
+        join ',', map $_ . (
+            keys $_[0]{$_}->%* == 0 ? '' :
+            keys $_[0]{$_}->%* == 1 ? '.'.__SUB__->($_[0]{$_}) : '{'.__SUB__->($_[0]{$_}).'}'
+        ), sort keys $_[0]->%*;
+    })->($_[0]);
 }
 
 

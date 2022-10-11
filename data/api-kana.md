@@ -39,7 +39,11 @@ of this service.
 The data obtained through this API is subject to our [Data
 License](https://vndb.org/d17#3).
 
-*TODO: Rate limits.*
+API access is rate-limited in order to keep server resources in check. The
+server will allow up to 200 requests per 5 minutes and up to 1 second of
+request execution time per minute. This should be more than enough for most
+applications, but if this is still too limiting for you, don't hesitate to [get
+in touch](mailto:contact@vndb.org).
 
 
 # Some Common Data Types
@@ -588,7 +592,7 @@ expect to see:
 ------  -------
    400  Invalid request body or query, the included error message hopefully points at the problem.
    404  Invalid API path or HTTP method
-   429  Throttled *(not yet implemented)*
+   429  Throttled
    500  Server error, usually points to a bug if this persists
    502  Server is down, should be temporary
 
