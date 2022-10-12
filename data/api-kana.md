@@ -20,7 +20,8 @@ This version of the API is intended to replace the [old TCP-based
 API](https://vndb.org/d11), although the old API will likely remain available
 for the forseeable future.
 
-**Status**: Early implementation, still missing lots of functionality.
+**Status**: Alpha testing, lots of functionality is still missing and breaking
+changes may occur.
 
 **API endpoint**: `%endpoint%`
 
@@ -41,9 +42,18 @@ License](https://vndb.org/d17#3).
 
 API access is rate-limited in order to keep server resources in check. The
 server will allow up to 200 requests per 5 minutes and up to 1 second of
-request execution time per minute. This should be more than enough for most
-applications, but if this is still too limiting for you, don't hesitate to [get
-in touch](mailto:contact@vndb.org).
+execution time per minute. Requests taking longer than 3 seconds will be
+aborted. These limits should be more than enough for most applications, but if
+this is still too limiting for you, don't hesitate to get in touch.
+
+This API intentionally does not expose *all* functionality provided by VNDB.
+Some site features, such as forums, database editing or account creation will
+not be exposed through the API, other features may be missing simply because
+nobody has asked for it yet. If you need anything not yet provided by the API
+or if you have any other questions, feel free to post on [the
+forums](https://vndb.org/t/db), [the issue
+tracker](https://code.blicky.net/yorhel/vndb/issues) or mail
+[contact@vndb.org](mailto:contact@vndb.org).
 
 
 # Common Data Types

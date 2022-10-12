@@ -3,7 +3,7 @@ package VNWeb::API::Index;
 use v5.26;
 use warnings;
 use TUWF;
-use Time::HiRes 'time';
+use Time::HiRes 'time', 'alarm';
 use VNDB::Config;
 use VNDB::Func;
 use VNWeb::DB;
@@ -39,6 +39,7 @@ sub err {
     tuwf->resStatus($status);
     tuwf->resHeader('Content-type', 'text');
     print { tuwf->resFd } $msg, "\n";
+    tuwf->log(sprintf '[%s] %d %s "%s"', tuwf->reqIP(), $status, $msg, tuwf->reqHeader('user-agent')||'');
     tuwf->done;
 }
 
@@ -138,6 +139,7 @@ sub api_get {
 #   fields   => {},    # Nested field definitions
 #   inherit  => '/path'# Inherit joins+fields from another API.
 #   proc     => sub {} # Subroutine to do processing on the final value.
+#   num      => 1,     # Estimate of the number of objects that will be returned.
 sub api_query {
     my($path, %opt) = @_;
 
@@ -183,6 +185,9 @@ sub api_query {
         };
         $req = $req->data;
 
+        my $numfields = count_fields($opt{fields}, $req->{fields}, $req->{results});
+        err 400, sprintf 'Too much data selected (estimated %.0f fields)', $numfields if $numfields > 100_000;
+
         my $sort = $sort{$req->{sort}};
         my $order = $req->{reverse} ? 'DESC' : 'ASC';
         my $opposite_order = $req->{reverse} ? 'ASC' : 'DESC';
@@ -190,14 +195,22 @@ sub api_query {
 
         my($select, $joins) = prepare_fields($opt{fields}, $opt{joins}, $req->{fields});
 
-        # TODO: Handle query timeouts
-        my($results, $more) = tuwf->dbPagei($req, $opt{sql}->($select, $joins, $req->{filters}->sql_where), 'ORDER BY', $sort);
-        my $count = $req->{count} && (
-            !$more && @$results <= $req->{results} ? ($req->{results}*($req->{page}-1))+@$results :
-            tuwf->dbVali('SELECT count(*) FROM (', $opt{sql}->('', '', $req->{filters}->sql_where), ') x')
-        );
-
-        proc_results($opt{fields}, $req->{fields}, $results);
+        my($results,$more,$count);
+        eval {
+            local $SIG{ALRM} = sub { die "Timeout\n"; };
+            alarm 3;
+            ($results, $more) = tuwf->dbPagei($req, $opt{sql}->($select, $joins, $req->{filters}->sql_where), 'ORDER BY', $sort);
+            $count = $req->{count} && (
+                !$more && @$results <= $req->{results} ? ($req->{results}*($req->{page}-1))+@$results :
+                tuwf->dbVali('SELECT count(*) FROM (', $opt{sql}->('', '', $req->{filters}->sql_where), ') x')
+            );
+            proc_results($opt{fields}, $req->{fields}, $results);
+            alarm 0;
+            1;
+        } || do {
+            err 500, 'Processing timeout' if $@ =~ /^Timeout/ || $@ =~ /canceling statement due to statement timeout/;
+            die $@;
+        };
 
         tuwf->resJSON({
             results => $results,
@@ -240,7 +253,7 @@ sub parse_fields {
                 if($t eq '.') {
                     $t = shift(@tokens) // return { msg => "Expected name after '.'" };
                 }
-                my $d = $nf->{$t} // return { msg => "Field not found", name => $t };
+                my $d = $nf->{$t} // return { msg => "Field '$t' not found", name => $t };
                 $nf = $d->{fields};
                 $of->{$t} ||= {};
                 $of = $of->{$t};
@@ -258,6 +271,17 @@ sub fmt_fields {
             keys $_[0]{$_}->%* == 1 ? '.'.__SUB__->($_[0]{$_}) : '{'.__SUB__->($_[0]{$_}).'}'
         ), sort keys $_[0]->%*;
     })->($_[0]);
+}
+
+
+# Calculate an estimate of how many fields will be returned in the response,
+# based on which fields are enabled.
+sub count_fields {
+    my($fields, $enabled, $num) = @_;
+    my $n = ($fields->{id} && !$enabled->{id} ? 1 : 0) + keys %$enabled;
+    $n += count_fields($fields->{$_}{fields}, $enabled->{$_}, $fields->{$_}{num})
+        for (grep $fields->{$_}{fields}, keys %$enabled);
+    $n * ($num // 1);
 }
 
 
@@ -369,7 +393,7 @@ api_query '/vn',
         alttitle => { select => 'v.alttitle' },
         titles => {
             enrich => sub { sql 'SELECT vt.id', $_[0], 'FROM vn_titles vt', $_[1], 'WHERE vt.id IN', $_[2] },
-            key => 'id', col => 'id',
+            key => 'id', col => 'id', num => 3,
             joins => {
                 main => 'JOIN vn v ON v.id = vt.id',
             },
@@ -397,7 +421,7 @@ api_query '/vn',
         description => { select => 'v.desc AS description', @NSTR },
         screenshots => {
             enrich => sub { sql 'SELECT vs.id AS vid', $_[0], 'FROM vn_screenshots vs', $_[1], 'WHERE vs.id IN', $_[2] },
-            key => 'id', col => 'vid',
+            key => 'id', col => 'vid', num => 10,
             joins => {
                 image => 'JOIN images i ON i.id = vs.scr',
             },
@@ -417,7 +441,7 @@ api_query '/vn',
         },
         tags => {
             enrich => sub { sql 'SELECT tv.vid', $_[0], 'FROM tags_vn_direct tv', $_[1], 'WHERE tv.vid IN', $_[2] },
-            key => 'id', col => 'vid',
+            key => 'id', col => 'vid', num => 50,
             joins => {
                 tag => 'JOIN tags t ON t.id = tv.tag',
             },
@@ -450,7 +474,7 @@ api_query '/release',
         alttitle => { select => 'r.alttitle' },
         languages => {
             enrich => sub { sql 'SELECT rt.id', $_[0], 'FROM releases_titles rt', $_[1], 'WHERE rt.id IN', $_[2] },
-            key => 'id', col => 'id',
+            key => 'id', col => 'id', num => 3,
             joins => {
                 main => 'JOIN releases r ON r.id = rt.id',
             },
@@ -468,7 +492,7 @@ api_query '/release',
         },
         media => {
             enrich => sub { sql 'SELECT id', $_[0], 'FROM releases_media WHERE id IN', $_[2] },
-            key => 'id', col => 'id',
+            key => 'id', col => 'id', num => 3,
             fields => {
                 medium => { select => 'medium' },
                 qty => { select => 'qty' },
@@ -476,7 +500,7 @@ api_query '/release',
         },
         vns => {
             enrich => sub { sql 'SELECT rv.id AS rid, v.id', $_[0], 'FROM releases_vn rv JOIN vnt v ON v.id = rv.vid', $_[1], 'WHERE rv.id IN', $_[2] },
-            key => 'id', col => 'rid',
+            key => 'id', col => 'rid', num => 3,
             inherit => '/vn',
             fields => {
                 rtype => { select => 'rv.rtype' },
