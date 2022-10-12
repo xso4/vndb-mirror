@@ -517,6 +517,8 @@ add if there's interest.*
 
 ## POST /release
 
+Accepted values for `"sort"`: `id`, `title`, `released`.
+
 ### Filters {#release-filters}
 
 -----------------------------------------------------------------------------
@@ -634,6 +636,18 @@ vns.rtype
 vns.\*
 :   All [visual novel fields](#vn-fields) are available.
 
+producers
+:   Array of objects.
+
+producers.developer
+:   Boolean.
+
+producers.publisher
+:   Boolean.
+
+producers.\*
+:   All [producer fields](#producer-fields) are available.
+
 released
 :   Release date.
 
@@ -665,13 +679,54 @@ engine
 notes
 :   String, possibly null, may contain [formatting codes](https://vndb.org/d9#4).
 
-*Missing: External links, gtin, catalog number, animation, voiced, producers.*
+*Missing: External links, gtin, catalog number, animation, voiced.*
+
+
 
 ## POST /producer
 
+Accepted values for `"sort"`: `id`, `name`.
+
 ### Filters {#producer-filters}
 
+-----------------------------------------------------------------------------
+Name                [F]   Description
+------------------  ----  -------------------------------------------------------
+`id`                o     vndbid
+
+`search`            m     String search.
+
+`lang`                    Language.
+
+`type`                    Producer type, see the `type` field below.
+-----------------------------------------------------------------------------
+
 ### Fields
+
+id
+:   vndbid.
+
+name
+:   String.
+
+original
+:   String, possibly null, name in the original script.
+
+aliases
+:   Array of strings.
+
+lang
+:   String, primary language.
+
+type
+:   String, producer type, `"co"` for company, `"in"` for individual and `"ng"`
+    for amateur group.
+
+description
+:   String, possibly null, may contain [formatting codes](https://vndb.org/d9#4).
+
+*Missing: External links, relations.*
+
 
 ## POST /character
 

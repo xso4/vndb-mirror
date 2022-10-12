@@ -514,6 +514,15 @@ api_query '/release',
                 rtype => { select => 'rv.rtype' },
             },
         },
+        producers  => {
+            enrich => sub { sql 'SELECT rp.id AS rid, p.id', $_[0], 'FROM releases_producers rp JOIN producers p ON p.id = rp.pid', $_[1], 'WHERE rp.id IN', $_[2] },
+            key => 'id', col => 'rid', num => 3,
+            inherit => '/producer',
+            fields => {
+                developer => { select => 'rp.developer', @BOOL },
+                publisher => { select => 'rp.publisher', @BOOL },
+            },
+        },
         released   => { select => 'r.released', @RDATE },
         minage     => { select => 'r.minage' },
         patch      => { select => 'r.patch', @BOOL },
@@ -527,7 +536,26 @@ api_query '/release',
         notes      => { select => 'r.notes', @NSTR },
     },
     sort => [
-        id => 'r.id',
+        id       => 'r.id',
+        title    => 'r.sorttitle ?o, r.id',
+        released => 'r.released ?o, r.id',
     ];
 
+
+api_query '/producer',
+    filters => 'p',
+    sql => sub { sql 'SELECT p.id', $_[0], 'FROM producers p', $_[1], 'WHERE NOT p.hidden AND (', $_[2], ')' },
+    fields => {
+        id       => {},
+        name     => { select => 'p.name' },
+        original => { select => 'p.original', @NSTR },
+        aliases  => { select => 'p.alias AS aliases', proc => sub { $_[0] = [ grep length($_), split /\n/, $_[0] ] } },
+        lang     => { select => 'p.lang' },
+        type     => { select => 'p.type' },
+        description => { select => 'p.desc AS description', @NSTR },
+    },
+    sort => [
+        id       => 'p.id',
+        name     => 'p.name ?o, p.id',
+    ];
 1;
