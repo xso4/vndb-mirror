@@ -39,7 +39,7 @@ my $config = {
     ch_size           => [ 256, 300 ], # max. w*h of char images
     cv_size           => [ 256, 400 ], # max. w*h of cover images
 
-    api_throttle      => [ 60, 1 ], # execution time multiplier, allowed burst
+    api_throttle      => [ 60, 5 ], # execution time multiplier, allowed burst
 
     Multi => {
         Core        => {},

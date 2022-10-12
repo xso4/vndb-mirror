@@ -34,39 +34,47 @@ TUWF::options qr{/api/kana.*}, sub {
 };
 
 
-sub err {
-    my($status, $msg) = @_;
-    tuwf->resStatus($status);
-    tuwf->resHeader('Content-type', 'text');
-    print { tuwf->resFd } $msg, "\n";
-    tuwf->log(sprintf '[%s] %d %s "%s"', tuwf->reqIP(), $status, $msg, tuwf->reqHeader('user-agent')||'');
-    tuwf->done;
-}
-
 
 # Production API is currently running as a single process, so we can safely and
 # efficiently keep the throttle state as a local variable.
 # This throttle state only handles execution time limiting; request limiting
 # is done in nginx.
 my %throttle; # IP -> SQL time
+my $throttle_start;
 
-sub count_request {
-    my($start, $rows, $call) = @_;
-    tuwf->resFd->flush;
+sub add_throttle {
     my $now = time;
-    my $time = $now-$start;
+    my $time = $now - $throttle_start;
     my $norm = norm_ip tuwf->reqIP();
     $throttle{$norm} = $now if !$throttle{$norm} || $throttle{$norm} < $now;
     $throttle{$norm} += $time * config->{api_throttle}[0];
+    $time;
+}
+
+sub check_throttle {
+    $throttle_start = time;
+    err(429, 'Throttled on query execution time.')
+        if ($throttle{ norm_ip tuwf->reqIP }||0) >= time + (config->{api_throttle}[0] * config->{api_throttle}[1]);
+}
+
+sub err {
+    my($status, $msg) = @_;
+    my $time = add_throttle;
+    tuwf->resStatus($status);
+    tuwf->resHeader('Content-type', 'text');
+    print { tuwf->resFd } $msg, "\n";
+    tuwf->log(sprintf '%4dms [%s] %d %s "%s"', $time, tuwf->reqIP(), $status, $msg, tuwf->reqHeader('user-agent')||'');
+    tuwf->done;
+}
+
+sub count_request {
+    my($rows, $call) = @_;
+    tuwf->resFd->flush;
+    my $time = add_throttle;
     tuwf->log(sprintf '%4dms %3dr%6db [%s] %s "%s"',
         $time*1000, $rows, length(tuwf->{_TUWF}{Res}{content}),
         tuwf->reqIP(), $call, tuwf->reqHeader('user-agent')||'-'
     );
-}
-
-sub check_throttle {
-    err(429, 'Throttled on query execution time.')
-        if ($throttle{ norm_ip tuwf->reqIP }||0) >= time + (config->{api_throttle}[0] * config->{api_throttle}[1]);
 }
 
 
@@ -80,7 +88,7 @@ sub api_get {
         $s->analyze->coerce_for_json($res, unknown => 'reject');
         tuwf->resJSON($res);
         tuwf->resHeader('Access-Control-Allow-Origin', '*') if tuwf->reqHeader('Origin');
-        count_request($start, 1, '-');
+        count_request(1, '-');
     };
 }
 
@@ -174,7 +182,6 @@ sub api_query {
         })->($opt{fields}, {});
 
         check_throttle;
-        my $start = time;
         my $req = tuwf->validate(json => $req_schema);
         if(!$req) {
             eval { $req->data }; warn $@;
@@ -208,6 +215,7 @@ sub api_query {
             alarm 0;
             1;
         } || do {
+            alarm 0;
             err 500, 'Processing timeout' if $@ =~ /^Timeout/ || $@ =~ /canceling statement due to statement timeout/;
             die $@;
         };
@@ -218,10 +226,10 @@ sub api_query {
             $req->{count} ? (count => $count) : (),
             $req->{compact_filters} ? (compact_filters => $req->{filters}->query_encode) : (),
             $req->{normalized_filters} ? (normalized_filters => $req->{filters}->json) : (),
-            $req->{time} ? (time => int(1000*(time()-$start))) : (),
+            $req->{time} ? (time => int(1000*(time()-$throttle_start))) : (),
         });
         tuwf->resHeader('Access-Control-Allow-Origin', '*') if tuwf->reqHeader('Origin');
-        count_request($start, scalar @$results, sprintf '[%s] {%s %s r%dp%d} %s', fmt_fields($req->{fields}),
+        count_request(scalar @$results, sprintf '[%s] {%s %s r%dp%d} %s', fmt_fields($req->{fields}),
             $req->{sort}, $req->{reverse}?'asc':'desc', $req->{results}, $req->{page},
             $req->{filters}->query_encode()||'-');
     };
