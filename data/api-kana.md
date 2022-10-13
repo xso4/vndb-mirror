@@ -352,16 +352,16 @@ Name              [F]  Description
 
 `anime_id`             Integer, AniDB anime identifier.
 
-`release`              Match visual novels that have at least one release
+`release`         m    Match visual novels that have at least one release
                        matching the given [release filters](#release-filters).
 
-`character`            Match visual novels that have at least one character
+`character`       m    Match visual novels that have at least one character
                        matching the given [character filters](#character-filters).
 
-`staff`                Match visual novels that have at least one staff member
+`staff`           m    Match visual novels that have at least one staff member
                        matching the given [staff filters](#staff-filters).
 
-`developer`            Match visual novels developed by the given [producer filters](#producer-filters).
+`developer`       m    Match visual novels developed by the given [producer filters](#producer-filters).
 ------------------------------------------------------------------------------
 
 The `tag` and `dtag` filters accept either a plain tag ID or a three-element
@@ -372,8 +372,6 @@ Protagonist](https://vndb.org/g505) with a vote of at least 1.2 at any spoiler
 level. If only an ID is given, `0` is assumed for both the spoiler and tag
 levels. For example, `["tag","=","g505"]` is equivalent to
 `["tag","=",["g505",0,0]]`.
-
-*TODO: old API has a firstchar filter, do we need that?*
 
 ### Fields {#vn-fields}
 
@@ -568,10 +566,10 @@ Name                [F]   Description
 
 `has_ero`                 See `patch`.
 
-`vn`                      Match releases that are linked to at least one visual novel
+`vn`                m     Match releases that are linked to at least one visual novel
                           matching the given [visual novel filters](#vn-filters).
 
-`producer`                Match releases that have at least one producer
+`producer`          m     Match releases that have at least one producer
                           matching the given [producer filters](#producer-filters).
 -----------------------------------------------------------------------------
 
@@ -730,9 +728,148 @@ description
 
 ## POST /character
 
+Accepted values for `"sort"`: `id`, `name`.
+
 ### Filters {#character-filters}
 
+-----------------------------------------------------------------------------
+Name                [F]   Description
+------------------  ----  -------------------------------------------------------
+`id`                o     vndbid
+
+`search`            m     String search.
+
+`role`              m     String, see `vns.role` field. If this filter is used
+                          when nested inside a visual novel filter, then this
+                          matches the `role` of the particular visual novel.
+                          Otherwise, this matches the `role` of any linked
+                          visual novel.
+
+`blood_type`              String.
+
+`sex`                     String.
+
+`height`            o,n,i Integer, cm.
+
+`weight`            o,n,i Integer, kg.
+
+`bust`              o,n,i Integer, cm.
+
+`waist`             o,n,i Integer, cm.
+
+`hips`              o,n,i Integer, cm.
+
+`cup`               o,n,i String, cup size.
+
+`age`               o,n,i Integer.
+
+`trait'             m     Traits applied to this character, also matches parent
+                          traits. See below for more details.
+
+`dtrait`            m     Traits applied directly to this character, does not
+                          match parent traits. See below for details.
+
+`birthday`          n     Array of two integers, month and day. Day may be `0`
+                          to find characters whose birthday is in a given month.
+
+`seiyuu`            m     Match characters that are voiced by the matching
+                          [staff filters](#staff-filters). Voice actor
+                          information is actually specific to visual novels,
+                          but this filter does not (currently) correlate
+                          against the parent entry when nested inside a visual
+                          novel filter.
+
+`vn`                m     Match characters linked to visual novels described by
+                          [visual novel filters](#vn-filters).
+-----------------------------------------------------------------------------
+
+The `trait` and `dtrait` filters accept either a plain trait ID or a
+two-element array containing the trait ID and maximum spoiler level. These work
+similar to the tag filters for [visual novels](#vn-filters), except that traits
+don't have a rating.
+
 ### Fields
+
+id
+:   vndbid.
+
+name
+:   String.
+
+original
+:   String, possibly null, name in the original script.
+
+aliases
+:   Array of strings.
+
+description
+:   String, possibly null, may contain [formatting codes](https://vndb.org/d9#4).
+
+image.\*
+:   Object, possibly null, same sub-fields as the `image` [visual novel field](#vn-fields).
+
+blood\_type
+:   String, possibly null, `"a"`, `"b"`, `"ab"` or `"o"`.
+
+height
+:   Integer, possibly null, cm.
+
+weight
+:   Integer, possibly null, kg.
+
+bust
+:   Integer, possibly null, cm.
+
+waist
+:   Integer, possibly null, cm.
+
+hips
+:   Integer, possibly null, cm.
+
+cup
+:   String, possibly null, `"AAA"`, `"AA"`, or any single letter in the alphabet.
+
+age
+:   Integer, possibly null, years.
+
+vns
+:   Array of objects, visual novels this character appears in. The same visual
+    novel may be listed multiple times with a different release; the spoiler
+    level and role can be different per release.
+
+vns.spoiler
+:   Integer.
+
+vns.role
+:   String, `"main"` for protagonist, `"primary"` for main characters, `"side"`
+    or `"appears"`.
+
+vns.\*
+:   All [visual novel fields](#vn-fields) are available here.
+
+vns.release.\*
+:   Object, usually null, specific release that this character appears in. All
+    [release fields](#release-fields) are available here.
+
+traits
+:   Array of objects, possibly empty.
+
+traits.id
+:   vndbid
+
+traits.spoiler
+:   Integer, 0, 1 or 2, spoiler level.
+
+traits.name
+:   String
+
+traits.group_id
+:   vndbid
+
+traits.group_name
+:   String
+
+*Missing: sex, instances, voice actor*
 
 ## POST /staff
 

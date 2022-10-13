@@ -417,10 +417,12 @@ f r => 63 => 'doujin',      { uint => 1, range => [1,1] }, '=' => sub { 'r.douji
 
 
 
+f c => 80 => 'id',         { vndbid => 'c' }, sql => sub { sql 'c.id', $_[0], \$_ };
+f c => 81 => 'search',     {}, '=' => sub { sql 'c.c_search LIKE ALL (search_query(', \$_, '))' };
 f c =>  2 => 'role',       { enum => \%CHAR_ROLE  }, '=' => sub { $#TYPE && $TYPE[$#TYPE-1] eq 'v' ? sql 'cv.role =', \$_ : sql 'c.id IN(SELECT id FROM chars_vns WHERE role =', \$_, ')' };
-f c =>  3 => 'blood-type', { enum => \%BLOOD_TYPE }, '=' => sub { sql 'c.bloodt =', \$_ };
+f c =>  3 => 'blood_type', { enum => \%BLOOD_TYPE }, '=' => sub { sql 'c.bloodt =', \$_ };
 f c =>  4 => 'sex',        { enum => \%GENDER },     '=' => sub { sql 'c.gender =', \$_ };
-f c =>  5 => 'sex-spoil',  { enum => \%GENDER },     '=' => sub { sql '(c.gender =', \$_, 'AND c.spoil_gender IS NULL) OR c.spoil_gender IS NOT DISTINCT FROM', \$_ };
+f c =>  5 => 'sex_spoil',  { enum => \%GENDER },     '=' => sub { sql '(c.gender =', \$_, 'AND c.spoil_gender IS NULL) OR c.spoil_gender IS NOT DISTINCT FROM', \$_ };
 f c =>  6 => 'height',     { required => 0, default => undef, uint => 1, max => 32767 },
     sql => sub { !defined $_ ? sql 'c.height', $_[0], 0 : sql 'c.height <> 0 AND c.height', $_[0], \$_ };
 f c =>  7 => 'weight',     { required => 0, default => undef, uint => 1, max => 32767 },
@@ -437,7 +439,7 @@ f c => 12 => 'age',        { required => 0, default => undef, uint => 1, max => 
     sql => sub { !defined $_ ? sql('c.age IS', $_[0] eq '=' ? '' : 'NOT', 'NULL') : sql 'c.age', $_[0], \$_ };
 f c => 13 => 'trait',      { type => 'any', func => \&_validate_trait }, compact => \&_compact_trait, sql_list => _sql_where_trait('traits_chars', 'cid');
 f c => 15 => 'dtrait',     { type => 'any', func => \&_validate_trait }, compact => \&_compact_trait, sql_list => _sql_where_trait('chars_traits', 'id');
-f c => 14 => 'birthday',   { type => 'array', length => 2, values => { uint => 1, max => 31 } },
+f c => 14 => 'birthday',   { required => 0, default => [0,0], type => 'array', length => 2, values => { uint => 1, max => 31 } },
     '=' => sub { sql 'c.b_month =', \$_->[0], $_->[1] ? ('AND c.b_day =', \$_->[1]) : () };
 
 # XXX: When this field is nested inside a VN query, it may match seiyuu linked to other VNs.

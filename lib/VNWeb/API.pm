@@ -330,16 +330,15 @@ sub proc_results {
             # DB::enrich() logic has been duplicated here to allow for
             # efficient handling of nested proc_results() and `atmostone`.
             my %ids = map defined($_->{$d->{key}}) ? ($_->{$d->{key}},[]) : (), @$results;
-            next if !keys %ids;
-            my $rows = tuwf->dbAlli($d->{enrich}->($select, $join, [keys %ids]));
+            my $rows = keys %ids ? tuwf->dbAlli($d->{enrich}->($select, $join, [keys %ids])) : [];
             proc_results($d->{fields}, $enabled->{$f}, $rows);
             push $ids{ delete $_->{$d->{col}} }->@*, $_ for @$rows;
             if($d->{atmostone}) {
-                if($d->{select}) { $_->{$f} = $ids{ delete $_->{$d->{key}} }[0] for @$results }
-                else             { $_->{$f} = $ids{        $_->{$d->{key}} }[0] for @$results }
+                if($d->{select}) { $_->{$f} = $ids{ delete $_->{$d->{key}} // '' }[0] for @$results }
+                else             { $_->{$f} = $ids{        $_->{$d->{key}} // '' }[0] for @$results }
             } else {
-                if($d->{select}) { $_->{$f} = $ids{ delete $_->{$d->{key}} }||[] for @$results }
-                else             { $_->{$f} = $ids{        $_->{$d->{key}} }||[] for @$results }
+                if($d->{select}) { $_->{$f} = $ids{ delete $_->{$d->{key}} // '' }||[] for @$results }
+                else             { $_->{$f} = $ids{        $_->{$d->{key}} // '' }||[] for @$results }
             }
             $d->{proc}->($_->{$f}) for $d->{proc} ? @$results : ();
 
@@ -375,6 +374,7 @@ my @BOOL = (proc => sub { $_[0] = $_[0] ? \1 : \0 if defined $_[0] });
 my @INT = (proc => sub { $_[0] *= 1 if defined $_[0] });
 my @RDATE = (proc => sub { $_[0] = $_[0] ? rdate $_[0] : undef });
 my @NSTR = (proc => sub { $_[0] = undef if !length $_[0] });
+my @NINT = (proc => sub { $_[0] = defined $_[0] ? $_[0]*1 : undef });
 
 sub IMG {
     my($main_col, $join_id, $join_prefix) = @_;
@@ -557,5 +557,65 @@ api_query '/producer',
     sort => [
         id       => 'p.id',
         name     => 'p.name ?o, p.id',
+    ];
+
+
+api_query '/character',
+    filters => 'c',
+    sql => sub { sql 'SELECT c.id', $_[0], 'FROM chars c', $_[1], 'WHERE NOT c.hidden AND (', $_[2], ')' },
+    joins => {
+        image => 'LEFT JOIN images i ON i.id = c.image',
+    },
+    fields => {
+        id       => {},
+        name     => { select => 'c.name' },
+        original => { select => 'c.original', @NSTR },
+        aliases  => { select => 'c.alias AS aliases', proc => sub { $_[0] = [ grep length($_), split /\n/, $_[0] ] } },
+        description => { select => 'c.desc AS description', @NSTR },
+        image => {
+            fields => { IMG 'c.image', 'image', 'i.' },
+            nullif => 'c.image IS NULL AS image_nullif',
+        },
+        blood_type => { select => 'c.bloodt', proc => sub { $_[0] = undef if $_[0] eq 'unknown' } },
+        height   => { select => 'c.height', @NINT },
+        weight   => { select => 'c.weight' },
+        bust     => { select => 'c.s_bust AS bust', @NINT },
+        waist    => { select => 'c.s_waist AS waist', @NINT },
+        hips     => { select => 'c.s_hip AS hips', @NINT },
+        cup      => { select => 'c.cup_size AS cup', @NSTR },
+        age      => { select => 'c.age' },
+        vns      => {
+            enrich => sub { sql 'SELECT cv.id AS cid, v.id', $_[0], 'FROM chars_vns cv JOIN vnt v ON v.id = cv.vid', $_[1], 'WHERE NOT v.hidden AND cv.id IN', $_[2] },
+            key => 'id', col => 'cid', num => 3,
+            inherit => '/vn',
+            fields => {
+                spoiler => { select => 'cv.spoil AS spoiler' },
+                role    => { select => 'cv.role' },
+                release => {
+                    select => 'cv.rid',
+                    enrich => sub { sql 'SELECT r.id AS rid, r.id', $_[0], 'FROM releasest r', $_[1], 'WHERE NOT r.hidden AND r.id IN', $_[2] },
+                    key => 'rid', col => 'rid', atmostone => 1,
+                    inherit => '/release',
+                }
+            },
+        },
+        traits   => {
+            enrich => sub { sql 'SELECT ct.id AS cid', $_[0], 'FROM chars_traits ct JOIN traits t ON t.id = ct.tid', $_[1], 'WHERE NOT t.hidden AND ct.id IN', $_[2] },
+            key => 'id', col => 'cid', num => 30,
+            joins => {
+                group => 'LEFT JOIN traits g ON g.id = t.group',
+            },
+            fields => {
+                id       => { select => 'ct.tid AS id' },
+                spoiler  => { select => 'ct.spoil AS spoiler' },
+                name     => { select => 't.name' },
+                group_id => { join => 'group', select => 't."group" AS group_id' },
+                group_name=>{ join => 'group', select => 'g.name AS group_name' },
+            },
+        },
+    },
+    sort => [
+        id       => 'c.id',
+        name     => 'c.name ?o, c.id',
     ];
 1;

@@ -211,7 +211,7 @@ sub filter_char_adv {
     my($fil) = @_;
     [ 'and',
     defined $fil->{gender}     ? [ 'or', map [ 'sex', '=', $_ ], $fil->{gender}->@* ] : (),
-    defined $fil->{bloodt}     ? [ 'or', map [ 'blood-type', '=', $_ ], $fil->{bloodt}->@* ] : (),
+    defined $fil->{bloodt}     ? [ 'or', map [ 'blood_type', '=', $_ ], $fil->{bloodt}->@* ] : (),
     defined $fil->{bust_min}   ? [ 'bust',   '>=', $fil->{bust_min}   ] : (),
     defined $fil->{bust_max}   ? [ 'bust',   '<=', $fil->{bust_max}   ] : (),
     defined $fil->{waist_min}  ? [ 'waist',  '>=', $fil->{waist_min}  ] : (),
