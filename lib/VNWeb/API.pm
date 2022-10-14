@@ -69,7 +69,7 @@ sub err {
 
 sub count_request {
     my($rows, $call) = @_;
-    tuwf->resFd->flush;
+    close tuwf->resFd;
     my $time = add_throttle;
     tuwf->log(sprintf '%4dms %3dr%6db [%s] %s "%s"',
         $time*1000, $rows, length(tuwf->{_TUWF}{Res}{content}),

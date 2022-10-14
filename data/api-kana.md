@@ -5,7 +5,7 @@ header-includes: |
   td { vertical-align: top }
   header, header h1 { margin: 0 }
   @media (min-width: 1100px) {
-      body { margin: 0 0 0 250px }
+      body { margin: 0 0 0 270px }
       nav { box-sizing: border-box; position: fixed; padding: 50px 20px 10px 10px; top: 0; left: 0; height: 100%; overflow: scroll }
   }
   </style>
@@ -892,10 +892,54 @@ expect to see:
    500  Server error, usually points to a bug if this persists
    502  Server is down, should be temporary
 
+# Tips & Troubleshooting
+
+## "Too much data selected"
+
+The server calculates a rough estimate of the number of JSON keys it would
+generate in response to your query and throws an error if that estimation
+exceeds a certain theshold, i.e. if the response is expected to be rather
+large.  This estimation is entirely based on the `"fields"` and `"results"`
+parameters, so you can work around this error by either selecting fewer fields
+or fewer results.
+
+## List of identifiers
+
+If you have a (potentially large) list of database identifiers you'd like to
+fetch, it is faster and more efficient to fetch 100 entries in a single API
+call than it is to make 100 separate API calls. Simply create a filter
+containing the identifiers as follows:
+
+```json
+["or"
+  , ["id","=","v1"]
+  , ["id","=","v2"]
+  , ["id","=","v3"]
+  , ["id","=","v4"]
+  , ["id","=","v5"]
+]
+```
+
+Do not add more than 100 identifiers in a single query. You'll especially want
+to avoid sending the same list of identifiers multiple times but with higher
+`"page"` numbers, see also the next point.
+
+## Pagination
+
+While the API supports pagination through the `"page"` parameter, this is often
+not the most efficient way to retrieve a large list of entries. Results are
+sorted on `"id"` by default so you can also implement pagination by filtering
+on this field. For example, if the last item you've received had id `"v123"`,
+you can fetch the next page by filtering on `["id",">","v123"]`.
+
+This approach tends to not work as well when sorting on other fields, so
+`"page"`-based pagination is often still the better solution in those cases.
+
+
+
 *TODO: Footnotes with multiple references get duplicated. Pandoc is [being
 weird](https://github.com/jgm/pandoc/issues/1603). Need a workaround, because
 this will get annoying really fast. :(*
-
 
 [F]: #filter-flags
 
