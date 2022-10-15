@@ -508,7 +508,7 @@ sub _validate_trait {
 
 # Accepts either $label or [$uid, $label]. Normalizes to the latter. $label=0 is used for 'Unlabeled'.
 sub _validate_label {
-    $_[0] = [auth->uid(), $_[0]] if ref $_[0] ne 'ARRAY';
+    $_[0] = [tuwf->req->{advsearch_uid}||auth->uid(), $_[0]] if ref $_[0] ne 'ARRAY';
     my $v = tuwf->compile({ vndbid => 'u' })->validate($_[0][0]);
     return 0 if $v->err;
     $_[0][0] = $v->data;
@@ -648,6 +648,7 @@ sub _sql_where_trait {
 sub _sql_where_label {
     my($neg, $all, $val) = @_;
     my $uid = $val->[0][0];
+    require VNWeb::ULists::Lib;
     my $own = VNWeb::ULists::Lib::ulists_own($uid);
     my @lbl = map $_->[1], @$val;
 

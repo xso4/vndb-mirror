@@ -100,6 +100,7 @@ sub api_get {
 #           $_[0] is the list of fields to fetch (including a preceding comma)
 #           $_[1] is a list of JOIN clauses
 #           $_[2] the filters for in the WHERE clause
+#           $_[3] points to the request parameters
 #       'ORDER BY' and 'LIMIT' clauses are appended to the returned query.
 #       Query must always return a column named 'id'.
 #   joins => {
@@ -137,6 +138,7 @@ sub api_get {
 #                #    $_[0] is the list of fields to fetch
 #                #    $_[1] is a list of JOIN clauses
 #                #    $_[2] is a list of identifiers to fetch
+#                #    $_[3] points to the request parameters
 #   key      => 'id',  # $key argument to enrich()
 #   col      => 'id',  # $merge_col argument to enrich()
 #   select   => 'SQL', # SQL to return $key, if it's not already part of the object.
@@ -163,6 +165,7 @@ sub api_query {
         results => { required => 0, default => 10, uint => 1, range => [1,100] },
         page => { required => 0, default => 1, uint => 1, range => [1,1e6] },
         count => { required => 0, default => 0, jsonbool => 1 },
+        user => { required => 0, vndbid => 'u' },
         compact_filters => { required => 0, default => 0, jsonbool => 1 },
         normalized_filters => { required => 0, default => 0, jsonbool => 1 },
         time => { required => 0, default => 0, jsonbool => 1 },
@@ -182,6 +185,7 @@ sub api_query {
         })->($opt{fields}, {});
 
         check_throttle;
+        tuwf->req->{advsearch_uid} = eval { tuwf->reqJSON->{user} };
         my $req = tuwf->validate(json => $req_schema);
         if(!$req) {
             eval { $req->data }; warn $@;
@@ -206,12 +210,12 @@ sub api_query {
         eval {
             local $SIG{ALRM} = sub { die "Timeout\n"; };
             alarm 3;
-            ($results, $more) = tuwf->dbPagei($req, $opt{sql}->($select, $joins, $req->{filters}->sql_where), 'ORDER BY', $sort);
+            ($results, $more) = tuwf->dbPagei($req, $opt{sql}->($select, $joins, $req->{filters}->sql_where(), $req), 'ORDER BY', $sort);
             $count = $req->{count} && (
                 !$more && @$results <= $req->{results} ? ($req->{results}*($req->{page}-1))+@$results :
                 tuwf->dbVali('SELECT count(*) FROM (', $opt{sql}->('', '', $req->{filters}->sql_where), ') x')
             );
-            proc_results($opt{fields}, $req->{fields}, $results);
+            proc_results($opt{fields}, $req->{fields}, $req, $results);
             alarm 0;
             1;
         } || do {
@@ -320,7 +324,7 @@ sub proc_field {
 
 
 sub proc_results {
-    my($fields, $enabled, $results) = @_;
+    my($fields, $enabled, $req, $results) = @_;
     for my $f (keys %$enabled) {
         my $d = $fields->{$f};
 
@@ -330,8 +334,8 @@ sub proc_results {
             # DB::enrich() logic has been duplicated here to allow for
             # efficient handling of nested proc_results() and `atmostone`.
             my %ids = map defined($_->{$d->{key}}) ? ($_->{$d->{key}},[]) : (), @$results;
-            my $rows = keys %ids ? tuwf->dbAlli($d->{enrich}->($select, $join, [keys %ids])) : [];
-            proc_results($d->{fields}, $enabled->{$f}, $rows);
+            my $rows = keys %ids ? tuwf->dbAlli($d->{enrich}->($select, $join, [keys %ids], $req)) : [];
+            proc_results($d->{fields}, $enabled->{$f}, $req, $rows);
             push $ids{ delete $_->{$d->{col}} }->@*, $_ for @$rows;
             if($d->{atmostone}) {
                 if($d->{select}) { $_->{$f} = $ids{ delete $_->{$d->{key}} // '' }[0] for @$results }
@@ -621,4 +625,73 @@ api_query '/character',
         id       => 'c.id',
         name     => 'c.name ?o, c.id',
     ];
+
+
+api_query '/ulist',
+    filters => 'v',
+    sql => sub {
+        err 400, 'Missing "user" parameter.' if !$_[3]{user};
+        sql 'SELECT v.id', $_[0], '
+               FROM ulist_vns uv
+               JOIN vnt v ON v.id = uv.vid', $_[1], '
+              WHERE NOT v.hidden
+                AND uv.uid =', \$_[3]{user}, '
+                AND EXISTS(SELECT 1 FROM ulist_vns_labels uvl JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl
+                            WHERE uvl.uid = uv.uid AND uvl.vid = uv.vid AND NOT ul.private)
+                AND (', $_[2], ')'
+    },
+    fields => {
+        id       => {},
+        added    => { select => "extract('epoch' from uv.added)::bigint AS added" },
+        lastmod  => { select => "extract('epoch' from uv.lastmod)::bigint AS lastmod" },
+        voted    => { select => "extract('epoch' from uv.vote_date)::bigint AS voted" },
+        vote     => { select => 'uv.vote' },
+        started  => { select => 'uv.started' },
+        finished => { select => 'uv.finished' },
+        notes    => { select => 'uv.notes', @NSTR },
+        labels   => {
+            enrich => sub { sql 'SELECT uvl.vid', $_[0], '
+                                   FROM ulist_vns_labels uvl
+                                   JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl
+                                  WHERE uvl.uid =', \$_[3]{user}, 'AND ul.uid =', \$_[3]{user}, '
+                                    AND NOT ul.private
+                                    AND uvl.vid IN', $_[2] },
+            key => 'id', col => 'vid', num => 3,
+            fields => {
+                id    => { select => 'ul.id' },
+                label => { select => 'ul.label' },
+            },
+        },
+        vn       => {
+            enrich => sub { sql 'SELECT v.id', $_[0], 'FROM vnt v', $_[1], 'WHERE v.id IN', $_[2] },
+            key => 'id', col => 'id', atmostone => 1, inherit => '/vn',
+        },
+        releases => {
+            enrich => sub { sql 'SELECT irv.vid, r.id', $_[0], '
+                                   FROM rlists rl
+                                   JOIN releasest r ON rl.rid = r.id', $_[1], '
+                                   JOIN (SELECT DISTINCT id, vid FROM releases_vn rv WHERE rv.vid IN', $_[2], ') AS irv(id,vid) ON rl.rid = irv.id
+                                  WHERE NOT r.hidden
+                                    AND rl.uid =', \$_[3]{user} },
+            key => 'id', col => 'vid', num => 3, inherit => '/release',
+            fields => {
+                list_status => { select => 'rl.status AS list_status' },
+            },
+        },
+    },
+    sort => [
+        id         => 'v.id',
+        title      => 'v.sorttitle ?o, v.id',
+        released   => 'v.c_released ?o, v.id',
+        popularity => 'v.c_pop_rank !o NULLS LAST, v.id',
+        rating     => 'v.c_rat_rank !o NULLS LAST, v.id',
+        votecount  => 'v.c_votecount ?o, v.id',
+        voted      => 'uv.vote_date ?o, v.id',
+        vote       => 'uv.vote ?o, v.id',
+        added      => 'uv.added',
+        lastmod    => 'uv.lastmod',
+        started    => 'uv.started ?o, v.id',
+        finished   => 'uv.finished ?o, v.id',
+    ];
+
 1;

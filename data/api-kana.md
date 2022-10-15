@@ -124,6 +124,7 @@ A query is a JSON object that looks like this:
   "reverse": false,
   "results": 10,
   "page": 1,
+  "user": null,
   "count": false,
   "compact_filters": false,
   "normalized_filters": false
@@ -160,6 +161,10 @@ results
 
 page
 :   Page number to request, starting from 1.
+
+user
+:   User ID. This field is currently only required for `POST /ulist`. It also
+    sets the default user ID to use for the visual novel "label" filter.
 
 count
 :   Whether the response should include the `count` field (see below). This
@@ -351,6 +356,11 @@ Name              [F]  Description
 `dtag`            m    Tags applied directly to this VN, does not match parent tags. See below for details.
 
 `anime_id`             Integer, AniDB anime identifier.
+
+`label`           m    User labels applied to this VN. Accepts a two-element
+                       array containing a user ID and label ID. If the `"user"`
+                       request parameter has been set, then it also accepts
+                       just a label ID.
 
 `release`         m    Match visual novels that have at least one release
                        matching the given [release filters](#release-filters).
@@ -880,11 +890,90 @@ traits.group_name
 
 *Missing: sex, instances, voice actor*
 
+
 ## POST /staff
 
 ### Filters {#staff-filters}
 
 ### Fields
+
+
+## POST /ulist
+
+Fetch a user's list. This API is very much like `POST /vn`, except it requires
+the `"user"` parameter to be set and it has a different response structure. All
+[visual novel filters](#vn-filters) can be used here.
+
+If the user has visual novel entires on their list that have been deleted from
+the database, these will not be returned through the API even though they do
+show up on the website.
+
+Accepted values for `"sort"`: `id`, `title`, `released`, `popularity`,
+`rating`, `votecount`, `voted`, `vote`, `added`, `lastmod`, `started`,
+`finished`.
+
+Very important example on how to fetch Yorhel's top 10 voted visual novels:
+
+```sh
+curl %endpoint%/ulist --header 'Content-Type: application/json' --data '{
+    "user": "u2",
+    "fields": "id, vote, vn.title",
+    "filters": [ "label", "=", 7 ],
+    "sort": "vote",
+    "reverse": true,
+    "results": 10
+}'
+```
+
+### Fields
+
+id
+:   Visual novel ID.
+
+added
+:   Integer, unix timestamp.
+
+voted
+:   Integer, can be null, unix timestamp of when the user voted on this VN.
+
+lastmod
+:   Integer, unix timestamp when the user last modified their list for this VN.
+
+vote
+:   Integer, can be null, 10 - 100.
+
+started
+:   String, start date, can be null, "YYYY-MM-DD" format.
+
+finished
+:   String, finish date, can be null.
+
+notes
+:   String, can be null.
+
+labels
+:   Array of objects, user labels assigned to this VN.
+
+labels.id
+:   Integer.
+
+labels.label
+:   String.
+
+vn\.*
+:   Visual novel info, all [visual novel fields](#vn-fields) can be selected
+    here.
+
+releases
+:   Array of objects, releases of this VN that the user has added to their list.
+
+releases.list_status
+:   Integer, 0 for "Unknown", 1 for "Pending", 2 for "Obtained", 3 for "On
+    loan", 4 for "Deleted".
+
+releases.\*
+:   All [release fields](#release-fields) can be selected here.
+
 
 # HTTP Response Codes
 
