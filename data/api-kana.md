@@ -38,7 +38,7 @@ best-effort basis, no guarantees are made about the stability or applicability
 of this service.
 
 The data obtained through this API is subject to our [Data
-License](https://vndb.org/d17#3).
+License](https://vndb.org/d17#4).
 
 API access is rate-limited in order to keep server resources in check. The
 server will allow up to 200 requests per 5 minutes and up to 1 second of
@@ -466,6 +466,15 @@ length\_votes
 
 description
 :   String, possibly null, may contain [formatting codes](https://vndb.org/d9#4).
+
+rating
+:   Number between 10 and 100, null if nobody voted.
+
+popularity
+:   Number between 0 and 100.
+
+votecount
+:   Integer, number of votes.
 
 screenshots
 :   Array of objects, possibly empty.
