@@ -68,6 +68,7 @@ my $FORM = {
     authmod    => { _when => 'out', anybool => 1 },
     editsum    => { _when => 'in out', editsum => 1 },
     releases   => { _when => 'out', $VNWeb::Elm::apis{Releases}[0]->%* },
+    reltitles  => { _when => 'out', aoh => { id => { vndbid => 'r' }, title => {} } },
     chars      => { _when => 'out', aoh => {
         id       => { vndbid => 'c' },
         name     => {},
@@ -110,6 +111,14 @@ TUWF::get qr{/$RE{vrev}/edit} => sub {
     $e->{editions} = [ sort { ($a->{lang}||'') cmp ($b->{lang}||'') || $b->{official} cmp $a->{official} || $a->{name} cmp $b->{name} } $e->{editions}->@* ];
 
     $e->{releases} = releases_by_vn $e->{id};
+    $e->{reltitles} = tuwf->dbAlli('
+        SELECT DISTINCT r.id, i.title
+          FROM releases r
+          JOIN releases_vn rv ON rv.id = r.id
+          JOIN releases_titles rt ON rt.id = r.id
+          JOIN unnest(ARRAY[rt.title,rt.latin]) i(title) ON i.title IS NOT NULL
+         WHERE NOT r.hidden AND rv.vid =', \$e->{id}
+    );
 
     $e->{chars} = tuwf->dbAlli('
         SELECT id, name, original FROM chars

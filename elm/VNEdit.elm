@@ -78,6 +78,7 @@ type alias Model =
   , scrUplNum   : Maybe Int
   , scrId       : Int -- latest used internal id
   , releases    : List GVE.RecvReleases
+  , reltitles   : List { id: String, title: String }
   , chars       : List GVE.RecvChars
   , id          : Maybe String
   , dupCheck    : Bool
@@ -116,6 +117,7 @@ init d =
   , scrUplNum   = Nothing
   , scrId       = 100
   , releases    = d.releases
+  , reltitles   = d.reltitles
   , chars       = d.chars
   , id          = d.id
   , dupCheck    = False
@@ -362,11 +364,10 @@ update msg model =
 
 
 -- TODO: Fuzzier matching? Exclude stuff like 'x Edition', etc.
--- TODO: Match on all titles associated with a release, not just the 'title' and 'alttitle'.
-relAlias : Model -> Maybe GVE.RecvReleases
+relAlias : Model -> Maybe { id: String, title: String }
 relAlias model =
   let a = String.toLower model.alias |> String.lines |> List.filter (\l -> l /= "") |> Set.fromList
-  in List.filter (\r -> Set.member (String.toLower r.title) a || Set.member (String.toLower r.alttitle) a) model.releases |> List.head
+  in List.filter (\r -> Set.member (String.toLower r.title) a) model.reltitles |> List.head
 
 
 isValid : Model -> Bool
