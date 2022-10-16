@@ -755,7 +755,7 @@ sub _extract_ids {
     } else {
         my $f = $FIELDS{$t}{$q->[0]};
         $ids->{$q->[2]} = 1 if $f->{vndbid};
-        $ids->{"anime$q->[2]"} = 1 if $q->[0] eq 'anime-id';
+        $ids->{"anime$q->[2]"} = 1 if $q->[0] eq 'anime_id';
         $ids->{$q->[2][0]} = 1 if ref $f->{value} && ref $q->[2] eq 'ARRAY'; # Ugly heuristic, may have false positives
         _extract_ids($f->{value}, $q->[2], $ids) if !ref $f->{value};
     }
