@@ -458,7 +458,11 @@ CREATE TABLE releases ( -- dbentry_type=r
   ani_bg       boolean, -- [pub]
   ani_face     boolean, -- [pub]
   has_ero      boolean NOT NULL DEFAULT FALSE, -- [pub]
-  olang        language NOT NULL DEFAULT 'ja' -- [pub] Refers to the main title to use for display purposes, not necessarily the original language.
+  olang        language NOT NULL DEFAULT 'ja', -- [pub] Refers to the main title to use for display purposes, not necessarily the original language.
+  l_nintendo_jp bigint NOT NULL DEFAULT 0, -- [pub]
+  l_nintendo_hk bigint NOT NULL DEFAULT 0, -- [pub]
+  l_nintendo    text NOT NULL DEFAULT '', -- [pub]
+  l_playstation_hk text NOT NULL DEFAULT '' -- [pub]
 );
 
 -- releases_hist
@@ -520,7 +524,11 @@ CREATE TABLE releases_hist (
   ani_bg       boolean,
   ani_face     boolean,
   has_ero      boolean NOT NULL DEFAULT FALSE,
-  olang        language NOT NULL DEFAULT 'ja'
+  olang        language NOT NULL DEFAULT 'ja',
+  l_nintendo_jp bigint NOT NULL DEFAULT 0,
+  l_nintendo_hk bigint NOT NULL DEFAULT 0,
+  l_nintendo    text NOT NULL DEFAULT '',
+  l_playstation_hk text NOT NULL DEFAULT ''
 );
 
 -- releases_media

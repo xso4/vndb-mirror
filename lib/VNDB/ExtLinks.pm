@@ -177,6 +177,18 @@ our %LINKS = (
         l_playstation_eu => { label => 'PlayStation Store (EU)'
                             , fmt => 'https://store.playstation.com/en-gb/product/%s'
                             , regex => qr{store\.playstation\.com/(?:[-a-z]+\/)?product\/(EP\d{4}-[A-Z]{4}\d{5}_00-[\dA-Z_]{16})} },
+        l_playstation_hk => { label => 'PlayStation Store (HK)'
+                            , fmt => 'https://store.playstation.com/en-hk/product/%s'
+                            , regex => qr{store\.playstation\.com/(?:[-a-z]+\/)?product\/(HP\d{4}-[A-Z]{4}\d{5}_00-[\dA-Z_]{16})} },
+        l_nintendo     => { label => 'Nintendo'
+                          , fmt   => 'https://www.nintendo.com/store/products/%s/'
+                          , regex => qr{www\.nintendo\.com\/store\/products\/([-a-z0-9]+-(?:switch|wii-u|3ds))\/} },
+        l_nintendo_jp  => { label => 'Nintendo (JP)'
+                          , fmt   => 'https://store-jp.nintendo.com/list/software/%d.html'
+                          , regex => qr{store-jp\.nintendo\.com/list/software/([0-9]+).html} },
+        l_nintendo_hk  => { label => 'Nintendo (HK)'
+                          , fmt   => 'https://store.nintendo.com.hk/%d'
+                          , regex => qr{store\.nintendo\.com\.hk/([0-9]+)} },
         # deprecated
         l_dlsiteen => { label => 'DLsite (eng)', fmt => 'https://www.dlsite.com/eng/work/=/product_id/%s.html' },
         l_erotrail => { label => 'ErogeTrailers', fmt => 'http://erogetrailers.com/soft/%d' },
@@ -313,6 +325,10 @@ sub enrich_extlinks {
             l 'l_playstation_jp';
             l 'l_playstation_na';
             l 'l_playstation_eu';
+            l 'l_playstation_hk';
+            l 'l_nintendo';
+            l 'l_nintendo_jp';
+            l 'l_nintendo_hk';
             push @links, map [ 'PlayAsia', $_->{url}, $_->{price} ], @{$obj->{l_playasia}} if $obj->{l_playasia};
         }
 

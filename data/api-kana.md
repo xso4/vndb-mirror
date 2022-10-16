@@ -27,7 +27,7 @@ changes may occur.
 
 A sandbox endpoint is available for testing and development at
 [https://beta.vndb.org/api/kana](https://beta.vndb.org/api/kana), for more
-information see [the sandbox](https://beta.vndb.org/about-sandbox)).
+information see [the sandbox](https://beta.vndb.org/about-sandbox).
 
 *TODO: Handy page for live querying from the browser.*
 
@@ -283,7 +283,7 @@ properties.
 
     m  A single entry can match multiple values. For example, a visual novel
        available in both English and Japanese matches both `["lang","=","en"]`
-       and `["lang","=","ja"]`).
+       and `["lang","=","ja"]`.
 
     i  Inverting or negating this filter (e.g. by changing the operator from
        '=' to '!=' or from '>' to '<=') is not always equivalent to inverting
@@ -1006,16 +1006,19 @@ or fewer results.
 If you have a (potentially large) list of database identifiers you'd like to
 fetch, it is faster and more efficient to fetch 100 entries in a single API
 call than it is to make 100 separate API calls. Simply create a filter
-containing the identifiers as follows:
+containing the identifiers, like in the following example:
 
-```json
-["or"
-  , ["id","=","v1"]
-  , ["id","=","v2"]
-  , ["id","=","v3"]
-  , ["id","=","v4"]
-  , ["id","=","v5"]
-]
+```sh
+curl %endpoint%/vn --header 'Content-Type: application/json' --data '{
+  "fields": "title",
+  "filters": ["or"
+     , ["id","=","v1"]
+     , ["id","=","v2"]
+     , ["id","=","v3"]
+     , ["id","=","v4"]
+     , ["id","=","v5"] ],
+  "results": 100
+}'
 ```
 
 Do not add more than 100 identifiers in a single query. You'll especially want
