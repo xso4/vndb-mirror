@@ -475,6 +475,10 @@ f p =>  4 => 'type',      { enum => \%PRODUCER_TYPE }, '=' => sub { sql 'p.type 
 f p => 80 => 'search',    {}, '=' => sub { sql 'p.c_search LIKE ALL (search_query(', \$_, '))' };
 
 
+f g =>  2 => 'id',        { vndbid => 'g' }, sql => sub { sql 't.id', $_[0], \$_ };
+f g =>  3 => 'category',  { enum => \%TAG_CATEGORY }, '=' => sub { sql 't.cat =', \$_ };
+f g => 80 => 'search',    {}, '=' => sub { sql 't.c_search LIKE ALL (search_query(', \$_, '))' };
+
 
 # Accepts either $tag or [$tag, int($minlevel*5)*3+$maxspoil] (for compact form) or [$tag, $maxspoil, $minlevel]. Normalizes to the latter.
 sub _validate_tag {

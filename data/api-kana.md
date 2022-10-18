@@ -160,7 +160,8 @@ results
 :   Number of results per page, max 100.
 
 page
-:   Page number to request, starting from 1.
+:   Page number to request, starting from 1. See also the [note on
+    pagination](#pagination) below.
 
 user
 :   User ID. This field is currently only required for `POST /ulist`. It also
@@ -503,14 +504,12 @@ screenshots.release.\*
     is very common for all screenshots of a VN to be assigned to the same
     release, so the fields you select here are likely to get duplicated several
     times in the response. If you want to fetch more than just a few fields, it
-    is likely more efficient to only select the `release.id` here and then grab
-    detailed release info with a separate request.
+    is more efficient to only select `release.id` here and then grab detailed
+    release info with a separate request.
 
 tags
-:   Array of objects, possibly empty.
-
-tags.id
-:   String
+:   Array of objects, possibly empty. Only directly applied tags are returned,
+    parent tags are not included.
 
 tags.rating
 :   Number, tag rating between 0 (exclusive) and 3 (inclusive).
@@ -521,11 +520,12 @@ tags.spoiler
 tags.lie
 :   Boolean.
 
-tags.name
-:   String
-
-tags.category
-:   String, `"cont"` for content, `"ero"` for sexual content and `"tech"` for technical tags.
+tags.\*
+:   All [tag fields](#tag-fields) can be used here. If you're fetching tags for
+    more than a single visual novel, it's usually more efficient to only select
+    `tags.id` here and then fetch (and cache) further tag information as a
+    separate request. Otherwise the same tag info may get duplicated many times
+    in the response.
 
 *Currently missing from the old API: VN relations, staff, anime relations and
 external links. Also potentially useful: list of developers and VA's(?). Can
@@ -893,9 +893,57 @@ traits.group_name
 
 ## POST /staff
 
+*TODO*
+
 ### Filters {#staff-filters}
 
 ### Fields
+
+
+## POST /tag
+
+Accepted values for `"sort"`: `id`, `name`, `vn_count`.
+
+### Filters
+
+-----------------------------------------------------------------------------
+Name                [F]   Description
+------------------  ----  -------------------------------------------------------
+`id`                o     vndbid
+
+`search`            m     String search.
+
+`category`                String, see `category` field.
+-----------------------------------------------------------------------------
+
+### Fields {#tag-fields}
+
+id
+:   vndbid.
+
+name
+:   String.
+
+aliases
+:   Array of strings.
+
+description
+:   String, may contain [formatting codes](https://vndb.org/d9#4).
+
+category
+:   String, `"cont"` for content, `"ero"` for sexual content and `"tech"` for technical tags.
+
+searchable
+:   Bool.
+
+applicable
+:   Bool.
+
+vn\_count
+:   Integer, number of VNs this tag has been applied to, including any child tags.
+
+*Missing: some way to fetch parent/child tags. Not obvious how to do this
+efficiently because tags form a DAG rather than a tree.*
 
 
 ## POST /ulist

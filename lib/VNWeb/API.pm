@@ -375,10 +375,11 @@ api_get '/stats', { map +($_, { uint => 1 }), @STATS }, sub {
 
 
 my @BOOL = (proc => sub { $_[0] = $_[0] ? \1 : \0 if defined $_[0] });
-my @INT = (proc => sub { $_[0] *= 1 if defined $_[0] });
+my @INT = (proc => sub { $_[0] *= 1 if defined $_[0] }); # Generally unnecessary, DBD::Pg does this already
 my @RDATE = (proc => sub { $_[0] = $_[0] ? rdate $_[0] : undef });
-my @NSTR = (proc => sub { $_[0] = undef if !length $_[0] });
-my @NINT = (proc => sub { $_[0] = defined $_[0] ? $_[0]*1 : undef });
+my @NSTR = (proc => sub { $_[0] = undef if !length $_[0] }); # Empty string -> null
+my @MSTR = (proc => sub { $_[0] = [ grep length($_), split /\n/, $_[0] ] }); # Multiline string -> array
+my @NINT = (proc => sub { $_[0] = $_[0] ? $_[0]*1 : undef });  # 0 -> null
 
 sub IMG {
     my($main_col, $join_id, $join_prefix) = @_;
@@ -417,7 +418,7 @@ api_query '/vn',
                 main => { join => 'main', select => 'vt.lang = v.olang AS main', @BOOL },
             },
         },
-        aliases => { select => 'v.alias AS aliases', proc => sub { $_[0] = [ grep length($_), split /\n/, $_[0] ] } },
+        aliases => { select => 'v.alias AS aliases', @MSTR },
         olang => { select => 'v.olang' },
         devstatus => { select => 'v.devstatus' },
         released => { select => 'v.c_released AS released', @RDATE },
@@ -455,18 +456,13 @@ api_query '/vn',
             },
         },
         tags => {
-            enrich => sub { sql 'SELECT tv.vid', $_[0], 'FROM tags_vn_direct tv', $_[1], 'WHERE tv.vid IN', $_[2] },
+            enrich => sub { sql 'SELECT tv.vid, t.id', $_[0], 'FROM tags_vn_direct tv JOIN tags t ON t.id = tv.tag', $_[1], 'WHERE tv.vid IN', $_[2] },
             key => 'id', col => 'vid', num => 50,
-            joins => {
-                tag => 'JOIN tags t ON t.id = tv.tag',
-            },
+            inherit => '/tag',
             fields => {
-                id       => { select => 'tv.tag AS id' },
                 rating   => { select => 'tv.rating' },
                 spoiler  => { select => 'tv.spoiler' },
                 lie      => { select => 'tv.lie', @BOOL },
-                name     => { join => 'tag', select => 't.name' },
-                category => { join => 'tag', select => 't.cat AS category' },
             },
         },
     },
@@ -556,7 +552,7 @@ api_query '/producer',
         id       => {},
         name     => { select => 'p.name' },
         original => { select => 'p.original', @NSTR },
-        aliases  => { select => 'p.alias AS aliases', proc => sub { $_[0] = [ grep length($_), split /\n/, $_[0] ] } },
+        aliases  => { select => 'p.alias AS aliases', @MSTR },
         lang     => { select => 'p.lang' },
         type     => { select => 'p.type' },
         description => { select => 'p.desc AS description', @NSTR },
@@ -577,7 +573,7 @@ api_query '/character',
         id       => {},
         name     => { select => 'c.name' },
         original => { select => 'c.original', @NSTR },
-        aliases  => { select => 'c.alias AS aliases', proc => sub { $_[0] = [ grep length($_), split /\n/, $_[0] ] } },
+        aliases  => { select => 'c.alias AS aliases', @MSTR },
         description => { select => 'c.desc AS description', @NSTR },
         image => {
             fields => { IMG 'c.image', 'image', 'i.' },
@@ -624,6 +620,26 @@ api_query '/character',
     sort => [
         id       => 'c.id',
         name     => 'c.name ?o, c.id',
+    ];
+
+
+api_query '/tag',
+    filters => 'g',
+    sql => sub { sql 'SELECT t.id', $_[0], 'FROM tags t', $_[1], 'WHERE NOT hidden AND (', $_[2], ')' },
+    fields => {
+        id          => {},
+        name        => { select => 't.name' },
+        aliases     => { select => 't.alias AS aliases', @MSTR },
+        description => { select => 't.description' },
+        category    => { select => 't.cat AS category' },
+        searchable  => { select => 't.searchable', @BOOL },
+        applicable  => { select => 't.applicable', @BOOL },
+        vn_count    => { select => 't.c_items AS vn_count' },
+    },
+    sort => [
+        id       => 't.id',
+        name     => 't.name',
+        vn_count => 't.c_items ?o, t.id',
     ];
 
 
