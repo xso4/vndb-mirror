@@ -101,6 +101,31 @@ Returns a few overall database statistics.
 }
 ```
 
+## GET /user
+
+Lookup users by id or username. Requested ids or usernames are given as one or
+more `q` query parameters. The response object contains one key for each given
+`q` parameter, its value is either `null` if no such user was found or an
+object with an `id` and `username` field otherwise.
+
+Strings that look like user IDs are not valid usernames, so the lookup is
+unambiguous. Usernames matching is case-insensitive.
+
+`curl '%endpoint%/user?q=NoUserWithThisNameExists&q=AYO&q=u3'`
+
+```json
+{
+  "AYO": {
+    "id": "u3",
+    "username": "ayo"
+  },
+  "NoUserWithThisNameExists": null,
+  "u3": {
+    "id": "u3",
+    "username": "ayo"
+  }
+}
+```
 
 # Database Querying
 

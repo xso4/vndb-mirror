@@ -85,7 +85,7 @@ sub api_get {
         check_throttle;
         my $start = time;
         my $res = $sub->();
-        $s->analyze->coerce_for_json($res, unknown => 'reject');
+        $s->analyze->coerce_for_json($res);
         tuwf->resJSON($res);
         tuwf->resHeader('Access-Control-Allow-Origin', '*') if tuwf->reqHeader('Origin');
         count_request(1, '-');
@@ -371,6 +371,20 @@ my @STATS = qw{traits producers tags chars staff vn releases};
 api_get '/stats', { map +($_, { uint => 1 }), @STATS }, sub {
     +{ map +($_->{section}, $_->{count}),
         tuwf->dbAlli('SELECT * FROM stats_cache WHERE section IN', \@STATS)->@* };
+};
+
+
+api_get '/user', {}, sub {
+    my $q = tuwf->validate(get => q => { type => 'array', scalar => 1, maxlength => 100, values => {} });
+    err 400, 'Invalid argument' if !$q;
+    my $regex = '^u[1-9][0-9]{0,6}$';
+    +{ map +(delete $_->{q}, $_->{id} ? $_ : undef), tuwf->dbAlli('
+        SELECT x.q, u.id, u.username
+          FROM unnest(', sql_array($q->data->@*), ') x(q)
+          LEFT JOIN users u ON u.id = CASE WHEN x.q ~', \$regex, 'THEN x.q::vndbid ELSE NULL END
+                            OR LOWER(u.username) = LOWER(x.q)
+         ORDER BY u.id
+    ')->@* }
 };
 
 
