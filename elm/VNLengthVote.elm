@@ -110,7 +110,7 @@ update msg model =
     ReleaseDel n -> ({ model | rid = delidx n model.rid }, Cmd.none)
     Notes s   -> ({ model | notes  = s }, Cmd.none)
     RelLoaded (GApi.Releases rels) ->
-      let rel r = if r.rtype /= "trial" && r.released <= model.today then Just (r.id, RDate.showrel r) else Nothing
+      let rel r = if r.rtype /= "trial" && (r.released <= model.today || not model.maycount) then Just (r.id, RDate.showrel r) else Nothing
           frels = List.filterMap rel rels
           def = case frels of
                   [(r,_)] -> r
@@ -123,10 +123,7 @@ update msg model =
     RelLoaded e -> ({ model | state = Api.Error e }, Cmd.none)
     Delete      -> let m = { model | hours = Nothing, minutes = Nothing, rid = [model.defrid], notes = "", state = Api.Loading } in (m, GV.send (encode m) Submitted)
     Submit      -> ({ model | state = Api.Loading }, GV.send (encode model) Submitted)
-    Submitted (GApi.Success) ->
-      ({ model | open = False, state = Api.Normal
-       , length = (Maybe.withDefault 0 model.hours) * 60 + Maybe.withDefault 0 model.minutes
-       }, Cmd.none)
+    Submitted (GApi.Success) -> ({ model | open = False, state = Api.Normal, length = enclen model }, Cmd.none)
     Submitted r -> ({ model | state = Api.Error r }, Cmd.none)
 
 
@@ -207,6 +204,9 @@ view model = div [class "lengthvotefrm"] <|
                          ++ if modBy 60 model.length /= 0 then String.fromInt (modBy 60 model.length) ++ "m" else "" ]
     ] ++ case (model.open, model.state) of
           (False, _) -> []
-          (_, Api.Normal) -> frm
+          (_, Api.Normal) ->
+            if model.length == 0 && List.isEmpty (Maybe.withDefault [] model.rels)
+            then [ br_ 2, b [ class "standout" ] [ text "There are no releases eligible for voting." ] ]
+            else frm
           (_, Api.Error e) -> [ br_ 2, b [ class "standout" ] [ text ("Error: " ++ Api.showResponse e) ] ]
           (_, Api.Loading) -> [ span [ style "float" "right", class "spinner" ] [] ]
