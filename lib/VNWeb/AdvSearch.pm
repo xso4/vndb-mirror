@@ -480,6 +480,10 @@ f g =>  3 => 'category',  { enum => \%TAG_CATEGORY }, '=' => sub { sql 't.cat ='
 f g => 80 => 'search',    {}, '=' => sub { sql 't.c_search LIKE ALL (search_query(', \$_, '))' };
 
 
+f i =>  2 => 'id',        { vndbid => 'i' }, sql => sub { sql 't.id', $_[0], \$_ };
+f i => 80 => 'search',    {}, '=' => sub { sql 't.c_search LIKE ALL (search_query(', \$_, '))' };
+
+
 # Accepts either $tag or [$tag, int($minlevel*5)*3+$maxspoil] (for compact form) or [$tag, $maxspoil, $minlevel]. Normalizes to the latter.
 sub _validate_tag {
     $_[0] = [$_[0],0,0] if ref $_[0] ne 'ARRAY'; # just a tag id

@@ -457,7 +457,7 @@ api_query '/vn',
             },
         },
         tags => {
-            enrich => sub { sql 'SELECT tv.vid, t.id', $_[0], 'FROM tags_vn_direct tv JOIN tags t ON t.id = tv.tag', $_[1], 'WHERE tv.vid IN', $_[2] },
+            enrich => sub { sql 'SELECT tv.vid, t.id', $_[0], 'FROM tags_vn_direct tv JOIN tags t ON t.id = tv.tag', $_[1], 'WHERE NOT t.hidden AND tv.vid IN', $_[2] },
             key => 'id', col => 'vid', num => 50,
             inherit => '/tag',
             fields => {
@@ -604,17 +604,11 @@ api_query '/character',
             },
         },
         traits   => {
-            enrich => sub { sql 'SELECT ct.id AS cid', $_[0], 'FROM chars_traits ct JOIN traits t ON t.id = ct.tid', $_[1], 'WHERE NOT t.hidden AND ct.id IN', $_[2] },
+            enrich => sub { sql 'SELECT ct.id AS cid, t.id', $_[0], 'FROM chars_traits ct JOIN traits t ON t.id = ct.tid', $_[1], 'WHERE NOT t.hidden AND ct.id IN', $_[2] },
             key => 'id', col => 'cid', num => 30,
-            joins => {
-                group => 'LEFT JOIN traits g ON g.id = t.group',
-            },
+            inherit => '/trait',
             fields => {
-                id       => { select => 'ct.tid AS id' },
                 spoiler  => { select => 'ct.spoil AS spoiler' },
-                name     => { select => 't.name' },
-                group_id => { join => 'group', select => 't."group" AS group_id' },
-                group_name=>{ join => 'group', select => 'g.name AS group_name' },
             },
         },
     },
@@ -626,7 +620,7 @@ api_query '/character',
 
 api_query '/tag',
     filters => 'g',
-    sql => sub { sql 'SELECT t.id', $_[0], 'FROM tags t', $_[1], 'WHERE NOT hidden AND (', $_[2], ')' },
+    sql => sub { sql 'SELECT t.id', $_[0], 'FROM tags t', $_[1], 'WHERE NOT t.hidden AND (', $_[2], ')' },
     fields => {
         id          => {},
         name        => { select => 't.name' },
@@ -641,6 +635,30 @@ api_query '/tag',
         id       => 't.id',
         name     => 't.name',
         vn_count => 't.c_items ?o, t.id',
+    ];
+
+
+api_query '/trait',
+    filters => 'i',
+    sql => sub { sql 'SELECT t.id', $_[0], 'FROM traits t', $_[1], 'WHERE NOT t.hidden AND (', $_[2], ')' },
+    joins => {
+        group => 'LEFT JOIN traits g ON g.id = t.group',
+    },
+    fields => {
+        id          => {},
+        name        => { select => 't.name' },
+        aliases     => { select => 't.alias AS aliases', @MSTR },
+        description => { select => 't.description' },
+        searchable  => { select => 't.searchable', @BOOL },
+        applicable  => { select => 't.applicable', @BOOL },
+        group_id    => { join => 'group', select => 't."group" AS group_id' },
+        group_name  => { join => 'group', select => 'g.name AS group_name' },
+        char_count  => { select => 't.c_items AS char_count' },
+    },
+    sort => [
+        id         => 't.id',
+        name       => 't.name',
+        char_count => 't.c_items ?o, t.id',
     ];
 
 

@@ -873,20 +873,11 @@ vns.release.\*
 traits
 :   Array of objects, possibly empty.
 
-traits.id
-:   vndbid
-
 traits.spoiler
 :   Integer, 0, 1 or 2, spoiler level.
 
-traits.name
-:   String
-
-traits.group_id
-:   vndbid
-
-traits.group_name
-:   String
+traits.\*
+:   All [trait fields](#trait-fields) are available here.
 
 *Missing: sex, instances, voice actor*
 
@@ -944,6 +935,53 @@ vn\_count
 
 *Missing: some way to fetch parent/child tags. Not obvious how to do this
 efficiently because tags form a DAG rather than a tree.*
+
+
+## POST /trait
+
+Accepted values for `"sort"`: `id`, `name`, `char_count`.
+
+### Filters
+
+-----------------------------------------------------------------------------
+Name                [F]   Description
+------------------  ----  -------------------------------------------------------
+`id`                o     vndbid
+
+`search`            m     String search.
+-----------------------------------------------------------------------------
+
+### Fields {#trait-fields}
+
+id
+:   vndbid
+
+name
+:   String. Trait names are not necessarily self-describing, so they should
+    always be displayed together with their "group" (see below), which is the
+    top-level parent that the trait belongs to.
+
+aliases
+:   Array of strings.
+
+description
+:   String, may contain [formatting codes](https://vndb.org/d9#4).
+
+searchable
+:   Bool.
+
+applicable
+:   Bool.
+
+group_id
+:   vndbid
+
+group_name
+:   String
+
+char\_count
+:   Integer, number of characters this trait has been applied to, including
+    child traits.
 
 
 ## POST /ulist
