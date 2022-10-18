@@ -162,7 +162,7 @@ sub api_query {
         fields => { required => 0, default => {}, func => sub { parse_fields($opt{fields}, $_[0]) } },
         sort => { required => 0, default => $opt{sort}[0], enum => [ keys %sort ] },
         reverse => { required => 0, default => 0, jsonbool => 1 },
-        results => { required => 0, default => 10, uint => 1, range => [1,100] },
+        results => { required => 0, default => 10, uint => 1, range => [0,100] },
         page => { required => 0, default => 1, uint => 1, range => [1,1e6] },
         count => { required => 0, default => 0, jsonbool => 1 },
         user => { required => 0, vndbid => 'u' },
@@ -210,9 +210,10 @@ sub api_query {
         eval {
             local $SIG{ALRM} = sub { die "Timeout\n"; };
             alarm 3;
-            ($results, $more) = tuwf->dbPagei($req, $opt{sql}->($select, $joins, $req->{filters}->sql_where(), $req), 'ORDER BY', $sort);
+            ($results, $more) = $req->{results} == 0 ? ([], 0) :
+                tuwf->dbPagei($req, $opt{sql}->($select, $joins, $req->{filters}->sql_where(), $req), 'ORDER BY', $sort);
             $count = $req->{count} && (
-                !$more && @$results <= $req->{results} ? ($req->{results}*($req->{page}-1))+@$results :
+                !$more && $req->{results} && @$results <= $req->{results} ? ($req->{results}*($req->{page}-1))+@$results :
                 tuwf->dbVali('SELECT count(*) FROM (', $opt{sql}->('', '', $req->{filters}->sql_where), ') x')
             );
             proc_results($opt{fields}, $req->{fields}, $req, $results);
