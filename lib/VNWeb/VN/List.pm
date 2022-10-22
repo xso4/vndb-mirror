@@ -234,7 +234,7 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
         q => { onerror => undef },
         sq=> { onerror => undef },
         p => { upage => 1 },
-        f => { advsearch_err => 'v' },
+        f => { advsearch => 'v' },
         s => { tableopts => $TABLEOPTS },
         ch=> { onerror => [], type => 'array', scalar => 1, values => { onerror => undef, enum => ['0', 'a'..'z'] } },
         fil  => { required => 0 },

@@ -296,20 +296,20 @@ BEGIN
     DELETE FROM tags_vn_inherit WHERE vid = uvid;
   END IF;
 
-  INSERT INTO tags_vn_inherit (tag, vid, rating, spoiler)
+  INSERT INTO tags_vn_inherit (tag, vid, rating, spoiler, lie)
     -- Add parent tags to each row in tags_vn_direct
-    WITH RECURSIVE t_all(lvl, tag, vid, vote, spoiler) AS (
-        SELECT 15, tag, vid, rating, spoiler
+    WITH RECURSIVE t_all(lvl, tag, vid, vote, spoiler, lie) AS (
+        SELECT 15, tag, vid, rating, spoiler, lie
           FROM tags_vn_direct
          WHERE (uvid IS NULL OR vid = uvid)
         UNION ALL
-        SELECT ta.lvl-1, tp.parent, ta.vid, ta.vote, ta.spoiler
+        SELECT ta.lvl-1, tp.parent, ta.vid, ta.vote, ta.spoiler, ta.lie
           FROM t_all ta
           JOIN tags_parents tp ON tp.id = ta.tag
          WHERE ta.lvl > 0
     )
     -- Merge duplicates
-    SELECT tag, vid, AVG(vote), MIN(spoiler)
+    SELECT tag, vid, AVG(vote), MIN(spoiler), bool_and(lie)
       FROM t_all
      WHERE tag IN(SELECT id FROM tags WHERE searchable)
      GROUP BY tag, vid;

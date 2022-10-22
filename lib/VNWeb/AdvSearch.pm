@@ -484,7 +484,12 @@ f i =>  2 => 'id',        { vndbid => 'i' }, sql => sub { sql 't.id', $_[0], \$_
 f i => 80 => 'search',    {}, '=' => sub { sql 't.c_search LIKE ALL (search_query(', \$_, '))' };
 
 
-# Accepts either $tag or [$tag, int($minlevel*5)*3+$maxspoil] (for compact form) or [$tag, $maxspoil, $minlevel]. Normalizes to the latter.
+# Accepts either:
+# - $tag
+# - [$tag, $exclude_lies*16*3 + int($minlevel*5)*3 + $maxspoil] (compact form)
+# - [$tag, $maxspoil, $minlevel]
+# - [$tag, $maxspoil, $minlevel, $exclude_lies]
+# Normalizes to the latter two.
 sub _validate_tag {
     $_[0] = [$_[0],0,0] if ref $_[0] ne 'ARRAY'; # just a tag id
     my $v = tuwf->compile({ vndbid => 'g' })->validate($_[0][0]);
@@ -492,16 +497,20 @@ sub _validate_tag {
     $_[0][0] = $v->data;
     if($_[0]->@* == 2) { # compact form
         return 0 if !defined $_[0][1] || ref $_[0][1] || $_[0][1] !~ /^[0-9]+$/;
-        ($_[0][1],$_[0][2]) = ($_[0][1]%3, int($_[0][1]/3)/5);
+        ($_[0][1],$_[0][2],$_[0][3]) = ($_[0][1]%3, int($_[0][1]%(3*16)/3)/5, int($_[0][1]/3/16) == 1 ? 1 : 0);
     }
     # normalized form
-    return 0 if $_[0]->@* != 3;
+    return 0 if $_[0]->@* < 3 || $_[0]->@* > 4;
     return 0 if !defined $_[0][1] || ref $_[0][1] || $_[0][1] !~ /^[0-2]$/;
     return 0 if !defined $_[0][2] || ref $_[0][2] || $_[0][2] !~ /^(?:[0-2](?:\.[0-9]+)?|3(?:\.0+)?)$/;
+    if ($_[0]->@* == 4) {
+        return 0 if !defined $_[0][3] || ref $_[0][3] || $_[0][3] !~ /^[0-1]$/;
+        pop $_[0]->@* if !$_[0][3];
+    }
     1
 }
 
-sub _compact_tag { my $id = ($_->[0] =~ s/^g//r)*1; $_->[1] == 0 && $_->[2] == 0 ? $id : [ $id, int($_->[2]*5)*3 + $_->[1] ] }
+sub _compact_tag { my $id = ($_->[0] =~ s/^g//r)*1; $_->[1] == 0 && $_->[2] == 0 && !$_->[3] ? $id : [ $id, ($_->[3]?16*3:0) + int($_->[2]*5)*3 + $_->[1] ] }
 sub _compact_trait { my $id = ($_->[0] =~ s/^i//r)*1; $_->[1] == 0 ? $id : [ $id, int $_->[1] ] }
 
 # Accepts either $trait or [$trait, $maxspoil]. Normalizes to the latter.
@@ -620,15 +629,18 @@ sub _sql_where_tag {
     my($table) = @_;
     sub {
         my($neg, $all, $val) = @_;
-        my %f; # spoiler -> rating -> list
+        my %f; # spoiler -> rating -> lie -> list
         my @l;
-        push $f{$_->[1]}{$_->[2]}->@*, $_->[0] for @$val;
+        push $f{$_->[1]}{$_->[2]}{$_->[3]||''}->@*, $_->[0] for @$val;
         for my $s (keys %f) {
             for my $r (keys $f{$s}->%*) {
-                push @l, sql_and
-                    $s < 2 ? sql('spoiler <=', \$s) : (),
-                    $r > 0 ? sql('rating >=', \$r) : (),
-                    sql('tag IN', $f{$s}{$r});
+                for my $l (keys $f{$s}{$r}->%*) {
+                    push @l, sql_and
+                        $s < 2 ? sql('spoiler <=', \$s) : (),
+                        $r > 0 ? sql('rating >=', \$r) : (),
+                        $l ? ('NOT lie') : (),
+                        sql('tag IN', $f{$s}{$r}{$l});
+                }
             }
         }
         sql 'v.id', $neg ? 'NOT' : (), 'IN(SELECT vid FROM', $table, 'WHERE', sql_or(@l), $all && @$val > 1 ? ('GROUP BY vid HAVING COUNT(tag) =', \scalar @$val) : (), ')'

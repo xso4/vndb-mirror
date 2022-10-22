@@ -882,7 +882,8 @@ CREATE TABLE tags_vn_inherit (
   tag     vndbid NOT NULL,
   vid     vndbid NOT NULL,
   rating  real NOT NULL,
-  spoiler smallint NOT NULL
+  spoiler smallint NOT NULL,
+  lie     boolean NOT NULL
 );
 
 -- threads

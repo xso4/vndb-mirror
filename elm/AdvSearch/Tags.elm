@@ -19,6 +19,7 @@ type alias Model =
   , search  : A.Model GApi.ApiTagResult
   , spoiler : Int
   , inherit : Bool
+  , exclie  : Bool
   }
 
 type Msg
@@ -26,6 +27,7 @@ type Msg
   | Level (Int,Int) Int
   | Spoiler
   | Inherit Bool
+  | ExcLie Bool
   | Search (A.Msg GApi.ApiTagResult)
 
 
@@ -38,6 +40,7 @@ init dat =
         , search  = A.init ""
         , spoiler = dat.defaultSpoil
         , inherit = True
+        , exclie  = False
         }
       )
 
@@ -47,8 +50,9 @@ update dat msg model =
   case msg of
     Sel m -> (dat, { model | sel = S.update m model.sel }, Cmd.none)
     Level (t,ol) nl -> (dat, { model | sel = S.update (S.Sel (t,ol) False) model.sel |> S.update (S.Sel (t,nl) True) }, Cmd.none)
-    Spoiler -> (dat, { model | spoiler = if model.spoiler < 2 then model.spoiler + 1 else 0 }, Cmd.none)
+    Spoiler -> (dat, { model | spoiler = if model.spoiler < 2 then model.spoiler + 1 else 0, exclie = False }, Cmd.none)
     Inherit b -> (dat, { model | inherit = b }, Cmd.none)
+    ExcLie b  -> (dat, { model | exclie  = b }, Cmd.none)
     Search m ->
       let (nm, c, res) = A.update model.conf m model.search
       in case res of
@@ -61,13 +65,13 @@ update dat msg model =
 
 toQuery m = S.toQuery (\o (t,l) ->
   let id = if m.inherit then 8 else 14
-  in if m.spoiler == 0 && l == 0 then QInt id o t else QTuple id o t (l*3+m.spoiler)) m.sel
+  in if m.spoiler == 0 && not m.exclie && l == 0 then QInt id o t else QTuple id o t ((if m.exclie then 16*3 else 0) + l*3 + m.spoiler)) m.sel
 
-fromQuery spoil inherit dat q =
+fromQuery spoil inherit exclie dat q =
   let id = if inherit then 8 else 14
       f qr = case qr of
-              QInt x op t -> if id == x && spoil == 0 then Just (op, (t,0)) else Nothing
-              QTuple x op t v -> if id == x && modBy 3 v == spoil then Just (op, (t,v//3)) else Nothing
+              QInt x op t -> if id == x && spoil == 0 && not exclie then Just (op, (t,0)) else Nothing
+              QTuple x op t v -> if id == x && modBy 3 v == spoil && exclie == ((v // (16*3)) == 1) then Just (op, (t, modBy 16 (v//3))) else Nothing
               _ -> Nothing
   in
   S.fromQuery f dat q |> Maybe.map (\(ndat,sel) ->
@@ -77,6 +81,7 @@ fromQuery spoil inherit dat q =
       , search  = A.init ""
       , spoiler = spoil
       , inherit = inherit
+      , exclie  = exclie
       }
     ))
 
@@ -100,7 +105,11 @@ view dat model =
           [ text <| if model.spoiler == 0 then "no spoilers" else if model.spoiler == 1 then "minor spoilers" else "major spoilers" ]
         , linkRadio model.sel.neg (Sel << S.Neg) [ text "invert" ]
         ]
-      , div [ class "opts" ] [ span [] [], linkRadio model.inherit Inherit [ text "child tags" ] ]
+      , div [ class "opts" ]
+        [ if model.spoiler < 2 then span [] [] else
+          linkRadio model.exclie ExcLie [ text "exclude lies" ]
+        , linkRadio model.inherit Inherit [ text "child tags" ]
+        ]
       ]
     , ul [] <| List.map (\(t,l) ->
         li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ]

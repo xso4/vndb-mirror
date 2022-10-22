@@ -431,13 +431,15 @@ fields =
   , f V "Language"           1  FMLang       (AS.langInit AS.LangVN)  (AS.langFromQuery AS.LangVN)
   , f V "Original language"  2  FMLang       (AS.langInit AS.LangVNO) (AS.langFromQuery AS.LangVNO)
   , f V "Platform"           3  FMVPlatform   AS.init                 AS.platformFromQuery
-  , f V "Tags"               4  FMTag         AG.init                 (AG.fromQuery -1 True)
-  , f V ""                  -4  FMTag         AG.init                 (AG.fromQuery 0 True)
-  , f V ""                  -4  FMTag         AG.init                 (AG.fromQuery 1 True)
-  , f V ""                  -4  FMTag         AG.init                 (AG.fromQuery 2 True)
-  , f V ""                  -4  FMTag         AG.init                 (AG.fromQuery 0 False)
-  , f V ""                  -4  FMTag         AG.init                 (AG.fromQuery 1 False)
-  , f V ""                  -4  FMTag         AG.init                 (AG.fromQuery 2 False)
+  , f V "Tags"               4  FMTag         AG.init                 (AG.fromQuery -1 True False)
+  , f V ""                  -4  FMTag         AG.init                 (AG.fromQuery 0 True False)
+  , f V ""                  -4  FMTag         AG.init                 (AG.fromQuery 1 True False)
+  , f V ""                  -4  FMTag         AG.init                 (AG.fromQuery 2 True False)
+  , f V ""                  -4  FMTag         AG.init                 (AG.fromQuery 2 True True )
+  , f V ""                  -4  FMTag         AG.init                 (AG.fromQuery 0 False False)
+  , f V ""                  -4  FMTag         AG.init                 (AG.fromQuery 1 False False)
+  , f V ""                  -4  FMTag         AG.init                 (AG.fromQuery 2 False False)
+  , f V ""                  -4  FMTag         AG.init                 (AG.fromQuery 2 False True )
   , f V "My Labels"          0  FMLabel       AS.init                 AS.labelFromQuery
   , l V "My List"            0 [(QInt 65 Eq 1, "On my list"),         (QInt 65 Ne 1, "Not on my list")]
   , f V "Length"             0  FMLength      AS.init                 AS.lengthFromQuery
