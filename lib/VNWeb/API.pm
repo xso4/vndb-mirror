@@ -13,15 +13,17 @@ use VNWeb::AdvSearch;
 return 1 if $main::NOAPI;
 
 
-TUWF::get qr{/api/kana}, sub {
-    state $data = do {
-        open my $F, '<', config->{root}.'/static/g/api-kana.html' or die $!;
+TUWF::get qr{/api/(nyan|kana)}, sub {
+    state %data;
+    my $ver = tuwf->capture(1);
+    $data{$ver} ||= do {
+        open my $F, '<', config->{root}.'/static/g/api-'.$ver.'.html' or die $!;
         local $/=undef;
         my $url = config->{api_endpoint}||tuwf->reqURI;
         <$F> =~ s/%endpoint%/$url/rg;
     };
     tuwf->resHeader('Content-Type' => "text/html; charset=UTF-8");
-    tuwf->resBinary($data, 'auto');
+    tuwf->resBinary($data{$ver}, 'auto');
 };
 
 

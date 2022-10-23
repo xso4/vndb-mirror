@@ -20,16 +20,14 @@ This version of the API is intended to replace the [old TCP-based
 API](https://vndb.org/d11), although the old API will likely remain available
 for the forseeable future.
 
-**Status**: Alpha testing, lots of functionality is still missing and breaking
-changes may occur.
+**Status**: Beta, some functionality is still missing and breaking changes may
+occur.
 
 **API endpoint**: `%endpoint%`
 
 A sandbox endpoint is available for testing and development at
 [https://beta.vndb.org/api/kana](https://beta.vndb.org/api/kana), for more
 information see [the sandbox](https://beta.vndb.org/about-sandbox).
-
-*TODO: Handy page for live querying from the browser.*
 
 # Usage Terms
 

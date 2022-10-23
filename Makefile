@@ -36,7 +36,7 @@ ALL_CLEAN=\
 	$(shell ls css/skins/*.sass | sed -e 's/css\/skins\/\(.\+\)\.sass/static\/g\/\1.css/g')
 
 PROD=\
-	static/g/api-kana.html \
+	static/g/api-nyan.html static/g/api-kana.html\
 	static/g/plain.min.js static/g/plain.min.js.gz \
 	static/g/elm.min.js static/g/elm.min.js.gz \
 	static/g/icons.opt.png \
@@ -158,7 +158,7 @@ static/g/elm.min.js: ${ELM_FILES} elm/Gen/.generated | static/g
 
 
 
-static/g/api-kana.html: data/api-kana.md
+static/g/api-%.html: data/api-%.md
 	pandoc "$<" -st html5 --toc -o "$@"
 
 
