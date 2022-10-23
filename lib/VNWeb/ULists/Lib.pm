@@ -45,7 +45,7 @@ sub ulists_widget_full_data {
     my($v, $uid, $vnpage, $canvote) = @_;
     my $lst = tuwf->dbRowi('SELECT vid, vote, notes, started, finished FROM ulist_vns WHERE uid =', \$uid, 'AND vid =', \$v->{id});
     my $review = tuwf->dbVali('SELECT id FROM reviews WHERE uid =', \$uid, 'AND vid =', \$v->{id});
-    $canvote //= sprintf('%08d', $v->{c_released}||0) <= strftime '%Y%m%d', gmtime;
+    $canvote //= sprintf('%08d', $v->{c_released}||99999999) <= strftime '%Y%m%d', gmtime;
     +{
         uid    => $uid,
         vid    => $v->{id},
