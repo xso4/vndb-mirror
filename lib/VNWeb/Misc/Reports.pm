@@ -111,8 +111,15 @@ sub report_ {
         br_;
         obj_ $r;
         br_;
-        txt_ $r->{reason};
-        div_ class => 'quote', sub { lit_ bb_format $r->{message} } if $r->{message};
+        if($r->{message} && $r->{reason} =~ /spoilers/i) {
+            details_ sub {
+                summary_ $r->{reason};
+                div_ class => 'quote', sub { lit_ bb_format $r->{message} };
+            };
+        } else {
+            txt_ $r->{reason};
+            div_ class => 'quote', sub { lit_ bb_format $r->{message} } if $r->{message};
+        }
     };
     td_ style => 'width: 300px', sub {
         form_ method => 'post', action => '/report/edit', sub {
