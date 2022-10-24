@@ -164,7 +164,7 @@ viewTag t sel vid mod =
     [ td [ colspan 4 ] [ text "<- don't forget to rate" ]
     ] else
     [ td [ class "tc_myover buts" ] <|
-      if t.vote <= 0 || not mod then [] else
+      if t.vote == 0 || not mod then [] else
       [ a [ href "#", onMouseOver (SetSel t.id Over), onMouseOut (SetSel "" NoSel), onClickD (SetOver t.id (not t.overrule)), classList [("ov", t.overrule || sel == Over)], title "Overrule" ] [] ]
     , td [ class "tc_myspoil buts" ] <|
       if t.vote <= 0 then [] else
