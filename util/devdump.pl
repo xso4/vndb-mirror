@@ -112,16 +112,16 @@ sub copy_entry {
     # This password is 'hunter2' with the default salt
     my $pass = '000100000801ec4185fed438752d6b3b968e2b2cd045f70005cb7e10cafdbb694a82246bd34a065b6e977e0c3dcc';
     for(
-        [ 'u2', 'admin', 'admin@vndb.org', 'true' ],
-        [ 'u3', 'user1', 'user1@vndb.org', 'false'],
-        [ 'u4', 'user2', 'user2@vndb.org', 'false'],
-        [ 'u5', 'user3', 'user3@vndb.org', 'false'],
-        [ 'u6', 'user4', 'user4@vndb.org', 'false'],
-        [ 'u7', 'user5', 'user5@vndb.org', 'false'],
-        [ 'u8', 'user6', 'user6@vndb.org', 'false'],
-        [ 'u9', 'user7', 'user7@vndb.org', 'false'],
+        [ 'u2', 'admin', 'admin@vndb.org', 'true',  'true'],
+        [ 'u3', 'mod',   'mod@vndb.org',   'false', 'true'],
+        [ 'u4', 'user1', 'user1@vndb.org', 'false', 'false'],
+        [ 'u5', 'user2', 'user2@vndb.org', 'false', 'false'],
+        [ 'u6', 'user3', 'user3@vndb.org', 'false', 'false'],
+        [ 'u7', 'user4', 'user4@vndb.org', 'false', 'false'],
+        [ 'u8', 'user5', 'user5@vndb.org', 'false', 'false'],
+        [ 'u9', 'user6', 'user6@vndb.org', 'false', 'false'],
     ) {
-        printf "INSERT INTO users (id, username, email_confirmed) VALUES ('%s', '%s', true);\n", @{$_}[0,1];
+        printf "INSERT INTO users (id, username, email_confirmed, perm_dbmod, perm_tagmod) VALUES ('%s', '%s', true, '%s', '%s');\n", @{$_}[0,1,4,4];
         printf "INSERT INTO users_shadow (id, mail, perm_usermod, passwd) VALUES ('%s', '%s', %s, decode('%s', 'hex'));\n", @{$_}[0,2,3], $pass;
         printf "INSERT INTO users_prefs (id) VALUES ('%s');\n", $_->[0];
     }
