@@ -237,7 +237,7 @@ sub api_query {
         });
         tuwf->resHeader('Access-Control-Allow-Origin', '*') if tuwf->reqHeader('Origin');
         count_request(scalar @$results, sprintf '[%s] {%s %s r%dp%d} %s', fmt_fields($req->{fields}),
-            $req->{sort}, $req->{reverse}?'asc':'desc', $req->{results}, $req->{page},
+            $req->{sort}, lc($order), $req->{results}, $req->{page},
             $req->{filters}->query_encode()||'-');
     };
 }
