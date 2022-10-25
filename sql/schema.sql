@@ -218,6 +218,7 @@ CREATE TABLE chars_traits (
   id         vndbid NOT NULL, -- [pub]
   tid        vndbid NOT NULL, -- [pub] traits.id
   spoil      smallint NOT NULL DEFAULT 0, -- [pub]
+  lie        boolean NOT NULL DEFAULT false, -- [pub]
   PRIMARY KEY(id, tid)
 );
 
@@ -226,6 +227,7 @@ CREATE TABLE chars_traits_hist (
   chid       integer NOT NULL,
   tid        vndbid NOT NULL, -- traits.id
   spoil      smallint NOT NULL DEFAULT 0,
+  lie        boolean NOT NULL DEFAULT false,
   PRIMARY KEY(chid, tid)
 );
 
@@ -990,7 +992,8 @@ CREATE TABLE traits_hist (
 CREATE TABLE traits_chars (
   cid    vndbid NOT NULL,  -- chars (id)
   tid    vndbid NOT NULL,  -- traits (id)
-  spoil  smallint NOT NULL DEFAULT 0
+  spoil  smallint NOT NULL DEFAULT 0,
+  lie    boolean NOT NULL DEFAULT false
 );
 
 -- traits_parents

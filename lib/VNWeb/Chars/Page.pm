@@ -73,14 +73,14 @@ sub fetch_chars {
     }, $l;
 
     enrich traits => id => id => sub { sql '
-        SELECT ct.id, ct.tid, COALESCE(x.spoil, ct.spoil) AS spoil, t.name, t.hidden, t.locked, t.sexual
-               , coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.order,0) AS order
-            FROM chars_traits ct
-            JOIN traits t ON t.id = ct.tid
-            LEFT JOIN traits g ON t.group = g.id
-            LEFT JOIN', sql_trait_overrides(), 'x ON x.tid = ct.tid
-           WHERE x.spoil IS DISTINCT FROM 1+1+1 AND ct.id IN', $_, '
-           ORDER BY g.order NULLS FIRST, coalesce(g.name, t.name), t.name'
+        SELECT ct.id, ct.tid, COALESCE(x.spoil, ct.spoil) AS spoil, x.spoil AS override, ct.lie, t.name, t.hidden, t.locked, t.sexual
+             , coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.order,0) AS order
+          FROM chars_traits ct
+          JOIN traits t ON t.id = ct.tid
+          LEFT JOIN traits g ON t.group = g.id
+          LEFT JOIN', sql_trait_overrides(), 'x ON x.tid = ct.tid
+         WHERE x.spoil IS DISTINCT FROM 1+1+1 AND ct.id IN', $_, '
+         ORDER BY g.order NULLS FIRST, coalesce(g.name, t.name), t.name'
     }, $l;
 
     enrich_seiyuu $vid, $l;
@@ -124,7 +124,7 @@ sub _rev_ {
         [ traits => 'Traits', fmt => sub {
             b_ class => 'grayedout', "$_->{groupname} / " if $_->{group} ne $_->{tid};
             a_ href => "/$_->{tid}", $_->{name};
-            txt_ ' ('.fmtspoil($_->{spoil}).')';
+            txt_ ' ('.fmtspoil($_->{spoil}).($_->{lie} ? ', lie':'').')';
             b_ class => 'standout', ' (awaiting moderation)' if $_->{hidden} && !$_->{locked};
             b_ class => 'standout', ' (trait deleted)' if $_->{hidden} && $_->{locked};
             b_ class => 'standout', ' (not applicable)' if !$_->{applicable};
@@ -190,7 +190,10 @@ sub chartable_ {
                 td_ class => 'key', sub { a_ href => "/$_->{group}", $_->{groupname} };
                 td_ sub { join_ ', ', sub {
                     my $spoil = $_->{override}//$_->{spoil};
-                    a_ href => "/$_->{tid}", class => $spoil==-1?'standout':undef, $_->{name}; spoil_ $spoil
+                    a_ href => "/$_->{tid}", mkclass(
+                        standout => $spoil == -1,
+                        lie => $_->{lie} && (($_->{override}//1) <= 0 || $view->{spoilers} >= 2),
+                    ), $_->{name}; spoil_ $spoil;
                 }, $_->{traits}->@* };
             } for @groups;
 
@@ -271,7 +274,7 @@ TUWF::get qr{/$RE{crev}} => sub {
 
     my $max_spoil = max(
         $inst_maxspoil||0,
-        (map $_->{override}//$_->{spoil}, grep !$_->{hidden} && !(($_->{override}//0) == 3), $c->{traits}->@*),
+        (map $_->{override}//($_->{lie}?2:$_->{spoil}), grep !$_->{hidden} && !(($_->{override}//0) == 3), $c->{traits}->@*),
         (map $_->{spoil}, $c->{vns}->@*),
         defined $c->{spoil_gender} ? 2 : 0,
         $c->{desc} =~ /\[spoiler\]/i ? 2 : 0, # crude

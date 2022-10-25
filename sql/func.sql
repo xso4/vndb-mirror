@@ -335,17 +335,17 @@ BEGIN
     DELETE FROM traits_chars WHERE cid = ucid;
   END IF;
 
-  INSERT INTO traits_chars (tid, cid, spoil)
+  INSERT INTO traits_chars (tid, cid, spoil, lie)
     -- all char<->trait links of the latest revisions, including chars inherited from child traits.
     -- (also includes non-searchable traits, because they could have a searchable trait as parent)
-    WITH RECURSIVE traits_chars_all(lvl, tid, cid, spoiler) AS (
-        SELECT 15, tid, ct.id, spoil
+    WITH RECURSIVE traits_chars_all(lvl, tid, cid, spoiler, lie) AS (
+        SELECT 15, tid, ct.id, spoil, lie
           FROM chars_traits ct
          WHERE id NOT IN(SELECT id from chars WHERE hidden)
            AND (ucid IS NULL OR ct.id = ucid)
            AND NOT EXISTS (SELECT 1 FROM traits t WHERE t.id = ct.tid AND t.hidden)
       UNION ALL
-        SELECT lvl-1, tp.parent, tc.cid, tc.spoiler
+        SELECT lvl-1, tp.parent, tc.cid, tc.spoiler, tc.lie
         FROM traits_chars_all tc
         JOIN traits_parents tp ON tp.id = tc.tid
         JOIN traits t ON t.id = tp.parent
@@ -355,6 +355,7 @@ BEGIN
     -- now grouped by (tid, cid), with non-searchable traits filtered out
     SELECT tid, cid
          , (CASE WHEN MIN(spoiler) > 1.3 THEN 2 WHEN MIN(spoiler) > 0.7 THEN 1 ELSE 0 END)::smallint AS spoiler
+         , bool_and(lie)
       FROM traits_chars_all
      WHERE tid IN(SELECT id FROM traits WHERE searchable)
      GROUP BY tid, cid;

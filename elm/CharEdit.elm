@@ -43,6 +43,8 @@ type Tab
   | VNs
   | All
 
+type SelOpt = Spoil Int | Lie
+
 type alias Model =
   { state       : Api.State
   , tab         : Tab
@@ -73,8 +75,7 @@ type alias Model =
   , image       : Img.Image
   , traits      : List GCE.RecvTraits
   , traitSearch : A.Model GApi.ApiTraitResult
-  , traitSelId  : String
-  , traitSelSpl : Int
+  , traitSel    : (String, SelOpt)
   , vns         : List GCE.RecvVns
   , vnSearch    : A.Model GApi.ApiVNResult
   , releases    : Dict.Dict String (List GCE.RecvReleasesRels) -- vid -> list of releases
@@ -113,8 +114,7 @@ init d =
   , image       = Img.info d.image_info
   , traits      = d.traits
   , traitSearch = A.init ""
-  , traitSelId  = ""
-  , traitSelSpl = 0
+  , traitSel    = ("", Spoil 0)
   , vns         = d.vns
   , vnSearch    = A.init ""
   , releases    = Dict.fromList <| List.map (\v -> (v.id, v.rels)) d.releases
@@ -147,7 +147,7 @@ encode model =
   , main        = if model.mainHas then model.main else Nothing
   , main_spoil  = model.mainSpoil
   , image       = model.image.id
-  , traits      = List.map (\t -> { tid = t.tid, spoil = t.spoil }) model.traits
+  , traits      = List.map (\t -> { tid = t.tid, spoil = t.spoil, lie = t.lie }) model.traits
   , vns         = List.map (\v -> { vid = v.vid, rid = v.rid, spoil = v.spoil, role = v.role }) model.vns
   }
 
@@ -191,8 +191,9 @@ type Msg
   | ImageSelected File
   | ImageMsg Img.Msg
   | TraitDel Int
-  | TraitSel String Int
+  | TraitSel String SelOpt
   | TraitSpoil Int Int
+  | TraitLie Int Bool
   | TraitSearch (A.Msg GApi.ApiTraitResult)
   | VnRel Int (Maybe String)
   | VnRole Int String
@@ -245,16 +246,21 @@ update msg model =
     ImageMsg m -> let (nm, nc) = Img.update m model.image in ({ model | image = nm }, Cmd.map ImageMsg nc)
 
     TraitDel idx       -> ({ model | traits = delidx idx model.traits }, Cmd.none)
-    TraitSel id spl    -> ({ model | traitSelId = id, traitSelSpl = spl }, Cmd.none)
+    TraitSel id opt    -> ({ model | traitSel = (id, opt) }, Cmd.none)
     TraitSpoil idx spl -> ({ model | traits = modidx idx (\t -> { t | spoil = spl }) model.traits }, Cmd.none)
+    TraitLie idx v     -> ({ model | traits = modidx idx (\t -> { t | lie = v }) model.traits }, Cmd.none)
     TraitSearch m ->
       let (nm, c, res) = A.update traitConfig m model.traitSearch
       in case res of
         Nothing -> ({ model | traitSearch = nm }, c)
         Just t ->
-          if not t.applicable || t.hidden || List.any (\l -> l.tid == t.id) model.traits
-          then ({ model | traitSearch = A.clear nm "" }, c)
-          else ({ model | traitSearch = A.clear nm "", traits = model.traits ++ [{ tid = t.id, spoil = t.defaultspoil, name = t.name, group = t.group_name, hidden = t.hidden, locked = t.locked, applicable = t.applicable, new = True }] }, c)
+          let n = { tid = t.id, spoil = t.defaultspoil, lie = False, new = True
+                  , name = t.name, group = t.group_name
+                  , hidden = t.hidden, locked = t.locked, applicable = t.applicable }
+          in
+            if not t.applicable || t.hidden || List.any (\l -> l.tid == t.id) model.traits
+            then ({ model | traitSearch = A.clear nm "" }, c)
+            else ({ model | traitSearch = A.clear nm "", traits = model.traits ++ [n] }, c)
 
     VnRel   idx r -> ({ model | vns = modidx idx (\v -> { v | rid   = r }) model.vns }, Cmd.none)
     VnRole  idx s -> ({ model | vns = modidx idx (\v -> { v | role  = s }) model.vns }, Cmd.none)
@@ -392,7 +398,12 @@ view model =
       let
         old = List.filter (\(_,t) -> not t.new) <| List.indexedMap (\i t -> (i,t)) model.traits
         new = List.filter (\(_,t) ->     t.new) <| List.indexedMap (\i t -> (i,t)) model.traits
-        spoil t = if t.tid == model.traitSelId then model.traitSelSpl else t.spoil
+        spoil t = case model.traitSel of
+                    (x,Spoil s) -> if t.tid == x then s else t.spoil
+                    _ -> t.spoil
+        lie t = case model.traitSel of
+                    (x,Lie) -> if t.tid == x then True else t.lie
+                    _ -> t.lie
         trait (i,t) = (t.tid,
           tr []
           [ td [ style "padding" "0 0 0 10px", style "text-decoration" (if t.applicable && not t.hidden then "none" else "line-through") ]
@@ -404,13 +415,17 @@ view model =
               else text ""
             ]
           , td [ class "buts" ]
-            [ a [ href "#", onMouseOver (TraitSel t.tid 0), onMouseOut (TraitSel "" 0), onClickD (TraitSpoil i 0), classList [("s0", spoil t == 0 )], title "Not a spoiler" ] []
-            , a [ href "#", onMouseOver (TraitSel t.tid 1), onMouseOut (TraitSel "" 0), onClickD (TraitSpoil i 1), classList [("s1", spoil t == 1 )], title "Minor spoiler" ] []
-            , a [ href "#", onMouseOver (TraitSel t.tid 2), onMouseOut (TraitSel "" 0), onClickD (TraitSpoil i 2), classList [("s2", spoil t == 2 )], title "Major spoiler" ] []
+            [ a [ href "#", onMouseOver (TraitSel t.tid (Spoil 0)), onMouseOut (TraitSel "" (Spoil 0)), onClickD (TraitSpoil i 0), classList [("s0", spoil t == 0 )], title "Not a spoiler" ] []
+            , a [ href "#", onMouseOver (TraitSel t.tid (Spoil 1)), onMouseOut (TraitSel "" (Spoil 0)), onClickD (TraitSpoil i 1), classList [("s1", spoil t == 1 )], title "Minor spoiler" ] []
+            , a [ href "#", onMouseOver (TraitSel t.tid (Spoil 2)), onMouseOut (TraitSel "" (Spoil 0)), onClickD (TraitSpoil i 2), classList [("s2", spoil t == 2 )], title "Major spoiler" ] []
+            , a [ href "#", onMouseOver (TraitSel t.tid Lie), onMouseOut (TraitSel "" (Spoil 0)), onClickD (TraitLie i (not t.lie)), classList [("sl", lie t)], title "Lie" ] []
             ]
-          , td [ style "width" "150px" ]
-            [ case (t.tid == model.traitSelId, lookup model.traitSelSpl spoilOpts) of
-                (True, Just s) -> text s
+          , td [ style "width" "150px", style "white-space" "nowrap" ]
+            [ case (t.tid == Tuple.first model.traitSel, Tuple.second model.traitSel) of
+                (True, Spoil 0) -> text "Not a spoiler"
+                (True, Spoil 1) -> text "Minor spoiler"
+                (True, Spoil 2) -> text "Major spoiler"
+                (True, Lie)     -> text "This turns out to be false"
                 _ -> a [ href "#", onClickD (TraitDel i)] [ text "remove" ]
             ]
           ])

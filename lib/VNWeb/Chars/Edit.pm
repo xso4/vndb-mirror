@@ -32,6 +32,7 @@ my $FORM = {
     traits     => { sort_keys => 'id', aoh => {
         tid     => { vndbid => 'i' },
         spoil   => { uint => 1, range => [0,2] },
+        lie     => { anybool => 1 },
         name    => { _when => 'out' },
         group   => { _when => 'out', required => 0 },
         hidden  => { _when => 'out', anybool => 1 },

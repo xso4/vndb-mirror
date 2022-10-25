@@ -10,7 +10,7 @@ sub chars_ {
 
     my $max_spoil = max(
         map max(
-            (map $_->{spoil}, grep !$_->{hidden}, $_->{traits}->@*),
+            (map $_->{lie}?2:$_->{spoil}, grep !$_->{hidden}, $_->{traits}->@*),
             (map $_->{spoil}, $_->{vns}->@*),
             defined $_->{spoil_gender} ? 2 : 0,
             $_->{desc} =~ /\[spoiler\]/i ? 2 : 0,
