@@ -71,7 +71,13 @@ sub TABLEOPTS {
             sort_id => 6,
             sort_sql => 'v.c_votecount ?o, v.sorttitle',
             sort_num => 1,
-        }
+        },
+        id => {
+            name => 'Date added',
+            sort_id => 10,
+            sort_sql => 'v.id',
+            sort_num => 1,
+        };
 }
 
 my $TABLEOPTS = TABLEOPTS 0;
