@@ -76,9 +76,11 @@ sub vns_ {
         f => { advsearch_err => 'v' },
         s => { tableopts => $TABLEOPTS },
         m => { onerror => [auth->pref('spoilers')||0], type => 'array', scalar => 1, minlength => 1, values => { enum => [0..2] } },
+        l => { onerror => [''], type => 'array', scalar => 1, minlength => 1, values => { anybool => 1 } },
         fil => { required => 0 },
     )->data;
     $opt->{m} = $opt->{m}[0];
+    $opt->{l} = $opt->{l}[0];
 
     # URL compatibility with old filters
     if(!$opt->{f}->{query} && $opt->{fil}) {
@@ -95,7 +97,12 @@ sub vns_ {
 
     $opt->{f} = advsearch_default 'v' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
 
-    my $where = sql 'tvi.tag =', \$t->{id}, 'AND NOT v.hidden AND tvi.spoiler <=', \$opt->{m}, 'AND', $opt->{f}->sql_where();
+    my $where = sql_and
+        'NOT v.hidden',
+        $opt->{l} ? 'NOT tvi.lie' : (),
+        sql('tvi.tag =', \$t->{id}),
+        sql('tvi.spoiler <=', \$opt->{m}),
+        $opt->{f}->sql_where();
 
     my $time = time;
     my($count, $list);
@@ -126,7 +133,12 @@ sub vns_ {
                 button_ type => 'submit', name => 'm', value => 1, $opt->{m} == 1 ? (class => 'optselected') : (), 'Show minor spoilers';
                 button_ type => 'submit', name => 'm', value => 2, $opt->{m} == 2 ? (class => 'optselected') : (), 'Spoil me!';
             };
+            p_ class => 'browseopts', sub {
+                button_ type => 'submit', name => 'l', value => 0, !$opt->{l} ? (class => 'optselected') : (), 'Include lies';
+                button_ type => 'submit', name => 'l', value => 1,  $opt->{l} ? (class => 'optselected') : (), 'Exclude lies';
+            };
             input_ type => 'hidden', name => 'm', value => $opt->{m};
+            input_ type => 'hidden', name => 'l', value => $opt->{l};
             $opt->{f}->elm_;
             advsearch_msg_ $count, $time;
         };
