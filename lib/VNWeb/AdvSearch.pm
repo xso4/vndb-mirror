@@ -503,23 +503,39 @@ sub _validate_tag {
     return 0 if $_[0]->@* < 3 || $_[0]->@* > 4;
     return 0 if !defined $_[0][1] || ref $_[0][1] || $_[0][1] !~ /^[0-2]$/;
     return 0 if !defined $_[0][2] || ref $_[0][2] || $_[0][2] !~ /^(?:[0-2](?:\.[0-9]+)?|3(?:\.0+)?)$/;
+    $_[0][1] *= 1;
+    $_[0][2] *= 1;
     if ($_[0]->@* == 4) {
         return 0 if !defined $_[0][3] || ref $_[0][3] || $_[0][3] !~ /^[0-1]$/;
+        $_[0][3] *= 1;
         pop $_[0]->@* if !$_[0][3];
     }
     1
 }
 
 sub _compact_tag { my $id = ($_->[0] =~ s/^g//r)*1; $_->[1] == 0 && $_->[2] == 0 && !$_->[3] ? $id : [ $id, ($_->[3]?16*3:0) + int($_->[2]*5)*3 + $_->[1] ] }
-sub _compact_trait { my $id = ($_->[0] =~ s/^i//r)*1; $_->[1] == 0 ? $id : [ $id, int $_->[1] ] }
+sub _compact_trait { my $id = ($_->[0] =~ s/^i//r)*1; $_->[1] == 0 && !$_->[2] ? $id : [ $id, ($_->[2]?3:0) + $_->[1] ] }
 
-# Accepts either $trait or [$trait, $maxspoil]. Normalizes to the latter.
+# Accepts either:
+# - $trait
+# - [$trait, $exclude_lies*3 + $maxspoil]  (compact form)
+# - [$trait, $maxspoil]
+# - [$trait, $maxspoil, $exclude_lies]
+# Normalizes to the latter two.
 sub _validate_trait {
     $_[0] = [$_[0],0] if ref $_[0] ne 'ARRAY'; # just a trait id
     my $v = tuwf->compile({ vndbid => 'i' })->validate($_[0][0]);
     return 0 if $v->err;
     $_[0][0] = $v->data;
-    $_[0]->@* == 2 && defined $_[0][1] && !ref $_[0][1] && $_[0][1] =~ /^[0-2]$/
+    return 0 if !defined $_[0][1] || ref $_[0][1] || $_[0][1] !~ /^[0-9]+$/;
+    ($_[0][1], $_[0][2]) = ($_[0][1]%3, int($_[0][1]/3) == 1 ? 1 : 0) if $_[0]->@* == 2;
+    return 0 if $_[0]->@* != 3;
+    return 0 if $_[0][1] > 2;
+    return 0 if !defined $_[0][2] || ref $_[0][2] || $_[0][2] !~ /^[01]$/;
+    $_[0][1] *= 1;
+    $_[0][2] *= 1;
+    pop $_[0]->@* if $_[0]->@* == 3 && !$_[0][2];
+    1
 }
 
 
@@ -631,7 +647,7 @@ sub _sql_where_tag {
         my($neg, $all, $val) = @_;
         my %f; # spoiler -> rating -> lie -> list
         my @l;
-        push $f{$_->[1]}{$_->[2]}{$_->[3]||''}->@*, $_->[0] for @$val;
+        push $f{$_->[1]*1}{$_->[2]*1}{$_->[3]?1:''}->@*, $_->[0] for @$val;
         for my $s (keys %f) {
             for my $r (keys $f{$s}->%*) {
                 for my $l (keys $f{$s}{$r}->%*) {
@@ -653,11 +669,14 @@ sub _sql_where_trait {
         my($neg, $all, $val) = @_;
         my %f; # spoiler -> list
         my @l;
-        push $f{$_->[1]}->@*, $_->[0] for @$val;
+        push $f{$_->[1]*1}{$_->[2]?1:''}->@*, $_->[0] for @$val;
         for my $s (keys %f) {
-            push @l, sql_and
-                $s < 2 ? sql('spoil <=', \$s) : (),
-                sql('tid IN', $f{$s});
+            for my $l (keys $f{$s}->%*) {
+                push @l, sql_and
+                    $s < 2 ? sql('spoil <=', \$s) : (),
+                    $l ? ('NOT lie') : (),
+                    sql('tid IN', $f{$s}{$l});
+            }
         }
         sql 'c.id', $neg ? 'NOT' : (), 'IN(SELECT', $cid, 'FROM', $table, 'WHERE', sql_or(@l), $all && @$val > 1 ? ('GROUP BY', $cid, 'HAVING COUNT(tid) =', \scalar @$val) : (), ')'
     }

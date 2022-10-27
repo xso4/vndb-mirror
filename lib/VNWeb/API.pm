@@ -625,6 +625,7 @@ api_query '/character',
             inherit => '/trait',
             fields => {
                 spoiler  => { select => 'ct.spoil AS spoiler' },
+                lie      => { select => 'ct.lie', @BOOL },
             },
         },
     },

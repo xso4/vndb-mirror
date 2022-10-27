@@ -180,7 +180,9 @@ reverse
 :   Set to true to sort in descending order.
 
 results
-:   Number of results per page, max 100.
+:   Number of results per page, max 100. Can also be set to `0` if you're not
+    interested in the results at all, but just want to verify your query or get
+    the `count`, `compact_filters` or `normalized_filters`.
 
 page
 :   Page number to request, starting from 1. See also the [note on
@@ -898,6 +900,9 @@ traits
 
 traits.spoiler
 :   Integer, 0, 1 or 2, spoiler level.
+
+traits.lie
+:   Boolean.
 
 traits.\*
 :   All [trait fields](#trait-fields) are available here.

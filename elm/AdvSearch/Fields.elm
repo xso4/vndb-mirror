@@ -490,13 +490,15 @@ fields =
   , f C "Birthday"           0  FMBirthday    AB.init                 AB.fromQuery
   , f C "Sex"                2  FMSex         (AS.sexInit False)      (AS.sexFromQuery False)
   , f C ""                   0  FMSex         (AS.sexInit True)       (AS.sexFromQuery True)
-  , f C "Traits"             3  FMTrait       AI.init                 (AI.fromQuery -1 True)
-  , f C ""                   0  FMTrait       AI.init                 (AI.fromQuery 0 True)
-  , f C ""                   0  FMTrait       AI.init                 (AI.fromQuery 1 True)
-  , f C ""                   0  FMTrait       AI.init                 (AI.fromQuery 2 True)
-  , f C ""                   0  FMTrait       AI.init                 (AI.fromQuery 0 False)
-  , f C ""                   0  FMTrait       AI.init                 (AI.fromQuery 1 False)
-  , f C ""                   0  FMTrait       AI.init                 (AI.fromQuery 2 False)
+  , f C "Traits"             3  FMTrait       AI.init                 (AI.fromQuery -1 True False)
+  , f C ""                   0  FMTrait       AI.init                 (AI.fromQuery 0 True False)
+  , f C ""                   0  FMTrait       AI.init                 (AI.fromQuery 1 True False)
+  , f C ""                   0  FMTrait       AI.init                 (AI.fromQuery 2 True False)
+  , f C ""                   0  FMTrait       AI.init                 (AI.fromQuery 2 True True)
+  , f C ""                   0  FMTrait       AI.init                 (AI.fromQuery 0 False False)
+  , f C ""                   0  FMTrait       AI.init                 (AI.fromQuery 1 False False)
+  , f C ""                   0  FMTrait       AI.init                 (AI.fromQuery 2 False False)
+  , f C ""                   0  FMTrait       AI.init                 (AI.fromQuery 2 False True)
   , f C "Blood type"         0  FMBlood       AS.init                 AS.bloodFromQuery
   , f C "Height"             0  FMHeight      AR.heightInit           AR.heightFromQuery
   , f C "Weight"             0  FMWeight      AR.weightInit           AR.weightFromQuery
