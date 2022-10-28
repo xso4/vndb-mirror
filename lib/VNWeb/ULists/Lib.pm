@@ -17,10 +17,9 @@ sub enrich_ulists_widget {
     enrich_merge id => sql('SELECT vid AS id, true AS on_vnlist FROM ulist_vns WHERE uid =', \auth->uid, 'AND vid IN'), @_ if auth;
 
     enrich vnlist_labels => id => vid => sub { sql '
-        SELECT uvl.vid, ul.id, ul.label
-          FROM ulist_vns_labels uvl
-          JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl
-         WHERE uvl.uid =', \auth->uid, 'AND uvl.vid IN', $_[0], '
+        SELECT uv.vid, ul.id, ul.label
+          FROM ulist_vns uv, unnest(uv.labels) l(id), ulist_labels ul
+         WHERE ul.uid =', \auth->uid, 'AND uv.uid =', \auth->uid, 'AND ul.id = l.id AND uv.vid IN', $_[0], '
          ORDER BY CASE WHEN ul.id < 10 THEN ul.id ELSE 10 END, ul.label'
     }, @_ if auth;
 }
@@ -43,13 +42,13 @@ sub ulists_widget_ {
 # Returns the data structure for the elm_UListWidget API response for the given VN.
 sub ulists_widget_full_data {
     my($v, $uid, $vnpage, $canvote) = @_;
-    my $lst = tuwf->dbRowi('SELECT vid, vote, notes, started, finished FROM ulist_vns WHERE uid =', \$uid, 'AND vid =', \$v->{id});
+    my $lst = tuwf->dbRowi('SELECT vid, vote, notes, started, finished, labels FROM ulist_vns WHERE uid =', \$uid, 'AND vid =', \$v->{id});
     my $review = tuwf->dbVali('SELECT id FROM reviews WHERE uid =', \$uid, 'AND vid =', \$v->{id});
     $canvote //= sprintf('%08d', $v->{c_released}||99999999) <= strftime '%Y%m%d', gmtime;
     +{
         uid    => $uid,
         vid    => $v->{id},
-        labels => !$lst->{vid} ? undef : tuwf->dbAlli('SELECT lbl AS id, \'\' AS label FROM ulist_vns_labels WHERE uid =', \$uid, 'AND vid =', \$v->{id}),
+        labels => $lst->{vid} ? [ map +{ id => $_, label => '' }, $lst->{labels}->@* ] : undef,
         full   => {
             title     => $vnpage ? '' : $v->{title},
             labels    => tuwf->dbAlli('SELECT id, label, private FROM ulist_labels WHERE uid =', \$uid, 'ORDER BY CASE WHEN id < 10 THEN id ELSE 10 END, label'),

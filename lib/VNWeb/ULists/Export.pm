@@ -24,25 +24,20 @@ sub data {
         labels => tuwf->dbAlli('SELECT id, label, private FROM ulist_labels WHERE uid =', \$uid, 'ORDER BY id'),
         vns    => tuwf->dbAlli('
             SELECT v.id, COALESCE(vo.latin, vo.title) AS title, CASE WHEN vo.latin IS NULL THEN \'\' ELSE vo.title END AS original, uv.vote, uv.started, uv.finished, uv.notes
-                 , ', sql_comma(tz('uv.added', 'added'), tz('uv.lastmod', 'lastmod'), tz('uv.vote_date', 'vote_date')), '
+                 , uv.c_private, uv.labels,', sql_comma(tz('uv.added', 'added'), tz('uv.lastmod', 'lastmod'), tz('uv.vote_date', 'vote_date')), '
               FROM ulist_vns uv
               JOIN vn v ON v.id = uv.vid
               JOIN vn_titles vo ON vo.id = v.id AND vo.lang = v.olang
              WHERE uv.uid =', \$uid, '
              ORDER BY title')
     };
-    enrich labels => id => vid => sub { sql '
-        SELECT uvl.vid, ul.id, ul.label, ul.private
-          FROM ulist_vns_labels uvl
-          JOIN ulist_labels ul ON ul.id = uvl.lbl
-         WHERE ul.uid =', \$uid, 'AND uvl.uid =', \$uid, '
-         ORDER BY lbl'
-    }, $d->{vns};
     enrich releases => id => vid => sub { sql '
-        SELECT rv.vid, r.id, r.title, r.alttitle, r.released, rl.status, ', tz('rl.added', 'added'), '
+        SELECT rv.vid, r.id, COALESCE(ro.latin, ro.title) AS title, CASE WHEN ro.latin IS NULL THEN \'\' ELSE ro.title END AS original
+             , r.released, rl.status, ', tz('rl.added', 'added'), '
           FROM rlists rl
-          JOIN releasest r ON r.id = rl.rid
+          JOIN releases r ON r.id = rl.rid
           JOIN releases_vn rv ON rv.id = rl.rid
+          JOIN releases_titles ro ON ro.id = r.id AND ro.lang = r.olang
          WHERE rl.uid =', \$uid, '
          ORDER BY r.released, r.id'
     }, $d->{vns};
@@ -66,6 +61,8 @@ TUWF::get qr{/$RE{uid}/list-export/xml}, sub {
     tuwf->resHeader('Content-Disposition', sprintf 'attachment; filename="%s"', filename $d, 'xml');
     tuwf->resHeader('Content-Type', 'application/xml; charset=UTF-8');
 
+    my %labels = map +($_->{id}, $_), $d->{labels}->@*;
+
     my $fd = tuwf->resFd;
     TUWF::XML->new(
         write  => sub { print $fd $_ for @_ },
@@ -82,9 +79,9 @@ TUWF::get qr{/$RE{uid}/list-export/xml}, sub {
             tag label => id => $_->{id}, label => $_->{label}, private => $_->{private}?'true':'false', undef for $d->{labels}->@*;
         };
         tag vns => sub {
-            tag vn => id => $_->{id}, private => grep(!$_->{private}, $_->{labels}->@*)?'false':'true', sub {
+            tag vn => id => $_->{id}, private => $_->{c_private}?'true':'false', sub {
                 tag title => length($_->{original}) ? (original => $_->{original}) : (), $_->{title};
-                tag label => id => $_->{id}, label => $_->{label}, undef for $_->{labels}->@*;
+                tag label => id => $_, label => $labels{$_}{label}, undef for sort { $a <=> $b } $_->{labels}->@*;
                 tag added => $_->{added};
                 tag modified => $_->{lastmod} if $_->{added} ne $_->{lastmod};
                 tag vote => timestamp => $_->{vote_date}, fmtvote $_->{vote} if $_->{vote};
@@ -92,10 +89,7 @@ TUWF::get qr{/$RE{uid}/list-export/xml}, sub {
                 tag finished => $_->{finished} if $_->{finished};
                 tag notes => $_->{notes} if length $_->{notes};
                 tag release => id => $_->{id}, sub {
-                    # "original" is not entirely correct here if the user has
-                    # another alttitle selected, but let's keep it for
-                    # compatibility.
-                    tag title => length($_->{alttitle}) ? (original => $_->{alttitle}) : (), $_->{title};
+                    tag title => length($_->{original}) ? (original => $_->{original}) : (), $_->{title};
                     tag 'release-date' => rdate $_->{released};
                     tag status => $RLIST_STATUS{$_->{status}};
                     tag added => $_->{added};

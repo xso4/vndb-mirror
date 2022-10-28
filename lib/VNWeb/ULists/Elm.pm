@@ -4,10 +4,12 @@ use VNWeb::Prelude;
 use VNWeb::ULists::Lib;
 
 
-# Should be called after any change to the ulist_* tables.
+# Should be called after any label/vote/private change to the ulist_vns table.
 # (Normally I'd do this with triggers, but that seemed like a more complex and less efficient solution in this case)
 sub updcache {
-    tuwf->dbExeci(SELECT => sql_func update_users_ulist_stats => \shift);
+    my($uid,$vid) = @_;
+    tuwf->dbExeci(SELECT => sql_func update_users_ulist_private => \$uid, \$vid) if @_ == 2;
+    tuwf->dbExeci(SELECT => sql_func update_users_ulist_stats => \$uid);
 }
 
 
@@ -41,7 +43,8 @@ elm_api UListManageLabels => undef, $LABELS, sub {
     tuwf->dbExeci('INSERT INTO ulist_labels', { id => sql_labelid($uid), uid => $uid, label => $_->{label}, private => $_->{private} }) for @new;
 
     # Update private flag
-    tuwf->dbExeci(
+    my $changed = 0;
+    $changed += tuwf->dbExeci(
         'UPDATE ulist_labels SET private =', \$_->{private},
          'WHERE uid =', \$uid, 'AND id =', \$_->{id}, 'AND private <>', \$_->{private}
     ) for grep $_->{id} > 0 && !$_->{delete}, @$labels;
@@ -60,18 +63,23 @@ elm_api UListManageLabels => undef, $LABELS, sub {
 
     # delete vns with: (a label in option 3) OR ((a label in option 2) AND (no labels other than in option 1 or 2))
     my @where = (
-        @delete_all ? sql('vid IN(SELECT vid FROM ulist_vns_labels WHERE uid =', \$uid, 'AND lbl IN', \@delete_all, ')') : (),
+        @delete_all ? sql('labels &&', sql_array(@delete_all), '::smallint[]') : (),
         @delete_empty ? sql(
-                'vid IN(SELECT vid FROM ulist_vns_labels WHERE uid =', \$uid, 'AND lbl IN', \@delete_empty, ')',
-            'AND NOT EXISTS(SELECT 1 FROM ulist_vns_labels uvl WHERE uvl.vid = uv.vid AND uid =', \$uid, 'AND lbl NOT IN', [ @delete_lblonly, @delete_empty ], ')'
+                'labels &&', sql_array(@delete_empty), '::smallint[]
+             AND labels <@', sql_array(@delete_lblonly, @delete_empty), '::smallint[]'
         ) : ()
     );
     tuwf->dbExeci('DELETE FROM ulist_vns uv WHERE uid =', \$uid, 'AND (', sql_or(@where), ')') if @where;
 
-    # (This will also delete all relevant vn<->label rows from ulist_vns_labels)
+    $changed += tuwf->dbExeci(
+        'UPDATE ulist_vns
+            SET labels = array_remove(labels,', \$_->{id}, ')
+          WHERE uid =', \$uid, 'AND labels && ARRAY[', \$_->{id}, '::smallint]'
+    ) for @delete;
+
     tuwf->dbExeci('DELETE FROM ulist_labels WHERE uid =', \$uid, 'AND id IN', [ map $_->{id}, @delete ]) if @delete;
 
-    updcache $uid;
+    updcache $uid, $changed ? undef : ();
     elm_Success
 };
 
@@ -96,12 +104,11 @@ elm_api UListLabelAdd => undef, {
     );
     die "Attempt to set vote label" if $id == 7;
 
-    tuwf->dbExeci('INSERT INTO ulist_vns', {uid => $data->{uid}, vid => $data->{vid}}, 'ON CONFLICT (uid, vid) DO NOTHING');
     tuwf->dbExeci(
-        'INSERT INTO ulist_vns_labels', { uid => $data->{uid}, vid => $data->{vid}, lbl => $id },
-        'ON CONFLICT (uid, vid, lbl) DO NOTHING'
+        'INSERT INTO ulist_vns', {uid => $data->{uid}, vid => $data->{vid}, labels => "{$id}"},
+        'ON CONFLICT (uid, vid) DO UPDATE SET labels = array_set(ulist_vns.labels,', \$id, ')'
     );
-    updcache $data->{uid};
+    updcache $data->{uid}, $data->{vid};
     elm_LabelId $id
 };
 
@@ -124,7 +131,7 @@ elm_api UListVoteEdit => undef, $VNVOTE, sub {
                 vote_date => sql $data->{vote} ? 'CASE WHEN ulist_vns.vote IS NULL THEN NOW() ELSE ulist_vns.vote_date END' : 'NULL'
             }
     );
-    updcache $data->{uid};
+    updcache $data->{uid}, $data->{vid};
     elm_Success
 };
 
@@ -147,19 +154,18 @@ elm_api UListLabelEdit => $VNLABELS_OUT, $VNLABELS_IN, sub {
     my($data) = @_;
     return elm_Unauth if !ulists_own $data->{uid};
     die "Attempt to set vote label" if $data->{label} == 7;
+    die "Attempt to set invalid label" if $data->{applied}
+        && !tuwf->dbVali('SELECT 1 FROM ulist_labels WHERE uid =', \$data->{uid}, 'AND id =', \$data->{label});
 
-    tuwf->dbExeci('INSERT INTO ulist_vns', {uid => $data->{uid}, vid => $data->{vid}}, 'ON CONFLICT (uid, vid) DO NOTHING');
     tuwf->dbExeci(
-        'DELETE FROM ulist_vns_labels
-          WHERE uid =', \$data->{uid}, 'AND vid =', \$data->{vid}, 'AND lbl =', \$data->{label}
-    ) if !$data->{applied};
-    tuwf->dbExeci(
-        'INSERT INTO ulist_vns_labels', { uid => $data->{uid}, vid => $data->{vid}, lbl => $data->{label} },
-        'ON CONFLICT (uid, vid, lbl) DO NOTHING'
-    ) if $data->{applied};
-    tuwf->dbExeci('UPDATE ulist_vns SET lastmod = NOW() WHERE uid =', \$data->{uid}, 'AND vid =', \$data->{vid});
-
-    updcache $data->{uid};
+        'INSERT INTO ulist_vns', {
+            uid => $data->{uid},
+            vid => $data->{vid},
+            labels => $data->{applied}?"{$data->{label}}":'{}'
+        }, 'ON CONFLICT (uid, vid) DO UPDATE SET lastmod = NOW(),
+              labels =', sql_func $data->{applied} ? 'array_set' : 'array_remove', 'ulist_vns.labels', \$data->{label}
+    );
+    updcache $data->{uid}, $data->{vid};
     elm_Success
 };
 
@@ -180,7 +186,7 @@ elm_api UListDateEdit => undef, $VNDATE, sub {
         'UPDATE ulist_vns SET lastmod = NOW(), ', $data->{start} ? 'started' : 'finished', '=', \($data->{date}||undef),
          'WHERE uid =', \$data->{uid}, 'AND vid =', \$data->{vid}
     );
-    updcache $data->{uid};
+    # Doesn't need `updcache()`
     elm_Success
 };
 

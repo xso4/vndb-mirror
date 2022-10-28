@@ -687,9 +687,8 @@ api_query '/ulist',
                FROM ulist_vns uv
                JOIN vnt v ON v.id = uv.vid', $_[1], '
               WHERE NOT v.hidden
+                AND NOT uv.c_private
                 AND uv.uid =', \$_[3]{user}, '
-                AND EXISTS(SELECT 1 FROM ulist_vns_labels uvl JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl
-                            WHERE uvl.uid = uv.uid AND uvl.vid = uv.vid AND NOT ul.private)
                 AND (', $_[2], ')'
     },
     fields => {
@@ -702,15 +701,14 @@ api_query '/ulist',
         finished => { select => 'uv.finished' },
         notes    => { select => 'uv.notes', @NSTR },
         labels   => {
-            enrich => sub { sql 'SELECT uvl.vid', $_[0], '
-                                   FROM ulist_vns_labels uvl
-                                   JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl
-                                  WHERE uvl.uid =', \$_[3]{user}, 'AND ul.uid =', \$_[3]{user}, '
+            enrich => sub { sql 'SELECT uv.vid', $_[0], '
+                                   FROM ulist_vns uv, unnest(uv.labels) l(id), ulist_labels ul
+                                  WHERE uv.uid =', \$_[3]{user}, 'AND ul.uid =', \$_[3]{user}, 'AND ul.id = l.id
                                     AND NOT ul.private
-                                    AND uvl.vid IN', $_[2] },
+                                    AND uv.vid IN', $_[2] },
             key => 'id', col => 'vid', num => 3,
             fields => {
-                id    => { select => 'ul.id' },
+                id    => { select => 'l.id' },
                 label => { select => 'ul.label' },
             },
         },

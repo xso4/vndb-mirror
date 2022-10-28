@@ -78,9 +78,8 @@ my %tables = (
     rlists              => { where => 'EXISTS(SELECT 1 FROM releases r'
                                                     .' JOIN releases_vn rv ON rv.id = r.id'
                                                     .' JOIN vn v ON v.id = rv.vid'
-                                                    .' JOIN ulist_vns_labels uvl ON uvl.vid = rv.vid'
-                                                    .' JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl'
-                                                   .' WHERE r.id = rlists.rid AND uvl.uid = rlists.uid AND NOT r.hidden AND NOT v.hidden AND NOT ul.private)' },
+                                                    .' JOIN ulist_vns uv ON uv.vid = rv.vid'
+                                                   .' WHERE r.id = rlists.rid AND uv.uid = rlists.uid AND NOT r.hidden AND NOT v.hidden AND NOT uv.c_private)' },
     staff               => { where => 'NOT hidden' },
     staff_alias         => { where => 'id IN(SELECT id FROM staff WHERE NOT hidden)' },
     tags                => { where => 'NOT hidden' },
@@ -88,14 +87,12 @@ my %tables = (
     tags_vn             => { where => 'tag IN(SELECT id FROM tags WHERE NOT hidden) AND vid IN(SELECT id FROM vn WHERE NOT hidden)', order => 'tag, vid, uid, date' },
     traits              => { where => 'NOT hidden' },
     traits_parents      => { where => 'id IN(SELECT id FROM traits WHERE NOT hidden)' },
-    ulist_labels        => { where => 'NOT private AND EXISTS(SELECT 1 FROM ulist_vns_labels uvl WHERE uvl.lbl = id AND ulist_labels.uid = uvl.uid)' },
-    ulist_vns           => { where => 'vid IN(SELECT id FROM vn WHERE NOT hidden)'
-                                .' AND EXISTS(SELECT 1 FROM ulist_vns_labels uvl'
-                                                    .' JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl'
-                                                   .' WHERE ulist_vns.uid = uvl.uid AND ulist_vns.vid = uvl.vid AND NOT ul.private)' },
-    ulist_vns_labels    => { where => 'vid IN(SELECT id FROM vn WHERE NOT hidden)'
-                                .' AND EXISTS(SELECT 1 FROM ulist_labels ul WHERE ul.uid = ulist_vns_labels.uid AND id = lbl AND NOT ul.private)' },
-    users               => { where => 'id IN(SELECT DISTINCT uvl.uid FROM ulist_vns_labels uvl JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl WHERE NOT ul.private)'
+    ulist_labels        => { where => 'NOT private AND EXISTS(SELECT 1 FROM ulist_vns uv JOIN vn v ON v.id = uv.vid
+                                        WHERE NOT v.hidden AND uv.labels && ARRAY[ulist_labels.id] AND ulist_labels.uid = uv.uid)' },
+    ulist_vns           => { where => 'NOT c_private AND vid IN(SELECT id FROM vn WHERE NOT hidden)'
+                             # XXX: This is slow
+                           , overrule_labels => '(SELECT array_agg(ul.id) FROM unnest(labels) x(id) JOIN ulist_labels ul ON ul.id = x.id WHERE ul.uid = ulist_vns.uid AND NOT ul.private)' },
+    users               => { where => 'id IN(SELECT DISTINCT uid FROM ulist_vns WHERE NOT c_private)'
                                  .' OR id IN(SELECT DISTINCT uid FROM tags_vn)'
                                  .' OR id IN(SELECT DISTINCT uid FROM image_votes)'
                                  .' OR id IN(SELECT DISTINCT uid FROM vn_length_votes WHERE NOT private)' },
@@ -152,7 +149,7 @@ sub export_table {
     my $fn = "$dest/$table->{name}";
 
     # Truncate all timestamptz columns to a day, to avoid leaking privacy-sensitive info.
-    my $cols = join ', ', map $_->{type} eq 'timestamptz' ? "date_trunc('day', \"$_->{name}\")" : qq{"$_->{name}"}, @cols;
+    my $cols = join ', ', map $table->{"overrule_$_->{name}"} // ($_->{type} eq 'timestamptz' ? "date_trunc('day', \"$_->{name}\")" : qq{"$_->{name}"}), @cols;
     my $where = $table->{where} ? "WHERE $table->{where}" : '';
     my $order = table_order $table->{name};
     die "Table '$table->{name}' is missing an ORDER BY clause\n" if !$order;
@@ -345,7 +342,7 @@ sub export_votes {
          WHERE NOT v.hidden
            AND NOT u.ign_votes
            AND uv.vote IS NOT NULL
-           AND EXISTS(SELECT 1 FROM ulist_vns_labels uvl JOIN ulist_labels ul ON ul.id = uvl.lbl AND ul.uid = uvl.uid WHERE uv.uid = uvl.uid AND uv.vid = uvl.vid AND NOT ul.private)
+           AND NOT uv.c_private
          ORDER BY uv.vid, uv.uid
        ) TO STDOUT
     });

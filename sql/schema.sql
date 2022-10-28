@@ -1015,7 +1015,7 @@ CREATE TABLE traits_parents_hist (
 -- ulist_labels
 CREATE TABLE ulist_labels (
   uid      vndbid NOT NULL, -- [pub] user.id
-  id       integer NOT NULL, -- [pub] 0 < builtin < 10 <= custom, ids are reused
+  id       smallint NOT NULL, -- [pub] 0 < builtin < 10 <= custom, ids are reused
   private  boolean NOT NULL,
   label    text NOT NULL, -- [pub]
   PRIMARY KEY(uid, id)
@@ -1032,15 +1032,21 @@ CREATE TABLE ulist_vns (
   finished    date, -- [pub]
   vote        smallint CHECK(vote IS NULL OR vote BETWEEN 10 AND 100), -- [pub]
   notes       text NOT NULL DEFAULT '', -- [pub]
+  -- Cache, equivalent to 'coalesce(bool_and(private), true)' on the labels.
+  -- Updated by update_users_ulist_private(), which MUST be called any time:
+  -- * when a label's private flag has been changed, or
+  -- * when the 'vote' or 'labels' column has been changed
+  -- There's no triggers for this (yet).
+  c_private   boolean NOT NULL DEFAULT true,
+  -- The 'Voted' label (id 7) is special: it is included in this array, but
+  -- actually redundant with the 'vote' column. The 'ulist_voted_label' trigger
+  -- ensures that the label is added/removed automatically when the 'vote'
+  -- column is changed.
+  -- In public database dumps, the voted label is not included if the label is
+  -- flagged as private, even if a 'vote' is set.
+  -- This array is sorted, for no real reason.
+  labels      smallint[] NOT NULL DEFAULT '{}', -- [pub]
   PRIMARY KEY(uid, vid)
-);
-
--- ulist_vns_labels
-CREATE TABLE ulist_vns_labels (
-  uid vndbid NOT NULL, -- [pub] user.id
-  lbl integer NOT NULL, -- [pub]
-  vid vndbid NOT NULL, -- [pub] vn.id
-  PRIMARY KEY(uid, lbl, vid)
 );
 
 -- users

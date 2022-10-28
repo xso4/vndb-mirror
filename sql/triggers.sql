@@ -167,16 +167,13 @@ CREATE TRIGGER ulist_labels_create AFTER INSERT ON users FOR EACH ROW EXECUTE PR
 
 CREATE OR REPLACE FUNCTION ulist_voted_label() RETURNS trigger AS $$
 BEGIN
-    IF NEW.vote IS NULL THEN
-        DELETE FROM ulist_vns_labels WHERE uid = NEW.uid AND vid = NEW.vid AND lbl = 7;
-    ELSE
-        INSERT INTO ulist_vns_labels (uid, vid, lbl) VALUES (NEW.uid, NEW.vid, 7) ON CONFLICT (uid, vid, lbl) DO NOTHING;
-    END IF;
-    RETURN NULL;
+    NEW.labels := CASE WHEN NEW.vote IS NULL THEN array_remove(NEW.labels, 7) ELSE array_set(NEW.labels, 7) END;
+    RETURN NEW;
 END
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER ulist_voted_label AFTER INSERT OR UPDATE ON ulist_vns FOR EACH ROW EXECUTE PROCEDURE ulist_voted_label();
+CREATE TRIGGER ulist_voted_label_ins BEFORE INSERT ON ulist_vns FOR EACH ROW EXECUTE PROCEDURE ulist_voted_label();
+CREATE TRIGGER ulist_voted_label_upd BEFORE UPDATE ON ulist_vns FOR EACH ROW WHEN ((OLD.vote IS NULL) <> (NEW.vote IS NULL)) EXECUTE PROCEDURE ulist_voted_label();
 
 
 

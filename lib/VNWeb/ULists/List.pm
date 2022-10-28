@@ -39,7 +39,7 @@ my $TABLEOPTS = tableopts
     },
     label => {
         name => 'Labels',
-        sort_sql => sql('ARRAY(SELECT ul.label FROM ulist_vns_labels uvl JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl WHERE uvl.uid = uv.uid AND uvl.vid = uv.vid AND uvl.lbl <> ', \7, ')'),
+        sort_sql => sql('ARRAY(SELECT ul.label FROM unnest(uv.labels) l(id) JOIN ulist_labels ul ON ul.id = l.id WHERE ul.uid = uv.uid AND l.id <> ', \7, ')'),
         sort_id => 4,
         vis_id => 3,
         compat => 'label'
@@ -268,14 +268,14 @@ sub listing_ {
     my($voted) = grep $_ == 7, $opt->{l}->@*;
 
     my @where_vns = (
-              @l ? sql('uv.vid IN(SELECT vid FROM ulist_vns_labels WHERE uid =', \$uid, 'AND lbl IN', \@l, ')') : (),
-      $unlabeled ? sql('NOT EXISTS(SELECT 1 FROM ulist_vns_labels WHERE uid =', \$uid, 'AND vid = uv.vid AND lbl <> ', \7, ')') : (),
+              @l ? sql('uv.labels &&', sql_array(@l), '::smallint[]') : (),
+      $unlabeled ? sql("uv.labels IN('{}','{7}')") : (),
           $voted ? sql('uv.vote IS NOT NULL') : ()
     );
 
     my $where = sql_and
         sql('uv.uid =', \$uid),
-        !$own ? sql('uv.vid IN(SELECT vid FROM ulist_vns_labels WHERE uid =', \$uid, 'AND lbl IN(SELECT id FROM ulist_labels WHERE uid =', \$uid, 'AND NOT private))') : (),
+        $own ? () : 'NOT uv.c_private',
         @where_vns ? sql_or(@where_vns) : (),
         $opt->{q} ? sql 'v.c_search LIKE ALL (search_query(', \$opt->{q}, '))' : (),
         defined($opt->{ch}) ? sql 'match_firstchar(v.sorttitle, ', \$opt->{ch}, ')' : ();
@@ -283,7 +283,7 @@ sub listing_ {
     my $count = tuwf->dbVali('SELECT count(*) FROM ulist_vns uv JOIN vnt v ON v.id = uv.vid WHERE', $where);
 
     my $lst = tuwf->dbPagei({ page => $opt->{p}, results => $opt->{s}->results },
-        'SELECT v.id, v.title, v.alttitle, uv.vote, uv.notes, uv.started, uv.finished, v.c_rating, v.c_votecount, v.c_released
+        'SELECT v.id, v.title, v.alttitle, uv.vote, uv.notes, uv.labels, uv.started, uv.finished, v.c_rating, v.c_votecount, v.c_released
               ,', sql_totime('uv.added'), ' as added
               ,', sql_totime('uv.lastmod'), ' as lastmod
               ,', sql_totime('uv.vote_date'), ' as vote_date
@@ -292,8 +292,6 @@ sub listing_ {
           WHERE', $where, '
           ORDER BY', $opt->{s}->sql_order(), 'NULLS LAST, v.sorttitle'
     );
-
-    enrich_flatten labels => id => vid => sql('SELECT vid, lbl FROM ulist_vns_labels WHERE uid =', \$uid, 'AND vid IN'), $lst;
 
     enrich rels => id => vid => sub { sql '
         SELECT rv.vid, r.id, rl.status, rv.rtype
@@ -311,7 +309,6 @@ sub listing_ {
         table_ sub {
             thead_ sub { tr_ sub {
                 td_ class => 'tc1', sub {
-                    # TODO: these checkboxes shouldn't be included in the query string
                     input_ type => 'checkbox', class => 'checkall', 'x-checkall' => 'collapse_vid', id => 'collapse_vid';
                     label_ for => 'collapse_vid', sub { txt_ 'Opt' };
                 };
@@ -333,7 +330,6 @@ sub listing_ {
 }
 
 
-# TODO: Ability to add VNs from this page
 TUWF::get qr{/$RE{uid}/ulist}, sub {
     my $u = tuwf->dbRowi('
         SELECT u.id,', sql_user(), ', ulist_votes, ulist_vnlist, ulist_wish
@@ -345,11 +341,11 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
 
     # Visible and selectable labels
     my $labels = tuwf->dbAlli(
-        'SELECT l.id, l.label, l.private, count(vl.vid) as count, null as delete
-           FROM ulist_labels l LEFT JOIN ulist_vns_labels vl ON vl.uid = l.uid AND vl.lbl = l.id
-          WHERE', { 'l.uid' => $u->{id}, $own ? () : ('l.private' => 0) },
-         'GROUP BY l.id, l.label, l.private
-          ORDER BY CASE WHEN l.id < 10 THEN l.id ELSE 10 END, l.label'
+        'SELECT l.id, l.label, l.private, coalesce(x.count, 0) as count, null as delete
+           FROM ulist_labels l
+           LEFT JOIN (SELECT x.id, COUNT(*) FROM ulist_vns uv, unnest(uv.labels) x(id) WHERE uid =', \$u->{id}, 'GROUP BY x.id) x(id, count) ON x.id = l.id
+          WHERE l.uid =', \$u->{id}, $own ? () : 'AND NOT l.private',
+         'ORDER BY CASE WHEN l.id < 10 THEN l.id ELSE 10 END, l.label'
     );
 
     # All visible labels that can be filtered on, including "virtual" labels like 'No label'
@@ -357,20 +353,12 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
         @$labels,
         # Consider label 7 (Voted) a virtual label if it's set to private.
         !grep($_->{id} == 7, @$labels) ? {
-            id => 7, label => 'Voted', count => tuwf->dbVali(
-                'SELECT count(*)
-                   FROM ulist_vns uv
-                  WHERE uv.vote IS NOT NULL AND EXISTS(SELECT 1 FROM ulist_vns_labels uvl JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl WHERE uvl.uid = uv.uid AND uvl.vid = uv.vid AND NOT ul.private)
-                    AND uid =', \$u->{id}
-            )
+            id => 7, label => 'Voted',
+            count => tuwf->dbVali('SELECT count(*) FROM ulist_vns WHERE vote IS NOT NULL AND NOT c_private AND uid =', \$u->{id})
         } : (),
         $own ? {
-            id => -1, label => 'No label', count => tuwf->dbVali(
-                'SELECT count(*)
-                   FROM ulist_vns uv
-                  WHERE NOT EXISTS(SELECT 1 FROM ulist_vns_labels uvl WHERE uvl.uid = uv.uid AND uvl.vid = uv.vid AND uvl.lbl <>', \7, ')
-                    AND uid =', \$u->{id}
-            )
+            id => -1, label => 'No label',
+            count => tuwf->dbVali("SELECT count(*) FROM ulist_vns WHERE labels IN('{}','{7}') AND uid =", \$u->{id})
         } : (),
     ];
 

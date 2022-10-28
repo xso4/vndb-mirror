@@ -243,19 +243,38 @@ CREATE OR REPLACE FUNCTION update_users_ulist_stats(vndbid) RETURNS void AS $$
 BEGIN
   WITH cnt(uid, votes, vns, wish) AS (
     SELECT u.id
-         , COUNT(DISTINCT uvl.vid) FILTER (WHERE NOT ul.private AND uv.vote IS NOT NULL) -- Voted
-         , COUNT(DISTINCT uvl.vid) FILTER (WHERE NOT ul.private AND ul.id NOT IN(5,6)) -- Labelled, but not wishlish/blacklist
-         , COUNT(DISTINCT uvl.vid) FILTER (WHERE NOT ul.private AND ul.id = 5) -- Wishlist
+         , COUNT(uv.vid) FILTER (WHERE NOT uv.c_private AND uv.vote IS NOT NULL) -- Voted
+         , COUNT(uv.vid) FILTER (WHERE NOT uv.c_private AND NOT (uv.labels <@ ARRAY[5,6]::smallint[])) -- Labelled, but not wishlish/blacklist
+         , COUNT(uv.vid) FILTER (WHERE uwish.private IS NOT DISTINCT FROM false AND uv.labels && ARRAY[5::smallint]) -- Wishlist
       FROM users u
-      LEFT JOIN ulist_vns_labels uvl ON uvl.uid = u.id
-      LEFT JOIN ulist_labels ul ON ul.id = uvl.lbl AND ul.uid = u.id
-      LEFT JOIN ulist_vns uv ON uv.uid = u.id AND uv.vid = uvl.vid
+      LEFT JOIN ulist_vns uv ON uv.uid = u.id
+      LEFT JOIN ulist_labels uwish ON uwish.uid = u.id AND uwish.id = 5
      WHERE $1 IS NULL OR u.id = $1
      GROUP BY u.id
   ) UPDATE users SET c_votes = votes, c_vns = vns, c_wish = wish
       FROM cnt WHERE id = uid AND (c_votes, c_vns, c_wish) IS DISTINCT FROM (votes, vns, wish);
 END;
 $$ LANGUAGE plpgsql; -- Don't use "LANGUAGE SQL" here; Make sure to generate a new query plan at invocation time.
+
+
+
+-- Update ulist_vns.c_private for a particular (user, vid). vid can be null to
+-- update the cache for the all VNs in the user's list, user can also be null
+-- to update the cache for everyone.
+CREATE OR REPLACE FUNCTION update_users_ulist_private(vndbid, vndbid) RETURNS void AS $$
+BEGIN
+  WITH p(uid,vid,private) AS (
+    SELECT uv.uid, uv.vid, COALESCE(bool_and(l.private), true)
+      FROM ulist_vns uv
+      LEFT JOIN unnest(uv.labels) x(id) ON true
+      LEFT JOIN ulist_labels l ON l.id = x.id AND l.uid = uv.uid
+     WHERE ($1 IS NULL OR uv.uid = $1)
+       AND ($2 IS NULL OR uv.vid = $2)
+     GROUP BY uv.uid, uv.vid
+  ) UPDATE ulist_vns SET c_private = p.private FROM p
+     WHERE ulist_vns.uid = p.uid AND ulist_vns.vid = p.vid AND ulist_vns.c_private <> p.private;
+END;
+$$ LANGUAGE plpgsql;
 
 
 

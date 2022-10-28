@@ -694,10 +694,7 @@ sub _sql_where_label {
     # Unlabeled
     if($lbl[0] == 0) {
         return '1=0' if !$own;
-        my $onlist = sql 'EXISTS(SELECT 1 FROM ulist_vns WHERE vid = v.id AND uid =', \$uid, ')';
-        my $haslbl = sql 'EXISTS(SELECT 1 FROM ulist_vns_labels WHERE vid = v.id AND uid =', \$uid, 'AND lbl <>', \7, ')';
-        return $neg ? sql 'NOT', $onlist, 'OR', $haslbl
-                    : sql $onlist,' AND NOT', $haslbl;
+        return sql $neg ? 'NOT' : (), 'EXISTS(SELECT 1 FROM ulist_vns WHERE vid = v.id AND uid =', \$uid, "AND labels IN('{}','{7}'))";
     }
 
     # Simple, stupid and safe: Don't attempt to query anything if there's a private label.
@@ -708,7 +705,7 @@ sub _sql_where_label {
         return '1=0' if grep !$vis->{$_}, @lbl;
     }
 
-    sql 'v.id', $neg ? 'NOT' : (), 'IN(SELECT vid FROM ulist_vns_labels WHERE uid =', \$uid, 'AND lbl IN', \@lbl, $all && @lbl > 1 ? ('GROUP BY vid HAVING COUNT(lbl) =', \scalar @lbl) : (), ')'
+    sql 'v.id', $neg ? 'NOT' : (), 'IN(SELECT vid FROM ulist_vns WHERE uid =', \$uid, 'AND labels', $all ? '@>' : '&&', sql_array(@lbl), '::smallint[])'
 }
 
 

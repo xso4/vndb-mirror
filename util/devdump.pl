@@ -165,10 +165,9 @@ sub copy_entry {
     copy vn_length_votes => "SELECT DISTINCT ON (vid,vndbid_num(uid)%10) * FROM vn_length_votes WHERE NOT private AND vid IN($vids)", {uid => 'user'};
     copy tags_vn     => "SELECT DISTINCT ON (tag,vid,vndbid_num(uid)%10) * FROM tags_vn WHERE vid IN($vids)", {uid => 'user'};
     copy quotes      => "SELECT * FROM quotes WHERE vid IN($vids)";
-    my $votes = "SELECT vid, vndbid('u', vndbid_num(uid)%8+2) AS uid, (percentile_cont((vndbid_num(uid)%8+1)::float/9) WITHIN GROUP (ORDER BY vote))::smallint AS vote, MIN(vote_date) AS vote_date"
-               ."  FROM ulist_vns WHERE vid IN($vids) AND vote IS NOT NULL GROUP BY vid, vndbid_num(uid)%8";
-    copy ulist_vns   => $votes, {uid => 'user'};
-    copy ulist_vns_labels => "SELECT vid, uid, 7 AS lbl FROM ($votes) x", {uid => 'user'};
+    copy ulist_vns   => "SELECT vid, vndbid('u', vndbid_num(uid)%8+2) AS uid, MIN(vote_date) AS vote_date, '{7}' AS labels
+                              , (percentile_cont((vndbid_num(uid)%8+1)::float/9) WITHIN GROUP (ORDER BY vote))::smallint AS vote
+                           FROM ulist_vns WHERE vid IN($vids) AND vote IS NOT NULL GROUP BY vid, vndbid_num(uid)%8", {uid => 'user'};
 
     # Releases
     copy_entry [qw/releases releases_media releases_platforms releases_producers releases_titles releases_vn/], $releases;

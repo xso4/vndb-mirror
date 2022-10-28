@@ -65,12 +65,11 @@ sub _info_table_ {
     } if $lengthvotes->{count};
     tr_ sub {
         my $vns = tuwf->dbVali(
-            'SELECT COUNT(DISTINCT uvl.vid) FROM ulist_vns_labels uvl',
-            $own ? () : ('JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl AND NOT ul.private'),
-            'WHERE uvl.lbl NOT IN(', \5, ',', \6, ') AND uvl.uid =', \$u->{id}
+            'SELECT COUNT(vid) FROM ulist_vns
+              WHERE NOT (labels && ARRAY[', \5, ',', \6, ']::smallint[]) AND uid =', \$u->{id}, $own ? () : 'AND NOT c_private'
         )||0;
         my $privrel = $own ? '1=1' : 'EXISTS(
-            SELECT 1 FROM releases_vn rv JOIN ulist_vns_labels uvl ON uvl.vid = rv.vid JOIN ulist_labels ul ON ul.id = uvl.lbl AND ul.uid = uvl.uid WHERE rv.id = r.rid AND uvl.uid = r.uid AND NOT ul.private
+            SELECT 1 FROM releases_vn rv JOIN ulist_vns uv ON uv.vid = rv.vid WHERE rv.id = r.rid AND NOT uv.c_private
         )';
         my $rel = tuwf->dbVali('SELECT COUNT(*) FROM rlists r WHERE', $privrel, 'AND r.uid =', \$u->{id})||0;
         td_ 'List stats';
@@ -157,10 +156,7 @@ sub _votestats_ {
         SELECT v.id, v.title, v.alttitle, uv.vote,', sql_totime('uv.vote_date'), 'AS date
           FROM ulist_vns uv
           JOIN vnt v ON v.id = uv.vid
-         WHERE uv.vote IS NOT NULL AND uv.uid =', \$u->{id},
-          $own ? () : (
-              'AND EXISTS(SELECT 1 FROM ulist_vns_labels uvl JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl WHERE uvl.uid = uv.uid AND uvl.vid = uv.vid AND NOT ul.private)'
-          ), '
+         WHERE uv.vote IS NOT NULL AND uv.uid =', \$u->{id}, $own ? () : ('AND NOT uv.c_private'), '
          ORDER BY uv.vote_date DESC LIMIT', \8
     );
 
@@ -196,10 +192,7 @@ TUWF::get qr{/$RE{uid}}, sub {
     $u->{votes} = tuwf->dbAlli('
         SELECT (uv.vote::numeric/10)::int AS idx, COUNT(uv.vote) as votes, SUM(uv.vote) AS total
           FROM ulist_vns uv
-         WHERE uv.vote IS NOT NULL AND uv.uid =', \$u->{id},
-          $own ? () : (
-              'AND EXISTS(SELECT 1 FROM ulist_vns_labels uvl JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl WHERE uvl.uid = uv.uid AND uvl.vid = uv.vid AND NOT ul.private)'
-          ), '
+         WHERE uv.vote IS NOT NULL AND uv.uid =', \$u->{id}, $own ? () : 'AND NOT uv.c_private', '
          GROUP BY (uv.vote::numeric/10)::int
     ');
 

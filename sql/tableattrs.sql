@@ -139,10 +139,6 @@ ALTER TABLE traits_parents_hist      ADD CONSTRAINT traits_parents_hist_parent_f
 ALTER TABLE ulist_labels             ADD CONSTRAINT ulist_labels_uid_fkey              FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE CASCADE;
 ALTER TABLE ulist_vns                ADD CONSTRAINT ulist_vns_uid_fkey                 FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE CASCADE;
 ALTER TABLE ulist_vns                ADD CONSTRAINT ulist_vns_vid_fkey                 FOREIGN KEY (vid)       REFERENCES vn            (id);
-ALTER TABLE ulist_vns_labels         ADD CONSTRAINT ulist_vns_labels_uid_fkey          FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE CASCADE;
-ALTER TABLE ulist_vns_labels         ADD CONSTRAINT ulist_vns_labels_vid_fkey          FOREIGN KEY (vid)       REFERENCES vn            (id);
-ALTER TABLE ulist_vns_labels         ADD CONSTRAINT ulist_vns_labels_uid_lbl_fkey      FOREIGN KEY (uid,lbl)   REFERENCES ulist_labels  (uid,id) ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE ulist_vns_labels         ADD CONSTRAINT ulist_vns_labels_uid_vid_fkey      FOREIGN KEY (uid,vid)   REFERENCES ulist_vns     (uid,vid) ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE users_prefs              ADD CONSTRAINT users_prefs_id_fkey                FOREIGN KEY (id)        REFERENCES users         (id) ON DELETE CASCADE;
 ALTER TABLE users_prefs_tags         ADD CONSTRAINT users_prefs_tags_id_fkey           FOREIGN KEY (id)        REFERENCES users         (id) ON DELETE CASCADE;
 ALTER TABLE users_prefs_tags         ADD CONSTRAINT users_prefs_tags_tid_fkey          FOREIGN KEY (tid)       REFERENCES tags          (id) ON DELETE CASCADE;

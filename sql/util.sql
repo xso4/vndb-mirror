@@ -2,6 +2,38 @@
 -- It should be loaded before schema.sql.
 
 
+-- Add an element in the correct position to an already sorted array.
+-- The array is not modified if the element already exists.
+-- This function is probably quite slow, don't use in contexts where performance matters.
+CREATE OR REPLACE FUNCTION array_set(arr anycompatiblearray, elem anycompatible) RETURNS anycompatiblearray AS $$
+DECLARE
+  ret arr%TYPE;
+  e elem%TYPE;
+  added boolean := false;
+BEGIN
+  FOREACH e IN ARRAY arr LOOP
+    IF e = elem THEN RETURN arr;
+    ELSIF added or e < elem THEN ret := ret || e;
+    ELSE
+      ret := ret || elem || e;
+      added := true;
+    END IF;
+  END LOOP;
+  RETURN CASE WHEN added THEN ret ELSE ret || elem END;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- Some tests.
+--SELECT array_set(ARRAY[1,2,3,8], 9) = ARRAY[1,2,3,8,9]
+--     , array_set(ARRAY[1,2,3,8], 0) = ARRAY[0,1,2,3,8]
+--     , array_set(ARRAY[1,2,3,8], 2) = ARRAY[1,2,3,8]
+--     , array_set(ARRAY[1,2,3,8], 8) = ARRAY[1,2,3,8]
+--     , array_set(ARRAY[1,2,3,8], 5) = ARRAY[1,2,3,5,8]
+--     , array_set(ARRAY[8,3,2,1], 3) = ARRAY[8,3,2,1]    -- Also works on unsorted arrays
+--     , array_set(ARRAY[8,3,2,1], 5) = ARRAY[5,8,3,2,1]; -- But then the output is also unsorted
+
+
+
 -- strip_bb_tags(text) - simple utility function to aid full-text searching
 CREATE OR REPLACE FUNCTION strip_bb_tags(t text) RETURNS text AS $$
   SELECT regexp_replace(t, '\[(?:url=[^\]]+|/?(?:spoiler|quote|raw|code|url))\]', ' ', 'gi');

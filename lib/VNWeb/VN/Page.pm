@@ -736,8 +736,7 @@ sub stats_ {
     my $num = sum map $_->{votes}, @$stats;
 
     my $recent = @$stats && tuwf->dbAlli('
-         SELECT uv.vote,', sql_totime('uv.vote_date'), 'as date, ', sql_user(), '
-              , NOT EXISTS(SELECT 1 FROM ulist_vns_labels uvl JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl WHERE uvl.uid = uv.uid AND uvl.vid = uv.vid AND NOT ul.private) AS hide_list
+         SELECT uv.vote, uv.c_private,', sql_totime('uv.vote_date'), 'as date, ', sql_user(), '
            FROM ulist_vns uv
            JOIN users u ON u.id = uv.uid
           WHERE uv.vid =', \$v->{id}, 'AND uv.vote IS NOT NULL
@@ -777,8 +776,8 @@ sub stats_ {
             } } } if $v->{reviews}{total};
             tr_ sub {
                 td_ sub {
-                    b_ class => 'grayedout', 'hidden' if $_->{hide_list};
-                    user_ $_ if !$_->{hide_list};
+                    b_ class => 'grayedout', 'hidden' if $_->{c_private};
+                    user_ $_ if !$_->{c_private};
                 };
                 td_ fmtvote $_->{vote};
                 td_ fmtdate $_->{date};

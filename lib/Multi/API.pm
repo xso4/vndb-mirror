@@ -20,6 +20,7 @@ use VNDB::Types;
 use VNDB::Config;
 use JSON::XS;
 use PWLookup;
+use List::Util 'max';
 use VNDB::ExtLinks 'sql_extlinks';
 
 # Linux-specific, not exported by the Socket module.
@@ -1181,13 +1182,11 @@ my $VN_FILTER = [
   [ inta  => 'uv.vid :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, process => \'v', join => ',' ],
 ];
 
-my $UV_PUBLIC = 'EXISTS(SELECT 1 FROM ulist_vns_labels uvl JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl WHERE uvl.uid = uv.uid AND uvl.vid = uv.vid AND NOT ul.private)';
-
 
 my %GET_VOTELIST = (
   islist  => 1,
-  sql     => "SELECT %s FROM ulist_vns uv WHERE uv.vote IS NOT NULL AND (%s) AND $UV_PUBLIC %s",
-  sqluser => "SELECT %1\$s FROM ulist_vns uv WHERE uv.vote IS NOT NULL AND (%2\$s) AND (uid = %4\$s OR $UV_PUBLIC) %3\$s",
+  sql     => "SELECT %s    FROM ulist_vns uv WHERE vote IS NOT NULL AND (%s   ) AND                 NOT c_private %s",
+  sqluser => "SELECT %1\$s FROM ulist_vns uv WHERE vote IS NOT NULL AND (%2\$s) AND (uid = %4\$s OR NOT c_private) %3\$s",
   select  => "uid AS uid, vid as vn, vote, extract('epoch' from vote_date) AS added",
   proc    => sub {
     $_[0]{uid} = idnum $_[0]{uid};
@@ -1201,44 +1200,40 @@ my %GET_VOTELIST = (
   filters => { uid => [ $UID_FILTER ], vn => $VN_FILTER }
 );
 
-my $SQL_VNLIST = 'FROM ulist_vns uv LEFT JOIN ulist_vns_labels uvl ON uvl.uid = uv.uid AND uvl.vid = uv.vid AND uvl.lbl IN(1,2,3,4)'
-              .' WHERE (EXISTS(SELECT 1 FROM ulist_vns_labels uvl WHERE uvl.uid = uv.uid AND uvl.vid = uv.vid AND uvl.lbl IN(1,2,3,4))'
-              .' OR NOT EXISTS(SELECT 1 FROM ulist_vns_labels uvl WHERE uvl.uid = uv.uid AND uvl.vid = uv.vid))';
+my $SQL_VNLIST = "FROM ulist_vns uv WHERE (labels IN('{}','{7}') OR labels && ARRAY[1,2,3,4]::smallint[])";
 
 my %GET_VNLIST = (
   islist  => 1,
-  sql     => "SELECT %s    $SQL_VNLIST AND (%s)    AND                    $UV_PUBLIC  GROUP BY uv.uid, uv.vid, uv.added, uv.notes %s",
-  sqluser => "SELECT %1\$s $SQL_VNLIST AND (%2\$s) AND (uv.uid = %4\$s OR $UV_PUBLIC) GROUP BY uv.uid, uv.vid, uv.added, uv.notes %3\$s",
-  select  => "uv.uid AS uid, uv.vid as vn, MAX(uvl.lbl) AS status, extract('epoch' from uv.added) AS added, uv.notes",
+  sql     => "SELECT %s    $SQL_VNLIST AND (%s)    AND                 NOT c_private  %s",
+  sqluser => "SELECT %1\$s $SQL_VNLIST AND (%2\$s) AND (uid = %4\$s OR NOT c_private) %3\$s",
+  select  => "uid AS uid, vid as vn, labels, extract('epoch' from added) AS added, notes",
   proc    => sub {
     $_[0]{uid} = idnum $_[0]{uid};
     $_[0]{vn}  = idnum $_[0]{vn};
-    $_[0]{status} = defined $_[0]{status} ? $_[0]{status}*1 : 0;
+    my @labels = delete($_[0]{labels}) =~ /^{(.+)}$/ ? split /,/, $1 : ();
+    $_[0]{status} = 1*(max(grep $_ <= 4, @labels) || 0);
     $_[0]{added} = int $_[0]{added};
     $_[0]{notes} ||= undef;
   },
   sortdef => 'vn',
-  sorts   => { vn => 'uv.vid %s' },
+  sorts   => { vn => 'vid %s' },
   flags   => { basic => {} },
   filters => { uid => [ $UID_FILTER ], vn => $VN_FILTER }
 );
 
-my $SQL_WISHLIST = "FROM ulist_vns uv JOIN ulist_vns_labels uvl ON uvl.uid = uv.uid AND uvl.vid = uv.vid JOIN ulist_labels ul ON ul.uid = uv.uid AND ul.id = uvl.lbl"
-                ." WHERE (uvl.lbl IN(5,6) OR ul.label IN('Wishlist-Low','Wishlist-Medium','Wishlist-High'))";
-
 my %GET_WISHLIST = (
   islist  => 1,
-  sql     => "SELECT %s    $SQL_WISHLIST AND (%s)    AND                    NOT ul.private  GROUP BY uv.uid, uv.vid, uv.added %s",
-  sqluser => "SELECT %1\$s $SQL_WISHLIST AND (%2\$s) AND (uv.uid = %4\$s OR NOT ul.private) GROUP BY uv.uid, uv.vid, uv.added %3\$s",
-  select  => "uv.uid AS uid, uv.vid AS vn, MAX(ul.label) AS priority, extract('epoch' from uv.added) AS added",
+  sql     => "SELECT %s    FROM ulist_vns uv WHERE labels && ARRAY[5,6]::smallint[] AND (%s)    AND                 NOT c_private  %s",
+  sqluser => "SELECT %1\$s FROM ulist_vns uv WHERE labels && ARRAY[5,6]::smallint[] AND (%2\$s) AND (uid = %4\$s OR NOT c_private) %3\$s",
+  select  => "uid AS uid, vid AS vn, CASE WHEN labels && ARRAY[6]::smallint[] THEN 3 ELSE 1 END AS priority, extract('epoch' from added) AS added",
   proc    => sub {
     $_[0]{uid} = idnum $_[0]{uid};
     $_[0]{vn}  = idnum $_[0]{vn};
-    $_[0]{priority} = {'Wishlist-High' => 0, 'Wishlist-Medium' => 1, 'Wishlist-Low' => 2, 'Blacklist' => 3}->{$_[0]{priority}}//1;
+    $_[0]{priority} *= 1;
     $_[0]{added} = int $_[0]{added};
   },
   sortdef => 'vn',
-  sorts   => { vn => 'uv.vid %s' },
+  sorts   => { vn => 'vid %s' },
   flags   => { basic => {} },
   filters => { uid => [ $UID_FILTER ], vn => $VN_FILTER }
 );
@@ -1259,11 +1254,10 @@ my %GET_ULIST_LABELS = (
   filters => { uid => [ $UID_FILTER ] },
 );
 
-my $ULIST_PUBLIC = 'EXISTS(SELECT 1 FROM ulist_vns_labels uvl JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl WHERE uvl.uid = uv.uid AND uvl.vid = uv.vid AND NOT ul.private)';
 my %GET_ULIST = (
   islist  => 1,
-  sql     => "SELECT %s FROM ulist_vns uv WHERE (%s) AND ($ULIST_PUBLIC) %s",
-  sqluser => "SELECT %1\$s FROM ulist_vns uv WHERE (%2\$s) AND (uv.uid = %4\$s OR $ULIST_PUBLIC) %3\$s",
+  sql     => "SELECT %s    FROM ulist_vns uv WHERE (%s   ) AND                 NOT c_private     %s",
+  sqluser => "SELECT %1\$s FROM ulist_vns uv WHERE (%2\$s) AND (uid = %4\$s OR NOT uv.c_private) %3\$s",
   select  => "uid AS uid, vid as vn, extract('epoch' from added) AS added, extract('epoch' from lastmod) AS lastmod, extract('epoch' from vote_date) AS voted, vote, started, finished, notes",
   proc    => sub {
     $_[0]{uid} = idnum $_[0]{uid};
@@ -1286,9 +1280,11 @@ my %GET_ULIST = (
   flags   => {
     basic  => {},
     labels => {
-      fetch => [[ ['uid','vn'], 'SELECT uvl.uid, uvl.vid, ul.id, ul.label
-               FROM ulist_vns_labels uvl JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl
-              WHERE (uvl.uid,uvl.vid) IN(%s) AND (NOT ul.private OR uvl.uid = %s OR uvl.lbl = 7)',
+      fetch => [[ ['uid','vn'], 'SELECT uv.uid, uv.vid, ul.id, ul.label
+               FROM ulist_vns uv
+               JOIN unnest(uv.labels) l(id) ON true
+               JOIN ulist_labels ul ON ul.uid = uv.uid AND ul.id = l.id
+              WHERE (uv.uid,uv.vid) IN(%s) AND (NOT ul.private OR uv.uid = %s OR ul.id = 7)',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
             $i->{labels} = [ grep $i->{uid} eq $_->{uid} && $i->{vn} eq $_->{vid}, @$r ];
@@ -1306,8 +1302,7 @@ my %GET_ULIST = (
     uid   => [ $UID_FILTER ],
     vn    => $VN_FILTER,
     label => [
-      [ 'int' => 'EXISTS(SELECT 1 FROM ulist_vns_labels uvl JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl
-                          WHERE uvl.uid = uv.uid AND uvl.vid = uv.vid AND uvl.lbl = :value: AND (uvl.lbl = 7 OR NOT ul.private))', {'=',1}, range => [1,1e6] ],
+      [ 'int' => '(:value: = 7 OR EXISTS(SELECT 1 FROM ulist_labels ul WHERE ul.uid = uv.uid AND ul.id = :value: AND NOT ul.private)) AND labels && ARRAY[:value:]::smallint[]', {'=',1}, range => [1,32000] ],
     ],
   },
 );
@@ -1579,7 +1574,9 @@ sub setpg {
 
 sub set_ulist_ret {
   my($c, $obj) = @_;
-  setpg $obj, 'SELECT update_users_ulist_stats($1)', [ $c->{uid} ]; # XXX: This can be deferred, to speed up batch updates over the same connection
+  cpg $obj->{c}, 'SELECT update_users_ulist_private($1, $2)', [ $c->{uid}, 'v'.$obj->{id} ], sub {
+    setpg $obj, 'SELECT update_users_ulist_stats($1)', [ $c->{uid} ];
+  };
 }
 
 
@@ -1615,32 +1612,23 @@ sub set_vnlist {
   $vs ||= 0;
   $vn ||= '';
 
-  cpg $c, 'INSERT INTO ulist_vns (uid, vid, notes) VALUES ($1, $2, $3) ON CONFLICT (uid, vid) DO UPDATE SET lastmod = NOW()'.($en ? ', notes = $3' : ''),
-    [ $c->{uid}, 'v'.$obj->{id}, $vn ], sub {
-    if($es) {
-      cpg $c, 'DELETE FROM ulist_vns_labels WHERE uid = $1 AND vid = $2 AND lbl IN(1,2,3,4)', [ $c->{uid}, 'v'.$obj->{id} ], sub {
-        if($vs) {
-          cpg $c, 'INSERT INTO ulist_vns_labels (uid, vid, lbl) VALUES($1, $2, $3)', [ $c->{uid}, 'v'.$obj->{id}, $vs ], sub {
-            set_ulist_ret $c, $obj;
-          }
-        } else {
-          set_ulist_ret $c, $obj;
-        }
-      }
-    } else {
-      set_ulist_ret $c, $obj;
-    }
-  }
+  my $l = 'array_remove(array_remove(array_remove(array_remove(ulist_vns.labels, 1), 2), 3), 4)';
+  cpg $c, q{
+    INSERT INTO ulist_vns (uid, vid, notes, labels)
+         VALUES ($1, $2, $3, CASE WHEN $4 = 0 THEN '{}' ELSE ARRAY[$4]::smallint[] END)
+    ON CONFLICT (uid, vid) DO UPDATE SET lastmod = NOW()}
+        .($en ? ', notes = $3' : '')
+        .($es ? ', labels = CASE WHEN $4 = 0 THEN '.$l.' ELSE array_set('.$l.', $4) END' : ''),
+    [ $c->{uid}, 'v'.$obj->{id}, $vn, $vs ], sub { set_ulist_ret $c, $obj; };
 }
 
 
 sub set_wishlist {
   my($c, $obj) = @_;
-
-  my $sql_label = "(lbl IN(5,6) OR lbl IN(SELECT id FROM ulist_labels WHERE uid = \$1 AND label IN('Wishlist-Low','Wishlist-High','Wishlist-Medium')))";
+  my $l = 'array_remove(array_remove(ulist_vns.labels,5),6)';
 
   # Bug: This will make it appear in the vnlist
-  return cpg $c, "DELETE FROM ulist_vns_labels WHERE uid = \$1 AND vid = \$2 AND $sql_label",
+  return cpg $c, "UPDATE ulist_vns SET labels = $l, lastmod = NOW() WHERE uid = \$1 AND vid = \$2",
     [ $c->{uid}, 'v'.$obj->{id} ], sub {
     set_ulist_ret $c, $obj;
   } if !$obj->{opt};
@@ -1649,22 +1637,14 @@ sub set_wishlist {
   return cerr $c, missing => 'No priority given', field => 'priority' if !$ep;
   return cerr $c, badarg => 'Invalid priority', field => 'priority' if ref($vp) || !defined($vp) || $vp !~ /^[0-3]$/;
 
-  # Bug: High/Med/Low statuses are only set if a Wishlist-(High|Medium|Low) label exists; These should probably be created if they don't.
-  cpg $c, 'INSERT INTO ulist_vns (uid, vid) VALUES ($1, $2) ON CONFLICT DO NOTHING', [ $c->{uid}, 'v'.$obj->{id} ], sub {
-    cpg $c, "DELETE FROM ulist_vns_labels WHERE uid = \$1 AND vid = \$2 AND $sql_label", [ $c->{uid}, 'v'.$obj->{id} ], sub {
-      cpg $c, 'INSERT INTO ulist_vns_labels (uid, vid, lbl) VALUES($1, $2, $3)', [ $c->{uid}, 'v'.$obj->{id}, $vp == 3 ? 6 : 5 ], sub {
-        if($vp != 3) {
-          cpg $c, 'INSERT INTO ulist_vns_labels (uid, vid, lbl) SELECT $1, $2, id FROM ulist_labels WHERE uid = $1 AND label = $3',
-            [ $c->{uid}, 'v'.$obj->{id}, ['Wishlist-High', 'Wishlist-Medium', 'Wishlist-Low']->[$vp] ], sub {
-            set_ulist_ret $c, $obj;
-          }
-        } else {
-          set_ulist_ret $c, $obj;
-        }
-      }
-    }
-  }
+  my $label = $vp == 3 ? 6 : 5; # Other statuses are not supported anymore.
+  cpg $c,
+    'INSERT INTO ulist_vns (uid, vid, labels) VALUES ($1, $2, ARRAY[$3]::smallint[])
+     ON CONFLICT (uid,vid) DO UPDATE SET lastmod = NOW(), labels = array_set('.$l.', $3)',
+    [ $c->{uid}, 'v'.$obj->{id}, $label ],
+    sub { set_ulist_ret $c, $obj };
 }
+
 
 sub set_ulist {
   my($c, $obj) = @_;
@@ -1705,17 +1685,12 @@ sub set_ulist {
     return cerr $c, badarg => "Labels field expects an array", field => 'labels' if ref $opt->{labels} ne 'ARRAY';
     return cerr $c, badarg => "Invalid label: '$_'", field => 'labels' for grep !defined($_) || ref($_) || !/^[0-9]+$/, $opt->{labels}->@*;
     my %l = map +($_,1), grep $_ != 7, $opt->{labels}->@*;
-    # XXX: This is ugly. Errors (especially: unknown labels) are ignored and
-    # the entire set operation ought to run in a single transaction.
-    pg_cmd 'SELECT lbl FROM ulist_vns_labels WHERE uid = $1 AND vid = $2', [ $c->{uid}, 'v'.$obj->{id} ], sub {
-      return if pg_expect $_[0];
-      my %ids = map +($_->{lbl}, 1), $_[0]->rowsAsHashes;
-      pg_cmd 'INSERT INTO ulist_vns_labels (uid, vid, lbl) VALUES ($1,$2,$3)', [ $c->{uid}, 'v'.$obj->{id}, $_ ] for grep !$ids{$_}, keys %l;
-      pg_cmd 'DELETE FROM ulist_vns_labels WHERE uid = $1 AND vid = $2 AND lbl = $3', [ $c->{uid}, 'v'.$obj->{id}, $_ ] for grep !$l{$_}, keys %ids;
-    };
+    # XXX: Labels aren't validated here, so we might actually be writing garbage into the DB. Rest of the code doesn't mind that too much, though.
+    push @bind, '{'.join(',',sort { $a <=> $b } keys %l).'}';
+    push @set, 'labels = $'.@bind;
   }
 
-  push @set, 'lastmod = NOW()' if @set || $opt->{labels};
+  push @set, 'lastmod = NOW()' if @set;
   return cerr $c, missing => 'No fields to change' if !@set;
 
   cpg $c, 'INSERT INTO ulist_vns (uid, vid) VALUES ($1, $2) ON CONFLICT (uid, vid) DO NOTHING', [ $c->{uid}, 'v'.$obj->{id} ], sub {

@@ -19,8 +19,8 @@ sub listing_ {
                 td_ class => 'tc1', fmtdate $_->{date};
                 td_ class => 'tc2', fmtvote $_->{vote};
                 td_ class => 'tc3', sub {
-                    b_ class => 'grayedout', 'hidden' if $_->{hide_list};
-                    user_ $_ if !$_->{hide_list};
+                    b_ class => 'grayedout', 'hidden' if $_->{c_private};
+                    user_ $_ if !$_->{c_private};
                 };
             } for @$lst;
         };
@@ -48,11 +48,10 @@ TUWF::get qr{/$RE{vid}/votes}, sub {
 
     my $count = tuwf->dbVali('SELECT COUNT(*)', $fromwhere);
 
-    my $hide_list = 'NOT EXISTS(SELECT 1 FROM ulist_vns_labels uvl JOIN ulist_labels ul ON ul.uid = uvl.uid AND ul.id = uvl.lbl WHERE uvl.uid = uv.uid AND uvl.vid = uv.vid AND NOT ul.private)';
     my $lst = tuwf->dbPagei({results => 50, page => $opt->{p}},
-      'SELECT uv.vote,', sql_totime('uv.vote_date'), 'as date, ', sql_user(), ", $hide_list AS hide_list
-        ", $fromwhere, 'ORDER BY', sprintf
-            { date => 'uv.vote_date %s', vote => 'uv.vote %s', title => "(CASE WHEN $hide_list THEN NULL ELSE u.username END) %s, uv.vote_date" }->{$opt->{s}},
+      'SELECT uv.vote, uv.c_private, ', sql_totime('uv.vote_date'), 'as date, ', sql_user(),
+           $fromwhere, 'ORDER BY', sprintf
+            { date => 'uv.vote_date %s, uv.vote', vote => 'uv.vote %s, uv.vote_date', title => "(CASE WHEN uv.c_private THEN NULL ELSE u.username END) %s, uv.vote_date" }->{$opt->{s}},
             { a => 'ASC', d => 'DESC' }->{$opt->{o}}
     );
 
