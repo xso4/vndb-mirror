@@ -110,7 +110,7 @@ update msg model =
     ReleaseDel n -> ({ model | rid = delidx n model.rid }, Cmd.none)
     Notes s   -> ({ model | notes  = s }, Cmd.none)
     RelLoaded (GApi.Releases rels) ->
-      let rel r = if r.rtype /= "trial" && (r.released <= model.today || not model.maycount) then Just (r.id, RDate.showrel r) else Nothing
+      let rel r = if r.rtype /= "trial" && r.released <= model.today then Just (r.id, RDate.showrel r) else Nothing
           frels = List.filterMap rel rels
           def = case frels of
                   [(r,_)] -> r
