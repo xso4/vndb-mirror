@@ -804,9 +804,9 @@ my %GET_RELEASE = (
       [ str   => 'r.title ILIKE :value:', {'~',1}, process => \'like' ],
     ],
     original => [
-      [ undef,   "r.original :op: ''", {qw|= =  != <>|} ],
-      [ str   => 'r.original :op: :value:', {qw|= =  != <>|} ],
-      [ str   => 'r.original ILIKE :value:', {'~',1}, process => \'like' ]
+      [ undef,   "r.alttitle :op: ''", {qw|= =  != <>|} ],
+      [ str   => 'r.alttitle :op: :value:', {qw|= =  != <>|} ],
+      [ str   => 'r.alttitle ILIKE :value:', {'~',1}, process => \'like' ]
     ],
     released => [
       [ undef,   'r.released :op: 0', {qw|= =  != <>|} ],
