@@ -69,7 +69,7 @@ sub _info_table_ {
               WHERE NOT (labels && ARRAY[', \5, ',', \6, ']::smallint[]) AND uid =', \$u->{id}, $own ? () : 'AND NOT c_private'
         )||0;
         my $privrel = $own ? '1=1' : 'EXISTS(
-            SELECT 1 FROM releases_vn rv JOIN ulist_vns uv ON uv.vid = rv.vid WHERE rv.id = r.rid AND NOT uv.c_private
+            SELECT 1 FROM releases_vn rv JOIN ulist_vns uv ON uv.vid = rv.vid WHERE uv.uid = r.uid AND rv.id = r.rid AND NOT uv.c_private
         )';
         my $rel = tuwf->dbVali('SELECT COUNT(*) FROM rlists r WHERE', $privrel, 'AND r.uid =', \$u->{id})||0;
         td_ 'List stats';
