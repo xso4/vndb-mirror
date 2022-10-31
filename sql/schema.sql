@@ -1022,6 +1022,7 @@ CREATE TABLE ulist_labels (
 );
 
 -- ulist_vns
+-- XXX: dbdump.pl has a custom query for this table, make sure to sync that when adding/removing [pub] columns.
 CREATE TABLE ulist_vns (
   uid         vndbid NOT NULL, -- [pub] users.id
   vid         vndbid NOT NULL, -- [pub] vn.id

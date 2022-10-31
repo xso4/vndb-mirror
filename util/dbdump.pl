@@ -46,6 +46,36 @@ use lib "$ROOT/lib";
 use VNDB::Schema;
 
 
+# Ridiculous query to export 'ulist_vns' with private labels removed.
+# Since doing a lookup in ulist_labels for each row+label in ulist_vns is
+# rather slow, this query takes a shortcut: for users that do not have any
+# private labels at all (i.e. the common case), this query just dumps the rows
+# without any modification. Only for users that have at least one private label
+# are the labels filtered.
+my $sql_ulist_vns_cols = q{
+    uid, vid, date_trunc('day',added) AS added, date_trunc('day',lastmod) AS lastmod
+  , date_trunc('day',vote_date), started, finished, vote, notes
+};
+my $sql_ulist_vns = qq{
+  SELECT * FROM (
+    SELECT $sql_ulist_vns_cols, array_agg(lblid ORDER BY lblid) AS labels
+      FROM ulist_vns, unnest(labels) x(lblid)
+     WHERE NOT c_private
+       AND NOT EXISTS(SELECT 1 FROM ulist_labels WHERE uid = ulist_vns.uid AND id = lblid AND private)
+       AND uid IN(SELECT uid FROM ulist_labels WHERE private)
+     GROUP BY uid, vid
+    UNION ALL
+    SELECT $sql_ulist_vns_cols, labels
+      FROM ulist_vns
+     WHERE NOT c_private
+       AND uid NOT IN(SELECT uid FROM ulist_labels WHERE private)
+  ) z
+  WHERE vid IN(SELECT id FROM vn WHERE NOT hidden)
+  ORDER BY uid, vid
+};
+
+
+
 # Tables and columns to export.
 #
 # Tables are exported with an explicit ORDER BY to make them more deterministic
@@ -89,9 +119,7 @@ my %tables = (
     traits_parents      => { where => 'id IN(SELECT id FROM traits WHERE NOT hidden)' },
     ulist_labels        => { where => 'NOT private AND EXISTS(SELECT 1 FROM ulist_vns uv JOIN vn v ON v.id = uv.vid
                                         WHERE NOT v.hidden AND uv.labels && ARRAY[ulist_labels.id] AND ulist_labels.uid = uv.uid)' },
-    ulist_vns           => { where => 'NOT c_private AND vid IN(SELECT id FROM vn WHERE NOT hidden)'
-                             # XXX: This is slow
-                           , overrule_labels => '(SELECT array_agg(ul.id) FROM unnest(labels) x(id) JOIN ulist_labels ul ON ul.id = x.id WHERE ul.uid = ulist_vns.uid AND NOT ul.private)' },
+    ulist_vns           => { sql => $sql_ulist_vns },
     users               => { where => 'id IN(SELECT DISTINCT uid FROM ulist_vns WHERE NOT c_private)'
                                  .' OR id IN(SELECT DISTINCT uid FROM tags_vn)'
                                  .' OR id IN(SELECT DISTINCT uid FROM image_votes)'
@@ -148,14 +176,17 @@ sub export_table {
 
     my $fn = "$dest/$table->{name}";
 
-    # Truncate all timestamptz columns to a day, to avoid leaking privacy-sensitive info.
-    my $cols = join ', ', map $table->{"overrule_$_->{name}"} // ($_->{type} eq 'timestamptz' ? "date_trunc('day', \"$_->{name}\")" : qq{"$_->{name}"}), @cols;
-    my $where = $table->{where} ? "WHERE $table->{where}" : '';
-    my $order = table_order $table->{name};
-    die "Table '$table->{name}' is missing an ORDER BY clause\n" if !$order;
+    my $sql = $table->{sql} // do {
+        # Truncate all timestamptz columns to a day, to avoid leaking privacy-sensitive info.
+        my $cols = join ', ', map $_->{type} eq 'timestamptz' ? "date_trunc('day', \"$_->{name}\")" : qq{"$_->{name}"}, @cols;
+        my $where = $table->{where} ? "WHERE $table->{where}" : '';
+        my $order = table_order $table->{name};
+        die "Table '$table->{name}' is missing an ORDER BY clause\n" if !$order;
+        qq{SELECT $cols FROM "$table->{name}" $where $order}
+    };
 
     my $start = time;
-    $db->do(qq{COPY (SELECT $cols FROM "$table->{name}" $where $order) TO STDOUT});
+    $db->do(qq{COPY ($sql) TO STDOUT});
     open my $F, '>:utf8', $fn;
     my $v;
     print $F $v while($db->pg_getcopydata($v) >= 0);
