@@ -606,10 +606,7 @@ TUWF::set('custom_validations')->{advsearch_err} = sub {
     my ($t) = @_;
     +{ required => 0, type => 'any', default => bless({type=>$t}, __PACKAGE__), func => sub {
         my $r = _validate_adv $t, @_;
-        if(!$r || ref $r eq 'HASH') {
-            warn "advsearch validation failed\n";
-            $_[0] = bless {type=>$t,error=>1}, __PACKAGE__;
-        }
+        $_[0] = bless {type=>$t,error=>1}, __PACKAGE__ if !$r || ref $r eq 'HASH';
         1
     } }
 };
