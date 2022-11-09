@@ -121,7 +121,7 @@ sub _cast_ {
     my($s) = @_;
     my %alias = map +($_->{aid}, $_), $s->{alias}->@*;
 
-    my $cast = tuwf->dbAlli(q{
+    my $cast = [ grep defined $_->{spoil}, tuwf->dbAlli(q{
         SELECT vs.aid, v.id, v.c_released, v.title, v.alttitle, c.id AS cid, c.name AS c_name, c.original AS c_original, vs.note,
                (SELECT MIN(cv.spoil) FROM chars_vns cv WHERE cv.id = c.id AND cv.vid = v.id) AS spoil
           FROM vn_seiyuu vs
@@ -131,7 +131,7 @@ sub _cast_ {
            AND NOT v.hidden
            AND NOT c.hidden
          ORDER BY v.c_released ASC, v.title ASC
-    });
+    })->@* ];
     return if !@$cast;
     enrich_ulists_widget $cast;
 
