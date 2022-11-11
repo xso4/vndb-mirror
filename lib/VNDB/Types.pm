@@ -55,6 +55,7 @@ hash LANGUAGE =>
     ru => 'Russian',
     sk => 'Slovak',
     sl => 'Slovene',
+    sr => 'Serbian',
     sv => 'Swedish',
     ta => 'Tagalog',
     th => 'Thai',
