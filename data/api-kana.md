@@ -600,6 +600,8 @@ Name                [F]   Description
                           Otherwise, this matches the `rtype` of any linked
                           visual novel.
 
+`extlink`           m     Match on external links, see below for details.
+
 `patch`                   Integer, only accepts the value `1`.
 
 `freeware`                See `patch`.
@@ -617,7 +619,22 @@ Name                [F]   Description
                           matching the given [producer filters](#producer-filters).
 -----------------------------------------------------------------------------
 
-*Undocumented: animation, extlinks*
+The `extlink` filter can be used with three types of values:
+
+- Just a site name, e.g. `["extlink","=","steam"]` matches all releases that
+  have a steam ID.
+- A two-element array indicating the site name and the remote identifier, e.g.
+  `["extlink","=",["steam",702050]]` to match the Saya no Uta release on Steam.
+  The second element can be either an int or a string, depending on the site,
+  but integer identifiers are also accepted when formatted as a string.
+- A URL, e.g. `["extlink","=","https://store.steampowered.com/app/702050/"]` is
+  equivalent to the above example.
+
+In all of the above forms, an error is returned if the site is not known in the
+database or if the URL format is not recognized. The list of supported sites
+and URL formats tends to change over time.
+
+*Undocumented: animation*
 
 ### Fields {#release-fields}
 

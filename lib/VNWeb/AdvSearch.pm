@@ -392,16 +392,7 @@ f r => 18 => 'rlist',    { uint => 1, enum => \%RLIST_STATUS }, sql_list => sub 
         return '1=0' if !auth;
         sql 'r.id', $neg ? 'NOT' : '', 'IN(SELECT rid FROM rlists WHERE uid =', \auth->uid, 'AND status IN', $val, $all && @$val > 1 ? ('GROUP BY rid HAVING COUNT(status) =', \scalar @$val) : (), ')';
     };
-f r => 19 => 'extlink',  { enum => [map s/^l_//r, keys $VNDB::ExtLinks::LINKS{r}->%*] }, '=' => sub {
-        my $arg = $_;
-        state $schema = (grep +($_->{dbentry_type}||'') eq 'r', values VNDB::Schema::schema->%*)[0];
-        state %L = map {
-            my($f, $n, $p) = ($_, s/^l_//r, $VNDB::ExtLinks::LINKS{r}{$_});
-            my($s) = grep $_->{name} eq $f, $schema->{cols}->@*;
-            +($n, 'r.'.$f.' <> '.($s->{type} =~ /\[\]/ ? "'{}'" : $s->{type} =~ /^(big)?int/ ? 0 : "''"))
-        } keys $VNDB::ExtLinks::LINKS{r}->%*;
-        $L{$arg} // $L{"l_$arg"};
-    };
+f r => 19 => 'extlink',  _extlink_filter('r');
 f r => 61 => 'patch',    { uint => 1, range => [1,1] }, '=' => sub { 'r.patch' };
 f r => 62 => 'freeware', { uint => 1, range => [1,1] }, '=' => sub { 'r.freeware' };
 f r => 64 => 'uncensored',{uint => 1, range => [1,1] }, '=' => sub { 'r.uncensored' };
@@ -482,6 +473,61 @@ f g => 80 => 'search',    {}, '=' => sub { sql 't.c_search LIKE ALL (search_quer
 
 f i =>  2 => 'id',        { vndbid => 'i' }, sql => sub { sql 't.id', $_[0], \$_ };
 f i => 80 => 'search',    {}, '=' => sub { sql 't.c_search LIKE ALL (search_query(', \$_, '))' };
+
+
+
+# 'extlink' filter accepts the following values:
+# - $name            - Whether the entry has a link of site $name
+# - [ $name, $val ]  - Whether the entry has a link of site $name with the given $val
+# - "$name,$val"     - Compact version of above (not really *compact* by any means, but this filter isn't common anyway)
+# - "http://..."     - Auto-detect version of [$name,$val]
+# TODO: This only handles links defined in %LINKS, but it would be nice to also support links from Wikidata & PlayAsia.
+sub _extlink_filter {
+    my($type) = @_;
+    my $schema = (grep +($_->{dbentry_type}||'') eq $type, values VNDB::Schema::schema->%*)[0];
+    my %links = map {
+        my $n = $_;
+        my $l = $VNDB::ExtLinks::LINKS{$type}{$n};
+        my $s = (grep $_->{name} eq $n, $schema->{cols}->@*)[0];
+        (s/^l_//r, +{ %$l,
+            _col => $n,
+            _schema => $s,
+            _regex => $l->{regex} && VNDB::ExtLinks::full_regex($l->{regex}),
+            _empty => $s->{type} =~ /\[\]/ ? "'{}'" : $s->{type} =~ /^(big)?int/i ? 0 : "''"
+        })
+    } keys $VNDB::ExtLinks::LINKS{$type}->%*;
+
+    my sub _val {
+        return 1 if !ref $_[0] && $links{$_[0]}; # just $name
+        if(!ref $_[0] && $_[0] =~ /^https?:/) { # URL
+            for (keys %links) {
+                if($links{$_}{_regex} && $_[0] =~ $links{$_}{_regex}) {
+                    $_[0] = [ $_, $1 ];
+                    last;
+                }
+            }
+            return { msg => 'Unrecognized URL format' } if !ref $_[0];
+        }
+        $_[0] = [ split /,/, $_[0], 2 ] if !ref $_[0]; # compact $name,$val form
+
+        # normalized $name,$val form
+        return 0 if ref $_[0] ne 'ARRAY' || $_[0]->@* != 2 || ref $_[0][0] || ref $_[0][1] || !defined $_[0][1];
+        my $l = $links{$_[0][0]};
+        return { msg => "Unknown field '$_[0][0]'" } if !$l;
+        return { msg => "Invalid value '$_[0][1]'" } if $l->{_schema}{type} =~ /^int/i && ($_[0][1] !~ /^-?[0-9]+$/ || $_[0][1] >= (1<<31) || $_[0][1] <= -(1<<31));
+        return { msg => "Invalid value '$_[0][1]'" } if $l->{_schema}{type} =~ /^bigint/i && ($_[0][1] !~ /^-?[0-9]+$/ || $_[0][1] >= (1<<63) || $_[0][1] <= -(1<<63));
+        $_[0][1] *= 1 if $l->{_schema}{type} =~ /^(big)?int/i;
+        1
+    }
+
+    my sub _sql {
+        return "$type.$links{$_}{_col} <> $links{$_}{_empty}" if !ref; # just name
+        my($l, $v) = ($links{$_->[0]}, $_->[1]);
+        sql "$type.$l->{_col}", $l->{_schema}{type} =~ /\[\]/ ? ('&& ARRAY[', \$v, ']::', $l->{_schema}{type}) : ('=', \$v);
+    }
+    my sub _comp { ref $_ ? $_->[0].','.(my $x=$_->[1]) : $_ }
+    ({ type => 'any', func => \&_val }, '=' => \&_sql, compact => \&_comp)
+}
 
 
 # Accepts either:
@@ -595,6 +641,7 @@ sub _validate_adv {
     $_[0] = bless { type => $t, query => $_[0] }, __PACKAGE__ if $v;
     $v
 }
+
 
 
 # 'advsearch' validation, accepts either a compact encoded string, JSON string or an already decoded array.
