@@ -94,7 +94,7 @@ sub save {
       my $v = $_->{mainsnak}{datavalue}{value};
       if(ref $v) {
         AE::log warn => "Q$id has a non-scalar value for '$p'";
-      } elsif($_->{qualifiers}{P582}) {
+      } elsif($_->{qualifiers}{P582} || $_->{qualifiers}{P8554}) {
         AE::log info => "Q$id excluding property '$p' because it has an 'end time'";
       } elsif(defined $v) {
         push @val, $v;
