@@ -622,7 +622,8 @@ Name                [F]   Description
 The `extlink` filter can be used with three types of values:
 
 - Just a site name, e.g. `["extlink","=","steam"]` matches all releases that
-  have a steam ID.
+  have a steam ID. The site names here are equivalent to those returned by the
+  `extlinks.name` field.
 - A two-element array indicating the site name and the remote identifier, e.g.
   `["extlink","=",["steam",702050]]` to match the Saya no Uta release on Steam.
   The second element can be either an int or a string, depending on the site,
@@ -738,7 +739,31 @@ engine
 notes
 :   String, possibly null, may contain [formatting codes](https://vndb.org/d9#4).
 
-*Missing: External links, gtin, catalog number, animation, voiced.*
+extlinks
+:   Array, links to external websites. This list is equivalent to the links
+    displayed on the release pages on the site, so it may include redundant
+    entries (e.g. if a Steam ID is known, links to both Steam and SteamDB are
+    included) and links that are automatically fetched from external resources
+    (e.g. PlayAsia, for which a GTIN lookup is performed).
+
+extlinks.url
+:   String, URL.
+
+extlinks.label
+:   String, English human-readable label for this link.
+
+extlinks.name
+:   Internal identifier of the site, intended for applications that want to
+    localize the label or to parse/format/extract remote identifiers. Keep in
+    mind that the list of supported sites, their internal names and their ID
+    types are subject to change, but I'll try to keep things stable.
+
+extlinks.id
+:   Remote identifier for this link. Not all sites have a sensible identifier
+    as part of their URL format, in such cases this field is simply equivalent
+    to the URL.
+
+*Missing: gtin, catalog number, animation, voiced.*
 
 
 

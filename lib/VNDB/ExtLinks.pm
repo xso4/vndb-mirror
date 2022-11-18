@@ -224,13 +224,14 @@ sub sql_extlinks {
 # following field to each object:
 #
 #   extlinks => [
-#     [ $title, $url, $price ],
+#     { name, label, id, url, url2, price },  # depending on which fields are $enabled
 #     ..
 #   ]
 #
-# (It also adds a few other fields in some cases, but you can ignore those)
+# Assumes the columns returned by sql_extlinks() are already available.
 sub enrich_extlinks {
-    my($type, @obj) = @_;
+    my($type, $enabled, @obj) = @_;
+    $enabled ||= { label => 1, url2 => 1, price => 1 };
     @obj = map ref $_ eq 'ARRAY' ? @$_ : ($_), @obj;
 
     my $l = $LINKS{$type} || die "DB entry type $type has no links";
@@ -239,6 +240,7 @@ sub enrich_extlinks {
     my $w = @w_ids ? { map +($_->{id}, $_), $TUWF::OBJ->dbAlli('SELECT * FROM wikidata WHERE id IN', \@w_ids)->@* } : {};
 
     # Fetch shop info for releases
+    my @cleanup;
     if($type eq 'r') {
         VNWeb::DB::enrich_merge(id => q{
             SELECT r.id
@@ -253,11 +255,21 @@ sub enrich_extlinks {
               LEFT JOIN shop_mg     smg       ON       smg.id = r.l_mg       AND       smg.lastfetch IS NOT NULL AND       smg.deadsince IS NULL
               WHERE r.id IN},
               grep $_->{l_mg}||$_->{l_denpa}||$_->{l_jlist}||$_->{l_dlsite}, @obj
-        );
-        VNWeb::DB::enrich(l_playasia => gtin => gtin =>
-            "SELECT gtin, price, url FROM shop_playasia WHERE price <> '' AND gtin IN",
-            grep $_->{gtin}, @obj
-        );
+        ) if $enabled->{price} || $enabled->{url2};
+
+        if(grep exists $_->{gtin}, @obj) {
+            VNWeb::DB::enrich(l_playasia => gtin => gtin =>
+                "SELECT gtin, price, url FROM shop_playasia WHERE price <> '' AND gtin IN",
+                grep $_->{gtin}, @obj
+            );
+        } else {
+            VNWeb::DB::enrich(l_playasia => id => id =>
+                "SELECT r.id, s.gtin, s.price, s.url FROM releases r JOIN shop_playasia s ON s.gtin = r.gtin WHERE s.price <> '' AND r.id IN",
+                @obj
+            );
+        }
+
+        @cleanup = qw{l_mg_price l_mg_r18 l_denpa_price l_jlist_price l_jlist_jbox l_dlsite_price l_dlsite_shop l_playasia};
     }
 
     for my $obj (@obj) {
@@ -265,12 +277,36 @@ sub enrich_extlinks {
         my sub w {
             return if !$obj->{l_wikidata};
             my($v, $fmt, $label) = ($w->{$obj->{l_wikidata}}{$_[0]}, @{$WIKIDATA{$_[0]}}{'fmt', 'label'});
-            push @links, map [ $label, ref $fmt ? $fmt->($_) : sprintf($fmt, $_), undef ], ref $v ? @$v : $v ? $v : ()
+            push @links, map +{
+                $enabled->{name}  ? (name  => $_[0]) : (),
+                $enabled->{label} ? (label => $label) : (),
+                $enabled->{id}    ? (id    => $_) : (),
+                $enabled->{url}   ? (url   => ref $fmt ? $fmt->($_) : sprintf $fmt, $_) : (),
+                $enabled->{url2}  ? (url2  => ref $fmt ? $fmt->($_) : sprintf $fmt, $_) : (),
+            }, ref $v ? @$v : $v ? $v : ()
         }
         my sub l {
             my($f, $price) = @_;
             my($v, $fmt, $fmt2, $label) = ($obj->{$f}, $l->{$f} ? @{$l->{$f}}{'fmt', 'fmt2', 'label'} : ());
-            push @links, map [ $label, sprintf((ref $fmt2 ? $fmt2->($obj) : $fmt2) || $fmt, $_), $price ], ref $v ? @$v : $v ? $v : ()
+            push @links, map +{
+                $enabled->{name}  ? (name  => $_[0] =~ s/^l_//r) : (),
+                $enabled->{label} ? (label => $label) : (),
+                $enabled->{id}    ? (id    => $_) : (),
+                $enabled->{url}   ? (url   => sprintf($fmt, $_)) : (),
+                $enabled->{url2}  ? (url2  => sprintf((ref $fmt2 ? $fmt2->($obj) : $fmt2) || $fmt, $_)) : (),
+                $enabled->{price} && length $price ? (price => $price) : (),
+            }, ref $v ? @$v : $v ? $v : ()
+        }
+        my sub c {
+            my($name, $label, $fmt, $id, $price) = @_;
+            push @links, {
+                $enabled->{name}  ? (name  => $name) : (),
+                $enabled->{label} ? (label => $label) : (),
+                $enabled->{id}    ? (id    => $id) : (),
+                $enabled->{url}   ? (url   => sprintf($fmt, $id)) : (),
+                $enabled->{url2}  ? (url2  => sprintf($fmt, $id)) : (),
+                $enabled->{price} && length $price ? (price => $price) : (),
+            }
         }
 
         l 'l_site';
@@ -290,14 +326,14 @@ sub enrich_extlinks {
             w 'igdb_game';
             w 'pcgamingwiki';
             l 'l_renai';
-            push @links, [ 'VNStat', sprintf('https://vnstat.net/novel/%d', $obj->{id} =~ s/^.//r), undef ] if $obj->{c_votecount}>=20;
+            c 'vnstat', 'VNStat', 'https://vnstat.net/novel/%d', $obj->{id} =~ s/^.//r if $obj->{c_votecount}>=20;
         }
 
         # Release links
         if($type eq 'r') {
             l 'l_egs';
             l 'l_steam';
-            push @links, [ 'SteamDB', sprintf('https://steamdb.info/app/%d/info', $obj->{l_steam}), undef ] if $obj->{l_steam};
+            c 'steamdb', 'SteamDB', 'https://steamdb.info/app/%d/info', $obj->{l_steam} if $obj->{l_steam};
             l 'l_dlsite', $obj->{l_dlsite_price};
             l 'l_gog';
             l 'l_itch';
@@ -329,7 +365,7 @@ sub enrich_extlinks {
             l 'l_nintendo';
             l 'l_nintendo_jp';
             l 'l_nintendo_hk';
-            push @links, map [ 'PlayAsia', $_->{url}, $_->{price} ], @{$obj->{l_playasia}} if $obj->{l_playasia};
+            c 'playasia', 'PlayAsia', '%s', $_->{url}, $_->{price} for $obj->{l_playasia}->@*;
         }
 
         # Staff links
@@ -351,10 +387,11 @@ sub enrich_extlinks {
             w 'gamefaqs_company';
             w 'doujinshi_author';
             w 'soundcloud';
-            push @links, [ 'VNStat', sprintf('https://vnstat.net/developer/%d', $obj->{id} =~ s/^.//r), undef ];
+            c 'vnstat', 'VNStat', 'https://vnstat.net/developer/%d', $obj->{id} =~ s/^.//r;
         }
 
-        $obj->{extlinks} = \@links
+        $obj->{extlinks} = \@links;
+        delete @{$obj}{ @cleanup };
     }
 }
 

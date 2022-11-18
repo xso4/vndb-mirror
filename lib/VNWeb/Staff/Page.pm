@@ -62,7 +62,7 @@ sub _infotable_ {
         tr_ sub {
             td_ class => 'key', 'Links';
             td_ sub {
-                join_ \&br_, sub { a_ href => $_->[1], $_->[0] }, $s->{extlinks}->@*;
+                join_ \&br_, sub { a_ href => $_->{url2}, $_->{label} }, $s->{extlinks}->@*;
             };
         } if $s->{extlinks}->@*;
     };
@@ -181,7 +181,7 @@ TUWF::get qr{/$RE{srev}} => sub {
     return tuwf->resNotFound if !$s;
 
     enrich_item $s;
-    enrich_extlinks s => $s;
+    enrich_extlinks s => 0, $s;
     my($main) = grep $_->{aid} == $s->{aid}, $s->{alias}->@*;
 
     framework_ title => $main->{name}, index => !tuwf->capture('rev'), dbobj => $s, hiddenmsg => 1,

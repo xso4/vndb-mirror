@@ -6,6 +6,7 @@ use TUWF;
 use Time::HiRes 'time', 'alarm';
 use VNDB::Config;
 use VNDB::Func;
+use VNDB::ExtLinks;
 use VNWeb::DB;
 use VNWeb::Validation;
 use VNWeb::AdvSearch;
@@ -245,6 +246,7 @@ sub api_query {
 
 sub parse_fields {
     my @tokens = split /\s*([,.{}])\s*/, $_[1];
+    state %extlinks = map +($_,{}), qw{name label id url};
     $_[1] = {};
     return (sub {
         my($lvl, $f, $out) = @_;
@@ -269,7 +271,7 @@ sub parse_fields {
                     $t = shift(@tokens) // return { msg => "Expected name after '.'" };
                 }
                 my $d = $nf->{$t} // return { msg => "Field '$t' not found", name => $t };
-                $nf = $d->{fields};
+                $nf = $d->{fields} || ($d->{extlinks} && \%extlinks);
                 $of->{$t} ||= {};
                 $of = $of->{$t};
             }
@@ -309,6 +311,7 @@ sub prepare_fields {
             $join{$d->{join}} = 1 if $d->{join};
             push @select, $d->{select} if $d->{select};
             push @select, $d->{nullif} if $d->{nullif};
+            push @select, sql_extlinks $d->{extlinks}, $d->{extlinks}.'.' if $d->{extlinks};
             __SUB__->($d->{fields}, $_[1]{$f}) if $d->{fields} && !$d->{enrich};
         }
     })->($fields, $enabled);
@@ -331,8 +334,13 @@ sub proc_results {
     for my $f (keys %$enabled) {
         my $d = $fields->{$f};
 
+        # extlinks
+        if($d->{extlinks}) {
+            enrich_extlinks $d->{extlinks}, $enabled->{$f}, $results;
+            delete @{$_}{ keys $VNDB::ExtLinks::LINKS{$d->{extlinks}}->%* } for @$results;
+
         # nested 1-to-many objects
-        if($d->{enrich}) {
+        } if($d->{enrich}) {
             my($select, $join) = prepare_fields($d->{fields}, $d->{joins}, $enabled->{$f});
             # DB::enrich() logic has been duplicated here to allow for
             # efficient handling of nested proc_results() and `atmostone`.
@@ -554,6 +562,7 @@ api_query '/release',
                       , proc => sub { $_[0] = $_[0][1] == 0 ? undef : 'non-standard' if $_[0][0] == 0 } },
         engine     => { select => 'r.engine', @NSTR },
         notes      => { select => 'r.notes', @NSTR },
+        extlinks   => { extlinks => 'r' },
     },
     sort => [
         id       => 'r.id',

@@ -16,7 +16,7 @@ sub enrich_vn {
     enrich_merge id => sql('SELECT id, c_votecount, c_length, c_lengthnum FROM vnt WHERE id IN'), $v;
     enrich_merge vid => 'SELECT id AS vid, title, alttitle, c_released FROM vnt WHERE id IN', $v->{relations};
     enrich_merge aid => 'SELECT id AS aid, title_romaji, title_kanji, year, type, ann_id, lastfetch FROM anime WHERE id IN', $v->{anime};
-    enrich_extlinks v => $v;
+    enrich_extlinks v => 0, $v;
     enrich_image_obj image => $v;
     enrich_image_obj scr => $v->{screenshots};
 
@@ -32,7 +32,7 @@ sub enrich_vn {
           JOIN releases_vn rv ON rv.id = r.id
          WHERE NOT r.hidden AND rv.vid =', \$v->{id}
     );
-    enrich_extlinks r => $v->{releases};
+    enrich_extlinks r => 0, $v->{releases};
 
     $v->{reviews} = tuwf->dbRowi('
         SELECT COUNT(*) FILTER(WHERE isfull) AS full, COUNT(*) FILTER(WHERE NOT isfull) AS mini, COUNT(*) AS total
@@ -318,7 +318,7 @@ sub infobox_affiliates_ {
           $rel->{rtype} eq 'partial' ? 2 :
                  $rel->{num_vns} > 1 ? 0 : 1;
 
-        $links{$_->[1]} = [ @$_, min $type, $links{$_->[1]}[3]||9 ] for grep $_->[2], $rel->{extlinks}->@*;
+        $links{$_->{url2}} = [ @{$_}{qw/label url2 price/}, min $type, $links{$_->{url2}}[3]||9 ] for grep $_->{price}, $rel->{extlinks}->@*;
     }
     return if !keys %links;
 
@@ -479,7 +479,7 @@ sub infobox_ {
 
                 tr_ sub {
                     td_ 'Links';
-                    td_ sub { join_ ', ', sub { a_ href => $_->[1], $_->[0] }, $v->{extlinks}->@* };
+                    td_ sub { join_ ', ', sub { a_ href => $_->{url2}, $_->{label} }, $v->{extlinks}->@* };
                 } if $v->{extlinks}->@*;
 
                 infobox_affiliates_ $v;

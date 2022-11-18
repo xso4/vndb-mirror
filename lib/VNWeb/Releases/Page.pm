@@ -249,7 +249,7 @@ sub _infotable_ {
         tr_ sub {
             td_ 'Links';
             td_ sub {
-                join_ ', ', sub { a_ href => $_->[1], $_->[0] }, $r->{extlinks}->@*;
+                join_ ', ', sub { a_ href => $_->{url2}, $_->{label} }, $r->{extlinks}->@*;
             }
         } if $r->{extlinks}->@*;
 
@@ -272,7 +272,7 @@ TUWF::get qr{/$RE{rrev}} => sub {
 
     @{$r}{'title', 'alttitle'} = langpref_titles $r->{olang}, $r->{titles};
     enrich_item $r;
-    enrich_extlinks r => $r;
+    enrich_extlinks r => 0, $r;
 
     framework_ title => $r->{title}, index => !tuwf->capture('rev'), dbobj => $r, hiddenmsg => 1,
         og => {

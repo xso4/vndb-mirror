@@ -60,7 +60,7 @@ sub release_extlinks_ {
     return if !$r->{extlinks}->@*;
 
     if($r->{extlinks}->@* == 1 && $r->{website}) {
-        a_ href => $r->{extlinks}[0][1], sub {
+        a_ href => $r->{extlinks}[0]{url2}, sub {
             abbr_ class => 'icons external', title => 'Official website', '';
         };
         return
@@ -76,9 +76,9 @@ sub release_extlinks_ {
                 div_ sub {
                     ul_ sub {
                         li_ sub {
-                            a_ href => $_->[1], sub {
-                                span_ $_->[2] if length $_->[2];
-                                txt_ $_->[0];
+                            a_ href => $_->{url2}, sub {
+                                span_ $_->{price} if length $_->{price};
+                                txt_ $_->{label};
                             }
                         } for $r->{extlinks}->@*;
                     }

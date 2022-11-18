@@ -72,7 +72,7 @@ TUWF::get qr{/r}, sub {
         ) : [];
     } || (($count, $list) = (undef, []));
 
-    enrich_extlinks r => $list;
+    enrich_extlinks r => 0, $list;
     enrich_release $list;
     $time = time - $time;
 

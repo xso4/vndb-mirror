@@ -7,7 +7,7 @@ use VNWeb::ULists::Lib;
 
 sub enrich_item {
     my($p) = @_;
-    enrich_extlinks p => $p;
+    enrich_extlinks p => 0, $p;
     enrich_merge pid => 'SELECT id AS pid, name, original FROM producers WHERE id IN', $p->{relations};
     $p->{relations} = [ sort { $a->{name} cmp $b->{name} || idcmp($a->{pid}, $b->{pid}) } $p->{relations}->@* ];
 }
@@ -45,7 +45,7 @@ sub info_ {
             txt_ $p->{alias} =~ s/\n/, /gr;
         }
         br_ if $p->{extlinks}->@*;
-        join_ ' - ', sub { a_ href => $_->[1], $_->[0] }, $p->{extlinks}->@*;
+        join_ ' - ', sub { a_ href => $_->{url2}, $_->{label} }, $p->{extlinks}->@*;
     };
 
     p_ class => 'center', sub {
@@ -75,7 +75,7 @@ sub rel_ {
          ORDER BY r.released
     ');
     $_->{rtype} = 1 for @$r; # prevent enrich_release() from fetching rtypes
-    enrich_extlinks r => $r;
+    enrich_extlinks r => 0, $r;
     enrich_release $r;
     enrich vn => id => rid => sub { sql '
         SELECT rv.id as rid, rv.rtype, v.id, v.title, v.alttitle
