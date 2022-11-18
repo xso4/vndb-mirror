@@ -1,4 +1,4 @@
-package VNWeb::API::Index;
+package VNWeb::API;
 
 use v5.26;
 use warnings;
@@ -7,6 +7,7 @@ use Time::HiRes 'time', 'alarm';
 use VNDB::Config;
 use VNDB::Func;
 use VNDB::ExtLinks;
+use VNDB::Types;
 use VNWeb::DB;
 use VNWeb::Validation;
 use VNWeb::AdvSearch;
@@ -153,11 +154,11 @@ sub api_get {
 #   inherit  => '/path'# Inherit joins+fields from another API.
 #   proc     => sub {} # Subroutine to do processing on the final value.
 #   num      => 1,     # Estimate of the number of objects that will be returned.
+my %OBJS;
 sub api_query {
     my($path, %opt) = @_;
 
-    state %objs;
-    $objs{$path} = \%opt;
+    $OBJS{$path} = \%opt;
 
     my %sort = $opt{sort}->@*;
     my $req_schema = tuwf->compile({ type => 'hash', unknown => 'reject', keys => {
@@ -175,18 +176,6 @@ sub api_query {
     }});
 
     TUWF::post qr{/api/kana\Q$path}, sub {
-        # Resolve all 'inherit' fields on first API hit.
-        state $inherit_done = (sub {
-            for my $f (values $_[0]->%*) {
-                if($f->{inherit}) {
-                    my $o = $objs{$f->{inherit}};
-                    $f->{fields}{$_} = $o->{fields}{$_} for keys %{ $o->{fields}||{} };
-                    $f->{joins}{$_} = $o->{joins}{$_} for keys %{ $o->{joins}||{} };
-                }
-                __SUB__->($f->{fields}, $_[1]) if $f->{fields} && !$_[1]{$f}++;
-            }
-        })->($opt{fields}, {});
-
         check_throttle;
         tuwf->req->{advsearch_uid} = eval { tuwf->reqJSON->{user} };
         my $req = tuwf->validate(json => $req_schema);
@@ -246,7 +235,6 @@ sub api_query {
 
 sub parse_fields {
     my @tokens = split /\s*([,.{}])\s*/, $_[1];
-    state %extlinks = map +($_,{}), qw{name label id url};
     $_[1] = {};
     return (sub {
         my($lvl, $f, $out) = @_;
@@ -271,7 +259,7 @@ sub parse_fields {
                     $t = shift(@tokens) // return { msg => "Expected name after '.'" };
                 }
                 my $d = $nf->{$t} // return { msg => "Field '$t' not found", name => $t };
-                $nf = $d->{fields} || ($d->{extlinks} && \%extlinks);
+                $nf = $d->{fields};
                 $of->{$t} ||= {};
                 $of = $of->{$t};
             }
@@ -340,7 +328,7 @@ sub proc_results {
             delete @{$_}{ keys $VNDB::ExtLinks::LINKS{$d->{extlinks}}->%* } for @$results;
 
         # nested 1-to-many objects
-        } if($d->{enrich}) {
+        } elsif($d->{enrich}) {
             my($select, $join) = prepare_fields($d->{fields}, $d->{joins}, $enabled->{$f});
             # DB::enrich() logic has been duplicated here to allow for
             # efficient handling of nested proc_results() and `atmostone`.
@@ -395,6 +383,32 @@ api_get '/user', {}, sub {
                             OR LOWER(u.username) = LOWER(x.q)
          ORDER BY u.id
     ')->@* }
+};
+
+
+api_get '/schema', {}, sub {
+    state $s = {
+        enums => {
+            language => [ map +{ id => $_, label => $LANGUAGE{$_} }, keys %LANGUAGE ],
+            platform => [ map +{ id => $_, label => $PLATFORM{$_} }, keys %PLATFORM ],
+            medium   => [ map +{ id => $_, label => $MEDIUM{$_}{txt}, plural => $MEDIUM{$_}{plural}||undef }, keys %MEDIUM ],
+        },
+        api_fields => { map +($_, (sub {
+            +{ map {
+                my $f = $_[0]{$_};
+                my $s = $f->{fields} ? __SUB__->($f->{fields}, $f->{inherit} ? $OBJS{$f->{inherit}}{fields} : {}) : {};
+                $s->{_inherit} = $f->{inherit} if $f->{inherit};
+                ($_, keys %$s ? $s : undef)
+            } grep !$_[1]{$_}, keys $_[0]->%* }
+        })->($OBJS{$_}{fields}, {})), keys %OBJS },
+        extlinks => {
+            '/release' => do {
+                my $l = $VNDB::ExtLinks::LINKS{r};
+                [ map +{ name => $_ =~ s/^l_//r, label => $l->{$_}{label}, url_format => $l->{$_}{fmt} },
+                  grep $l->{$_}{regex}, keys %$l ]
+            },
+        },
+    }
 };
 
 
@@ -752,5 +766,24 @@ api_query '/ulist',
         started    => 'uv.started ?o, v.id',
         finished   => 'uv.finished ?o, v.id',
     ];
+
+
+
+
+
+# Now that all APIs have been defined, go over the definitions and:
+# - Resolve 'inherit' fields
+# - Expand 'extlinks' fields
+(sub {
+    for my $f (values $_[0]->%*) {
+        if($f->{inherit}) {
+            my $o = $OBJS{$f->{inherit}};
+            $f->{fields}{$_} = $o->{fields}{$_} for keys %{ $o->{fields}||{} };
+            $f->{joins}{$_} = $o->{joins}{$_} for keys %{ $o->{joins}||{} };
+        }
+        $f->{fields} ||= { map +($_,{}), qw{name label id url} } if $f->{extlinks};
+        __SUB__->($f->{fields}) if $f->{fields} && !$f->{_expand_done}++;
+    }
+})->($_->{fields}) for values %OBJS;
 
 1;

@@ -77,7 +77,10 @@ release date
     `["released", "=", "2022"]` only matches items for which the release date
     is exactly `"2022"`, not any other date in that year.
 
-*TODO: Something about languages, platforms and other enumeration types.*
+enumeration types
+:   Several fields in the database are represented as an integer or string with
+    a limited number of possible values. These values are either documented for
+    the particular field or listed separately in the [schema JSON](#get-schema).
 
 # Simple Requests
 
@@ -124,6 +127,17 @@ unambiguous. Usernames matching is case-insensitive.
   }
 }
 ```
+
+## GET /schema
+
+Returns a [JSON object](%endpoint%/schema) with metadata about several API
+objects, including enumeration values, which fields are available for querying
+and a list of supported external links. The JSON structure is hopefully
+self-explanatory.
+
+This information does not change very often and can safely be used for code
+generation or dynamic API introspection.
+
 
 # Database Querying
 
@@ -622,8 +636,7 @@ Name                [F]   Description
 The `extlink` filter can be used with three types of values:
 
 - Just a site name, e.g. `["extlink","=","steam"]` matches all releases that
-  have a steam ID. The site names here are equivalent to those returned by the
-  `extlinks.name` field.
+  have a steam ID.
 - A two-element array indicating the site name and the remote identifier, e.g.
   `["extlink","=",["steam",702050]]` to match the Saya no Uta release on Steam.
   The second element can be either an int or a string, depending on the site,
@@ -633,7 +646,8 @@ The `extlink` filter can be used with three types of values:
 
 In all of the above forms, an error is returned if the site is not known in the
 database or if the URL format is not recognized. The list of supported sites
-and URL formats tends to change over time.
+and URL formats tends to change over time, see [GET /schema](#get-schema) for
+the current list of supported sites.
 
 *Undocumented: animation*
 
@@ -744,7 +758,8 @@ extlinks
     displayed on the release pages on the site, so it may include redundant
     entries (e.g. if a Steam ID is known, links to both Steam and SteamDB are
     included) and links that are automatically fetched from external resources
-    (e.g. PlayAsia, for which a GTIN lookup is performed).
+    (e.g. PlayAsia, for which a GTIN lookup is performed). These extra sites
+    are not listed in the `extlinks` list of [the schema](#get-schema).
 
 extlinks.url
 :   String, URL.
