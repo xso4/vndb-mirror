@@ -181,7 +181,13 @@ sub api_query {
         my $req = tuwf->validate(json => $req_schema);
         if(!$req) {
             eval { $req->data }; warn $@;
-            my($err) = $req->err->{errors} ? $req->err->{errors}->@* : ();
+            my $err = $req->err;
+            if(!$err->{errors}) {
+                err 400, 'Missing request body.' if !$err->{keys};
+                err 400, "Unknown member '$err->{keys}[0]'." if $err->{keys};
+            }
+            $err = $err->{errors}[0]//{};
+            err 400, "Invalid '$err->{field}' filter: $err->{msg}." if $err->{key} eq 'filters' && $err->{msg} && $err->{field};
             err 400, "Invalid '$err->{key}' member: $err->{msg}" if $err->{key} && $err->{msg};
             err 400, "Invalid '$err->{key}' member." if $err->{key};
             err 400, 'Invalid query.';
@@ -240,31 +246,33 @@ sub parse_fields {
         my($lvl, $f, $out) = @_;
         my $nf = $f;
         my $of = $out;
+        my $ln;
         while(defined (my $t = shift @tokens)) {
             next if !length $t;
             if($t eq '}') {
-                return { msg => "Expected (sub)field, got '}'" } if $nf;
+                return { msg => $ln ? "The '$ln' object requires specifying sub-field(s)." : "Expected (sub)field, got '}'" } if $nf;
                 return $lvl > 0 ? 1 : { msg => "Unmatched '}'" } ;
             } elsif($t eq '{') {
-                return { msg => "Unexpected '{' after non-object field" } if !$nf;
+                return { msg => "Unexpected '{' after non-object field".($ln ? " '$ln'":'') } if !$nf;
                 my $r = __SUB__->($lvl+1, $nf, $of);
                 return $r if ref $r;
-                ($nf, $of) = ();
+                ($nf, $of, $ln) = ();
             } elsif($t eq ',') {
-                return { msg => 'Expected (sub)field, got comma' } if $nf;
-                ($nf, $of) = ($f, $out);
+                return { msg => $ln ? "The '$ln' object requires specifying sub-field(s)." : 'Expected (sub)field, got comma' } if $nf;
+                ($nf, $of, $ln) = ($f, $out);
             } else {
-                return { msg => 'Unexpected (sub)field after non-object field' } if !$nf;
+                return { msg => $ln ? "Sub-field specified for non-object '$ln'" : 'Unexpected (sub)field after non-object field' } if !$nf;
                 if($t eq '.') {
                     $t = shift(@tokens) // return { msg => "Expected name after '.'" };
                 }
                 my $d = $nf->{$t} // return { msg => "Field '$t' not found", name => $t };
+                $ln = $t;
                 $nf = $d->{fields};
                 $of->{$t} ||= {};
                 $of = $of->{$t};
             }
         }
-        return { msg => "Expected sub-field" } if $nf;
+        return { msg => "The '$ln' object requires specifying sub-field(s)." } if $nf;
         return $lvl > 0 ? { msg => "Unmatched '{'" } : 1;
     })->(0, $_[0], $_[1]);
 }
