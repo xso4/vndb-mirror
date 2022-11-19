@@ -37,16 +37,24 @@ use VNWeb::DB;
 our @EXPORT = ('auth');
 
 sub auth {
-    # API requests do not (currently) use this Auth system.
-    tuwf->req->{auth} ||= tuwf->reqPath =~ qr{^/api/} ? __PACKAGE__->new() : do {
-        my $cookie = tuwf->reqCookie('auth')||'';
-        my($uid, $token_e) = $cookie =~ /^([a-fA-F0-9]{40})\.?u?(\d+)$/ ? ('u'.$2, sha1_hex pack 'H*', $1) : (0, '');
-
+    tuwf->req->{auth} ||= do {
         my $auth = __PACKAGE__->new();
-        $auth->_load_session($uid, $token_e) if !config->{read_only};
+        if(config->{read_only}) {
+            # Account functionality disabled in read-only mode.
+
+        # API requests have two authentication methods:
+        # - If the origin equals the site, use the same Cookie auth as the rest of the site (handy for userscripts)
+        # - Otherwise, a custom token-based auth, but this hasn't been implemented yet
+        } elsif(tuwf->reqPath =~ qr{^/api/} && (tuwf->reqHeader('Origin')//'_') ne config->{url}) {
+            # TODO
+
+        } else {
+            my $cookie = tuwf->reqCookie('auth')||'';
+            my($uid, $token_e) = $cookie =~ /^([a-fA-F0-9]{40})\.?u?(\d+)$/ ? ('u'.$2, sha1_hex pack 'H*', $1) : (0, '');
+            $auth->_load_session($uid, $token_e);
+        }
         $auth
     };
-    tuwf->req->{auth};
 }
 
 

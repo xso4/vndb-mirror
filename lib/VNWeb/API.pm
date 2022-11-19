@@ -8,6 +8,7 @@ use VNDB::Config;
 use VNDB::Func;
 use VNDB::ExtLinks;
 use VNDB::Types;
+use VNWeb::Auth;
 use VNWeb::DB;
 use VNWeb::Validation;
 use VNWeb::AdvSearch;
@@ -29,9 +30,21 @@ TUWF::get qr{/api/(nyan|kana)}, sub {
 };
 
 
+sub cors {
+    return if !tuwf->reqHeader('Origin');
+    if(tuwf->reqHeader('Cookie') || tuwf->reqHeader('Authorization')) {
+        tuwf->resHeader('Access-Control-Allow-Origin', tuwf->reqHeader('Origin'));
+        tuwf->resHeader('Access-Control-Allow-Credentials', 'true');
+    } else {
+        tuwf->resHeader('Access-Control-Allow-Origin', '*');
+    }
+}
+
+
 TUWF::options qr{/api/kana.*}, sub {
     tuwf->resStatus(204);
-    tuwf->resHeader('Access-Control-Allow-Origin', '*');
+    tuwf->resHeader('Access-Control-Allow-Origin', tuwf->reqHeader('origin'));
+    tuwf->resHeader('Access-Control-Allow-Credentials', 'true');
     tuwf->resHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
     tuwf->resHeader('Access-Control-Allow-Headers', 'Content-Type');
     tuwf->resHeader('Access-Control-Max-Age', 86400);
@@ -91,7 +104,7 @@ sub api_get {
         my $res = $sub->();
         $s->analyze->coerce_for_json($res);
         tuwf->resJSON($res);
-        tuwf->resHeader('Access-Control-Allow-Origin', '*') if tuwf->reqHeader('Origin');
+        cors;
         count_request(1, '-');
     };
 }
@@ -193,6 +206,7 @@ sub api_query {
             err 400, 'Invalid query.';
         };
         $req = $req->data;
+        $req->{user} //= auth->uid;
 
         my $numfields = count_fields($opt{fields}, $req->{fields}, $req->{results});
         err 400, sprintf 'Too much data selected (estimated %.0f fields)', $numfields if $numfields > 100_000;
@@ -231,7 +245,7 @@ sub api_query {
             $req->{normalized_filters} ? (normalized_filters => $req->{filters}->json) : (),
             $req->{time} ? (time => int(1000*(time()-$throttle_start))) : (),
         });
-        tuwf->resHeader('Access-Control-Allow-Origin', '*') if tuwf->reqHeader('Origin');
+        cors;
         count_request(scalar @$results, sprintf '[%s] {%s %s r%dp%d} %s', fmt_fields($req->{fields}),
             $req->{sort}, lc($order), $req->{results}, $req->{page},
             $req->{filters}->query_encode()||'-');
@@ -713,7 +727,7 @@ api_query '/trait',
 api_query '/ulist',
     filters => 'v',
     sql => sub {
-        err 400, 'Missing "user" parameter.' if !$_[3]{user};
+        err 400, 'Missing "user" parameter and not authenticated.' if !$_[3]{user};
         sql 'SELECT v.id', $_[0], '
                FROM ulist_vns uv
                JOIN vnt v ON v.id = uv.vid', $_[1], '
