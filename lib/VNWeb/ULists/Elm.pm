@@ -25,7 +25,7 @@ sub sql_labelid {
 
 our $LABELS = form_compile any => {
     uid => { vndbid => 'u' },
-    labels => { aoh => {
+    labels => { maxlength => 1500, aoh => {
         id      => { int => 1 },
         label   => { maxlength => 50 },
         private => { anybool => 1 },

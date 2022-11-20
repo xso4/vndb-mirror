@@ -117,7 +117,7 @@ view model =
         , tr []
           [ td [] []
           , td [ colspan 3 ]
-            [ a [ onClick Add ] [ text "New label" ]
+            [ if List.length model.labels < 500 then inputButton "New label" Add [] else text ""
             , submitButton "Save changes" model.state (not hasDup)
             ]
           ]
