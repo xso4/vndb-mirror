@@ -84,6 +84,16 @@ enumeration types
 
 # Simple Requests
 
+## GET /schema
+
+Returns a [JSON object](%endpoint%/schema) with metadata about several API
+objects, including enumeration values, which fields are available for querying
+and a list of supported external links. The JSON structure is hopefully
+self-explanatory.
+
+This information does not change very often and can safely be used for code
+generation or dynamic API introspection.
+
 ## GET /stats
 
 Returns a few overall database statistics.
@@ -128,15 +138,37 @@ unambiguous. Usernames matching is case-insensitive.
 }
 ```
 
-## GET /schema
+## GET /ulist\_labels
 
-Returns a [JSON object](%endpoint%/schema) with metadata about several API
-objects, including enumeration values, which fields are available for querying
-and a list of supported external links. The JSON structure is hopefully
-self-explanatory.
+Fetch the list labels for a certain user. Accepts a single query parameter:
+`user`, which is the user ID to fetch the labels for. If the parameter is
+missing, the labels for the currently authenticated user^[There is no
+authentication yet] are fetched instead.
 
-This information does not change very often and can safely be used for code
-generation or dynamic API introspection.
+Returns a JSON object with a single key, `"labels"`, which is an array of
+objects with the following members:
+
+id
+:   Integer identifier of the label.
+
+private
+:   Boolean, whether this label is private. Note that private labels are only
+    included when authenticated.
+
+label
+:   String.
+
+Labels with an id below 10 are the pre-defined labels and are the same for
+everyone, though even pre-defined labels are excluded if they are marked
+private.
+
+Example: [Multi](https://vndb.org/u1) has only the default labels.
+
+```sh
+curl '%endpoint%/ulist_labels?user=u1'
+```
+
+*TODO: Add usage counts?*
 
 
 # Database Querying
