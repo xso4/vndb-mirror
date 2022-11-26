@@ -69,7 +69,7 @@ sub fetch_chars {
           JOIN vnt v ON v.id = cv.vid
           LEFT JOIN releasest r ON r.id = cv.rid
          WHERE cv.id IN', $_, $vid ? ('AND cv.vid =', \$vid) : (), '
-         ORDER BY v.title, cv.vid, cv.rid NULLS LAST'
+         ORDER BY v.c_released, r.released, v.title, cv.vid, cv.rid NULLS LAST'
     }, $l;
 
     enrich traits => id => id => sub { sql '
