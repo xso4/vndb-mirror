@@ -255,7 +255,7 @@ update msg model =
     MediaType n s -> ({ model | media = if s /= "unk" && n == List.length model.media then model.media ++ [{medium = s, qty = 1}] else modidx n (\m -> { m | medium = s }) model.media }, Cmd.none)
     MediaQty n i  -> ({ model | media = modidx n (\m -> { m | qty    = i }) model.media }, Cmd.none)
     MediaDel i -> ({ model | media = delidx i model.media }, Cmd.none)
-    Gtin s     -> ({ model | gtin = s, gtinValid = s == "" || validateGtin s }, Cmd.none)
+    Gtin s     -> ({ model | gtin = String.replace "-" "" s, gtinValid = s == "" || validateGtin s }, Cmd.none)
     Catalog s  -> ({ model | catalog = s }, Cmd.none)
     Released d -> ({ model | released = d }, Cmd.none)
     Minage i   -> ({ model | minage = i }, Cmd.none)
