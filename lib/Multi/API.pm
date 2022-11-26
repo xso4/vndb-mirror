@@ -296,7 +296,7 @@ sub login {
 
   } elsif(exists $arg->{sessiontoken}) {
     return cerr $c, badarg => 'Invalid session token', field => 'sessiontoken' if $arg->{sessiontoken} !~ /^[a-fA-F0-9]{40}$/;
-    cpg $c, 'SELECT id, username FROM users WHERE lower(username) = lower($1) AND user_isvalidsession(id, decode($2, \'hex\'), \'api\')',
+    cpg $c, 'SELECT id, username FROM users WHERE lower(username) = lower($1) AND user_validate_session(id, decode($2, \'hex\'), \'api\') IS DISTINCT FROM NULL',
       [ $arg->{username}, $arg->{sessiontoken} ], sub {
       if($_[0]->nRows == 1) {
         $c->{uid} = $_[0]->value(0,0);

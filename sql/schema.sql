@@ -71,7 +71,7 @@ CREATE TYPE release_type      AS ENUM ('complete', 'partial', 'trial');
 CREATE TYPE report_status     AS ENUM ('new', 'busy', 'done', 'dismissed');
 CREATE TYPE tag_category      AS ENUM('cont', 'ero', 'tech');
 CREATE TYPE vn_relation       AS ENUM ('seq', 'preq', 'set', 'alt', 'char', 'side', 'par', 'ser', 'fan', 'orig');
-CREATE TYPE session_type      AS ENUM ('web', 'pass', 'mail', 'api');
+CREATE TYPE session_type      AS ENUM ('web', 'pass', 'mail', 'api', 'api2');
 
 CREATE TYPE ipinfo AS (
     ip                 inet,
@@ -699,9 +699,11 @@ CREATE TABLE sessions (
   uid      vndbid NOT NULL,
   type     session_type NOT NULL,
   added    timestamptz NOT NULL DEFAULT NOW(),
-  expires  timestamptz NOT NULL,
+  expires  timestamptz NOT NULL, -- 'api2' tokens don't expire, this column is used for last-use tracking
   token    bytea NOT NULL,
   mail     text,
+  notes    text,
+  listread boolean NOT NULL DEFAULT false,
   PRIMARY KEY (uid, token)
 );
 

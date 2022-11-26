@@ -82,6 +82,38 @@ enumeration types
     a limited number of possible values. These values are either documented for
     the particular field or listed separately in the [schema JSON](#get-schema).
 
+
+# User Authentication
+
+The majority of the API endpoints below are usable without any form of
+authentication, but some user-related actions - in particular, list management
+- require the calls to be authenticated with the respective VNDB user account.
+
+The API understands cookies originating from the main `vndb.org` domain, so
+user scripts running from the site only have to ensure that
+[XMLHttpRequest.withCredentials](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/withCredentials)
+or [the Fetch API "credentials"
+parameter](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch#sending_a_request_with_credentials_included)
+is set.
+
+In all other cases, token authentication should to be used. Users can obtain a
+token by opening their "My Profile" form and going to the "Applications" tab.
+Tokens look like `xxxx-xxxxx-xxxxx-xxxx-xxxxx-xxxxx-xxxx`, with each `x`
+representing a lowercase z-base-32 character. The dashes in between are
+optional.
+
+Tokens may be included in API requests using the `Authorization` header with
+the `Token` type, for example:
+
+```
+Authorization: Token hsoo-ybws4-j8yb9-qxkw-5obay-px8to-bfyk
+```
+
+A HTTP 401 error is returned if the token is invalid. The [GET
+/authinfo](#get-authinfo) endpoint can be used validate and extract information
+from tokens.
+
+
 # Simple Requests
 
 ## GET /schema
@@ -138,12 +170,46 @@ unambiguous. Usernames matching is case-insensitive.
 }
 ```
 
+## GET /authinfo
+
+Validates and returns information about the given [API
+token](#user-authentication). The JSON object has the following members:
+
+id
+:   String, user ID.
+
+username
+:   String, username.
+
+permissions
+:   Array of strings, permissions granted to this token.
+
+The following permissions are currently implemented:
+
+listread
+:   Allows read access to private labels and entries in the user's visual novel
+    list.
+
+```sh
+curl http://whatever.blicky.net/api/kana/authinfo\
+    --header 'Authorization: token cdhy-bqy1q-6zobu-8w9k-xobxh-wzz4o-84fn'
+```
+
+```json
+{
+  "id": "u3",
+  "username": "ayo",
+  "permissions": [
+    "listread"
+  ]
+}
+```
+
 ## GET /ulist\_labels
 
 Fetch the list labels for a certain user. Accepts a single query parameter:
 `user`, which is the user ID to fetch the labels for. If the parameter is
-missing, the labels for the currently authenticated user^[There is no
-authentication yet] are fetched instead.
+missing, the labels for the currently authenticated user are fetched instead.
 
 Returns a JSON object with a single key, `"labels"`, which is an array of
 objects with the following members:
@@ -152,8 +218,8 @@ id
 :   Integer identifier of the label.
 
 private
-:   Boolean, whether this label is private. Note that private labels are only
-    included when authenticated.
+:   Boolean, whether this label is private. Private labels are only included
+    when authenticated with the `listread` permission.
 
 label
 :   String.
@@ -235,8 +301,9 @@ page
     pagination](#pagination) below.
 
 user
-:   User ID. This field is currently only required for `POST /ulist`. It also
+:   User ID. This field is mainly used for `POST /ulist`, but it also
     sets the default user ID to use for the visual novel "label" filter.
+    Defaults to the currently authenticated user.
 
 count
 :   Whether the response should include the `count` field (see below). This
@@ -430,9 +497,9 @@ Name              [F]  Description
 `anime_id`             Integer, AniDB anime identifier.
 
 `label`           m    User labels applied to this VN. Accepts a two-element
-                       array containing a user ID and label ID. If the `"user"`
-                       request parameter has been set, then it also accepts
-                       just a label ID.
+                       array containing a user ID and label ID. When
+                       authenticated or if the `"user"` request parameter has
+                       been set, then it also accepts just a label ID.
 
 `release`         m    Match visual novels that have at least one release
                        matching the given [release filters](#release-filters).
@@ -462,11 +529,11 @@ id
 
 title
 :   String, main title as displayed on the site, typically romanized from the
-    original script.[^title]
+    original script.
 
 alttitle
 :   String, can be null. Alternative title, typically the same as `title` but
-    in the original script.[^title]
+    in the original script.
 
 titles
 :   Array of objects, full list of titles associated with the VN, always
@@ -690,11 +757,11 @@ id
 
 title
 :   String, main title as displayed on the site, typically romanized from the
-    original script.[^title]
+    original script.
 
 alttitle
 :   String, can be null. Alternative title, typically the same as `title` but
-    in the original script.[^title]
+    in the original script.
 
 languages
 :   Array of objects, languages this release is available in. There is always
@@ -1155,7 +1222,8 @@ notes
 :   String, can be null.
 
 labels
-:   Array of objects, user labels assigned to this VN.
+:   Array of objects, user labels assigned to this VN. Private labels are only
+    listed when the user is authenticated.
 
 labels.id
 :   Integer.
@@ -1188,6 +1256,7 @@ expect to see:
   Code  Reason
 ------  -------
    400  Invalid request body or query, the included error message hopefully points at the problem.
+   401  Invalid authentication token.
    404  Invalid API path or HTTP method
    429  Throttled
    500  Server error, usually points to a bug if this persists
@@ -1240,13 +1309,4 @@ This approach tends to not work as well when sorting on other fields, so
 `"page"`-based pagination is often still the better solution in those cases.
 
 
-
-*TODO: Footnotes with multiple references get duplicated. Pandoc is [being
-weird](https://github.com/jgm/pandoc/issues/1603). Need a workaround, because
-this will get annoying really fast. :(*
-
 [F]: #filter-flags
-
-[^title]: Title fields may be subject to user language preferences when
-  authentication gets implemented later on. You can always fetch the full list
-  of titles and apply your own selection algorithm.

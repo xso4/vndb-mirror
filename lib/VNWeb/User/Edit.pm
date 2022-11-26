@@ -76,6 +76,15 @@ my $FORM = {
             group   => { required => 0 },
         } },
 
+        api2            => { maxlength => 64, aoh => {
+            token     => {},
+            added     => {},
+            lastused  => { required => 0, default => '' },
+            notes     => { required => 0, default => '', maxlength => 1000 },
+            listread  => { anybool => 1 },
+            delete    => { anybool => 1 },
+        } },
+
         # Supporter options
         nodistract_noads   => { anybool => 1 },
         nodistract_nofancy => { anybool => 1 },
@@ -128,6 +137,8 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
         $u->{prefs}{traits} = tuwf->dbAlli('SELECT u.tid, t.name, g.name AS "group" FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.group WHERE u.id =', \$u->{id}, 'ORDER BY g.order, t.name');
         $u->{prefs}{tagprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.childs, t.name FROM users_prefs_tags u JOIN tags t ON t.id = u.tid WHERE u.id =', \$u->{id}, 'ORDER BY t.name');
         $u->{prefs}{traitprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.childs, t.name, g.name as "group" FROM users_prefs_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.group WHERE u.id =', \$u->{id}, 'ORDER BY g.order, t.name');
+        $u->{prefs}{api2} = auth->api2_tokens($u->{id});
+        $_->{delete} = 0 for $u->{prefs}{api2}->@*;
     }
 
     $u->{admin} = auth->permDbmod || auth->permUsermod || auth->permTagmod || auth->permBoardmod ?
@@ -183,6 +194,16 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
 
         tuwf->dbExeci('DELETE FROM users_prefs_traits WHERE id =', \$data->{id});
         tuwf->dbExeci('INSERT INTO users_prefs_traits', { id => $data->{id}, tid => $_->{tid}, spoil => $_->{spoil}, childs => $_->{childs} }) for $p->{traitprefs}->@*;
+
+        my %tokens = map +($_->{token},$_), $p->{api2}->@*;
+        for (auth->api2_tokens($data->{id})->@*) {
+            my $t = $tokens{$_->{token}} // next;
+            if($t->{delete}) {
+                auth->api2_del_token($data->{id}, $t->{token});
+            } elsif($t->{notes} ne $_->{notes} || !$t->{listread} ne !$_->{listread}) {
+                auth->api2_set_token($data->{id}, %$t);
+            }
+        }
     }
 
     if(auth->permUsermod) {
@@ -276,6 +297,11 @@ TUWF::get qr{/$RE{uid}/setmail/(?<token>[a-f0-9]{40})}, sub {
             };
         };
     };
+};
+
+
+elm_api UserApi2New => undef, { id => { vndbid => 'u' }}, sub {
+    elm_Api2Token auth->api2_set_token($_[0]{id}), strftime '%Y-%m-%d', localtime;
 };
 
 1;

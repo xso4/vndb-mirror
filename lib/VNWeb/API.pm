@@ -46,7 +46,7 @@ TUWF::options qr{/api/kana.*}, sub {
     tuwf->resHeader('Access-Control-Allow-Origin', tuwf->reqHeader('origin'));
     tuwf->resHeader('Access-Control-Allow-Credentials', 'true');
     tuwf->resHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-    tuwf->resHeader('Access-Control-Allow-Headers', 'Content-Type');
+    tuwf->resHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     tuwf->resHeader('Access-Control-Max-Age', 86400);
 };
 
@@ -57,41 +57,46 @@ TUWF::options qr{/api/kana.*}, sub {
 # This throttle state only handles execution time limiting; request limiting
 # is done in nginx.
 my %throttle; # IP -> SQL time
-my $throttle_start;
 
 sub add_throttle {
     my $now = time;
-    my $time = $now - $throttle_start;
+    my $time = $now - (tuwf->req->{throttle_start}||$now);
     my $norm = norm_ip tuwf->reqIP();
     $throttle{$norm} = $now if !$throttle{$norm} || $throttle{$norm} < $now;
     $throttle{$norm} += $time * config->{api_throttle}[0];
-    $time;
 }
 
 sub check_throttle {
-    $throttle_start = time;
+    tuwf->req->{throttle_start} = time;
     err(429, 'Throttled on query execution time.')
         if ($throttle{ norm_ip tuwf->reqIP }||0) >= time + (config->{api_throttle}[0] * config->{api_throttle}[1]);
 }
 
+sub logreq {
+    tuwf->log(sprintf '%4dms %s [%s] "%s" "%s"',
+        tuwf->req->{throttle_start} ? (time - tuwf->req->{throttle_start})*1000 : 0,
+        $_[0],
+        tuwf->reqIP(),
+        tuwf->reqHeader('origin')||'-',
+        tuwf->reqHeader('user-agent')||'');
+}
+
 sub err {
     my($status, $msg) = @_;
-    my $time = add_throttle;
+    add_throttle;
     tuwf->resStatus($status);
     tuwf->resHeader('Content-type', 'text');
+    tuwf->resHeader('WWW-Authenticate', 'Token') if $status == 401;
     print { tuwf->resFd } $msg, "\n";
-    tuwf->log(sprintf '%4dms [%s] %d %s "%s"', $time, tuwf->reqIP(), $status, $msg, tuwf->reqHeader('user-agent')||'');
+    logreq "$status $msg";
     tuwf->done;
 }
 
 sub count_request {
     my($rows, $call) = @_;
     close tuwf->resFd;
-    my $time = add_throttle;
-    tuwf->log(sprintf '%4dms %3dr%6db [%s] %s "%s"',
-        $time*1000, $rows, length(tuwf->{_TUWF}{Res}{content}),
-        tuwf->reqIP(), $call, tuwf->reqHeader('user-agent')||'-'
-    );
+    add_throttle;
+    logreq sprintf "%3dr%6db %s", $rows, length(tuwf->{_TUWF}{Res}{content}), $call;
 }
 
 
@@ -242,7 +247,7 @@ sub api_query {
             $req->{count} ? (count => $count) : (),
             $req->{compact_filters} ? (compact_filters => $req->{filters}->query_encode) : (),
             $req->{normalized_filters} ? (normalized_filters => $req->{filters}->json) : (),
-            $req->{time} ? (time => int(1000*(time()-$throttle_start))) : (),
+            $req->{time} ? (time => int(1000*(time() - tuwf->req->{throttle_start}))) : (),
         });
         cors;
         count_request(scalar @$results, sprintf '[%s] {%s %s r%dp%d%s} %s', fmt_fields($req->{fields}),
@@ -419,6 +424,16 @@ api_get '/stats', { map +($_, { uint => 1 }), @STATS }, sub {
 };
 
 
+api_get '/authinfo', {}, sub {
+    err 401, 'Unauthorized' if !auth;
+    +{
+        id => auth->uid,
+        username => auth->user->{user_name},
+        permissions => [auth->api2Listread ? 'listread' : () ]
+    }
+};
+
+
 api_get '/user', {}, sub {
     my $q = tuwf->validate(get => q => { type => 'array', scalar => 1, maxlength => 100, values => {} });
     err 400, 'Invalid argument' if !$q;
@@ -444,7 +459,7 @@ api_get '/ulist_labels', { labels => { aoh => {
     +{ labels => tuwf->dbAlli('
         SELECT id, private, label
           FROM ulist_labels
-         WHERE uid =', \$uid, auth && auth->uid eq $uid ? () : 'AND NOT private',
+         WHERE uid =', \$uid, auth->api2Listread($uid) ? () : 'AND NOT private',
         'ORDER BY CASE WHEN id < 10 THEN id ELSE 10 END, label')
     }
 };
@@ -747,10 +762,11 @@ api_query '/ulist',
         sql 'SELECT v.id', $_[0], '
                FROM ulist_vns uv
                JOIN vnt v ON v.id = uv.vid', $_[1], '
-              WHERE NOT v.hidden
-                AND NOT uv.c_private
-                AND uv.uid =', \$_[3]{user}, '
-                AND (', $_[2], ')'
+              WHERE', sql_and
+                'NOT v.hidden',
+                sql('uv.uid =', \$_[3]{user}),
+                auth->api2Listread($_[3]{user}) ? () : 'NOT uv.c_private',
+                $_[2];
     },
     fields => {
         id       => {},
@@ -764,9 +780,12 @@ api_query '/ulist',
         labels   => {
             enrich => sub { sql 'SELECT uv.vid', $_[0], '
                                    FROM ulist_vns uv, unnest(uv.labels) l(id), ulist_labels ul
-                                  WHERE uv.uid =', \$_[3]{user}, 'AND ul.uid =', \$_[3]{user}, 'AND ul.id = l.id
-                                    AND NOT ul.private
-                                    AND uv.vid IN', $_[2] },
+                                  WHERE', sql_and
+                                     sql('uv.uid =', \$_[3]{user}),
+                                     sql('ul.uid =', \$_[3]{user}),
+                                     'ul.id = l.id',
+                                     auth->api2Listread($_[3]{user}) ? () : 'NOT ul.private',
+                                     sql('uv.vid IN', $_[2]) },
             key => 'id', col => 'vid', num => 3,
             fields => {
                 id    => { select => 'l.id' },

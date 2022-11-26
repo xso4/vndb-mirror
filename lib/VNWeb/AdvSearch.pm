@@ -325,7 +325,8 @@ f v => 61 => 'has_description', { uint => 1, range => [1,1] }, '=' => sub { 'v."
 f v => 62 => 'has_anime',       { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM vn_anime va WHERE va.id = v.id)' };
 f v => 63 => 'has_screenshot',  { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM vn_screenshots vs WHERE vs.id = v.id)' };
 f v => 64 => 'has_review',      { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM reviews r WHERE r.vid = v.id AND NOT r.c_flagged)' };
-f v => 65 => 'on_list',         { uint => 1, range => [1,1] }, '=' => sub { auth ? sql 'v.id IN(SELECT vid FROM ulist_vns WHERE uid =', \auth->uid, ')' : '1=0' };
+f v => 65 => 'on_list',         { uint => 1, range => [1,1] },
+    '=' => sub { auth ? sql 'v.id IN(SELECT vid FROM ulist_vns WHERE uid =', \auth->uid, auth->api2Listread ? () : 'AND NOT c_private', ')' : '1=0' };
 f v => 66 => 'devstatus', { uint => 1, enum => \%DEVSTATUS }, '=' => sub { 'v.devstatus =', \$_ };
 
 f v =>  8 => 'tag',      { type => 'any', func => \&_validate_tag }, compact => \&_compact_tag, sql_list => _sql_where_tag('tags_vn_inherit');

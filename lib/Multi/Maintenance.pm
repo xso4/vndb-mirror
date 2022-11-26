@@ -87,7 +87,7 @@ my %dailies = (
 
   reviewcache => 'SELECT update_reviews_votes_cache(NULL)',
 
-  cleansessions      => q|DELETE FROM sessions       WHERE expires    < NOW()|,
+  cleansessions      => q|DELETE FROM sessions       WHERE expires    < NOW() AND type <> 'api2'|,
   cleannotifications => q|DELETE FROM notifications  WHERE read       < NOW()-'1 month'::interval|,
   cleannotifications2=> q|DELETE FROM notifications  WHERE id IN (
     SELECT id FROM (SELECT id, row_number() OVER (PARTITION BY uid ORDER BY id DESC) > 500 from notifications) AS x(id,del) WHERE x.del)|,

@@ -736,7 +736,7 @@ $$ LANGUAGE SQL SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION user_login(vndbid, session_type, bytea, bytea) RETURNS boolean AS $$
   INSERT INTO sessions (uid, token, expires, type) SELECT $1, $4, NOW() + '1 month', $2 FROM users_shadow
    WHERE length($3) = 46 AND length($4) = 20
-     AND id = $1 AND passwd = $3
+     AND id = $1 AND passwd = $3 AND $2 IN('web', 'api')
   RETURNING true
 $$ LANGUAGE SQL SECURITY DEFINER;
 
@@ -746,13 +746,18 @@ CREATE OR REPLACE FUNCTION user_logout(vndbid, bytea) RETURNS void AS $$
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 
--- Returns true if the given session token is valid.
--- As a side effect, this also extends the expiration time of web and api sessions.
-CREATE OR REPLACE FUNCTION user_isvalidsession(vndbid, bytea, session_type) RETURNS bool AS $$
+-- BIG WARNING: Do not use "IS NOT NULL" on the return value, it'll always
+-- evaluate to false. Use 'IS DISTINCT FROM NULL' instead.
+CREATE OR REPLACE FUNCTION user_validate_session(vndbid, bytea, session_type) RETURNS sessions AS $$
+  -- Extends the expiration time of web and api sessions.
   UPDATE sessions SET expires = NOW() + '1 month'
    WHERE uid = $1 AND token = $2 AND type = $3 AND $3 IN('web', 'api')
      AND expires < NOW() + '1 month'::interval - '6 hours'::interval;
-  SELECT true FROM sessions WHERE uid = $1 AND token = $2 AND type = $3 AND expires > NOW();
+  -- Update last use date for api2 sessions
+  UPDATE sessions SET expires = NOW()
+   WHERE uid = $1 AND token = $2 AND type = $3 AND $3 = 'api2'
+     AND expires::date < 'today'::date;
+  SELECT * FROM sessions WHERE uid = $1 AND token = $2 AND type = $3
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 
@@ -787,7 +792,7 @@ CREATE OR REPLACE FUNCTION user_setpass(vndbid, bytea, bytea) RETURNS boolean AS
            )
     RETURNING id
   ), del AS( -- Not referenced, but still guaranteed to run
-    DELETE FROM sessions WHERE uid IN(SELECT id FROM upd)
+    DELETE FROM sessions WHERE uid IN(SELECT id FROM upd) AND type <> 'api2'
   )
   SELECT true FROM upd
 $$ LANGUAGE SQL SECURITY DEFINER;
@@ -843,4 +848,22 @@ $$ LANGUAGE SQL SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION user_admin_setmail(vndbid, vndbid, bytea, text) RETURNS void AS $$
   UPDATE users_shadow SET mail = $4 WHERE id = $1 AND user_isauth(NULL, $2, $3)
+$$ LANGUAGE SQL SECURITY DEFINER;
+
+
+CREATE OR REPLACE FUNCTION user_api2_tokens(vndbid, vndbid, bytea) RETURNS SETOF sessions AS $$
+  SELECT * FROM sessions WHERE uid = $1 AND type = 'api2' AND user_isauth($1, $2, $3)
+$$ LANGUAGE SQL SECURITY DEFINER;
+
+
+CREATE OR REPLACE FUNCTION user_api2_set_token(vndbid, vndbid, bytea, bytea, text, boolean) RETURNS void AS $$
+  INSERT INTO sessions (uid, type, expires, token, notes, listread)
+                SELECT  $1,  'api2', NOW(), $4,    $5,    $6
+                 WHERE user_isauth($1, $2, $3) AND length($4) = 20
+  ON CONFLICT (uid, token) DO UPDATE SET notes = $5, listread = $6
+$$ LANGUAGE SQL SECURITY DEFINER;
+
+
+CREATE OR REPLACE FUNCTION user_api2_del_token(vndbid, vndbid, bytea, bytea) RETURNS void AS $$
+  DELETE FROM sessions WHERE uid = $1 AND token = $4 AND user_isauth($1, $2, $3)
 $$ LANGUAGE SQL SECURITY DEFINER;

@@ -55,6 +55,7 @@ our %apis = (
     MailChange     => [], # A confirmation mail has been sent to change a user's email address
     ImgFormat      => [], # Unrecognized image format
     LabelId        => [{uint => 1}], # Label created
+    Api2Token      => [{},{}], # Generated API2 token
     DupNames       => [ { aoh => { # Duplicate names/aliases (for tags & traits)
         id       => { vndbid => ['i','g'] },
         name     => {},

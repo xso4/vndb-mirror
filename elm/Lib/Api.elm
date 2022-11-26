@@ -47,6 +47,7 @@ showResponse res =
     MailChange                      -> unexp
     ImgFormat                       -> "Unrecognized image format, only JPEG, PNG and WebP are accepted."
     LabelId _                       -> unexp
+    Api2Token _ _                   -> unexp
     DupNames _                      -> "Name or alias already in the database."
     Releases _                      -> unexp
     Resolutions _                   -> unexp

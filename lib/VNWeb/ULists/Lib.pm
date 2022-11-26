@@ -8,7 +8,7 @@ our @EXPORT = qw/ulists_own enrich_ulists_widget ulists_widget_ ulists_widget_fu
 
 # Do we have "ownership" access to this users' list (i.e. can we edit and see private stuff)?
 sub ulists_own {
-    auth->permUsermod || (auth && auth->uid eq shift)
+    auth->permUsermod || auth->api2Listread(shift)
 }
 
 

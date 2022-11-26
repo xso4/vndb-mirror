@@ -9,7 +9,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Html.Keyed as K
 import Browser
-import Browser.Navigation exposing (load)
+import Browser.Dom as Dom
 import Lib.Ffi as Ffi
 import Lib.Html exposing (..)
 import Lib.Util exposing (..)
@@ -18,6 +18,7 @@ import Lib.Autocomplete as A
 import Gen.Api as GApi
 import Gen.Types as GT
 import Gen.UserEdit as GUE
+import Gen.UserApi2New as GUAN
 
 
 main : Program GUE.Recv Model Msg
@@ -29,8 +30,9 @@ main = Browser.element
   }
 
 port skinChange : String -> Cmd msg
+port selectText : String -> Cmd msg
 
-type Tab = Profile | Preferences | TTPref
+type Tab = Profile | Preferences | TTPref | API2
 
 type alias PassData =
   { cpass       : Bool
@@ -56,6 +58,9 @@ type alias Model =
   , traitSearch : A.Model GApi.ApiTraitResult
   , tagpSearch  : A.Model GApi.ApiTagResult
   , traitpSearch: A.Model GApi.ApiTraitResult
+  , api2State   : Api.State
+  , api2Focus   : Int
+  , api2Edit    : Int
   }
 
 
@@ -77,6 +82,9 @@ init d =
   , traitSearch = A.init ""
   , tagpSearch  = A.init ""
   , traitpSearch= A.init ""
+  , api2State   = Api.Normal
+  , api2Focus   = -1
+  , api2Edit    = -1
   }
 
 
@@ -135,6 +143,9 @@ type PrefMsg
   | TraitPSpoil Int Int
   | TraitPChilds Int Bool
   | TraitPDel Int
+  | Api2Del Int Bool
+  | Api2Notes Int String
+  | Api2ListRead Int Bool
 
 type PassMsg
   = CPass Bool
@@ -143,7 +154,8 @@ type PassMsg
   | Pass2 String
 
 type Msg
-  = Tab Tab
+  = Noop
+  | Tab Tab
   | Invalid Tab
   | InvalidEnable
   | Username (Maybe String)
@@ -153,6 +165,11 @@ type Msg
   | TraitSearch (A.Msg GApi.ApiTraitResult)
   | TagPrefSearch (A.Msg GApi.ApiTagResult)
   | TraitPrefSearch (A.Msg GApi.ApiTraitResult)
+  | Api2Focus Int
+  | Api2Blur Int
+  | Api2Edit Int
+  | Api2New
+  | Api2Result (GApi.Response)
   | Submit
   | Submitted GApi.Response
 
@@ -256,6 +273,9 @@ updatePrefs msg model =
     TraitPSpoil i s -> { model | traitprefs = modidx i (\e -> { e | spoil = s }) model.traitprefs }
     TraitPChilds i b-> { model | traitprefs = modidx i (\e -> { e | childs = b }) model.traitprefs }
     TraitPDel idx   -> { model | traitprefs = delidx idx model.traitprefs }
+    Api2Del i b     -> { model | api2 = modidx i (\e -> { e | delete = b }) model.api2 }
+    Api2Notes i s   -> { model | api2 = modidx i (\e -> { e | notes = s }) model.api2 }
+    Api2ListRead i b-> { model | api2 = modidx i (\e -> { e | listread = b }) model.api2 }
 
 updatePass : PassMsg -> PassData -> PassData
 updatePass msg model =
@@ -275,10 +295,13 @@ encode model =
   , password = Maybe.andThen (\p -> if p.cpass && p.pass1 == p.pass2 then Just { old = p.opass, new = p.pass1 } else Nothing) model.pass
   }
 
+cleanApi2 : Model -> Model
+cleanApi2 m = { m | api2Edit = -1, prefs = Maybe.map (\p -> { p | api2 = List.filter (\e -> not e.delete) p.api2 }) m.prefs }
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
+    Noop    -> (model, Cmd.none)
     Tab t   -> ({ model | saved = False, tab = t }, Cmd.none)
     Invalid t  -> if model.invalidDis || model.tab == t then (model, Cmd.none) else
                   ({ model | tab = t, invalidDis = True }, Task.attempt (always InvalidEnable) (Ffi.elemCall "reportValidity" "mainform" |> Task.andThen (\_ -> Process.sleep 100)))
@@ -324,13 +347,29 @@ update msg model =
             in ({ model | saved = False, traitpSearch = A.clear nm "", prefs = Just np }, c)
         _ -> ({ model | traitpSearch = nm }, c)
 
+    Api2Focus n -> ({ model | api2Focus = n }, selectText ("api2"++String.fromInt n))
+    Api2Blur n -> ({ model | api2Focus = -1 }, Cmd.none)
+    Api2Edit n ->
+      ( { model | api2Edit = if model.api2Edit == n then -1 else n }
+      , Task.attempt (always Noop) (Dom.focus ("api2notes" ++ String.fromInt n)))
+    Api2New -> ({ model | api2State = Api.Loading }, GUAN.send { id = model.id } Api2Result)
+    Api2Result (GApi.Api2Token s d) ->
+      let n = { token = s, added = d, lastused = "", notes = "", listread = False, delete = False }
+          num = Maybe.withDefault 0 (Maybe.map (\p -> List.length p.api2) model.prefs)
+      in ({ model
+          | api2Edit = num
+          , api2State = Api.Normal
+          , prefs = Maybe.map (\p -> { p | api2 = p.api2 ++ [n]}) model.prefs
+          }, Task.attempt (always Noop) (Dom.focus ("api2notes" ++ String.fromInt num)))
+    Api2Result r -> ({ model | api2State = Api.Error r }, Cmd.none)
+
     Submit ->
       if Maybe.withDefault False (Maybe.map (\p -> p.cpass && p.pass1 /= p.pass2) model.pass)
       then ({ model | passNeq = True }, Cmd.none )
       else ({ model | state = Api.Loading }, GUE.send (encode model) Submitted)
 
-    Submitted GApi.Success    -> ({ model | saved = True, state = Api.Normal }, Cmd.none)
-    Submitted GApi.MailChange -> ({ model | mailConfirm = True, state = Api.Normal }, Cmd.none)
+    Submitted GApi.Success    -> (cleanApi2 { model | saved = True, state = Api.Normal }, Cmd.none)
+    Submitted GApi.MailChange -> (cleanApi2 { model | mailConfirm = True, state = Api.Normal }, Cmd.none)
     Submitted r -> ({ model | state = Api.Error r }, Cmd.none)
 
 
@@ -536,12 +575,69 @@ view model =
         ]
       ]
 
+    api2edit n t = span []
+      [ inputText ("api2notes"++String.fromInt n) t.notes (Prefs << Api2Notes n)
+        [ placeholder "Title (optional, for personal use)", style "width" "300px" ]
+      , br [] []
+      , b [] [ text "Permissions:" ]
+      , br [] []
+      , label [] [ inputCheck "" t.listread (Prefs << Api2ListRead n), text " Access my list (including private items)" ]
+      ]
+
+    api2token n t = tr []
+      [ td [ style "font-weight" "bold", style "font-size" "120%"] [ text (String.fromInt (n+1) ++ ".") ]
+      , td []
+        [ if model.api2Edit == n || t.notes == "" then text "" else b [style "font-size" "120%"] [ text t.notes, br [] [] ]
+        , input
+          [ type_ "text", class "text monospace", style "width" "450px", style "font-size" "16px", id ("api2"++String.fromInt n)
+          , onFocus (Api2Focus n), onBlur (Api2Blur n), tabindex 10, readonly True
+          , value t.token, classList [("obscured", model.api2Focus /= n)] ] []
+        , span [] <| if t.delete then
+          [ br [] []
+          , text "This token will be deleted when you submit the form. "
+          , a [ href "#", onClickD (Prefs (Api2Del n False)) ] [ text "undo" ]
+          , text "."
+          ] else
+          [ inputButton "Edit" (Api2Edit n) []
+          , inputButton "Delete" (Prefs (Api2Del n True)) []
+          , br [] []
+          , if model.api2Edit == n
+            then api2edit n t
+            else text <| "Permissions: " ++ if t.listread then "access list." else "none."
+          , br [] []
+          , b [ class "grayedout" ] [ text <| "Created on "++t.added ++ (if t.lastused == "" then ", never used" else ", last used on "++t.lastused)++"." ]
+          ]
+        , br_ 2
+        ]
+      ]
+
+    api2form m = div []
+      [ p [ style "margin" "0 20px 20px 20px", style "max-width" "800px" ]
+        [ text "Here you can create and manage tokens for use with "
+        , a [ href "/d11" ] [ text "the API" ], text "."
+        , br [] []
+        , text "It's strongly recommended that you create a separate token for each application that you use, "
+        , text "that way you can easily change or revoke permissions on a per-application level."
+        ]
+      , table [ style "margin-left" "20px" ]
+        [ tbody [] <| List.indexedMap api2token m.api2
+        , tfoot [] [ tr [] [ td [ colspan 2 ] <| if List.length m.api2 >= 64 then [] else
+          [ inputButton "New token" Api2New [disabled (model.api2State == Api.Loading)]
+          , case model.api2State of
+              Api.Normal -> text ""
+              Api.Loading -> span [ class "spinner" ] []
+              Api.Error e -> b [ class "standout" ] [ text (Api.showResponse e) ]
+          ]]]
+        ]
+      ]
+
   in form_ "mainform" Submit (model.state == Api.Loading)
     [ if model.prefs == Nothing then text "" else div [ class "maintabs left" ]
       [ ul []
         [ li [ classList [("tabselected", model.tab == Profile    )] ] [ a [ href "#", onClickD (Tab Profile    ) ] [ text "Account" ] ]
         , li [ classList [("tabselected", model.tab == Preferences)] ] [ a [ href "#", onClickD (Tab Preferences) ] [ text "Display preferences" ] ]
         , li [ classList [("tabselected", model.tab == TTPref     )] ] [ a [ href "#", onClickD (Tab TTPref     ) ] [ text "Tags & Traits" ] ]
+        , li [ classList [("tabselected", model.tab == API2       )] ] [ a [ href "#", onClickD (Tab API2       ) ] [ text "Applications" ] ]
         ]
       ]
     , div [ class "mainbox", classList [("hidden", model.tab /= Profile    )] ]
@@ -577,6 +673,8 @@ view model =
       ]
     , div [ class "mainbox", classList [("hidden", model.tab /= TTPref)] ]
       [ h1 [] [ text "Tags & traits" ], Maybe.withDefault (text "") (Maybe.map ttprefsform model.prefs) ]
+    , div [ class "mainbox", classList [("hidden", model.tab /= API2)] ]
+      [ h1 [] [ text "API tokens" ], Maybe.withDefault (text "") (Maybe.map api2form model.prefs) ]
     , div [ class "mainbox" ]
       [ fieldset [ class "submit" ]
         [ submitButton "Submit" model.state (not model.passNeq)

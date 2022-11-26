@@ -46,7 +46,8 @@ sub auth {
         # - If the origin equals the site, use the same Cookie auth as the rest of the site (handy for userscripts)
         # - Otherwise, a custom token-based auth, but this hasn't been implemented yet
         } elsif(tuwf->reqPath =~ qr{^/api/} && (tuwf->reqHeader('Origin')//'_') ne config->{url}) {
-            # TODO
+            # XXX: User prefs and permissions are not loaded in this case - they're not used.
+            $auth->_load_api2(tuwf->reqHeader('authorization'));
 
         } else {
             my $cookie = tuwf->reqCookie('auth')||'';
@@ -62,7 +63,7 @@ sub auth {
 # have a lot of influence in this)
 TUWF::set log_format => sub {
     my(undef, $uri, $msg) = @_;
-    sprintf "[%s] %s %s: %s\n", scalar localtime(), $uri, tuwf->req && auth ? auth->uid : '-', $msg;
+    sprintf "[%s] %s %s: %s\n", scalar localtime(), $uri, tuwf->req && tuwf->req->{auth} ? auth->uid : '-', $msg;
 };
 
 
@@ -159,7 +160,7 @@ sub _load_session {
            JOIN users_shadow us ON us.id = u.id
            JOIN users_prefs up ON up.id = u.id
           WHERE u.id = ', \$uid,
-           'AND', sql_func(user_isvalidsession => 'u.id', sql_fromhex($token_db), \'web')
+           'AND', sql_func(user_validate_session => 'u.id', sql_fromhex($token_db), \'web'), 'IS DISTINCT FROM NULL'
     ) : {};
 
     # Drop the cookie if it's not valid
@@ -218,9 +219,7 @@ sub resetpass {
 # Checks if the password reset token is valid
 sub isvalidtoken {
     my(undef, $uid, $token) = @_;
-    tuwf->dbVali(
-        select => sql_func(user_isvalidsession => \$uid, sql_fromhex(sha1_hex lc $token), \'pass')
-    );
+    tuwf->dbVali('SELECT', sql_func(user_validate_session => \$uid, sql_fromhex(sha1_hex lc $token), \'pass'), 'IS DISTINCT FROM NULL');
 }
 
 
@@ -315,5 +314,84 @@ sub audit {
         detail => $detail,
     });
 }
+
+
+
+my $api2_alpha = "ybndrfg8ejkmcpqxot1uwisza345h769"; # z-base-32
+
+# Converts from hex to encoded form
+sub _api2_encode {
+    state %l = map +(substr(unpack('B*', chr $_), 3, 8), substr($api2_alpha, $_, 1)), 0..(length($api2_alpha)-1);
+    (unpack('B*', pack('H*', $_[0])) =~ s/(.....)/$l{$1}/erg)
+        =~ s/(....)(.....)(.....)(....)(.....)(.....)(....)/$1-$2-$3-$4-$5-$6-$7/r;
+}
+# Converts from encoded form to hex
+sub _api2_decode {
+    state %l = ('-', '', map +(substr($api2_alpha, $_, 1), substr unpack('B*', chr $_), 3, 8), 0..(length($api2_alpha)-1));
+    unpack 'H*', pack 'B*', $_[0] =~ s{(.)}{$l{$1} // return}erg
+}
+
+# Takes a UID, returns hex value
+sub _api2_gen_token {
+    # Scramble for cosmetic reasons. This bytewise scramble still leaves an obvious pattern, but w/e.
+    unpack 'H*', (pack('N', $_[0] =~ s/^u//r).urandom(16))
+        =~ s/^(.)(.)(.)(.)(..)(....)(....)(....)(..)$/$5$1$6$2$7$3$8$4$9/sr;
+}
+
+# Extract UID from hex-encoded token
+sub _api2_get_uid {
+    'u'.unpack 'N', pack('H*', $_[0]) =~ s/^..(.)....(.)....(.)....(.)..$/$1$2$3$4/sr;
+}
+
+
+sub _load_api2 {
+    my($self, $header) = @_;
+    return if !$header;
+    return VNWeb::API::err(401, 'Invalid Authorization header format.') if $header !~ /^(?i:Token) +([-$api2_alpha]+)$/;
+    my $token_enc = $1;
+    return VNWeb::API::err(401, 'Invalid token format.') if length($token_enc =~ s/-//rg) != 32 || !length(my $token = _api2_decode $token_enc);
+    my $uid = _api2_get_uid $token;
+    my $user = tuwf->dbRowi(
+        'SELECT ', sql_user(), ', x.listread
+           FROM users u,', sql_func(user_validate_session => \$uid, sql_fromhex($token), \'api2'), 'x
+          WHERE u.id = ', \$uid, 'AND x.uid = u.id'
+    );
+    return VNWeb::API::err(401, 'Invalid token.') if !$user->{user_id};
+    $self->{token} = $token;
+    $self->{user} = $user;
+    $self->{api2} = 1;
+}
+
+sub api2_tokens {
+    my($self, $uid) = @_;
+	return [] if !$self;
+	my $r = tuwf->dbAlli("
+        SELECT coalesce(notes, '') AS notes, listread, added::date,", sql_tohex('token'), "AS token
+             , (CASE WHEN expires = added THEN '' ELSE expires::date::text END) AS lastused
+          FROM", sql_func(user_api2_tokens => \$uid, \$self->uid, sql_fromhex($self->{token})), '
+         ORDER BY added');
+     $_->{token} = _api2_encode($_->{token}) for @$r;
+     $r;
+}
+
+sub api2_set_token {
+    my($self, $uid, %o) = @_;
+    return if !auth;
+    my $token = $o{token} ? _api2_decode($o{token}) : _api2_gen_token($uid);
+    tuwf->dbExeci(select => sql_func user_api2_set_token => \$uid, \$self->uid, sql_fromhex($self->{token}),
+        sql_fromhex($token), \$o{notes}, \($o{listread}//0));
+    _api2_encode($token);
+}
+
+sub api2_del_token {
+    my($self, $uid, $token) = @_;
+    return if !$self;
+    tuwf->dbExeci(select => sql_func user_api2_del_token => \$uid, \$self->uid, sql_fromhex($self->{token}), sql_fromhex(_api2_decode($token)));
+}
+
+
+# API-specific permission checks
+# (Always return true for cookie-based auth)
+sub api2Listread { $_[0]{user}{user_id} && (!$_[1] || $_[0]{user}{user_id} eq $_[1]) && (!$_[0]{api2} || $_[0]{user}{listread}) }
 
 1;

@@ -4,4 +4,7 @@ wrap_elm_init('User.Edit', function(init, opt) {
         var sheet = document.querySelector('link[rel=stylesheet]');
         sheet.href = sheet.href.replace(/[^\/]+\.css/, skin+'.css');
     });
+    app.ports.selectText.subscribe(function(id) {
+        setTimeout(function() { document.getElementById(id).select() }, 50);
+    });
 });
