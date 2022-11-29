@@ -191,7 +191,7 @@ listread
     list.
 
 ```sh
-curl http://whatever.blicky.net/api/kana/authinfo\
+curl %endpoint%/authinfo\
     --header 'Authorization: token cdhy-bqy1q-6zobu-8w9k-xobxh-wzz4o-84fn'
 ```
 
