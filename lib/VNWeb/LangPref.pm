@@ -8,8 +8,6 @@ use VNWeb::DB;
 use VNWeb::Validation;
 use Exporter 'import';
 
-return 1 if $main::ONLYAPI;
-
 our @EXPORT = qw/
     langpref_parse
     langpref_fmt
@@ -138,6 +136,9 @@ sub run_with_defaults {
     die $s if !$e;
     $r;
 }
+
+
+return 1 if $main::ONLYAPI;
 
 TUWF::hook db_connect => sub { $CURRENT_SESSION = $DEFAULT_SESSION };
 
