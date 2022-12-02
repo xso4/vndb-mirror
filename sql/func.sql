@@ -756,7 +756,7 @@ CREATE OR REPLACE FUNCTION user_validate_session(vndbid, bytea, session_type) RE
   -- Update last use date for api2 sessions
   UPDATE sessions SET expires = NOW()
    WHERE uid = $1 AND token = $2 AND type = $3 AND $3 = 'api2'
-     AND expires::date < 'today'::date;
+     AND (expires = added OR expires::date < 'today'::date);
   SELECT * FROM sessions WHERE uid = $1 AND token = $2 AND type = $3
 $$ LANGUAGE SQL SECURITY DEFINER;
 
