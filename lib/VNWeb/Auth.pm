@@ -45,7 +45,7 @@ sub auth {
         # API requests have two authentication methods:
         # - If the origin equals the site, use the same Cookie auth as the rest of the site (handy for userscripts)
         # - Otherwise, a custom token-based auth, but this hasn't been implemented yet
-        } elsif(tuwf->reqPath =~ qr{^/api/} && (tuwf->reqHeader('Origin')//'_') ne config->{url}) {
+        } elsif(VNWeb::Validation::is_api() && (tuwf->reqHeader('Origin')//'_') ne config->{url}) {
             # XXX: User prefs and permissions are not loaded in this case - they're not used.
             $auth->_load_api2(tuwf->reqHeader('authorization'));
 

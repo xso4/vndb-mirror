@@ -14,6 +14,7 @@ use Exporter 'import';
 
 our @EXPORT = qw/
     samesite
+    is_api
     is_insecurepass
     is_unique_username
     ipinfo
@@ -94,6 +95,9 @@ sub _validate_fuzzyrdate {
 
 # returns true if this request originated from the same site, i.e. not an external referer.
 sub samesite { !!tuwf->reqCookie('samesite') }
+
+# returns true if this request is for an /api/ URL.
+sub is_api { $MAIN::ONLYAPI || tuwf->reqPath =~ /^\/api\// }
 
 
 sub is_insecurepass {

@@ -76,9 +76,8 @@ my $CURRENT_SESSION = $DEFAULT_SESSION;
 
 
 sub pref {
-    my $inapi = tuwf->reqPath() =~ qr{^/api/} ? 1 : undef;
-    my $titles    = (!$inapi && langpref_parse(auth->pref('title_langs')))    || $DEFAULT_TITLE_LANGS;
-    my $alttitles = (!$inapi && langpref_parse(auth->pref('alttitle_langs'))) || $DEFAULT_ALTTITLE_LANGS;
+    my $titles    = (!is_api() && langpref_parse(auth->pref('title_langs')))    || $DEFAULT_TITLE_LANGS;
+    my $alttitles = (!is_api() && langpref_parse(auth->pref('alttitle_langs'))) || $DEFAULT_ALTTITLE_LANGS;
     # Make sure that we always have a fallback to the original title.
     push @$titles, @$DEFAULT_TITLE_LANGS if !@$titles || defined $titles->[$#$titles]{lang};
     tuwf->req->{langpref} //= [ $titles, $alttitles, langpref_fmt($titles).langpref_fmt($alttitles) ];

@@ -87,6 +87,7 @@ sub err {
     tuwf->resStatus($status);
     tuwf->resHeader('Content-type', 'text');
     tuwf->resHeader('WWW-Authenticate', 'Token') if $status == 401;
+    cors;
     print { tuwf->resFd } $msg, "\n";
     logreq "$status $msg";
     tuwf->done;

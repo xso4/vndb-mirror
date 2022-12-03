@@ -48,7 +48,7 @@ tuwf->{elmgen} = $ARGV[0] && $ARGV[0] eq 'elmgen';
 
 
 TUWF::hook before => sub {
-    return if tuwf->reqPath =~ qr{^/api/};
+    return if VNWeb::Validation::is_api;
 
     # Serve static files from www/
     if(tuwf->resFile("$ROOT/www", tuwf->reqPath)) {
@@ -73,13 +73,14 @@ TUWF::hook before => sub {
 } if !$ONLYAPI;
 
 
+TUWF::set error_400_handler => sub {
+    return eval { VNWeb::API::err(400, 'Invalid request (most likely: invalid JSON or non-UTF8 data).') } if VNWeb::Validation::is_api;
+    TUWF::_error_400();
+};
+
 TUWF::set error_404_handler => sub {
+    return eval { VNWeb::API::err(404, 'Not found.') } if VNWeb::Validation::is_api;
     tuwf->resStatus(404);
-    if($ONLYAPI || tuwf->reqPath =~ /^\/api\//) {
-        tuwf->resHeader('Content-Type', 'text/plain');
-        lit_ "Not found.\n";
-        return;
-    }
     VNWeb::HTML::framework_ title => 'Page Not Found', noindex => 1, sub {
         div_ class => 'mainbox', sub {
             h1_ 'Page not found';
@@ -92,6 +93,11 @@ TUWF::set error_404_handler => sub {
             }
         }
     }
+};
+
+TUWF::set error_500_handler => sub {
+    return eval { VNWeb::API::err(500, 'Internal server error. Can be temporary, but usually points to a server bug.') } if VNWeb::Validation::is_api;
+    TUWF::_error_500();
 };
 
 
@@ -147,7 +153,6 @@ if($ONLYAPI) {
 }
 
 TUWF::hook after => sub {
-    return if tuwf->reqPath =~ qr{^/api/};
     return if rand() > config->{trace_log} || !tuwf->req->{trace_start};
     my $sqlt = List::Util::sum(map $_->[2], tuwf->{_TUWF}{DB}{queries}->@*);
     my %elm = (
