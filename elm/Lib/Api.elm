@@ -36,7 +36,7 @@ showResponse res =
     Content _                       -> unexp
     BadLogin                        -> "Invalid username or password."
     LoginThrottle                   -> "Action throttled, too many failed login attempts."
-    InsecurePass                    -> "Your chosen password is in a database of leaked passwords, please choose another one."
+    InsecurePass                    -> "Your password appears in a database of leaked passwords, please use a more unique password."
     BadEmail                        -> "Unknown email address."
     Bot                             -> "Invalid answer to the anti-bot question."
     Taken                           -> "Username already taken, please choose a different name."

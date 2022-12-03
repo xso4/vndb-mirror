@@ -15,11 +15,10 @@ use POE::Filter::VNDBAPI 'encode_filters';
 use Encode 'encode_utf8', 'decode_utf8';
 use Crypt::URandom 'urandom';
 use Crypt::ScryptKDF 'scrypt_raw';;
-use VNDB::Func 'imgurl', 'imgsize', 'norm_ip', 'resolution';
+use VNDB::Func 'imgurl', 'imgsize', 'norm_ip', 'resolution', 'is_insecurepass';
 use VNDB::Types;
 use VNDB::Config;
 use JSON::XS;
-use PWLookup;
 use List::Util 'max';
 use VNDB::ExtLinks 'sql_extlinks';
 
@@ -291,7 +290,7 @@ sub login {
 
   } elsif(exists $arg->{password}) {
     return cerr $c, auth => "Password too weak, please log in on the site and change your password"
-      if config->{password_db} && PWLookup::lookup(config->{password_db}, $arg->{password});
+      if is_insecurepass($arg->{password});
     login_auth($c, $arg);
 
   } elsif(exists $arg->{sessiontoken}) {

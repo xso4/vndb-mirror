@@ -2,7 +2,6 @@ package VNWeb::Validation;
 
 use v5.26;
 use TUWF 'uri_escape';
-use PWLookup;
 use VNDB::Types;
 use VNDB::Config;
 use VNWeb::Auth;
@@ -15,7 +14,6 @@ use Exporter 'import';
 our @EXPORT = qw/
     samesite
     is_api
-    is_insecurepass
     is_unique_username
     ipinfo
     form_compile
@@ -98,11 +96,6 @@ sub samesite { !!tuwf->reqCookie('samesite') }
 
 # returns true if this request is for an /api/ URL.
 sub is_api { $MAIN::ONLYAPI || tuwf->reqPath =~ /^\/api\// }
-
-
-sub is_insecurepass {
-    config->{password_db} && PWLookup::lookup(config->{password_db}, shift)
-}
 
 # Test uniqueness of a username in the database. Usernames with similar
 # homographs are considered duplicate.

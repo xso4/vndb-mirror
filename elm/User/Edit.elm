@@ -415,6 +415,12 @@ view model =
             , if model.passNeq
               then b [ class "standout" ] [ text "Passwords do not match" ]
               else text ""
+            , case model.state of
+                Api.Error e ->
+                  if e == GApi.InsecurePass || e == GApi.BadCurPass
+                  then b [ class "standout" ] [ text <| Api.showResponse e ]
+                  else text ""
+                _ -> text ""
             ]
           ])]]
         ]

@@ -19,10 +19,6 @@
         mail_sendmail   => 'log',
     },
 
-    # Uncomment if you want to test password strength against a dictionary. See
-    # lib/PWLookup.pm for instructions on how to create the database file.
-    #password_db => 'data/passwords.dat',
-
     # Options for Multi, the background server.
     Multi => {
         # Each module in lib/Multi/ can be enabled and configured here.

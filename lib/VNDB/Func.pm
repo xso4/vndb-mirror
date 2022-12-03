@@ -4,8 +4,9 @@ use strict;
 use warnings;
 use TUWF::Misc 'uri_escape';
 use Exporter 'import';
-use POSIX 'strftime';
+use POSIX 'strftime', 'floor';
 use Socket 'inet_pton', 'inet_ntop', 'AF_INET', 'AF_INET6';
+use Digest::SHA 'sha1';
 use VNDB::Config;
 use VNDB::Types;
 use VNDB::BBCode;
@@ -24,6 +25,7 @@ our @EXPORT = ('bb_format', qw|
   lang_attr
   query_encode
   md2html
+  is_insecurepass
 |);
 
 
@@ -290,6 +292,35 @@ sub md2html {
     $html =~ s/<code>/<pre>/g;
     $html =~ s#</code>#</pre>#g;
     $html
+}
+
+
+sub is_insecurepass {
+    my $hash = sha1 shift;
+    my $dir = config->{root}.'/data/hibp';
+    return 0 if !-d $dir;
+
+    my $prefix = uc unpack 'H4', $hash;
+    my $data = substr $hash, 2, 10;
+    my $F;
+    if(!open $F, '<', "$dir/$prefix") {
+        warn "Unable to lookup password prefix $prefix: $!";
+        return 0;
+    }
+
+    # Plain old binary search.
+    # Would be nicer to search through an mmap'ed view of the file, or at least
+    # use pread(), but alas, neither are easily available in Perl.
+    my($left, $right) = (0, -10 + -s $F);
+    while($left <= $right) {
+        my $off = floor(($left+$right)/20)*10;
+        sysseek $F, $off, 0 or die $!;
+        10 == sysread $F, my $buf, 10 or die $!;
+        return 1 if $buf eq $data;
+        if($buf lt $data) { $left = $off + 10; }
+        else {              $right = $off - 10; }
+    }
+    0;
 }
 
 1;
