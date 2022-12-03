@@ -1032,6 +1032,15 @@ cup
 age
 :   Integer, possibly null, years.
 
+birthday
+:   Possibly null, otherwise an array of two integers: month and day,
+    respectively.
+
+sex
+:   Possibly null, otherwise an array of two strings: the character's apparent
+    (non-spoiler) sex and the character's real (spoiler) sex. Possible values
+    are `null`, `"m"`, `"f"` or `"b"` (meaning "both").
+
 vns
 :   Array of objects, visual novels this character appears in. The same visual
     novel may be listed multiple times with a different release; the spoiler
@@ -1063,7 +1072,7 @@ traits.lie
 traits.\*
 :   All [trait fields](#trait-fields) are available here.
 
-*Missing: sex, instances, voice actor*
+*Missing: instances, voice actor*
 
 
 ## POST /staff

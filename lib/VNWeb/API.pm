@@ -681,6 +681,8 @@ api_query '/character',
         hips     => { select => 'c.s_hip AS hips', @NINT },
         cup      => { select => 'c.cup_size AS cup', @NSTR },
         age      => { select => 'c.age' },
+        birthday => { select => 'CASE WHEN c.b_month = 0 THEN NULL ELSE ARRAY[c.b_month, NULLIF(c.b_day, 0)]::int[] END AS birthday' },
+        sex      => { select => "NULLIF(ARRAY[NULLIF(c.gender, 'unknown'), NULLIF(COALESCE(c.spoil_gender, c.gender), 'unknown')]::text[], '{NULL,NULL}') AS sex" },
         vns      => {
             enrich => sub { sql 'SELECT cv.id AS cid, v.id', $_[0], 'FROM chars_vns cv JOIN vnt v ON v.id = cv.vid', $_[1], 'WHERE NOT v.hidden AND cv.id IN', $_[2] },
             key => 'id', col => 'cid', num => 3,
