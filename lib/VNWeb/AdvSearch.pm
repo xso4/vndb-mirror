@@ -873,7 +873,7 @@ sub elm_search_query {
 
 
 sub elm_ {
-    my($self) = @_;
+    my($self, $nobuttons) = @_;
 
     # TODO: labels can be lazily loaded to reduce page weight
     state $schema ||= tuwf->compile({ type => 'hash', keys => {
@@ -882,6 +882,7 @@ sub elm_ {
         defaultSpoil => { uint => 1 },
         saved        => { aoh => { name => {}, query => {} } },
         error        => { anybool => 1 },
+        buttons      => { anybool => 1 },
         query        => $VNWeb::Elm::apis{AdvSearchQuery}[0],
     }});
     VNWeb::HTML::elm_ 'AdvSearch.Main', $schema, {
@@ -890,6 +891,7 @@ sub elm_ {
         defaultSpoil => auth->pref('spoilers')||0,
         saved        => auth ? tuwf->dbAlli('SELECT name, query FROM saved_queries WHERE uid =', \auth->uid, ' AND qtype =', \$self->{type}, 'ORDER BY name') : [],
         error        => $self->{error}?1:0,
+        buttons      => !$nobuttons,
         query        => $self->elm_search_query(),
     };
 }

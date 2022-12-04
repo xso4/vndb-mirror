@@ -100,25 +100,28 @@ sub opt {
 
     my $opt =
         # Presets
-        tuwf->reqGet('vnlist')   ? { mul => 0, p => 1, l => [1,2,3,4,7,-1,0], s => $s_vnlist,   load 'vnlist' } :
-        tuwf->reqGet('votes')    ? { mul => 0, p => 1, l => [7],              s => $s_votes,    load 'votes'  } :
-        tuwf->reqGet('wishlist') ? { mul => 0, p => 1, l => [5],              s => $s_wishlist, load 'wish'   } :
+        tuwf->reqGet('vnlist')   ? { mul => 0, p => 1, l => [1,2,3,4,7,-1,0], f => '', s => $s_vnlist,   load 'vnlist' } :
+        tuwf->reqGet('votes')    ? { mul => 0, p => 1, l => [7],              f => '', s => $s_votes,    load 'votes'  } :
+        tuwf->reqGet('wishlist') ? { mul => 0, p => 1, l => [5],              f => '', s => $s_wishlist, load 'wish'   } :
         # Full options
         tuwf->validate(get =>
             p => { upage => 1 },
-            ch=> { onerror => undef, enum => [ 'a'..'z', 0 ] },
+            ch=> { onerror => [], type => 'array', scalar => 1, values => { onerror => undef, enum => ['0', 'a'..'z'] } },
             q => { onerror => undef },
             %VNWeb::ULists::Elm::SAVED_OPTS,
             # Compat for old URLs
             o => { onerror => undef, enum => ['a', 'd'] },
             c => { onerror => undef, type => 'array', scalar => 1, values => { enum => [qw[ label vote voted added modified started finished rel rating ]] } },
         )->data;
+    $opt->{ch} = $opt->{ch}[0];
 
     $opt->{s} .= "/$opt->{o}" if $opt->{o};
     $opt->{s} = tuwf->compile({ tableopts => $TABLEOPTS })->validate($opt->{s})->data;
     $opt->{s} = $opt->{s}->vis_param($opt->{c}->@*) if $opt->{c};
     delete $opt->{o};
     delete $opt->{c};
+
+    $opt->{f} = tuwf->compile({ advsearch_err => 'v' })->validate($opt->{f})->data;
 
     # $labels only includes labels we are allowed to see, getting rid of any labels in 'l' that aren't in $labels ensures we only filter on visible labels
     my %accessible_labels = map +($_->{id}, 1), @$filtlabels;
@@ -139,16 +142,18 @@ sub filters_ {
         txt_ " ($_->{count})";
     }
 
-    input_ type => 'hidden', name => 'ch', value => $opt->{ch} if defined $opt->{ch};
-    p_ class => 'labelfilters', sub {
+    div_ class => 'labelfilters', sub {
+        # Implicit behavior alert: pressing enter in this input will activate
+        # the *first* submit button in the form, which happens to be the "ALL"
+        # character selector. Let's just pretend that is intended behavior.
         input_ type => 'text', class => 'text', name => 'q', value => $opt->{q}||'', style => 'width: 500px', placeholder => 'Search', tabindex => 10;
         br_;
-        # XXX: Rather silly that everything in this form is a form element except for the alphabet filter. Meh, behavior seems intuitive enough.
         span_ class => 'browseopts', sub {
-            a_ href => $url->(ch => $_, p => undef), ($_//'') eq ($opt->{ch}//'') ? (class => 'optselected') : (), !defined($_) ? 'ALL' : $_ ? uc $_ : '#'
+            button_ type => 'submit', name => 'ch', value => ($_//''), ($_//'') eq ($opt->{ch}//'') ? (class => 'optselected') : (), !defined $_ ? 'ALL' : $_ ? uc $_ : '#'
                 for (undef, 'a'..'z', 0);
         };
-        br_;
+        input_ type => 'hidden', name => 'ch', value => $opt->{ch}//'';
+        $opt->{f}->elm_(1);
         span_ class => 'linkradio', sub {
             join_ sub { em_ ' / ' }, \&lblfilt_, grep $_->{id} < 10, @$filtlabels;
 
@@ -275,6 +280,7 @@ sub listing_ {
 
     my $where = sql_and
         sql('uv.uid =', \$uid),
+        $opt->{f}->sql_where(),
         $own ? () : 'NOT uv.c_private',
         @where_vns ? sql_or(@where_vns) : (),
         $opt->{q} ? sql 'v.c_search LIKE ALL (search_query(', \$opt->{q}, '))' : (),
@@ -391,7 +397,7 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
                     elm_ 'UList.ManageLabels' if $own;
                     elm_ 'UList.SaveDefault', $VNWeb::ULists::Elm::SAVED_OPTS_OUT, {
                         uid => $u->{id},
-                        opts => { l => $opt->{l}, mul => $opt->{mul}, s => $opt->{s}->query_encode() },
+                        opts => { l => $opt->{l}, mul => $opt->{mul}, s => $opt->{s}->query_encode(), f => $opt->{f}->query_encode() },
                     } if $own;
                     div_ class => 'hidden exportlist', sub {
                         b_ 'Export your list';

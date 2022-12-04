@@ -945,15 +945,10 @@ div.lengthlist {
 }
 
 
-/***** Wishlist browser ******/
-
-.wishlist .tc1     { padding-top: 0; padding-bottom: 0; }
-.wishlist tfoot td { padding: 0 0 0 25px }
-
-
-/***** New User's VN list *****/
+/***** User's VN list *****/
 
 .labelfilters { text-align: center }
+.labelfilters > * { text-align: left }
 .labelfilters input.submit { margin-top: 5px }
 
 .managelabels > div { width: 600px; margin: 10px auto }

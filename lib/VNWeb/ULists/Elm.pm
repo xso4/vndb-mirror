@@ -275,6 +275,7 @@ our %SAVED_OPTS = (
     l   => { onerror => [], type => 'array', scalar => 1, values => { int => 1 } },
     mul => { anybool => 1 },
     s   => { onerror => '' }, # TableOpts query string
+    f   => { onerror => '' }, # AdvSearch
 );
 
 my $SAVED_OPTS = {

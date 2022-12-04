@@ -38,6 +38,7 @@ type alias Recv =
   , defaultSpoil : Int
   , saved        : List SQuery
   , error        : Bool
+  , buttons      : Bool
   , query        : GApi.ApiAdvSearchQuery
   }
 
@@ -48,6 +49,7 @@ type alias Model =
   , qtype      : QType
   , data       : Data
   , error      : Bool
+  , buttons    : Bool
   , saved      : List SQuery
   , saveState  : Api.State
   , saveDd     : DD.Config Msg
@@ -146,6 +148,7 @@ init arg =
       , qtype      = qtype
       , data       = ndat
       , error      = arg.error
+      , buttons    = arg.buttons
       , saved      = arg.saved
       , saveState  = Api.Normal
       , saveDd     = DD.init "xsearch_save" SaveToggle
@@ -199,7 +202,8 @@ view model = div [ class "xsearch" ] <|
   in
   [ input [ type_ "hidden", id "f", name "f", value encQ ] []
   , Html.map Field (fieldView model.data model.query)
-  , div [ class "optbuttons" ]
+  , if not model.buttons then text "" else
+    div [ class "optbuttons" ]
     [ if model.data.uid == Nothing then text "" else div [ class "elm_dd_button" ]
       [ DD.view model.saveDd model.saveState (text "Save/Load") <| \() ->
         [ div [ class "advheader", style "min-width" "300px" ]
