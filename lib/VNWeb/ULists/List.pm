@@ -154,24 +154,20 @@ sub filters_ {
         };
         input_ type => 'hidden', name => 'ch', value => $opt->{ch}//'';
         $opt->{f}->elm_(1);
-        span_ class => 'linkradio', sub {
+        p_ class => 'linkradio', sub {
             join_ sub { em_ ' / ' }, \&lblfilt_, grep $_->{id} < 10, @$filtlabels;
-
             span_ class => 'hidden', sub {
                 em_ ' || ';
                 input_ type => 'checkbox', name => 'mul', value => 1, id => 'form_l_multi', tabindex => 10, $opt->{mul} ? (checked => 'checked') : ();
                 label_ for => 'form_l_multi', 'Multi-select';
             };
             debug_ $filtlabels;
-        };
-        my @cust = grep $_->{id} >= 10, @$filtlabels;
-        if(@cust) {
-            br_;
-            span_ class => 'linkradio', sub {
+            my @cust = grep $_->{id} >= 10, @$filtlabels;
+            if(@cust) {
+                br_;
                 join_ sub { em_ ' / ' }, \&lblfilt_, @cust;
             }
-        }
-        br_;
+        };
         input_ type => 'submit', class => 'submit', tabindex => 10, value => 'Update filters';
         input_ type => 'button', class => 'submit', tabindex => 10, id => 'managelabels', value => 'Manage labels' if $own;
         input_ type => 'button', class => 'submit', tabindex => 10, id => 'savedefault', value => 'Save as default' if $own;

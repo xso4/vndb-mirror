@@ -948,8 +948,8 @@ div.lengthlist {
 /***** User's VN list *****/
 
 .labelfilters { text-align: center }
-.labelfilters > * { text-align: left }
-.labelfilters input.submit { margin-top: 5px }
+.labelfilters .xsearch { text-align: left }
+.labelfilters .linkradio { padding: 5px }
 
 .managelabels > div { width: 600px; margin: 10px auto }
 .managelabels table { margin: 0 auto }
