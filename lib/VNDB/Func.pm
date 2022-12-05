@@ -7,6 +7,7 @@ use Exporter 'import';
 use POSIX 'strftime', 'floor';
 use Socket 'inet_pton', 'inet_ntop', 'AF_INET', 'AF_INET6';
 use Digest::SHA 'sha1';
+use Encode 'encode_utf8';
 use VNDB::Config;
 use VNDB::Types;
 use VNDB::BBCode;
@@ -296,7 +297,7 @@ sub md2html {
 
 
 sub is_insecurepass {
-    my $hash = sha1 shift;
+    my $hash = sha1 encode_utf8 shift;
     my $dir = config->{root}.'/data/hibp';
     return 0 if !-d $dir;
 
