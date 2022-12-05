@@ -184,20 +184,28 @@ sub infobox_relations_ {
 
     my %rel;
     push $rel{$_->{relation}}->@*, $_ for sort { $b->{official} <=> $a->{official} || $a->{c_released} <=> $b->{c_released} || $a->{title} cmp $b->{title} } $v->{relations}->@*;
+    my $unoffcount = grep !$_->{official}, $v->{relations}->@*;
 
     tr_ sub {
         td_ 'Relations';
-        td_ class => 'relations', sub { dl_ sub {
-            for(sort keys %rel) {
-                dt_ $VN_RELATION{$_}{txt};
-                dd_ sub {
-                    join_ \&br_, sub {
-                        b_ class => 'grayedout', '[unofficial] ' if !$_->{official};
-                        a_ href => "/$_->{vid}", title => $_->{alttitle}||$_->{title}, shorten $_->{title}, 40;
-                    }, $rel{$_}->@*;
+        td_ class => 'relations linkradio', sub {
+            if($unoffcount >= 3) {
+                input_ type => 'checkbox', id => 'unoffrelations', class => 'visuallyhidden';
+                label_ for => 'unoffrelations', "unofficial ($unoffcount)";
+            }
+            dl_ sub {
+                for(sort keys %rel) {
+                    my @allunoff = (!grep $_->{official}, $rel{$_}->@*) ? (class => 'unofficial') : ();
+                    dt_ @allunoff, $VN_RELATION{$_}{txt};
+                    dd_ @allunoff, sub {
+                        p_ class => $_->{official} ? undef : 'unofficial', sub {
+                            b_ class => 'grayedout', '[unofficial] ' if !$_->{official};
+                            a_ href => "/$_->{vid}", title => $_->{alttitle}||$_->{title}, shorten $_->{title}, 40;
+                        } for $rel{$_}->@*;
+                    }
                 }
             }
-        }}
+        }
     }
 }
 

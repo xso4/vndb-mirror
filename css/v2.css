@@ -516,6 +516,8 @@ div.vndetails td.titles table  { margin-left: 96px }
 div.vndetails tr.title td     { padding: 0 0px }
 div.vndetails td.relations dt { float: none; font-style: normal; }
 div.vndetails td.relations dd { margin-left: 15px; }
+div.vndetails td.relations label { float: right }
+div.vndetails td.relations input:not(:checked) ~ dl .unofficial { display: none }
 div.vndetails td.anime b      { font-size: 10px; font-weight: normal; padding-right: 4px; }
 div.vndetails .lengthvotefrm {
     margin-top: -18px; text-align: right;
