@@ -198,7 +198,7 @@ sub sql_order {
 
 
 # Returns whether the given column key is visible.
-sub vis { $_[0][0] & (1 << (12+$_[0][1]{columns}{$_[1]}{vis_id})) }
+sub vis { my $c = $_[0][1]{columns}{$_[1]}; $c && $c->{vis_id} && ($_[0][0] & (1 << (12+$c->{vis_id}))) }
 
 # Given a list of column names, return a new object with only these columns visible
 sub vis_param {

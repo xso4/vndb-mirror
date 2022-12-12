@@ -119,7 +119,7 @@ sub vns_ {
         ) : [];
     } || (($count, $list) = (undef, []));
 
-    VNWeb::VN::List::enrich_listing $opt, $list;
+    VNWeb::VN::List::enrich_listing 1, $opt, $list;
     $time = time - $time;
 
     form_ action => "/$t->{id}", method => 'get', sub {

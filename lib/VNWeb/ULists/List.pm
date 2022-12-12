@@ -132,10 +132,15 @@ sub vn_ {
             } if $own && ($v->{vote} || sprintf('%08d', $v->{c_released}||0) < strftime '%Y%m%d', gmtime);
         } if $opt->{s}->vis('vote');
 
+        td_ class => 'tc_pop',   sprintf '%.2f', ($v->{c_popularity}||0)/100 if $opt->{s}->vis('popularity');
         td_ class => 'tc_rating', sub {
             txt_ sprintf '%.2f', ($v->{c_rating}||0)/100;
             b_ class => 'grayedout', sprintf ' (%d)', $v->{c_votecount};
         } if $opt->{s}->vis('rating');
+        td_ class => 'tc_average',sub {
+            txt_ sprintf '%.2f', ($v->{c_average}||0)/100;
+            b_ class => 'grayedout', sprintf ' (%d)', $v->{c_votecount} if !$opt->{s}->vis('rating');
+        } if $opt->{s}->vis('average');
 
         td_ class => 'tc_labels', sub {
             my @l = grep $labels{$_->{id}} && $_->{id} != 7, @$labels;
@@ -177,17 +182,7 @@ sub vn_ {
         } if $opt->{s}->vis('finished');
 
         td_ class => 'tc_rel', sub { rdate_ $v->{c_released} } if $opt->{s}->vis('released');
-
         td_ class => 'tc_length',sub { VNWeb::VN::List::len_($v) } if $opt->{s}->vis('length');
-        td_ class => 'tc_pop',   sprintf '%.2f', ($v->{c_popularity}||0)/100 if $opt->{s}->vis('popularity');
-        td_ class => 'tc_rating',sub {
-            txt_ sprintf '%.2f', ($v->{c_rating}||0)/100;
-            b_ class => 'grayedout', sprintf ' (%d)', $v->{c_votecount};
-        } if $opt->{s}->vis('rating');
-        td_ class => 'tc_average',sub {
-            txt_ sprintf '%.2f', ($v->{c_average}||0)/100;
-            b_ class => 'grayedout', sprintf ' (%d)', $v->{c_votecount} if !$opt->{s}->vis('rating');
-        } if $opt->{s}->vis('average');
     };
 
     tr_ mkclass(hidden => 1, 'collapsed_vid'.$v->{id} => 1, odd => $n % 2 == 0), sub {
@@ -246,11 +241,12 @@ sub listing_ {
          ORDER BY r.released, r.sorttitle, r.id'
     }, $lst;
     enrich_release_elm map $_->{rels}, @$lst;
-    VNWeb::VN::List::enrich_listing($opt, $lst);
+    VNWeb::VN::List::enrich_listing(auth && auth->uid eq $uid && !$opt->{s}->rows(), $opt, $lst);
 
+    return VNWeb::VN::List::listing_($opt, $lst, $count, 0, $labels) if !$opt->{s}->rows;
+
+    # TODO: Consolidate the 'rows' listing with VN::List as well
     paginate_ $url, $opt->{p}, [$count, $opt->{s}->results], 't', sub { $opt->{s}->elm_ };
-
-    # TODO: Consolidate listing with VN::List
     div_ class => 'mainbox browse ulist', sub {
         table_ sub {
             thead_ sub { tr_ sub {
@@ -260,7 +256,9 @@ sub listing_ {
                 };
                 td_ class => 'tc_voted',    sub { txt_ 'Vote date';   sortable_ 'voted',    $opt, $url } if $opt->{s}->vis('voted');
                 td_ class => 'tc_vote',     sub { txt_ 'Vote';        sortable_ 'vote',     $opt, $url } if $opt->{s}->vis('vote');
+                td_ class => 'tc_pop',      sub { txt_ 'Popularity';  sortable_ 'popularity', $opt, $url } if $opt->{s}->vis('popularity');
                 td_ class => 'tc_rating',   sub { txt_ 'Rating';      sortable_ 'rating',   $opt, $url } if $opt->{s}->vis('rating');
+                td_ class => 'tc_average',  sub { txt_ 'Average';     sortable_ 'average',    $opt, $url } if $opt->{s}->vis('average');
                 td_ class => 'tc_labels',   sub { txt_ 'Labels';      sortable_ 'label',    $opt, $url } if $opt->{s}->vis('label');
                 td_ class => 'tc_title',    sub { txt_ 'Title';       sortable_ 'title',    $opt, $url; debug_ $lst };
                 td_ class => 'tc_dev',      'Developer' if $opt->{s}->vis('developer');
@@ -270,9 +268,6 @@ sub listing_ {
                 td_ class => 'tc_finished', sub { txt_ 'Finish date'; sortable_ 'finished', $opt, $url } if $opt->{s}->vis('finished');
                 td_ class => 'tc_rel',      sub { txt_ 'Release date';sortable_ 'released', $opt, $url } if $opt->{s}->vis('released');
                 td_ class => 'tc_length',   'Length' if $opt->{s}->vis('length');
-                td_ class => 'tc_pop',      sub { txt_ 'Popularity';  sortable_ 'popularity', $opt, $url } if $opt->{s}->vis('popularity');
-                td_ class => 'tc_rating',   sub { txt_ 'Rating';      sortable_ 'rating',     $opt, $url } if $opt->{s}->vis('rating');
-                td_ class => 'tc_average',  sub { txt_ 'Average';     sortable_ 'average',    $opt, $url } if $opt->{s}->vis('average');
             }};
             vn_ $uid, $own, $opt, $_, $lst->[$_], $labels for (0..$#$lst);
         };

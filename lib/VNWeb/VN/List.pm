@@ -20,7 +20,7 @@ sub TABLEOPTS {
 
     tableopts
         _pref => $tags ? 'tableopts_vt' : $vn ? 'tableopts_v' : undef,
-        _views => $ulist ? ['rows'] : ['rows', 'cards', 'grid'],
+        _views => ['rows', 'cards', 'grid'],
         $tags ? (tagscore => {
             name => 'Tag score',
             compat => 'tagscore',
@@ -169,7 +169,7 @@ sub len_ {
 
 # Also used by VNWeb::TT::TagPage
 sub listing_ {
-    my($opt, $list, $count, $tagscore) = @_;
+    my($opt, $list, $count, $tagscore, $labels) = @_;
 
     my sub url { '?'.query_encode %$opt, @_ }
 
@@ -225,10 +225,12 @@ sub listing_ {
             span_ $label if !$canlink;
         }
         lnk_ "/$_->{id}", $_->{alttitle}||$_->{title}, $_->{title};
-        br_;
-        join_ '', sub { platform_ $_ if $_ ne 'unk' }, sort $_->{platforms}->@*;
-        join_ '', sub { abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' }, reverse sort $_->{lang}->@*;
-        rdate_ $_->{c_released};
+        if(!$labels || $opt->{s}->vis('released')) {
+            br_;
+            join_ '', sub { platform_ $_ if $_ ne 'unk' }, sort $_->{platforms}->@*;
+            join_ '', sub { abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' }, reverse sort $_->{lang}->@*;
+            rdate_ $_->{c_released};
+        }
         if($opt->{s}->vis('developer')) {
             br_;
             join_ ' & ', sub {
@@ -244,6 +246,37 @@ sub listing_ {
                 td_ 'Length';
                 td_ sub { len_ $_ };
             } if $opt->{s}->vis('length');
+            tr_ sub {
+                td_ $opt->{s}->vis('vote') ? 'Vote:' : 'Voted:';
+                td_ sub {
+                    txt_ fmtvote $_->{vote} if $opt->{s}->vis('vote');
+                    txt_ ' on '.($_->{vote_date} ? fmtdate $_->{vote_date}, 'compact' : '-') if $opt->{s}->vis('voted');
+                }
+            } if $opt->{s}->vis('vote') || $opt->{s}->vis('voted');
+            tr_ sub {
+                td_ 'Labels:';
+                td_ sub {
+                    my %labels = map +($_,1), $_->{labels}->@*;
+                    my @l = grep $labels{$_->{id}} && $_->{id} != 7, @$labels;
+                    txt_ @l ? join ', ', map $_->{label}, @l : '-';
+                };
+            } if $opt->{s}->vis('label');
+            tr_ sub {
+                td_ 'Added on:';
+                td_ fmtdate $_->{added}, 'compact';
+            } if $opt->{s}->vis('added');
+            tr_ sub {
+                td_ 'Modified on:';
+                td_ fmtdate $_->{lastmod}, 'compact';
+            } if $opt->{s}->vis('modified');
+            tr_ sub {
+                td_ 'Started:';
+                td_ $_->{started}||'-';
+            } if $opt->{s}->vis('started');
+            tr_ sub {
+                td_ 'Finished:';
+                td_ $_->{finished}||'-';
+            } if $opt->{s}->vis('finished');
             tr_ sub {
                 td_ 'Popularity:';
                 td_ sprintf '%.2f', ($_->{c_popularity}||0)/100;
@@ -297,18 +330,16 @@ sub listing_ {
 # Enrich some extra fields fields needed for listing_()
 # Also used by TT::TagPage and UList::List
 sub enrich_listing {
-    my $opt = shift;
+    my($widget, $opt, @lst) = @_;
 
     enrich developers => id => vid => sub {
         'SELECT v.id AS vid, p.id, p.name, p.original
            FROM vn v, unnest(v.c_developers) vp(id), producers p
           WHERE p.id = vp.id AND v.id IN', $_[0], 'ORDER BY p.name, p.id'
-    }, @_ if $opt->{s}->vis('developer');
+    }, @lst if $opt->{s}->vis('developer');
 
-    enrich_image_obj image => @_ if !$opt->{s}->rows;
-
-    # TODO: The UList widget is redundant on UList, for now. Needs better intergation.
-    enrich_ulists_widget @_ if !$opt->{l};
+    enrich_image_obj image => @lst if !$opt->{s}->rows;
+    enrich_ulists_widget @lst if $widget;
 }
 
 
@@ -370,7 +401,7 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
 
     return tuwf->resRedirect("/$list->[0]{id}") if $count && $count == 1 && $opt->{q} && !defined $opt->{ch};
 
-    enrich_listing($opt, $list);
+    enrich_listing(1, $opt, $list);
     $time = time - $time;
 
     framework_ title => 'Browse visual novels', sub {
