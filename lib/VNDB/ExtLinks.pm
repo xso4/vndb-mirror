@@ -91,7 +91,7 @@ our %LINKS = (
                       , patt  => 'https://www.dlsite.com/<store>/work/=/product_id/<VJ or RJ-code>' },
         l_gog      => { label => 'GOG'
                       , fmt   => 'https://www.gog.com/game/%s'
-                      , regex => qr{(?:www\.)?gog\.com/game/([a-z0-9_]+).*} },
+                      , regex => qr{(?:www\.)?gog\.com/(?:[a-z]{2}/)?game/([a-z0-9_]+).*} },
         l_itch     => { label => 'Itch.io'
                       , fmt   => 'https://%s'
                       , regex => qr{([a-z0-9_-]+\.itch\.io/[a-z0-9_-]+)}
