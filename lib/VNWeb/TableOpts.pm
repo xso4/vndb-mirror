@@ -96,6 +96,7 @@ sub tableopts {
         views     => [], # supported views, as numbers
         default   => 0,  # default settings, integer form
     );
+    my @vis;
     while(@_) {
         my($k,$v) = (shift,shift);
         if($k eq '_views') {
@@ -109,12 +110,17 @@ sub tableopts {
         $o{columns}{$k} = $v;
         $v->{id} = $k;
         push $o{col_order}->@*, $v;
-        $o{sort_ids}[$v->{sort_id}] = $v if defined $v->{sort_id};
+        if(defined $v->{sort_id}) {
+            die "Duplicate sort_id $v->{sort_id}\n" if $o{sort_ids}[$v->{sort_id}];
+            $o{sort_ids}[$v->{sort_id}] = $v;
+        }
+        die "Duplicate vis_id $v->{vis_id}\n" if defined $v->{vis_id} && $vis[$v->{vis_id}]++;
         $o{default} |= ($v->{sort_id} << 6) | ({qw|asc 0 desc 32|}->{$v->{sort_default}}//croak("unknown sort_default: $v->{sort_default}")) if $v->{sort_default};
         $o{default} |= 1 << ($v->{vis_id} + 12) if $v->{vis_default};
     }
     $o{views} ||= [0];
     $o{default} |= $o{views}[0];
+    #warn "=== ".($o{pref}||'undef')."\n"; dump_ids(\%o);
     \%o
 }
 
@@ -238,6 +244,19 @@ sub elm_ {
             TUWF::XML::input_ type => 'hidden', name => 's', value => $self->query_encode if defined $self->query_encode
         }
     };
+}
+
+
+# Helpful debugging function, dumps a quick overview of assigned numeric
+# identifiers for the given opts.
+sub dump_ids {
+    my($o) = @_;
+    warn sprintf "sort %2d  %s\n", $_->{sort_id}, $_->{name}
+        for sort { $a->{sort_id} <=> $b->{sort_id} }
+            grep defined $_->{sort_id}, values $o->{col_order}->@*;
+    warn sprintf "vis %2d  %s\n", $_->{vis_id}, $_->{name}
+        for sort { $a->{vis_id} <=> $b->{vis_id} }
+            grep defined $_->{vis_id}, values $o->{col_order}->@*;
 }
 
 1;

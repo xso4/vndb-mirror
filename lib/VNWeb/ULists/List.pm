@@ -5,85 +5,7 @@ use VNWeb::ULists::Lib;
 use VNWeb::Releases::Lib;
 
 
-my $TABLEOPTS = tableopts
-    title => {
-        name => 'Title',
-        sort_sql => 'v.sorttitle',
-        sort_id => 0,
-        compat => 'title',
-        sort_default => 'asc',
-    },
-    voted => {
-        name => 'Vote date',
-        sort_sql => 'uv.vote_date',
-        sort_id => 1,
-        sort_num => 1,
-        vis_id => 0,
-        compat => 'voted'
-    },
-    vote => {
-        name => 'Vote',
-        sort_sql => 'uv.vote',
-        sort_id => 2,
-        sort_num => 1,
-        vis_id => 1,
-        compat => 'vote'
-    },
-    rating => {
-        name => 'Rating',
-        sort_sql => 'v.c_rating',
-        sort_id => 3,
-        sort_num => 1,
-        vis_id => 2,
-        compat => 'rating'
-    },
-    label => {
-        name => 'Labels',
-        sort_sql => sql('ARRAY(SELECT ul.label FROM unnest(uv.labels) l(id) JOIN ulist_labels ul ON ul.id = l.id WHERE ul.uid = uv.uid AND l.id <> ', \7, ')'),
-        sort_id => 4,
-        vis_id => 3,
-        compat => 'label'
-    },
-    added => {
-        name => 'Added',
-        sort_sql => 'uv.added',
-        sort_id => 5,
-        sort_num => 1,
-        vis_id => 4,
-        compat => 'added'
-    },
-    modified => {
-        name => 'Modified',
-        sort_sql => 'uv.lastmod',
-        sort_id => 6,
-        sort_num => 1,
-        vis_id => 5,
-        compat => 'modified'
-    },
-    started => {
-        name => 'Start date',
-        sort_sql => 'uv.started',
-        sort_id => 7,
-        sort_num => 1,
-        vis_id => 6,
-        compat => 'started'
-    },
-    finished => {
-        name => 'Finish date',
-        sort_sql => 'uv.finished',
-        sort_id => 8,
-        sort_num => 1,
-        vis_id => 7,
-        compat => 'finished'
-    },
-    rel => {
-        name => 'Release date',
-        sort_sql => 'v.c_released',
-        sort_id => 9,
-        sort_num => 1,
-        vis_id => 8,
-        compat => 'rel'
-    };
+my $TABLEOPTS = VNWeb::VN::List::TABLEOPTS('ulist');
 
 
 sub opt {
@@ -231,6 +153,11 @@ sub vn_ {
             a_ href => "/$v->{id}", title => $v->{alttitle}||$v->{title}, shorten $v->{title}, 70;
             b_ class => 'grayedout', id => 'ulist_notes_'.$v->{id}, $v->{notes} if $v->{notes} || $own;
         };
+        td_ class => 'tc_dev',   sub {
+            join_ ' & ', sub {
+                a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
+            }, sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} } $v->{developers}->@*;
+        } if $opt->{s}->vis('developer');
 
         td_ class => 'tc_added',    fmtdate $v->{added},     'compact' if $opt->{s}->vis('added');
         td_ class => 'tc_modified', fmtdate $v->{lastmod},   'compact' if $opt->{s}->vis('modified');
@@ -249,7 +176,18 @@ sub vn_ {
             } if $own;
         } if $opt->{s}->vis('finished');
 
-        td_ class => 'tc_rel', sub { rdate_ $v->{c_released} } if $opt->{s}->vis('rel');
+        td_ class => 'tc_rel', sub { rdate_ $v->{c_released} } if $opt->{s}->vis('released');
+
+        td_ class => 'tc_length',sub { VNWeb::VN::List::len_($v) } if $opt->{s}->vis('length');
+        td_ class => 'tc_pop',   sprintf '%.2f', ($v->{c_popularity}||0)/100 if $opt->{s}->vis('popularity');
+        td_ class => 'tc_rating',sub {
+            txt_ sprintf '%.2f', ($v->{c_rating}||0)/100;
+            b_ class => 'grayedout', sprintf ' (%d)', $v->{c_votecount};
+        } if $opt->{s}->vis('rating');
+        td_ class => 'tc_average',sub {
+            txt_ sprintf '%.2f', ($v->{c_average}||0)/100;
+            b_ class => 'grayedout', sprintf ' (%d)', $v->{c_votecount} if !$opt->{s}->vis('rating');
+        } if $opt->{s}->vis('average');
     };
 
     tr_ mkclass(hidden => 1, 'collapsed_vid'.$v->{id} => 1, odd => $n % 2 == 0), sub {
@@ -285,10 +223,13 @@ sub listing_ {
     my $count = tuwf->dbVali('SELECT count(*) FROM ulist_vns uv JOIN vnt v ON v.id = uv.vid WHERE', $where);
 
     my $lst = tuwf->dbPagei({ page => $opt->{p}, results => $opt->{s}->results },
-        'SELECT v.id, v.title, v.alttitle, uv.vote, uv.notes, uv.labels, uv.started, uv.finished, v.c_rating, v.c_votecount, v.c_released
+        'SELECT v.id, v.title, v.alttitle, uv.vote, uv.notes, uv.labels, uv.started, uv.finished
+              , v.c_released, v.c_popularity, v.c_average, v.c_rating, v.c_votecount, v.c_released
+              , v.image, v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang
               ,', sql_totime('uv.added'), ' as added
               ,', sql_totime('uv.lastmod'), ' as lastmod
-              ,', sql_totime('uv.vote_date'), ' as vote_date
+              ,', sql_totime('uv.vote_date'), ' as vote_date',
+                 $opt->{s}->vis('length') ? ', v.length, v.c_length, v.c_lengthnum' : (), '
            FROM ulist_vns uv
            JOIN vnt v ON v.id = uv.vid
           WHERE', $where, '
@@ -305,8 +246,11 @@ sub listing_ {
          ORDER BY r.released, r.sorttitle, r.id'
     }, $lst;
     enrich_release_elm map $_->{rels}, @$lst;
+    VNWeb::VN::List::enrich_listing($opt, $lst);
 
     paginate_ $url, $opt->{p}, [$count, $opt->{s}->results], 't', sub { $opt->{s}->elm_ };
+
+    # TODO: Consolidate listing with VN::List
     div_ class => 'mainbox browse ulist', sub {
         table_ sub {
             thead_ sub { tr_ sub {
@@ -319,11 +263,16 @@ sub listing_ {
                 td_ class => 'tc_rating',   sub { txt_ 'Rating';      sortable_ 'rating',   $opt, $url } if $opt->{s}->vis('rating');
                 td_ class => 'tc_labels',   sub { txt_ 'Labels';      sortable_ 'label',    $opt, $url } if $opt->{s}->vis('label');
                 td_ class => 'tc_title',    sub { txt_ 'Title';       sortable_ 'title',    $opt, $url; debug_ $lst };
+                td_ class => 'tc_dev',      'Developer' if $opt->{s}->vis('developer');
                 td_ class => 'tc_added',    sub { txt_ 'Added';       sortable_ 'added',    $opt, $url } if $opt->{s}->vis('added');
                 td_ class => 'tc_modified', sub { txt_ 'Modified';    sortable_ 'modified', $opt, $url } if $opt->{s}->vis('modified');
                 td_ class => 'tc_started',  sub { txt_ 'Start date';  sortable_ 'started',  $opt, $url } if $opt->{s}->vis('started');
                 td_ class => 'tc_finished', sub { txt_ 'Finish date'; sortable_ 'finished', $opt, $url } if $opt->{s}->vis('finished');
-                td_ class => 'tc_rel',      sub { txt_ 'Release date';sortable_ 'rel',      $opt, $url } if $opt->{s}->vis('rel');
+                td_ class => 'tc_rel',      sub { txt_ 'Release date';sortable_ 'released', $opt, $url } if $opt->{s}->vis('released');
+                td_ class => 'tc_length',   'Length' if $opt->{s}->vis('length');
+                td_ class => 'tc_pop',      sub { txt_ 'Popularity';  sortable_ 'popularity', $opt, $url } if $opt->{s}->vis('popularity');
+                td_ class => 'tc_rating',   sub { txt_ 'Rating';      sortable_ 'rating',     $opt, $url } if $opt->{s}->vis('rating');
+                td_ class => 'tc_average',  sub { txt_ 'Average';     sortable_ 'average',    $opt, $url } if $opt->{s}->vis('average');
             }};
             vn_ $uid, $own, $opt, $_, $lst->[$_], $labels for (0..$#$lst);
         };

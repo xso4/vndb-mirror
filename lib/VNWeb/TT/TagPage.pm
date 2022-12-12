@@ -65,7 +65,7 @@ sub infobox_ {
 }
 
 
-my $TABLEOPTS = VNWeb::VN::List::TABLEOPTS(1);
+my $TABLEOPTS = VNWeb::VN::List::TABLEOPTS('tags');
 
 
 sub vns_ {

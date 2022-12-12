@@ -7,11 +7,20 @@ use VNWeb::Images::Lib;
 use VNWeb::ULists::Lib;
 use VNWeb::TT::Lib 'tagscore_';
 
-# Returns the tableopts config for this VN list (0) or the VN listing on tags (1).
+# Returns the tableopts config for:
+# - this VN list ('vn')
+# - the VN listing on tags ('tags')
+# - a user's VN list ('ulist')
+# The latter has different numeric identifiers, a sad historical artifact. :(
 sub TABLEOPTS {
-    my($tags) = @_;
-    tableopts _pref => $tags ? 'tableopts_vt' : 'tableopts_v',
-        _views => ['rows', 'cards', 'grid'],
+    my $tags = $_[0] eq 'tags';
+    my $vn = $_[0] eq 'vn';
+    my $ulist = $_[0] eq 'ulist';
+    die if !$tags && !$vn && !$ulist;
+
+    tableopts
+        _pref => $tags ? 'tableopts_vt' : $vn ? 'tableopts_v' : undef,
+        _views => $ulist ? ['rows'] : ['rows', 'cards', 'grid'],
         $tags ? (tagscore => {
             name => 'Tag score',
             compat => 'tagscore',
@@ -22,65 +31,141 @@ sub TABLEOPTS {
         title => {
             name => 'Title',
             compat => 'title',
-            sort_id => 1,
+            sort_id => $ulist ? 0 : 1,
             sort_sql => 'v.sorttitle',
             sort_default => $tags ? undef : 'asc',
         },
+        $ulist ? (
+            voted => {
+                name => 'Vote date',
+                sort_sql => 'uv.vote_date',
+                sort_id => 1,
+                sort_num => 1,
+                vis_id => 0,
+                compat => 'voted'
+            },
+            vote => {
+                name => 'Vote',
+                sort_sql => 'uv.vote',
+                sort_id => 2,
+                sort_num => 1,
+                vis_id => 1,
+                compat => 'vote'
+            },
+            rating => {
+                name => 'Rating',
+                sort_sql => 'v.c_rating',
+                sort_id => 3,
+                sort_num => 1,
+                vis_id => 2,
+                compat => 'rating'
+            },
+            label => {
+                name => 'Labels',
+                sort_sql => sql('ARRAY(SELECT ul.label FROM unnest(uv.labels) l(id) JOIN ulist_labels ul ON ul.id = l.id WHERE ul.uid = uv.uid AND l.id <> ', \7, ')'),
+                sort_id => 4,
+                vis_id => 3,
+                compat => 'label'
+            },
+            added => {
+                name => 'Added',
+                sort_sql => 'uv.added',
+                sort_id => 5,
+                sort_num => 1,
+                vis_id => 4,
+                compat => 'added'
+            },
+            modified => {
+                name => 'Modified',
+                sort_sql => 'uv.lastmod',
+                sort_id => 6,
+                sort_num => 1,
+                vis_id => 5,
+                compat => 'modified'
+            },
+            started => {
+                name => 'Start date',
+                sort_sql => 'uv.started',
+                sort_id => 7,
+                sort_num => 1,
+                vis_id => 6,
+                compat => 'started'
+            },
+            finished => {
+                name => 'Finish date',
+                sort_sql => 'uv.finished',
+                sort_id => 8,
+                sort_num => 1,
+                vis_id => 7,
+                compat => 'finished'
+            },
+        ) : (),
         released => {
             name => 'Release date',
             compat => 'rel',
-            sort_id => 2,
+            sort_id => $ulist ? 9 : 2,
             sort_sql => 'v.c_released ?o, v.title',
             sort_num => 1,
+            vis_id => $ulist ? 8 : undef,
         },
         length => {
             name => 'Length',
-            vis_id => 4,
+            vis_id => $ulist ? 9 : 4,
         },
         developer => {
             name => 'Developer',
-            vis_id => 2,
+            vis_id => $ulist ? 10 : 2,
         },
         popularity => {
             name => 'Popularity score',
             compat => 'pop',
-            sort_id => 3,
+            sort_id => $ulist ? 14 : 3,
             sort_sql => 'v.c_pop_rank !o, v.sorttitle',
             sort_num => 1,
-            vis_id => 0,
+            vis_id => $ulist ? 11 : 0,
             vis_default => 1,
         },
         rating => {
             name => 'Bayesian rating',
             compat => 'rating',
-            sort_id => 4,
+            sort_id => $ulist ? 11 : 4,
             sort_sql => 'v.c_rat_rank !o NULLS LAST, v.sorttitle',
             sort_num => 1,
-            vis_id => 1,
+            vis_id => $ulist ? 12 : 1,
             vis_default => 1,
         },
         average => {
             name => 'Vote average',
-            sort_id => 5,
+            sort_id => $ulist ? 12 : 5,
             sort_sql => 'v.c_average ?o NULLS LAST, v.sorttitle',
             sort_num => 1,
-            vis_id => 3,
+            vis_id => $ulist ? 13 : 3,
         },
         votes => {
             name => 'Number of votes',
-            sort_id => 6,
+            sort_id => $ulist ? 13 : 6,
             sort_sql => 'v.c_votecount ?o, v.sorttitle',
             sort_num => 1,
         },
         id => {
-            name => 'Date added',
+            name => $ulist ? 'VN entry added' : 'Date added',
             sort_id => 10,
             sort_sql => 'v.id',
             sort_num => 1,
         };
 }
 
-my $TABLEOPTS = TABLEOPTS 0;
+my $TABLEOPTS = TABLEOPTS 'vn';
+
+sub len_ {
+    my($v) = @_;
+    if ($v->{c_lengthnum}) {
+        vnlength_ $v->{c_length};
+        b_ class => 'grayedout', " ($v->{c_lengthnum})";
+    } elsif($v->{length}) {
+        txt_ $VN_LENGTH{$v->{length}}{txt};
+    }
+}
 
 # Also used by VNWeb::TT::TagPage
 sub listing_ {
@@ -89,16 +174,6 @@ sub listing_ {
     my sub url { '?'.query_encode %$opt, @_ }
 
     paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 't', sub { $opt->{s}->elm_ };
-
-    my sub len_ {
-        my($v) = @_;
-        if ($v->{c_lengthnum}) {
-            vnlength_ $v->{c_length};
-            b_ class => 'grayedout', " ($v->{c_lengthnum})";
-        } elsif($_->{length}) {
-            txt_ $VN_LENGTH{$v->{length}}{txt};
-        }
-    }
 
     div_ class => 'mainbox browse vnbrowse', sub {
         table_ class => 'stripe', sub {
@@ -220,7 +295,7 @@ sub listing_ {
 
 
 # Enrich some extra fields fields needed for listing_()
-# Also used by VNWeb::TT::TagPage
+# Also used by TT::TagPage and UList::List
 sub enrich_listing {
     my $opt = shift;
 
@@ -231,7 +306,9 @@ sub enrich_listing {
     }, @_ if $opt->{s}->vis('developer');
 
     enrich_image_obj image => @_ if !$opt->{s}->rows;
-    enrich_ulists_widget @_;
+
+    # TODO: The UList widget is redundant on UList, for now. Needs better intergation.
+    enrich_ulists_widget @_ if !$opt->{l};
 }
 
 
