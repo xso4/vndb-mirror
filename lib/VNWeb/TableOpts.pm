@@ -198,7 +198,7 @@ sub sql_order {
 
 
 # Returns whether the given column key is visible.
-sub vis { my $c = $_[0][1]{columns}{$_[1]}; $c && $c->{vis_id} && ($_[0][0] & (1 << (12+$c->{vis_id}))) }
+sub vis { my $c = $_[0][1]{columns}{$_[1]}; $c && defined $c->{vis_id} && ($_[0][0] & (1 << (12+$c->{vis_id}))) }
 
 # Given a list of column names, return a new object with only these columns visible
 sub vis_param {
@@ -251,10 +251,10 @@ sub elm_ {
 # identifiers for the given opts.
 sub dump_ids {
     my($o) = @_;
-    warn sprintf "sort %2d  %s\n", $_->{sort_id}, $_->{name}
+    warn sprintf "sort %2d  %s  %s\n", $_->{sort_id}, $_->{id}, $_->{name}
         for sort { $a->{sort_id} <=> $b->{sort_id} }
             grep defined $_->{sort_id}, values $o->{col_order}->@*;
-    warn sprintf "vis %2d  %s\n", $_->{vis_id}, $_->{name}
+    warn sprintf "vis %2d  %s  %s\n", $_->{vis_id}, $_->{id}, $_->{name}
         for sort { $a->{vis_id} <=> $b->{vis_id} }
             grep defined $_->{vis_id}, values $o->{col_order}->@*;
 }
