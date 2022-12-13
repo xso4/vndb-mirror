@@ -803,35 +803,35 @@ sub paginate_ {
 
     my sub tab_ {
         my($page, $label) = @_;
-        li_ sub {
+        li_ class => $page == $p ? 'tabselected' : undef, sub {
             local $_ = $page;
             my $u = $url->(p => $page);
-            a_ href => $u, $label;
+            a_ href => $u,
+                rel => $label && $label =~ /next/ ? 'next' : $label && $label =~ /prev/ ? 'prev' : undef,
+                $label//$page;
         }
     }
     my sub ell_ {
         my($left) = @_;
         li_ mkclass(ellipsis => 1, left => $left), sub { b_ '⋯' };
     }
-    my $nc = 5; # max. number of buttons on each side
 
     div_ class => 'maintabs browsetabs '.($al eq 't' ? '' : 'bottom'), sub {
+        my $n = ceil($cnt/$pp);
+        my $l = $n-$p+1;
         ul_ sub {
-            $p > 2     and ref $np and tab_ 1, '« first';
-            $p > $nc+1 and ref $np and ell_;
-            $p > $_    and ref $np and tab_ $p-$_, $p-$_ for (reverse 2..($nc>$p-2?$p-2:$nc-1));
-            $p > 1                 and tab_ $p-1, '‹ previous';
+            $p > 1 and tab_ $p-1, '‹ previous';
+            if(ref $np) {
+                $p > 3 and tab_ 1;
+                $p > 4 and ell_;
+                $_ > 0 and $_ <= $n and tab_ $_ for ($p-2..$p+2);
+                $l > 4 and ell_;
+                $l > 3 and tab_ $n;
+            }
+            $l > 1 and tab_ $p+1, 'next ›';
         };
 
         $fun->() if $fun;
-
-        ul_ sub {
-            my $l = ceil($cnt/$pp)-$p+1;
-            $l > 1     and tab_ $p+1, 'next ›';
-            $l > $_    and tab_ $p+$_, $p+$_ for (2..($nc>$l-2?$l-2:$nc-1));
-            $l > $nc+1 and ell_;
-            $l > 2     and tab_ $l+$p-1, 'last »';
-        };
     }
 }
 
