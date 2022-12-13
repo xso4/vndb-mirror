@@ -5,7 +5,6 @@ use VNDB::Skins;
 use VNWeb::LangPref;
 
 use Digest::SHA 'sha1';
-use Encode 'encode_utf8';
 
 
 my $FORM = {
@@ -185,7 +184,7 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
             vnrel_langs vnrel_olang vnrel_mtl staffed_langs staffed_olang staffed_unoff
             spoilers skin customcss title_langs alttitle_langs
         /;
-        $setp{customcss_csum} = length $p->{customcss} ? unpack 'q', sha1 encode_utf8 $p->{customcss} : 0;
+        $setp{customcss_csum} = length $p->{customcss} ? unpack 'q', sha1 utf8::encode(local $_=$p->{customcss}) : 0;
         tuwf->dbExeci('DELETE FROM users_traits WHERE id =', \$data->{id});
         tuwf->dbExeci('INSERT INTO users_traits', { id => $data->{id}, tid => $_->{tid} }) for $p->{traits}->@*;
 

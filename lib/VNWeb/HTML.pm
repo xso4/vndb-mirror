@@ -4,7 +4,6 @@ use v5.26;
 use warnings;
 use utf8;
 use Algorithm::Diff::XS 'sdiff', 'compact_diff';
-use Encode 'encode_utf8', 'decode_utf8';
 use JSON::XS;
 use TUWF ':html5_', 'uri_escape', 'html_escape', 'mkclass';
 use Exporter 'import';
@@ -602,8 +601,8 @@ sub _revision_fmtcol_ {
             if($diff) {
                 my $lastchunk = int (($#$diff-2)/2);
                 for my $n (0..$lastchunk) {
-                    my $a = decode_utf8 join '', @{$old}[ $diff->[$n*2]   .. $diff->[$n*2+2]-1 ];
-                    my $b = decode_utf8 join '', @{$new}[ $diff->[$n*2+1] .. $diff->[$n*2+3]-1 ];
+                    utf8::decode(my $a = join '', @{$old}[ $diff->[$n*2]   .. $diff->[$n*2+2]-1 ]);
+                    utf8::decode(my $b = join '', @{$new}[ $diff->[$n*2+1] .. $diff->[$n*2+3]-1 ]);
 
                     # Difference, highlight and display in full
                     if($n % 2) {
@@ -672,8 +671,8 @@ sub _revision_diff_ {
 
         # Do a word-based diff if this is a large chunk of text, otherwise character-based.
         my $split = length $item->[1] > 1024 ? qr/([ ,\n]+)/ : qr//;
-        $item->[1] = [map encode_utf8($_), split $split, $item->[1]];
-        $item->[2] = [map encode_utf8($_), split $split, $item->[2]];
+        $item->[1] = [map { utf8::encode($_); $_ } split $split, $item->[1]];
+        $item->[2] = [map { utf8::encode($_); $_ } split $split, $item->[2]];
         $item->[3] = compact_diff $item->[1], $item->[2];
     }
 

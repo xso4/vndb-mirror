@@ -27,7 +27,6 @@ use Carp 'croak';
 use Digest::SHA qw|sha1 sha1_hex|;
 use Crypt::URandom 'urandom';
 use Crypt::ScryptKDF 'scrypt_raw';
-use Encode 'encode_utf8';
 use MIME::Base64 'encode_base64url';
 
 use VNDB::Func 'norm_ip';
@@ -114,7 +113,8 @@ sub _preparepass {
     my($self, $pass, $salt, $N, $r, $p) = @_;
     ($N, $r, $p) = @{$self->{scrypt_args}} if !$N;
     $salt ||= urandom(8);
-    unpack 'H*', pack 'NCCa8a*', $N, $r, $p, $salt, scrypt_raw(encode_utf8($pass), $self->{scrypt_salt} . $salt, $N, $r, $p, 32);
+    utf8::encode(my $utf8pass = $pass);
+    unpack 'H*', pack 'NCCa8a*', $N, $r, $p, $salt, scrypt_raw($utf8pass, $self->{scrypt_salt} . $salt, $N, $r, $p, 32);
 }
 
 

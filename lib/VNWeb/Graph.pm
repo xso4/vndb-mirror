@@ -5,7 +5,6 @@ package VNWeb::Graph;
 use v5.26;
 use AnyEvent::Util;
 use TUWF::XML 'xml_escape';
-use Encode 'encode_utf8', 'decode_utf8';
 use Exporter 'import';
 use List::Util 'max';
 use VNDB::Config;
@@ -44,7 +43,7 @@ sub gen_nodes {
 sub dot2svg {
     my($dot) = @_;
 
-    $dot = encode_utf8 $dot;
+    utf8::encode $dot;
     my $e = run_cmd([config->{graphviz_path},'-Tsvg'], '<', \$dot, '>', \my $out, '2>', \my $err)->recv;
     warn "graphviz STDERR: $err\n" if chomp $err;
     $e and die "Failed to run graphviz";
@@ -55,8 +54,8 @@ sub dot2svg {
     # - Remove first <polygon> element (emulates a background color)
     # - Replace stroke and fill attributes with classes (so that coloring is done in CSS)
     # (I used to have an implementation based on XML::Parser, but regexes are so much faster...)
-    decode_utf8($out)
-        =~ s/<\?xml.+?\?>//r
+    utf8::decode $out or die;
+    $out=~ s/<\?xml.+?\?>//r
         =~ s/<!DOCTYPE[^>]*>//r
         =~ s/<!--.*?-->//srg
         =~ s/<title>.+?<\/title>//gr
