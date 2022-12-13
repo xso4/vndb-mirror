@@ -1,4 +1,6 @@
 wrap_elm_init('User.Edit', function(init, opt) {
+    var tz = window.Intl ? Intl.DateTimeFormat().resolvedOptions().timeZone : '';
+    if(tz) opt.flags.browsertimezone = tz;
     var app = init(opt);
     app.ports.skinChange.subscribe(function(skin) {
         var sheet = document.querySelector('link[rel=stylesheet]');

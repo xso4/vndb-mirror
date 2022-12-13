@@ -3,6 +3,7 @@ package VNWeb::User::Edit;
 use VNWeb::Prelude;
 use VNDB::Skins;
 use VNWeb::LangPref;
+use VNWeb::TimeZone;
 
 use Digest::SHA 'sha1';
 
@@ -10,6 +11,7 @@ use Digest::SHA 'sha1';
 my $FORM = {
     id             => { vndbid => 'u' },
     username       => { username => 1 }, # Can only be modified by the user itself or a perm_usermod
+    browsertimezone=> { _when => 'out' }, # Set by JS
 
     opts => { _when => 'out', type => 'hash', keys => {
         # Supporter options available to this user
@@ -51,6 +53,7 @@ my $FORM = {
         staffed_unoff   => { anybool => 1 },
         skin            => { enum => skins },
         customcss       => { required => 0, default => '', maxlength => 16*1024 },
+        timezone        => { required => 0, default => '', enum => \%ZONES },
 
         traits          => { sort_keys => 'tid', maxlength => 100, aoh => {
             tid     => { vndbid => 'i' },
@@ -122,12 +125,13 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
         tuwf->dbRowi(
             'SELECT max_sexual, max_violence, traits_sexual, tags_all, tags_cont, tags_ero, tags_tech, prodrelexpand
                   , vnrel_langs::text[], vnrel_olang, vnrel_mtl, staffed_langs::text[], staffed_olang, staffed_unoff
-                  , spoilers, skin, customcss, title_langs, alttitle_langs
+                  , spoilers, skin, customcss, timezone, title_langs, alttitle_langs
                   , nodistract_noads, nodistract_nofancy, support_enabled, uniname, pubskin_enabled
                FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \$u->{id}
         ) : undef;
     if($u->{prefs}) {
         $u->{prefs}{email} = _getmail $u->{id};
+        $u->{prefs}{timezone} //= '';
         $u->{prefs}{skin} ||= config->{skin_default};
         $u->{prefs}{vnrel_langs} ||= [ keys %LANGUAGE ];
         $u->{prefs}{staffed_langs} ||= [ keys %LANGUAGE ];
@@ -144,6 +148,7 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
         tuwf->dbRowi('SELECT ign_votes, ', sql_comma(map "perm_$_", auth->listPerms), 'FROM users u JOIN users_shadow us ON us.id = u.id WHERE u.id =', \$u->{id}) : undef;
 
     $u->{password} = undef;
+    $u->{browsertimezone} = '';
 
     my $title = $u->{id} eq auth->uid ? 'My Account' : "Edit $u->{username}";
     framework_ title => $title, dbobj => $u, tab => 'edit',
@@ -172,6 +177,7 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
         $p->{uniname} = '' if $p->{uniname} eq $username;
         return elm_Taken if $p->{uniname} && tuwf->dbVali('SELECT 1 FROM users WHERE id <>', \$data->{id}, 'AND username =', \lc($p->{uniname}));
 
+        $p->{timezone}       = '' if $p->{timezone} eq 'UTC';
         $p->{title_langs}    = langpref_fmt $p->{title_langs};
         $p->{alttitle_langs} = langpref_fmt $p->{alttitle_langs};
         $p->{title_langs}    = undef if $p->{title_langs}    && ($p->{title_langs}   eq langpref_fmt($DEFAULT_TITLE_LANGS) || $p->{title_langs} eq '[]');
@@ -182,7 +188,7 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
         $setp{$_} = $p->{$_} for qw/
             max_sexual max_violence traits_sexual tags_all tags_cont tags_ero tags_tech prodrelexpand
             vnrel_langs vnrel_olang vnrel_mtl staffed_langs staffed_olang staffed_unoff
-            spoilers skin customcss title_langs alttitle_langs
+            spoilers skin customcss timezone title_langs alttitle_langs
         /;
         $setp{customcss_csum} = length $p->{customcss} ? unpack 'q', sha1 utf8::encode(local $_=$p->{customcss}) : 0;
         tuwf->dbExeci('DELETE FROM users_traits WHERE id =', \$data->{id});

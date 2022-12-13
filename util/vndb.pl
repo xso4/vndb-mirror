@@ -35,7 +35,9 @@ use VNWeb::Auth;
 use VNWeb::HTML ();
 use VNWeb::Validation ();
 use VNWeb::LangPref ();
+use VNWeb::TimeZone ();
 
+$ENV{TZ} = 'UTC';
 TUWF::set %{ config->{tuwf} };
 TUWF::set import_modules => 0;
 TUWF::set db_login => sub {

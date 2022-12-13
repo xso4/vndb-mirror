@@ -52,6 +52,7 @@ type alias Model =
   , opts        : GUE.RecvOpts
   , admin       : Maybe GUE.SendAdmin
   , prefs       : Maybe GUE.SendPrefs
+  , browserTimezone : String
   , pass        : Maybe PassData
   , passNeq     : Bool
   , mailConfirm : Bool
@@ -76,6 +77,11 @@ init d =
   , opts        = d.opts
   , admin       = d.admin
   , prefs       = d.prefs
+  , browserTimezone =
+      if List.filter (\(reg,lst) -> List.filter (\n -> (reg ++ "/" ++ n) == d.browsertimezone) lst
+          |> List.isEmpty |> not) GT.timeZones |> List.isEmpty
+      then ""
+      else d.browsertimezone
   , pass        = Maybe.map (always { cpass = False, pass1 = "", pass2 = "", opass = "" }) d.prefs
   , passNeq     = False
   , mailConfirm = False
@@ -112,6 +118,7 @@ type LangPrefMsg
 
 type PrefMsg
   = EMail String
+  | TimeZone String
   | MaxSexual Int
   | MaxViolence Int
   | TraitsSexual Bool
@@ -242,6 +249,7 @@ updatePrefs : PrefMsg -> GUE.SendPrefs -> GUE.SendPrefs
 updatePrefs msg model =
   case msg of
     EMail n    -> { model | email = n }
+    TimeZone s -> { model | timezone = s }
     MaxSexual n-> { model | max_sexual = n }
     MaxViolence n  -> { model | max_violence = n }
     TraitsSexual b -> { model | traits_sexual = b }
@@ -473,7 +481,22 @@ view model =
       ) m
 
     prefsform m =
-      [ formField "NSFW"
+      [ formField "tz::Time zone"
+        [ select [ tabindex 10, onInput (Prefs << TimeZone), id "tz", name "tz" ]
+          <| option [ value "UTC", selected (m.timezone == "UTC") ] [ text "UTC" ]
+          :: List.map (\(reg,lst) ->
+            optgroup [ attribute "label" reg ] <| List.map (\z ->
+              let full = reg ++ "/" ++ z
+                  dis = String.replace "_" " " z
+              in option [ value full, selected (m.timezone == full) ] [ text dis ]
+            ) lst) GT.timeZones
+        , if model.browserTimezone /= "" && model.browserTimezone /= m.timezone
+          then a [ href "#", onClickD (Prefs (TimeZone model.browserTimezone)) ] [ text (" Set to " ++ model.browserTimezone) ]
+          else text ""
+        , br [] []
+        , text "Select the city that is nearest to you in terms of time zone and all dates & times on the site will be adjusted for you."
+        ]
+      , formField "NSFW"
         [ inputSelect "" m.max_sexual (Prefs << MaxSexual) [style "width" "400px"]
           [ (-1,"Hide all images")
           , (0, "Hide sexually suggestive or explicit images")

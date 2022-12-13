@@ -188,8 +188,8 @@ sub fmtage {
 # argument: unix timestamp and optional format (compact/full)
 sub fmtdate {
   my($t, $f) = @_;
-  return strftime '%Y-%m-%d', gmtime $t if !$f || $f eq 'compact';
-  return strftime '%Y-%m-%d at %R', gmtime $t;
+  return strftime '%Y-%m-%d', localtime $t if !$f || $f eq 'compact';
+  return strftime '%Y-%m-%d at %R', localtime $t;
 }
 
 # Turn a (natural number) vote into a rating indication

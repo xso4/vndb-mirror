@@ -1120,7 +1120,8 @@ CREATE TABLE users_prefs (
   staffed_langs       language[],
   staffed_olang       boolean NOT NULL DEFAULT true,
   staffed_unoff       boolean NOT NULL DEFAULT false,
-  customcss_csum      bigint NOT NULL DEFAULT 0
+  customcss_csum      bigint NOT NULL DEFAULT 0,
+  timezone            text NOT NULL DEFAULT ''
 );
 
 -- users_prefs_tags

@@ -21,6 +21,7 @@ use VNDB::ExtLinks ();
 use VNDB::Skins;
 use VNWeb::Validation;
 use VNWeb::Auth;
+use VNWeb::TimeZone;
 
 our @EXPORT = qw/
     elm_api elm_empty
@@ -468,6 +469,9 @@ sub write_types {
     $data .= def producerTypes=> 'List (String, String)' => list map tuple(string $_, string $PRODUCER_TYPE{$_}), keys %PRODUCER_TYPE;
     $data .= def tagCategories=> 'List (String, String)' => list map tuple(string $_, string $TAG_CATEGORY{$_}), keys %TAG_CATEGORY;
     $data .= def curYear    => Int => (gmtime)[5]+1900;
+    my %regions;
+    m{^([^/]+)/(.+)} && push $regions{$1}->@*, $2 for @ZONES;
+    $data .= def timeZones  => 'List (String, List String)' => list map tuple(string $_, list map string($_), $regions{$_}->@*), sort keys %regions;
 
     write_module Types => $data;
 }
