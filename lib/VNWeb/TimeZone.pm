@@ -6,7 +6,6 @@ use TUWF;
 use VNWeb::Auth;
 use Exporter 'import';
 
-return 1 if $main::ONLYAPI;
 
 our @EXPORT = ('@ZONES', '%ZONES');
 
@@ -507,6 +506,6 @@ our %ZONES = map +($_,1), @ZONES;
 
 TUWF::hook before => sub {
     $ENV{TZ} = auth->pref('timezone') || 'UTC';
-};
+} if !$main::ONLYAPI;
 
 1;
