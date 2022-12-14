@@ -360,7 +360,7 @@ sub _maintabs_subscribe_ {
 
     my $sub = tuwf->dbRowi('SELECT subnum, subreview, subapply FROM notification_subs WHERE uid =', \auth->uid, 'AND iid =', \$id);
 
-    li_ id => 'subscribe', sub {
+    li_ id => 'subscribe', class => 'maindd', sub {
         elm_ Subscribe => $VNWeb::User::Notifications::SUB, {
             id        => $id,
             noti      => $noti||0,
@@ -803,10 +803,11 @@ sub paginate_ {
 
     my sub tab_ {
         my($page, $label) = @_;
-        li_ class => $page == $p ? 'pageselected' : undef, sub {
+        li_ sub {
             local $_ = $page;
             my $u = $url->(p => $page);
             a_ href => $u,
+                class => $page == $p ? 'highlightselected' : undef,
                 rel => $label && $label =~ /next/ ? 'next' : $label && $label =~ /prev/ ? 'prev' : undef,
                 $label//$page;
         }
@@ -816,10 +817,10 @@ sub paginate_ {
         li_ mkclass(ellipsis => 1, left => $left), sub { b_ '⋯' };
     }
 
-    div_ class => 'maintabs browsetabs '.($al eq 't' ? '' : 'bottom'), sub {
+    div_ class => 'maintabs'.($al eq 't' ? '' : ' bottom'), sub {
         my $n = ceil($cnt/$pp);
         my $l = $n-$p+1;
-        ul_ sub {
+        ul_ class => 'browsetabs', sub {
             $p > 1 and tab_ $p-1, '‹ previous';
             if(ref $np) {
                 $p > 3 and tab_ 1;

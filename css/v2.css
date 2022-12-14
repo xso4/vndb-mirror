@@ -11,6 +11,7 @@ table        { border-collapse: collapse; }
 table td,
 table th     { vertical-align: top; padding: 3px; }
 img          { border: none; }
+svg          { fill: currentColor; }
 
 a,
 .fake_link       { color: $link; text-decoration: none; cursor:pointer; border-bottom: 1px solid transparent }
@@ -343,9 +344,9 @@ div.maintabs > ul > li.tabselected > a,
 div.maintabs > ul > li.tabselected > div > a,
 div.maintabs > ul > li > div > a:hover,
 div.maintabs > ul > li > a:hover        { background: $blendbg; color: $maintext; height: 22px }
-div.maintabs > ul > li.pageselected > a { background: $secbg; color: $maintext; height: 22px }
-div.maintabs.browsetabs > ul li a   { color: $maintext }
-div.maintabs.browsetabs > ul li     { margin-left: 5px }
+div.maintabs > ul > li a.highlightselected { background: $secbg!important; color: $maintext; height: 22px }
+div.maintabs .browsetabs > li > a   { color: $maintext }
+div.maintabs .browsetabs > li     { margin-left: 5px }
 div.maintabs.bottom            { margin-top: 10px; /* WHY!? */ margin-bottom: -10px }
 div.maintabs.bottom > ul li a       { padding: 4px 7px 2px 7px; border-bottom: 1px solid $border; border-top: none }
 div.maintabs.bottom > ul li.tabselected a,
@@ -1031,16 +1032,20 @@ div.lengthlist {
 .browse.notifies .unread td   { font-weight: bold }
 .browse.notifies tfoot td     { padding: 0 0 0 25px }
 
-/***** Subscription tab thiny (HTML::_maintabs_subscribe_() + elm/Subscribe) ****/
+/***** Maintabs dropdown thingy used by elm/Subscribe & elm/TableOpts ****/
 
+.maindd > div > a { height: 21px!important /* override :hover change */ }
+.maindd > div > div { position: absolute; width: 1px }
+.maindd > div > div > div { box-sizing: border-box; width: 500px; border: 1px solid $border; background: $secbg; position: relative; bottom: 0; left: -470px; z-index: 100 }
+.maindd p, .maindd h4, .maindd label { display: block; margin-bottom: 3px }
+.maindd h4 { text-align: center }
+
+#tableopts > li > div > div > div { text-align: right; padding: 0 10px }
+#tableopts > li > a > svg { margin-top: 2px; margin-bottom: -2px }
+
+#subscribe > div > div > div { padding: 10px }
 #subscribe .inactive { color: transparent; text-shadow: 0 0 $grayedout }
 #subscribe .active { color: transparent; text-shadow: 0 0 $maintext }
-
-#subscribe > div > a { height: 21px!important /* override :hover change */ }
-#subscribe > div > div { position: absolute; width: 1px }
-#subscribe > div > div > div { box-sizing: border-box; padding: 10px; width: 500px; border: 1px solid $border; background: $secbg; position: relative; bottom: 0; left: -470px; z-index: 100 }
-#subscribe p, #subscribe h4, #subscribe label { display: block; margin-bottom: 3px }
-
 
 /***** User list *****/
 .browse.userlist .tc3,
