@@ -803,7 +803,7 @@ sub paginate_ {
 
     my sub tab_ {
         my($page, $label) = @_;
-        li_ class => $page == $p ? 'tabselected' : undef, sub {
+        li_ class => $page == $p ? 'pageselected' : undef, sub {
             local $_ = $page;
             my $u = $url->(p => $page);
             a_ href => $u,

@@ -343,6 +343,7 @@ div.maintabs > ul > li.tabselected > a,
 div.maintabs > ul > li.tabselected > div > a,
 div.maintabs > ul > li > div > a:hover,
 div.maintabs > ul > li > a:hover        { background: $blendbg; color: $maintext; height: 22px }
+div.maintabs > ul > li.pageselected > a { background: $secbg; color: $maintext; height: 22px }
 div.maintabs.browsetabs > ul li a   { color: $maintext }
 div.maintabs.browsetabs > ul li     { margin-left: 5px }
 div.maintabs.bottom            { margin-top: 10px; /* WHY!? */ margin-bottom: -10px }
