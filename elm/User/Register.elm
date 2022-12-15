@@ -24,6 +24,8 @@ type alias Model =
   { username : String
   , email    : String
   , vns      : Int
+  , c18      : Bool
+  , cpolicy  : Bool
   , state    : Api.State
   , success  : Bool
   }
@@ -34,6 +36,8 @@ init =
   { username = ""
   , email    = ""
   , vns      = 0
+  , c18      = False
+  , cpolicy  = False
   , state    = Api.Normal
   , success  = False
   }
@@ -43,6 +47,8 @@ type Msg
   = Username String
   | EMail String
   | VNs String
+  | C18 Bool
+  | CPolicy Bool
   | Submit
   | Submitted GApi.Response
 
@@ -52,6 +58,8 @@ update msg model =
   case msg of
     Username n -> ({ model | username = n }, Cmd.none)
     EMail    n -> ({ model | email    = n }, Cmd.none)
+    C18      b -> ({ model | c18      = b }, Cmd.none)
+    CPolicy  b -> ({ model | cpolicy  = b }, Cmd.none)
     VNs      n -> ({ model | vns      = Maybe.withDefault model.vns (String.toInt n) }, Cmd.none)
 
     Submit -> ( { model | state = Api.Loading }
@@ -95,9 +103,16 @@ view model =
           , text "Anti-bot question: How many visual novels do we have in the database? (Hint: look to your left)"
           ]
         , formField "vns::Answer" [ inputText "vns" (if model.vns == 0 then "" else String.fromInt model.vns) VNs [] ]
+        , formField ""
+          [ br [] []
+          , label [] [ inputCheck "" model.c18 C18, text " I am 18 years or older." ]
+          , br [] []
+          , label [] [ inputCheck "" model.cpolicy CPolicy, text " I have read the ", a [ href "/d17" ] [ text "privacy policy and contributor license agreement" ], text "." ]
+          ]
         ]
       ]
     , div [ class "mainbox" ]
-      [ fieldset [ class "submit" ] [ submitButton "Submit" model.state True ]
+      [ fieldset [ class "submit" ] <|
+        if model.c18 && model.cpolicy then [ submitButton "Submit" model.state True ] else []
       ]
     ]
