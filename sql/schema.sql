@@ -43,8 +43,20 @@
 --
 -- Columns marked with a '[pub]' comment on the same line are included in the
 -- public database dump. Be aware that not all properties of the to-be-dumped
--- data is annotated in this file. Which tables and which rows are exported is
+-- data are annotated in this file. Which tables and which rows are exported is
 -- defined in util/dbdump.pl.
+--
+-- Columns in tables are generally ordered for efficient storage: larger
+-- fixed-sized columns go before smaller fixed-sized columns, variable-length
+-- columns go at the end. When a new column is added to a table, it should
+-- always be added at the end because that's the only thing Postgres supports.
+-- Once in a while I re-order all newly added columns for efficiency and that
+-- requires a full dump and re-import of the database using
+--   util/dbdump.pl export-data
+-- to take effect.  That's why I typically plan these at the same time that I'm
+-- upgrading to a new major Postgres version, after all, a dump-and-import is a
+-- good upgrade strategy.
+-- Code should not depend on column order!
 --
 -- Note: Every CREATE TABLE clause and each column should be on a separate
 -- line. This file is parsed by lib/VNDB/Schema.pm and it doesn't implement a
@@ -399,9 +411,12 @@ CREATE TABLE registration_throttle (
 -- releases
 CREATE TABLE releases ( -- dbentry_type=r
   id           vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('r', nextval('releases_id_seq')::int) CONSTRAINT releases_id_check CHECK(vndbid_type(id) = 'r'), -- [pub]
+  olang        language NOT NULL DEFAULT 'ja', -- [pub] Refers to the main title to use for display purposes, not necessarily the original language.
   gtin         bigint NOT NULL DEFAULT 0, -- [pub]
   l_toranoana  bigint NOT NULL DEFAULT 0, -- [pub]
   l_appstore   bigint NOT NULL DEFAULT 0, -- [pub]
+  l_nintendo_jp bigint NOT NULL DEFAULT 0, -- [pub]
+  l_nintendo_hk bigint NOT NULL DEFAULT 0, -- [pub]
   released     integer NOT NULL DEFAULT 0, -- [pub]
   l_steam      integer NOT NULL DEFAULT 0, -- [pub]
   l_digiket    integer NOT NULL DEFAULT 0, -- [pub]
@@ -416,12 +431,22 @@ CREATE TABLE releases ( -- dbentry_type=r
   l_animateg   integer NOT NULL DEFAULT 0, -- [pub]
   l_freem      integer NOT NULL DEFAULT 0, -- [pub]
   l_novelgam   integer NOT NULL DEFAULT 0, -- [pub]
-  minage       smallint, -- [pub]
   voiced       smallint NOT NULL DEFAULT 0, -- [pub]
-  ani_story    smallint NOT NULL DEFAULT 0, -- [pub] (old, superseded by the newer ani_* columns)
-  ani_ero      smallint NOT NULL DEFAULT 0, -- [pub] (^ but the newer columns haven't been filled out much)
   reso_x       smallint NOT NULL DEFAULT 0, -- [pub] When reso_x is 0, reso_y is either 0 for 'unknown' or 1 for 'non-standard'.
   reso_y       smallint NOT NULL DEFAULT 0, -- [pub]
+  minage       smallint, -- [pub]
+  ani_story    smallint NOT NULL DEFAULT 0, -- [pub] (old, superseded by the newer ani_* columns)
+  ani_ero      smallint NOT NULL DEFAULT 0, -- [pub] (^ but the newer columns haven't been filled out much)
+  -- These replace the old ani_story and ani_ero columns.
+  ani_story_sp animation, -- [pub]
+  ani_story_cg animation, -- [pub]
+  -- "Not animated" and frequency options are irrelevant for ani_cutscene.
+  ani_cutscene animation CONSTRAINT releases_cutscene_check CHECK(ani_cutscene <> 0 AND (ani_cutscene & (256+512)) = 0), -- [pub]
+  ani_ero_sp   animation, -- [pub]
+  ani_ero_cg   animation, -- [pub]
+  ani_bg       boolean, -- [pub]
+  ani_face     boolean, -- [pub]
+  has_ero      boolean NOT NULL DEFAULT FALSE, -- [pub]
   patch        boolean NOT NULL DEFAULT FALSE, -- [pub]
   freeware     boolean NOT NULL DEFAULT FALSE, -- [pub]
   doujin       boolean NOT NULL DEFAULT FALSE, -- [pub] (deprecated)
@@ -443,36 +468,26 @@ CREATE TABLE releases ( -- dbentry_type=r
   l_nutaku     text NOT NULL DEFAULT '', -- [pub]
   l_googplay   text NOT NULL DEFAULT '', -- [pub]
   l_fakku      text NOT NULL DEFAULT '', -- [pub]
-  l_gyutto     integer[] NOT NULL DEFAULT '{}', -- [pub]
-  l_dmm        text[] NOT NULL DEFAULT '{}', -- [pub]
   l_freegame   text NOT NULL DEFAULT '', -- [pub]
-  c_search     text,
   l_playstation_jp text NOT NULL DEFAULT '', -- [pub]
   l_playstation_na text NOT NULL DEFAULT '', -- [pub]
   l_playstation_eu text NOT NULL DEFAULT '',  -- [pub]
-  -- These replace the old ani_story and ani_ero columns.
-  ani_story_sp animation, -- [pub]
-  ani_story_cg animation, -- [pub]
-  -- "Not animated" and frequency options are irrelevant for ani_cutscene.
-  ani_cutscene animation CONSTRAINT releases_cutscene_check CHECK(ani_cutscene <> 0 AND (ani_cutscene & (256+512)) = 0), -- [pub]
-  ani_ero_sp   animation, -- [pub]
-  ani_ero_cg   animation, -- [pub]
-  ani_bg       boolean, -- [pub]
-  ani_face     boolean, -- [pub]
-  has_ero      boolean NOT NULL DEFAULT FALSE, -- [pub]
-  olang        language NOT NULL DEFAULT 'ja', -- [pub] Refers to the main title to use for display purposes, not necessarily the original language.
-  l_nintendo_jp bigint NOT NULL DEFAULT 0, -- [pub]
-  l_nintendo_hk bigint NOT NULL DEFAULT 0, -- [pub]
+  l_playstation_hk text NOT NULL DEFAULT '', -- [pub]
   l_nintendo    text NOT NULL DEFAULT '', -- [pub]
-  l_playstation_hk text NOT NULL DEFAULT '' -- [pub]
+  l_gyutto     integer[] NOT NULL DEFAULT '{}', -- [pub]
+  l_dmm        text[] NOT NULL DEFAULT '{}', -- [pub]
+  c_search     text
 );
 
 -- releases_hist
 CREATE TABLE releases_hist (
   chid         integer NOT NULL PRIMARY KEY,
+  olang        language NOT NULL DEFAULT 'ja',
   gtin         bigint NOT NULL DEFAULT 0,
   l_toranoana  bigint NOT NULL DEFAULT 0,
   l_appstore   bigint NOT NULL DEFAULT 0,
+  l_nintendo_jp bigint NOT NULL DEFAULT 0,
+  l_nintendo_hk bigint NOT NULL DEFAULT 0,
   released     integer NOT NULL DEFAULT 0,
   l_steam      integer NOT NULL DEFAULT 0,
   l_digiket    integer NOT NULL DEFAULT 0,
@@ -487,12 +502,20 @@ CREATE TABLE releases_hist (
   l_animateg   integer NOT NULL DEFAULT 0,
   l_freem      integer NOT NULL DEFAULT 0,
   l_novelgam   integer NOT NULL DEFAULT 0,
-  minage       smallint,
   voiced       smallint NOT NULL DEFAULT 0,
-  ani_story    smallint NOT NULL DEFAULT 0,
-  ani_ero      smallint NOT NULL DEFAULT 0,
   reso_x       smallint NOT NULL DEFAULT 0,
   reso_y       smallint NOT NULL DEFAULT 0,
+  minage       smallint,
+  ani_story    smallint NOT NULL DEFAULT 0,
+  ani_ero      smallint NOT NULL DEFAULT 0,
+  ani_story_sp animation,
+  ani_story_cg animation,
+  ani_cutscene animation,
+  ani_ero_sp   animation,
+  ani_ero_cg   animation,
+  ani_bg       boolean,
+  ani_face     boolean,
+  has_ero      boolean NOT NULL DEFAULT FALSE,
   patch        boolean NOT NULL DEFAULT FALSE,
   freeware     boolean NOT NULL DEFAULT FALSE,
   doujin       boolean NOT NULL DEFAULT FALSE,
@@ -512,25 +535,14 @@ CREATE TABLE releases_hist (
   l_nutaku     text NOT NULL DEFAULT '',
   l_googplay   text NOT NULL DEFAULT '',
   l_fakku      text NOT NULL DEFAULT '',
-  l_gyutto     integer[] NOT NULL DEFAULT '{}',
-  l_dmm        text[] NOT NULL DEFAULT '{}',
   l_freegame   text NOT NULL DEFAULT '',
   l_playstation_jp text NOT NULL DEFAULT '',
   l_playstation_na text NOT NULL DEFAULT '',
   l_playstation_eu text NOT NULL DEFAULT '',
-  ani_story_sp animation,
-  ani_story_cg animation,
-  ani_cutscene animation,
-  ani_ero_sp   animation,
-  ani_ero_cg   animation,
-  ani_bg       boolean,
-  ani_face     boolean,
-  has_ero      boolean NOT NULL DEFAULT FALSE,
-  olang        language NOT NULL DEFAULT 'ja',
-  l_nintendo_jp bigint NOT NULL DEFAULT 0,
-  l_nintendo_hk bigint NOT NULL DEFAULT 0,
+  l_playstation_hk text NOT NULL DEFAULT '',
   l_nintendo    text NOT NULL DEFAULT '',
-  l_playstation_hk text NOT NULL DEFAULT ''
+  l_gyutto     integer[] NOT NULL DEFAULT '{}',
+  l_dmm        text[] NOT NULL DEFAULT '{}'
 );
 
 -- releases_media
@@ -622,10 +634,10 @@ CREATE TABLE releases_vn_hist (
 -- reports
 CREATE TABLE reports (
   id         SERIAL PRIMARY KEY,
-  uid        vndbid, -- user who created the report, if logged in
+  status     report_status NOT NULL DEFAULT 'new',
   date       timestamptz NOT NULL DEFAULT NOW(),
   lastmod    timestamptz,
-  status     report_status NOT NULL DEFAULT 'new',
+  uid        vndbid, -- user who created the report, if logged in
   object     vndbid NOT NULL, -- The id of the thing being reported
   objectnum  integer, -- The sub-id of the thing to be reported
   ip         ipinfo, -- IP address of the visitor, if not logged in
@@ -638,10 +650,10 @@ CREATE TABLE reports (
 CREATE TABLE reviews (
   id         vndbid PRIMARY KEY DEFAULT vndbid('w', nextval('reviews_seq')::int) CONSTRAINT reviews_id_check CHECK(vndbid_type(id) = 'w'),
   vid        vndbid NOT NULL,
-  uid        vndbid,
-  rid        vndbid,
   date       timestamptz NOT NULL DEFAULT NOW(),
   lastmod    timestamptz,
+  uid        vndbid,
+  rid        vndbid,
   c_up       integer NOT NULL DEFAULT 0,
   c_down     integer NOT NULL DEFAULT 0,
   c_count    smallint NOT NULL DEFAULT 0,
@@ -656,10 +668,10 @@ CREATE TABLE reviews (
 
 -- reviews_posts
 CREATE TABLE reviews_posts (
-  id       vndbid NOT NULL,
-  uid      vndbid,
   date     timestamptz NOT NULL DEFAULT NOW(),
   edited   timestamptz,
+  id       vndbid NOT NULL,
+  uid      vndbid,
   num      smallint NOT NULL,
   hidden   text,
   msg      text NOT NULL DEFAULT '',
@@ -668,9 +680,9 @@ CREATE TABLE reviews_posts (
 
 -- reviews_votes
 CREATE TABLE reviews_votes (
+  date      timestamptz NOT NULL,
   id        vndbid NOT NULL,
   uid       vndbid,
-  date      timestamptz NOT NULL,
   vote      boolean NOT NULL, -- true = upvote, false = downvote
   overrule  boolean NOT NULL DEFAULT false,
   ip        inet -- Only for anonymous votes
@@ -821,13 +833,13 @@ CREATE TABLE tags ( -- dbentry_type=g
   added        timestamptz NOT NULL DEFAULT NOW(), -- Tag creation time. Relic of a long forgotten past where changes to tag entries weren't logged.
   c_items      integer NOT NULL DEFAULT 0,
   defaultspoil smallint NOT NULL DEFAULT 0, -- [pub]
+  locked       boolean NOT NULL DEFAULT FALSE,
+  hidden       boolean NOT NULL DEFAULT TRUE,
   searchable   boolean NOT NULL DEFAULT TRUE, -- [pub]
   applicable   boolean NOT NULL DEFAULT TRUE, -- [pub]
   name         varchar(250) NOT NULL DEFAULT '' UNIQUE, -- [pub]
-  description  text NOT NULL DEFAULT '', -- [pub]
   alias        varchar(500) NOT NULL DEFAULT '', -- [pub]
-  locked       boolean NOT NULL DEFAULT FALSE,
-  hidden       boolean NOT NULL DEFAULT TRUE,
+  description  text NOT NULL DEFAULT '', -- [pub]
   c_search     text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[name]::text[]||string_to_array(alias,E'\n'))) STORED
 );
 
@@ -839,8 +851,8 @@ CREATE TABLE tags_hist (
   searchable   boolean NOT NULL DEFAULT TRUE,
   applicable   boolean NOT NULL DEFAULT TRUE,
   name         varchar(250) NOT NULL DEFAULT '',
-  description  text NOT NULL DEFAULT '',
-  alias        varchar(500) NOT NULL DEFAULT ''
+  alias        varchar(500) NOT NULL DEFAULT '',
+  description  text NOT NULL DEFAULT ''
 );
 
 -- tags_parents
@@ -861,15 +873,15 @@ CREATE TABLE tags_parents_hist (
 
 -- tags_vn
 CREATE TABLE tags_vn (
+  date     timestamptz NOT NULL DEFAULT NOW(), -- [pub]
   tag      vndbid NOT NULL, -- [pub]
   vid      vndbid NOT NULL, -- [pub]
   uid      vndbid, -- [pub]
   vote     smallint NOT NULL DEFAULT 3 CHECK (vote >= -3 AND vote <= 3 AND vote <> 0), -- [pub]
   spoiler  smallint CHECK(spoiler >= 0 AND spoiler <= 2), -- [pub]
-  date     timestamptz NOT NULL DEFAULT NOW(), -- [pub]
   ignore   boolean NOT NULL DEFAULT false, -- [pub]
-  notes    text NOT NULL DEFAULT '', -- [pub]
-  lie      boolean -- [pub] implies spoiler=0
+  lie      boolean, -- [pub] implies spoiler=0
+  notes    text NOT NULL DEFAULT '' -- [pub]
 );
 
 -- tags_vn_direct
@@ -899,9 +911,9 @@ CREATE TABLE threads (
   locked           boolean NOT NULL DEFAULT FALSE,
   hidden           boolean NOT NULL DEFAULT FALSE,
   private          boolean NOT NULL DEFAULT FALSE,
+  boards_locked    boolean NOT NULL DEFAULT FALSE,
   title            varchar(50) NOT NULL DEFAULT '',
-  poll_question    varchar(100),
-  boards_locked    boolean NOT NULL DEFAULT FALSE
+  poll_question    varchar(100)
 );
 
 -- threads_poll_options
@@ -921,10 +933,10 @@ CREATE TABLE threads_poll_votes (
 
 -- threads_posts
 CREATE TABLE threads_posts (
-  tid      vndbid NOT NULL,
-  uid      vndbid,
   date     timestamptz NOT NULL DEFAULT NOW(),
   edited   timestamptz,
+  tid      vndbid NOT NULL,
+  uid      vndbid,
   num      smallint NOT NULL,
   hidden   text,
   msg      text NOT NULL DEFAULT '',
@@ -958,20 +970,20 @@ CREATE TABLE trace_log (
 -- traits
 CREATE TABLE traits ( -- dbentry_type=i
   id            vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('i', nextval('traits_id_seq')::int) CONSTRAINT traits_id_check CHECK(vndbid_type(id) = 'i'), -- [pub]
-  "group"       vndbid, -- [pub]
-  added         timestamptz NOT NULL DEFAULT NOW(),
   c_items       integer NOT NULL DEFAULT 0,
+  added         timestamptz NOT NULL DEFAULT NOW(),
+  "group"       vndbid, -- [pub] (technically a cached column, main parent's root trait)
   "order"       smallint NOT NULL DEFAULT 0, -- [pub]
   defaultspoil  smallint NOT NULL DEFAULT 0, -- [pub]
+  hidden        boolean NOT NULL DEFAULT TRUE,
+  locked        boolean NOT NULL DEFAULT FALSE,
   sexual        boolean NOT NULL DEFAULT false, -- [pub]
   searchable    boolean NOT NULL DEFAULT true, -- [pub]
   applicable    boolean NOT NULL DEFAULT true, -- [pub]
   name          varchar(250) NOT NULL DEFAULT '', -- [pub]
   alias         varchar(500) NOT NULL DEFAULT '', -- [pub]
   description   text NOT NULL DEFAULT '', -- [pub]
-  hidden        boolean NOT NULL DEFAULT TRUE,
-  locked        boolean NOT NULL DEFAULT FALSE,
-  c_search     text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[name]::text[]||string_to_array(alias,E'\n'))) STORED
+  c_search      text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[name]::text[]||string_to_array(alias,E'\n'))) STORED
 );
 
 -- traits_hist
@@ -1034,13 +1046,13 @@ CREATE TABLE ulist_vns (
   started     date, -- [pub]
   finished    date, -- [pub]
   vote        smallint CHECK(vote IS NULL OR vote BETWEEN 10 AND 100), -- [pub]
-  notes       text NOT NULL DEFAULT '', -- [pub]
   -- Cache, equivalent to 'coalesce(bool_and(private), true)' on the labels.
   -- Updated by update_users_ulist_private(), which MUST be called any time:
   -- * when a label's private flag has been changed, or
   -- * when the 'vote' or 'labels' column has been changed
   -- There's no triggers for this (yet).
   c_private   boolean NOT NULL DEFAULT true,
+  notes       text NOT NULL DEFAULT '', -- [pub]
   -- The 'Voted' label (id 7) is special: it is included in this array, but
   -- actually redundant with the 'vote' column. The 'ulist_voted_label' trigger
   -- ensures that the label is added/removed automatically when the 'vote'
@@ -1084,14 +1096,15 @@ CREATE TABLE users (
   perm_tag            boolean NOT NULL DEFAULT true, -- [pub] (public because this is used in calculating VN tag scores)
   perm_tagmod         boolean NOT NULL DEFAULT false,
   perm_review         boolean NOT NULL DEFAULT true,
+  perm_lengthvote     boolean NOT NULL DEFAULT true, -- [pub] (public because this is used in calculating VN lengths)
   username            varchar(20) NOT NULL, -- [pub]
-  uniname             text NOT NULL DEFAULT '',
-  perm_lengthvote     boolean NOT NULL DEFAULT true -- [pub] (public because this is used in calculating VN lengths)
+  uniname             text NOT NULL DEFAULT ''
 );
 
 -- Additional, less frequently accessed fields for the 'users' table.
 -- (Separated to debloat the main users table, which is often used in JOINs)
 CREATE TABLE users_prefs (
+  customcss_csum      bigint NOT NULL DEFAULT 0, -- hash of 'customcss'
   id                  vndbid NOT NULL PRIMARY KEY,
   max_sexual          smallint NOT NULL DEFAULT 0,
   max_violence        smallint NOT NULL DEFAULT 0,
@@ -1105,23 +1118,22 @@ CREATE TABLE users_prefs (
   tags_ero            boolean NOT NULL DEFAULT false,
   tags_tech           boolean NOT NULL DEFAULT true,
   traits_sexual       boolean NOT NULL DEFAULT false,
+  prodrelexpand       boolean NOT NULL DEFAULT true,
+  vnrel_olang         boolean NOT NULL DEFAULT true,
+  vnrel_mtl           boolean NOT NULL DEFAULT false,
+  staffed_olang       boolean NOT NULL DEFAULT true,
+  staffed_unoff       boolean NOT NULL DEFAULT false,
   skin                text NOT NULL DEFAULT '',
   customcss           text NOT NULL DEFAULT '',
+  timezone            text NOT NULL DEFAULT '',
   ulist_votes         jsonb,
   ulist_vnlist        jsonb,
   ulist_wish          jsonb,
   vnlang              jsonb, -- Deprecated, replaced by vnrel_x. '$lang(-mtl)?' => true/false, which languages to expand/collapse on VN pages
   title_langs         jsonb,
   alttitle_langs      jsonb,
-  prodrelexpand       boolean NOT NULL DEFAULT true,
   vnrel_langs         language[], -- NULL meaning "show all languages"
-  vnrel_olang         boolean NOT NULL DEFAULT true,
-  vnrel_mtl           boolean NOT NULL DEFAULT false,
-  staffed_langs       language[],
-  staffed_olang       boolean NOT NULL DEFAULT true,
-  staffed_unoff       boolean NOT NULL DEFAULT false,
-  customcss_csum      bigint NOT NULL DEFAULT 0,
-  timezone            text NOT NULL DEFAULT ''
+  staffed_langs       language[]
 );
 
 -- users_prefs_tags
@@ -1170,8 +1182,8 @@ CREATE TABLE users_traits (
 
 -- users_username_hist
 CREATE TABLE users_username_hist (
-  id    vndbid NOT NULL,
   date  timestamptz NOT NULL DEFAULT NOW(),
+  id    vndbid NOT NULL,
   old   text NOT NULL,
   new   text NOT NULL,
   PRIMARY KEY(id, date)
@@ -1184,12 +1196,16 @@ CREATE TABLE vn ( -- dbentry_type=v
   image         vndbid CONSTRAINT vn_image_check CHECK(vndbid_type(image) = 'cv'), -- [pub]
   l_wikidata    integer, -- [pub]
   c_votecount   integer NOT NULL DEFAULT 0, -- [pub]
-  c_popularity  smallint NOT NULL DEFAULT 0, -- [pub], ratio between 0 and 10000
   c_pop_rank    integer NOT NULL DEFAULT 10000000,
-  c_rating      smallint, -- [pub], decimal vote*100, i.e. 100 - 1000
   c_rat_rank    integer,
   c_released    integer NOT NULL DEFAULT 0,
+  c_popularity  smallint NOT NULL DEFAULT 0, -- [pub], ratio between 0 and 10000
+  c_rating      smallint, -- [pub], decimal vote*100, i.e. 100 - 1000
+  c_average     smallint, -- [pub], decimal vote*100, i.e. 100 - 1000
+  c_length      smallint,
+  c_lengthnum   smallint NOT NULL DEFAULT 0,
   length        smallint NOT NULL DEFAULT 0, -- [pub]
+  devstatus     smallint NOT NULL DEFAULT 0, -- [pub] (0/finished 1/ongoing 2/cancelled)
   img_nsfw      boolean NOT NULL DEFAULT FALSE, -- (deprecated)
   locked        boolean NOT NULL DEFAULT FALSE,
   hidden        boolean NOT NULL DEFAULT FALSE,
@@ -1201,11 +1217,7 @@ CREATE TABLE vn ( -- dbentry_type=v
   c_search      text,
   c_languages   language[] NOT NULL DEFAULT '{}',
   c_platforms   platform[] NOT NULL DEFAULT '{}',
-  c_developers  vndbid[] NOT NULL DEFAULT '{}',
-  c_average     smallint, -- [pub], decimal vote*100, i.e. 100 - 1000
-  c_length      smallint,
-  c_lengthnum   smallint NOT NULL DEFAULT 0,
-  devstatus     smallint NOT NULL DEFAULT 0 -- [pub] (0/finished 1/ongoing 2/cancelled)
+  c_developers  vndbid[] NOT NULL DEFAULT '{}'
 );
 
 -- vn_hist
@@ -1215,13 +1227,13 @@ CREATE TABLE vn_hist (
   image        vndbid CONSTRAINT vn_hist_image_check CHECK(vndbid_type(image) = 'cv'),
   l_wikidata   integer,
   length       smallint NOT NULL DEFAULT 0,
+  devstatus    smallint NOT NULL DEFAULT 0,
   img_nsfw     boolean NOT NULL DEFAULT FALSE,
   alias        varchar(500) NOT NULL DEFAULT '',
   l_wp         varchar(150) NOT NULL DEFAULT '',
   l_encubed    varchar(100) NOT NULL DEFAULT '',
   l_renai      varchar(100) NOT NULL DEFAULT '',
-  "desc"       text NOT NULL DEFAULT '',
-  devstatus    smallint NOT NULL DEFAULT 0
+  "desc"       text NOT NULL DEFAULT ''
 );
 
 -- vn_anime
@@ -1317,8 +1329,8 @@ CREATE TABLE vn_staff (
   id         vndbid NOT NULL, -- [pub]
   aid        integer NOT NULL, -- [pub] staff_alias.aid
   role       credit_type NOT NULL DEFAULT 'staff', -- [pub]
-  note       varchar(250) NOT NULL DEFAULT '', -- [pub]
-  eid        smallint -- [pub]
+  eid        smallint, -- [pub]
+  note       varchar(250) NOT NULL DEFAULT '' -- [pub]
 );
 
 -- vn_staff_hist
@@ -1326,17 +1338,17 @@ CREATE TABLE vn_staff_hist (
   chid       integer NOT NULL,
   aid        integer NOT NULL, -- See note at vn_seiyuu_hist.aid
   role       credit_type NOT NULL DEFAULT 'staff',
-  note       varchar(250) NOT NULL DEFAULT '',
-  eid        smallint
+  eid        smallint,
+  note       varchar(250) NOT NULL DEFAULT ''
 );
 
 -- vn_titles
 CREATE TABLE vn_titles (
   id         vndbid NOT NULL, -- [pub]
   lang       language NOT NULL, -- [pub]
+  official   boolean NOT NULL, -- [pub]
   title      text NOT NULL, -- [pub]
   latin      text, -- [pub]
-  official   boolean NOT NULL, -- [pub]
   PRIMARY KEY(id, lang)
 );
 
@@ -1344,9 +1356,9 @@ CREATE TABLE vn_titles (
 CREATE TABLE vn_titles_hist (
   chid       integer NOT NULL,
   lang       language NOT NULL,
+  official   boolean NOT NULL,
   title      text NOT NULL,
   latin      text,
-  official   boolean NOT NULL,
   PRIMARY KEY(chid, lang)
 );
 
@@ -1357,10 +1369,10 @@ CREATE TABLE vn_length_votes (
   date       timestamptz NOT NULL DEFAULT NOW(), -- [pub]
   length     smallint NOT NULL, -- [pub] minutes
   speed      smallint, -- [pub] NULL=uncounted/ignored, 0=slow, 1=normal, 2=fast
+  private    boolean NOT NULL,
   uid        vndbid, -- [pub]
   rid        vndbid[] NOT NULL, -- [pub]
-  notes      text NOT NULL DEFAULT '', -- [pub]
-  private    boolean NOT NULL
+  notes      text NOT NULL DEFAULT '' -- [pub]
 );
 
 -- wikidata
