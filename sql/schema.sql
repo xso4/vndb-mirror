@@ -890,7 +890,8 @@ CREATE TABLE tags_vn_direct (
   vid     vndbid NOT NULL,
   rating  real NOT NULL,
   spoiler smallint NOT NULL,
-  lie     boolean NOT NULL
+  lie     boolean NOT NULL,
+  PRIMARY KEY(tag, vid)
 );
 
 -- tags_vn_inherit
@@ -899,7 +900,8 @@ CREATE TABLE tags_vn_inherit (
   vid     vndbid NOT NULL,
   rating  real NOT NULL,
   spoiler smallint NOT NULL,
-  lie     boolean NOT NULL
+  lie     boolean NOT NULL,
+  PRIMARY KEY(tag, vid)
 );
 
 -- threads

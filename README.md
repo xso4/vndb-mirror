@@ -21,6 +21,10 @@ chime in with ideas.
 
 ## Quick and dirty setup using Docker
 
+NOTE: The Docker approach is currently broken because it uses an older
+PostgreSQL version. Docker itself is broken on my PC so I can't fix it; patches
+welcome.
+
 Setup:
 
 ```
@@ -65,7 +69,7 @@ Global requirements:
 
 - Linux, or an OS that resembles Linux. Chances are VNDB won't run on Windows.
 - A standard C build system (make/gcc/etc)
-- PostgreSQL 13+ (including development files)
+- PostgreSQL 15+ (including development files)
 - Perl 5.26+
 - Elm 0.19.1
 - Graphviz

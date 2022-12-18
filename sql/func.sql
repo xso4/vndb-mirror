@@ -278,22 +278,16 @@ $$ LANGUAGE plpgsql;
 
 
 
--- Recalculate tags_vn_direct & tags_vn_inherit.
+-- Update tags_vn_direct & tags_vn_inherit.
 -- When a vid is given, only the tags for that vid will be updated. These
 -- incremental updates do not affect tags.c_items, so that may still get
 -- out-of-sync.
 CREATE OR REPLACE FUNCTION tag_vn_calc(uvid vndbid) RETURNS void AS $$
 BEGIN
-  IF uvid IS NULL THEN
-    DROP INDEX IF EXISTS tags_vn_direct_tag_vid;
-    DROP INDEX IF EXISTS tags_vn_direct_vid;
-    TRUNCATE tags_vn_direct;
-  ELSE
-    DELETE FROM tags_vn_direct WHERE vid = uvid;
-  END IF;
-
-  INSERT INTO tags_vn_direct (tag, vid, rating, spoiler, lie)
-    SELECT tv.tag, tv.vid, avg(tv.vote)
+  -- tags_vn_direct
+  WITH new (tag, vid, rating, spoiler, lie) AS (
+    -- Rows that we want
+    SELECT tv.tag, tv.vid, avg(tv.vote)::real
          , CASE WHEN COUNT(spoiler) = 0 THEN MIN(t.defaultspoil) WHEN AVG(spoiler) > 1.3 THEN 2 WHEN AVG(spoiler) > 0.4 THEN 1 ELSE 0 END
          , count(lie) filter(where lie) > 0 AND count(lie) filter (where lie) >= count(lie)>>1
       FROM tags_vn tv
@@ -304,44 +298,54 @@ BEGIN
        AND vid NOT IN(SELECT id FROM vn WHERE hidden)
        AND (uvid IS NULL OR vid = uvid)
      GROUP BY tv.tag, tv.vid
-    HAVING avg(tv.vote) > 0;
+    HAVING avg(tv.vote) > 0
+  ), n AS (
+    -- Add existing rows from tags_vn_direct as NULLs, so we can delete them during merge
+    SELECT coalesce(a.tag, b.tag) AS tag, coalesce(a.vid, b.vid) AS vid, a.rating, a.spoiler, a.lie
+      FROM new a
+      FULL OUTER JOIN (SELECT tag, vid FROM tags_vn_direct WHERE uvid IS NULL OR vid = uvid) b on (a.tag, a.vid) = (b.tag, b.vid)
+    -- Now merge
+  ) MERGE INTO tags_vn_direct o USING n ON (n.tag, n.vid) = (o.tag, o.vid)
+     WHEN NOT MATCHED THEN INSERT (tag, vid, rating, spoiler, lie) VALUES (n.tag, n.vid, n.rating, n.spoiler, n.lie)
+     WHEN MATCHED AND n.rating IS NULL THEN DELETE
+     WHEN MATCHED AND (o.rating, o.spoiler, o.lie) IS DISTINCT FROM (n.rating, n.spoiler, n.lie) THEN
+       UPDATE SET rating = n.rating, spoiler = n.spoiler, lie = n.lie;
+
+  -- tags_vn_inherit, based on the data from tags_vn_direct
+  WITH new (tag, vid, rating, spoiler, lie) AS (
+      -- Add parent tags to tags_vn_direct
+     WITH RECURSIVE t_all(lvl, tag, vid, vote, spoiler, lie) AS (
+            SELECT 15, tag, vid, rating, spoiler, lie
+              FROM tags_vn_direct
+             WHERE (uvid IS NULL OR vid = uvid)
+            UNION ALL
+            SELECT ta.lvl-1, tp.parent, ta.vid, ta.vote, ta.spoiler, ta.lie
+              FROM t_all ta
+              JOIN tags_parents tp ON tp.id = ta.tag
+             WHERE ta.lvl > 0
+      -- Merge duplicates
+      ) SELECT tag, vid, AVG(vote)::real, MIN(spoiler), bool_and(lie)
+          FROM t_all
+         WHERE tag IN(SELECT id FROM tags WHERE searchable)
+         GROUP BY tag, vid
+  ), n AS (
+    -- Add existing rows from tags_vn_inherit as NULLs, so we can delete them during merge
+    SELECT coalesce(a.tag, b.tag) AS tag, coalesce(a.vid, b.vid) AS vid, a.rating, a.spoiler, a.lie
+      FROM new a
+      FULL OUTER JOIN (SELECT tag, vid FROM tags_vn_inherit WHERE uvid IS NULL OR vid = uvid) b on (a.tag, a.vid) = (b.tag, b.vid)
+    -- Now merge
+  ) MERGE INTO tags_vn_inherit o USING n ON (n.tag, n.vid) = (o.tag, o.vid)
+     WHEN NOT MATCHED THEN INSERT (tag, vid, rating, spoiler, lie) VALUES (n.tag, n.vid, n.rating, n.spoiler, n.lie)
+     WHEN MATCHED AND n.rating IS NULL THEN DELETE
+     WHEN MATCHED AND (o.rating, o.spoiler, o.lie) IS DISTINCT FROM (n.rating, n.spoiler, n.lie) THEN
+       UPDATE SET rating = n.rating, spoiler = n.spoiler, lie = n.lie;
 
   IF uvid IS NULL THEN
-    CREATE INDEX tags_vn_direct_tag_vid ON tags_vn_direct (tag, vid);
-    CREATE INDEX tags_vn_direct_vid     ON tags_vn_direct (vid);
-    DROP INDEX IF EXISTS tags_vn_inherit_tag_vid;
-    TRUNCATE tags_vn_inherit;
-  ELSE
-    DELETE FROM tags_vn_inherit WHERE vid = uvid;
-  END IF;
-
-  INSERT INTO tags_vn_inherit (tag, vid, rating, spoiler, lie)
-    -- Add parent tags to each row in tags_vn_direct
-    WITH RECURSIVE t_all(lvl, tag, vid, vote, spoiler, lie) AS (
-        SELECT 15, tag, vid, rating, spoiler, lie
-          FROM tags_vn_direct
-         WHERE (uvid IS NULL OR vid = uvid)
-        UNION ALL
-        SELECT ta.lvl-1, tp.parent, ta.vid, ta.vote, ta.spoiler, ta.lie
-          FROM t_all ta
-          JOIN tags_parents tp ON tp.id = ta.tag
-         WHERE ta.lvl > 0
-    )
-    -- Merge duplicates
-    SELECT tag, vid, AVG(vote), MIN(spoiler), bool_and(lie)
-      FROM t_all
-     WHERE tag IN(SELECT id FROM tags WHERE searchable)
-     GROUP BY tag, vid;
-
-  IF uvid IS NULL THEN
-    CREATE INDEX tags_vn_inherit_tag_vid ON tags_vn_inherit (tag, vid);
     UPDATE tags SET c_items = (SELECT COUNT(*) FROM tags_vn_inherit WHERE tag = id);
   END IF;
-
   RETURN;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
+$$ LANGUAGE plpgsql;
 
 
 -- Recalculate traits_chars. Pretty much same thing as tag_vn_calc().

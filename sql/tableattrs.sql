@@ -23,9 +23,7 @@ CREATE        INDEX staff_alias_id         ON staff_alias (id);
 CREATE UNIQUE INDEX tags_vn_pkey           ON tags_vn (tag,vid,uid);
 CREATE UNIQUE INDEX threads_boards_pkey    ON threads_boards (tid,type,COALESCE(iid, 'r1')); -- 'r1' is an invalid board id
 CREATE        INDEX tags_vn_date           ON tags_vn (date);
-CREATE        INDEX tags_vn_direct_tag_vid ON tags_vn_direct (tag, vid);
 CREATE        INDEX tags_vn_direct_vid     ON tags_vn_direct (vid);
-CREATE        INDEX tags_vn_inherit_tag_vid ON tags_vn_inherit (tag, vid);
 CREATE        INDEX tags_vn_uid            ON tags_vn (uid) WHERE uid IS NOT NULL;
 CREATE        INDEX tags_vn_vid            ON tags_vn (vid);
 CREATE        INDEX shop_playasia__gtin    ON shop_playasia (gtin);
