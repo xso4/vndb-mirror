@@ -26,7 +26,8 @@ sub TABLEOPTS {
             compat => 'tagscore',
             sort_id => 0,
             sort_sql => 'tvi.rating ?o, v.title',
-            sort_default => 'desc'
+            sort_default => 'desc',
+            sort_num => 1,
         }) : (),
         title => {
             name => 'Title',
