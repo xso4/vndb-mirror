@@ -9,7 +9,7 @@ my $TABLEOPTS = VNWeb::VN::List::TABLEOPTS('ulist');
 
 
 sub opt {
-    my($u, $filtlabels) = @_;
+    my($u, $labels) = @_;
 
     # Note that saved defaults may still use the old query format, which is
     #   { s => $sort_column, o => $order, c => [$visible_columns] }
@@ -46,7 +46,7 @@ sub opt {
     $opt->{f} = tuwf->compile({ advsearch_err => 'v' })->validate($opt->{f})->data;
 
     # $labels only includes labels we are allowed to see, getting rid of any labels in 'l' that aren't in $labels ensures we only filter on visible labels
-    my %accessible_labels = map +($_->{id}, 1), @$filtlabels;
+    my %accessible_labels = map +($_->{id}, 1), @$labels;
     my %opt_l = map +($_, 1), grep $accessible_labels{$_}, $opt->{l}->@*;
     %opt_l = %accessible_labels if !keys %opt_l;
     $opt->{l} = keys %opt_l == keys %accessible_labels ? [] : [ sort keys %opt_l ];
@@ -56,7 +56,7 @@ sub opt {
 
 
 sub filters_ {
-    my($own, $filtlabels, $opt, $opt_labels, $url) = @_;
+    my($own, $labels, $opt, $opt_labels, $url) = @_;
 
     my sub lblfilt_ {
         input_ type => 'checkbox', name => 'l', value => $_->{id}, id => "form_l$_->{id}", tabindex => 10, $opt_labels->{$_->{id}} ? (checked => 'checked') : ();
@@ -77,14 +77,14 @@ sub filters_ {
         input_ type => 'hidden', name => 'ch', value => $opt->{ch}//'';
         $opt->{f}->elm_(1);
         p_ class => 'linkradio', sub {
-            join_ sub { em_ ' / ' }, \&lblfilt_, grep $_->{id} < 10, @$filtlabels;
+            join_ sub { em_ ' / ' }, \&lblfilt_, grep $_->{id} < 10, @$labels;
             span_ class => 'hidden', sub {
                 em_ ' || ';
                 input_ type => 'checkbox', name => 'mul', value => 1, id => 'form_l_multi', tabindex => 10, $opt->{mul} ? (checked => 'checked') : ();
                 label_ for => 'form_l_multi', 'Multi-select';
             };
-            debug_ $filtlabels;
-            my @cust = grep $_->{id} >= 10, @$filtlabels;
+            debug_ $labels;
+            my @cust = grep $_->{id} >= 10, @$labels;
             if(@cust) {
                 br_;
                 join_ sub { em_ ' / ' }, \&lblfilt_, @cust;
@@ -284,31 +284,10 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
     return tuwf->resNotFound if !$u->{id};
 
     my $own = ulists_own $u->{id};
+    my $labels = ulist_filtlabels $u->{id}, 1;
+    $_->{delete} = undef for @$labels;
 
-    # Visible and selectable labels
-    my $labels = tuwf->dbAlli(
-        'SELECT l.id, l.label, l.private, coalesce(x.count, 0) as count, null as delete
-           FROM ulist_labels l
-           LEFT JOIN (SELECT x.id, COUNT(*) FROM ulist_vns uv, unnest(uv.labels) x(id) WHERE uid =', \$u->{id}, 'GROUP BY x.id) x(id, count) ON x.id = l.id
-          WHERE l.uid =', \$u->{id}, $own ? () : 'AND NOT l.private',
-         'ORDER BY CASE WHEN l.id < 10 THEN l.id ELSE 10 END, l.label'
-    );
-
-    # All visible labels that can be filtered on, including "virtual" labels like 'No label'
-    my $filtlabels = [
-        @$labels,
-        # Consider label 7 (Voted) a virtual label if it's set to private.
-        !grep($_->{id} == 7, @$labels) ? {
-            id => 7, label => 'Voted',
-            count => tuwf->dbVali('SELECT count(*) FROM ulist_vns WHERE vote IS NOT NULL AND NOT c_private AND uid =', \$u->{id})
-        } : (),
-        $own ? {
-            id => -1, label => 'No label',
-            count => tuwf->dbVali("SELECT count(*) FROM ulist_vns WHERE labels IN('{}','{7}') AND uid =", \$u->{id})
-        } : (),
-    ];
-
-    my($opt, $opt_labels) = opt $u, $filtlabels;
+    my($opt, $opt_labels) = opt $u, $labels;
     my sub url { '?'.query_encode %$opt, @_ }
 
     # This page has 3 user tabs: list, wish and votes; Select the appropriate active tab based on label filters.
@@ -324,7 +303,7 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
             voteprivate => (map \($_->{private}?1:0), grep $_->{id} == 7, @$labels),
         } ) : (),
     sub {
-        my $empty = !grep $_->{count}, @$filtlabels;
+        my $empty = !grep $_->{count}, @$labels;
         form_ method => 'get', sub {
             div_ class => 'mainbox', sub {
                 h1_ $title;
@@ -333,7 +312,7 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
                         ? 'Your list is empty! You can add visual novels to your list from the visual novel pages.'
                         : user_displayname($u).' does not have any visible visual novels in their list.';
                 } else {
-                    filters_ $own, $filtlabels, $opt, $opt_labels, \&url;
+                    filters_ $own, $labels, $opt, $opt_labels, \&url;
                     elm_ 'UList.ManageLabels' if $own;
                     elm_ 'UList.SaveDefault', $VNWeb::ULists::Elm::SAVED_OPTS_OUT, {
                         uid => $u->{id},

@@ -12,6 +12,7 @@ use VNWeb::Auth;
 use VNWeb::DB;
 use VNWeb::Validation;
 use VNWeb::AdvSearch;
+use VNWeb::ULists::Lib 'ulist_filtlabels';
 
 return 1 if $main::NOAPI;
 
@@ -454,15 +455,13 @@ api_get '/ulist_labels', { labels => { aoh => {
     private => { anybool => 1 },
     label   => {},
 }}}, sub {
-    my $uid = tuwf->validate(get => user => { vndbid => 'u', required => !auth->uid, default => auth->uid });
-    err 400, 'Invalid argument' if !$uid;
-    $uid = $uid->data;
-    +{ labels => tuwf->dbAlli('
-        SELECT id, private, label
-          FROM ulist_labels
-         WHERE uid =', \$uid, auth->api2Listread($uid) ? () : 'AND NOT private',
-        'ORDER BY CASE WHEN id < 10 THEN id ELSE 10 END, label')
-    }
+    my $data = tuwf->validate(get =>
+        user   => { vndbid => 'u', required => !auth->uid, default => auth->uid },
+        fields => { required => 0, enum => ['count'] },
+    );
+    err 400, 'Invalid argument' if !$data;
+    $data = $data->data;
+    +{ labels => ulist_filtlabels $data->{user}, $data->{fields} };
 };
 
 

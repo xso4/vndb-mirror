@@ -4,6 +4,7 @@ use v5.28;
 use warnings;
 use TUWF;
 use VNWeb::Auth;
+use VNWeb::Validation 'is_api';
 use Exporter 'import';
 
 
@@ -505,7 +506,7 @@ our @ZONES = qw{
 our %ZONES = map +($_,1), @ZONES;
 
 TUWF::hook before => sub {
-    $ENV{TZ} = auth->pref('timezone') || 'UTC';
+    $ENV{TZ} = !is_api() && auth->pref('timezone') || 'UTC';
 } if !$main::ONLYAPI;
 
 1;

@@ -207,9 +207,15 @@ curl %endpoint%/authinfo\
 
 ## GET /ulist\_labels
 
-Fetch the list labels for a certain user. Accepts a single query parameter:
-`user`, which is the user ID to fetch the labels for. If the parameter is
-missing, the labels for the currently authenticated user are fetched instead.
+Fetch the list labels for a certain user. Accepts two query parameters:
+
+user
+:   The user ID to fetch the labels for. If the parameter is missing, the
+    labels for the currently authenticated user are fetched instead.
+
+fields
+:   List of fields to select. Currently only `count` may be specified, the
+    other fields are always selected.
 
 Returns a JSON object with a single key, `"labels"`, which is an array of
 objects with the following members:
@@ -219,10 +225,15 @@ id
 
 private
 :   Boolean, whether this label is private. Private labels are only included
-    when authenticated with the `listread` permission.
+    when authenticated with the `listread` permission. The 'Voted' label (id=7)
+    is always included even when private.
 
 label
 :   String.
+
+count
+:   Integer. The 'Voted' label may have different counts depending on whether
+    the user has authenticated.
 
 Labels with an id below 10 are the pre-defined labels and are the same for
 everyone, though even pre-defined labels are excluded if they are marked
@@ -233,8 +244,6 @@ Example: [Multi](https://vndb.org/u1) has only the default labels.
 ```sh
 curl '%endpoint%/ulist_labels?user=u1'
 ```
-
-*TODO: Add usage counts?*
 
 
 # Database Querying

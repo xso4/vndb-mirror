@@ -4,11 +4,38 @@ use VNWeb::Prelude;
 use VNWeb::Releases::Lib 'releases_by_vn';
 use Exporter 'import';
 
-our @EXPORT = qw/ulists_own enrich_ulists_widget ulists_widget_ ulists_widget_full_data/;
+our @EXPORT = qw/ulists_own ulist_filtlabels enrich_ulists_widget ulists_widget_ ulists_widget_full_data/;
 
 # Do we have "ownership" access to this users' list (i.e. can we edit and see private stuff)?
 sub ulists_own {
     auth->permUsermod || auth->api2Listread(shift)
+}
+
+
+sub ulist_filtlabels {
+    my($uid, $count) = @_;
+    my $own = ulists_own $uid;
+
+    my $l = tuwf->dbAlli(
+        'SELECT l.id, l.label, l.private', $count ? ', coalesce(x.count, 0) as count' : (),
+          'FROM ulist_labels l',
+           $count ? ('LEFT JOIN (
+              SELECT x.id, COUNT(*)
+                FROM ulist_vns uv, unnest(uv.labels) x(id)
+               WHERE uid =', \$uid, $own ? () : 'AND NOT uv.c_private', '
+               GROUP BY x.id
+            ) x(id, count) ON x.id = l.id') : (), '
+          WHERE l.uid =', \$uid, $own ? () : 'AND (NOT l.private OR l.id = 10-1-1-1)', # XXX: 'Voted' (7) is always visibible
+         'ORDER BY CASE WHEN l.id < 10 THEN l.id ELSE 10 END, l.label'
+    );
+
+    # Virtual 'No label' label, only ever has private VNs.
+    push @$l, {
+        id => -1, label => 'No label', private => 1,
+        $count ? (count => tuwf->dbVali("SELECT count(*) FROM ulist_vns WHERE labels IN('{}','{7}') AND uid =", \$uid)) : (),
+    } if $own;
+
+    $l
 }
 
 
