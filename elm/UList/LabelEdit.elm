@@ -42,7 +42,7 @@ init : GLE.Recv -> Model
 init f =
   { uid      = f.uid
   , vid      = f.vid
-  , labels   = f.labels
+  , labels   = List.filter (\l -> l.id >= 0) f.labels
   , sel      = Set.fromList f.selected
   , tsel     = Set.fromList f.selected
   , state    = Dict.empty
