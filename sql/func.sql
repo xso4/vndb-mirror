@@ -351,17 +351,10 @@ $$ LANGUAGE plpgsql;
 -- Recalculate traits_chars. Pretty much same thing as tag_vn_calc().
 CREATE OR REPLACE FUNCTION traits_chars_calc(ucid vndbid) RETURNS void AS $$
 BEGIN
-  IF ucid IS NULL THEN
-    DROP INDEX IF EXISTS traits_chars_tid;
-    TRUNCATE traits_chars;
-  ELSE
-    DELETE FROM traits_chars WHERE cid = ucid;
-  END IF;
-
-  INSERT INTO traits_chars (tid, cid, spoil, lie)
+  WITH new (tid, cid, spoil, lie) AS (
     -- all char<->trait links of the latest revisions, including chars inherited from child traits.
     -- (also includes non-searchable traits, because they could have a searchable trait as parent)
-    WITH RECURSIVE traits_chars_all(lvl, tid, cid, spoiler, lie) AS (
+    WITH RECURSIVE t_all(lvl, tid, cid, spoiler, lie) AS (
         SELECT 15, tid, ct.id, spoil, lie
           FROM chars_traits ct
          WHERE id NOT IN(SELECT id from chars WHERE hidden)
@@ -369,7 +362,7 @@ BEGIN
            AND NOT EXISTS (SELECT 1 FROM traits t WHERE t.id = ct.tid AND t.hidden)
       UNION ALL
         SELECT lvl-1, tp.parent, tc.cid, tc.spoiler, tc.lie
-        FROM traits_chars_all tc
+        FROM t_all tc
         JOIN traits_parents tp ON tp.id = tc.tid
         JOIN traits t ON t.id = tp.parent
         WHERE NOT t.hidden
@@ -377,19 +370,29 @@ BEGIN
     )
     -- now grouped by (tid, cid), with non-searchable traits filtered out
     SELECT tid, cid
-         , (CASE WHEN MIN(spoiler) > 1.3 THEN 2 WHEN MIN(spoiler) > 0.7 THEN 1 ELSE 0 END)::smallint AS spoiler
+         , (CASE WHEN MIN(spoiler) > 1.3 THEN 2 WHEN MIN(spoiler) > 0.7 THEN 1 ELSE 0 END)::smallint
          , bool_and(lie)
-      FROM traits_chars_all
+      FROM t_all
      WHERE tid IN(SELECT id FROM traits WHERE searchable)
-     GROUP BY tid, cid;
+     GROUP BY tid, cid
+  ), n AS (
+    -- Add existing rows from traits_chars as NULLs, so we can delete them during merge
+    SELECT coalesce(a.tid, b.tid) AS tid, coalesce(a.cid, b.cid) AS cid, a.spoil, a.lie
+      FROM new a
+      FULL OUTER JOIN (SELECT tid, cid FROM traits_chars WHERE ucid IS NULL OR cid = ucid) b on (a.tid, a.cid) = (b.tid, b.cid)
+    -- Now merge
+  ) MERGE INTO traits_chars o USING n ON (n.tid, n.cid) = (o.tid, o.cid)
+     WHEN NOT MATCHED THEN INSERT (tid, cid, spoil, lie) VALUES (n.tid, n.cid, n.spoil, n.lie)
+     WHEN MATCHED AND n.spoil IS NULL THEN DELETE
+     WHEN MATCHED AND (o.spoil, o.lie) IS DISTINCT FROM (n.spoil, n.lie) THEN
+       UPDATE SET spoil = n.spoil, lie = n.lie;
 
   IF ucid IS NULL THEN
-    CREATE INDEX traits_chars_tid ON traits_chars (tid);
     UPDATE traits SET c_items = (SELECT COUNT(*) FROM traits_chars WHERE tid = id);
   END IF;
   RETURN;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
 
 
 

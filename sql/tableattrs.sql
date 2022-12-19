@@ -30,7 +30,7 @@ CREATE        INDEX shop_playasia__gtin    ON shop_playasia (gtin);
 CREATE        INDEX threads_posts_date     ON threads_posts (date);
 CREATE        INDEX threads_posts_ts       ON threads_posts USING gin(bb_tsvector(msg));
 CREATE        INDEX threads_posts_uid      ON threads_posts (uid); -- Only really used on /u+ pages to get stats
-CREATE        INDEX traits_chars_tid       ON traits_chars (tid);
+CREATE        INDEX traits_chars_cid       ON traits_chars (cid);
 CREATE        INDEX vn_image               ON vn (image);
 CREATE        INDEX vn_screenshots_scr     ON vn_screenshots (scr);
 CREATE        INDEX vn_seiyuu_aid          ON vn_seiyuu (aid); -- Only used on /s+?

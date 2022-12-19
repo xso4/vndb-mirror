@@ -174,7 +174,8 @@ GRANT SELECT                         ON threads_boards           TO vndb_multi;
 GRANT SELECT                         ON threads_posts            TO vndb_multi;
 GRANT SELECT,         UPDATE         ON traits                   TO vndb_multi;
 GRANT SELECT                         ON traits_hist              TO vndb_multi;
-GRANT SELECT                         ON traits_chars             TO vndb_multi; -- traits_chars_calc() is SECURITY DEFINER
+GRANT SELECT                         ON traits_chars             TO vndb_multi;
+GRANT SELECT, INSERT, UPDATE, DELETE ON traits_chars             TO vndb_multi;
 GRANT SELECT                         ON traits_parents           TO vndb_multi;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ulist_labels             TO vndb_multi;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ulist_vns                TO vndb_multi;

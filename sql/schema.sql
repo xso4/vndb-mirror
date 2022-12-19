@@ -1009,7 +1009,8 @@ CREATE TABLE traits_chars (
   cid    vndbid NOT NULL,  -- chars (id)
   tid    vndbid NOT NULL,  -- traits (id)
   spoil  smallint NOT NULL DEFAULT 0,
-  lie    boolean NOT NULL DEFAULT false
+  lie    boolean NOT NULL DEFAULT false,
+  PRIMARY KEY (tid, cid)
 );
 
 -- traits_parents
