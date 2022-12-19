@@ -10,6 +10,7 @@ import Browser.Dom as Dom
 import Dict
 import Set
 import Task
+import Date
 import Process
 import File exposing (File)
 import File.Select as FSel
@@ -30,7 +31,7 @@ import Gen.Api as GApi
 
 main : Program GVE.Recv Model Msg
 main = Browser.element
-  { init   = \e -> (init e, Cmd.none)
+  { init   = \e -> (init e, Date.today |> Task.perform Today)
   , view   = view
   , update = update
   , subscriptions = always Sub.none
@@ -50,6 +51,7 @@ type Tab
 type alias Model =
   { state       : Api.State
   , tab         : Tab
+  , today       : Int
   , invalidDis  : Bool
   , editsum     : Editsum.Model
   , titles      : List GVE.RecvTitles
@@ -90,6 +92,7 @@ init : GVE.Recv -> Model
 init d =
   { state       = Api.Normal
   , tab         = General
+  , today       = 0
   , invalidDis  = False
   , editsum     = { authmod = d.authmod, editsum = TP.bbcode d.editsum, locked = d.locked, hidden = d.hidden, hasawait = False }
   , titles      = d.titles
@@ -166,6 +169,7 @@ seiyuuConfig = { wrap = SeiyuuSearch, id = "seiyuuadd", source = A.staffSource }
 
 type Msg
   = Noop
+  | Today Date.Date
   | Editsum Editsum.Msg
   | Tab Tab
   | Invalid Tab
@@ -236,6 +240,7 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Noop       -> (model, Cmd.none)
+    Today d    -> ({ model | today = RDate.fromDate d |> RDate.compact }, Cmd.none)
     Editsum m  -> let (nm,nc) = Editsum.update m model.editsum in ({ model | editsum = nm }, Cmd.map Editsum nc)
     Tab t      -> ({ model | tab = t }, Cmd.none)
     Invalid t  -> if model.invalidDis || model.tab == All || model.tab == t then (model, Cmd.none) else
@@ -449,7 +454,27 @@ view model =
         , text "Short description of the main story. Please do not include spoilers, and don't forget to list the source in case you didn't write the description yourself."
         ]
       , formField "devstatus::Development status"
-        [ inputSelect "devstatus" model.devStatus DevStatus [] GT.devStatus ]
+        [ inputSelect "devstatus" model.devStatus DevStatus [] GT.devStatus
+        , if model.devStatus == 0
+            && not (List.isEmpty model.releases)
+            && List.isEmpty (List.filter (\r -> r.rtype == "complete" && r.released <= model.today) model.releases)
+          then span []
+               [ br [] []
+               , b [ class "standout" ] [ text "Development is marked as finished, but there is no complete release in the database." ]
+               , br [] []
+               , text "Please adjust the development status or ensure there is a completed release."
+               ]
+          else text ""
+        , if model.devStatus /= 0
+            && not (List.isEmpty (List.filter (\r -> r.rtype == "complete" && r.released <= model.today) model.releases))
+          then span []
+               [ br [] []
+               , b [ class "standout" ] [ text "Development is not marked as finished, but there is a complete release in the database." ]
+               , br [] []
+               , text "Please adjust the development status or set the release to partial or TBA."
+               ]
+          else text ""
+        ]
       , formField "length::Length"
         [ inputSelect "length" model.length Length [] GT.vnLengths
         , text " (only displayed if there are no length votes)" ]
