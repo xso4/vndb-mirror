@@ -60,6 +60,16 @@ TUWF::set custom_validations => {
     },
     # Sorted and unique array-of-hashes (default order is sort_keys on the sorted keys...)
     aoh         => sub { +{ type => 'array', unique => 1, sort_keys => [sort keys %{$_[0]}], values => { type => 'hash', keys => $_[0] } } },
+    # Fields query parameter for the API, supports multiple values or comma-delimited list, returns a hash.
+    fields      => sub {
+        my %keys = map +($_,1), ref $_[0] eq 'ARRAY' ? @{$_[0]} : $_[0];
+        +{ required => 0, default => {}, type => 'array', values => {}, scalar => 1, func => sub {
+            my @l = map split(/\s*,\s*/,$_), @{$_[0]};
+            return 0 if grep !$keys{$_}, @l;
+            $_[0] = { map +($_,1), @l };
+            1;
+        } }
+    },
 };
 
 sub _validate_rdate {

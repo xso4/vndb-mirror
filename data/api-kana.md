@@ -20,8 +20,7 @@ This version of the API is intended to replace the [old TCP-based
 API](https://vndb.org/d11), although the old API will likely remain available
 for the forseeable future.
 
-**Status**: Beta, some functionality is still missing and breaking changes may
-occur.
+**Status**: Stable, but still missing some functionality.
 
 **API endpoint**: `%endpoint%`
 
@@ -146,10 +145,31 @@ Returns a few overall database statistics.
 
 ## GET /user
 
-Lookup users by id or username. Requested ids or usernames are given as one or
-more `q` query parameters. The response object contains one key for each given
-`q` parameter, its value is either `null` if no such user was found or an
-object with an `id` and `username` field otherwise.
+Lookup users by id or username. Accepts two query parameters:
+
+q
+:   User ID or username to look up, can be given multiple times to look up
+    multiple users.
+
+fields
+:   List of fields to select. The 'id' and 'username' fields are always
+    selected and should not be specified here.
+
+The response object contains one key for each given `q` parameter, its value is
+either `null` if no such user was found or otherwise an object with the
+following fields:
+
+id
+:   String in `"u123"` format.
+
+username
+:   String.
+
+lengthvotes
+:   Integer, number of play time votes this user has submitted.
+
+lengthvotes\_sum
+:   Integer, sum of the user's play time votes, in minutes.
 
 Strings that look like user IDs are not valid usernames, so the lookup is
 unambiguous. Usernames matching is case-insensitive.
@@ -166,6 +186,19 @@ unambiguous. Usernames matching is case-insensitive.
   "u3": {
     "id": "u3",
     "username": "ayo"
+  }
+}
+```
+
+`curl '%endpoint%/user?q=yorhel&fields=lengthvotes,lengthvotes_sum'`
+
+```json
+{
+  "yorhel": {
+    "id": "u2",
+    "lengthvotes": 9,
+    "lengthvotes_sum": 9685,
+    "username": "Yorhel"
   }
 }
 ```

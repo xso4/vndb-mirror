@@ -437,16 +437,31 @@ api_get '/authinfo', {}, sub {
 
 
 api_get '/user', {}, sub {
-    my $q = tuwf->validate(get => q => { type => 'array', scalar => 1, maxlength => 100, values => {} });
-    err 400, 'Invalid argument' if !$q;
+    my $data = tuwf->validate(get =>
+        q      => { type => 'array', scalar => 1, maxlength => 100, values => {} },
+        fields => { fields => ['lengthvotes', 'lengthvotes_sum'] },
+    );
+    err 400, 'Invalid argument' if !$data;
+    my ($q, $f) = @{ $data->data }{qw{ q fields }};
     my $regex = '^u[1-9][0-9]{0,6}$';
     +{ map +(delete $_->{q}, $_->{id} ? $_ : undef), tuwf->dbAlli('
-        SELECT x.q, u.id, u.username
-          FROM unnest(', sql_array($q->data->@*), ') x(q)
-          LEFT JOIN users u ON u.id = CASE WHEN x.q ~', \$regex, 'THEN x.q::vndbid ELSE NULL END
-                            OR LOWER(u.username) = LOWER(x.q)
-         ORDER BY u.id
-    ')->@* }
+        WITH u AS (
+            SELECT x.q, u.id, u.username
+              FROM unnest(', sql_array(@$q), ') x(q)
+              LEFT JOIN users u ON u.id = CASE WHEN x.q ~', \$regex, 'THEN x.q::vndbid ELSE NULL END
+                                OR LOWER(u.username) = LOWER(x.q)
+        ) SELECT u.*',
+                 $f->{lengthvotes} ? ', coalesce(l.count,0) AS lengthvotes' : (),
+                 $f->{lengthvotes_sum} ? ', coalesce(l.sum,0) AS lengthvotes_sum' : (),
+          'FROM u',
+          $f->{lengthvotes} || $f->{lengthvotes_sum} ? ('LEFT JOIN (
+                SELECT uid, count(*) AS count, sum(length) AS sum
+                  FROM vn_length_votes
+                 WHERE uid IN(SELECT id FROM u)
+                 GROUP BY uid
+             ) l ON l.uid = u.id'
+          ) : (),
+    )->@* }
 };
 
 
