@@ -252,8 +252,8 @@ sub api_query {
             $req->{time} ? (time => int(1000*(time() - tuwf->req->{throttle_start}))) : (),
         });
         cors;
-        count_request(scalar @$results, sprintf '[%s] {%s %s r%dp%d%s} %s', fmt_fields($req->{fields}),
-            $req->{sort}, lc($order), $req->{results}, $req->{page}, $req->{user}?" $req->{user}":'',
+        count_request(scalar @$results, sprintf '[%s] {%s %s r%dp%d%s%s} %s', fmt_fields($req->{fields}),
+            $req->{sort}, lc($order), $req->{results}, $req->{page}, $req->{count}?'c':'', $req->{user}?" $req->{user}":'',
             $req->{filters}->query_encode()||'-');
     };
 }
