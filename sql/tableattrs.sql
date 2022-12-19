@@ -21,7 +21,7 @@ CREATE UNIQUE INDEX reviews_votes_id_uid   ON reviews_votes (id,uid);
 CREATE UNIQUE INDEX reviews_votes_id_ip    ON reviews_votes (id,ip);
 CREATE        INDEX staff_alias_id         ON staff_alias (id);
 CREATE UNIQUE INDEX tags_vn_pkey           ON tags_vn (tag,vid,uid);
-CREATE UNIQUE INDEX threads_boards_pkey    ON threads_boards (tid,type,COALESCE(iid, 'r1')); -- 'r1' is an invalid board id
+CREATE UNIQUE INDEX threads_boards_pkey    ON threads_boards (tid,type,iid) NULLS NOT DISTINCT;
 CREATE        INDEX tags_vn_date           ON tags_vn (date);
 CREATE        INDEX tags_vn_direct_vid     ON tags_vn_direct (vid);
 CREATE        INDEX tags_vn_uid            ON tags_vn (uid) WHERE uid IS NOT NULL;
@@ -35,14 +35,14 @@ CREATE        INDEX vn_image               ON vn (image);
 CREATE        INDEX vn_screenshots_scr     ON vn_screenshots (scr);
 CREATE        INDEX vn_seiyuu_aid          ON vn_seiyuu (aid); -- Only used on /s+?
 CREATE        INDEX vn_seiyuu_cid          ON vn_seiyuu (cid); -- Only used on /c+?
-CREATE UNIQUE INDEX vn_staff_pkey          ON vn_staff (id, COALESCE(eid,-1::smallint), aid, role);
-CREATE UNIQUE INDEX vn_staff_hist_pkey     ON vn_staff_hist (chid, COALESCE(eid,-1::smallint), aid, role);
+CREATE UNIQUE INDEX vn_staff_pkey          ON vn_staff (id, eid, aid, role) NULLS NOT DISTINCT;
+CREATE UNIQUE INDEX vn_staff_hist_pkey     ON vn_staff_hist (chid, eid, aid, role) NULLS NOT DISTINCT;
 CREATE        INDEX vn_staff_aid           ON vn_staff (aid);
 CREATE UNIQUE INDEX vn_length_votes_vid_uid ON vn_length_votes (vid, uid);
 CREATE        INDEX vn_length_votes_uid    ON vn_length_votes (uid);
 CREATE UNIQUE INDEX changes_itemrev        ON changes (itemid, rev);
-CREATE UNIQUE INDEX chars_vns_pkey         ON chars_vns (id, vid, COALESCE(rid, 'v1')); -- 'v1' is an invalid release id, but works as a 'no release specified' value in the UNIQUE qualifier.
-CREATE UNIQUE INDEX chars_vns_hist_pkey    ON chars_vns_hist (chid, vid, COALESCE(rid, 'v1'));
+CREATE UNIQUE INDEX chars_vns_pkey         ON chars_vns (id, vid, rid) NULLS NOT DISTINCT;
+CREATE UNIQUE INDEX chars_vns_hist_pkey    ON chars_vns_hist (chid, vid, rid) NULLS NOT DISTINCT;
 CREATE        INDEX ulist_vns_voted        ON ulist_vns (vid, vote_date) WHERE vote IS NOT NULL; -- For VN recent votes & vote graph. INCLUDE(vote) speeds up vote graph even more
 CREATE UNIQUE INDEX users_username_key     ON users (lower(username));
 CREATE        INDEX users_ign_votes        ON users (id) WHERE ign_votes;
