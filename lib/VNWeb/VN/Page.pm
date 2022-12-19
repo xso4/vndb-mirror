@@ -455,7 +455,7 @@ sub infobox_ {
                     released yet, in that case it can just be a placeholder for a
                     future release)';
             };
-        } if auth->permEdit && !$v->{releases}->@*;
+        } if !$v->{hidden} && auth->permEdit && !$v->{releases}->@*;
 
         div_ class => 'vndetails', sub {
             div_ class => 'vnimg', sub { image_ $v->{image}, alt => $v->{title}; };
