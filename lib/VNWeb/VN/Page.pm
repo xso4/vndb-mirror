@@ -444,6 +444,19 @@ sub infobox_ {
         h1_ $v->{title};
         h2_ class => 'alttitle', lang_attr($v->{olang}), $v->{alttitle} if $v->{alttitle} && $v->{alttitle} ne $v->{title};
 
+        div_ class => 'warning', sub {
+            h2_ 'No releases';
+            p_ sub {
+                txt_ 'This entry does not have any releases associated with it yet. Please ';
+                a_ href => "/$v->{id}/add", 'add a release entry';
+                txt_ ' if you have information about this visual novel.';
+                br_;
+                txt_ '(A release entry should be present even if nothing has been
+                    released yet, in that case it can just be a placeholder for a
+                    future release)';
+            };
+        } if auth->permEdit && !$v->{releases}->@*;
+
         div_ class => 'vndetails', sub {
             div_ class => 'vnimg', sub { image_ $v->{image}, alt => $v->{title}; };
 
