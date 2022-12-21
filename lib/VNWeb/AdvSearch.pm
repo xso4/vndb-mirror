@@ -742,15 +742,22 @@ sub _sql_where_label {
         return sql $neg ? 'NOT' : (), 'EXISTS(SELECT 1 FROM ulist_vns WHERE vid = v.id AND uid =', \$uid, "AND labels IN('{}','{7}'))";
     }
 
-    # Simple, stupid and safe: Don't attempt to query anything if there's a private label.
-    # This can be improved to allow querying/displaying results that *are* visible, but it's more complex and not that often needed.
     if(!$own) {
-        tuwf->req->{lblvis}{$uid} ||= { map +($_->{id},1), tuwf->dbAlli('SELECT id FROM ulist_labels WHERE NOT private AND uid =', \$uid)->@* };
+        # Label 7 can always be queried, do a lookup for the rest.
+        tuwf->req->{lblvis}{$uid} ||= { 7, 1, map +($_->{id},1), tuwf->dbAlli('SELECT id FROM ulist_labels WHERE NOT private AND uid =', \$uid)->@* };
         my $vis = tuwf->req->{lblvis}{$uid};
-        return '1=0' if grep !$vis->{$_}, @lbl;
+        return $neg ? '1=1' : '1=0' if $all && grep !$vis->{$_}, @lbl; # AND query but one label is private -> no match
+        @lbl = grep $vis->{$_}, @lbl;
+        return $neg ? '1=1' : '1=0' if !@lbl; # All requested labels are private -> no match
     }
 
-    sql 'v.id', $neg ? 'NOT' : (), 'IN(SELECT vid FROM ulist_vns WHERE uid =', \$uid, 'AND labels', $all ? '@>' : '&&', sql_array(@lbl), '::smallint[])'
+    sql 'v.id', $neg ? 'NOT' : (), 'IN(
+        SELECT vid
+          FROM ulist_vns
+         WHERE uid =', \$uid,
+          'AND labels', $all ? '@>' : '&&', sql_array(@lbl), '::smallint[]',
+               $own ? () : 'AND NOT c_private',
+    ')'
 }
 
 
