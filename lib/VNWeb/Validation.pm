@@ -105,7 +105,7 @@ sub _validate_fuzzyrdate {
 sub samesite { !!tuwf->reqCookie('samesite') }
 
 # returns true if this request is for an /api/ URL.
-sub is_api { $main::ONLYAPI || tuwf->reqPath =~ /^\/api\// }
+sub is_api { !$main::NOAPI && ($main::ONLYAPI || tuwf->reqPath =~ /^\/api\//) }
 
 # Test uniqueness of a username in the database. Usernames with similar
 # homographs are considered duplicate.

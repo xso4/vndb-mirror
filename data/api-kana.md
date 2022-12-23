@@ -1005,7 +1005,7 @@ Name                [F]   Description
 
 `age`               o,n,i Integer.
 
-`trait'             m     Traits applied to this character, also matches parent
+`trait`             m     Traits applied to this character, also matches parent
                           traits. See below for more details.
 
 `dtrait`            m     Traits applied directly to this character, does not
