@@ -23,6 +23,9 @@ showResponse res =
   in case res of
     HTTPError (Http.Timeout)        -> "Network timeout, please try again later."
     HTTPError (Http.NetworkError)   -> "Network error, please try again later."
+    HTTPError (Http.BadStatus 403)  -> "Permission denied. Your session may have expired, try reloading the page."
+    HTTPError (Http.BadStatus 413)  -> "File upload too large."
+    HTTPError (Http.BadStatus 429)  -> "Action throttled, please try again later."
     HTTPError (Http.BadStatus r)    -> "Server error " ++ String.fromInt r ++ ", please try again later or report an issue if this persists."
     HTTPError (Http.BadBody r)      -> "Invalid response from the server, please report a bug (debug info: " ++ r ++")."
     HTTPError (Http.BadUrl _)       -> unexp
