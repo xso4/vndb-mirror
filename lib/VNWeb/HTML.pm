@@ -274,7 +274,6 @@ sub _menu_ {
         div_ sub {
             my $ref = uri_escape tuwf->reqPath().tuwf->reqQuery();
             a_ href => "/u/login?ref=$ref", 'Login'; br_;
-            a_ href => '/u/newpass', 'Password reset'; br_;
             a_ href => '/u/register', 'Register'; br_;
         }
     } if !auth && !config->{read_only};
