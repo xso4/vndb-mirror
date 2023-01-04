@@ -10,14 +10,14 @@ sub chars_ {
 
     my $max_spoil = max(
         map max(
-            (map $_->{lie}?2:$_->{spoil}, grep !$_->{hidden}, $_->{traits}->@*),
+            (map $_->{override}//($_->{lie}?2:$_->{spoil}), grep !$_->{hidden} && !(($_->{override}//0) == 3), $_->{traits}->@*),
             (map $_->{spoil}, $_->{vns}->@*),
             defined $_->{spoil_gender} ? 2 : 0,
             $_->{desc} =~ /\[spoiler\]/i ? 2 : 0,
         ), @$chars
     );
     $chars = [ grep +grep($_->{spoil} <= $view->{spoilers}, $_->{vns}->@*), @$chars ];
-    my $has_sex = grep !$_->{hidden} && $_->{spoil} <= $view->{spoilers} && $_->{sexual}, map $_->{traits}->@*, @$chars;
+    my $has_sex = grep !$_->{hidden} && $_->{sexual} && ($_->{override}//$_->{spoil}) <= $view->{spoilers}, map $_->{traits}->@*, @$chars;
 
     my sub opts_ {
         p_ class => 'mainopts', sub {

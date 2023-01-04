@@ -73,7 +73,7 @@ sub fetch_chars {
     }, $l;
 
     enrich traits => id => id => sub { sql '
-        SELECT ct.id, ct.tid, COALESCE(x.spoil, ct.spoil) AS spoil, x.spoil AS override, ct.lie, t.name, t.hidden, t.locked, t.sexual
+        SELECT ct.id, ct.tid, ct.spoil, x.spoil AS override, ct.lie, t.name, t.hidden, t.locked, t.sexual
              , coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.order,0) AS order
           FROM chars_traits ct
           JOIN traits t ON t.id = ct.tid
@@ -193,7 +193,7 @@ sub chartable_ {
                     a_ href => "/$_->{tid}", mkclass(
                         standout => $spoil == -1,
                         lie => $_->{lie} && (($_->{override}//1) <= 0 || $view->{spoilers} >= 2),
-                    ), $_->{name}; spoil_ $spoil;
+                    ), $_->{name}; spoil_ $_->{spoil};
                 }, $_->{traits}->@* };
             } for @groups;
 
@@ -280,7 +280,7 @@ TUWF::get qr{/$RE{crev}} => sub {
         $c->{desc} =~ /\[spoiler\]/i ? 2 : 0, # crude
     );
     # Only display the sexual traits toggle when there are sexual traits within the current spoiler level.
-    my $has_sex = grep !$_->{hidden} && $_->{spoil} <= $view->{spoilers} && $_->{sexual}, map $_->{traits}->@*, $c, @$inst;
+    my $has_sex = grep !$_->{hidden} && $_->{sexual} && ($_->{override}//$_->{spoil}) <= $view->{spoilers}, map $_->{traits}->@*, $c, @$inst;
 
     framework_ title => $c->{name}, index => !tuwf->capture('rev'), dbobj => $c, hiddenmsg => 1,
         og => {
