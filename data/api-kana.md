@@ -1359,5 +1359,36 @@ you can fetch the next page by filtering on `["id",">","v123"]`.
 This approach tends to not work as well when sorting on other fields, so
 `"page"`-based pagination is often still the better solution in those cases.
 
+## Random entry
+
+Fetching a random entry from a database is, in general, pretty challenging to
+do in a performant way. Here's one approach that can be used with the API:
+first grab the highest database identifier, then select a random number between
+`1` and the highest identifier (both inclusive) and then fetch the entry with
+that or the nearest increasing id, e.g.:
+
+```sh
+curl %endpoint%/vn --header 'Content-Type: application/json' --data '{
+    "sort": "id",
+    "reverse": true,
+    "results": 1
+}'
+```
+
+Then, assuming you've randomly chosen id `v4567`:
+
+```sh
+curl %endpoint%/vn --header 'Content-Type: application/json' --data '{
+    "filters": [ "id", ">=", "v4567" ],
+    "fields": "title",
+    "results": 1
+}'
+```
+
+The result of the first query can be cached. Additional filters can be added to
+both queries if you want to narrow down the selection. This method has a slight
+bias in its selection due to the presence of id gaps, but you most likely don't
+need perfect uniform random selection anyway.
+
 
 [F]: #filter-flags
