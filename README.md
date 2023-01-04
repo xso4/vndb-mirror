@@ -21,10 +21,6 @@ chime in with ideas.
 
 ## Quick and dirty setup using Docker
 
-NOTE: The Docker approach is currently broken because it uses an older
-PostgreSQL version. Docker itself is broken on my PC so I can't fix it; patches
-welcome.
-
 Setup:
 
 ```

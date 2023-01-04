@@ -1,7 +1,7 @@
-FROM alpine:3.13
+FROM alpine:3.17
 MAINTAINER Yorhel <contact@vndb.org>
 
-ENV VNDB_DOCKER_VERSION=10
+ENV VNDB_DOCKER_VERSION=11
 CMD /var/www/util/docker-init.sh
 
 RUN apk add --no-cache \
@@ -15,6 +15,7 @@ RUN apk add --no-cache \
         perl-app-cpanminus \
         perl-dbd-pg \
         perl-dev \
+        perl-http-server-simple \
         perl-json-xs \
         perl-module-build \
         postgresql \
@@ -29,7 +30,6 @@ RUN apk add --no-cache \
         AnyEvent::Pg \
         Crypt::ScryptKDF \
         Crypt::URandom \
-        HTTP::Server::Simple \
         PerlIO::gzip \
         SQL::Interp \
         Text::MultiMarkdown \
