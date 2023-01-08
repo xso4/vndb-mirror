@@ -20,6 +20,7 @@ hash LANGUAGE =>
     bg => 'Bulgarian',
     ca => 'Catalan',
     cs => 'Czech',
+    ck => 'Cherokee', # 'chr' in ISO 639-2 but not present in ISO 639-1, let's just use an unassigned code
     da => 'Danish',
     de => 'German',
     el => 'Greek',
