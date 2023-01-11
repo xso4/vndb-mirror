@@ -61,8 +61,7 @@ vndbid
     to [this visual novel](https://vndb.org/v17) and "sf190" refers to [this
     screenshot](https://vndb.org/img/sf190).
 :   The API will return vndbids as a JSON string, but the filters also accept
-    bare integers if the prefix is unambiguous from the context. Which,
-    currently, is always the case.
+    bare integers if the prefix is unambiguous from the context.
 
 release date
 :   Release dates are represented as JSON strings as either `"YYYY-MM-DD"`,
@@ -223,6 +222,9 @@ listread
 :   Allows read access to private labels and entries in the user's visual novel
     list.
 
+listwrite
+:   Allows write access to the user's visual novel list.
+
 ```sh
 curl %endpoint%/authinfo\
     --header 'Authorization: token cdhy-bqy1q-6zobu-8w9k-xobxh-wzz4o-84fn'
@@ -236,46 +238,6 @@ curl %endpoint%/authinfo\
     "listread"
   ]
 }
-```
-
-## GET /ulist\_labels
-
-Fetch the list labels for a certain user. Accepts two query parameters:
-
-user
-:   The user ID to fetch the labels for. If the parameter is missing, the
-    labels for the currently authenticated user are fetched instead.
-
-fields
-:   List of fields to select. Currently only `count` may be specified, the
-    other fields are always selected.
-
-Returns a JSON object with a single key, `"labels"`, which is an array of
-objects with the following members:
-
-id
-:   Integer identifier of the label.
-
-private
-:   Boolean, whether this label is private. Private labels are only included
-    when authenticated with the `listread` permission. The 'Voted' label (id=7)
-    is always included even when private.
-
-label
-:   String.
-
-count
-:   Integer. The 'Voted' label may have different counts depending on whether
-    the user has authenticated.
-
-Labels with an id below 10 are the pre-defined labels and are the same for
-everyone, though even pre-defined labels are excluded if they are marked
-private.
-
-Example: [Multi](https://vndb.org/u1) has only the default labels.
-
-```sh
-curl '%endpoint%/ulist_labels?user=u1'
 ```
 
 
@@ -1208,16 +1170,19 @@ searchable
 applicable
 :   Bool.
 
-group_id
+group\_id
 :   vndbid
 
-group_name
+group\_name
 :   String
 
 char\_count
 :   Integer, number of characters this trait has been applied to, including
     child traits.
 
+
+
+# List Management
 
 ## POST /ulist
 
@@ -1246,7 +1211,7 @@ curl %endpoint%/ulist --header 'Content-Type: application/json' --data '{
 }'
 ```
 
-### Fields
+### Fields {#ulist-fields}
 
 id
 :   Visual novel ID.
@@ -1289,7 +1254,7 @@ vn\.*
 releases
 :   Array of objects, releases of this VN that the user has added to their list.
 
-releases.list_status
+releases.list\_status
 :   Integer, 0 for "Unknown", 1 for "Pending", 2 for "Obtained", 3 for "On
     loan", 4 for "Deleted".
 
@@ -1297,12 +1262,164 @@ releases.\*
 :   All [release fields](#release-fields) can be selected here.
 
 
+## GET /ulist\_labels
+
+Fetch the list labels for a certain user. Accepts two query parameters:
+
+user
+:   The user ID to fetch the labels for. If the parameter is missing, the
+    labels for the currently authenticated user are fetched instead.
+
+fields
+:   List of fields to select. Currently only `count` may be specified, the
+    other fields are always selected.
+
+Returns a JSON object with a single key, `"labels"`, which is an array of
+objects with the following members:
+
+id
+:   Integer identifier of the label.
+
+private
+:   Boolean, whether this label is private. Private labels are only included
+    when authenticated with the `listread` permission. The 'Voted' label (id=7)
+    is always included even when private.
+
+label
+:   String.
+
+count
+:   Integer. The 'Voted' label may have different counts depending on whether
+    the user has authenticated.
+
+Labels with an id below 10 are the pre-defined labels and are the same for
+everyone, though even pre-defined labels are excluded if they are marked
+private.
+
+Example: [Multi](https://vndb.org/u1) has only the default labels.
+
+```sh
+curl '%endpoint%/ulist_labels?user=u1'
+```
+
+## PATCH /ulist/\<id\>
+
+Add or update a visual novel in the user's list. Requires the `listwrite`
+permission. The JSON body accepts the following members:
+
+vote
+:   Integer between 10 and 100.
+
+notes
+:   String.
+
+started
+:   Date.
+
+finished
+:   Date.
+
+labels
+:   Array of integers, label ids. Setting this will overwrite any existing
+    labels assigned to the VN with the given array.
+
+labels\_set
+:   Array of label ids to add to the VN, any already existing labels will
+    be unaffected.
+
+labels\_unset
+:   Array of label ids to remove from the VN.
+
+All members are be optional, missing members are not modified. A `null`
+value can be used to unset a field (except for labels).
+
+The virtual labels with id 0 ("No label") and 7 ("Voted") can not be set. The
+"voted" label is automatically added/removed based on the `vote` field.
+
+Wonky behavior alert: this API does not verify label ids and lets you add
+non-existent labels. These are not displayed on the website and not returned by
+[POST /ulist](#post-ulist), but they're still stored in the database and may
+magically show up if a label with that id is created in the future. Don't rely
+on this behavior, it's a bug.
+
+More wonky behavior: the website automatically unsets the other
+Playing/Finished/Stalled/Dropped labels when you select one of those, but this
+is not enforced server-side and the API lets you set all labels at the same
+time. This is totally not a bug.
+
+Example to remove the "Playing" label, add the "Finished" label and vote a 6:
+
+```sh
+curl -XPATCH %endpoint%/ulist/v17 \
+    --header 'Authorization: token hsoo-ybws4-j8yb9-qxkw-5obay-px8to-bfyk' \
+    --header 'Content-Type: application/json' \
+    --data '{"labels_unset":[1],"labels_set":[2],"vote":60}'
+```
+
+Or to remove an existing vote without affecting any of the other fields:
+
+```sh
+curl -XPATCH %endpoint%/ulist/v17 \
+    --header 'Authorization: token hsoo-ybws4-j8yb9-qxkw-5obay-px8to-bfyk' \
+    --header 'Content-Type: application/json' \
+    --data '{"vote":null}'
+```
+
+Slightly unintuitive behavior alert: this API *always* adds the visual novel to
+the user's list if it's not already present, and that also applies to the above
+"removing a vote" example. Use [DELETE](#delete-ulistid) if you want to remove
+a VN from the list.
+
+## PATCH /rlist/\<id\>
+
+Add or update a release in the user's list. Requires the `listwrite`
+permission. All visual novels linked to the release are also added to the
+user's visual novel list, if they aren't in the list yet.  The JSON body
+accepts the following members:
+
+status
+:   Release status, integer. See `releases.list_status` in the [POST /ulist
+    fields](#ulist-fields) for the list of possible values. Defaults to 0.
+
+Example, to mark `r12` as obtained:
+
+```sh
+curl -XPATCH %endpoint%/rlist/r12 \
+    --header 'Authorization: token hsoo-ybws4-j8yb9-qxkw-5obay-px8to-bfyk' \
+    --header 'Content-Type: application/json' \
+    --data '{"status":2}'
+```
+
+## DELETE /ulist/\<id\>
+
+Remove a visual novel from the user's list. Returns success even if the VN is
+not on the user's list. Removing a VN also removes any associated releases from
+the user's list.
+
+```sh
+curl -XDELETE %endpoint%/ulist/v17 \
+    --header 'Authorization: token hsoo-ybws4-j8yb9-qxkw-5obay-px8to-bfyk'
+```
+
+## DELETE /rlist/\<id\>
+
+Remove a release from the user's list. Returns success even if the release is
+not on the user's list. Removing a release does not remove the associated
+visual novels from the user's visual novel list, that requires separate calls
+to [DELETE /ulist/\<id\>](#delete-ulistid).
+
+```sh
+curl -XDELETE %endpoint%/rlist/r12 \
+    --header 'Authorization: token hsoo-ybws4-j8yb9-qxkw-5obay-px8to-bfyk'
+```
+
+
 # HTTP Response Codes
 
-Successful responses always return `200 OK` with a JSON body, but errors may
-happen. Error response codes are typically followed with a `text/plain` or
-`text/html` body. The following is a non-exhaustive list of error codes you can
-expect to see:
+Successful responses always return either `200 OK` with a JSON body or `204 No
+Content` in the case of DELETE/PATCH requests, but errors may happen. Error
+response codes are typically followed with a `text/plain` or `text/html` body.
+The following is a non-exhaustive list of error codes you can expect to see:
 
   Code  Reason
 ------  -------
@@ -1319,7 +1436,7 @@ expect to see:
 
 The server calculates a rough estimate of the number of JSON keys it would
 generate in response to your query and throws an error if that estimation
-exceeds a certain theshold, i.e. if the response is expected to be rather
+exceeds a certain threshold, i.e. if the response is expected to be rather
 large.  This estimation is entirely based on the `"fields"` and `"results"`
 parameters, so you can work around this error by either selecting fewer fields
 or fewer results.
@@ -1390,5 +1507,14 @@ both queries if you want to narrow down the selection. This method has a slight
 bias in its selection due to the presence of id gaps, but you most likely don't
 need perfect uniform random selection anyway.
 
+# Change Log
+
+**2023-01-17**
+
+- Add `listwrite` permission to API tokens.
+- Add [PATCH /ulist/\<id>](#patch-ulistid).
+- Add [PATCH /rlist/\<id>](#patch-rlistid).
+- Add [DELETE /ulist/\<id>](#delete-ulistid).
+- Add [DELETE /rlist/\<id>](#delete-rlistid).
 
 [F]: #filter-flags

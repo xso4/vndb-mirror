@@ -153,6 +153,7 @@ type PrefMsg
   | Api2Del Int Bool
   | Api2Notes Int String
   | Api2ListRead Int Bool
+  | Api2ListWrite Int Bool
 
 type PassMsg
   = CPass Bool
@@ -284,6 +285,7 @@ updatePrefs msg model =
     Api2Del i b     -> { model | api2 = modidx i (\e -> { e | delete = b }) model.api2 }
     Api2Notes i s   -> { model | api2 = modidx i (\e -> { e | notes = s }) model.api2 }
     Api2ListRead i b-> { model | api2 = modidx i (\e -> { e | listread = b }) model.api2 }
+    Api2ListWrite i b->{ model | api2 = modidx i (\e -> { e | listwrite = b }) model.api2 }
 
 updatePass : PassMsg -> PassData -> PassData
 updatePass msg model =
@@ -362,7 +364,7 @@ update msg model =
       , Task.attempt (always Noop) (Dom.focus ("api2notes" ++ String.fromInt n)))
     Api2New -> ({ model | api2State = Api.Loading }, GUAN.send { id = model.id } Api2Result)
     Api2Result (GApi.Api2Token s d) ->
-      let n = { token = s, added = d, lastused = "", notes = "", listread = False, delete = False }
+      let n = { token = s, added = d, lastused = "", notes = "", listread = False, listwrite = False, delete = False }
           num = Maybe.withDefault 0 (Maybe.map (\p -> List.length p.api2) model.prefs)
       in ({ model
           | api2Edit = num
@@ -611,6 +613,10 @@ view model =
       , b [] [ text "Permissions:" ]
       , br [] []
       , label [] [ inputCheck "" t.listread (Prefs << Api2ListRead n), text " Access my list (including private items)" ]
+      , if not t.listread then text "" else span []
+        [ br [] []
+        , label [] [ inputCheck "" t.listwrite (Prefs << Api2ListWrite n), text " Modify my list" ]
+        ]
       ]
 
     api2token n t = tr []
@@ -632,7 +638,7 @@ view model =
           , br [] []
           , if model.api2Edit == n
             then api2edit n t
-            else text <| "Permissions: " ++ if t.listread then "access list." else "none."
+            else text <| "Permissions: " ++ if t.listwrite then "access & modify list." else if t.listread then "access list." else "none."
           , br [] []
           , b [ class "grayedout" ] [ text <| "Created on "++t.added ++ (if t.lastused == "" then ", never used" else ", last used on "++t.lastused)++"." ]
           ]

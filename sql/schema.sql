@@ -716,6 +716,7 @@ CREATE TABLE sessions (
   mail     text,
   notes    text,
   listread boolean NOT NULL DEFAULT false,
+  listwrite boolean NOT NULL DEFAULT false,
   PRIMARY KEY (uid, token)
 );
 

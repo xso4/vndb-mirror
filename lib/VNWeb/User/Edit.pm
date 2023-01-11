@@ -84,6 +84,7 @@ my $FORM = {
             lastused  => { required => 0, default => '' },
             notes     => { required => 0, default => '', maxlength => 1000 },
             listread  => { anybool => 1 },
+            listwrite => { anybool => 1 },
             delete    => { anybool => 1 },
         } },
 
@@ -203,9 +204,12 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
         my %tokens = map +($_->{token},$_), $p->{api2}->@*;
         for (auth->api2_tokens($data->{id})->@*) {
             my $t = $tokens{$_->{token}} // next;
+            $t->{listwrite} = 0 if !$t->{listread};
             if($t->{delete}) {
                 auth->api2_del_token($data->{id}, $t->{token});
-            } elsif($t->{notes} ne $_->{notes} || !$t->{listread} ne !$_->{listread}) {
+            } elsif($t->{notes} ne $_->{notes}
+                    || !$t->{listread} ne !$_->{listread}
+                    || !$t->{listwrite} ne !$_->{listwrite}) {
                 auth->api2_set_token($data->{id}, %$t);
             }
         }

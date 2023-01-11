@@ -107,11 +107,57 @@ sub api_get {
     my $s = tuwf->compile({ type => 'hash', keys => $schema });
     TUWF::get qr{/api/kana\Q$path}, sub {
         check_throttle;
-        my $start = time;
         my $res = $sub->();
         tuwf->resJSON($s->analyze->coerce_for_json($res, unknown => 'pass'));
         cors;
         count_request(1, '-');
+    };
+}
+
+
+sub api_del {
+    my($path, $sub) = @_;
+    TUWF::del qr{/api/kana$path}, sub {
+        check_throttle;
+        my $del = $sub->();
+        tuwf->resStatus(204);
+        cors;
+        count_request($del?1:0, 'DELETE');
+    };
+}
+
+
+sub api_patch {
+    my($path, $req_schema, $sub) = @_;
+    $req_schema->{$_}{required} = 0 for keys $req_schema->%*;
+    my $s = tuwf->compile({ type => 'hash', unknown => 'reject', keys => $req_schema });
+    TUWF::patch qr{/api/kana$path}, sub {
+        check_throttle;
+        my $req = tuwf->validate(json => $s);
+        if(!$req) {
+            eval { $req->data }; warn $@;
+            my $err = $req->err;
+            if(!$err->{errors}) {
+                err 400, 'Missing request body.' if !$err->{keys};
+                err 400, "Unknown member '$err->{keys}[0]'." if $err->{keys};
+            }
+            $err = $err->{errors}[0]//{};
+            err 400, "Invalid '$err->{key}' member." if $err->{key};
+            err 400, 'Invalid request body.';
+        };
+        $req = $req->data;
+
+        # TUWF::Validate always creates a field, even if it was missing in the
+        # original body, but we want to differentiate between non-existent
+        # fields and empty ones, so we'll check with the raw body and delete
+        # the missing ones.
+        my $raw_input = tuwf->reqJSON();
+        delete $req->{$_} for grep !exists $raw_input->{$_}, keys $req->%*;
+
+        $sub->($req);
+        tuwf->resStatus(204);
+        cors;
+        count_request(1, 'PATCH');
     };
 }
 
@@ -431,7 +477,10 @@ api_get '/authinfo', {}, sub {
     +{
         id => auth->uid,
         username => auth->user->{user_name},
-        permissions => [auth->api2Listread ? 'listread' : () ]
+        permissions => [
+            auth->api2Listread ? 'listread' : (),
+            auth->api2Listwrite ? 'listwrite' : (),
+        ]
     }
 };
 
@@ -477,6 +526,87 @@ api_get '/ulist_labels', { labels => { aoh => {
     err 400, 'Invalid argument' if !$data;
     $data = $data->data;
     +{ labels => ulist_filtlabels $data->{user}, $data->{fields} };
+};
+
+
+api_patch qr{/ulist/$RE{vid}}, {
+    vote         => { uint => 1, range => [10,100] },
+    notes        => { default => '', maxlength => 2000 },
+    started      => { caldate => 1 },
+    finished     => { caldate => 1 },
+    labels       => { default => [], type => 'array', values => { uint => 1, range => [1,1600] } },
+    labels_set   => { default => [], type => 'array', values => { uint => 1, range => [1,1600] } },
+    labels_unset => { default => [], type => 'array', values => { uint => 1, range => [1,1600] } },
+}, sub {
+    my($upd) = @_;
+    my $vid = tuwf->capture('id');
+    err 401, 'Unauthorized' if !auth->api2Listwrite;
+    err 404, 'Visual novel not found' if !tuwf->dbExeci('SELECT 1 FROM vn WHERE NOT hidden AND id =', \$vid);
+
+    my $newlabels = sql "'{}'::smallint[]";
+    if($upd->{labels} || $upd->{labels_set} || $upd->{labels_unset}) {
+        my @all = $upd->{labels} ? $upd->{labels}->@* : ();
+        my @set = $upd->{labels_set} ? $upd->{labels_set}->@* : ();
+        my @unset = $upd->{labels_unset} ? $upd->{labels_unset}->@* : ();
+        my %labels = map +($_, 1), @all, @set;
+        delete $labels{$_} for @unset;
+        err 400, 'Label id 7 cannot be used here' if $labels{7} || grep $_ == 7, @unset;
+
+        $upd->{labels} = $upd->{labels} ? sql(sql_array(sort { $a <=> $b } keys %labels),'::smallint[]') : do {
+            my $l = 'ulist_vns.labels';
+            $l = sql 'array_set(', $l, ',', \(0+$_), ')' for @set;
+            $l = sql 'array_remove(', $l, ',', \(0+$_), ')' for @unset;
+            $l
+        };
+
+        delete $upd->{labels_set};
+        delete $upd->{labels_unset};
+        $newlabels = sql(sql_array(sort { $a <=> $b } keys %labels),'::smallint[]');
+    }
+    $upd->{lastmod} = sql 'NOW()';
+    $upd->{vote_date} = sql $upd->{vote} ? 'CASE WHEN ulist_vns.vote IS NULL THEN NOW() ELSE ulist_vns.vote_date END' : 'NULL'
+        if exists $upd->{vote};
+
+    my $done = tuwf->dbExeci(
+        'INSERT INTO ulist_vns', { %$upd,
+            labels => $newlabels,
+            vote_date => sql($upd->{vote} ? 'NOW()' : 'NULL'),
+            uid => auth->uid,
+            vid => $vid
+        },
+        'ON CONFLICT (uid, vid) DO', keys %$upd ? ('UPDATE SET', $upd) : 'NOTHING'
+    );
+    if($done > 0) {
+        tuwf->dbExeci(SELECT => sql_func update_users_ulist_private => \auth->uid, \$vid);
+        tuwf->dbExeci(SELECT => sql_func update_users_ulist_stats => \auth->uid);
+    }
+};
+
+
+api_patch qr{/rlist/$RE{rid}}, {
+    status  => { uint => 1, default => 0, enum => \%RLIST_STATUS },
+}, sub {
+    my($upd) = @_;
+    my $rid = tuwf->capture('id');
+    err 401, 'Unauthorized' if !auth->api2Listwrite;
+    err 404, 'Release not found' if !tuwf->dbExeci('SELECT 1 FROM releases WHERE NOT hidden AND id =', \$rid);
+    tuwf->dbExeci(
+        'INSERT INTO rlists', { %$upd, uid => auth->uid, rid => $rid },
+        'ON CONFLICT (uid, rid) DO', keys %$upd ? ('UPDATE SET', $upd) : 'NOTHING'
+    );
+};
+
+
+api_del qr{/ulist/$RE{vid}}, sub {
+    err 401, 'Unauthorized' if !auth->api2Listwrite;
+    tuwf->dbExeci('DELETE FROM ulist_vns WHERE uid =', \auth->uid, 'AND vid =', \tuwf->capture('id'));
+    tuwf->dbExeci(SELECT => sql_func update_users_ulist_stats => \auth->uid);
+};
+
+
+api_del qr{/rlist/$RE{rid}}, sub {
+    err 401, 'Unauthorized' if !auth->api2Listwrite;
+    tuwf->dbExeci('DELETE FROM rlists WHERE uid =', \auth->uid, 'AND rid =', \tuwf->capture('id'));
 };
 
 

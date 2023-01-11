@@ -863,11 +863,11 @@ CREATE OR REPLACE FUNCTION user_api2_tokens(vndbid, vndbid, bytea) RETURNS SETOF
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 
-CREATE OR REPLACE FUNCTION user_api2_set_token(vndbid, vndbid, bytea, bytea, text, boolean) RETURNS void AS $$
-  INSERT INTO sessions (uid, type, expires, token, notes, listread)
-                SELECT  $1,  'api2', NOW(), $4,    $5,    $6
+CREATE OR REPLACE FUNCTION user_api2_set_token(vndbid, vndbid, bytea, bytea, text, boolean, boolean) RETURNS void AS $$
+  INSERT INTO sessions (uid, type, expires, token, notes, listread, listwrite)
+                SELECT  $1,  'api2', NOW(), $4,    $5,    $6,       $7
                  WHERE user_isauth($1, $2, $3) AND length($4) = 20
-  ON CONFLICT (uid, token) DO UPDATE SET notes = $5, listread = $6
+  ON CONFLICT (uid, token) DO UPDATE SET notes = $5, listread = $6, listwrite = $7
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 

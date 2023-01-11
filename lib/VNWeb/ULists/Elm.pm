@@ -175,7 +175,7 @@ elm_api UListLabelEdit => $VNLABELS_OUT, $VNLABELS_IN, sub {
 our $VNDATE = form_compile any => {
     uid   => { vndbid => 'u' },
     vid   => { vndbid => 'v' },
-    date  => { required => 0, default => '', regex => qr/^(?:19[7-9][0-9]|20[0-9][0-9])-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])$/ }, # 1970 - 2099 for sanity
+    date  => { required => 0, default => '', caldate => 1 },
     start => { anybool => 1 }, # Field selection, started/finished
 };
 

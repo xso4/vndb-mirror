@@ -352,7 +352,7 @@ sub _load_api2 {
     return VNWeb::API::err(401, 'Invalid token format.') if length($token_enc =~ s/-//rg) != 32 || !length(my $token = _api2_decode $token_enc);
     my $uid = _api2_get_uid $token;
     my $user = tuwf->dbRowi(
-        'SELECT ', sql_user(), ', x.listread
+        'SELECT ', sql_user(), ', x.listread, x.listwrite
            FROM users u,', sql_func(user_validate_session => \$uid, sql_fromhex($token), \'api2'), 'x
           WHERE u.id = ', \$uid, 'AND x.uid = u.id'
     );
@@ -366,7 +366,7 @@ sub api2_tokens {
     my($self, $uid) = @_;
 	return [] if !$self;
 	my $r = tuwf->dbAlli("
-        SELECT coalesce(notes, '') AS notes, listread, added::date,", sql_tohex('token'), "AS token
+        SELECT coalesce(notes, '') AS notes, listread, listwrite, added::date,", sql_tohex('token'), "AS token
              , (CASE WHEN expires = added THEN '' ELSE expires::date::text END) AS lastused
           FROM", sql_func(user_api2_tokens => \$uid, \$self->uid, sql_fromhex($self->{token})), '
          ORDER BY added');
@@ -379,7 +379,7 @@ sub api2_set_token {
     return if !auth;
     my $token = $o{token} ? _api2_decode($o{token}) : _api2_gen_token($uid);
     tuwf->dbExeci(select => sql_func user_api2_set_token => \$uid, \$self->uid, sql_fromhex($self->{token}),
-        sql_fromhex($token), \$o{notes}, \($o{listread}//0));
+        sql_fromhex($token), \$o{notes}, \($o{listread}//0), \($o{listwrite}//0));
     _api2_encode($token);
 }
 
@@ -392,6 +392,7 @@ sub api2_del_token {
 
 # API-specific permission checks
 # (Always return true for cookie-based auth)
-sub api2Listread { $_[0]{user}{user_id} && (!$_[1] || $_[0]{user}{user_id} eq $_[1]) && (!$_[0]{api2} || $_[0]{user}{listread}) }
+sub api2Listread  { $_[0]{user}{user_id} && (!$_[1] || $_[0]{user}{user_id} eq $_[1]) && (!$_[0]{api2} || $_[0]{user}{listread}) }
+sub api2Listwrite { $_[0]{user}{user_id} && (!$_[1] || $_[0]{user}{user_id} eq $_[1]) && (!$_[0]{api2} || $_[0]{user}{listwrite}) }
 
 1;

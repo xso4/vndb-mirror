@@ -12,6 +12,7 @@ use Carp 'croak';
 use Exporter 'import';
 
 our @EXPORT = qw/
+    %RE
     samesite
     is_api
     is_unique_username
@@ -22,6 +23,35 @@ our @EXPORT = qw/
     can_edit
     viewget viewset
 /;
+
+
+# Regular expressions for use in path registration
+my $num = qr{[1-9][0-9]{0,6}}; # Allow up to 10 mil, SQL vndbid type can't handle more than 2^26-1 (~ 67 mil).
+my $rev = qr{(?:\.(?<rev>$num))};
+our %RE = (
+    num  => qr{(?<num>$num)},
+    uid  => qr{(?<id>u$num)},
+    vid  => qr{(?<id>v$num)},
+    rid  => qr{(?<id>r$num)},
+    sid  => qr{(?<id>s$num)},
+    cid  => qr{(?<id>c$num)},
+    pid  => qr{(?<id>p$num)},
+    iid  => qr{(?<id>i$num)},
+    did  => qr{(?<id>d$num)},
+    tid  => qr{(?<id>t$num)},
+    gid  => qr{(?<id>g$num)},
+    wid  => qr{(?<id>w$num)},
+    imgid=> qr{(?<id>(?:ch|cv|sf)$num)},
+    vrev => qr{(?<id>v$num)$rev?},
+    rrev => qr{(?<id>r$num)$rev?},
+    prev => qr{(?<id>p$num)$rev?},
+    srev => qr{(?<id>s$num)$rev?},
+    crev => qr{(?<id>c$num)$rev?},
+    drev => qr{(?<id>d$num)$rev?},
+    grev => qr{(?<id>g$num)$rev?},
+    irev => qr{(?<id>i$num)$rev?},
+    postid => qr{(?<id>t$num)\.(?<num>$num)},
+);
 
 
 TUWF::set custom_validations => {
@@ -43,6 +73,9 @@ TUWF::set custom_validations => {
     gtin        => { required => 0, default => 0, func => sub { $_[0] = 0 if !length $_[0]; $_[0] eq 0 || gtintype($_[0]) } },
     rdate       => { uint => 1, func => \&_validate_rdate },
     fuzzyrdate  => { required => 0, default => 0, func => \&_validate_fuzzyrdate },
+    # Calendar date, limited to 1970 - 2099 for sanity.
+    # TODO: Should also validate whether the day exists, currently "2022-11-31" is accepted, but that's a bug.
+    caldate     => { regex => qr/^(?:19[7-9][0-9]|20[0-9][0-9])-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])$/ },
     # An array that may be either missing (returns undef), a single scalar (returns single-element array) or a proper array
     undefarray  => sub { +{ required => 0, default => undef, type => 'array', scalar => 1, values => $_[0] } },
     # Accepts a user-entered vote string (or '-' or empty) and converts that into a DB vote number (or undef) - opposite of fmtvote()
