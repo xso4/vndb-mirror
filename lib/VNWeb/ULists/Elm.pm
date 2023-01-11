@@ -272,7 +272,7 @@ elm_api UListWidget => $WIDGET, { uid => { vndbid => 'u' }, vid => { vndbid => '
 
 
 our %SAVED_OPTS = (
-    l   => { onerror => [], type => 'array', scalar => 1, values => { int => 1 } },
+    l   => { onerror => [], type => 'array', scalar => 1, values => { int => 1, range => [-1,1600] } },
     mul => { anybool => 1 },
     s   => { onerror => '' }, # TableOpts query string
     f   => { onerror => '' }, # AdvSearch

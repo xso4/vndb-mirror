@@ -31,7 +31,7 @@ sub ulist_filtlabels {
 
     # Virtual 'No label' label, only ever has private VNs.
     push @$l, {
-        id => -1, label => 'No label', private => 1,
+        id => 0, label => 'No label', private => 1,
         $count ? (count => tuwf->dbVali("SELECT count(*) FROM ulist_vns WHERE labels IN('{}','{7}') AND uid =", \$uid)) : (),
     } if $own;
 

@@ -22,9 +22,9 @@ sub opt {
 
     my $opt =
         # Presets
-        tuwf->reqGet('vnlist')   ? { mul => 0, p => 1, l => [1,2,3,4,7,-1,0], f => '', s => $s_vnlist,   load 'vnlist' } :
-        tuwf->reqGet('votes')    ? { mul => 0, p => 1, l => [7],              f => '', s => $s_votes,    load 'votes'  } :
-        tuwf->reqGet('wishlist') ? { mul => 0, p => 1, l => [5],              f => '', s => $s_wishlist, load 'wish'   } :
+        tuwf->reqGet('vnlist')   ? { mul => 0, p => 1, l => [1,2,3,4,7,0], f => '', s => $s_vnlist,   load 'vnlist' } :
+        tuwf->reqGet('votes')    ? { mul => 0, p => 1, l => [7],           f => '', s => $s_votes,    load 'votes'  } :
+        tuwf->reqGet('wishlist') ? { mul => 0, p => 1, l => [5],           f => '', s => $s_wishlist, load 'wish'   } :
         # Full options
         tuwf->validate(get =>
             p => { upage => 1 },
@@ -45,9 +45,12 @@ sub opt {
 
     $opt->{f} = tuwf->compile({ advsearch_err => 'v' })->validate($opt->{f})->data;
 
-    # $labels only includes labels we are allowed to see, getting rid of any labels in 'l' that aren't in $labels ensures we only filter on visible labels
+    # $labels only includes labels we are allowed to see, getting rid of any
+    # labels in 'l' that aren't in $labels ensures we only filter on visible
+    # labels.
+    # Also, '-1' used to refer to the virtual "No label" label, now it's '0' instead.
     my %accessible_labels = map +($_->{id}, 1), @$labels;
-    my %opt_l = map +($_, 1), grep $accessible_labels{$_}, $opt->{l}->@*;
+    my %opt_l = map +($_, 1), grep $accessible_labels{$_}, map $_ == -1 ? 0 : $_, $opt->{l}->@*;
     %opt_l = %accessible_labels if !keys %opt_l;
     $opt->{l} = keys %opt_l == keys %accessible_labels ? [] : [ sort keys %opt_l ];
 
@@ -198,8 +201,8 @@ sub listing_ {
     my($uid, $own, $opt, $labels, $url) = @_;
 
     my @l = grep $_ > 0 && $_ != 7, $opt->{l}->@*;
-    my($unlabeled) = grep $_ == -1, $opt->{l}->@*;
-    my($voted) = grep $_ == 7, $opt->{l}->@*;
+    my $unlabeled = grep $_ == 0, $opt->{l}->@*;
+    my $voted = grep $_ == 7, $opt->{l}->@*;
 
     my @where_vns = (
               @l ? sql('uv.labels &&', sql_array(@l), '::smallint[]') : (),
