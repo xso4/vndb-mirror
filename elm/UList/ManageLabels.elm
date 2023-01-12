@@ -34,7 +34,7 @@ init : GML.Send -> Model
 init d =
   { uid     = d.uid
   , state   = Api.Normal
-  , labels  = List.filter (\l -> l.id >= 0) d.labels
+  , labels  = List.filter (\l -> l.id > 0) d.labels
   , editing = Nothing
   }
 

@@ -42,7 +42,7 @@ init : GLE.Recv -> Model
 init f =
   { uid      = f.uid
   , vid      = f.vid
-  , labels   = List.filter (\l -> l.id >= 0) f.labels
+  , labels   = List.filter (\l -> l.id > 0) f.labels
   , sel      = Set.fromList f.selected
   , tsel     = Set.fromList f.selected
   , state    = Dict.empty
@@ -77,7 +77,7 @@ update msg model =
            GLE.send { uid = model.uid, vid = model.vid, label = l, applied = b } (Saved l b)
            -- Unselect other progress labels (1..4) when setting a progress label
         :: if cascade
-           then (List.map (\i -> selfCmd (Toggle i False False)) <| List.filter (\i -> l >= 0 && l <= 4 && i >= 0 && i <= 4 && i /= l) <| Set.toList model.tsel)
+           then (List.map (\i -> selfCmd (Toggle i False False)) <| List.filter (\i -> l >= 1 && l <= 4 && i >= 1 && i <= 4 && i /= l) <| Set.toList model.tsel)
            else []
       )
 
