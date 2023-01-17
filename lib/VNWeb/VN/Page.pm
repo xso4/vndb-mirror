@@ -381,7 +381,8 @@ sub infobox_tags_ {
     my($v) = @_;
     div_ id => 'tagops', sub {
         debug_ $v->{tags};
-        for (keys %TAG_CATEGORY) {
+        my @ero = grep($_->{cat} eq 'ero', $v->{tags}->@*) ? ('ero') : ();
+        for ('cont', @ero, 'tech') {
             input_ id => "cat_$_", type => 'checkbox', class => 'visuallyhidden',
                 (auth ? auth->pref("tags_$_") : $_ ne 'ero') ? (checked => 'checked') : ();
             label_ for => "cat_$_", lc $TAG_CATEGORY{$_};
