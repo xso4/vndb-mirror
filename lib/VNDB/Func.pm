@@ -296,7 +296,8 @@ sub md2html {
 
 
 sub is_insecurepass {
-    my $hash = sha1 utf8::encode(local $_=shift);
+    utf8::encode(local $_ = shift);
+    my $hash = sha1 $_;
     my $dir = config->{root}.'/data/hibp';
     return 0 if !-d $dir;
 
