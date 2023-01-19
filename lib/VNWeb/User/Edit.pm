@@ -237,15 +237,7 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
 
     if($own && $data->{password}) {
         return elm_InsecurePass if is_insecurepass $data->{password}{new};
-
-        my $ok = 1;
-        if(auth->uid eq $data->{id}) {
-            $ok = 0 if !auth->setpass($data->{id}, undef, $data->{password}{old}, $data->{password}{new});
-        } else {
-            tuwf->dbExeci(select => sql_func user_admin_setpass => \$data->{id}, \auth->uid,
-                sql_fromhex(auth->token), sql_fromhex auth->_preparepass($data->{password}{new})
-            );
-        }
+        my $ok = auth->setpass($data->{id}, undef, $data->{password}{old}, $data->{password}{new});
         auth->audit($data->{id}, $ok ? 'password change' : 'bad password', 'at user edit form');
         return elm_BadCurPass if !$ok;
     }
