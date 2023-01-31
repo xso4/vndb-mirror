@@ -108,6 +108,9 @@ TUWF::get qr{/$RE{vrev}/edit} => sub {
     $e->{staff}  = [ grep $_->{id}, $e->{staff}->@* ];
     $e->{seiyuu} = [ grep $_->{id}, $e->{seiyuu}->@* ];
 
+    my %CRED;
+    $CRED{$_} = keys %CRED for keys %CREDIT_TYPE;
+    $e->{staff} = [ sort { $CRED{$a->{role}} <=> $CRED{$b->{role}} || $a->{name} cmp $b->{name} || $a->{aid} <=> $b->{aid} } $e->{staff}->@* ];
     $e->{editions} = [ sort { ($a->{lang}||'') cmp ($b->{lang}||'') || $b->{official} cmp $a->{official} || $a->{name} cmp $b->{name} } $e->{editions}->@* ];
 
     $e->{releases} = releases_by_vn $e->{id};
