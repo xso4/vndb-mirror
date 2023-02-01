@@ -33,8 +33,8 @@ sub enrich_item {
     my($c) = @_;
 
     enrich_image_obj image => $c;
-    enrich_merge vid => 'SELECT id AS vid, title, alttitle, c_released AS vn_released FROM vnt WHERE id IN', $c->{vns};
-    enrich_merge rid => 'SELECT id AS rid, title AS rtitle, alttitle AS ralttitle, released AS rel_released FROM releasest WHERE id IN', grep $_->{rid}, $c->{vns}->@*;
+    enrich_merge vid => sql('SELECT id AS vid, title, alttitle, c_released AS vn_released FROM', vnt, 'v WHERE id IN'), $c->{vns};
+    enrich_merge rid => sql('SELECT id AS rid, title AS rtitle, alttitle AS ralttitle, released AS rel_released FROM', releasest, 'r WHERE id IN'), grep $_->{rid}, $c->{vns}->@*;
 
     # Even with trait overrides, we'll want to see the raw data in revision diffs,
     # so fetch the raw spoil as a separate column and do filtering/processing later.
@@ -66,8 +66,8 @@ sub fetch_chars {
     enrich vns => id => id => sub { sql '
         SELECT cv.id, cv.vid, cv.rid, cv.spoil, cv.role, v.title, v.alttitle, r.title AS rtitle, r.alttitle AS ralttitle
           FROM chars_vns cv
-          JOIN vnt v ON v.id = cv.vid
-          LEFT JOIN releasest r ON r.id = cv.rid
+          JOIN', vnt, 'v ON v.id = cv.vid
+          LEFT JOIN', releasest, 'r ON r.id = cv.rid
          WHERE cv.id IN', $_, $vid ? ('AND cv.vid =', \$vid) : (), '
          ORDER BY v.c_released, r.released, v.title, cv.vid, cv.rid NULLS LAST'
     }, $l;

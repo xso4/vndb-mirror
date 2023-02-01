@@ -73,15 +73,15 @@ sub _roles_ {
     my($s) = @_;
     my %alias = map +($_->{aid}, $_), $s->{alias}->@*;
 
-    my $roles = tuwf->dbAlli(q{
+    my $roles = tuwf->dbAlli('
         SELECT v.id, vs.aid, vs.role, vs.note, ve.name, ve.official, ve.lang, v.c_released, v.title, v.alttitle
           FROM vn_staff vs
-          JOIN vnt v ON v.id = vs.id
+          JOIN', vnt, 'v ON v.id = vs.id
           LEFT JOIN vn_editions ve ON ve.id = vs.id AND ve.eid = vs.eid
-         WHERE vs.aid IN}, [ keys %alias ], q{
+         WHERE vs.aid IN', [ keys %alias ], '
            AND NOT v.hidden
          ORDER BY v.c_released ASC, v.title ASC, ve.lang NULLS FIRST, ve.name NULLS FIRST, vs.role ASC
-    });
+    ');
     return if !@$roles;
     enrich_ulists_widget $roles;
 
@@ -121,17 +121,17 @@ sub _cast_ {
     my($s) = @_;
     my %alias = map +($_->{aid}, $_), $s->{alias}->@*;
 
-    my $cast = [ grep defined $_->{spoil}, tuwf->dbAlli(q{
+    my $cast = [ grep defined $_->{spoil}, tuwf->dbAlli('
         SELECT vs.aid, v.id, v.c_released, v.title, v.alttitle, c.id AS cid, c.name AS c_name, c.original AS c_original, vs.note,
                (SELECT MIN(cv.spoil) FROM chars_vns cv WHERE cv.id = c.id AND cv.vid = v.id) AS spoil
           FROM vn_seiyuu vs
-          JOIN vnt v ON v.id = vs.id
+          JOIN', vnt, 'v ON v.id = vs.id
           JOIN chars c ON c.id = vs.cid
-         WHERE vs.aid IN}, [ keys %alias ], q{
+         WHERE vs.aid IN', [ keys %alias ], '
            AND NOT v.hidden
            AND NOT c.hidden
          ORDER BY v.c_released ASC, v.title ASC
-    })->@* ];
+    ')->@* ];
     return if !@$cast;
     enrich_ulists_widget $cast;
 

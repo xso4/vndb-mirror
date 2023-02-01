@@ -16,7 +16,7 @@ sub screens_ {
         # (As of Sep 2020, over half of the VNs in the database have screenshots, so that assumption usually works)
         'SELECT * FROM (
             SELECT DISTINCT ON (v.id) i.id, i.width, i,height, v.id AS vid, v.title
-              FROM (SELECT id, title FROM vnt v WHERE NOT v.hidden AND ', $filt->sql_where(), ' ORDER BY random() LIMIT', \30, ') v
+              FROM (SELECT id, title FROM', vnt, 'v WHERE NOT v.hidden AND ', $filt->sql_where(), ' ORDER BY random() LIMIT', \30, ') v
               JOIN vn_screenshots vs ON v.id = vs.id
               JOIN images i ON i.id = vs.scr
              WHERE ', $where, '
@@ -26,7 +26,7 @@ sub screens_ {
         SELECT i.id, i.width, i.height, v.id AS vid, v.title
           FROM (SELECT id, width, height FROM images i TABLESAMPLE SYSTEM (', \$sample, ') WHERE', $where, ' ORDER BY random() LIMIT', \4, ') i(id)
           JOIN vn_screenshots vs ON vs.scr = i.id
-          JOIN vnt v ON v.id = vs.id
+          JOIN', vnt, 'v ON v.id = vs.id
          WHERE NOT v.hidden
          ORDER BY random()
          LIMIT', \4
@@ -53,7 +53,7 @@ sub recent_changes_ {
         li_ sub {
             span_ sub {
                 txt_ "$1:" if $_->{itemid} =~ /^(.)/;
-                a_ href => "/$_->{itemid}.$_->{rev}", title => $_->{original}||$_->{title}, $_->{title};
+                a_ href => "/$_->{itemid}.$_->{rev}", title => $_->{alttitle}, $_->{title};
             };
             span_ sub {
                 lit_ " by ";
@@ -125,7 +125,7 @@ sub recent_vn_posts_ {
             SELECT w.id, v.title, wp.num, wp.date, wp.uid
               FROM reviews w
               JOIN reviews_posts wp ON wp.id = w.id AND wp.num = w.c_lastnum
-              JOIN vnt v ON v.id = w.vid
+              JOIN', vnt, 'v ON v.id = w.vid
               LEFT JOIN users u ON wp.uid = u.id
              WHERE NOT w.c_flagged AND wp.hidden IS NULL
              ORDER BY wp.date DESC LIMIT 10
@@ -175,7 +175,7 @@ sub releases_ {
 
     my $lst = tuwf->dbAlli('
         SELECT id, title, alttitle, released
-          FROM releasest r
+          FROM', releasest, 'r
          WHERE NOT hidden AND ', $filt->sql_where(), '
            AND NOT EXISTS(SELECT 1 FROM releases_titles rt WHERE rt.id = r.id AND rt.mtl)
          ORDER BY released', $released ? 'DESC' : '', ', id LIMIT 10'
@@ -206,7 +206,7 @@ sub reviews_ {
     my $lst = tuwf->dbAlli('
         SELECT w.id, v.title, v.alttitle, w.isfull, ', sql_user(), ',', sql_totime('w.date'), 'AS date
           FROM reviews w
-          JOIN vnt v ON v.id = w.vid
+          JOIN', vnt, 'v ON v.id = w.vid
           LEFT JOIN users u ON u.id = w.uid
          WHERE NOT w.c_flagged
          ORDER BY w.id DESC LIMIT 10'

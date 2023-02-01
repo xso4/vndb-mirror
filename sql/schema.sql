@@ -96,6 +96,8 @@ CREATE TYPE ipinfo AS (
     drop               boolean
 );
 
+CREATE TYPE item_info_type AS (title text, alttitle text, uid vndbid, hidden boolean, locked boolean);
+
 CREATE TYPE titleprefs AS (
     -- NULL langs means unused slot
     t1_lang     language,
@@ -1458,13 +1460,26 @@ CREATE TABLE wikidata (
 );
 
 
--- The 'vnt' view is equivalent to the 'vn' table with three additional columns:
---   title      - main display title
---   sorttitle  - title used for sorting and alphabet filter (i.e. latin version of 'title')
---   alttitle   - alternative display title (for e.g. tooltips)
--- This view can be redefined as a TEMPORARY VIEW in sessions to override the
--- default behavior.
-CREATE VIEW vnt AS SELECT v.*, COALESCE(vo.latin, vo.title) AS title, COALESCE(vo.latin, vo.title) AS sorttitle, CASE WHEN vo.latin IS NULL THEN '' ELSE vo.title END AS alttitle FROM vn v JOIN vn_titles vo ON vo.id = v.id AND vo.lang = v.olang;
+-- This view is equivalent to vnt(NULL), see func.sql for a more detailed explanation.
+-- This view serves two purposes:
+-- * It's easier for the Postgres query planner to optimize this than vnt(NULL).
+-- * This view creates a type that can be used as return value for vnt().
+--
+-- This view and the vnt() function must be recreated anytime a column has been
+-- added/removed/changed in the vn table.
+CREATE VIEW vnt AS
+    SELECT v.*
+         , COALESCE(vo.latin, vo.title) AS title
+         , COALESCE(vo.latin, vo.title) AS sorttitle
+         , CASE WHEN vo.latin IS NULL THEN '' ELSE vo.title END AS alttitle
+      FROM vn v
+      JOIN vn_titles vo ON vo.id = v.id AND vo.lang = v.olang;
 
 -- Same for releases
-CREATE VIEW releasest AS SELECT r.*, COALESCE(ro.latin, ro.title) AS title, COALESCE(ro.latin, ro.title) AS sorttitle, CASE WHEN ro.latin IS NULL THEN '' ELSE ro.title END AS alttitle FROM releases r JOIN releases_titles ro ON ro.id = r.id AND ro.lang = r.olang;
+CREATE VIEW releasest AS
+    SELECT r.*
+         , COALESCE(ro.latin, ro.title) AS title
+         , COALESCE(ro.latin, ro.title) AS sorttitle
+         , CASE WHEN ro.latin IS NULL THEN '' ELSE ro.title END AS alttitle
+      FROM releases r
+      JOIN releases_titles ro ON ro.id = r.id AND ro.lang = r.olang;

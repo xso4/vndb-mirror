@@ -29,9 +29,9 @@ sub fetch {
                   AND c_i.rev = (SELECT MAX(c_ii.rev) FROM changes c_ii WHERE c_ii.itemid = c.itemid))' : ();
 
     my $lst = tuwf->dbAlli('
-        SELECT c.id, c.itemid, c.comments, c.rev,', sql_totime('c.added'), 'AS added,', sql_user(), ', x.title, x.original, u.perm_dbmod AS rev_dbmod
+        SELECT c.id, c.itemid, c.comments, c.rev,', sql_totime('c.added'), 'AS added,', sql_user(), ', x.title, x.alttitle, u.perm_dbmod AS rev_dbmod
           FROM (SELECT * FROM changes c WHERE', $where, ' ORDER BY c.id DESC LIMIT', \($num+1), 'OFFSET', \($num*($filt->{p}-1)), ') c
-          JOIN item_info(c.itemid, c.rev) x ON true
+          JOIN item_info(NULL, c.itemid, c.rev) x ON true
           LEFT JOIN users u ON c.requester = u.id
          ORDER BY c.id DESC'
     );
@@ -77,7 +77,7 @@ sub tablebox_ {
                 td_ class => 'tc2', fmtdate $i->{added}, 'full';
                 td_ class => 'tc3', sub { user_ $i };
                 td_ class => 'tc4', sub {
-                    a_ href => $revurl, title => $i->{original}//$i->{title}, shorten $i->{title}, 80;
+                    a_ href => $revurl, title => $i->{alttitle}, shorten $i->{title}, 80;
                     b_ class => 'grayedout', sub { lit_ bb_format $i->{comments}, maxlength => 150, inline => 1 };
                 };
             } for @$lst;

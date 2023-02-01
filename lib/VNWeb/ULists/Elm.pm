@@ -263,7 +263,7 @@ our $WIDGET = form_compile out => $VNWeb::Elm::apis{UListWidget}[0]{keys};
 elm_api UListWidget => $WIDGET, { uid => { vndbid => 'u' }, vid => { vndbid => 'v' } }, sub {
     my($data) = @_;
     return elm_Unauth if !ulists_own $data->{uid};
-    my $v = tuwf->dbRowi('SELECT id, title, c_released FROM vnt WHERE id =', \$data->{vid});
+    my $v = tuwf->dbRowi('SELECT id, title, c_released FROM', vnt, 'v WHERE id =', \$data->{vid});
     return elm_Invalid if !defined $v->{title};
     elm_UListWidget ulists_widget_full_data $v, $data->{uid};
 };

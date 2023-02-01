@@ -389,12 +389,12 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = tuwf->dbVali('SELECT count(*) FROM vnt v WHERE', $where);
+        $count = tuwf->dbVali('SELECT count(*) FROM', vnt, 'v WHERE', $where);
         $list = $count ? tuwf->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
             SELECT v.id, v.title, v.alttitle, v.c_released, v.c_popularity, v.c_votecount, v.c_rating, v.c_average
                  , v.image, v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang',
                    $opt->{s}->vis('length') ? ', v.length, v.c_length, v.c_lengthnum' : (), '
-              FROM vnt v
+              FROM', vnt, 'v
              WHERE', $where, '
              ORDER BY', $opt->{s}->sql_order(),
         ) : [];

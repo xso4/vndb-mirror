@@ -9,7 +9,7 @@ sub enrich_item {
     my($r) = @_;
 
     enrich_merge pid => 'SELECT id AS pid, name, original FROM producers WHERE id IN', $r->{producers};
-    enrich_merge vid => 'SELECT id AS vid, title, alttitle FROM vnt WHERE id IN', $r->{vn};
+    enrich_merge vid => sql('SELECT id AS vid, title, alttitle FROM', vnt, 'v WHERE id IN'), $r->{vn};
 
     $r->{titles}    = [ sort { ($b->{lang} eq $r->{olang}) cmp ($a->{lang} eq $r->{olang}) || ($a->{mtl}?1:0) <=> ($b->{mtl}?1:0) || $a->{lang} cmp $b->{lang} } $r->{titles}->@* ];
     $r->{platforms} = [ sort map $_->{platform}, $r->{platforms}->@* ];

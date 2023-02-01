@@ -136,7 +136,7 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
               $mode ne 'v' ? ', v.title, v.alttitle' : (), '
          FROM vn_length_votes l
          LEFT JOIN users u ON u.id = l.uid',
-         $mode ne 'v' ? 'JOIN vnt v ON v.id = l.vid' : (),
+         $mode ne 'v' ? ('JOIN', vnt, 'v ON v.id = l.vid') : (),
        'WHERE', $where,
        'ORDER BY', $opt->{s}->sql_order(),
     );

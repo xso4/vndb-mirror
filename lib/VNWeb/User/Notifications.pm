@@ -134,7 +134,7 @@ TUWF::get qr{/$RE{uid}/notifies}, sub {
        'SELECT n.id, n.ntype::text[] AS ntype, n.iid, n.num, t.title, ', sql_user(), '
              , ', sql_totime('n.date'), ' as date
              , ', sql_totime('n.read'), ' as read
-          FROM notifications n, item_info(n.iid, n.num) t
+          FROM notifications n,', item_info('n.iid', 'n.num'), 't
           LEFT JOIN users u ON u.id = t.uid
          WHERE ', $where,
         'ORDER BY n.id', $opt->{r} ? 'DESC' : 'ASC'

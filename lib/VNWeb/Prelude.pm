@@ -21,8 +21,9 @@
 #  use VNWeb::Validation;
 #  use VNWeb::Elm;
 #  use VNWeb::TableOpts;
+#  use VNWeb::TitlePrefs 'vnt', 'releasest', 'item_info';
 #
-# + A few other handy tools.
+# + A handy dbobj() function.
 #
 # WARNING: This should not be used from the above modules.
 package VNWeb::Prelude;
@@ -65,6 +66,7 @@ sub import {
     use VNWeb::Validation;
     use VNWeb::Elm;
     use VNWeb::TableOpts;
+    use VNWeb::TitlePrefs 'vnt', 'releasest', 'item_info';
     1;
     EOM;
 
@@ -85,7 +87,7 @@ sub dbobj {
         return $o;
     }
 
-    tuwf->dbRowi('SELECT', \$id, 'AS id, title, hidden AS entry_hidden, locked AS entry_locked FROM item_info(', \$id, ', NULL) x');
+    tuwf->dbRowi('SELECT', \$id, 'AS id, title, hidden AS entry_hidden, locked AS entry_locked FROM', VNWeb::TitlePrefs::item_info(\$id, 'NULL'), ' x');
 }
 
 1;

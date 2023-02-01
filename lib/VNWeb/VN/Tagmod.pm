@@ -76,7 +76,7 @@ elm_api Tagmod => $FORM_OUT, $FORM_IN, sub {
 
 
 TUWF::get qr{/$RE{vid}/tagmod}, sub {
-    my $v = tuwf->dbRowi('SELECT id, title, hidden AS entry_hidden, locked AS entry_locked FROM vnt WHERE id =', \tuwf->capture('id'));
+    my $v = dbobj tuwf->capture('id');
     return tuwf->resNotFound if !$v->{id} || (!auth->permDbmod && $v->{entry_hidden});
     return tuwf->resDenied if !can_tag;
 

@@ -8,7 +8,7 @@ TUWF::get qr{/$RE{vid}/rg}, sub {
     my $id = tuwf->capture(1);
     my $num = tuwf->validate(get => num => { uint => 1, onerror => 15 })->data;
     my $unoff = tuwf->validate(get => unoff => { default => 1, anybool => 1 })->data;
-    my $v = tuwf->dbRowi('SELECT id, title, title, hidden AS entry_hidden, locked AS entry_locked FROM vnt WHERE id =', \$id);
+    my $v = dbobj $id;
 
     my $has = tuwf->dbRowi('SELECT bool_or(official) AS official, bool_or(not official) AS unofficial FROM vn_relations WHERE id =', \$id, 'GROUP BY id');
     $unoff = 1 if !$has->{official};
@@ -27,7 +27,7 @@ TUWF::get qr{/$RE{vid}/rg}, sub {
 
     # Fetch the nodes
     my $nodes = gen_nodes $id, $rel, $num;
-    enrich_merge id => "SELECT id, title, c_released, array_to_string(c_languages, '/') AS lang FROM vnt WHERE id IN", values %$nodes;
+    enrich_merge id => sql("SELECT id, title, c_released, array_to_string(c_languages, '/') AS lang FROM", vnt, "v WHERE id IN"), values %$nodes;
 
     my $total_nodes = keys { map +($_->{id0},1), @$rel }->%*;
     my $visible_nodes = keys %$nodes;

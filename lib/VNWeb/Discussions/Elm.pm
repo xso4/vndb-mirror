@@ -18,7 +18,7 @@ elm_api Boards => undef, {
                 ? sql 'CASE WHEN id =', \$q, 'THEN 0 ELSE', $title_score, 'END'
                 : $title_score,
                 ',', \$type, "::board_type, id, $title
-            FROM $tbl
+            FROM", $tbl, "x
            WHERE", $filt, 'AND', sql_or(
                $query, $q =~ /^$type$RE{num}$/ ? sql 'id =', \$q : ());
     }
@@ -31,7 +31,7 @@ elm_api Boards => undef, {
                      grep $q eq $_ || $BOARD_TYPE{$_}{txt} =~ /\Q$q/i,
                      grep !$BOARD_TYPE{$_}{dbitem} && ($BOARD_TYPE{$_}{post_perm} eq 'board' || auth->permBoardmod),
                      keys %BOARD_TYPE),
-                 item('vnt', 'v', 'title', 'NOT hidden', sql 'c_search LIKE ALL (search_query(', \$q, '))'),
+                 item(vnt, 'v', 'title', 'NOT hidden', sql 'c_search LIKE ALL (search_query(', \$q, '))'),
                  item('producers', 'p', 'name', 'NOT hidden', sql 'c_search LIKE ALL (search_query(', \$q, '))'),
                  item('users', 'u', 'username', 'true', sql 'lower(username) LIKE', \lc "%$qs%"),
              ), ') x(prio, btype, iid, title)

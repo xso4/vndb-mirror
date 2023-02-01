@@ -61,6 +61,97 @@ CREATE OR REPLACE FUNCTION search_gen_release(relid vndbid) RETURNS text AS $$
 $$ LANGUAGE SQL;
 
 
+
+-- This is a pure-SQL implementation of the title preference selection
+-- algorithm in VNWeb::TitlePrefs. Given a preferences object, this function
+-- returns a copy of the 'vn' table with three added columns:
+-- * title      (the main title)
+-- * alttitle   (alternative title)
+-- * sorttitle  (title to be used in ORDER BY clause)
+--
+-- This function looks slow and messy, but it's been specifically written to be
+-- transparent to the query planner and so that unused joins can be fully
+-- optimized out during query execution. Even with that, it's better to avoid
+-- this function in complex queries when possible because you may run into
+-- bad query plans by hitting join_collapse_limit or from_collapse_limit.
+-- (More info at https://dev.yorhel.nl/doc/vndbtitles)
+CREATE OR REPLACE FUNCTION vnt(p titleprefs) RETURNS SETOF vnt AS $$
+  SELECT v.*
+       -- The language selection logic below is specially written so that the planner can remove references to joined tables corresponding to NULL languages.
+     , COALESCE(
+         CASE WHEN p.t1_lang IS NULL OR (p.t1_official AND NOT t1.official) OR (p.t1_official IS NULL AND t1.lang <> v.olang) THEN NULL ELSE COALESCE(CASE WHEN p.t1_latin THEN t1.latin ELSE NULL END, t1.title) END,
+         CASE WHEN p.t2_lang IS NULL OR (p.t2_official AND NOT t2.official) OR (p.t2_official IS NULL AND t2.lang <> v.olang) THEN NULL ELSE COALESCE(CASE WHEN p.t2_latin THEN t2.latin ELSE NULL END, t2.title) END,
+         CASE WHEN p.t3_lang IS NULL OR (p.t3_official AND NOT t3.official) OR (p.t3_official IS NULL AND t3.lang <> v.olang) THEN NULL ELSE COALESCE(CASE WHEN p.t3_latin THEN t3.latin ELSE NULL END, t3.title) END,
+         CASE WHEN p.t4_lang IS NULL OR (p.t4_official AND NOT t4.official) OR (p.t4_official IS NULL AND t4.lang <> v.olang) THEN NULL ELSE COALESCE(CASE WHEN p.t4_latin THEN t4.latin ELSE NULL END, t4.title) END,
+         CASE WHEN p IS NULL OR p.to_latin THEN ol.latin ELSE NULL END, ol.title
+       ) AS title
+     , COALESCE(
+         CASE WHEN p.a1_lang IS NULL OR (p.a1_official AND NOT a1.official) OR (p.a1_official IS NULL AND a1.lang <> v.olang) THEN NULL ELSE COALESCE(CASE WHEN p.a1_latin THEN a1.latin ELSE NULL END, a1.title) END,
+         CASE WHEN p.a2_lang IS NULL OR (p.a2_official AND NOT a2.official) OR (p.a2_official IS NULL AND a2.lang <> v.olang) THEN NULL ELSE COALESCE(CASE WHEN p.a2_latin THEN a2.latin ELSE NULL END, a2.title) END,
+         CASE WHEN p.a3_lang IS NULL OR (p.a3_official AND NOT a3.official) OR (p.a3_official IS NULL AND a3.lang <> v.olang) THEN NULL ELSE COALESCE(CASE WHEN p.a3_latin THEN a3.latin ELSE NULL END, a3.title) END,
+         CASE WHEN p.a4_lang IS NULL OR (p.a4_official AND NOT a4.official) OR (p.a4_official IS NULL AND a4.lang <> v.olang) THEN NULL ELSE COALESCE(CASE WHEN p.a4_latin THEN a4.latin ELSE NULL END, a4.title) END,
+         CASE WHEN p.ao_latin THEN ol.latin ELSE NULL END, ol.title
+       ) AS alttitle
+     , COALESCE(
+         CASE WHEN p.t1_lang IS NULL OR (p.t1_official AND NOT t1.official) OR (p.t1_official IS NULL AND t1.lang <> v.olang) THEN NULL ELSE COALESCE(t1.latin, t1.title) END,
+         CASE WHEN p.t2_lang IS NULL OR (p.t2_official AND NOT t2.official) OR (p.t2_official IS NULL AND t2.lang <> v.olang) THEN NULL ELSE COALESCE(t2.latin, t2.title) END,
+         CASE WHEN p.t3_lang IS NULL OR (p.t3_official AND NOT t3.official) OR (p.t3_official IS NULL AND t3.lang <> v.olang) THEN NULL ELSE COALESCE(t3.latin, t3.title) END,
+         CASE WHEN p.t4_lang IS NULL OR (p.t4_official AND NOT t4.official) OR (p.t4_official IS NULL AND t4.lang <> v.olang) THEN NULL ELSE COALESCE(t4.latin, t4.title) END,
+         ol.latin, ol.title
+       ) AS sorttitle
+    FROM vn v
+    JOIN vn_titles ol ON ol.id = v.id AND ol.lang = v.olang
+    -- The COALESCE() below is kind of meaningless, but apparently the query planner can't optimize out JOINs with NULL conditions.
+    LEFT JOIN vn_titles t1 ON t1.id = v.id AND t1.lang = COALESCE(p.t1_lang, 'en')
+    LEFT JOIN vn_titles t2 ON t2.id = v.id AND t2.lang = COALESCE(p.t2_lang, 'en')
+    LEFT JOIN vn_titles t3 ON t3.id = v.id AND t3.lang = COALESCE(p.t3_lang, 'en')
+    LEFT JOIN vn_titles t4 ON t4.id = v.id AND t4.lang = COALESCE(p.t4_lang, 'en')
+    LEFT JOIN vn_titles a1 ON a1.id = v.id AND a1.lang = COALESCE(p.a1_lang, 'en')
+    LEFT JOIN vn_titles a2 ON a2.id = v.id AND a2.lang = COALESCE(p.a2_lang, 'en')
+    LEFT JOIN vn_titles a3 ON a3.id = v.id AND a3.lang = COALESCE(p.a3_lang, 'en')
+    LEFT JOIN vn_titles a4 ON a4.id = v.id AND a4.lang = COALESCE(p.a4_lang, 'en')
+$$ LANGUAGE SQL STABLE;
+
+
+
+-- Same thing as vnt()
+CREATE OR REPLACE FUNCTION releasest(p titleprefs) RETURNS SETOF releasest AS $$
+  SELECT r.*
+     , COALESCE(
+         CASE WHEN p.t1_lang IS NULL OR (p.t1_official IS NULL AND t1.lang <> r.olang) THEN NULL ELSE COALESCE(CASE WHEN p.t1_latin THEN t1.latin ELSE NULL END, t1.title) END,
+         CASE WHEN p.t2_lang IS NULL OR (p.t2_official IS NULL AND t2.lang <> r.olang) THEN NULL ELSE COALESCE(CASE WHEN p.t2_latin THEN t2.latin ELSE NULL END, t2.title) END,
+         CASE WHEN p.t3_lang IS NULL OR (p.t3_official IS NULL AND t3.lang <> r.olang) THEN NULL ELSE COALESCE(CASE WHEN p.t3_latin THEN t3.latin ELSE NULL END, t3.title) END,
+         CASE WHEN p.t4_lang IS NULL OR (p.t4_official IS NULL AND t4.lang <> r.olang) THEN NULL ELSE COALESCE(CASE WHEN p.t4_latin THEN t4.latin ELSE NULL END, t4.title) END,
+         CASE WHEN p IS NULL OR p.to_latin THEN ol.latin ELSE NULL END, ol.title
+       ) AS title
+     , COALESCE(
+         CASE WHEN p.a1_lang IS NULL OR (p.a1_official IS NULL AND a1.lang <> r.olang) THEN NULL ELSE COALESCE(CASE WHEN p.a1_latin THEN a1.latin ELSE NULL END, a1.title) END,
+         CASE WHEN p.a2_lang IS NULL OR (p.a2_official IS NULL AND a2.lang <> r.olang) THEN NULL ELSE COALESCE(CASE WHEN p.a2_latin THEN a2.latin ELSE NULL END, a2.title) END,
+         CASE WHEN p.a3_lang IS NULL OR (p.a3_official IS NULL AND a3.lang <> r.olang) THEN NULL ELSE COALESCE(CASE WHEN p.a3_latin THEN a3.latin ELSE NULL END, a3.title) END,
+         CASE WHEN p.a4_lang IS NULL OR (p.a4_official IS NULL AND a4.lang <> r.olang) THEN NULL ELSE COALESCE(CASE WHEN p.a4_latin THEN a4.latin ELSE NULL END, a4.title) END,
+         CASE WHEN p.ao_latin THEN ol.latin ELSE NULL END, ol.title
+       ) AS alttitle
+     , COALESCE(
+         CASE WHEN p.t1_lang IS NULL OR (p.t1_official IS NULL AND t1.lang <> r.olang) THEN NULL ELSE COALESCE(t1.latin, t1.title) END,
+         CASE WHEN p.t2_lang IS NULL OR (p.t2_official IS NULL AND t2.lang <> r.olang) THEN NULL ELSE COALESCE(t2.latin, t2.title) END,
+         CASE WHEN p.t3_lang IS NULL OR (p.t3_official IS NULL AND t3.lang <> r.olang) THEN NULL ELSE COALESCE(t3.latin, t3.title) END,
+         CASE WHEN p.t4_lang IS NULL OR (p.t4_official IS NULL AND t4.lang <> r.olang) THEN NULL ELSE COALESCE(t4.latin, t4.title) END,
+         ol.latin, ol.title
+       ) AS sorttitle
+    FROM releases r
+    JOIN releases_titles ol ON ol.id = r.id AND ol.lang = r.olang
+    LEFT JOIN releases_titles t1 ON t1.id = r.id AND t1.lang = COALESCE(p.t1_lang, 'en')
+    LEFT JOIN releases_titles t2 ON t2.id = r.id AND t2.lang = COALESCE(p.t2_lang, 'en')
+    LEFT JOIN releases_titles t3 ON t3.id = r.id AND t3.lang = COALESCE(p.t3_lang, 'en')
+    LEFT JOIN releases_titles t4 ON t4.id = r.id AND t4.lang = COALESCE(p.t4_lang, 'en')
+    LEFT JOIN releases_titles a1 ON a1.id = r.id AND a1.lang = COALESCE(p.a1_lang, 'en')
+    LEFT JOIN releases_titles a2 ON a2.id = r.id AND a2.lang = COALESCE(p.a2_lang, 'en')
+    LEFT JOIN releases_titles a3 ON a3.id = r.id AND a3.lang = COALESCE(p.a3_lang, 'en')
+    LEFT JOIN releases_titles a4 ON a4.id = r.id AND a4.lang = COALESCE(p.a4_lang, 'en')
+$$ LANGUAGE SQL STABLE;
+
+
+
 -- update_vncache(id) - updates some c_* columns in the vn table
 CREATE OR REPLACE FUNCTION update_vncache(vndbid) RETURNS void AS $$
   UPDATE vn SET
@@ -427,13 +518,13 @@ $$ LANGUAGE SQL;
 -- Returns generic information for almost every supported vndbid + num.
 -- Not currently supported: ch#, cv#, sf#
 -- Some oddities:
--- * User title preferences (through the 'vnt' VIEW) are not used for explicit revisions.
+-- * The given user title preferences are not used for explicit revisions.
 -- * Trait names are prefixed with their group name ("Group > Trait"), but only for non-revisions.
 --
 -- Returned fields:
 --   * title    - Main/romanized title.
 --                For users this is their username, not displayname.
---   * original - Original/alternative title (if applicable). Used in edit histories
+--   * alttitle - Original/alternative title (if applicable). Used in edit histories
 --   * uid      - User who created/initiated this entry. Used in notification listings and reports
 --   * hidden   - Whether this entry is 'hidden' or private. Used for the reporting function & framework_ object.
 --                For edits this info comes from the revision itself, not the final entry.
@@ -441,42 +532,42 @@ $$ LANGUAGE SQL;
 --                'hidden' means "partially visible if you know the ID, but not shown in regular listings".
 --                For threads it means "totally invisible, does not exist".
 --   * locked   - Whether this entry is 'locked'. Used for the framework_ object.
-CREATE OR REPLACE FUNCTION item_info(id vndbid, num int) RETURNS TABLE(title text, original text, uid vndbid, hidden boolean, locked boolean) AS $$
+CREATE OR REPLACE FUNCTION item_info(titleprefs, vndbid, int, out ret item_info_type) AS $$
 BEGIN
   -- x#
-  IF $2 IS NULL THEN CASE vndbid_type($1)
-    --WHEN 'v' THEN RETURN QUERY SELECT COALESCE(vo.latin, vo.title), CASE WHEN vo.latin IS NULL THEN '' ELSE vo.title END, NULL::vndbid, v.hidden, v.locked
-    --                      FROM vn v JOIN vn_titles vo ON vo.id = v.id AND vo.lang = v.olang WHERE v.id = $1;
-    WHEN 'v' THEN RETURN QUERY SELECT v.title   ::text, v.alttitle::text,  NULL::vndbid,  v.hidden, v.locked FROM vnt v       WHERE v.id = $1;
-    WHEN 'r' THEN RETURN QUERY SELECT r.title   ::text, r.alttitle::text,  NULL::vndbid,  r.hidden, r.locked FROM releasest r WHERE r.id = $1;
-    WHEN 'p' THEN RETURN QUERY SELECT p.name    ::text, p.original::text,  NULL::vndbid,  p.hidden, p.locked FROM producers p WHERE p.id = $1;
-    WHEN 'c' THEN RETURN QUERY SELECT c.name    ::text, c.original::text,  NULL::vndbid,  c.hidden, c.locked FROM chars c     WHERE c.id = $1;
-    WHEN 'd' THEN RETURN QUERY SELECT d.title   ::text, NULL,              NULL::vndbid,  d.hidden, d.locked FROM docs d      WHERE d.id = $1;
-    WHEN 'g' THEN RETURN QUERY SELECT g.name    ::text, NULL,              NULL::vndbid,  g.hidden, g.locked FROM tags g      WHERE g.id = $1;
-    WHEN 'i' THEN RETURN QUERY SELECT COALESCE(g.name||' > ', '')||i.name, NULL,NULL::vndbid,i.hidden, i.locked FROM traits i LEFT JOIN traits g ON g.id = i.group WHERE i.id = $1;
-    WHEN 's' THEN RETURN QUERY SELECT sa.name   ::text, sa.original::text, NULL::vndbid,  s.hidden, s.locked FROM staff s   JOIN staff_alias sa ON sa.aid = s.aid WHERE s.id = $1;
-    WHEN 't' THEN RETURN QUERY SELECT t.title   ::text, NULL,              NULL::vndbid,  t.hidden OR t.private, t.locked FROM threads t WHERE t.id = $1;
-    WHEN 'w' THEN RETURN QUERY SELECT v.title   ::text, v.alttitle::text,  w.uid, w.c_flagged, w.locked FROM reviews w JOIN vnt v ON v.id = w.vid WHERE w.id = $1;
-    WHEN 'u' THEN RETURN QUERY SELECT u.username::text, NULL,              NULL::vndbid,  FALSE,  FALSE  FROM users u WHERE u.id = $1;
+  IF $3 IS NULL THEN CASE vndbid_type($2)
+    WHEN 'v' THEN SELECT v.title   ::text, v.alttitle::text,  NULL::vndbid,  v.hidden, v.locked INTO ret FROM vnt($1) v       WHERE v.id = $2;
+    WHEN 'r' THEN SELECT r.title   ::text, r.alttitle::text,  NULL::vndbid,  r.hidden, r.locked INTO ret FROM releasest($1) r WHERE r.id = $2;
+    WHEN 'p' THEN SELECT p.name    ::text, p.original::text,  NULL::vndbid,  p.hidden, p.locked INTO ret FROM producers p     WHERE p.id = $2;
+    WHEN 'c' THEN SELECT c.name    ::text, c.original::text,  NULL::vndbid,  c.hidden, c.locked INTO ret FROM chars c         WHERE c.id = $2;
+    WHEN 'd' THEN SELECT d.title   ::text, NULL,              NULL::vndbid,  d.hidden, d.locked INTO ret FROM docs d          WHERE d.id = $2;
+    WHEN 'g' THEN SELECT g.name    ::text, NULL,              NULL::vndbid,  g.hidden, g.locked INTO ret FROM tags g          WHERE g.id = $2;
+    WHEN 'i' THEN SELECT COALESCE(g.name||' > ', '')||i.name, NULL,NULL::vndbid,i.hidden, i.locked INTO ret FROM traits i LEFT JOIN traits g ON g.id = i.group WHERE i.id = $2;
+    WHEN 's' THEN SELECT sa.name   ::text, sa.original::text, NULL::vndbid,  s.hidden, s.locked INTO ret FROM staff s   JOIN staff_alias sa ON sa.aid = s.aid WHERE s.id = $2;
+    WHEN 't' THEN SELECT t.title   ::text, NULL,              NULL::vndbid,  t.hidden OR t.private, t.locked INTO ret FROM threads t WHERE t.id = $2;
+    WHEN 'w' THEN SELECT v.title   ::text, v.alttitle::text,  w.uid, w.c_flagged, w.locked INTO ret FROM reviews w JOIN vnt v ON v.id = w.vid WHERE w.id = $2;
+    WHEN 'u' THEN SELECT u.username::text, NULL,              NULL::vndbid,  FALSE,  FALSE INTO ret FROM users u WHERE u.id = $2;
+    ELSE NULL;
   END CASE;
   -- x#.#
-  ELSE CASE vndbid_type($1)
-    WHEN 'v' THEN RETURN QUERY SELECT COALESCE(vo.latin, vo.title), CASE WHEN vo.latin IS NULL THEN '' ELSE vo.title END, h.requester, h.ihid, h.ilock
-                          FROM changes h JOIN vn_hist v ON h.id = v.chid JOIN vn_titles_hist vo ON h.id = vo.chid AND vo.lang = v.olang WHERE h.itemid = $1 AND h.rev = $2;
-    WHEN 'r' THEN RETURN QUERY SELECT COALESCE(ro.latin, ro.title), CASE WHEN ro.latin IS NULL THEN '' ELSE ro.title END, h.requester, h.ihid, h.ilock
-                          FROM changes h JOIN releases_hist r ON h.id = r.chid JOIN releases_titles_hist ro ON h.id = ro.chid AND ro.lang = r.olang WHERE h.itemid = $1 AND h.rev = $2;
-    WHEN 'p' THEN RETURN QUERY SELECT p.name ::text, p.original::text,  h.requester, h.ihid, h.ilock FROM changes h JOIN producers_hist p ON h.id = p.chid WHERE h.itemid = $1 AND h.rev = $2;
-    WHEN 'c' THEN RETURN QUERY SELECT c.name ::text, c.original::text,  h.requester, h.ihid, h.ilock FROM changes h JOIN chars_hist c     ON h.id = c.chid WHERE h.itemid = $1 AND h.rev = $2;
-    WHEN 'd' THEN RETURN QUERY SELECT d.title::text, NULL,              h.requester, h.ihid, h.ilock FROM changes h JOIN docs_hist d      ON h.id = d.chid WHERE h.itemid = $1 AND h.rev = $2;
-    WHEN 'g' THEN RETURN QUERY SELECT g.name ::text, NULL,              h.requester, h.ihid, h.ilock FROM changes h JOIN tags_hist g      ON h.id = g.chid WHERE h.itemid = $1 AND h.rev = $2;
-    WHEN 'i' THEN RETURN QUERY SELECT i.name ::text, NULL,              h.requester, h.ihid, h.ilock FROM changes h JOIN traits_hist i    ON h.id = i.chid WHERE h.itemid = $1 AND h.rev = $2;
-    WHEN 's' THEN RETURN QUERY SELECT sa.name::text, sa.original::text, h.requester, h.ihid, h.ilock FROM changes h JOIN staff_hist s     ON h.id = s.chid JOIN staff_alias_hist sa ON sa.chid = s.chid AND sa.aid = s.aid WHERE h.itemid = $1 AND h.rev = $2;
-    WHEN 't' THEN RETURN QUERY SELECT t.title::text, NULL,              tp.uid, t.hidden OR t.private OR tp.hidden IS NOT NULL, t.locked FROM threads t JOIN threads_posts tp ON tp.tid = t.id WHERE t.id = $1 AND tp.num = $2;
-    WHEN 'w' THEN RETURN QUERY SELECT v.title::text, v.alttitle::text,  wp.uid, w.c_flagged OR wp.hidden IS NOT NULL, w.locked FROM reviews w JOIN vnt v ON v.id = w.vid JOIN reviews_posts wp ON wp.id = w.id WHERE w.id = $1 AND wp.num = $2;
+  ELSE CASE vndbid_type($2)
+    WHEN 'v' THEN SELECT COALESCE(vo.latin, vo.title), CASE WHEN vo.latin IS NULL THEN '' ELSE vo.title END, h.requester, h.ihid, h.ilock INTO ret
+                    FROM changes h JOIN vn_hist v ON h.id = v.chid JOIN vn_titles_hist vo ON h.id = vo.chid AND vo.lang = v.olang WHERE h.itemid = $2 AND h.rev = $3;
+    WHEN 'r' THEN SELECT COALESCE(ro.latin, ro.title), CASE WHEN ro.latin IS NULL THEN '' ELSE ro.title END, h.requester, h.ihid, h.ilock INTO ret
+                    FROM changes h JOIN releases_hist r ON h.id = r.chid JOIN releases_titles_hist ro ON h.id = ro.chid AND ro.lang = r.olang WHERE h.itemid = $2 AND h.rev = $3;
+    WHEN 'p' THEN SELECT p.name ::text, p.original::text,  h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN producers_hist p ON h.id = p.chid WHERE h.itemid = $2 AND h.rev = $3;
+    WHEN 'c' THEN SELECT c.name ::text, c.original::text,  h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN chars_hist c     ON h.id = c.chid WHERE h.itemid = $2 AND h.rev = $3;
+    WHEN 'd' THEN SELECT d.title::text, NULL,              h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN docs_hist d      ON h.id = d.chid WHERE h.itemid = $2 AND h.rev = $3;
+    WHEN 'g' THEN SELECT g.name ::text, NULL,              h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN tags_hist g      ON h.id = g.chid WHERE h.itemid = $2 AND h.rev = $3;
+    WHEN 'i' THEN SELECT i.name ::text, NULL,              h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN traits_hist i    ON h.id = i.chid WHERE h.itemid = $2 AND h.rev = $3;
+    WHEN 's' THEN SELECT sa.name::text, sa.original::text, h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN staff_hist s     ON h.id = s.chid JOIN staff_alias_hist sa ON sa.chid = s.chid AND sa.aid = s.aid WHERE h.itemid = $2 AND h.rev = $3;
+    WHEN 't' THEN SELECT t.title::text, NULL,              tp.uid, t.hidden OR t.private OR tp.hidden IS NOT NULL, t.locked INTO ret FROM threads t JOIN threads_posts tp ON tp.tid = t.id WHERE t.id = $2 AND tp.num = $3;
+    WHEN 'w' THEN SELECT v.title::text, v.alttitle::text,  wp.uid, w.c_flagged OR wp.hidden IS NOT NULL, w.locked INTO ret FROM reviews w JOIN vnt($1) v ON v.id = w.vid JOIN reviews_posts wp ON wp.id = w.id WHERE w.id = $2 AND wp.num = $3;
+    ELSE NULL;
   END CASE;
   END IF;
 END;
-$$ LANGUAGE plpgsql ROWS 1;
+$$ LANGUAGE plpgsql STABLE;
 
 
 

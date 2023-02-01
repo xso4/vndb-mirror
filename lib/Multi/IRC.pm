@@ -270,14 +270,14 @@ sub handleid {
   pg_cmd 'SELECT $1::vndbid AS id, '.(
     $id =~ /^t/ ? 'title, '.$GETBOARDS.' FROM threads t WHERE NOT t.hidden AND NOT t.private AND t.id = $1' :
     $id =~ /^w/ ? 'v.title, u.username FROM reviews w JOIN vnt v ON v.id = w.vid LEFT JOIN users u ON u.id = w.uid WHERE w.id = $1' :
-                  'title FROM item_info($1,NULL) x'),
+                  'title FROM item_info(NULL,$1,NULL) x'),
     [ $id ], $c if !$rev && $id =~ /^[dvprtugicsw]/;
 
   # edit/insert of vn/release/producer or discussion board post
   pg_cmd 'SELECT $1::vndbid AS id, $2::integer AS rev, '.(
     $id =~ /^t/ ? 't.title, u.username, '.$GETBOARDS.' FROM threads t JOIN threads_posts tp ON tp.tid = t.id LEFT JOIN users u ON u.id = tp.uid WHERE NOT t.hidden AND NOT t.private AND t.id = $1 AND tp.num = $2' :
     $id =~ /^w/ ? 'v.title, u.username FROM reviews_posts wp JOIN reviews w ON w.id = wp.id JOIN vn v ON v.id = w.vid LEFT JOIN users u ON u.id = wp.uid WHERE wp.id = $1 AND wp.num = $2' :
-                  'x.title, u.username, c.comments FROM changes c JOIN item_info($1,$2) x ON true JOIN users u ON u.id = c.requester WHERE c.itemid = $1 AND c.rev = $2'),
+                  'x.title, u.username, c.comments FROM changes c JOIN item_info(NULL,$1,$2) x ON true JOIN users u ON u.id = c.requester WHERE c.itemid = $1 AND c.rev = $2'),
     [ $id, $rev], $c if $rev && $id =~ /^[dvprtcsgiw]/;
 }
 
@@ -308,7 +308,7 @@ sub notify {
   rev => q{
     SELECT c.rev, c.comments, c.id AS lastid, c.itemid AS id, x.title, u.username
     FROM changes c
-    JOIN item_info(c.itemid, c.rev) x ON true
+    JOIN item_info(NULL, c.itemid, c.rev) x ON true
     JOIN users u ON u.id = c.requester
     WHERE c.id > $1 AND c.requester <> 'u1'
     ORDER BY c.id},

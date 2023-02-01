@@ -155,7 +155,7 @@ sub _votestats_ {
     my $recent = tuwf->dbAlli('
         SELECT v.id, v.title, v.alttitle, uv.vote,', sql_totime('uv.vote_date'), 'AS date
           FROM ulist_vns uv
-          JOIN vnt v ON v.id = uv.vid
+          JOIN', vnt, 'v ON v.id = uv.vid
          WHERE uv.vote IS NOT NULL AND uv.uid =', \$u->{id}, $own ? () : ('AND NOT uv.c_private'), '
          ORDER BY uv.vote_date DESC LIMIT', \8
     );

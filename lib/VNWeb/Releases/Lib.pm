@@ -10,7 +10,7 @@ our @EXPORT = qw/enrich_release_elm releases_by_vn enrich_release sort_releases 
 # Enrich a list of releases so that it's suitable as 'Releases' Elm response.
 # Given objects must have 'id' and 'rtype' fields (appropriate for the VN in context).
 sub enrich_release_elm {
-    enrich_merge id => 'SELECT id, title, alttitle, released, reso_x, reso_y FROM releasest WHERE id IN', @_;
+    enrich_merge id => sql('SELECT id, title, alttitle, released, reso_x, reso_y FROM', releasest, 'r WHERE id IN'), @_;
     enrich_flatten lang => id => id => sub { sql('SELECT id, lang FROM releases_titles WHERE id IN', $_, 'ORDER BY lang') }, @_;
     enrich_flatten platforms => id => id => sub { sql('SELECT id, platform FROM releases_platforms WHERE id IN', $_, 'ORDER BY platform') }, @_;
 }
@@ -18,7 +18,7 @@ sub enrich_release_elm {
 # Return the list of releases associated with a VN in the format suitable as 'Releases' Elm response.
 sub releases_by_vn {
     my($id) = @_;
-    my $l = tuwf->dbAlli('SELECT r.id, rv.rtype FROM releasest r JOIN releases_vn rv ON rv.id = r.id WHERE NOT r.hidden AND rv.vid =', \$id, 'ORDER BY r.released, r.sorttitle, r.id');
+    my $l = tuwf->dbAlli('SELECT r.id, rv.rtype FROM', releasest, 'r JOIN releases_vn rv ON rv.id = r.id WHERE NOT r.hidden AND rv.vid =', \$id, 'ORDER BY r.released, r.sorttitle, r.id');
     enrich_release_elm $l;
     $l
 }
@@ -28,10 +28,10 @@ sub releases_by_vn {
 # Assumption: Each release already has id, patch, released, gtin and enrich_extlinks().
 sub enrich_release {
     my($r) = @_;
-    enrich_merge id =>
+    enrich_merge id => sql(
         'SELECT id, title, alttitle, olang, notes, minage, official, freeware, has_ero, reso_x, reso_y, voiced, uncensored
               , ani_story, ani_ero, ani_story_sp, ani_story_cg, ani_cutscene, ani_ero_sp, ani_ero_cg, ani_face, ani_bg
-          FROM releasest WHERE id IN', $r;
+          FROM', releasest, 'r WHERE id IN'), $r;
     enrich_merge id => sub { sql 'SELECT id, MAX(rtype) AS rtype FROM releases_vn WHERE id IN', $_, 'GROUP BY id' }, grep !$_->{rtype}, ref $r ? @$r : $r;
     enrich_merge id => sql('SELECT rid as id, status as rlist_status FROM rlists WHERE uid =', \auth->uid, 'AND rid IN'), $r if auth;
     enrich_flatten platforms => id => id => sub { sql 'SELECT id, platform FROM releases_platforms WHERE id IN', $_, 'ORDER BY id, platform' }, $r;

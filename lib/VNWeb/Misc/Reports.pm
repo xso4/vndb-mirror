@@ -10,7 +10,7 @@ my @STATUS = qw/new busy done dismissed/;
 # Returns the object associated with the vndbid.num; Returns false if the object can't be reported.
 sub obj {
     my($id, $num) = @_;
-    my $o = tuwf->dbRowi('SELECT x.*, ', sql_user(), 'FROM item_info(', \$id, ',', \$num, ') x LEFT JOIN users u ON u.id = x.uid');
+    my $o = tuwf->dbRowi('SELECT x.*, ', sql_user(), 'FROM', item_info(\$id, \$num), 'x LEFT JOIN users u ON u.id = x.uid');
     $o->{object} = $id;
     $o->{objectnum} = $num;
     my $can = !defined $o->{title} ? 0
@@ -158,7 +158,7 @@ TUWF::get qr{/report/list}, sub {
        'SELECT r.id,', sql_totime('r.date'), 'as date, r.uid, ur.username, fmtip(r.ip) as ip, r.reason, r.status, r.message, r.log
              , r.object, r.objectnum, x.title, x.uid as by_uid,', sql_user('uo'), '
           FROM reports r
-          LEFT JOIN item_info(r.object, r.objectnum) x ON true
+          LEFT JOIN', item_info('r.object', 'r.objectnum'), 'x ON true
           LEFT JOIN users ur ON ur.id = r.uid
           LEFT JOIN users uo ON uo.id = x.uid
          WHERE', $where, '

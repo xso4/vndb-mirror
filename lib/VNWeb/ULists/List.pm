@@ -218,7 +218,7 @@ sub listing_ {
         $opt->{q} ? sql 'v.c_search LIKE ALL (search_query(', \$opt->{q}, '))' : (),
         defined($opt->{ch}) ? sql 'match_firstchar(v.sorttitle, ', \$opt->{ch}, ')' : ();
 
-    my $count = tuwf->dbVali('SELECT count(*) FROM ulist_vns uv JOIN vnt v ON v.id = uv.vid WHERE', $where);
+    my $count = tuwf->dbVali('SELECT count(*) FROM ulist_vns uv JOIN', vnt, 'v ON v.id = uv.vid WHERE', $where);
 
     my $lst = tuwf->dbPagei({ page => $opt->{p}, results => $opt->{s}->results },
         'SELECT v.id, v.title, v.alttitle, uv.vote, uv.notes, uv.labels, uv.started, uv.finished
@@ -229,7 +229,7 @@ sub listing_ {
               ,', sql_totime('uv.vote_date'), ' as vote_date',
                  $opt->{s}->vis('length') ? ', v.length, v.c_length, v.c_lengthnum' : (), '
            FROM ulist_vns uv
-           JOIN vnt v ON v.id = uv.vid
+           JOIN', vnt, 'v ON v.id = uv.vid
           WHERE', $where, '
           ORDER BY', $opt->{s}->sql_order(), 'NULLS LAST, v.sorttitle'
     );
@@ -237,7 +237,7 @@ sub listing_ {
     enrich rels => id => vid => sub { sql '
         SELECT rv.vid, r.id, rl.status, rv.rtype
           FROM rlists rl
-          JOIN releasest r ON rl.rid = r.id
+          JOIN', releasest, 'r ON rl.rid = r.id
           JOIN releases_vn rv ON rv.id = r.id
          WHERE rl.uid =', \$uid, '
            AND rv.vid IN', $_, '

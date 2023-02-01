@@ -3,6 +3,7 @@ package VNWeb::VN::Edit;
 use VNWeb::Prelude;
 use VNWeb::Images::Lib 'enrich_image';
 use VNWeb::Releases::Lib;
+use VNWeb::TitlePrefs 'titleprefs_obj';
 
 
 my $FORM = {
@@ -98,7 +99,7 @@ TUWF::get qr{/$RE{vrev}/edit} => sub {
     $_->{info} = {id=>$_->{scr}} for $e->{screenshots}->@*;
     enrich_image 0, [map $_->{info}, $e->{screenshots}->@*];
 
-    enrich_merge vid => 'SELECT id AS vid, title, alttitle FROM vnt WHERE id IN', $e->{relations};
+    enrich_merge vid => sql('SELECT id AS vid, title, alttitle FROM', vnt, 'v WHERE id IN'), $e->{relations};
     enrich_merge aid => 'SELECT id AS aid, title_romaji AS title, COALESCE(title_kanji, \'\') AS original FROM anime WHERE id IN', $e->{anime};
 
     enrich_merge aid => 'SELECT id, aid, name, original FROM staff_alias WHERE aid IN', $e->{staff}, $e->{seiyuu};
@@ -129,7 +130,7 @@ TUWF::get qr{/$RE{vrev}/edit} => sub {
          ORDER BY name, id'
     );
 
-    my $title = tuwf->dbVali('SELECT title FROM vnt WHERE id =', \$e->{id});
+    my($title) = titleprefs_obj $e->{olang}, $e->{titles};
     framework_ title => "Edit $title", dbobj => $e, tab => 'edit',
     sub {
         editmsg_ v => $e, "Edit $title";

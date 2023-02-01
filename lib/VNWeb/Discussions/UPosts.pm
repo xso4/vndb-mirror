@@ -49,7 +49,7 @@ TUWF::get qr{/$RE{uid}/posts}, sub {
         SELECT rp.id, rp.num, rp.msg, v.title, rp.date, rp.hidden IS NOT NULL
           FROM reviews_posts rp
           JOIN reviews r ON r.id = rp.id
-          JOIN vnt v ON v.id = r.vid
+          JOIN', vnt, 'v ON v.id = r.vid
          WHERE rp.uid =', \$u->{id}, auth->permBoardmod ? () : 'AND rp.hidden IS NULL', '
        ) p(id,num,msg,title,date,hidden)';
 

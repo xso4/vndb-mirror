@@ -1,6 +1,7 @@
 package VNWeb::Releases::Edit;
 
 use VNWeb::Prelude;
+use VNWeb::TitlePrefs 'titleprefs_obj';
 
 
 my $FORM = {
@@ -87,12 +88,12 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
 
     $e->{vntitles} = $e->{vn}->@* == 1 ? tuwf->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$e->{vn}[0]{vid}) : [];
 
-    enrich_merge vid => 'SELECT id AS vid, title FROM vnt WHERE id IN', $e->{vn};
+    enrich_merge vid => sql('SELECT id AS vid, title FROM', vnt, 'v WHERE id IN'), $e->{vn};
     enrich_merge pid => 'SELECT id AS pid, name FROM producers WHERE id IN', $e->{producers};
 
     $e->@{qw/gtin catalog extlinks/} = elm_empty($FORM_OUT)->@{qw/gtin catalog extlinks/} if $copy;
 
-    my $title = ($copy ? 'Copy ' : 'Edit ').tuwf->dbVali('SELECT title FROM releasest WHERE id =', \$e->{id});
+    my $title = ($copy ? 'Copy ' : 'Edit ').(titleprefs_obj $e->{olang}, $e->{titles})[0];
     framework_ title => $title, dbobj => $e, tab => tuwf->capture('action'),
     sub {
         editmsg_ r => $e, $title, $copy;
@@ -103,15 +104,10 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
 
 TUWF::get qr{/$RE{vid}/add}, sub {
     return tuwf->resDenied if !can_edit r => undef;
-    my $v = tuwf->dbRowi('
-        SELECT v.id, v.title
-          FROM vnt v
-          JOIN vn_titles vo ON vo.id = v.id AND vo.lang = v.olang
-         WHERE v.id =', \tuwf->capture('id')
-    );
+    my $v = tuwf->dbRowi('SELECT id, title FROM', vnt, 'v WHERE NOT hidden AND v.id =', \tuwf->capture('id'));
     return tuwf->resNotFound if !$v->{id};
 
-    my $delrel = tuwf->dbAlli('SELECT r.id, r.title, r.alttitle FROM releasest r JOIN releases_vn rv ON rv.id = r.id WHERE r.hidden AND rv.vid =', \$v->{id}, 'ORDER BY id');
+    my $delrel = tuwf->dbAlli('SELECT r.id, r.title, r.alttitle FROM', releasest, 'r JOIN releases_vn rv ON rv.id = r.id WHERE r.hidden AND rv.vid =', \$v->{id}, 'ORDER BY id');
     enrich_flatten languages => id => id => 'SELECT id, lang FROM releases_titles WHERE id IN', $delrel;
 
     my $e = {

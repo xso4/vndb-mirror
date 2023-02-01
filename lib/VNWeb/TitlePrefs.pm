@@ -13,6 +13,7 @@ our @EXPORT = qw/
     titleprefs_fmt
     titleprefs_obj
     $DEFAULT_TITLE_PREFS
+    vnt releasest item_info
 /;
 
 
@@ -107,12 +108,20 @@ TUWF::set('custom_validations')->{titleprefs} = {
 };
 
 
+our $DEFAULT_TITLE_PREFS = [
+    [ { lang => undef, latin => 1, official => undef } ],
+    [ { lang => undef, latin => '', official => undef } ],
+];
+
+sub pref { tuwf->req->{titleprefs} //= !is_api() && titleprefs_parse(auth->pref('titles')) }
+
+
 # Returns the preferred (title, alttitle) given an array of
 # (vn|releases)_titles-like objects. Same functionality as the SQL view, except
 # implemented in perl.
 sub titleprefs_obj {
     my($olang, $titles) = @_;
-    my $p = pref();
+    my $p = pref || $DEFAULT_TITLE_PREFS;
     my %l = map +($_->{lang},$_), $titles->@*;
 
     my @title = ('','');
@@ -130,20 +139,9 @@ sub titleprefs_obj {
 }
 
 
-our $DEFAULT_TITLE_PREFS = [
-    [ { lang => undef, latin => 1, official => undef } ],
-    [ { lang => undef, latin => '', official => undef } ],
-];
-
-
-sub pref {
-    tuwf->req->{titleprefs} //= (!is_api() && titleprefs_parse(auth->pref('titles'))) || $DEFAULT_TITLE_PREFS;
-}
-
-
 sub gen_sql {
     my($has_official, $tbl_main, $tbl_titles, $join_col) = @_;
-    my $p = pref;
+    my $p = pref || $DEFAULT_TITLE_PREFS;
 
     sub id { (!defined $_[0]{official}?'r':$_[0]{official}?'o':'u').($_[0]{lang}//'') }
 
@@ -168,46 +166,18 @@ sub gen_sql {
         map +($_->{latin} ? ($joins{ id($_) }.'.latin') : (), $joins{ id($_) }.'.title'), $p->[1]->@*
     ).')';
 
-    sql "SELECT x.*, $title AS title, $sorttitle AS sorttitle, $alttitle AS alttitle FROM $tbl_main x", @joins;
+    sql "(SELECT x.*, $title AS title, $sorttitle AS sorttitle, $alttitle AS alttitle FROM $tbl_main x", @joins, ')';
 }
 
 
-# Similar to the 'vnt' VIEW, except for vn_hist and it generates a SELECT query for inline use.
-# (These functions are not currently used)
-sub sql_vn_hist { gen_sql 1, 'vn_hist', 'vn_titles_hist', 'chid' }
-sub sql_releases_hist { gen_sql 0, 'releases_hist', 'releases_titles_hist', 'chid' }
+sub vnt()       { tuwf->req->{titleprefs_v} //= pref ? gen_sql 1, 'vn',       'vn_titles',       'id' : 'vnt'       }
+sub releasest() { tuwf->req->{titleprefs_r} //= pref ? gen_sql 0, 'releases', 'releases_titles', 'id' : 'releasest' }
 
+# (Not currently used)
+#sub vnt_hist { gen_sql 1, 'vn_hist', 'vn_titles_hist', 'chid' }
+#sub releasest_hist { gen_sql 0, 'releases_hist', 'releases_titles_hist', 'chid' }
 
-
-my $DEFAULT_SESSION = titleprefs_fmt($DEFAULT_TITLE_PREFS);
-my $CURRENT_SESSION = $DEFAULT_SESSION;
-
-# Run the given subroutine with the default language preferences, by
-# temporarily disabling any user preferences in the current database session.
-# (This function is a hack)
-sub run_with_defaults {
-    my($f) = @_;
-    return $f->() if $CURRENT_SESSION eq $DEFAULT_SESSION;
-    tuwf->dbExeci('SET search_path TO public,pg_temp');
-    my $r;
-    my $e = eval { $r = $f->(); 1 };
-    my $s = $@;
-    tuwf->dbExeci('SET search_path TO public');
-    die $s if !$e;
-    $r;
-}
-
-
-return 1 if $main::ONLYAPI;
-
-TUWF::hook db_connect => sub { $CURRENT_SESSION = $DEFAULT_SESSION };
-
-TUWF::hook before => sub {
-    my $p = titleprefs_fmt(pref);
-    return if $p eq $CURRENT_SESSION;
-    $CURRENT_SESSION = $p;
-    tuwf->dbExeci('CREATE OR REPLACE TEMPORARY VIEW vnt AS', gen_sql(1, 'vn', 'vn_titles', 'id'));
-    tuwf->dbExeci('CREATE OR REPLACE TEMPORARY VIEW releasest AS', gen_sql(0, 'releases', 'releases_titles', 'id'));
-};
+# Wrapper around SQL's item_info() with the user's preference applied.
+sub item_info($$) { sql 'item_info(', \((tuwf->req->{auth} && tuwf->req->{auth}{user}{titles}) || undef), ',', $_[0], ',', $_[1], ')' }
 
 1;

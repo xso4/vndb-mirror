@@ -30,9 +30,8 @@ sub listing_ {
 
 
 TUWF::get qr{/$RE{vid}/votes}, sub {
-    my $id = tuwf->capture('id');
-    my $v = tuwf->dbRowi('SELECT id, title, hidden AS entry_hidden, locked AS entry_locked FROM vnt WHERE id =', \$id);
-    return tuwf->resNotFound if !$v->{id} || $v->{hidden};
+    my $v = dbobj tuwf->capture('id');
+    return tuwf->resNotFound if !$v->{id} || $v->{entry_hidden};
 
     my $opt = tuwf->validate(get =>
         p => { page => 1 },

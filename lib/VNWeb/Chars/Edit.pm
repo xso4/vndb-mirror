@@ -74,7 +74,7 @@ TUWF::get qr{/$RE{crev}/(?<action>edit|copy)} => sub {
     enrich_merge tid => 'SELECT t.id AS tid, t.name, t.hidden, t.locked, t.applicable, g.name AS group, g.order AS order, false AS new FROM traits t LEFT JOIN traits g ON g.id = t.group WHERE t.id IN', $e->{traits};
     $e->{traits} = [ sort { ($a->{order}//99) <=> ($b->{order}//99) || $a->{name} cmp $b->{name} } grep !$copy || $_->{applicable}, $e->{traits}->@* ];
 
-    enrich_merge vid => 'SELECT id AS vid, title FROM vnt WHERE id IN', $e->{vns};
+    enrich_merge vid => sql('SELECT id AS vid, title FROM', vnt, 'v WHERE id IN'), $e->{vns};
     $e->{vns} = [ sort { $a->{title} cmp $b->{title} || idcmp($a->{vid}, $b->{vid}) || idcmp($a->{rid}||'r0', $b->{rid}||'r0') } $e->{vns}->@* ];
 
     my %vns;
@@ -101,7 +101,7 @@ TUWF::get qr{/$RE{crev}/(?<action>edit|copy)} => sub {
 
 TUWF::get qr{/$RE{vid}/addchar}, sub {
     return tuwf->resDenied if !can_edit c => undef;
-    my $v = tuwf->dbRowi('SELECT id, title FROM vnt WHERE NOT hidden AND id =', \tuwf->capture('id'));
+    my $v = tuwf->dbRowi('SELECT id, title FROM', vnt, 'v WHERE NOT hidden AND id =', \tuwf->capture('id'));
     return tuwf->resNotFound if !$v->{id};
 
     my $e = elm_empty($FORM_OUT);

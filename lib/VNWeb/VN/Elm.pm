@@ -14,11 +14,11 @@ elm_api VN => undef, {
         'SELECT v.id, v.title, v.alttitle, v.hidden
            FROM (',
             sql_join('UNION ALL', map +(
-                /^$RE{vid}$/ ? sql('SELECT 1, id FROM vnt WHERE id =', \"$+{id}") : (),
+                /^$RE{vid}$/ ? sql('SELECT 1, id FROM vn WHERE id =', \"$+{id}") : (),
                 sql('SELECT 1+substr_score(lower(title),', \sql_like($_), '), id FROM vnt WHERE c_search LIKE ALL (search_query(', \"$_", '))'),
             ), @q),
             ') x(prio, id)
-           JOIN vnt v ON v.id = x.id
+           JOIN', vnt, 'v ON v.id = x.id
           WHERE', sql_and($data->{hidden} ? () : 'NOT v.hidden'), '
           GROUP BY v.id, v.title, v.alttitle, v.hidden
           ORDER BY MIN(x.prio), v.title

@@ -76,7 +76,7 @@ TUWF::get qr{/g/links}, sub {
         SELECT tv.vid, tv.uid, tv.tag, tv.vote, tv.spoiler, tv.lie,', sql_totime('tv.date'), 'as date
              , tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) AS ignore, tv.notes, v.title, v.alttitle, ', sql_user(), ', t.name
           FROM tags_vn tv
-          JOIN vnt v ON v.id = tv.vid
+          JOIN', vnt, 'v ON v.id = tv.vid
           LEFT JOIN users u ON u.id = tv.uid
           JOIN tags t ON t.id = tv.tag
          WHERE', $where, '
@@ -105,7 +105,7 @@ TUWF::get qr{/g/links}, sub {
                     li_ sub {
                         txt_ '['; a_ href => url(v=>undef, p=>undef), 'remove'; txt_ '] ';
                         txt_ 'Visual novel'; txt_ ' ';
-                        my $v = tuwf->dbRowi('SELECT title, alttitle FROM vnt WHERE id=', \$opt->{v});
+                        my $v = tuwf->dbRowi('SELECT title, alttitle FROM', vnt, 'v WHERE id=', \$opt->{v});
                         a_ href => "/$opt->{v}", title => $v->{alttitle}||$v->{title}, $v->{title}||'Unknown VN';
                     } if defined $opt->{v};
                 }

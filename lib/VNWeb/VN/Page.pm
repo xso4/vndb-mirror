@@ -13,8 +13,8 @@ use VNDB::Func 'fmtrating';
 sub enrich_vn {
     my($v, $revonly) = @_;
     @{$v}{'title', 'alttitle'} = titleprefs_obj $v->{olang}, $v->{titles};
-    enrich_merge id => sql('SELECT id, c_votecount, c_length, c_lengthnum FROM vnt WHERE id IN'), $v;
-    enrich_merge vid => 'SELECT id AS vid, title, alttitle, c_released FROM vnt WHERE id IN', $v->{relations};
+    enrich_merge id => 'SELECT id, c_votecount, c_length, c_lengthnum FROM vn WHERE id IN', $v;
+    enrich_merge vid => sql('SELECT id AS vid, title, alttitle, c_released FROM', vnt, 'v WHERE id IN'), $v->{relations};
     enrich_merge aid => 'SELECT id AS aid, title_romaji, title_kanji, year, type, ann_id, lastfetch FROM anime WHERE id IN', $v->{anime};
     enrich_extlinks v => 0, $v;
     enrich_image_obj image => $v;

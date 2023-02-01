@@ -26,7 +26,7 @@ sub enrich_boards {
               , COALESCE(v.title, p.name, u.username) AS title
               , COALESCE(v.alttitle, p.original) AS alttitle
           FROM threads_boards tb
-          LEFT JOIN vnt v ON tb.type = \'v\' AND v.id = tb.iid
+          LEFT JOIN', vnt, 'v ON tb.type = \'v\' AND v.id = tb.iid
           LEFT JOIN producers p ON tb.type = \'p\' AND p.id = tb.iid
           LEFT JOIN users u ON tb.type = \'u\' AND u.id = tb.iid
          WHERE ', sql_and(sql('tb.tid IN', $_[0]), $filt||()), '
