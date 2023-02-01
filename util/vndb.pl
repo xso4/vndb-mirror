@@ -34,7 +34,7 @@ use VNDB::Config;
 use VNWeb::Auth;
 use VNWeb::HTML ();
 use VNWeb::Validation ();
-use VNWeb::LangPref ();
+use VNWeb::TitlePrefs ();
 use VNWeb::TimeZone ();
 
 $ENV{TZ} = 'UTC';

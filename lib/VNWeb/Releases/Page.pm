@@ -2,7 +2,7 @@ package VNWeb::Releases::Page;
 
 use VNWeb::Prelude;
 use VNWeb::Releases::Lib;
-use VNWeb::LangPref 'langpref_titles';
+use VNWeb::TitlePrefs 'titleprefs_obj';
 
 
 sub enrich_item {
@@ -270,7 +270,7 @@ TUWF::get qr{/$RE{rrev}} => sub {
     my $r = db_entry tuwf->captures('id','rev');
     return tuwf->resNotFound if !$r;
 
-    @{$r}{'title', 'alttitle'} = langpref_titles $r->{olang}, $r->{titles};
+    @{$r}{'title', 'alttitle'} = titleprefs_obj $r->{olang}, $r->{titles};
     enrich_item $r;
     enrich_extlinks r => 0, $r;
 

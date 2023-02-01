@@ -1,7 +1,7 @@
 package VNWeb::Releases::Lib;
 
 use VNWeb::Prelude;
-use VNWeb::LangPref 'langpref_titles';
+use VNWeb::TitlePrefs 'titleprefs_obj';
 use Exporter 'import';
 
 our @EXPORT = qw/enrich_release_elm releases_by_vn enrich_release sort_releases release_row_/;
@@ -158,8 +158,8 @@ sub release_row_ {
         };
         td_ class => 'tc4', sub {
             my($title, $alttitle) =
-                $lang && defined $lang->{title} ? langpref_titles $lang->{lang}, [$lang] :
-                                          $lang ? langpref_titles $r->{olang}, [grep $_->{lang} eq $r->{olang}, $r->{titles}->@*]
+                $lang && defined $lang->{title} ? titleprefs_obj $lang->{lang}, [$lang] :
+                                          $lang ? titleprefs_obj $r->{olang}, [grep $_->{lang} eq $r->{olang}, $r->{titles}->@*]
                                                 : @{$r}{'title', 'alttitle'};
             a_ href => "/$r->{id}", title => $alttitle||$title, $title;
             my $note = join ' ', $r->{official} ? () : 'unofficial', $mtl ? 'machine translation' : (), $r->{patch} ? 'patch' : ();

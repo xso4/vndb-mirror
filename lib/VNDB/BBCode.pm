@@ -301,7 +301,7 @@ sub bb_subst_links {
   return $msg unless %lookup;
 
   my $first = 0;
-  my %links = map +($_->{id}, $_->{title}), VNWeb::LangPref::run_with_defaults(sub { $TUWF::OBJ->dbAlli(
+  my %links = map +($_->{id}, $_->{title}), VNWeb::TitlePrefs::run_with_defaults(sub { $TUWF::OBJ->dbAlli(
     'SELECT id, title FROM (VALUES', (map +($first++ ? ',(' : '(', \"$_", '::vndbid)'), sort keys %lookup), ') n(id), item_info(n.id, NULL::int)'
   )})->@*;
   return $msg unless %links;

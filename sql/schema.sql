@@ -96,6 +96,42 @@ CREATE TYPE ipinfo AS (
     drop               boolean
 );
 
+CREATE TYPE titleprefs AS (
+    -- NULL langs means unused slot
+    t1_lang     language,
+    t2_lang     language,
+    t3_lang     language,
+    t4_lang     language,
+    a1_lang     language,
+    a2_lang     language,
+    a3_lang     language,
+    a4_lang     language,
+    -- These should never be NULL
+    t1_latin    boolean,
+    t2_latin    boolean,
+    t3_latin    boolean,
+    t4_latin    boolean,
+    to_latin    boolean, -- Original language fallback
+    a1_latin    boolean,
+    a2_latin    boolean,
+    a3_latin    boolean,
+    a4_latin    boolean,
+    ao_latin    boolean,
+    -- These have three possible options:
+    -- * NULL:  Only if lang == original, i.e. skip this slot if it's not the original language
+    -- * true:  Only if official
+    -- * false: Use this language regardless of official/original status
+    t1_official boolean,
+    t2_official boolean,
+    t3_official boolean,
+    t4_official boolean,
+    a1_official boolean,
+    a2_official boolean,
+    a3_official boolean,
+    a4_official boolean
+);
+
+
 -- Animation types & frequency encoded as bitflags in a smallint.
 -- Bitflags suck balls, but the alternatives suck too.
 -- Special values:
@@ -1134,10 +1170,11 @@ CREATE TABLE users_prefs (
   ulist_vnlist        jsonb,
   ulist_wish          jsonb,
   vnlang              jsonb, -- Deprecated, replaced by vnrel_x. '$lang(-mtl)?' => true/false, which languages to expand/collapse on VN pages
-  title_langs         jsonb,
-  alttitle_langs      jsonb,
+  title_langs         jsonb, -- Deprecated, replaced by 'titles'
+  alttitle_langs      jsonb, -- Deprecated, replaced by 'titles'
   vnrel_langs         language[], -- NULL meaning "show all languages"
-  staffed_langs       language[]
+  staffed_langs       language[],
+  titles              titleprefs
 );
 
 -- users_prefs_tags

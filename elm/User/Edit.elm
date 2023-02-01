@@ -109,12 +109,12 @@ type AdminMsg
   | PermNone
   | PermDefault
 
-type LangPrefMsg
-  = LangAdd
-  | LangDel Int
-  | LangSet Int String
-  | LangType Int (Bool,Bool)
-  | LangLatin Int Bool
+type TitlePrefMsg
+  = TitleAdd
+  | TitleDel Int
+  | TitleSet Int String
+  | TitleOfficial Int (Maybe Bool)
+  | TitleLatin Int Bool
 
 type PrefMsg
   = EMail String
@@ -141,8 +141,8 @@ type PrefMsg
   | Support Bool
   | PubSkin Bool
   | Uniname String
-  | TitleLang LangPrefMsg
-  | AltTitleLang LangPrefMsg
+  | Titles TitlePrefMsg
+  | AltTitles TitlePrefMsg
   | TraitDel Int
   | TagPSpoil Int Int
   | TagPChilds Int Bool
@@ -233,18 +233,18 @@ updateAdmin msg model =
       , ign_votes     = model.ign_votes
       }
 
-updateLangPrefs : LangPrefMsg -> List GUE.SendPrefsTitle_Langs -> List GUE.SendPrefsTitle_Langs
-updateLangPrefs msg model =
+updateTitlePrefs : TitlePrefMsg -> List GUE.SendPrefsTitles -> List GUE.SendPrefsTitles
+updateTitlePrefs msg model =
   case msg of
-    LangAdd ->
-      let new = { lang = Just "en", official = True, original = False, latin = False }
+    TitleAdd ->
+      let new = { lang = Just "en", official = Just True, latin = False }
       in if List.any (\e -> e.lang == Nothing) model
          then List.foldl (\e l -> if e.lang == Nothing && not (List.any (\x -> x.lang == Nothing) l) then l ++ [new, e] else l ++ [e]) [] model
          else model ++ [new]
-    LangDel n -> delidx n model
-    LangSet n s -> modidx n (\e -> { e | lang = if s == "" then Nothing else Just s }) model
-    LangType n (f,r) -> modidx n (\e -> { e | official = f, original = r }) model
-    LangLatin n b -> modidx n (\e -> { e | latin = b }) model
+    TitleDel n -> delidx n model
+    TitleSet n s -> modidx n (\e -> { e | lang = if s == "" then Nothing else Just s }) model
+    TitleOfficial n f -> modidx n (\e -> { e | official = f }) model
+    TitleLatin n b -> modidx n (\e -> { e | latin = b }) model
 
 updatePrefs : PrefMsg -> GUE.SendPrefs -> GUE.SendPrefs
 updatePrefs msg model =
@@ -273,8 +273,8 @@ updatePrefs msg model =
     Support b  -> { model | support_enabled = b }
     PubSkin b  -> { model | pubskin_enabled = b }
     Uniname n  -> { model | uniname = n }
-    TitleLang m   -> { model | title_langs    = updateLangPrefs m model.title_langs }
-    AltTitleLang m-> { model | alttitle_langs = updateLangPrefs m model.alttitle_langs }
+    Titles m   -> { model | titles    = updateTitlePrefs m model.titles }
+    AltTitles m-> { model | alttitles = updateTitlePrefs m model.alttitles }
     TraitDel idx  -> { model | traits = delidx idx model.traits }
     TagPSpoil i s -> { model | tagprefs = modidx i (\e -> { e | spoil = s }) model.tagprefs }
     TagPChilds i b-> { model | tagprefs = modidx i (\e -> { e | childs = b }) model.tagprefs }
@@ -464,21 +464,21 @@ view model =
         ]
       ]
 
-    langprefsform m alt = table [] <|
+    titleprefsform m = table [] <|
         tfoot [] [ tr [] [ td [ colspan 5 ]
           [ if List.length m < 5
-            then inputButton "Add language" LangAdd []
+            then inputButton "Add language" TitleAdd []
             else text ""
           ]
         ] ] :: List.indexedMap (\n e -> tr []
         [ td [] [ text ("#" ++ String.fromInt (n+1)) ]
-        , td [] [ if not alt && e.lang == Nothing
+        , td [] [ if e.lang == Nothing
                   then text "Original language"
-                  else inputSelect "" (Maybe.withDefault "" e.lang) (LangSet n) [style "width" "200px"] ((if alt then [("", "Original language")] else []) ++ GT.languages) ]
-        , td [] [ if Set.member (Maybe.withDefault "" e.lang) romanizedLangs then label [] [ inputCheck "" e.latin (LangLatin n), text " romanized" ] else text "" ]
-        , td [] [ if e.lang == Nothing then text "" else inputSelect "" (e.official, e.original) (LangType n) []
-                  [ ((True,True), "Only if original title"), ((True,False), "Only if official title"), ((False,False), "Include non-official titles") ] ]
-        , td [] [ if not alt && e.lang == Nothing then text "" else inputButton "remove" (LangDel n) [] ]
+                  else inputSelect "" (Maybe.withDefault "" e.lang) (TitleSet n) [style "width" "200px"] GT.languages ]
+        , td [] [ if Set.member (Maybe.withDefault "" e.lang) romanizedLangs then label [] [ inputCheck "" e.latin (TitleLatin n), text " romanized" ] else text "" ]
+        , td [] [ if e.lang == Nothing then text "" else inputSelect "" e.official (TitleOfficial n) []
+                  [ (Nothing, "Only if original title"), (Just True, "Only if official title"), (Just False, "Include non-official titles") ] ]
+        , td [] [ if e.lang == Nothing then text "" else inputButton "remove" (TitleDel n) [] ]
         ]
       ) m
 
@@ -525,11 +525,11 @@ view model =
         [ inputSelect "prodrel" m.prodrelexpand (Prefs << ProdRel) [] [ (False, "Visual Novels"), (True, "Releases") ] ]
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Language" ] ]
       , formField "Titles" <|
-        [ Html.map (Prefs << TitleLang) (langprefsform m.title_langs False) ]
+        [ Html.map (Prefs << Titles) (titleprefsform m.titles) ]
       , formField "Alternative titles" <|
         [ text "The alternative title is displayed below the main title and as tooltip for links."
         , br [] []
-        , Html.map (Prefs << AltTitleLang) (langprefsform m.alttitle_langs True)
+        , Html.map (Prefs << AltTitles) (titleprefsform m.alttitles)
         , br [] []
         ]
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Visual novel pages" ] ]

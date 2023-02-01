@@ -4,7 +4,7 @@ use VNWeb::Prelude;
 use VNWeb::Releases::Lib;
 use VNWeb::Images::Lib qw/image_flagging_display image_ enrich_image_obj/;
 use VNWeb::ULists::Lib 'ulists_widget_full_data';
-use VNWeb::LangPref 'langpref_titles';
+use VNWeb::TitlePrefs 'titleprefs_obj';
 use VNDB::Func 'fmtrating';
 
 
@@ -12,7 +12,7 @@ use VNDB::Func 'fmtrating';
 # Also used by Chars::VNTab & Reviews::VNTab
 sub enrich_vn {
     my($v, $revonly) = @_;
-    @{$v}{'title', 'alttitle'} = langpref_titles $v->{olang}, $v->{titles};
+    @{$v}{'title', 'alttitle'} = titleprefs_obj $v->{olang}, $v->{titles};
     enrich_merge id => sql('SELECT id, c_votecount, c_length, c_lengthnum FROM vnt WHERE id IN'), $v;
     enrich_merge vid => 'SELECT id AS vid, title, alttitle, c_released FROM vnt WHERE id IN', $v->{relations};
     enrich_merge aid => 'SELECT id AS aid, title_romaji, title_kanji, year, type, ann_id, lastfetch FROM anime WHERE id IN', $v->{anime};

@@ -2,7 +2,7 @@ package VNWeb::User::Edit;
 
 use VNWeb::Prelude;
 use VNDB::Skins;
-use VNWeb::LangPref;
+use VNWeb::TitlePrefs;
 use VNWeb::TimeZone;
 
 use Digest::SHA 'sha1';
@@ -61,8 +61,8 @@ my $FORM = {
             group   => { required => 0 },
         } },
 
-        title_langs     => { langpref => 1 },
-        alttitle_langs  => { langpref => 1 },
+        titles          => { titleprefs => 1 },
+        alttitles       => { titleprefs => 1 },
 
         tagprefs        => { sort_keys => 'tid', maxlength => 500, aoh => {
             tid     => { vndbid => 'g' },
@@ -126,7 +126,7 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
         tuwf->dbRowi(
             'SELECT max_sexual, max_violence, traits_sexual, tags_all, tags_cont, tags_ero, tags_tech, prodrelexpand
                   , vnrel_langs::text[], vnrel_olang, vnrel_mtl, staffed_langs::text[], staffed_olang, staffed_unoff
-                  , spoilers, skin, customcss, timezone, title_langs, alttitle_langs
+                  , spoilers, skin, customcss, timezone, titles
                   , nodistract_noads, nodistract_nofancy, support_enabled, uniname, pubskin_enabled
                FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \$u->{id}
         ) : undef;
@@ -136,8 +136,7 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
         $u->{prefs}{skin} ||= config->{skin_default};
         $u->{prefs}{vnrel_langs} ||= [ keys %LANGUAGE ];
         $u->{prefs}{staffed_langs} ||= [ keys %LANGUAGE ];
-        $u->{prefs}{title_langs}    = langpref_parse($u->{prefs}{title_langs})    // $DEFAULT_TITLE_LANGS;
-        $u->{prefs}{alttitle_langs} = langpref_parse($u->{prefs}{alttitle_langs}) // $DEFAULT_ALTTITLE_LANGS;
+        @{$u->{prefs}}{'titles','alttitles'} = @{ titleprefs_parse($u->{prefs}{titles}) // $DEFAULT_TITLE_PREFS };
         $u->{prefs}{traits} = tuwf->dbAlli('SELECT u.tid, t.name, g.name AS "group" FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.group WHERE u.id =', \$u->{id}, 'ORDER BY g.order, t.name');
         $u->{prefs}{tagprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.childs, t.name FROM users_prefs_tags u JOIN tags t ON t.id = u.tid WHERE u.id =', \$u->{id}, 'ORDER BY t.name');
         $u->{prefs}{traitprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.childs, t.name, g.name as "group" FROM users_prefs_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.group WHERE u.id =', \$u->{id}, 'ORDER BY g.order, t.name');
@@ -179,17 +178,15 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
         return elm_Taken if $p->{uniname} && tuwf->dbVali('SELECT 1 FROM users WHERE id <>', \$data->{id}, 'AND username =', \lc($p->{uniname}));
 
         $p->{timezone}       = '' if $p->{timezone} eq 'UTC';
-        $p->{title_langs}    = langpref_fmt $p->{title_langs};
-        $p->{alttitle_langs} = langpref_fmt $p->{alttitle_langs};
-        $p->{title_langs}    = undef if $p->{title_langs}    && ($p->{title_langs}   eq langpref_fmt($DEFAULT_TITLE_LANGS) || $p->{title_langs} eq '[]');
-        $p->{alttitle_langs} = undef if $p->{alttitle_langs} && $p->{alttitle_langs} eq langpref_fmt $DEFAULT_ALTTITLE_LANGS;
+        $p->{titles}         = titleprefs_fmt [ delete $p->{titles}, delete $p->{alttitles} ];
+        $p->{titles}         = undef if $p->{titles} eq titleprefs_fmt $DEFAULT_TITLE_PREFS;
         $p->{vnrel_langs}    = $p->{vnrel_langs}->@* == keys %LANGUAGE ? undef : '{'.join(',',$p->{vnrel_langs}->@*).'}';
         $p->{staffed_langs}  = $p->{staffed_langs}->@* == keys %LANGUAGE ? undef : '{'.join(',',$p->{staffed_langs}->@*).'}';
         $set{$_} = $p->{$_} for qw/nodistract_noads nodistract_nofancy support_enabled uniname pubskin_enabled/;
         $setp{$_} = $p->{$_} for qw/
             max_sexual max_violence traits_sexual tags_all tags_cont tags_ero tags_tech prodrelexpand
             vnrel_langs vnrel_olang vnrel_mtl staffed_langs staffed_olang staffed_unoff
-            spoilers skin customcss timezone title_langs alttitle_langs
+            spoilers skin customcss timezone titles
         /;
         $setp{customcss_csum} = length $p->{customcss} ? unpack 'q', sha1 do { utf8::encode(local $_=$p->{customcss}); $_ } : 0;
         tuwf->dbExeci('DELETE FROM users_traits WHERE id =', \$data->{id});
