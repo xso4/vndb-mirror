@@ -28,6 +28,7 @@ use Digest::SHA qw|sha1 sha1_hex|;
 use Crypt::URandom 'urandom';
 use Crypt::ScryptKDF 'scrypt_raw';
 use MIME::Base64 'encode_base64url';
+use POSIX 'strftime';
 
 use VNDB::Func 'norm_ip';
 use VNDB::Config;
@@ -62,7 +63,7 @@ sub auth {
 # have a lot of influence in this)
 TUWF::set log_format => sub {
     my(undef, $uri, $msg) = @_;
-    sprintf "[%s] %s %s: %s\n", scalar localtime(), $uri, tuwf->req && tuwf->req->{auth} ? auth->uid : '-', $msg;
+    sprintf "[%s UTC] %s %s: %s\n", strftime('%Y-%m-%d %H:%M:%S', gmtime), $uri, tuwf->req && tuwf->req->{auth} ? auth->uid : '-', $msg;
 };
 
 
