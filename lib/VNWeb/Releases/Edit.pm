@@ -1,7 +1,6 @@
 package VNWeb::Releases::Edit;
 
 use VNWeb::Prelude;
-use VNWeb::TitlePrefs 'titleprefs_obj';
 
 
 my $FORM = {
@@ -89,7 +88,7 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
     $e->{vntitles} = $e->{vn}->@* == 1 ? tuwf->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$e->{vn}[0]{vid}) : [];
 
     enrich_merge vid => sql('SELECT id AS vid, title FROM', vnt, 'v WHERE id IN'), $e->{vn};
-    enrich_merge pid => 'SELECT id AS pid, name FROM producers WHERE id IN', $e->{producers};
+    enrich_merge pid => sql('SELECT id AS pid, name FROM', producerst, 'p WHERE id IN'), $e->{producers};
 
     $e->@{qw/gtin catalog extlinks/} = elm_empty($FORM_OUT)->@{qw/gtin catalog extlinks/} if $copy;
 

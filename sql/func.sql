@@ -152,6 +152,28 @@ $$ LANGUAGE SQL STABLE;
 
 
 
+-- This one just flips the name/original columns around depending on
+-- preferences, so is fast enough to use directly.
+CREATE OR REPLACE FUNCTION producerst(p titleprefs) RETURNS SETOF producerst AS $$
+  SELECT id, type, lang, l_wikidata, locked, hidden, alias, website, "desc", l_wp, c_search
+       , CASE WHEN (
+            CASE WHEN p.t1_lang = lang THEN p.t1_latin
+                 WHEN p.t2_lang = lang THEN p.t2_latin
+                 WHEN p.t3_lang = lang THEN p.t3_latin
+                 WHEN p.t4_lang = lang THEN p.t4_latin ELSE p.to_latin END
+          ) THEN name ELSE COALESCE(original, name) END AS name
+       , CASE WHEN (
+            CASE WHEN p.a1_lang = lang THEN p.a1_latin
+                 WHEN p.a2_lang = lang THEN p.a2_latin
+                 WHEN p.a3_lang = lang THEN p.a3_latin
+                 WHEN p.a4_lang = lang THEN p.a4_latin ELSE p.ao_latin END
+          ) THEN name ELSE COALESCE(original, name) END AS altname
+       , name AS sortname
+    FROM producers
+$$ LANGUAGE SQL STABLE;
+
+
+
 -- update_vncache(id) - updates some c_* columns in the vn table
 CREATE OR REPLACE FUNCTION update_vncache(vndbid) RETURNS void AS $$
   UPDATE vn SET
@@ -538,7 +560,7 @@ BEGIN
   IF $3 IS NULL THEN CASE vndbid_type($2)
     WHEN 'v' THEN SELECT v.title   ::text, v.alttitle::text,  NULL::vndbid,  v.hidden, v.locked INTO ret FROM vnt($1) v       WHERE v.id = $2;
     WHEN 'r' THEN SELECT r.title   ::text, r.alttitle::text,  NULL::vndbid,  r.hidden, r.locked INTO ret FROM releasest($1) r WHERE r.id = $2;
-    WHEN 'p' THEN SELECT p.name    ::text, p.original::text,  NULL::vndbid,  p.hidden, p.locked INTO ret FROM producers p     WHERE p.id = $2;
+    WHEN 'p' THEN SELECT p.name    ::text, p.altname::text,   NULL::vndbid,  p.hidden, p.locked INTO ret FROM producerst($1) p WHERE p.id = $2;
     WHEN 'c' THEN SELECT c.name    ::text, c.original::text,  NULL::vndbid,  c.hidden, c.locked INTO ret FROM chars c         WHERE c.id = $2;
     WHEN 'd' THEN SELECT d.title   ::text, NULL,              NULL::vndbid,  d.hidden, d.locked INTO ret FROM docs d          WHERE d.id = $2;
     WHEN 'g' THEN SELECT g.name    ::text, NULL,              NULL::vndbid,  g.hidden, g.locked INTO ret FROM tags g          WHERE g.id = $2;

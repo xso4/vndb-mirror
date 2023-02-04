@@ -30,7 +30,7 @@ type alias Model =
   , editsum     : Editsum.Model
   , ptype       : String
   , name        : String
-  , original    : String
+  , original    : Maybe String
   , alias       : String
   , lang        : String
   , website     : String
@@ -109,7 +109,7 @@ update msg model =
     Editsum m  -> let (nm,nc) = Editsum.update m model.editsum in ({ model | editsum = nm }, Cmd.map Editsum nc)
     PType s    -> ({ model | ptype    = s }, Cmd.none)
     Name s     -> ({ model | name     = s, dupProds = [] }, Cmd.none)
-    Original s -> ({ model | original = s, dupProds = [] }, Cmd.none)
+    Original s -> ({ model | original = if s == "" then Nothing else Just s, dupProds = [] }, Cmd.none)
     Alias s    -> ({ model | alias    = s, dupProds = [] }, Cmd.none)
     Lang s     -> ({ model | lang     = s }, Cmd.none)
     Website s  -> ({ model | website  = s }, Cmd.none)
@@ -125,11 +125,11 @@ update msg model =
         Just p ->
           if List.any (\l -> l.pid == p.id) model.rel
           then ({ model | relSearch = A.clear nm "" }, c)
-          else ({ model | relSearch = A.clear nm "", rel = model.rel ++ [{ pid = p.id, name = p.name, original = p.original, relation = "old" }] }, c)
+          else ({ model | relSearch = A.clear nm "", rel = model.rel ++ [{ pid = p.id, name = p.name, altname = p.altname, relation = "old" }] }, c)
 
     DupSubmit ->
       if List.isEmpty model.dupProds
-      then ({ model | state = Api.Loading }, GP.send { hidden = True, search = model.name :: model.original :: String.lines model.alias } DupResults)
+      then ({ model | state = Api.Loading }, GP.send { hidden = True, search = model.name :: Maybe.withDefault "" model.original :: String.lines model.alias } DupResults)
       else ({ model | dupCheck = True, dupProds = [] }, Cmd.none)
     DupResults (GApi.ProducerResult prods) ->
       if List.isEmpty prods
@@ -144,7 +144,7 @@ update msg model =
 
 isValid : Model -> Bool
 isValid model = not
-  (  (model.name /= "" && model.name == model.original)
+  (  (model.name /= "" && Just model.name == model.original)
   || hasDuplicates (List.map (\p -> p.pid) model.rel)
   )
 
@@ -155,10 +155,10 @@ view model =
     titles =
       [ formField "name::Name (romaji)" [ inputText "name" model.name Name (style "width" "500px" :: GPE.valName) ]
       , formField "original::Original name"
-        [ inputText "original" model.original Original (style "width" "500px" :: GPE.valOriginal)
-        , if model.name /= "" && model.name == model.original
+        [ inputText "original" (Maybe.withDefault "" model.original) Original (style "width" "500px" :: GPE.valOriginal)
+        , if model.name /= "" && Just model.name == model.original
           then b [ class "standout" ] [ br [] [], text "Should not be the same as the Name (romaji). Leave blank if the original name is already in the latin alphabet" ]
-          else if model.original /= "" && String.toLower model.name /= String.toLower model.original && not (containsNonLatin model.original)
+          else if model.original /= Nothing && String.toLower model.name /= String.toLower (Maybe.withDefault "" model.original) && not (containsNonLatin (Maybe.withDefault "" model.original))
           then b [ class "standout" ] [ br [] [], text "Original name does not seem to contain any non-latin characters. Leave this field empty if the name is already in the latin alphabet" ]
           else text ""
         ]

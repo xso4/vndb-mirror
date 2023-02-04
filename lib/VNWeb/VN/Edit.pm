@@ -3,7 +3,6 @@ package VNWeb::VN::Edit;
 use VNWeb::Prelude;
 use VNWeb::Images::Lib 'enrich_image';
 use VNWeb::Releases::Lib;
-use VNWeb::TitlePrefs 'titleprefs_obj';
 
 
 my $FORM = {

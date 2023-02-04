@@ -2,7 +2,7 @@ package VNWeb::User::Edit;
 
 use VNWeb::Prelude;
 use VNDB::Skins;
-use VNWeb::TitlePrefs;
+use VNWeb::TitlePrefs '/./';
 use VNWeb::TimeZone;
 
 use Digest::SHA 'sha1';

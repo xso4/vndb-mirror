@@ -7,7 +7,7 @@ my $FORM = {
     id         => { required => 0, vndbid => 'p' },
     ptype      => { default => 'co', enum => \%PRODUCER_TYPE },
     name       => { maxlength => 200 },
-    original   => { required => 0, default => '', maxlength => 200 },
+    original   => { required => 0, maxlength => 200 },
     alias      => { required => 0, default => '', maxlength => 500 },
     lang       => { default => 'ja', enum => \%LANGUAGE },
     website    => { required => 0, default => '', weburl => 1 },
@@ -17,7 +17,7 @@ my $FORM = {
         pid      => { vndbid => 'p' },
         relation => { enum => \%PRODUCER_RELATION },
         name     => { _when => 'out' },
-        original => { _when => 'out', required => 0, default => '' },
+        altname  => { _when => 'out', required => 0 },
     } },
     hidden     => { anybool => 1 },
     locked     => { anybool => 1 },
@@ -39,11 +39,12 @@ TUWF::get qr{/$RE{prev}/edit} => sub {
     $e->{editsum} = $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
     $e->{ptype} = delete $e->{type};
 
-    enrich_merge pid => 'SELECT id AS pid, name, original FROM producers WHERE id IN', $e->{relations};
+    enrich_merge pid => sql('SELECT id AS pid, name, altname FROM', producerst, 'p WHERE id IN'), $e->{relations};
 
-    framework_ title => "Edit $e->{name}", dbobj => $e, tab => 'edit',
+    my($name) = titleprefs_swap @{$e}{qw/ lang name original /};
+    framework_ title => "Edit $name", dbobj => $e, tab => 'edit',
     sub {
-        editmsg_ p => $e, "Edit $e->{name}";
+        editmsg_ p => $e, "Edit $name";
         elm_ ProducerEdit => $FORM_OUT, $e;
     };
 };

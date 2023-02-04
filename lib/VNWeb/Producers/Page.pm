@@ -8,7 +8,7 @@ use VNWeb::ULists::Lib;
 sub enrich_item {
     my($p) = @_;
     enrich_extlinks p => 0, $p;
-    enrich_merge pid => 'SELECT id AS pid, name, original FROM producers WHERE id IN', $p->{relations};
+    enrich_merge pid => sql('SELECT id AS pid, name, altname FROM', producerst, 'p WHERE id IN'), $p->{relations};
     $p->{relations} = [ sort { $a->{name} cmp $b->{name} || idcmp($a->{pid}, $b->{pid}) } $p->{relations}->@* ];
 }
 
@@ -24,7 +24,7 @@ sub rev_ {
         [ lang       => 'Language',      fmt => \%LANGUAGE ],
         [ relations  => 'Relations',     fmt => sub {
             txt_ $PRODUCER_RELATION{$_->{relation}}{txt}.': ';
-            a_ href => "/$_->{pid}", title => $_->{original}||$_->{name}, $_->{name};
+            a_ href => "/$_->{pid}", title => $_->{altname}, $_->{name};
         } ],
         revision_extlinks 'p'
 }
@@ -32,8 +32,6 @@ sub rev_ {
 
 sub info_ {
     my($p) = @_;
-    h1_ $p->{name};
-    h2_ class => 'alttitle', lang => $p->{lang}, $p->{original} if length $p->{original};
 
     p_ class => 'center', sub {
         txt_ $PRODUCER_TYPE{$p->{type}};
@@ -55,7 +53,7 @@ sub info_ {
         join_ \&br_, sub {
             txt_ $PRODUCER_RELATION{$_}{txt}.': ';
             join_ ', ', sub {
-                a_ href => "/$_->{pid}", title => $_->{original}||$_->{name}, $_->{name};
+                a_ href => "/$_->{pid}", title => $_->{altname}, $_->{name};
             }, $rel{$_}->@*;
         }, grep $rel{$_}, keys %PRODUCER_RELATION;
     } if $p->{relations}->@*;
@@ -159,15 +157,18 @@ TUWF::get qr{/$RE{prev}(?:/(?<tab>vn|rel))?}, sub {
         || (auth && (tuwf->dbVali('SELECT prodrelexpand FROM users_prefs WHERE id=', \auth->uid) ? 'rel' : 'vn'))
         || 'rel';
 
-    framework_ title => $p->{name}, index => !tuwf->capture('rev'), dbobj => $p, hiddenmsg => 1,
+    my($name, $altname) = titleprefs_swap @{$p}{qw/ lang name original /};
+    framework_ title => $name, index => !tuwf->capture('rev'), dbobj => $p, hiddenmsg => 1,
     og => {
-        title       => $p->{name},
+        title       => $name,
         description => bb_format($p->{desc}, text => 1),
     },
     sub {
         rev_ $p if tuwf->capture('rev');
         div_ class => 'mainbox', sub {
             itemmsg_ $p;
+            h1_ $name;
+            h2_ class => 'alttitle', lang => $p->{lang}, $altname if length $altname && $name ne $altname;
             info_ $p;
         };
         div_ class => 'maintabs right', sub {

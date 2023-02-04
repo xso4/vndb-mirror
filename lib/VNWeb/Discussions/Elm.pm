@@ -32,7 +32,7 @@ elm_api Boards => undef, {
                      grep !$BOARD_TYPE{$_}{dbitem} && ($BOARD_TYPE{$_}{post_perm} eq 'board' || auth->permBoardmod),
                      keys %BOARD_TYPE),
                  item(vnt, 'v', 'title', 'NOT hidden', sql 'c_search LIKE ALL (search_query(', \$q, '))'),
-                 item('producers', 'p', 'name', 'NOT hidden', sql 'c_search LIKE ALL (search_query(', \$q, '))'),
+                 item(producerst, 'p', 'name', 'NOT hidden', sql 'c_search LIKE ALL (search_query(', \$q, '))'),
                  item('users', 'u', 'username', 'true', sql 'lower(username) LIKE', \lc "%$qs%"),
              ), ') x(prio, btype, iid, title)
            ORDER BY prio, btype, title'

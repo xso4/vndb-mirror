@@ -21,7 +21,7 @@
 #  use VNWeb::Validation;
 #  use VNWeb::Elm;
 #  use VNWeb::TableOpts;
-#  use VNWeb::TitlePrefs 'vnt', 'releasest', 'item_info';
+#  use VNWeb::TitlePrefs;
 #
 # + A handy dbobj() function.
 #
@@ -66,7 +66,7 @@ sub import {
     use VNWeb::Validation;
     use VNWeb::Elm;
     use VNWeb::TableOpts;
-    use VNWeb::TitlePrefs 'vnt', 'releasest', 'item_info';
+    use VNWeb::TitlePrefs;
     1;
     EOM;
 

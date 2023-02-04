@@ -395,7 +395,7 @@ CREATE TABLE producers ( -- dbentry_type=p
   locked     boolean NOT NULL DEFAULT FALSE,
   hidden     boolean NOT NULL DEFAULT FALSE,
   name       varchar(200) NOT NULL DEFAULT '', -- [pub]
-  original   varchar(200) NOT NULL DEFAULT '', -- [pub]
+  original   varchar(200), -- [pub]
   alias      varchar(500) NOT NULL DEFAULT '', -- [pub]
   website    varchar(1024) NOT NULL DEFAULT '', -- [pub]
   "desc"     text NOT NULL DEFAULT '', -- [pub]
@@ -410,7 +410,7 @@ CREATE TABLE producers_hist (
   lang       language NOT NULL DEFAULT 'ja',
   l_wikidata integer,
   name       varchar(200) NOT NULL DEFAULT '',
-  original   varchar(200) NOT NULL DEFAULT '',
+  original   varchar(200),
   alias      varchar(500) NOT NULL DEFAULT '',
   website    varchar(1024) NOT NULL DEFAULT '',
   "desc"     text NOT NULL DEFAULT '',
@@ -1483,3 +1483,9 @@ CREATE VIEW releasest AS
          , CASE WHEN ro.latin IS NULL THEN '' ELSE ro.title END AS alttitle
       FROM releases r
       JOIN releases_titles ro ON ro.id = r.id AND ro.lang = r.olang;
+
+-- And producers (name / altname / sortname)
+CREATE VIEW producerst AS
+    SELECT id, type, lang, l_wikidata, locked, hidden, alias, website, "desc", l_wp, c_search
+         , name, original AS altname, name AS sortname
+      FROM producers;

@@ -2,13 +2,12 @@ package VNWeb::Releases::Page;
 
 use VNWeb::Prelude;
 use VNWeb::Releases::Lib;
-use VNWeb::TitlePrefs 'titleprefs_obj';
 
 
 sub enrich_item {
     my($r) = @_;
 
-    enrich_merge pid => 'SELECT id AS pid, name, original FROM producers WHERE id IN', $r->{producers};
+    enrich_merge pid => sql('SELECT id AS pid, name, altname FROM', producerst, 'p WHERE id IN'), $r->{producers};
     enrich_merge vid => sql('SELECT id AS vid, title, alttitle FROM', vnt, 'v WHERE id IN'), $r->{vn};
 
     $r->{titles}    = [ sort { ($b->{lang} eq $r->{olang}) cmp ($a->{lang} eq $r->{olang}) || ($a->{mtl}?1:0) <=> ($b->{mtl}?1:0) || $a->{lang} cmp $b->{lang} } $r->{titles}->@* ];
@@ -65,7 +64,7 @@ sub _rev_ {
         [ ani_bg     => 'Background effects',  fmt => 'bool' ],
         [ engine     => 'Engine' ],
         [ producers  => 'Producers',       fmt => sub {
-            a_ href => "/$_->{pid}", title => $_->{original}||$_->{name}, $_->{name};
+            a_ href => "/$_->{pid}", title => $_->{altname}, $_->{name};
             txt_ ' (';
             txt_ join ', ', $_->{developer} ? 'developer' : (), $_->{publisher} ? 'publisher' : ();
             txt_ ')';
@@ -230,7 +229,7 @@ sub _infotable_ {
                 td_ ucfirst($t).(@prod == 1 ? '' : 's');
                 td_ sub {
                     join_ \&br_, sub {
-                        a_ href => "/$_->{pid}", title => $_->{original}||$_->{name}, $_->{name};
+                        a_ href => "/$_->{pid}", title => $_->{altname}, $_->{name};
                     }, @prod
                 }
             } if @prod;

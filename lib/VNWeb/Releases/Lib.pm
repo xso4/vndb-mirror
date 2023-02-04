@@ -1,7 +1,6 @@
 package VNWeb::Releases::Lib;
 
 use VNWeb::Prelude;
-use VNWeb::TitlePrefs 'titleprefs_obj';
 use Exporter 'import';
 
 our @EXPORT = qw/enrich_release_elm releases_by_vn enrich_release sort_releases release_row_/;

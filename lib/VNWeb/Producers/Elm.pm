@@ -11,16 +11,16 @@ elm_api Producers => undef, {
     die "No query" if !@q;
 
     elm_ProducerResult tuwf->dbPagei({ results => 15, page => 1 },
-        'SELECT p.id, p.name, p.original, p.hidden
+        'SELECT p.id, p.name, p.altname, p.hidden
            FROM (',
 			sql_join('UNION ALL', map +(
                 /^$RE{pid}$/ ? sql('SELECT 1, id FROM producers WHERE id =', \"$+{id}") : (),
                 sql('SELECT 1+substr_score(lower(name),', \sql_like($_), '), id FROM producers WHERE c_search LIKE ALL (search_query(', \"$_", '))'),
             ), @q),
             ') x(prio, id)
-           JOIN producers p ON p.id = x.id
+           JOIN', producerst, 'p ON p.id = x.id
           WHERE', sql_and($data->{hidden} ? () : 'NOT p.hidden'), '
-          GROUP BY p.id, p.name, p.original, p.hidden
+          GROUP BY p.id, p.name, p.altname, p.hidden
           ORDER BY MIN(x.prio), p.name
     ');
 };

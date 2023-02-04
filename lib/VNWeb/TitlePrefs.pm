@@ -9,11 +9,18 @@ use VNWeb::Validation;
 use Exporter 'import';
 
 our @EXPORT = qw/
+    titleprefs_obj
+    titleprefs_swap
+    vnt
+    releasest
+    producerst
+    item_info
+/;
+
+our @EXPORT_OK = qw/
     titleprefs_parse
     titleprefs_fmt
-    titleprefs_obj
     $DEFAULT_TITLE_PREFS
-    vnt releasest item_info
 /;
 
 
@@ -139,6 +146,24 @@ sub titleprefs_obj {
 }
 
 
+# Returns the preferred (name, alttitle) given a language, latin title and original title.
+# For DB entries that only have (title, original) fields.
+sub titleprefs_swap {
+    my($olang, $title, $original) = @_;
+    my $p = pref || $DEFAULT_TITLE_PREFS;
+
+    my @title = ('','');
+    for my $t (0,1) {
+        for ($p->[$t]->@*) {
+            next if $_->{lang} && $_->{lang} ne $olang;
+            $title[$t] = $_->{latin} ? $title : $original//$title;
+            last;
+        }
+    }
+    return @title;
+}
+
+
 sub gen_sql {
     my($has_official, $tbl_main, $tbl_titles, $join_col) = @_;
     my $p = pref || $DEFAULT_TITLE_PREFS;
@@ -170,8 +195,9 @@ sub gen_sql {
 }
 
 
-sub vnt()       { tuwf->req->{titleprefs_v} //= pref ? gen_sql 1, 'vn',       'vn_titles',       'id' : 'vnt'       }
-sub releasest() { tuwf->req->{titleprefs_r} //= pref ? gen_sql 0, 'releases', 'releases_titles', 'id' : 'releasest' }
+sub vnt()        { tuwf->req->{titleprefs_v} //= pref ? gen_sql 1, 'vn',       'vn_titles',       'id' : 'vnt'       }
+sub releasest()  { tuwf->req->{titleprefs_r} //= pref ? gen_sql 0, 'releases', 'releases_titles', 'id' : 'releasest' }
+sub producerst() { tuwf->req->{titleprefs_p} //= pref ? sql 'producerst(', \tuwf->req->{auth}{user}{titles}, ')' : 'producerst' }
 
 # (Not currently used)
 #sub vnt_hist { gen_sql 1, 'vn_hist', 'vn_titles_hist', 'chid' }

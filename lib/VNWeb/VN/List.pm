@@ -197,7 +197,7 @@ sub listing_ {
                 td_ class => 'tc_title', sub { a_ href => "/$_->{id}", title => $_->{alttitle}||$_->{title}, $_->{title} };
                 td_ class => 'tc_dev',   sub {
                     join_ ' & ', sub {
-                        a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
+                        a_ href => "/$_->{id}", title => $_->{altname}, $_->{name};
                     }, sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} } $_->{developers}->@*;
                 } if $opt->{s}->vis('developer');
                 td_ class => 'tc_plat',  sub { join_ '', sub { platform_ $_ if $_ ne 'unk' }, sort $_->{platforms}->@* };
@@ -235,7 +235,7 @@ sub listing_ {
         if($opt->{s}->vis('developer')) {
             br_;
             join_ ' & ', sub {
-                lnk_ "/$_->{id}", $_->{original}||$_->{name}, $_->{name};
+                lnk_ "/$_->{id}", $_->{altname}, $_->{name};
             }, sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} } $_->{developers}->@*;
         }
         table_ sub {
@@ -333,9 +333,9 @@ sub listing_ {
 sub enrich_listing {
     my($widget, $opt, @lst) = @_;
 
-    enrich developers => id => vid => sub {
-        'SELECT v.id AS vid, p.id, p.name, p.original
-           FROM vn v, unnest(v.c_developers) vp(id), producers p
+    enrich developers => id => vid => sub { sql
+        'SELECT v.id AS vid, p.id, p.name, p.altname
+           FROM vn v, unnest(v.c_developers) vp(id),', producerst, 'p
           WHERE p.id = vp.id AND v.id IN', $_[0], 'ORDER BY p.name, p.id'
     }, @lst if $opt->{s}->vis('developer');
 

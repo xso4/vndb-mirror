@@ -113,7 +113,7 @@ our %apis = (
     ProducerResult => [ { aoh => { # Response to 'Producers'
         id       => { vndbid => 'p' },
         name     => {},
-        original => { required => 0, default => '' },
+        altname  => { required => 0 },
         hidden   => { anybool => 1 },
     } } ],
     StaffResult    => [ { aoh => { # Response to 'Staff'

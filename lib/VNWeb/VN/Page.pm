@@ -4,7 +4,6 @@ use VNWeb::Prelude;
 use VNWeb::Releases::Lib;
 use VNWeb::Images::Lib qw/image_flagging_display image_ enrich_image_obj/;
 use VNWeb::ULists::Lib 'ulists_widget_full_data';
-use VNWeb::TitlePrefs 'titleprefs_obj';
 use VNDB::Func 'fmtrating';
 
 
@@ -253,14 +252,14 @@ sub infobox_producers_ {
     my($v) = @_;
 
     my $p = tuwf->dbAlli('
-        SELECT p.id, p.name, p.original, rl.lang, bool_or(rp.developer) as developer, bool_or(rp.publisher) as publisher, min(rv.rtype) as rtype, bool_or(r.official) as official
+        SELECT p.id, p.name, p.altname, rl.lang, bool_or(rp.developer) as developer, bool_or(rp.publisher) as publisher, min(rv.rtype) as rtype, bool_or(r.official) as official
           FROM releases_vn rv
           JOIN releases r ON r.id = rv.id
           JOIN releases_titles rl ON rl.id = rv.id
           JOIN releases_producers rp ON rp.id = rv.id
-          JOIN producers p ON p.id = rp.pid
+          JOIN', producerst, 'p ON p.id = rp.pid
          WHERE NOT r.hidden AND (r.official OR NOT rl.mtl) AND rv.vid =', \$v->{id}, '
-         GROUP BY p.id, p.name, p.original, rl.lang
+         GROUP BY p.id, p.name, p.altname, rl.lang
          ORDER BY NOT bool_or(r.official), MIN(r.released), p.name
     ');
     return if !@$p;
@@ -305,7 +304,7 @@ sub infobox_producers_ {
             join_ \&br_, sub {
                 my @l = split /;/;
                 abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for @l;
-                join_ ' & ', sub { a_ href => "/$_->{id}", $_->{official} ? () : (class => 'grayedout'), title => $_->{original}||$_->{name}, $_->{name} }, $lang{$l[0]}->@*;
+                join_ ' & ', sub { a_ href => "/$_->{id}", $_->{official} ? () : (class => 'grayedout'), title => $_->{altname}, $_->{name} }, $lang{$l[0]}->@*;
             }, @nlang;
         }
     };
