@@ -457,6 +457,8 @@ sub infobox_ {
             };
         } if !$v->{hidden} && auth->permEdit && !$v->{releases}->@*;
 
+        p_ class => 'center standout', sub { lit_ config->{special_games}{$v->{id}}; br_; br_ } if config->{special_games}{$v->{id}};
+
         div_ class => 'vndetails', sub {
             div_ class => 'vnimg', sub { image_ $v->{image}, alt => $v->{title}; };
 
