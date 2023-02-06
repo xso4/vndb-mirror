@@ -309,6 +309,8 @@ sub _footer_ {
     }
     a_ href => config->{source_url}, config->{version};
     txt_ ' | ';
+    a_ href => '/d17', 'privacy & content policy';
+    txt_ ' | ';
     a_ href => '/d7', 'about us';
     lit_ ' | ';
     a_ href => sprintf('mailto:%s', config->{admin_email}), config->{admin_email};
