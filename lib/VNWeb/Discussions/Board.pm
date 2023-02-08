@@ -14,7 +14,7 @@ TUWF::get qr{/t/(all|$BOARD_RE)}, sub {
     my $obj = $id ? dbobj $id : undef;
     return tuwf->resNotFound if $id && !$obj->{id};
 
-    my $title = $obj ? "Related discussions for $obj->{title}" : $type eq 'all' ? 'All boards' : $BOARD_TYPE{$type}{txt};
+    my $title = $obj ? "Related discussions for $obj->{title}[1]" : $type eq 'all' ? 'All boards' : $BOARD_TYPE{$type}{txt};
     my $createurl = '/t/'.($id || ($type eq 'db' ? 'db' : 'ge')).'/new';
 
     framework_ title => $title, dbobj => $obj, tab => 'disc',

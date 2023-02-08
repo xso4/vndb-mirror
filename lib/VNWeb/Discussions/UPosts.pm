@@ -46,7 +46,7 @@ TUWF::get qr{/$RE{uid}/posts}, sub {
           JOIN threads t ON t.id = tp.tid
          WHERE tp.uid =', \$u->{id}, 'AND NOT t.private', auth->permBoardmod ? () : 'AND NOT t.hidden AND tp.hidden IS NULL', '
        UNION ALL
-        SELECT rp.id, rp.num, rp.msg, v.title, rp.date, rp.hidden IS NOT NULL
+        SELECT rp.id, rp.num, rp.msg, v.title[1+1], rp.date, rp.hidden IS NOT NULL
           FROM reviews_posts rp
           JOIN reviews r ON r.id = rp.id
           JOIN', vnt, 'v ON v.id = r.vid

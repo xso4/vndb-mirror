@@ -11,7 +11,7 @@ elm_api Producers => undef, {
     die "No query" if !@q;
 
     elm_ProducerResult tuwf->dbPagei({ results => 15, page => 1 },
-        'SELECT p.id, p.name, p.altname, p.hidden
+        'SELECT p.id, p.title[1+1] AS name, p.title[1+1+1+1] AS altname, p.hidden
            FROM (',
 			sql_join('UNION ALL', map +(
                 /^$RE{pid}$/ ? sql('SELECT 1, id FROM producers WHERE id =', \"$+{id}") : (),
@@ -20,8 +20,8 @@ elm_api Producers => undef, {
             ') x(prio, id)
            JOIN', producerst, 'p ON p.id = x.id
           WHERE', sql_and($data->{hidden} ? () : 'NOT p.hidden'), '
-          GROUP BY p.id, p.name, p.altname, p.hidden
-          ORDER BY MIN(x.prio), p.name
+          GROUP BY p.id, p.title, p.sorttitle, p.hidden
+          ORDER BY MIN(x.prio), p.sorttitle
     ');
 };
 

@@ -15,7 +15,7 @@ sub listing_ {
         ul_ sub {
             li_ sub {
                 abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, '';
-                a_ href => "/$_->{id}", title => $_->{altname}, $_->{name};
+                a_ href => "/$_->{id}", tattr $_;
             } for @$list;
         }
     };
@@ -41,14 +41,14 @@ TUWF::get qr{/p(?:/(?<char>all|[a-z0]))?}, sub {
 
     my $where = sql_and 'NOT p.hidden', $opt->{f}->sql_where(),
         $opt->{q} ? sql 'p.c_search LIKE ALL (search_query(', \$opt->{q}, '))' : (),
-        defined($opt->{ch}) ? sql 'match_firstchar(p.sortname, ', \$opt->{ch}, ')' : ();
+        defined($opt->{ch}) ? sql 'match_firstchar(p.sorttitle, ', \$opt->{ch}, ')' : ();
 
     my $time = time;
     my($count, $list);
     db_maytimeout {
         $count = tuwf->dbVali('SELECT COUNT(*) FROM', producerst, 'p WHERE', $where);
         $list = $count ? tuwf->dbPagei({ results => 150, page => $opt->{p} },
-            'SELECT p.id, p.name, p.altname, p.lang FROM', producerst, 'p WHERE', $where, 'ORDER BY p.sortname'
+            'SELECT p.id, p.title, p.lang FROM', producerst, 'p WHERE', $where, 'ORDER BY p.sorttitle'
         ) : [];
     } || (($count, $list) = (undef, []));
     $time = time - $time;

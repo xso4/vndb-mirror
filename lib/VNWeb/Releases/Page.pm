@@ -7,13 +7,13 @@ use VNWeb::Releases::Lib;
 sub enrich_item {
     my($r) = @_;
 
-    enrich_merge pid => sql('SELECT id AS pid, name, altname FROM', producerst, 'p WHERE id IN'), $r->{producers};
-    enrich_merge vid => sql('SELECT id AS vid, title, alttitle FROM', vnt, 'v WHERE id IN'), $r->{vn};
+    enrich_merge pid => sql('SELECT id AS pid, title, sorttitle FROM', producerst, 'p WHERE id IN'), $r->{producers};
+    enrich_merge vid => sql('SELECT id AS vid, title, sorttitle FROM', vnt, 'v WHERE id IN'), $r->{vn};
 
     $r->{titles}    = [ sort { ($b->{lang} eq $r->{olang}) cmp ($a->{lang} eq $r->{olang}) || ($a->{mtl}?1:0) <=> ($b->{mtl}?1:0) || $a->{lang} cmp $b->{lang} } $r->{titles}->@* ];
     $r->{platforms} = [ sort map $_->{platform}, $r->{platforms}->@* ];
-    $r->{vn}        = [ sort { $a->{title}  cmp $b->{title}  || idcmp($a->{vid}, $b->{vid}) } $r->{vn}->@*        ];
-    $r->{producers} = [ sort { $a->{name}   cmp $b->{name}   || idcmp($a->{pid}, $b->{pid}) } $r->{producers}->@* ];
+    $r->{vn}        = [ sort { $a->{sorttitle} cmp $b->{sorttitle} || idcmp($a->{vid}, $b->{vid}) } $r->{vn}->@*        ];
+    $r->{producers} = [ sort { $a->{sorttitle} cmp $b->{sorttitle} || idcmp($a->{pid}, $b->{pid}) } $r->{producers}->@* ];
     $r->{media}     = [ sort { $a->{medium} cmp $b->{medium} || $a->{qty} <=> $b->{qty} } $r->{media}->@*     ];
 
     $r->{resolution} = resolution $r;
@@ -29,7 +29,7 @@ sub _rev_ {
     revision_ $r, \&enrich_item,
         [ vn         => 'Relations',       fmt => sub {
             abbr_ class => "icons rt$_->{rtype}", title => $_->{rtype}, ' ';
-            a_ href => "/$_->{vid}", title => $_->{alttitle}||$_->{title}, $_->{title};
+            a_ href => "/$_->{vid}", tattr $_;
             txt_ " ($_->{rtype})" if $_->{rtype} ne 'complete';
         } ],
         [ official   => 'Official',        fmt => 'bool' ],
@@ -64,7 +64,7 @@ sub _rev_ {
         [ ani_bg     => 'Background effects',  fmt => 'bool' ],
         [ engine     => 'Engine' ],
         [ producers  => 'Producers',       fmt => sub {
-            a_ href => "/$_->{pid}", title => $_->{altname}, $_->{name};
+            a_ href => "/$_->{pid}", tattr $_;
             txt_ ' (';
             txt_ join ', ', $_->{developer} ? 'developer' : (), $_->{publisher} ? 'publisher' : ();
             txt_ ')';
@@ -132,7 +132,7 @@ sub _infotable_ {
             td_ sub {
                 join_ \&br_, sub {
                     abbr_ class => "icons rt$_->{rtype}", title => $_->{rtype}, ' ';
-                    a_ href => "/$_->{vid}", title => $_->{alttitle}||$_->{title}, $_->{title};
+                    a_ href => "/$_->{vid}", tattr $_;
                     txt_ " ($_->{rtype})" if $_->{rtype} ne 'complete';
                 }, $r->{vn}->@*
             }
@@ -148,7 +148,8 @@ sub _infotable_ {
                             abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, '';
                         };
                         td_ sub {
-                            span_ lang_attr($_->{lang}), $_->{title}//$olang->{title};
+                            my $title = $_->{title}//$olang->{title};
+                            span_ tlang($_->{lang}, $title), $title;
                             b_ class => 'grayedout', ' (machine translation)' if $_->{mtl};
                             my $latin = defined $_->{title} ? $_->{latin} : $olang->{latin};
                             if(defined $latin) {
@@ -229,7 +230,7 @@ sub _infotable_ {
                 td_ ucfirst($t).(@prod == 1 ? '' : 's');
                 td_ sub {
                     join_ \&br_, sub {
-                        a_ href => "/$_->{pid}", title => $_->{altname}, $_->{name};
+                        a_ href => "/$_->{pid}", tattr $_;
                     }, @prod
                 }
             } if @prod;
@@ -269,11 +270,11 @@ TUWF::get qr{/$RE{rrev}} => sub {
     my $r = db_entry tuwf->captures('id','rev');
     return tuwf->resNotFound if !$r;
 
-    @{$r}{'title', 'alttitle'} = titleprefs_obj $r->{olang}, $r->{titles};
+    $r->{title} = titleprefs_obj $r->{olang}, $r->{titles};
     enrich_item $r;
     enrich_extlinks r => 0, $r;
 
-    framework_ title => $r->{title}, index => !tuwf->capture('rev'), dbobj => $r, hiddenmsg => 1,
+    framework_ title => $r->{title}[1], index => !tuwf->capture('rev'), dbobj => $r, hiddenmsg => 1,
         og => {
             description => bb_format $r->{notes}, text => 1
         },
@@ -281,8 +282,8 @@ TUWF::get qr{/$RE{rrev}} => sub {
         _rev_ $r if tuwf->capture('rev');
         div_ class => 'mainbox release', sub {
             itemmsg_ $r;
-            h1_ sub { txt_ $r->{title}; debug_ $r };
-            h2_ class => 'alttitle', lang_attr($r->{olang}), $r->{alttitle} if length $r->{alttitle} && $r->{alttitle} ne $r->{title};
+            h1_ tlang($r->{title}[0], $r->{title}[1]), $r->{title}[1];
+            h2_ class => 'alttitle', tlang(@{$r->{title}}[2,3]), $r->{title}[3] if $r->{title}[3] && $r->{title}[3] ne $r->{title}[1];
             _infotable_ $r;
             div_ class => 'description', sub { lit_ bb_format $r->{notes} } if $r->{notes};
         };

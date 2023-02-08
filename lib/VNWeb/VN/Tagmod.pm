@@ -107,8 +107,8 @@ TUWF::get qr{/$RE{vid}/tagmod}, sub {
         $_->{othnotes} = join "\n", map user_displayname($_).': '.$_->{notes}, $_->{othnotes}->@*;
     }
 
-    framework_ title => "Edit tags for $v->{title}", dbobj => $v, tab => 'tagmod', sub {
-        elm_ 'Tagmod' => $FORM_OUT, { id => $v->{id}, title => $v->{title}, tags => $tags, mod => auth->permTagmod };
+    framework_ title => "Edit tags for $v->{title}[1]", dbobj => $v, tab => 'tagmod', sub {
+        elm_ 'Tagmod' => $FORM_OUT, { id => $v->{id}, title => $v->{title}[1], tags => $tags, mod => auth->permTagmod };
     };
 };
 

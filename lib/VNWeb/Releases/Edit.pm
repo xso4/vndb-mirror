@@ -87,12 +87,12 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
 
     $e->{vntitles} = $e->{vn}->@* == 1 ? tuwf->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$e->{vn}[0]{vid}) : [];
 
-    enrich_merge vid => sql('SELECT id AS vid, title FROM', vnt, 'v WHERE id IN'), $e->{vn};
-    enrich_merge pid => sql('SELECT id AS pid, name FROM', producerst, 'p WHERE id IN'), $e->{producers};
+    enrich_merge vid => sql('SELECT id AS vid, title[1+1] FROM', vnt, 'v WHERE id IN'), $e->{vn};
+    enrich_merge pid => sql('SELECT id AS pid, title[1+1] AS name FROM', producerst, 'p WHERE id IN'), $e->{producers};
 
     $e->@{qw/gtin catalog extlinks/} = elm_empty($FORM_OUT)->@{qw/gtin catalog extlinks/} if $copy;
 
-    my $title = ($copy ? 'Copy ' : 'Edit ').(titleprefs_obj $e->{olang}, $e->{titles})[0];
+    my $title = ($copy ? 'Copy ' : 'Edit ').titleprefs_obj($e->{olang}, $e->{titles})->[1];
     framework_ title => $title, dbobj => $e, tab => tuwf->capture('action'),
     sub {
         editmsg_ r => $e, $title, $copy;
@@ -106,20 +106,20 @@ TUWF::get qr{/$RE{vid}/add}, sub {
     my $v = tuwf->dbRowi('SELECT id, title FROM', vnt, 'v WHERE NOT hidden AND v.id =', \tuwf->capture('id'));
     return tuwf->resNotFound if !$v->{id};
 
-    my $delrel = tuwf->dbAlli('SELECT r.id, r.title, r.alttitle FROM', releasest, 'r JOIN releases_vn rv ON rv.id = r.id WHERE r.hidden AND rv.vid =', \$v->{id}, 'ORDER BY id');
+    my $delrel = tuwf->dbAlli('SELECT r.id, r.title FROM', releasest, 'r JOIN releases_vn rv ON rv.id = r.id WHERE r.hidden AND rv.vid =', \$v->{id}, 'ORDER BY id');
     enrich_flatten languages => id => id => 'SELECT id, lang FROM releases_titles WHERE id IN', $delrel;
 
     my $e = {
         elm_empty($FORM_OUT)->%*,
-        vn       => [{vid => $v->{id}, title => $v->{title}, rtype => 'complete'}],
+        vn       => [{vid => $v->{id}, title => $v->{title}[1], rtype => 'complete'}],
         vntitles => tuwf->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$v->{id}),
         official => 1,
     };
     $e->{authmod} = auth->permDbmod;
 
-    framework_ title => "Add release to $v->{title}",
+    framework_ title => "Add release to $v->{title}[1]",
     sub {
-        editmsg_ r => undef, "Add release to $v->{title}";
+        editmsg_ r => undef, "Add release to $v->{title}[1]";
 
         div_ class => 'mainbox', sub {
             h1_ 'Deleted releases';
@@ -131,7 +131,7 @@ TUWF::get qr{/$RE{vid}/add}, sub {
                 ul_ sub {
                     li_ sub {
                         txt_ '['.join(',', $_->{languages}->@*)."] $_->{id}:";
-                        a_ href => "/$_->{id}", title => $_->{alttitle}||$_->{title}, $_->{title};
+                        a_ href => "/$_->{id}", tattr $_;
                     } for @$delrel;
                 }
             }

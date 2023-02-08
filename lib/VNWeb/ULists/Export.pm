@@ -23,19 +23,18 @@ sub data {
         user   => tuwf->dbRowi('SELECT id, username as name FROM users WHERE id =', \$uid),
         labels => tuwf->dbAlli('SELECT id, label, private FROM ulist_labels WHERE uid =', \$uid, 'ORDER BY id'),
         vns    => tuwf->dbAlli('
-            SELECT v.id, COALESCE(vo.latin, vo.title) AS title, CASE WHEN vo.latin IS NULL THEN \'\' ELSE vo.title END AS original, uv.vote, uv.started, uv.finished, uv.notes
+            SELECT v.id, v.title[1+1] AS title, v.title[1+1+1+1] AS original, uv.vote, uv.started, uv.finished, uv.notes
                  , uv.c_private, uv.labels,', sql_comma(tz('uv.added', 'added'), tz('uv.lastmod', 'lastmod'), tz('uv.vote_date', 'vote_date')), '
               FROM ulist_vns uv
-              JOIN vn v ON v.id = uv.vid
-              JOIN vn_titles vo ON vo.id = v.id AND vo.lang = v.olang
+              JOIN vnt v ON v.id = uv.vid
              WHERE uv.uid =', \$uid, '
-             ORDER BY title')
+             ORDER BY v.sorttitle')
     };
     enrich releases => id => vid => sub { sql '
-        SELECT rv.vid, r.id, COALESCE(ro.latin, ro.title) AS title, CASE WHEN ro.latin IS NULL THEN \'\' ELSE ro.title END AS original
+        SELECT rv.vid, r.id, r.title[1+1] AS title, r.title[1+1+1+1] original
              , r.released, rl.status, ', tz('rl.added', 'added'), '
           FROM rlists rl
-          JOIN releases r ON r.id = rl.rid
+          JOIN releasest r ON r.id = rl.rid
           JOIN releases_vn rv ON rv.id = rl.rid
           JOIN releases_titles ro ON ro.id = r.id AND ro.lang = r.olang
          WHERE rl.uid =', \$uid, '
@@ -80,7 +79,7 @@ TUWF::get qr{/$RE{uid}/list-export/xml}, sub {
         };
         tag vns => sub {
             tag vn => id => $_->{id}, private => $_->{c_private}?'true':'false', sub {
-                tag title => length($_->{original}) ? (original => $_->{original}) : (), $_->{title};
+                tag title => length($_->{original}) && $_->{original} ne $_->{title} ? (original => $_->{original}) : (), $_->{title};
                 tag label => id => $_, label => $labels{$_}{label}, undef for sort { $a <=> $b } $_->{labels}->@*;
                 tag added => $_->{added};
                 tag modified => $_->{lastmod} if $_->{added} ne $_->{lastmod};
@@ -89,7 +88,7 @@ TUWF::get qr{/$RE{uid}/list-export/xml}, sub {
                 tag finished => $_->{finished} if $_->{finished};
                 tag notes => $_->{notes} if length $_->{notes};
                 tag release => id => $_->{id}, sub {
-                    tag title => length($_->{original}) ? (original => $_->{original}) : (), $_->{title};
+                    tag title => length($_->{original}) && $_->{original} ne $_->{title} ? (original => $_->{original}) : (), $_->{title};
                     tag 'release-date' => rdate $_->{released};
                     tag status => $RLIST_STATUS{$_->{status}};
                     tag added => $_->{added};

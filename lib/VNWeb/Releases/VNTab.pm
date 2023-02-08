@@ -28,13 +28,13 @@ my @rel_cols = (
   {    # Title
     id            => 'tit',
     sort_field    => 'title',
-    sort_sql      => 'r.title %s, r.released %1$s',
+    sort_sql      => 'r.sorttitle %s, r.released %1$s',
     column_string => 'Title',
-    draw          => sub { a_ href => "/$_[0]{id}", $_[0]{title} },
+    draw          => sub { a_ href => "/$_[0]{id}", tattr $_[0] },
   }, { # Type
     id            => 'typ',
     sort_field    => 'type',
-    sort_sql      => 'r.patch %s, rv.rtype %1$s, r.released %1$s, r.title %1$s',
+    sort_sql      => 'r.patch %s, rv.rtype %1$s, r.released %1$s, r.sorttitle %1$s',
     button_string => 'Type',
     default       => 1,
     draw          => sub { abbr_ class => "icons rt$_[0]{rtype}", title => $_[0]{rtype}, ''; txt_ '(patch)' if $_[0]{patch} },
@@ -46,7 +46,7 @@ my @rel_cols = (
   }, { # Publication
     id            => 'pub',
     sort_field    => 'publication',
-    sort_sql      => 'r.freeware %1$s, r.patch %1$s, r.released %1$s, r.title %1$s',
+    sort_sql      => 'r.freeware %1$s, r.patch %1$s, r.released %1$s, r.sorttitle %1$s',
     column_string => 'Publication',
     column_width  => 70,
     button_string => 'Publication',
@@ -73,7 +73,7 @@ my @rel_cols = (
   }, { # Resolution
     id            => 'res',
     sort_field    => 'resolution',
-    sort_sql      => 'r.reso_x %s, r.reso_y %1$s,     r.patch %1$s, r.released %1$s, r.title %1$s',
+    sort_sql      => 'r.reso_x %s, r.reso_y %1$s,     r.patch %1$s, r.released %1$s, r.sorttitle %1$s',
     column_string => 'Resolution',
     button_string => 'Resolution',
     na_for_patch  => 1,
@@ -83,7 +83,7 @@ my @rel_cols = (
   }, { # Voiced
     id            => 'voi',
     sort_field    => 'voiced',
-    sort_sql      => 'r.voiced %s,                    r.patch %1$s, r.released %1$s, r.title %1$s',
+    sort_sql      => 'r.voiced %s,                    r.patch %1$s, r.released %1$s, r.sorttitle %1$s',
     column_string => 'Voiced',
     column_width  => 70,
     button_string => 'Voiced',
@@ -94,7 +94,7 @@ my @rel_cols = (
   }, { # Animation
     id            => 'ani',
     sort_field    => 'ani_ero',
-    sort_sql      => 'r.ani_story %s, r.ani_ero %1$s, r.patch %1$s, r.released %1$s, r.title %1$s',
+    sort_sql      => 'r.ani_story %s, r.ani_ero %1$s, r.patch %1$s, r.released %1$s, r.sorttitle %1$s',
     column_string => 'Animation',
     column_width  => 110,
     button_string => 'Animation',
@@ -117,7 +117,7 @@ my @rel_cols = (
   }, { # Age rating
     id            => 'min',
     sort_field    => 'minage',
-    sort_sql      => 'r.minage %s,                                  r.released %1$s, r.title %1$s',
+    sort_sql      => 'r.minage %s,                                  r.released %1$s, r.sorttitle %1$s',
     button_string => 'Age rating',
     default       => 1,
     has_data      => sub { defined $_[0]{minage} },
@@ -125,7 +125,7 @@ my @rel_cols = (
   }, { # Notes
     id            => 'not',
     sort_field    => 'notes',
-    sort_sql      => 'r.notes %s,                                   r.released %1$s, r.title %1$s',
+    sort_sql      => 'r.notes %s,                                   r.released %1$s, r.sorttitle %1$s',
     column_string => 'Notes',
     column_width  => 400,
     button_string => 'Notes',
@@ -237,7 +237,7 @@ TUWF::get qr{/$RE{vid}/releases} => sub {
 
     my $r = tuwf->dbAlli('
         SELECT r.id, rv.rtype, r.patch, r.released, r.gtin
-          FROM releasest r
+          FROM', releasest, 'r
           JOIN releases_vn rv ON rv.id = r.id
          WHERE NOT hidden AND rv.vid =', \$v->{id}, '
          ORDER BY', sprintf(+(grep $opt->{s} eq ($_->{sort_field}//''), @rel_cols)[0]{sort_sql}, $opt->{o} eq 'a' ? 'ASC' : 'DESC')
@@ -246,9 +246,9 @@ TUWF::get qr{/$RE{vid}/releases} => sub {
 
     my sub url { '?'.query_encode %$opt, @_ }
 
-    framework_ title => "Releases for $v->{title}", dbobj => $v, tab => 'releases', sub {
+    framework_ title => "Releases for $v->{title}[1]", dbobj => $v, tab => 'releases', sub {
         div_ class => 'mainbox releases_compare', sub {
-            h1_ "Releases for $v->{title}";
+            h1_ "Releases for $v->{title}[1]";
             if(!@$r) {
                 p_ 'We don\'t have any information about releases of this visual novel yet...';
             } else {

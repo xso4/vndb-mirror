@@ -18,7 +18,7 @@ use Encode 'decode_utf8', 'encode_utf8';
 
 # long subquery used in several places
 my $GETBOARDS = q{array_to_string(array(
-      SELECT tb.type||COALESCE(':'||COALESCE(u.username, v.title, p.name), '')
+      SELECT tb.type||COALESCE(':'||COALESCE(u.username, v.title[1+1], p.name), '')
       FROM threads_boards tb
       LEFT JOIN vnt v ON tb.type = 'v' AND v.id = tb.iid
       LEFT JOIN producers p ON tb.type = 'p' AND p.id = tb.iid
@@ -269,15 +269,15 @@ sub handleid {
   # plain vn/user/producer/thread/tag/trait/release
   pg_cmd 'SELECT $1::vndbid AS id, '.(
     $id =~ /^t/ ? 'title, '.$GETBOARDS.' FROM threads t WHERE NOT t.hidden AND NOT t.private AND t.id = $1' :
-    $id =~ /^w/ ? 'v.title, u.username FROM reviews w JOIN vnt v ON v.id = w.vid LEFT JOIN users u ON u.id = w.uid WHERE w.id = $1' :
-                  'title FROM item_info(NULL,$1,NULL) x'),
+    $id =~ /^w/ ? 'v.title[1+1], u.username FROM reviews w JOIN vnt v ON v.id = w.vid LEFT JOIN users u ON u.id = w.uid WHERE w.id = $1' :
+                  'title[1+1] FROM item_info(NULL,$1,NULL) x'),
     [ $id ], $c if !$rev && $id =~ /^[dvprtugicsw]/;
 
   # edit/insert of vn/release/producer or discussion board post
   pg_cmd 'SELECT $1::vndbid AS id, $2::integer AS rev, '.(
     $id =~ /^t/ ? 't.title, u.username, '.$GETBOARDS.' FROM threads t JOIN threads_posts tp ON tp.tid = t.id LEFT JOIN users u ON u.id = tp.uid WHERE NOT t.hidden AND NOT t.private AND t.id = $1 AND tp.num = $2' :
-    $id =~ /^w/ ? 'v.title, u.username FROM reviews_posts wp JOIN reviews w ON w.id = wp.id JOIN vn v ON v.id = w.vid LEFT JOIN users u ON u.id = wp.uid WHERE wp.id = $1 AND wp.num = $2' :
-                  'x.title, u.username, c.comments FROM changes c JOIN item_info(NULL,$1,$2) x ON true JOIN users u ON u.id = c.requester WHERE c.itemid = $1 AND c.rev = $2'),
+    $id =~ /^w/ ? 'v.title[1+1], u.username FROM reviews_posts wp JOIN reviews w ON w.id = wp.id JOIN vnt v ON v.id = w.vid LEFT JOIN users u ON u.id = wp.uid WHERE wp.id = $1 AND wp.num = $2' :
+                  'x.title[1+1], u.username, c.comments FROM changes c JOIN item_info(NULL,$1,$2) x ON true JOIN users u ON u.id = c.requester WHERE c.itemid = $1 AND c.rev = $2'),
     [ $id, $rev], $c if $rev && $id =~ /^[dvprtcsgiw]/;
 }
 
@@ -306,7 +306,7 @@ sub notify {
 
   my $q = {
   rev => q{
-    SELECT c.rev, c.comments, c.id AS lastid, c.itemid AS id, x.title, u.username
+    SELECT c.rev, c.comments, c.id AS lastid, c.itemid AS id, x.title[1+1], u.username
     FROM changes c
     JOIN item_info(NULL, c.itemid, c.rev) x ON true
     JOIN users u ON u.id = c.requester
@@ -320,7 +320,7 @@ sub notify {
     WHERE tp.date > $1 AND tp.num = 1 AND NOT t.hidden AND NOT t.private
     ORDER BY tp.date},
   review => q{
-    SELECT w.id, v.title, u.username, w.id AS lastid
+    SELECT w.id, v.title[1+1], u.username, w.id AS lastid
     FROM reviews w
     JOIN vnt v ON v.id = w.vid
     LEFT JOIN users u ON u.id = w.uid
@@ -366,10 +366,10 @@ vn => [ 0, 0, sub {
   return $irc->send_msg(PRIVMSG => $chan, 'You forgot the search query, dummy~~!') if !$q;
 
   pg_cmd q{
-    SELECT id, title
+    SELECT id, title[1+1]
       FROM vnt
      WHERE NOT hidden AND c_search LIKE ALL (search_query($1))
-     ORDER BY title
+     ORDER BY sorttitle
      LIMIT 6
   }, [ $q ], sub {
     my $res = shift;

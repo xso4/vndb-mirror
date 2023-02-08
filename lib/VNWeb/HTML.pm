@@ -17,7 +17,7 @@ use VNDB::Types;
 use VNWeb::Auth;
 use VNWeb::Validation;
 use VNWeb::DB;
-use VNDB::Func 'fmtdate', 'rdate';
+use VNDB::Func 'fmtdate', 'rdate', 'tattr';
 
 our @EXPORT = qw/
     clearfloat_
@@ -470,7 +470,7 @@ sub _hidden_msg_ {
             p_ sub {
                 if($o->{dbobj}{id} =~ /^r/ && $o->{dbobj}{vn}) {
                     txt_ 'This was a release entry for ';
-                    join_ ',', sub { a_ href => "/$_->{vid}", $_->{title} }, $o->{dbobj}{vn}->@*;
+                    join_ ',', sub { a_ href => "/$_->{vid}", tattr $_ }, $o->{dbobj}{vn}->@*;
                     txt_ '.';
                     br_;
                 }

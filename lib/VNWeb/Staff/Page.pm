@@ -74,13 +74,13 @@ sub _roles_ {
     my %alias = map +($_->{aid}, $_), $s->{alias}->@*;
 
     my $roles = tuwf->dbAlli('
-        SELECT v.id, vs.aid, vs.role, vs.note, ve.name, ve.official, ve.lang, v.c_released, v.title, v.alttitle
+        SELECT v.id, vs.aid, vs.role, vs.note, ve.name, ve.official, ve.lang, v.c_released, v.title
           FROM vn_staff vs
           JOIN', vnt, 'v ON v.id = vs.id
           LEFT JOIN vn_editions ve ON ve.id = vs.id AND ve.eid = vs.eid
          WHERE vs.aid IN', [ keys %alias ], '
            AND NOT v.hidden
-         ORDER BY v.c_released ASC, v.title ASC, ve.lang NULLS FIRST, ve.name NULLS FIRST, vs.role ASC
+         ORDER BY v.c_released ASC, v.sorttitle ASC, ve.lang NULLS FIRST, ve.name NULLS FIRST, vs.role ASC
     ');
     return if !@$roles;
     enrich_ulists_widget $roles;
@@ -101,7 +101,7 @@ sub _roles_ {
                 my($v, $a) = ($_, $alias{$_->{aid}});
                 td_ class => 'tc_ulist', sub { ulists_widget_ $v if !$vns{$v->{id}}++ } if auth;
                 td_ class => 'tc1', sub {
-                    a_ href => "/$v->{id}", title => $v->{alttitle}||$v->{title}, shorten $v->{title}, 60;
+                    a_ href => "/$v->{id}", tattr $v;
                     lit_ ' ' if $v->{name};
                     abbr_ class => "icons lang $v->{lang}", title => $LANGUAGE{$v->{lang}}, '' if $v->{lang};
                     txt_ $v->{name} if $v->{name} && $v->{official};
@@ -122,7 +122,7 @@ sub _cast_ {
     my %alias = map +($_->{aid}, $_), $s->{alias}->@*;
 
     my $cast = [ grep defined $_->{spoil}, tuwf->dbAlli('
-        SELECT vs.aid, v.id, v.c_released, v.title, v.alttitle, c.id AS cid, c.name AS c_name, c.original AS c_original, vs.note,
+        SELECT vs.aid, v.id, v.c_released, v.title, c.id AS cid, c.name AS c_name, c.original AS c_original, vs.note,
                (SELECT MIN(cv.spoil) FROM chars_vns cv WHERE cv.id = c.id AND cv.vid = v.id) AS spoil
           FROM vn_seiyuu vs
           JOIN', vnt, 'v ON v.id = vs.id
@@ -130,7 +130,7 @@ sub _cast_ {
          WHERE vs.aid IN', [ keys %alias ], '
            AND NOT v.hidden
            AND NOT c.hidden
-         ORDER BY v.c_released ASC, v.title ASC
+         ORDER BY v.c_released ASC, v.sorttitle ASC
     ')->@* ];
     return if !@$cast;
     enrich_ulists_widget $cast;
@@ -161,7 +161,7 @@ sub _cast_ {
                 my($v, $a) = ($_, $alias{$_->{aid}});
                 td_ class => 'tc_ulist', sub { ulists_widget_ $v if !$vns{$v->{id}}++ } if auth;
                 td_ class => 'tc1', sub {
-                    a_ href => "/$v->{id}", title => $v->{alttitle}||$v->{title}, shorten $v->{title}, 60;
+                    a_ href => "/$v->{id}", tattr $v;
                 };
                 td_ class => 'tc2', sub { rdate_ $v->{c_released} };
                 td_ class => 'tc3', sub {

@@ -22,7 +22,7 @@ our @EXPORT = ('bb_format', qw|
   fmtvote fmtmedia fmtage fmtdate fmtrating fmtspoil fmtanimation
   rdate
   imgpath imgurl
-  lang_attr
+  tlang tattr
   query_encode
   md2html
   is_insecurepass
@@ -240,16 +240,21 @@ sub rdate {
 }
 
 
-# Generates a HTML 'lang' attribute given a list of possible languages.
-# This is used for the 'original language' field, which we can safely assume is not used for latin-alphabet languages.
-sub lang_attr {
-    my @l = map ref($_) eq 'HASH' ? $_->{lang} : $_, ref $_[0] ? $_[0]->@* : @_;
-    # Choose Japanese, Chinese or Korean (in order of likelyness) if those are in the list.
-    return (lang => 'ja') if grep $_ eq 'ja', @l;
-    return (lang => 'zh') if grep $_ eq 'zh', @l;
-    return (lang => 'ko') if grep $_ eq 'ko', @l;
-    return (lang => $l[0]) if @l == 1;
-    ()
+# Given a language code & title, returns a (lang => $x) html property.
+sub tlang {
+    my($lang, $title) = @_;
+    # TODO: The -Latn suffix is redundant for languages that use the Latin script by default, need to check with a list.
+    # English is the site's default, so no need to specify that.
+    $lang && $lang ne 'en'
+        ? (lang => $lang . ($title =~ /[\x{3000}-\x{9fff}\x{ff00}-\x{ff9f}\x{0400}-\x{04ff}\x{1100}-\x{11ff}\x{ac00}-\x{d7af}\x{0600}-\x{06ff}\x{0e00}-\x{0e7f}\x{1400}-\x{167f}]/ ? '' : '-Latn'))
+        : ();
+}
+
+
+# Given an SQL titles array, returns element attributes & content.
+sub tattr {
+    my $title = ref $_[0] eq 'HASH' ? $_[0]{title} : $_[0];
+    (tlang($title->[0],$title->[1]), title => $title->[3], $title->[1])
 }
 
 

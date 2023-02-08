@@ -21,7 +21,7 @@ TUWF::get qr{/$RE{pid}/rg}, sub {
 
     # Fetch the nodes
     my $nodes = gen_nodes $p->{id}, $rel, $num;
-    enrich_merge id => sql('SELECT id, name, lang, type FROM', producerst, 'p WHERE id IN'), values %$nodes;
+    enrich_merge id => sql('SELECT id, title[1+1] AS name, lang, type FROM', producerst, 'p WHERE id IN'), values %$nodes;
 
     my $total_nodes = keys { map +($_->{id0},1), @$rel }->%*;
     my $visible_nodes = keys %$nodes;
@@ -45,10 +45,10 @@ TUWF::get qr{/$RE{pid}/rg}, sub {
     $rel = [ grep $nodes->{$_->{id0}} && $nodes->{$_->{id1}}, @$rel ];
     my $dot = gen_dot \@lines, $nodes, $rel, \%PRODUCER_RELATION;
 
-    framework_ title => "Relations for $p->{title}", dbobj => $p, tab => 'rg',
+    framework_ title => "Relations for $p->{title}[1]", dbobj => $p, tab => 'rg',
     sub {
         div_ class => 'mainbox', style => 'float: left; min-width: 100%', sub {
-            h1_ "Relations for $p->{title}";
+            h1_ "Relations for $p->{title}[1]";
             p_ sub {
                 txt_ sprintf "Displaying %d out of %d related producers.", $visible_nodes, $total_nodes;
                 debug_ +{ nodes => $nodes, rel => $rel };

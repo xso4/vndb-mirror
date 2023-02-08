@@ -9,7 +9,7 @@ our @EXPORT = qw/enrich_release_elm releases_by_vn enrich_release sort_releases 
 # Enrich a list of releases so that it's suitable as 'Releases' Elm response.
 # Given objects must have 'id' and 'rtype' fields (appropriate for the VN in context).
 sub enrich_release_elm {
-    enrich_merge id => sql('SELECT id, title, alttitle, released, reso_x, reso_y FROM', releasest, 'r WHERE id IN'), @_;
+    enrich_merge id => sql('SELECT id, title[1+1] AS title, title[1+1+1+1] AS alttitle, released, reso_x, reso_y FROM', releasest, 'r WHERE id IN'), @_;
     enrich_flatten lang => id => id => sub { sql('SELECT id, lang FROM releases_titles WHERE id IN', $_, 'ORDER BY lang') }, @_;
     enrich_flatten platforms => id => id => sub { sql('SELECT id, platform FROM releases_platforms WHERE id IN', $_, 'ORDER BY platform') }, @_;
 }
@@ -28,7 +28,7 @@ sub releases_by_vn {
 sub enrich_release {
     my($r) = @_;
     enrich_merge id => sql(
-        'SELECT id, title, alttitle, olang, notes, minage, official, freeware, has_ero, reso_x, reso_y, voiced, uncensored
+        'SELECT id, title, olang, notes, minage, official, freeware, has_ero, reso_x, reso_y, voiced, uncensored
               , ani_story, ani_ero, ani_story_sp, ani_story_cg, ani_cutscene, ani_ero_sp, ani_ero_cg, ani_face, ani_bg
           FROM', releasest, 'r WHERE id IN'), $r;
     enrich_merge id => sub { sql 'SELECT id, MAX(rtype) AS rtype FROM releases_vn WHERE id IN', $_, 'GROUP BY id' }, grep !$_->{rtype}, ref $r ? @$r : $r;
@@ -48,7 +48,7 @@ sub sort_releases {
         $b->{official} cmp $a->{official} ||
         $a->{patch} cmp $b->{patch} ||
         ($a->{platforms}[0]||'') cmp ($b->{platforms}[0]||'') ||
-        $a->{title} cmp $b->{title} ||
+        $a->{title}[1] cmp $b->{title}[1] ||
         idcmp($a->{id}, $b->{id})
     } $_[0]->@* ];
 }
@@ -156,11 +156,11 @@ sub release_row_ {
             abbr_ class => "icons rt$r->{rtype}", title => $r->{rtype}, '';
         };
         td_ class => 'tc4', sub {
-            my($title, $alttitle) =
+            my $title =
                 $lang && defined $lang->{title} ? titleprefs_obj $lang->{lang}, [$lang] :
                                           $lang ? titleprefs_obj $r->{olang}, [grep $_->{lang} eq $r->{olang}, $r->{titles}->@*]
-                                                : @{$r}{'title', 'alttitle'};
-            a_ href => "/$r->{id}", title => $alttitle||$title, $title;
+                                                : $r->{title};
+            a_ href => "/$r->{id}", title => $title->[3], $title->[1];
             my $note = join ' ', $r->{official} ? () : 'unofficial', $mtl ? 'machine translation' : (), $r->{patch} ? 'patch' : ();
             b_ class => 'grayedout', " ($note)" if $note;
         };

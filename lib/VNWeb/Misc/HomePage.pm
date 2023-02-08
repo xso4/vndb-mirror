@@ -33,9 +33,9 @@ sub screens_ {
     );
 
     p_ class => 'screenshots', sub {
-        a_ href => "/$_->{vid}", title => $_->{title}, sub {
+        a_ href => "/$_->{vid}", title => $_->{title}[1], sub {
             my($w, $h) = imgsize $_->{width}, $_->{height}, config->{scr_size}->@*;
-            img_ src => imgurl($_->{id}, 1), alt => $_->{title}, width => $w, height => $h;
+            img_ src => imgurl($_->{id}, 1), alt => $_->{title}[1], width => $w, height => $h;
         } for @$lst;
     }
 }
@@ -53,7 +53,7 @@ sub recent_changes_ {
         li_ sub {
             span_ sub {
                 txt_ "$1:" if $_->{itemid} =~ /^(.)/;
-                a_ href => "/$_->{itemid}.$_->{rev}", title => $_->{alttitle}, $_->{title};
+                a_ href => "/$_->{itemid}.$_->{rev}", tattr $_;
             };
             span_ sub {
                 lit_ " by ";
@@ -98,7 +98,7 @@ sub recent_db_posts_ {
             a_ href => "/$_->{id}", $_->{title};
         } for @$an;
         li_ sub {
-            my $boards = join ', ', map $BOARD_TYPE{$_->{btype}}{txt}.($_->{iid}?' > '.$_->{title}:''), $_->{boards}->@*;
+            my $boards = join ', ', map $BOARD_TYPE{$_->{btype}}{txt}.($_->{iid}?' > '.$_->{title}[1]:''), $_->{boards}->@*;
             span_ sub {
                 txt_ fmtage($_->{date}).' ';
                 a_ href => "/$_->{id}.$_->{num}#last", title => "Posted in $boards", $_->{title};
@@ -115,7 +115,7 @@ sub recent_db_posts_ {
 sub recent_vn_posts_ {
     my $lst = tuwf->dbAlli('
         WITH tposts (id,title,num,date,uid) AS (
-            SELECT t.id, t.title, tp.num, tp.date, tp.uid
+            SELECT t.id, ARRAY[NULL, t.title], tp.num, tp.date, tp.uid
               FROM threads t
               JOIN threads_posts tp ON tp.tid = t.id AND tp.num = t.c_lastnum
              WHERE NOT EXISTS(SELECT 1 FROM threads_boards tb WHERE tb.tid = t.id AND tb.type IN(\'an\',\'db\',\'u\'))
@@ -147,9 +147,9 @@ sub recent_vn_posts_ {
     ul_ sub {
         li_ sub {
             span_ sub {
-                my $boards = join ', ', map $BOARD_TYPE{$_->{btype}}{txt}.($_->{iid}?' > '.$_->{title}:''), $_->{boards}->@*;
+                my $boards = join ', ', map $BOARD_TYPE{$_->{btype}}{txt}.($_->{iid}?' > '.$_->{title}[1]:''), $_->{boards}->@*;
                 txt_ fmtage($_->{date}).' ';
-                a_ href => "/$_->{id}.$_->{num}#last", title => $boards ? "Posted in $boards" : 'Review', $_->{title};
+                a_ href => "/$_->{id}.$_->{num}#last", title => $boards ? "Posted in $boards" : 'Review', tlang(@{$_->{title}}[0,1]), $_->{title}[1];
             };
             span_ sub {
                 lit_ ' by ';
@@ -174,7 +174,7 @@ sub releases_ {
     $filt->{query} = [ 'and', [ released => $released ? '<=' : '>', 1 ], $filt->{query} || () ];
 
     my $lst = tuwf->dbAlli('
-        SELECT id, title, alttitle, released
+        SELECT id, title, released
           FROM', releasest, 'r
          WHERE NOT hidden AND ', $filt->sql_where(), '
            AND NOT EXISTS(SELECT 1 FROM releases_titles rt WHERE rt.id = r.id AND rt.mtl)
@@ -195,7 +195,7 @@ sub releases_ {
                 platform_ $_ for $_->{plat}->@*;
                 abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for $_->{lang}->@*;
                 txt_ ' ';
-                a_ href => "/$_->{id}", title => $_->{alttitle}||$_->{title}, $_->{title};
+                a_ href => "/$_->{id}", tattr $_;
             }
         } for @$lst;
     };
@@ -204,7 +204,7 @@ sub releases_ {
 
 sub reviews_ {
     my $lst = tuwf->dbAlli('
-        SELECT w.id, v.title, v.alttitle, w.isfull, ', sql_user(), ',', sql_totime('w.date'), 'AS date
+        SELECT w.id, v.title, w.isfull, ', sql_user(), ',', sql_totime('w.date'), 'AS date
           FROM reviews w
           JOIN', vnt, 'v ON v.id = w.vid
           LEFT JOIN users u ON u.id = w.uid
@@ -219,7 +219,7 @@ sub reviews_ {
             span_ sub {
                 txt_ fmtage($_->{date}).' ';
                 b_ class => 'grayedout', $_->{isfull} ? ' Full ' : ' Mini ';
-                a_ href => "/$_->{id}", title => $_->{alttitle}||$_->{title}, $_->{title};
+                a_ href => "/$_->{id}", tattr $_;
             };
             span_ sub {
                 lit_ 'by ';

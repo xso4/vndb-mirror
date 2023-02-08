@@ -13,6 +13,7 @@ sub obj {
     my $o = tuwf->dbRowi('SELECT x.*, ', sql_user(), 'FROM', item_info(\$id, \$num), 'x LEFT JOIN users u ON u.id = x.uid');
     $o->{object} = $id;
     $o->{objectnum} = $num;
+    $o->{title} //= [undef,$o->{object},undef,$o->{object}];
     my $can = !defined $o->{title} ? 0
             : $id =~ /^[vrpcsd]/ ? !$num
             : $id =~ /^w/ ? 1
@@ -28,14 +29,14 @@ sub obj_ {
         txt_ 'Comment ';
         a_ href => "/$lnk", "#$o->{objectnum}";
         txt_ ' on ';
-        a_ href => "/$lnk", $o->{title}||$o->{object};
+        a_ href => "/$lnk", tattr $o;
         txt_ ' by ';
         user_ $o;
 
     } else {
         txt_ {qw/v VN r Release p Producer c Character s Staff d Doc w Review t Thread/}->{substr $o->{object}, 0, 1};
         txt_ ': ';
-        a_ href => "/$lnk", $o->{title}||$lnk;
+        a_ href => "/$lnk", tattr $o;
         if($o->{user_name}) {
             txt_ ' by ';
             user_ $o;

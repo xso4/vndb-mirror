@@ -26,7 +26,7 @@ sub listing_ {
                 td_ class => 'tc2', sub {
                     a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
                     b_ class => 'grayedout', sub {
-                        join_ ', ', sub { a_ href => "/$_->{id}", title => $_->{alttitle}||$_->{title}, $_->{title} }, $_->{vn}->@*;
+                        join_ ', ', sub { a_ href => "/$_->{id}", tattr $_ }, $_->{vn}->@*;
                     };
                 };
             } for @$list;
@@ -49,7 +49,7 @@ sub listing_ {
                 a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
                 br_;
                 b_ class => 'grayedout', sub {
-                    join_ ', ', sub { a_ href => "/$_->{id}", title => $_->{alttitle}||$_->{title}, $_->{title} }, $_->{vn}->@*;
+                    join_ ', ', sub { a_ href => "/$_->{id}", tattr $_ }, $_->{vn}->@*;
                 };
             };
         } for @$list;
@@ -71,11 +71,11 @@ sub listing_ {
 # Also used by VNWeb::TT::TraitPage
 sub enrich_listing {
     enrich vn => id => cid => sub { sql '
-        SELECT DISTINCT cv.id AS cid, v.id, v.title, v.alttitle
+        SELECT DISTINCT cv.id AS cid, v.id, v.title, v.sorttitle
           FROM chars_vns cv
           JOIN', vnt, 'v ON v.id = cv.vid
          WHERE NOT v.hidden AND cv.spoil = 0 AND cv.id IN', $_, '
-         ORDER BY v.title'
+         ORDER BY v.sorttitle'
     }, @_;
 }
 

@@ -77,7 +77,7 @@ TUWF::get qr{/$RE{vid}/(?<mini>mini|full)?reviews}, sub {
     return tuwf->resNotFound if !$v;
     VNWeb::VN::Page::enrich_vn($v);
 
-    framework_ title => ($mini?'Mini reviews':'Reviews')." for $v->{title}", index => 1, dbobj => $v, hiddenmsg => 1,
+    framework_ title => ($mini?'Mini reviews':'Reviews')." for $v->{title}[1]", index => 1, dbobj => $v, hiddenmsg => 1,
     sub {
         VNWeb::VN::Page::infobox_($v);
         VNWeb::VN::Page::tabs_($v, !defined $mini ? 'reviews' : $mini ? 'minireviews' : 'fullreviews');

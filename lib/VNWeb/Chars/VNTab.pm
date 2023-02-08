@@ -57,7 +57,7 @@ TUWF::get qr{/$RE{vid}/chars}, sub {
 
     VNWeb::VN::Page::enrich_vn($v);
 
-    framework_ title => $v->{title}, index => 1, dbobj => $v, hiddenmsg => 1,
+    framework_ title => $v->{title}[1], index => 1, dbobj => $v, hiddenmsg => 1,
     sub {
         VNWeb::VN::Page::infobox_($v);
         VNWeb::VN::Page::tabs_($v, 'chars');

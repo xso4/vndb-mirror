@@ -96,7 +96,8 @@ CREATE TYPE ipinfo AS (
     drop               boolean
 );
 
-CREATE TYPE item_info_type AS (title text, alttitle text, uid vndbid, hidden boolean, locked boolean);
+
+CREATE TYPE item_info_type AS (title text[], uid vndbid, hidden boolean, locked boolean);
 
 CREATE TYPE titleprefs AS (
     -- NULL langs means unused slot
@@ -1469,23 +1470,25 @@ CREATE TABLE wikidata (
 -- added/removed/changed in the vn table.
 CREATE VIEW vnt AS
     SELECT v.*
-         , COALESCE(vo.latin, vo.title) AS title
+         , ARRAY[ v.olang::text, COALESCE(vo.latin, vo.title)
+                , v.olang::text, vo.title ] AS title
          , COALESCE(vo.latin, vo.title) AS sorttitle
-         , CASE WHEN vo.latin IS NULL THEN '' ELSE vo.title END AS alttitle
       FROM vn v
       JOIN vn_titles vo ON vo.id = v.id AND vo.lang = v.olang;
 
 -- Same for releases
 CREATE VIEW releasest AS
     SELECT r.*
-         , COALESCE(ro.latin, ro.title) AS title
+         , ARRAY[ r.olang::text, COALESCE(ro.latin, ro.title)
+                , r.olang::text, ro.title ] AS title
          , COALESCE(ro.latin, ro.title) AS sorttitle
-         , CASE WHEN ro.latin IS NULL THEN '' ELSE ro.title END AS alttitle
       FROM releases r
       JOIN releases_titles ro ON ro.id = r.id AND ro.lang = r.olang;
 
--- And producers (name / altname / sortname)
+-- And producers
 CREATE VIEW producerst AS
-    SELECT id, type, lang, l_wikidata, locked, hidden, alias, website, "desc", l_wp, c_search
-         , name, original AS altname, name AS sortname
+    SELECT *
+         , ARRAY [ lang::text, name
+                 , lang::text, COALESCE(original, name) ] AS title
+         , name AS sorttitle
       FROM producers;

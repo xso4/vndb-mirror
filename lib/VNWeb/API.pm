@@ -630,6 +630,9 @@ sub IMG {
     );
 }
 
+# Extracts the alttitle from a 'vnt.titles'-like array column, returns null if equivalent to the main title.
+sub ALTTITLE { my($t,$col) = @_; +(select => "CASE WHEN $t"."[1+1] = $t"."[1+1+1+1] THEN NULL ELSE $t"."[1+1+1+1] END AS ".($col // 'alttitle')) }
+
 
 api_query '/vn',
     filters => 'v',
@@ -639,8 +642,8 @@ api_query '/vn',
     },
     fields => {
         id => {},
-        title => { select => 'v.title' },
-        alttitle => { select => 'v.alttitle' },
+        title => { select => 'v.title[1+1]' },
+        alttitle => { ALTTITLE 'v.title' },
         titles => {
             enrich => sub { sql 'SELECT vt.id', $_[0], 'FROM vn_titles vt', $_[1], 'WHERE vt.id IN', $_[2] },
             key => 'id', col => 'id', num => 3,
@@ -718,8 +721,8 @@ api_query '/release',
     sql => sub { sql 'SELECT r.id', $_[0], 'FROM releasest r', $_[1], 'WHERE NOT r.hidden AND (', $_[2], ')' },
     fields => {
         id       => {},
-        title    => { select => 'r.title' },
-        alttitle => { select => 'r.alttitle' },
+        title    => { select => 'r.title[1+1]' },
+        alttitle => { ALTTITLE 'r.title' },
         languages => {
             enrich => sub { sql 'SELECT rt.id', $_[0], 'FROM releases_titles rt', $_[1], 'WHERE rt.id IN', $_[2] },
             key => 'id', col => 'id', num => 3,

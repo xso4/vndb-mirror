@@ -39,12 +39,12 @@ TUWF::get qr{/$RE{prev}/edit} => sub {
     $e->{editsum} = $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
     $e->{ptype} = delete $e->{type};
 
-    enrich_merge pid => sql('SELECT id AS pid, name, altname FROM', producerst, 'p WHERE id IN'), $e->{relations};
+    enrich_merge pid => sql('SELECT id AS pid, title[1+1] AS name, title[1+1+1+1] AS altname FROM', producerst, 'p WHERE id IN'), $e->{relations};
 
-    my($name) = titleprefs_swap @{$e}{qw/ lang name original /};
-    framework_ title => "Edit $name", dbobj => $e, tab => 'edit',
+    my $title = titleprefs_swap @{$e}{qw/ lang name original /};
+    framework_ title => "Edit $title->[1]", dbobj => $e, tab => 'edit',
     sub {
-        editmsg_ p => $e, "Edit $name";
+        editmsg_ p => $e, "Edit $title->[1]";
         elm_ ProducerEdit => $FORM_OUT, $e;
     };
 };

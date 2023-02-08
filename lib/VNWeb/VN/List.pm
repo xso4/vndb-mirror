@@ -194,11 +194,11 @@ sub listing_ {
             tr_ sub {
                 td_ class => 'tc_score', sub { tagscore_ $_->{tagscore} } if $tagscore;
                 td_ class => 'tc_ulist', sub { ulists_widget_ $_ } if auth;
-                td_ class => 'tc_title', sub { a_ href => "/$_->{id}", title => $_->{alttitle}||$_->{title}, $_->{title} };
+                td_ class => 'tc_title', sub { a_ href => "/$_->{id}", tattr $_ };
                 td_ class => 'tc_dev',   sub {
                     join_ ' & ', sub {
-                        a_ href => "/$_->{id}", title => $_->{altname}, $_->{name};
-                    }, sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} } $_->{developers}->@*;
+                        a_ href => "/$_->{id}", tattr $_;
+                    }, $_->{developers}->@*;
                 } if $opt->{s}->vis('developer');
                 td_ class => 'tc_plat',  sub { join_ '', sub { platform_ $_ if $_ ne 'unk' }, sort $_->{platforms}->@* };
                 td_ class => 'tc_lang',  sub { join_ '', sub { abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' }, reverse sort $_->{lang}->@* };
@@ -225,7 +225,7 @@ sub listing_ {
             a_ href => $url, title => $title, $label if $canlink;
             span_ $label if !$canlink;
         }
-        lnk_ "/$_->{id}", $_->{alttitle}||$_->{title}, $_->{title};
+        lnk_ "/$_->{id}", tattr $_;
         if(!$labels || $opt->{s}->vis('released')) {
             br_;
             join_ '', sub { platform_ $_ if $_ ne 'unk' }, sort $_->{platforms}->@*;
@@ -235,8 +235,8 @@ sub listing_ {
         if($opt->{s}->vis('developer')) {
             br_;
             join_ ' & ', sub {
-                lnk_ "/$_->{id}", $_->{altname}, $_->{name};
-            }, sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} } $_->{developers}->@*;
+                lnk_ "/$_->{id}", tattr $_;
+            }, $_->{developers}->@*;
         }
         table_ sub {
             tr_ sub {
@@ -320,7 +320,7 @@ sub listing_ {
     div_ class => 'mainbox vngrid', sub {
         div_ !$_->{image} || image_hidden($_->{image}) ? (class => 'noimage') : (style => 'background-image: url("'.imgurl($_->{image}{id}).'")'), sub {
             ulists_widget_ $_;
-            a_ href => "/$_->{id}", title => $_->{alttitle}||$_->{title}, sub { infoblock_ 0 };
+            a_ href => "/$_->{id}", title => $_->{title}[3], sub { infoblock_ 0 };
         } for @$list;
     } if $opt->{s}->grid;
 
@@ -334,9 +334,9 @@ sub enrich_listing {
     my($widget, $opt, @lst) = @_;
 
     enrich developers => id => vid => sub { sql
-        'SELECT v.id AS vid, p.id, p.name, p.altname
+        'SELECT v.id AS vid, p.id, p.title
            FROM vn v, unnest(v.c_developers) vp(id),', producerst, 'p
-          WHERE p.id = vp.id AND v.id IN', $_[0], 'ORDER BY p.name, p.id'
+          WHERE p.id = vp.id AND v.id IN', $_[0], 'ORDER BY p.sorttitle, p.id'
     }, @lst if $opt->{s}->vis('developer');
 
     enrich_image_obj image => @lst if !$opt->{s}->rows;
@@ -391,7 +391,7 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
     db_maytimeout {
         $count = tuwf->dbVali('SELECT count(*) FROM', vnt, 'v WHERE', $where);
         $list = $count ? tuwf->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
-            SELECT v.id, v.title, v.alttitle, v.c_released, v.c_popularity, v.c_votecount, v.c_rating, v.c_average
+            SELECT v.id, v.title, v.c_released, v.c_popularity, v.c_votecount, v.c_rating, v.c_average
                  , v.image, v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang',
                    $opt->{s}->vis('length') ? ', v.length, v.c_length, v.c_lengthnum' : (), '
               FROM', vnt, 'v

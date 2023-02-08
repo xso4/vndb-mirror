@@ -11,9 +11,9 @@ use VNDB::Func 'fmtrating';
 # Also used by Chars::VNTab & Reviews::VNTab
 sub enrich_vn {
     my($v, $revonly) = @_;
-    @{$v}{'title', 'alttitle'} = titleprefs_obj $v->{olang}, $v->{titles};
+    $v->{title} = titleprefs_obj $v->{olang}, $v->{titles};
     enrich_merge id => 'SELECT id, c_votecount, c_length, c_lengthnum FROM vn WHERE id IN', $v;
-    enrich_merge vid => sql('SELECT id AS vid, title, alttitle, c_released FROM', vnt, 'v WHERE id IN'), $v->{relations};
+    enrich_merge vid => sql('SELECT id AS vid, title, sorttitle, c_released FROM', vnt, 'v WHERE id IN'), $v->{relations};
     enrich_merge aid => 'SELECT id AS aid, title_romaji, title_kanji, year, type, ann_id, lastfetch FROM anime WHERE id IN', $v->{anime};
     enrich_extlinks v => 0, $v;
     enrich_image_obj image => $v;
@@ -155,7 +155,7 @@ sub rev_ {
         }],
         [ relations   => 'Relations',     fmt => sub {
             txt_ sprintf '[%s] %s: ', $_->{official} ? 'official' : 'unofficial', $VN_RELATION{$_->{relation}}{txt};
-            a_ href => "/$_->{vid}", title => $_->{alttitle}||$_->{title}, $_->{title};
+            a_ href => "/$_->{vid}", tattr $_;
         }],
         [ anime       => 'Anime',         fmt => sub { a_ href => "https://anidb.net/anime/$_->{aid}", "a$_->{aid}" }],
         [ screenshots => 'Screenshots',   fmt => sub {
@@ -182,7 +182,7 @@ sub infobox_relations_ {
     return if !$v->{relations}->@*;
 
     my %rel;
-    push $rel{$_->{relation}}->@*, $_ for sort { $b->{official} <=> $a->{official} || $a->{c_released} <=> $b->{c_released} || $a->{title} cmp $b->{title} } $v->{relations}->@*;
+    push $rel{$_->{relation}}->@*, $_ for sort { $b->{official} <=> $a->{official} || $a->{c_released} <=> $b->{c_released} || $a->{sorttitle} cmp $b->{sorttitle} } $v->{relations}->@*;
     my $unoffcount = grep !$_->{official}, $v->{relations}->@*;
 
     tr_ sub {
@@ -199,7 +199,7 @@ sub infobox_relations_ {
                     dd_ @allunoff, sub {
                         p_ class => $_->{official} ? undef : 'unofficial', sub {
                             b_ class => 'grayedout', '[unofficial] ' if !$_->{official};
-                            a_ href => "/$_->{vid}", title => $_->{alttitle}||$_->{title}, shorten $_->{title}, 40;
+                            a_ href => "/$_->{vid}", tattr $_;
                         } for $rel{$_}->@*;
                     }
                 }
@@ -252,15 +252,15 @@ sub infobox_producers_ {
     my($v) = @_;
 
     my $p = tuwf->dbAlli('
-        SELECT p.id, p.name, p.altname, rl.lang, bool_or(rp.developer) as developer, bool_or(rp.publisher) as publisher, min(rv.rtype) as rtype, bool_or(r.official) as official
+        SELECT p.id, p.title, p.sorttitle, rl.lang, bool_or(rp.developer) as developer, bool_or(rp.publisher) as publisher, min(rv.rtype) as rtype, bool_or(r.official) as official
           FROM releases_vn rv
           JOIN releases r ON r.id = rv.id
           JOIN releases_titles rl ON rl.id = rv.id
           JOIN releases_producers rp ON rp.id = rv.id
           JOIN', producerst, 'p ON p.id = rp.pid
          WHERE NOT r.hidden AND (r.official OR NOT rl.mtl) AND rv.vid =', \$v->{id}, '
-         GROUP BY p.id, p.name, p.altname, rl.lang
-         ORDER BY NOT bool_or(r.official), MIN(r.released), p.name
+         GROUP BY p.id, p.title, p.sorttitle, rl.lang
+         ORDER BY NOT bool_or(r.official), MIN(r.released), p.sorttitle
     ');
     return if !@$p;
 
@@ -271,7 +271,7 @@ sub infobox_producers_ {
     tr_ sub {
         td_ 'Developer';
         td_ sub {
-            join_ ' & ', sub { a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name}; }, @dev;
+            join_ ' & ', sub { a_ href => "/$_->{id}", tattr $_ }, @dev;
         };
     } if @dev;
 
@@ -304,7 +304,7 @@ sub infobox_producers_ {
             join_ \&br_, sub {
                 my @l = split /;/;
                 abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for @l;
-                join_ ' & ', sub { a_ href => "/$_->{id}", $_->{official} ? () : (class => 'grayedout'), title => $_->{altname}, $_->{name} }, $lang{$l[0]}->@*;
+                join_ ' & ', sub { a_ href => "/$_->{id}", $_->{official} ? () : (class => 'grayedout'), tattr $_ }, $lang{$l[0]}->@*;
             }, @nlang;
         }
     };
@@ -430,7 +430,7 @@ sub infobox_ {
                 abbr_ class => "icons lang $t->{lang}", title => $LANGUAGE{$t->{lang}}, '';
             };
             td_ sub {
-                span_ lang_attr($t->{lang}), $t->{title};
+                span_ tlang($t->{lang}, $t->{title}), $t->{title};
                 if($t->{latin}) {
                     br_;
                     txt_ $t->{latin};
@@ -441,8 +441,8 @@ sub infobox_ {
 
     div_ class => 'mainbox', sub {
         itemmsg_ $v;
-        h1_ $v->{title};
-        h2_ class => 'alttitle', lang_attr($v->{olang}), $v->{alttitle} if $v->{alttitle} && $v->{alttitle} ne $v->{title};
+        h1_ tlang($v->{title}[0], $v->{title}[1]), $v->{title}[1];
+        h2_ class => 'alttitle', tlang(@{$v->{title}}[2,3]), $v->{title}[3] if $v->{title}[3] && $v->{title}[3] ne $v->{title}[1];
 
         div_ class => 'warning', sub {
             h2_ 'No releases';
@@ -868,7 +868,7 @@ sub screenshots_ {
             p_ class => 'rel', sub {
                 abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, '' for $r->{titles}->@*;
                 platform_ $_ for $r->{platforms}->@*;
-                a_ href => "/$r->{id}", $r->{title};
+                a_ href => "/$r->{id}", tattr $r;
             };
             div_ class => 'scr', sub {
                 a_ href => imgurl($_->{scr}{id}),
@@ -979,7 +979,7 @@ TUWF::get qr{/$RE{vrev}}, sub {
 
     enrich_item $v, 1;
 
-    framework_ title => $v->{title}, index => !tuwf->capture('rev'), dbobj => $v, hiddenmsg => 1, js => 1, og => og($v),
+    framework_ title => $v->{title}[1], index => !tuwf->capture('rev'), dbobj => $v, hiddenmsg => 1, js => 1, og => og($v),
     sub {
         rev_ $v if tuwf->capture('rev');
         infobox_ $v;
@@ -999,7 +999,7 @@ TUWF::get qr{/$RE{vid}/tags}, sub {
 
     enrich_vn $v;
 
-    framework_ title => $v->{title}, index => 1, dbobj => $v, hiddenmsg => 1,
+    framework_ title => $v->{title}[1], index => 1, dbobj => $v, hiddenmsg => 1,
     sub {
         infobox_ $v, 1;
         tabs_ $v, 'tags';

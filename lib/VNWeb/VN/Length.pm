@@ -14,7 +14,7 @@ sub opts {
         $mode ne 'u' ? (
         username => { name => 'User',   sort_id => 3, sort_sql => 'u.username' } ) : (),
         $mode ne 'v' ? (
-        title    => { name => 'Title',  sort_id => 4, sort_sql => 'v.title' } ) : ()
+        title    => { name => 'Title',  sort_id => 4, sort_sql => 'v.sorttitle' } ) : ()
 }
 my %TABLEOPTS = map +($_, opts $_), '', 'v', 'u';
 
@@ -46,7 +46,7 @@ sub listing_ {
                 td_ class => 'tc1', fmtdate $_->{date};
                 td_ class => 'tc2', sub { user_ $_ } if $mode ne 'u';
                 td_ class => 'tc2', sub {
-                    a_ href => "/$_->{vid}", title => $_->{alttitle}||$_->{title}, $_->{title};
+                    a_ href => "/$_->{vid}", tattr $_;
                 } if $mode ne 'v';
                 td_ class => 'tc3'.($_->{ignore}?' grayedout':''), sub { vnlength_ $_->{length} };
                 td_ class => 'tc4'.($_->{ignore}?' grayedout':''), ['Slow','Normal','Fast','-']->[$_->{speed}//3];
@@ -133,7 +133,7 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
       'SELECT l.id, l.uid, l.vid, l.length, l.speed, l.notes, l.private, l.rid::text[] AS rel, '
             , sql_totime('l.date'), 'AS date, u.perm_lengthvote IS NOT DISTINCT FROM false AS ignore',
               $mode ne 'u' ? (', ', sql_user()) : (),
-              $mode ne 'v' ? ', v.title, v.alttitle' : (), '
+              $mode ne 'v' ? ', v.title' : (), '
          FROM vn_length_votes l
          LEFT JOIN users u ON u.id = l.uid',
          $mode ne 'v' ? ('JOIN', vnt, 'v ON v.id = l.vid') : (),
@@ -143,7 +143,7 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
     $_->{rel} = [ map +{ id => $_ }, $_->{rel}->@* ] for @$lst;
     enrich_flatten lang => id => id => 'SELECT id, lang FROM releases_titles WHERE id IN', map $_->{rel}, @$lst;
 
-    my $title = 'Length votes'.($mode ? ($mode eq 'v' ? ' for ' : ' by ').$o->{title} : '');
+    my $title = 'Length votes'.($mode ? ($mode eq 'v' ? ' for ' : ' by ').$o->{title}[1] : '');
     framework_ title => $title, dbobj => $o, sub {
         div_ class => 'mainbox', sub {
             h1_ $title;

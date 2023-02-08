@@ -144,6 +144,7 @@ TUWF::get qr{(?:/t/(?<board>$BOARD_RE)/new|/$RE{tid}\.1/edit)}, sub {
         push $t->{boards}->@*, { btype => 'u', iid => auth->uid, title => auth->user->{user_name} }
             if $board_type eq 'u' && $board_id->{id} ne auth->uid;
     }
+    $_->{title} = $_->{title} && $_->{title}[1] for $t->{boards}->@*;
 
     $t->{can_mod}     = auth->permBoardmod;
     $t->{can_private} = auth->isMod;

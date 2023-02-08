@@ -33,13 +33,13 @@ sub review_ {
         tr_ sub {
             td_ 'Subject';
             td_ sub {
-                a_ href => "/$w->{vid}", title => $w->{alttitle}||$w->{title}, $w->{title};
+                a_ href => "/$w->{vid}", tattr $w;
                 if($w->{rid}) {
                     br_;
                     platform_ $_ for $w->{platforms}->@*;
                     abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for $w->{lang}->@*;
                     abbr_ class => "icons rt$w->{rtype}", title => $w->{rtype}, '';
-                    a_ href => "/$w->{rid}", title => $w->{ralttitle}||$w->{rtitle}, $w->{rtitle};
+                    a_ href => "/$w->{rid}", tattr $w->{rtitle};
                 }
             };
         };
@@ -98,7 +98,7 @@ TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
     my($id, $sep, $num) = (tuwf->capture('id'), tuwf->capture('sep')||'', tuwf->capture('num'));
     my $w = tuwf->dbRowi(
         'SELECT r.id, r.vid, r.rid, r.isfull, r.modnote, r.text, r.spoiler, r.locked, COALESCE(c.count,0) AS count, r.c_flagged, r.c_up, r.c_down, uv.vote, rm.id IS NULL AS can
-              , v.title, v.alttitle, rel.title AS rtitle, rel.alttitle AS ralttitle, relv.rtype, rv.vote AS my, COALESCE(rv.overrule,false) AS overrule
+              , v.title, rel.title AS rtitle, relv.rtype, rv.vote AS my, COALESCE(rv.overrule,false) AS overrule
               , ', sql_user(), ',', sql_totime('r.date'), 'AS date,', sql_totime('r.lastmod'), 'AS lastmod
            FROM reviews r
            JOIN', vnt, 'v ON v.id = r.vid
@@ -137,7 +137,7 @@ TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
 
     my $newreview = auth && auth->uid eq $w->{user_id} && tuwf->reqGet('submit');
 
-    my $title = "Review of $w->{title}";
+    my $title = "Review of $w->{title}[1]";
     framework_ title => $title, index => 1, dbobj => $w,
         $num||$page>1 ? (pagevars => {sethash=>$num?$num:'threadstart'}) : (),
     sub {

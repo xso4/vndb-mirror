@@ -77,7 +77,7 @@ sub ulists_widget_full_data {
         vid    => $v->{id},
         labels => $lst->{vid} ? [ map +{ id => $_, label => '' }, $lst->{labels}->@* ] : undef,
         full   => {
-            title     => $vnpage ? '' : $v->{title},
+            title     => $vnpage ? '' : $v->{title}[1],
             labels    => tuwf->dbAlli('SELECT id, label, private FROM ulist_labels WHERE uid =', \$uid, 'ORDER BY CASE WHEN id < 10 THEN id ELSE 10 END, label'),
             canvote   => $lst->{vote} || $canvote || 0,
             canreview => $review || ($canvote && can_edit(w => {})) || 0,

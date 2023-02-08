@@ -55,6 +55,7 @@ TUWF::get qr{/feeds/changes.atom}, sub {
     my($lst) = VNWeb::Misc::History::fetch(undef, {m=>1,h=>1,p=>1}, {results=>25});
     for (@$lst) {
         $_->{id}      = "$_->{itemid}.$_->{rev}";
+        $_->{title}   = $_->{title}[1];
         $_->{summary} = $_->{comments};
         $_->{updated} = $_->{added};
     }

@@ -33,8 +33,8 @@ sub enrich_item {
     my($c) = @_;
 
     enrich_image_obj image => $c;
-    enrich_merge vid => sql('SELECT id AS vid, title, alttitle, c_released AS vn_released FROM', vnt, 'v WHERE id IN'), $c->{vns};
-    enrich_merge rid => sql('SELECT id AS rid, title AS rtitle, alttitle AS ralttitle, released AS rel_released FROM', releasest, 'r WHERE id IN'), grep $_->{rid}, $c->{vns}->@*;
+    enrich_merge vid => sql('SELECT id AS vid, title, sorttitle, c_released AS vn_released FROM', vnt, 'v WHERE id IN'), $c->{vns};
+    enrich_merge rid => sql('SELECT id AS rid, title AS rtitle, released AS rel_released FROM', releasest, 'r WHERE id IN'), grep $_->{rid}, $c->{vns}->@*;
 
     # Even with trait overrides, we'll want to see the raw data in revision diffs,
     # so fetch the raw spoil as a separate column and do filtering/processing later.
@@ -48,7 +48,7 @@ sub enrich_item {
     }, $c->{traits};
 
     $c->{vns}    = [ sort { $a->{vn_released} <=> $b->{vn_released} || ($a->{rel_released}||0) <=> ($b->{rel_released}||0)
-                          || $a->{title} cmp $b->{title} || idcmp($a->{vid}, $b->{vid}) || idcmp($a->{rid}||'r999999', $b->{rid}||'r999999') } $c->{vns}->@* ];
+                          || $a->{sorttitle} cmp $b->{sorttitle} || idcmp($a->{vid}, $b->{vid}) || idcmp($a->{rid}||'r999999', $b->{rid}||'r999999') } $c->{vns}->@* ];
     $c->{traits} = [ sort { $a->{order} <=> $b->{order} || $a->{groupname} cmp $b->{groupname} || $a->{name} cmp $b->{name} } $c->{traits}->@* ];
 }
 
@@ -64,12 +64,12 @@ sub fetch_chars {
     ');
 
     enrich vns => id => id => sub { sql '
-        SELECT cv.id, cv.vid, cv.rid, cv.spoil, cv.role, v.title, v.alttitle, r.title AS rtitle, r.alttitle AS ralttitle
+        SELECT cv.id, cv.vid, cv.rid, cv.spoil, cv.role, v.title, r.title AS rtitle
           FROM chars_vns cv
           JOIN', vnt, 'v ON v.id = cv.vid
           LEFT JOIN', releasest, 'r ON r.id = cv.rid
          WHERE cv.id IN', $_, $vid ? ('AND cv.vid =', \$vid) : (), '
-         ORDER BY v.c_released, r.released, v.title, cv.vid, cv.rid NULLS LAST'
+         ORDER BY v.c_released, r.released, v.sorttitle, cv.vid, cv.rid NULLS LAST'
     }, $l;
 
     enrich traits => id => id => sub { sql '
@@ -115,7 +115,7 @@ sub _rev_ {
         [ main_spoil => 'Spoiler',       fmt => sub { txt_ fmtspoil $_ } ],
         [ image      => 'Image',         fmt => sub { image_ $_ } ],
         [ vns        => 'Visual novels', fmt => sub {
-            a_ href => "/$_->{vid}", title => $_->{alttitle}||$_->{title}, $_->{vid};
+            a_ href => "/$_->{vid}", tlang(@{$_->{title}}[0,1]), title => $_->{title}[1], $_->{vid};
             if($_->{rid}) {
                 txt_ ' ['; a_ href => "/$_->{rid}", $_->{rid}; txt_ ']';
             }
@@ -211,18 +211,18 @@ sub chartable_ {
                         # Just a VN link, no releases
                         if(!$vn && $v->{rels}->@* == 1 && !$v->{rels}[0]{rid}) {
                             txt_ $CHAR_ROLE{$v->{role}}{txt}.' - ';
-                            a_ href => "/$v->{vid}", title => $v->{alttitle}||$v->{title}, $v->{title};
+                            a_ href => "/$v->{vid}", tattr $v;
                             spoil_ $v->{spoil};
                         # With releases
                         } else {
-                            a_ href => "/$v->{vid}", title => $v->{alttitle}||$v->{title}, $v->{title} if !$vn;
+                            a_ href => "/$v->{vid}", tattr $v if !$vn;
                             br_ if !$vn;
                             join_ \&br_, sub {
                                 b_ class => 'grayedout', '> ';
                                 txt_ $CHAR_ROLE{$_->{role}}{txt}.' - ';
                                 if($_->{rid}) {
                                     b_ class => 'grayedout', "$_->{rid}:";
-                                    a_ href => "/$_->{rid}", title => $_->{ralttitle}||$_->{rtitle}, $_->{rtitle};
+                                    a_ href => "/$_->{rid}", tattr $_->{rtitle};
                                 } else {
                                     txt_ 'All other releases';
                                 }

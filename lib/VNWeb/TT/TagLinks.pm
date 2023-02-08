@@ -43,8 +43,8 @@ sub listing_ {
                     txt_ $s if !$i->{ignore};
                 };
                 td_ class => 'tc7', sub {
-                    a_ href => $url->(v => $i->{vid}, p=>undef), title => $i->{alttitle}||$i->{title}, class => 'setfil', '> ' if !defined $opt->{v};
-                    a_ href => "/$i->{vid}", title => $i->{alttitle}||$i->{title}, shorten $i->{title}, 50;
+                    a_ href => $url->(v => $i->{vid}, p=>undef), class => 'setfil', '> ' if !defined $opt->{v};
+                    a_ href => "/$i->{vid}", tattr $i;
                 };
                 td_ class => 'tc8', sub { lit_ bb_format $i->{notes}, inline => 1 };
             } for @$lst;
@@ -74,7 +74,7 @@ TUWF::get qr{/g/links}, sub {
     my $count = $filt && tuwf->dbVali('SELECT COUNT(*) FROM tags_vn tv WHERE', $where);
     my($lst, $np) = tuwf->dbPagei({ page => $opt->{p}, results => 50 }, '
         SELECT tv.vid, tv.uid, tv.tag, tv.vote, tv.spoiler, tv.lie,', sql_totime('tv.date'), 'as date
-             , tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) AS ignore, tv.notes, v.title, v.alttitle, ', sql_user(), ', t.name
+             , tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) AS ignore, tv.notes, v.title, ', sql_user(), ', t.name
           FROM tags_vn tv
           JOIN', vnt, 'v ON v.id = tv.vid
           LEFT JOIN users u ON u.id = tv.uid
@@ -105,8 +105,8 @@ TUWF::get qr{/g/links}, sub {
                     li_ sub {
                         txt_ '['; a_ href => url(v=>undef, p=>undef), 'remove'; txt_ '] ';
                         txt_ 'Visual novel'; txt_ ' ';
-                        my $v = tuwf->dbRowi('SELECT title, alttitle FROM', vnt, 'v WHERE id=', \$opt->{v});
-                        a_ href => "/$opt->{v}", title => $v->{alttitle}||$v->{title}, $v->{title}||'Unknown VN';
+                        my $v = tuwf->dbRowi('SELECT title FROM', vnt, 'v WHERE id=', \$opt->{v});
+                        a_ href => "/$opt->{v}", $v->{title} ? tattr $v : ('Unknown VN');
                     } if defined $opt->{v};
                 }
             }

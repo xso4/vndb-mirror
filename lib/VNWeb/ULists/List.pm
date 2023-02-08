@@ -158,13 +158,13 @@ sub vn_ {
         } if $opt->{s}->vis('label');
 
         td_ class => 'tc_title', sub {
-            a_ href => "/$v->{id}", title => $v->{alttitle}||$v->{title}, shorten $v->{title}, 70;
+            a_ href => "/$v->{id}", tattr $v;
             b_ class => 'grayedout', id => 'ulist_notes_'.$v->{id}, $v->{notes} if $v->{notes} || $own;
         };
         td_ class => 'tc_dev',   sub {
             join_ ' & ', sub {
-                a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
-            }, sort { $a->{name} cmp $b->{name} || $a->{id} <=> $b->{id} } $v->{developers}->@*;
+                a_ href => "/$_->{id}", tattr $_;
+            }, $v->{developers}->@*;
         } if $opt->{s}->vis('developer');
 
         td_ class => 'tc_added',    fmtdate $v->{added},     'compact' if $opt->{s}->vis('added');
@@ -221,7 +221,7 @@ sub listing_ {
     my $count = tuwf->dbVali('SELECT count(*) FROM ulist_vns uv JOIN', vnt, 'v ON v.id = uv.vid WHERE', $where);
 
     my $lst = tuwf->dbPagei({ page => $opt->{p}, results => $opt->{s}->results },
-        'SELECT v.id, v.title, v.alttitle, uv.vote, uv.notes, uv.labels, uv.started, uv.finished
+        'SELECT v.id, v.title, uv.vote, uv.notes, uv.labels, uv.started, uv.finished
               , v.c_released, v.c_popularity, v.c_average, v.c_rating, v.c_votecount, v.c_released
               , v.image, v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang
               ,', sql_totime('uv.added'), ' as added

@@ -84,11 +84,11 @@ sub posts_ {
                         AND bb_tsvector(tp.msg) @@', \$ts,
                             @tboards < keys %BOARD_TYPE ? ('AND t.id IN(SELECT tid FROM threads_boards WHERE type IN', \@tboards, ')') : ()
              ) : (), $reviews ? (
-                 sql('SELECT w.id, 0, v.title, w.uid, w.date, w.text
+                 sql('SELECT w.id, 0, v.title[1+1], w.uid, w.date, w.text
                         FROM reviews w
                         JOIN', vnt, 'v ON v.id = w.vid
                        WHERE NOT w.c_flagged AND bb_tsvector(w.text) @@', \$ts),
-                 sql('SELECT wp.id, wp.num, v.title, wp.uid, wp.date, wp.msg
+                 sql('SELECT wp.id, wp.num, v.title[1+1], wp.uid, wp.date, wp.msg
                         FROM reviews_posts wp
                         JOIN reviews w ON w.id = wp.id
                         JOIN', vnt, 'v ON v.id = w.vid

@@ -123,44 +123,44 @@ our $DEFAULT_TITLE_PREFS = [
 sub pref { tuwf->req->{titleprefs} //= !is_api() && titleprefs_parse(auth->pref('titles')) }
 
 
-# Returns the preferred (title, alttitle) given an array of
-# (vn|releases)_titles-like objects. Same functionality as the SQL view, except
-# implemented in perl.
+# Returns the preferred title array given an array of (vn|releases)_titles-like
+# objects. Same functionality as the SQL view, except implemented in perl.
 sub titleprefs_obj {
     my($olang, $titles) = @_;
     my $p = pref || $DEFAULT_TITLE_PREFS;
     my %l = map +($_->{lang},$_), $titles->@*;
 
-    my @title = ('','');
+    my @title = ('','','','');
     for my $t (0,1) {
         for ($p->[$t]->@*) {
             my $o = $l{$_->{lang} // $olang} or next;
             next if !defined $_->{official} && $o->{lang} ne $olang;
             next if $_->{official} && defined $o->{official} && !$o->{official};
             next if !defined $o->{title};
-            $title[$t] = $_->{latin} && length $o->{latin} ? $o->{latin} : $o->{title};
+            $title[$t*2] = $o->{lang};
+            $title[$t*2+1] = $_->{latin} && length $o->{latin} ? $o->{latin} : $o->{title};
             last;
         }
     }
-    return @title;
+    \@title;
 }
 
 
-# Returns the preferred (name, alttitle) given a language, latin title and original title.
+# Returns the preferred title array given a language, latin title and original title.
 # For DB entries that only have (title, original) fields.
 sub titleprefs_swap {
     my($olang, $title, $original) = @_;
     my $p = pref || $DEFAULT_TITLE_PREFS;
 
-    my @title = ('','');
+    my @title = ($olang,'',$olang,'');
     for my $t (0,1) {
         for ($p->[$t]->@*) {
             next if $_->{lang} && $_->{lang} ne $olang;
-            $title[$t] = $_->{latin} ? $title : $original//$title;
+            $title[$t*2+1] = $_->{latin} ? $title : $original//$title;
             last;
         }
     }
-    return @title;
+    \@title;
 }
 
 
@@ -181,17 +181,21 @@ sub gen_sql {
             $has_official && $_ =~ /^o./ ? "$joins{$_}.official" : (),
     ), sort keys %joins;
 
-    my $title = 'COALESCE('.join(',',
-        map +($_->{latin} ? ($joins{ id($_) }.'.latin') : (), $joins{ id($_) }.'.title'), $p->[0]->@*
-    ).')';
+    my sub titlearray {
+        my($o) = @_;
+        'ARRAY['.($o->{lang}?"'$o->{lang}'":'null').', COALESCE('.($o->{latin} ? $joins{ id($o) }.'.latin, ' : '').$joins{ id($o) }.'.title)]';
+    }
+    my sub titlesel {
+        my $orig = pop;
+        return titlearray($orig) if !@_;
+        'CASE '.join(' ', map 'WHEN '.$joins{ id($_) }.'.title IS NOT NULL THEN '.titlearray($_), @_).' ELSE '.titlearray($orig).' END';
+    }
+    my $title = titlesel($p->[0]->@*).'||'.titlesel($p->[1]->@*);
     my $sorttitle = 'COALESCE('.join(',',
         map +($joins{ id($_) }.'.latin', $joins{ id($_) }.'.title'), $p->[0]->@*
     ).')';
-    my $alttitle = 'COALESCE('.join(',',
-        map +($_->{latin} ? ($joins{ id($_) }.'.latin') : (), $joins{ id($_) }.'.title'), $p->[1]->@*
-    ).')';
 
-    sql "(SELECT x.*, $title AS title, $sorttitle AS sorttitle, $alttitle AS alttitle FROM $tbl_main x", @joins, ')';
+    sql "(SELECT x.*, $title AS title, $sorttitle AS sorttitle FROM $tbl_main x", @joins, ')';
 }
 
 

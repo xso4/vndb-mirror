@@ -453,7 +453,7 @@ my %GET_VN = (
   sortdef => 'id',
   sorts   => {
     id => 'v.id %s',
-    title => 'v.title %s, v.id',
+    title => 'v.sorttitle %s, v.id',
     released => 'v.c_released %s, v.id',
     popularity => '-v.c_pop_rank %s NULLS LAST, v.id',
     rating => '-v.c_rat_rank %s NULLS LAST, v.id',
@@ -461,7 +461,7 @@ my %GET_VN = (
   },
   flags  => {
     basic => {
-      select => 'v.title, v.alttitle AS original, v.c_released, v.c_languages, v.olang, v.c_platforms',
+      select => 'v.title[2], v.title[4] AS original, v.c_released, v.c_languages, v.olang, v.c_platforms',
       proc   => sub {
         $_[0]{original}  ||= undef;
         $_[0]{platforms} = splitarray delete $_[0]{c_platforms};
@@ -533,7 +533,7 @@ my %GET_VN = (
       ]],
     },
     relations => {
-      fetch => [[ 'id', 'SELECT vr.id AS vid, v.id, vr.relation, v.title, v.alttitle AS original, vr.official FROM vn_relations vr
+      fetch => [[ 'id', 'SELECT vr.id AS vid, v.id, vr.relation, v.title[2], v.title[4] AS original, vr.official FROM vn_relations vr
                      JOIN vnt v ON v.id = vr.vid WHERE vr.id IN(%s)',
         sub { my($r, $n) = @_;
           for my $i (@$r) {
@@ -609,17 +609,17 @@ my %GET_VN = (
       [ inta  => 'v.id :op:(:value:)', {'=' => 'IN', '!= ' => 'NOT IN'}, process => \'v', join => ',' ],
     ],
     title => [
-      [ str   => 'v.title :op: :value:', {qw|= =  != <>|} ],
-      [ str   => 'v.title ILIKE :value:', {'~',1}, process => \'like' ],
+      [ str   => 'v.sorttitle :op: :value:', {qw|= =  != <>|} ],
+      [ str   => 'v.sorttitle ILIKE :value:', {'~',1}, process => \'like' ],
     ],
     original => [
-      [ undef,   "v.alttitle :op: ''", {qw|= =  != <>|} ],
-      [ str   => 'v.alttitle :op: :value:', {qw|= =  != <>|} ],
-      [ str   => 'v.alttitle ILIKE :value:', {'~',1}, process => \'like' ]
+      [ undef,   "v.title[4] :op: ''", {qw|= =  != <>|} ],
+      [ str   => 'v.title[4] :op: :value:', {qw|= =  != <>|} ],
+      [ str   => 'v.title[4] ILIKE :value:', {'~',1}, process => \'like' ]
     ],
     firstchar => [
-      [ undef,   ':op: match_firstchar(v.title, \'0\')', {'=', '', '!=', 'NOT'} ],
-      [ str   => ':op: match_firstchar(v.title, :value:)', {'=', '', '!=', 'NOT'}, process => sub { shift =~ /^([a-z])$/ ? $1 : \'Invalid character' } ],
+      [ undef,   ':op: match_firstchar(v.sorttitle, \'0\')', {'=', '', '!=', 'NOT'} ],
+      [ str   => ':op: match_firstchar(v.sorttitle, :value:)', {'=', '', '!=', 'NOT'}, process => sub { shift =~ /^([a-z])$/ ? $1 : \'Invalid character' } ],
     ],
     released => [
       [ undef,   'v.c_released :op: 0', {qw|= =  != <>|} ],
@@ -663,7 +663,7 @@ my %GET_RELEASE = (
   },
   flags => {
     basic => {
-      select => 'r.title, r.alttitle AS original, r.released, r.patch, r.freeware, r.doujin, r.official',
+      select => 'r.title[2], r.title[4] AS original, r.released, r.patch, r.freeware, r.doujin, r.official',
       proc   => sub {
         $_[0]{original} ||= undef;
         $_[0]{released} = formatdate($_[0]{released});
@@ -739,7 +739,7 @@ my %GET_RELEASE = (
       ]],
     },
     vn => {
-      fetch => [[ 'id', 'SELECT rv.id AS rid, rv.rtype, v.id, v.title, v.alttitle AS original FROM releases_vn rv JOIN vnt v ON v.id = rv.vid
+      fetch => [[ 'id', 'SELECT rv.id AS rid, rv.rtype, v.id, v.title[2], v.title[4] AS original FROM releases_vn rv JOIN vnt v ON v.id = rv.vid
                     WHERE NOT v.hidden AND rv.id IN(%s)',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
@@ -799,13 +799,13 @@ my %GET_RELEASE = (
       [ 'int' => 'r.id IN(SELECT rp.id FROM releases_producers rp WHERE rp.pid = :value:)', {'=',1}, process => \'p' ],
     ],
     title => [
-      [ str   => 'r.title :op: :value:', {qw|= =  != <>|} ],
-      [ str   => 'r.title ILIKE :value:', {'~',1}, process => \'like' ],
+      [ str   => 'r.sorttitle :op: :value:', {qw|= =  != <>|} ],
+      [ str   => 'r.sorttitle ILIKE :value:', {'~',1}, process => \'like' ],
     ],
     original => [
-      [ undef,   "r.alttitle :op: ''", {qw|= =  != <>|} ],
-      [ str   => 'r.alttitle :op: :value:', {qw|= =  != <>|} ],
-      [ str   => 'r.alttitle ILIKE :value:', {'~',1}, process => \'like' ]
+      [ undef,   "r.title[4] :op: ''", {qw|= =  != <>|} ],
+      [ str   => 'r.title[4] :op: :value:', {qw|= =  != <>|} ],
+      [ str   => 'r.title[4] ILIKE :value:', {'~',1}, process => \'like' ]
     ],
     released => [
       [ undef,   'r.released :op: 0', {qw|= =  != <>|} ],
@@ -1130,7 +1130,7 @@ my %GET_STAFF = (
 
 my %GET_QUOTE = (
   sql     => "SELECT %s FROM quotes q JOIN vnt v ON v.id = q.vid WHERE NOT v.hidden AND (%s) %s",
-  select  => "v.id, v.title, q.quote",
+  select  => "v.id, v.title[2], q.quote",
   proc    => sub {
     $_[0]{id} = idnum $_[0]{id};
   },

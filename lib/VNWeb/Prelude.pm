@@ -83,7 +83,7 @@ sub dbobj {
     return undef if !$id;
     if($id =~ /^u/) {
         my $o = tuwf->dbRowi('SELECT id, ', sql_user(), 'FROM users u WHERE id =', \$id);
-        $o->{title} = VNWeb::HTML::user_displayname $o;
+        $o->{title} = [(undef, VNWeb::HTML::user_displayname $o)x2];
         return $o;
     }
 

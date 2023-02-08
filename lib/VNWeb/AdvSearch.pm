@@ -858,7 +858,7 @@ sub elm_search_query {
     _extract_ids($self->{type}, $self->{query}, \%ids) if $self->{query};
 
     $o{producers} = [ map +{id => $_}, grep /^p/, keys %ids ];
-    enrich_merge id => sql('SELECT id, name, altname, hidden FROM', VNWeb::TitlePrefs::producerst(), 'p WHERE id IN'), $o{producers};
+    enrich_merge id => sql('SELECT id, title[1+1] AS name, title[1+1+1+1] AS altname, hidden FROM', VNWeb::TitlePrefs::producerst(), 'p WHERE id IN'), $o{producers};
 
     $o{staff} = [ map +{id => $_}, grep /^s/, keys %ids ];
     enrich_merge id => 'SELECT s.id, s.lang, sa.aid, sa.name, sa.original FROM staff s JOIN staff_alias sa ON sa.aid = s.aid WHERE s.id IN', $o{staff};

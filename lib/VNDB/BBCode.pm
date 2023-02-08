@@ -302,7 +302,7 @@ sub bb_subst_links {
 
   my $first = 0;
   my %links = map +($_->{id}, $_->{title}), $TUWF::OBJ->dbAlli(
-    'SELECT id, title FROM (VALUES', (map +($first++ ? ',(' : '(', \"$_", '::vndbid)'), sort keys %lookup), ') n(id), item_info(NULL, n.id, NULL)'
+    'SELECT id, title[1+1] FROM (VALUES', (map +($first++ ? ',(' : '(', \"$_", '::vndbid)'), sort keys %lookup), ') n(id), item_info(NULL, n.id, NULL)'
   )->@*;
   return $msg unless %links;
 

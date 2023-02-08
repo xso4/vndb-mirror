@@ -22,13 +22,8 @@ sub sql_visible_threads {
 sub enrich_boards {
     my($filt, @lst) = @_;
     enrich boards => id => tid => sub { sql '
-        SELECT tb.tid, tb.type AS btype, tb.iid
-              , COALESCE(v.title, p.name, u.username) AS title
-              , COALESCE(v.alttitle, p.altname) AS alttitle
-          FROM threads_boards tb
-          LEFT JOIN', vnt, 'v ON tb.type = \'v\' AND v.id = tb.iid
-          LEFT JOIN', producerst, 'p ON tb.type = \'p\' AND p.id = tb.iid
-          LEFT JOIN users u ON tb.type = \'u\' AND u.id = tb.iid
+        SELECT tb.tid, tb.type AS btype, tb.iid, x.title
+          FROM threads_boards tb, ', item_info('tb.iid', 'NULL'), 'x
          WHERE ', sql_and(sql('tb.tid IN', $_[0]), $filt||()), '
          ORDER BY tb.type, tb.iid
     '}, @lst;
@@ -90,8 +85,9 @@ sub threadlist_ {
                     b_ class => 'boards', sub {
                         join_ ', ', sub {
                             a_ href => '/t/'.($_->{iid}||$_->{btype}),
-                                title => $_->{alttitle}||$BOARD_TYPE{$_->{btype}}{txt},
-                                shorten $_->{title}||$BOARD_TYPE{$_->{btype}}{txt}, 30;
+                                $_->{title} ? tlang(@{$_->{title}}[0,1]) : (),
+                                title => $_->{title} ? $_->{title}[3] : $BOARD_TYPE{$_->{btype}}{txt},
+                                shorten $_->{title} ? $_->{title}[1] : $BOARD_TYPE{$_->{btype}}{txt}, 30;
                         }, $l->{boards}->@[0 .. min 4, $#{$l->{boards}}];
                         txt_ ', ...' if $l->{boards}->@* > 4;
                     } if !$system;

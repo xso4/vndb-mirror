@@ -54,9 +54,9 @@ TUWF::get qr{/$RE{vid}/votes}, sub {
             { a => 'ASC', d => 'DESC' }->{$opt->{o}}
     );
 
-    framework_ title => "Votes for $v->{title}", dbobj => $v, sub {
+    framework_ title => "Votes for $v->{title}[1]", dbobj => $v, sub {
         div_ class => 'mainbox', sub {
-            h1_ "Votes for $v->{title}";
+            h1_ "Votes for $v->{title}[1]";
             p_ 'No votes to list. :(' if !@$lst;
         };
         listing_ $opt, $count, $lst if @$lst;
