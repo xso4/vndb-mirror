@@ -136,14 +136,14 @@ CREATE OR REPLACE FUNCTION releasest(p titleprefs) RETURNS SETOF releasest AS $$
       ELSE COALESCE(ol.latin, ol.title) END
     FROM releases r
     JOIN releases_titles ol ON ol.id = r.id AND ol.lang = r.olang
-    LEFT JOIN releases_titles t1 ON t1.id = r.id AND t1.lang = COALESCE(p.t1_lang, 'en')
-    LEFT JOIN releases_titles t2 ON t2.id = r.id AND t2.lang = COALESCE(p.t2_lang, 'en')
-    LEFT JOIN releases_titles t3 ON t3.id = r.id AND t3.lang = COALESCE(p.t3_lang, 'en')
-    LEFT JOIN releases_titles t4 ON t4.id = r.id AND t4.lang = COALESCE(p.t4_lang, 'en')
-    LEFT JOIN releases_titles a1 ON a1.id = r.id AND a1.lang = COALESCE(p.a1_lang, 'en')
-    LEFT JOIN releases_titles a2 ON a2.id = r.id AND a2.lang = COALESCE(p.a2_lang, 'en')
-    LEFT JOIN releases_titles a3 ON a3.id = r.id AND a3.lang = COALESCE(p.a3_lang, 'en')
-    LEFT JOIN releases_titles a4 ON a4.id = r.id AND a4.lang = COALESCE(p.a4_lang, 'en')
+    LEFT JOIN releases_titles t1 ON t1.id = r.id AND t1.lang = COALESCE(p.t1_lang, 'en') AND t1.title IS NOT NULL
+    LEFT JOIN releases_titles t2 ON t2.id = r.id AND t2.lang = COALESCE(p.t2_lang, 'en') AND t2.title IS NOT NULL
+    LEFT JOIN releases_titles t3 ON t3.id = r.id AND t3.lang = COALESCE(p.t3_lang, 'en') AND t3.title IS NOT NULL
+    LEFT JOIN releases_titles t4 ON t4.id = r.id AND t4.lang = COALESCE(p.t4_lang, 'en') AND t4.title IS NOT NULL
+    LEFT JOIN releases_titles a1 ON a1.id = r.id AND a1.lang = COALESCE(p.a1_lang, 'en') AND a1.title IS NOT NULL
+    LEFT JOIN releases_titles a2 ON a2.id = r.id AND a2.lang = COALESCE(p.a2_lang, 'en') AND a2.title IS NOT NULL
+    LEFT JOIN releases_titles a3 ON a3.id = r.id AND a3.lang = COALESCE(p.a3_lang, 'en') AND a3.title IS NOT NULL
+    LEFT JOIN releases_titles a4 ON a4.id = r.id AND a4.lang = COALESCE(p.a4_lang, 'en') AND a4.title IS NOT NULL
 $$ LANGUAGE SQL STABLE;
 
 
