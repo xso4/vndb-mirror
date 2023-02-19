@@ -221,9 +221,9 @@ sub listing_ {
     my sub infoblock_ {
         my($canlink) = @_; # grid contains an outer <a>, so may not contain links itself.
         my sub lnk_ {
-            my($url, $title, $label) = @_;
-            a_ href => $url, title => $title, $label if $canlink;
-            span_ $label if !$canlink;
+            my($url, @attr) = @_;
+            a_ href => $url, @attr if $canlink;
+            span_ @attr if !$canlink;
         }
         lnk_ "/$_->{id}", tattr $_;
         if(!$labels || $opt->{s}->vis('released')) {
