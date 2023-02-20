@@ -1497,7 +1497,7 @@ CREATE VIEW producerst AS
 CREATE VIEW staff_aliast AS
            -- Everything from 'staff', except 'aid' is renamed to 'main'
     SELECT s.id, s.gender, s.lang, s.l_anidb, s.l_wikidata, s.l_pixiv, s.locked, s.hidden, s."desc", s.l_wp, s.l_site, s.l_twitter, s.aid AS main
-         , sa.aid, sa.name, sa.original
+         , sa.aid, sa.name, sa.original, sa.c_search
          , ARRAY [ s.lang::text, sa.name
                  , s.lang::text, COALESCE(sa.original, sa.name) ] AS title
          , sa.name AS sorttitle

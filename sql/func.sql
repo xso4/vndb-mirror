@@ -175,7 +175,7 @@ $$ LANGUAGE SQL STABLE;
 -- Same for staff_aliast
 CREATE OR REPLACE FUNCTION staff_aliast(p titleprefs) RETURNS SETOF staff_aliast AS $$
     SELECT s.id, s.gender, s.lang, s.l_anidb, s.l_wikidata, s.l_pixiv, s.locked, s.hidden, s."desc", s.l_wp, s.l_site, s.l_twitter, s.aid AS main
-         , sa.aid, sa.name, sa.original
+         , sa.aid, sa.name, sa.original, sa.c_search
          , titleprefs_swap(p, s.lang, sa.name, sa.original), sa.name
       FROM staff s
       JOIN staff_alias sa ON sa.id = s.id
