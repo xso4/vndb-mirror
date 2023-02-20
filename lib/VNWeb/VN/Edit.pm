@@ -101,7 +101,7 @@ TUWF::get qr{/$RE{vrev}/edit} => sub {
     enrich_merge vid => sql('SELECT id AS vid, title[1+1] AS title FROM', vnt, 'v WHERE id IN'), $e->{relations};
     enrich_merge aid => 'SELECT id AS aid, title_romaji AS title, COALESCE(title_kanji, \'\') AS original FROM anime WHERE id IN', $e->{anime};
 
-    enrich_merge aid => sql('SELECT id, aid, title[1+1], title[1+1+1+1] AS alttitle FROM', staff_aliast, 's WHERE aid IN'), $e->{staff}, $e->{seiyuu};
+    enrich_merge aid => sql('SELECT id, aid, title[1+1], title[1+1+1+1] AS alttitle, sorttitle FROM', staff_aliast, 's WHERE aid IN'), $e->{staff}, $e->{seiyuu};
 
     # It's possible for older revisions to link to aliases that have been removed.
     # Let's exclude those to make sure the form will at least load.
@@ -110,7 +110,7 @@ TUWF::get qr{/$RE{vrev}/edit} => sub {
 
     my %CRED;
     $CRED{$_} = keys %CRED for keys %CREDIT_TYPE;
-    $e->{staff} = [ sort { $CRED{$a->{role}} <=> $CRED{$b->{role}} || $a->{name} cmp $b->{name} || $a->{aid} <=> $b->{aid} } $e->{staff}->@* ];
+    $e->{staff} = [ sort { $CRED{$a->{role}} <=> $CRED{$b->{role}} || $a->{sorttitle} cmp $b->{sorttitle} || $a->{aid} <=> $b->{aid} } $e->{staff}->@* ];
     $e->{editions} = [ sort { ($a->{lang}||'') cmp ($b->{lang}||'') || $b->{official} cmp $a->{official} || $a->{name} cmp $b->{name} } $e->{editions}->@* ];
 
     $e->{releases} = releases_by_vn $e->{id};
