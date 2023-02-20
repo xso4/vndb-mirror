@@ -60,9 +60,9 @@ TUWF::get qr{/s(?:/(?<char>all|[a-z0]))?}, sub {
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = tuwf->dbVali('SELECT count(*) FROM', staff_aliast, 'WHERE', $where);
+        $count = tuwf->dbVali('SELECT count(*) FROM', staff_aliast, 's WHERE', $where);
         $list = $count ? tuwf->dbPagei({results => 150, page => $opt->{p}}, '
-            SELECT id, title, lang FROM', staff_aliast, 'WHERE', $where, 'ORDER BY sorttitle, aid'
+            SELECT id, title, lang FROM', staff_aliast, 's WHERE', $where, 'ORDER BY sorttitle, aid'
         ) : [];
     } || (($count, $list) = (undef, []));
     $time = time - $time;

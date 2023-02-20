@@ -348,8 +348,7 @@ f v => 52 => 'staff',    's', '=' => sub {
     # The "Staff" filter includes both vn_staff and vn_seiyuu. Union those tables together and filter on that.
     sql 'v.id IN(SELECT vs.id
                    FROM (SELECT id, aid, role FROM vn_staff UNION ALL SELECT id, aid, NULL FROM vn_seiyuu) vs
-                   JOIN staff_alias sa ON sa.aid = vs.aid
-                   JOIN staff s ON s.id = sa.id
+                   JOIN staff_aliast s ON s.aid = vs.aid
                   WHERE NOT s.hidden AND', $_, ')' };
 f v => 55 => 'developer', 'p', '=' => sub { sql 'EXISTS(SELECT 1 FROM producers p, unnest(v.c_developers) vcd(x) WHERE p.id = vcd.x AND NOT p.hidden AND', $_, ')' };
 
@@ -436,12 +435,12 @@ f c => 14 => 'birthday',   { required => 0, default => [0,0], type => 'array', l
 
 # XXX: When this field is nested inside a VN query, it may match seiyuu linked to other VNs.
 # This can be trivially fixed by adding an (AND vs.id = v.id) clause, but that results in extremely slow queries that I've no clue how to optimize.
-f c => 52 => 'seiyuu', 's', '=' => sub { sql 'c.id IN(SELECT vs.cid FROM vn_seiyuu vs JOIN staff_alias sa ON sa.aid = vs.aid JOIN staff s ON s.id = sa.id WHERE NOT s.hidden AND', $_, ')' };
+f c => 52 => 'seiyuu', 's', '=' => sub { sql 'c.id IN(SELECT vs.cid FROM vn_seiyuu vs JOIN staff_aliast s ON s.aid = vs.aid WHERE NOT s.hidden AND', $_, ')' };
 f c => 53 => 'vn',     'v', '=' => sub { sql 'c.id IN(SELECT cv.id FROM chars_vns cv JOIN vn v ON v.id = cv.vid WHERE NOT v.hidden AND', $_, ')' };
 
 
 
-# Staff filters need both 'staff s' and 'staff_alias sa' - aliases are treated as separate rows.
+# Staff filters need 'staff_aliast s', aliases are treated as separate rows.
 f s =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 's.lang =', \$_ };
 f s =>  3 => 'id',        { vndbid => 's' }, sql => sub { sql 's.id', $_[0], \$_ };
 f s =>  4 => 'gender',    { enum => \%GENDER }, '=' => sub { sql 's.gender =', \$_ };
@@ -453,11 +452,11 @@ f s =>  5 => 'role',      { enum => [ 'seiyuu', keys %CREDIT_TYPE ] },
         if($#TYPE && $TYPE[$#TYPE-1] eq 'v') {
             # Shortcut referencing the vn_staff table we're already querying
             return $val->[0] eq 'seiyuu' ? 'vs.role IS NULL' : sql 'vs.role IN', $val if !@grp && !$neg;
-            return sql $neg ? 'NOT' : '', 'EXISTS(SELECT 1 FROM vn_seiyuu vs WHERE vs.id = v.id AND vs.aid = sa.aid)' if $val->[0] eq 'seiyuu';
-            sql 'sa.aid', $neg ? 'NOT' : '', 'IN(SELECT vs.aid FROM vn_staff vs WHERE vs.id = v.id AND vs.role IN', $val, @grp, ')';
+            return sql $neg ? 'NOT' : '', 'EXISTS(SELECT 1 FROM vn_seiyuu vs WHERE vs.id = v.id AND vs.aid = s.aid)' if $val->[0] eq 'seiyuu';
+            sql 's.aid', $neg ? 'NOT' : '', 'IN(SELECT vs.aid FROM vn_staff vs WHERE vs.id = v.id AND vs.role IN', $val, @grp, ')';
         } else {
-            return sql $neg ? 'NOT' : '', 'EXISTS(SELECT 1 FROM vn_seiyuu vs JOIN vn v ON v.id = vs.id WHERE NOT v.hidden AND vs.aid = sa.aid)' if $val->[0] eq 'seiyuu';
-            sql 'sa.aid', $neg ? 'NOT' : '', 'IN(SELECT vs.aid FROM vn_staff vs JOIN vn v ON v.id = vs.id WHERE NOT v.hidden AND vs.role IN', $val, @grp, ')';
+            return sql $neg ? 'NOT' : '', 'EXISTS(SELECT 1 FROM vn_seiyuu vs JOIN vn v ON v.id = vs.id WHERE NOT v.hidden AND vs.aid = s.aid)' if $val->[0] eq 'seiyuu';
+            sql 's.aid', $neg ? 'NOT' : '', 'IN(SELECT vs.aid FROM vn_staff vs JOIN vn v ON v.id = vs.id WHERE NOT v.hidden AND vs.role IN', $val, @grp, ')';
         }
     };
 
