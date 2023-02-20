@@ -323,7 +323,7 @@ update msg model =
           let (nm, c, res) = A.update sconfig m smodel
               nnm = if res == Nothing then nm else A.clear nm ""
               nsearch = modidx idx (\(oc,om) -> (oc,nnm)) model.staffSearch
-              nstaff s = [{ id = s.id, aid = s.aid, eid = eid, name = s.name, original = s.original, role = "staff", note = "" }]
+              nstaff s = [{ id = s.id, aid = s.aid, eid = eid, title = s.title, alttitle = s.alttitle, role = "staff", note = "" }]
           in case res of
             Nothing -> ({ model | staffSearch = nsearch }, c)
             Just s -> ({ model | staffSearch = nsearch, staff = model.staff ++ nstaff s }, c)
@@ -336,7 +336,7 @@ update msg model =
       let (nm, c, res) = A.update seiyuuConfig m model.seiyuuSearch
       in case res of
         Nothing -> ({ model | seiyuuSearch = nm }, c)
-        Just s -> ({ model | seiyuuSearch = A.clear nm "", seiyuu = model.seiyuu ++ [{ id = s.id, aid = s.aid, name = s.name, original = s.original, cid = model.seiyuuDef, note = "" }] }, c)
+        Just s -> ({ model | seiyuuSearch = A.clear nm "", seiyuu = model.seiyuu ++ [{ id = s.id, aid = s.aid, title = s.title, alttitle = s.alttitle, cid = model.seiyuuDef, note = "" }] }, c)
 
     ScrUplRel s -> ({ model | scrUplRel = s }, Cmd.none)
     ScrUplSel -> (model, FSel.files ["image/png", "image/jpeg", "image/webp"] ScrUpl)
@@ -564,7 +564,7 @@ view model =
           ] ] ]
         item (n,s) = tr []
           [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| s.id ++ ":" ] ]
-          , td [] [ a [ href <| "/" ++ s.id ] [ text s.name ] ]
+          , td [] [ a [ href <| "/" ++ s.id ] [ text s.title ] ]
           , td [] [ inputSelect "" s.role (StaffRole n) [style "width" "150px" ] GT.creditTypes ]
           , td [] [ inputText "" s.note (StaffNote n) (style "width" "300px" :: onInvalid (Invalid Staff) :: GVE.valStaffNote) ]
           , td [] [ inputButton "remove" (StaffDel n) [] ]
@@ -630,7 +630,7 @@ view model =
             <| chars ++ if List.any (\c -> c.id == s.cid) model.chars then [] else [(s.cid, "[deleted/moved character: " ++ s.cid ++ "]")] ]
           , td []
             [ b [ class "grayedout" ] [ text <| s.id ++ ":" ]
-            , a [ href <| "/" ++ s.id ] [ text s.name ] ]
+            , a [ href <| "/" ++ s.id ] [ text s.title ] ]
           , td [] [ inputText "" s.note (SeiyuuNote n) (style "width" "300px" :: onInvalid (Invalid Cast) :: GVE.valSeiyuuNote) ]
           , td [] [ inputButton "remove" (SeiyuuDel n) [] ]
           ]

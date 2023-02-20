@@ -7,12 +7,12 @@ use VNWeb::Images::Lib qw/image_ enrich_image_obj/;
 sub enrich_seiyuu {
     my($vid, @chars) = @_;
     enrich seiyuu => id => cid => sub { sql '
-        SELECT DISTINCT vs.cid, sa.id, sa.name, sa.original, vs.note
+        SELECT DISTINCT vs.cid, sa.id, sa.title, sa.sorttitle, vs.note
           FROM vn_seiyuu vs
           ', $vid ? () : ('JOIN vn v ON v.id = vs.id'), '
-          JOIN staff_alias sa ON sa.aid = vs.aid
+          JOIN', staff_aliast, 'sa ON sa.aid = vs.aid
          WHERE ', $vid ? ('vs.id =', \$vid) : ('NOT v.hidden'), 'AND vs.cid IN', $_, '
-         ORDER BY sa.name'
+         ORDER BY sa.sorttitle'
     }, @chars;
 }
 
@@ -237,7 +237,7 @@ sub chartable_ {
                 td_ class => 'key', 'Voiced by';
                 td_ sub {
                     join_ \&br_, sub {
-                        a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
+                        a_ href => "/$_->{id}", tattr $_;
                         txt_ " ($_->{note})" if $_->{note};
                     }, $c->{seiyuu}->@*;
                 };

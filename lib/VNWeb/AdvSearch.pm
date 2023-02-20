@@ -861,7 +861,7 @@ sub elm_search_query {
     enrich_merge id => sql('SELECT id, title[1+1] AS name, title[1+1+1+1] AS altname, hidden FROM', VNWeb::TitlePrefs::producerst(), 'p WHERE id IN'), $o{producers};
 
     $o{staff} = [ map +{id => $_}, grep /^s/, keys %ids ];
-    enrich_merge id => 'SELECT s.id, s.lang, sa.aid, sa.name, sa.original FROM staff s JOIN staff_alias sa ON sa.aid = s.aid WHERE s.id IN', $o{staff};
+    enrich_merge id => sql('SELECT id, lang, aid, title[1+1], title[1+1+1+1] AS alttitle FROM', VNWeb::TitlePrefs::staff_aliast(), 's WHERE aid = main AND id IN'), $o{staff};
 
     $o{tags} = [ map +{id => $_}, grep /^g/, keys %ids ];
     enrich_merge id => 'SELECT id, name, searchable, applicable, hidden, locked FROM tags WHERE id IN', $o{tags};

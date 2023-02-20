@@ -167,8 +167,8 @@ staffSource =
   , view    = \i ->
     [ langIcon i.lang
     , b [ class "grayedout" ] [ text <| i.id ++ ": " ]
-    , text i.name
-    , b [ class "grayedout" ] [ text " ", text i.original ]
+    , text i.title
+    , if i.alttitle == i.title then text "" else b [ class "grayedout" ] [ text " ", text i.alttitle ]
     ]
   , key     = \i -> String.fromInt i.aid
   }

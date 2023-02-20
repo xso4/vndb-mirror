@@ -113,7 +113,7 @@ type Msg
 
 
 validate : Model -> Model
-validate model = { model | aliasDup = hasDuplicates <| List.map (\e -> (e.name, e.original)) model.alias }
+validate model = { model | aliasDup = hasDuplicates <| List.map (\e -> (e.name, Maybe.withDefault "" e.original)) model.alias }
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -131,13 +131,13 @@ update msg model =
 
     AliasDel i    -> (validate { model | dupStaff = [], alias = delidx i model.alias }, Cmd.none)
     AliasName i s -> (validate { model | dupStaff = [], alias = modidx i (\e -> { e | name     = s }) model.alias }, Cmd.none)
-    AliasOrig i s -> (validate { model | dupStaff = [], alias = modidx i (\e -> { e | original = s }) model.alias }, Cmd.none)
+    AliasOrig i s -> (validate { model | dupStaff = [], alias = modidx i (\e -> { e | original = if s == "" then Nothing else Just s }) model.alias }, Cmd.none)
     AliasMain n _ -> ({ model | aid = n }, Cmd.none)
-    AliasAdd      -> ({ model | alias = model.alias ++ [{ aid = newAid model, name = "", original = "", inuse = False, wantdel = False }] }, Cmd.none)
+    AliasAdd      -> ({ model | alias = model.alias ++ [{ aid = newAid model, name = "", original = Nothing, inuse = False, wantdel = False }] }, Cmd.none)
 
     DupSubmit ->
       if List.isEmpty model.dupStaff
-      then ({ model | state = Api.Loading }, GS.send { search = List.concatMap (\e -> [e.name, e.original]) model.alias } DupResults)
+      then ({ model | state = Api.Loading }, GS.send { search = List.concatMap (\e -> [e.name, Maybe.withDefault "" e.original]) model.alias } DupResults)
       else ({ model | dupCheck = True, dupStaff = [] }, Cmd.none)
     DupResults (GApi.StaffResult staff) ->
       if List.isEmpty staff
@@ -151,7 +151,7 @@ update msg model =
 
 
 isValid : Model -> Bool
-isValid model = not (model.aliasDup || List.any (\l -> l.name == l.original) model.alias)
+isValid model = not (model.aliasDup || List.any (\l -> Just l.name == l.original) model.alias)
 
 
 view : Model -> Html Msg
@@ -162,8 +162,8 @@ view model =
       [ td [ class "tc_id" ] [ inputRadio "main" (e.aid == model.aid) (AliasMain e.aid) ]
       , td [ class "tc_name" ] [ inputText "" e.name (AliasName n) GSE.valAliasName ]
       , td [ class "tc_original" ]
-        [ inputText "" e.original (AliasOrig n) GSE.valAliasOriginal
-        , if e.name /= "" && e.name == e.original then b [ class "standout" ] [ text "May not be the same as Name (romaji)" ] else text ""
+        [ inputText "" (Maybe.withDefault "" e.original) (AliasOrig n) GSE.valAliasOriginal
+        , if e.name /= "" && Just e.name == e.original then b [ class "standout" ] [ text "May not be the same as Name (romaji)" ] else text ""
         ]
       , td [ class "tc_add" ]
         [ if model.aid == e.aid then b [ class "grayedout" ] [ text " primary" ]
@@ -207,7 +207,7 @@ view model =
           , text "The following is a list of staff that match the name(s) you gave. "
           , text "Please check this list to avoid creating a duplicate staff entry. "
           , ul [] <| List.map (\s -> li []
-              [ a [ href <| "/" ++ s.id, title s.original ] [ text s.name ] ]
+              [ a [ href <| "/" ++ s.id, title (s.alttitle) ] [ text s.title ] ]
             ) model.dupStaff
           ]
         , fieldset [ class "submit" ] [ submitButton (if List.isEmpty model.dupStaff then "Continue" else "Continue anyway") model.state (isValid model) ]

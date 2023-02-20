@@ -9,7 +9,7 @@ elm_api Staff => undef, {
     die "No query" if !@q;
 
     elm_StaffResult tuwf->dbPagei({ results => 15, page => 1 },
-        'SELECT s.id, s.lang, sa.aid, sa.name, sa.original
+        'SELECT s.id, s.lang, s.aid, s.title[1+1], s.title[1+1+1+1] as alttitle
            FROM (',
 			sql_join('UNION ALL', map +(
                 /^$RE{sid}$/ ? sql('SELECT 0, aid FROM staff_alias WHERE id =', \"$+{id}") : (),
@@ -17,11 +17,10 @@ elm_api Staff => undef, {
                        FROM staff_alias WHERE c_search LIKE ALL (search_query(', \$_, '))'),
             ), @q),
             ') x(prio, aid)
-           JOIN staff_alias sa ON sa.aid = x.aid
-           JOIN staff s ON s.id = sa.id
+           JOIN', staff_aliast, 's ON s.aid = x.aid
           WHERE NOT s.hidden
-          GROUP BY s.id, sa.aid, sa.name, sa.original
-          ORDER BY MIN(x.prio), sa.name
+          GROUP BY s.id, s.lang, s.aid, s.title, s.sorttitle
+          ORDER BY MIN(x.prio), s.sorttitle
     ');
 };
 

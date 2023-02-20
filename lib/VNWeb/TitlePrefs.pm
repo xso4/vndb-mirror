@@ -14,6 +14,7 @@ our @EXPORT = qw/
     vnt
     releasest
     producerst
+    staff_aliast
     item_info
 /;
 
@@ -199,9 +200,10 @@ sub gen_sql {
 }
 
 
-sub vnt()        { tuwf->req->{titleprefs_v} //= pref ? gen_sql 1, 'vn',       'vn_titles',       'id' : 'vnt'       }
-sub releasest()  { tuwf->req->{titleprefs_r} //= pref ? gen_sql 0, 'releases', 'releases_titles', 'id' : 'releasest' }
-sub producerst() { tuwf->req->{titleprefs_p} //= pref ? sql 'producerst(', \tuwf->req->{auth}{user}{titles}, ')' : 'producerst' }
+sub vnt()          { tuwf->req->{titleprefs_v} //= pref ? gen_sql 1, 'vn',       'vn_titles',       'id' : 'vnt'       }
+sub releasest()    { tuwf->req->{titleprefs_r} //= pref ? gen_sql 0, 'releases', 'releases_titles', 'id' : 'releasest' }
+sub producerst()   { tuwf->req->{titleprefs_p} //= pref ? sql 'producerst(', \tuwf->req->{auth}{user}{titles}, ')' : 'producerst' }
+sub staff_aliast() { tuwf->req->{titleprefs_s} //= pref ? sql 'staff_aliast(', \tuwf->req->{auth}{user}{titles}, ')' : 'staff_aliast' }
 
 # (Not currently used)
 #sub vnt_hist { gen_sql 1, 'vn_hist', 'vn_titles_hist', 'chid' }

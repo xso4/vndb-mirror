@@ -14,7 +14,7 @@ sub listing_ {
         ul_ sub {
             li_ sub {
                 abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, '';
-                a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
+                a_ href => "/$_->{id}", tattr $_;
             } for @$list;
         };
     };
@@ -52,17 +52,17 @@ TUWF::get qr{/s(?:/(?<char>all|[a-z0]))?}, sub {
     $opt->{f} = advsearch_default 's' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
 
     my $where = sql_and
-        $opt->{n} ? 's.aid = sa.aid' : (),
-        'NOT s.hidden', $opt->{f}->sql_where(),
-        $opt->{q} ? sql 'sa.c_search LIKE ALL (search_query(', \$opt->{q}, '))' : (),
-        defined($opt->{ch}) ? sql 'match_firstchar(sa.name, ', \$opt->{ch}, ')' : ();
+        $opt->{n} ? 'main = aid' : (),
+        'NOT hidden', $opt->{f}->sql_where(),
+        $opt->{q} ? sql 'c_search LIKE ALL (search_query(', \$opt->{q}, '))' : (),
+        defined($opt->{ch}) ? sql 'match_firstchar(sorttitle, ', \$opt->{ch}, ')' : ();
 
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = tuwf->dbVali('SELECT count(*) FROM staff s JOIN staff_alias sa ON sa.id = s.id WHERE', $where);
+        $count = tuwf->dbVali('SELECT count(*) FROM', staff_aliast, 'WHERE', $where);
         $list = $count ? tuwf->dbPagei({results => 150, page => $opt->{p}}, '
-            SELECT s.id, sa.name, sa.original, s.lang FROM staff s JOIN staff_alias sa ON sa.id = s.id WHERE', $where, 'ORDER BY sa.name, sa.aid'
+            SELECT id, title, lang FROM', staff_aliast, 'WHERE', $where, 'ORDER BY sorttitle, aid'
         ) : [];
     } || (($count, $list) = (undef, []));
     $time = time - $time;

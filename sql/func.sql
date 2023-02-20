@@ -62,6 +62,22 @@ $$ LANGUAGE SQL;
 
 
 
+-- Helper function for the titleprefs functions below.
+CREATE OR REPLACE FUNCTION titleprefs_swap(p titleprefs, lang language, title text, original text) RETURNS text[] AS $$
+  SELECT ARRAY[lang::text, CASE WHEN (
+            CASE WHEN p.t1_lang = lang THEN p.t1_latin
+                 WHEN p.t2_lang = lang THEN p.t2_latin
+                 WHEN p.t3_lang = lang THEN p.t3_latin
+                 WHEN p.t4_lang = lang THEN p.t4_latin ELSE p IS NULL OR p.to_latin END
+         ) THEN title ELSE COALESCE(original, title) END, lang::text, CASE WHEN (
+            CASE WHEN p.a1_lang = lang THEN p.a1_latin
+                 WHEN p.a2_lang = lang THEN p.a2_latin
+                 WHEN p.a3_lang = lang THEN p.a3_latin
+                 WHEN p.a4_lang = lang THEN p.a4_latin ELSE p.ao_latin END
+         ) THEN title ELSE COALESCE(original, title) END]
+$$ LANGUAGE SQL STABLE;
+
+
 -- This is a pure-SQL implementation of the title preference selection
 -- algorithm in VNWeb::TitlePrefs. Given a preferences object, this function
 -- returns a copy of the 'vn' table with two additional columns:
@@ -151,20 +167,18 @@ $$ LANGUAGE SQL STABLE;
 -- This one just flips the name/original columns around depending on
 -- preferences, so is fast enough to use directly.
 CREATE OR REPLACE FUNCTION producerst(p titleprefs) RETURNS SETOF producerst AS $$
-  SELECT *
-       , ARRAY[lang::text, CASE WHEN (
-            CASE WHEN p.t1_lang = lang THEN p.t1_latin
-                 WHEN p.t2_lang = lang THEN p.t2_latin
-                 WHEN p.t3_lang = lang THEN p.t3_latin
-                 WHEN p.t4_lang = lang THEN p.t4_latin ELSE p IS NULL OR p.to_latin END
-          ) THEN name ELSE COALESCE(original, name) END, lang::text, CASE WHEN (
-            CASE WHEN p.a1_lang = lang THEN p.a1_latin
-                 WHEN p.a2_lang = lang THEN p.a2_latin
-                 WHEN p.a3_lang = lang THEN p.a3_latin
-                 WHEN p.a4_lang = lang THEN p.a4_latin ELSE p.ao_latin END
-          ) THEN name ELSE COALESCE(original, name) END]
-       , name
-    FROM producers
+  SELECT *, titleprefs_swap(p, lang, name, original), name FROM producers
+$$ LANGUAGE SQL STABLE;
+
+
+
+-- Same for staff_aliast
+CREATE OR REPLACE FUNCTION staff_aliast(p titleprefs) RETURNS SETOF staff_aliast AS $$
+    SELECT s.id, s.gender, s.lang, s.l_anidb, s.l_wikidata, s.l_pixiv, s.locked, s.hidden, s."desc", s.l_wp, s.l_site, s.l_twitter, s.aid AS main
+         , sa.aid, sa.name, sa.original
+         , titleprefs_swap(p, s.lang, sa.name, sa.original), sa.name
+      FROM staff s
+      JOIN staff_alias sa ON sa.id = s.id
 $$ LANGUAGE SQL STABLE;
 
 
@@ -559,7 +573,7 @@ BEGIN
     WHEN 'd' THEN SELECT ARRAY[NULL, d.title, NULL, d.title],    NULL::vndbid, d.hidden, d.locked INTO ret FROM docs d  WHERE d.id = $2;
     WHEN 'g' THEN SELECT ARRAY[NULL, g.name,  NULL, g.name],     NULL::vndbid, g.hidden, g.locked INTO ret FROM tags g  WHERE g.id = $2;
     WHEN 'i' THEN SELECT ARRAY[NULL, COALESCE(g.name||' > ', '')||i.name, NULL, COALESCE(g.name||' > ', '')||i.name], NULL::vndbid, i.hidden, i.locked INTO ret FROM traits i LEFT JOIN traits g ON g.id = i.group WHERE i.id = $2;
-    WHEN 's' THEN SELECT ARRAY[s.lang::text, sa.name, s.lang::text, sa.original], NULL::vndbid, s.hidden, s.locked INTO ret FROM staff s JOIN staff_alias sa ON sa.aid = s.aid WHERE s.id = $2;
+    WHEN 's' THEN SELECT s.title, NULL::vndbid, s.hidden, s.locked INTO ret FROM staff_aliast($1) s WHERE s.id = $2 AND s.aid = s.main;
     WHEN 't' THEN SELECT ARRAY[NULL, t.title, NULL, t.title], NULL::vndbid, t.hidden OR t.private, t.locked INTO ret FROM threads t WHERE t.id = $2;
     WHEN 'w' THEN SELECT v.title, w.uid, w.c_flagged, w.locked INTO ret FROM reviews w JOIN vnt v ON v.id = w.vid WHERE w.id = $2;
     WHEN 'u' THEN SELECT ARRAY[NULL, u.username, NULL, u.username], NULL::vndbid, FALSE, FALSE INTO ret FROM users u WHERE u.id = $2;

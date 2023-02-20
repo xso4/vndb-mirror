@@ -119,8 +119,8 @@ our %apis = (
         id       => { vndbid => 's' },
         lang     => {},
         aid      => { id => 1 },
-        name     => {},
-        original => { required => 0, default => '' },
+        title    => {},
+        alttitle => {},
     } } ],
     CharResult     => [ { aoh => { # Response to 'Chars'
         id       => { vndbid => 'c' },

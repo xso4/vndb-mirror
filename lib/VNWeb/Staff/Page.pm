@@ -7,8 +7,11 @@ use VNWeb::ULists::Lib;
 sub enrich_item {
     my($s) = @_;
 
-    # Add a 'main' flag to each alias
-    $_->{main} = $s->{aid} == $_->{aid} for $s->{alias}->@*;
+    # Add a 'main' flag and title field to each alias
+    for ($s->{alias}->@*) {
+        $_->{main} = $s->{aid} == $_->{aid};
+        $_->{title} = titleprefs_swap $s->{lang}, $_->{name}, $_->{original};
+    }
 
     # Sort aliases by name
     $s->{alias} = [ sort { $a->{name} cmp $b->{name} || ($a->{original}||'') cmp ($b->{original}||'') } $s->{alias}->@* ];
@@ -52,8 +55,8 @@ sub _infotable_ {
             td_ sub {
                 table_ class => 'aliases', sub {
                     tr_ class => 'nostripe', sub {
-                        td_ class => 'key', $_->{original} ? () : (colspan => 2), $_->{name};
-                        td_ lang => $s->{lang}, $_->{original} if $_->{original};
+                        td_ class => 'key', $_->{original} ? () : (colspan => 2), tlang($s->{lang}, $_->{name}), $_->{name};
+                        td_ tlang($s->{lang}, $_->{original}), $_->{original} if $_->{original};
                     } for @alias;
                 };
             };
@@ -109,7 +112,7 @@ sub _roles_ {
                 };
                 td_ class => 'tc2', sub { rdate_ $v->{c_released} };
                 td_ class => 'tc3', $CREDIT_TYPE{$v->{role}};
-                td_ class => 'tc4', title => $a->{original}||$a->{name}, $a->{name};
+                td_ class => 'tc4', tattr $a;
                 td_ class => 'tc5', $v->{note};
             } for @$roles;
         };
@@ -168,7 +171,7 @@ sub _cast_ {
                     a_ href => "/$v->{cid}", title => $v->{c_original}||$v->{c_name}, $v->{c_name};
                     spoil_ $_->{spoil};
                 };
-                td_ class => 'tc4', title => $a->{original}||$a->{name}, $a->{name};
+                td_ class => 'tc4', tattr $a;
                 td_ class => 'tc5', $v->{note};
             } for grep $_->{spoil} <= $spoilers, @$cast;
         };
@@ -184,7 +187,7 @@ TUWF::get qr{/$RE{srev}} => sub {
     enrich_extlinks s => 0, $s;
     my($main) = grep $_->{aid} == $s->{aid}, $s->{alias}->@*;
 
-    framework_ title => $main->{name}, index => !tuwf->capture('rev'), dbobj => $s, hiddenmsg => 1,
+    framework_ title => $main->{title}[1], index => !tuwf->capture('rev'), dbobj => $s, hiddenmsg => 1,
         og => {
             description => bb_format $s->{desc}, text => 1
         },
@@ -192,8 +195,8 @@ TUWF::get qr{/$RE{srev}} => sub {
         _rev_ $s if tuwf->capture('rev');
         div_ class => 'mainbox staffpage', sub {
             itemmsg_ $s;
-            h1_ sub { txt_ $main->{name}; debug_ $s };
-            h2_ class => 'alttitle', lang => $s->{lang}, $main->{original} if $main->{original};
+            h1_ tlang(@{$main->{title}}[0,1]), $main->{title}[1];
+            h2_ class => 'alttitle', tlang(@{$main->{title}}[2,3]), $main->{title}[3] if $main->{title}[3] && $main->{title}[3] ne $main->{title}[1];
             _infotable_ $main, $s;
             div_ class => 'description', sub { lit_ bb_format $s->{desc} };
         };

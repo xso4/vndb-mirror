@@ -73,7 +73,7 @@ view dat model =
       [s] -> span [ class "nowrap" ]
              [ S.lblPrefix model.sel
              , b [ class "grayedout" ] [ text <| "s" ++ String.fromInt s ++ ":" ]
-             , Dict.get (vndbid 's' s) dat.staff |> Maybe.map (\e -> e.name) |> Maybe.withDefault "" |> text
+             , Dict.get (vndbid 's' s) dat.staff |> Maybe.map (\e -> e.title) |> Maybe.withDefault "" |> text
              ]
       l   -> span [] [ S.lblPrefix model.sel, text <| "Names (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
@@ -85,7 +85,7 @@ view dat model =
         li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ]
         [ inputButton "X" (Sel (S.Sel s False)) []
         , b [ class "grayedout" ] [ text <| " s" ++ String.fromInt s ++ ": " ]
-        , Dict.get (vndbid 's' s) dat.staff |> Maybe.map (\e -> a [ href ("/" ++ e.id), target "_blank", style "display" "inline" ] [ text e.name ]) |> Maybe.withDefault (text "")
+        , Dict.get (vndbid 's' s) dat.staff |> Maybe.map (\e -> a [ href ("/" ++ e.id), target "_blank", style "display" "inline" ] [ text e.title ]) |> Maybe.withDefault (text "")
         ]
       ) (Set.toList model.sel.sel)
     , A.view model.conf model.search [ placeholder "Search..." ]

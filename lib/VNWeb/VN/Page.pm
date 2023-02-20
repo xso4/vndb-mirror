@@ -68,7 +68,7 @@ sub enrich_vn {
 sub enrich_item {
     my($v, $full) = @_;
     enrich_vn $v, !$full;
-    enrich_merge aid => 'SELECT id AS sid, aid, name, original FROM staff_alias WHERE aid IN', $v->{staff}, $v->{seiyuu};
+    enrich_merge aid => sql('SELECT id AS sid, aid, title FROM', staff_aliast, 's WHERE aid IN'), $v->{staff}, $v->{seiyuu};
     enrich_merge cid => 'SELECT id AS cid, name AS char_name, original AS char_original FROM chars WHERE id IN', $v->{seiyuu};
 
     $v->{relations}   = [ sort { idcmp($a->{vid}, $b->{vid}) } $v->{relations}->@* ];
@@ -141,13 +141,13 @@ sub rev_ {
             my $eid = $_->{eid};
             my $e = defined $eid && (grep $eid == $_->{eid}, $_[0]{editions}->@*)[0];
             txt_ "[$e->{name}] " if $e;
-            a_ href => "/$_->{sid}", title => $_->{original}||$_->{name}, $_->{name} if $_->{sid};
+            a_ href => "/$_->{sid}", tattr $_ if $_->{sid};
             b_ class => 'grayedout', '[removed alias]' if !$_->{sid};
             txt_ " [$CREDIT_TYPE{$_->{role}}]";
             txt_ " [$_->{note}]" if $_->{note};
         }],
         [ seiyuu      => 'Seiyuu',        fmt => sub {
-            a_ href => "/$_->{sid}", title => $_->{original}||$_->{name}, $_->{name} if $_->{sid};
+            a_ href => "/$_->{sid}", tattr $_ if $_->{sid};
             b_ class => 'grayedout', '[removed alias]' if !$_->{sid};
             txt_ ' as ';
             a_ href => "/$_->{cid}", title => $_->{char_original}||$_->{char_name}, $_->{char_name};
@@ -630,9 +630,9 @@ sub staff_cols_ {
             xml_string sub {
                 li_ class => 'vnstaff_head', $CREDIT_TYPE{$_};
                 li_ sub {
-                    a_ href => "/$_->{sid}", title => $_->{original}||$_->{name}, $_->{name};
+                    a_ href => "/$_->{sid}", tattr $_;
                     b_ class => 'grayedout', $_->{note} if $_->{note};
-                } for sort { $a->{name} cmp $b->{name} } $roles{$_}->@*;
+                } for sort { $a->{title}[1] cmp $b->{title}[1] } $roles{$_}->@*;
             }
         ], grep $roles{$_}, keys %CREDIT_TYPE;
 
@@ -708,11 +708,11 @@ sub charsum_ {
     );
     return if !@$c;
     enrich seiyuu => id => cid => sub { sql('
-        SELECT vs.cid, sa.id, sa.name, sa.original, vs.note
+        SELECT vs.cid, sa.id, sa.title, vs.note
           FROM vn_seiyuu vs
-          JOIN staff_alias sa ON sa.aid = vs.aid
+          JOIN', staff_aliast, 'sa ON sa.aid = vs.aid
          WHERE vs.id =', \$v->{id}, 'AND vs.cid IN', $_, '
-         ORDER BY sa.name'
+         ORDER BY sa.sorttitle'
     ) }, $c;
 
     div_ class => 'mainbox', 'data-mainbox-summarize' => 200, sub {
@@ -733,7 +733,7 @@ sub charsum_ {
                     txt_ 'Voiced by';
                     $_->{seiyuu}->@* > 1 ? br_ : txt_ ' ';
                     join_ \&br_, sub {
-                        a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
+                        a_ href => "/$_->{id}", tattr $_;
                         b_ class => 'grayedout', $_->{note} if $_->{note};
                     }, $_->{seiyuu}->@*;
                 } if $_->{seiyuu}->@*;

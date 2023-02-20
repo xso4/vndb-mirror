@@ -45,8 +45,8 @@ my $FORM = {
         role     => { enum => \%CREDIT_TYPE },
         note     => { required => 0, default => '', maxlength => 250 },
         id       => { _when => 'out', vndbid => 's' },
-        name     => { _when => 'out' },
-        original => { _when => 'out', required => 0, default => '' },
+        title    => { _when => 'out' },
+        alttitle => { _when => 'out' },
     } },
     seiyuu     => { sort_keys => ['aid','cid'], aoh => {
         aid      => { id => 1 },
@@ -54,8 +54,8 @@ my $FORM = {
         note     => { required => 0, default => '', maxlength => 250 },
         # Staff info
         id       => { _when => 'out', vndbid => 's' },
-        name     => { _when => 'out' },
-        original => { _when => 'out', required => 0, default => '' },
+        title    => { _when => 'out' },
+        alttitle => { _when => 'out' },
     } },
     screenshots=> { sort_keys => 'scr', aoh => {
         scr      => { vndbid => 'sf' },
@@ -101,7 +101,7 @@ TUWF::get qr{/$RE{vrev}/edit} => sub {
     enrich_merge vid => sql('SELECT id AS vid, title[1+1] AS title FROM', vnt, 'v WHERE id IN'), $e->{relations};
     enrich_merge aid => 'SELECT id AS aid, title_romaji AS title, COALESCE(title_kanji, \'\') AS original FROM anime WHERE id IN', $e->{anime};
 
-    enrich_merge aid => 'SELECT id, aid, name, original FROM staff_alias WHERE aid IN', $e->{staff}, $e->{seiyuu};
+    enrich_merge aid => sql('SELECT id, aid, title[1+1], title[1+1+1+1] AS alttitle FROM', staff_aliast, 's WHERE aid IN'), $e->{staff}, $e->{seiyuu};
 
     # It's possible for older revisions to link to aliases that have been removed.
     # Let's exclude those to make sure the form will at least load.

@@ -847,7 +847,7 @@ CREATE TABLE staff_alias (
   id         vndbid NOT NULL, -- [pub]
   aid        SERIAL PRIMARY KEY, -- [pub] Globally unique ID of this alias
   name       varchar(200) NOT NULL DEFAULT '', -- [pub]
-  original   varchar(200) NOT NULL DEFAULT '', -- [pub]
+  original   varchar(200), -- [pub]
   c_search   text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[name, original])) STORED
 );
 
@@ -856,7 +856,7 @@ CREATE TABLE staff_alias_hist (
   chid       integer NOT NULL,
   aid        integer NOT NULL, -- staff_alias.aid, but can't reference it because the alias may have been deleted
   name       varchar(200) NOT NULL DEFAULT '',
-  original   varchar(200) NOT NULL DEFAULT '',
+  original   varchar(200),
   PRIMARY KEY(chid, aid)
 );
 
@@ -1492,3 +1492,14 @@ CREATE VIEW producerst AS
                  , lang::text, COALESCE(original, name) ] AS title
          , name AS sorttitle
       FROM producers;
+
+-- This joins staff & staff_alias and adds the title + sorttitle fields.
+CREATE VIEW staff_aliast AS
+           -- Everything from 'staff', except 'aid' is renamed to 'main'
+    SELECT s.id, s.gender, s.lang, s.l_anidb, s.l_wikidata, s.l_pixiv, s.locked, s.hidden, s."desc", s.l_wp, s.l_site, s.l_twitter, s.aid AS main
+         , sa.aid, sa.name, sa.original
+         , ARRAY [ s.lang::text, sa.name
+                 , s.lang::text, COALESCE(sa.original, sa.name) ] AS title
+         , sa.name AS sorttitle
+      FROM staff s
+      JOIN staff_alias sa ON sa.id = s.id;
