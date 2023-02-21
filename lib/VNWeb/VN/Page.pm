@@ -45,16 +45,16 @@ sub enrich_vn {
          WHERE tv.vid =', \$v->{id}, '
          ORDER BY rating DESC, t.name'
     ) : tuwf->dbAlli('
-        WITH RECURSIVE tag_overrides (tid, spoil, childs, lvl) AS (
-          SELECT tid, spoil, childs, 0 FROM users_prefs_tags WHERE id =', \auth->uid, '
+        WITH RECURSIVE tag_overrides (tid, spoil, color, childs, lvl) AS (
+          SELECT tid, spoil, color, childs, 0 FROM users_prefs_tags WHERE id =', \auth->uid, '
            UNION ALL
-          SELECT tp.id, x.spoil, true, lvl+1
+          SELECT tp.id, x.spoil, x.color, true, lvl+1
             FROM tag_overrides x
             JOIN tags_parents tp ON tp.parent = x.tid
            WHERE x.childs
-        ), tag_overrides_grouped (tid, spoil) AS (
-          SELECT DISTINCT ON(tid) tid, spoil FROM tag_overrides ORDER BY tid, lvl
-        ) SELECT t.id, t.name, t.cat, tv.rating, tv.spoiler, tv.lie, x.spoil AS override
+        ), tag_overrides_grouped (tid, spoil, color) AS (
+          SELECT DISTINCT ON(tid) tid, spoil, color FROM tag_overrides ORDER BY tid, lvl
+        ) SELECT t.id, t.name, t.cat, tv.rating, tv.spoiler, tv.lie, x.spoil AS override, x.color
             FROM tags t
             JOIN tags_vn_direct tv ON t.id = tv.tag
             LEFT JOIN tag_overrides_grouped x ON x.tid = tv.tag
@@ -401,15 +401,19 @@ sub infobox_tags_ {
         div_ id => 'vntags', sub {
             my %counts = map +($_,[0,0,0]), keys %TAG_CATEGORY;
             join_ ' ', sub {
-                my $spoil = max 0, $_->{override}//$_->{spoiler};
+                my $spoil = $_->{override}//$_->{spoiler};
                 my $cnt = $counts{$_->{cat}};
                 $cnt->[2]++;
                 $cnt->[1]++ if $spoil < 2;
                 $cnt->[0]++ if $spoil < 1;
                 my $cut = defined $_->{override} ? '' : $cnt->[0] > 15 ? ' cut cut2 cut1 cut0' : $cnt->[1] > 15 ? ' cut cut2 cut1' : $cnt->[2] > 15 ? ' cut cut2' : '';
                 span_ class => "tagspl$spoil cat_$_->{cat} $cut", sub {
-                    a_ href => "/$_->{id}", mkclass(defined $_->{override} ? 'lieo' : 'lie', $_->{lie}, standout => ($_->{override}||0) == -1),
-                        style => sprintf('font-size: %dpx', $_->{rating}*3.5+6), $_->{name};
+                    a_ href => "/$_->{id}",
+                        mkclass(defined $_->{override} ? 'lieo' : 'lie', $_->{lie},
+                                $_->{color} ? ($_->{color}, $_->{color} =~ /standout|grayedout/ ? 1 : 0) : ()),
+                        style => sprintf('font-size: %dpx', $_->{rating}*3.5+6)
+                                 .(($_->{color}//'') =~ /^#/ ? "; color: $_->{color}" : ''),
+                        $_->{name};
                     spoil_ $_->{spoiler};
                     b_ class => 'grayedout', sprintf ' %.1f', $_->{rating};
                 }
@@ -924,9 +928,8 @@ sub tags_ {
         return if !$t->{childs};
         __SUB__->($tags{$_}) for $t->{childs}->@*;
         $t->{inherited} = 1 if !defined $t->{rating};
-        $t->{spoiler} //= max 0, min map $tags{$_}{spoiler}, $t->{childs}->@*;
-        my @o = grep defined($_), map $tags{$_}{override}, $t->{childs}->@*;
-        $t->{override} //= max 0, min $t->{spoiler}, @o if @o;
+        $t->{spoiler} //= min map $tags{$_}{spoiler}, $t->{childs}->@*;
+        $t->{override} //= min map $tags{$_}{override}//$tags{$_}{spoiler}, $t->{childs}->@* if grep defined($tags{$_}{override}), $t->{childs}->@*;
         $t->{rating} //= sum(map $tags{$_}{rating}, $t->{childs}->@*) / $t->{childs}->@*;
     }
     scores $_ for @roots;
@@ -943,9 +946,11 @@ sub tags_ {
             VNWeb::TT::Lib::tagscore_($t->{rating}, $t->{inherited});
             b_ class => 'grayedout', '━━'x($lvl-1).' ' if $lvl > 1;
             a_ href => "/$t->{id}", mkclass(
-                standout => ($t->{override}||0) == -1,
-                lie => $t->{lie} && ($view->{spoilers} > 1 || defined $t->{override}),
-                parent => !$t->{rating}), $t->{name};
+                    $t->{color} ? ($t->{color}, $t->{color} =~ /standout|grayedout/ ? 1 : 0) : (),
+                    lie => $t->{lie} && ($view->{spoilers} > 1 || defined $t->{override}),
+                    parent => !$t->{rating}
+                ), ($t->{color}//'') =~ /^#/ ? (style => "color: $t->{color}") : (),
+                $t->{name};
             spoil_ $t->{spoiler};
         } if $lvl;
 

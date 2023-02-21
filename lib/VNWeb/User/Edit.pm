@@ -66,13 +66,15 @@ my $FORM = {
 
         tagprefs        => { sort_keys => 'tid', maxlength => 500, aoh => {
             tid     => { vndbid => 'g' },
-            spoil   => { int => 1, range => [ -1, 3 ] },
+            spoil   => { required => 0, int => 1, range => [ 0, 3 ] },
+            color   => { required => 0, regex => qr/^(standout|grayedout|#[a-fA-F0-9]{6})$/ },
             childs  => { anybool => 1 },
             name    => {},
         } },
         traitprefs      => { sort_keys => 'tid', maxlength => 500, aoh => {
             tid     => { vndbid => 'i' },
-            spoil   => { int => 1, range => [ -1, 3 ] },
+            spoil   => { required => 0, int => 1, range => [ 0, 3 ] },
+            color   => { required => 0, regex => qr/^(standout|grayedout|#[a-fA-F0-9]{6})$/ },
             childs  => { anybool => 1 },
             name    => {},
             group   => { required => 0 },
@@ -138,8 +140,8 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
         $u->{prefs}{staffed_langs} ||= [ keys %LANGUAGE ];
         @{$u->{prefs}}{'titles','alttitles'} = @{ titleprefs_parse($u->{prefs}{titles}) // $DEFAULT_TITLE_PREFS };
         $u->{prefs}{traits} = tuwf->dbAlli('SELECT u.tid, t.name, g.name AS "group" FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.group WHERE u.id =', \$u->{id}, 'ORDER BY g.order, t.name');
-        $u->{prefs}{tagprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.childs, t.name FROM users_prefs_tags u JOIN tags t ON t.id = u.tid WHERE u.id =', \$u->{id}, 'ORDER BY t.name');
-        $u->{prefs}{traitprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.childs, t.name, g.name as "group" FROM users_prefs_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.group WHERE u.id =', \$u->{id}, 'ORDER BY g.order, t.name');
+        $u->{prefs}{tagprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.color, u.childs, t.name FROM users_prefs_tags u JOIN tags t ON t.id = u.tid WHERE u.id =', \$u->{id}, 'ORDER BY t.name');
+        $u->{prefs}{traitprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.color, u.childs, t.name, g.name as "group" FROM users_prefs_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.group WHERE u.id =', \$u->{id}, 'ORDER BY g.order, t.name');
         $u->{prefs}{api2} = auth->api2_tokens($u->{id});
         $_->{delete} = 0 for $u->{prefs}{api2}->@*;
     }
@@ -193,10 +195,10 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
         tuwf->dbExeci('INSERT INTO users_traits', { id => $data->{id}, tid => $_->{tid} }) for $p->{traits}->@*;
 
         tuwf->dbExeci('DELETE FROM users_prefs_tags WHERE id =', \$data->{id});
-        tuwf->dbExeci('INSERT INTO users_prefs_tags', { id => $data->{id}, tid => $_->{tid}, spoil => $_->{spoil}, childs => $_->{childs} }) for $p->{tagprefs}->@*;
+        tuwf->dbExeci('INSERT INTO users_prefs_tags', { id => $data->{id}, %{$_}{qw|tid spoil color childs|} }) for $p->{tagprefs}->@*;
 
         tuwf->dbExeci('DELETE FROM users_prefs_traits WHERE id =', \$data->{id});
-        tuwf->dbExeci('INSERT INTO users_prefs_traits', { id => $data->{id}, tid => $_->{tid}, spoil => $_->{spoil}, childs => $_->{childs} }) for $p->{traitprefs}->@*;
+        tuwf->dbExeci('INSERT INTO users_prefs_traits', { id => $data->{id}, %{$_}{qw|tid spoil color childs|} }) for $p->{traitprefs}->@*;
 
         my %tokens = map +($_->{token},$_), $p->{api2}->@*;
         for (auth->api2_tokens($data->{id})->@*) {

@@ -1184,8 +1184,9 @@ CREATE TABLE users_prefs (
 CREATE TABLE users_prefs_tags (
   id     vndbid NOT NULL,
   tid    vndbid NOT NULL,
-  spoil  smallint NOT NULL, -- -1 = always show & highlight, 0 = always show, 3 = always hide
+  spoil  smallint, -- 0 = always show, 3 = always hide
   childs boolean NOT NULL,
+  color  text, -- NULL / 'standout' / 'grayedout' / '#customcolor'
   PRIMARY KEY(id, tid)
 );
 
@@ -1193,8 +1194,9 @@ CREATE TABLE users_prefs_tags (
 CREATE TABLE users_prefs_traits (
   id     vndbid NOT NULL,
   tid    vndbid NOT NULL,
-  spoil  smallint NOT NULL,
+  spoil  smallint,
   childs boolean NOT NULL,
+  color  text,
   PRIMARY KEY(id, tid)
 );
 

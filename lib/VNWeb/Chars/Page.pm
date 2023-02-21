@@ -18,14 +18,14 @@ sub enrich_seiyuu {
 
 sub sql_trait_overrides {
     sql '(
-        WITH RECURSIVE trait_overrides (tid, spoil, childs, lvl) AS (
-          SELECT tid, spoil, childs, 0 FROM users_prefs_traits WHERE id =', \auth->uid, '
+        WITH RECURSIVE trait_overrides (tid, spoil, color, childs, lvl) AS (
+          SELECT tid, spoil, color, childs, 0 FROM users_prefs_traits WHERE id =', \auth->uid, '
            UNION ALL
-          SELECT tp.id, x.spoil, true, lvl+1
+          SELECT tp.id, x.spoil, x.color, true, lvl+1
             FROM trait_overrides x
             JOIN traits_parents tp ON tp.parent = x.tid
            WHERE x.childs
-        ) SELECT DISTINCT ON(tid) tid, spoil FROM trait_overrides ORDER BY tid, lvl
+        ) SELECT DISTINCT ON(tid) tid, spoil, color FROM trait_overrides ORDER BY tid, lvl
     )';
 }
 
@@ -39,7 +39,7 @@ sub enrich_item {
     # Even with trait overrides, we'll want to see the raw data in revision diffs,
     # so fetch the raw spoil as a separate column and do filtering/processing later.
     enrich_merge tid => sub { sql '
-      SELECT t.id AS tid, t.name, t.hidden, t.locked, t.applicable, t.sexual, x.spoil AS override
+      SELECT t.id AS tid, t.name, t.hidden, t.locked, t.applicable, t.sexual, x.spoil AS override, x.color
            , coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.order,0) AS order
         FROM traits t
         LEFT JOIN traits g ON t.group = g.id
@@ -73,7 +73,7 @@ sub fetch_chars {
     }, $l;
 
     enrich traits => id => id => sub { sql '
-        SELECT ct.id, ct.tid, ct.spoil, x.spoil AS override, ct.lie, t.name, t.hidden, t.locked, t.sexual
+        SELECT ct.id, ct.tid, ct.spoil, x.spoil AS override, x.color, ct.lie, t.name, t.hidden, t.locked, t.sexual
              , coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.order,0) AS order
           FROM chars_traits ct
           JOIN traits t ON t.id = ct.tid
@@ -189,11 +189,12 @@ sub chartable_ {
             tr_ class => "trait_group_$_->{group}", sub {
                 td_ class => 'key', sub { a_ href => "/$_->{group}", $_->{groupname} };
                 td_ sub { join_ ', ', sub {
-                    my $spoil = $_->{override}//$_->{spoil};
                     a_ href => "/$_->{tid}", mkclass(
-                        standout => $spoil == -1,
-                        lie => $_->{lie} && (($_->{override}//1) <= 0 || $view->{spoilers} >= 2),
-                    ), $_->{name}; spoil_ $_->{spoil};
+                            $_->{color} ? ($_->{color}, $_->{color} =~ /standout|grayedout/ ? 1 : 0) : (),
+                            lie => $_->{lie} && (($_->{override}//1) <= 0 || $view->{spoilers} >= 2),
+                        ), ($_->{color}//'') =~ /^#/ ? (style => "color: $_->{color}") : (),
+                        $_->{name};
+                    spoil_ $_->{spoil};
                 }, $_->{traits}->@* };
             } for @groups;
 

@@ -116,6 +116,12 @@ type TitlePrefMsg
   | TitleOfficial Int (Maybe Bool)
   | TitleLatin Int Bool
 
+type TTPrefMsg
+  = TTPSpoil (Maybe Int)
+  | TTPColor (Maybe String)
+  | TTPChilds Bool
+  | TTPDel
+
 type PrefMsg
   = EMail String
   | TimeZone String
@@ -144,12 +150,8 @@ type PrefMsg
   | Titles TitlePrefMsg
   | AltTitles TitlePrefMsg
   | TraitDel Int
-  | TagPSpoil Int Int
-  | TagPChilds Int Bool
-  | TagPDel Int
-  | TraitPSpoil Int Int
-  | TraitPChilds Int Bool
-  | TraitPDel Int
+  | TagP Int TTPrefMsg
+  | TraitP Int TTPrefMsg
   | Api2Del Int Bool
   | Api2Notes Int String
   | Api2ListRead Int Bool
@@ -246,6 +248,13 @@ updateTitlePrefs msg model =
     TitleOfficial n f -> modidx n (\e -> { e | official = f }) model
     TitleLatin n b -> modidx n (\e -> { e | latin = b }) model
 
+updateTTPrefs msg model =
+  case msg of
+    TTPSpoil s  -> { model | spoil = s }
+    TTPColor s  -> { model | color = s }
+    TTPChilds b -> { model | childs = b }
+    TTPDel      -> model
+
 updatePrefs : PrefMsg -> GUE.SendPrefs -> GUE.SendPrefs
 updatePrefs msg model =
   case msg of
@@ -276,12 +285,10 @@ updatePrefs msg model =
     Titles m   -> { model | titles    = updateTitlePrefs m model.titles }
     AltTitles m-> { model | alttitles = updateTitlePrefs m model.alttitles }
     TraitDel idx  -> { model | traits = delidx idx model.traits }
-    TagPSpoil i s -> { model | tagprefs = modidx i (\e -> { e | spoil = s }) model.tagprefs }
-    TagPChilds i b-> { model | tagprefs = modidx i (\e -> { e | childs = b }) model.tagprefs }
-    TagPDel idx   -> { model | tagprefs = delidx idx model.tagprefs }
-    TraitPSpoil i s -> { model | traitprefs = modidx i (\e -> { e | spoil = s }) model.traitprefs }
-    TraitPChilds i b-> { model | traitprefs = modidx i (\e -> { e | childs = b }) model.traitprefs }
-    TraitPDel idx   -> { model | traitprefs = delidx idx model.traitprefs }
+    TagP i TTPDel   -> { model | tagprefs   = delidx i model.tagprefs }
+    TraitP i TTPDel -> { model | traitprefs = delidx i model.traitprefs }
+    TagP i m        -> { model | tagprefs   = modidx i (updateTTPrefs m) model.tagprefs }
+    TraitP i m      -> { model | traitprefs = modidx i (updateTTPrefs m) model.traitprefs }
     Api2Del i b     -> { model | api2 = modidx i (\e -> { e | delete = b }) model.api2 }
     Api2Notes i s   -> { model | api2 = modidx i (\e -> { e | notes = s }) model.api2 }
     Api2ListRead i b-> { model | api2 = modidx i (\e -> { e | listread = b }) model.api2 }
@@ -342,7 +349,7 @@ update msg model =
           if t.hidden || List.any (\l -> l.tid == t.id) p.tagprefs
           then ({ model | tagpSearch = A.clear nm "" }, c)
           else
-            let np = { p | tagprefs = p.tagprefs ++ [{ tid = t.id, name = t.name, spoil = 0, childs = True }] }
+            let np = { p | tagprefs = p.tagprefs ++ [{ tid = t.id, name = t.name, spoil = Nothing, color = Nothing, childs = True }] }
             in ({ model | saved = False, tagpSearch = A.clear nm "", prefs = Just np }, c)
         _ -> ({ model | tagpSearch = nm }, c)
 
@@ -353,7 +360,7 @@ update msg model =
           if t.hidden || List.any (\l -> l.tid == t.id) p.traitprefs
           then ({ model | traitpSearch = A.clear nm "" }, c)
           else
-            let np = { p | traitprefs = p.traitprefs ++ [{ tid = t.id, name = t.name, group = t.group_name, spoil = 0, childs = True }] }
+            let np = { p | traitprefs = p.traitprefs ++ [{ tid = t.id, name = t.name, group = t.group_name, spoil = Nothing, color = Nothing, childs = True }] }
             in ({ model | saved = False, traitpSearch = A.clear nm "", prefs = Just np }, c)
         _ -> ({ model | traitpSearch = nm }, c)
 
@@ -561,12 +568,28 @@ view model =
       , formField "css::Custom CSS" [ inputTextArea "css" m.customcss (Prefs << Css) ([ rows 5, cols 60 ] ++ GUE.valPrefsCustomcss) ]
       ]
 
-    ttspoil =
-      [ (-1, "Always show & highlight")
-      , (0, "Always show")
-      , (1, "Force minor spoiler")
-      , (2, "Force major spoiler")
-      , (3, "Always hide") ]
+    ttpref msg fmt name t =
+      let c = Maybe.withDefault "" t.color
+      in tr []
+      [ td [] fmt
+      , td [] [ inputSelect "" t.spoil (msg << TTPSpoil) [ style "width" "150px" ]
+          [ (Nothing, "Keep spoiler level")
+          , (Just 0, "Always show")
+          , (Just 1, "Force minor spoiler")
+          , (Just 2, "Force major spoiler")
+          , (Just 3, "Always hide") ] ]
+      , td [] [ if t.spoil == Just 3 then text "" else
+          inputSelect "" t.color (msg << TTPColor) [ style "width" "150px" ]
+          [ (Nothing, "Don't highlight")
+          , (Just "standout", "Stand out")
+          , (Just "grayedout", "Grayed out")
+          , (if String.startsWith "#" c then t.color else Just "#ffffff", "Custom color") ] ]
+      , td [] [ if t.spoil == Just 3 || not (String.startsWith "#" c) then text "" else
+          input [ type_ "color", tabindex 10, value c, onInput (msg << TTPColor << Just) ] [] ]
+      , td [] [ label [] [ inputCheck "" t.childs (msg << TTPChilds), text (" also apply to child "++name) ] ]
+      , td [] [ inputButton "remove" (msg TTPDel) [] ]
+      ]
+
 
     ttprefsform m = div []
       [ p [ style "margin" "0 20px 20px 20px", style "max-width" "800px" ]
@@ -579,28 +602,21 @@ view model =
       , h2 [] [ text "Tags" ]
       , div [ style "margin" "5px 0 20px 20px" ]
         [ if List.isEmpty m.tagprefs then text ""
-          else table [] <| List.indexedMap (\i t -> tr []
-            [ td [] [ a [ href <| "/" ++ t.tid ] [ text t.name ] ]
-            , td [] [ inputSelect "" t.spoil (Prefs << TagPSpoil i) [ style "width" "200px" ] ttspoil ]
-            , td [] [ label [] [ inputCheck "" t.childs (Prefs << TagPChilds i), text " also apply to child tags" ] ]
-            , td [] [ inputButton "remove" (Prefs (TagPDel i)) [] ]
-            ]
-          ) m.tagprefs
+          else table [] <| List.indexedMap (\i t ->
+            ttpref (Prefs << TagP i)
+            [ a [ href <| "/" ++ t.tid ] [ text t.name ] ]
+            "tags" t) m.tagprefs
         , if List.length m.traits >= 500 then text ""
           else A.view tagpConfig model.tagpSearch [placeholder "Add tag..."]
         ]
       , h2 [] [ text "Traits" ]
       , div [ style "margin" "5px 0 20px 20px" ]
         [ if List.isEmpty m.traitprefs then text ""
-          else table [] <| List.indexedMap (\i t -> tr []
-            [ td []
-              [ Maybe.withDefault (text "") <| Maybe.map (\g -> b [ class "grayedout" ] [ text <| g ++ " / " ]) t.group
-              , a [ href <| "/" ++ t.tid ] [ text t.name ] ]
-            , td [] [ inputSelect "" t.spoil (Prefs << TraitPSpoil i) [ style "width" "200px" ] ttspoil ]
-            , td [] [ label [] [ inputCheck "" t.childs (Prefs << TraitPChilds i), text " also apply to child traits" ] ]
-            , td [] [ inputButton "remove" (Prefs (TraitPDel i)) [] ]
-            ]
-          ) m.traitprefs
+          else table [] <| List.indexedMap (\i t ->
+            ttpref (Prefs << TraitP i)
+            [ Maybe.withDefault (text "") <| Maybe.map (\g -> b [ class "grayedout" ] [ text <| g ++ " / " ]) t.group
+            , a [ href <| "/" ++ t.tid ] [ text t.name ] ]
+            "tags" t) m.traitprefs
         , if List.length m.traits >= 500 then text ""
           else A.view traitpConfig model.traitpSearch [placeholder "Add trait..."]
         ]

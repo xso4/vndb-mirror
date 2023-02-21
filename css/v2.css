@@ -190,6 +190,7 @@ input.text, select       { width: 200px; }
 input.obscured           { color: transparent; text-shadow: 0 0 8px $maintext; }
 input[type=number]       { -moz-appearance:textfield }
 input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0 }
+input[type=color]        { width: 30px; height: 21px }
 fieldset.submit          { width: 100%; text-align: center; margin: 5px; }
 fieldset.submit input[type=submit] { width: 150px; }
 fieldset.submit input[type=checkbox] { margin: 0 5px 0 15px; }
