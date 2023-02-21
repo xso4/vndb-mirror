@@ -44,8 +44,16 @@ sub enrich_vn {
           JOIN tags_vn_direct tv ON t.id = tv.tag
          WHERE tv.vid =', \$v->{id}, '
          ORDER BY rating DESC, t.name'
-    ) : tuwf->dbAlli('
-        WITH RECURSIVE tag_overrides (tid, spoil, color, childs, lvl) AS (
+    ) : tuwf->dbAlli(
+        # Monster of a query, but tag overrides are a bit complicated:
+        # - We need to find the shortest path from a tag applied to the VN to a
+        #   parent in users_prefs_tags, and use those preferences. That's what
+        #   tag_direct does.
+        # - If the user has a tag marked as "Always show" but hasn't checked
+        #   "also apply to child tags", then we need to look for any child tags
+        #   and inject their parent if said parent hasn't been directly applied.
+        #   That's what tag_indirect does.
+       'WITH RECURSIVE tag_overrides (tid, spoil, color, childs, lvl) AS (
           SELECT tid, spoil, color, childs, 0 FROM users_prefs_tags WHERE id =', \auth->uid, '
            UNION ALL
           SELECT tp.id, x.spoil, x.color, true, lvl+1
@@ -54,12 +62,21 @@ sub enrich_vn {
            WHERE x.childs
         ), tag_overrides_grouped (tid, spoil, color) AS (
           SELECT DISTINCT ON(tid) tid, spoil, color FROM tag_overrides ORDER BY tid, lvl
-        ) SELECT t.id, t.name, t.cat, tv.rating, tv.spoiler, tv.lie, x.spoil AS override, x.color
+        ), tag_direct (tid, rating, spoiler, lie, override, color) AS (
+          SELECT t.tag, t.rating, t.spoiler, t.lie, x.spoil, x.color
+            FROM tags_vn_direct t
+            LEFT JOIN tag_overrides_grouped x ON x.tid = t.tag
+           WHERE t.vid =', \$v->{id}, 'AND x.spoil IS DISTINCT FROM 1+1+1
+        ), tag_indirect (tid, rating, spoiler, lie, override, color) AS (
+          SELECT t.tag, t.rating, t.spoiler, t.lie, x.spoil, x.color
+            FROM tags_vn_inherit t
+            JOIN users_prefs_tags x ON x.tid = t.tag
+           WHERE t.vid =', \$v->{id}, 'AND x.id =', \auth->uid, 'AND NOT x.childs AND x.spoil = 0
+             AND NOT EXISTS(SELECT 1 FROM tag_direct d WHERE d.tid = t.tag)
+        ) SELECT t.id, t.name, t.cat, d.rating, d.spoiler, d.lie, d.override, d.color
             FROM tags t
-            JOIN tags_vn_direct tv ON t.id = tv.tag
-            LEFT JOIN tag_overrides_grouped x ON x.tid = tv.tag
-           WHERE tv.vid =', \$v->{id}, 'AND x.spoil IS DISTINCT FROM 1+1+1
-           ORDER BY rating DESC, t.name'
+            JOIN (SELECT * FROM tag_direct UNION ALL SELECT * FROM tag_indirect) d ON d.tid = t.id
+           ORDER BY d.rating DESC, t.name'
     );
 }
 
