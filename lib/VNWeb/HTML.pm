@@ -906,6 +906,15 @@ sub editmsg_ {
             txt_ $title;
             debug_ $obj if $obj;
         };
+        if($obj && config->{data_requests}{$obj->{id}}) {
+            div_ class => 'warning', sub {
+                h2_ '## DATA REMOVAL/CHANGE REQUEST ##';
+                br_;
+                p_ sub { lit_ config->{data_requests}{$obj->{id}} };
+                br_;
+                h2_ '## DATA REMOVAL/CHANGE REQUEST ##';
+            };
+        }
         if($copy) {
             div_ class => 'warning', sub {
                 h2_ "You're not editing an entry!";
@@ -918,8 +927,7 @@ sub editmsg_ {
                 }
             }
         }
-        # 'lastrev' is for compatibility with VNDB::*
-        if($obj && ($obj->{maxrev} ? $obj->{maxrev} != $obj->{chrev} : !$obj->{lastrev})) {
+        if($obj && $obj->{maxrev} != $obj->{chrev}) {
             div_ class => 'warning', sub {
                 h2_ 'Reverting';
                 p_ "You are editing an old revision of this $typename. If you save it, all changes made after this revision will be reverted!";
