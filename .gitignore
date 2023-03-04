@@ -4,6 +4,9 @@
 /data/log/
 /data/multi.pid
 /data/hibp/
+/dl/tmp
+/dl/img
+/dl/dump
 /elm/elm-stuff/
 /elm/Gen/
 /static/g
