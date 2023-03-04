@@ -6,8 +6,6 @@ util/dbdump.pl export-db output.tar.zst
 
   Write a full database export as a .tar.zst
 
-  The uncompressed directory is written to "output.tar.zst_dir"
-
 util/dbdump.pl export-img output-dir
 
   Create or update a directory with hardlinks to images.
@@ -36,6 +34,7 @@ use DBI;
 use DBD::Pg;
 use File::Copy 'cp';
 use File::Find 'find';
+use File::Path 'rmtree';
 use Time::HiRes 'time';
 
 use Cwd 'abs_path';
@@ -149,7 +148,21 @@ my $references = VNDB::Schema::references;
 
 my $db = DBI->connect('dbi:Pg:dbname=vndb', 'vndb', undef, { RaiseError => 1, AutoCommit => 0 });
 $db->do('SET TIME ZONE +0');
-$db->do('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
+
+
+sub consistent_snapshot {
+    my($func) = @_;
+    my($standby) = $db->selectrow_array('SELECT pg_is_in_recovery()');
+    if($standby) {
+        $db->do('SELECT pg_wal_replay_pause()');
+    } else {
+        $db->rollback;
+        $db->do('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
+    }
+    eval { $func->() };
+    warn $@ if length $@;
+    $db->do('SELECT pg_wal_replay_resume()') if $standby;
+}
 
 
 sub table_order {
@@ -266,7 +279,7 @@ sub export_db {
         README.txt
     };
 
-    # This will die if it already exists, which is good because we want to write to a new empty dir.
+    rmtree "${dest}_dir";
     mkdir "${dest}_dir";
     mkdir "${dest}_dir/db";
 
@@ -277,7 +290,8 @@ sub export_db {
     export_import_script "${dest}_dir/import.sql";
 
     #print "# Compressing\n";
-    `tar -cf "$dest" -I 'zstd -7' --sort=name -C "${dest}_dir" @static import.sql TIMESTAMP db`
+    `tar -cf "$dest" -I 'zstd -7' --sort=name -C "${dest}_dir" @static import.sql TIMESTAMP db`;
+    rmtree "${dest}_dir";
 }
 
 
@@ -433,7 +447,7 @@ sub export_traits {
 
 
 if($ARGV[0] && $ARGV[0] eq 'export-db' && $ARGV[1]) {
-    export_db $ARGV[1];
+    consistent_snapshot sub { export_db $ARGV[1] };
 } elsif($ARGV[0] && $ARGV[0] eq 'export-img' && $ARGV[1]) {
     export_img $ARGV[1];
 } elsif($ARGV[0] && $ARGV[0] eq 'export-data' && $ARGV[1]) {

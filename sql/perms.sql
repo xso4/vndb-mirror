@@ -1,3 +1,9 @@
+-- vndb
+-- these are used by util/dbdump.pl
+
+GRANT EXECUTE ON FUNCTION pg_wal_replay_pause TO vndb;
+GRANT EXECUTE ON FUNCTION pg_wal_replay_resume TO vndb;
+
 -- vndb_site
 
 DROP OWNED BY vndb_site;
