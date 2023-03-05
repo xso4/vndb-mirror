@@ -213,7 +213,7 @@ sub listing_ {
     my $where = sql_and
         sql('uv.uid =', \$uid),
         $opt->{f}->sql_where(),
-        $own ? () : 'NOT uv.c_private',
+        $own ? () : 'NOT uv.c_private AND NOT v.hidden',
         @where_vns ? sql_or(@where_vns) : (),
         $opt->{q} ? sql 'v.c_search LIKE ALL (search_query(', \$opt->{q}, '))' : (),
         defined($opt->{ch}) ? sql 'match_firstchar(v.sorttitle, ', \$opt->{ch}, ')' : ();

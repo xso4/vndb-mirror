@@ -156,7 +156,7 @@ sub _votestats_ {
         SELECT v.id, v.title, uv.vote,', sql_totime('uv.vote_date'), 'AS date
           FROM ulist_vns uv
           JOIN', vnt, 'v ON v.id = uv.vid
-         WHERE uv.vote IS NOT NULL AND uv.uid =', \$u->{id}, $own ? () : ('AND NOT uv.c_private'), '
+         WHERE uv.vote IS NOT NULL AND uv.uid =', \$u->{id}, $own ? () : ('AND NOT uv.c_private AND NOT v.hidden'), '
          ORDER BY uv.vote_date DESC LIMIT', \8
     );
 
