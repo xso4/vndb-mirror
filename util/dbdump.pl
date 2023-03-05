@@ -307,12 +307,10 @@ sub cp_p {
 sub export_img {
     my $dest = shift;
 
-    {
-        no autodie;
-        mkdir ${dest};
-        mkdir sprintf '%s/%s', $dest, $_ for qw/ch cv sf st/;
-        mkdir sprintf '%s/%s/%02d', $dest, $_->[0], $_->[1] for map +([ch=>$_], [cv=>$_], [sf=>$_], [st=>$_]), 0..99;
-    }
+    no autodie;
+    mkdir ${dest};
+    mkdir sprintf '%s/%s', $dest, $_ for qw/ch cv sf st/;
+    mkdir sprintf '%s/%s/%02d', $dest, $_->[0], $_->[1] for map +([ch=>$_], [cv=>$_], [sf=>$_], [st=>$_]), 0..99;
 
     cp_p "$ROOT/util/dump/LICENSE-ODBL.txt", "$dest/LICENSE-ODBL.txt";
     cp_p "$ROOT/util/dump/README-img.txt", "$dest/README.txt";
@@ -329,14 +327,15 @@ sub export_img {
     find {
         no_chdir => 1,
         wanted => sub {
-            unlink $File::Find::name if $File::Find::name =~ m{(cv|ch|sf|st)/[0-9][0-9]/([0-9]+)\.jpg$} && !$dir{$1}{$2};
+            unlink $File::Find::name or warn "Unable to unlink $File::Find::name: $!\n"
+                if $File::Find::name =~ m{(cv|ch|sf|st)/[0-9][0-9]/([0-9]+)\.jpg$} && !$dir{$1}{$2};
         }
     }, $dest;
 
     for my $d (keys %dir) {
         for my $i (keys %{$dir{$d}}) {
             my $f = sprintf('%s/%02d/%d.jpg', $d, $i % 100, $i);
-            link "$ROOT/static/$f", "$dest/$f" if !-e "$dest/$f";
+            link "$ROOT/static/$f", "$dest/$f" or warn "Unable to link $f: $!\n" if !-e "$dest/$f";
         }
     }
 }
