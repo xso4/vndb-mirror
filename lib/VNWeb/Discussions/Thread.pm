@@ -197,7 +197,8 @@ TUWF::get qr{/$RE{tid}(?:(?<sep>[\./])$RE{num})?}, sub {
            LEFT JOIN users u ON tpv.uid = u.id AND NOT u.ign_votes
            LEFT JOIN threads_poll_votes tpm ON tpm.optid = tpo.id AND tpm.uid =', \auth->uid, '
           WHERE tpo.tid =', \$id, '
-          GROUP BY tpo.id, tpo.option, tpm.optid'
+          GROUP BY tpo.id, tpo.option, tpm.optid
+          ORDER BY tpo.id'
     );
 
     auth->notiRead($id, [ map $_->{num}, $posts->@* ]) if @$posts;
