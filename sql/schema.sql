@@ -234,7 +234,7 @@ CREATE TABLE chars ( -- dbentry_type=c
   locked       boolean NOT NULL DEFAULT FALSE,
   hidden       boolean NOT NULL DEFAULT FALSE,
   name         varchar(250) NOT NULL DEFAULT '', -- [pub]
-  original     varchar(250) NOT NULL DEFAULT '', -- [pub]
+  original     varchar(250), -- [pub]
   alias        varchar(500) NOT NULL DEFAULT '', -- [pub]
   "desc"       text NOT NULL DEFAULT '', -- [pub]
   c_search     text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[name, original]::text[]||string_to_array(alias,E'\n'))) STORED,
@@ -1495,6 +1495,14 @@ CREATE VIEW producerst AS
                  , lang::text, COALESCE(original, name) ] AS title
          , name AS sorttitle
       FROM producers;
+
+-- And chars
+CREATE VIEW charst AS
+    SELECT *
+         , ARRAY [ c_lang::text, name
+                 , c_lang::text, COALESCE(original, name) ] AS title
+         , name AS sorttitle
+      FROM chars;
 
 -- This joins staff & staff_alias and adds the title + sorttitle fields.
 CREATE VIEW staff_aliast AS

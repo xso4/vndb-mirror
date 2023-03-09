@@ -125,11 +125,11 @@ sub _cast_ {
     my %alias = map +($_->{aid}, $_), $s->{alias}->@*;
 
     my $cast = [ grep defined $_->{spoil}, tuwf->dbAlli('
-        SELECT vs.aid, v.id, v.c_released, v.title, c.id AS cid, c.name AS c_name, c.original AS c_original, vs.note,
+        SELECT vs.aid, v.id, v.c_released, v.title, c.id AS cid, c.title AS c_title, vs.note,
                (SELECT MIN(cv.spoil) FROM chars_vns cv WHERE cv.id = c.id AND cv.vid = v.id) AS spoil
           FROM vn_seiyuu vs
           JOIN', vnt, 'v ON v.id = vs.id
-          JOIN chars c ON c.id = vs.cid
+          JOIN', charst, 'c ON c.id = vs.cid
          WHERE vs.aid IN', [ keys %alias ], '
            AND NOT v.hidden
            AND NOT c.hidden
@@ -168,7 +168,7 @@ sub _cast_ {
                 };
                 td_ class => 'tc2', sub { rdate_ $v->{c_released} };
                 td_ class => 'tc3', sub {
-                    a_ href => "/$v->{cid}", title => $v->{c_original}||$v->{c_name}, $v->{c_name};
+                    a_ href => "/$v->{cid}", tattr $v->{c_title};
                     spoil_ $_->{spoil};
                 };
                 td_ class => 'tc4', tattr $a;

@@ -182,9 +182,9 @@ charSource =
       _ -> Nothing
   , view    = \i ->
     [ b [ class "grayedout" ] [ text <| i.id ++ ": " ]
-    , text i.name
+    , text i.title
     , Maybe.withDefault (text "") <| Maybe.map (\m ->
-        b [ class "grayedout" ] [ text <| " (instance of " ++ m.id ++ ": " ++ m.name ]
+        b [ class "grayedout" ] [ text <| " (instance of " ++ m.id ++ ": " ++ m.title ]
       ) i.main
     ]
   , key     = \i -> i.id

@@ -172,6 +172,13 @@ $$ LANGUAGE SQL STABLE;
 
 
 
+-- Same for charst
+CREATE OR REPLACE FUNCTION charst(p titleprefs) RETURNS SETOF charst AS $$
+  SELECT *, titleprefs_swap(p, c_lang, name, original), name FROM chars
+$$ LANGUAGE SQL STABLE;
+
+
+
 -- Same for staff_aliast
 CREATE OR REPLACE FUNCTION staff_aliast(p titleprefs) RETURNS SETOF staff_aliast AS $$
     SELECT s.id, s.gender, s.lang, s.l_anidb, s.l_wikidata, s.l_pixiv, s.locked, s.hidden, s."desc", s.l_wp, s.l_site, s.l_twitter, s.aid AS main
@@ -569,9 +576,9 @@ BEGIN
     WHEN 'v' THEN SELECT v.title, NULL::vndbid, v.hidden, v.locked INTO ret FROM vnt($1) v        WHERE v.id = $2;
     WHEN 'r' THEN SELECT r.title, NULL::vndbid, r.hidden, r.locked INTO ret FROM releasest($1) r  WHERE r.id = $2;
     WHEN 'p' THEN SELECT p.title, NULL::vndbid, p.hidden, p.locked INTO ret FROM producerst($1) p WHERE p.id = $2;
-    WHEN 'c' THEN SELECT ARRAY[NULL, c.name,  NULL, c.original], NULL::vndbid, c.hidden, c.locked INTO ret FROM chars c WHERE c.id = $2;
-    WHEN 'd' THEN SELECT ARRAY[NULL, d.title, NULL, d.title],    NULL::vndbid, d.hidden, d.locked INTO ret FROM docs d  WHERE d.id = $2;
-    WHEN 'g' THEN SELECT ARRAY[NULL, g.name,  NULL, g.name],     NULL::vndbid, g.hidden, g.locked INTO ret FROM tags g  WHERE g.id = $2;
+    WHEN 'c' THEN SELECT c.title, NULL::vndbid, c.hidden, c.locked INTO ret FROM charst($1) c     WHERE c.id = $2;
+    WHEN 'd' THEN SELECT ARRAY[NULL, d.title, NULL, d.title], NULL::vndbid, d.hidden, d.locked INTO ret FROM docs d WHERE d.id = $2;
+    WHEN 'g' THEN SELECT ARRAY[NULL, g.name,  NULL, g.name],  NULL::vndbid, g.hidden, g.locked INTO ret FROM tags g WHERE g.id = $2;
     WHEN 'i' THEN SELECT ARRAY[NULL, COALESCE(g.name||' > ', '')||i.name, NULL, COALESCE(g.name||' > ', '')||i.name], NULL::vndbid, i.hidden, i.locked INTO ret FROM traits i LEFT JOIN traits g ON g.id = i.group WHERE i.id = $2;
     WHEN 's' THEN SELECT s.title, NULL::vndbid, s.hidden, s.locked INTO ret FROM staff_aliast($1) s WHERE s.id = $2 AND s.aid = s.main;
     WHEN 't' THEN SELECT ARRAY[NULL, t.title, NULL, t.title], NULL::vndbid, t.hidden OR t.private, t.locked INTO ret FROM threads t WHERE t.id = $2;

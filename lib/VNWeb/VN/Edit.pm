@@ -71,8 +71,8 @@ my $FORM = {
     reltitles  => { _when => 'out', aoh => { id => { vndbid => 'r' }, title => {} } },
     chars      => { _when => 'out', aoh => {
         id       => { vndbid => 'c' },
-        name     => {},
-        original => { required => 0, default => '' },
+        title    => {},
+        alttitle => {},
     } },
 };
 
@@ -124,9 +124,9 @@ TUWF::get qr{/$RE{vrev}/edit} => sub {
     );
 
     $e->{chars} = tuwf->dbAlli('
-        SELECT id, name, original FROM chars
+        SELECT id, title[1+1], title[1+1+1+1] AS alttitle FROM', charst, '
          WHERE NOT hidden AND id IN(SELECT id FROM chars_vns WHERE vid =', \$e->{id},')
-         ORDER BY name, id'
+         ORDER BY sorttitle, id'
     );
 
     my $title = titleprefs_obj $e->{olang}, $e->{titles};

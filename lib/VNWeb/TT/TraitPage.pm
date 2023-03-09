@@ -102,11 +102,11 @@ sub chars_ {
     db_maytimeout {
         $count = tuwf->dbVali('SELECT count(*) FROM chars c JOIN traits_chars tc ON tc.cid = c.id WHERE', $where);
         $list = $count ? tuwf->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
-            SELECT c.id, c.name, c.original, c.gender, c.image
-              FROM chars c
+            SELECT c.id, c.title, c.gender, c.image
+              FROM', charst, 'c
               JOIN traits_chars tc ON tc.cid = c.id
              WHERE', $where, '
-             ORDER BY c.name, c.id'
+             ORDER BY c.sorttitle, c.id'
         ) : [];
     } || (($count, $list) = (undef, []));
 

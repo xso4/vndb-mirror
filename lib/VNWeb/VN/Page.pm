@@ -86,7 +86,7 @@ sub enrich_item {
     my($v, $full) = @_;
     enrich_vn $v, !$full;
     enrich_merge aid => sql('SELECT id AS sid, aid, title FROM', staff_aliast, 's WHERE aid IN'), $v->{staff}, $v->{seiyuu};
-    enrich_merge cid => 'SELECT id AS cid, name AS char_name, original AS char_original FROM chars WHERE id IN', $v->{seiyuu};
+    enrich_merge cid => sql('SELECT id AS cid, title AS char_title FROM', charst, 'c WHERE id IN'), $v->{seiyuu};
 
     $v->{relations}   = [ sort { idcmp($a->{vid}, $b->{vid}) } $v->{relations}->@* ];
     $v->{anime}       = [ sort { $a->{aid} <=> $b->{aid} } $v->{anime}->@* ];
@@ -167,7 +167,7 @@ sub rev_ {
             a_ href => "/$_->{sid}", tattr $_ if $_->{sid};
             b_ class => 'grayedout', '[removed alias]' if !$_->{sid};
             txt_ ' as ';
-            a_ href => "/$_->{cid}", title => $_->{char_original}||$_->{char_name}, $_->{char_name};
+            a_ href => "/$_->{cid}", tattr $_->{char_title};
             txt_ " [$_->{note}]" if $_->{note};
         }],
         [ relations   => 'Relations',     fmt => sub {
@@ -721,8 +721,8 @@ sub charsum_ {
 
     my $spoil = viewget->{spoilers};
     my $c = tuwf->dbAlli('
-        SELECT c.id, c.name, c.original, c.gender, v.role
-          FROM chars c
+        SELECT c.id, c.title, c.gender, v.role
+          FROM', charst, 'c
           JOIN (SELECT id, MIN(role) FROM chars_vns WHERE role <> \'appears\' AND spoil <=', \$spoil, 'AND vid =', \$v->{id}, 'GROUP BY id) v(id,role) ON c.id = v.id
          WHERE NOT c.hidden
          ORDER BY v.role, c.name, c.id'
@@ -746,7 +746,7 @@ sub charsum_ {
                 div_ class => 'name', sub {
                     span_ sub {
                         abbr_ class => "icons gen $_->{gender}", title => $GENDER{$_->{gender}}, '' if $_->{gender} ne 'unknown';
-                        a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
+                        a_ href => "/$_->{id}", tattr $_;
                     };
                     i_ $CHAR_ROLE{$_->{role}}{txt};
                 };

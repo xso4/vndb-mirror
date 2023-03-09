@@ -51,7 +51,7 @@ type alias Model =
   , invalidDis  : Bool
   , editsum     : Editsum.Model
   , name        : String
-  , original    : String
+  , original    : Maybe String
   , alias       : String
   , desc        : TP.Model
   , gender      : String
@@ -213,7 +213,7 @@ update msg model =
                   ({ model | tab = t, invalidDis = True }, Task.attempt (always InvalidEnable) (Ffi.elemCall "reportValidity" "mainform" |> Task.andThen (\_ -> Process.sleep 100)))
     InvalidEnable -> ({ model | invalidDis = False }, Cmd.none)
     Name s     -> ({ model | name = s }, Cmd.none)
-    Original s -> ({ model | original = s }, Cmd.none)
+    Original s -> ({ model | original = if s == "" then Nothing else Just s }, Cmd.none)
     Alias s    -> ({ model | alias = s }, Cmd.none)
     Desc m     -> let (nm,nc) = TP.update m model.desc in ({ model | desc = nm }, Cmd.map Desc nc)
     Gender s   -> ({ model | gender = s }, Cmd.none)
@@ -236,8 +236,8 @@ update msg model =
         Nothing -> ({ model | mainSearch = nm }, c)
         Just m1 ->
           case m1.main of
-            Just m2 -> ({ model | mainSearch = A.clear nm "", main = Just m2.id, mainName = m2.name }, c)
-            Nothing -> ({ model | mainSearch = A.clear nm "", main = Just m1.id, mainName = m1.name }, c)
+            Just m2 -> ({ model | mainSearch = A.clear nm "", main = Just m2.id, mainName = m2.title }, c)
+            Nothing -> ({ model | mainSearch = A.clear nm "", main = Just m1.id, mainName = m1.title }, c)
     MainSpoil n -> ({ model | mainSpoil = n }, Cmd.none)
 
     ImageSet s b -> let (nm, nc) = Img.new b s in ({ model | image = nm }, Cmd.map ImageMsg nc)
@@ -288,7 +288,7 @@ update msg model =
 
 isValid : Model -> Bool
 isValid model = not
-  (  (model.name /= "" && model.name == model.original)
+  (  (model.name /= "" && Just model.name == model.original)
   || hasDuplicates (List.map (\v -> (v.vid, Maybe.withDefault "" v.rid)) model.vns)
   || not (Img.isValid model.image)
   || (model.mainHas && model.main /= Nothing && model.main == model.id)
@@ -308,8 +308,8 @@ view model =
     geninfo =
       [ formField "name::Name (romaji)" [ inputText "name" model.name Name (onInvalid (Invalid General) :: GCE.valName) ]
       , formField "original::Original name"
-        [ inputText "original" model.original Original (onInvalid (Invalid General) :: GCE.valOriginal)
-        , if model.name /= "" && model.name == model.original
+        [ inputText "original" (Maybe.withDefault "" model.original) Original (onInvalid (Invalid General) :: GCE.valOriginal)
+        , if model.name /= "" && Just model.name == model.original
           then b [ class "standout" ] [ br [] [], text "Should not be the same as the Name (romaji). Leave blank if the original name is already in the latin alphabet" ]
           else text ""
         ]

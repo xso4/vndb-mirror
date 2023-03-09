@@ -599,7 +599,7 @@ view model =
 
     cast =
       let
-        chars = List.map (\c -> (c.id, c.name ++ " (" ++ c.id ++ ")")) model.chars
+        chars = List.map (\c -> (c.id, c.title ++ " (" ++ c.id ++ ")")) model.chars
         head =
           if List.isEmpty model.seiyuu then [] else [
             thead [] [ tr []

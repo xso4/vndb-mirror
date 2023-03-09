@@ -8,7 +8,7 @@ use VNWeb::Releases::Lib;
 my $FORM = {
     id         => { required => 0, vndbid => 'c' },
     name       => { maxlength => 200 },
-    original   => { required => 0, default => '', maxlength => 200 },
+    original   => { required => 0, maxlength => 200 },
     alias      => { required => 0, default => '', maxlength => 500 },
     desc       => { required => 0, default => '', maxlength => 5000 },
     gender     => { default => 'unknown', enum => \%GENDER },
@@ -68,7 +68,7 @@ TUWF::get qr{/$RE{crev}/(?<action>edit|copy)} => sub {
     my $copy = tuwf->capture('action') eq 'copy';
     return tuwf->resDenied if !can_edit c => $copy ? {} : $e;
 
-    $e->{main_name} = $e->{main} ? tuwf->dbVali('SELECT name FROM chars WHERE id =', \$e->{main}) : '';
+    $e->{main_name} = $e->{main} ? tuwf->dbVali('SELECT title[1+1] FROM', charst, 'c WHERE id =', \$e->{main}) : '';
     $e->{main_ref} = tuwf->dbVali('SELECT 1 FROM chars WHERE main =', \$e->{id})||0;
 
     enrich_merge tid => 'SELECT t.id AS tid, t.name, t.hidden, t.locked, t.applicable, g.name AS group, g.order AS order, false AS new FROM traits t LEFT JOIN traits g ON g.id = t.group WHERE t.id IN', $e->{traits};
@@ -90,7 +90,7 @@ TUWF::get qr{/$RE{crev}/(?<action>edit|copy)} => sub {
     $e->{authmod} = auth->permDbmod;
     $e->{editsum} = $copy ? "Copied from $e->{id}.$e->{chrev}" : $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
 
-    my $title = ($copy ? 'Copy ' : 'Edit ').$e->{name};
+    my $title = ($copy ? 'Copy ' : 'Edit ').titleprefs_swap(@{$e}{qw/ lang name original /})->[1];
     framework_ title => $title, dbobj => $e, tab => tuwf->capture('action'),
     sub {
         editmsg_ c => $e, $title, $copy;

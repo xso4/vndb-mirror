@@ -58,9 +58,9 @@ sub enrich_item {
 sub fetch_chars {
     my($vid, $where) = @_;
     my $l = tuwf->dbAlli('
-        SELECT id, name, original, alias, "desc", gender, spoil_gender, b_month, b_day, s_bust, s_waist, s_hip, height, weight, bloodt, cup_size, age, image
-          FROM chars WHERE NOT hidden AND (', $where, ')
-         ORDER BY name
+        SELECT id, title, alias, "desc", gender, spoil_gender, b_month, b_day, s_bust, s_waist, s_hip, height, weight, bloodt, cup_size, age, image
+          FROM', charst, 'c WHERE NOT hidden AND (', $where, ')
+         ORDER BY sorttitle
     ');
 
     enrich vns => id => id => sub { sql '
@@ -109,8 +109,8 @@ sub _rev_ {
         [ cup_size   => 'Cup size',      fmt => \%CUP_SIZE ],
         [ age        => 'Age',           ],
         [ main       => 'Instance of',   empty => 0, fmt => sub {
-            my $c = tuwf->dbRowi('SELECT id, name, original FROM chars WHERE id =', \$_);
-            a_ href => "/$c->{id}", title => $c->{name}, $c->{id}
+            my $c = tuwf->dbRowi('SELECT id, title FROM', charst, 'c WHERE id =', \$_);
+            a_ href => "/$c->{id}", title => $c->{title}[1], $c->{id}
         } ],
         [ main_spoil => 'Spoiler',       fmt => sub { txt_ fmtspoil $_ } ],
         [ image      => 'Image',         fmt => sub { image_ $_ } ],
@@ -138,13 +138,13 @@ sub chartable_ {
     my $view = viewget;
 
     div_ mkclass(chardetails => 1, charsep => $sep), sub {
-        div_ class => 'charimg', sub { image_ $c->{image}, alt => $c->{name} };
+        div_ class => 'charimg', sub { image_ $c->{image}, alt => $c->{title}[1] };
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub { td_ colspan => 2, sub {
                 $link
-                ? a_ href => "/$c->{id}", style => 'margin-right: 10px; font-weight: bold', $c->{name}
-                : b_ style => 'margin-right: 10px', $c->{name};
-                b_ class => 'grayedout', style => 'margin-right: 10px', $c->{original} if $c->{original};
+                ? a_ href => "/$c->{id}", style => 'margin-right: 10px; font-weight: bold', $c->{title}[1]
+                : b_ style => 'margin-right: 10px', $c->{title}[1];
+                b_ class => 'grayedout', style => 'margin-right: 10px', $c->{title}[3] if $c->{title}[3] ne $c->{title}[1];
                 abbr_ class => "icons gen $c->{gender}", title => $GENDER{$c->{gender}}, '' if $c->{gender} ne 'unknown';
                 if($view->{spoilers} == 2 && defined $c->{spoil_gender}) {
                     txt_ '(';
@@ -154,6 +154,7 @@ sub chartable_ {
                     txt_ ')';
                 }
                 span_ $BLOOD_TYPE{$c->{bloodt}} if $c->{bloodt} ne 'unknown';
+                debug_ $c;
             }}};
 
             tr_ sub {
@@ -283,7 +284,8 @@ TUWF::get qr{/$RE{crev}} => sub {
     # Only display the sexual traits toggle when there are sexual traits within the current spoiler level.
     my $has_sex = grep !$_->{hidden} && $_->{sexual} && ($_->{override}//$_->{spoil}) <= $view->{spoilers}, map $_->{traits}->@*, $c, @$inst;
 
-    framework_ title => $c->{name}, index => !tuwf->capture('rev'), dbobj => $c, hiddenmsg => 1,
+    $c->{title} = titleprefs_swap @{$c}{qw/ lang name original /};
+    framework_ title => $c->{title}[1], index => !tuwf->capture('rev'), dbobj => $c, hiddenmsg => 1,
         og => {
             description => bb_format($c->{desc}, text => 1),
             image => $c->{image} && $c->{image}{votecount} && !$c->{image}{sexual} && !$c->{image}{violence} ? imgurl($c->{image}{id}) : undef,
@@ -292,8 +294,8 @@ TUWF::get qr{/$RE{crev}} => sub {
         _rev_ $c if tuwf->capture('rev');
         div_ class => 'mainbox', sub {
             itemmsg_ $c;
-            h1_ sub { txt_ $c->{name}; debug_ $c };
-            h2_ class => 'alttitle', $c->{original} if length $c->{original};
+            h1_ tlang(@{$c->{title}}[0,1]), $c->{title}[1];
+            h2_ class => 'alttitle', tlang(@{$c->{title}}[2,3]), $c->{title}[3] if $c->{title}[3] && $c->{title}[3] ne $c->{title}[1];
             p_ class => 'chardetailopts', sub {
                 if($max_spoil) {
                     a_ mkclass(checked => $view->{spoilers} == 0), href => '?view='.viewset(spoilers=>0, traits_sexual => $view->{traits_sexual}), 'Hide spoilers';

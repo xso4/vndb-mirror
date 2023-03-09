@@ -24,7 +24,7 @@ sub listing_ {
                     abbr_ class => "icons gen $_->{gender}", title => $GENDER{$_->{gender}}, '' if $_->{gender} ne 'unknown';
                 };
                 td_ class => 'tc2', sub {
-                    a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
+                    a_ href => "/$_->{id}", tattr $_;
                     b_ class => 'grayedout', sub {
                         join_ ', ', sub { a_ href => "/$_->{id}", tattr $_ }, $_->{vn}->@*;
                     };
@@ -39,14 +39,14 @@ sub listing_ {
             div_ sub {
                 if($_->{image}) {
                     my($iw,$ih) = imgsize $_->{image}{width}*100, $_->{image}{height}*100, $w, $h;
-                    image_ $_->{image}, alt => $_->{name}, width => $iw, height => $ih, url => "/$_->{id}", overlay => undef;
+                    image_ $_->{image}, alt => $_->{title}[1], width => $iw, height => $ih, url => "/$_->{id}", overlay => undef;
                 } else {
                     txt_ 'no image';
                 }
             };
             div_ sub {
                 abbr_ class => "icons gen $_->{gender}", title => $GENDER{$_->{gender}}, '' if $_->{gender} ne 'unknown';
-                a_ href => "/$_->{id}", title => $_->{original}||$_->{name}, $_->{name};
+                a_ href => "/$_->{id}", tattr $_;
                 br_;
                 b_ class => 'grayedout', sub {
                     join_ ', ', sub { a_ href => "/$_->{id}", tattr $_ }, $_->{vn}->@*;
@@ -57,10 +57,10 @@ sub listing_ {
 
 
     div_ class => 'mainbox charbgrid', sub {
-        a_ href => "/$_->{id}", title => $_->{original}||$_->{name},
+        a_ href => "/$_->{id}", title => $_->{title}[3],
             !$_->{image} || image_hidden($_->{image}) ? () : (style => 'background-image: url("'.imgurl($_->{image}{id}).'")'),
         sub {
-            span_ $_->{name};
+            span_ $_->{title}[1];
         } for @$list;
     } if $opt->{s}->grid;
 
@@ -109,14 +109,14 @@ TUWF::get qr{/c(?:/(?<char>all|[a-z0]))?}, sub {
     my $where = sql_and
         'NOT c.hidden', $opt->{f}->sql_where(),
         $opt->{q} ? sql 'c.c_search LIKE ALL (search_query(', \$opt->{q}, '))' : (),
-        defined($opt->{ch}) ? sql 'match_firstchar(c.name, ', \$opt->{ch}, ')' : ();
+        defined($opt->{ch}) ? sql 'match_firstchar(c.sorttitle, ', \$opt->{ch}, ')' : ();
 
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = tuwf->dbVali('SELECT count(*) FROM chars c WHERE', $where);
+        $count = tuwf->dbVali('SELECT count(*) FROM', charst, 'c WHERE', $where);
         $list = $count ? tuwf->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
-            SELECT c.id, c.name, c.original, c.gender, c.image FROM chars c WHERE', $where, 'ORDER BY c.name, c.id'
+            SELECT c.id, c.title, c.gender, c.image FROM', charst, 'c WHERE', $where, 'ORDER BY c.sorttitle, c.id'
         ) : [];
     } || (($count, $list) = (undef, []));
 

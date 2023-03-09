@@ -124,12 +124,12 @@ our %apis = (
     } } ],
     CharResult     => [ { aoh => { # Response to 'Chars'
         id       => { vndbid => 'c' },
-        name     => {},
-        original => { required => 0, default => '' },
+        title    => {},
+        alttitle => {},
         main     => { required => 0, type => 'hash', keys => {
             id       => { vndbid => 'c' },
-            name     => {},
-            original => { required => 0, default => '' },
+            title    => {},
+            alttitle => {},
         } }
     } } ],
     AnimeResult => [ { aoh => { # Response to 'Anime'
