@@ -237,7 +237,8 @@ CREATE TABLE chars ( -- dbentry_type=c
   original     varchar(250) NOT NULL DEFAULT '', -- [pub]
   alias        varchar(500) NOT NULL DEFAULT '', -- [pub]
   "desc"       text NOT NULL DEFAULT '', -- [pub]
-  c_search     text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[name, original]::text[]||string_to_array(alias,E'\n'))) STORED
+  c_search     text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[name, original]::text[]||string_to_array(alias,E'\n'))) STORED,
+  c_lang       language NOT NULL DEFAULT 'ja'
 );
 
 -- chars_hist

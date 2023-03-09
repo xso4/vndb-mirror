@@ -669,6 +669,19 @@ BEGIN
     UPDATE releases SET c_search = search_gen_release(id) WHERE id = nitemid;
   END IF;
 
+  -- Ensure chars.c_lang is updated when the related VN or char has been edited
+  -- (the cache also depends on vn.c_released but isn't run when that is updated;
+  -- not an issue, the c_released is only there as rare fallback)
+  IF vndbid_type(nitemid) IN('c','v') THEN
+    WITH x(id,lang) AS (
+      SELECT DISTINCT ON (cv.id) cv.id, v.olang
+        FROM chars_vns cv
+        JOIN vn v ON v.id = cv.vid
+       WHERE cv.vid = nitemid OR cv.id = nitemid
+       ORDER BY cv.id, v.hidden, v.c_released
+    ) UPDATE chars c SET c_lang = x.lang FROM x WHERE c.id = x.id AND c.c_lang <> x.lang;
+  END IF;
+
   -- Call update_vncache() for related VNs when a release has been created or edited
   -- (This could be made more specific, but update_vncache() is fast enough that it's not worth the complexity)
   IF vndbid_type(nitemid) = 'r' THEN
