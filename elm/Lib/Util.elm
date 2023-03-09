@@ -93,7 +93,7 @@ jap_ = Maybe.withDefault Regex.never (Regex.fromString "[\\u3000-\\u9fff\\uff00-
 
 -- Not even close to comprehensive, just excludes a few scripts commonly found on VNDB.
 nonlatin_ : Regex.Regex
-nonlatin_ = Maybe.withDefault Regex.never (Regex.fromString "[\\u3000-\\u9fff\\uff00-\\uff9f\\u0400-\\u04ff\\u1100-\\u11ff\\uac00-\\ud7af\\u0600-\\u06ff\\u0e00-\\u0e7f\\u1400-\\u167f]")
+nonlatin_ = Maybe.withDefault Regex.never (Regex.fromString "[\\u0370-\\u03ff\\u3000-\\u9fff\\uff00-\\uff9f\\u0400-\\u04ff\\u1100-\\u11ff\\uac00-\\ud7af\\u0600-\\u06ff\\u0e00-\\u0e7f\\u1400-\\u167f]")
 
 -- This regex can't differentiate between Japanese and Chinese, so has a good chance of returning true for Chinese as well.
 containsJapanese : String -> Bool
