@@ -90,7 +90,7 @@ TUWF::get qr{/$RE{crev}/(?<action>edit|copy)} => sub {
     $e->{authmod} = auth->permDbmod;
     $e->{editsum} = $copy ? "Copied from $e->{id}.$e->{chrev}" : $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
 
-    my $title = ($copy ? 'Copy ' : 'Edit ').titleprefs_swap(@{$e}{qw/ lang name original /})->[1];
+    my $title = ($copy ? 'Copy ' : 'Edit ').dbobj($e->{id})->{title}[1];
     framework_ title => $title, dbobj => $e, tab => tuwf->capture('action'),
     sub {
         editmsg_ c => $e, $title, $copy;
