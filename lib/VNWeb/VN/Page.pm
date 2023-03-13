@@ -870,18 +870,18 @@ sub screenshots_ {
     div_ class => 'mainbox', id => 'screenshots', sub {
 
         p_ class => 'mainopts', sub {
-            if($sex[1] || $sex[2]) {
+            if($sexp < 0 || $sex[1] || $sex[2]) {
                 label_ for => 'scrhide_s0', class => 'fake_link', "Safe ($sex[0])";
                 label_ for => 'scrhide_s1', class => 'fake_link', "Suggestive ($sex[1])" if $sex[1];
                 label_ for => 'scrhide_s2', class => 'fake_link', "Explicit ($sex[2])" if $sex[2];
             }
-            b_ class => 'grayedout', ' | ' if ($sex[1] || $sex[2]) && ($vio[1] || $vio[2]);
+            b_ class => 'grayedout', ' | ' if ($sexp < 0 || $sex[1] || $sex[2]) && ($vio[1] || $vio[2]);
             if($vio[1] || $vio[2]) {
                 label_ for => 'scrhide_v0', class => 'fake_link', "Tame ($vio[0])";
                 label_ for => 'scrhide_v1', class => 'fake_link', "Violent ($vio[1])" if $vio[1];
                 label_ for => 'scrhide_v2', class => 'fake_link', "Brutal ($vio[2])" if $vio[2];
             }
-        } if $sex[1] || $sex[2] || $vio[1] || $vio[2];
+        } if $sexp < 0 || $sex[1] || $sex[2] || $vio[1] || $vio[2];
 
         h1_ 'Screenshots';
 

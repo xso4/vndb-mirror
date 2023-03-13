@@ -78,9 +78,10 @@ sub image_flagging_display {
 # Returns whether the image is hidden according to the user's preferences.
 # Return values:
 #   0 -> visible
-#   1 -> hidden because of sexual flag
-#   2 -> hidden because of violence flag
-#   3 -> hidden because both
+#   4 -> hidden for some reason
+#   5 -> hidden because of sexual flag
+#   6 -> hidden because of violence flag
+#   7 -> hidden because both
 sub image_hidden {
     my($img) = @_;
     my($sex,$vio) = $img->@{'sexual', 'violence'};
@@ -89,7 +90,7 @@ sub image_hidden {
     my $sexh = $sex > $sexp && $sexp >= 0 if $img->{votecount};
     my $vioh = $vio > $viop if $img->{votecount};
     my $hidden = $sexp < 0 || $sexh || $vioh || (!$img->{votecount} && ($sexp < 2 || $viop < 2));
-    $hidden ? ($sexh?1:0)+($vioh?2:0) : 0;
+    $hidden ? 4 + ($sexh?1:0)+($vioh?2:0) : 0;
 }
 
 
