@@ -160,7 +160,7 @@ sub release_row_ {
                 $lang && defined $lang->{title} ? titleprefs_obj $lang->{lang}, [$lang] :
                                           $lang ? titleprefs_obj $r->{olang}, [grep $_->{lang} eq $r->{olang}, $r->{titles}->@*]
                                                 : $r->{title};
-            a_ href => "/$r->{id}", title => $title->[3], $title->[1];
+            a_ href => "/$r->{id}", tattr $title;
             my $note = join ' ', $r->{official} ? () : 'unofficial', $mtl ? 'machine translation' : (), $r->{patch} ? 'patch' : ();
             b_ class => 'grayedout', " ($note)" if $note;
         };
