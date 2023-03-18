@@ -38,8 +38,8 @@ sub _infotable_ {
     table_ class => 'stripe', sub {
         thead_ sub { tr_ sub {
             td_ colspan => 2, sub {
-                b_ style => 'margin-right: 10px', $main->{name};
-                b_ class => 'grayedout', style => 'margin-right: 10px', lang => $s->{lang}, $main->{original} if $main->{original};
+                b_ style => 'margin-right: 10px', tlang($main->{title}[0], $main->{title}[1]), $main->{title}[1];
+                b_ class => 'grayedout', style => 'margin-right: 10px', tlang($main->{title}[2], $main->{title}[3]), $main->{title}[3] if $main->{title}[1] ne $main->{title}[3];
                 abbr_ class => "icons gen $s->{gender}", title => $GENDER{$s->{gender}}, '' if $s->{gender} ne 'unknown';
             }
         } };
