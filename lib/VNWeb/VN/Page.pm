@@ -481,7 +481,7 @@ sub infobox_ {
         p_ class => 'center standout', sub { lit_ config->{special_games}{$v->{id}}; br_; br_ } if config->{special_games}{$v->{id}};
 
         div_ class => 'vndetails', sub {
-            div_ class => 'vnimg', sub { image_ $v->{image}, alt => $v->{title}; };
+            div_ class => 'vnimg', sub { image_ $v->{image}, alt => $v->{title}[1]; };
 
             table_ class => 'stripe', sub {
                 tr_ sub {
