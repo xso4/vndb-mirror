@@ -776,7 +776,10 @@ api_query '/release',
         resolution => { select => 'ARRAY[r.reso_x,r.reso_y] AS resolution'
                       , proc => sub { $_[0] = $_[0][1] == 0 ? undef : 'non-standard' if $_[0][0] == 0 } },
         engine     => { select => 'r.engine', @NSTR },
+        voiced     => { select => 'r.voiced', @NINT },
         notes      => { select => 'r.notes', @NSTR },
+        gtin       => { select => 'r.gtin', proc => sub { $_[0] = undef if !gtintype $_[0] } },
+        catalog    => { select => 'r.catalog', @NSTR },
         extlinks   => { extlinks => 'r' },
     },
     sort => [

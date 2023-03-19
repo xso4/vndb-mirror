@@ -853,8 +853,18 @@ resolution
 engine
 :   String, possibly null.
 
+voiced
+:   Int, possibly null, 1 = not voiced, 2 = only ero scenes voiced, 3 =
+    partially voiced, 4 = fully voiced.
+
 notes
 :   String, possibly null, may contain [formatting codes](https://vndb.org/d9#4).
+
+gtin
+:   JAN/EAN/UPC code, formatted as a string, possibly null.
+
+catalog
+:   String, possibly null, catalog number.
 
 extlinks
 :   Array, links to external websites. This list is equivalent to the links
@@ -881,7 +891,7 @@ extlinks.id
     as part of their URL format, in such cases this field is simply equivalent
     to the URL.
 
-*Missing: gtin, catalog number, animation, voiced.*
+*Missing: animation.*
 
 
 
@@ -1508,6 +1518,10 @@ bias in its selection due to the presence of id gaps, but you most likely don't
 need perfect uniform random selection anyway.
 
 # Change Log
+
+**2023-03-19**
+
+- Add `voiced`, `gtin` and `catalog` fields to [POST /release](#post-release).
 
 **2023-01-17**
 
