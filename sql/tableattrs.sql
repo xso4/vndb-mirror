@@ -26,6 +26,8 @@ CREATE        INDEX tags_vn_date           ON tags_vn (date);
 CREATE        INDEX tags_vn_direct_vid     ON tags_vn_direct (vid);
 CREATE        INDEX tags_vn_uid            ON tags_vn (uid) WHERE uid IS NOT NULL;
 CREATE        INDEX tags_vn_vid            ON tags_vn (vid);
+CREATE        INDEX search_cache_id        ON search_cache (id);
+CREATE        INDEX search_cache_label     ON search_cache USING GIN (label gin_trgm_ops);
 CREATE        INDEX shop_playasia__gtin    ON shop_playasia (gtin);
 CREATE        INDEX threads_posts_date     ON threads_posts (date);
 CREATE        INDEX threads_posts_ts       ON threads_posts USING gin(bb_tsvector(msg));

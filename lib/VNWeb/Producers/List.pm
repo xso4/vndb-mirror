@@ -27,7 +27,7 @@ TUWF::get qr{/p(?:/(?<char>all|[a-z0]))?}, sub {
     my $char = tuwf->capture('char');
     my $opt = tuwf->validate(get =>
         p => { upage => 1 },
-        q => { onerror => '' },
+        q => { searchquery => 1 },
         f => { advsearch_err => 'p' },
         ch=> { onerror => [], type => 'array', scalar => 1, values => { onerror => undef, enum => ['0', 'a'..'z'] } },
     )->data;
@@ -40,15 +40,17 @@ TUWF::get qr{/p(?:/(?<char>all|[a-z0]))?}, sub {
     $opt->{f} = advsearch_default 'p' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
 
     my $where = sql_and 'NOT p.hidden', $opt->{f}->sql_where(),
-        $opt->{q} ? sql 'p.c_search LIKE ALL (search_query(', \$opt->{q}, '))' : (),
         defined($opt->{ch}) ? sql 'match_firstchar(p.sorttitle, ', \$opt->{ch}, ')' : ();
 
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = tuwf->dbVali('SELECT COUNT(*) FROM', producerst, 'p WHERE', $where);
+        $count = tuwf->dbVali('SELECT COUNT(*) FROM', producerst, 'p WHERE', sql_and $where, $opt->{q}->sql_where('p', 'p.id'));
         $list = $count ? tuwf->dbPagei({ results => 150, page => $opt->{p} },
-            'SELECT p.id, p.title, p.lang FROM', producerst, 'p WHERE', $where, 'ORDER BY p.sorttitle'
+            'SELECT p.id, p.title, p.lang
+               FROM', producerst, 'p', $opt->{q}->sql_join('p', 'p.id'), '
+              WHERE', $where, '
+              ORDER BY', $opt->{q} ? 'sc.score DESC, ' : (), 'p.sorttitle'
         ) : [];
     } || (($count, $list) = (undef, []));
     $time = time - $time;

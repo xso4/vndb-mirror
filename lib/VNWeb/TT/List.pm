@@ -38,15 +38,16 @@ sub listing_ {
 TUWF::get qr{/(?<type>[gi])/list}, sub {
     my $type = tuwf->capture('type');
     my $opt = tuwf->validate(get =>
-        s => { onerror => 'name', enum => ['added', 'name', 'vns', 'items'] },
+        s => { onerror => 'qscore', enum => ['qscore', 'added', 'name', 'vns', 'items'] },
         o => { onerror => 'a', enum => ['a', 'd'] },
         p => { upage => 1 },
         t => { onerror => undef, enum => [ -1..2 ] },
         a => { undefbool => 1 },
         b => { undefbool => 1 },
-        q => { onerror => '' },
+        q => { searchquery => 1 },
     )->data;
     $opt->{s} = 'items' if $opt->{s} eq 'vns';
+    $opt->{s} = 'name' if $opt->{s} eq 'qscore' && !$opt->{q};
     $opt->{t} = undef if $opt->{t} && $opt->{t} == -1; # for legacy URLs
 
     my $where = sql_and
@@ -54,16 +55,15 @@ TUWF::get qr{/(?<type>[gi])/list}, sub {
             $opt->{t} == 0 ? 'hidden AND NOT locked' :
             $opt->{t} == 1 ? 'hidden AND locked' : 'NOT hidden',
         defined $opt->{a} ? sql 'applicable =', \$opt->{a} : (),
-        defined $opt->{b} ? sql 'searchable =', \$opt->{b} : (),
-        $opt->{q} ? sql 'c_search LIKE ALL (search_query(', \$opt->{q}, '))' : ();
+        defined $opt->{b} ? sql 'searchable =', \$opt->{b} : ();
 
     my $table = $type eq 'g' ? 'tags' : 'traits';
-    my $count = tuwf->dbVali("SELECT COUNT(*) FROM $table t WHERE", $where);
+    my $count = tuwf->dbVali("SELECT COUNT(*) FROM $table t WHERE", sql_and $where, $opt->{q}->sql_where($type, 't.id'));
     my $list = tuwf->dbPagei({ results => 50, page => $opt->{p} },'
-        SELECT id, name, hidden, locked, searchable, applicable, c_items,', sql_totime('added'), "as added
-          FROM $table
-         WHERE ", $where, '
-         ORDER BY', {qw|added id  name name  items c_items|}->{$opt->{s}}, {qw|a ASC d DESC|}->{$opt->{o}}, ', id'
+        SELECT t.id, name, hidden, locked, searchable, applicable, c_items,', sql_totime('added'), "as added
+          FROM $table t", $opt->{q}->sql_join($type, 't.id'), '
+         WHERE ', $where, '
+         ORDER BY', {qscore => '10 - sc.score', qw|added t.id  name name  items c_items|}->{$opt->{s}}, {qw|a ASC d DESC|}->{$opt->{o}}, ', id'
     );
 
     enrich_group $type, $list;

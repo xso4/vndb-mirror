@@ -19,17 +19,18 @@ sub opt {
     state $s_vnlist   = $s_default->sort_param(title => 'a')->vis_param(qw/label vote added started finished/)->query_encode;
     state $s_votes    = $s_default->sort_param(voted => 'd')->vis_param(qw/vote voted/)->query_encode;
     state $s_wishlist = $s_default->sort_param(title => 'a')->vis_param(qw/label added/)->query_encode;
+    state @all = (mul => 0, p => 1, f => '', q => tuwf->compile({ searchquery => 1 })->validate(undef)->data);
 
     my $opt =
         # Presets
-        tuwf->reqGet('vnlist')   ? { mul => 0, p => 1, l => [1,2,3,4,7,0], f => '', s => $s_vnlist,   load 'vnlist' } :
-        tuwf->reqGet('votes')    ? { mul => 0, p => 1, l => [7],           f => '', s => $s_votes,    load 'votes'  } :
-        tuwf->reqGet('wishlist') ? { mul => 0, p => 1, l => [5],           f => '', s => $s_wishlist, load 'wish'   } :
+        tuwf->reqGet('vnlist')   ? { @all, l => [1,2,3,4,7,0], s => $s_vnlist,   load 'vnlist' } :
+        tuwf->reqGet('votes')    ? { @all, l => [7],           s => $s_votes,    load 'votes'  } :
+        tuwf->reqGet('wishlist') ? { @all, l => [5],           s => $s_wishlist, load 'wish'   } :
         # Full options
         tuwf->validate(get =>
             p => { upage => 1 },
             ch=> { onerror => [], type => 'array', scalar => 1, values => { onerror => undef, enum => ['0', 'a'..'z'] } },
-            q => { onerror => undef },
+            q => { searchquery => 1 },
             %VNWeb::ULists::Elm::SAVED_OPTS,
             # Compat for old URLs
             o => { onerror => undef, enum => ['a', 'd'] },
@@ -213,9 +214,9 @@ sub listing_ {
     my $where = sql_and
         sql('uv.uid =', \$uid),
         $opt->{f}->sql_where(),
+        $opt->{q}->sql_where('v', 'v.id'),
         $own ? () : 'NOT uv.c_private AND NOT v.hidden',
         @where_vns ? sql_or(@where_vns) : (),
-        $opt->{q} ? sql 'v.c_search LIKE ALL (search_query(', \$opt->{q}, '))' : (),
         defined($opt->{ch}) ? sql 'match_firstchar(v.sorttitle, ', \$opt->{ch}, ')' : ();
 
     my $count = tuwf->dbVali('SELECT count(*) FROM ulist_vns uv JOIN', vnt, 'v ON v.id = uv.vid WHERE', $where);

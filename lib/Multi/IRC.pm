@@ -367,8 +367,8 @@ vn => [ 0, 0, sub {
 
   pg_cmd q{
     SELECT id, title[1+1]
-      FROM vnt
-     WHERE NOT hidden AND c_search LIKE ALL (search_query($1))
+      FROM vnt v
+     WHERE NOT hidden AND EXISTS(SELECT 1 FROM search_cache sc WHERE sc.id = v.id AND sc.label LIKE ALL (search_query($1)))
      ORDER BY sorttitle
      LIMIT 6
   }, [ $q ], sub {
@@ -386,10 +386,10 @@ p => [ 0, 0, sub {
   return $irc->send_msg(PRIVMSG => $chan, 'You forgot the search query, dummy~~!') if !$q;
   pg_cmd q{
     SELECT id, name AS title
-    FROM producers p
-    WHERE hidden = FALSE AND c_search LIKE ALL (search_query($1))
-    ORDER BY name
-    LIMIT 6
+      FROM producers p
+     WHERE NOT hidden AND EXISTS(SELECT 1 FROM search_cache sc WHERE sc.id = p.id AND sc.label LIKE ALL (search_query($1)))
+     ORDER BY name
+     LIMIT 6
   }, [ $q ], sub {
     my $res = shift;
     return if pg_expect $res, 1;

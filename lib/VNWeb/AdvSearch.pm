@@ -311,7 +311,7 @@ my @TYPE; # stack of query types, $TYPE[0] is the top-level query, $TYPE[$#TYPE]
 
 
 f v => 80 => 'id',        { vndbid => 'v' }, sql => sub { sql 'v.id', $_[0], \$_ };
-f v => 81 => 'search',    {}, '=' => sub { sql 'v.c_search LIKE ALL (search_query(', \$_, '))' };
+f v => 81 => 'search',    { searchquery => 1 }, '=' => sub { $_->sql_where('v', 'v.id') };
 f v =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_languages && ARRAY', \$_, '::language[]' };
 f v =>  3 => 'olang',     { enum => \%LANGUAGE }, '=' => sub { sql 'v.olang =', \$_ };
 f v =>  4 => 'platform',  { enum => \%PLATFORM }, '=' => sub { sql 'v.c_platforms && ARRAY', \$_, '::platform[]' };
@@ -358,7 +358,7 @@ f v =>  6 => 'developer-id', { vndbid => 'p' }, '=' => sub { sql 'v.c_developers
 
 
 f r => 80 => 'id',       { vndbid => 'r' }, sql => sub { sql 'r.id', $_[0], \$_ };
-f r => 81 => 'search',   {}, '=' => sub { sql 'r.c_search LIKE ALL (search_query(', \$_, '))' };
+f r => 81 => 'search',   { searchquery => 1 }, '=' => sub { $_->sql_where('r', 'r.id') };
 f r =>  2 => 'lang',     { enum => \%LANGUAGE },
     sql_list => sub {
         my($neg, $all, $val) = @_;
@@ -409,7 +409,7 @@ f r => 63 => 'doujin',      { uint => 1, range => [1,1] }, '=' => sub { 'r.douji
 
 
 f c => 80 => 'id',         { vndbid => 'c' }, sql => sub { sql 'c.id', $_[0], \$_ };
-f c => 81 => 'search',     {}, '=' => sub { sql 'c.c_search LIKE ALL (search_query(', \$_, '))' };
+f c => 81 => 'search',     { searchquery => 1 }, '=' => sub { $_->sql_where('c', 'c.id') };
 f c =>  2 => 'role',       { enum => \%CHAR_ROLE  }, '=' => sub { $#TYPE && $TYPE[$#TYPE-1] eq 'v' ? sql 'cv.role =', \$_ : sql 'c.id IN(SELECT id FROM chars_vns WHERE role =', \$_, ')' };
 f c =>  3 => 'blood_type', { enum => \%BLOOD_TYPE }, '=' => sub { sql 'c.bloodt =', \$_ };
 f c =>  4 => 'sex',        { enum => \%GENDER },     '=' => sub { sql 'c.gender =', \$_ };
@@ -463,16 +463,16 @@ f s =>  5 => 'role',      { enum => [ 'seiyuu', keys %CREDIT_TYPE ] },
 f p =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 'p.lang =', \$_ };
 f p =>  3 => 'id',        { vndbid => 'p' }, sql => sub { sql 'p.id', $_[0], \$_ };
 f p =>  4 => 'type',      { enum => \%PRODUCER_TYPE }, '=' => sub { sql 'p.type =', \$_ };
-f p => 80 => 'search',    {}, '=' => sub { sql 'p.c_search LIKE ALL (search_query(', \$_, '))' };
+f p => 80 => 'search',    { searchquery => 1 }, '=' => sub { $_->sql_where('p', 'p.id') };
 
 
 f g =>  2 => 'id',        { vndbid => 'g' }, sql => sub { sql 't.id', $_[0], \$_ };
 f g =>  3 => 'category',  { enum => \%TAG_CATEGORY }, '=' => sub { sql 't.cat =', \$_ };
-f g => 80 => 'search',    {}, '=' => sub { sql 't.c_search LIKE ALL (search_query(', \$_, '))' };
+f g => 80 => 'search',    { searchquery => 1 }, '=' => sub { $_->sql_where('g', 't.id') };
 
 
 f i =>  2 => 'id',        { vndbid => 'i' }, sql => sub { sql 't.id', $_[0], \$_ };
-f i => 80 => 'search',    {}, '=' => sub { sql 't.c_search LIKE ALL (search_query(', \$_, '))' };
+f i => 80 => 'search',    { searchquery => 1 }, '=' => sub { $_->sql_where('i', 't.id') };
 
 
 

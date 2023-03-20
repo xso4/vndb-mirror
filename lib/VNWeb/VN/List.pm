@@ -9,12 +9,14 @@ use VNWeb::TT::Lib 'tagscore_';
 
 # Returns the tableopts config for:
 # - this VN list ('vn')
+# - this VN list with a search query ('vns')
 # - the VN listing on tags ('tags')
 # - a user's VN list ('ulist')
 # The latter has different numeric identifiers, a sad historical artifact. :(
 sub TABLEOPTS {
     my $tags = $_[0] eq 'tags';
-    my $vn = $_[0] eq 'vn';
+    my $vns = $_[0] eq 'vns';
+    my $vn = $vns || $_[0] eq 'vn';
     my $ulist = $_[0] eq 'ulist';
     die if !$tags && !$vn && !$ulist;
 
@@ -25,8 +27,15 @@ sub TABLEOPTS {
             name => 'Tag score',
             compat => 'tagscore',
             sort_id => 0,
-            sort_sql => 'tvi.rating ?o, v.title',
+            sort_sql => 'tvi.rating ?o, v.sorttitle',
             sort_default => 'desc',
+            sort_num => 1,
+        }) : (),
+        $vns ? (qscore => {
+            name => 'Relevance',
+            sort_id => 0,
+            sort_sql => 'sc.score !o, v.sorttitle',
+            sort_default => 'asc',
             sort_num => 1,
         }) : (),
         title => {
@@ -34,7 +43,7 @@ sub TABLEOPTS {
             compat => 'title',
             sort_id => $ulist ? 0 : 1,
             sort_sql => 'v.sorttitle',
-            sort_default => $tags ? undef : 'asc',
+            sort_default => $tags || $vns ? undef : 'asc',
         },
         $ulist ? (
             voted => {
@@ -157,6 +166,7 @@ sub TABLEOPTS {
 }
 
 my $TABLEOPTS = TABLEOPTS 'vn';
+my $TABLEOPTS_Q = TABLEOPTS 'vns';
 
 sub len_ {
     my($v) = @_;
@@ -346,17 +356,18 @@ sub enrich_listing {
 
 TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
     my $opt = tuwf->validate(get =>
-        q => { onerror => undef },
-        sq=> { onerror => undef },
+        q => { searchquery => 1 },
+        sq=> { searchquery => 1 },
         p => { upage => 1 },
         f => { advsearch_err => 'v' },
-        s => { tableopts => $TABLEOPTS },
         ch=> { onerror => [], type => 'array', scalar => 1, values => { onerror => undef, enum => ['0', 'a'..'z'] } },
         fil  => { required => 0 },
         rfil => { required => 0 },
         cfil => { required => 0 },
     )->data;
-    $opt->{q} //= $opt->{sq};
+    $opt->{q} = $opt->{sq} if !$opt->{q};
+    $opt->{s} = tuwf->validate(get => s => { tableopts => $opt->{q} ? $TABLEOPTS_Q : $TABLEOPTS })->data;
+    $opt->{s} = $opt->{s}->sort_param(qscore => 'a') if $opt->{q} && tuwf->reqGet('sb');
     $opt->{ch} = $opt->{ch}[0];
 
     # compat with old URLs
@@ -383,18 +394,17 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
 
     my $where = sql_and
         'NOT v.hidden', $opt->{f}->sql_where(),
-        $opt->{q} ? sql 'v.c_search LIKE ALL (search_query(', \$opt->{q}, '))' : (),
         defined($opt->{ch}) ? sql 'match_firstchar(v.sorttitle, ', \$opt->{ch}, ')' : ();
 
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = tuwf->dbVali('SELECT count(*) FROM', vnt, 'v WHERE', $where);
+        $count = tuwf->dbVali('SELECT count(*) FROM', vnt, 'v WHERE', sql_and $where, $opt->{q}->sql_where('v', 'v.id'));
         $list = $count ? tuwf->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
             SELECT v.id, v.title, v.c_released, v.c_popularity, v.c_votecount, v.c_rating, v.c_average
                  , v.image, v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang',
                    $opt->{s}->vis('length') ? ', v.length, v.c_length, v.c_lengthnum' : (), '
-              FROM', vnt, 'v
+              FROM', vnt, 'v', $opt->{q}->sql_join('v', 'v.id'), '
              WHERE', $where, '
              ORDER BY', $opt->{s}->sql_order(),
         ) : [];
@@ -409,7 +419,7 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
         form_ action => '/v', method => 'get', sub {
             div_ class => 'mainbox', sub {
                 h1_ 'Browse visual novels';
-                searchbox_ v => $opt->{q}//'';
+                searchbox_ v => $opt->{q};
                 p_ class => 'browseopts', sub {
                     button_ type => 'submit', name => 'ch', value => ($_//''), ($_//'') eq ($opt->{ch}//'') ? (class => 'optselected') : (), !defined $_ ? 'ALL' : $_ ? uc $_ : '#'
                         for (undef, 'a'..'z', 0);

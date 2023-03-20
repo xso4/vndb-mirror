@@ -4,38 +4,29 @@ use VNWeb::Prelude;
 
 # Autocompletion search results for boards
 elm_api Boards => undef, {
-    search => {},
+    search => { searchquery => 1 },
 }, sub {
     return elm_Unauth if !auth->permBoard;
     my $q = shift->{search};
-    my $qs = sql_like $q;
+    my $qs = sql_like "$q";
 
-    my sub item {
-        my($tbl, $type, $title, $filt, $query) = @_;
-        my $title_score = sql "1+substr_score(lower($title),", \$qs, ')';
-        sql 'SELECT',
-                $q =~ /^$type$RE{num}$/
-                ? sql 'CASE WHEN id =', \$q, 'THEN 0 ELSE', $title_score, 'END'
-                : $title_score,
-                ',', \$type, "::board_type, id, $title
-            FROM", $tbl, "x
-           WHERE", $filt, 'AND', sql_or(
-               $query, $q =~ /^$type$RE{num}$/ ? sql 'id =', \$q : ());
-    }
+    my $uscore = sql 'similarity(username, ', \$qs, ')';
+    $uscore = sql 'CASE WHEN id =', \$qs, 'THEN 1+1 ELSE', $uscore, 'END' if $qs =~ /^u$RE{num}$/;
 
     elm_BoardResult tuwf->dbPagei({ results => 10, page => 1 },
         'SELECT btype, iid, title
            FROM (',
              sql_join('UNION ALL',
-                 (map sql('SELECT 1, ', \$_, '::board_type, NULL::vndbid, NULL'),
-                     grep $q eq $_ || $BOARD_TYPE{$_}{txt} =~ /\Q$q/i,
+                 (map sql('SELECT 10, ', \"$_", '::board_type, NULL::vndbid, NULL'),
+                     grep $qs eq $_ || $BOARD_TYPE{$_}{txt} =~ /\Q$qs/i,
                      grep !$BOARD_TYPE{$_}{dbitem} && ($BOARD_TYPE{$_}{post_perm} eq 'board' || auth->permBoardmod),
                      keys %BOARD_TYPE),
-                 item(vnt, 'v', 'title[1+1]', 'NOT hidden', sql 'c_search LIKE ALL (search_query(', \$q, '))'),
-                 item(producerst, 'p', 'title[1+1]', 'NOT hidden', sql 'c_search LIKE ALL (search_query(', \$q, '))'),
-                 item('users', 'u', 'username', 'true', sql 'lower(username) LIKE', \lc "%$qs%"),
-             ), ') x(prio, btype, iid, title)
-           ORDER BY prio, btype, title'
+                 sql('SELECT score, \'v\', v.id, title[1+1] FROM', vnt, 'v', $q->sql_join('v', 'v.id'), 'WHERE NOT v.hidden'),
+                 sql('SELECT score, \'p\', p.id, title[1+1] FROM', producerst, 'p', $q->sql_join('p', 'p.id'), 'WHERE NOT p.hidden'),
+                 sql('SELECT', $uscore, ', \'u\', id, username FROM users WHERE lower(username) LIKE', \lc "%$qs%",
+                    $qs =~ /^u$RE{num}$/ ? ('OR id =', \$qs) : ())
+             ), ') x(score, btype, iid, title)
+           ORDER BY score DESC, btype, title'
     )
 };
 

@@ -3,25 +3,17 @@ package VNWeb::VN::Elm;
 use VNWeb::Prelude;
 
 elm_api VN => undef, {
-    search => { type => 'array', values => { required => 0, default => '' } },
+    search => { searchquerya => 1 },
     hidden => { anybool => 1 },
 }, sub {
     my($data) = @_;
-    my @q = grep length $_, $data->{search}->@*;
-    die "No query" if !@q;
+    die "No query" if !$data->{search};
 
     elm_VNResult tuwf->dbPagei({ results => $data->{hidden}?50:15, page => 1 },
         'SELECT v.id, v.title[1+1] AS title, v.hidden
-           FROM (',
-            sql_join('UNION ALL', map +(
-                /^$RE{vid}$/ ? sql('SELECT 1, id FROM vn WHERE id =', \"$+{id}") : (),
-                sql('SELECT 1+substr_score(lower(sorttitle),', \sql_like($_), '), id FROM vnt WHERE c_search LIKE ALL (search_query(', \"$_", '))'),
-            ), @q),
-            ') x(prio, id)
-           JOIN', vnt, 'v ON v.id = x.id
-          WHERE', sql_and($data->{hidden} ? () : 'NOT v.hidden'), '
-          GROUP BY v.id, v.title, v.sorttitle, v.hidden
-          ORDER BY MIN(x.prio), v.sorttitle
+           FROM', vnt, 'v', $data->{search}->sql_join('v', 'v.id'),
+          $data->{hidden} ? () : 'WHERE NOT v.hidden', '
+          ORDER BY sc.score DESC, v.sorttitle
     ');
 };
 

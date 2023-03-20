@@ -21,43 +21,85 @@ CREATE OR REPLACE FUNCTION fmtip(n ipinfo) RETURNS text AS $$
 $$ LANGUAGE SQL IMMUTABLE;
 
 
-CREATE OR REPLACE FUNCTION search_gen_vn(vnid vndbid) RETURNS text AS $$
-  SELECT coalesce(string_agg(t, ' '), '') FROM (
-    SELECT t FROM (
-                SELECT search_norm_term(title) FROM vn_titles WHERE id = vnid
-      UNION ALL SELECT search_norm_term(latin) FROM vn_titles WHERE id = vnid
-      UNION ALL SELECT search_norm_term(a) FROM vn, regexp_split_to_table(alias, E'\n') a(a) WHERE vnid = id
-      -- Remove the various editions/version strings from release titles,
-      -- this reduces the index size and makes VN search more relevant.
-      -- People looking for editions should be using the release search.
-      UNION ALL SELECT regexp_replace(search_norm_term(t), '(?:
-           体験|ダウンロド|初回限定|初回|限定|通常|廉価|豪華|追加|コレクション
-          |パッケージ|ダウンロード|ベスト|復刻|新装|7対応|版|生産|リメイク
-          |first|press|limited|regular|standard|full|remake
-          |pack|package|boxed|download|complete|popular|premium|deluxe|collectors?|collection
-          |lowprice|price|free|best|thebest|cheap|budget|reprint|bundle|set|renewal|extended
-          |special|trial|demo|allages|voiced?|uncensored|web|patch|port|r18|18|earlyaccess
-          |cd|cdr|cdrom|dvdrom|dvd|dvdpg|disk|disc|steam|for
-          |(?:win|windows)(?:7|10|95)?|vista|pc9821|support(?:ed)?
-          |(?:parts?|vol|volumes?|chapters?|v|ver|versions?)(?:[0-9]+)
-          |editions?|version|production|thebest|append|scenario|dlc)+$', '', 'xg')
-        FROM (
-          SELECT title FROM releases r JOIN releases_vn rv ON rv.id = r.id JOIN releases_titles rt ON rt.id = r.id WHERE NOT r.hidden AND rv.vid = vnid
-          UNION ALL
-          SELECT latin FROM releases r JOIN releases_vn rv ON rv.id = r.id JOIN releases_titles rt ON rt.id = r.id WHERE NOT r.hidden AND rv.vid = vnid
-        ) r(t)
-    ) x(t) WHERE t IS NOT NULL AND t <> '' GROUP BY t ORDER BY t
-  ) x(t);
-$$ LANGUAGE SQL;
+
+-- Helper function for `update_search()`
+CREATE OR REPLACE FUNCTION update_search_terms(objid vndbid) RETURNS SETOF record AS $$
+DECLARE
+  e int; -- because I'm too lazy to write out 'NULL::int' every time.
+BEGIN
+  CASE vndbid_type(objid)
+  WHEN 'v' THEN RETURN QUERY
+              SELECT e, 3, search_norm_term(title) FROM vn_titles WHERE id = objid
+    UNION ALL SELECT e, 3, search_norm_term(latin) FROM vn_titles WHERE id = objid
+    UNION ALL SELECT e, 2, search_norm_term(a) FROM vn, regexp_split_to_table(alias, E'\n') a(a) WHERE objid = id
+    -- Remove the various editions/version strings from release titles,
+    -- this reduces the index size and makes VN search more relevant.
+    -- People looking for editions should be using the release search.
+    UNION ALL SELECT e, 1, regexp_replace(search_norm_term(t), '(?:
+         体験|ダウンロド|初回限定|初回|限定|通常|廉価|豪華|追加|コレクション
+        |パッケージ|ダウンロード|ベスト|復刻|新装|7対応|版|生産|リメイク
+        |first|press|limited|regular|standard|full|remake
+        |pack|package|boxed|download|complete|popular|premium|deluxe|collectors?|collection
+        |lowprice|price|free|best|thebest|cheap|budget|reprint|bundle|set|renewal|extended
+        |special|trial|demo|allages|voiced?|uncensored|web|patch|port|r18|18|earlyaccess
+        |cd|cdr|cdrom|dvdrom|dvd|dvdpg|disk|disc|steam|for
+        |(?:win|windows)(?:7|10|95)?|vista|pc9821|support(?:ed)?
+        |(?:parts?|vol|volumes?|chapters?|v|ver|versions?)(?:[0-9]+)
+        |editions?|version|production|thebest|append|scenario|dlc)+$', '', 'xg')
+      FROM (
+        SELECT title FROM releases r JOIN releases_vn rv ON rv.id = r.id JOIN releases_titles rt ON rt.id = r.id WHERE NOT r.hidden AND rv.vid = objid
+        UNION ALL
+        SELECT latin FROM releases r JOIN releases_vn rv ON rv.id = r.id JOIN releases_titles rt ON rt.id = r.id WHERE NOT r.hidden AND rv.vid = objid
+      ) r(t);
+
+  WHEN 'r' THEN RETURN QUERY
+              SELECT e, 3, search_norm_term(title) FROM releases_titles WHERE id = objid
+    UNION ALL SELECT e, 3, search_norm_term(latin) FROM releases_titles WHERE id = objid
+    UNION ALL SELECT e, 1, gtin::text FROM releases WHERE id = objid AND gtin <> 0
+    UNION ALL SELECT e, 1, search_norm_term(catalog) FROM releases WHERE id = objid AND catalog <> '';
+
+  WHEN 'c' THEN RETURN QUERY
+              SELECT e, 3, search_norm_term(name)  FROM chars WHERE id = objid
+    UNION ALL SELECT e, 3, search_norm_term(latin) FROM chars WHERE id = objid
+    UNION ALL SELECT e, 2, search_norm_term(a) FROM chars, regexp_split_to_table(alias, E'\n') a(a) WHERE id = objid;
+
+  WHEN 'p' THEN RETURN QUERY
+              SELECT e, 3, search_norm_term(name)  FROM producers WHERE id = objid
+    UNION ALL SELECT e, 3, search_norm_term(latin) FROM producers WHERE id = objid
+    UNION ALL SELECT e, 2, search_norm_term(a) FROM producers, regexp_split_to_table(alias, E'\n') a(a) WHERE id = objid;
+
+  WHEN 's' THEN RETURN QUERY
+              SELECT aid, 3, search_norm_term(name)  FROM staff_alias WHERE id = objid
+    UNION ALL SELECT aid, 3, search_norm_term(latin) FROM staff_alias WHERE id = objid;
+
+  WHEN 'g' THEN RETURN QUERY
+              SELECT e, 3, search_norm_term(name) FROM tags WHERE id = objid
+    UNION ALL SELECT e, 2, search_norm_term(a)    FROM tags, regexp_split_to_table(alias, E'\n') a(a) WHERE objid = id;
+
+  WHEN 'i' THEN RETURN QUERY
+              SELECT e, 3, search_norm_term(name) FROM traits WHERE id = objid
+    UNION ALL SELECT e, 2, search_norm_term(a)    FROM traits, regexp_split_to_table(alias, E'\n') a(a) WHERE objid = id;
+
+  ELSE RAISE 'unknown objid type';
+  END CASE;
+END;
+$$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION search_gen_release(relid vndbid) RETURNS text AS $$
-  SELECT coalesce(string_agg(t, ' '), '') FROM (
-    SELECT t FROM (
-                SELECT search_norm_term(title) FROM releases_titles WHERE id = relid
-      UNION ALL SELECT search_norm_term(latin) FROM releases_titles WHERE id = relid
-    ) x(t) WHERE t IS NOT NULL AND t <> '' GROUP BY t ORDER BY t
-  ) x(t);
+CREATE OR REPLACE FUNCTION update_search(objid vndbid) RETURNS void AS $$
+  WITH uniq(subid, prio, label) AS (
+    SELECT subid, MAX(prio)::smallint, label
+      FROM update_search_terms(objid) x (subid int, prio int, label text)
+     WHERE label IS NOT NULL AND label <> ''
+     GROUP BY subid, label
+  ), n(subid, prio, label) AS (
+     SELECT COALESCE(t.subid, o.subid), t.prio, COALESCE(t.label, o.label)
+       FROM uniq t
+       FULL OUTER JOIN (SELECT subid, label FROM search_cache WHERE id = objid) o ON o.subid IS NOT DISTINCT FROM t.subid AND o.label = t.label
+  ) MERGE INTO search_cache o USING n ON o.id = objid AND (o.subid, o.label) IS NOT DISTINCT FROM (n.subid, n.label)
+      WHEN NOT MATCHED THEN INSERT (id, subid, prio, label) VALUES (objid, subid, n.prio, n.label)
+      WHEN MATCHED AND n.prio IS NULL THEN DELETE
+      WHEN MATCHED AND n.prio <> o.prio THEN UPDATE SET prio = n.prio;
 $$ LANGUAGE SQL;
 
 
@@ -182,7 +224,7 @@ $$ LANGUAGE SQL STABLE;
 -- Same for staff_aliast
 CREATE OR REPLACE FUNCTION staff_aliast(p titleprefs) RETURNS SETOF staff_aliast AS $$
     SELECT s.id, s.gender, s.lang, s.l_anidb, s.l_wikidata, s.l_pixiv, s.locked, s.hidden, s."desc", s.l_wp, s.l_site, s.l_twitter, s.aid AS main
-         , sa.aid, sa.name, sa.latin, sa.c_search
+         , sa.aid, sa.name, sa.latin
          , titleprefs_swap(p, s.lang, sa.name, sa.latin), COALESCE(sa.latin, sa.name)
       FROM staff s
       JOIN staff_alias sa ON sa.id = s.id
@@ -644,13 +686,10 @@ DECLARE
 BEGIN
   SELECT id INTO xoldchid FROM changes WHERE itemid = nitemid AND rev = nrev-1;
 
-  -- Update vn.c_search and tags_vn_*
-  IF vndbid_type(nitemid) = 'v' THEN
-    UPDATE vn SET c_search = search_gen_vn(id) WHERE id = nitemid;
-    PERFORM tag_vn_calc(nitemid); -- actually only necessary when the hidden flag is changed
-  END IF;
+  -- Update search_cache
+  PERFORM update_search(nitemid);
 
-  -- Update vn.c_search when
+  -- Update search_cache for related VNs when
   -- 1. A new release is created
   -- 2. A release has been hidden or unhidden
   -- 3. The releases_titles have changed
@@ -667,13 +706,13 @@ BEGIN
        EXISTS(SELECT vid FROM releases_vn_hist WHERE chid = xoldchid EXCEPT SELECT vid FROM releases_vn_hist WHERE chid = nchid) OR
        EXISTS(SELECT vid FROM releases_vn_hist WHERE chid = nchid    EXCEPT SELECT vid FROM releases_vn_hist WHERE chid = xoldchid)
     THEN
-      UPDATE vn SET c_search = search_gen_vn(id) WHERE id IN(SELECT vid FROM releases_vn_hist WHERE chid IN(nchid, xoldchid));
+      PERFORM update_search(vid) FROM releases_vn_hist WHERE chid IN(nchid, xoldchid);
     END IF;
   END IF;
 
-  -- Update releases.c_search
-  IF vndbid_type(nitemid) = 'r' THEN
-    UPDATE releases SET c_search = search_gen_release(id) WHERE id = nitemid;
+  -- Update tags_vn_* when the VN's hidden flag is changed
+  IF vndbid_type(nitemid) = 'v' AND EXISTS(SELECT 1 FROM changes c1, changes c2 WHERE c1.ihid IS DISTINCT FROM c2.ihid AND c1.id = nchid AND c2.id = xoldchid) THEN
+    PERFORM tag_vn_calc(nitemid);
   END IF;
 
   -- Ensure chars.c_lang is updated when the related VN or char has been edited

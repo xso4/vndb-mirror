@@ -639,7 +639,7 @@ my %GET_VN = (
       [ stra  => 'v.olang :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, join => ',', process => \'lang' ],
     ],
     search => [
-      [ str   => 'v.c_search LIKE ALL (search_query(:value:))', {'~',1} ],
+      [ str   => 'EXISTS(SELECT 1 FROM search_cache sc WHERE sc.id = v.id AND sc.label LIKE ALL (search_query(:value:)))', {'~',1} ],
     ],
     tags => [
       [ int   => 'v.id :op:(SELECT vid FROM tags_vn_inherit WHERE tag = :value:)',   {'=' => 'IN', '!=' => 'NOT IN'}, process => \'g' ],
@@ -903,7 +903,7 @@ my %GET_PRODUCER = (
       [ stra  => 'p.lang :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, join => ',', process => \'lang' ],
     ],
     search => [
-      [ str   => 'p.c_search LIKE ALL (search_query(:value:))', {'~',1} ],
+      [ str   => 'EXISTS(SELECT 1 FROM search_cache sc WHERE sc.id = p.id AND sc.label LIKE ALL (search_query(:value:)))', {'~',1} ],
     ],
   },
 );
@@ -1016,7 +1016,7 @@ my %GET_CHARACTER = (
       [ str   => 'c.title[4] ILIKE :value:', {'~',1}, process => \'like' ]
     ],
     search => [
-      [ str   => 'c.c_search LIKE ALL (search_query(:value:))', {'~',1} ],
+      [ str   => 'EXISTS(SELECT 1 FROM search_cache sc WHERE sc.id = c.id AND sc.label LIKE ALL (search_query(:value:)))', {'~',1} ],
     ],
     vn => [
       [ 'int' => 'c.id IN(SELECT cv.id FROM chars_vns cv WHERE cv.vid = :value:)', {'=',1}, process => \'v' ],
@@ -1121,7 +1121,7 @@ my %GET_STAFF = (
       [ inta  => 's.id IN(SELECT sa.id FROM staff_alias sa WHERE sa.aid IN(:value:))', {'=',1}, range => [1,1e6], join => ',' ],
     ],
     search => [
-      [ str   => 's.id IN(SELECT sa.id FROM staff_alias sa WHERE sa.c_search LIKE ALL (search_query(:value:)))', {'~',1} ],
+      [ str   => 'EXISTS(SELECT 1 FROM search_cache sc WHERE sc.id = s.id AND sc.label LIKE ALL (search_query(:value:)))', {'~',1} ],
     ],
   },
 );

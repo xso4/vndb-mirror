@@ -32,13 +32,15 @@ sub listing_ {
 
 TUWF::get qr{/r}, sub {
     my $opt = tuwf->validate(get =>
-        q => { onerror => undef },
+        q => { searchquery => 1 },
         p => { upage => 1 },
         f => { advsearch_err => 'r' },
-        s => { onerror => 'title', enum => [qw/released minage title/] },
+        s => { onerror => 'qscore', enum => [qw/qscore released minage title/] },
         o => { onerror => 'a', enum => ['a','d'] },
         fil => { required => 0 },
     )->data;
+    $opt->{s} = 'qscore' if $opt->{q} && tuwf->reqGet('sb');
+    $opt->{s} = 'title' if $opt->{s} eq 'qscore' && !$opt->{q};
 
     # URL compatibility with old filters
     if(!$opt->{f}->{query} && $opt->{fil}) {
@@ -50,21 +52,18 @@ TUWF::get qr{/r}, sub {
 
     $opt->{f} = advsearch_default 'r' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
 
-    my $where = sql_and 'NOT r.hidden', $opt->{f}->sql_where(),
-        !$opt->{q} ? () : sql_or
-            sql('r.c_search LIKE ALL (search_query(', \$opt->{q}, '))'),
-            $opt->{q} =~ /^\d+$/ && gtintype($opt->{q}) ? sql 'r.gtin =', \$opt->{q} : (),
-            $opt->{q} =~ /^[a-zA-Z0-9-]+$/ ? sql 'r.catalog =', \$opt->{q} : ();
+    my $where = sql_and 'NOT r.hidden', $opt->{f}->sql_where();
 
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = tuwf->dbVali('SELECT count(*) FROM releases r WHERE', $where);
+        $count = tuwf->dbVali('SELECT count(*) FROM releases r WHERE', sql_and $where, $opt->{q}->sql_where('r', 'r.id'));
         $list = $count ? tuwf->dbPagei({results => 50, page => $opt->{p}}, '
             SELECT r.id, r.patch, r.released, r.gtin, ', sql_extlinks(r => 'r.'), '
-              FROM', releasest, 'r
+              FROM', releasest, 'r', $opt->{q}->sql_join('r', 'r.id'), '
              WHERE', $where, '
              ORDER BY', sprintf {
+                 qscore   => '10 - sc.score %s, r.sorttitle %1$s',
                  title    => 'r.sorttitle %s, r.released %1$s',
                  minage   => 'r.minage %s, r.sorttitle %1$s, r.released %1$s',
                  released => 'r.released %s, r.sorttitle %1$s, r.id %1$s',

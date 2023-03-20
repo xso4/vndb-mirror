@@ -85,3 +85,4 @@ CREATE OPERATOR CLASS vndbid_hash_ops DEFAULT FOR TYPE vndbid USING hash AS
 
 -- Unrelated to the vndbid type, but put here because this file is, ultimately, where all extensions are loaded.
 CREATE EXTENSION unaccent;
+CREATE EXTENSION pg_trgm;

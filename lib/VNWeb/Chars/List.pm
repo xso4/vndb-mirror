@@ -82,11 +82,11 @@ sub enrich_listing {
 
 TUWF::get qr{/c(?:/(?<char>all|[a-z0]))?}, sub {
     my $opt = tuwf->validate(get =>
-        q => { onerror => undef },
+        q => { searchquery => 1 },
         p => { upage => 1 },
         f => { advsearch_err => 'c' },
         ch=> { onerror => [], type => 'array', scalar => 1, values => { onerror => undef, enum => ['0', 'a'..'z'] } },
-        fil => { required => 0 },
+        fil=>{ required => 0 },
         s => { tableopts => $TABLEOPTS },
     )->data;
     $opt->{ch} = $opt->{ch}[0];
@@ -108,15 +108,17 @@ TUWF::get qr{/c(?:/(?<char>all|[a-z0]))?}, sub {
 
     my $where = sql_and
         'NOT c.hidden', $opt->{f}->sql_where(),
-        $opt->{q} ? sql 'c.c_search LIKE ALL (search_query(', \$opt->{q}, '))' : (),
         defined($opt->{ch}) ? sql 'match_firstchar(c.sorttitle, ', \$opt->{ch}, ')' : ();
 
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = tuwf->dbVali('SELECT count(*) FROM', charst, 'c WHERE', $where);
+        $count = tuwf->dbVali('SELECT count(*) FROM', charst, 'c WHERE', sql_and $where, $opt->{q}->sql_where('c', 'c.id'));
         $list = $count ? tuwf->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
-            SELECT c.id, c.title, c.gender, c.image FROM', charst, 'c WHERE', $where, 'ORDER BY c.sorttitle, c.id'
+            SELECT c.id, c.title, c.gender, c.image
+              FROM', charst, 'c', $opt->{q}->sql_join('c', 'c.id'), '
+             WHERE', $where, '
+             ORDER BY', $opt->{q} ? 'sc.score DESC, ' : (), 'c.sorttitle, c.id'
         ) : [];
     } || (($count, $list) = (undef, []));
 

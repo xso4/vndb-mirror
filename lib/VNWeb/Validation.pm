@@ -73,6 +73,8 @@ TUWF::set custom_validations => {
     gtin        => { required => 0, default => 0, func => sub { $_[0] = 0 if !length $_[0]; $_[0] eq 0 || gtintype($_[0]) } },
     rdate       => { uint => 1, func => \&_validate_rdate },
     fuzzyrdate  => { required => 0, default => 0, func => \&_validate_fuzzyrdate },
+    searchquery => { required => 0, default => bless([],'VNWeb::Validate::SearchQuery'), func => sub { $_[0] = bless([$_[0]], 'VNWeb::Validate::SearchQuery') } },
+    searchquerya=> { type => 'array', values => { required => 0, default => '' }, default => bless([],'VNWeb::Validate::SearchQuery'), func => sub { $_[0] = bless([grep length $_, $_[0]->@*], 'VNWeb::Validate::SearchQuery') } },
     # Calendar date, limited to 1970 - 2099 for sanity.
     # TODO: Should also validate whether the day exists, currently "2022-11-31" is accepted, but that's a bug.
     caldate     => { regex => qr/^(?:19[7-9][0-9]|20[0-9][0-9])-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])$/ },
@@ -378,5 +380,70 @@ sub viewset {
         !defined $s{show_nsfw}     ? '' : $s{show_nsfw}     ? 'n' : 'N',
         '-'.auth->csrftoken(0, 'view');
 }
+
+
+# Object returned by the 'searchquery' validation, has some handy methods for generating SQL.
+package VNWeb::Validate::SearchQuery {
+    use TUWF;
+    use VNWeb::DB;
+
+    sub query_encode { $_[0][0] }
+
+    sub _words {
+        $_[0][1] //= length $_[0][0]
+            ? [ map s/%//rg, tuwf->dbVali('SELECT search_query(', \$_[0][0], ')')->@* ]
+            : []
+    }
+
+    use overload bool => sub { $_[0]->_words->@* > 0 };
+    use overload '""' => sub { $_[0][0]//'' };
+
+    sub _isvndbid { my $l = $_[0]->_words; @$l == 1 && $l->[0] =~ /^[vrpcsgi]$num$/ }
+
+    sub _where {
+        my($self, $type) = @_;
+        my $lst = $self->_words;
+        my @keywords = map sql('sc.label LIKE', \"%${_}%"), @$lst;
+        +(
+            $type ? "sc.id BETWEEN '${type}1' AND vndbid_max('$type')" : (),
+            $self->_isvndbid()
+                ? (sql 'sc.id =', \$lst->[0], 'OR', sql_and(@keywords))
+                : @keywords
+        )
+    }
+
+    sub sql_where {
+        my($self, $type, $id, $subid) = @_;
+        return '1=1' if !$self;
+        sql 'EXISTS(SELECT 1 FROM search_cache sc WHERE', sql_and(
+            sql('sc.id =', $id), $subid ? sql('sc.subid =', $subid) : (),
+            $self->_where($type),
+        ), ')';
+    }
+
+    # Returns a subquery that can be joined to get the search score.
+    # Columns (id, subid, score)
+    sub sql_score {
+        my($self, $type) = @_;
+        my $lst = $self->_words;
+        my $q = join '', @$lst;
+        sql '(SELECT id, subid, max(sc.prio * (', VNWeb::DB::sql_join('+',
+                $self->_isvndbid() ? sql('CASE WHEN sc.id =', \$q, 'THEN 1+1 ELSE 0 END') : (),
+                sql('CASE WHEN sc.label LIKE', \"$q%", 'THEN 1::float/(1+1) ELSE 0 END'),
+                sql('similarity(sc.label,', \$q, ')'),
+            ), ')) AS score
+            FROM search_cache sc
+           WHERE', sql_and($self->_where($type)), '
+           GROUP BY id, subid
+        )';
+    }
+
+    # Optionally returns a JOIN clause for sql_score, aliassed 'sc'
+    sub sql_join {
+        my($self, $type, $id, $subid) = @_;
+        return '' if !$self;
+        sql 'JOIN', $self->sql_score($type), 'sc ON sc.id =', $id, $subid ? ('AND sc.subid =', $subid) : ();
+    }
+};
 
 1;

@@ -93,20 +93,11 @@ CREATE OR REPLACE FUNCTION search_norm_term(str text) RETURNS text AS $$
 $$ LANGUAGE SQL IMMUTABLE;
 
 
-CREATE OR REPLACE FUNCTION search_gen(terms text[]) RETURNS text AS $$
-  SELECT coalesce(string_agg(t, ' '), '') FROM (
-    SELECT t FROM (
-      SELECT public.search_norm_term(t) FROM unnest(terms) x(t)
-    ) x(t) WHERE t IS NOT NULL AND t <> '' GROUP BY t ORDER BY t
-  ) x(t);
-$$ LANGUAGE SQL IMMUTABLE;
-
-
 -- Split a search query into LIKE patterns.
 -- Supports double quoting for adjacent terms.
 -- e.g. 'SEARCH que.ry "word here"' -> '{%search%,%query%,%wordhere%}'
 --
--- Can be efficiently used as follows: c_search LIKE ALL (search_query('query here'))
+-- Can be efficiently used as follows: label LIKE ALL (search_query('query here'))
 CREATE OR REPLACE FUNCTION search_query(q text) RETURNS text[] AS $$
 DECLARE
   tmp text;

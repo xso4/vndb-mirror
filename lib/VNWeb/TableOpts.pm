@@ -135,7 +135,8 @@ TUWF::set('custom_validations')->{tableopts} = sub {
     my($t) = @_;
     +{ onerror => sub {
         my $d = $t->{pref} && auth ? tuwf->dbVali('SELECT', $t->{pref}, 'FROM users_prefs WHERE id =', \auth->uid) : undef;
-        bless([$d // $t->{default},$t], __PACKAGE__)
+        my $o = bless([$d // $t->{default},$t], __PACKAGE__);
+        $o->fixup;
     }, func => sub {
         my $obj = bless [undef, $t], __PACKAGE__;
         my($val,$ord) = $_[0] =~ m{^([^/]+)/([ad])$} ? ($1,$2) : ($_[0],undef);
@@ -148,11 +149,21 @@ TUWF::set('custom_validations')->{tableopts} = sub {
         } else {
             $obj->[0] = _dec($_[0]) // return 0;
         }
-        $_[0] = $obj;
+        $_[0] = $obj->fixup;
         # We could do strict validation on the individual fields, but the methods below can handle incorrect data.
         1;
     } }
 };
+
+sub fixup {
+    my($obj) = @_;
+    # Reset sort_col and order to their default if the current sort_col id does not exist.
+    if(!$obj->[1]{sort_ids}[ $obj->sort_col_id ]) {
+        $obj->set_sort_col_id(sort_col_id([$obj->[1]{default}]));
+        $obj->set_order(order([$obj->[1]{default}]));
+    }
+    $obj
+}
 
 sub query_encode { _enc $_[0][0] }
 
@@ -188,7 +199,7 @@ sub sort_param {
 sub sql_order {
     my($self) = @_;
     my($v,$o) = $self->@*;
-    my $col = $o->{sort_ids}[ $self->sort_col_id ] || $o->{sort_ids}[ sort_col_id([$o->{default}]) ];
+    my $col = $o->{sort_ids}[ $self->sort_col_id ];
     die "No column to sort on" if !$col;
     my $order = $self->order ? 'DESC' : 'ASC';
     my $opposite_order = $self->order ? 'ASC' : 'DESC';

@@ -39,12 +39,13 @@ sub schema {
 
         if(/^\s*CREATE\s+TABLE\s+([^ ]+)/) {
             die "Unexpected 'CREATE TABLE $1'\n" if $table;
+            next if /PARTITION OF/;
             $table = $1;
             $schema{$table}{name} = $table;
             $schema{$table}{dbentry_type} = $1 if /--.*\s+dbentry_type=(.)/;
             $schema{$table}{cols} = [];
 
-        } elsif(/^\s*\);/) {
+        } elsif(/^\s*\)(?: PARTITION .+)?;/) {
             $table = undef;
 
         } elsif(/^\s+(?:CHECK|CONSTRAINT)/) {

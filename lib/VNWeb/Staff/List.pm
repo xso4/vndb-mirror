@@ -24,7 +24,7 @@ sub listing_ {
 
 TUWF::get qr{/s(?:/(?<char>all|[a-z0]))?}, sub {
     my $opt = tuwf->validate(get =>
-        q => { onerror => undef },
+        q => { searchquery => 1 },
         p => { upage => 1 },
         f => { advsearch_err => 's' },
         n => { onerror => [], type => 'array', scalar => 1, values => { anybool => 1 } },
@@ -52,17 +52,19 @@ TUWF::get qr{/s(?:/(?<char>all|[a-z0]))?}, sub {
     $opt->{f} = advsearch_default 's' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
 
     my $where = sql_and
-        $opt->{n} ? 'main = aid' : (),
-        'NOT hidden', $opt->{f}->sql_where(),
-        $opt->{q} ? sql 'c_search LIKE ALL (search_query(', \$opt->{q}, '))' : (),
-        defined($opt->{ch}) ? sql 'match_firstchar(sorttitle, ', \$opt->{ch}, ')' : ();
+        $opt->{n} ? 's.main = s.aid' : (),
+        'NOT s.hidden', $opt->{f}->sql_where(),
+        defined($opt->{ch}) ? sql 'match_firstchar(s.sorttitle, ', \$opt->{ch}, ')' : ();
 
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = tuwf->dbVali('SELECT count(*) FROM', staff_aliast, 's WHERE', $where);
+        $count = tuwf->dbVali('SELECT count(*) FROM', staff_aliast, 's WHERE', sql_and $where, $opt->{q}->sql_where('s', 's.id', 's.aid'));
         $list = $count ? tuwf->dbPagei({results => 150, page => $opt->{p}}, '
-            SELECT id, title, lang FROM', staff_aliast, 's WHERE', $where, 'ORDER BY sorttitle, aid'
+            SELECT s.id, s.title, s.lang
+              FROM', staff_aliast, 's', $opt->{q}->sql_join('s', 's.id', 's.aid'), '
+             WHERE', $where,
+            'ORDER BY', $opt->{q} ? 'sc.score DESC, ' : (), 's.sorttitle, s.aid'
         ) : [];
     } || (($count, $list) = (undef, []));
     $time = time - $time;

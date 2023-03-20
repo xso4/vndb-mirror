@@ -2,40 +2,27 @@ package VNWeb::TT::Elm;
 
 use VNWeb::Prelude;
 
-elm_api Tags => undef, { search => {} }, sub {
+elm_api Tags => undef, { search => { searchquery => 1 } }, sub {
     my $q = shift->{search};
-    my $qs = sql_like $q;
 
     elm_TagResult tuwf->dbPagei({ results => 15, page => 1 },
         'SELECT t.id, t.name, t.searchable, t.applicable, t.hidden, t.locked
-           FROM (',
-             sql_join('UNION ALL',
-                 $q =~ /^$RE{gid}$/ ? sql('SELECT 0, id FROM tags WHERE id =', \"$+{id}") : (),
-                 sql('SELECT  1+substr_score(lower(name),',  \$qs, '), id FROM tags WHERE c_search LIKE ALL(search_query(', \$q, '))'),
-             ), ') x (prio, id)
-           JOIN tags t ON t.id = x.id
+           FROM tags t', $q->sql_join('g', 't.id'), '
           WHERE NOT (t.hidden AND t.locked)
-          GROUP BY t.id, t.name, t.searchable, t.applicable, t.hidden, t.locked
-          ORDER BY MIN(x.prio), t.name
+          ORDER BY sc.score DESC, t.name
     ')
 };
 
 
-elm_api Traits => undef, { search => {} }, sub {
+elm_api Traits => undef, { search => { searchquery => 1 } }, sub {
     my $q = shift->{search};
-    my $qs = sql_like $q;
 
     elm_TraitResult tuwf->dbPagei({ results => 15, page => 1 },
         'SELECT t.id, t.name, t.searchable, t.applicable, t.defaultspoil, t.hidden, t.locked, g.id AS group_id, g.name AS group_name
-           FROM (SELECT MIN(prio), id FROM (',
-             sql_join('UNION ALL',
-                 $q =~ /^$RE{iid}$/ ? sql('SELECT 0, id FROM traits WHERE id =', \"$+{id}") : (),
-                 sql('SELECT  1+substr_score(lower(name),',  \$qs, '), id FROM traits WHERE c_search LIKE ALL(search_query(', \$q, '))'),
-             ), ') x(prio, id) GROUP BY id) x(prio,id)
-           JOIN traits t ON t.id = x.id
+           FROM traits t', $q->sql_join('i', 't.id'), '
            LEFT JOIN traits g ON g.id = t.group
           WHERE NOT (t.hidden AND t.locked)
-          ORDER BY x.prio, t.name
+          ORDER BY sc.score DESC, t.name
     ')
 };
 

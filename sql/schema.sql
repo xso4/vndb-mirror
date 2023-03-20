@@ -237,7 +237,6 @@ CREATE TABLE chars ( -- dbentry_type=c
   latin        varchar(250), -- [pub]
   alias        varchar(500) NOT NULL DEFAULT '', -- [pub]
   "desc"       text NOT NULL DEFAULT '', -- [pub]
-  c_search     text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[name, latin]::text[]||string_to_array(alias,E'\n'))) STORED,
   c_lang       language NOT NULL DEFAULT 'ja'
 );
 
@@ -401,8 +400,7 @@ CREATE TABLE producers ( -- dbentry_type=p
   alias      varchar(500) NOT NULL DEFAULT '', -- [pub]
   website    varchar(1024) NOT NULL DEFAULT '', -- [pub]
   "desc"     text NOT NULL DEFAULT '', -- [pub]
-  l_wp       varchar(150), -- (deprecated)
-  c_search   text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[name, latin]::text[]||string_to_array(alias,E'\n'))) STORED
+  l_wp       varchar(150) -- (deprecated)
 );
 
 -- producers_hist
@@ -515,8 +513,7 @@ CREATE TABLE releases ( -- dbentry_type=r
   l_playstation_hk text NOT NULL DEFAULT '', -- [pub]
   l_nintendo    text NOT NULL DEFAULT '', -- [pub]
   l_gyutto     integer[] NOT NULL DEFAULT '{}', -- [pub]
-  l_dmm        text[] NOT NULL DEFAULT '{}', -- [pub]
-  c_search     text
+  l_dmm        text[] NOT NULL DEFAULT '{}' -- [pub]
 );
 
 -- releases_hist
@@ -746,6 +743,22 @@ CREATE TABLE saved_queries (
   PRIMARY KEY(uid, qtype, name)
 );
 
+-- search_cache
+CREATE TABLE search_cache (
+    id    vndbid NOT NULL,
+    subid integer, -- only for staff_alias.id at the moment
+    prio  smallint NOT NULL, -- 1 for indirect titles, 2 for aliases, 3 for main titles
+    label text NOT NULL COLLATE "C"
+) PARTITION BY RANGE(id);
+
+CREATE TABLE search_cache_v PARTITION OF search_cache FOR VALUES FROM ('v1') TO (vndbid_max('v'));
+CREATE TABLE search_cache_r PARTITION OF search_cache FOR VALUES FROM ('r1') TO (vndbid_max('r'));
+CREATE TABLE search_cache_c PARTITION OF search_cache FOR VALUES FROM ('c1') TO (vndbid_max('c'));
+CREATE TABLE search_cache_p PARTITION OF search_cache FOR VALUES FROM ('p1') TO (vndbid_max('p'));
+CREATE TABLE search_cache_s PARTITION OF search_cache FOR VALUES FROM ('s1') TO (vndbid_max('s'));
+CREATE TABLE search_cache_g PARTITION OF search_cache FOR VALUES FROM ('g1') TO (vndbid_max('g'));
+CREATE TABLE search_cache_i PARTITION OF search_cache FOR VALUES FROM ('i1') TO (vndbid_max('i'));
+
 -- sessions
 CREATE TABLE sessions (
   uid      vndbid NOT NULL,
@@ -848,8 +861,7 @@ CREATE TABLE staff_alias (
   id         vndbid NOT NULL, -- [pub]
   aid        SERIAL PRIMARY KEY, -- [pub] Globally unique ID of this alias
   name       varchar(200) NOT NULL DEFAULT '', -- [pub]
-  latin      varchar(200), -- [pub]
-  c_search   text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[name, latin])) STORED
+  latin      varchar(200) -- [pub]
 );
 
 -- staff_alias_hist
@@ -880,8 +892,7 @@ CREATE TABLE tags ( -- dbentry_type=g
   applicable   boolean NOT NULL DEFAULT TRUE, -- [pub]
   name         varchar(250) NOT NULL DEFAULT '' UNIQUE, -- [pub]
   alias        varchar(500) NOT NULL DEFAULT '', -- [pub]
-  description  text NOT NULL DEFAULT '', -- [pub]
-  c_search     text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[name]::text[]||string_to_array(alias,E'\n'))) STORED
+  description  text NOT NULL DEFAULT '' -- [pub]
 );
 
 -- tags_hist
@@ -1025,8 +1036,7 @@ CREATE TABLE traits ( -- dbentry_type=i
   applicable    boolean NOT NULL DEFAULT true, -- [pub]
   name          varchar(250) NOT NULL DEFAULT '', -- [pub]
   alias         varchar(500) NOT NULL DEFAULT '', -- [pub]
-  description   text NOT NULL DEFAULT '', -- [pub]
-  c_search      text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[name]::text[]||string_to_array(alias,E'\n'))) STORED
+  description   text NOT NULL DEFAULT '' -- [pub]
 );
 
 -- traits_hist
@@ -1261,7 +1271,6 @@ CREATE TABLE vn ( -- dbentry_type=v
   l_encubed     varchar(100) NOT NULL DEFAULT '', -- (deprecated)
   l_renai       varchar(100) NOT NULL DEFAULT '', -- [pub]
   "desc"        text NOT NULL DEFAULT '', -- [pub]
-  c_search      text,
   c_languages   language[] NOT NULL DEFAULT '{}',
   c_platforms   platform[] NOT NULL DEFAULT '{}',
   c_developers  vndbid[] NOT NULL DEFAULT '{}'
@@ -1508,7 +1517,7 @@ CREATE VIEW charst AS
 CREATE VIEW staff_aliast AS
            -- Everything from 'staff', except 'aid' is renamed to 'main'
     SELECT s.id, s.gender, s.lang, s.l_anidb, s.l_wikidata, s.l_pixiv, s.locked, s.hidden, s."desc", s.l_wp, s.l_site, s.l_twitter, s.aid AS main
-         , sa.aid, sa.name, sa.latin, sa.c_search
+         , sa.aid, sa.name, sa.latin
          , ARRAY [ s.lang::text, COALESCE(sa.latin, sa.name)
                  , s.lang::text, sa.name ] AS title
          , COALESCE(sa.latin, sa.name) AS sorttitle
