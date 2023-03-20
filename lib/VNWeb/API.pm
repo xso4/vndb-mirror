@@ -791,11 +791,11 @@ api_query '/release',
 
 api_query '/producer',
     filters => 'p',
-    sql => sub { sql 'SELECT p.id', $_[0], 'FROM producers p', $_[1], 'WHERE NOT p.hidden AND (', $_[2], ')' },
+    sql => sub { sql 'SELECT p.id', $_[0], 'FROM producerst p', $_[1], 'WHERE NOT p.hidden AND (', $_[2], ')' },
     fields => {
         id       => {},
-        name     => { select => 'p.name' },
-        original => { select => 'p.original', @NSTR },
+        name     => { select => 'p.title[1+1] AS name' },
+        original => { ALTTITLE 'p.title', 'original' },
         aliases  => { select => 'p.alias AS aliases', @MSTR },
         lang     => { select => 'p.lang' },
         type     => { select => 'p.type' },
@@ -803,7 +803,7 @@ api_query '/producer',
     },
     sort => [
         id       => 'p.id',
-        name     => 'p.name ?o, p.id',
+        name     => 'p.sorttitle ?o, p.id',
     ];
 
 

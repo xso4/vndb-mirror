@@ -397,7 +397,7 @@ CREATE TABLE producers ( -- dbentry_type=p
   locked     boolean NOT NULL DEFAULT FALSE,
   hidden     boolean NOT NULL DEFAULT FALSE,
   name       varchar(200) NOT NULL DEFAULT '', -- [pub]
-  original   varchar(200), -- [pub]
+  latin      varchar(200), -- [pub]
   alias      varchar(500) NOT NULL DEFAULT '', -- [pub]
   website    varchar(1024) NOT NULL DEFAULT '', -- [pub]
   "desc"     text NOT NULL DEFAULT '', -- [pub]
@@ -412,7 +412,7 @@ CREATE TABLE producers_hist (
   lang       language NOT NULL DEFAULT 'ja',
   l_wikidata integer,
   name       varchar(200) NOT NULL DEFAULT '',
-  original   varchar(200),
+  latin      varchar(200),
   alias      varchar(500) NOT NULL DEFAULT '',
   website    varchar(1024) NOT NULL DEFAULT '',
   "desc"     text NOT NULL DEFAULT '',
@@ -1491,9 +1491,9 @@ CREATE VIEW releasest AS
 -- And producers
 CREATE VIEW producerst AS
     SELECT *
-         , ARRAY [ lang::text, name
-                 , lang::text, COALESCE(original, name) ] AS title
-         , name AS sorttitle
+         , ARRAY [ lang::text, COALESCE(latin, name)
+                 , lang::text, name ] AS title
+         , COALESCE(latin, name) AS sorttitle
       FROM producers;
 
 -- And chars

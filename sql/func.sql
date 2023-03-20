@@ -63,7 +63,7 @@ $$ LANGUAGE SQL;
 
 
 -- Helper function for the titleprefs functions below.
-CREATE OR REPLACE FUNCTION titleprefs_swap(p titleprefs, lang language, title text, original text) RETURNS text[] AS $$
+CREATE OR REPLACE FUNCTION titleprefs_swapold(p titleprefs, lang language, title text, original text) RETURNS text[] AS $$
   SELECT ARRAY[lang::text, CASE WHEN (
             CASE WHEN p.t1_lang = lang THEN p.t1_latin
                  WHEN p.t2_lang = lang THEN p.t2_latin
@@ -75,6 +75,23 @@ CREATE OR REPLACE FUNCTION titleprefs_swap(p titleprefs, lang language, title te
                  WHEN p.a3_lang = lang THEN p.a3_latin
                  WHEN p.a4_lang = lang THEN p.a4_latin ELSE p.ao_latin END
          ) THEN title ELSE COALESCE(original, title) END]
+$$ LANGUAGE SQL STABLE;
+
+
+
+-- Helper function for the titleprefs functions below.
+CREATE OR REPLACE FUNCTION titleprefs_swap(p titleprefs, lang language, title text, latin text) RETURNS text[] AS $$
+  SELECT ARRAY[lang::text, CASE WHEN (
+            CASE WHEN p.t1_lang = lang THEN p.t1_latin
+                 WHEN p.t2_lang = lang THEN p.t2_latin
+                 WHEN p.t3_lang = lang THEN p.t3_latin
+                 WHEN p.t4_lang = lang THEN p.t4_latin ELSE p IS NULL OR p.to_latin END
+         ) THEN COALESCE(latin, title) ELSE title END, lang::text, CASE WHEN (
+            CASE WHEN p.a1_lang = lang THEN p.a1_latin
+                 WHEN p.a2_lang = lang THEN p.a2_latin
+                 WHEN p.a3_lang = lang THEN p.a3_latin
+                 WHEN p.a4_lang = lang THEN p.a4_latin ELSE p.ao_latin END
+         ) THEN COALESCE(latin, title) ELSE title END]
 $$ LANGUAGE SQL STABLE;
 
 
@@ -167,14 +184,14 @@ $$ LANGUAGE SQL STABLE;
 -- This one just flips the name/original columns around depending on
 -- preferences, so is fast enough to use directly.
 CREATE OR REPLACE FUNCTION producerst(p titleprefs) RETURNS SETOF producerst AS $$
-  SELECT *, titleprefs_swap(p, lang, name, original), name FROM producers
+  SELECT *, titleprefs_swap(p, lang, name, latin), name FROM producers
 $$ LANGUAGE SQL STABLE;
 
 
 
 -- Same for charst
 CREATE OR REPLACE FUNCTION charst(p titleprefs) RETURNS SETOF charst AS $$
-  SELECT *, titleprefs_swap(p, c_lang, name, original), name FROM chars
+  SELECT *, titleprefs_swapold(p, c_lang, name, original), name FROM chars
 $$ LANGUAGE SQL STABLE;
 
 
@@ -183,7 +200,7 @@ $$ LANGUAGE SQL STABLE;
 CREATE OR REPLACE FUNCTION staff_aliast(p titleprefs) RETURNS SETOF staff_aliast AS $$
     SELECT s.id, s.gender, s.lang, s.l_anidb, s.l_wikidata, s.l_pixiv, s.locked, s.hidden, s."desc", s.l_wp, s.l_site, s.l_twitter, s.aid AS main
          , sa.aid, sa.name, sa.original, sa.c_search
-         , titleprefs_swap(p, s.lang, sa.name, sa.original), sa.name
+         , titleprefs_swapold(p, s.lang, sa.name, sa.original), sa.name
       FROM staff s
       JOIN staff_alias sa ON sa.id = s.id
 $$ LANGUAGE SQL STABLE;
@@ -592,7 +609,7 @@ BEGIN
                     FROM changes h JOIN vn_hist v ON h.id = v.chid JOIN vn_titles_hist vo ON h.id = vo.chid AND vo.lang = v.olang WHERE h.itemid = $2 AND h.rev = $3;
     WHEN 'r' THEN SELECT ARRAY[r.olang::text, COALESCE(ro.latin, ro.title), r.olang::text, CASE WHEN ro.latin IS NULL THEN '' ELSE ro.title END], h.requester, h.ihid, h.ilock INTO ret
                     FROM changes h JOIN releases_hist r ON h.id = r.chid JOIN releases_titles_hist ro ON h.id = ro.chid AND ro.lang = r.olang WHERE h.itemid = $2 AND h.rev = $3;
-    WHEN 'p' THEN SELECT ARRAY[p.lang::text, p.name, p.lang::text, p.original], h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN producers_hist p ON h.id = p.chid WHERE h.itemid = $2 AND h.rev = $3;
+    WHEN 'p' THEN SELECT ARRAY[p.lang::text, COALESCE(p.latin, p.name), p.lang::text, p.name], h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN producers_hist p ON h.id = p.chid WHERE h.itemid = $2 AND h.rev = $3;
     WHEN 'c' THEN SELECT ARRAY[NULL, c.name,  NULL, c.original],  h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN chars_hist c  ON h.id = c.chid WHERE h.itemid = $2 AND h.rev = $3;
     WHEN 'd' THEN SELECT ARRAY[NULL, d.title, NULL, d.title   ],  h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN docs_hist d   ON h.id = d.chid WHERE h.itemid = $2 AND h.rev = $3;
     WHEN 'g' THEN SELECT ARRAY[NULL, g.name,  NULL, g.name    ],  h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN tags_hist g   ON h.id = g.chid WHERE h.itemid = $2 AND h.rev = $3;

@@ -11,6 +11,7 @@ use Exporter 'import';
 our @EXPORT = qw/
     titleprefs_obj
     titleprefs_swap
+    titleprefs_swapold
     vnt
     releasest
     producerst
@@ -149,8 +150,25 @@ sub titleprefs_obj {
 
 
 # Returns the preferred title array given a language, latin title and original title.
-# For DB entries that only have (title, original) fields.
+# For DB entries that only have (title, latin) fields.
 sub titleprefs_swap {
+    my($olang, $title, $latin) = @_;
+    my $p = pref || $DEFAULT_TITLE_PREFS;
+
+    my @title = ($olang,'',$olang,'');
+    for my $t (0,1) {
+        for ($p->[$t]->@*) {
+            next if $_->{lang} && $_->{lang} ne $olang;
+            $title[$t*2+1] = $_->{latin} ? $latin//$title : $title;
+            last;
+        }
+    }
+    \@title;
+}
+
+
+# Same but for the old (title, original) format.
+sub titleprefs_swapold {
     my($olang, $title, $original) = @_;
     my $p = pref || $DEFAULT_TITLE_PREFS;
 

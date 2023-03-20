@@ -7,7 +7,7 @@ my $FORM = {
     id         => { required => 0, vndbid => 'p' },
     ptype      => { default => 'co', enum => \%PRODUCER_TYPE },
     name       => { maxlength => 200 },
-    original   => { required => 0, maxlength => 200 },
+    latin      => { required => 0, maxlength => 200 },
     alias      => { required => 0, default => '', maxlength => 500 },
     lang       => { default => 'ja', enum => \%LANGUAGE },
     website    => { required => 0, default => '', weburl => 1 },
@@ -41,7 +41,7 @@ TUWF::get qr{/$RE{prev}/edit} => sub {
 
     enrich_merge pid => sql('SELECT id AS pid, title[1+1] AS name, title[1+1+1+1] AS altname FROM', producerst, 'p WHERE id IN'), $e->{relations};
 
-    my $title = titleprefs_swap @{$e}{qw/ lang name original /};
+    my $title = titleprefs_swap @{$e}{qw/ lang name latin /};
     framework_ title => "Edit $title->[1]", dbobj => $e, tab => 'edit',
     sub {
         editmsg_ p => $e, "Edit $title->[1]";

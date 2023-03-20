@@ -10,7 +10,7 @@ sub enrich_item {
     # Add a 'main' flag and title field to each alias
     for ($s->{alias}->@*) {
         $_->{main} = $s->{aid} == $_->{aid};
-        $_->{title} = titleprefs_swap $s->{lang}, $_->{name}, $_->{original};
+        $_->{title} = titleprefs_swapold $s->{lang}, $_->{name}, $_->{original};
     }
 
     # Sort aliases by name

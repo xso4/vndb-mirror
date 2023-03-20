@@ -30,7 +30,7 @@ type alias Model =
   , editsum     : Editsum.Model
   , ptype       : String
   , name        : String
-  , original    : Maybe String
+  , latin       : Maybe String
   , alias       : String
   , lang        : String
   , website     : String
@@ -50,7 +50,7 @@ init d =
   , editsum     = { authmod = d.authmod, editsum = TP.bbcode d.editsum, locked = d.locked, hidden = d.hidden, hasawait = False }
   , ptype       = d.ptype
   , name        = d.name
-  , original    = d.original
+  , latin       = d.latin
   , alias       = d.alias
   , lang        = d.lang
   , website     = d.website
@@ -72,7 +72,7 @@ encode model =
   , locked      = model.editsum.locked
   , ptype       = model.ptype
   , name        = model.name
-  , original    = model.original
+  , latin       = model.latin
   , alias       = model.alias
   , lang        = model.lang
   , website     = model.website
@@ -90,7 +90,7 @@ type Msg
   | Submitted GApi.Response
   | PType String
   | Name String
-  | Original String
+  | Latin String
   | Alias String
   | Lang String
   | Website String
@@ -109,7 +109,7 @@ update msg model =
     Editsum m  -> let (nm,nc) = Editsum.update m model.editsum in ({ model | editsum = nm }, Cmd.map Editsum nc)
     PType s    -> ({ model | ptype    = s }, Cmd.none)
     Name s     -> ({ model | name     = s, dupProds = [] }, Cmd.none)
-    Original s -> ({ model | original = if s == "" then Nothing else Just s, dupProds = [] }, Cmd.none)
+    Latin s    -> ({ model | latin    = if s == "" then Nothing else Just s, dupProds = [] }, Cmd.none)
     Alias s    -> ({ model | alias    = s, dupProds = [] }, Cmd.none)
     Lang s     -> ({ model | lang     = s }, Cmd.none)
     Website s  -> ({ model | website  = s }, Cmd.none)
@@ -129,7 +129,7 @@ update msg model =
 
     DupSubmit ->
       if List.isEmpty model.dupProds
-      then ({ model | state = Api.Loading }, GP.send { hidden = True, search = model.name :: Maybe.withDefault "" model.original :: String.lines model.alias } DupResults)
+      then ({ model | state = Api.Loading }, GP.send { hidden = True, search = model.name :: Maybe.withDefault "" model.latin :: String.lines model.alias } DupResults)
       else ({ model | dupCheck = True, dupProds = [] }, Cmd.none)
     DupResults (GApi.ProducerResult prods) ->
       if List.isEmpty prods
@@ -144,7 +144,7 @@ update msg model =
 
 isValid : Model -> Bool
 isValid model = not
-  (  (model.name /= "" && Just model.name == model.original)
+  (  (model.name /= "" && Just model.name == model.latin)
   || hasDuplicates (List.map (\p -> p.pid) model.rel)
   )
 
@@ -153,14 +153,14 @@ view : Model -> Html Msg
 view model =
   let
     titles =
-      [ formField "name::Name (romaji)" [ inputText "name" model.name Name (style "width" "500px" :: GPE.valName) ]
-      , formField "original::Original name"
-        [ inputText "original" (Maybe.withDefault "" model.original) Original (style "width" "500px" :: GPE.valOriginal)
-        , if model.name /= "" && Just model.name == model.original
-          then b [ class "standout" ] [ br [] [], text "Should not be the same as the Name (romaji). Leave blank if the original name is already in the latin alphabet" ]
-          else if model.original /= Nothing && String.toLower model.name /= String.toLower (Maybe.withDefault "" model.original) && not (containsNonLatin (Maybe.withDefault "" model.original))
-          then b [ class "standout" ] [ br [] [], text "Original name does not seem to contain any non-latin characters. Leave this field empty if the name is already in the latin alphabet" ]
-          else text ""
+      [ formField "name::Name (original)" [ inputText "name" model.name Name (style "width" "500px" :: GPE.valName) ]
+      , if not (model.latin /= Nothing || containsNonLatin model.name) then text "" else
+        formField "latin::Name (latin)"
+        [ inputText "latin" (Maybe.withDefault "" model.latin) Latin (style "width" "500px" :: placeholder "Romanization" :: GPE.valLatin)
+        , case model.latin of
+            Just s -> if containsNonLatin s
+                      then b [ class "standout" ] [ br [] [], text "Romanization should only consist of characters in the latin alphabet." ] else text ""
+            Nothing -> text ""
         ]
       , formField "alias::Aliases"
         [ inputTextArea "alias" model.alias Alias (rows 3 :: GPE.valAlias)

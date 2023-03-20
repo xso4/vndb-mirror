@@ -754,15 +754,15 @@ my %GET_RELEASE = (
       ]],
     },
     producers => {
-      fetch => [[ 'id', 'SELECT rp.id AS rid, rp.developer, rp.publisher, p.id, p.type, p.name, p.original FROM releases_producers rp
-                    JOIN producers p ON p.id = rp.pid WHERE NOT p.hidden AND rp.id IN(%s)',
+      fetch => [[ 'id', 'SELECT rp.id AS rid, rp.developer, rp.publisher, p.id, p.type, p.title[2] AS name, p.title[4] AS original FROM releases_producers rp
+                    JOIN producerst p ON p.id = rp.pid WHERE NOT p.hidden AND rp.id IN(%s)',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
             $i->{producers} = [ grep $i->{id} eq $_->{rid}, @$r ];
           }
           for (@$r) {
             $_->{id} = idnum $_->{id};
-            $_->{original}  ||= undef;
+            $_->{original}  = undef if $_->{original} eq $_->{name};
             $_->{developer} = $_->{developer} =~ /^t/ ? TRUE : FALSE;
             $_->{publisher} = $_->{publisher} =~ /^t/ ? TRUE : FALSE;
             delete $_->{rid};
@@ -836,7 +836,7 @@ my %GET_RELEASE = (
 );
 
 my %GET_PRODUCER = (
-  sql     => 'SELECT %s FROM producers p WHERE NOT p.hidden AND (%s) %s',
+  sql     => 'SELECT %s FROM producerst p WHERE NOT p.hidden AND (%s) %s',
   select  => 'p.id',
   proc    => sub {
     $_[0]{id} = idnum $_[0]{id}
@@ -848,9 +848,9 @@ my %GET_PRODUCER = (
   },
   flags  => {
     basic => {
-      select => 'p.type, p.name, p.original, p.lang AS language',
+      select => 'p.type, p.title[2] AS name, p.title[4] AS original, p.lang AS language',
       proc => sub {
-        $_[0]{original}    ||= undef;
+        $_[0]{original} = undef if $_[0]{name} eq $_[0]{original};
       },
     },
     details => {
@@ -866,15 +866,15 @@ my %GET_PRODUCER = (
       },
     },
     relations => {
-      fetch => [[ 'id', 'SELECT pl.id AS pid, p.id, pl.relation, p.name, p.original FROM producers_relations pl
-                    JOIN producers p ON p.id = pl.pid WHERE pl.id IN(%s)',
+      fetch => [[ 'id', 'SELECT pl.id AS pid, p.id, pl.relation, p.title[2] AS name, p.title[4] AS original FROM producers_relations pl
+                    JOIN producerst p ON p.id = pl.pid WHERE pl.id IN(%s)',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
             $i->{relations} = [ grep $i->{id} eq $_->{pid}, @$r ];
           }
           for (@$r) {
             $_->{id} = idnum $_->{id};
-            $_->{original} ||= undef;
+            $_->{original} = undef if $_->{name} eq $_->{original};
             delete $_->{pid};
           }
         },
@@ -887,13 +887,13 @@ my %GET_PRODUCER = (
       [ inta  => 'p.id :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, join => ',', process => \'p' ],
     ],
     name => [
-      [ str   => 'p.name :op: :value:', {qw|= =  != <>|} ],
-      [ str   => 'p.name ILIKE :value:', {'~',1}, process => \'like' ],
+      [ str   => 'p.title[2] :op: :value:', {qw|= =  != <>|} ],
+      [ str   => 'p.title[2] ILIKE :value:', {'~',1}, process => \'like' ],
     ],
     original => [
-      [ undef,   "p.original :op: ''", {qw|= =  != <>|} ],
-      [ str   => 'p.original :op: :value:', {qw|= =  != <>|} ],
-      [ str   => 'p.original ILIKE :value:', {'~',1}, process => \'like' ]
+      [ undef,   "p.title[4] :op: ''", {qw|= =  != <>|} ],
+      [ str   => 'p.title[4] :op: :value:', {qw|= =  != <>|} ],
+      [ str   => 'p.title[4] ILIKE :value:', {'~',1}, process => \'like' ]
     ],
     type => [
       [ str   => 'p.type :op: :value:', {qw|= =  != <>|},

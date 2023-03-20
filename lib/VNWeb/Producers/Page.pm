@@ -17,7 +17,7 @@ sub rev_ {
     my($p) = @_;
     revision_ $p, \&enrich_item,
         [ name       => 'Name'           ],
-        [ original   => 'Original name'  ],
+        [ latin      => 'Name (latin)'   ],
         [ alias      => 'Aliases'        ],
         [ desc       => 'Description'    ],
         [ type       => 'Type',          fmt => \%PRODUCER_TYPE ],
@@ -155,7 +155,7 @@ TUWF::get qr{/$RE{prev}(?:/(?<tab>vn|rel))?}, sub {
         || (auth && (tuwf->dbVali('SELECT prodrelexpand FROM users_prefs WHERE id=', \auth->uid) ? 'rel' : 'vn'))
         || 'rel';
 
-    my $title = titleprefs_swap @{$p}{qw/ lang name original /};
+    my $title = titleprefs_swap @{$p}{qw/ lang name latin /};
     framework_ title => $title->[1], index => !tuwf->capture('rev'), dbobj => $p, hiddenmsg => 1,
     og => {
         title       => $title->[1],
