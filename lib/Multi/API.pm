@@ -585,9 +585,8 @@ my %GET_VN = (
       ]]
     },
     staff => {
-      fetch => [[ 'id', 'SELECT vs.id, vs.aid, vs.role, vs.note, sa.id AS sid, sa.name, sa.original
-                      FROM vn_staff vs JOIN staff_alias sa ON sa.aid = vs.aid JOIN staff s ON s.id = sa.id
-                      WHERE vs.id IN(%s) AND NOT s.hidden',
+      fetch => [[ 'id', 'SELECT vs.id, vs.aid, vs.role, vs.note, s.id AS sid, s.title[2] AS name, s.title[4] AS original
+                      FROM vn_staff vs JOIN staff_aliast s ON s.aid = vs.aid WHERE vs.id IN(%s) AND NOT s.hidden',
         sub { my($r, $n) = @_;
           for my $i (@$r) {
             $i->{staff} = [ grep $i->{id} eq $_->{id}, @$n ];
@@ -595,7 +594,7 @@ my %GET_VN = (
           for (@$n) {
             $_->{aid} *= 1;
             $_->{sid} = idnum $_->{sid};
-            $_->{original} ||= undef;
+            $_->{original} = undef if $_->{original} eq $_->{name};
             $_->{note} ||= undef;
             delete $_->{id};
           }
@@ -1032,7 +1031,7 @@ my %GET_CHARACTER = (
 
 
 my %GET_STAFF = (
-  sql     => 'SELECT %s FROM staff s JOIN staff_alias sa ON sa.aid = s.aid WHERE NOT s.hidden AND (%s) %s',
+  sql     => 'SELECT %s FROM staff_aliast s WHERE s.aid = s.main AND NOT s.hidden AND (%s) %s',
   select  => 's.id',
   proc    => sub {
     $_[0]{id} = idnum $_[0]{id};
@@ -1043,9 +1042,9 @@ my %GET_STAFF = (
   },
   flags  => {
     basic => {
-      select => 'sa.name, sa.original, s.gender, s.lang AS language',
+      select => 's.title[2] AS name, s.title[4] AS original, s.gender, s.lang AS language',
       proc => sub {
-        $_[0]{original} ||= undef;
+        $_[0]{original} = undef if $_[0]{original} eq $_[0]{name};
         $_[0]{gender}   = undef if $_[0]{gender} eq 'unknown';
       },
     },
@@ -1068,10 +1067,10 @@ my %GET_STAFF = (
       proc => sub {
         $_[0]{main_alias} = delete($_[0]{aid})*1;
       },
-      fetch => [[ 'id', 'SELECT id, aid, name, original FROM staff_alias WHERE id IN(%s)',
+      fetch => [[ 'id', 'SELECT id, aid, title[2] AS name, title[4] AS original FROM staff_aliast WHERE id IN(%s)',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
-            $i->{aliases} = [ map [ $_->{aid}*1, $_->{name}, $_->{original}||undef ], grep $i->{id} eq $_->{id}, @$r ];
+            $i->{aliases} = [ map [ $_->{aid}*1, $_->{name}, $_->{original} eq $_->{name} ? undef : $_->{original} ], grep $i->{id} eq $_->{id}, @$r ];
           }
         },
       ]],

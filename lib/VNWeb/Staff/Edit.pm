@@ -9,7 +9,7 @@ my $FORM = {
     alias       => { maxlength => 100, sort_keys => 'aid', aoh => {
         aid       => { int => 1, range => [ -1000, 1<<40 ] }, # X, negative IDs are for new aliases
         name      => { maxlength => 200 },
-        original  => { maxlength => 200, required => 0 },
+        latin     => { maxlength => 200, required => 0 },
         inuse     => { anybool => 1, _when => 'out' },
         wantdel   => { anybool => 1, _when => 'out' },
     } },
@@ -46,11 +46,11 @@ TUWF::get qr{/$RE{srev}/edit} => sub {
     # If we're reverting to an older revision, we have to make sure all the
     # still referenced aliases are included.
     push $e->{alias}->@*, tuwf->dbAlli(
-        "SELECT aid, name, original, true AS inuse, true AS wantdel
+        "SELECT aid, name, latin, true AS inuse, true AS wantdel
            FROM staff_alias sa WHERE $alias_inuse AND sa.id =", \$e->{id}, 'AND sa.aid NOT IN', [ map $_->{aid}, $e->{alias}->@* ]
     )->@* if $e->{chrev} != $e->{maxrev};
 
-    my $name = (grep $_->{aid} == $e->{aid}, @{$e->{alias}})[0]{name};
+    my $name = titleprefs_swap($e->{lang}, @{ (grep $_->{aid} == $e->{aid}, @{$e->{alias}})[0] }{qw/ name latin /})->[1];
     framework_ title => "Edit $name", dbobj => $e, tab => 'edit',
     sub {
         editmsg_ s => $e, "Edit $name";
@@ -66,7 +66,7 @@ TUWF::get qr{/s/new}, sub {
         editmsg_ s => undef, 'Add staff member';
         elm_ StaffEdit => $FORM_OUT, {
             elm_empty($FORM_OUT)->%*,
-            alias => [ { aid => -1, name => '', original => undef, inuse => 0, wantdel => 0 } ],
+            alias => [ { aid => -1, name => '', latin => undef, inuse => 0, wantdel => 0 } ],
             aid => -1
         };
     };
@@ -86,10 +86,10 @@ elm_api StaffEdit => $FORM_OUT, $FORM_IN, sub {
     $data->{l_wp} = $e->{l_wp}||'';
     $data->{desc} = bb_subst_links $data->{desc};
 
-    # The form validation only checks for duplicate aid's, but the name+original should also be unique.
+    # The form validation only checks for duplicate aid's, but the name+latin should also be unique.
     my %names;
-    die "Duplicate aliases" if grep $names{"$_->{name}\x00".($_->{original}//'')}++, $data->{alias}->@*;
-    die "Original = name" if grep $_->{original} && $_->{name} eq $_->{original}, $data->{alias}->@*;
+    die "Duplicate aliases" if grep $names{"$_->{name}\x00".($_->{latin}//'')}++, $data->{alias}->@*;
+    die "Latin = name" if grep $_->{latin} && $_->{name} eq $_->{latin}, $data->{alias}->@*;
 
     # For positive alias IDs: Make sure they exist and are (or were) owned by this entry.
     validate_dbid

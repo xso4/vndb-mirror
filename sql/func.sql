@@ -63,23 +63,6 @@ $$ LANGUAGE SQL;
 
 
 -- Helper function for the titleprefs functions below.
-CREATE OR REPLACE FUNCTION titleprefs_swapold(p titleprefs, lang language, title text, original text) RETURNS text[] AS $$
-  SELECT ARRAY[lang::text, CASE WHEN (
-            CASE WHEN p.t1_lang = lang THEN p.t1_latin
-                 WHEN p.t2_lang = lang THEN p.t2_latin
-                 WHEN p.t3_lang = lang THEN p.t3_latin
-                 WHEN p.t4_lang = lang THEN p.t4_latin ELSE p IS NULL OR p.to_latin END
-         ) THEN title ELSE COALESCE(original, title) END, lang::text, CASE WHEN (
-            CASE WHEN p.a1_lang = lang THEN p.a1_latin
-                 WHEN p.a2_lang = lang THEN p.a2_latin
-                 WHEN p.a3_lang = lang THEN p.a3_latin
-                 WHEN p.a4_lang = lang THEN p.a4_latin ELSE p.ao_latin END
-         ) THEN title ELSE COALESCE(original, title) END]
-$$ LANGUAGE SQL STABLE;
-
-
-
--- Helper function for the titleprefs functions below.
 CREATE OR REPLACE FUNCTION titleprefs_swap(p titleprefs, lang language, title text, latin text) RETURNS text[] AS $$
   SELECT ARRAY[lang::text, CASE WHEN (
             CASE WHEN p.t1_lang = lang THEN p.t1_latin
@@ -199,8 +182,8 @@ $$ LANGUAGE SQL STABLE;
 -- Same for staff_aliast
 CREATE OR REPLACE FUNCTION staff_aliast(p titleprefs) RETURNS SETOF staff_aliast AS $$
     SELECT s.id, s.gender, s.lang, s.l_anidb, s.l_wikidata, s.l_pixiv, s.locked, s.hidden, s."desc", s.l_wp, s.l_site, s.l_twitter, s.aid AS main
-         , sa.aid, sa.name, sa.original, sa.c_search
-         , titleprefs_swapold(p, s.lang, sa.name, sa.original), sa.name
+         , sa.aid, sa.name, sa.latin, sa.c_search
+         , titleprefs_swap(p, s.lang, sa.name, sa.latin), COALESCE(sa.latin, sa.name)
       FROM staff s
       JOIN staff_alias sa ON sa.id = s.id
 $$ LANGUAGE SQL STABLE;
@@ -614,7 +597,7 @@ BEGIN
     WHEN 'd' THEN SELECT ARRAY[NULL, d.title, NULL, d.title   ],  h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN docs_hist d   ON h.id = d.chid WHERE h.itemid = $2 AND h.rev = $3;
     WHEN 'g' THEN SELECT ARRAY[NULL, g.name,  NULL, g.name    ],  h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN tags_hist g   ON h.id = g.chid WHERE h.itemid = $2 AND h.rev = $3;
     WHEN 'i' THEN SELECT ARRAY[NULL, i.name,  NULL, i.name    ],  h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN traits_hist i ON h.id = i.chid WHERE h.itemid = $2 AND h.rev = $3;
-    WHEN 's' THEN SELECT ARRAY[s.lang::text, sa.name, s.lang::text, sa.original], h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN staff_hist s     ON h.id = s.chid JOIN staff_alias_hist sa ON sa.chid = s.chid AND sa.aid = s.aid WHERE h.itemid = $2 AND h.rev = $3;
+    WHEN 's' THEN SELECT ARRAY[s.lang::text, COALESCE(sa.latin, sa.name), s.lang::text, sa.name], h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN staff_hist s     ON h.id = s.chid JOIN staff_alias_hist sa ON sa.chid = s.chid AND sa.aid = s.aid WHERE h.itemid = $2 AND h.rev = $3;
     WHEN 't' THEN SELECT ARRAY[NULL, t.title, NULL, t.title], tp.uid, t.hidden OR t.private OR tp.hidden IS NOT NULL, t.locked INTO ret FROM threads t JOIN threads_posts tp ON tp.tid = t.id WHERE t.id = $2 AND tp.num = $3;
     WHEN 'w' THEN SELECT v.title, wp.uid, w.c_flagged OR wp.hidden IS NOT NULL, w.locked INTO ret FROM reviews w JOIN vnt($1) v ON v.id = w.vid JOIN reviews_posts wp ON wp.id = w.id WHERE w.id = $2 AND wp.num = $3;
     ELSE NULL;

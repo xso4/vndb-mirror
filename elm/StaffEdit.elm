@@ -73,7 +73,7 @@ encode model =
   , hidden      = model.editsum.hidden
   , locked      = model.editsum.locked
   , aid         = model.aid
-  , alias       = List.map (\e -> { aid = e.aid, name = e.name, original = e.original }) model.alias
+  , alias       = List.map (\e -> { aid = e.aid, name = e.name, latin = e.latin }) model.alias
   , desc        = model.desc.data
   , gender      = model.gender
   , lang        = model.lang
@@ -105,7 +105,7 @@ type Msg
   | Desc TP.Msg
   | AliasDel Int
   | AliasName Int String
-  | AliasOrig Int String
+  | AliasLatin Int String
   | AliasMain Int Bool
   | AliasAdd
   | DupSubmit
@@ -113,7 +113,7 @@ type Msg
 
 
 validate : Model -> Model
-validate model = { model | aliasDup = hasDuplicates <| List.map (\e -> (e.name, Maybe.withDefault "" e.original)) model.alias }
+validate model = { model | aliasDup = hasDuplicates <| List.map (\e -> (e.name, Maybe.withDefault "" e.latin)) model.alias }
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -131,13 +131,13 @@ update msg model =
 
     AliasDel i    -> (validate { model | dupStaff = [], alias = delidx i model.alias }, Cmd.none)
     AliasName i s -> (validate { model | dupStaff = [], alias = modidx i (\e -> { e | name     = s }) model.alias }, Cmd.none)
-    AliasOrig i s -> (validate { model | dupStaff = [], alias = modidx i (\e -> { e | original = if s == "" then Nothing else Just s }) model.alias }, Cmd.none)
+    AliasLatin i s-> (validate { model | dupStaff = [], alias = modidx i (\e -> { e | latin = if s == "" then Nothing else Just s }) model.alias }, Cmd.none)
     AliasMain n _ -> ({ model | aid = n }, Cmd.none)
-    AliasAdd      -> ({ model | alias = model.alias ++ [{ aid = newAid model, name = "", original = Nothing, inuse = False, wantdel = False }] }, Cmd.none)
+    AliasAdd      -> ({ model | alias = model.alias ++ [{ aid = newAid model, name = "", latin = Nothing, inuse = False, wantdel = False }] }, Cmd.none)
 
     DupSubmit ->
       if List.isEmpty model.dupStaff
-      then ({ model | state = Api.Loading }, GS.send { search = List.concatMap (\e -> [e.name, Maybe.withDefault "" e.original]) model.alias } DupResults)
+      then ({ model | state = Api.Loading }, GS.send { search = List.concatMap (\e -> [e.name, Maybe.withDefault "" e.latin]) model.alias } DupResults)
       else ({ model | dupCheck = True, dupStaff = [] }, Cmd.none)
     DupResults (GApi.StaffResult staff) ->
       if List.isEmpty staff
@@ -151,7 +151,7 @@ update msg model =
 
 
 isValid : Model -> Bool
-isValid model = not (model.aliasDup || List.any (\l -> Just l.name == l.original) model.alias)
+isValid model = not (model.aliasDup || List.any (\l -> Just l.name == l.latin) model.alias)
 
 
 view : Model -> Html Msg
@@ -160,10 +160,14 @@ view model =
     nameEntry n e =
       tr []
       [ td [ class "tc_id" ] [ inputRadio "main" (e.aid == model.aid) (AliasMain e.aid) ]
-      , td [ class "tc_name" ] [ inputText "" e.name (AliasName n) GSE.valAliasName ]
-      , td [ class "tc_original" ]
-        [ inputText "" (Maybe.withDefault "" e.original) (AliasOrig n) GSE.valAliasOriginal
-        , if e.name /= "" && Just e.name == e.original then b [ class "standout" ] [ text "May not be the same as Name (romaji)" ] else text ""
+      , td [ class "tc_name" ] [ inputText "" e.name (AliasName n) (placeholder "Name (original script)" :: GSE.valAliasName) ]
+      , td [ class "tc_latin" ] <|
+        if not (e.latin /= Nothing || containsNonLatin e.name) then [] else
+        [ inputText "" (Maybe.withDefault "" e.latin) (AliasLatin n) (placeholder "Name (latin)" :: GSE.valAliasLatin)
+        , case e.latin of
+            Just s -> if containsNonLatin s
+                      then b [ class "standout" ] [ text "Romanization should only consist of characters in the latin alphabet." ] else text ""
+            Nothing -> text ""
         ]
       , td [ class "tc_add" ]
         [ if model.aid == e.aid then b [ class "grayedout" ] [ text " primary" ]
@@ -178,8 +182,8 @@ view model =
       [ thead []
         [ tr []
           [ td [ class "tc_id" ] []
-          , td [ class "tc_name" ] [ text "Name (romaji)" ]
-          , td [ class "tc_original" ] [ text "Original" ]
+          , td [ class "tc_name" ] [ text "Name (original script)" ]
+          , td [ class "tc_latin" ] [ text "Romanization" ]
           , td [] []
           ]
         ]

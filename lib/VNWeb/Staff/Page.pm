@@ -10,11 +10,11 @@ sub enrich_item {
     # Add a 'main' flag and title field to each alias
     for ($s->{alias}->@*) {
         $_->{main} = $s->{aid} == $_->{aid};
-        $_->{title} = titleprefs_swapold $s->{lang}, $_->{name}, $_->{original};
+        $_->{title} = titleprefs_swap $s->{lang}, $_->{name}, $_->{latin};
     }
 
     # Sort aliases by name
-    $s->{alias} = [ sort { $a->{name} cmp $b->{name} || ($a->{original}||'') cmp ($b->{original}||'') } $s->{alias}->@* ];
+    $s->{alias} = [ sort { ($a->{latin}//$a->{name}) cmp ($b->{latin}//$b->{name}) } $s->{alias}->@* ];
 }
 
 
@@ -23,7 +23,7 @@ sub _rev_ {
     revision_ $s, \&enrich_item,
         [ alias  => 'Names', fmt => sub {
             txt_ $_->{name};
-            txt_ " ($_->{original})" if $_->{original};
+            txt_ " ($_->{latin})" if $_->{latin};
             b_ class => 'grayedout', ' (primary)' if $_->{main};
         } ],
         [ gender => 'Gender',     fmt => \%GENDER   ],
@@ -55,8 +55,8 @@ sub _infotable_ {
             td_ sub {
                 table_ class => 'aliases', sub {
                     tr_ class => 'nostripe', sub {
-                        td_ class => 'key', $_->{original} ? () : (colspan => 2), tlang($s->{lang}, $_->{name}), $_->{name};
-                        td_ tlang($s->{lang}, $_->{original}), $_->{original} if $_->{original};
+                        td_ class => 'key', $_->{latin} ? () : (colspan => 2), tlang($s->{lang}, $_->{name}), $_->{name};
+                        td_ tlang($s->{lang}, $_->{latin}), $_->{latin} if $_->{latin};
                     } for @alias;
                 };
             };
