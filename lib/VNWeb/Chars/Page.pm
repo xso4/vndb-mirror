@@ -93,7 +93,7 @@ sub _rev_ {
     my($c) = @_;
     revision_ $c, \&enrich_item,
         [ name       => 'Name'           ],
-        [ original   => 'Original name'  ],
+        [ latin      => 'Name (latin)'   ],
         [ alias      => 'Aliases'        ],
         [ desc       => 'Description'    ],
         [ gender     => 'Sex',           fmt => \%GENDER ],
@@ -284,7 +284,7 @@ TUWF::get qr{/$RE{crev}} => sub {
     # Only display the sexual traits toggle when there are sexual traits within the current spoiler level.
     my $has_sex = grep !$_->{hidden} && $_->{sexual} && ($_->{override}//$_->{spoil}) <= $view->{spoilers}, map $_->{traits}->@*, $c, @$inst;
 
-    $c->{title} = titleprefs_swapold tuwf->dbVali('SELECT c_lang FROM chars WHERE id =', \$c->{id}), @{$c}{qw/ name original /};
+    $c->{title} = titleprefs_swap tuwf->dbVali('SELECT c_lang FROM chars WHERE id =', \$c->{id}), @{$c}{qw/ name latin /};
     framework_ title => $c->{title}[1], index => !tuwf->capture('rev'), dbobj => $c, hiddenmsg => 1,
         og => {
             description => bb_format($c->{desc}, text => 1),

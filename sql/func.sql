@@ -184,14 +184,14 @@ $$ LANGUAGE SQL STABLE;
 -- This one just flips the name/original columns around depending on
 -- preferences, so is fast enough to use directly.
 CREATE OR REPLACE FUNCTION producerst(p titleprefs) RETURNS SETOF producerst AS $$
-  SELECT *, titleprefs_swap(p, lang, name, latin), name FROM producers
+  SELECT *, titleprefs_swap(p, lang, name, latin), COALESCE(latin, name) FROM producers
 $$ LANGUAGE SQL STABLE;
 
 
 
 -- Same for charst
 CREATE OR REPLACE FUNCTION charst(p titleprefs) RETURNS SETOF charst AS $$
-  SELECT *, titleprefs_swapold(p, c_lang, name, original), name FROM chars
+  SELECT *, titleprefs_swap(p, c_lang, name, latin), COALESCE(latin, name) FROM chars
 $$ LANGUAGE SQL STABLE;
 
 
@@ -610,7 +610,7 @@ BEGIN
     WHEN 'r' THEN SELECT ARRAY[r.olang::text, COALESCE(ro.latin, ro.title), r.olang::text, CASE WHEN ro.latin IS NULL THEN '' ELSE ro.title END], h.requester, h.ihid, h.ilock INTO ret
                     FROM changes h JOIN releases_hist r ON h.id = r.chid JOIN releases_titles_hist ro ON h.id = ro.chid AND ro.lang = r.olang WHERE h.itemid = $2 AND h.rev = $3;
     WHEN 'p' THEN SELECT ARRAY[p.lang::text, COALESCE(p.latin, p.name), p.lang::text, p.name], h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN producers_hist p ON h.id = p.chid WHERE h.itemid = $2 AND h.rev = $3;
-    WHEN 'c' THEN SELECT ARRAY[NULL, c.name,  NULL, c.original],  h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN chars_hist c  ON h.id = c.chid WHERE h.itemid = $2 AND h.rev = $3;
+    WHEN 'c' THEN SELECT ARRAY[cm.c_lang::text, COALESCE(c.latin, c.name), cm.c_lang::text, c.name], h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN chars cm ON cm.id = h.itemid JOIN chars_hist c ON h.id = c.chid WHERE h.itemid = $2 AND h.rev = $3;
     WHEN 'd' THEN SELECT ARRAY[NULL, d.title, NULL, d.title   ],  h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN docs_hist d   ON h.id = d.chid WHERE h.itemid = $2 AND h.rev = $3;
     WHEN 'g' THEN SELECT ARRAY[NULL, g.name,  NULL, g.name    ],  h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN tags_hist g   ON h.id = g.chid WHERE h.itemid = $2 AND h.rev = $3;
     WHEN 'i' THEN SELECT ARRAY[NULL, i.name,  NULL, i.name    ],  h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN traits_hist i ON h.id = i.chid WHERE h.itemid = $2 AND h.rev = $3;

@@ -51,7 +51,7 @@ type alias Model =
   , invalidDis  : Bool
   , editsum     : Editsum.Model
   , name        : String
-  , original    : Maybe String
+  , latin       : Maybe String
   , alias       : String
   , desc        : TP.Model
   , gender      : String
@@ -90,7 +90,7 @@ init d =
   , invalidDis  = False
   , editsum     = { authmod = d.authmod, editsum = TP.bbcode d.editsum, locked = d.locked, hidden = d.hidden, hasawait = False }
   , name        = d.name
-  , original    = d.original
+  , latin       = d.latin
   , alias       = d.alias
   , desc        = TP.bbcode d.desc
   , gender      = d.gender
@@ -129,7 +129,7 @@ encode model =
   , hidden      = model.editsum.hidden
   , locked      = model.editsum.locked
   , name        = model.name
-  , original    = model.original
+  , latin       = model.latin
   , alias       = model.alias
   , desc        = model.desc.data
   , gender      = model.gender
@@ -168,7 +168,7 @@ type Msg
   | Submit
   | Submitted GApi.Response
   | Name String
-  | Original String
+  | Latin String
   | Alias String
   | Desc TP.Msg
   | Gender String
@@ -213,7 +213,7 @@ update msg model =
                   ({ model | tab = t, invalidDis = True }, Task.attempt (always InvalidEnable) (Ffi.elemCall "reportValidity" "mainform" |> Task.andThen (\_ -> Process.sleep 100)))
     InvalidEnable -> ({ model | invalidDis = False }, Cmd.none)
     Name s     -> ({ model | name = s }, Cmd.none)
-    Original s -> ({ model | original = if s == "" then Nothing else Just s }, Cmd.none)
+    Latin s -> ({ model | latin = if s == "" then Nothing else Just s }, Cmd.none)
     Alias s    -> ({ model | alias = s }, Cmd.none)
     Desc m     -> let (nm,nc) = TP.update m model.desc in ({ model | desc = nm }, Cmd.map Desc nc)
     Gender s   -> ({ model | gender = s }, Cmd.none)
@@ -288,7 +288,7 @@ update msg model =
 
 isValid : Model -> Bool
 isValid model = not
-  (  (model.name /= "" && Just model.name == model.original)
+  (  (model.name /= "" && Just model.name == model.latin)
   || hasDuplicates (List.map (\v -> (v.vid, Maybe.withDefault "" v.rid)) model.vns)
   || not (Img.isValid model.image)
   || (model.mainHas && model.main /= Nothing && model.main == model.id)
@@ -306,12 +306,14 @@ view : Model -> Html Msg
 view model =
   let
     geninfo =
-      [ formField "name::Name (romaji)" [ inputText "name" model.name Name (onInvalid (Invalid General) :: GCE.valName) ]
-      , formField "original::Original name"
-        [ inputText "original" (Maybe.withDefault "" model.original) Original (onInvalid (Invalid General) :: GCE.valOriginal)
-        , if model.name /= "" && Just model.name == model.original
-          then b [ class "standout" ] [ br [] [], text "Should not be the same as the Name (romaji). Leave blank if the original name is already in the latin alphabet" ]
-          else text ""
+      [ formField "name::Name (original)" [ inputText "name" model.name Name (onInvalid (Invalid General) :: GCE.valName) ]
+      , if not (model.latin /= Nothing || containsNonLatin model.name) then text "" else
+        formField "latin::Name (latin)"
+        [ inputText "latin" (Maybe.withDefault "" model.latin) Latin (onInvalid (Invalid General) :: placeholder "Romanization" :: GCE.valLatin)
+        , case model.latin of
+            Just s -> if containsNonLatin s
+                      then b [ class "standout" ] [ br [] [], text "Romanization should only consist of characters in the latin alphabet." ] else text ""
+            Nothing -> text ""
         ]
       , formField "alias::Aliases"
         [ inputTextArea "alias" model.alias Alias (rows 3 :: onInvalid (Invalid General) :: GCE.valAlias)

@@ -234,10 +234,10 @@ CREATE TABLE chars ( -- dbentry_type=c
   locked       boolean NOT NULL DEFAULT FALSE,
   hidden       boolean NOT NULL DEFAULT FALSE,
   name         varchar(250) NOT NULL DEFAULT '', -- [pub]
-  original     varchar(250), -- [pub]
+  latin        varchar(250), -- [pub]
   alias        varchar(500) NOT NULL DEFAULT '', -- [pub]
   "desc"       text NOT NULL DEFAULT '', -- [pub]
-  c_search     text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[name, original]::text[]||string_to_array(alias,E'\n'))) STORED,
+  c_search     text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[name, latin]::text[]||string_to_array(alias,E'\n'))) STORED,
   c_lang       language NOT NULL DEFAULT 'ja'
 );
 
@@ -260,7 +260,7 @@ CREATE TABLE chars_hist (
   main_spoil   smallint NOT NULL DEFAULT 0,
   age          smallint,
   name         varchar(250) NOT NULL DEFAULT '',
-  original     varchar(250) NOT NULL DEFAULT '',
+  latin        varchar(250) NOT NULL DEFAULT '',
   alias        varchar(500) NOT NULL DEFAULT '',
   "desc"       text     NOT NULL DEFAULT ''
 );
@@ -402,7 +402,7 @@ CREATE TABLE producers ( -- dbentry_type=p
   website    varchar(1024) NOT NULL DEFAULT '', -- [pub]
   "desc"     text NOT NULL DEFAULT '', -- [pub]
   l_wp       varchar(150), -- (deprecated)
-  c_search   text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[name, original]::text[]||string_to_array(alias,E'\n'))) STORED
+  c_search   text NOT NULL GENERATED ALWAYS AS (public.search_gen(ARRAY[name, latin]::text[]||string_to_array(alias,E'\n'))) STORED
 );
 
 -- producers_hist
@@ -1499,9 +1499,9 @@ CREATE VIEW producerst AS
 -- And chars
 CREATE VIEW charst AS
     SELECT *
-         , ARRAY [ c_lang::text, name
-                 , c_lang::text, COALESCE(original, name) ] AS title
-         , name AS sorttitle
+         , ARRAY [ c_lang::text, COALESCE(latin, name)
+                 , c_lang::text, name ] AS title
+         , COALESCE(latin, name) AS sorttitle
       FROM chars;
 
 -- This joins staff & staff_alias and adds the title + sorttitle fields.

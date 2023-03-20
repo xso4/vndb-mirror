@@ -910,7 +910,7 @@ my %GET_PRODUCER = (
 );
 
 my %GET_CHARACTER = (
-  sql     => 'SELECT %s FROM chars c LEFT JOIN images i ON i.id = c.image WHERE NOT c.hidden AND (%s) %s',
+  sql     => 'SELECT %s FROM charst c LEFT JOIN images i ON i.id = c.image WHERE NOT c.hidden AND (%s) %s',
   select  => 'c.id',
   proc    => sub {
     $_[0]{id} = idnum $_[0]{id};
@@ -922,9 +922,9 @@ my %GET_CHARACTER = (
   },
   flags  => {
     basic => {
-      select => 'c.name, c.original, c.gender, c.spoil_gender, c.bloodt, c.b_day, c.b_month',
+      select => 'c.title[2] AS name, c.title[4] AS original, c.gender, c.spoil_gender, c.bloodt, c.b_day, c.b_month',
       proc => sub {
-        $_[0]{original} ||= undef;
+        $_[0]{original} = undef if $_[0]{original} eq $_[0]{name};
         $_[0]{gender}   = undef if $_[0]{gender} eq 'unknown';
         $_[0]{bloodt}   = undef if $_[0]{bloodt} eq 'unknown';
         $_[0]{birthday} = [ delete($_[0]{b_day})*1||undef, delete($_[0]{b_month})*1||undef ];
@@ -986,15 +986,15 @@ my %GET_CHARACTER = (
       ]]
     },
     instances => {
-      fetch => [[ 'id', 'SELECT c2.id AS cid, c.id, c.name, c.original, c2.main_spoil AS spoiler FROM chars c2 JOIN chars c ON c.id = c2.main OR c.main = c2.main WHERE c2.id IN(%s)
-                  UNION SELECT c.main AS cid, c.id, c.name, c.original,  c.main_spoil AS spoiler FROM chars c WHERE c.main IN(%1$s)',
+      fetch => [[ 'id', 'SELECT c2.id AS cid, c.id, c.title[2] AS name, c.title[4] AS original, c2.main_spoil AS spoiler FROM chars c2 JOIN charst c ON c.id = c2.main OR c.main = c2.main WHERE c2.id IN(%s)
+                  UNION SELECT c.main AS cid, c.id, c.title[2] AS name, c.title[4] AS original,  c.main_spoil AS spoiler FROM charst c WHERE c.main IN(%1$s)',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
             $i->{instances} = [ grep $i->{id} eq $_->{cid} && $_->{id} ne $i->{id}, @$r ];
           }
           for (@$r) {
             $_->{id} = idnum $_->{id};
-            $_->{original} ||= undef;
+            $_->{original} = undef if $_->{original} eq $_->{name};
             $_->{spoiler}*=1;
             delete $_->{cid};
           }
@@ -1008,13 +1008,13 @@ my %GET_CHARACTER = (
       [ inta  => 'c.id :op:(:value:)', {'=' => 'IN', '!=' => 'NOT IN'}, process => \'c', join => ',' ],
     ],
     name => [
-      [ str   => 'c.name :op: :value:', {qw|= =  != <>|} ],
-      [ str   => 'c.name ILIKE :value:', {'~',1}, process => \'like' ],
+      [ str   => 'c.title[2] :op: :value:', {qw|= =  != <>|} ],
+      [ str   => 'c.title[2] ILIKE :value:', {'~',1}, process => \'like' ],
     ],
     original => [
-      [ undef,   "c.original :op: ''", {qw|= =  != <>|} ],
-      [ str   => 'c.original :op: :value:', {qw|= =  != <>|} ],
-      [ str   => 'c.original ILIKE :value:', {'~',1}, process => \'like' ]
+      [ undef,   "c.title[4] :op: ''", {qw|= =  != <>|} ],
+      [ str   => 'c.title[4] :op: :value:', {qw|= =  != <>|} ],
+      [ str   => 'c.title[4] ILIKE :value:', {'~',1}, process => \'like' ]
     ],
     search => [
       [ str   => 'c.c_search LIKE ALL (search_query(:value:))', {'~',1} ],

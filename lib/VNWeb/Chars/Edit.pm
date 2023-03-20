@@ -8,7 +8,7 @@ use VNWeb::Releases::Lib;
 my $FORM = {
     id         => { required => 0, vndbid => 'c' },
     name       => { maxlength => 200 },
-    original   => { required => 0, maxlength => 200 },
+    latin      => { required => 0, maxlength => 200 },
     alias      => { required => 0, default => '', maxlength => 500 },
     desc       => { required => 0, default => '', maxlength => 5000 },
     gender     => { default => 'unknown', enum => \%GENDER },

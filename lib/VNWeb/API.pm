@@ -809,14 +809,14 @@ api_query '/producer',
 
 api_query '/character',
     filters => 'c',
-    sql => sub { sql 'SELECT c.id', $_[0], 'FROM chars c', $_[1], 'WHERE NOT c.hidden AND (', $_[2], ')' },
+    sql => sub { sql 'SELECT c.id', $_[0], 'FROM charst c', $_[1], 'WHERE NOT c.hidden AND (', $_[2], ')' },
     joins => {
         image => 'LEFT JOIN images i ON i.id = c.image',
     },
     fields => {
         id       => {},
-        name     => { select => 'c.name' },
-        original => { select => 'c.original', @NSTR },
+        name     => { select => 'c.title[1+1] AS name' },
+        original => { ALTTITLE 'c.title', 'original' },
         aliases  => { select => 'c.alias AS aliases', @MSTR },
         description => { select => 'c.desc AS description', @NSTR },
         image => {
