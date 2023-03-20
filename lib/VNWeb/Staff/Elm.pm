@@ -13,7 +13,7 @@ elm_api Staff => undef, {
            FROM (',
 			sql_join('UNION ALL', map +(
                 /^$RE{sid}$/ ? sql('SELECT 0, aid FROM staff_alias WHERE id =', \"$+{id}") : (),
-                sql('SELECT 1+substr_score(lower(name),', \sql_like($_), ')+substr_score(lower(original),', \sql_like($_), '), aid
+                sql('SELECT 1+substr_score(lower(name),', \sql_like($_), ')+substr_score(lower(latin),', \sql_like($_), '), aid
                        FROM staff_alias WHERE c_search LIKE ALL (search_query(', \$_, '))'),
             ), @q),
             ') x(prio, aid)
