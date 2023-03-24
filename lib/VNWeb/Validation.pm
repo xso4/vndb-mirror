@@ -74,7 +74,6 @@ TUWF::set custom_validations => {
     rdate       => { uint => 1, func => \&_validate_rdate },
     fuzzyrdate  => { required => 0, default => 0, func => \&_validate_fuzzyrdate },
     searchquery => { required => 0, default => bless([],'VNWeb::Validate::SearchQuery'), func => sub { $_[0] = bless([$_[0]], 'VNWeb::Validate::SearchQuery'); 1 } },
-    searchquerya=> { type => 'array', values => { required => 0, default => '' }, default => bless([],'VNWeb::Validate::SearchQuery'), func => sub { $_[0] = bless([grep length $_, $_[0]->@*], 'VNWeb::Validate::SearchQuery'); 1 } },
     # Calendar date, limited to 1970 - 2099 for sanity.
     # TODO: Should also validate whether the day exists, currently "2022-11-31" is accepted, but that's a bug.
     caldate     => { regex => qr/^(?:19[7-9][0-9]|20[0-9][0-9])-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])$/ },
@@ -443,6 +442,16 @@ package VNWeb::Validate::SearchQuery {
         my($self, $type, $id, $subid) = @_;
         return '' if !$self;
         sql 'JOIN', $self->sql_score($type), 'sc ON sc.id =', $id, $subid ? ('AND sc.subid =', $subid) : ();
+    }
+
+    # Same as sql_join(), but accepts an array of SearchQuery objects that are OR'ed together.
+    sub sql_joina {
+        my($lst, $type, $id, $subid) = @_;
+        sql 'JOIN (
+            SELECT id, subid, max(score) AS score
+              FROM (', VNWeb::DB::sql_join('UNION ALL', map sql('SELECT * FROM', $_->sql_score($type), 'x'), @$lst), ') x
+             GROUP BY id, subid
+          ) sc ON sc.id =', $id, $subid ? ('AND sc.subid =', $subid) : ();
     }
 };
 
