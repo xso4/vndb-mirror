@@ -407,7 +407,7 @@ table thead td, table thead th  { font-weight: bold; background-color: $secbg; }
 table thead th                  { text-align: left }
 fieldset.search                 { display: block; width: 100%; text-align: center; margin: 0 0 10px 0; }
 fieldset.search .submit         { padding: 0 1px; }
-p#searchtabs                    { height: 13px; padding-right: 70px; }
+p#searchtabs                    { height: 15px; padding-right: 70px; }
 p#searchtabs a                  { padding: 2px 6px 2px 6px; margin: 0 2px; color: $maintext; }
 p#searchtabs a:hover, p#searchtabs a.sel {
   border: 1px solid $secborder;
@@ -415,7 +415,7 @@ p#searchtabs a:hover, p#searchtabs a.sel {
   padding: 1px 5px 2px 5px;
   background: $boxbg;
 }
-#q { width: 500px }
+#q { width: 600px }
 #bq { width: 300px }
 
 

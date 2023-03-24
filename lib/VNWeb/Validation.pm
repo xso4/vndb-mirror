@@ -388,20 +388,20 @@ package VNWeb::Validate::SearchQuery {
 
     sub query_encode { $_[0][0] }
 
-    sub _words {
+    sub words {
         $_[0][1] //= length $_[0][0]
             ? [ map s/%//rg, tuwf->dbVali('SELECT search_query(', \$_[0][0], ')')->@* ]
             : []
     }
 
-    use overload bool => sub { $_[0]->_words->@* > 0 };
+    use overload bool => sub { $_[0]->words->@* > 0 };
     use overload '""' => sub { $_[0][0]//'' };
 
-    sub _isvndbid { my $l = $_[0]->_words; @$l == 1 && $l->[0] =~ /^[vrpcsgi]$num$/ }
+    sub _isvndbid { my $l = $_[0]->words; @$l == 1 && $l->[0] =~ /^[vrpcsgi]$num$/ }
 
-    sub _where {
+    sub where {
         my($self, $type) = @_;
-        my $lst = $self->_words;
+        my $lst = $self->words;
         my @keywords = map sql('sc.label LIKE', \"%${_}%"), @$lst;
         +(
             $type ? "sc.id BETWEEN '${type}1' AND vndbid_max('$type')" : (),
@@ -416,7 +416,7 @@ package VNWeb::Validate::SearchQuery {
         return '1=1' if !$self;
         sql 'EXISTS(SELECT 1 FROM search_cache sc WHERE', sql_and(
             sql('sc.id =', $id), $subid ? sql('sc.subid =', $subid) : (),
-            $self->_where($type),
+            $self->where($type),
         ), ')';
     }
 
@@ -424,7 +424,7 @@ package VNWeb::Validate::SearchQuery {
     # Columns (id, subid, score)
     sub sql_score {
         my($self, $type) = @_;
-        my $lst = $self->_words;
+        my $lst = $self->words;
         my $q = join '', @$lst;
         sql '(SELECT id, subid, max(sc.prio * (', VNWeb::DB::sql_join('+',
                 $self->_isvndbid() ? sql('CASE WHEN sc.id =', \$q, 'THEN 1+1 ELSE 0 END') : (),
@@ -432,7 +432,7 @@ package VNWeb::Validate::SearchQuery {
                 sql('similarity(sc.label,', \$q, ')'),
             ), ')) AS score
             FROM search_cache sc
-           WHERE', sql_and($self->_where($type)), '
+           WHERE', sql_and($self->where($type)), '
            GROUP BY id, subid
         )';
     }

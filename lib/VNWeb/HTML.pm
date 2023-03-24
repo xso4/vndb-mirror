@@ -857,19 +857,43 @@ sub sortable_ {
 
 
 sub searchbox_ {
-      my($sel, $value) = @_;
+      my($sel, $q) = @_;
       tuwf->req->{js} = 1;
+
+      # Only fetch counts for queries that can use the trigram index
+      # (This length requirement is not ideal for Kanji, but pg_trgm doesn't
+      # discriminate between scripts)
+      my %counts = $q && (grep length($_)>=3, $q->words->@*) ?
+          map +($_->{type}, $_->{cnt}), tuwf->dbAlli('
+              SELECT vndbid_type(id) AS type, count(*) AS cnt
+                FROM (
+                  SELECT DISTINCT id
+                    FROM search_cache sc
+                   WHERE', $q->where(), "
+                     AND NOT (id BETWEEN '${sel}1' AND vndbid_max('$sel'))
+                ) x
+               GROUP BY vndbid_type(id)
+          ")->@* : ();
+
+      my sub lnk_ {
+          my($type, $label) = @_;
+          a_ href => "/$type", $sel eq $type ? (class => 'sel') : (), sub {
+              txt_ $label;
+              sup_ class => 'standout', $counts{$type} if $counts{$type};
+          };
+      }
+
       fieldset_ class => 'search', sub {
           p_ id => 'searchtabs', sub {
-              a_ href => '/v',     $sel eq 'v' ? (class => 'sel') : (), 'Visual novels';
-              a_ href => '/r',     $sel eq 'r' ? (class => 'sel') : (), 'Releases';
-              a_ href => '/p',     $sel eq 'p' ? (class => 'sel') : (), 'Producers';
-              a_ href => '/s',     $sel eq 's' ? (class => 'sel') : (), 'Staff';
-              a_ href => '/c',     $sel eq 'c' ? (class => 'sel') : (), 'Characters';
-              a_ href => '/g',     $sel eq 'g' ? (class => 'sel') : (), 'Tags';
-              a_ href => '/i',     $sel eq 'i' ? (class => 'sel') : (), 'Traits';
+              lnk_ v => 'Visual novels';
+              lnk_ r => 'Releases';
+              lnk_ p => 'Producers';
+              lnk_ s => 'Staff';
+              lnk_ c => 'Characters';
+              lnk_ g => 'Tags';
+              lnk_ i => 'Traits';
           };
-          input_ type => 'text', name => 'q', id => 'q', class => 'text', value => "$value";
+          input_ type => 'text', name => 'q', id => 'q', class => 'text', value => "$q";
           input_ type => 'submit', class => 'submit', name => 'sb', value => 'Search!';
       };
 }
