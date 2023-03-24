@@ -27,6 +27,15 @@ CREATE OR REPLACE FUNCTION update_search_terms(objid vndbid) RETURNS SETOF recor
 DECLARE
   e int; -- because I'm too lazy to write out 'NULL::int' every time.
 BEGIN
+  -- VN, tag & trait search needs to support finding 'hidden' items, but for
+  -- other entry types we can safely exclude those from the search cache.
+  IF (vndbid_type(objid) = 'r' AND EXISTS(SELECT 1 FROM releases  WHERE hidden AND id = objid))
+  OR (vndbid_type(objid) = 'c' AND EXISTS(SELECT 1 FROM chars     WHERE hidden AND id = objid))
+  OR (vndbid_type(objid) = 'p' AND EXISTS(SELECT 1 FROM producers WHERE hidden AND id = objid))
+  OR (vndbid_type(objid) = 's' AND EXISTS(SELECT 1 FROM staff     WHERE hidden AND id = objid))
+  THEN RETURN;
+  END IF;
+
   CASE vndbid_type(objid)
   WHEN 'v' THEN RETURN QUERY
               SELECT e, 3, search_norm_term(title) FROM vn_titles WHERE id = objid

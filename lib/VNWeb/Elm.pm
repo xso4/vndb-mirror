@@ -113,7 +113,6 @@ our %apis = (
         id       => { vndbid => 'p' },
         name     => {},
         altname  => { required => 0 },
-        hidden   => { anybool => 1 },
     } } ],
     StaffResult    => [ { aoh => { # Response to 'Staff'
         id       => { vndbid => 's' },

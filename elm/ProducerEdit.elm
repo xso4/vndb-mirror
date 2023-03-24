@@ -129,7 +129,7 @@ update msg model =
 
     DupSubmit ->
       if List.isEmpty model.dupProds
-      then ({ model | state = Api.Loading }, GP.send { hidden = True, search = model.name :: Maybe.withDefault "" model.latin :: String.lines model.alias } DupResults)
+      then ({ model | state = Api.Loading }, GP.send { search = model.name :: Maybe.withDefault "" model.latin :: String.lines model.alias } DupResults)
       else ({ model | dupCheck = True, dupProds = [] }, Cmd.none)
     DupResults (GApi.ProducerResult prods) ->
       if List.isEmpty prods
@@ -204,11 +204,7 @@ view model =
           , text "The following is a list of producers that match the name(s) you gave. "
           , text "Please check this list to avoid creating a duplicate producer entry. "
           , text "Be especially wary of items that have been deleted! To see why an entry has been deleted, click on its title."
-          , ul [] <| List.map (\p -> li []
-              [ a [ href <| "/" ++ p.id ] [ text p.name ]
-              , if p.hidden then b [ class "standout" ] [ text " (deleted)" ] else text ""
-              ]
-            ) model.dupProds
+          , ul [] <| List.map (\p -> li [] [ a [ href <| "/" ++ p.id ] [ text p.name ] ]) model.dupProds
           ]
         , fieldset [ class "submit" ] [ submitButton (if List.isEmpty model.dupProds then "Continue" else "Continue anyway") model.state (isValid model) ]
         ]
