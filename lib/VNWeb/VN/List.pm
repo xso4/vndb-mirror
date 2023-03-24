@@ -410,7 +410,20 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
         ) : [];
     } || (($count, $list) = (undef, []));
 
-    return tuwf->resRedirect("/$list->[0]{id}") if $count && $count == 1 && $opt->{q} && !defined $opt->{ch};
+    my $fullq = join '', $opt->{q}->words->@*;
+    my $other = length $fullq && $opt->{s}->sorted('qscore') && $opt->{p} == 1 ? tuwf->dbAlli("
+        SELECT x.id, i.title
+          FROM (
+            SELECT DISTINCT id
+              FROM search_cache
+             WHERE NOT (id BETWEEN 'v1' AND vndbid_max('v'))
+               AND NOT (id BETWEEN 'r1' AND vndbid_max('r'))
+               AND label =", \$fullq, ') x,
+              ', item_info('id', 'null'), 'i
+         ORDER BY vndbid_type(x.id) DESC, i.title[1+1]
+    ') : [];
+
+    return tuwf->resRedirect("/$list->[0]{id}") if $count && $count == 1 && $opt->{q} && !defined $opt->{ch} && !@$other;
 
     enrich_listing(1, $opt, $list);
     $time = time - $time;
@@ -428,6 +441,16 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
                 $opt->{f}->elm_;
                 advsearch_msg_ $count, $time;
             };
+            div_ class => 'mainbox', sub {
+                h1_ 'Did you mean to search for...';
+                ul_ style => 'column-width: 250px', sub {
+                    li_ sub {
+                        b_ {qw/r Release p Producer c Character s Staff g Tag i Trait/}->{substr $_->{id}, 0, 1};
+                        txt_ ': ';
+                        a_ href => "/$_->{id}", tattr $_;
+                    } for @$other;
+                };
+            } if @$other;
             listing_ $opt, $list, $count if $count;
         };
     };
