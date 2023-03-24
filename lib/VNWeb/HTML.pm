@@ -869,7 +869,7 @@ sub searchbox_ {
                 FROM (
                   SELECT DISTINCT id
                     FROM search_cache sc
-                   WHERE', $q->where(), "
+                   WHERE', sql_and($q->where()), "
                      AND NOT (id BETWEEN '${sel}1' AND vndbid_max('$sel'))
                 ) x
                GROUP BY vndbid_type(id)
