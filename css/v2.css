@@ -415,7 +415,7 @@ p#searchtabs a:hover, p#searchtabs a.sel {
   padding: 1px 5px 2px 5px;
   background: $boxbg;
 }
-#q { width: 600px }
+#q { width: 500px }
 #bq { width: 300px }
 
 

@@ -97,7 +97,10 @@ TUWF::get qr{/u/(?<char>[0a-z]|all)}, sub {
         div_ class => 'mainbox', sub {
             h1_ 'Browse users';
             form_ action => '/u/all', method => 'get', sub {
-                searchbox_ u => $opt->{q};
+                fieldset_ class => 'search', sub {
+                    input_ type => 'text', name => 'q', id => 'q', class => 'text', value => $opt->{q}//'';
+                    input_ type => 'submit', class => 'submit', value => 'Search!';
+                }
             };
             p_ class => 'browseopts', sub {
                 a_ href => "/u/$_", $_ eq $char ? (class => 'optselected') : (), $_ eq 'all' ? 'ALL' : $_ ? uc $_ : '#'

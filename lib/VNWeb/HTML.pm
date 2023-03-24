@@ -868,7 +868,6 @@ sub searchbox_ {
               a_ href => '/c',     $sel eq 'c' ? (class => 'sel') : (), 'Characters';
               a_ href => '/g',     $sel eq 'g' ? (class => 'sel') : (), 'Tags';
               a_ href => '/i',     $sel eq 'i' ? (class => 'sel') : (), 'Traits';
-              a_ href => '/u/all', $sel eq 'u' ? (class => 'sel') : (), 'Users';
           };
           input_ type => 'text', name => 'q', id => 'q', class => 'text', value => "$value";
           input_ type => 'submit', class => 'submit', name => 'sb', value => 'Search!';
