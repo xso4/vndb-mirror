@@ -420,6 +420,7 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
                AND NOT (id BETWEEN 'r1' AND vndbid_max('r'))
                AND label =", \$fullq, ') x,
               ', item_info('id', 'null'), 'i
+         WHERE NOT i.hidden
          ORDER BY vndbid_type(x.id) DESC, i.title[1+1]
     ') : [];
 
