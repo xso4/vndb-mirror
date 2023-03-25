@@ -8,12 +8,15 @@ my @BOARDS = (keys %BOARD_TYPE, 'w');
 sub filters_ {
     state $schema = tuwf->compile({ type => 'hash', keys => {
         bq => { required => 0, default => '' },
+        uq => { required => 0, default => '' },
         b  => { type => 'array', scalar => 1, onerror => \@BOARDS, values => { enum => \@BOARDS } },
         t  => { anybool => 1 },
         p  => { page => 1 },
     }});
     my $filt = tuwf->validate(get => $schema)->data;
     my %boards = map +($_,1), $filt->{b}->@*;
+
+    my $u = $filt->{uq} && tuwf->dbVali('SELECT id FROM users WHERE', $filt->{uq} =~ /^u$RE{num}$/ ? 'id = ' : 'lower(username) =', \lc $filt->{uq});
 
     form_ method => 'get', action => tuwf->reqPath(), sub {
         boardtypes_;
@@ -25,6 +28,9 @@ sub filters_ {
                 };
                 td_ sub {
                     input_ type => 'text', class => 'text', name => 'bq', style => 'width: 400px', placeholder => 'Search', value => $filt->{bq};
+                    br_;
+                    input_ type => 'text', class => 'text', name => 'uq', style => 'width: 150px', placeholder => 'Username or id', value => $filt->{uq};
+                    b_ class => 'standout', 'User not found.' if $filt->{uq} && !$u;
 
                     p_ class => 'linkradio', sub {
                         input_ type => 'checkbox', name => 't', id => 't', value => 1, $filt->{t} ? (checked => 'checked') : ();
@@ -37,7 +43,7 @@ sub filters_ {
             };
         }
     };
-    $filt
+    ($filt, $u)
 }
 
 
@@ -50,7 +56,7 @@ sub noresults_ {
 
 
 sub posts_ {
-    my($filt) = @_;
+    my($filt, $u) = @_;
 
     # Use websearch_to_tsquery() to convert the query string into a tsquery.
     # Also match against an empty string to see if the query doesn't consist of only negative matches.
@@ -82,17 +88,20 @@ sub posts_ {
                        JOIN threads t ON t.id = tp.tid
                       WHERE NOT t.hidden AND NOT t.private AND tp.hidden IS NULL
                         AND bb_tsvector(tp.msg) @@', \$ts,
+                            $u ? ('AND tp.uid =', \$u) : (),
                             @tboards < keys %BOARD_TYPE ? ('AND t.id IN(SELECT tid FROM threads_boards WHERE type IN', \@tboards, ')') : ()
              ) : (), $reviews ? (
                  sql('SELECT w.id, 0, v.title[1+1], w.uid, w.date, w.text
                         FROM reviews w
                         JOIN', vnt, 'v ON v.id = w.vid
-                       WHERE NOT w.c_flagged AND bb_tsvector(w.text) @@', \$ts),
+                       WHERE NOT w.c_flagged AND bb_tsvector(w.text) @@', \$ts,
+                             $u ? ('AND w.uid =', \$u) : ()),
                  sql('SELECT wp.id, wp.num, v.title[1+1], wp.uid, wp.date, wp.msg
                         FROM reviews_posts wp
                         JOIN reviews w ON w.id = wp.id
                         JOIN', vnt, 'v ON v.id = w.vid
-                       WHERE NOT w.c_flagged AND wp.hidden IS NULL AND bb_tsvector(wp.msg) @@', \$ts),
+                       WHERE NOT w.c_flagged AND wp.hidden IS NULL AND bb_tsvector(wp.msg) @@', \$ts,
+                             $u ? ('AND wp.uid =', \$u) : ()),
              ) : ()), ') m (id, num, title, uid, date, msg)
           LEFT JOIN users u ON u.id = m.uid
          ORDER BY m.date DESC'
@@ -135,13 +144,14 @@ sub posts_ {
 
 
 sub threads_ {
-    my($filt) = @_;
+    my($filt, $u) = @_;
 
     my @boards = grep $_ ne 'w', $filt->{b}->@*; # Can't search reviews by title
     return noresults_ if !@boards;
 
     my $where = sql_and
         @boards < keys %BOARD_TYPE ? sql('t.id IN(SELECT tid FROM threads_boards WHERE type IN', \@boards, ')') : (),
+        $u ? sql('EXISTS(SELECT 1 FROM threads_posts tp WHERE tp.tid = t.id AND tp.num = 1 AND tp.uid =', \$u, ')') : (),
         map sql('t.title ilike', \('%'.sql_like($_).'%')), grep length($_) > 0, split /[ ,._-]/, $filt->{bq};
 
     noresults_ if !threadlist_
@@ -155,13 +165,13 @@ sub threads_ {
 TUWF::get qr{/t/search}, sub {
     framework_ title => 'Search the discussion board',
     sub {
-        my $filt;
+        my($filt, $u);
         div_ class => 'mainbox', sub {
             h1_ 'Search the discussion board';
-            $filt = filters_;
+            ($filt, $u) = filters_;
         };
-        posts_   $filt if $filt->{bq} && !$filt->{t};
-        threads_ $filt if $filt->{bq} &&  $filt->{t};
+        posts_   $filt, $u if $filt->{bq} && !$filt->{t};
+        threads_ $filt, $u if $filt->{bq} &&  $filt->{t};
     };
 };
 
