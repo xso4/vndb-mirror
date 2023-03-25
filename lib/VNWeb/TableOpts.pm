@@ -178,7 +178,7 @@ sub order { $_[0][0] & 32 }
 sub set_order { if($_[1]) { $_[0][0] |= 32 } else { $_[0][0] &= ~32 } }
 
 sub sort_col_id { ($_[0][0] >> 6) & 63 }
-sub set_sort_col_id { $_[0][0] = ($_[0][0] & (~1 - 0b111111000000)) | ($_[1] << 6) }
+sub set_sort_col_id { $_[0][0] = ($_[0][0] & (~0 - 0b111111000000)) | ($_[1] << 6) }
 
 # Given the key of a column, returns whether it is currently sorted on ('' / 'a' / 'd')
 sub sorted {
