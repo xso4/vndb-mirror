@@ -44,8 +44,8 @@ BEGIN
     PERFORM pg_sleep(sleep_seconds);
   END LOOP;
 
-  -- staff_alias
-  FOR i IN SELECT n FROM generate_series(0, (SELECT MAX(aid) FROM staff_alias), rows_per_transaction) x(n)
+  -- staff
+  FOR i IN SELECT n FROM generate_series(0, (SELECT MAX(vndbid_num(id)) FROM staff), rows_per_transaction) x(n)
   LOOP
     PERFORM update_search(vndbid('s', x)) FROM generate_series(i+1, i+rows_per_transaction) x(x);
     COMMIT;

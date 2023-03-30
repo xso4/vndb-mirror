@@ -259,7 +259,7 @@ CREATE TABLE chars_hist (
   main_spoil   smallint NOT NULL DEFAULT 0,
   age          smallint,
   name         varchar(250) NOT NULL DEFAULT '',
-  latin        varchar(250) NOT NULL DEFAULT '',
+  latin        varchar(250),
   alias        varchar(500) NOT NULL DEFAULT '',
   "desc"       text     NOT NULL DEFAULT ''
 );
