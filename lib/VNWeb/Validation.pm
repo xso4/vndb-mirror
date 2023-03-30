@@ -387,6 +387,7 @@ package VNWeb::Validate::SearchQuery {
     use VNWeb::DB;
 
     sub query_encode { $_[0][0] }
+    sub TO_JSON { $_[0][0] }
 
     sub words {
         $_[0][1] //= length $_[0][0]
