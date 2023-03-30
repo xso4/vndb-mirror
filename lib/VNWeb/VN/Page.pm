@@ -736,7 +736,7 @@ sub charsum_ {
          ORDER BY sa.sorttitle'
     ) }, $c;
 
-    div_ class => 'mainbox', 'data-mainbox-summarize' => 200, sub {
+    div_ class => 'mainbox', 'data-mainbox-summarize' => 210, sub {
         p_ class => 'mainopts', sub {
             a_ href => "/$v->{id}/chars#chars", 'Full character list';
         };

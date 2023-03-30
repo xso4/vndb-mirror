@@ -4,13 +4,15 @@ $blendbg: rgb(
     (blue($boxbg)  * alpha($boxbg) + blue($bodybg)  * (1 - alpha($boxbg)))
 );
 
-*            { margin: 0; padding: 0; }
+html         { box-sizing: border-box }
+*, *:before, *:after { box-sizing: inherit }
+*            { margin: 0; padding: 0; box-sizing: border-box }
 body, td     { font: 13px "Tahoma", "Arial", sans-serif; }
 body         { @include bodybg; color: $maintext }
 table        { border-collapse: collapse; }
 table td,
 table th     { vertical-align: top; padding: 3px; }
-img          { border: none; }
+img          { border: none; box-sizing: content-box }
 svg          { fill: currentColor; }
 
 a,
@@ -27,7 +29,7 @@ table.stripe tbody tr:nth-child(odd):not(.nostripe),
 
 #bgright { position: absolute; top: 0px; right: 0px; @include bgright }
 #readonlymode {
-  box-sizing: border-box; position: absolute; top: 0px; left: 0px; width: 100%;
+  position: absolute; top: 0px; left: 0px; width: 100%;
   text-align: center; padding: 3px;
   background: $warnbg; border-bottom: 1px solid $warnborder;
 }
@@ -109,7 +111,7 @@ div.warning h2, div.notice h2 { font-size: 13px; font-weight: bold; margin: 0; }
 .elm_dd ul li p { white-space: normal; padding: 3px 5px 3px 3px }
 .elm_dd ul li.separator { margin-bottom: 22px }
 
-.maintabs .elm_dd > a { box-sizing: border-box; height: 21px; padding: 1px 15px 0 7px; border: 1px solid $border; border-bottom: none; background-color: $tabbg; color: $maintext }
+.maintabs .elm_dd > a { height: 21px; padding: 1px 15px 0 7px; border: 1px solid $border; border-bottom: none; background-color: $tabbg; color: $maintext }
 .elm_votedd .elm_dd ul li { text-align: left }
 .elm_dd_input  .elm_dd > a { background-color: $secbg; color: $maintext; border: 1px solid $secborder; font: 14px "Tahoma", "Arial", sans-serif; padding: 1px 15px 1px 2px; margin: -1px }
 .elm_dd_button .elm_dd > a { background-color: $boxbg; color: $maintext; border: 1px solid $secborder; font: 14px "Tahoma", "Arial", sans-serif; padding: 1px 15px 1px 5px; margin: -1px }
@@ -238,15 +240,15 @@ a.linkradio.checked:before { content: '✓' }
 a.checked { color: $maintext }
 
 /* Spinner, <div class="spinner"></div> for a large one, <span> for a smaller inline-text version */
-.spinner { content: ''; box-sizing: border-box; border: 3px solid #9eaebd; border-bottom-color: transparent; border-radius: 100%; animation: spin 1s infinite linear; width: 16px; height: 16px; display: inline-block; margin: auto }
+.spinner { content: ''; border: 3px solid #9eaebd; border-bottom-color: transparent; border-radius: 100%; animation: spin 1s infinite linear; width: 16px; height: 16px; display: inline-block; margin: auto }
 span.spinner { width: 1em; height: 1em }
 @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
 
 .textpreview > span { display: flex; justify-content: space-between; width: 100% }
 .textpreview > span > p { align-self: flex-end; text-align: left }
 .textpreview > span > p.right > * { margin-left: 10px; font-style: normal }
-.textpreview textarea { width: 100%; box-sizing: border-box }
-.textpreview .preview { width: 100%; box-sizing: border-box; border: 1px solid $secborder; margin: 1px; padding: 5px; text-align: left }
+.textpreview textarea { width: 100%; }
+.textpreview .preview { width: 100%; border: 1px solid $secborder; margin: 1px; padding: 5px; text-align: left }
 fieldset.submit .textpreview { margin: 0 auto }
 
 /* .compact input elements are smaller and can be embedded in tables/inline text
@@ -272,7 +274,7 @@ fieldset.submit .textpreview { margin: 0 auto }
 #menulist dt                 { display: block; float: left; width: 97px; font-style: italic; }
 #menulist dd                 { width: 45px; float: left; text-align: right; }
 #menulist p                  { text-align: center; }
-#menulist #search input.text { width: 141px; margin: 0 0 3px 7px }
+#menulist #search input.text { width: 145px; margin: 0 0 3px 7px }
 #menulist #search input.submit { display: none; }
 #dd_box abbr                 { margin: 2px 5px 2px 0!important; }
 #menulist .notifyget         { display: inline-block; width: 135px; padding: 4px; background: $warnbg; border: 1px solid $warnborder; }
@@ -306,7 +308,7 @@ div.mainbox, div.threelayout > div {
   padding: 5px;
   background: $boxbg;
 }
-div.mainbox-overflow-hack { overflow: hidden; width: 100%; box-sizing: border-box }
+div.mainbox-overflow-hack { overflow: hidden; width: 100% }
 .mainbox h1          { color: $boxtitle; font-size: 24px; margin: -5px 0 15px 0; }
 .mainbox h2.alttitle { color: $alttitle; margin: -17px 0 15px 15px; font-weight: normal; }
 .mainbox p           { margin: 3px 20px; }
@@ -340,7 +342,7 @@ div.maintabs > ul       { margin: 0; padding: 0; list-style-type: none }
 div.maintabs > ul > li       { display: inline-block; margin: 0 0 0 10px }
 div.maintabs > ul > li:nth-child(1) { margin-left: 0!important }
 div.maintabs > ul > li > a,
-div.maintabs > ul > li > div > a { display: inline-block; box-sizing: border-box; height: 21px; padding: 1px 7px 0 7px; border: 1px solid $border; border-bottom: none; background-color: $tabbg; color: $grayedout; }
+div.maintabs > ul > li > div > a { display: inline-block; height: 21px; padding: 1px 7px 0 7px; border: 1px solid $border; border-bottom: none; background-color: $tabbg; color: $grayedout; }
 div.maintabs > ul > li.tabselected > a,
 div.maintabs > ul > li.tabselected > div > a,
 div.maintabs > ul > li > div > a:hover,
@@ -444,7 +446,7 @@ div.history td.tc4 b { margin-left: 10px }
 #maincontent div.thread  { padding: 0; }
 div.thread table         { width: 100%; table-layout: fixed }
 div.thread tr:not(:last-child) td { border-bottom: 1px solid $border; }
-div.thread td.tc1        { width: 170px; padding: 5px 10px; border-right: 1px solid $border; }
+div.thread td.tc1        { width: 190px; padding: 5px 10px; border-right: 1px solid $border; }
 div.thread td.tc2        { padding: 10px 20px 10px 10px; }
 div.thread tr.deleted td { padding: 1px 10px; }
 div.thread tr:target, div.thread tr.target { outline: 1px dotted $standout }
@@ -459,9 +461,9 @@ div.mainbox.discussions td.tc4     { text-align: right; }
 div.mainbox.discussions a.locked   { text-decoration: line-through; }
 div.mainbox.discussions b.boards   { padding-left: 10px; font-weight: normal; }
 div.mainbox.discussions b.boards a { color: $grayedout; }
-div.discussions td.tc2             { width: 60px; text-align: right }
-div.discussions td.tc3             { width: 110px;  }
-div.discussions td.tc4             { width: 250px; }
+div.discussions td.tc2             { width: 66px; text-align: right }
+div.discussions td.tc3             { width: 116px;  }
+div.discussions td.tc4             { width: 256px; }
 div.discussions .pollflag          { color: $grayedout; padding-right: 6px; }
 .boardsearchoptions {
     margin: 0 auto;
@@ -480,12 +482,12 @@ div.postsearch td.tc3             { width: 90px; }
 .releases { width: 100%; }
 .releases tr.vn > td   { background: $boxbg; font-weight: bold; }
 .releases tr.vn .ulist-widget-icon { padding-right: 10px }
-.releases td.tc1       { padding-left: 30px; width: 80px; white-space: nowrap }
-.releases td.tc2       { width: 40px; white-space: nowrap }
+.releases td.tc1       { padding-left: 30px; width: 110px; white-space: nowrap }
+.releases td.tc2       { width: 46px; white-space: nowrap }
 .releases td.tc3       { text-align: right; padding: 0; width: 120px; }
 .releases td.tc_icons  { padding: 0 4px }
-.releases td.tc_prod   { color: $grayedout; white-space: nowrap; width: 50px }
-.releases td.tc5       { width: 70px; text-align: right }
+.releases td.tc_prod   { color: $grayedout; white-space: nowrap; width: 56px }
+.releases td.tc5       { width: 76px; text-align: right }
 .releases td.tc6       { text-align: right; width: 35px; padding: 0; white-space: nowrap }
 .releases tr.mtl a,
 .releases tr.mtl b,
@@ -510,7 +512,7 @@ div.vndetails h2              { margin: 5px 0 0 0; }
 .vndesc p                     { padding: 0 0 0 5px; }
 div.vndetails > table         { float: left; width: 100%; max-width: 500px; }
 div.vndetails td.key,
-div.vndetails > table > tbody > tr > td:first-child  { width: 90px; }
+div.vndetails > table > tbody > tr > td:first-child  { width: 96px; }
 div.vndetails > table dt      { float: left; font-style: italic; }
 div.vndetails > table dd      { margin-left: 90px; }
 div.vndetails td.titles div    { display: inline-block }
@@ -599,7 +601,7 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $bo
 #scrhide_v1:checked ~ #screenshots .scrlnk_v1 { display: none }
 
 .summarize_more {
-  margin-top: 9px; margin-bottom: -10px; padding: 0; height: 15px;
+  margin-top: 9px; margin-bottom: -10px; padding: 0; height: 17px;
   border: 1px solid $border; border-top: none;
   background: $boxbg;
   text-align: center
@@ -616,7 +618,7 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $bo
 .reviewbox > div:first-child > span:first-child { font-weight: bold }
 .reviewbox > div:nth-child(2) { background: $secbg }
 .reviewbox > div:nth-child(2) p { padding: 2px; text-align: center }
-.reviewbox > div:nth-child(3) { box-sizing: border-box; padding: 10px; background: $boxbg }
+.reviewbox > div:nth-child(3) { padding: 10px; background: $boxbg }
 .reviewbox > div:last-child { display: flex; justify-content: space-between; border-top: 1px solid $border }
 .reviewbox .myvote { font-weight: bold; text-decoration: underline }
 
@@ -711,7 +713,7 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $bo
 .vngrid > div { margin: 5px 10px 15px 10px; flex: 1 0 200px; max-width: 256px; height: 300px; background-size: cover; background-repeat: no-repeat; background-position: top }
 .vngrid > div > a { display: none }
 .vngrid > div > a:hover { border-bottom: none }
-.vngrid > div:hover > a, .vngrid > div.noimage > a { box-sizing: border-box; padding: 5px; display: block; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); color: $maintext }
+.vngrid > div:hover > a, .vngrid > div.noimage > a { padding: 5px; display: block; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); color: $maintext }
 .vngrid > div > a > span:first-child { display: block; font-weight: bold }
 .vngrid table { margin: 10px 0 }
 .vngrid table td { padding: 0 5px 0 0 }
@@ -722,7 +724,7 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $bo
 /***** Producer page *******/
 
 .prodvns { list-style-type: none }
-.prodvns li > span:first-child { display: inline-block; width: 80px; text-align: right; padding-right: 15px }
+.prodvns li > span:first-child { display: inline-block; width: 95px; text-align: right; padding-right: 15px }
 .prodvns li > span:last-child { color: $grayedout; padding-left: 15px }
 .prodvns .ulist-widget-icon { padding-right: 5px }
 
@@ -760,13 +762,13 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $bo
 
 /***** Review browser *****/
 
-.reviewlist td.tc1 { width: 90px }
+.reviewlist td.tc1 { width: 120px }
 .reviewlist td.tc2 { width: 110px; }
 .reviewlist td.tc3 { width: 50px; text-align: right }
 .reviewlist td.tc4 { width: 50px }
 .reviewlist td.tc6 { width: 140px }
 .reviewlist td.tc7 { width: 30px; text-align: right }
-.reviewlist td.tc8 { width: 250px; text-align: right }
+.reviewlist td.tc8 { width: 260px; text-align: right }
 
 
 /***** Release browser *****/
@@ -786,7 +788,7 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid $bo
 .imghover div.imghover--visible > a { border-bottom: 0 }
 .imghover div.imghover--visible .imghover--overlay { display: none; white-space: nowrap; font-size: 11px }
 .imghover:hover div.imghover--visible .imghover--overlay { display: block; position: absolute; right: 0; bottom: 0; padding: 5px 10px; background: $secbg; border: 0 }
-.imghover div.imghover--warning { border: 1px solid $border; background: $secbg; box-sizing: border-box; padding: 10px 5px }
+.imghover div.imghover--warning { border: 1px solid $border; background: $secbg; padding: 10px 5px }
 
 
 
@@ -801,7 +803,7 @@ div.charimg p   { text-align: center; padding: 0px; margin: 0; }
 .chardesc h2    { margin: 0; }
 .chardesc p     { padding: 0 0 0 5px; }
 div.chardetails table        { float: left; width: 525px; }
-div.chardetails table td.key { width: 100px; }
+div.chardetails table td.key { width: 106px; }
 div.chardetails.charsep      { margin-top: 30px }
 div.chardetails .lie { text-decoration: line-through }
 
@@ -811,7 +813,7 @@ div.chardetails .lie { text-decoration: line-through }
 
 
 table.chare_traits .buts      { padding: 0 20px }
-table.chare_traits .buts a    { box-sizing: border-box; display: block; width: 15px; height: 14px; border: 1px solid $border; margin: 0; float: left }
+table.chare_traits .buts a    { display: block; width: 15px; height: 14px; border: 1px solid $border; margin: 0; float: left }
 table.chare_traits .buts a.s0 { border: none; background-color: #0f0 }
 table.chare_traits .buts a.s1 { border: none; background-color: #f80 }
 table.chare_traits .buts a.s2 { border: none; background-color: #f40 }
@@ -848,10 +850,10 @@ div.staffbrowse	   { padding-bottom: 10px }
 .staffbrowse ul li { list-style-type: none; margin-bottom: 2px; }
 .staffbrowse ul li abbr { margin-right: 5px; margin-top: 1px; }
 .staffpage table.stripe { width: 450px; margin: 0 auto; }
-.staffpage .key  { width: 70px; }
-.staffroles td.tc_ulist { padding-left: 15px; width: 25px }
+.staffpage .key  { width: 76px; }
+.staffroles td.tc_ulist { padding-left: 15px; width: 40px }
 .staffroles td.tc_ulist + td { padding-left: 0!important }
-.staffroles td.tc2 { white-space: nowrap; width: 80px }
+.staffroles td.tc2 { white-space: nowrap; width: 100px }
 .staffroles td.tc3 { white-space: nowrap; width: 100px }
 .staffroles td.tc4 { white-space: nowrap; padding-right: 10px }
 table.aliases td { padding: 0 5px; }
@@ -891,7 +893,6 @@ div.charsum_list .charsum_bubble {
   max-width: 340px;
   margin: 3px;
   padding: 3px 10px;
-  box-sizing: border-box;
 }
 
 
@@ -941,7 +942,7 @@ div.votelist td.tc2 { width: 50px; text-align: right; padding-right: 10px }
 /* vn/user length vote list */
 
 div.lengthlist {
-    .tc1 { width: 100px }
+    .tc1 { width: 120px }
     .tc3 { width: 60px; white-space: nowrap }
     .tc4 { width: 100px; padding-left: 10px }
     .tc5 { width: 70px; white-space: nowrap }
@@ -966,7 +967,7 @@ div.lengthlist {
 .savedefault { width: 600px; margin: 10px auto }
 .exportlist { width: 600px; margin: 10px auto }
 
-.ulist .tc1 { white-space: nowrap; width: 70px }
+.ulist .tc1 { white-space: nowrap; width: 100px }
 .ulist .tc1 label { cursor: pointer }
 .ulist .tc1 input { display: none }
 .ulist .tc1 label:before { content: '▸ ' }
@@ -1003,12 +1004,12 @@ div.lengthlist {
 .ulist-widget {
     z-index: 100; position: fixed; height: 100%; width: 100%; top: 0; right: 0; display: flex; align-items: center; justify-content: center; text-align: left; white-space: normal; background: $boxbg; overflow: auto; font-weight: normal;
     > div {
-        background: $blendbg; width: 600px; min-height: 300px; border: 2px solid $border; padding: 10px;
+        background: $blendbg; width: 624px; min-height: 324px; border: 2px solid $border; padding: 10px;
         > div.spinner { position: absolute; top: unquote('calc(50% - 8px)'); right: unquote('calc(50% - 8px)'); }
     }
     table { width: 100% }
     table tr { background: none!important }
-    table td:first-child { width: 100px }
+    table td:first-child { width: 106px }
     textarea, select { margin: 0 -1px; width: 100% }
     .date span:not(.spinner) { display: none }
     .tco1 { white-space: nowrap; width: 100px }
@@ -1037,7 +1038,7 @@ div.lengthlist {
 
 .maindd > div > a { height: 21px!important /* override :hover change */ }
 .maindd > div > div { position: absolute; width: 1px }
-.maindd > div > div > div { box-sizing: border-box; width: 500px; border: 1px solid $border; background: $secbg; position: relative; bottom: 0; left: -470px; z-index: 100 }
+.maindd > div > div > div { width: 500px; border: 1px solid $border; background: $secbg; position: relative; bottom: 0; left: -470px; z-index: 100 }
 .maindd p, .maindd h4, .maindd label { display: block; margin-bottom: 3px }
 .maindd h4 { text-align: center }
 
@@ -1060,7 +1061,7 @@ div.lengthlist {
 /***** Userpage *****/
 
 .userpage table { width: 600px; margin: 0 auto; }
-.userpage .key  { width: 100px; }
+.userpage .key  { width: 106px; }
 
 
 /***** User posts browser ****/
@@ -1097,7 +1098,7 @@ div.uposts td.tc4 b { margin-left: 10px }
 
 /***** Tag links *****/
 
-.browse.taglinks .tc1 { width: 70px }
+.browse.taglinks .tc1 { width: 100px }
 .browse.taglinks .tc3 { width: 80px }
 .browse.taglinks .setfil { font-size: 10px; padding-right: 3px }
 
@@ -1119,11 +1120,11 @@ table.tgl .tc_you           { border-right: 1px solid $border; border-left: 1px 
 table.tgl .tc_others        { border-left: 1px solid $border; text-align: center }
 table.tgl .tc_tagname       { min-width: 200px; border-right: 1px solid $border }
 table.tgl tbody .tc_tagname { padding-left: 15px }
-table.tgl .tc_myvote        { padding: 0 0 0 10px; min-width: 80px }
-table.tgl .tc_mynote        { min-width: 15px }
+table.tgl .tc_myvote        { padding: 0 0 0 10px; min-width: 90px }
+table.tgl .tc_mynote        { min-width: 25px }
 table.tgl .tc_mynote span   { cursor: pointer }
-table.tgl .noteview         { position: absolute; max-width: 400px; padding: 0 5px 5px 5px; background: $blendbg }
-table.tgl .buts a           { box-sizing: border-box; display: block; width: 15px; height: 14px; border: 1px solid $border; margin: 0; float: left }
+table.tgl .noteview         { position: absolute; max-width: 410px; padding: 0 5px 5px 5px; background: $blendbg }
+table.tgl .buts a           { display: block; width: 15px; height: 14px; border: 1px solid $border; margin: 0; float: left }
 table.tgl .buts a.l0        { border: none; background-color: $border }
 table.tgl .buts a.l1        { border: none; background-color: #cf0 }
 table.tgl .buts a.l2        { border: none; background-color: #8f0 }
@@ -1137,7 +1138,7 @@ table.tgl .buts a.s0        { border: none; background-color: #0f0 }
 table.tgl .buts a.s1        { border: none; background-color: #f80 }
 table.tgl .buts a.s2        { border: none; background-color: #f40 }
 table.tgl .buts a.s3        { border: none; background-color: #cf0 }
-table.tgl .tc_mylie         { padding: 0; min-width: 53px }
+table.tgl .tc_mylie         { padding: 0; min-width: 55px }
 table.tgl .buts a.fn        { border: none; background-color: $border }
 table.tgl .buts a.f0        { border: none; background-color: #0f0 }
 table.tgl .buts a.f1        { border: none; background-color: #f00 }
@@ -1210,7 +1211,7 @@ div#iv_view {
  *      3  a -> next
  *      4  a -> flagging
  */
-.ivview     { position: fixed; background: $boxbg; border: 2px solid $border; padding: 5px; text-align: center }
+.ivview     { position: fixed; background: $boxbg; border: 2px solid $border; padding: 5px; text-align: center; box-sizing: content-box }
 .ivview img { cursor: pointer }
 .ivview > div:nth-child(1) { position: absolute; left: 48%; top: 48%; width: 30px; height: 30px }
 .ivview > div:nth-child(2) { position: relative }
@@ -1318,9 +1319,9 @@ p.filselect i { font-style: normal }
 .xsearch .elm_dd_input { display: inline-block; margin: 5px 4px; width: 150px; vertical-align: middle }
 .xsearch .elm_dd_input.short { width: auto }
 .xsearch .advbut { width: 100%; background-color: $blendbg; text-align: right; white-space: nowrap }
-.xsearch .advbut > * { display: inline-block; box-sizing: border-box; height: 20px; padding: 3px 5px 0 2px; cursor: pointer; border-bottom: none; font-size: 16px }
+.xsearch .advbut > * { display: inline-block; height: 20px; padding: 3px 5px 0 2px; cursor: pointer; border-bottom: none; font-size: 16px }
 .xsearch .advbut > b { color: $grayedout; font-style: normal }
-.xsearch .advheader { box-sizing: border-box; background-color: $blendbg; padding: 3px; width: 100%; margin-bottom: 2px }
+.xsearch .advheader { background-color: $blendbg; padding: 3px; width: 100%; margin-bottom: 2px }
 .xsearch .advheader > h3 { text-align: center; font-weight: bold; font-size: inherit; margin-bottom: 3px }
 .xsearch .advheader .opts { display: flex; justify-content: space-between; align-items: flex-end; min-width: 170px }
 .xsearch .advheader .opts > * { margin: 0; white-space: nowrap }
@@ -1350,7 +1351,7 @@ p.filselect i { font-style: normal }
 .imageflag > div:nth-child(4) p { flex: 1 0; padding-top: 15px }
 .imageflag > div:nth-child(4) ul { list-style-type: none; margin: 0 5px 0 0 }
 .imageflag > div:nth-child(4) ul li:first-child { text-align: center }
-.imageflag > div:nth-child(4) ul li     label { display: inline-block; border: 1px solid $secborder; padding: 7px; width: 100px; white-space: nowrap; margin: 2px 0; cursor: pointer }
+.imageflag > div:nth-child(4) ul li     label { display: inline-block; border: 1px solid $secborder; padding: 7px; width: 116px; white-space: nowrap; margin: 2px 0; cursor: pointer }
 .imageflag > div:nth-child(4) ul li.sel label,
 .imageflag > div:nth-child(4) ul li     label:hover { background-color: $secbg }
 .imageflag > div:nth-child(4) ul li.overrule label { position: relative; left: 80px; border: none; padding: 0 }

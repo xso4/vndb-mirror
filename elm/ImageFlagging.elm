@@ -249,7 +249,7 @@ view model =
               ]
         , inputButton "»»" Next [ classList [("invisible", model.single)] ]
         ]
-      , div [ style "width" (px boxwidth), style "height" (px boxheight) ] <|
+      , div [ style "width" (px (boxwidth + 10)), style "height" (px boxheight) ] <|
         -- Don't use an <img> here, changing the src= causes the old image to be displayed with the wrong dimensions while the new image is being loaded.
         [ a [ href (imageUrl i.id), style "background-image" ("url("++imageUrl i.id++")")
             , style "background-size" (if i.width > boxwidth || i.height > boxheight then "contain" else "auto")
