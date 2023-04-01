@@ -73,7 +73,7 @@ TUWF::set custom_validations => {
     gtin        => { required => 0, default => 0, func => sub { $_[0] = 0 if !length $_[0]; $_[0] eq 0 || gtintype($_[0]) } },
     rdate       => { uint => 1, func => \&_validate_rdate },
     fuzzyrdate  => { required => 0, default => 0, func => \&_validate_fuzzyrdate },
-    searchquery => { required => 0, default => bless([],'VNWeb::Validate::SearchQuery'), func => sub { $_[0] = bless([$_[0]], 'VNWeb::Validate::SearchQuery'); 1 } },
+    searchquery => { onerror => bless([],'VNWeb::Validate::SearchQuery'), func => sub { $_[0] = bless([$_[0]], 'VNWeb::Validate::SearchQuery'); 1 } },
     # Calendar date, limited to 1970 - 2099 for sanity.
     # TODO: Should also validate whether the day exists, currently "2022-11-31" is accepted, but that's a bug.
     caldate     => { regex => qr/^(?:19[7-9][0-9]|20[0-9][0-9])-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])$/ },
