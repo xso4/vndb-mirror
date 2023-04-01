@@ -17,6 +17,7 @@
         debug           => 1,
         cookie_defaults => { domain => 'localhost', path => '/' },
         mail_sendmail   => 'log',
+        #fastcgi_max_requests => 1000 + int(rand(1000)),
     },
 
     # Options for Multi, the background server.
