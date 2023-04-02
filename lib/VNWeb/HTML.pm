@@ -525,9 +525,7 @@ sub framework_ {
                 lit_(JSON::XS->new->canonical->encode(tuwf->req->{pagevars}) =~ s{</}{<\\/}rg =~ s/<!--/<\\u0021--/rg);
             } if keys tuwf->req->{pagevars}->%*;
             script_ type => 'application/javascript', src => config->{url_static}.'/g/elm.js?'.config->{version}, '' if tuwf->req->{pagevars}{elm};
-            # For april fools: load both mithril.js & plain.js unconditionally.
-            script_ type => 'application/javascript', src => config->{url_static}.'/g/mithril.js', '';
-            script_ type => 'application/javascript', src => config->{url_static}.'/g/plain.js?'.config->{version}, '';
+            script_ type => 'application/javascript', src => config->{url_static}.'/g/plain.js?'.config->{version}, '' if tuwf->req->{js} || tuwf->req->{pagevars}{elm};
         }
     }
 }

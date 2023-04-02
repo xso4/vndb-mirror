@@ -1425,12 +1425,3 @@ svg .edge text { font: 8px "Tahoma", "Arial", sans-serif }
 #graph_current .border { stroke: $warnborder }
 #graph_current .nodebg { stroke: $warnborder; fill: $warnbg }
 
-
-.fools-button {
-    position: fixed; bottom: 0; right: 0; padding: 4px; border: 1px solid $border; background: $boxbg; color: $maintext; text-align: center;
-    &.unsaved { background: $warnbg; border-color: $warnborder; color: $maintext }
-}
-.fools-overlay {
-    z-index: 100; position: fixed; height: 100%; width: 100%; top: 0; right: 0; display: flex; align-items: center; justify-content: center; text-align: left; white-space: normal; background: $boxbg; overflow: auto; font-weight: normal;
-    > form { background: $blendbg; width: 420px; min-height: 320px; border: 2px solid $border; padding: 10px }
-}
