@@ -162,6 +162,10 @@ our %LINKS = (
                       , fmt   => 'https://ec.toranoana.shop/tora/ec/item/%012d/'
                       , regex => qr{(?:www\.)?ecs?\.toranoana\.(?:shop|jp)/(?:aqua/ec|(?:tora|joshi)(?:/ec|_r/ec|_d/digi|_rd/digi)?)/item/([0-9]{12}).*}
                       , patt  => 'https://ec.toranoana.<shop or jp>/<shop>/item/<number>/' },
+        l_booth    => { label => 'BOOTH'
+                      , fmt   => 'https://booth.pm/en/items/%d'
+                      , regex => qw{(?:[a-z0-9_-]+\.)?booth\.pm/(?:[a-z-]+\/)?items/([0-9]+).*}
+                      , patt  => 'https://booth.pm/<language>/items/<id>  OR  https://<publisher>.booth.pm/items/<id>' },
         l_gamejolt => { label => 'Game Jolt'
                       , fmt   => 'https://gamejolt.com/games/vn/%d', # /vn/ should be the game title, but it doesn't matter
                       , regex => qr{(?:www\.)?gamejolt\.com/games/(?:[^/]+)/([0-9]+)(?:/.*)?} },
@@ -358,6 +362,7 @@ sub enrich_extlinks {
             l 'l_getchudl';
             l 'l_dmm';
             l 'l_toranoana';
+            l 'l_booth';
             l 'l_playstation_jp';
             l 'l_playstation_na';
             l 'l_playstation_eu';

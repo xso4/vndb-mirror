@@ -513,7 +513,8 @@ CREATE TABLE releases ( -- dbentry_type=r
   l_playstation_hk text NOT NULL DEFAULT '', -- [pub]
   l_nintendo    text NOT NULL DEFAULT '', -- [pub]
   l_gyutto     integer[] NOT NULL DEFAULT '{}', -- [pub]
-  l_dmm        text[] NOT NULL DEFAULT '{}' -- [pub]
+  l_dmm        text[] NOT NULL DEFAULT '{}', -- [pub]
+  l_booth      integer NOT NULL DEFAULT 0
 );
 
 -- releases_hist
@@ -579,7 +580,8 @@ CREATE TABLE releases_hist (
   l_playstation_hk text NOT NULL DEFAULT '',
   l_nintendo    text NOT NULL DEFAULT '',
   l_gyutto     integer[] NOT NULL DEFAULT '{}',
-  l_dmm        text[] NOT NULL DEFAULT '{}'
+  l_dmm        text[] NOT NULL DEFAULT '{}',
+  l_booth      integer NOT NULL DEFAULT 0
 );
 
 -- releases_media
