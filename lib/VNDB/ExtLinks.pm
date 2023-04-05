@@ -96,6 +96,16 @@ our %LINKS = (
                       , fmt   => 'https://%s'
                       , regex => qr{([a-z0-9_-]+\.itch\.io/[a-z0-9_-]+)}
                       , patt  => 'https://<artist>.itch.io/<product>' },
+        l_patreonp => { label => 'Patreon post'
+                      , fmt   => 'https://www.patreon.com/posts/%d'
+                      , regex => qr{(?:www\.)?patreon\.com/posts/(?:[^/?]+-)?([0-9]+).*} },
+        l_patreon  => { label => 'Patreon'
+                      , fmt   => 'https://www.patreon.com/%s'
+                      , regex => qr{(?:www\.)?patreon\.com/(?!user\?|posts/|join/)([^/?]+).*} },
+        l_substar  => { label => 'SubscribeStar'
+                      , fmt   => 'https://subscribestar.%s'
+                      , regex => qr{(?:www\.)?subscribestar\.((?:adult|com)/[^/?]+).*}
+                      , patt  => 'https://subscribestar.<adult or com>/<name>' },
         l_denpa    => { label => 'Denpasoft'
                       , fmt   => 'https://denpasoft.com/product/%s/'
                       , fmt2  => config->{denpa_url}
@@ -341,6 +351,9 @@ sub enrich_extlinks {
             l 'l_dlsite', $obj->{l_dlsite_price};
             l 'l_gog';
             l 'l_itch';
+            l 'l_patreonp';
+            l 'l_patreon';
+            l 'l_substar';
             l 'l_gamejolt';
             l 'l_denpa', $obj->{l_denpa_price};
             l 'l_jlist', $obj->{l_jlist_price};
