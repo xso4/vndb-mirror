@@ -911,6 +911,27 @@ sub query_encode {
 }
 
 
+sub extract_searchquery {
+    my($self) = @_;
+    my $q = $self->{query};
+    return ($self) if !$q;
+    return (bless({type => $self->{type}}, __PACKAGE__), $q->[2]) if @$q == 3 && $q->[1] eq '=' && ref $q->[2] eq 'VNWeb::Validate::SearchQuery';
+    if($q->[0] eq 'and') {
+        my(@newq, $s);
+        for (@{$q}[1..$#$q]) {
+            if(@$_ == 3 && $_->[1] eq '=' && ref $_->[2] eq 'VNWeb::Validate::SearchQuery') {
+                return ($self) if $s;
+                $s = $_->[2];
+            } else {
+                push @newq, $_;
+            }
+        }
+        return (bless({type => $self->{type}, query => ['and',@newq]}, __PACKAGE__), $s) if $s;
+    }
+    return ($self);
+}
+
+
 # Returns the saved default query for the current user, or an empty query if none has been set.
 sub advsearch_default {
     my($t) = @_;

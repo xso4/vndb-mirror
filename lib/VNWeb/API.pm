@@ -177,6 +177,8 @@ sub api_patch {
 #       # List of optional JOIN clauses that can be referenced by fields.
 #       # These should always be 1-to-1 joins, i.e. no filtering or expansion may take place.
 #   },
+#   search => [ $type, $id, $subid ],
+#       Whether sorting on "searchrank" is available, arguments are same as SearchQuery::sql_join().
 #   fields => {
 #       $name => { %field_definition },
 #   },
@@ -225,7 +227,7 @@ sub api_query {
 
     $OBJS{$path} = \%opt;
 
-    my %sort = $opt{sort}->@*;
+    my %sort = ($opt{sort}->@*, $opt{search} ? (searchrank => 'sc.score !o') : ());
     my $req_schema = tuwf->compile({ type => 'hash', unknown => 'reject', keys => {
         filters => { required => 0, advsearch => $opt{filters} },
         fields => { required => 0, default => {}, func => sub { parse_fields($opt{fields}, $_[0]) } },
@@ -263,19 +265,24 @@ sub api_query {
         my $numfields = count_fields($opt{fields}, $req->{fields}, $req->{results});
         err 400, sprintf 'Too much data selected (estimated %.0f fields)', $numfields if $numfields > 100_000;
 
+        my($filt, $searchquery) = $req->{sort} eq 'searchrank' ? $req->{filters}->extract_searchquery : ($req->{filters});
+        err 400, '"searchrank" sort is only available when the top-level filter is "search", or an "and" with at most one "search".'
+            if $req->{sort} eq 'searchrank' && !$searchquery;
+
         my $sort = $sort{$req->{sort}};
         my $order = $req->{reverse} ? 'DESC' : 'ASC';
         my $opposite_order = $req->{reverse} ? 'ASC' : 'DESC';
         $sort = $sort =~ /[?!]o/ ? ($sort =~ s/\?o/$order/rg =~ s/!o/$opposite_order/rg) : "$sort $order";
 
         my($select, $joins) = prepare_fields($opt{fields}, $opt{joins}, $req->{fields});
+        $joins = sql $joins, $searchquery->sql_join($opt{search}->@*) if $searchquery;
 
         my($results,$more,$count);
         eval {
             local $SIG{ALRM} = sub { die "Timeout\n"; };
             alarm 3;
             ($results, $more) = $req->{results} == 0 ? ([], 0) :
-                tuwf->dbPagei($req, $opt{sql}->($select, $joins, $req->{filters}->sql_where(), $req), 'ORDER BY', $sort);
+                tuwf->dbPagei($req, $opt{sql}->($select, $joins, $filt->sql_where(), $req), 'ORDER BY', $sort);
             $count = $req->{count} && (
                 !$more && $req->{results} && @$results <= $req->{results} ? ($req->{results}*($req->{page}-1))+@$results :
                 tuwf->dbVali('SELECT count(*) FROM (', $opt{sql}->('', '', $req->{filters}->sql_where), ') x')
@@ -640,6 +647,7 @@ api_query '/vn',
     joins => {
         image => 'LEFT JOIN images i ON i.id = v.image',
     },
+    search => [ 'v', 'v.id' ],
     fields => {
         id => {},
         title => { select => 'v.title[1+1]' },
@@ -719,6 +727,7 @@ api_query '/vn',
 api_query '/release',
     filters => 'r',
     sql => sub { sql 'SELECT r.id', $_[0], 'FROM releasest r', $_[1], 'WHERE NOT r.hidden AND (', $_[2], ')' },
+    search => [ 'r', 'r.id' ],
     fields => {
         id       => {},
         title    => { select => 'r.title[1+1]' },
@@ -792,6 +801,7 @@ api_query '/release',
 api_query '/producer',
     filters => 'p',
     sql => sub { sql 'SELECT p.id', $_[0], 'FROM producerst p', $_[1], 'WHERE NOT p.hidden AND (', $_[2], ')' },
+    search => [ 'p', 'p.id' ],
     fields => {
         id       => {},
         name     => { select => 'p.title[1+1] AS name' },
@@ -810,6 +820,7 @@ api_query '/producer',
 api_query '/character',
     filters => 'c',
     sql => sub { sql 'SELECT c.id', $_[0], 'FROM charst c', $_[1], 'WHERE NOT c.hidden AND (', $_[2], ')' },
+    search => [ 'c', 'c.id' ],
     joins => {
         image => 'LEFT JOIN images i ON i.id = c.image',
     },
@@ -867,6 +878,7 @@ api_query '/character',
 api_query '/tag',
     filters => 'g',
     sql => sub { sql 'SELECT t.id', $_[0], 'FROM tags t', $_[1], 'WHERE NOT t.hidden AND (', $_[2], ')' },
+    search => [ 'g', 't.id' ],
     fields => {
         id          => {},
         name        => { select => 't.name' },
@@ -887,6 +899,7 @@ api_query '/tag',
 api_query '/trait',
     filters => 'i',
     sql => sub { sql 'SELECT t.id', $_[0], 'FROM traits t', $_[1], 'WHERE NOT t.hidden AND (', $_[2], ')' },
+    search => [ 'i', 't.id' ],
     joins => {
         group => 'LEFT JOIN traits g ON g.id = t.group',
     },
@@ -921,6 +934,7 @@ api_query '/ulist',
                 auth->api2Listread($_[3]{user}) ? () : 'NOT uv.c_private',
                 $_[2];
     },
+    search => [ 'v', 'v.id' ],
     fields => {
         id       => {},
         added    => { select => "extract('epoch' from uv.added)::bigint AS added" },

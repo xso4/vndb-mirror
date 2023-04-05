@@ -453,7 +453,7 @@ curl %endpoint%/vn --header 'Content-Type: application/json' --data '{
 }'
 ```
 
-Accepted values for `"sort"`: `id`, `title`, `released`, `popularity`, `rating`, `votecount`.
+Accepted values for `"sort"`: `id`, `title`, `released`, `popularity`, `rating`, `votecount`, `searchrank`.
 
 ### Filters {#vn-filters}
 
@@ -676,7 +676,7 @@ add if there's interest.*
 
 ## POST /release
 
-Accepted values for `"sort"`: `id`, `title`, `released`.
+Accepted values for `"sort"`: `id`, `title`, `released`, `searchrank`.
 
 ### Filters {#release-filters}
 
@@ -897,7 +897,7 @@ extlinks.id
 
 ## POST /producer
 
-Accepted values for `"sort"`: `id`, `name`.
+Accepted values for `"sort"`: `id`, `name`, `searchrank`.
 
 ### Filters {#producer-filters}
 
@@ -942,7 +942,7 @@ description
 
 ## POST /character
 
-Accepted values for `"sort"`: `id`, `name`.
+Accepted values for `"sort"`: `id`, `name`, `searchrank`.
 
 ### Filters {#character-filters}
 
@@ -1100,7 +1100,7 @@ traits.\*
 
 ## POST /tag
 
-Accepted values for `"sort"`: `id`, `name`, `vn_count`.
+Accepted values for `"sort"`: `id`, `name`, `vn_count`, `searchrank`.
 
 ### Filters
 
@@ -1146,7 +1146,7 @@ efficiently because tags form a DAG rather than a tree.*
 
 ## POST /trait
 
-Accepted values for `"sort"`: `id`, `name`, `char_count`.
+Accepted values for `"sort"`: `id`, `name`, `char_count`, `searchrank`.
 
 ### Filters
 
@@ -1206,7 +1206,7 @@ show up on the website.
 
 Accepted values for `"sort"`: `id`, `title`, `released`, `popularity`,
 `rating`, `votecount`, `voted`, `vote`, `added`, `lastmod`, `started`,
-`finished`.
+`finished`, `searchrank`.
 
 Very important example on how to fetch Yorhel's top 10 voted visual novels:
 
@@ -1518,6 +1518,10 @@ bias in its selection due to the presence of id gaps, but you most likely don't
 need perfect uniform random selection anyway.
 
 # Change Log
+
+**2023-04-05**
+
+- Add `searchrank` sort option to all endpoints that have a `search` filter.
 
 **2023-03-19**
 
