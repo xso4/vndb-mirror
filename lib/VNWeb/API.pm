@@ -227,7 +227,7 @@ sub api_query {
 
     $OBJS{$path} = \%opt;
 
-    my %sort = ($opt{sort}->@*, $opt{search} ? (searchrank => 'sc.score !o') : ());
+    my %sort = ($opt{sort}->@*, $opt{search} ? (searchrank => 'sc.score !o, sc.id, sc.subid') : ());
     my $req_schema = tuwf->compile({ type => 'hash', unknown => 'reject', keys => {
         filters => { required => 0, advsearch => $opt{filters} },
         fields => { required => 0, default => {}, func => sub { parse_fields($opt{fields}, $_[0]) } },
@@ -916,7 +916,7 @@ api_query '/trait',
     },
     sort => [
         id         => 't.id',
-        name       => 't.name',
+        name       => 't.name ?o, t.id',
         char_count => 't.c_items ?o, t.id',
     ];
 
