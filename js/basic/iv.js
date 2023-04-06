@@ -1,4 +1,3 @@
-//order:8 - After all regular JS, as other files may modify pageVars or modules in the Elm.* namespace.
 /* Simple image viewer widget. Usage:
  *
  *   <a href="full_image.jpg" data-iv="{width}x{height}:{category}:{flagging}">..</a>

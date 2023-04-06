@@ -192,12 +192,12 @@ location @fcgi {
 }
 
 location / {
-  expires 15m;
+  expires 1d;
   gzip_static on;
   gzip_http_version 1.0;
   rewrite ^/g/icons\.png /g/icons.opt.png;
   rewrite ^/g/elm\.js    /g/elm.min.js;
-  rewrite ^/g/plain\.js  /g/plain.min.js;
+  rewrite ^/g/basic\.js  /g/basic.min.js;
   try_files $uri /path/to/vndb/static/$uri @fcgi;
 }
 ```

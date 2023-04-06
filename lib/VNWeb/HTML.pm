@@ -524,8 +524,8 @@ sub framework_ {
                 # Escaping rules for a JSON <script> context are kinda weird, but more efficient than regular xml_escape().
                 lit_(JSON::XS->new->canonical->encode(tuwf->req->{pagevars}) =~ s{</}{<\\/}rg =~ s/<!--/<\\u0021--/rg);
             } if keys tuwf->req->{pagevars}->%*;
-            script_ type => 'application/javascript', src => config->{url_static}.'/g/elm.js?'.config->{version}, '' if tuwf->req->{pagevars}{elm};
-            script_ type => 'application/javascript', src => config->{url_static}.'/g/plain.js?'.config->{version}, '' if tuwf->req->{js} || tuwf->req->{pagevars}{elm};
+            script_ defer => 'defer', src => config->{url_static}.'/g/elm.js?'.config->{version}, '' if tuwf->req->{pagevars}{elm};
+            script_ defer => 'defer', src => config->{url_static}.'/g/basic.js?'.config->{version}, '' if tuwf->req->{js} || tuwf->req->{pagevars}{elm};
         }
     }
 }

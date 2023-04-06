@@ -1,5 +1,3 @@
-//order:9 - After Elm initialization
-
 /* "checkall" checkbox, usage:
  *
  *    <input type="checkbox" class="checkall" name="$somename">
