@@ -767,7 +767,7 @@ api_query '/release',
             },
         },
         producers  => {
-            enrich => sub { sql 'SELECT rp.id AS rid, p.id', $_[0], 'FROM releases_producers rp JOIN producers p ON p.id = rp.pid', $_[1], 'WHERE rp.id IN', $_[2] },
+            enrich => sub { sql 'SELECT rp.id AS rid, p.id', $_[0], 'FROM releases_producers rp JOIN producerst p ON p.id = rp.pid', $_[1], 'WHERE rp.id IN', $_[2] },
             key => 'id', col => 'rid', num => 3,
             inherit => '/producer',
             fields => {
