@@ -26,8 +26,10 @@ const ports = Object.entries({
     // UList.LabelEdit
     ulistLabelChanged: flags => pub => {
         const l = document.getElementById('ulist_public_'+flags.vid);
-        l.setAttribute('data-publabel', pub?1:'');
-        l.classList.toggle('invisible', !((l.getAttribute('data-voted') && !pageVars.voteprivate) || l.getAttribute('data-publabel')))
+        if (l) {
+            l.setAttribute('data-publabel', pub?1:'');
+            l.classList.toggle('invisible', !((l.getAttribute('data-voted') && !pageVars.voteprivate) || l.getAttribute('data-publabel')))
+        }
     },
 
     // UList.Opt
@@ -56,8 +58,10 @@ const ports = Object.entries({
     // UList.VoteEdit
     ulistVoteChanged: flags => voted => {
         const l = document.getElementById('ulist_public_'+flags.vid);
-        l.setAttribute('data-voted', voted?1:'');
-        l.classList.toggle('invisible', !((l.getAttribute('data-voted') && !pageVars.voteprivate) || l.getAttribute('data-publabel')))
+        if (l) {
+            l.setAttribute('data-voted', voted?1:'');
+            l.classList.toggle('invisible', !((l.getAttribute('data-voted') && !pageVars.voteprivate) || l.getAttribute('data-publabel')))
+        }
     },
 
     // User.Edit
