@@ -192,7 +192,7 @@ sub vn_ {
     tr_ mkclass(hidden => 1, 'collapsed_vid'.$v->{id} => 1, odd => $n % 2 == 0), sub {
         td_ colspan => 7, class => 'tc_opt', sub {
             my $relstatus = [ map $_->{status}, $v->{rels}->@* ];
-            elm_ 'UList.Opt' => $VNWeb::ULists::Elm::VNOPT, { own => $own, uid => $uid, vid => $v->{id}, notes => $v->{notes}, rels => $v->{rels}, relstatus => $relstatus };
+            elm_ 'UList.Opt' => $VNWeb::ULists::Elm::VNOPT, { own => $own?1:0, uid => $uid, vid => $v->{id}, notes => $v->{notes}, rels => $v->{rels}, relstatus => $relstatus };
         };
     };
 }
