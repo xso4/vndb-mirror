@@ -1,3 +1,5 @@
+if(!pageVars.elm) return;
+
 // See Lib/Ffi.elm
 window.elmFfi_innerHtml = (wrap) => s => ({$: 'a2', n: 'innerHTML', o: wrap(s)});
 window.elmFfi_elemCall = (wrap,call) => call;
@@ -122,7 +124,7 @@ const wrap = {
 }
 
 
-if(pageVars.elm) pageVars.elm.forEach((e,i) => {
+pageVars.elm.forEach((e,i) => {
     const mod = e[0].split('.').reduce((p, c) => p[c], window.Elm);
     const node = document.getElementById('elm'+i);
     var opt = { node };

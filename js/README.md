@@ -9,11 +9,10 @@ This is very much a work in progress.
 
 Each subdirectory represents a JS bundle. Each bundle has an `index.js` file
 which is processed by the top-level Makefile and then converted into
-`static/g/<bundle>.js`. `index.js` supports the following macros:
-
-- `#include file.js` - this is substituted with the contents of `file.js`
-  wrapped inside an anonymous JS function for namespacing. File names are
-  resolved relative to this `js` directory.
+`static/g/<bundle>.js`. `index.js` can include other files with `@include
+file.js` lines, these are substituted with the contents of `file.js` and
+wrapped inside anonymous JS functions for scoping. File names are resolved
+relative to this `js` directory.
 
 Scripts use the global `window` object to share functions and data, but apart
 from a bit of common library code, most scripts ought to be fairly

@@ -5,7 +5,7 @@
 -- This module is a hack to work around the lack of an FFI (Foreign Function
 -- Interface) in Elm. The functions in this module are stubs, their
 -- implementations are replaced by the Makefile with calls to
--- window.elmFfi_<name> and the actual implementations are in Ffi.js.
+-- window.elmFfi_<name> and the actual implementations are in elm-support.js.
 --
 -- Use sparingly, all of this will likely break in future Elm versions.
 module Lib.Ffi exposing (..)
