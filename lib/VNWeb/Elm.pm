@@ -344,7 +344,7 @@ sub elm_api {
     TUWF::post qr{/elm/\Q$name\E\.json} => sub {
         # Assuming the body is JSON, CORS should prevent this, but can't hurt to check.
         # If the body isn't JSON we'll fail validation in the next step, anyway.
-        die "cross-origin request\n" if (tuwf->reqHeader('Origin')//'_') ne config->{url};
+        die "cross-origin request\n" if tuwf->reqHeader('Origin') && tuwf->reqHeader('Origin') ne config->{url};
         warn "samesite cookie missing\n" if !samesite;
 
         my $data = tuwf->validate(json => $in);
