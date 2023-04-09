@@ -192,9 +192,11 @@ location @fcgi {
 }
 
 location / {
-  expires 1d;
+  expires 1y;
   gzip_static on;
   gzip_http_version 1.0;
+  # If you have the brotli plugin:
+  #brotli_static on;
   rewrite ^/g/icons\.png /g/icons.opt.png;
   rewrite ^/g/elm\.js    /g/elm.min.js;
   rewrite ^/g/basic\.js  /g/basic.min.js;

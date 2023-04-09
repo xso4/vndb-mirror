@@ -5,6 +5,7 @@
 #   Create static assets for production. Requires the following additional dependencies:
 #   - uglifyjs
 #   - zopfli
+#   - brotli
 #   - pandoc
 #
 # chmod
@@ -27,6 +28,10 @@ JS_BUNDLE_INDICES=$(shell echo js/*/index.js)
 JS_BUNDLE_OUT=$(shell echo js/*/ | sed 's#js/\(.\+\)/#static/g/\1.js#')
 JS_BUNDLE_MIN=$(shell echo js/*/ | sed 's#js/\(.\+\)/#static/g/\1.min.js#')
 JS_BUNDLE_GZ=$(shell echo js/*/ | sed 's#js/\(.\+\)/#static/g/\1.min.js.gz#')
+JS_BUNDLE_BR=$(shell echo js/*/ | sed 's#js/\(.\+\)/#static/g/\1.min.js.br#')
+CSS_OUT=$(shell ls css/skins/*.sass | sed -e 's/css\/skins\/\(.\+\)\.sass/static\/g\/\1.css/g')
+CSS_GZ=$(shell ls css/skins/*.sass | sed -e 's/css\/skins\/\(.\+\)\.sass/static\/g\/\1.css.gz/g')
+CSS_BR=$(shell ls css/skins/*.sass | sed -e 's/css\/skins\/\(.\+\)\.sass/static\/g\/\1.css.br/g')
 
 ALL_KEEP=\
 	static/ch static/cv static/sf static/st \
@@ -39,31 +44,28 @@ ALL_CLEAN=\
 	data/icons/icons.css \
 	sql/editfunc.sql \
 	${JS_BUNDLE_OUT} \
-	$(shell ls css/skins/*.sass | sed -e 's/css\/skins\/\(.\+\)\.sass/static\/g\/\1.css/g')
+	${CSS_OUT}
 
 PROD=\
 	static/g/api-nyan.html static/g/api-kana.html\
-	static/g/elm.min.js static/g/elm.min.js.gz \
+	static/g/elm.min.js static/g/elm.min.js.gz static/g/elm.min.js.br\
 	static/g/icons.opt.png \
-	${JS_BUNDLE_GZ} \
-	$(shell ls css/skins/*.sass | sed -e 's/css\/skins\/\(.\+\)\.sass/static\/g\/\1.css.gz/g')
+	${JS_BUNDLE_GZ} ${JS_BUNDLE_BR} \
+	${CSS_GZ} ${CSS_BR}
 
 all: ${ALL_KEEP} ${ALL_CLEAN}
 prod: all ${PROD}
 
 clean:
 	rm -f ${ALL_CLEAN} ${PROD}
-	rm -f static/g/icons.png
-	rm -f static/f/{vndb,elm,plain}{,.min}.js{,.gz} static/f/icons{,.opt}.png static/s/*/style{,.min}.css{,.gz} static/s/*/boxbg.png
-	rm -f static/g/{vndb,plain}{,.min}.js{,.gz}
-	rm -rf ${JS_BUNDLE_MIN}
+	rm -rf static/g/
 	rm -rf elm/Gen/
 	rm -rf elm/elm-stuff/build-artifacts
 	rm -rf js/.gen/deps.mk
 	$(MAKE) -C sql/c clean
 
 cleaner: clean
-	rm -rf elm/elm-stuff js/.gen static/g
+	rm -rf elm/elm-stuff js/.gen
 
 sql/editfunc.sql: util/sqleditfunc.pl sql/schema.sql
 	util/sqleditfunc.pl
@@ -84,6 +86,9 @@ data/conf.pl:
 
 %.gz: %
 	zopfli $<
+
+%.br: %
+	brotli -f $<
 
 chmod: all
 	chmod -R a-x+rwX static/{ch,cv,sf,st}
