@@ -316,8 +316,6 @@ sub _footer_ {
 
     if(tuwf->debug) {
         lit_ ' | ';
-        a_ href => '#', onclick => 'document.getElementById(\'pagedebuginfo\').classList.toggle(\'hidden\');return false', 'debug';
-        lit_ ' | ';
         debug_ tuwf->req->{pagevars};
         br_;
         tuwf->dbCommit; # Hack to measure the commit time
@@ -334,8 +332,11 @@ sub _footer_ {
         my $sql_r = join "\n", @sql_r;
         my $sql_i = join "\n", @sql_i;
         my $modules = join "\n", sort keys %INC;
-        pre_ id => 'pagedebuginfo', class => 'hidden', style => 'text-align: left; color: black; background: white',
-            "SQL (with placeholders):\n$sql_r\n\nSQL (interpolated, possibly buggy):\n$sql_i\n\nMODULES:\n$modules";
+        details_ sub {
+            summary_ 'debug info';
+            pre_ style => 'text-align: left; color: black; background: white',
+                "SQL (with placeholders):\n$sql_r\n\nSQL (interpolated, possibly buggy):\n$sql_i\n\nMODULES:\n$modules";
+        };
     }
 }
 
