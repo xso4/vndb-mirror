@@ -31,7 +31,6 @@ showResponse res =
     HTTPError (Http.BadUrl _)       -> unexp
     Success                         -> unexp
     Redirect _                      -> unexp
-    CSRF                            -> "Invalid CSRF token, please refresh the page and try again."
     Invalid                         -> "Invalid form data, please report a bug."
     Editsum                         -> "Invalid edit summary."
     Unauth                          -> "You do not have the permission to perform this action."

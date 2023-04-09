@@ -69,7 +69,7 @@ elm_api ImageVote => undef, {
 }, sub {
     my($data) = @_;
     return elm_Unauth if !can_vote;
-    return elm_CSRF if !validate_token $data->{votes};
+    return elm_Unauth if !validate_token $data->{votes};
 
     # Lock the users table early to prevent deadlock with a concurrent DB edit that attempts to update c_changes.
     tuwf->dbExeci('SELECT c_imgvotes FROM users WHERE id =', \auth->uid, 'FOR UPDATE');

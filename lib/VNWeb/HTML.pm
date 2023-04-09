@@ -172,7 +172,6 @@ sub _head_ {
         link_ rel => 'alternate', type => 'application/atom+xml', href => "/feeds/changes.atom",       title => 'Recent Changes';
         link_ rel => 'alternate', type => 'application/atom+xml', href => "/feeds/posts.atom",         title => 'Recent Posts';
     }
-    meta_ name => 'csrf-token', content => auth->csrftoken;
     meta_ name => 'robots', content => 'noindex' if !$o->{index} || tuwf->reqGet('view');
 
     # Opengraph metadata

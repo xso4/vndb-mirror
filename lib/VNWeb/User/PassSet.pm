@@ -31,10 +31,7 @@ elm_api UserPassSet => $FORM_OUT, $FORM_IN, sub {
     my($data) = @_;
 
     return elm_InsecurePass if is_insecurepass($data->{password});
-    # "CSRF" is kind of wrong here, but the message advices to reload the page,
-    # which will give a 404, which should be a good enough indication that the
-    # token has expired. This case won't happen often.
-    return elm_CSRF if !auth->setpass($data->{uid}, $data->{token}, undef, $data->{password});
+    return elm_Unauth if !auth->setpass($data->{uid}, $data->{token}, undef, $data->{password});
     tuwf->dbExeci('UPDATE users SET email_confirmed = true WHERE id =', \$data->{uid});
     auth->audit($data->{uid}, 'password change', 'with email token');
     elm_Success

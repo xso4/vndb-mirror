@@ -39,7 +39,6 @@ our %apis = (
     Unchanged      => [], # No changes
     Success        => [],
     Redirect       => [{}], # Redirect to the given URL
-    CSRF           => [], # Invalid CSRF token
     Invalid        => [], # POST data did not validate the schema
     Editsum        => [], # Invalid edit summary
     Content        => [{}], # Rendered HTML content (for markdown/bbcode APIs)
@@ -343,10 +342,10 @@ sub elm_api {
     $in = comp $in;
 
     TUWF::post qr{/elm/\Q$name\E\.json} => sub {
-        if(!samesite && !auth->csrfcheck(tuwf->reqHeader('X-CSRF-Token')||'')) {
-            warn "Invalid CSRF token in request\n";
-            return elm_CSRF();
-        }
+        # Assuming the body is JSON, CORS should prevent this, but can't hurt to check.
+        # If the body isn't JSON we'll fail validation in the next step, anyway.
+        die "cross-origin request\n" if (tuwf->reqHeader('Origin')//'_') ne config->{url};
+        warn "samesite cookie missing\n" if !samesite;
 
         my $data = tuwf->validate(json => $in);
         # Handle failure of the 'editsum' validation as a special case and return elm_Editsum().
