@@ -9,6 +9,7 @@ use TUWF ':html5_', 'uri_escape', 'html_escape', 'mkclass';
 use Exporter 'import';
 use POSIX 'ceil', 'floor', 'strftime';
 use Carp 'croak';
+use Digest::SHA;
 use JSON::XS;
 use VNDB::Config;
 use VNDB::BBCode;
@@ -148,6 +149,18 @@ sub elm_ {
 }
 
 
+# Generate a url to a file in static/ and append a checksum.
+sub _staticurl {
+    my($file) = @_;
+    state %urls;
+    $urls{$file} //= do {
+        my $c = Digest::SHA->new('sha1');
+        $c->addfile(config->{root}.'/static/'.$file);
+        sprintf '%s/%s?%s', config->{url_static}, $file, substr $c->hexdigest(), 0, 8;
+    };
+}
+
+
 sub _head_ {
     my $o = shift;
 
@@ -164,7 +177,7 @@ sub _head_ {
     title_ $o->{title}.' | vndb';
     base_ href => tuwf->reqURI();
     link_ rel => 'shortcut icon', href => '/favicon.ico', type => 'image/x-icon';
-    link_ rel => 'stylesheet', href => config->{url_static}.'/g/'.$skin.'.css?'.config->{version}, type => 'text/css', media => 'all';
+    link_ rel => 'stylesheet', href => _staticurl("g/$skin.css"), type => 'text/css', media => 'all';
     link_ rel => 'search', type => 'application/opensearchdescription+xml', title => 'VNDB Visual Novel Search', href => tuwf->reqBaseURI().'/opensearch.xml';
     link_ rel => 'stylesheet', href => sprintf '/%s.css?%x', $customcss->[0], $customcss->[1] if $customcss;
     if($o->{feeds}) {
@@ -524,8 +537,8 @@ sub framework_ {
                 # Escaping rules for a JSON <script> context are kinda weird, but more efficient than regular xml_escape().
                 lit_(JSON::XS->new->canonical->encode(tuwf->req->{pagevars}) =~ s{</}{<\\/}rg =~ s/<!--/<\\u0021--/rg);
             } if keys tuwf->req->{pagevars}->%*;
-            script_ defer => 'defer', src => config->{url_static}.'/g/elm.js?'.config->{version}, '' if tuwf->req->{pagevars}{elm};
-            script_ defer => 'defer', src => config->{url_static}.'/g/basic.js?'.config->{version}, '' if tuwf->req->{js} || tuwf->req->{pagevars}{elm};
+            script_ defer => 'defer', src => _staticurl('g/elm.js'), '' if tuwf->req->{pagevars}{elm};
+            script_ defer => 'defer', src => _staticurl('g/basic.js'), '' if tuwf->req->{js} || tuwf->req->{pagevars}{elm};
         }
     }
 }
