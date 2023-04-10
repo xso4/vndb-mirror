@@ -11,6 +11,17 @@
 
 "use strict";
 
+// Log errors to the server. This intentionally uses old-ish syntax and APIs.
+window.onerror = function(ev, source, lineno, colno, error) {
+    if (/\/g\/[a-z]+\.js/.test(source)) {
+        var h = new XMLHttpRequest();
+        var e = encodeURIComponent;
+        h.open('POST', '/js-error', true);
+        h.send('ev='+e(ev)+'&source='+e(source)+'&lineno='+e(lineno)+'&colno='+e(colno)+'&stack='+e(error.stack));
+    }
+    return false;
+};
+
 // This preact-htm.js is postprocessed by our Makefile to export directly into
 // `window`, so we can use h(), html``, render(), etc. without any imports.
 // XXX: Disabled for now, we don't have any preact components (yet).
@@ -24,7 +35,7 @@ window.pageVars = (e => e ? JSON.parse(e.innerHTML) : {})(document.getElementByI
 // Only clear the most recent one (the stupid April fools joke), the last use
 // of localStorage before that was long enough ago that it's most likely been
 // cleared for everyone already (43ef1a26d68f2b5dbc8b5ac3cc30e27b7bf89ca3).
-if(window.localStorage) localStorage.removeItem('fools6');
+try { localStorage.removeItem('fools6') } catch (e) {}
 
 // A bunch of old fashioned DOM manipulation features.
 @include basic/checkall.js
