@@ -565,7 +565,10 @@ view model =
         ]
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Theme" ] ]
       , formField "skin::Skin" [ inputSelect "skin" m.skin (Prefs << Skin) [ style "width" "300px" ] GT.skins ]
-      , formField "css::Custom CSS" [ inputTextArea "css" m.customcss (Prefs << Css) ([ rows 5, cols 60 ] ++ GUE.valPrefsCustomcss) ]
+      , formField "css::Custom CSS"
+        [ inputTextArea "css" m.customcss (Prefs << Css) ([ rows 5, cols 60 ] ++ GUE.valPrefsCustomcss)
+        , br [] []
+        , b [ class "grayedout" ] [ text "(@import statements do not work)" ] ]
       ]
 
     ttpref msg fmt name t =
