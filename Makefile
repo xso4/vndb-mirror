@@ -151,11 +151,8 @@ js/.gen/deps.mk: ${JS_BUNDLE_INDICES} | js/.gen
 
 include js/.gen/deps.mk
 
-js/.gen/preact-htm.js: | js/.gen
-	curl -s 'https://unpkg.com/htm@3.1.1/preact/standalone.module.js' -o $@~
-	echo "72cb34566f010df9d4bdc16e4982551cd887169b  $@~" | sha1sum -c
-	perl -pe 's#export{([^}]+)};#"Object.assign(window,{".join(",",map /([^ ]+) as ([^ ]+)/&&"$$2:$$1",split/,/,$$1)."})"#e' $@~ >$@
-	rm $@~
+js/.gen/mithril.js: | js/.gen
+	curl -s 'https://code.blicky.net/yorhel/mithril-vndb/raw/branch/next/mithril.js' -o $@
 
 ${JS_BUNDLE_OUT}: %.js: | static/g
 	cd js && perl -Mautodie -pe 'if(/^\@include (.+)/) { open F, $$1; local$$/=undef; $$_="/* start of $$1 */\n(()=>{\n".<F>."})();\n/* end of $$1 */\n\n" }' ../$< >../$@

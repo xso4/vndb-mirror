@@ -43,3 +43,23 @@ Specific features to avoid:
 
 - `basic`: Primary bundle for functionality and library code common to popular
   pages on the site. The goal is to keep this below 50kB minified+gzipped.
+
+
+## Widgets
+
+...is the name I chose for components that can be instantiated from the Perl
+backend by adding a `widget($name, $data)` attribute to a HTML tag. They're
+similar to "modules" in Elm.
+
+A widget is a mithril.js component that can be registered anywhere in JS with
+the following line:
+
+```js
+widget('Name', vnode => {
+    let data = vnode.attrs.data;
+    // ...rest of the mithril component
+});
+```
+
+Where `data` is whatever the Perl backend passed to it. Objects and arrays
+referenced by `data` are not used elsewhere and can be freely mutated.

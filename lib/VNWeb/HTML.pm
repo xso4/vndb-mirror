@@ -29,7 +29,7 @@ our @EXPORT = qw/
     rdate_
     vnlength_
     spoil_
-    elm_
+    elm_ widget
     framework_
     revision_patrolled_ revision_
     paginate_
@@ -146,6 +146,19 @@ sub elm_ {
     push tuwf->req->{pagevars}{elm}->@*, [ $mod, $data ? ($schema eq 'raw' ? $data : $schema->analyze->coerce_for_json($data, unknown => 'remove')) : () ];
     my @arg = (id => sprintf 'elm%d', $#{ tuwf->req->{pagevars}{elm} });
     $placeholder ? $placeholder->(@arg) : div_ @arg, '';
+}
+
+
+# Instantiate a JS widget.
+# Used as attribute to a html tag, which will then be used as parent node for the widget.
+# $schema is optional, if present it is only used to coerce the keys defined in the schema.
+sub widget {
+    my($name, $schema, $data) = @_;
+    $data = $data ? $schema->analyze->coerce_for_json($data, unknown => 'pass') : $schema;
+    tuwf->req->{widget_id} //= 0;
+    my $id = ++tuwf->req->{widget_id};
+    push tuwf->req->{pagevars}{widget}{$name}->@*, [ $id, $data ];
+    (id => sprintf 'widget%d', $id)
 }
 
 
@@ -374,16 +387,14 @@ sub _maintabs_subscribe_ {
 
     my $sub = tuwf->dbRowi('SELECT subnum, subreview, subapply FROM notification_subs WHERE uid =', \auth->uid, 'AND iid =', \$id);
 
-    li_ id => 'subscribe', class => 'maindd', sub {
-        elm_ Subscribe => $VNWeb::User::Notifications::SUB, {
-            id        => $id,
-            noti      => $noti||0,
-            subnum    => $sub->{subnum},
-            subreview => $sub->{subreview}||0,
-            subapply  => $sub->{subapply}||0,
-        }, sub {
-            a_ @_, href => '#', class => ($noti && (!defined $sub->{subnum} || $sub->{subnum})) || $sub->{subnum} || $sub->{subreview} || $sub->{subapply} ? 'active' : 'inactive', '🔔';
-        };
+    li_ widget(Subscribe => $VNWeb::User::Notifications::SUB, {
+        id        => $id,
+        noti      => $noti||0,
+        subnum    => $sub->{subnum},
+        subreview => $sub->{subreview}||0,
+        subapply  => $sub->{subapply}||0,
+    }), class => 'subscribe', sub {
+        a_ href => '#', class => ($noti && (!defined $sub->{subnum} || $sub->{subnum})) || $sub->{subnum} || $sub->{subreview} || $sub->{subapply} ? 'active' : 'inactive', '🔔';
     };
 }
 
@@ -538,7 +549,7 @@ sub framework_ {
                 lit_(JSON::XS->new->canonical->encode(tuwf->req->{pagevars}) =~ s{</}{<\\/}rg =~ s/<!--/<\\u0021--/rg);
             } if keys tuwf->req->{pagevars}->%*;
             script_ defer => 'defer', src => _staticurl('g/elm.js'), '' if tuwf->req->{pagevars}{elm};
-            script_ defer => 'defer', src => _staticurl('g/basic.js'), '' if tuwf->req->{js} || tuwf->req->{pagevars}{elm};
+            script_ defer => 'defer', src => _staticurl('g/basic.js'), '' if tuwf->req->{js} || tuwf->req->{pagevars}{elm} || tuwf->req->{pagevars}{widget};
         }
     }
 }

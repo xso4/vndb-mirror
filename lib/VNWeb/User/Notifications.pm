@@ -223,13 +223,10 @@ our $SUB = form_compile any => {
     subnum    => { undefbool => 1 },
     subreview => { anybool => 1 },
     subapply  => { anybool => 1 },
-    noti      => { uint => 1 }, # Whether the user already gets 'subnum' notifications for this entry (see HTML.pm for possible values)
 };
 
-elm_api Subscribe => undef, $SUB, sub {
+js_api Subscribe => $SUB, sub {
     my($data) = @_;
-
-    delete $data->{noti};
     $data->{subreview} = 0 if $data->{id} !~ /^v/;
 
     my %where = (iid => delete $data->{id}, uid => auth->uid);
@@ -238,7 +235,7 @@ elm_api Subscribe => undef, $SUB, sub {
     } else {
         tuwf->dbExeci('INSERT INTO notification_subs', {%where, %$data}, 'ON CONFLICT (iid,uid) DO UPDATE SET', $data);
     }
-    elm_Success
+    {};
 };
 
 1;

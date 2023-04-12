@@ -1036,18 +1036,24 @@ div.lengthlist {
 
 /***** Maintabs dropdown thingy used by elm/Subscribe & elm/TableOpts ****/
 
+.maindd p, .maindd h4, .maindd label { display: block; margin-bottom: 3px }
+.maindd h4 { text-align: center }
 .maindd > div > a { height: 21px!important /* override :hover change */ }
 .maindd > div > div { position: absolute; width: 1px }
 .maindd > div > div > div { width: 500px; border: 1px solid $border; background: $secbg; position: relative; bottom: 0; left: -470px; z-index: 100 }
-.maindd p, .maindd h4, .maindd label { display: block; margin-bottom: 3px }
-.maindd h4 { text-align: center }
 
 #tableopts > li > div > div > div { text-align: right; padding: 0 10px }
 #tableopts > li > a > svg { margin-top: 2px; margin-bottom: -2px }
 
-#subscribe > div > div > div { padding: 10px }
-#subscribe .inactive { color: transparent; text-shadow: 0 0 $grayedout }
-#subscribe .active { color: transparent; text-shadow: 0 0 $maintext }
+.subscribe .inactive { color: transparent; text-shadow: 0 0 $grayedout }
+.subscribe .active { color: transparent; text-shadow: 0 0 $maintext }
+.subscribe > div > div { padding: 10px }
+/* (same as the .maindd ones above, but with one div fewer; should update TableOpts to this style) */
+.subscribe p, .subscribe h4, .subscribe label { display: block; margin-bottom: 3px }
+.subscribe h4 { text-align: center }
+.subscribe > a { height: 21px!important /* override :hover change */ }
+.subscribe > div { position: absolute; width: 1px }
+.subscribe > div > div { width: 500px; border: 1px solid $border; background: $secbg; position: relative; bottom: 0; left: -470px; z-index: 100 }
 
 /***** User list *****/
 .browse.userlist .tc3,
