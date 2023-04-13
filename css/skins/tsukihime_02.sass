@@ -3,33 +3,38 @@
 // Tsukihime skin made with an awesome Akiha artwork from Tsukihime PLUS disc
 // created: 23/01/2009 by echomateria
 
-$maintext:     #fa4347
-$grayedout:    #54459a
-$standout:     #fd3fa9
-$link:         #b768aa
-$statok:       #d79a7e
-$statnok:      #412651
-$footer:       #fa4347
-$maintitle:    #fa4347
-$boxtitle:     #d79a7e
-$alttitle:     #c17e61
 $bodybg:       #000000
-$tabbg:        #2e0106
-$secbg:        #2e0106
-$secborder:    #b768aa
-$border:       #000000
 $boxbg:        #35020990
-$diffadd:      #d79a7e
-$diffdel:      #412651
-$warnbg:       #46285a
-$warnborder:   #c0959f
-$noticebg:     #4f3246
-$noticeborder: #94769a
 
-@mixin bodybg
-  background: $bodybg url(/s/tsukihime_02-bg.jpg) no-repeat
+html
+  --maintext:     #fa4347
+  --grayedout:    #54459a
+  --standout:     #fd3fa9
+  --link:         #b768aa
+  --statok:       #d79a7e
+  --statnok:      #412651
+  --footer:       #fa4347
+  --maintitle:    #fa4347
+  --boxtitle:     #d79a7e
+  --alttitle:     #c17e61
+  --bodybg:       #{$bodybg}
+  --boxbg:        #{$boxbg}
+  --tabbg:        #2e0106
+  --secbg:        #2e0106
+  --secborder:    #b768aa
+  --border:       #000000
+  --diffadd:      #d79a7e
+  --diffdel:      #412651
+  --warnbg:       #46285a
+  --warnborder:   #c0959f
+  --noticebg:     #4f3246
+  --noticeborder: #94769a
 
-@mixin bgright
+body
+  background: var(--bodybg) url(/s/tsukihime_02-bg.jpg) no-repeat
+
+#bgright
   display: none
 
+@import 'css/blendbg'
 @import 'css/v2'

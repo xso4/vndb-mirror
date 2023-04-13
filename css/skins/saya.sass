@@ -3,35 +3,40 @@
 // Saya no Uta skin made using a criminally cute fanart
 // created: 22/01/2009 by echomateria
 
-$maintext:     #ffffff
-$grayedout:    #ecbc93
-$standout:     #d75f25
-$link:         #ffcb3a
-$statok:       #a55a3d
-$statnok:      #281e14
-$footer:       #e07340
-$maintitle:    #ebb48b
-$boxtitle:     #de9670
-$alttitle:     #ebb48b
 $bodybg:       #25010f
-$tabbg:        #575c51
-$secbg:        #437f63
-$secborder:    #ffcb3a
-$border:       #ebb48b
 $boxbg:        #437f6388
-$diffadd:      #f59731
-$diffdel:      #f2c5a3
-$warnbg:       #d45628
-$warnborder:   #fbab34
-$noticebg:     #c5af88
-$noticeborder: #56714e
 
-@mixin bodybg
-  background-color: $bodybg
+html
+  --maintext:     #ffffff
+  --grayedout:    #ecbc93
+  --standout:     #d75f25
+  --link:         #ffcb3a
+  --statok:       #a55a3d
+  --statnok:      #281e14
+  --footer:       #e07340
+  --maintitle:    #ebb48b
+  --boxtitle:     #de9670
+  --alttitle:     #ebb48b
+  --bodybg:       #{$bodybg}
+  --boxbg:        #{$boxbg}
+  --tabbg:        #575c51
+  --secbg:        #437f63
+  --secborder:    #ffcb3a
+  --border:       #ebb48b
+  --diffadd:      #f59731
+  --diffdel:      #f2c5a3
+  --warnbg:       #d45628
+  --warnborder:   #fbab34
+  --noticebg:     #c5af88
+  --noticeborder: #56714e
 
-@mixin bgright
+body
+  background-color: var(--bodybg)
+
+#bgright
   background: url(/s/saya-right.jpg) no-repeat
   width: 900px
   height: 537px
 
+@import 'css/blendbg'
 @import 'css/v2'

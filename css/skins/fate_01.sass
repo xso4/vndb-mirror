@@ -3,33 +3,38 @@
 // FSN skin skin made using a popular fanart
 // created: 12/31/2008 by echomateria
 
-$maintext:     #ab928d
-$grayedout:    #916858
-$standout:     #72322b
-$link:         #eee0da
-$statok:       #efdab9
-$statnok:      #b07a6b
-$footer:       #642924
-$maintitle:    #200b0c
-$boxtitle:     #d56243
-$alttitle:     #d7926e
 $bodybg:       #200b0c
-$tabbg:        #130504
-$secbg:        #7c362f
-$secborder:    #33261d
-$border:       #9e4a47
 $boxbg:        #4d3c3abc
-$diffadd:      #4d2c25
-$diffdel:      #6f5347
-$warnbg:       #882f27
-$warnborder:   #fbf1e0
-$noticebg:     #882f27
-$noticeborder: #fbf1e0
 
-@mixin bodybg
-  background: $bodybg url(/s/fate_01-bg.jpg) no-repeat;
+html
+  --maintext:     #ab928d
+  --grayedout:    #916858
+  --standout:     #72322b
+  --link:         #eee0da
+  --statok:       #efdab9
+  --statnok:      #b07a6b
+  --footer:       #642924
+  --maintitle:    #200b0c
+  --boxtitle:     #d56243
+  --alttitle:     #d7926e
+  --bodybg:       #{$bodybg}
+  --boxbg:        #{$boxbg}
+  --tabbg:        #130504
+  --secbg:        #7c362f
+  --secborder:    #33261d
+  --border:       #9e4a47
+  --diffadd:      #4d2c25
+  --diffdel:      #6f5347
+  --warnbg:       #882f27
+  --warnborder:   #fbf1e0
+  --noticebg:     #882f27
+  --noticeborder: #fbf1e0
 
-@mixin bgright
+body
+  background: var(--bodybg) url(/s/fate_01-bg.jpg) no-repeat
+
+#bgright
   display: none
 
+@import 'css/blendbg'
 @import 'css/v2'

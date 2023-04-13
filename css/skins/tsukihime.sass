@@ -3,35 +3,40 @@
 // Tsukihime skin made using an image from the Tsukihime Plus+Disc
 // created: 02/01/2009 by echomateria
 
-$maintext:     #ffffff
-$grayedout:    #abcdff
-$standout:     #ffffff
-$link:         #0be0e9
-$statok:       #55dfaa
-$statnok:      #e30b47
-$footer:       #0cacf3
-$maintitle:    #a9bbfb
-$boxtitle:     #e3ecff
-$alttitle:     #c6d7ff
 $bodybg:       #29345f
-$tabbg:        #5a3a63
-$secbg:        #9b8494
-$secborder:    #605567
-$border:       #b791f3
 $boxbg:        #6a4668bb
-$diffadd:      #87705c
-$diffdel:      #374d77
-$warnbg:       #76a1cd
-$warnborder:   #decdcd
-$noticebg:     #b50439
-$noticeborder: #decdcd
 
-@mixin bodybg
-  background: $bodybg url(/s/tsukihime-bg.jpg) no-repeat
+html
+  --maintext:     #ffffff
+  --grayedout:    #abcdff
+  --standout:     #ffffff
+  --link:         #0be0e9
+  --statok:       #55dfaa
+  --statnok:      #e30b47
+  --footer:       #0cacf3
+  --maintitle:    #a9bbfb
+  --boxtitle:     #e3ecff
+  --alttitle:     #c6d7ff
+  --bodybg:       #{$bodybg}
+  --boxbg:        #{$boxbg}
+  --tabbg:        #5a3a63
+  --secbg:        #9b8494
+  --secborder:    #605567
+  --border:       #b791f3
+  --diffadd:      #87705c
+  --diffdel:      #374d77
+  --warnbg:       #76a1cd
+  --warnborder:   #decdcd
+  --noticebg:     #b50439
+  --noticeborder: #decdcd
 
-@mixin bgright
+body
+  background: var(--bodybg) url(/s/tsukihime-bg.jpg) no-repeat
+
+#bgright
   background: url(/s/tsukihime-right.jpg) no-repeat
   width: 500px
   height: 718px
 
+@import 'css/blendbg'
 @import 'css/v2'

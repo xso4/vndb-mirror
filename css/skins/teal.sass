@@ -1,33 +1,38 @@
 // userid: u163596  name: Teal (teal)
 // by sw1tchbl4d3
 
-$maintext:     #ddd
-$grayedout:    #007070
-$standout:     #e44
-$link:         #00c9c9
-$statok:       #0c0
-$statnok:      #c00
-$footer:       #004040
-$maintitle:    #003535
-$boxtitle:     #007070
-$alttitle:     #fff
 $bodybg:       #000
-$tabbg:        #001010
-$secbg:        #003434
-$secborder:    #008080
-$border:       #007070
 $boxbg:        #002525bc
-$diffadd:      #354
-$diffdel:      #534
-$warnbg:       #534
-$warnborder:   #c00
-$noticebg:     #354
-$noticeborder: #0c0
 
-@mixin bodybg
-  background-color: $bodybg
+html
+  --maintext:     #ddd
+  --grayedout:    #007070
+  --standout:     #e44
+  --link:         #00c9c9
+  --statok:       #0c0
+  --statnok:      #c00
+  --footer:       #004040
+  --maintitle:    #003535
+  --boxtitle:     #007070
+  --alttitle:     #fff
+  --bodybg:       #{$bodybg}
+  --boxbg:        #{$boxbg}
+  --tabbg:        #001010
+  --secbg:        #003434
+  --secborder:    #008080
+  --border:       #007070
+  --diffadd:      #354
+  --diffdel:      #534
+  --warnbg:       #534
+  --warnborder:   #c00
+  --noticebg:     #354
+  --noticeborder: #0c0
 
-@mixin bgright
+body
+  background-color: var(--bodybg)
+
+#bgright
   display: none
 
+@import 'css/blendbg'
 @import 'css/v2'

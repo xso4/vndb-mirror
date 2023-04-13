@@ -1,0 +1,6 @@
+$blendbg: rgb(
+    (red($boxbg)   * alpha($boxbg) + red($bodybg)   * (1 - alpha($boxbg))),
+    (green($boxbg) * alpha($boxbg) + green($bodybg) * (1 - alpha($boxbg))),
+    (blue($boxbg)  * alpha($boxbg) + blue($bodybg)  * (1 - alpha($boxbg)))
+);
+html { --blendbg: #{$blendbg} }

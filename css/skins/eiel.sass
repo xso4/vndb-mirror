@@ -7,33 +7,38 @@
 //
 // created: 24/01/2009 by echomateria
 
-$maintext:     #f8cb8a
-$grayedout:    #f26a7e
-$standout:     #ff435f
-$link:         #ffffff
-$statok:       #ffcbee
-$statnok:      #ff435f
-$footer:       #362142
-$maintitle:    #676082
-$boxtitle:     #ffcbee
-$alttitle:     #f26a7e
 $bodybg:       #fdd298
-$tabbg:        #5a3a49
-$secbg:        #584563
-$secborder:    #c42b5a
-$border:       #362142
 $boxbg:        #36214299
-$diffadd:      #2bc88b
-$diffdel:      #ca4a4d
-$warnbg:       #c42b5a
-$warnborder:   #f8cb8a
-$noticebg:     #b48ab2
-$noticeborder: #f8cb8a
 
-@mixin bodybg
-  background: $bodybg url(/s/eiel-bg.jpg) no-repeat
+html
+  --maintext:     #f8cb8a
+  --grayedout:    #f26a7e
+  --standout:     #ff435f
+  --link:         #ffffff
+  --statok:       #ffcbee
+  --statnok:      #ff435f
+  --footer:       #362142
+  --maintitle:    #676082
+  --boxtitle:     #ffcbee
+  --alttitle:     #f26a7e
+  --bodybg:       #{$bodybg}
+  --boxbg:        #{$boxbg}
+  --tabbg:        #5a3a49
+  --secbg:        #584563
+  --secborder:    #c42b5a
+  --border:       #362142
+  --diffadd:      #2bc88b
+  --diffdel:      #ca4a4d
+  --warnbg:       #c42b5a
+  --warnborder:   #f8cb8a
+  --noticebg:     #b48ab2
+  --noticeborder: #f8cb8a
 
-@mixin bgright
+body
+  background: var(--bodybg) url(/s/eiel-bg.jpg) no-repeat
+
+#bgright
   display: none
 
+@import 'css/blendbg'
 @import 'css/v2'

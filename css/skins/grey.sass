@@ -1,34 +1,39 @@
 // userid: u2  name: Touhou (grey)
 
-$maintext:     #222
-$grayedout:    #666
-$standout:     #500
-$link:         #005
-$statok:       #050
-$statnok:      #500
-$footer:       #999
-$maintitle:    #ccc
-$boxtitle:     #444
-$alttitle:     #000
 $bodybg:       #fff
-$tabbg:        #ddd
-$secbg:        #ccc
-$secborder:    #000
-$border:       #999
 $boxbg:        #ddddddcc
-$diffadd:      #cfc
-$diffdel:      #fcc
-$warnbg:       #fcc
-$warnborder:   #c00
-$noticebg:     #cfc
-$noticeborder: #0c0
 
-@mixin bodybg
-  background: $bodybg url(/s/grey-bg.jpg) no-repeat;
+html
+  --maintext:     #222
+  --grayedout:    #666
+  --standout:     #500
+  --link:         #005
+  --statok:       #050
+  --statnok:      #500
+  --footer:       #999
+  --maintitle:    #ccc
+  --boxtitle:     #444
+  --alttitle:     #000
+  --bodybg:       #{$bodybg}
+  --boxbg:        #{$boxbg}
+  --tabbg:        #ddd
+  --secbg:        #ccc
+  --secborder:    #000
+  --border:       #999
+  --diffadd:      #cfc
+  --diffdel:      #fcc
+  --warnbg:       #fcc
+  --warnborder:   #c00
+  --noticebg:     #cfc
+  --noticeborder: #0c0
 
-@mixin bgright
+body
+  background: var(--bodybg) url(/s/grey-bg.jpg) no-repeat;
+
+#bgright
   background: url(/s/grey-right.jpg) no-repeat
   width: 130px
   height: 120px
 
+@import 'css/blendbg'
 @import 'css/v2'

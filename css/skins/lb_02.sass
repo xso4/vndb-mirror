@@ -3,33 +3,38 @@
 // Little Busters! skin made using the Minitokyo.Little.Busters.Scans_316439
 // created: 09/27/2009 by echomateria
 
-$maintext:     #3c363f
-$grayedout:    #785a5b
-$standout:     #eb0e4c
-$link:         #04529b
-$statok:       #d87417
-$statnok:      #eb0e4c
-$footer:       #eb0e4c
-$maintitle:    #fffeff
-$boxtitle:     #ff9013
-$alttitle:     #f0a260
 $bodybg:       #fff4d4
-$tabbg:        #9aa4d7
-$secbg:        #bcd1e4
-$secborder:    #966932
-$border:       #016c80
 $boxbg:        #d1ebee99
-$diffadd:      #3689b5
-$diffdel:      #b7adc6
-$warnbg:       #e97a9a
-$warnborder:   #f1a360
-$noticebg:     #fefbf6
-$noticeborder: #951924
 
-@mixin bodybg
-  background: $bodybg url(/s/lb_02-bg.jpg) no-repeat
+html
+  --maintext:     #3c363f
+  --grayedout:    #785a5b
+  --standout:     #eb0e4c
+  --link:         #04529b
+  --statok:       #d87417
+  --statnok:      #eb0e4c
+  --footer:       #eb0e4c
+  --maintitle:    #fffeff
+  --boxtitle:     #ff9013
+  --alttitle:     #f0a260
+  --bodybg:       #{$bodybg}
+  --boxbg:        #{$boxbg}
+  --tabbg:        #9aa4d7
+  --secbg:        #bcd1e4
+  --secborder:    #966932
+  --border:       #016c80
+  --diffadd:      #3689b5
+  --diffdel:      #b7adc6
+  --warnbg:       #e97a9a
+  --warnborder:   #f1a360
+  --noticebg:     #fefbf6
+  --noticeborder: #951924
 
-@mixin bgright
+body
+  background: var(--bodybg) url(/s/lb_02-bg.jpg) no-repeat
+
+#bgright
   display: none
 
+@import 'css/blendbg'
 @import 'css/v2'

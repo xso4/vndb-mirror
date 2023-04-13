@@ -3,35 +3,40 @@
 // Gekkou no Carnevale skin made using a wallpaper comes with the game
 // created: 22/01/2009 by echomateria
 
-$maintext:     #b9c7ae
-$grayedout:    #6f7a68
-$standout:     #f5aaaa
-$link:         #ffffff
-$statok:       #dab0fc
-$statnok:      #768b78
-$footer:       #b9c7ae
-$maintitle:    #b9c7ae
-$boxtitle:     #c7d3bf
-$alttitle:     #6f8578
 $bodybg:       #030708
-$tabbg:        #1f272a
-$secbg:        #121622
-$secborder:    #ffffff
-$border:       #b9c7ae
 $boxbg:        #12162290
-$diffadd:      #76a3b8
-$diffdel:      #354554
-$warnbg:       #5d182b
-$warnborder:   #829076
-$noticebg:     #263a45
-$noticeborder: #21343a
 
-@mixin bodybg
-  background-color: $bodybg
+html
+  --maintext:     #b9c7ae
+  --grayedout:    #6f7a68
+  --standout:     #f5aaaa
+  --link:         #ffffff
+  --statok:       #dab0fc
+  --statnok:      #768b78
+  --footer:       #b9c7ae
+  --maintitle:    #b9c7ae
+  --boxtitle:     #c7d3bf
+  --alttitle:     #6f8578
+  --bodybg:       #{$bodybg}
+  --boxbg:        #{$boxbg}
+  --tabbg:        #1f272a
+  --secbg:        #121622
+  --secborder:    #ffffff
+  --border:       #b9c7ae
+  --diffadd:      #76a3b8
+  --diffdel:      #354554
+  --warnbg:       #5d182b
+  --warnborder:   #829076
+  --noticebg:     #263a45
+  --noticeborder: #21343a
 
-@mixin bgright
+body
+  background-color: var(--bodybg)
+
+#bgright
   background: url(/s/carnevale-right.jpg) no-repeat
   width: 1280px
   height: 768px
 
+@import 'css/blendbg'
 @import 'css/v2'

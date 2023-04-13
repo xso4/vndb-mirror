@@ -6,35 +6,40 @@
 // Some portions (c)2011 Ryukishi07/07th Expansion            //
 ////////////////////////////////////////////////////////////////
 
-$maintext:     #ddd
-$grayedout:    #822
-$standout:     #ec4
-$link:         #d77
-$statok:       #0c0
-$statnok:      #c00
-$footer:       #722
-$maintitle:    #511
-$boxtitle:     #822
-$alttitle:     #fff
 $bodybg:       #000
-$tabbg:        #200
-$secbg:        #410d0d
-$secborder:    #a33
-$border:       #822
 $boxbg:        #331111bc
-$diffadd:      #354
-$diffdel:      #534
-$warnbg:       #534
-$warnborder:   #c00
-$noticebg:     #354
-$noticeborder: #0c0
 
-@mixin bodybg
-  background: $bodybg url(/s/higanbana-bg.jpg) no-repeat
+html
+  --maintext:     #ddd
+  --grayedout:    #822
+  --standout:     #ec4
+  --link:         #d77
+  --statok:       #0c0
+  --statnok:      #c00
+  --footer:       #722
+  --maintitle:    #511
+  --boxtitle:     #822
+  --alttitle:     #fff
+  --bodybg:       #{$bodybg}
+  --boxbg:        #{$boxbg}
+  --tabbg:        #200
+  --secbg:        #410d0d
+  --secborder:    #a33
+  --border:       #822
+  --diffadd:      #354
+  --diffdel:      #534
+  --warnbg:       #534
+  --warnborder:   #c00
+  --noticebg:     #354
+  --noticeborder: #0c0
 
-@mixin bgright
+body
+  background: var(--bodybg) url(/s/higanbana-bg.jpg) no-repeat
+
+#bgright
   background: url(/s/higanbana-right.png) no-repeat
   width: 197px
   height: 140px
 
+@import 'css/blendbg'
 @import 'css/v2'

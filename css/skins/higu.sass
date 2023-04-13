@@ -3,33 +3,38 @@
 // Higurashi no Naku Koro ni skin made using an image I found in MiniTokyo
 // created: 22/01/2009 by echomateria
 
-$maintext:     #2c1a18
-$grayedout:    #8c5b3b
-$standout:     #c24857
-$link:         #3c549c
-$statok:       #8c6290
-$statnok:      #824e52
-$footer:       #2e2536
-$maintitle:    #e5d3e1
-$boxtitle:     #1b1b51
-$alttitle:     #35346d
 $bodybg:       #f89e7e
-$tabbg:        #9b8587
-$secbg:        #f7c7bb
-$secborder:    #3c549c
-$border:       #2c1a18
 $boxbg:        #f7c7bb80
-$diffadd:      #c2bcc6
-$diffdel:      #8c5b3b
-$warnbg:       #ae6866
-$warnborder:   #612028
-$noticebg:     #9b8587
-$noticeborder: #dc9b7f
 
-@mixin bodybg
-  background: $bodybg url(/s/higu-bg.jpg) no-repeat
+html
+  --maintext:     #2c1a18
+  --grayedout:    #8c5b3b
+  --standout:     #c24857
+  --link:         #3c549c
+  --statok:       #8c6290
+  --statnok:      #824e52
+  --footer:       #2e2536
+  --maintitle:    #e5d3e1
+  --boxtitle:     #1b1b51
+  --alttitle:     #35346d
+  --bodybg:       #{$bodybg}
+  --boxbg:        #{$boxbg}
+  --tabbg:        #9b8587
+  --secbg:        #f7c7bb
+  --secborder:    #3c549c
+  --border:       #2c1a18
+  --diffadd:      #c2bcc6
+  --diffdel:      #8c5b3b
+  --warnbg:       #ae6866
+  --warnborder:   #612028
+  --noticebg:     #9b8587
+  --noticeborder: #dc9b7f
 
-@mixin bgright
+body
+  background: var(--bodybg) url(/s/higu-bg.jpg) no-repeat
+
+#bgright
   display: none
 
+@import 'css/blendbg'
 @import 'css/v2'

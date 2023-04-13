@@ -1,32 +1,37 @@
 // userid: u93  name: Neon (black)
 
-$maintext:     #0f0
-$grayedout:    #aaa
-$standout:     #f00
-$link:         #ff0
-$statok:       #0c0
-$statnok:      #c00
-$footer:       #fff
-$maintitle:    #0f0
-$boxtitle:     #0f0
-$alttitle:     #0f0
 $bodybg:       #000
-$tabbg:        #000
-$secbg:        #000
-$secborder:    #0f0
-$border:       #fff
 $boxbg:        #000
-$diffadd:      #cfc
-$diffdel:      #fcc
-$warnbg:       #000
-$warnborder:   #c00
-$noticebg:     #000
-$noticeborder: #0f0
 
-@mixin bodybg
-  background-color: $bodybg
+html
+  --maintext:     #0f0
+  --grayedout:    #aaa
+  --standout:     #f00
+  --link:         #ff0
+  --statok:       #0c0
+  --statnok:      #c00
+  --footer:       #fff
+  --maintitle:    #0f0
+  --boxtitle:     #0f0
+  --alttitle:     #0f0
+  --bodybg:       #{$bodybg}
+  --boxbg:        #{$boxbg}
+  --tabbg:        #000
+  --secbg:        #000
+  --secborder:    #0f0
+  --border:       #fff
+  --diffadd:      #cfc
+  --diffdel:      #fcc
+  --warnbg:       #000
+  --warnborder:   #c00
+  --noticebg:     #000
+  --noticeborder: #0f0
 
-@mixin bgright
+body
+  background-color: var(--bodybg)
+
+#bgright
   display: none
 
+@import 'css/blendbg'
 @import 'css/v2'
