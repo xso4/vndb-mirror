@@ -43,7 +43,6 @@ sub TABLEOPTS {
             compat => 'title',
             sort_id => $ulist ? 0 : 1,
             sort_sql => 'v.sorttitle',
-            sort_default => $tags || $vns ? undef : 'asc',
         },
         $ulist ? (
             voted => {
@@ -143,6 +142,7 @@ sub TABLEOPTS {
             sort_num => 1,
             vis_id => $ulist ? 12 : 1,
             vis_default => 1,
+            sort_default => $tags || $vns ? undef : 'desc',
         },
         average => {
             name => 'Vote average',
