@@ -696,7 +696,9 @@ BEGIN
   SELECT id INTO xoldchid FROM changes WHERE itemid = nitemid AND rev = nrev-1;
 
   -- Update search_cache
-  PERFORM update_search(nitemid);
+  IF vndbid_type(nitemid) IN('v','r','c','p','s','g','i') THEN
+    PERFORM update_search(nitemid);
+  END IF;
 
   -- Update search_cache for related VNs when
   -- 1. A new release is created
