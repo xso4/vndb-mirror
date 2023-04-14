@@ -69,10 +69,10 @@ fromQuery dat qf = S.fromQuery (\q ->
 view : Data -> Model -> (Html Msg, () -> List (Html Msg))
 view dat model =
   ( case Set.toList model.sel.sel of
-      []  -> b [ class "grayedout" ] [ text "Anime" ]
+      []  -> small [] [ text "Anime" ]
       [s] -> span [ class "nowrap" ]
              [ S.lblPrefix model.sel
-             , b [ class "grayedout" ] [ text <| "a" ++ String.fromInt s ++ ":" ]
+             , small [] [ text <| "a" ++ String.fromInt s ++ ":" ]
              , Dict.get s dat.anime |> Maybe.map (\e -> e.title) |> Maybe.withDefault "" |> text
              ]
       l   -> span [] [ S.lblPrefix model.sel, text <| "Anime (" ++ String.fromInt (List.length l) ++ ")" ]
@@ -84,7 +84,7 @@ view dat model =
     , ul [] <| List.map (\s ->
         li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ]
         [ inputButton "X" (Sel (S.Sel s False)) []
-        , b [ class "grayedout" ] [ text <| " a" ++ String.fromInt s ++ ": " ]
+        , small [] [ text <| " a" ++ String.fromInt s ++ ": " ]
         , Dict.get s dat.anime |> Maybe.map (\e -> e.title) |> Maybe.withDefault "" |> text
         ]
       ) (Set.toList model.sel.sel)

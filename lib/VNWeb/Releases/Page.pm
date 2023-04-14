@@ -81,7 +81,7 @@ sub _infotable_animation_ {
 
     my sub txtc {
         my($bool, $txt) = @_;
-        +(sub { $bool ? txt_ $txt : b_ class => 'grayedout', $txt })
+        +(sub { $bool ? txt_ $txt : small_ $txt })
     }
 
     my sub sect {
@@ -150,7 +150,7 @@ sub _infotable_ {
                         td_ sub {
                             my $title = $_->{title}//$olang->{title};
                             span_ tlang($_->{lang}, $title), $title;
-                            b_ class => 'grayedout', ' (machine translation)' if $_->{mtl};
+                            small_ ' (machine translation)' if $_->{mtl};
                             my $latin = defined $_->{title} ? $_->{latin} : $olang->{latin};
                             if(defined $latin) {
                                 br_;

@@ -99,7 +99,7 @@ sub report_ {
     my $objid = $r->{object}.(defined $r->{objectnum} ? ".$r->{objectnum}" : '');
     td_ style => 'padding: 3px 5px 5px 20px', sub {
         a_ href => "?id=$r->{id}", "#$r->{id}";
-        b_ class => 'grayedout', ' '.fmtdate $r->{date}, 'full';
+        small_ ' '.fmtdate $r->{date}, 'full';
         txt_ ' by ';
         if($r->{uid}) {
             a_ href => "/$r->{uid}", $r->{username};

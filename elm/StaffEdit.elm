@@ -170,9 +170,9 @@ view model =
             Nothing -> text ""
         ]
       , td [ class "tc_add" ]
-        [ if model.aid == e.aid then b [ class "grayedout" ] [ text " primary" ]
+        [ if model.aid == e.aid then small [] [ text " primary" ]
           else if e.wantdel then b [ class "standout" ] [ text " still referenced" ]
-          else if e.inuse then b [ class "grayedout" ] [ text " referenced" ]
+          else if e.inuse then small [] [ text " referenced" ]
           else inputButton "remove" (AliasDel n) []
         ]
       ]

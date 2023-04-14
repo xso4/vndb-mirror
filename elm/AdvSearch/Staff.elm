@@ -69,10 +69,10 @@ fromQuery dat qf = S.fromQuery (\q ->
 view : Data -> Model -> (Html Msg, () -> List (Html Msg))
 view dat model =
   ( case Set.toList model.sel.sel of
-      []  -> b [ class "grayedout" ] [ text "Name" ]
+      []  -> small [] [ text "Name" ]
       [s] -> span [ class "nowrap" ]
              [ S.lblPrefix model.sel
-             , b [ class "grayedout" ] [ text <| "s" ++ String.fromInt s ++ ":" ]
+             , small [] [ text <| "s" ++ String.fromInt s ++ ":" ]
              , Dict.get (vndbid 's' s) dat.staff |> Maybe.map (\e -> e.title) |> Maybe.withDefault "" |> text
              ]
       l   -> span [] [ S.lblPrefix model.sel, text <| "Names (" ++ String.fromInt (List.length l) ++ ")" ]
@@ -84,11 +84,11 @@ view dat model =
     , ul [] <| List.map (\s ->
         li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ]
         [ inputButton "X" (Sel (S.Sel s False)) []
-        , b [ class "grayedout" ] [ text <| " s" ++ String.fromInt s ++ ": " ]
+        , small [] [ text <| " s" ++ String.fromInt s ++ ": " ]
         , Dict.get (vndbid 's' s) dat.staff |> Maybe.map (\e -> a [ href ("/" ++ e.id), target "_blank", style "display" "inline" ] [ text e.title ]) |> Maybe.withDefault (text "")
         ]
       ) (Set.toList model.sel.sel)
     , A.view model.conf model.search [ placeholder "Search..." ]
-    , b [ class "grayedout" ] [ text "All aliases of the selected staff entries are searched, not just the names you specified." ]
+    , small [] [ text "All aliases of the selected staff entries are searched, not just the names you specified." ]
     ]
   )

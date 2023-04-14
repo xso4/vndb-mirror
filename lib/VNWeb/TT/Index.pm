@@ -16,7 +16,7 @@ sub recent_ {
         li_ sub {
             txt_ fmtage $_->{added};
             txt_ ' ';
-            b_ class => 'grayedout', "$_->{group} / " if $_->{group};
+            small_ "$_->{group} / " if $_->{group};
             a_ href => "/$_->{id}", $_->{name};
         } for @$lst;
     };
@@ -33,7 +33,7 @@ sub popular_ {
     h1_ 'Popular';
     ul_ sub {
         li_ sub {
-            b_ class => 'grayedout', "$_->{group} / " if $_->{group};
+            small_ "$_->{group} / " if $_->{group};
             a_ href => "/$_->{id}", $_->{name};
             txt_ " ($_->{c_items})";
         } for @$lst;
@@ -51,7 +51,7 @@ sub moderation_ {
         li_ sub {
             txt_ fmtage $_->{added};
             txt_ ' ';
-            b_ class => 'grayedout', "$_->{group} / " if $_->{group};
+            small_ "$_->{group} / " if $_->{group};
             a_ href => "/$_->{id}", $_->{name};
         } for @$lst;
         li_ sub {

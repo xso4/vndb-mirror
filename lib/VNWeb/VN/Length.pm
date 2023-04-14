@@ -56,7 +56,7 @@ sub listing_ {
                     join_ ',', sub { a_ href => "/$_->{id}", $_->{id} }, sort { idcmp $a->{id}, $b->{id} } $_->{rel}->@*;
                 };
                 td_ class => 'tc6'.($_->{ignore}?' grayedout':''), sub {
-                    b_ class => 'grayedout', '(private) ' if $_->{private};
+                    small_ '(private) ' if $_->{private};
                     lit_ bb_format $_->{notes}, inline => 1;
                 };
                 td_ class => 'tc7', sub {

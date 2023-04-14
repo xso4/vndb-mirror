@@ -40,7 +40,7 @@ sub tree_ {
 
     my sub lnk_ {
         a_ href => "/$_[0]{id}", $_[0]{name};
-        b_ class => 'grayedout', " ($_[0]{c_items})" if $_[0]{c_items};
+        small_ " ($_[0]{c_items})" if $_[0]{c_items};
     }
     div_ class => 'mainbox', sub {
         h1_ $id ? ($type eq 'g' ? 'Child tags' : 'Child traits') : $type eq 'g' ? 'Tag tree' : 'Trait tree';

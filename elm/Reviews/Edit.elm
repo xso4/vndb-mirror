@@ -145,13 +145,13 @@ view model =
         , label [] [ inputRadio "type" (model.isfull == True ) (\_ -> Full True ), b [] [ text " Full review" ]
         , text " - Longer, more detailed." ]
         , br [] []
-        , b [ class "grayedout" ] [ text "You can always switch between review types later." ]
+        , small [] [ text "You can always switch between review types later." ]
         ]
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "" ] ]
       , formField ""
         [ label [] [ inputCheck "" model.spoiler Spoiler, text " This review contains spoilers." ]
         , br [] []
-        , b [ class "grayedout" ] [ text "You do not have to check this option if all spoilers in your review are marked with [spoiler] tags." ]
+        , small [] [ text "You do not have to check this option if all spoilers in your review are marked with [spoiler] tags." ]
         ]
       , if not model.mod then text "" else
         formField "" [ label [] [ inputCheck "" model.locked Locked, text " Locked for commenting." ] ]

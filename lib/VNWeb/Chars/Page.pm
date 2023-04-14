@@ -122,7 +122,7 @@ sub _rev_ {
             txt_ " $CHAR_ROLE{$_->{role}}{txt} (".fmtspoil($_->{spoil}).')';
         } ],
         [ traits => 'Traits', fmt => sub {
-            b_ class => 'grayedout', "$_->{groupname} / " if $_->{group} ne $_->{tid};
+            small_ "$_->{groupname} / " if $_->{group} ne $_->{tid};
             a_ href => "/$_->{tid}", $_->{name};
             txt_ ' ('.fmtspoil($_->{spoil}).($_->{lie} ? ', lie':'').')';
             b_ class => 'standout', ' (awaiting moderation)' if $_->{hidden} && !$_->{locked};
@@ -144,7 +144,7 @@ sub chartable_ {
                 $link
                 ? a_ href => "/$c->{id}", style => 'margin-right: 10px; font-weight: bold', tlang($c->{title}[0], $c->{title}[1]), $c->{title}[1]
                 : b_ style => 'margin-right: 10px', tlang($c->{title}[0], $c->{title}[1]), $c->{title}[1];
-                b_ class => 'grayedout', style => 'margin-right: 10px', tlang($c->{title}[2], $c->{title}[3]), $c->{title}[3] if $c->{title}[3] ne $c->{title}[1];
+                small_ style => 'margin-right: 10px', tlang($c->{title}[2], $c->{title}[3]), $c->{title}[3] if $c->{title}[3] ne $c->{title}[1];
                 abbr_ class => "icons gen $c->{gender}", title => $GENDER{$c->{gender}}, '' if $c->{gender} ne 'unknown';
                 if($view->{spoilers} == 2 && defined $c->{spoil_gender}) {
                     txt_ '(';
@@ -220,10 +220,10 @@ sub chartable_ {
                             a_ href => "/$v->{vid}", tattr $v if !$vn;
                             br_ if !$vn;
                             join_ \&br_, sub {
-                                b_ class => 'grayedout', '> ';
+                                small_ '> ';
                                 txt_ $CHAR_ROLE{$_->{role}}{txt}.' - ';
                                 if($_->{rid}) {
-                                    b_ class => 'grayedout', "$_->{rid}:";
+                                    small_ "$_->{rid}:";
                                     a_ href => "/$_->{rid}", tattr $_->{rtitle};
                                 } else {
                                     txt_ 'All other releases';
@@ -302,7 +302,7 @@ TUWF::get qr{/$RE{crev}} => sub {
                     a_ mkclass(checked => $view->{spoilers} == 1), href => '?view='.viewset(spoilers=>1, traits_sexual => $view->{traits_sexual}), 'Show minor spoilers';
                     a_ mkclass(standout =>$view->{spoilers} == 2), href => '?view='.viewset(spoilers=>2, traits_sexual => $view->{traits_sexual}), 'Spoil me!' if $max_spoil == 2;
                 }
-                b_ class => 'grayedout', ' | ' if $has_sex && $max_spoil;
+                small_ ' | ' if $has_sex && $max_spoil;
                 a_ mkclass(checked => $view->{traits_sexual}), href => '?view='.viewset(spoilers => $view->{spoilers}, traits_sexual=>!$view->{traits_sexual}), 'Show sexual traits' if $has_sex;
             };
             chartable_ $c;

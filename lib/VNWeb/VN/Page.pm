@@ -152,20 +152,20 @@ sub rev_ {
         [ editions    => 'Editions',      fmt => sub {
             abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, '' if $_->{lang};
             txt_ $_->{name};
-            b_ class => 'grayedout', ' (unofficial)' if !$_->{official};
+            small_ ' (unofficial)' if !$_->{official};
         }],
         [ staff       => 'Credits',       fmt => sub {
             my $eid = $_->{eid};
             my $e = defined $eid && (grep $eid == $_->{eid}, $_[0]{editions}->@*)[0];
             txt_ "[$e->{name}] " if $e;
             a_ href => "/$_->{sid}", tattr $_ if $_->{sid};
-            b_ class => 'grayedout', '[removed alias]' if !$_->{sid};
+            small_ '[removed alias]' if !$_->{sid};
             txt_ " [$CREDIT_TYPE{$_->{role}}]";
             txt_ " [$_->{note}]" if $_->{note};
         }],
         [ seiyuu      => 'Seiyuu',        fmt => sub {
             a_ href => "/$_->{sid}", tattr $_ if $_->{sid};
-            b_ class => 'grayedout', '[removed alias]' if !$_->{sid};
+            small_ '[removed alias]' if !$_->{sid};
             txt_ ' as ';
             a_ href => "/$_->{cid}", tattr $_->{char_title};
             txt_ " [$_->{note}]" if $_->{note};
@@ -186,7 +186,7 @@ sub rev_ {
             a_ href => "/img/$_->{scr}{id}", image_flagging_display $_->{scr};
             txt_ '] ';
             # The old NSFW flag has been removed around 2020-07-14, so not relevant for edits made later on.
-            b_ class => 'grayedout', sprintf 'old flag: %s', $_->{nsfw} ? 'NSFW' : 'Safe' if $_[0]{rev_added} < 1594684800;
+            small_ sprintf 'old flag: %s', $_->{nsfw} ? 'NSFW' : 'Safe' if $_[0]{rev_added} < 1594684800;
         }],
         [ image       => 'Image',         fmt => sub { image_ $_ } ],
         [ img_nsfw    => 'Image NSFW (unused)', fmt => sub { txt_ $_ ? 'Not safe' : 'Safe' } ],
@@ -215,7 +215,7 @@ sub infobox_relations_ {
                     dt_ @allunoff, $VN_RELATION{$_}{txt};
                     dd_ @allunoff, sub {
                         p_ class => $_->{official} ? undef : 'unofficial', sub {
-                            b_ class => 'grayedout', '[unofficial] ' if !$_->{official};
+                            small_ '[unofficial] ' if !$_->{official};
                             a_ href => "/$_->{vid}", tattr $_;
                         } for $rel{$_}->@*;
                     }
@@ -353,9 +353,9 @@ sub infobox_affiliates_ {
                 b_ class => 'standout', '» ';
                 a_ href => $_->[1], sub {
                     txt_ $_->[2];
-                    b_ class => 'grayedout', ' @ ';
+                    small_ ' @ ';
                     txt_ $_->[0];
-                    b_ class => 'grayedout', " ($type[$_->[3]])" if $_->[3] != 1;
+                    small_ " ($type[$_->[3]])" if $_->[3] != 1;
                 };
             }, sort { $a->[0] cmp $b->[0] || $a->[2] cmp $b->[2] } values %links;
         }
@@ -432,7 +432,7 @@ sub infobox_tags_ {
                                  .(($_->{color}//'') =~ /^#/ ? "; color: $_->{color}" : ''),
                         $_->{name};
                     spoil_ $_->{spoiler};
-                    b_ class => 'grayedout', sprintf ' %.1f', $_->{rating};
+                    small_ sprintf ' %.1f', $_->{rating};
                 }
             }, $v->{tags}->@*;
         }
@@ -611,7 +611,7 @@ sub releases_ {
             summary_ $mtl ? (class => 'mtl') : (), sub {
                 abbr_ class => "icons lang $lang".($mtl?' mtl':''), title => $LANGUAGE{$lang}, '';
                 txt_ $LANGUAGE{$lang};
-                b_ class => 'grayedout', sprintf ' (%d)', scalar $lang{$lang}->@*;
+                small_ sprintf ' (%d)', scalar $lang{$lang}->@*;
             };
             table_ class => 'releases', sub {
                 release_row_ $_, $ropt for $lang{$lang}->@*;
@@ -652,7 +652,7 @@ sub staff_cols_ {
                 li_ class => 'vnstaff_head', $CREDIT_TYPE{$_};
                 li_ sub {
                     a_ href => "/$_->{sid}", tattr $_;
-                    b_ class => 'grayedout', $_->{note} if $_->{note};
+                    small_ $_->{note} if $_->{note};
                 } for sort { $a->{title}[1] cmp $b->{title}[1] } $roles{$_}->@*;
             }
         ], grep $roles{$_}, keys %CREDIT_TYPE;
@@ -707,7 +707,7 @@ sub staff_ {
                     abbr_ class => "icons lang $e->{lang}", title => $LANGUAGE{$e->{lang}}, '' if $e && $e->{lang};
                     txt_ 'Original edition' if !$e;
                     txt_ $e->{name} if $e;
-                    b_ class => 'grayedout', ' (unofficial)' if $unoff;
+                    small_ ' (unofficial)' if $unoff;
                 };
                 staff_cols_ $lst;
             };
@@ -755,7 +755,7 @@ sub charsum_ {
                     $_->{seiyuu}->@* > 1 ? br_ : txt_ ' ';
                     join_ \&br_, sub {
                         a_ href => "/$_->{id}", tattr $_;
-                        b_ class => 'grayedout', $_->{note} if $_->{note};
+                        small_ $_->{note} if $_->{note};
                     }, $_->{seiyuu}->@*;
                 } if $_->{seiyuu}->@*;
             } for @$c;
@@ -820,7 +820,7 @@ sub stats_ {
             } } } if $v->{reviews}{total};
             tr_ sub {
                 td_ sub {
-                    b_ class => 'grayedout', 'hidden' if $_->{c_private};
+                    small_ 'hidden' if $_->{c_private};
                     user_ $_ if !$_->{c_private};
                 };
                 td_ fmtvote $_->{vote};
@@ -875,7 +875,7 @@ sub screenshots_ {
                 label_ for => 'scrhide_s1', class => 'fake_link', "Suggestive ($sex[1])" if $sex[1];
                 label_ for => 'scrhide_s2', class => 'fake_link', "Explicit ($sex[2])" if $sex[2];
             }
-            b_ class => 'grayedout', ' | ' if ($sexp < 0 || $sex[1] || $sex[2]) && ($vio[1] || $vio[2]);
+            small_ ' | ' if ($sexp < 0 || $sex[1] || $sex[2]) && ($vio[1] || $vio[2]);
             if($vio[1] || $vio[2]) {
                 label_ for => 'scrhide_v0', class => 'fake_link', "Tame ($vio[0])";
                 label_ for => 'scrhide_v1', class => 'fake_link', "Violent ($vio[1])" if $vio[1];
@@ -961,7 +961,7 @@ sub tags_ {
 
         li_ $lvl == 1 ? (class => 'tagvnlist-parent') : $t->{inherited} ? (class => 'tagvnlist-inherited') : (), sub {
             VNWeb::TT::Lib::tagscore_($t->{rating}, $t->{inherited});
-            b_ class => 'grayedout', '━━'x($lvl-1).' ' if $lvl > 1;
+            small_ '━━'x($lvl-1).' ' if $lvl > 1;
             a_ href => "/$t->{id}", mkclass(
                     $t->{color} ? ($t->{color}, $t->{color} =~ /standout|grayedout/ ? 1 : 0) : (),
                     lie => $t->{lie} && ($view->{spoilers} > 1 || defined $t->{override}),

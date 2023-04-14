@@ -138,7 +138,7 @@ langView (field, model) =
                       LangStaff -> locLangs
   in
   ( case Set.toList model.sel of
-      []  -> b [ class "grayedout" ] [ text label ]
+      []  -> small [] [ text label ]
       [v] -> span [ class "nowrap" ] [ text tprefix, lblPrefix model, langIcon v, text <| Maybe.withDefault "" (lookup v GT.languages) ]
       l   -> span [ class "nowrap" ] <| text tprefix :: lblPrefix model :: List.intersperse (text "") (List.map langIcon l)
   , \() ->
@@ -168,7 +168,7 @@ platformView unk model =
       fmt p t = [ if p == "" then text "" else platformIcon p, text t ]
   in
   ( case Set.toList model.sel of
-      []  -> b [ class "grayedout" ] [ text "Platform" ]
+      []  -> small [] [ text "Platform" ]
       [v] -> span [ class "nowrap" ] <| lblPrefix model :: fmt v (Maybe.withDefault "" (lookup v lst))
       l   -> span [ class "nowrap" ] <| lblPrefix model :: List.intersperse (text "") (List.map platformIcon l)
   , \() ->
@@ -194,7 +194,7 @@ platformFromQuery = fromQuery (\q ->
 
 lengthView model =
   ( case Set.toList model.sel of
-      []  -> b [ class "grayedout" ] [ text "Length" ]
+      []  -> small [] [ text "Length" ]
       [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" (lookup v GT.vnLengths) ]
       l   -> span [] [ lblPrefix model, text <| "Length (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
@@ -217,7 +217,7 @@ lengthFromQuery = fromQuery (\q ->
 
 devStatusView model =
   ( case Set.toList model.sel of
-      []  -> b [ class "grayedout" ] [ text "Status" ]
+      []  -> small [] [ text "Status" ]
       [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" (lookup v GT.devStatus) ]
       l   -> span [] [ lblPrefix model, text <| "Length (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
@@ -240,7 +240,7 @@ devStatusFromQuery = fromQuery (\q ->
 
 roleView model =
   ( case Set.toList model.sel of
-      []  -> b [ class "grayedout" ] [ text "Role" ]
+      []  -> small [] [ text "Role" ]
       [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" (lookup v GT.charRoles) ]
       l   -> span [] [ lblPrefix model, text <| "Role (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
@@ -263,7 +263,7 @@ roleFromQuery = fromQuery (\q ->
 
 bloodView model =
   ( case Set.toList model.sel of
-      []  -> b [ class "grayedout" ] [ text "Blood type" ]
+      []  -> small [] [ text "Blood type" ]
       [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| "Blood type " ++ Maybe.withDefault "" (lookup v GT.bloodTypes) ]
       l   -> span [] [ lblPrefix model, text <| "Blood type (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
@@ -303,7 +303,7 @@ sexUpdate msg (spoil,model) =
 
 sexView (spoil,model) =
   ( case Set.toList model.sel of
-      []  -> b [ class "grayedout" ] [ text "Sex" ]
+      []  -> small [] [ text "Sex" ]
       [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| "Sex: " ++ Maybe.withDefault "" (lookup v GT.genders) ]
       l   -> span [] [ lblPrefix model, text <| "Sex (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
@@ -326,7 +326,7 @@ sexView (spoil,model) =
 
 genderView model =
   ( case Set.toList model.sel of
-      []  -> b [ class "grayedout" ] [ text "Gender" ]
+      []  -> small [] [ text "Gender" ]
       [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" (lookup v GT.genders) ]
       l   -> span [] [ lblPrefix model, text <| "Gender (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
@@ -349,7 +349,7 @@ genderFromQuery = fromQuery (\q ->
 
 mediumView model =
   ( case Set.toList model.sel of
-      []  -> b [ class "grayedout" ] [ text "Medium" ]
+      []  -> small [] [ text "Medium" ]
       [v] -> span [ class "nowrap" ]
              [ lblPrefix model
              , text <| if v == "" then "Medium: Unknown" else
@@ -378,7 +378,7 @@ mediumFromQuery = fromQuery (\q ->
 
 voicedView model =
   ( case Set.toList model.sel of
-      []  -> b [ class "grayedout" ] [ text "Voiced" ]
+      []  -> small [] [ text "Voiced" ]
       [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" (lookup v GT.voiced) ]
       l   -> span [] [ lblPrefix model, text <| "Voiced (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
@@ -403,7 +403,7 @@ animatedView story model =
   let lbl = (if story then "Story" else "Ero") ++ " animation"
   in
   ( case Set.toList model.sel of
-      []  -> b [ class "grayedout" ] [ text lbl ]
+      []  -> small [] [ text lbl ]
       [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| (if story then "S " else "E ") ++ Maybe.withDefault "" (lookup v GT.animated) ]
       l   -> span [ class "nowrap" ] [ lblPrefix model, text <| lbl ++ " (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
@@ -427,7 +427,7 @@ animatedFromQuery story = fromQuery (\q ->
 
 rtypeView model =
   ( case Set.toList model.sel of
-      []  -> b [ class "grayedout" ] [ text "Type" ]
+      []  -> small [] [ text "Type" ]
       [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" (lookup v GT.releaseTypes) ]
       l   -> span [ class "nowrap" ] [ lblPrefix model, text <| "Types (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
@@ -451,7 +451,7 @@ rtypeFromQuery = fromQuery (\q ->
 
 labelView dat model =
   ( case Set.toList model.sel of
-      []  -> b [ class "grayedout" ] [ text "Labels" ]
+      []  -> small [] [ text "Labels" ]
       [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" (lookup v dat.labels) ]
       l   -> span [ class "nowrap" ] [ lblPrefix model, text <| "Labels (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
@@ -477,7 +477,7 @@ sroleView model =
   let lst = ("seiyuu","Voice actor") :: GT.creditTypes
   in
   ( case Set.toList model.sel of
-      []  -> b [ class "grayedout" ] [ text "Role" ]
+      []  -> small [] [ text "Role" ]
       [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" <| lookup v lst ]
       l   -> span [ class "nowrap" ] [ lblPrefix model, text <| "Roles (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
@@ -500,7 +500,7 @@ sroleFromQuery = fromQuery (\q ->
 
 rlistView model =
   ( case Set.toList model.sel of
-      []  -> b [ class "grayedout" ] [ text "List status" ]
+      []  -> small [] [ text "List status" ]
       [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" <| lookup v GT.rlistStatus ]
       l   -> span [ class "nowrap" ] [ lblPrefix model, text <| "List (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
@@ -523,7 +523,7 @@ rlistFromQuery = fromQuery (\q ->
 
 ptypeView model =
   ( case Set.toList model.sel of
-      []  -> b [ class "grayedout" ] [ text "Type" ]
+      []  -> small [] [ text "Type" ]
       [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" (lookup v GT.producerTypes) ]
       l   -> span [ class "nowrap" ] [ lblPrefix model, text <| "Types (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
@@ -548,7 +548,7 @@ extlinkView model =
   let lst = List.map (\l -> (l.advid, l.name)) GEL.releaseSites
   in
   ( case Set.toList model.sel of
-      []  -> b [ class "grayedout" ] [ text "External links" ]
+      []  -> small [] [ text "External links" ]
       [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" (lookup v lst) ]
       l   -> span [ class "nowrap" ] [ lblPrefix model, text <| "Links (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->

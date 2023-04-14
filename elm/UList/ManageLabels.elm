@@ -76,8 +76,8 @@ view model =
         ]
       , td [ ] [ linkRadio l.private (Private n) [ text "private" ] ]
       , td [ class "stealth" ]
-        [      if l.id == 7             then b [ class "grayedout" ] [ text "applied when you vote" ]
-          else if l.id > 0 && l.id < 10 then b [ class "grayedout" ] [ text "built-in" ]
+        [      if l.id == 7             then small [] [ text "applied when you vote" ]
+          else if l.id > 0 && l.id < 10 then small [] [ text "built-in" ]
           else if l.delete == Nothing   then a [ onClick (Delete n (Just 1)) ] [ text "remove" ]
           else inputSelect "" l.delete (Delete n) []
             [ (Nothing, "Keep label")

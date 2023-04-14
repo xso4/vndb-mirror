@@ -125,9 +125,7 @@ div.warning h2, div.notice h2 { font-size: 13px; font-weight: bold; margin: 0; }
 
 ul, ol        { margin-left: 35px; }
 p.itemmsg     { float: right; color: var(--standout); font-style: italic; margin: 0!important }
-.grayedout    { color: var(--grayedout) }
-b.grayedout   { font-weight: normal }
-i.grayedout   { font-style: normal }
+small, .grayedout { font-size: inherit; color: var(--grayedout) }
 .underline    { text-decoration: underline }
 .monospace    { font-family: monospace!important }
 #maincontent h2 b { font: 13px "Tahoma", "Arial", sans-serif; font-weight: normal; }
@@ -429,7 +427,7 @@ div.history td.tc1_1 { width: 70px; padding-right: 0; text-align: right }
 div.history td.tc1_2 { width: 30px; padding-left: 0 }
 div.history td.tc2   { width: 140px }
 div.history td.tc4   { width: 100% }
-div.history td.tc4 b { margin-left: 10px }
+div.history td.tc4 small { margin-left: 10px }
 
 
 
@@ -484,7 +482,6 @@ div.postsearch td.tc3             { width: 90px; }
 .releases td.tc5       { width: 76px; text-align: right }
 .releases td.tc6       { text-align: right; width: 35px; padding: 0; white-space: nowrap }
 .releases tr.mtl a,
-.releases tr.mtl b,
 .releases tr.mtl td { color: var(--grayedout) }
 .releaseero { cursor: default; color: transparent; opacity: 0.7 }
 .releaseero_no  { text-shadow: 0 0 var(--grayedout) }
@@ -493,7 +490,7 @@ div.postsearch td.tc3             { width: 90px; }
 .releaseero_unc { text-shadow: 0 0 var(--statok) }
 
 .vnreleases details { margin: 7px 0 3px 0 }
-.vnreleases details[open] summary b.grayedout { display: none }
+.vnreleases details[open] summary small { display: none }
 .vnreleases summary { background: var(--boxbg); font-weight: bold; width: 100% }
 .vnreleases summary.mtl { color: var(--grayedout); }
 
@@ -535,7 +532,7 @@ div.vndetails .lengthvotefrm {
 
 div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid var(--border); padding: 3px 5% 0 5%; text-align: center; }
 #vntags span                  { white-space: nowrap; margin-left: 15px; }
-#vntags b                     { color: var(--grayedout); font-weight: normal; font-size: 10px }
+#vntags small                 { font-size: 10px }
 #vntags .lieo                 { text-decoration: line-through }
 #tagops                       { text-align: right; width: auto; }
 
@@ -625,7 +622,7 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid var
 .vntaglist li.tagvnlist-parent { margin: 5px 0 3px 0 }
 .vntaglist li.tagvnlist-parent a { color: var(--maintext); font-weight: bold }
 .vntaglist li.tagvnlist-inherited a { color: var(--grayedout) }
-.vntaglist li:not(.tagvnlist-inherited) b.grayedout { color: var(--link) }
+.vntaglist li:not(.tagvnlist-inherited) small { color: var(--link) }
 .vntaglist h3 a { color: var(--maintext) }
 .vntaglist .lie { text-decoration: line-through }
 .vntaglist li { list-style-type: none; padding-right: 30px }
@@ -821,15 +818,15 @@ div.charb table    { table-layout: fixed }
 div.charb td       { white-space: nowrap }
 div.charb td.tc1   { text-align: right; width: 40px; padding-left: 0!important; padding-bottom: 0 }
 div.charb td.tc2   { overflow: hidden }
-div.charb td.tc2 b { margin-left: 10px }
-div.charb td.tc2 b a { color: var(--grayedout)!important }
+div.charb td.tc2 small { margin-left: 10px }
+div.charb td.tc2 small a { color: inherit }
 
 div.charbcard { padding: 0; display: flex; flex-wrap: wrap }
 div.charbcard > div { padding: 2px 2px 10px 2px; display: flex; flex: 1; min-width: 280px }
 div.charbcard > div:hover { background-color: var(--secbg) }
 div.charbcard > div > div:first-child { flex-shrink: 0; width: 90px; height: 120px; text-align: center }
 div.charbcard > div > div:nth-child(2) { height: 120px; padding-left: 5px; overflow-y: hidden }
-div.charbcard b a { color: var(--grayedout)!important }
+div.charbcard small a { color: inherit }
 
 div.charbgrid { padding: 10px; display: flex; flex-wrap: wrap; justify-content: space-evenly }
 div.charbgrid a { margin: 5px 10px 15px 10px; flex: 1 0 200px; max-width: 256px; height: 300px; background-size: cover; background-repeat: no-repeat; background-position: top; text-align: center; opacity: 0.9 }
@@ -863,7 +860,7 @@ table.aliases td.key { padding: 0 5px 0 0; width: auto }
 .vnstaff-4 ul { width: 24% }
 .vnstaff li { padding-bottom: 1px; padding-left: 10px; }
 .vnstaff li a { display: inline-block; margin-left: -10px }
-.vnstaff li b { padding-left: 10px }
+.vnstaff li small { padding-left: 10px }
 .vnstaff li.vnstaff_head { font-weight: bold; padding-left: 0 }
 .vnstaff li:not(:first-child).vnstaff_head { margin-top: 15px }
 .vnstaff summary { background: var(--boxbg); font-weight: bold; width: 100% }
@@ -877,7 +874,7 @@ div.charsum_list .name { white-space: nowrap; display: flex; justify-content: sp
 div.charsum_list .name span { overflow: hidden; text-overflow: ellipsis; padding-bottom: 1px }
 div.charsum_list .name a { font-weight: bold }
 div.charsum_list .actor { border-top: 1px solid var(--border); padding-top: 3px }
-div.charsum_list .actor b.grayedout { margin-left: 10px }
+div.charsum_list .actor small { margin-left: 10px }
 div.charsum_list .charsum_bubble {
   background: var(--boxbg);
   display: inline-block;
@@ -966,7 +963,7 @@ div.lengthlist {
 .ulist .tc1 input { display: none }
 .ulist .tc1 label:before { content: '▸ ' }
 .ulist .tc1 input:checked + label:before { content: '▾ ' }
-.ulist .tc_title b { margin-left: 10px }
+.ulist .tc_title small { margin-left: 10px }
 .ulist .tc_vote { white-space: nowrap; width: 60px; text-align: right; padding-right: 10px }
 .ulist .tc_vote input { width: 55px; text-align: right }
 .ulist .tc_voted,
@@ -1071,7 +1068,7 @@ div.uposts td.tc1   { width: 60px; padding-left: 0!important; padding-right: 0; 
 div.uposts td.tc2   { width: 40px; padding-left: 0 }
 div.uposts td.tc3   { width: 80px; }
 div.uposts td.tc4   { overflow: hidden }
-div.uposts td.tc4 b { margin-left: 10px }
+div.uposts td.tc4 small { margin-left: 10px }
 
 
 

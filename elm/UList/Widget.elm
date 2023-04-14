@@ -223,7 +223,7 @@ viewStatus model =
   case (model.loadState, model.del, model.onlist) of
     (Api.Loading, _, _) -> [ span [ class "spinner" ] [] ]
     (Api.Error e, _, _) -> [ b [ class "standout" ] [ text <| Api.showResponse e ] ]
-    (_, _, False) -> [ b [ class "grayedout" ] [ text "not on your list" ] ]
+    (_, _, False) -> [ small [] [ text "not on your list" ] ]
     (_, True, _) ->
       [ a [ onClickD Delete ] [ text "Yes, delete" ]
       , text " | "

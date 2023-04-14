@@ -58,9 +58,9 @@ view canUnk lbl fmt model =
       then p [ class "center" ] [ text <| lbl ++ " is " ++ (if model.op /= Eq then "known/set." else "unknown/unset.") ]
       else
       div [ style "display" "flex", style "justify-content" "space-between", style "margin-top" "5px" ]
-      [ b [ class "grayedout" ] [ text (val 0) ]
+      [ small [] [ text (val 0) ]
       , b [] [ text (val model.val) ]
-      , b [ class "grayedout" ] [ text (val (Array.length model.lst - 1)) ]
+      , small [] [ text (val (Array.length model.lst - 1)) ]
       ]
     , if model.unk then text "" else
       input

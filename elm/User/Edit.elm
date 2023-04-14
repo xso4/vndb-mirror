@@ -460,7 +460,7 @@ view model =
         , if List.isEmpty m.traits then text ""
           else table [] <| List.indexedMap (\i t -> tr []
             [ td []
-              [ Maybe.withDefault (text "") <| Maybe.map (\g -> b [ class "grayedout" ] [ text <| g ++ " / " ]) t.group
+              [ Maybe.withDefault (text "") <| Maybe.map (\g -> small [] [ text <| g ++ " / " ]) t.group
               , a [ href <| "/" ++ t.tid ] [ text t.name ]
               ]
             , td [] [ inputButton "remove" (Prefs (TraitDel i)) [] ]
@@ -568,7 +568,7 @@ view model =
       , formField "css::Custom CSS"
         [ inputTextArea "css" m.customcss (Prefs << Css) ([ rows 5, cols 60 ] ++ GUE.valPrefsCustomcss)
         , br [] []
-        , b [ class "grayedout" ] [ text "(@import statements do not work)" ] ]
+        , small [] [ text "(@import statements do not work)" ] ]
       ]
 
     ttpref msg fmt name t =
@@ -617,7 +617,7 @@ view model =
         [ if List.isEmpty m.traitprefs then text ""
           else table [] <| List.indexedMap (\i t ->
             ttpref (Prefs << TraitP i)
-            [ Maybe.withDefault (text "") <| Maybe.map (\g -> b [ class "grayedout" ] [ text <| g ++ " / " ]) t.group
+            [ Maybe.withDefault (text "") <| Maybe.map (\g -> small [] [ text <| g ++ " / " ]) t.group
             , a [ href <| "/" ++ t.tid ] [ text t.name ] ]
             "tags" t) m.traitprefs
         , if List.length m.traits >= 500 then text ""
@@ -659,7 +659,7 @@ view model =
             then api2edit n t
             else text <| "Permissions: " ++ if t.listwrite then "access & modify list." else if t.listread then "access list." else "none."
           , br [] []
-          , b [ class "grayedout" ] [ text <| "Created on "++t.added ++ (if t.lastused == "" then ", never used" else ", last used on "++t.lastused)++"." ]
+          , small [] [ text <| "Created on "++t.added ++ (if t.lastused == "" then ", never used" else ", last used on "++t.lastused)++"." ]
           ]
         , br_ 2
         ]

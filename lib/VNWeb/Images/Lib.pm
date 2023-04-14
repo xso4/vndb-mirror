@@ -141,7 +141,7 @@ sub image_ {
                 br_; br_;
                 span_ class => 'fake_link', 'Show me anyway';
                 br_; br_;
-                b_ class => 'grayedout', 'This warning can be disabled in your account';
+                small_ 'This warning can be disabled in your account';
             }
         } if $hide_on_click;
     }

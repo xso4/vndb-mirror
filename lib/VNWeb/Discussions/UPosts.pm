@@ -24,7 +24,7 @@ sub listing_ {
                 td_ class => 'tc3', fmtdate $_->{date};
                 td_ class => 'tc4', sub {
                     a_ href => $url, $_->{title};
-                    b_ class => 'grayedout', sub { lit_ bb_format $_->{msg}, maxlength => 150, inline => 1 };
+                    small_ sub { lit_ bb_format $_->{msg}, maxlength => 150, inline => 1 };
                 };
             } for @$list;
         }

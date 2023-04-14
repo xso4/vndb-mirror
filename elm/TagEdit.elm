@@ -197,7 +197,7 @@ view model =
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "" ] ]
       , formField "Parent tags"
         [ table [ class "compact" ] <| List.indexedMap (\i p -> tr []
-            [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| p.parent ++ ":" ] ]
+            [ td [ style "text-align" "right" ] [ small [] [ text <| p.parent ++ ":" ] ]
             , td [] [ a [ href <| "/" ++ p.parent ] [ text p.name ] ]
             , td [] [ label [] [ inputRadio "parentprimary" p.main (ParentMain i), text " primary" ] ]
             , td [] [ inputButton "remove" (ParentDel i) [] ]
@@ -209,19 +209,19 @@ view model =
       ++ if not model.editsum.authmod || model.id == Nothing then [] else
       [ tr [ class "newpart" ] [ td [ colspan 2 ]
         [ text "DANGER ZONE"
-        , b [ class "grayedout" ] [ text " (The options in this section are not visible in the edit history. Your edit summary will not be visible anywhere unless you also changed something in the above fields)" ]
+        , small [] [ text " (The options in this section are not visible in the edit history. Your edit summary will not be visible anywhere unless you also changed something in the above fields)" ]
         , br_ 2
         ] ]
       , formField ""
         [ inputCheck "" model.wipevotes WipeVotes
         , text " Delete all direct votes on this tag. WARNING: cannot be undone!", br [] []
-        , b [ class "grayedout" ] [ text "Does not affect votes on child tags. Old votes may still show up for 24 hours due to database caching." ]
+        , small [] [ text "Does not affect votes on child tags. Old votes may still show up for 24 hours due to database caching." ]
         ]
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "" ] ]
       , formField "Merge votes"
         [ text "All direct votes on the listed tags will be moved to this tag. WARNING: cannot be undone!", br [] []
         , table [ class "compact" ] <| List.indexedMap (\i p -> tr []
-            [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| p.id ++ ":" ] ]
+            [ td [ style "text-align" "right" ] [ small [] [ text <| p.id ++ ":" ] ]
             , td [] [ a [ href <| "/" ++ p.id ] [ text p.name ] ]
             , td [] [ inputButton "remove" (MergeDel i) [] ]
             ]

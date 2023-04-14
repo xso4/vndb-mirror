@@ -21,9 +21,9 @@ sub listing_ {
                 td_ class => 'tc1', fmtage $_->{added};
                 td_ class => 'tc2', $_->{c_items}||'-';
                 td_ class => 'tc3', sub {
-                    b_ class => 'grayedout', "$_->{group} / " if $_->{group};
+                    small_ "$_->{group} / " if $_->{group};
                     a_ href => "/$_->{id}", $_->{name};
-                    join_ ',', sub { b_ class => 'grayedout', ' '.$_ },
+                    join_ ',', sub { small_ ' '.$_ },
                         !$_->{hidden} ? () : $_->{locked} ? 'deleted' : 'awaiting moderation',
                         !$_->{applicable} ? 'not applicable' : (),
                         !$_->{searchable} ? 'not searchable' : ();

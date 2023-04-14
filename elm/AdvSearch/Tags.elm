@@ -89,10 +89,10 @@ fromQuery spoil inherit exclie dat q =
 view : Data -> Model -> (Html Msg, () -> List (Html Msg))
 view dat model =
   ( case Set.toList model.sel.sel of
-      []  -> b [ class "grayedout" ] [ text "Tags" ]
+      []  -> small [] [ text "Tags" ]
       [(s,_)] -> span [ class "nowrap" ]
              [ S.lblPrefix model.sel
-             , b [ class "grayedout" ] [ text <| "g" ++ String.fromInt s ++ ":" ]
+             , small [] [ text <| "g" ++ String.fromInt s ++ ":" ]
              , Dict.get (vndbid 'g' s) dat.tags |> Maybe.map (\t -> t.name) |> Maybe.withDefault "" |> text
              ]
       l   -> span [] [ S.lblPrefix model.sel, text <| "Tags (" ++ String.fromInt (List.length l) ++ ")" ]
@@ -118,7 +118,7 @@ view dat model =
           (0, "any")
           :: List.map (\i -> (i, String.fromInt (i//5) ++ "." ++ String.fromInt (2*(modBy 5 i)) ++ "+")) (List.range 1 14)
           ++ [(15, "3.0")]
-        , b [ class "grayedout" ] [ text <| " g" ++ String.fromInt t ++ ": " ]
+        , small [] [ text <| " g" ++ String.fromInt t ++ ": " ]
         , Dict.get (vndbid 'g' t) dat.tags |> Maybe.map (\e -> a [ href ("/" ++ e.id), target "_blank", style "display" "inline" ] [ text e.name ]) |> Maybe.withDefault (text "")
         ]
       ) (Set.toList model.sel.sel)

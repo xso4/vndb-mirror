@@ -78,7 +78,7 @@ view name model cmdmap width attr header =
       , p [ class "right", classList [("invisible", model.data == "")] ]
         [ case model.state of
             Api.Loading -> span [ class "spinner" ] []
-            Api.Error _ -> b [ class "grayedout" ] [ text "Error loading preview. " ]
+            Api.Error _ -> small [] [ text "Error loading preview. " ]
             Api.Normal  -> text ""
         , if display
           then a [ onClickN (cmdmap TextArea) ] [ text "Edit" ]

@@ -485,7 +485,7 @@ view model =
       , formField "Related VNs"
         [ if List.isEmpty model.vns then text ""
           else table [] <| List.indexedMap (\i v -> tr []
-            [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| v.vid ++ ":" ] ]
+            [ td [ style "text-align" "right" ] [ small [] [ text <| v.vid ++ ":" ] ]
             , td [ style "text-align" "right"] [ a [ href <| "/" ++ v.vid ] [ text v.title ] ]
             , td []
               [ text "is an "
@@ -502,7 +502,7 @@ view model =
       , formField "Related anime"
         [ if List.isEmpty model.anime then text ""
           else table [] <| List.indexedMap (\i e -> tr []
-            [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| "a" ++ String.fromInt e.aid ++ ":" ] ]
+            [ td [ style "text-align" "right" ] [ small [] [ text <| "a" ++ String.fromInt e.aid ++ ":" ] ]
             , td [] [ a [ href <| "https://anidb.net/anime/" ++ String.fromInt e.aid ] [ text e.title ] ]
             , td [] [ inputButton "remove" (AnimeDel i) [] ]
             ]
@@ -563,7 +563,7 @@ view model =
             ]
           ] ] ]
         item (n,s) = tr []
-          [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| s.id ++ ":" ] ]
+          [ td [ style "text-align" "right" ] [ small [] [ text <| s.id ++ ":" ] ]
           , td [] [ a [ href <| "/" ++ s.id ] [ text s.title ] ]
           , td [] [ inputSelect "" s.role (StaffRole n) [style "width" "150px" ] GT.creditTypes ]
           , td [] [ inputText "" s.note (StaffNote n) (style "width" "300px" :: onInvalid (Invalid Staff) :: GVE.valStaffNote) ]
@@ -629,7 +629,7 @@ view model =
           [ td [] [ inputSelect "" s.cid (SeiyuuChar n) []
             <| chars ++ if List.any (\c -> c.id == s.cid) model.chars then [] else [(s.cid, "[deleted/moved character: " ++ s.cid ++ "]")] ]
           , td []
-            [ b [ class "grayedout" ] [ text <| s.id ++ ":" ]
+            [ small [] [ text <| s.id ++ ":" ]
             , a [ href <| "/" ++ s.id ] [ text s.title ] ]
           , td [] [ inputText "" s.note (SeiyuuNote n) (style "width" "300px" :: onInvalid (Invalid Cast) :: GVE.valSeiyuuNote) ]
           , td [] [ inputButton "remove" (SeiyuuDel n) [] ]

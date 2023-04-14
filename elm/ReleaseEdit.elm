@@ -343,7 +343,7 @@ viewAnimation cut na m v =
       lbl typ txt =
         if v == Nothing || (typ == 0 && v == Just 0) || (typ == 1 && v == Just 1) || (typ == 2 && v /= Just 0 && v /= Just 1)
         then text txt
-        else b [ class "grayedout" ] [ text txt ]
+        else small [] [ text txt ]
   in
   [ if cut then text "" else
     label [] [ inputCheck "" (v == Just 0) (\b -> m <| if b then Just 0 else Nothing), lbl 0 " Not animated", br [] [] ]
@@ -497,7 +497,7 @@ viewGen model =
   , formField "Visual novels"
     [ if List.isEmpty model.vn then b [ class "standout" ] [ text "No visual novels selected.", br [] [] ]
       else table [] <| List.indexedMap (\i v -> tr []
-        [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| v.vid ++ ":" ] ]
+        [ td [ style "text-align" "right" ] [ small [] [ text <| v.vid ++ ":" ] ]
         , td [] [ a [ href <| "/" ++ v.vid ] [ text v.title ] ]
         , td [] [ inputSelect "" v.rtype (VNRType i) [style "width" "100px"] GT.releaseTypes ]
         , td [] [ inputButton "remove" (VNDel i) [] ]
@@ -508,7 +508,7 @@ viewGen model =
   , tr [ class "newpart" ] [ td [ colspan 2 ] [] ]
   , formField "Producers"
     [ table [ class "compact" ] <| List.indexedMap (\i p -> tr []
-        [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| p.pid ++ ":" ] ]
+        [ td [ style "text-align" "right" ] [ small [] [ text <| p.pid ++ ":" ] ]
         , td [] [ a [ href <| "/" ++ p.pid ] [ text p.name ] ]
         , td [] [ inputSelect "" (p.developer, p.publisher) (ProdRole i) [style "width" "100px"] [((True,False), "Developer"), ((False,True), "Publisher"), ((True,True), "Both")] ]
         , td [] [ inputButton "remove" (ProdDel i) [] ]

@@ -69,7 +69,7 @@ fromQuery dat q =
 view : Model -> (Html Msg, () -> List (Html Msg))
 view model =
   ( case model.reso of
-      Nothing -> b [ class "grayedout" ] [ text "Resolution" ]
+      Nothing -> small [] [ text "Resolution" ]
       Just (x,y) -> span [ class "nowrap" ] [ text <| (if x > 0 && model.aspect then "A " else "R ") ++ showOp model.op ++ " " ++ resoFmt False x y ]
   , \() ->
     [ div [ class "advheader" ]

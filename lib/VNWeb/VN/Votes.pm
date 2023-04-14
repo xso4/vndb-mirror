@@ -19,7 +19,7 @@ sub listing_ {
                 td_ class => 'tc1', fmtdate $_->{date};
                 td_ class => 'tc2', fmtvote $_->{vote};
                 td_ class => 'tc3', sub {
-                    b_ class => 'grayedout', 'hidden' if $_->{c_private};
+                    small_ 'hidden' if $_->{c_private};
                     user_ $_ if !$_->{c_private};
                 };
             } for @$lst;

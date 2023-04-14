@@ -71,7 +71,7 @@ sub listing_ {
                 txt_ ' ';
                 input_ type => 'submit', class => 'submit', name => 'markread', value => 'mark selected read';
                 input_ type => 'submit', class => 'submit', name => 'remove', value => 'remove selected';
-                b_ class => 'grayedout', ' (Read notifications are automatically removed after one month)';
+                small_ ' (Read notifications are automatically removed after one month)';
             }
         }};
         tr_ $_->{read} ? () : (class => 'unread'), sub {

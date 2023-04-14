@@ -97,7 +97,7 @@ update msg model =
 
 view : Model a -> Html (Msg a)
 view model =
-  let msg st s = span [] [ br [] [], b [ class "grayedout" ] [ text ">>> " ], if st then b [ class "standout" ] [ text s ] else text s ]
+  let msg st s = span [] [ br [] [], small [] [ text ">>> " ], if st then b [ class "standout" ] [ text s ] else text s ]
   in
   Html.form [ onSubmit Enter ]
   [ table [] <| List.concatMap (\s ->
@@ -105,7 +105,7 @@ view model =
         let (pre, val, suf) = splitPrintf s.fmt l
         in tr []
            [ td [] [ a [ href <| pre ++ val ++ suf, target "_blank" ] [ text s.name ] ]
-           , td [] [ b [ class "grayedout" ] [ text pre ], text val, b [ class "grayedout" ] [ text suf ] ]
+           , td [] [ small [] [ text pre ], text val, small [] [ text suf ] ]
            , td [] [ inputButton "remove" (Del s.del i) [] ]
            ]
       ) (s.links model.links)
@@ -122,7 +122,7 @@ view model =
       then table [] <| List.map (\s ->
         tr []
            [ td [] [ text s.name ]
-           , td [] <| List.indexedMap (\i l -> if modBy 2 i == 0 then b [ class "grayedout" ] [ text l ] else text l) s.patt
+           , td [] <| List.indexedMap (\i l -> if modBy 2 i == 0 then small [] [ text l ] else text l) s.patt
            ]
         ) model.sites
       else text <| String.join ", " (List.map (\s -> s.name) model.sites) ++ "."

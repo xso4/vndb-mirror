@@ -160,10 +160,10 @@ view model =
         , text (Maybe.withDefault "" (lookup bd.btype boardTypes))
         ] ++ case (bd.btype, bd.iid, bd.title) of
           (_, Just iid, Just title) ->
-            [ b [ class "grayedout" ] [ text " > " ]
+            [ small [] [ text " > " ]
             , a [ href <| "/" ++ iid ] [ text title ]
             ]
-          ("u", Just iid, _) -> [ b [ class "grayedout" ] [ text " > " ], text <| iid ++ " (deleted)" ]
+          ("u", Just iid, _) -> [ small [] [ text " > " ], text <| iid ++ " (deleted)" ]
           _ -> []
 
     boards () =

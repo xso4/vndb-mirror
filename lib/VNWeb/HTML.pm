@@ -92,7 +92,7 @@ sub user_ {
     my $capital = shift;
     my sub f($) { $obj->{"${prefix}$_[0]"} }
 
-    return b_ class => 'grayedout', 'anonymous' if !f 'id';
+    return small_ 'anonymous' if !f 'id';
     my $fancy = !(auth->pref('nodistract_can') && auth->pref('nodistract_nofancy'));
     my $uniname = f 'uniname_can' && f 'uniname';
     a_ href => '/'.f('id'),
@@ -228,12 +228,12 @@ sub _menu_ {
         div_ sub {
             a_ href => '/',      'Home'; br_;
             a_ href => '/v',     'Visual novels'; br_;
-            b_ class => 'grayedout', '> '; a_ href => '/g', 'Tags'; br_;
+            small_ '> '; a_ href => '/g', 'Tags'; br_;
             a_ href => '/r',     'Releases'; br_;
             a_ href => '/p',     'Producers'; br_;
             a_ href => '/s',     'Staff'; br_;
             a_ href => '/c',     'Characters'; br_;
-            b_ class => 'grayedout', '> '; a_ href => '/i', 'Traits'; br_;
+            small_ '> '; a_ href => '/i', 'Traits'; br_;
             a_ href => '/u/all', 'Users'; br_;
             a_ href => '/hist',  'Recent changes'; br_;
             a_ href => '/t',     'Discussion board'; br_;
@@ -280,7 +280,7 @@ sub _menu_ {
                     (SELECT count(*) FROM reports WHERE lastmod > (SELECT last_reports FROM users_prefs WHERE id =", \auth->uid, ")) AS upd
                 ");
                 a_ $stats->{unseen} ? (class => 'standout') : (), href => '/report/list?status=new', sprintf 'Reports %d/%d', $stats->{unseen}, $stats->{new};
-                b_ class => 'grayedout', ' | ';
+                small_ ' | ';
                 a_ href => '/report/list?s=lastmod', sprintf '%d upd', $stats->{upd};
                 br_;
                 a_ global_settings->{lockdown_edit} || global_settings->{lockdown_board} || global_settings->{lockdown_registration} ? (class => 'standout') : (), href => '/lockdown', 'Lockdown';
@@ -309,13 +309,13 @@ sub _menu_ {
             dl_ sub {
                 my %stats = map +($_->{section}, $_->{count}), tuwf->dbAll('SELECT * FROM stats_cache')->@*;
                 dt_ 'Visual Novels'; dd_ $stats{vn};
-                dt_ sub { b_ class => 'grayedout', '> '; lit_ 'Tags' };
+                dt_ sub { small_ '> '; lit_ 'Tags' };
                                      dd_ $stats{tags};
                 dt_ 'Releases';      dd_ $stats{releases};
                 dt_ 'Producers';     dd_ $stats{producers};
                 dt_ 'Staff';         dd_ $stats{staff};
                 dt_ 'Characters';    dd_ $stats{chars};
-                dt_ sub { b_ class => 'grayedout', '> '; lit_ 'Traits' };
+                dt_ sub { small_ '> '; lit_ 'Traits' };
                                      dd_ $stats{traits};
             };
             clearfloat_;
@@ -562,7 +562,7 @@ sub revision_patrolled_ {
         "Patrolled by ".join(', ', map user_displayname($_), $r->{rev_patrolled}->@*), '✓'
         if $r->{rev_patrolled}->@*;
     return lit_ '✓' if $r->{rev_dbmod};
-    span_ class => 'grayedout', '#';
+    small_ '#';
 }
 
 

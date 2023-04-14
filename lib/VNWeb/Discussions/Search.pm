@@ -133,7 +133,7 @@ sub posts_ {
                         xml_escape($l->{headline})
                             =~ s/\[raw\]/<b class="standout">/gr
                             =~ s/\[\/raw\]/<\/b>/gr
-                            =~ s/\[code\]/<b class="grayedout">...<\/b><br \/>/gr
+                            =~ s/\[code\]/<small>...<\/small><br \/>/gr
                     )};
                 };
             } for @$posts;

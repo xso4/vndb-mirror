@@ -34,12 +34,12 @@ sub listing_ {
                 };
                 td_ class => 'tc5', sub {
                     my $s = !defined $i->{spoiler} ? '' : fmtspoil $i->{spoiler};
-                    b_ class => 'grayedout', $s if $i->{ignore};
+                    small_ $s if $i->{ignore};
                     txt_ $s if !$i->{ignore};
                 };
                 td_ class => 'tc6', sub {
                     my $s = !defined $i->{lie} ? '' : $i->{lie} ? '+' : '-';
-                    b_ class => 'grayedout', $s if $i->{ignore};
+                    small_ $s if $i->{ignore};
                     txt_ $s if !$i->{ignore};
                 };
                 td_ class => 'tc7', sub {

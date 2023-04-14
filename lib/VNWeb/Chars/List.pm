@@ -25,7 +25,7 @@ sub listing_ {
                 };
                 td_ class => 'tc2', sub {
                     a_ href => "/$_->{id}", tattr $_;
-                    b_ class => 'grayedout', sub {
+                    small_ sub {
                         join_ ', ', sub { a_ href => "/$_->{id}", tattr $_ }, $_->{vn}->@*;
                     };
                 };
@@ -48,7 +48,7 @@ sub listing_ {
                 abbr_ class => "icons gen $_->{gender}", title => $GENDER{$_->{gender}}, '' if $_->{gender} ne 'unknown';
                 a_ href => "/$_->{id}", tattr $_;
                 br_;
-                b_ class => 'grayedout', sub {
+                small_ sub {
                     join_ ', ', sub { a_ href => "/$_->{id}", tattr $_ }, $_->{vn}->@*;
                 };
             };

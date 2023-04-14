@@ -87,10 +87,10 @@ fromQuery spoil inherit exclie dat q =
 view : Data -> Model -> (Html Msg, () -> List (Html Msg))
 view dat model =
   ( case Set.toList model.sel.sel of
-      []  -> b [ class "grayedout" ] [ text "Traits" ]
+      []  -> small [] [ text "Traits" ]
       [s] -> span [ class "nowrap" ]
              [ S.lblPrefix model.sel
-             , b [ class "grayedout" ] [ text <| "i" ++ String.fromInt s ++ ":" ]
+             , small [] [ text <| "i" ++ String.fromInt s ++ ":" ]
              , Dict.get (vndbid 'i' s) dat.traits |> Maybe.map (\t -> t.name) |> Maybe.withDefault "" |> text
              ]
       l   -> span [] [ S.lblPrefix model.sel, text <| "Traits (" ++ String.fromInt (List.length l) ++ ")" ]
@@ -112,9 +112,9 @@ view dat model =
     , ul [] <| List.map (\t ->
         li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ]
         [ inputButton "X" (Sel (S.Sel t False)) []
-        , b [ class "grayedout" ] [ text <| " i" ++ String.fromInt t ++ ": " ]
+        , small [] [ text <| " i" ++ String.fromInt t ++ ": " ]
         , Dict.get (vndbid 'i' t) dat.traits |> Maybe.map (\e -> span []
-          [ Maybe.withDefault (text "") <| Maybe.map (\g -> b [ class "grayedout" ] [ text (g ++ " / ") ]) e.group_name
+          [ Maybe.withDefault (text "") <| Maybe.map (\g -> small [] [ text (g ++ " / ") ]) e.group_name
           , a [ href ("/" ++ e.id), target "_blank", style "display" "inline" ] [ text e.name ] ]) |> Maybe.withDefault (text "")
         ]
       ) (Set.toList model.sel.sel)

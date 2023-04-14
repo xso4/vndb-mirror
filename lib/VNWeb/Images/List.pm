@@ -54,7 +54,7 @@ sub listing_ {
             div_ sub {
                 a_ href => "/img/$_->{id}?view=$view", $_->{id};
                 txt_ sprintf ' / %d', $_->{c_votecount},;
-                b_ class => 'grayedout', sprintf ' / w%d', $_->{c_weight};
+                small_ sprintf ' / w%d', $_->{c_weight};
                 br_;
                 graph_ $_, $opt;
             };

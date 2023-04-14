@@ -24,7 +24,7 @@ sub _rev_ {
         [ alias  => 'Names', fmt => sub {
             txt_ $_->{name};
             txt_ " ($_->{latin})" if $_->{latin};
-            b_ class => 'grayedout', ' (primary)' if $_->{main};
+            small_ ' (primary)' if $_->{main};
         } ],
         [ gender => 'Gender',     fmt => \%GENDER   ],
         [ lang   => 'Language',   fmt => \%LANGUAGE ],
@@ -39,7 +39,7 @@ sub _infotable_ {
         thead_ sub { tr_ sub {
             td_ colspan => 2, sub {
                 b_ style => 'margin-right: 10px', tlang($main->{title}[0], $main->{title}[1]), $main->{title}[1];
-                b_ class => 'grayedout', style => 'margin-right: 10px', tlang($main->{title}[2], $main->{title}[3]), $main->{title}[3] if $main->{title}[1] ne $main->{title}[3];
+                small_ style => 'margin-right: 10px', tlang($main->{title}[2], $main->{title}[3]), $main->{title}[3] if $main->{title}[1] ne $main->{title}[3];
                 abbr_ class => "icons gen $s->{gender}", title => $GENDER{$s->{gender}}, '' if $s->{gender} ne 'unknown';
             }
         } };
@@ -108,7 +108,7 @@ sub _roles_ {
                     lit_ ' ' if $v->{name};
                     abbr_ class => "icons lang $v->{lang}", title => $LANGUAGE{$v->{lang}}, '' if $v->{lang};
                     txt_ $v->{name} if $v->{name} && $v->{official};
-                    b_ class => 'grayedout', $v->{name} if $v->{name} && !$v->{official};
+                    small_ $v->{name} if $v->{name} && !$v->{official};
                 };
                 td_ class => 'tc2', sub { rdate_ $v->{c_released} };
                 td_ class => 'tc3', $CREDIT_TYPE{$v->{role}};

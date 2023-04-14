@@ -139,11 +139,11 @@ sub vn_ {
         td_ class => 'tc_pop',   sprintf '%.2f', ($v->{c_popularity}||0)/100 if $opt->{s}->vis('popularity');
         td_ class => 'tc_rating', sub {
             txt_ sprintf '%.2f', ($v->{c_rating}||0)/100;
-            b_ class => 'grayedout', sprintf ' (%d)', $v->{c_votecount};
+            small_ sprintf ' (%d)', $v->{c_votecount};
         } if $opt->{s}->vis('rating');
         td_ class => 'tc_average',sub {
             txt_ sprintf '%.2f', ($v->{c_average}||0)/100;
-            b_ class => 'grayedout', sprintf ' (%d)', $v->{c_votecount} if !$opt->{s}->vis('rating');
+            small_ sprintf ' (%d)', $v->{c_votecount} if !$opt->{s}->vis('rating');
         } if $opt->{s}->vis('average');
 
         td_ class => 'tc_labels', sub {
@@ -160,7 +160,7 @@ sub vn_ {
 
         td_ class => 'tc_title', sub {
             a_ href => "/$v->{id}", tattr $v;
-            b_ class => 'grayedout', id => 'ulist_notes_'.$v->{id}, $v->{notes} if $v->{notes} || $own;
+            small_ id => 'ulist_notes_'.$v->{id}, $v->{notes} if $v->{notes} || $own;
         };
         td_ class => 'tc_dev',   sub {
             join_ ' & ', sub {

@@ -87,7 +87,7 @@ sub recent_db_posts_ {
     enrich_boards undef, $lst;
     p_ class => 'mainopts', sub {
         a_ href => '/t/an', 'Announcements';
-        b_ class => 'grayedout', '&';
+        small_ '&';
         a_ href => '/t/db', 'VNDB';
     };
     h1_ sub {
@@ -138,7 +138,7 @@ sub recent_vn_posts_ {
     enrich_boards undef, $lst;
     p_ class => 'mainopts', sub {
         a_ href => '/t/all', 'Forums';
-        b_ class => 'grayedout', '&';
+        small_ '&';
         a_ href => '/w?o=d&s=lastpost', 'Reviews';
     };
     h1_ sub {
@@ -218,7 +218,7 @@ sub reviews_ {
         li_ sub {
             span_ sub {
                 txt_ fmtage($_->{date}).' ';
-                b_ class => 'grayedout', $_->{isfull} ? ' Full ' : ' Mini ';
+                small_ $_->{isfull} ? ' Full ' : ' Mini ';
                 a_ href => "/$_->{id}", tattr $_;
             };
             span_ sub {

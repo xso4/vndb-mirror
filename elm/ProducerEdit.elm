@@ -186,7 +186,7 @@ view model =
         [ if List.isEmpty model.rel then text ""
           else table [] <| List.indexedMap (\i p -> tr []
             [ td [] [ inputSelect "" p.relation (RelRel i) [] GT.producerRelations ]
-            , td [] [ b [ class "grayedout" ] [ text <| p.pid ++ ": " ], a [ href <| "/" ++ p.pid, title (Maybe.withDefault "" p.altname) ] [ text p.name ] ]
+            , td [] [ small [] [ text <| p.pid ++ ": " ], a [ href <| "/" ++ p.pid, title (Maybe.withDefault "" p.altname) ] [ text p.name ] ]
             , td [] [ inputButton "remove" (RelDel i) [] ]
             ]
           ) model.rel

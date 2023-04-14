@@ -31,7 +31,7 @@ sub _info_table_ {
             sup if !($u->{user_uniname_can} && $u->{user_uniname});
             for(@$old) {
                 br_;
-                b_ class => 'grayedout', "Changed from '$_->{old}' on $_->{date}.";
+                small_ "Changed from '$_->{old}' on $_->{date}.";
             }
         };
     };

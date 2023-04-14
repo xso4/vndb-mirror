@@ -179,9 +179,9 @@ view model =
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "" ] ]
       , formField "Parent traits"
         [ table [ class "compact" ] <| List.indexedMap (\i p -> tr []
-            [ td [ style "text-align" "right" ] [ b [ class "grayedout" ] [ text <| p.parent ++ ":" ] ]
+            [ td [ style "text-align" "right" ] [ small [] [ text <| p.parent ++ ":" ] ]
             , td []
-              [ Maybe.withDefault (text "") <| Maybe.map (\g -> b [ class "grayedout" ] [ text (g ++ " / ") ]) p.group
+              [ Maybe.withDefault (text "") <| Maybe.map (\g -> small [] [ text (g ++ " / ") ]) p.group
               , a [ href <| "/" ++ p.parent ] [ text p.name ]
               ]
             , td [] [ label [] [ inputRadio "parentprimary" p.main (ParentMain i), text " primary" ] ]

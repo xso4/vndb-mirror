@@ -87,7 +87,7 @@ boardSource =
   , view    = (\i ->
     [ text <| Maybe.withDefault "" (lookup i.btype boardTypes)
     ] ++ case i.title of
-      Just title -> [ b [ class "grayedout" ] [ text " > " ], text title ]
+      Just title -> [ small [] [ text " > " ], text title ]
       _ -> []
     )
   , key     = \i -> Maybe.withDefault i.btype i.iid
@@ -96,11 +96,11 @@ boardSource =
 
 ttStatus i =
   case ((i.hidden, i.locked), i.searchable, i.applicable) of
-    ((True, False), _,     _    ) -> b [ class "grayedout" ] [ text " (awaiting approval)" ]
-    ((True, True ), _,     _    ) -> b [ class "grayedout" ] [ text " (deleted)" ] -- (not returned by the API for now)
-    (_,             False, False) -> b [ class "grayedout" ] [ text " (meta)" ]
-    (_,             True,  False) -> b [ class "grayedout" ] [ text " (not applicable)" ]
-    (_,             False, True ) -> b [ class "grayedout" ] [ text " (not searchable)" ]
+    ((True, False), _,     _    ) -> small [] [ text " (awaiting approval)" ]
+    ((True, True ), _,     _    ) -> small [] [ text " (deleted)" ] -- (not returned by the API for now)
+    (_,             False, False) -> small [] [ text " (meta)" ]
+    (_,             True,  False) -> small [] [ text " (not applicable)" ]
+    (_,             False, True ) -> small [] [ text " (not searchable)" ]
     _ -> text ""
 
 
@@ -124,7 +124,7 @@ traitSource =
   , view    = \i ->
     [ case i.group_name of
         Nothing -> text ""
-        Just g -> b [ class "grayedout" ] [ text <| g ++ " / " ]
+        Just g -> small [] [ text <| g ++ " / " ]
     , text i.name
     , ttStatus i
     ]
@@ -139,7 +139,7 @@ vnSource =
       GApi.VNResult e -> Just e
       _ -> Nothing
   , view    = \i ->
-    [ b [ class "grayedout" ] [ text <| i.id ++ ": " ]
+    [ small [] [ text <| i.id ++ ": " ]
     , text i.title ]
   , key     = \i -> i.id
   }
@@ -152,7 +152,7 @@ producerSource =
       GApi.ProducerResult e -> Just e
       _ -> Nothing
   , view    = \i ->
-    [ b [ class "grayedout" ] [ text <| i.id ++ ": " ]
+    [ small [] [ text <| i.id ++ ": " ]
     , text i.name ]
   , key     = \i -> i.id
   }
@@ -166,9 +166,9 @@ staffSource =
       _ -> Nothing
   , view    = \i ->
     [ langIcon i.lang
-    , b [ class "grayedout" ] [ text <| i.id ++ ": " ]
+    , small [] [ text <| i.id ++ ": " ]
     , text i.title
-    , if i.alttitle == i.title then text "" else b [ class "grayedout" ] [ text " ", text i.alttitle ]
+    , if i.alttitle == i.title then text "" else small [] [ text " ", text i.alttitle ]
     ]
   , key     = \i -> String.fromInt i.aid
   }
@@ -181,10 +181,10 @@ charSource =
       GApi.CharResult e -> Just e
       _ -> Nothing
   , view    = \i ->
-    [ b [ class "grayedout" ] [ text <| i.id ++ ": " ]
+    [ small [] [ text <| i.id ++ ": " ]
     , text i.title
     , Maybe.withDefault (text "") <| Maybe.map (\m ->
-        b [ class "grayedout" ] [ text <| " (instance of " ++ m.id ++ ": " ++ m.title ]
+        small [] [ text <| " (instance of " ++ m.id ++ ": " ++ m.title ]
       ) i.main
     ]
   , key     = \i -> i.id
@@ -198,7 +198,7 @@ animeSource ref =
       GApi.AnimeResult e -> Just e
       _ -> Nothing
   , view    = \i ->
-    [ b [ class "grayedout" ] [ text <| "a" ++ String.fromInt i.id ++ ": " ]
+    [ small [] [ text <| "a" ++ String.fromInt i.id ++ ": " ]
     , text i.title ]
   , key     = \i -> String.fromInt i.id
   }
@@ -212,7 +212,7 @@ resolutionSource =
                         GApi.Resolutions e -> Just e
                         _ -> Nothing)
                 (\s l -> List.filter (\v -> String.contains (String.toLower s) (String.toLower v.resolution)) l |> List.take 10)
-  , view    = \i -> [ text i.resolution, b [ class "grayedout" ] [ text <| " (" ++ String.fromInt i.count ++ ")" ] ]
+  , view    = \i -> [ text i.resolution, small [] [ text <| " (" ++ String.fromInt i.count ++ ")" ] ]
   , key     = \i -> i.resolution
   }
 
@@ -225,7 +225,7 @@ engineSource =
                         GApi.Engines e -> Just e
                         _ -> Nothing)
                 (\s l -> List.filter (\v -> String.contains (String.toLower s) (String.toLower v.engine)) l |> List.take 10)
-  , view    = \i -> [ text i.engine, b [ class "grayedout" ] [ text <| " (" ++ String.fromInt i.count ++ ")" ] ]
+  , view    = \i -> [ text i.engine, small [] [ text <| " (" ++ String.fromInt i.count ++ ")" ] ]
   , key     = \i -> i.engine
   }
 

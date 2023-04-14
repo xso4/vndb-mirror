@@ -162,7 +162,7 @@ sub release_row_ {
                                                 : $r->{title};
             a_ href => "/$r->{id}", tattr $title;
             my $note = join ' ', $r->{official} ? () : 'unofficial', $mtl ? 'machine translation' : (), $r->{patch} ? 'patch' : ();
-            b_ class => 'grayedout', " ($note)" if $note;
+            small_ " ($note)" if $note;
         };
         td_ class => 'tc_icons', sub { icons_ $r };
         td_ class => 'tc_prod', join ' & ', $r->{publisher} ? 'Pub' : (), $r->{developer} ? 'Dev' : () if $opt->{prod};

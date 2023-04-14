@@ -262,7 +262,7 @@ sub bb_format {
     } elsif($tag eq 'spoiler_start') {
       $inspoil = 1;
       $ret .= $opt{delspoil} || $opt{keepspoil} ? ''
-        : $opt{replacespoil} ? '<b class="grayedout">&lt;hidden by spoiler settings&gt;</b>'
+        : $opt{replacespoil} ? '<small>&lt;hidden by spoiler settings&gt;</small>'
         : '<b class="spoiler">';
     } elsif($tag eq 'spoiler_end') {
       $inspoil = 0;

@@ -363,7 +363,7 @@ view model =
         , br_ 2
         , Maybe.withDefault (text "No character selected") <| Maybe.map (\m -> span []
           [ text "Selected character: "
-          , b [ class "grayedout" ] [ text <| m ++ ": " ]
+          , small [] [ text <| m ++ ": " ]
           , a [ href <| "/" ++ m ] [ text model.mainName ]
           , if Just m == model.id then b [ class "standout" ] [ br [] [], text "A character can't be an instance of itself. Please select another character or disable the above checkbox to remove the instance." ] else text ""
           ]) model.main
@@ -409,7 +409,7 @@ view model =
         trait (i,t) = (t.tid,
           tr []
           [ td [ style "padding" "0 0 0 10px", style "text-decoration" (if t.applicable && not t.hidden then "none" else "line-through") ]
-            [ Maybe.withDefault (text "") <| Maybe.map (\g -> b [ class "grayedout" ] [ text <| g ++ " / " ]) t.group
+            [ Maybe.withDefault (text "") <| Maybe.map (\g -> small [] [ text <| g ++ " / " ]) t.group
             , a [ href <| "/" ++ t.tid ] [ text t.name ]
             , if t.hidden && not t.locked then b [ class "standout" ] [ text " (awaiting moderation)" ]
               else if t.hidden then b [ class "standout" ] [ text " (deleted)" ]
@@ -454,7 +454,7 @@ view model =
           in
           [ ( vid
             , tr [ class "newpart" ] [ td [ colspan 4, style "padding-bottom" "5px" ]
-              [ b [ class "grayedout" ] [ text <| vid ++ ":" ]
+              [ small [] [ text <| vid ++ ":" ]
               , a [ href <| "/" ++ vid ] [ text title ]
               ]]
             )

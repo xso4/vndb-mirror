@@ -15,8 +15,8 @@ sub reviews_vote_ {
     span_ sub {
         elm_ 'Reviews.Vote' => $VNWeb::Reviews::Elm::VOTE_OUT, {%$w, mod => auth->permBoardmod||0} if !config->{read_only} && ($w->{can} || auth->permBoardmod);
         my $p = reviews_helpfulness $w;
-        b_ class => 'grayedout', sprintf ' %d point%s', $p, $p == 1 ? '' : 's';
-        b_ class => 'grayedout', sprintf ' %.2f/%.2f', $w->{c_up}/100, $w->{c_down}/100 if auth->permBoardmod;
+        small_ sprintf ' %d point%s', $p, $p == 1 ? '' : 's';
+        small_ sprintf ' %.2f/%.2f', $w->{c_up}/100, $w->{c_down}/100 if auth->permBoardmod;
     }
 }
 

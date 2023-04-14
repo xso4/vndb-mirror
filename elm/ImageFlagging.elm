@@ -223,8 +223,8 @@ view model =
       else
       [ p [ class "center" ]
         [ text num
-        , b [ class "grayedout" ] [ text " / " ], text <| "sexual: "   ++ stat i.sexual_avg i.sexual_stddev
-        , b [ class "grayedout" ] [ text " / " ], text <| "violence: " ++ stat i.violence_avg i.violence_stddev
+        , small [] [ text " / " ], text <| "sexual: "   ++ stat i.sexual_avg i.sexual_stddev
+        , small [] [ text " / " ], text <| "violence: " ++ stat i.violence_avg i.violence_stddev
         ]
       , table [] <|
         List.map (\v ->
@@ -244,7 +244,7 @@ view model =
           case i.entry of
             Nothing -> []
             Just e ->
-              [ b [ class "grayedout" ] [ text (e.id ++ ":") ]
+              [ small [] [ text (e.id ++ ":") ]
               , a [ href ("/" ++ e.id) ] [ text e.title ]
               ]
         , inputButton "»»" Next [ classList [("invisible", model.single)] ]
@@ -260,14 +260,14 @@ view model =
             Api.Error e -> [ b [ class "standout" ] [ text <| "Save failed: " ++ Api.showResponse e ] ]
             _ ->
               [ span [ class "spinner", classList [("invisible", model.saveState == Api.Normal)] ] []
-              , b [ class "grayedout" ] [ text <|
+              , small [] [ text <|
                 if not (Dict.isEmpty model.changes)
                 then "Unsaved votes: " ++ String.fromInt (Dict.size model.changes)
                 else if model.saved then "Saved!" else "" ]
               ]
         , span []
           [ a [ href <| "/img/" ++ i.id ] [ text i.id ]
-          , b [ class "grayedout" ] [ text " / " ]
+          , small [] [ text " / " ]
           , a [ href (imageUrl i.id) ] [ text <| String.fromInt i.width ++ "x" ++ String.fromInt i.height ]
           ]
         ]

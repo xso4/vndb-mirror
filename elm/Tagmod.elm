@@ -148,9 +148,9 @@ viewTag t sel vid mod =
     [ td [ class "tc_tagname" ]
       [ a [ href <| "/"++t.id, style "text-decoration" (if t.applicable && not (t.hidden && t.locked) then "none" else "line-through") ] [ text t.name ]
       , case (t.hidden, t.locked, t.applicable) of
-          (True, False, _) -> b [ class "grayedout" ] [ text " (awaiting approval)" ]
-          (True, True,  _) -> b [ class "grayedout" ] [ text " (deleted)" ]
-          (_, _, False)    -> b [ class "grayedout" ] [ text " (not applicable)" ]
+          (True, False, _) -> small [] [ text " (awaiting approval)" ]
+          (True, True,  _) -> small [] [ text " (deleted)" ]
+          (_, _, False)    -> small [] [ text " (not applicable)" ]
           _ -> text ""
       ]
     , td [ class "tc_myvote buts"  ]

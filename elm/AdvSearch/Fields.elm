@@ -265,7 +265,7 @@ nestView dat dd model =
                ]
              ]
     else table [ class "advrow" ] [ tr []
-         [ td [] (initialdd ++ [b [ class "grayedout" ] [ text " → " ]])
+         [ td [] (initialdd ++ [small [] [ text " → " ]])
          , td [] (filters ++ [add]) ] ]
 
 

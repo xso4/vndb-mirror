@@ -62,7 +62,7 @@ fromQuery dat q =
 view : Model -> (Html Msg, () -> List (Html Msg))
 view model =
   ( case Set.toList model.sel.sel of
-      []  -> b [ class "grayedout" ] [ text "Engine" ]
+      []  -> small [] [ text "Engine" ]
       [s] -> span [ class "nowrap" ] [  S.lblPrefix model.sel, text (if s == "" then "Unknown engine" else s) ]
       l   -> span [] [ S.lblPrefix model.sel, text <| "Engines (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->

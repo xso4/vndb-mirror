@@ -172,7 +172,7 @@ sub len_ {
     my($v) = @_;
     if ($v->{c_lengthnum}) {
         vnlength_ $v->{c_length};
-        b_ class => 'grayedout', " ($v->{c_lengthnum})";
+        small_ " ($v->{c_lengthnum})";
     } elsif($v->{length}) {
         txt_ $VN_LENGTH{$v->{length}}{txt};
     }
@@ -217,11 +217,11 @@ sub listing_ {
                 td_ class => 'tc_pop',   sprintf '%.2f', ($_->{c_popularity}||0)/100 if $opt->{s}->vis('popularity');
                 td_ class => 'tc_rating',sub {
                     txt_ sprintf '%.2f', ($_->{c_rating}||0)/100;
-                    b_ class => 'grayedout', sprintf ' (%d)', $_->{c_votecount};
+                    small_ sprintf ' (%d)', $_->{c_votecount};
                 } if $opt->{s}->vis('rating');
                 td_ class => 'tc_average',sub {
                     txt_ sprintf '%.2f', ($_->{c_average}||0)/100;
-                    b_ class => 'grayedout', sprintf ' (%d)', $_->{c_votecount} if !$opt->{s}->vis('rating');
+                    small_ sprintf ' (%d)', $_->{c_votecount} if !$opt->{s}->vis('rating');
                 } if $opt->{s}->vis('average');
             } for @$list;
         }
@@ -296,14 +296,14 @@ sub listing_ {
                 td_ 'Rating:';
                 td_ sub {
                     txt_ sprintf '%.2f', ($_->{c_rating}||0)/100;
-                    b_ class => 'grayedout', sprintf ' (%d)', $_->{c_votecount};
+                    small_ sprintf ' (%d)', $_->{c_votecount};
                 };
             } if $opt->{s}->vis('rating');
             tr_ sub {
                 td_ 'Average:';
                 td_ sub {
                     txt_ sprintf '%.2f', ($_->{c_average}||0)/100;
-                    b_ class => 'grayedout', sprintf ' (%d)', $_->{c_votecount} if !$opt->{s}->vis('rating');
+                    small_ sprintf ' (%d)', $_->{c_votecount} if !$opt->{s}->vis('rating');
                 };
             } if $opt->{s}->vis('average');
         }

@@ -69,10 +69,10 @@ fromQuery n dat qf = S.fromQuery (\q ->
 view : String -> Data -> Model -> (Html Msg, () -> List (Html Msg))
 view lbl dat model =
   ( case Set.toList model.sel.sel of
-      []  -> b [ class "grayedout" ] [ text lbl ]
+      []  -> small [] [ text lbl ]
       [s] -> span [ class "nowrap" ]
              [ S.lblPrefix model.sel
-             , b [ class "grayedout" ] [ text <| "p" ++ String.fromInt s ++ ":" ]
+             , small [] [ text <| "p" ++ String.fromInt s ++ ":" ]
              , Dict.get (vndbid 'p' s) dat.producers |> Maybe.map (\p -> p.name) |> Maybe.withDefault "" |> text
              ]
       l   -> span [] [ S.lblPrefix model.sel, text <| lbl ++ "s (" ++ String.fromInt (List.length l) ++ ")" ]
@@ -84,7 +84,7 @@ view lbl dat model =
     , ul [] <| List.map (\s ->
         li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ]
         [ inputButton "X" (Sel (S.Sel s False)) []
-        , b [ class "grayedout" ] [ text <| " p" ++ String.fromInt s ++ ": " ]
+        , small [] [ text <| " p" ++ String.fromInt s ++ ": " ]
         , Dict.get (vndbid 'p' s) dat.producers |> Maybe.map (\p -> a [ href ("/" ++ p.id), target "_blank", style "display" "inline" ] [ text p.name ]) |> Maybe.withDefault (text "")
         ]
       ) (Set.toList model.sel.sel)
