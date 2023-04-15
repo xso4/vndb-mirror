@@ -88,7 +88,7 @@ data/conf.pl:
 	zopfli $<
 
 %.br: %
-	brotli -f $<
+	brotli -f $< && touch $@
 
 chmod: all
 	chmod -R a-x+rwX static/{ch,cv,sf,st}
