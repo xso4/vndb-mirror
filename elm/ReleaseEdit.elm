@@ -57,6 +57,7 @@ type alias Model =
   , resoY      : Int
   , reso       : A.Model GApi.ApiResolutions
   , voiced     : Int
+  , ani_some   : Bool
   , ani_story  : Int
   , ani_ero    : Int
   , ani_story_sp : Maybe Int
@@ -78,6 +79,8 @@ type alias Model =
   , id         : Maybe String
   }
 
+
+hasAni x = x /= Nothing && x /= Just 0 && x /= Just 1
 
 init : GRE.Recv -> Model
 init d =
@@ -103,6 +106,10 @@ init d =
   , resoY      = d.reso_y
   , reso       = A.init (resoFmt True d.reso_x d.reso_y)
   , voiced     = d.voiced
+  , ani_some   =  hasAni d.ani_story_sp || hasAni d.ani_story_cg || hasAni d.ani_cutscene
+               || hasAni d.ani_ero_sp   || hasAni d.ani_ero_cg
+               || (d.ani_face /= Nothing && d.ani_face /= Just False)
+               || (d.ani_bg   /= Nothing && d.ani_bg   /= Just False)
   , ani_story  = d.ani_story
   , ani_ero    = d.ani_ero
   , ani_story_sp = d.ani_story_sp
@@ -205,8 +212,9 @@ type Msg
   | Voiced Int
   | AniStory Int
   | AniEro Int
-  | AniUnknown
-  | AniNoAni
+  | AniUnknown Bool
+  | AniNoAni Bool
+  | AniSome Bool
   | AniStorySp (Maybe Int)
   | AniStoryCg (Maybe Int)
   | AniCutscene (Maybe Int)
@@ -270,13 +278,14 @@ update msg model =
     Voiced i   -> ({ model | voiced = i }, Cmd.none)
     AniStory i -> ({ model | ani_story = i }, Cmd.none)
     AniEro i   -> ({ model | ani_ero   = i }, Cmd.none)
-    AniUnknown -> ({ model | ani_story_sp = Nothing, ani_story_cg = Nothing, ani_cutscene = Nothing
-                   , ani_ero_sp = Nothing, ani_ero_cg = Nothing
-                   , ani_face = Nothing, ani_bg = Nothing }, Cmd.none)
-    AniNoAni   -> ({ model | ani_story_sp = Just 0,  ani_story_cg = Just 0,  ani_cutscene = Just 1
-                   , ani_ero_sp = if model.minage == Just 18 then Just 1 else Nothing
-                   , ani_ero_cg = if model.minage == Just 18 then Just 0 else Nothing
-                   , ani_face = Just False, ani_bg = Just False }, Cmd.none)
+    AniUnknown b -> ({ model | ani_some = False, ani_story_sp = Nothing, ani_story_cg = Nothing, ani_cutscene = Nothing
+                     , ani_ero_sp = Nothing, ani_ero_cg = Nothing
+                     , ani_face = Nothing, ani_bg = Nothing }, Cmd.none)
+    AniNoAni b   -> ({ model | ani_some = False, ani_story_sp = Just 0,  ani_story_cg = Just 0,  ani_cutscene = Just 1
+                     , ani_ero_sp = if model.minage == Just 18 then Just 1 else Nothing
+                     , ani_ero_cg = if model.minage == Just 18 then Just 0 else Nothing
+                     , ani_face = Just False, ani_bg = Just False }, Cmd.none)
+    AniSome b    -> ({ model | ani_some = True }, Cmd.none)
     AniStorySp i -> ({ model | ani_story_sp = i }, Cmd.none)
     AniStoryCg i -> ({ model | ani_story_cg = i }, Cmd.none)
     AniEroSp   i -> ({ model | ani_ero_sp   = i }, Cmd.none)
@@ -448,22 +457,25 @@ viewGen model =
   ] ++ (if model.patch then [] else
   [ tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Animation" ] ]
   , formField "Presets"
-    [ a [ href "#", onClickD AniUnknown ] [ text "Unknown" ], text " | "
-    , a [ href "#", onClickD AniNoAni ] [ text "No animation" ]
+    [ linkRadio (not model.ani_some && model.ani_face == Nothing) AniUnknown [ text "Unknown" ], text " | "
+    , linkRadio (not model.ani_some && model.ani_face == Just False) AniNoAni [ text "No animation" ], text " | "
+    , linkRadio model.ani_some AniSome [ text "Some animation" ]
     ]
-  , formField "Story scenes" [ table [] [ tr []
+  , if not model.ani_some then text "" else
+    formField "Story scenes" [ table [] [ tr []
       [ td [ style "width" "180px" ] <| [ strong [] [ text "Character sprites:"  ], br [] [] ] ++ viewAnimation False " No sprites" AniStorySp model.ani_story_sp
       , td [ style "width" "180px" ] <| [ strong [] [ text "CGs:" ], br [] [] ] ++ viewAnimation False " No CGs" AniStoryCg model.ani_story_cg
       , td [] <| [ strong [] [ text "Cutscenes:" ], br [] [] ] ++ viewAnimation True " No cutscenes" AniCutscene model.ani_cutscene
       ]
     ] ]
-  , if not model.hasEro then text "" else
+  , if not model.ani_some || not model.hasEro then text "" else
     formField "Erotic scenes" [ table [] [ tr []
       [ td [ style "width" "180px" ] <| [ strong [] [ text "Character sprites:"  ], br [] [] ] ++ viewAnimation False " No sprites" AniEroSp model.ani_ero_sp
       , td [] <| [ strong [] [ text "CGs:" ], br [] [] ] ++ viewAnimation False " No CGs" AniEroCg model.ani_ero_cg
       ]
     ] ]
-  , formField "Effects" [ table []
+  , if not model.ani_some then text "" else
+    formField "Effects" [ table []
     [ tr []
       [ td [] [ text "Character lip movement and/or eye blink: " ]
       , td []
