@@ -8,7 +8,7 @@ sub _info_table_ {
     my($u, $own) = @_;
 
     my sub sup {
-        b_ ' ⭐supporter⭐' if $u->{user_support_can} && $u->{user_support_enabled};
+        strong_ ' ⭐supporter⭐' if $u->{user_support_can} && $u->{user_support_enabled};
     }
 
     tr_ sub {
@@ -163,7 +163,7 @@ sub _votestats_ {
     table_ class => 'recentvotes stripe', sub {
         thead_ sub { tr_ sub { td_ colspan => 3, sub {
             txt_ 'Recent votes';
-            b_ sub { txt_ ' ('; a_ href => "/$u->{id}/ulist?votes=1", 'show all'; txt_ ')' };
+            span_ sub { txt_ '('; a_ href => "/$u->{id}/ulist?votes=1", 'show all'; txt_ ')' };
         } } };
         tr_ sub {
             my $v = $_;

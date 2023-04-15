@@ -58,7 +58,7 @@ view : Model -> Html Msg
 view model =
   form_ "" Submit (model.state == Api.Loading)
   [ div [ classList [("savedefault", True), ("hidden", model.hid)] ]
-    [ b [] [ text "Save as default" ]
+    [ strong [] [ text "Save as default" ]
     , br [] []
     , text "This will change the default label selection, visible columns and table sorting options for the selected page to the currently applied settings."
     , text " The saved view will also apply to users visiting your lists."

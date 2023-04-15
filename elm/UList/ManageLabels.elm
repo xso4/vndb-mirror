@@ -92,7 +92,7 @@ view model =
   in
     Html.form [ onSubmit Submit, class "managelabels hidden" ]
     [ div [ ]
-      [ b [] [ text "How to use labels" ]
+      [ strong [] [ text "How to use labels" ]
       , ul []
         [ li [] [ text "You can assign multiple labels to a visual novel" ]
         , li [] [ text "You can create custom labels or just use the built-in labels" ]

@@ -43,7 +43,7 @@ view model =
   in
   div [ class "ulistvn elm_dd_input" ]
   [ span [] (UW.viewStatus model)
-  , b [] [ text "User options" ]
+  , strong [] [ text "User options" ]
   , table [ style "margin" "4px 0 0 0", style "width" "100%" ] <|
     [ tr [ class "odd" ]
       [ td [ class "key" ] [ text "My labels" ]

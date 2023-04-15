@@ -82,7 +82,7 @@ view model =
         [ formField "title::Title" [ inputText "title" model.title Title (style "width" "300px" :: GD.valTitle) ]
         , formField "none"
           [ br_ 1
-          , b [] [ text "Contents" ]
+          , strong [] [ text "Contents" ]
           , TP.view "content" model.content Content 850 ([rows 50, cols 90] ++ GD.valContent)
             [ text "HTML and MultiMarkdown supported, which is "
             , a [ href "https://daringfireball.net/projects/markdown/basics", target "_blank" ] [ text "Markdown" ]

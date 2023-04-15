@@ -216,7 +216,7 @@ sub _menu_ {
     my $o = shift;
 
     div_ id => 'support', sub {
-        b_ 'Support VNDB';
+        strong_ 'Support VNDB';
         p_ sub {
             a_ href => 'https://www.patreon.com/vndb', 'Patreon';
             a_ href => 'https://www.subscribestar.com/vndb', 'SubscribeStar';
@@ -558,7 +558,7 @@ sub framework_ {
 
 sub revision_patrolled_ {
     my($r) = @_;
-    return b_ class => 'done', title =>
+    return span_ class => 'done', title =>
         "Patrolled by ".join(', ', map user_displayname($_), $r->{rev_patrolled}->@*), '✓'
         if $r->{rev_patrolled}->@*;
     return lit_ '✓' if $r->{rev_dbmod};
@@ -568,7 +568,7 @@ sub revision_patrolled_ {
 
 sub _revision_header_ {
     my($obj) = @_;
-    b_ "Revision $obj->{chrev}";
+    strong_ "Revision $obj->{chrev}";
     debug_ $obj;
     if(auth) {
         lit_ ' (';
@@ -631,7 +631,7 @@ sub _revision_fmtcol_ {
 
                     # Difference, highlight and display in full
                     if($n % 2) {
-                        b_ class => $i == 1 ? 'diff_del' : 'diff_add', sub { lit_ html_escape $i == 1 ? $a : $b };
+                        span_ class => $i == 1 ? 'diff_del' : 'diff_add', sub { lit_ html_escape $i == 1 ? $a : $b };
                     # Short context, display in full
                     } elsif(length $a < $ctx*3) {
                         lit_ html_escape $a;
@@ -648,9 +648,9 @@ sub _revision_fmtcol_ {
                 }
 
             } elsif(@$l > 1 && $i == 2 && ($ch eq '+' || $ch eq 'c')) {
-                b_ class => 'diff_add', sub { _revision_fmtval_ $opt, $val, $obj };
+                span_ class => 'diff_add', sub { _revision_fmtval_ $opt, $val, $obj };
             } elsif(@$l > 1 && $i == 1 && ($ch eq '-' || $ch eq 'c')) {
-                b_ class => 'diff_del', sub { _revision_fmtval_ $opt, $val, $obj };
+                span_ class => 'diff_del', sub { _revision_fmtval_ $opt, $val, $obj };
             } elsif($ch eq 'u' || @$l == 1) {
                 _revision_fmtval_ $opt, $val, $obj;
             }
@@ -725,7 +725,7 @@ sub _revision_cmp_ {
             tr_ sub {
                 td_ ' ';
                 td_ colspan => 2, sub {
-                    b_ "Edit summary for revision $new->{chrev}";
+                    strong_ "Edit summary for revision $new->{chrev}";
                     br_;
                     br_;
                     lit_ bb_format $new->{rev_comments}||'-';
@@ -804,7 +804,7 @@ sub revision_ {
         div_ class => 'rev', sub {
             _revision_header_ $new;
             br_;
-            b_ 'Edit summary';
+            strong_ 'Edit summary';
             br_; br_;
             lit_ bb_format $new->{rev_comments}||'-';
         } if !$old;
@@ -839,7 +839,7 @@ sub paginate_ {
     }
     my sub ell_ {
         my($left) = @_;
-        li_ mkclass(ellipsis => 1, left => $left), sub { b_ '⋯' };
+        li_ mkclass(ellipsis => 1, left => $left), '⋯';
     }
 
     div_ class => 'maintabs'.($al eq 't' ? '' : ' bottom'), sub {

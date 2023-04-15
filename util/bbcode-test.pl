@@ -37,11 +37,11 @@ my @tests = (
   "`some code\n\nalso newlines;`",
 
   '[spoiler]some spoiler[/spoiler]',
-  '<b class="spoiler">some spoiler</b>',
+  '<span class="spoiler">some spoiler</span>',
   '',
 
   '[b][i][u][s]Formatting![/s][/u][/i][/b]',
-  '<b><em><span class="underline"><s>Formatting!</s></span></em></b>',
+  '<strong><em><span class="underline"><s>Formatting!</s></span></em></strong>',
   '*/_-Formatting!-_/*',
 
   "[raw][quote]not parsed\n[url=https://vndb.org/]valid url[/url]\n[url=asdf]invalid url[/url][/quote][/raw]",
@@ -49,11 +49,11 @@ my @tests = (
   "[quote]not parsed\n[url=https://vndb.org/]valid url[/url]\n[url=asdf]invalid url[/url][/quote]",
 
   '[quote]basic [spoiler]single[/spoiler]-line [spoiler][url=/g]tag[/url] nesting [raw](without [url=/v3333]special[/url] cases)[/raw][/spoiler][/quote]',
-  '<div class="quote">basic <b class="spoiler">single</b>-line <b class="spoiler"><a href="/g" rel="nofollow">tag</a> nesting (without [url=/v3333]special[/url] cases)</b></div>',
+  '<div class="quote">basic <span class="spoiler">single</span>-line <span class="spoiler"><a href="/g" rel="nofollow">tag</a> nesting (without [url=/v3333]special[/url] cases)</span></div>',
   '"basic -line "',
 
   '[quote][b]more [spoiler]nesting [code]mkay?',
-  '<div class="quote"><b>more <b class="spoiler">nesting [code]mkay?</b></b></div>',
+  '<div class="quote"><strong>more <span class="spoiler">nesting [code]mkay?</span></strong></div>',
   '"*more *"',
 
   '[url=/v][b]does not work here[/b][/url]',
@@ -82,7 +82,7 @@ my @tests = (
 
   # the new implementation doesn't special-case [code], as the first newline shouldn't matter either way
   "[quote]\n\nhello, rmnewline test[code]\n#!/bin/sh\n\nfunction random_username() {\n    </dev/urandom tr -cd 'a-zA-Z0-9' | dd bs=1 count=16 2>/dev/null\n}\n[/code]\nsome text after the code tag\n[/quote]\n\n[spoiler]\nsome newlined spoiler\n[/spoiler]",
-  '<div class="quote"><br>hello, rmnewline test<pre>#!/bin/sh<br><br>function random_username() {<br>    &lt;/dev/urandom tr -cd \'a-zA-Z0-9\' | dd bs=1 count=16 2&gt;/dev/null<br>}<br></pre>some text after the code tag<br></div><br><b class="spoiler"><br>some newlined spoiler<br></b>',
+  '<div class="quote"><br>hello, rmnewline test<pre>#!/bin/sh<br><br>function random_username() {<br>    &lt;/dev/urandom tr -cd \'a-zA-Z0-9\' | dd bs=1 count=16 2&gt;/dev/null<br>}<br></pre>some text after the code tag<br></div><br><span class="spoiler"><br>some newlined spoiler<br></span>',
   "\"\nhello, rmnewline test`#!/bin/sh\n\nfunction random_username() {\n    </dev/urandom tr -cd 'a-zA-Z0-9' | dd bs=1 count=16 2>/dev/null\n}\n`some text after the code tag\n\"\n",
 
   "[quote]\n[raw]\nrmnewline test with made-up elements\n[/raw]\nwelp\n[dumbtag]\nnone\n[/dumbtag]\n[/quote]",
@@ -110,11 +110,11 @@ my @tests = (
   'http://192.168.1.1:8080/some/path (literal ipv4 address, port included)',
 
   '[Quote]non-lowercase tags [SpOILER]here[/sPOilER][/qUOTe]',
-  '<div class="quote">non-lowercase tags <b class="spoiler">here</b></div>',
+  '<div class="quote">non-lowercase tags <span class="spoiler">here</span></div>',
   '"non-lowercase tags "',
 
   'some text [spoiler]with (v17) tags[/spoiler] and internal ids such as s1',
-  'some text <b class="spoiler">with (<a href="/v17">v17</a>) tags</b> and internal ids such as <a href="/s1">s1</a>',
+  'some text <span class="spoiler">with (<a href="/v17">v17</a>) tags</span> and internal ids such as <a href="/s1">s1</a>',
   'some text  and internal ids such as s1',
 
   'r12.1 v6.3 s1.2 w5.3',
@@ -146,16 +146,16 @@ my @tests = (
   '<tag>html escapes (&)</tag>',
 
   '[spoiler]stray open tag',
-  '<b class="spoiler">stray open tag</b>',
+  '<span class="spoiler">stray open tag</span>',
   '',
 
   # TODO: This isn't ideal
   '[quote][spoiler]stray open tag (nested)[/quote]',
-  '<div class="quote"><b class="spoiler">stray open tag (nested)[/quote]</b></div>',
+  '<div class="quote"><span class="spoiler">stray open tag (nested)[/quote]</span></div>',
   '""',
 
   '[quote][spoiler]two stray open tags',
-  '<div class="quote"><b class="spoiler">two stray open tags</b></div>',
+  '<div class="quote"><span class="spoiler">two stray open tags</span></div>',
   '""',
 
   "[url=https://cat.xyz/]that's [spoiler]some [quote]uncommon[/quote][/spoiler] combination[/url]",

@@ -49,7 +49,7 @@ sub review_ {
                 span_ style => 'float: right; padding-left: 25px; text-align: right', sub {
                     txt_ 'Helpfulness: '.reviews_helpfulness($w);
                     br_;
-                    b_ 'Vote: '.fmtvote($w->{vote}) if $w->{vote};
+                    strong_ 'Vote: '.fmtvote($w->{vote}) if $w->{vote};
                 };
                 user_ $w;
                 my($date, $lastmod) = map $_&&fmtdate($_,'compact'), $w->@{'date', 'lastmod'};
@@ -66,7 +66,7 @@ sub review_ {
                 }
                 if($w->{spoiler} && (auth->pref('spoilers')||0) == 2) {
                     br_;
-                    b_ 'This review contains spoilers.';
+                    strong_ 'This review contains spoilers.';
                 }
             }
         };
@@ -145,7 +145,7 @@ TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
             itemmsg_ $w;
             h1_ $title;
             div_ class => 'notice', sub {
-                b_ 'Review has been successfully submitted! ';
+                h2_ 'Review has been successfully submitted! ';
                 a_ href => "/$w->{id}", "dismiss";
             } if $newreview;
             review_ $w;

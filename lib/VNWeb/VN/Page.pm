@@ -370,13 +370,13 @@ sub infobox_anime_ {
         td_ 'Related anime';
         td_ class => 'anime', sub { join_ \&br_, sub {
             if(!$_->{lastfetch} || !$_->{year} || !$_->{title_romaji}) {
-                b_ sub {
+                span_ sub {
                     txt_ '[no information available at this time: ';
                     a_ href => 'https://anidb.net/anime/'.$_->{aid}, "a$_->{aid}";
                     txt_ ']';
                 };
             } else {
-                b_ sub {
+                span_ sub {
                     txt_ '[';
                     a_ href => "https://anidb.net/anime/$_->{aid}", title => 'AniDB', 'DB';
                     if($_->{ann_id}) {
@@ -386,7 +386,7 @@ sub infobox_anime_ {
                     txt_ '] ';
                 };
                 abbr_ title => $_->{title_kanji}||$_->{title_romaji}, shorten $_->{title_romaji}, 50;
-                b_ ' ('.(defined $_->{type} ? $ANIME_TYPE{$_->{type}}{txt}.', ' : '').$_->{year}.')';
+                span_ ' ('.(defined $_->{type} ? $ANIME_TYPE{$_->{type}}{txt}.', ' : '').$_->{year}.')';
             }
         }, sort { ($a->{year}||9999) <=> ($b->{year}||9999) } $v->{anime}->@* }
     }
@@ -809,7 +809,7 @@ sub stats_ {
         table_ class => 'recentvotes stripe', sub {
             thead_ sub { tr_ sub { td_ colspan => 3, sub {
                 txt_ 'Recent votes';
-                b_ sub {
+                span_ sub {
                     txt_ '(';
                     a_ href => "/$v->{id}/votes", 'show all';
                     txt_ ')';

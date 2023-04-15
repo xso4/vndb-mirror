@@ -73,7 +73,7 @@ view model =
     else
       fieldset [ class "submit" ]
       [ TP.view "msg" model.msg Content 600 ([rows 4, cols 50] ++ GDR.valMsg)
-        [ b [] [ text "Quick reply" ]
+        [ strong [] [ text "Quick reply" ]
         , b [ class "standout" ] [ text " (English please!) " ]
         , a [ href "/d9#4" ] [ text "Formatting" ]
         ]

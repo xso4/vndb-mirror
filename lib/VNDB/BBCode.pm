@@ -186,7 +186,7 @@ FINAL:
 #   delspoil     => 0/1  - delete [spoiler] tags and its contents
 #   replacespoil => 0/1  - replace [spoiler] tags with a "hidden by spoiler settings" message
 #   keepsoil     => 0/1  - keep the contents of spoiler tags without any special formatting
-#   default: format as <b class="spoiler">..
+#   default: format as <span class="spoiler">..
 sub bb_format {
   my($input, %opt) = @_;
   $opt{delspoil} = 1 if $opt{text} && !$opt{keepspoil};
@@ -235,8 +235,8 @@ sub bb_format {
     } elsif($opt{idonly}) {
       $ret .= e $raw;
 
-    } elsif($tag eq 'b_start') { $ret .= $opt{text} ? e '*' : '<b>'
-    } elsif($tag eq 'b_end')   { $ret .= $opt{text} ? e '*' : '</b>'
+    } elsif($tag eq 'b_start') { $ret .= $opt{text} ? e '*' : '<strong>'
+    } elsif($tag eq 'b_end')   { $ret .= $opt{text} ? e '*' : '</strong>'
     } elsif($tag eq 'i_start') { $ret .= $opt{text} ? e '/' : '<em>'
     } elsif($tag eq 'i_end')   { $ret .= $opt{text} ? e '/' : '</em>'
     } elsif($tag eq 'u_start') { $ret .= $opt{text} ? e '_' : '<span class="underline">'
@@ -263,10 +263,10 @@ sub bb_format {
       $inspoil = 1;
       $ret .= $opt{delspoil} || $opt{keepspoil} ? ''
         : $opt{replacespoil} ? '<small>&lt;hidden by spoiler settings&gt;</small>'
-        : '<b class="spoiler">';
+        : '<span class="spoiler">';
     } elsif($tag eq 'spoiler_end') {
       $inspoil = 0;
-      $ret .= $opt{delspoil} || $opt{keepspoil} || $opt{replacespoil} ? '' : '</b>';
+      $ret .= $opt{delspoil} || $opt{keepspoil} || $opt{replacespoil} ? '' : '</span>';
 
     } elsif($tag eq 'url_start') {
       $ret .= $opt{text} ? '' : sprintf '<a href="%s" rel="nofollow">', xml_escape($arg[0]);

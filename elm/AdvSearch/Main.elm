@@ -208,10 +208,10 @@ view model = div [ class "xsearch" ] <|
       [ DD.view model.saveDd model.saveState (text "Save/Load") <| \() ->
         [ div [ class "advheader", style "min-width" "300px" ]
           [ div [ class "opts", style "margin-bottom" "5px" ]
-            [ if model.saveAct == Save    then b [] [ text "Save"   ] else a [ href "#", onClickD (SaveAct Save   ) ] [ text "Save" ]
-            , if model.saveAct == Load    then b [] [ text "Load"   ] else a [ href "#", onClickD (SaveAct Load   ) ] [ text "Load" ]
-            , if model.saveAct == Delete  then b [] [ text "Delete" ] else a [ href "#", onClickD (SaveAct Delete ) ] [ text "Delete" ]
-            , if model.saveAct == Default then b [] [ text "Default"] else a [ href "#", onClickD (SaveAct Default) ] [ text "Default" ]
+            [ if model.saveAct == Save    then strong [] [ text "Save"   ] else a [ href "#", onClickD (SaveAct Save   ) ] [ text "Save" ]
+            , if model.saveAct == Load    then strong [] [ text "Load"   ] else a [ href "#", onClickD (SaveAct Load   ) ] [ text "Load" ]
+            , if model.saveAct == Delete  then strong [] [ text "Delete" ] else a [ href "#", onClickD (SaveAct Delete ) ] [ text "Delete" ]
+            , if model.saveAct == Default then strong [] [ text "Default"] else a [ href "#", onClickD (SaveAct Default) ] [ text "Default" ]
             ]
           , h3 [] [ text <| case model.saveAct of
                               Save -> "Save current filter"

@@ -629,7 +629,7 @@ view model =
       [ inputText ("api2notes"++String.fromInt n) t.notes (Prefs << Api2Notes n)
         [ placeholder "Title (optional, for personal use)", style "width" "300px" ]
       , br [] []
-      , b [] [ text "Permissions:" ]
+      , strong [] [ text "Permissions:" ]
       , br [] []
       , label [] [ inputCheck "" t.listread (Prefs << Api2ListRead n), text " Access my list (including private items)" ]
       , if not t.listread then text "" else span []
@@ -641,7 +641,7 @@ view model =
     api2token n t = tr []
       [ td [ style "font-weight" "bold", style "font-size" "120%"] [ text (String.fromInt (n+1) ++ ".") ]
       , td []
-        [ if model.api2Edit == n || t.notes == "" then text "" else b [style "font-size" "120%"] [ text t.notes, br [] [] ]
+        [ if model.api2Edit == n || t.notes == "" then text "" else strong [style "font-size" "120%"] [ text t.notes, br [] [] ]
         , input
           [ type_ "text", class "text monospace", style "width" "450px", style "font-size" "16px", id ("api2"++String.fromInt n)
           , onFocus (Api2Focus n), onBlur (Api2Blur n), tabindex 10, readonly True

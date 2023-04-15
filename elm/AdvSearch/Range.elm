@@ -59,7 +59,7 @@ view canUnk lbl fmt model =
       else
       div [ style "display" "flex", style "justify-content" "space-between", style "margin-top" "5px" ]
       [ small [] [ text (val 0) ]
-      , b [] [ text (val model.val) ]
+      , strong [] [ text (val model.val) ]
       , small [] [ text (val (Array.length model.lst - 1)) ]
       ]
     , if model.unk then text "" else

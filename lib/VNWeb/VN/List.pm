@@ -446,7 +446,7 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
                 h1_ 'Did you mean to search for...';
                 ul_ style => 'column-width: 250px', sub {
                     li_ sub {
-                        b_ {qw/r Release p Producer c Character s Staff g Tag i Trait/}->{substr $_->{id}, 0, 1};
+                        strong_ {qw/r Release p Producer c Character s Staff g Tag i Trait/}->{substr $_->{id}, 0, 1};
                         txt_ ': ';
                         a_ href => "/$_->{id}", tattr $_;
                     } for @$other;

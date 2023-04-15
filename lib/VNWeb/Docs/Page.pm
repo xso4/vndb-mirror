@@ -6,7 +6,7 @@ use VNWeb::Docs::Lib;
 
 sub _index_ {
     ul_ class => 'index', sub {
-        li_ sub { b_ 'Guidelines' };
+        li_ sub { strong_ 'Guidelines' };
         li_ sub { a_ href => '/d5',  'Editing Guidelines' };
         li_ sub { a_ href => '/d2',  'Visual Novels' };
         li_ sub { a_ href => '/d15', 'Special Games' };
@@ -17,7 +17,7 @@ sub _index_ {
         li_ sub { a_ href => '/d10', 'Tags & Traits' };
         li_ sub { a_ href => '/d19', 'Image Flagging' };
         li_ sub { a_ href => '/d13', 'Capturing Screenshots' };
-        li_ sub { b_ 'About VNDB' };
+        li_ sub { strong_ 'About VNDB' };
         li_ sub { a_ href => '/d9',  'Discussion Board' };
         li_ sub { a_ href => '/d6',  'FAQ' };
         li_ sub { a_ href => '/d7',  'About Us' };

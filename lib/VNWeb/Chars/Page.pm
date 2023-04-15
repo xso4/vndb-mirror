@@ -143,7 +143,7 @@ sub chartable_ {
             thead_ sub { tr_ sub { td_ colspan => 2, sub {
                 $link
                 ? a_ href => "/$c->{id}", style => 'margin-right: 10px; font-weight: bold', tlang($c->{title}[0], $c->{title}[1]), $c->{title}[1]
-                : b_ style => 'margin-right: 10px', tlang($c->{title}[0], $c->{title}[1]), $c->{title}[1];
+                : span_ style => 'margin-right: 10px', tlang($c->{title}[0], $c->{title}[1]), $c->{title}[1];
                 small_ style => 'margin-right: 10px', tlang($c->{title}[2], $c->{title}[3]), $c->{title}[3] if $c->{title}[3] ne $c->{title}[1];
                 abbr_ class => "icons gen $c->{gender}", title => $GENDER{$c->{gender}}, '' if $c->{gender} ne 'unknown';
                 if($view->{spoilers} == 2 && defined $c->{spoil_gender}) {

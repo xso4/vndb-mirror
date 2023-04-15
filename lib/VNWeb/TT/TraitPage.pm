@@ -48,13 +48,13 @@ sub infobox_ {
         $t->{applicable} ? () : 'Can not be directly applied to characters.',
     );
     p_ class => 'center', sub {
-        b_ 'Properties';
+        strong_ 'Properties';
         br_;
         join_ \&br_, sub { txt_ $_ }, @prop;
     } if @prop;
 
     p_ class => 'center', sub {
-        b_ 'Aliases';
+        strong_ 'Aliases';
         br_;
         join_ \&br_, sub { txt_ $_ }, split /\n/, $t->{alias};
     } if $t->{alias};

@@ -452,15 +452,15 @@ viewGen model =
     , a [ href "#", onClickD AniNoAni ] [ text "No animation" ]
     ]
   , formField "Story scenes" [ table [] [ tr []
-      [ td [ style "width" "180px" ] <| [ b [] [ text "Character sprites:"  ], br [] [] ] ++ viewAnimation False " No sprites" AniStorySp model.ani_story_sp
-      , td [ style "width" "180px" ] <| [ b [] [ text "CGs:" ], br [] [] ] ++ viewAnimation False " No CGs" AniStoryCg model.ani_story_cg
-      , td [] <| [ b [] [ text "Cutscenes:" ], br [] [] ] ++ viewAnimation True " No cutscenes" AniCutscene model.ani_cutscene
+      [ td [ style "width" "180px" ] <| [ strong [] [ text "Character sprites:"  ], br [] [] ] ++ viewAnimation False " No sprites" AniStorySp model.ani_story_sp
+      , td [ style "width" "180px" ] <| [ strong [] [ text "CGs:" ], br [] [] ] ++ viewAnimation False " No CGs" AniStoryCg model.ani_story_cg
+      , td [] <| [ strong [] [ text "Cutscenes:" ], br [] [] ] ++ viewAnimation True " No cutscenes" AniCutscene model.ani_cutscene
       ]
     ] ]
   , if not model.hasEro then text "" else
     formField "Erotic scenes" [ table [] [ tr []
-      [ td [ style "width" "180px" ] <| [ b [] [ text "Character sprites:"  ], br [] [] ] ++ viewAnimation False " No sprites" AniEroSp model.ani_ero_sp
-      , td [] <| [ b [] [ text "CGs:" ], br [] [] ] ++ viewAnimation False " No CGs" AniEroCg model.ani_ero_cg
+      [ td [ style "width" "180px" ] <| [ strong [] [ text "Character sprites:"  ], br [] [] ] ++ viewAnimation False " No sprites" AniEroSp model.ani_ero_sp
+      , td [] <| [ strong [] [ text "CGs:" ], br [] [] ] ++ viewAnimation False " No CGs" AniEroCg model.ani_ero_cg
       ]
     ] ]
   , formField "Effects" [ table []

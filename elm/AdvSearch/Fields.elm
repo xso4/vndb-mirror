@@ -191,7 +191,7 @@ nestView dat dd model =
           breads pre par l =
             case l of
               [] -> []
-              [x] -> [ b [] [ text (showT par x) ] ]
+              [x] -> [ strong [] [ text (showT par x) ] ]
               (x::xs) -> a [ href "#", onClickD (FSNest (NAddType (x::pre))) ] [ text (showT par x) ] :: text " » " :: breads (x::pre) x xs
       in
       div [ class "elm_dd_input elm_dd_noarrow short" ]
@@ -619,10 +619,10 @@ fieldViewDd dat dd lbl cont =
   [ DD.view dd Api.Normal lbl <| \() ->
       div [ class "advbut" ]
       [ if dat.level == 0
-        then b [ title "Can't delete the top-level filter" ] [ text "⊗" ]
+        then small [ title "Can't delete the top-level filter" ] [ text "⊗" ]
         else a [ href "#", onClickD FDel, title "Delete this filter" ] [ text "⊗" ]
       , if dat.level <= 1
-        then b [ title "Can't move this filter to parent branch" ] [ text "↰" ]
+        then small [ title "Can't move this filter to parent branch" ] [ text "↰" ]
         else a [ href "#", onClickD FMovePar, title "Move this filter to parent branch" ] [ text "↰" ]
       , a [ href "#", onClickD FMoveSub, title "Create new branch for this filter" ] [ text "↳" ]
       ] :: cont ()

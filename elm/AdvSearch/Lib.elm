@@ -165,7 +165,7 @@ inputOp : Bool -> Op -> (Op -> a) -> Html.Html a
 inputOp onlyEq val msg =
   Html.div [ Html.Attributes.class "opselect" ] <|
     List.map (\op ->
-      if val == op then Html.b [] [ Html.text (showOp op) ] else Html.a [ Html.Attributes.href "#", Lib.Html.onClickD (msg op) ] [ Html.text (showOp op) ]
+      if val == op then Html.strong [] [ Html.text (showOp op) ] else Html.a [ Html.Attributes.href "#", Lib.Html.onClickD (msg op) ] [ Html.text (showOp op) ]
     ) <| if onlyEq then [Eq, Ne] else [Eq, Ne, Ge, Gt, Le, Lt]
 
 

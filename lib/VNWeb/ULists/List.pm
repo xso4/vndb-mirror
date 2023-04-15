@@ -112,8 +112,8 @@ sub vn_ {
             label_ for => 'collapse_vid'.$v->{id}, sub {
                 my $obtained = grep $_->{status} == 2, $v->{rels}->@*;
                 my $total = $v->{rels}->@*;
-                b_ id => 'ulist_relsum_'.$v->{id},
-                    mkclass(done => $total && $obtained == $total, todo => $obtained < $total, neutral => 1),
+                span_ id => 'ulist_relsum_'.$v->{id},
+                    mkclass(done => $total && $obtained == $total, todo => $obtained < $total),
                     sprintf '%d/%d', $obtained, $total;
                 if($own) {
                     my $public = List::Util::any { $labels{$_->{id}} && !$_->{private} } @$labels;
@@ -323,7 +323,7 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
                         opts => { l => $opt->{l}, mul => $opt->{mul}, s => $opt->{s}->query_encode(), f => $opt->{f}->query_encode() },
                     } if $own;
                     div_ class => 'hidden exportlist', sub {
-                        b_ 'Export your list';
+                        strong_ 'Export your list';
                         br_;
                         txt_ 'This function will export all visual novels and releases in your list, even those marked as private ';
                         txt_ '(there is currently no import function, more export options may be added later).';

@@ -611,7 +611,7 @@ view model =
         foot =
           tfoot [] [ tr [] [ td [ colspan 4 ]
           [ br [] []
-          , b [] [ text "Add cast" ]
+          , strong [] [ text "Add cast" ]
           , br [] []
           , if hasDuplicates (List.map (\s -> (s.aid, s.cid)) model.seiyuu)
             then b [ class "standout" ] [ text "List contains duplicate cast roles.", br [] [] ]
@@ -659,7 +659,7 @@ view model =
           [ td [] [ Img.viewImg i ]
           , td [] [ Img.viewVote i (ScrMsg id) (Invalid Screenshots) |> Maybe.withDefault (text "") ]
           , td []
-            [ b [] [ text <| "Screenshot #" ++ String.fromInt (n+1) ]
+            [ strong [] [ text <| "Screenshot #" ++ String.fromInt (n+1) ]
             , text " (", a [ href "#", onClickD (ScrDel id) ] [ text "remove" ], text ")"
             , br [] []
             , text <| "Image resolution: " ++ dimstr imgdim
@@ -690,18 +690,18 @@ view model =
           let free = 10 - List.length model.screenshots
           in
           if not (List.isEmpty model.scrQueue)
-          then [ b [] [ text "Uploading screenshots" ]
+          then [ strong [] [ text "Uploading screenshots" ]
                , br [] []
                , text <| (String.fromInt (List.length model.scrQueue)) ++ " remaining... "
                , span [ class "spinner" ] []
                ]
           else if free <= 0
-          then [ b [] [ text "Enough screenshots" ]
+          then [ strong [] [ text "Enough screenshots" ]
                , br [] []
                , text "The limit of 10 screenshots per visual novel has been reached. If you want to add a new screenshot, please remove an existing one first."
                ]
           else
-            [ b [] [ text "Add screenshots" ]
+            [ strong [] [ text "Add screenshots" ]
             , br [] []
             , text <| String.fromInt free ++ " more screenshot" ++ (if free == 1 then "" else "s") ++ " can be added."
             , br [] []
@@ -715,7 +715,7 @@ view model =
               , br [] []
               ]
             , br [] []
-            , b [] [ text "Important reminder" ]
+            , strong [] [ text "Important reminder" ]
             , ul []
               [ li [] [ text "Screenshots must be in the native resolution of the game" ]
               , li [] [ text "Screenshots must not include window borders and should not have copyright markings" ]

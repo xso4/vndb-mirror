@@ -116,7 +116,7 @@ view model =
   form_ "" Submit (model.state == Api.Loading)
   [ div [ class "mainbox" ]
     [ h1 [] [ text <| if model.id == Nothing then "Submit a review" else "Edit review" ]
-    , p [] [ b [] [ text "Rules" ] ]
+    , p [] [ strong [] [ text "Rules" ] ]
     , ul []
       [ li [] [ text "Submit only reviews you have written yourself!" ]
       , li [] [ text "Reviews must be in English." ]
@@ -139,10 +139,10 @@ view model =
         ]
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "" ] ]
       , formField "Review type"
-        [ label [] [ inputRadio "type" (model.isfull == False) (\_ -> Full False), b [] [ text " Mini review" ]
+        [ label [] [ inputRadio "type" (model.isfull == False) (\_ -> Full False), strong [] [ text " Mini review" ]
         , text <| " - Recommendation-style, maximum 800 characters." ]
         , br [] []
-        , label [] [ inputRadio "type" (model.isfull == True ) (\_ -> Full True ), b [] [ text " Full review" ]
+        , label [] [ inputRadio "type" (model.isfull == True ) (\_ -> Full True ), strong [] [ text " Full review" ]
         , text " - Longer, more detailed." ]
         , br [] []
         , small [] [ text "You can always switch between review types later." ]
@@ -169,7 +169,7 @@ view model =
           in
           [ num (len < minChars) (String.fromInt minChars)
           , text " / "
-          , b [] [ text (String.fromInt len) ]
+          , strong [] [ text (String.fromInt len) ]
           , text " / "
           , num (len > maxChars) (if model.isfull then "∞" else String.fromInt maxChars)
           ]

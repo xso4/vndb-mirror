@@ -64,28 +64,6 @@ div.warning ul, div.notice ul { margin-left: 0; }
 div.warning li, div.notice li { margin-left: 20px; }
 div.warning h2, div.notice h2 { font-size: 13px; font-weight: bold; margin: 0; }
 
-/* dropdown box */
-#dd_box            { position: absolute; left: 0px; border: 1px solid var(--border); background-color: var(--secbg); z-index: 2 }
-#dd_box ul         { list-style-type: none; margin: 0; padding: 0 }
-#dd_box li b       { display: block; font-weight: normal; padding-left: 5px; }
-#dd_box li i       { display: block; font-style: normal; padding-left: 10px; padding-right: 5px }
-#dd_box li a       { display: block; padding-left: 10px; border: 0; padding: 3px 5px 3px 3px }
-#dd_box li a:hover { background: var(--boxbg) }
-
-/* dropdown search */
-#ds_box {
-  position: absolute;
-  top: 0;
-  border: 1px solid var(--border);
-  border-top: none;
-  background-color: var(--secbg);
-  cursor: pointer;
-  z-index: 2
-}
-#ds_box b           { padding: 2px 0 0 10px; }
-#ds_box tr.selected { background: var(--boxbg); }
-#ds_box table       { width: 100%; }
-
 /* Elm dropdowns (also in perl: VNWeb::Releases::Lib) */
 .elm_dd > a { color: var(--maintext); display: block; border: none; padding-right: 15px; position: relative }
 .elm_dd > a > span:last-child { position: absolute; right: 5px; top: 0; width: 16px; text-align: right; display: block }
@@ -128,11 +106,9 @@ p.itemmsg     { float: right; color: var(--standout); font-style: italic; margin
 small, .grayedout { font-size: inherit; color: var(--grayedout) }
 .underline    { text-decoration: underline }
 .monospace    { font-family: monospace!important }
-#maincontent h2 b { font: 13px "Tahoma", "Arial", sans-serif; font-weight: normal; }
 p.description, div.description { margin: 10px auto!important; max-width: 800px; }
-b.done        { font-weight: normal; color: var(--statok) }
-b.todo        { font-weight: normal; color: var(--statnok) }
-b.neutral     { font-weight: normal }
+.done         { color: var(--statok) }
+.todo         { color: var(--statnok) }
 p.center      { text-align: center; }
 .standout     { color: var(--standout)!important }
 b.future,
@@ -141,9 +117,9 @@ b.standout    { font-weight: normal; color: var(--standout); }
 .hidden       { display: none!important }
 .invisible    { visibility: hidden }
 .linethrough  { text-decoration: line-through }
-b.spoiler,         b.spoiler       a { color: #000!important;       background-color: #000;       font-weight: normal; }
-b.spoiler:hover,   b.spoiler:focus   { color: var(--maintext)!important; background-color: transparent }
-b.spoiler:hover a, b.spoiler:focus a { color: var(--link)!important;     background-color: transparent }
+.spoiler,         .spoiler       a { color: #000!important;            background-color: #000    }
+.spoiler:hover,   .spoiler:focus   { color: var(--maintext)!important; background-color: inherit }
+.spoiler:hover a, .spoiler:focus a { color: var(--link)!important;     background-color: inherit }
 
 #maincontent div.quote {
   padding: 1px 5px;
@@ -330,6 +306,7 @@ div.maintabs          { display: flex; justify-content: space-between; position:
 #maincontent > div:nth-child(1).maintabs { margin-top: 0 }
 div.maintabs.right    { justify-content: flex-end }
 div.maintabs.left     { justify-content: flex-start }
+div.maintabs .ellipsis { font-weight: bold }
 div.maintabs > ul       { margin: 0; padding: 0; list-style-type: none }
 div.maintabs > ul > li       { display: inline-block; margin: 0 0 0 10px }
 div.maintabs > ul > li:nth-child(1) { margin-left: 0!important }
@@ -442,17 +419,16 @@ div.thread td.tc1        { width: 190px; padding: 5px 10px; border-right: 1px so
 div.thread td.tc2        { padding: 10px 20px 10px 10px; }
 div.thread tr.deleted td { padding: 1px 10px; }
 div.thread tr:target, div.thread tr.target { outline: 1px dotted var(--standout) }
-div.thread i.deleted     { font-style: normal; color: var(--grayedout); }
-div.thread i.lastmod     { float: right; font-size: 11px; color: var(--grayedout); margin: 0 -10px -5px 0; }
-div.thread i.edit        { float: right; color: var(--grayedout); font-style: normal; margin: -10px -10px 0 0; visibility: hidden }
-div.thread td:hover i.edit,
-div.thread td:active i.edit { visibility: visible }
+div.thread .lastmod      { float: right; font-size: 11px; color: var(--grayedout); margin: 0 -10px -5px 0; }
+div.thread .edit         { float: right; color: var(--grayedout); margin: -10px -10px 0 0; visibility: hidden }
+div.thread td:hover .edit,
+div.thread td:active .edit { visibility: visible }
 
 /* threads browser */
 div.mainbox.discussions td.tc4     { text-align: right; }
 div.mainbox.discussions a.locked   { text-decoration: line-through; }
-div.mainbox.discussions b.boards   { padding-left: 10px; font-weight: normal; }
-div.mainbox.discussions b.boards a { color: var(--grayedout); }
+div.mainbox.discussions .boards    { padding-left: 10px }
+div.mainbox.discussions .boards a  { color: var(--grayedout) }
 div.discussions td.tc2             { width: 66px; text-align: right }
 div.discussions td.tc3             { width: 116px;  }
 div.discussions td.tc4             { width: 256px; }
@@ -514,7 +490,7 @@ div.vndetails td.relations dt { float: none; font-style: normal; }
 div.vndetails td.relations dd { margin-left: 15px; }
 div.vndetails td.relations label { float: right }
 div.vndetails td.relations input:not(:checked) ~ dl .unofficial { display: none }
-div.vndetails td.anime b      { font-size: 10px; font-weight: normal; padding-right: 4px; }
+div.vndetails td.anime span    { font-size: 10px; padding-right: 4px; }
 div.vndetails .lengthvotefrm {
     margin-top: -18px; text-align: right;
     > form { text-align: left }
@@ -525,7 +501,7 @@ div.vndetails .lengthvotefrm {
     }
 }
 .ulistvn     { padding: 5px 0 0 0 }
-.ulistvn > b { font-size: 14px }
+.ulistvn > strong { font-size: 14px }
 .ulistvn > span { float: right }
 .ulistvn textarea { width: 100% }
 .ulistvn .date span:not(.spinner) { display: none }
@@ -642,7 +618,7 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid var
 .votestats div       { text-align: center; padding-top: 5px; }
 
 .recentvotes               { width: 300px }
-.recentvotes thead tr td b { font-weight: normal; padding-left: 5px }
+.recentvotes thead tr td span { font-weight: normal; padding-left: 5px }
 
 
 
@@ -1161,8 +1137,8 @@ div.revision table thead tr td { background-color: transparent!important; text-a
 div.revision table td { border-right: 1px solid var(--border); padding: 5px; }
 div.revision td.tcval { width: 44%; }
 div.revision div.rev  { padding: 5px; text-align: center; }
-.diff_add             { font-weight: normal; background-color: var(--diffadd); }
-.diff_del             { font-weight: normal; background-color: var(--diffdel); }
+.diff_add             { background-color: var(--diffadd); }
+.diff_del             { background-color: var(--diffdel); }
 div.revision .next    { float: right; margin-right: 5%; }
 div.revision .prev    { float: left; margin-left: 5%; }
 div.revision .item    { text-align: center; }
@@ -1246,50 +1222,6 @@ div#iv_view {
 .ivview > div:nth-child(3) > a:nth-child(4) { text-align: right; font-size: 11px; font-weight: normal }
 
 
-/****** filter selector *****/
-
-.fil_div {
-  position: absolute;
-  top: 0px;
-  left: 0px;
-  background: var(--tabbg);
-  border: 1px solid var(--border);
-  padding: 5px;
-  width: 600px;
-  text-align: center;
-}
-.fil_div a.close       { float: right; border: 0; font-weight: bold }
-.fil_div p.browseopts  { padding: 2px 20px; line-height: 23px }
-.fil_div .browseopts a { outline: none; color: var(--maintext) }
-.fil_div .browseopts a.active { font-weight: bold }
-.fil_div b.ruler       { display: block; margin: auto; width: 93%; height: 1px; border-bottom: 1px solid var(--border); margin-bottom: 5px }
-.fil_div h3            { width: 100%; text-align: center; font-size: 13px }
-.fil_div table         { width: 93%; text-align: left; margin: 0 auto 5px auto }
-.fil_div table td.label label { width: 120px }
-.fil_div table td.label b { display: block; font-weight: normal; padding: 10px 5px 0 0 }
-.fil_div table td.check { width: 15px }
-.fil_div label.active { font-weight: bold }
-.fil_div .opts a      { border: 0; outline: none }
-.fil_div .opts b      { margin: 0 7px; font-weight: normal }
-.fil_div .opts a.tsel { color: var(--maintext); }
-.fil_div table ul   { margin: 0 0 0 15px }
-.fil_div .slider p    { margin: 1px; }
-.fil_div .slider div  { margin: 1px; border: 1px solid var(--secborder); float: left; height: 12px; }
-.fil_div .slider div div { border-top: none; border-bottom: none; cursor: default; position: relative; height: 10px; margin: 1px; }
-.fil_div .slider span { margin-left: 5px }
-
-p.filselect {
-  text-align: center;
-  display: block;
-  margin: 10px auto 3px auto;
-  border: none;
-  outline: none;
-}
-p.filselect a { margin: 0 5px }
-p.filselect i { font-style: normal }
-
-
-
 
 /****** Advanced Search *******/
 
@@ -1317,7 +1249,6 @@ p.filselect i { font-style: normal }
 .xsearch .elm_dd_input.short { width: auto }
 .xsearch .advbut { width: 100%; background-color: var(--blendbg); text-align: right; white-space: nowrap }
 .xsearch .advbut > * { display: inline-block; height: 20px; padding: 3px 5px 0 2px; cursor: pointer; border-bottom: none; font-size: 16px }
-.xsearch .advbut > b { color: var(--grayedout); font-style: normal }
 .xsearch .advheader { background-color: var(--blendbg); padding: 3px; width: 100%; margin-bottom: 2px }
 .xsearch .advheader > h3 { text-align: center; font-weight: bold; font-size: inherit; margin-bottom: 3px }
 .xsearch .advheader .opts { display: flex; justify-content: space-between; align-items: flex-end; min-width: 170px }

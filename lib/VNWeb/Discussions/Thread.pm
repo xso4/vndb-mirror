@@ -90,7 +90,7 @@ sub metabox_ {
                     if($_->{title}) {
                         a_ href => "/$_->{iid}", tattr $_;
                     } else {
-                        b_ '[deleted]';
+                        strong_ '[deleted]';
                     }
                 }
             } for $t->{boards}->@*;
@@ -118,7 +118,7 @@ sub posts_ {
                     }
                 };
                 td_ class => 'tc2', sub {
-                    i_ class => 'edit', sub {
+                    small_ class => 'edit', sub {
                         txt_ '< ';
                         if(can_edit t => $_) {
                             a_ href => "/$t->{id}.$_->{num}/edit", 'edit';
@@ -128,13 +128,13 @@ sub posts_ {
                         txt_ ' >';
                     } if !defined $_->{hidden} || can_edit t => $_;
                     if(defined $_->{hidden}) {
-                        i_ class => 'deleted', sub {
+                        small_ sub {
                             txt_ 'Post deleted';
                             lit_ length $_->{hidden} ? ': '.bb_format $_->{hidden}, inline => 1 : '.';
                         };
                     } else {
                         lit_ bb_format $_->{msg};
-                        i_ class => 'lastmod', 'Last modified on '.fmtdate($_->{edited}, 'full') if $_->{edited};
+                        small_ class => 'lastmod', 'Last modified on '.fmtdate($_->{edited}, 'full') if $_->{edited};
                     }
                 };
             } for @$posts;

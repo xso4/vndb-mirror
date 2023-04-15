@@ -274,46 +274,46 @@ view model =
       , div [] <| if i.token == Nothing then [] else
         [ p [] <|
           case Tuple.first model.desc of
-            Just 0 -> [ b [] [ text "Safe" ], br [] []
+            Just 0 -> [ strong [] [ text "Safe" ], br [] []
                       , text "- No nudity", br [] []
                       , text "- No (implied) sexual actions", br [] []
                       , text "- No suggestive clothing or visible underwear", br [] []
                       , text "- No sex toys" ]
-            Just 1 -> [ b [] [ text "Suggestive" ], br [] []
+            Just 1 -> [ strong [] [ text "Suggestive" ], br [] []
                       , text "- Visible underwear or skimpy clothing", br [] []
                       , text "- Erotic posing", br [] []
                       , text "- Sex toys (but not visibly being used)", br [] []
                       , text "- No visible genitals or female nipples" ]
-            Just 2 -> [ b [] [ text "Explicit" ], br [] []
+            Just 2 -> [ strong [] [ text "Explicit" ], br [] []
                       , text "- Visible genitals or female nipples", br [] []
                       , text "- Penetrative sex (regardless of clothing)", br [] []
                       , text "- Visible use of sex toys" ]
             _ -> []
         , ul []
-          [ li [] [ b [] [ text "Sexual" ] ]
+          [ li [] [ strong [] [ text "Sexual" ] ]
           , but i (Just 0) i.my_violence "vio0" " Safe"
           , but i (Just 1) i.my_violence "vio1" " Suggestive"
           , but i (Just 2) i.my_violence "vio2" " Explicit"
           , if model.mod then li [ class "overrule" ] [ label [ title "Overrule" ] [ inputCheck "" i.my_overrule (\b -> Vote i.my_sexual i.my_violence b True), text " Overrule" ] ] else text ""
           ]
         , ul []
-          [ li [] [ b [] [ text "Violence" ] ]
+          [ li [] [ strong [] [ text "Violence" ] ]
           , but i i.my_sexual (Just 0) "sex0" " Tame"
           , but i i.my_sexual (Just 1) "sex1" " Violent"
           , but i i.my_sexual (Just 2) "sex2" " Brutal"
           ]
         , p [] <|
           case Tuple.second model.desc of
-            Just 0 -> [ b [] [ text "Tame" ], br [] []
+            Just 0 -> [ strong [] [ text "Tame" ], br [] []
                       , text "- No visible violence", br [] []
                       , text "- Tame slapstick comedy", br [] []
                       , text "- Weapons, but not used to harm anyone", br [] []
                       , text "- Only very minor visible blood or bruises", br [] [] ]
-            Just 1 -> [ b [] [ text "Violent" ], br [] []
+            Just 1 -> [ strong [] [ text "Violent" ], br [] []
                       , text "- Visible blood", br [] []
                       , text "- Non-comedic fight scenes", br [] []
                       , text "- Physically harmful activities" ]
-            Just 2 -> [ b [] [ text "Brutal" ], br [] []
+            Just 2 -> [ strong [] [ text "Brutal" ], br [] []
                       , text "- Excessive amounts of blood", br [] []
                       , text "- Cut off limbs", br [] []
                       , text "- Sliced-open bodies", br [] []

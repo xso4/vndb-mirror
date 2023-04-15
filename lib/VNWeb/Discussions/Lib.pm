@@ -82,7 +82,7 @@ sub threadlist_ {
                         span_ class => 'pollflag', '[hidden]' if $l->{hidden};
                         txt_ shorten $l->{title}, 50;
                     };
-                    b_ class => 'boards', sub {
+                    span_ class => 'boards', sub {
                         join_ ', ', sub {
                             a_ href => '/t/'.($_->{iid}||$_->{btype}),
                                 $_->{title} ? tlang(@{$_->{title}}[0,1]) : (),
