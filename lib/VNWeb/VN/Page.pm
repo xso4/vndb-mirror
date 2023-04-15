@@ -748,7 +748,7 @@ sub charsum_ {
                         abbr_ class => "icons gen $_->{gender}", title => $GENDER{$_->{gender}}, '' if $_->{gender} ne 'unknown';
                         a_ href => "/$_->{id}", tattr $_;
                     };
-                    i_ $CHAR_ROLE{$_->{role}}{txt};
+                    em_ $CHAR_ROLE{$_->{role}}{txt};
                 };
                 div_ class => 'actor', sub {
                     txt_ 'Voiced by';

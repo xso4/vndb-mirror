@@ -599,7 +599,7 @@ sub _revision_header_ {
 
 sub _revision_fmtval_ {
     my($opt, $val, $obj) = @_;
-    return i_ '[empty]' if !defined $val || !length $val || (defined $opt->{empty} && $val eq $opt->{empty});
+    return em_ '[empty]' if !defined $val || !length $val || (defined $opt->{empty} && $val eq $opt->{empty});
     return lit_ html_escape $val if !$opt->{fmt};
     if(ref $opt->{fmt} eq 'HASH') {
         my $h = $opt->{fmt}{$val};
@@ -618,7 +618,7 @@ sub _revision_fmtcol_ {
     my sub sep_ { b_ '<...>' }; # Context separator
 
     td_ class => 'tcval', sub {
-        i_ '[empty]' if @$l > 1 && (($i == 1 && !grep $_->[0] ne '+', @$l) || ($i == 2 && !grep $_->[0] ne '-', @$l));
+        em_ '[empty]' if @$l > 1 && (($i == 1 && !grep $_->[0] ne '+', @$l) || ($i == 2 && !grep $_->[0] ne '-', @$l));
         join_ $opt->{join}||\&br_, sub {
             my($ch, $old, $new, $diff) = @$_;
             my $val = $_->[$i];

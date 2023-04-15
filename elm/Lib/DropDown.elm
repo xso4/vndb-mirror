@@ -60,9 +60,9 @@ view conf status lbl cont =
       ] ++ if conf.hover then [ onMouseEnter (conf.toggle True) ] else []
     ) <|
     case status of
-      Api.Normal  -> [ lbl, span [] [ i [] [ text "▾" ] ] ]
+      Api.Normal  -> [ lbl, span [] [ span [ class "arrow" ] [ text "▾" ] ] ]
       Api.Loading -> [ lbl, span [] [ span [ class "spinner" ] [] ] ]
-      Api.Error e -> [ b [] [ text "error" ], span [] [ i [] [ text "▾" ] ] ]
+      Api.Error e -> [ b [] [ text "error" ], span [] [ span [ class "arrow" ] [ text "▾" ] ] ]
   , div [ classList [("hidden", not conf.opened)] ]
     [ if conf.opened then div [] (cont ()) else text "" ]
   ]

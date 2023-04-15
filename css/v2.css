@@ -1,21 +1,21 @@
 html         { box-sizing: border-box }
 *, *:before, *:after { box-sizing: inherit }
-*            { margin: 0; padding: 0; box-sizing: border-box }
-body, td     { font: 13px "Tahoma", "Arial", sans-serif; }
-body         { color: var(--maintext) }
+*            { margin: 0; padding: 0; box-sizing: border-box; font: inherit; color: inherit }
+body         { font: 13px "Tahoma", "Arial", sans-serif; color: var(--maintext) }
 table        { border-collapse: collapse; }
 table td,
 table th     { vertical-align: top; padding: 3px; }
 img          { border: none; box-sizing: content-box }
 svg          { fill: currentColor; }
+b,strong,h1,h2,h3,h4,h5{ font-weight: bold }
+i,em         { font-style: italic }
+summary      { cursor: pointer }
 
 a,
 .fake_link       { color: var(--link); text-decoration: none; cursor:pointer; border-bottom: 1px solid transparent }
 
 a:hover,
 .fake_link:hover { border-bottom: 1px dotted var(--maintext); }
-
-summary { cursor: pointer }
 
 table tr.odd,
 table.stripe tbody tr:nth-child(odd):not(.nostripe),
@@ -27,25 +27,11 @@ table.stripe tbody tr:nth-child(odd):not(.nostripe),
   text-align: center; padding: 3px;
   background: var(--warnbg); border-bottom: 1px solid var(--warnborder);
 }
-#header {
-  position: absolute;
-  top: 80px;
-  width: 100%;
-  max-width: 770px;
-  text-align: right;
-}
-#header h1 {
-  padding: 0 30px;
-}
-#header h1, #header h1 a {
-  font-family: "Futura", "Century New Gothic", "Arial", Serif;
-  font-size: 24px;
-  font-style: italic;
-  border: none!important;
-  color: var(--maintitle);
-}
+#header { position: absolute; top: 80px; width: 100%; max-width: 770px; text-align: right; }
+#header h1 { padding: 0 30px; }
+#header h1, #header h1 a { font: bold italic 24px "Futura", "Century New Gothic", "Arial", Serif; color: var(--maintitle); border: none!important; }
 #footer   { margin: 15px auto 0 auto; text-align: center; color: var(--footer); }
-#footer a { color: var(--footer); text-decoration: underline; }
+#footer a { color: inherit; text-decoration: underline; }
 
 /* https://snook.ca/archives/html_and_css/hiding-content-for-accessibility */
 .visuallyhidden, .linkradio input {
@@ -62,15 +48,15 @@ div.warning, div.notice       { margin: 5px 10%; padding: 15px; background-color
 div.notice                    { background-color: var(--noticebg); border: 1px solid var(--noticeborder); }
 div.warning ul, div.notice ul { margin-left: 0; }
 div.warning li, div.notice li { margin-left: 20px; }
-div.warning h2, div.notice h2 { font-size: 13px; font-weight: bold; margin: 0; }
+div.warning h2, div.notice h2 { font-size: inherit; margin: 0; }
 
 /* Elm dropdowns (also in perl: VNWeb::Releases::Lib) */
 .elm_dd > a { color: var(--maintext); display: block; border: none; padding-right: 15px; position: relative }
 .elm_dd > a > span:last-child { position: absolute; right: 5px; top: 0; width: 16px; text-align: right; display: block }
-.elm_dd > a > span:last-child i { visibility: hidden; font-style: normal }
+.elm_dd > a > span:last-child .arrow { visibility: hidden }
 .elm_dd > a .nowrap { display: block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.elm_dd > a:hover > span:last-child > i,
-.elm_dd > a:focus > span:last-child > i { visibility: visible }
+.elm_dd > a:hover > span:last-child > .arrow,
+.elm_dd > a:focus > span:last-child > .arrow { visibility: visible }
 .elm_dd > div { position: relative; float: right; width: 0; height: 0 }
 .elm_dd > div > div { position: absolute; right: -10px; top: 0; border: 1px solid var(--border); background-color: var(--secbg); z-index: 1000; margin: 0; padding: 0; max-width: 400px }
 .elm_dd.search > div { float: left }
@@ -103,7 +89,7 @@ div.warning h2, div.notice h2 { font-size: 13px; font-weight: bold; margin: 0; }
 
 ul, ol        { margin-left: 35px; }
 p.itemmsg     { float: right; color: var(--standout); font-style: italic; margin: 0!important }
-small, .grayedout { font-size: inherit; color: var(--grayedout) }
+small, .grayedout { color: var(--grayedout) }
 .underline    { text-decoration: underline }
 .monospace    { font-family: monospace!important }
 p.description, div.description { margin: 10px auto!important; max-width: 800px; }
@@ -235,17 +221,15 @@ fieldset.submit .textpreview { margin: 0 auto }
 #menulist div.menubox        { margin: 0 0 10px 0; border: 1px solid var(--border); background: var(--boxbg); }
 #menulist div.menubox div    { padding: 2px 7px; }
 #menulist h2                 { border-bottom: 1px solid var(--border); background: var(--boxbg); padding: 1px 3px; }
-#menulist h2, #menulist h2 a { font-size: 13px; color: var(--maintext); }
-#menulist h2 #lang_select    { float: right; padding-top: 1px; }
+#menulist h2, #menulist h2 a { font-size: 13px }
 #menulist dt                 { display: block; float: left; width: 97px; font-style: italic; }
 #menulist dd                 { width: 45px; float: left; text-align: right; }
 #menulist p                  { text-align: center; }
 #menulist #search input.text { width: 145px; margin: 0 0 3px 7px }
 #menulist #search input.submit { display: none; }
-#dd_box abbr                 { margin: 2px 5px 2px 0!important; }
 #menulist .notifyget         { display: inline-block; width: 135px; padding: 4px; background: var(--warnbg); border: 1px solid var(--warnborder); }
-#menulist .logout            { border: 0; background: none; color: var(--maintext); cursor: pointer }
-#menulist .logout:hover      { text-decoration: underline }
+#menulist .logout            { border: 0; border-bottom: 1px solid transparent; background: none; cursor: pointer }
+#menulist .logout:hover      { border-bottom: 1px dotted var(--maintext) }
 
 #support { background: var(--boxbg); font-size: 12px; padding: 4px; margin-bottom: 5px; text-align: center }
 #support p { display: flex; justify-content: space-between }
@@ -315,20 +299,14 @@ div.maintabs > ul > li.tabselected > div > a,
 div.maintabs > ul > li > div > a:hover,
 div.maintabs > ul > li > a:hover        { background: var(--blendbg); color: var(--maintext); height: 22px }
 div.maintabs > ul > li a.highlightselected { background: var(--secbg)!important; color: var(--maintext); height: 22px }
-div.maintabs .browsetabs > li > a   { color: var(--maintext) }
+div.maintabs .browsetabs > li > a { color: inherit }
 div.maintabs .browsetabs > li     { margin-left: 5px }
 div.maintabs.bottom            { margin-top: 10px; /* WHY!? */ margin-bottom: -10px }
 div.maintabs.bottom > ul li a       { padding: 4px 7px 2px 7px; border-bottom: 1px solid var(--border); border-top: none }
 div.maintabs.bottom > ul li.tabselected a,
 div.maintabs.bottom > ul li a:hover { padding-top: 5px; height: 22px; margin-top: -1px }
 
-h1.boxtitle, h1.boxtitle a, div.maintabs h1 {
-  font-family: "Futura", "Century New Gothic", "Arial", Serif;
-  font-weight: bold;
-  font-style: italic;
-  color: var(--grayedout);
-  font-size: 17px;
-}
+h1.boxtitle, h1.boxtitle a, div.maintabs h1 { font: bold italic 17px "Futura", "Century New Gothic", "Arial", Serif; color: var(--grayedout); }
 h1.boxtitle, h1.boxtitle a { margin: 20px 0 -20px 0 }
 
 
@@ -345,7 +323,7 @@ li.announcement a       { font-weight: bold; font-size: 15px; color: var(--maint
 @media (max-width:  900px) { .homepage { grid-template-columns: 1fr } }
 .homepage > div { overflow: hidden; border: 1px solid var(--border); padding: 0 2px 10px 2px; background: var(--boxbg); }
 .homepage h1 { margin: 0 0 5px 0; font-size: 18px; font-weight: bold; color: var(--boxtitle) }
-.homepage h1 a { color: var(--boxtitle); }
+.homepage h1 a { color: inherit; }
 .homepage h2 { font-size: 14px; margin-top: 3px; }
 .homepage ul { list-style-type: none; margin-left: 10px; }
 .homepage li { display: flex; line-height: 1.1 }
@@ -359,7 +337,7 @@ li.announcement a       { font-weight: bold; font-size: 15px; color: var(--maint
 
 .browseopts a, .browseopts button {
   padding: 1px 3px;
-  color: var(--maintext);
+  color: inherit;
   border: 1px solid var(--border);
   margin: 0 2px;
   white-space: nowrap;
@@ -377,7 +355,7 @@ table thead th                  { text-align: left }
 fieldset.search                 { display: block; width: 100%; text-align: center; margin: 0 0 10px 0; }
 fieldset.search .submit         { padding: 0 1px; }
 p#searchtabs                    { height: 15px; padding-right: 70px; }
-p#searchtabs a                  { padding: 2px 6px 2px 6px; margin: 0 2px; color: var(--maintext); }
+p#searchtabs a                  { padding: 2px 6px 2px 6px; margin: 0 2px; color: inherit; }
 p#searchtabs a:hover, p#searchtabs a.sel {
   border: 1px solid var(--secborder);
   border-bottom: none;
@@ -995,7 +973,7 @@ div.lengthlist {
 .browse.notifies td.tc3       { width: 100px }
 .browse.notifies td.tc4       { width: 75px }
 .browse.notifies tbody td.tc5 a { color: var(--grayedout) }
-.browse.notifies td.tc5 i     { font-style: normal; color: var(--maintext) }
+.browse.notifies td.tc5 span  { color: var(--maintext) }
 .browse.notifies .unread td   { font-weight: bold }
 .browse.notifies tfoot td     { padding: 0 0 0 25px }
 

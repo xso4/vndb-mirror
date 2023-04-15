@@ -93,9 +93,9 @@ sub listing_ {
                 a_ href => "/$lid", sub {
                     txt_ $l->{iid} =~ /^w/ ? ($l->{num} ? 'Comment on ' : 'Review of ') :
                          $l->{iid} =~ /^t/ ? ($l->{num} == 1 ? 'New thread ' : 'Reply to ') : 'Edit of ';
-                    i_ tattr $l;
+                    span_ tattr $l;
                     txt_ ' by ';
-                    i_ user_displayname $l;
+                    span_ user_displayname $l;
                 };
             };
         } for @$list;
