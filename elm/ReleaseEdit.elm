@@ -375,7 +375,7 @@ viewTitle model i e = tr []
       [ br [] []
       , inputText "" (Maybe.withDefault "" e.latin) (TitleLatin i) (style "width" "500px" :: placeholder "Romanization" :: GRE.valTitlesLatin)
       , case e.latin of
-          Just s -> if containsNonLatin s then b [ class "standout" ] [ br [] [], text "Romanization should only consist of characters in the latin alphabet." ] else text ""
+          Just s -> if containsNonLatin s then b [] [ br [] [], text "Romanization should only consist of characters in the latin alphabet." ] else text ""
           Nothing -> text ""
       ]
     , if List.length model.titles == 1 then text "" else span []
@@ -424,7 +424,7 @@ viewGen model =
             ]
       ) <| model.media ++ [{medium = "unk", qty = 0}]
     , if hasDuplicates (List.map (\m -> (m.medium, m.qty)) model.media)
-      then b [ class "standout" ] [ text "List contains duplicates", br [] [] ]
+      then b [] [ text "List contains duplicates", br [] [] ]
       else text ""
     ]
 
@@ -433,7 +433,7 @@ viewGen model =
   , if model.patch then text "" else
     formField "resolution::Resolution"
     [ A.view resoConfig model.reso []
-    , if resoParse True model.reso.value == Nothing then b [ class "standout" ] [ text " Invalid resolution" ] else text ""
+    , if resoParse True model.reso.value == Nothing then b [] [ text " Invalid resolution" ] else text ""
     ]
   , if model.patch then text "" else
     formField "voiced::Voiced" [ inputSelect "voiced" model.voiced Voiced [] GT.voiced ]
@@ -486,7 +486,7 @@ viewGen model =
   [ tr [ class "newpart" ] [ td [ colspan 2 ] [ text "External identifiers & links" ] ]
   , formField "gtin::JAN/UPC/EAN"
     [ inputText "gtin" model.gtin Gtin [pattern "[0-9]+"]
-    , if not model.gtinValid then b [ class "standout" ] [ text "Invalid GTIN code" ] else text ""
+    , if not model.gtinValid then b [] [ text "Invalid GTIN code" ] else text ""
     ]
   , formField "catalog::Catalog number" [ inputText "catalog" model.catalog Catalog GRE.valCatalog ]
   , formField "website::Website" [ inputText "website" model.website Website (style "width" "500px" :: GRE.valWebsite) ]
@@ -495,7 +495,7 @@ viewGen model =
 
   , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Database relations" ] ]
   , formField "Visual novels"
-    [ if List.isEmpty model.vn then b [ class "standout" ] [ text "No visual novels selected.", br [] [] ]
+    [ if List.isEmpty model.vn then b [] [ text "No visual novels selected.", br [] [] ]
       else table [] <| List.indexedMap (\i v -> tr []
         [ td [ style "text-align" "right" ] [ small [] [ text <| v.vid ++ ":" ] ]
         , td [] [ a [ href <| "/" ++ v.vid ] [ text v.title ] ]
@@ -519,7 +519,7 @@ viewGen model =
 
   , tr [ class "newpart" ] [ td [ colspan 2 ] [] ]
   , formField "notes::Notes"
-    [ TP.view "notes" model.notes Notes 700 [] [ b [ class "standout" ] [ text " (English please!) " ] ]
+    [ TP.view "notes" model.notes Notes 700 [] [ b [] [ text " (English please!) " ] ]
     , text "Miscellaneous notes/comments, information that does not fit in the above fields. E.g.: Types of censoring or for which releases this patch applies."
     ]
   ]

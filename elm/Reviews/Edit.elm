@@ -165,7 +165,7 @@ view model =
         [ TP.view "sum" model.text Text 700 ([rows (if model.isfull then 30 else 10), cols 50] ++ GRE.valText)
           [ a [ href "/d9#4" ] [ text "BBCode formatting supported" ] ]
         , div [ style "width" "700px", style "text-align" "right" ] <|
-          let num c s = if c then b [ class " standout" ] [ text s ] else text s
+          let num c s = if c then b [] [ text s ] else text s
           in
           [ num (len < minChars) (String.fromInt minChars)
           , text " / "
@@ -188,14 +188,14 @@ view model =
       [ label [] [ inputCheck "" model.delete Delete, text " Delete this review." ]
       , if not model.delete then text "" else span []
         [ br [] []
-        , b [ class "standout" ] [ text "WARNING:" ]
+        , b [] [ text "WARNING:" ]
         , text " Deleting this review is a permanent action and can not be reverted!"
         , br [] []
         , br [] []
         , inputButton "Confirm delete" DoDelete []
         , case model.delState of
             Api.Loading -> span [ class "spinner" ] []
-            Api.Error e -> b [ class "standout" ] [ text <| Api.showResponse e ]
+            Api.Error e -> b [] [ text <| Api.showResponse e ]
             Api.Normal  -> text ""
         ]
       ] ]

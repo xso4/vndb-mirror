@@ -37,7 +37,7 @@ view model =
         [ a [ href "#", onClickD UW.NotesToggle ] [ text "💬" ]
         , span [ class "spinner", classList [("hidden", model.notesState /= Api.Loading)] ] []
         , case model.notesState of
-            Api.Error e -> b [ class "standout" ] [ text <| Api.showResponse e ]
+            Api.Error e -> b [] [ text <| Api.showResponse e ]
             _ -> text ""
         ]
   in

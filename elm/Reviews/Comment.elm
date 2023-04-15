@@ -43,7 +43,7 @@ view (state,_,content) =
     [ fieldset [ class "submit" ]
       [ TP.view "msg" content Content 600 ([rows 4, cols 50] ++ GRC.valMsg)
         [ strong [] [ text "Comment" ]
-        , b [ class "standout" ] [ text " (English please!) " ]
+        , b [] [ text " (English please!) " ]
         , a [ href "/d9#4" ] [ text "Formatting" ]
         ]
       , submitButton "Submit" state True

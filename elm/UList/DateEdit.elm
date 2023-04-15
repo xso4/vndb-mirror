@@ -76,7 +76,7 @@ view : Model -> Html Msg
 view model = div (class "compact" :: if model.visible then [] else [onMouseOver Show]) <|
   case model.state of
     Api.Loading -> [ span [ class "spinner" ] [] ]
-    Api.Error _ -> [ b [ class "standout" ] [ text "error" ] ] -- Argh
+    Api.Error _ -> [ b [] [ text "error" ] ] -- Argh
     Api.Normal ->
       [ if model.visible
         then input ([ type_ "date", class "text", value model.val, onInputValidation Val, onBlur (Save model.debnum), placeholder "yyyy-mm-dd" ] ++ GDE.valDate) []

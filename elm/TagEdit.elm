@@ -174,7 +174,7 @@ view model =
           in if List.isEmpty dups
              then span [] [ br [] [], text "Tag name and aliases must be unique and self-describing." ]
              else div []
-             [ b [ class "standout" ] [ text "The following tag names are already present in the database:" ]
+             [ b [] [ text "The following tag names are already present in the database:" ]
              , ul [] <| List.map (\t ->
                  li [] [ a [ href ("/"++t.id) ] [ text t.name ] ]
                ) dups

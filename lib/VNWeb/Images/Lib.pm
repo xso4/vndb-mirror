@@ -131,9 +131,9 @@ sub image_ {
                     txt_ 'This image has been flagged as:';
                     br_; br_;
                 }
-                txt_ 'Sexual: '; $hidden & 1 ? b_ class => 'standout', $SEX[$sex] : txt_ $SEX[$sex];
+                txt_ 'Sexual: '; $hidden & 1 ? b_ $SEX[$sex] : txt_ $SEX[$sex];
                 br_;
-                txt_ 'Violence: '; $hidden & 2 ? b_ class => 'standout', $VIO[$vio] : txt_ $VIO[$vio];
+                txt_ 'Violence: '; $hidden & 2 ? b_ $VIO[$vio] : txt_ $VIO[$vio];
             } else {
                 txt_ 'This image has not yet been flagged';
             }

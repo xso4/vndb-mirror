@@ -125,9 +125,9 @@ sub _rev_ {
             small_ "$_->{groupname} / " if $_->{group} ne $_->{tid};
             a_ href => "/$_->{tid}", $_->{name};
             txt_ ' ('.fmtspoil($_->{spoil}).($_->{lie} ? ', lie':'').')';
-            b_ class => 'standout', ' (awaiting moderation)' if $_->{hidden} && !$_->{locked};
-            b_ class => 'standout', ' (trait deleted)' if $_->{hidden} && $_->{locked};
-            b_ class => 'standout', ' (not applicable)' if !$_->{applicable};
+            b_ ' (awaiting moderation)' if $_->{hidden} && !$_->{locked};
+            b_ ' (trait deleted)' if $_->{hidden} && $_->{locked};
+            b_ ' (not applicable)' if !$_->{applicable};
         } ],
 }
 

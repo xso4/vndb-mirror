@@ -62,7 +62,7 @@ view conf status lbl cont =
     case status of
       Api.Normal  -> [ lbl, span [] [ i [] [ text "▾" ] ] ]
       Api.Loading -> [ lbl, span [] [ span [ class "spinner" ] [] ] ]
-      Api.Error e -> [ b [ class "standout" ] [ text "error" ], span [] [ i [] [ text "▾" ] ] ]
+      Api.Error e -> [ b [] [ text "error" ], span [] [ i [] [ text "▾" ] ] ]
   , div [ classList [("hidden", not conf.opened)] ]
     [ if conf.opened then div [] (cont ()) else text "" ]
   ]

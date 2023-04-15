@@ -129,7 +129,7 @@ view model =
         , formField "newpass2::Repeat"
           [ inputPassword "newpass2" model.newpass2 Newpass2 GUCP.valNewpass
           , br_ 1
-          , if model.noteq then b [ class "standout" ] [ text "Passwords do not match" ] else text ""
+          , if model.noteq then b [] [ text "Passwords do not match" ] else text ""
           ]
         ]
       ]
@@ -138,7 +138,7 @@ view model =
       [ if model.insecure then changeBox else loginBox
       , div [ class "mainbox" ]
         [ fieldset [ class "submit" ]
-          [ if model.invalid then b [ class "standout" ] [ text "Username or password is empty." ] else text ""
+          [ if model.invalid then b [] [ text "Username or password is empty." ] else text ""
           , submitButton "Submit" model.state (not model.invalid)
           ]
         ]

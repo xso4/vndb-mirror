@@ -110,9 +110,7 @@ p.description, div.description { margin: 10px auto!important; max-width: 800px; 
 .done         { color: var(--statok) }
 .todo         { color: var(--statnok) }
 p.center      { text-align: center; }
-.standout     { color: var(--standout)!important }
-b.future,
-b.standout    { font-weight: normal; color: var(--standout); }
+b, .standout  { font-weight: normal; color: var(--standout)!important }
 .clearfloat   { clear: both; height: 0; }
 .hidden       { display: none!important }
 .invisible    { visibility: hidden }

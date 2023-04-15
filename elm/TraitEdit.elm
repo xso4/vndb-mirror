@@ -156,7 +156,7 @@ view model =
           in if List.isEmpty dups
              then span [] [ br [] [], text "Trait name and aliases must be self-describing and unique within the same group." ]
              else div []
-             [ b [ class "standout" ] [ text "The following trait names are already present in the same group:" ]
+             [ b [] [ text "The following trait names are already present in the same group:" ]
              , ul [] <| List.map (\t ->
                  li [] [ a [ href ("/"++t.id) ] [ text t.name ] ]
                ) dups

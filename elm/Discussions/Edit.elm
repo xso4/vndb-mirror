@@ -177,9 +177,9 @@ view model =
         else A.view searchConfig model.boardAdd [placeholder "Add boards..."]
       ] ++
         if model.boards == Just []
-        then [ b [ class "standout" ] [ text "Please add at least one board." ] ]
+        then [ b [] [ text "Please add at least one board." ] ]
         else if dupBoards model
-        then [ b [ class "standout" ] [ text "List contains duplicates." ] ]
+        then [ b [] [ text "List contains duplicates." ] ]
         else []
 
     pollOpt n p =
@@ -197,7 +197,7 @@ view model =
       case (model.pollEnabled, model.poll) of
         (True, Just p) ->
           [ if model.pollEdit
-            then formField "" [ b [ class "standout" ] [ text "Votes will be reset if any changes are made to these options!" ] ]
+            then formField "" [ b [] [ text "Votes will be reset if any changes are made to these options!" ] ]
             else text ""
           , formField "pollq::Poll question" [ inputText "pollq" p.question PollQ (style "width" "400px" :: GDE.valPollQuestion) ]
           , formField "Options"
@@ -236,7 +236,7 @@ view model =
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "" ] ]
       , formField "msg::Message"
         [ TP.view "msg" model.msg Content 700 ([rows 12, cols 50] ++ GDE.valMsg)
-          [ b [ class "standout" ] [ text " (English please!) " ]
+          [ b [] [ text " (English please!) " ]
           , a [ href "/d9#4" ] [ text "Formatting" ]
           ]
         ]

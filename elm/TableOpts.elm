@@ -127,7 +127,7 @@ view model =
       [ case (model.state, model.saved) of
           (_, True)        -> text "Saved!"
           (Api.Loading, _) -> span [ class "spinner" ] []
-          (Api.Error e, _) -> b [ class "standout" ] [ text <| Api.showResponse e ]
+          (Api.Error e, _) -> b [] [ text <| Api.showResponse e ]
           _                -> inputButton "Save current settings as default" Save []
       ]
 

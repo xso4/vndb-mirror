@@ -430,12 +430,12 @@ view model =
             [ inputPassword "pass2" m.pass2 (Pass << Pass2) (onInvalid (Invalid Profile) :: GUE.valPasswordNew)
             , br_ 1
             , if model.passNeq
-              then b [ class "standout" ] [ text "Passwords do not match" ]
+              then b [] [ text "Passwords do not match" ]
               else text ""
             , case model.state of
                 Api.Error e ->
                   if e == GApi.InsecurePass || e == GApi.BadCurPass
-                  then b [ class "standout" ] [ text <| Api.showResponse e ]
+                  then b [] [ text <| Api.showResponse e ]
                   else text ""
                 _ -> text ""
             ]
@@ -680,7 +680,7 @@ view model =
           , case model.api2State of
               Api.Normal -> text ""
               Api.Loading -> span [ class "spinner" ] []
-              Api.Error e -> b [ class "standout" ] [ text (Api.showResponse e) ]
+              Api.Error e -> b [] [ text (Api.showResponse e) ]
           ]]]
         ]
       ]

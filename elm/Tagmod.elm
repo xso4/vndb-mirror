@@ -217,7 +217,7 @@ viewTag t sel vid mod =
           [ tagscore t.rating
           , i [ classList [("grayedout", t.overruled)] ] [ text <| " (" ++ String.fromInt t.count ++ ")" ]
           , if not t.overruled then text ""
-            else b [ class "standout", style "font-weight" "bold", title "Tag overruled. All votes other than that of the moderator who overruled it will be ignored." ] [ text "!" ]
+            else strong [ class "standout", title "Tag overruled. All votes other than that of the moderator who overruled it will be ignored." ] [ text "!" ]
           ]
         , td [ class "tc_allspoil"] [ text <| Ffi.fmtFloat t.spoiler 2 ]
         , td [ class "tc_alllie"] [ text <| if t.islie then "lie" else "" ]
@@ -257,9 +257,9 @@ viewFoot state changed add addMsg =
   [ div [ style "display" "flex", style "justify-content" "space-between" ]
     [ A.view searchConfig add [placeholder "Add tags..."]
     , if addMsg /= ""
-      then b [ class "standout" ] [ text addMsg ]
+      then b [] [ text addMsg ]
       else if changed
-      then b [ class "standout" ] [ text "You have unsaved changes" ]
+      then b [] [ text "You have unsaved changes" ]
       else text ""
     , submitButton "Save changes" state True
     ]

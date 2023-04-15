@@ -61,7 +61,7 @@ view model =
   span []
   [ case model.state of
       Api.Loading -> span [ class "spinner" ] []
-      Api.Error e -> b [ class "standout" ] [ text (Api.showResponse e) ]
+      Api.Error e -> b [] [ text (Api.showResponse e) ]
       Api.Normal  -> text "Was this review helpful? "
   , but True "yes"
   , text " / "

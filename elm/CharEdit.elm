@@ -312,7 +312,7 @@ view model =
         [ inputText "latin" (Maybe.withDefault "" model.latin) Latin (onInvalid (Invalid General) :: placeholder "Romanization" :: GCE.valLatin)
         , case model.latin of
             Just s -> if containsNonLatin s
-                      then b [ class "standout" ] [ br [] [], text "Romanization should only consist of characters in the latin alphabet." ] else text ""
+                      then b [] [ br [] [], text "Romanization should only consist of characters in the latin alphabet." ] else text ""
             Nothing -> text ""
         ]
       , formField "alias::Aliases"
@@ -321,7 +321,7 @@ view model =
         , text "(Un)official aliases, separated by a newline. Must not include spoilers!"
         ]
       , formField "desc::Description" [ TP.view "desc" model.desc Desc 600 (style "height" "150px" :: onInvalid (Invalid General) :: GCE.valDesc)
-        [ b [ class "standout" ] [ text "English please!" ] ] ]
+        [ b [] [ text "English please!" ] ] ]
       , formField "bmonth::Birthday"
         [ inputSelect "bmonth" model.bMonth BMonth [style "width" "128px"] <| (0, "Unknown") :: RDate.monthSelect
         , if model.bMonth == 0 then text ""
@@ -365,7 +365,7 @@ view model =
           [ text "Selected character: "
           , small [] [ text <| m ++ ": " ]
           , a [ href <| "/" ++ m ] [ text model.mainName ]
-          , if Just m == model.id then b [ class "standout" ] [ br [] [], text "A character can't be an instance of itself. Please select another character or disable the above checkbox to remove the instance." ] else text ""
+          , if Just m == model.id then b [] [ br [] [], text "A character can't be an instance of itself. Please select another character or disable the above checkbox to remove the instance." ] else text ""
           ]) model.main
         , br [] []
         , A.view mainConfig model.mainSearch [placeholder "Set character..."]
@@ -411,9 +411,9 @@ view model =
           [ td [ style "padding" "0 0 0 10px", style "text-decoration" (if t.applicable && not t.hidden then "none" else "line-through") ]
             [ Maybe.withDefault (text "") <| Maybe.map (\g -> small [] [ text <| g ++ " / " ]) t.group
             , a [ href <| "/" ++ t.tid ] [ text t.name ]
-            , if t.hidden && not t.locked then b [ class "standout" ] [ text " (awaiting moderation)" ]
-              else if t.hidden then b [ class "standout" ] [ text " (deleted)" ]
-              else if not t.applicable then b [ class "standout" ] [ text " (not applicable)" ]
+            , if t.hidden && not t.locked then b [] [ text " (awaiting moderation)" ]
+              else if t.hidden then b [] [ text " (deleted)" ]
+              else if not t.applicable then b [] [ text " (not applicable)" ]
               else text ""
             ]
           , td [ class "buts" ]
@@ -475,13 +475,13 @@ view model =
           ) lst
           ++ (if List.map (\(_,r) -> Maybe.withDefault "" r.rid) lst |> hasDuplicates |> not then [] else [
             ( vid ++ "dup"
-            , td [] [ td [ colspan 4, style "padding" "0 15px" ] [ b [ class "standout" ] [ text "List contains duplicate releases." ] ] ]
+            , td [] [ td [ colspan 4, style "padding" "0 15px" ] [ b [] [ text "List contains duplicate releases." ] ] ]
             )
           ])
           ++ (if 1 /= List.length (List.filter (\(_,r) -> isJust r.rid) lst) then [] else [
             ( vid ++ "warn"
             , tr [] [ td [ colspan 4, style "padding" "0 15px" ]
-              [ b [ class "standout" ] [ text "Note: " ]
+              [ b [] [ text "Note: " ]
               , text "Only select specific releases if the character has a significantly different role in those releases. "
               , br [] []
               , text "If the character's role is mostly the same in all releases (ignoring trials), then just select \"All (full) releases\"." ]

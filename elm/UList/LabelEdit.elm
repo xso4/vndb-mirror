@@ -115,7 +115,7 @@ view model txt =
         , text " "
         , case Dict.get l.id model.state of
             Just Api.Loading -> span [ class "spinner" ] []
-            Just (Api.Error _) -> b [ class "standout" ] [ text "error" ] -- Need something better
+            Just (Api.Error _) -> b [] [ text "error" ] -- Need something better
             _ -> if l.id <= 6 then ulistIcon l.id l.label else text ""
         ]
       ]
@@ -126,7 +126,7 @@ view model txt =
           Api.Normal -> Html.form [ onSubmit CustomSubmit ]
                         [ inputText "" model.custom Custom ([placeholder "new label", style "width" "150px"] ++ GLA.valLabel) ]
           Api.Loading -> span [ class "spinner" ] []
-          Api.Error _ -> b [ class "standout" ] [ text "error" ] ]
+          Api.Error _ -> b [] [ text "error" ] ]
   in
     DD.view model.dd
       (if List.any (\s -> s == Api.Loading) <| Dict.values model.state then Api.Loading else Api.Normal)

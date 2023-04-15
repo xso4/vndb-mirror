@@ -75,7 +75,7 @@ view model =
       , formField "newpass2::Repeat"
         [ inputPassword "newpass2" model.newpass2 Newpass2 GUPS.valPassword
         , br_ 1
-        , if model.noteq then b [ class "standout" ] [ text "Passwords do not match" ] else text ""
+        , if model.noteq then b [] [ text "Passwords do not match" ] else text ""
         ]
       ]
    ]

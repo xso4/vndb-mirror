@@ -110,7 +110,7 @@ view model =
       , tfoot []
         [ if List.any (\l -> l.id == 7 && l.private) model.labels && List.any (\l -> not l.private) model.labels
           then tr [] [ td [ colspan 4 ]
-            [ b [ class "standout" ] [ text "WARNING: " ]
+            [ b [] [ text "WARNING: " ]
             , text "Your vote is still public if you assign a non-private label to the visual novel."
             ] ]
           else text ""

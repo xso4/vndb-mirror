@@ -269,7 +269,7 @@ view model = div [ class "xsearch" ] <|
     , input [ type_ "submit", class "submit", value "Search" ] []
     ]
   , if model.error
-    then b [ class "standout" ] [ text "Error parsing search query. The URL was probably corrupted in some way. "
+    then b [] [ text "Error parsing search query. The URL was probably corrupted in some way. "
                                 , text "Please report a bug if you opened this page from VNDB (as opposed to getting here from an external site)." ]
     else text ""
   ]

@@ -222,7 +222,7 @@ viewStatus : Model -> List (Html Msg)
 viewStatus model =
   case (model.loadState, model.del, model.onlist) of
     (Api.Loading, _, _) -> [ span [ class "spinner" ] [] ]
-    (Api.Error e, _, _) -> [ b [ class "standout" ] [ text <| Api.showResponse e ] ]
+    (Api.Error e, _, _) -> [ b [] [ text <| Api.showResponse e ] ]
     (_, _, False) -> [ small [] [ text "not on your list" ] ]
     (_, True, _) ->
       [ a [ onClickD Delete ] [ text "Yes, delete" ]
@@ -292,7 +292,7 @@ view model =
           , td [] <|
             [ textarea ([ rows 2, cols 40, onInput Notes, onBlur (NotesSave model.notesRev)] ++ GVN.valNotes) [ text model.notes ]
             ] ++ case model.notesState of
-                   Api.Error e -> [ br [] [], b [ class "standout" ] [ text <| Api.showResponse e ] ]
+                   Api.Error e -> [ br [] [], b [] [ text <| Api.showResponse e ] ]
                    _ -> []
           ]
         ]
@@ -311,6 +311,6 @@ view model =
          [ div [ id "ulist-widget-box" ] <|
            case model.loadState of
              Api.Loading -> [ div [ class "spinner" ] [] ]
-             Api.Error e -> [ b [ class "standout" ] [ text <| Api.showResponse e ] ]
+             Api.Error e -> [ b [] [ text <| Api.showResponse e ] ]
              Api.Normal -> box () ]
     else icon ()

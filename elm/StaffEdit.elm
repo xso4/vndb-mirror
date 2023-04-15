@@ -166,12 +166,12 @@ view model =
         [ inputText "" (Maybe.withDefault "" e.latin) (AliasLatin n) (placeholder "Name (latin)" :: GSE.valAliasLatin)
         , case e.latin of
             Just s -> if containsNonLatin s
-                      then b [ class "standout" ] [ text "Romanization should only consist of characters in the latin alphabet." ] else text ""
+                      then b [] [ text "Romanization should only consist of characters in the latin alphabet." ] else text ""
             Nothing -> text ""
         ]
       , td [ class "tc_add" ]
         [ if model.aid == e.aid then small [] [ text " primary" ]
-          else if e.wantdel then b [ class "standout" ] [ text " still referenced" ]
+          else if e.wantdel then b [] [ text " still referenced" ]
           else if e.inuse then small [] [ text " referenced" ]
           else inputButton "remove" (AliasDel n) []
         ]
@@ -192,7 +192,7 @@ view model =
         [ td [] []
         , td [ colspan 3 ]
           [ if not model.aliasDup then text ""
-            else b [ class "standout" ] [ text "The list contains duplicate aliases.", br_ 1 ]
+            else b [] [ text "The list contains duplicate aliases.", br_ 1 ]
           , a [ onClick AliasAdd ] [ text "Add alias" ]
           ]
         ]
@@ -224,7 +224,7 @@ view model =
         [ h1 [] [ text "General info" ]
         , table [ class "formtable" ]
           [ formField "Names" [ names, br_ 1 ]
-          , formField "desc::Biography" [ TP.view "desc" model.desc Desc 500 GSE.valDesc [ b [ class "standout" ] [ text "English please!" ] ] ]
+          , formField "desc::Biography" [ TP.view "desc" model.desc Desc 500 GSE.valDesc [ b [] [ text "English please!" ] ] ]
           , formField "gender::Gender" [ inputSelect "gender" model.gender Gender []
             [ ("unknown", "Unknown or N/A")
             , ("f",       "Female")

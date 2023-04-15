@@ -58,10 +58,10 @@ submitButton : String -> Api.State -> Bool -> Html m
 submitButton val state valid = span []
    [ input [ type_ "submit", class "submit", tabindex 10, value val, disabled (state == Api.Loading || not valid) ] []
    , case state of
-       Api.Error r -> p [] [ b [class "standout" ] [ text <| Api.showResponse r ] ]
+       Api.Error r -> p [] [ b [] [ text <| Api.showResponse r ] ]
        _ -> if valid
             then text ""
-            else p [] [ b [class "standout" ] [ text "The form contains errors, please fix these before submitting. " ] ]
+            else p [] [ b [] [ text "The form contains errors, please fix these before submitting. " ] ]
    , if state == Api.Loading
      then div [ class "spinner" ] []
      else text ""
@@ -197,7 +197,7 @@ formField lbl cont =
     else
       let
         (nlbl, eng) = if String.endsWith "#eng" lbl then (String.dropRight 4 lbl, True) else (lbl, False)
-        genlbl str = text str :: if eng then [ br [] [], b [ class "standout" ] [ text "English please!" ] ] else []
+        genlbl str = text str :: if eng then [ br [] [], b [] [ text "English please!" ] ] else []
       in
         td [ class "label" ] <|
           case String.split "::" nlbl of

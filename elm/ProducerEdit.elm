@@ -159,14 +159,14 @@ view model =
         [ inputText "latin" (Maybe.withDefault "" model.latin) Latin (style "width" "500px" :: placeholder "Romanization" :: GPE.valLatin)
         , case model.latin of
             Just s -> if containsNonLatin s
-                      then b [ class "standout" ] [ br [] [], text "Romanization should only consist of characters in the latin alphabet." ] else text ""
+                      then b [] [ br [] [], text "Romanization should only consist of characters in the latin alphabet." ] else text ""
             Nothing -> text ""
         ]
       , formField "alias::Aliases"
         [ inputTextArea "alias" model.alias Alias (rows 3 :: GPE.valAlias)
         , br [] []
         , if hasDuplicates <| String.lines <| String.toLower model.alias
-          then b [ class "standout" ] [ text "List contains duplicate aliases.", br [] [] ]
+          then b [] [ text "List contains duplicate aliases.", br [] [] ]
           else text ""
         , text "(Un)official aliases, separated by a newline."
         ]
@@ -179,7 +179,7 @@ view model =
       , formField "website::Website" [ inputText "website" model.website Website GPE.valWebsite ]
       , formField "l_wikidata::Wikidata ID" [ inputWikidata "l_wikidata" model.lWikidata LWikidata [] ]
       , formField "desc::Description"
-        [ TP.view "desc" model.desc Desc 600 (style "height" "180px" :: GPE.valDesc) [ b [ class "standout" ] [ text "English please!" ] ] ]
+        [ TP.view "desc" model.desc Desc 600 (style "height" "180px" :: GPE.valDesc) [ b [] [ text "English please!" ] ] ]
 
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Database relations" ] ]
       , formField "Related producers"

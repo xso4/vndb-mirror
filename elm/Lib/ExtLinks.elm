@@ -97,7 +97,7 @@ update msg model =
 
 view : Model a -> Html (Msg a)
 view model =
-  let msg st s = span [] [ br [] [], small [] [ text ">>> " ], if st then b [ class "standout" ] [ text s ] else text s ]
+  let msg st s = span [] [ br [] [], small [] [ text ">>> " ], if st then b [] [ text s ] else text s ]
   in
   Html.form [ onSubmit Enter ]
   [ table [] <| List.concatMap (\s ->

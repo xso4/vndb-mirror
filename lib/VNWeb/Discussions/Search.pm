@@ -30,7 +30,7 @@ sub filters_ {
                     input_ type => 'text', class => 'text', name => 'bq', style => 'width: 400px', placeholder => 'Search', value => $filt->{bq};
                     br_;
                     input_ type => 'text', class => 'text', name => 'uq', style => 'width: 150px', placeholder => 'Username or id', value => $filt->{uq};
-                    b_ class => 'standout', 'User not found.' if $filt->{uq} && !$u;
+                    b_ 'User not found.' if $filt->{uq} && !$u;
 
                     p_ class => 'linkradio', sub {
                         input_ type => 'checkbox', name => 't', id => 't', value => 1, $filt->{t} ? (checked => 'checked') : ();
@@ -131,7 +131,7 @@ sub posts_ {
                     div_ class => 'title', sub { a_ href => $link, $l->{title} };
                     div_ class => 'thread', sub { lit_(
                         xml_escape($l->{headline})
-                            =~ s/\[raw\]/<b class="standout">/gr
+                            =~ s/\[raw\]/<b>/gr
                             =~ s/\[\/raw\]/<\/b>/gr
                             =~ s/\[code\]/<small>...<\/small><br \/>/gr
                     )};

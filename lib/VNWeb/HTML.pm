@@ -615,7 +615,7 @@ sub _revision_fmtcol_ {
     my($opt, $i, $l, $obj) = @_;
 
     my $ctx = 100; # Number of characters of context in textual diffs
-    my sub sep_ { b_ class => 'standout', '<...>' }; # Context separator
+    my sub sep_ { b_ '<...>' }; # Context separator
 
     td_ class => 'tcval', sub {
         i_ '[empty]' if @$l > 1 && (($i == 1 && !grep $_->[0] ne '+', @$l) || ($i == 2 && !grep $_->[0] ne '-', @$l));

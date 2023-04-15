@@ -150,7 +150,7 @@ view model = div [class "lengthvotefrm"] <|
     frm = [ form_ "" (if cansubmit then Submit else Noop) False
       [ br [] []
       , if model.maycount then text "" else span []
-        [ b [ class "standout" ] [ text "This visual novel is still in development." ]
+        [ b [] [ text "This visual novel is still in development." ]
         , br [] []
         , text "Which means your vote will not count towards the VN's length statistics."
         , br_ 2
@@ -206,7 +206,7 @@ view model = div [class "lengthvotefrm"] <|
           (False, _) -> []
           (_, Api.Normal) ->
             if model.length == 0 && List.isEmpty (Maybe.withDefault [] model.rels)
-            then [ br_ 2, b [ class "standout" ] [ text "There are no releases eligible for voting." ] ]
+            then [ br_ 2, b [] [ text "There are no releases eligible for voting." ] ]
             else frm
-          (_, Api.Error e) -> [ br_ 2, b [ class "standout" ] [ text ("Error: " ++ Api.showResponse e) ] ]
+          (_, Api.Error e) -> [ br_ 2, b [] [ text ("Error: " ++ Api.showResponse e) ] ]
           (_, Api.Loading) -> [ span [ style "float" "right", class "spinner" ] [] ]

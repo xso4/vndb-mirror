@@ -350,7 +350,7 @@ sub infobox_affiliates_ {
         td_ 'Shops';
         td_ sub {
             join_ \&br_, sub {
-                b_ class => 'standout', '» ';
+                b_ '» ';
                 a_ href => $_->[1], sub {
                     txt_ $_->[2];
                     small_ ' @ ';

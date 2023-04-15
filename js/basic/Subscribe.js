@@ -65,7 +65,7 @@ widget('Subscribe', vnode => {
                 ' Enable notifications when this trait is applied or removed from a character.'
             ) : null,
 
-            saveApi.error ? m('b[class=standout]', saveApi.error) : null,
+            saveApi.error ? m('b', saveApi.error) : null,
         )),
     ];
 

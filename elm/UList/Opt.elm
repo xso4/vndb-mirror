@@ -152,7 +152,7 @@ view model =
               else []
             ) ++ (
               case model.notesState of
-                Api.Error e -> [ br [] [], b [ class "standout" ] [ text <| Api.showResponse e ] ]
+                Api.Error e -> [ br [] [], b [] [ text <| Api.showResponse e ] ]
                 _ -> []
             )
           ]
@@ -169,7 +169,7 @@ view model =
                                     <| ("", "-- add release --") :: List.filter (\(rid,_) -> not <| List.any (\r -> r.rid == rid) model.rels) opts ]
               (_, Api.Normal)  -> []
               (_, Api.Loading) -> [ span [ class "spinner" ] [], text "Loading releases..." ]
-              (_, Api.Error e) -> [ b [ class "standout" ] [ text <| Api.showResponse e ], text ". ", a [ href "#", onClickD RelLoad ] [ text "Try again" ] ]
+              (_, Api.Error e) -> [ b [] [ text <| Api.showResponse e ], text ". ", a [ href "#", onClickD RelLoad ] [ text "Try again" ] ]
           ]
         ]
       ]
@@ -202,4 +202,4 @@ view model =
       (False, _) -> table [] <| (if model.flags.own then opt else []) ++ List.map rel model.rels
       (_, Api.Normal)  -> confirm
       (_, Api.Loading) -> div [ class "spinner" ] []
-      (_, Api.Error e) -> b [ class "standout" ] [ text <| "Error removing item: " ++ Api.showResponse e ]
+      (_, Api.Error e) -> b [] [ text <| "Error removing item: " ++ Api.showResponse e ]

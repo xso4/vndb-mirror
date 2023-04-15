@@ -257,7 +257,7 @@ view model =
       , div []
         [ span [] <|
           case model.saveState of
-            Api.Error e -> [ b [ class "standout" ] [ text <| "Save failed: " ++ Api.showResponse e ] ]
+            Api.Error e -> [ b [] [ text <| "Save failed: " ++ Api.showResponse e ] ]
             _ ->
               [ span [ class "spinner", classList [("invisible", model.saveState == Api.Normal)] ] []
               , small [] [ text <|
@@ -337,7 +337,7 @@ view model =
     if model.warn
     then [ ul []
            [ li [] [ text "Make sure you are familiar with the ", a [ href "/d19" ] [ text "image flagging guidelines" ], text "." ]
-           , li [] [ b [ class "standout" ] [ text "WARNING: " ], text "Images shown may include spoilers, be highly offensive and/or contain very explicit depictions of sexual acts." ]
+           , li [] [ b [] [ text "WARNING: " ], text "Images shown may include spoilers, be highly offensive and/or contain very explicit depictions of sexual acts." ]
            ]
          , br [] []
          , if model.single
@@ -348,6 +348,6 @@ view model =
     else case (Array.get model.index model.images, model.loadState) of
            (Just i, _)    -> imgView i
            (_, Api.Loading) -> [ span [ class "spinner" ] [] ]
-           (_, Api.Error e) -> [ b [ class "standout" ] [ text <| Api.showResponse e ] ]
+           (_, Api.Error e) -> [ b [] [ text <| Api.showResponse e ] ]
            (_, Api.Normal)  -> [ text "No more images to vote on!" ]
   ]

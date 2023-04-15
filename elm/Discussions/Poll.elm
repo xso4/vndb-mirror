@@ -120,9 +120,9 @@ view model =
         [ td [ class "tc1" ]
           [ if model.data.can_vote
             then submitButton "Vote" model.state True
-            else b [ class "standout" ] [ text "You must be logged in to be able to vote." ]
+            else b [] [ text "You must be logged in to be able to vote." ]
           , if toomany model
-            then b [ class "standout" ] [ text "Too many options selected." ]
+            then b [] [ text "Too many options selected." ]
             else text ""
           ]
         , td [ class "tc2" ]

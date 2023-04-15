@@ -98,7 +98,7 @@ view model =
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "" ] ]
       , formField "msg::Message"
         [ TP.view "msg" model.msg Content 700 ([rows 12, cols 50] ++ GPE.valMsg)
-          [ b [ class "standout" ] [ text " (English please!) " ]
+          [ b [] [ text " (English please!) " ]
           , a [ href "/d9#4" ] [ text "Formatting" ]
           ]
         ]

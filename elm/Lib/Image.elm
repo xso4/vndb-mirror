@@ -108,9 +108,9 @@ viewImg : Image -> Html m
 viewImg image =
   case (image.imgState, image.img) of
     (Loading, _) -> div [ class "spinner" ] []
-    (NotFound, _) -> b [ class "standout" ] [ text "Image not found." ]
-    (Invalid, _) -> b [ class "standout" ] [ text "Invalid image ID." ]
-    (Error e, _) -> b [ class "standout" ] [ text <| Api.showResponse e ]
+    (NotFound, _) ->b [] [ text "Image not found." ]
+    (Invalid, _) -> b [] [ text "Invalid image ID." ]
+    (Error e, _) -> b [] [ text <| Api.showResponse e ]
     (_, Nothing) -> text "No image."
     (_, Just i) ->
       let
@@ -162,7 +162,7 @@ viewVote model wrap msg =
         ] ]
       , tfoot [] <|
         case model.saveState of
-          Api.Error e -> [ tr [] [ td [ colspan 2 ] [ b [ class "standout" ] [ text (Api.showResponse e) ] ] ] ]
+          Api.Error e -> [ tr [] [ td [ colspan 2 ] [ b [] [ text (Api.showResponse e) ] ] ] ]
           _ -> []
       , tr []
         [ td [ style "white-space" "nowrap" ]

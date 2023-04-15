@@ -400,7 +400,7 @@ view model =
           [ br [] []
           , inputText "" (Maybe.withDefault "" e.latin) (TitleLatin i) (style "width" "500px" :: onInvalid (Invalid General) :: placeholder "Romanization" :: GVE.valTitlesLatin)
           , case e.latin of
-              Just s -> if containsNonLatin s then b [ class "standout" ] [ br [] [], text "Romanization should only consist of characters in the latin alphabet." ] else text ""
+              Just s -> if containsNonLatin s then b [] [ br [] [], text "Romanization should only consist of characters in the latin alphabet." ] else text ""
               Nothing -> text ""
           ]
         , if List.length model.titles == 1 then text "" else span []
@@ -429,14 +429,14 @@ view model =
         [ inputTextArea "alias" model.alias Alias (rows 3 :: onInvalid (Invalid General) :: GVE.valAlias)
         , br [] []
         , if hasDuplicates lines
-          then b [ class "standout" ] [ text "List contains duplicate aliases.", br [] [] ]
+          then b [] [ text "List contains duplicate aliases.", br [] [] ]
           else if contains lines <| List.map String.toLower <| List.concatMap (\e -> [e.title, Maybe.withDefault "" e.latin]) model.titles
-          then b [ class "standout" ] [ text "Titles listed above should not also be added as alias.", br [] [] ]
+          then b [] [ text "Titles listed above should not also be added as alias.", br [] [] ]
           else
             case relAlias model of
               Nothing -> text ""
               Just r  -> span []
-                [ b [ class "standout" ] [ text "Release titles should not be added as alias." ]
+                [ b [] [ text "Release titles should not be added as alias." ]
                 , br [] []
                 , text "Release: "
                 , a [ href <| "/"++r.id ] [ text r.title ]
@@ -450,7 +450,7 @@ view model =
 
     geninfo = titles ++
       [ formField "desc::Description"
-        [ TP.view "desc" model.desc Desc 600 (style "height" "180px" :: onInvalid (Invalid General) :: GVE.valDesc) [ b [ class "standout" ] [ text "English please!" ] ]
+        [ TP.view "desc" model.desc Desc 600 (style "height" "180px" :: onInvalid (Invalid General) :: GVE.valDesc) [ b [] [ text "English please!" ] ]
         , text "Short description of the main story. Please do not include spoilers, and don't forget to list the source in case you didn't write the description yourself."
         ]
       , formField "devstatus::Development status"
@@ -460,7 +460,7 @@ view model =
             && List.isEmpty (List.filter (\r -> r.rtype == "complete" && r.released <= model.today) model.releases)
           then span []
                [ br [] []
-               , b [ class "standout" ] [ text "Development is marked as finished, but there is no complete release in the database." ]
+               , b [] [ text "Development is marked as finished, but there is no complete release in the database." ]
                , br [] []
                , text "Please adjust the development status or ensure there is a completed release."
                ]
@@ -469,7 +469,7 @@ view model =
             && not (List.isEmpty (List.filter (\r -> r.rtype == "complete" && r.released <= model.today) model.releases))
           then span []
                [ br [] []
-               , b [ class "standout" ] [ text "Development is not marked as finished, but there is a complete release in the database." ]
+               , b [] [ text "Development is not marked as finished, but there is a complete release in the database." ]
                , br [] []
                , text "Please adjust the development status or set the release to partial or TBA."
                ]
@@ -550,7 +550,7 @@ view model =
           tfoot [] [ tr [] [ td [] [], td [ colspan 4 ]
           [ text ""
           , if hasDuplicates (List.map (\(_,s) -> (s.aid, s.role)) lst)
-            then b [ class "standout" ] [ text "List contains duplicate staff roles.", br [] [] ]
+            then b [] [ text "List contains duplicate staff roles.", br [] [] ]
             else text ""
           , A.view sconfig smodel [placeholder "Add staff..."]
           , if searchn > 0 then text "" else span []
@@ -614,7 +614,7 @@ view model =
           , strong [] [ text "Add cast" ]
           , br [] []
           , if hasDuplicates (List.map (\s -> (s.aid, s.cid)) model.seiyuu)
-            then b [ class "standout" ] [ text "List contains duplicate cast roles.", br [] [] ]
+            then b [] [ text "List contains duplicate cast roles.", br [] [] ]
             else text ""
           , inputSelect "" model.seiyuuDef SeiyuuDef [] chars
           , text " voiced by "
@@ -670,10 +670,10 @@ view model =
               else if reldim /= Nothing
               then [ text " ❌"
                    , br [] []
-                   , b [ class "standout" ] [ text "WARNING: Resolutions do not match, please take screenshots with the correct resolution and make sure to crop them correctly!" ]
+                   , b [] [ text "WARNING: Resolutions do not match, please take screenshots with the correct resolution and make sure to crop them correctly!" ]
                    ]
               else if i.img /= Nothing && rel /= Nothing && List.any (\(_,si,sr) -> sr == rel && si.img /= Nothing && imgdim /= getdim si.img) model.screenshots
-              then [ b [ class "standout" ] [ text "WARNING: Inconsistent image resolutions for the same release, please take screenshots with the correct resolution and make sure to crop them correctly!" ]
+              then [ b [] [ text "WARNING: Inconsistent image resolutions for the same release, please take screenshots with the correct resolution and make sure to crop them correctly!" ]
                    , br [] []
                    ]
               else [ br [] [] ]
@@ -751,7 +751,7 @@ view model =
           , text "Be especially wary of items that have been deleted! To see why an entry has been deleted, click on its title."
           , ul [] <| List.map (\v -> li []
               [ a [ href <| "/" ++ v.id ] [ text v.title ]
-              , if v.hidden then b [ class "standout" ] [ text " (deleted)" ] else text ""
+              , if v.hidden then b [] [ text " (deleted)" ] else text ""
               ]
             ) model.dupVNs
           ]
