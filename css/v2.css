@@ -1325,12 +1325,12 @@ a .icons { cursor: pointer }
 .release_icon_voiced3, .release_icon_anim3 { filter: invert(100%) hue-rotate(240deg); }
 .release_icon_voiced4, .release_icon_anim4, .release_icon_erounc { filter: hue-rotate(80deg); }
 
-/* Relation graph colors */
+/* Relation graph */
 svg .border { fill: none; stroke: var(--border) }
 svg .edge polygon.border { fill: var(--border) }
 svg .nodebg { fill: var(--tabbg); stroke: var(--tabbg) }
-svg text { fill: var(--maintext) }
-svg .edge text { font: 8px "Tahoma", "Arial", sans-serif }
+svg text { fill: var(--maintext); font: 8px "Tahoma", "Arial", sans-serif }
+svg .title { font-size: 9px }
 #graph_current .border { stroke: var(--warnborder) }
 #graph_current .nodebg { stroke: var(--warnborder); fill: var(--warnbg) }
 

@@ -60,7 +60,10 @@ sub dot2svg {
         =~ s/<!--.*?-->//srg
         =~ s/<title>.+?<\/title>//gr
         =~ s/<polygon.+?\/>//r
-        =~ s/(?:stroke|fill)="([^"]+)"/$1 eq '#111111' ? 'class="border"' : $1 eq '#222222' ? 'class="nodebg"' : ''/egr;
+        =~ s/ font-size="9[^"]+"/ class="title"/gr
+        =~ s/ font-size="[^"]+"//gr
+        =~ s/ font-family="[^"]+"//gr
+        =~ s/ (?:stroke|fill)="([^"]+)"/$1 eq '#111111' ? ' class="border"' : $1 eq '#222222' ? ' class="nodebg"' : ''/egr;
 }
 
 
