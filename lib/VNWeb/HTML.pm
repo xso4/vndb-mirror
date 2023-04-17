@@ -529,7 +529,7 @@ sub _hidden_msg_ {
 sub framework_ {
     my $cont = pop;
     my %o = @_;
-    tuwf->req->{pagevars} = { tuwf->req->{pagevars}->%*, $o{pagevars}->%* } if $o{pagevars};
+    tuwf->req->{pagevars} = { tuwf->req->{pagevars} ? tuwf->req->{pagevars}->%* : (), $o{pagevars}->%* } if $o{pagevars};
 
     lit_ "<!--\n"
         ."  This HTML is an unreadable auto-generated mess, sorry for that.\n"
