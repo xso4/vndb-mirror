@@ -22,7 +22,6 @@ our @EXPORT = qw/
     validate_dbid
     can_edit
     viewget viewset
-    js_api
 /;
 
 
@@ -379,25 +378,6 @@ sub viewset {
         !defined $s{traits_sexual} ? '' : $s{traits_sexual} ? 's' : 'S',
         !defined $s{show_nsfw}     ? '' : $s{show_nsfw}     ? 'n' : 'N',
         '-'.auth->csrftoken(0, 'view');
-}
-
-
-# Provide a '/js/<endpoint>.json' API for the JS front-end.
-# The $fun callback is given the validated json request object as argument.
-# It should return a string on error or a hash on success.
-sub js_api {
-    my($endpoint, $schema, $fun) = @_;
-    $schema = tuwf->compile({ type => 'hash', keys => $schema }) if ref $schema eq 'HASH';
-
-    TUWF::post qr{/js/\Q$endpoint\E\.json} => sub {
-        my $data = tuwf->validate(json => $schema);
-        if(!$data) {
-            warn "JSON validation failed\ninput: " . JSON::XS->new->allow_nonref->pretty->canonical->encode(tuwf->reqJSON) . "\nerror: " . JSON::XS->new->encode($data->err) . "\n";
-            return tuwf->resJSON({_err => 'Invalid request body, please report a bug.'});
-        }
-        my $res = $fun->($data->data);
-        tuwf->resJSON(ref $res ? $res : {_err => $res});
-    };
 }
 
 

@@ -1026,7 +1026,7 @@ CREATE TABLE trace_log (
   path      text NOT NULL,
   query     text NOT NULL DEFAULT '',
   module    text,
-  elm_mods  text[]
+  js        text[]
 );
 
 -- traits

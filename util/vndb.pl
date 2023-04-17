@@ -68,9 +68,6 @@ TUWF::hook before => sub {
     # Ought to be more reliable than checking the Referer header, but it's unfortunately a bit uglier.
     tuwf->resCookie(samesite => 1, httponly => 1, samesite => 'Strict') if !VNWeb::Validation::samesite;
 
-    # Remove an old cookie that is no longer used
-    tuwf->resCookie(prodrelexpand => undef) if tuwf->reqCookie('prodrelexpand');
-
     tuwf->req->{trace_start} = time if config->{trace_log};
 } if !$ONLYAPI;
 
@@ -130,19 +127,18 @@ sub TUWF::Object::resDenied {
 }
 
 
-# Intercept TUWF::any() and TUWF::register() to figure out which module is processing the request.
-if(config->{trace_log}) {
+# Intercept TUWF::any() to figure out which module is processing the request.
+# Used by VNWeb::HTML::framework_ and trace logging.
+{
     no warnings 'redefine';
     my $f = \&TUWF::any;
     *TUWF::any = sub {
         my($meth, $path, $sub) = @_;
         my $i = 0;
         my $loc = ['',0];
-        while(my($pack, undef, $line) = caller($i++)) {
-            if($pack !~ '^(?:main|TUWF|VNWeb::Elm)') {
-                $loc = [$pack,$line];
-                last;
-            }
+        while(my($pack, undef, $line, undef, undef, undef, undef, $is_require) = caller($i++)) {
+            last if $is_require;
+            $loc = [$pack,$line];
         }
         $f->($meth, $path, sub { tuwf->req->{trace_loc} = $loc; $sub->(@_) });
     };
@@ -157,9 +153,10 @@ if($ONLYAPI) {
 TUWF::hook after => sub {
     return if rand() > config->{trace_log} || !tuwf->req->{trace_start};
     my $sqlt = List::Util::sum(map $_->[2], tuwf->{_TUWF}{DB}{queries}->@*);
-    my %elm = (
-        tuwf->req->{js} || tuwf->req->{pagevars}{elm} ? ('plain.js' => 1) : (),
-        map +($_->[0], 1), tuwf->req->{pagevars}{elm}->@*
+    my %js = (
+        (map +("$_.js",1), keys tuwf->req->{js}->%*),
+        (map +($_,1), keys tuwf->req->{pagevars}{widget}->%*),
+        (map +($_->[0], 1), tuwf->req->{pagevars}{elm}->@*)
     );
     tuwf->dbExeci('INSERT INTO trace_log', {
         method    => tuwf->reqMethod(),
@@ -172,7 +169,7 @@ TUWF::hook after => sub {
         perl_time => time() - tuwf->req->{trace_start},
         has_txn   => VNWeb::DB::sql('txid_current_if_assigned() IS NOT NULL'),
         loggedin  => auth?1:0,
-        elm_mods  => '{'.join(',', sort keys %elm).'}'
+        js        => '{'.join(',', sort keys %js).'}'
     });
 } if config->{trace_log};
 

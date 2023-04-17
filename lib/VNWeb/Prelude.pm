@@ -19,6 +19,7 @@
 #  use VNWeb::HTML;
 #  use VNWeb::DB;
 #  use VNWeb::Validation;
+#  use VNWeb::JS;
 #  use VNWeb::Elm;
 #  use VNWeb::TableOpts;
 #  use VNWeb::TitlePrefs;
@@ -64,6 +65,7 @@ sub import {
     use VNWeb::HTML;
     use VNWeb::DB;
     use VNWeb::Validation;
+    use VNWeb::JS;
     use VNWeb::Elm;
     use VNWeb::TableOpts;
     use VNWeb::TitlePrefs;

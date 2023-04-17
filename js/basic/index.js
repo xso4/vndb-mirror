@@ -10,7 +10,8 @@
 "use strict";
 
 // Log errors to the server. This intentionally uses old-ish syntax and APIs.
-window.onerror = function(ev, source, lineno, colno, error) {
+window.onerror = function(ev_, source, lineno, colno, error) {
+    var ev = String(ev_);
     if (/\/g\/[a-z]+\.js/.test(source)
         // No clue what's up with these, sometimes happens in FF. Is Elm being initialized before the DOM is ready or something?
         && !(/elm\.js/.test(source) && /InvalidStateError/.test(ev))
