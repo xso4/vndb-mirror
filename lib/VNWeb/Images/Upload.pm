@@ -6,11 +6,8 @@ use AnyEvent::Util;
 
 
 TUWF::post qr{/elm/ImageUpload.json}, sub {
-    # AFAIK, this header is not included in cross-origin form submit
-    die "cross-origin request\n" if (tuwf->reqHeader('Origin')//'_') ne config->{url};
-    warn "samesite cookie missing\n" if !samesite;
-
-    return elm_Unauth if !(auth->permDbmod || (auth->permEdit && !global_settings->{lockdown_edit}));
+    # Have to require the samesite cookie here as CSRF protection, because this API can be triggered as a regular HTML form post.
+    return elm_Unauth if !samesite || !(auth->permDbmod || (auth->permEdit && !global_settings->{lockdown_edit}));
 
     my $type = tuwf->validate(post => type => { enum => [qw/cv ch sf/] })->data;
     my $imgdata = tuwf->reqUploadRaw('img');

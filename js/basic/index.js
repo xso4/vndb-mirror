@@ -10,18 +10,17 @@
 "use strict";
 
 // Log errors to the server. This intentionally uses old-ish syntax and APIs.
-window.onerror = function(ev_, source, lineno, colno, error) {
-    var ev = String(ev_);
+window.onerror = function(ev, source, lineno, colno, error) {
     if (/\/g\/[a-z]+\.js/.test(source)
         // No clue what's up with these, sometimes happens in FF. Is Elm being initialized before the DOM is ready or something?
         && !(/elm\.js/.test(source) && /InvalidStateError/.test(ev))
     ) {
         var h = new XMLHttpRequest();
         var e = encodeURIComponent;
-        h.open('POST', '/js-error', true);
+        h.open('POST', '/js-error?2', true);
         h.send('ev='+e(ev)+'&source='+e(source)+'&lineno='+e(lineno)+'&colno='+e(colno)+'&stack='+e(error.stack));
+        window.onerror = null; // One error per page is enough
     }
-    window.onerror = null; // One error per page is enough
     return false;
 };
 

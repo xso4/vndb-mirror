@@ -28,13 +28,14 @@ sub js_api {
 
 # Log errors from JS.
 TUWF::post qr{/js-error}, sub {
+    my($ev, $source, $lineno, $colno, $stack) = map tuwf->reqPost($_)//'-', qw/ev source lineno colno stack/;
+    return if $source =~ /elm\.js/ && $ev =~ /InvalidStateError/;
     my $msg = sprintf
           "\nMessage:  %s"
-         ."\nSource:   %s %s:%s\n", map tuwf->reqPost($_)//'-', qw/ev source lineno colno/;
+         ."\nSource:   %s %s:%s\n", $ev, $source, $lineno, $colno;
     $msg .= "Referer:  ".tuwf->reqHeader('referer')."\n" if tuwf->reqHeader('referer');
     $msg .= "Browser:  ".tuwf->reqHeader('user-agent')."\n" if tuwf->reqHeader('user-agent');
-    my $stack = tuwf->reqPost('stack');
-    $msg .= ($stack =~ s/[\r\n]+$//r)."\n" if $stack && $stack ne 'undefined' && $stack ne 'null';
+    $msg .= ($stack =~ s/[\r\n]+$//r)."\n" if $stack ne '-' && $stack ne 'undefined' && $stack ne 'null';
     warn $msg;
 };
 
