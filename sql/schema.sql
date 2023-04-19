@@ -799,6 +799,15 @@ CREATE TABLE shop_dlsite (
   price      text NOT NULL DEFAULT ''
 );
 
+-- shop_jastusa
+CREATE TABLE shop_jastusa (
+  lastfetch  timestamptz,
+  deadsince  timestamptz,
+  id         text NOT NULL PRIMARY KEY,
+  price      text NOT NULL DEFAULT '',
+  slug       text NOT NULL DEFAULT ''
+);
+
 -- shop_jlist
 CREATE TABLE shop_jlist (
   lastfetch  timestamptz,

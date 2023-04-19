@@ -116,6 +116,7 @@ our %LINKS = (
                       , regex => qr{(?:www\.)?(?:jlist|jbox)\.com/(?:.+/)?([a-z0-9-]*[0-9][a-z0-9-]*)} },
         l_jastusa  => { label => 'JAST USA'
                       , fmt   => 'https://jastusa.com/games/%s/vndb'
+                      , fmt2  => sub { config->{jastusa_url} && sprintf config->{jastusa_url}, shift->{l_jast_slug}||'vndb' },
                       , regex => qr{(?:www\.)?jastusa\.com/games/([a-z0-9_-]+)/[^/]+}
                       , patt  => 'https://jastusa.com/games/<code>/<title>' },
         l_fakku    => { label => 'Fakku'
@@ -260,15 +261,17 @@ sub enrich_extlinks {
             SELECT r.id
                  ,       smg.price AS l_mg_price,       smg.r18 AS l_mg_r18
                  ,    sdenpa.price AS l_denpa_price
+                 ,     sjast.price AS l_jast_price,     sjast.slug AS l_jast_slug
                  ,    sjlist.price AS l_jlist_price,    sjlist.jbox AS l_jlist_jbox
                  ,   sdlsite.price AS l_dlsite_price,   sdlsite.shop AS l_dlsite_shop
               FROM releases r
               LEFT JOIN shop_denpa  sdenpa    ON    sdenpa.id = r.l_denpa    AND    sdenpa.lastfetch IS NOT NULL AND    sdenpa.deadsince IS NULL
               LEFT JOIN shop_dlsite sdlsite   ON   sdlsite.id = r.l_dlsite   AND   sdlsite.lastfetch IS NOT NULL AND   sdlsite.deadsince IS NULL
+              LEFT JOIN shop_jastusa sjast    ON     sjast.id = r.l_jastusa  AND     sjast.lastfetch IS NOT NULL AND     sjast.deadsince IS NULL
               LEFT JOIN shop_jlist  sjlist    ON    sjlist.id = r.l_jlist    AND    sjlist.lastfetch IS NOT NULL AND    sjlist.deadsince IS NULL
               LEFT JOIN shop_mg     smg       ON       smg.id = r.l_mg       AND       smg.lastfetch IS NOT NULL AND       smg.deadsince IS NULL
               WHERE r.id IN},
-              grep $_->{l_mg}||$_->{l_denpa}||$_->{l_jlist}||$_->{l_dlsite}, @obj
+              grep $_->{l_mg}||$_->{l_denpa}||$_->{l_jastusa}||$_->{l_jlist}||$_->{l_dlsite}, @obj
         ) if $enabled->{price} || $enabled->{url2};
 
         if(grep exists $_->{gtin}, @obj) {
@@ -283,7 +286,7 @@ sub enrich_extlinks {
             );
         }
 
-        @cleanup = qw{l_mg_price l_mg_r18 l_denpa_price l_jlist_price l_jlist_jbox l_dlsite_price l_dlsite_shop l_playasia};
+        @cleanup = qw{l_mg_price l_mg_r18 l_denpa_price l_jast_price l_jast_slug l_jlist_price l_jlist_jbox l_dlsite_price l_dlsite_shop l_playasia};
     }
 
     for my $obj (@obj) {
@@ -357,7 +360,7 @@ sub enrich_extlinks {
             l 'l_gamejolt';
             l 'l_denpa', $obj->{l_denpa_price};
             l 'l_jlist', $obj->{l_jlist_price};
-            l 'l_jastusa';
+            l 'l_jastusa', $obj->{l_jast_price};
             l 'l_fakku';
             l 'l_appstore';
             l 'l_googplay';
