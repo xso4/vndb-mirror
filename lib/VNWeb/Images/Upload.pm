@@ -15,9 +15,10 @@ TUWF::post qr{/elm/ImageUpload.json}, sub {
 
     my $seq = {qw/sf screenshots_seq cv covers_seq ch charimg_seq/}->{$type}||die;
     my $id = tuwf->dbVali('INSERT INTO images', {
-        id     => sql_func(vndbid => \$type, sql(sql_func(nextval => \$seq), '::int')),
-        width  => 0,
-        height => 0
+        id       => sql_func(vndbid => \$type, sql(sql_func(nextval => \$seq), '::int')),
+        uploader => \auth->uid,
+        width    => 0,
+        height   => 0
     }, 'RETURNING id');
 
     my $fn0 = imgpath($id, 0);

@@ -71,6 +71,7 @@ ALTER TABLE chars_vns                ADD CONSTRAINT chars_vns_rid_fkey          
 ALTER TABLE chars_vns_hist           ADD CONSTRAINT chars_vns_hist_chid_fkey           FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE chars_vns_hist           ADD CONSTRAINT chars_vns_hist_vid_fkey            FOREIGN KEY (vid)       REFERENCES vn            (id);
 ALTER TABLE chars_vns_hist           ADD CONSTRAINT chars_vns_hist_rid_fkey            FOREIGN KEY (rid)       REFERENCES releases      (id);
+ALTER TABLE images                   ADD CONSTRAINT images_uploader_fkey               FOREIGN KEY (uploader)  REFERENCES users         (id) ON DELETE SET DEFAULT;
 ALTER TABLE image_votes              ADD CONSTRAINT image_votes_id_fkey                FOREIGN KEY (id)        REFERENCES images        (id) ON DELETE CASCADE;
 ALTER TABLE image_votes              ADD CONSTRAINT image_votes_uid_fkey               FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE SET DEFAULT;
 ALTER TABLE notification_subs        ADD CONSTRAINT notification_subs_uid_fkey         FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE CASCADE;

@@ -100,6 +100,10 @@ sub opts_ {
                 td_ class => 'linkradio', sub { opt_ checkbox => my => 1, 'Only images I voted on' };
             } if auth && $opt->{u} ne $opt->{u2};
             tr_ sub {
+                td_ '';
+                td_ class => 'linkradio', sub { opt_ checkbox => up => 1, 'Only images uploaded by this user' };
+            } if $opt->{u};
+            tr_ sub {
                 td_ 'Time filter';
                 td_ class => 'linkradio', sub {
                     opt_ radio => d => 1,  'Last 24h'; em_ ' / ';
@@ -139,6 +143,7 @@ TUWF::get qr{/img/list}, sub {
         u  => { onerror => '', vndbid => 'u' },
         u2 => { onerror => '', vndbid => 'u' }, # Hidden option, allows comparing two users by overriding the 'My' user.
         my => { anybool => 1 },
+        up => { anybool => 1 },
         p  => { page => 1 },
     )->data;
 
@@ -154,7 +159,8 @@ TUWF::get qr{/img/list}, sub {
     my $where = sql_and
         $opt->{t}->@* ? sql_or(map sql('i.id BETWEEN vndbid(',\"$_",',1) AND vndbid_max(',\"$_",')'), $opt->{t}->@*) : (),
         $opt->{m} ? sql('i.c_votecount >=', \$opt->{m}) : (),
-        $opt->{d} ? sql('iu.date > NOW()-', \"$opt->{d} days", '::interval') : ();
+        $opt->{d} ? sql('iu.date > NOW()-', \"$opt->{d} days", '::interval') : (),
+        $opt->{up} && $opt->{u} ? sql('i.uploader =', \$opt->{u}) : ();
 
     my($lst, $np) = tuwf->dbPagei({ results => 100, page => $opt->{p} }, '
         SELECT i.id, i.width, i.height, i.c_votecount, i.c_weight

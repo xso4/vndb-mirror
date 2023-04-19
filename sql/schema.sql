@@ -340,7 +340,8 @@ CREATE TABLE images (
   c_violence_avg    smallint NOT NULL DEFAULT 200, -- [pub]
   c_violence_stddev smallint NOT NULL DEFAULT 0, -- [pub]
   c_weight          smallint NOT NULL DEFAULT 0, -- [pub]
-  c_uids            vndbid[] NOT NULL DEFAULT '{}'
+  c_uids            vndbid[] NOT NULL DEFAULT '{}',
+  uploader          vndbid,
   -- (technically, c_votecount is redundant as it can be easily derived from
   --  c_uids, but otherwise we'd lose the space to padding anyway)
 );
