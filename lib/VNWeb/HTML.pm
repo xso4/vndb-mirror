@@ -393,7 +393,7 @@ sub _maintabs_subscribe_ {
         subnum    => $sub->{subnum},
         subreview => $sub->{subreview}||0,
         subapply  => $sub->{subapply}||0,
-    }), class => 'subscribe', sub {
+    }), class => 'maintabs-dd subscribe', sub {
         a_ href => '#', class => ($noti && (!defined $sub->{subnum} || $sub->{subnum})) || $sub->{subnum} || $sub->{subreview} || $sub->{subapply} ? 'active' : 'inactive', '🔔';
     };
 }
@@ -827,11 +827,11 @@ sub revision_ {
 #   current page number (1..n),
 #   nextpage (0/1 or, if the full count is known: [$total, $perpage]),
 #   alignment (t/b)
-#   func
+#   tableopts obj
 sub paginate_ {
-    my($url, $p, $np, $al, $fun) = @_;
+    my($url, $p, $np, $al, $tbl) = @_;
     my($cnt, $pp) = ref($np) ? @$np : ($p+$np, 1);
-    return if !$fun && $p == 1 && $cnt <= $pp;
+    return if !$tbl && $p == 1 && $cnt <= $pp;
 
     my sub tab_ {
         my($page, $label) = @_;
@@ -864,7 +864,7 @@ sub paginate_ {
             $l > 1 and tab_ $p+1, 'next ›';
         };
 
-        $fun->() if $fun;
+        $tbl->widget_($url) if $tbl;
     }
 }
 

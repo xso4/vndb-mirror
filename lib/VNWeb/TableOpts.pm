@@ -67,11 +67,11 @@ package VNWeb::TableOpts;
 use v5.26;
 use Carp 'croak';
 use Exporter 'import';
-use TUWF;
+use TUWF ':html5_';
 use VNWeb::Auth;
 use VNWeb::HTML ();
 use VNWeb::Validation;
-use VNWeb::Elm;
+use VNWeb::JS;
 
 our @EXPORT = ('tableopts');
 
@@ -180,6 +180,15 @@ sub set_order { if($_[1]) { $_[0][0] |= 32 } else { $_[0][0] &= ~32 } }
 sub sort_col_id { ($_[0][0] >> 6) & 63 }
 sub set_sort_col_id { $_[0][0] = ($_[0][0] & (~0 - 0b111111000000)) | ($_[1] << 6) }
 
+# Given a view id, return a new object with that view selected.
+sub view_param {
+    my($self, $view) = @_;
+    my $n = bless [@$self], __PACKAGE__;
+    $n->[0] = ($n->[0] & ~3) | $view;
+    $n
+}
+
+
 # Given the key of a column, returns whether it is currently sorted on ('' / 'a' / 'd')
 sub sorted {
     my($self, $key) = @_;
@@ -224,36 +233,47 @@ sub vis_param {
 my $FORM_OUT = form_compile any => {
     save    => { required => 0 },
     views   => { type => 'array', values => { uint => 1 } },
-    default => { uint => 1 },
     value   => { uint => 1 },
     sorts   => { aoh => { id => { uint => 1 }, name => {}, num => { anybool => 1 } } },
     vis     => { aoh => { id => { uint => 1 }, name => {} } },
 };
 
-elm_api TableOptsSave => $FORM_OUT, {
+js_api TableOptsSave => {
     save => { enum => ['tableopts_c', 'tableopts_v', 'tableopts_vt'] },
     value => { required => 0, uint => 1 }
 }, sub {
     my($f) = @_;
-    return elm_Unauth if !auth;
+    return tuwf->resDenied if !auth;
     tuwf->dbExeci('UPDATE users_prefs SET', { $f->{save} => $f->{value} }, 'WHERE id =', \auth->uid);
-    elm_Success
+    {}
 };
 
-sub elm_ {
-    my $self = shift;
+
+sub widget_ {
+    my($self,$url) = @_;
     my($v,$o) = $self->@*;
-    VNWeb::HTML::elm_ TableOpts => $FORM_OUT, {
+    ul_ class => 'tableopts', VNWeb::HTML::widget(TableOpts => $FORM_OUT, {
         save    => auth ? $o->{pref} : undef,
         views   => $o->{views},
-        default => $o->{default},
         value   => $v,
         sorts   => [ map +{ id => $_->{sort_id}, name => $_->{name}, num => $_->{sort_num}||0 }, grep defined $_->{sort_id}, values $o->{col_order}->@* ],
         vis     => [ map +{ id => $_->{vis_id}, name => $_->{name} }, grep defined $_->{vis_id}, values $o->{col_order}->@* ],
-    }, sub {
-        TUWF::XML::div_ @_, sub {
-            TUWF::XML::input_ type => 'hidden', name => 's', value => $self->query_encode if defined $self->query_encode
-        }
+    }), sub {
+        li_ class => 'hidden', sub {
+            input_ type => 'hidden', name => 's', value => $self->query_encode;
+        };
+        li_ sub {
+            a_ href => $url->(s => $self->view_param($_)),
+                class => $_ == ($self->[0] & 3) ? 'highlightselected' : undef,
+                title => ['List view', 'Card view', 'Grid view']->[$_], sub {
+                # SVG icons from Wordpress Dashicons, GPLv2
+                lit_ '<svg height=13 width=13 viewbox="0 0 20 20"><path d="'.
+                [ 'M2 19h16c.55 0 1-.45 1-1V2c0-.55-.45-1-1-1H2c-.55 0-1 .45-1 1v16c0 .55.45 1 1 1zM4 3c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm13 0v2H6V3h11zM4 7c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm13 0v2H6V7h11zM4 11c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm13 0v2H6v-2h11zM4 15c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm13 0v2H6v-2h11z'
+                , 'M19 18V2c0-.55-.45-1-1-1H2c-.55 0-1 .45-1 1v16c0 .55.45 1 1 1h16c.55 0 1-.45 1-1zM4 3c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm13 0v6H6V3h11zM4 11c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm13 0v6H6v-6h11z'
+                , 'M2 1h16c.55 0 1 .45 1 1v16c0 .55-.45 1-1 1H2c-.55 0-1-.45-1-1V2c0-.55.45-1 1-1zm7.01 7.99v-6H3v6h6.01zm8 0v-6h-6v6h6zm-8 8.01v-6H3v6h6.01zm8 0v-6h-6v6h6z'
+                ]->[$_].'"/></svg>';
+            };
+        } for $o->{views}->@*;
     };
 }
 

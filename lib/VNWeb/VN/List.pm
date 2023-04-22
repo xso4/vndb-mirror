@@ -184,7 +184,7 @@ sub listing_ {
 
     my sub url { '?'.query_encode %$opt, @_ }
 
-    paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 't', sub { $opt->{s}->elm_ };
+    paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 't', $opt->{s};
 
     div_ class => 'mainbox browse vnbrowse', sub {
         table_ class => 'stripe', sub {

@@ -26,6 +26,7 @@ window.onerror = function(ev, source, lineno, colno, error) {
 
 @include .gen/mithril.js
 @include basic/api.js
+@include basic/components.js
 
 // Load global page-wide variables from <script id="pagevars">...</script> and
 // store them into window.pageVars.
@@ -33,8 +34,12 @@ window.pageVars = (e => e ? JSON.parse(e.innerHTML) : {})(document.getElementByI
 
 // Widget initialization, see README.md
 window.widget = (name, fun) =>
-    ((pageVars.widget || {})[name] || []).forEach(([id, data]) =>
-        m.mount(document.getElementById('widget'+id), {view: ()=>m(fun, {data})}));
+    ((pageVars.widget || {})[name] || []).forEach(([id, data]) => {
+        const e = document.getElementById('widget'+id);
+        // m.mount() instantly wipes the contents of e, let's make a copy in case the widget needs something from it.
+        const oldContents = Array.from(e.childNodes);
+        m.mount(e, {view: ()=>m(fun, {data, oldContents})})
+    });
 
 // We used to use localStorage for some client-side preferences in the past.
 // Only clear the most recent one (the stupid April fools joke), the last use
@@ -55,6 +60,7 @@ try { localStorage.removeItem('fools6') } catch (e) {}
 
 // Widgets
 @include basic/Subscribe.js
+@include basic/TableOpts.js
 
 // Image viewer; after loading Elm modules to ensure it sees the screenshots in VNEdit.
 @include basic/iv.js

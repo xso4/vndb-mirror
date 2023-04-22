@@ -250,7 +250,7 @@ sub listing_ {
     return VNWeb::VN::List::listing_($opt, $lst, $count, 0, $labels) if !$opt->{s}->rows;
 
     # TODO: Consolidate the 'rows' listing with VN::List as well
-    paginate_ $url, $opt->{p}, [$count, $opt->{s}->results], 't', sub { $opt->{s}->elm_ };
+    paginate_ $url, $opt->{p}, [$count, $opt->{s}->results], 't', $opt->{s};
     div_ class => 'mainbox browse ulist', sub {
         table_ sub {
             thead_ sub { tr_ sub {

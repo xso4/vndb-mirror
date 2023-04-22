@@ -1,17 +1,7 @@
 widget('Subscribe', vnode => {
     let {id, subnum, subreview, subapply, noti} = vnode.attrs.data;
-    let open = false;
     let saveApi = new Api('Subscribe');
     const t = id.substring(0,1);
-
-    const toggle = (ev) => {
-        if (open && vnode.dom.nextSibling.contains(ev.target)) return;
-        open = !open;
-        // Defer the listener, otherwise this current event will trigger it.
-        if (open) requestAnimationFrame(() => document.addEventListener('click', toggle));
-        else document.removeEventListener('click', toggle);
-        m.redraw();
-    };
 
     const msg = txt => m('p', txt, ' These can be disabled globally in your ', m('a[href=/u/notifies]', 'notification settings'), '.');
 
@@ -20,12 +10,10 @@ widget('Subscribe', vnode => {
         saveApi.call({ id, subnum, subreview, subapply });
     };
 
-    const view = () => [
-        m('a[href=#]', {
-            onclick: (ev) => { ev.preventDefault(); toggle(ev) },
-            class: (noti > 0 && subnum !== false) || subnum === true || subreview || subapply ? 'active' : 'inactive',
-        }, '🔔'),
-        !open ? null : m('div', m('div',
+    const view = () => m(MainTabsDD, {
+        a_attrs: { class: (noti > 0 && subnum !== false) || subnum === true || subreview || subapply ? 'active' : 'inactive' },
+        a_body: '🔔',
+        content: () => [
             m('h4',
                 saveApi.loading() ? m('span.spinner[style=float:right]') : null,
                 'Manage Notifications'
@@ -66,8 +54,8 @@ widget('Subscribe', vnode => {
             ) : null,
 
             saveApi.error ? m('b', saveApi.error) : null,
-        )),
-    ];
+        ]
+    });
 
     return {view};
 })
