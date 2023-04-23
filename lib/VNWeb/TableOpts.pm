@@ -134,7 +134,7 @@ sub tableopts {
 TUWF::set('custom_validations')->{tableopts} = sub {
     my($t) = @_;
     +{ onerror => sub {
-        my $d = $t->{pref} && auth ? tuwf->dbVali('SELECT', $t->{pref}, 'FROM users_prefs WHERE id =', \auth->uid) : undef;
+        my $d = $t->{pref} && auth->pref($t->{pref});
         my $o = bless([$d // $t->{default},$t], __PACKAGE__);
         $o->fixup;
     }, func => sub {
@@ -234,6 +234,8 @@ my $FORM_OUT = form_compile any => {
     save    => { required => 0 },
     views   => { type => 'array', values => { uint => 1 } },
     value   => { uint => 1 },
+    default => { uint => 1 },
+    usaved  => { uint => 1, required => 0 },
     sorts   => { aoh => { id => { uint => 1 }, name => {}, num => { anybool => 1 } } },
     vis     => { aoh => { id => { uint => 1 }, name => {} } },
 };
@@ -256,6 +258,8 @@ sub widget_ {
         save    => auth ? $o->{pref} : undef,
         views   => $o->{views},
         value   => $v,
+        default => $o->{default},
+        usaved  => $o->{pref} && auth->pref($o->{pref}),
         sorts   => [ map +{ id => $_->{sort_id}, name => $_->{name}, num => $_->{sort_num}||0 }, grep defined $_->{sort_id}, values $o->{col_order}->@* ],
         vis     => [ map +{ id => $_->{vis_id}, name => $_->{name} }, grep defined $_->{vis_id}, values $o->{col_order}->@* ],
     }), sub {

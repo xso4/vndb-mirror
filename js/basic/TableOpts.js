@@ -49,19 +49,19 @@ widget('TableOpts', (vnode) => {
     // infrastructure for it.
     const oldNodes = m.trust(vnode.attrs.oldContents.filter(e => !e.querySelector('input[name=s]')).map(e => e.outerHTML).join(''));
 
-    const submit = () => {
+    const submit = (o) => {
         const e = vnode.dom.parentNode.querySelector('input[name=s]');
-        console.log({n: opts.n, encode: opts.encode(), view: opts.view, results: opts.results, order: opts.order, sortCol: opts.sortCol});
-        e.value = opts.encode();
+        e.value = o.encode();
         e.form.submit();
     };
 
     const sortBut = (s,desc) => m('a[href=#]', {
         onclick: ev => {
             ev.preventDefault();
-            opts.sortCol = s.id;
-            opts.order = desc;
-            submit();
+            let o = new Opts(opts.n);
+            o.sortCol = s.id;
+            o.order = desc;
+            submit(o);
         },
         class: opts.sortCol == s.id && opts.order == desc ? 'checked' : null,
         title: s.name + ' ' + (desc ? 'descending' : 'ascending'),
@@ -86,6 +86,14 @@ widget('TableOpts', (vnode) => {
                         () => { saved = true },
                     )
                 }),
+                conf.default == opts.n ? null : m('input.submit[type=button]', {
+                    value: 'Load default view',
+                    onclick: () => submit(new Opts(conf.default)),
+                }),
+                conf.usaved === null || conf.usaved == opts.n ? null : m('input.submit[type=button]', {
+                    value: 'Load my saved settings',
+                    onclick: () => submit(new Opts(conf.usaved)),
+                }),
             ],
         })),
         m('li.maintabs-dd.tableopts-results', m(MainTabsDD, {
@@ -95,7 +103,7 @@ widget('TableOpts', (vnode) => {
                 m('h4', 'results per page'),
                 [1,2,0,3,4].flatMap(n => [' | ',
                     m('a[href=#]', {
-                        onclick: (ev) => { ev.preventDefault(); opts.results = n; submit() },
+                        onclick: (ev) => { ev.preventDefault(); let o = new Opts(opts.n); o.results = n; submit(o) },
                     }, resultOptions[n])
                 ]).slice(1),
             ]

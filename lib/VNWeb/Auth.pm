@@ -97,6 +97,7 @@ my @pref_columns = qw/
     notify_dbedit notify_post notify_comment
     tags_all tags_cont tags_ero tags_tech
     spoilers traits_sexual max_sexual max_violence
+    tableopts_c tableopts_v tableopts_vt
     nodistract_can nodistract_noads nodistract_nofancy
 /;
 

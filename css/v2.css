@@ -993,7 +993,9 @@ div.lengthlist {
 .maintabs-dd > div > div { width: 500px; border: 1px solid var(--border); background: var(--secbg); position: relative; bottom: 0; left: -470px; z-index: 100 }
 
 .tableopts-results > div > div { width: 180px; left: -140px; text-align: center }
-.tableopts-save > div > div { width: 240px; left: -200px; text-align: center }
+.tableopts-save > div > div { width: 250px; left: -210px; text-align: center }
+.tableopts-save input { width: 97% }
+.tableopts-save input:nth-of-type(2) { margin-top: 15px }
 .tableopts-cols > div > div { width: 150px; left: -110px; text-align: right; padding: 0 10px }
 .tableopts-sort > div > div { width: 250px; left: -210px; text-align: right; padding: 0 10px }
 .tableopts-sort table { margin: 0 0 0 auto }
