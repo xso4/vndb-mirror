@@ -13,7 +13,7 @@ use VNDB::Config;
 my $path = "$ROOT/data/icons";
 my $icons = "$ROOT/static/g/icons.png";
 my $ticons = "$ROOT/static/g/icons~.png";
-my $css = "$ROOT/data/icons/icons.css";
+my $css = "$ROOT/static/g/png.css";
 
 my @img = map {
     my $id = config->{identify_path};

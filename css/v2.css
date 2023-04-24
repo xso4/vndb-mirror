@@ -1289,7 +1289,6 @@ div.imagebrowse { padding: 0; display: flex; flex-wrap: wrap }
 
 /****** Icons *******/
 
-.platicon { width: 16px; height: 16px; margin: -1px 2px -1px 0; border: 0; padding: 0; object-fit: contain }
 /* XXX: Not a fan of this filtering solution. Also, these don't work on light skins */
 .liststatus_icon { width: 15px; height: 15px; margin: -1px 0; object-fit: contain; filter: invert(100%); opacity: 0.9 }
 .liststatus_icon.add { opacity: 0.4 }
@@ -1301,26 +1300,24 @@ div.imagebrowse { padding: 0; display: flex; flex-wrap: wrap }
 .liststatus_icon.l6 { opacity: 1; filter: invert(10%) sepia(96%) saturate(5309%) hue-rotate(359deg) brightness(96%) contrast(113%) }
 
 .icons {
-  background: url(/g/icons.png?#{$icons-version}) no-repeat;
+  background: url(/g/icons.png?#{$png-version}) no-repeat;
   width: 16px;
   height: 14px;
   margin: 0 2px 0 0;
-  margin-top: 0px!important;
   overflow: hidden;
-  display:-moz-inline-stack;
   display: inline-block;
-  padding: 0;
-  border: 0;
   text-decoration: none;
 }
 .icons.lang  { width: 13px; height: 11px; opacity: 0.5 }
 .icons.lang.mtl { filter: grayscale(1); opacity: 0.4 }
+.icons.plat { width: 16px; height: 16px; margin: -1px 2px -1px 0; background-image: url(/g/icons.svg?#{$svg-version}) }
 .icons.gen   { width: 14px; height: 14px }
 .icons.gen.b { width: 28px }
 .icons.rtcomplete, .icons.rtpartial, .icons.rttrial { width: 11px; }
 abbr.icons { cursor: default; }
 a .icons { cursor: pointer }
-@import 'data/icons/icons';
+@import 'static/g/png';
+@import 'static/g/svg';
 
 .release_icons { width: 16px; height: 16px; float: right; margin-left: 4px; }
 .release_icon_voiced2, .release_icon_anim2, .release_icon_erocen { filter: hue-rotate(30deg); }

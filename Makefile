@@ -41,7 +41,8 @@ ALL_KEEP=\
 
 ALL_CLEAN=\
 	static/g/elm.js \
-	data/icons/icons.css \
+	static/g/png.css \
+	static/g/svg.css \
 	sql/editfunc.sql \
 	${JS_BUNDLE_OUT} \
 	${CSS_OUT}
@@ -49,6 +50,7 @@ ALL_CLEAN=\
 PROD=\
 	static/g/api-nyan.html static/g/api-kana.html\
 	static/g/elm.min.js static/g/elm.min.js.gz static/g/elm.min.js.br\
+	static/g/icons.svg.gz static/g/icons.svg.br\
 	static/g/icons.opt.png \
 	${JS_BUNDLE_GZ} ${JS_BUNDLE_BR} \
 	${CSS_GZ} ${CSS_BR}
@@ -95,17 +97,24 @@ chmod: all
 
 
 
-data/icons/icons.css: data/icons/*.png data/icons/*/*.png util/spritegen.pl | static/g
+static/g/png.css: data/icons/*.png data/icons/*/*.png util/spritegen.pl | static/g
 	util/spritegen.pl
 
-static/g/icons.png: data/icons/icons.css
+static/g/icons.png: static/g/png.css
 
 static/g/icons.opt.png: static/g/icons.png
 	rm -f $@
 	zopflipng -m --lossy_transparent $< $@
 
-static/g/%.css: css/skins/%.sass css/v2.css data/icons/icons.css | static/g
-	( echo '$$icons-version: "$(shell sha1sum static/g/icons.png | head -c8)";'; echo '@import "css/skins/$*"' ) | sassc --stdin -I. --style compressed >$@
+static/g/svg.css: util/svgsprite.pl data/icons/*/*.svg | static/g
+	util/svgsprite.pl
+
+static/g/icons.svg: static/g/svg.css
+
+static/g/%.css: css/skins/%.sass css/v2.css static/g/png.css static/g/svg.css | static/g
+	( echo '$$png-version: "$(shell sha1sum static/g/icons.png | head -c8)";'; \
+	  echo '$$svg-version: "$(shell sha1sum static/g/icons.svg | head -c8)";'; \
+	  echo '@import "css/skins/$*"' ) | sassc --stdin -I. --style compressed >$@
 
 static/g/api-%.html: data/api-%.md
 	pandoc "$<" -st html5 --toc -o "$@"

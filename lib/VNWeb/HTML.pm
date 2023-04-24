@@ -47,7 +47,7 @@ sub clearfloat_ { div_ class => 'clearfloat', '' }
 
 # Platform icon
 sub platform_ {
-    img_ src => config->{url_static}.'/f/plat/'.$_[0].'.svg', class => 'platicon', title => $PLATFORM{$_[0]}, undef;
+    abbr_ class => "icons plat $_[0]", title => $PLATFORM{$_[0]}, '';
 }
 
 
