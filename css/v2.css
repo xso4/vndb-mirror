@@ -1299,23 +1299,18 @@ div.imagebrowse { padding: 0; display: flex; flex-wrap: wrap }
 .liststatus_icon.l5 { filter: invert(88%) sepia(10%) saturate(6134%) hue-rotate(359deg) brightness(104%) contrast(106%); }
 .liststatus_icon.l6 { opacity: 1; filter: invert(10%) sepia(96%) saturate(5309%) hue-rotate(359deg) brightness(96%) contrast(113%) }
 
-.icons {
-  background: url(/g/icons.png?#{$png-version}) no-repeat;
-  width: 16px;
-  height: 14px;
-  margin: 0 2px 0 0;
-  overflow: hidden;
-  display: inline-block;
-  text-decoration: none;
-}
-.icons.lang  { width: 13px; height: 11px; opacity: 0.5 }
-.icons.lang.mtl { filter: grayscale(1); opacity: 0.4 }
-.icons.plat { width: 16px; height: 16px; margin: -1px 2px -1px 0; background-image: url(/g/icons.svg?#{$svg-version}) }
-.icons.gen   { width: 14px; height: 14px }
-.icons.gen.b { width: 28px }
-.icons.rtcomplete, .icons.rtpartial, .icons.rttrial { width: 11px; }
-abbr.icons { cursor: default; }
-a .icons { cursor: pointer }
+/* XXX: Icon elements MUST have their 'icon-*' class as the first in the list */
+[class^=icon-] { cursor: inherit; margin: 0 2px 0 0; display: inline-block; text-decoration: none; margin: 0 2px 0 0 }
+[class^=icon-lang-],
+[class^=icon-gen-],
+.icon-external,
+.icon-rtcomplete, .icon-rtpartial, .icon-rttrial { background-image: url(/g/icons.png?#{$png-version}) }
+[class^=icon-plat-] { background-image: url(/g/icons.svg?#{$svg-version}) }
+
+[class^=icon-lang-] { opacity: 0.5 }
+[class^=icon-lang-].mtl { filter: grayscale(1); opacity: 0.4 }
+[class^=icon-plat-] { margin: -1px 2px -1px 0 }
+
 @import 'static/g/png';
 @import 'static/g/svg';
 

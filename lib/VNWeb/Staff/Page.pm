@@ -40,7 +40,7 @@ sub _infotable_ {
             td_ colspan => 2, sub {
                 span_ style => 'margin-right: 10px', tlang($main->{title}[0], $main->{title}[1]), $main->{title}[1];
                 small_ style => 'margin-right: 10px', tlang($main->{title}[2], $main->{title}[3]), $main->{title}[3] if $main->{title}[1] ne $main->{title}[3];
-                abbr_ class => "icons gen $s->{gender}", title => $GENDER{$s->{gender}}, '' if $s->{gender} ne 'unknown';
+                abbr_ class => "icon-gen-$s->{gender}", title => $GENDER{$s->{gender}}, '' if $s->{gender} ne 'unknown';
             }
         } };
 
@@ -106,7 +106,7 @@ sub _roles_ {
                 td_ class => 'tc1', sub {
                     a_ href => "/$v->{id}", tattr $v;
                     lit_ ' ' if $v->{name};
-                    abbr_ class => "icons lang $v->{lang}", title => $LANGUAGE{$v->{lang}}, '' if $v->{lang};
+                    abbr_ class => "icon-lang-$v->{lang}", title => $LANGUAGE{$v->{lang}}, '' if $v->{lang};
                     txt_ $v->{name} if $v->{name} && $v->{official};
                     small_ $v->{name} if $v->{name} && !$v->{official};
                 };

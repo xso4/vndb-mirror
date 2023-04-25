@@ -21,7 +21,7 @@ sub listing_ {
         table_ class => 'stripe', sub {
             tr_ sub {
                 td_ class => 'tc1', sub {
-                    abbr_ class => "icons gen $_->{gender}", title => $GENDER{$_->{gender}}, '' if $_->{gender} ne 'unknown';
+                    abbr_ class => "icon-gen-$_->{gender}", title => $GENDER{$_->{gender}}, '' if $_->{gender} ne 'unknown';
                 };
                 td_ class => 'tc2', sub {
                     a_ href => "/$_->{id}", tattr $_;
@@ -45,7 +45,7 @@ sub listing_ {
                 }
             };
             div_ sub {
-                abbr_ class => "icons gen $_->{gender}", title => $GENDER{$_->{gender}}, '' if $_->{gender} ne 'unknown';
+                abbr_ class => "icon-gen-$_->{gender}", title => $GENDER{$_->{gender}}, '' if $_->{gender} ne 'unknown';
                 a_ href => "/$_->{id}", tattr $_;
                 br_;
                 small_ sub {

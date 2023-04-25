@@ -37,8 +37,8 @@ sub review_ {
                 if($w->{rid}) {
                     br_;
                     platform_ $_ for $w->{platforms}->@*;
-                    abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for $w->{lang}->@*;
-                    abbr_ class => "icons rt$w->{rtype}", title => $w->{rtype}, '';
+                    abbr_ class => "icon-lang $_", title => $LANGUAGE{$_}, '' for $w->{lang}->@*;
+                    abbr_ class => "icon-rt$w->{rtype}", title => $w->{rtype}, '';
                     a_ href => "/$w->{rid}", tattr $w->{rtitle};
                 }
             };

@@ -47,7 +47,7 @@ sub clearfloat_ { div_ class => 'clearfloat', '' }
 
 # Platform icon
 sub platform_ {
-    abbr_ class => "icons plat $_[0]", title => $PLATFORM{$_[0]}, '';
+    abbr_ class => "icon-plat-$_[0]", title => $PLATFORM{$_[0]}, '';
 }
 
 

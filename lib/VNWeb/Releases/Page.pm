@@ -28,7 +28,7 @@ sub _rev_ {
     my $newani = $r->{chid} > 1110896;
     revision_ $r, \&enrich_item,
         [ vn         => 'Relations',       fmt => sub {
-            abbr_ class => "icons rt$_->{rtype}", title => $_->{rtype}, ' ';
+            abbr_ class => "icon-rt$_->{rtype}", title => $_->{rtype}, ' ';
             a_ href => "/$_->{vid}", tattr $_;
             txt_ " ($_->{rtype})" if $_->{rtype} ne 'complete';
         } ],
@@ -131,7 +131,7 @@ sub _infotable_ {
             td_ class => 'key', 'Relation';
             td_ sub {
                 join_ \&br_, sub {
-                    abbr_ class => "icons rt$_->{rtype}", title => $_->{rtype}, ' ';
+                    abbr_ class => "icon-rt$_->{rtype}", title => $_->{rtype}, ' ';
                     a_ href => "/$_->{vid}", tattr $_;
                     txt_ " ($_->{rtype})" if $_->{rtype} ne 'complete';
                 }, $r->{vn}->@*
@@ -145,7 +145,7 @@ sub _infotable_ {
                     my($olang) = grep $_->{lang} eq $r->{olang}, $r->{titles}->@*;
                     tr_ class => 'nostripe title', sub {
                         td_ style => 'white-space: nowrap', sub {
-                            abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, '';
+                            abbr_ class => "icon-lang-$_->{lang}", title => $LANGUAGE{$_->{lang}}, '';
                         };
                         td_ sub {
                             my $title = $_->{title}//$olang->{title};

@@ -5,7 +5,7 @@ use warnings;
 use Cwd 'abs_path';
 
 our $ROOT;
-BEGIN { ($ROOT = abs_path $0) =~ s{/util/spritegen\.pl$}{}; }
+BEGIN { ($ROOT = abs_path $0) =~ s{/util/pngsprite\.pl$}{}; }
 
 use lib "$ROOT/lib";
 use VNDB::Config;
@@ -114,11 +114,11 @@ sub css {
             $gender = $i;
             next;
         }
-        $i->{f} =~ /([^\/]+)$/;
-        printf $F ".icons.%s { background-position: %dpx %dpx }\n", $1, -$i->{x}, -$i->{y};
+        printf $F ".icon-%s { background-position: %dpx %dpx; width: %dpx; height: %dpx }\n", $i->{f} =~ s#/#-#rg, -$i->{x}, -$i->{y}, $i->{w}, $i->{h};
     }
-    printf $F ".icons.gen.f, .icons.gen.b { background-position: %dpx %dpx }\n", -$gender->{x}, -$gender->{y};
-    printf $F ".icons.gen.m { background-position: %dpx %dpx }\n", -($gender->{x}+14), -$gender->{y};
+    printf $F ".icon-gen-f, .icon-gen-b { background-position: %dpx %dpx; width: 14px; height: 14px }\n", -$gender->{x}, -$gender->{y};
+    print  $F ".icon-gen-b { width: 28px }\n";
+    printf $F ".icon-gen-m { background-position: %dpx %dpx; width: 14px; height: 14px }\n", -($gender->{x}+14), -$gender->{y};
 }
 
 

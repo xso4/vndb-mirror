@@ -145,10 +145,10 @@ sub chartable_ {
                 ? a_ href => "/$c->{id}", style => 'margin-right: 10px; font-weight: bold', tlang($c->{title}[0], $c->{title}[1]), $c->{title}[1]
                 : span_ style => 'margin-right: 10px', tlang($c->{title}[0], $c->{title}[1]), $c->{title}[1];
                 small_ style => 'margin-right: 10px', tlang($c->{title}[2], $c->{title}[3]), $c->{title}[3] if $c->{title}[3] ne $c->{title}[1];
-                abbr_ class => "icons gen $c->{gender}", title => $GENDER{$c->{gender}}, '' if $c->{gender} ne 'unknown';
+                abbr_ class => "icon-gen-$c->{gender}", title => $GENDER{$c->{gender}}, '' if $c->{gender} ne 'unknown';
                 if($view->{spoilers} == 2 && defined $c->{spoil_gender}) {
                     txt_ '(';
-                    abbr_ class => "icons gen $c->{spoil_gender}", title => $GENDER{$c->{spoil_gender}}, '' if $c->{spoil_gender} ne 'unknown';
+                    abbr_ class => "icon-gen-$c->{spoil_gender}", title => $GENDER{$c->{spoil_gender}}, '' if $c->{spoil_gender} ne 'unknown';
                     txt_ 'unknown' if $c->{spoil_gender} eq 'unknown';
                     spoil_ 2;
                     txt_ ')';

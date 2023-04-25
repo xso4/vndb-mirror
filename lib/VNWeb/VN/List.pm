@@ -211,7 +211,7 @@ sub listing_ {
                     }, $_->{developers}->@*;
                 } if $opt->{s}->vis('developer');
                 td_ class => 'tc_plat',  sub { join_ '', sub { platform_ $_ if $_ ne 'unk' }, sort $_->{platforms}->@* };
-                td_ class => 'tc_lang',  sub { join_ '', sub { abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' }, reverse sort $_->{lang}->@* };
+                td_ class => 'tc_lang',  sub { join_ '', sub { abbr_ class => "icon-lang-$_", title => $LANGUAGE{$_}, '' }, reverse sort $_->{lang}->@* };
                 td_ class => 'tc_rel',   sub { rdate_ $_->{c_released} };
                 td_ class => 'tc_length',sub { len_ $_ } if $opt->{s}->vis('length');
                 td_ class => 'tc_pop',   sprintf '%.2f', ($_->{c_popularity}||0)/100 if $opt->{s}->vis('popularity');
@@ -239,7 +239,7 @@ sub listing_ {
         if(!$labels || $opt->{s}->vis('released')) {
             br_;
             join_ '', sub { platform_ $_ if $_ ne 'unk' }, sort $_->{platforms}->@*;
-            join_ '', sub { abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' }, reverse sort $_->{lang}->@*;
+            join_ '', sub { abbr_ class => "icon-lang-$_", title => $LANGUAGE{$_}, '' }, reverse sort $_->{lang}->@*;
             rdate_ $_->{c_released};
         }
         if($opt->{s}->vis('developer')) {

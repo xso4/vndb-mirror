@@ -193,7 +193,7 @@ sub releases_ {
                 rdate_ $_->{released};
                 txt_ ' ';
                 platform_ $_ for $_->{plat}->@*;
-                abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for $_->{lang}->@*;
+                abbr_ class => "icon-lang-$_", title => $LANGUAGE{$_}, '' for $_->{lang}->@*;
                 txt_ ' ';
                 a_ href => "/$_->{id}", tattr $_;
             }

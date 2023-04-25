@@ -16,7 +16,7 @@ use v5.26;
 use strict;
 use autodie;
 
-my %icons = map +(m{([^/]+)\.svg$}, $_), glob('data/icons/*.svg'), glob('data/icons/*/*.svg');
+my %icons = map +((m{^data/icons/(.+)\.svg$})[0] =~ s#/#-#rg, $_), glob('data/icons/*.svg'), glob('data/icons/*/*.svg');
 my $idnum = 'a';
 my($width, $height) = (-10,0);
 my($defs, $group, $css) = ('','','');
@@ -25,9 +25,10 @@ for my $id (sort keys %icons) {
     my $data = do { local $/=undef; open my $F, '<', $icons{$id}; <$F> };
     $data =~ s{<\?xml[^>]*>}{};
     $data =~ s{</svg>}{}g;
-    $data =~ s{<svg [^>]*viewBox="([^"]+)"[^>]*>}{};
-    my $viewbox = $1 // die "No viewBox property found in $icons{$id}\n";
     $data =~ s/\n//g;
+    $data =~ s{<svg [^>]*viewBox="0 0 ([^ ]+) ([^ ]+)"[^>]*>}{};
+    my($w,$h) = ($1,$2);
+    my $viewbox = $w // die "No suitable viewBox property found in $icons{$id}\n";
 
     # Identifiers must be globally unique, so need to renumber.
     my %idmap;
@@ -38,10 +39,10 @@ for my $id (sort keys %icons) {
 
     $width += 10;
     $group .= qq{<g transform="translate($width)">$data</g>};
-    $css .= ".icons.$id { background-position: -${width}px 0 }\n";
+    $css .= sprintf ".icon-%s { background-position: %dpx 0; width: %dpx; height: %dpx }\n", $id, -$width, $w, $h;
 
-    $width += $viewbox =~ /0 0 ([^ ]+) ([^ ]+)/ && $1 =~ s/^\./0./r;
-    $height = $2 if $height < $2;
+    $width += $w;
+    $height = $h if $height < $h;
 }
 
 {

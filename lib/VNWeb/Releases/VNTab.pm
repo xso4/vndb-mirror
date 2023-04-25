@@ -37,12 +37,12 @@ my @rel_cols = (
     sort_sql      => 'r.patch %s, rv.rtype %1$s, r.released %1$s, r.sorttitle %1$s',
     button_string => 'Type',
     default       => 1,
-    draw          => sub { abbr_ class => "icons rt$_[0]{rtype}", title => $_[0]{rtype}, ''; txt_ '(patch)' if $_[0]{patch} },
+    draw          => sub { abbr_ class => "icon-rt$_[0]{rtype}", title => $_[0]{rtype}, ''; txt_ '(patch)' if $_[0]{patch} },
   }, { # Languages
     id            => 'lan',
     button_string => 'Language',
     default       => 1,
-    draw          => sub { join_ \&br_, sub { abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, ''; }, $_[0]{titles}->@* },
+    draw          => sub { join_ \&br_, sub { abbr_ class => "icon-lang-$_->{lang}", title => $LANGUAGE{$_->{lang}}, ''; }, $_[0]{titles}->@* },
   }, { # Publication
     id            => 'pub',
     sort_field    => 'publication',
@@ -167,7 +167,7 @@ sub buttons_ {
         }
     };
     pl 'os',  \&platform_, map $_->{platforms}->@*, @$r if $opt->{pla};
-    pl 'lang', sub { abbr_ class => "icons lang $_[0]", title => $LANGUAGE{$_[0]}, '' }, map $_->{lang}, map $_->{titles}->@*, @$r if $opt->{lan};
+    pl 'lang', sub { abbr_ class => "icon-lang-$_[0]", title => $LANGUAGE{$_[0]}, '' }, map $_->{lang}, map $_->{titles}->@*, @$r if $opt->{lan};
 }
 
 

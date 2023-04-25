@@ -97,8 +97,8 @@ chmod: all
 
 
 
-static/g/png.css: data/icons/*.png data/icons/*/*.png util/spritegen.pl | static/g
-	util/spritegen.pl
+static/g/png.css: data/icons/*.png data/icons/*/*.png util/pngsprite.pl | static/g
+	util/pngsprite.pl
 
 static/g/icons.png: static/g/png.css
 

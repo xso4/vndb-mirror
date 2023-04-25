@@ -150,7 +150,7 @@ sub rev_ {
         [ devstatus   => 'Development status',fmt => \%DEVSTATUS ],
         [ length      => 'Length',        fmt => \%VN_LENGTH ],
         [ editions    => 'Editions',      fmt => sub {
-            abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, '' if $_->{lang};
+            abbr_ class => "icon-lang-$_->{lang}", title => $LANGUAGE{$_->{lang}}, '' if $_->{lang};
             txt_ $_->{name};
             small_ ' (unofficial)' if !$_->{official};
         }],
@@ -320,7 +320,7 @@ sub infobox_producers_ {
         td_ sub {
             join_ \&br_, sub {
                 my @l = split /;/;
-                abbr_ class => "icons lang $_", title => $LANGUAGE{$_}, '' for @l;
+                abbr_ class => "icon-lang-$_", title => $LANGUAGE{$_}, '' for @l;
                 join_ ' & ', sub { a_ href => "/$_->{id}", $_->{official} ? () : (class => 'grayedout'), tattr $_ }, $lang{$l[0]}->@*;
             }, @nlang;
         }
@@ -448,7 +448,7 @@ sub infobox_ {
         my($t) = @_;
         tr_ mkclass(title => 1, grayedout => !$t->{official}), sub {
             td_ sub {
-                abbr_ class => "icons lang $t->{lang}", title => $LANGUAGE{$t->{lang}}, '';
+                abbr_ class => "icon-lang-$t->{lang}", title => $LANGUAGE{$t->{lang}}, '';
             };
             td_ sub {
                 span_ tlang($t->{lang}, $t->{title}), $t->{title};
@@ -609,7 +609,7 @@ sub releases_ {
         my $open = ($pref->{vnrel_olang} && $lang eq $v->{olang} && !$mtl) || ($pref->{vnrel_langs}{$lang} && (!$mtl || $pref->{vnrel_mtl}));
         details_ open => $open?'open':undef, sub {
             summary_ $mtl ? (class => 'mtl') : (), sub {
-                abbr_ class => "icons lang $lang".($mtl?' mtl':''), title => $LANGUAGE{$lang}, '';
+                abbr_ class => "icon-lang-$lang".($mtl?' mtl':''), title => $LANGUAGE{$lang}, '';
                 txt_ $LANGUAGE{$lang};
                 small_ sprintf ' (%d)', scalar $lang{$lang}->@*;
             };
@@ -704,7 +704,7 @@ sub staff_ {
             my $open = ($pref->{staffed_olang} && !$e) || ($pref->{staffed_langs}{$lang} && (!$unoff || $pref->{staffed_unoff}));
             details_ open => $open?'open':undef, sub {
                 summary_ sub {
-                    abbr_ class => "icons lang $e->{lang}", title => $LANGUAGE{$e->{lang}}, '' if $e && $e->{lang};
+                    abbr_ class => "icon-lang-$e->{lang}", title => $LANGUAGE{$e->{lang}}, '' if $e && $e->{lang};
                     txt_ 'Original edition' if !$e;
                     txt_ $e->{name} if $e;
                     small_ ' (unofficial)' if $unoff;
@@ -745,7 +745,7 @@ sub charsum_ {
             div_ class => 'charsum_bubble', sub {
                 div_ class => 'name', sub {
                     span_ sub {
-                        abbr_ class => "icons gen $_->{gender}", title => $GENDER{$_->{gender}}, '' if $_->{gender} ne 'unknown';
+                        abbr_ class => "icon-gen-$_->{gender}", title => $GENDER{$_->{gender}}, '' if $_->{gender} ne 'unknown';
                         a_ href => "/$_->{id}", tattr $_;
                     };
                     em_ $CHAR_ROLE{$_->{role}}{txt};
@@ -887,7 +887,7 @@ sub screenshots_ {
 
         for my $r (grep $rel{$_->{id}}, $v->{releases}->@*) {
             p_ class => 'rel', sub {
-                abbr_ class => "icons lang $_->{lang}", title => $LANGUAGE{$_->{lang}}, '' for $r->{titles}->@*;
+                abbr_ class => "icon-lang-$_->{lang}", title => $LANGUAGE{$_->{lang}}, '' for $r->{titles}->@*;
                 platform_ $_ for $r->{platforms}->@*;
                 a_ href => "/$r->{id}", tattr $r;
             };

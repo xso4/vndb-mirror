@@ -60,7 +60,7 @@ sub release_extlinks_ {
 
     if($r->{extlinks}->@* == 1 && $r->{website}) {
         a_ href => $r->{extlinks}[0]{url2}, sub {
-            abbr_ class => 'icons external', title => 'Official website', '';
+            abbr_ class => 'icon-external', title => 'Official website', '';
         };
         return
     }
@@ -69,7 +69,7 @@ sub release_extlinks_ {
         div_ class => 'elm_dd', sub {
             a_ href => $r->{website}||'#', sub {
                 txt_ scalar $r->{extlinks}->@*;
-                abbr_ class => 'icons external', title => 'External link', '';
+                abbr_ class => 'icon-external', title => 'External link', '';
             };
             div_ sub {
                 div_ sub {
@@ -151,9 +151,9 @@ sub release_row_ {
         td_ class => 'tc3', sub {
             platform_ $_ for $r->{platforms}->@*;
             if(!$opt->{lang}) {
-                abbr_ class => "icons lang $_->{lang}".($_->{mtl}?' mtl':''), title => $LANGUAGE{$_->{lang}}, '' for $r->{titles}->@*;
+                abbr_ class => "icon-lang-$_->{lang}".($_->{mtl}?' mtl':''), title => $LANGUAGE{$_->{lang}}, '' for $r->{titles}->@*;
             }
-            abbr_ class => "icons rt$r->{rtype}", title => $r->{rtype}, '';
+            abbr_ class => "icon-rt$r->{rtype}", title => $r->{rtype}, '';
         };
         td_ class => 'tc4', sub {
             my $title =
