@@ -46,7 +46,7 @@ for my $id (sort keys %icons) {
 }
 
 {
-    open my $F, '>', 'static/g/svg.css';
+    open my $F, '>', 'static/g/svg.spritecss';
     print $F $css;
 }
 

@@ -1316,8 +1316,8 @@ div.imagebrowse { padding: 0; display: flex; flex-wrap: wrap }
 .icon-rel-v3, .icon-rel-a3 { filter: invert(100%) hue-rotate(240deg); }
 .icon-rel-v4, .icon-rel-a4 { filter: hue-rotate(80deg); }
 
-@import 'static/g/png';
-@import 'static/g/svg';
+@import 'static/g/png.spritecss';
+@import 'static/g/svg.spritecss';
 
 
 /* Relation graph */

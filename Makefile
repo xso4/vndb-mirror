@@ -21,7 +21,7 @@
 #   environments. Patches to improve the portability are always welcome.
 
 
-.PHONY: all prod chmod multi-stop multi-start multi-restart
+.PHONY: all prod clean cleaner chmod multi-stop multi-start multi-restart
 
 JS_BUNDLE_NAMES=$(shell echo js/*/ | sed 's#js/\(.\+\)/#\1#')
 JS_BUNDLE_INDICES=$(shell echo js/*/index.js)
@@ -41,8 +41,8 @@ ALL_KEEP=\
 
 ALL_CLEAN=\
 	static/g/elm.js \
-	static/g/png.css \
-	static/g/svg.css \
+	static/g/icons.svg \
+	static/g/icons.png \
 	sql/editfunc.sql \
 	${JS_BUNDLE_OUT} \
 	${CSS_OUT}
@@ -97,21 +97,17 @@ chmod: all
 
 
 
-static/g/png.css: data/icons/*.png data/icons/*/*.png util/pngsprite.pl | static/g
-	util/pngsprite.pl
-
-static/g/icons.png: static/g/png.css
+# Single rule for svg & png sprites. This uses a GNU multiple pattern rule in
+# order to have it parallelize correctly - splitting this up into two
+# individual rules is buggy.
+static/g/%.spritecss static/g/icons.%: util/%sprite.pl data/icons data/icons/* data/icons/*/* | static/g
+	$<
 
 static/g/icons.opt.png: static/g/icons.png
 	rm -f $@
 	zopflipng -m --lossy_transparent $< $@
 
-static/g/svg.css: util/svgsprite.pl data/icons/*/*.svg | static/g
-	util/svgsprite.pl
-
-static/g/icons.svg: static/g/svg.css
-
-static/g/%.css: css/skins/%.sass css/v2.css static/g/png.css static/g/svg.css | static/g
+static/g/%.css: css/skins/%.sass css/v2.css static/g/png.spritecss static/g/svg.spritecss | static/g
 	( echo '$$png-version: "$(shell sha1sum static/g/icons.png | head -c8)";'; \
 	  echo '$$svg-version: "$(shell sha1sum static/g/icons.svg | head -c8)";'; \
 	  echo '@import "css/skins/$*"' ) | sassc --stdin -I. --style compressed >$@
