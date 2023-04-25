@@ -117,26 +117,26 @@ sub release_row_ {
 
     my sub icon_ {
         my($img, $label, $class) = @_;
-        $class = $class ? " release_icon_$class" : '';
-        img_ src => config->{url_static}."/f/$img.svg", class => "release_icons$class", title => $label;
+        $class = $class ? " icon-rel-$class" : '';
+        abbr_ class => "icon-rel-$img$class", title => $label, '';
     }
 
     my sub icons_ {
         my($r) = @_;
-        icon_ 'voiced', $VOICED{$r->{voiced}}{txt}, "voiced$r->{voiced}" if $r->{voiced};
-        icon_ 'story_animated', "Story scene animation:\n$storyani", "anim$r->{ani_story}" if $r->{ani_story};
-        icon_ 'ero_animated', "Erotic scene animation:\n$eroani", "anim$r->{ani_ero}" if $r->{ani_ero};
-        icon_ 'free', 'Freeware' if $r->{freeware};
-        icon_ 'nonfree', 'Non-free' if !$r->{freeware};
+        icon_ 'notes', bb_format $r->{notes}, text => 1 if $r->{notes};
+        icon_ $MEDIUM{ $r->{media}[0]{medium} }{icon}, join ', ', map fmtmedia($_->{medium}, $_->{qty}), $r->{media}->@* if $r->{media}->@*;
         if($r->{reso_y}) {
             my $ratio = $r->{reso_x} / $r->{reso_y};
-            my $type = $ratio == 4/3 ? '4-3' : $ratio == 16/9 ? '16-9' : 'custom';
+            my $type = $ratio == 4/3 ? '43' : $ratio == 16/9 ? '169' : 'custom';
             # Ugly workaround: PC-98 has non-square pixels, thus not widescreen
-            $type = '4-3' if $ratio > 4/3 && grep $_ eq 'p98', $r->{platforms}->@*;
-            icon_ "resolution_$type", resolution $r;
+            $type = '43' if $ratio > 4/3 && grep $_ eq 'p98', $r->{platforms}->@*;
+            icon_ "reso-$type", resolution $r;
         }
-        icon_ $MEDIUM{ $r->{media}[0]{medium} }{icon}, join ', ', map fmtmedia($_->{medium}, $_->{qty}), $r->{media}->@* if $r->{media}->@*;
-        icon_ 'notes', bb_format $r->{notes}, text => 1 if $r->{notes};
+        icon_ 'free', 'Freeware' if $r->{freeware};
+        icon_ 'nonfree', 'Non-free' if !$r->{freeware};
+        icon_ 'ani-ero', "Erotic scene animation:\n$eroani", "a$r->{ani_ero}" if $r->{ani_ero};
+        icon_ 'ani-story', "Story scene animation:\n$storyani", "a$r->{ani_story}" if $r->{ani_story};
+        icon_ 'voiced', $VOICED{$r->{voiced}}{txt}, "v$r->{voiced}" if $r->{voiced};
     }
 
     tr_ $mtl ? (class => 'mtl') : (), sub {

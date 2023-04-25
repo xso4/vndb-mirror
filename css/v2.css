@@ -435,7 +435,7 @@ div.postsearch td.tc3             { width: 90px; }
 .releases td.tc1       { padding-left: 30px; width: 110px; white-space: nowrap }
 .releases td.tc2       { width: 46px; white-space: nowrap }
 .releases td.tc3       { text-align: right; padding: 0; width: 120px; }
-.releases td.tc_icons  { padding: 0 4px }
+.releases td.tc_icons  { text-align: right; padding: 0 4px }
 .releases td.tc_prod   { color: var(--grayedout); white-space: nowrap; width: 56px }
 .releases td.tc5       { width: 76px; text-align: right }
 .releases td.tc6       { text-align: right; width: 35px; padding: 0; white-space: nowrap }
@@ -1305,19 +1305,20 @@ div.imagebrowse { padding: 0; display: flex; flex-wrap: wrap }
 [class^=icon-gen-],
 .icon-external,
 .icon-rtcomplete, .icon-rtpartial, .icon-rttrial { background-image: url(/g/icons.png?#{$png-version}) }
-[class^=icon-plat-] { background-image: url(/g/icons.svg?#{$svg-version}) }
+[class^=icon-plat-],
+[class^=icon-rel-] { background-image: url(/g/icons.svg?#{$svg-version}) }
 
 [class^=icon-lang-] { opacity: 0.5 }
 [class^=icon-lang-].mtl { filter: grayscale(1); opacity: 0.4 }
 [class^=icon-plat-] { margin: -1px 2px -1px 0 }
 
+.icon-rel-v2, .icon-rel-a2 { filter: hue-rotate(30deg); }
+.icon-rel-v3, .icon-rel-a3 { filter: invert(100%) hue-rotate(240deg); }
+.icon-rel-v4, .icon-rel-a4 { filter: hue-rotate(80deg); }
+
 @import 'static/g/png';
 @import 'static/g/svg';
 
-.release_icons { width: 16px; height: 16px; float: right; margin-left: 4px; }
-.release_icon_voiced2, .release_icon_anim2, .release_icon_erocen { filter: hue-rotate(30deg); }
-.release_icon_voiced3, .release_icon_anim3 { filter: invert(100%) hue-rotate(240deg); }
-.release_icon_voiced4, .release_icon_anim4, .release_icon_erounc { filter: hue-rotate(80deg); }
 
 /* Relation graph */
 svg .border { fill: none; stroke: var(--border) }
