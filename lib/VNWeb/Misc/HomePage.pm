@@ -46,7 +46,7 @@ sub recent_changes_ {
     h1_ sub {
         a_ href => '/hist', 'Recent Changes'; txt_ ' ';
         a_ href => '/feeds/changes.atom', sub {
-            img_ src => config->{url_static}.'/f/rss.svg', title => 'Atom feed', width => 14, height => 14;
+            abbr_ class => 'icon-rss', title => 'Atom feed', '';
         }
     };
     ul_ sub {

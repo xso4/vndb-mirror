@@ -224,6 +224,4 @@ ulistIcon n lbl =
   let fn = if n == -1 then "add"
            else if n >= 1 && n <= 6 then "l" ++ String.fromInt n
            else "unknown"
-  in img [ src (Ffi.urlStatic ++ "/f/list-" ++ fn ++ ".svg")
-         , class ("liststatus_icon "++fn), title lbl
-         ] []
+  in abbr [ class ("icon-list-"++fn), title lbl ] []

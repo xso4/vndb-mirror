@@ -969,7 +969,7 @@ div.lengthlist {
 /* Just kill me already */
 [id^=ulist_labeledit] li > a {
     padding-right: 30px!important;
-    .liststatus_icon, .spinner { float: right; margin-right: -26px; margin-top: 2px }
+    abbr, .spinner { float: right; margin-right: -26px; margin-top: 2px }
 }
 
 
@@ -1289,16 +1289,6 @@ div.imagebrowse { padding: 0; display: flex; flex-wrap: wrap }
 
 /****** Icons *******/
 
-/* XXX: Not a fan of this filtering solution. Also, these don't work on light skins */
-.liststatus_icon { width: 15px; height: 15px; margin: -1px 0; object-fit: contain; filter: invert(100%); opacity: 0.9 }
-.liststatus_icon.add { opacity: 0.4 }
-.liststatus_icon.l1 { filter: invert(60%) sepia(28%) saturate(6308%) hue-rotate(157deg) brightness(98%) contrast(102%); }
-.liststatus_icon.l2 { opacity: 1; filter: invert(48%) sepia(23%) saturate(3672%) hue-rotate(86deg) brightness(103%) contrast(116%) }
-.liststatus_icon.l3 { filter: invert(49%) sepia(95%) saturate(1315%) hue-rotate(348deg) brightness(101%) contrast(101%); }
-.liststatus_icon.l4 { filter: invert(17%) sepia(74%) saturate(7213%) hue-rotate(357deg) brightness(89%) contrast(121%); }
-.liststatus_icon.l5 { filter: invert(88%) sepia(10%) saturate(6134%) hue-rotate(359deg) brightness(104%) contrast(106%); }
-.liststatus_icon.l6 { opacity: 1; filter: invert(10%) sepia(96%) saturate(5309%) hue-rotate(359deg) brightness(96%) contrast(113%) }
-
 /* XXX: Icon elements MUST have their 'icon-*' class as the first in the list */
 [class^=icon-] { cursor: inherit; margin: 0 2px 0 0; display: inline-block; text-decoration: none; margin: 0 2px 0 0 }
 [class^=icon-lang-],
@@ -1306,11 +1296,14 @@ div.imagebrowse { padding: 0; display: flex; flex-wrap: wrap }
 .icon-external,
 .icon-rtcomplete, .icon-rtpartial, .icon-rttrial { background-image: url(/g/icons.png?#{$png-version}) }
 [class^=icon-plat-],
-[class^=icon-rel-] { background-image: url(/g/icons.svg?#{$svg-version}) }
+[class^=icon-rel-],
+[class^=icon-list-],
+.icon-rss { background-image: url(/g/icons.svg?#{$svg-version}) }
 
 [class^=icon-lang-] { opacity: 0.5 }
 [class^=icon-lang-].mtl { filter: grayscale(1); opacity: 0.4 }
 [class^=icon-plat-] { margin: -1px 2px -1px 0 }
+[class^=icon-list-] { margin: -1px 0 }
 
 .icon-rel-v2, .icon-rel-a2 { filter: hue-rotate(30deg); }
 .icon-rel-v3, .icon-rel-a3 { filter: invert(100%) hue-rotate(240deg); }

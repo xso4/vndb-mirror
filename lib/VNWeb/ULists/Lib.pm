@@ -61,7 +61,7 @@ sub ulists_widget_ {
     }, sub {
         my $img = !$v->{on_vnlist} ? 'add' :
             (reverse sort map "l$_->{id}", grep $_->{id} >= 1 && $_->{id} <= 6, $v->{vnlist_labels}->@*)[0] || 'unknown';
-        img_ @_, src => config->{url_static}.'/f/list-'.$img.'.svg', class => "ulist-widget-icon liststatus_icon $img";
+        abbr_ @_, class => "icon-list-$img ulist-widget-icon", '';
     } if auth && exists $v->{vnlist_labels};
 }
 
