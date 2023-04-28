@@ -69,7 +69,7 @@ elm_api DiscussionsReply => $REPLY_OUT, $REPLY_IN, sub {
 
 sub metabox_ {
     my($t, $posts) = @_;
-    div_ class => 'mainbox', sub {
+    article_ sub {
         h1_ sub { lit_ bb_format $t->{title}, idonly => 1 };
         # UGLY hack: private threads from Multi (u1) are sometimes (ab)used for system notifications, treat that case differently.
         if ($t->{private} && $posts->[0]{user_id} && $posts->[0]{user_id} eq 'u1') {
@@ -105,7 +105,7 @@ sub posts_ {
     my sub url { "/$t->{id}".($_?"/$_":'') }
 
     paginate_ \&url, $page, [ $t->{count}, 25 ], 't';
-    div_ class => 'mainbox thread', id => 'threadstart', sub {
+    article_ class => 'thread', id => 'threadstart', sub {
         table_ class => 'stripe', sub {
             tr_ mkclass(deleted => defined $_->{hidden}), id => $_->{num}, sub {
                 td_ class => 'tc1', $_ == $posts->[$#$posts] ? (id => 'last') : (), sub {
@@ -150,7 +150,7 @@ sub reply_ {
     if(can_edit t => $t) {
         elm_ 'Discussions.Reply' => $REPLY_OUT, { tid => $t->{id}, old => $posts->[$#$posts]{date} < time-182*24*3600 };
     } else {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ 'Reply';
             p_ class => 'center',
                     !auth ? 'You must be logged in to reply to this thread.' :

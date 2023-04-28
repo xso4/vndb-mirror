@@ -123,7 +123,7 @@ sub vns_ {
     $time = time - $time;
 
     form_ action => "/$t->{id}", method => 'get', sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             p_ class => 'mainopts', sub {
                 a_ href => "/g/links?t=$t->{id}", 'Recently tagged';
             };
@@ -153,7 +153,7 @@ TUWF::get qr{/$RE{grev}}, sub {
 
     framework_ index => !tuwf->capture('rev'), title => "Tag: $t->{name}", dbobj => $t, hiddenmsg => 1, sub {
         rev_ $t if tuwf->capture('rev');
-        div_ class => 'mainbox', sub { infobox_ $t; };
+        article_ sub { infobox_ $t; };
         tree_ g => $t->{id};
         vns_ $t if $t->{searchable} && !$t->{hidden};
     };

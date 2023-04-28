@@ -37,14 +37,14 @@ sub chars_ {
     for my $r (keys %CHAR_ROLE) {
         my @c = grep grep($_->{role} eq $r, $_->{vns}->@*) && !$done{$_->{id}}++, @$chars;
         next if !@c;
-        div_ class => 'mainbox', sub {
+        article_ sub {
             opts_ if !$first++;
             h1_ $CHAR_ROLE{$r}{ @c > 1 ? 'plural' : 'txt' };
             VNWeb::Chars::Page::chartable_($_, 1, $_ != $c[0], 1) for @c;
         }
     }
 
-    div_ class => 'mainbox', sub {
+    article_ sub {
         opts_;
         h1_ '(Characters hidden by spoiler settings)';
     } if !$first;

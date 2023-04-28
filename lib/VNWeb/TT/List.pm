@@ -10,7 +10,7 @@ sub listing_ {
     my sub url { '?'.query_encode %$opt, @_ }
 
     paginate_ \&url, $opt->{p}, [$count, 50], 't';
-    div_ class => 'mainbox browse taglist', sub {
+    article_ class => 'browse taglist', sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
                 td_ class => 'tc1', sub { txt_ 'Created'; sortable_ 'added', $opt, \&url };
@@ -69,7 +69,7 @@ TUWF::get qr{/(?<type>[gi])/list}, sub {
     enrich_group $type, $list;
 
     framework_ title => "Browse $table", index => 1, sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ "Browse $table";
             form_ action => "/$type/list", method => 'get', sub {
                 searchbox_ $type => $opt->{q};

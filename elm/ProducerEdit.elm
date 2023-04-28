@@ -196,8 +196,8 @@ view model =
 
     newform () =
       form_ "" DupSubmit (model.state == Api.Loading)
-      [ div [ class "mainbox" ] [ h1 [] [ text "Add a new producer" ], table [ class "formtable" ] titles ]
-      , div [ class "mainbox" ]
+      [ article [] [ h1 [] [ text "Add a new producer" ], table [ class "formtable" ] titles ]
+      , article []
         [ if List.isEmpty model.dupProds then text "" else
           div []
           [ h1 [] [ text "Possible duplicates" ]
@@ -212,8 +212,8 @@ view model =
 
     fullform () =
       form_ "" Submit (model.state == Api.Loading)
-      [ div [ class "mainbox" ] [ h1 [] [ text "Edit producer" ], table [ class "formtable" ] geninfo ]
-      , div [ class "mainbox" ] [ fieldset [ class "submit" ]
+      [ article [] [ h1 [] [ text "Edit producer" ], table [ class "formtable" ] geninfo ]
+      , article [] [ fieldset [ class "submit" ]
           [ Html.map Editsum (Editsum.view model.editsum)
           , submitButton "Submit" model.state (isValid model)
           ]

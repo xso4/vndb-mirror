@@ -155,7 +155,7 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
     my $title = $u->{id} eq auth->uid ? 'My Account' : "Edit $u->{username}";
     framework_ title => $title, dbobj => $u, tab => 'edit',
     sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ $title;
         };
         elm_ 'User.Edit', $FORM_OUT, $u;
@@ -289,7 +289,7 @@ TUWF::get qr{/$RE{uid}/setmail/(?<token>[a-f0-9]{40})}, sub {
     my $success = auth->setmail_confirm(tuwf->capture('id'), tuwf->capture('token'));
     my $title = $success ? 'E-mail confirmed' : 'Error confirming email';
     framework_ title => $title, sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ $title;
             div_ class => $success ? 'notice' : 'warning', sub {
                 p_ "Your e-mail address has been updated!" if $success;

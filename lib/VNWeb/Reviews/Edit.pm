@@ -42,7 +42,7 @@ TUWF::get qr{/$RE{vid}/addreview}, sub {
 
     framework_ title => "Write review for $v->{title}", sub {
         if(throttled) {
-            div_ class => 'mainbox', sub {
+            article_ sub {
                 h1_ 'Throttled';
                 p_ 'You can only submit 5 reviews per day. Check back later!';
             };

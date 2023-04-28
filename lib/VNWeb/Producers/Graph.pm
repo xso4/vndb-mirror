@@ -47,7 +47,7 @@ TUWF::get qr{/$RE{pid}/rg}, sub {
 
     framework_ title => "Relations for $p->{title}[1]", dbobj => $p, tab => 'rg',
     sub {
-        div_ class => 'mainbox', style => 'float: left; min-width: 100%', sub {
+        article_ class => 'relgraph', sub {
             h1_ "Relations for $p->{title}[1]";
             p_ sub {
                 txt_ sprintf "Displaying %d out of %d related producers.", $visible_nodes, $total_nodes;

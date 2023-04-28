@@ -9,7 +9,7 @@ sub listing_ {
     my($opt, $list, $count) = @_;
     my sub url { '?'.query_encode %$opt, @_ }
     paginate_ \&url, $opt->{p}, [$count, 150], 't';
-    div_ class => 'mainbox staffbrowse', sub {
+    article_ class => 'staffbrowse', sub {
         h1_ 'Staff list';
         ul_ sub {
             li_ sub {
@@ -70,7 +70,7 @@ TUWF::get qr{/s(?:/(?<char>all|[a-z0]))?}, sub {
     $time = time - $time;
 
     framework_ title => 'Browse staff', sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ 'Browse staff';
             form_ action => '/s', method => 'get', sub {
                 searchbox_ s => $opt->{q}//'';

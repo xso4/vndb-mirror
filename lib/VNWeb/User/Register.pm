@@ -7,7 +7,7 @@ TUWF::get '/u/register', sub {
     return tuwf->resRedirect('/', 'temp') if auth;
     framework_ title => 'Register', sub {
         if(global_settings->{lockdown_registration} || config->{read_only}) {
-            div_ class => 'mainbox', sub {
+            article_ sub {
                 h1_ 'Create an account';
                 p_ 'Account registration is temporarily disabled. Try again later.';
             }

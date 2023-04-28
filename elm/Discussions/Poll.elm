@@ -110,7 +110,7 @@ view model =
       ]
   in
   form_ "" Submit (model.state == Api.Loading)
-  [ div [ class "mainbox" ]
+  [ article []
     [ h1 [] [ text model.data.question ]
     , table [ class "votebooth" ]
       [ if model.data.can_vote && model.data.max_options > 1

@@ -292,7 +292,7 @@ TUWF::get qr{/$RE{crev}} => sub {
         },
     sub {
         _rev_ $c if tuwf->capture('rev');
-        div_ class => 'mainbox', sub {
+        article_ sub {
             itemmsg_ $c;
             h1_ tlang(@{$c->{title}}[0,1]), $c->{title}[1];
             h2_ class => 'alttitle', tlang(@{$c->{title}}[2,3]), $c->{title}[3] if $c->{title}[3] && $c->{title}[3] ne $c->{title}[1];
@@ -308,7 +308,7 @@ TUWF::get qr{/$RE{crev}} => sub {
             chartable_ $c;
         };
 
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ 'Other instances';
             chartable_ $_, 1, $_ != $inst->[0] for @$inst;
         } if @$inst;

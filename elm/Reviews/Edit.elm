@@ -114,7 +114,7 @@ view model =
       len      = String.length model.text.data
   in
   form_ "" Submit (model.state == Api.Loading)
-  [ div [ class "mainbox" ]
+  [ article []
     [ h1 [] [ text <| if model.id == Nothing then "Submit a review" else "Edit review" ]
     , p [] [ strong [] [ text "Rules" ] ]
     , ul []
@@ -126,7 +126,7 @@ view model =
       ]
     , br [] []
     ]
-  , div [ class "mainbox" ]
+  , article []
     [ table [ class "formtable" ]
       [ formField "Subject" [ a [ href <| "/"++model.vid ] [ text model.vntitle ] ]
       , formField ""
@@ -176,13 +176,13 @@ view model =
         ]
       ]
     ]
-  , div [ class "mainbox" ]
+  , article []
     [ fieldset [ class "submit" ]
       [ submitButton "Submit" model.state (len <= maxChars && len >= minChars)
       ]
     ]
   , if model.id == Nothing then text "" else
-    div [ class "mainbox" ]
+    article []
     [ h1 [] [ text "Delete review" ]
     , table [ class "formtable" ] [ formField ""
       [ label [] [ inputCheck "" model.delete Delete, text " Delete this review." ]

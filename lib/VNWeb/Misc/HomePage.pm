@@ -238,7 +238,7 @@ TUWF::get qr{/}, sub {
     );
 
     framework_ title => $meta{title}, feeds => 1, og => \%meta, index => 1, sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ $meta{title};
             p_ class => 'description', sub {
                 txt_ $meta{description};
@@ -252,12 +252,12 @@ TUWF::get qr{/}, sub {
             screens_;
         };
         div_ class => 'homepage', sub {
-            div_ \&recent_changes_;
-            div_ \&recent_db_posts_;
-            div_ \&recent_vn_posts_;
-            div_ sub { reviews_ };
-            div_ sub { releases_ 0 };
-            div_ sub { releases_ 1 };
+            article_ \&recent_changes_;
+            article_ \&recent_db_posts_;
+            article_ \&recent_vn_posts_;
+            article_ sub { reviews_ };
+            article_ sub { releases_ 0 };
+            article_ sub { releases_ 1 };
         };
     };
 };

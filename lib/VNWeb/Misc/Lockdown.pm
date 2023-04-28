@@ -15,7 +15,7 @@ TUWF::get '/lockdown', sub {
     }
 
     framework_ title => 'Database lockdown', sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ 'Database lockdown';
 
             p_ sub {

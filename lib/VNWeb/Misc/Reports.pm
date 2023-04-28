@@ -83,7 +83,7 @@ TUWF::get qr{/report/(?<object>[vrpcsdtw]$RE{num})(?:\.(?<subid>$RE{num}))?}, su
 
     framework_ title => 'Submit report', sub {
         if(is_throttled) {
-            div_ class => 'mainbox', sub {
+            article_ sub {
                 h1_ 'Submit report';
                 p_ "Sorry, you can only submit $reportsperday reports per day. If you wish to report more, you can do so by sending an email to ".config->{admin_email}
             }
@@ -175,7 +175,7 @@ TUWF::get qr{/report/list}, sub {
     my sub url { '?'.query_encode %$opt, @_ }
 
     framework_ title => 'Reports', sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ 'Reports';
             p_  'Welcome to the super advanced reports handling interface. Reports can have the following statuses:';
             ul_ sub {
@@ -213,7 +213,7 @@ TUWF::get qr{/report/list}, sub {
         };
 
         paginate_ \&url, $opt->{p}, [$cnt, 25], 't';
-        div_ class => 'mainbox thread', sub {
+        article_ class => 'thread', sub {
             table_ class => 'stripe', sub {
                 my $url = '/report/list'.url;
                 tr_ sub { report_ $_, $url } for @$lst;

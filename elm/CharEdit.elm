@@ -511,11 +511,11 @@ view model =
       , li [ classList [("tabselected", model.tab == All    )] ] [ a [ href "#", onClickD (Tab All    ) ] [ text "All items"    ] ]
       ]
     ]
-  , div [ class "mainbox", classList [("hidden", model.tab /= General && model.tab /= All)] ] [ h1 [] [ text "General info" ], table [ class "formtable" ] geninfo ]
-  , div [ class "mainbox", classList [("hidden", model.tab /= Image   && model.tab /= All)] ] [ h1 [] [ text "Image" ], image ]
-  , div [ class "mainbox", classList [("hidden", model.tab /= Traits  && model.tab /= All)] ] [ h1 [] [ text "Traits" ], traits ]
-  , div [ class "mainbox", classList [("hidden", model.tab /= VNs     && model.tab /= All)] ] [ h1 [] [ text "Visual Novels" ], vns ]
-  , div [ class "mainbox" ] [ fieldset [ class "submit" ]
+  , article [ classList [("hidden", model.tab /= General && model.tab /= All)] ] [ h1 [] [ text "General info" ], table [ class "formtable" ] geninfo ]
+  , article [ classList [("hidden", model.tab /= Image   && model.tab /= All)] ] [ h1 [] [ text "Image" ], image ]
+  , article [ classList [("hidden", model.tab /= Traits  && model.tab /= All)] ] [ h1 [] [ text "Traits" ], traits ]
+  , article [ classList [("hidden", model.tab /= VNs     && model.tab /= All)] ] [ h1 [] [ text "Visual Novels" ], vns ]
+  , article [] [ fieldset [ class "submit" ]
       [ Html.map Editsum (Editsum.view model.editsum)
       , submitButton "Submit" model.state (isValid model)
       ]

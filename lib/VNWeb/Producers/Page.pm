@@ -163,7 +163,7 @@ TUWF::get qr{/$RE{prev}(?:/(?<tab>vn|rel))?}, sub {
     },
     sub {
         rev_ $p if tuwf->capture('rev');
-        div_ class => 'mainbox', sub {
+        article_ sub {
             itemmsg_ $p;
             h1_ tlang(@{$title}[0,1]), $title->[1];
             h2_ class => 'alttitle', tlang(@{$title}[2,3]), $title->[3] if $title->[3] && $title->[3] ne $title->[1];
@@ -175,8 +175,8 @@ TUWF::get qr{/$RE{prev}(?:/(?<tab>vn|rel))?}, sub {
                 li_ mkclass(tabselected => $tab eq 'rel'), sub { a_ href => "/$p->{id}/rel", 'Releases' };
             };
         };
-        div_ class => 'mainbox', sub { rel_ $p } if $tab eq 'rel';
-        div_ class => 'mainbox', sub { vns_ $p } if $tab eq 'vn';
+        article_ sub { rel_ $p } if $tab eq 'rel';
+        article_ sub { vns_ $p } if $tab eq 'vn';
     }
 };
 

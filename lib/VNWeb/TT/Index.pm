@@ -67,7 +67,7 @@ sub moderation_ {
 TUWF::get qr{/(?<type>[gi])}, sub {
     my $type = tuwf->capture('type');
     framework_ title => $type eq 'g' ? 'Tag index' : 'Trait index', index => 1, sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             p_ class => 'mainopts', sub {
                 a_ href => "/$type/new", 'Create a new '.($type eq 'g' ? 'tag' : 'trait') if can_edit $type => {};
             };
@@ -78,9 +78,9 @@ TUWF::get qr{/(?<type>[gi])}, sub {
         };
         tree_ $type;
         div_ class => 'threelayout', sub {
-            div_ sub { recent_ $type };
-            div_ sub { popular_ $type };
-            div_ sub { moderation_ $type };
+            article_ sub { recent_ $type };
+            article_ sub { popular_ $type };
+            article_ sub { moderation_ $type };
         };
     };
 };

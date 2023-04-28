@@ -273,7 +273,7 @@ viewFoot state changed add addMsg =
 view : Model -> Html Msg
 view model =
   form_ "" Submit (model.state == Api.Loading)
-    [ div [ class "mainbox" ]
+    [ article []
       [ h1 [] [ text <| "Edit tags for " ++ model.title ]
       , p []
         [ text "This is where you can add tags to the visual novel and vote on the existing tags."

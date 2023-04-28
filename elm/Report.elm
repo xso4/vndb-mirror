@@ -164,7 +164,7 @@ view (state,model) =
     cur = List.filter (\l -> l.label == model.reason) lst |> List.head |> Maybe.withDefault initial
   in
   form_ "" Submit (state == Api.Loading)
-  [ div [ class "mainbox" ]
+  [ article []
     [ h1 [] [ text "Submit report" ]
     , if state == Api.Error GApi.Success
       then p [] [ text "Your report has been submitted, a moderator will look at it as soon as possible." ]

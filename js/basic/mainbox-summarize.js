@@ -3,7 +3,7 @@
 //
 // Usage:
 //
-//   <div class="mainbox" data-mainbox-summarize="200"> .. </div>
+//   <article data-mainbox-summarize="200"> .. </div>
 
 function set(d, h) {
     var expanded = true;
@@ -26,7 +26,7 @@ function set(d, h) {
     toggle();
 }
 
-document.querySelectorAll('.mainbox[data-mainbox-summarize]').forEach(function(d) {
+document.querySelectorAll('article[data-mainbox-summarize]').forEach(function(d) {
     var h = Math.floor(d.getAttribute('data-mainbox-summarize'));
     if(d.offsetHeight > h+100)
         set(d, h)

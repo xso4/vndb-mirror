@@ -121,7 +121,7 @@ TUWF::get qr{/$RE{vid}/add}, sub {
     sub {
         editmsg_ r => undef, "Add release to $v->{title}[1]";
 
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ 'Deleted releases';
             div_ class => 'warning', sub {
                 p_ q{This visual novel has releases that have been deleted

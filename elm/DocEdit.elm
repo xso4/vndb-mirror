@@ -76,7 +76,7 @@ update msg model =
 view : Model -> Html Msg
 view model =
   form_ "" Submit (model.state == Api.Loading)
-    [ div [ class "mainbox" ]
+    [ article []
       [ h1 [] [ text <| "Edit " ++ model.id ]
       , table [ class "formtable" ]
         [ formField "title::Title" [ inputText "title" model.title Title (style "width" "300px" :: GD.valTitle) ]
@@ -93,7 +93,7 @@ view model =
           ]
         ]
       ]
-    , div [ class "mainbox" ]
+    , article []
       [ fieldset [ class "submit" ]
         [ Html.map Editsum (Editsum.view model.editsum)
         , submitButton "Submit" model.state True

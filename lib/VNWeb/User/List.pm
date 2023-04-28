@@ -9,7 +9,7 @@ sub listing_ {
     my sub url { '?'.query_encode %$opt, @_ }
 
     paginate_ \&url, $opt->{p}, [$count, 50], 't';
-    div_ class => 'mainbox browse userlist', sub {
+    article_ class => 'browse userlist', sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
                 td_ class => 'tc1', sub { txt_ 'Username';   sortable_ 'username',   $opt, \&url };
@@ -94,7 +94,7 @@ TUWF::get qr{/u/(?<char>[0a-z]|all)}, sub {
     my $count = @where ? tuwf->dbVali('SELECT count(*) FROM users WHERE', sql_and @where) : $totalusers;
 
     framework_ title => 'Browse users', sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ 'Browse users';
             form_ action => '/u/all', method => 'get', sub {
                 fieldset_ class => 'search', sub {

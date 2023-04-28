@@ -73,7 +73,7 @@ view : Model -> Html Msg
 view model =
   if model.success
   then
-    div [ class "mainbox" ]
+    article []
     [ h1 [] [ text "Account created" ]
     , div [ class "notice" ]
       [ p []
@@ -84,7 +84,7 @@ view model =
     ]
   else
     form_ "" Submit (model.state == Api.Loading)
-    [ div [ class "mainbox" ]
+    [ article []
       [ h1 [] [ text "Create an account" ]
       , table [ class "formtable" ]
         [ formField "username::Username"
@@ -111,7 +111,7 @@ view model =
           ]
         ]
       ]
-    , div [ class "mainbox" ]
+    , article []
       [ fieldset [ class "submit" ] <|
         if model.c18 && model.cpolicy then [ submitButton "Submit" model.state True ] else []
       ]

@@ -223,7 +223,7 @@ sub _menu_ {
         }
     } if !(auth->pref('nodistract_can') && auth->pref('nodistract_noads'));
 
-    div_ class => 'menubox', sub {
+    article_ sub {
         h2_ 'Menu';
         div_ sub {
             a_ href => '/',      'Home'; br_;
@@ -243,16 +243,16 @@ sub _menu_ {
             a_ href => '/d14',   'Dumps'; lit_ ' - ';
             a_ href => '/d18',   'Query';
         };
-        form_ action => '/v', method => 'get', id => 'search', sub {
+        form_ action => '/v', method => 'get', sub {
             fieldset_ sub {
                 legend_ 'Search';
                 input_ type => 'text', class => 'text', id => 'sq', name => 'sq', value => $o->{search}||'', placeholder => 'search';
-                input_ type => 'submit', class => 'submit', value => 'Search';
+                input_ type => 'submit', class => 'hidden', value => 'Search';
             }
         }
     };
 
-    div_ class => 'menubox', sub {
+    article_ sub {
         my $uid = '/'.auth->uid;
         my $nc = auth && tuwf->dbVali('SELECT count(*) FROM notifications WHERE uid =', \auth->uid, 'AND read IS NULL');
         h2_ sub { user_ auth->user, 'user_', 1 };
@@ -294,7 +294,7 @@ sub _menu_ {
         }
     } if auth;
 
-    div_ class => 'menubox', sub {
+    article_ sub {
         h2_ 'User menu';
         div_ sub {
             my $ref = uri_escape tuwf->reqPath().tuwf->reqQuery();
@@ -303,7 +303,7 @@ sub _menu_ {
         }
     } if !auth && !config->{read_only};
 
-    div_ class => 'menubox', sub {
+    article_ sub {
         h2_ 'Database Statistics';
         div_ sub {
             dl_ sub {
@@ -470,7 +470,7 @@ sub _hidden_msg_ {
 
     # Awaiting moderation
     if(!$o->{dbobj}{entry_locked}) {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ $o->{title};
             div_ class => 'notice', sub {
                 h2_ 'Waiting for approval';
@@ -487,7 +487,7 @@ sub _hidden_msg_ {
           WHERE itemid =', \$o->{dbobj}{id},
          'ORDER BY id DESC LIMIT 1'
     );
-    div_ class => 'mainbox', sub {
+    article_ sub {
         h1_ $o->{title};
         div_ class => 'warning', sub {
             h2_ 'Item deleted';
@@ -540,14 +540,16 @@ sub framework_ {
     html_ lang => 'en', sub {
         head_ sub { _head_ \%o };
         body_ sub {
-            div_ id => 'bgright', ' ';
-            div_ id => 'readonlymode', config->{read_only} eq 1 ? 'The site is in read-only mode, account functionality is currently disabled.' : config->{read_only} if config->{read_only};
-            div_ id => 'header', sub { h1_ sub { a_ href => '/', 'the visual novel database' } };
-            div_ id => 'menulist', sub { _menu_ \%o };
-            div_ id => 'maincontent', sub {
+            header_ sub {
+                div_ id => 'bgright', ' ';
+                div_ id => 'readonlymode', config->{read_only} eq 1 ? 'The site is in read-only mode, account functionality is currently disabled.' : config->{read_only} if config->{read_only};
+                h1_ sub { a_ href => '/', 'the visual novel database' }
+            };
+            nav_ sub { _menu_ \%o };
+            main_ sub {
                 _maintabs_ \%o;
                 $cont->() unless $o{hiddenmsg} && _hidden_msg_ \%o;
-                div_ id => 'footer', \&_footer_;
+                footer_ \&_footer_;
             };
             script_ type => 'application/json', id => 'pagevars', sub {
                 # Escaping rules for a JSON <script> context are kinda weird, but more efficient than regular xml_escape().
@@ -801,7 +803,7 @@ sub revision_ {
         $new, $old||()
         if auth->permDbmod;
 
-    div_ class => 'mainbox revision', sub {
+    article_ => 'revision', sub {
         h1_ "Revision $new->{chrev}";
 
         a_ class => 'prev', href => sprintf('/%s.%d', $new->{id}, $new->{chrev}-1), '<- earlier revision' if $new->{chrev} > 1;
@@ -946,7 +948,7 @@ sub itemmsg_ {
 }
 
 
-# Generate the initial mainbox when adding or editing a database entry, with a
+# Generate the initial box when adding or editing a database entry, with a
 # friendly message pointing to the guidelines and stuff.
 # Args: $type ('v','r', etc), $obj (from db_entry(), or undef for new page), $page_title, $is_this_a_copy?
 sub editmsg_ {
@@ -955,7 +957,7 @@ sub editmsg_ {
     my $guidelines = {v => 2,              r => 3,         p => 4,          c => 12,          s => 16      }->{$type};
     croak "Unknown type: $type" if !$typename;
 
-    div_ class => 'mainbox', sub {
+    article_ sub {
         h1_ sub {
             txt_ $title;
             debug_ $obj if $obj;

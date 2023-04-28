@@ -186,7 +186,7 @@ sub listing_ {
         push @col, $c if !@r || !$c->{has_data} || grep $c->{has_data}->($_), @r; # Must have relevant data
     }
 
-    div_ class => 'mainbox releases_compare', sub {
+    article_ class => 'releases_compare', sub {
         table_ sub {
             thead_ sub { tr_ sub {
                 td_ class => 'key', sub {
@@ -247,7 +247,7 @@ TUWF::get qr{/$RE{vid}/releases} => sub {
     my sub url { '?'.query_encode %$opt, @_ }
 
     framework_ title => "Releases for $v->{title}[1]", dbobj => $v, tab => 'releases', sub {
-        div_ class => 'mainbox releases_compare', sub {
+        article_ class => 'releases_compare', sub {
             h1_ "Releases for $v->{title}[1]";
             if(!@$r) {
                 p_ 'We don\'t have any information about releases of this visual novel yet...';

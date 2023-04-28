@@ -251,7 +251,7 @@ sub listing_ {
 
     # TODO: Consolidate the 'rows' listing with VN::List as well
     paginate_ $url, $opt->{p}, [$count, $opt->{s}->results], 't', $opt->{s};
-    div_ class => 'mainbox browse ulist', sub {
+    article_ class => 'browse ulist', sub {
         table_ sub {
             thead_ sub { tr_ sub {
                 td_ class => 'tc1', sub {
@@ -309,7 +309,7 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
     sub {
         my $empty = !grep $_->{count}, @$labels;
         form_ method => 'get', sub {
-            div_ class => 'mainbox', sub {
+            article_ sub {
                 h1_ $title;
                 if($empty) {
                     p_ $own

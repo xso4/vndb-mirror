@@ -64,7 +64,7 @@ sub threadlist_ {
     enrich_boards $opt{boards}, $lst;
 
     paginate_ $opt{paginate}, $opt{page}, [ $count, $opt{results} ], 't' if $opt{paginate};
-    div_ class => 'mainbox browse discussions', sub {
+    article_ class => 'browse discussions', sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
                 td_ class => 'tc1', sub { txt_ 'Topic'; debug_ $lst };

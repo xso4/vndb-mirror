@@ -63,7 +63,7 @@ TUWF::get qr{/(?:$RE{iid}/add|i/new)}, sub {
     }
 
     framework_ title => 'Submit a new trait', sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ 'Requesting new trait';
             div_ class => 'notice', sub {
                 h2_ 'Your trait must be approved';

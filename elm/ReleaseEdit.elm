@@ -539,11 +539,11 @@ viewGen model =
 view : Model -> Html Msg
 view model =
   form_ "" Submit (model.state == Api.Loading)
-  [ div [ class "mainbox" ]
+  [ article []
     [ h1 [] [ text "General info" ]
     , viewGen model
     ]
-  , div [ class "mainbox" ]
+  , article []
     [ fieldset [ class "submit" ]
       [ Html.map Editsum (Editsum.view model.editsum)
       , submitButton "Submit" model.state (isValid model)

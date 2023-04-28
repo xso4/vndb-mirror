@@ -48,7 +48,7 @@ sub filters_ {
 
 
 sub noresults_ {
-    div_ class => 'mainbox', sub {
+    article_ sub {
         h1_ 'No results';
         p_ 'No threads or messages found matching your criteria.';
     };
@@ -111,7 +111,7 @@ sub posts_ {
 
     my sub url { '?'.query_encode %$filt, @_ }
     paginate_ \&url, $filt->{p}, $np, 't';
-    div_ class => 'mainbox browse postsearch', sub {
+    article_ class => 'browse postsearch', sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
                 td_ class => 'tc1_1', 'Id';
@@ -166,7 +166,7 @@ TUWF::get qr{/t/search}, sub {
     framework_ title => 'Search the discussion board',
     sub {
         my($filt, $u);
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ 'Search the discussion board';
             ($filt, $u) = filters_;
         };

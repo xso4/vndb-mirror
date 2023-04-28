@@ -14,7 +14,7 @@ TUWF::get qr{/r/engines}, sub {
     );
 
     framework_ title => 'Engine list', sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ 'Engine list';
             p_ sub {
                 lit_ q{
@@ -25,7 +25,7 @@ TUWF::get qr{/r/engines}, sub {
                 };
             };
         };
-        div_ class => 'mainbox browse', sub {
+        article_ class => 'browse', sub {
             table_ class => 'stripe', sub {
                 my $c = tuwf->compile({advsearch => 'r'});
                 tr_ sub {

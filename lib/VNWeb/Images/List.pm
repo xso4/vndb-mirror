@@ -48,7 +48,7 @@ sub listing_ {
 
     my $view = viewset(show_nsfw => 1);
     paginate_ $url, $opt->{p}, $np, 't';
-    div_ class => 'mainbox imagebrowse', sub {
+    article_ class => 'imagebrowse', sub {
         div_ class => 'imagecard', sub {
             a_ href => "/img/$_->{id}?view=$view", style => 'background-image: url('.imgurl($_->{id}, 1).')', '';
             div_ sub {
@@ -186,13 +186,13 @@ TUWF::get qr{/img/list}, sub {
     my $title = $u ? 'Images flagged by '.user_displayname($u) : 'Image browser';
 
     framework_ title => $title, sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ $title;
             opts_ $opt, $u;
         };
         my $nsfw = viewget->{show_nsfw};
         listing_ $lst, $np, $opt, \&url if $nsfw && @$lst;
-        div_ class => 'mainbox', sub {
+        article_ sub {
             div_ class => 'warning', sub {
                 h2_ 'NSFW Warning';
                 p_ sub {

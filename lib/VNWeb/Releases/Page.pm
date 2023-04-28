@@ -280,7 +280,7 @@ TUWF::get qr{/$RE{rrev}} => sub {
         },
     sub {
         _rev_ $r if tuwf->capture('rev');
-        div_ class => 'mainbox release', sub {
+        article_ class => 'release', sub {
             itemmsg_ $r;
             h1_ tlang($r->{title}[0], $r->{title}[1]), $r->{title}[1];
             h2_ class => 'alttitle', tlang(@{$r->{title}}[2,3]), $r->{title}[3] if $r->{title}[3] && $r->{title}[3] ne $r->{title}[1];

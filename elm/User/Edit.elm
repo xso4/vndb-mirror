@@ -694,7 +694,7 @@ view model =
         , li [ classList [("tabselected", model.tab == API2       )] ] [ a [ href "#", onClickD (Tab API2       ) ] [ text "Applications" ] ]
         ]
       ]
-    , div [ class "mainbox", classList [("hidden", model.tab /= Profile    )] ]
+    , article [ classList [("hidden", model.tab /= Profile    )] ]
       [ h1 [] [ text "Account" ]
       , table [ class "formtable" ] <|
         [ formField "Username"
@@ -721,15 +721,15 @@ view model =
         ++ (Maybe.withDefault [] (Maybe.map supportform model.prefs))
         ++ (Maybe.withDefault [] (Maybe.map traitsform model.prefs))
       ]
-    , div [ class "mainbox", classList [("hidden", model.tab /= Preferences)] ]
+    , article [ classList [("hidden", model.tab /= Preferences)] ]
       [ h1 [] [ text "Display preferences" ]
       , table [ class "formtable" ] <| Maybe.withDefault [] (Maybe.map prefsform model.prefs)
       ]
-    , div [ class "mainbox", classList [("hidden", model.tab /= TTPref)] ]
+    , article [ classList [("hidden", model.tab /= TTPref)] ]
       [ h1 [] [ text "Tags & traits" ], Maybe.withDefault (text "") (Maybe.map ttprefsform model.prefs) ]
-    , div [ class "mainbox", classList [("hidden", model.tab /= API2)] ]
+    , article [ classList [("hidden", model.tab /= API2)] ]
       [ h1 [] [ text "API tokens" ], Maybe.withDefault (text "") (Maybe.map api2form model.prefs) ]
-    , div [ class "mainbox" ]
+    , article []
       [ fieldset [ class "submit" ]
         [ submitButton "Submit" model.state (not model.passNeq)
         , if model.saved then span [] [ br [] [], text "Saved!" ] else text "" ]

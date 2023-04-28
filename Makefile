@@ -107,7 +107,7 @@ static/g/icons.opt.png: static/g/icons.png
 	rm -f $@
 	zopflipng -m --lossy_transparent $< $@
 
-static/g/%.css: css/skins/%.sass css/v2.css static/g/png.spritecss static/g/svg.spritecss | static/g
+static/g/%.css: css/skins/%.sass css/*.css static/g/png.spritecss static/g/svg.spritecss | static/g
 	( echo '$$png-version: "$(shell sha1sum static/g/icons.png | head -c8)";'; \
 	  echo '$$svg-version: "$(shell sha1sum static/g/icons.svg | head -c8)";'; \
 	  echo '@import "css/skins/$*"' ) | sassc --stdin -I. --style compressed >$@

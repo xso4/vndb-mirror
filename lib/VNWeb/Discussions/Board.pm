@@ -19,7 +19,7 @@ TUWF::get qr{/t/(all|$BOARD_RE)}, sub {
 
     framework_ title => $title, dbobj => $obj, tab => 'disc',
     sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ $title;
             boardtypes_ $type;
             boardsearch_ $type if !$id;
@@ -35,7 +35,7 @@ TUWF::get qr{/t/(all|$BOARD_RE)}, sub {
             sort     => $type eq 'an' ? 't.id DESC' : undef,
             page     => $page,
             paginate => sub { "?p=$_" }
-        or div_ class => 'mainbox', sub {
+        or article_ sub {
             h1_ 'An empty board';
             p_ class => 'center', sub {
                 txt_ "Nobody's started a discussion on this board yet. Why not ";

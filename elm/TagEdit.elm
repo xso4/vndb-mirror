@@ -163,7 +163,7 @@ update msg model =
 view : Model -> Html Msg
 view model =
   form_ "" Submit (model.state == Api.Loading)
-  [ div [ class "mainbox" ]
+  [ article []
     [ h1 [] [ text <| if model.id == Nothing then "Submit new tag" else "Edit tag" ]
     , table [ class "formtable" ] <|
       [ formField "name::Primary name" [ inputText "name" model.name Name GTE.valName ]
@@ -230,7 +230,7 @@ view model =
         ]
       ]
     ]
-  , div [ class "mainbox" ] [ fieldset [ class "submit" ]
+  , article [] [ fieldset [ class "submit" ]
       [ Html.map Editsum (Editsum.view model.editsum)
       , submitButton "Submit" model.state (isValid model)
       ]

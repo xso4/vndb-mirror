@@ -42,7 +42,7 @@ sub tree_ {
         a_ href => "/$_[0]{id}", $_[0]{name};
         small_ " ($_[0]{c_items})" if $_[0]{c_items};
     }
-    div_ class => 'mainbox', sub {
+    article_ sub {
         h1_ $id ? ($type eq 'g' ? 'Child tags' : 'Child traits') : $type eq 'g' ? 'Tag tree' : 'Trait tree';
         ul_ class => 'tagtree', sub {
             li_ sub {

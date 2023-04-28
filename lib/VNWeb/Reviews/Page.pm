@@ -141,7 +141,7 @@ TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
     framework_ title => $title, index => 1, dbobj => $w,
         $num||$page>1 ? (pagevars => {sethash=>$num?$num:'threadstart'}) : (),
     sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             itemmsg_ $w;
             h1_ $title;
             div_ class => 'notice', sub {

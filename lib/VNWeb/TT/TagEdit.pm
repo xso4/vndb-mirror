@@ -66,7 +66,7 @@ TUWF::get qr{/(?:$RE{gid}/add|g/new)}, sub {
     }
 
     framework_ title => 'Submit a new tag', sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ 'Requesting new tag';
             div_ class => 'notice', sub {
                 h2_ 'Your tag must be approved';

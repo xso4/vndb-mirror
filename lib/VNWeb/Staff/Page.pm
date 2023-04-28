@@ -89,7 +89,7 @@ sub _roles_ {
     enrich_ulists_widget $roles;
 
     h1_ class => 'boxtitle', sprintf 'Credits (%d)', scalar @$roles;
-    div_ class => 'mainbox browse staffroles', sub {
+    article_ class => 'browse staffroles', sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
                 td_ class => 'tc_ulist', '' if auth;
@@ -149,7 +149,7 @@ sub _cast_ {
             li_ mkclass(tabselected => $spoilers == 2), sub { a_ href => '?view='.viewset(spoilers => 2), 'spoil me!' } if $max_spoil == 2;
         } if $max_spoil;
     };
-    div_ class => "mainbox browse staffroles", sub {
+    article_ class => "browse staffroles", sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
                 td_ class => 'tc_ulist', '' if auth;
@@ -193,7 +193,7 @@ TUWF::get qr{/$RE{srev}} => sub {
         },
     sub {
         _rev_ $s if tuwf->capture('rev');
-        div_ class => 'mainbox staffpage', sub {
+        article_ class => 'staffpage', sub {
             itemmsg_ $s;
             h1_ tlang(@{$main->{title}}[0,1]), $main->{title}[1];
             h2_ class => 'alttitle', tlang(@{$main->{title}}[2,3]), $main->{title}[3] if $main->{title}[3] && $main->{title}[3] ne $main->{title}[1];

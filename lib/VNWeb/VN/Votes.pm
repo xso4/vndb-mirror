@@ -8,7 +8,7 @@ sub listing_ {
 
     my sub url { '?'.query_encode %$opt, @_ }
     paginate_ \&url, $opt->{p}, [ $count, 50 ], 't';
-    div_ class => 'mainbox browse votelist', sub {
+    article_ class => 'browse votelist', sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
                 td_ class => 'tc1', sub { txt_ 'Date'; sortable_ 'date',  $opt, \&url; debug_ $lst };
@@ -55,7 +55,7 @@ TUWF::get qr{/$RE{vid}/votes}, sub {
     );
 
     framework_ title => "Votes for $v->{title}[1]", dbobj => $v, sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ "Votes for $v->{title}[1]";
             p_ 'No votes to list. :(' if !@$lst;
         };

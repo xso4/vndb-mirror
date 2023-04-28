@@ -216,7 +216,7 @@ view model =
 
   in
   form_ "" Submit (model.state == Api.Loading)
-  [ div [ class "mainbox" ]
+  [ article []
     [ h1 [] [ text <| if model.tid == Nothing then "Create new thread" else "Edit thread" ]
     , table [ class "formtable" ] <|
       [ formField "title::Thread title" [ inputText "title" (Maybe.withDefault "" model.title) Title (style "width" "400px" :: required True :: GDE.valTitle) ]
@@ -247,6 +247,6 @@ view model =
       , formField "" [ inputCheck "" model.delete Delete, text " Permanently delete this thread and all replies. This action can not be reverted, only do this with obvious spam!" ]
       ])
     ]
-  , div [ class "mainbox" ]
+  , article []
     [ fieldset [ class "submit" ] [ submitButton "Submit" model.state (isValid model) ] ]
   ]

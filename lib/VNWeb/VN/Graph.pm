@@ -55,7 +55,7 @@ TUWF::get qr{/$RE{vid}/rg}, sub {
 
     framework_ title => "Relations for $v->{title}[1]", dbobj => $v, tab => 'rg',
     sub {
-        div_ class => 'mainbox', style => 'float: left; min-width: 100%', sub {
+        article_ class => 'relgraph', sub {
             h1_ "Relations for $v->{title}[1]";
             p_ sub {
                 txt_ sprintf "Displaying %d out of %d related visual novels.", $visible_nodes, $total_nodes;

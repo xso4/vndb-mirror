@@ -10,7 +10,7 @@ sub listing_ {
     my sub url { '?'.query_encode %$opt, @_ }
 
     paginate_ \&url, $opt->{p}, [$count, 150], 't';
-    div_ class => 'mainbox producerbrowse', sub {
+    article_ class => 'producerbrowse', sub {
         h1_ $opt->{q} ? 'Search results' : 'Browse producers';
         ul_ sub {
             li_ sub {
@@ -56,7 +56,7 @@ TUWF::get qr{/p(?:/(?<char>all|[a-z0]))?}, sub {
     $time = time - $time;
 
     framework_ title => 'Browse producers', sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ 'Browse producers';
             form_ action => '/p', method => 'get', sub {
                 searchbox_ p => $opt->{q};

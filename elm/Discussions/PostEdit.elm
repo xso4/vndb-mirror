@@ -80,7 +80,7 @@ update msg model =
 view : Model -> Html Msg
 view model =
   form_ "" Submit (model.state == Api.Loading)
-  [ div [ class "mainbox" ]
+  [ article []
     [ h1 [] [ text "Edit post" ]
     , table [ class "formtable" ] <|
       [ formField "Post" [ a [ href <| "/" ++ model.id ++ "." ++ String.fromInt model.num ] [ text <| "#" ++ String.fromInt model.num ++ " on " ++ model.id ] ]
@@ -108,6 +108,6 @@ view model =
       , formField "" [ inputCheck "" model.delete Delete, text " Permanently delete this post. This action can not be reverted, only do this with obvious spam!" ]
       ])
     ]
-  , div [ class "mainbox" ]
+  , article []
     [ fieldset [ class "submit" ] [ submitButton "Submit" model.state True ] ]
   ]

@@ -9,7 +9,7 @@ sub tablebox_ {
     my sub url { '?'.query_encode %$opt, @_ }
 
     paginate_ \&url, $opt->{p}, [$count, 50], 't';
-    div_ class => 'mainbox browse reviewlist', sub {
+    article_ class => 'browse reviewlist', sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
                 td_ class => 'tc1', sub { txt_ 'Date'; sortable_ 'id', $opt, \&url; debug_ $lst };
@@ -73,7 +73,7 @@ TUWF::get qr{/w}, sub {
 
     my $title = $u ? 'Reviews by '.user_displayname($u) : 'Browse reviews';
     framework_ title => $title, $u ? (dbobj => $u, tab => 'reviews') : (), sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ $title;
             if($u && !$count) {
                 p_ +(auth && $u->{id} eq auth->uid ? 'You have' : user_displayname($u).' has').' not submitted any reviews yet.';

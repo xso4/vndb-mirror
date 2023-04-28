@@ -200,11 +200,11 @@ view model =
 
     newform () =
       form_ "" DupSubmit (model.state == Api.Loading)
-      [ div [ class "mainbox" ]
+      [ article []
         [ h1 [] [ text "Add new staff" ]
         , table [ class "formtable" ] [ formField "Names" [ names, br_ 1 ] ]
         ]
-      , div [ class "mainbox" ]
+      , article []
         [ if List.isEmpty model.dupStaff then text "" else
           div []
           [ h1 [] [ text "Possible duplicates" ]
@@ -220,7 +220,7 @@ view model =
 
     fullform () =
       form_ "" Submit (model.state == Api.Loading)
-      [ div [ class "mainbox staffedit" ]
+      [ article [ class "staffedit" ]
         [ h1 [] [ text "General info" ]
         , table [ class "formtable" ]
           [ formField "Names" [ names, br_ 1 ]
@@ -238,7 +238,7 @@ view model =
           , formField "l_pixiv::Pixiv ID" [ inputText "l_pixiv" (if model.l_pixiv == 0 then "" else String.fromInt model.l_pixiv) LPixiv GSE.valL_Pixiv ]
           ]
         ]
-      , div [ class "mainbox" ]
+      , article []
         [ fieldset [ class "submit" ]
           [ Html.map Editsum (Editsum.view model.editsum)
           , submitButton "Submit" model.state (isValid model)

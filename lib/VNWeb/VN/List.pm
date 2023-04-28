@@ -186,7 +186,7 @@ sub listing_ {
 
     paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 't', $opt->{s};
 
-    div_ class => 'mainbox browse vnbrowse', sub {
+    article_ class => 'browse vnbrowse', sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
                 td_ class => 'tc_score', sub { txt_ 'Score'; sortable_ 'tagscore', $opt, \&url } if $tagscore;
@@ -309,7 +309,7 @@ sub listing_ {
         }
     }
 
-    div_ class => 'mainbox vncards', sub {
+    article_ class => 'vncards', sub {
         my($w,$h) = (90,120);
         div_ sub {
             div_ sub {
@@ -327,7 +327,7 @@ sub listing_ {
         } for @$list;
     } if $opt->{s}->cards;
 
-    div_ class => 'mainbox vngrid', sub {
+    article_ class => 'vngrid', sub {
         div_ !$_->{image} || image_hidden($_->{image}) ? (class => 'noimage') : (style => 'background-image: url("'.imgurl($_->{image}{id}).'")'), sub {
             ulists_widget_ $_;
             a_ href => "/$_->{id}", title => $_->{title}[3], sub { infoblock_ 0 };
@@ -431,7 +431,7 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
 
     framework_ title => 'Browse visual novels', sub {
         form_ action => '/v', method => 'get', sub {
-            div_ class => 'mainbox', sub {
+            article_ sub {
                 h1_ 'Browse visual novels';
                 searchbox_ v => $opt->{q};
                 p_ class => 'browseopts', sub {
@@ -442,7 +442,7 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
                 $opt->{f}->elm_;
                 advsearch_msg_ $count, $time;
             };
-            div_ class => 'mainbox', sub {
+            article_ sub {
                 h1_ 'Did you mean to search for...';
                 ul_ style => 'column-width: 250px', sub {
                     li_ sub {

@@ -17,7 +17,7 @@ sub listing_ {
     my sub url { '?'.query_encode %$opt, @_ }
     paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 't', $opt->{s};
 
-    div_ class => 'mainbox browse charb', sub {
+    article_ class => 'browse charb', sub {
         table_ class => 'stripe', sub {
             tr_ sub {
                 td_ class => 'tc1', sub {
@@ -33,7 +33,7 @@ sub listing_ {
         }
     } if $opt->{s}->rows;
 
-    div_ class => 'mainbox charbcard', sub {
+    article_ class => 'charbcard', sub {
         my($w,$h) = (90,120);
         div_ sub {
             div_ sub {
@@ -56,7 +56,7 @@ sub listing_ {
     } if $opt->{s}->cards;
 
 
-    div_ class => 'mainbox charbgrid', sub {
+    article_ class => 'charbgrid', sub {
         a_ href => "/$_->{id}", title => $_->{title}[3],
             !$_->{image} || image_hidden($_->{image}) ? () : (style => 'background-image: url("'.imgurl($_->{image}{id}).'")'),
         sub {
@@ -128,7 +128,7 @@ TUWF::get qr{/c(?:/(?<char>all|[a-z0]))?}, sub {
 
     framework_ title => 'Browse characters', sub {
         form_ action => '/c', method => 'get', sub {
-            div_ class => 'mainbox', sub {
+            article_ sub {
                 h1_ 'Browse characters';
                 searchbox_ c => $opt->{q}//'';
                 p_ class => 'browseopts', sub {

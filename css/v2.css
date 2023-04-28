@@ -21,17 +21,6 @@ table tr.odd,
 table.stripe tbody tr:nth-child(odd):not(.nostripe),
 .docs table tbody tr:nth-child(odd) { background: var(--boxbg); }
 
-#bgright { position: absolute; top: 0px; right: 0px; }
-#readonlymode {
-  position: absolute; top: 0px; left: 0px; width: 100%;
-  text-align: center; padding: 3px;
-  background: var(--warnbg); border-bottom: 1px solid var(--warnborder);
-}
-#header { position: absolute; top: 80px; width: 100%; max-width: 770px; text-align: right; }
-#header h1 { padding: 0 30px; }
-#header h1, #header h1 a { font: bold italic 24px "Futura", "Century New Gothic", "Arial", Serif; color: var(--maintitle); border: none!important; }
-#footer   { margin: 15px auto 0 auto; text-align: center; color: var(--footer); }
-#footer a { color: inherit; text-decoration: underline; }
 
 /* https://snook.ca/archives/html_and_css/hiding-content-for-accessibility */
 .visuallyhidden, .linkradio input {
@@ -50,40 +39,9 @@ div.warning ul, div.notice ul { margin-left: 0; }
 div.warning li, div.notice li { margin-left: 20px; }
 div.warning h2, div.notice h2 { font-size: inherit; margin: 0; }
 
-/* Elm dropdowns (also in perl: VNWeb::Releases::Lib) */
-.elm_dd > a { color: var(--maintext); display: block; border: none; padding-right: 15px; position: relative }
-.elm_dd > a > span:last-child { position: absolute; right: 5px; top: 0; width: 16px; text-align: right; display: block }
-.elm_dd > a > span:last-child .arrow { visibility: hidden }
-.elm_dd > a .nowrap { display: block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.elm_dd > a:hover > span:last-child > .arrow,
-.elm_dd > a:focus > span:last-child > .arrow { visibility: visible }
-.elm_dd > div { position: relative; float: right; width: 0; height: 0 }
-.elm_dd > div > div { position: absolute; right: -10px; top: 0; border: 1px solid var(--border); background-color: var(--secbg); z-index: 1000; margin: 0; padding: 0; max-width: 400px }
-.elm_dd.search > div { float: left }
-.elm_dd.search > div > div { right: auto; left: 0; top: 23px }
-.elm_dd ul { width: 100%; list-style-type: none; margin: 0; padding: 0 }
-.elm_dd ul li { white-space: nowrap }
-.elm_dd ul li a { display: block; border: 0; padding: 3px 5px 3px 3px }
-.elm_dd ul li a.active,
-.elm_dd ul li a:hover  { background: var(--boxbg) }
-.elm_dd ul li p { white-space: normal; padding: 3px 5px 3px 3px }
-.elm_dd ul li.separator { margin-bottom: 22px }
-
-.maintabs .elm_dd > a { height: 21px; padding: 1px 15px 0 7px; border: 1px solid var(--border); border-bottom: none; background-color: var(--tabbg); color: var(--maintext) }
-.elm_votedd .elm_dd ul li { text-align: left }
-.elm_dd_input  .elm_dd > a { background-color: var(--secbg); color: var(--maintext); border: 1px solid var(--secborder); font: 14px "Tahoma", "Arial", sans-serif; padding: 1px 15px 1px 2px; margin: -1px }
-.elm_dd_button .elm_dd > a { background-color: var(--boxbg); color: var(--maintext); border: 1px solid var(--secborder); font: 14px "Tahoma", "Arial", sans-serif; padding: 1px 15px 1px 5px; margin: -1px }
-.elm_dd_input.elm_dd_noarrow .elm_dd > a { padding-right: 2px }
-.elm_dd_noarrow .elm_dd > a { padding-right: 0 }
-.elm_dd_noarrow .elm_dd > a > span:last-child { display: none }
-.elm_dd_hover .elm_dd > div { display: none }
-.elm_dd_hover .elm_dd:hover > div { display: block }
-.elm_dd_left .elm_dd > div { float: left }
-.elm_dd_left .elm_dd > div > div { right: 0; top: -20px }
-.elm_dd_relextlink .elm_dd > a { padding-left: 4px; color: var(--link) }
-.elm_dd_relextlink ul a { text-align: right }
-.elm_dd_relextlink ul span { color: var(--maintext); padding-right: 10px }
-
+a.addnew, p.addnew   { float: right; margin: 0 }
+a.mainopts, p.mainopts { float: right; margin: 0 }
+p.mainopts a, p.mainopts label { margin: 0 5px }
 
 /* general text formatting */
 
@@ -105,8 +63,12 @@ b, .standout  { font-weight: normal; color: var(--standout)!important }
 .spoiler:hover,   .spoiler:focus   { color: var(--maintext)!important; background-color: inherit }
 .spoiler:hover a, .spoiler:focus a { color: var(--link)!important;     background-color: inherit }
 .small        { font-size: 11px }
+main p        { margin: 3px 20px; }
+main div p,
+main table p  { margin: 0; }
 
-#maincontent div.quote {
+
+.quote {
   padding: 1px 5px;
   margin: 0px 10px;
   color: var(--grayedout);
@@ -217,80 +179,15 @@ fieldset.submit .textpreview { margin: 0 auto }
 .stealth select:hover, .stealth select:focus { border: 1px solid var(--secborder); background: var(--secbg) }
 
 
-/***** menu *****/
 
-
-#menulist a                  { color: var(--maintext); text-decoration: none; }
-#menulist a:hover            { border-bottom: 1px dotted var(--maintext); }
-#menulist                    { position: absolute; left: 30px; top: 190px; width: 160px; }
-#menulist div.menubox        { margin: 0 0 10px 0; border: 1px solid var(--border); background: var(--boxbg); }
-#menulist div.menubox div    { padding: 2px 7px; }
-#menulist h2                 { border-bottom: 1px solid var(--border); background: var(--boxbg); padding: 1px 3px; }
-#menulist h2, #menulist h2 a { font-size: 13px }
-#menulist dt                 { display: block; float: left; width: 97px; font-style: italic; }
-#menulist dd                 { width: 45px; float: left; text-align: right; }
-#menulist p                  { text-align: center; }
-#menulist #search input.text { width: 145px; margin: 0 0 3px 7px }
-#menulist #search input.submit { display: none; }
-#menulist .notifyget         { display: inline-block; width: 135px; padding: 4px; background: var(--warnbg); border: 1px solid var(--warnborder); }
-#menulist .logout            { border: 0; border-bottom: 1px solid transparent; background: none; cursor: pointer }
-#menulist .logout:hover      { border-bottom: 1px dotted var(--maintext) }
-
-#support { background: var(--boxbg); font-size: 12px; padding: 4px; margin-bottom: 5px; text-align: center }
-#support p { display: flex; justify-content: space-between }
-
-
-
-
-/***** main content *****/
-
-#maincontent {
-  position: absolute;
-  top: 169px;
-  left: 200px;
-  right: 30px;
-  margin: 0;
-  padding-bottom: 50px!important;
-}
-.mainbox h1, .mainbox h2 {
-  font-family: "Futura", "Century New Gothic", "Arial", Serif;
-  font-weight: normal;
-  font-size: 14px;
-}
-div.mainbox, div.threelayout > div {
-  border: 1px solid var(--border);
-  margin: 21px 0 -10px 0;
-  padding: 5px;
-  background: var(--boxbg);
-}
-div.mainbox-overflow-hack { overflow: hidden; width: 100% }
-.mainbox h1          { color: var(--boxtitle); font-size: 24px; margin: -5px 0 15px 0; }
-.mainbox h2.alttitle { color: var(--alttitle); margin: -17px 0 15px 15px; font-weight: normal; }
-.mainbox p           { margin: 3px 20px; }
-.mainbox div p,
-.mainbox table p     { margin: 0; }
-.mainbox h2          { font-weight: bold; font-size: 16px; margin: 10px 0 0 5px; }
-a.addnew, p.addnew   { float: right; margin: 0 }
-a.mainopts, p.mainopts { float: right; margin: 0 }
-p.mainopts a, p.mainopts label { margin: 0 5px }
-
-div.threelayout { display: flex }
-div.threelayout > div { flex: 1; padding: 0 2px 10px 2px; margin-left: 5px; margin-right: 5px }
-div.threelayout > div:first-child { margin-left: 0 }
-div.threelayout > div:last-child { margin-right: 0 }
-.threelayout h1 { margin: 0; font-size: 18px; font-weight: bold; color: var(--boxtitle) }
-.threelayout h2 { font-size: 14px; margin-top: 3px; }
-.threelayout a.right { float: right; }
-.threelayout ul { list-style-type: none; margin-left: 10px; }
-.threelayout h1 a { color: var(--boxtitle); }
-
+@import "css/layout";
 
 
 
 /***** main tabs *****/
 
 div.maintabs          { display: flex; justify-content: space-between; position: relative; width: 100%; height: 22px; margin: 20px 0 -22px 0; padding: 0 }
-#maincontent > div:nth-child(1).maintabs { margin-top: 0 }
+main > div:nth-child(1).maintabs { margin-top: 0 }
 div.maintabs.right    { justify-content: flex-end }
 div.maintabs.left     { justify-content: flex-start }
 div.maintabs .ellipsis { font-weight: bold }
@@ -317,6 +214,41 @@ h1.boxtitle, h1.boxtitle a { margin: 20px 0 -20px 0 }
 
 
 
+/* Elm dropdowns (also in perl: VNWeb::Releases::Lib) */
+.elm_dd > a { color: var(--maintext); display: block; border: none; padding-right: 15px; position: relative }
+.elm_dd > a > span:last-child { position: absolute; right: 5px; top: 0; width: 16px; text-align: right; display: block }
+.elm_dd > a > span:last-child .arrow { visibility: hidden }
+.elm_dd > a .nowrap { display: block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.elm_dd > a:hover > span:last-child > .arrow,
+.elm_dd > a:focus > span:last-child > .arrow { visibility: visible }
+.elm_dd > div { position: relative; float: right; width: 0; height: 0 }
+.elm_dd > div > div { position: absolute; right: -10px; top: 0; border: 1px solid var(--border); background-color: var(--secbg); z-index: 1000; margin: 0; padding: 0; max-width: 400px }
+.elm_dd.search > div { float: left }
+.elm_dd.search > div > div { right: auto; left: 0; top: 23px }
+.elm_dd ul { width: 100%; list-style-type: none; margin: 0; padding: 0 }
+.elm_dd ul li { white-space: nowrap }
+.elm_dd ul li a { display: block; border: 0; padding: 3px 5px 3px 3px }
+.elm_dd ul li a.active,
+.elm_dd ul li a:hover  { background: var(--boxbg) }
+.elm_dd ul li p { white-space: normal; padding: 3px 5px 3px 3px }
+.elm_dd ul li.separator { margin-bottom: 22px }
+
+.maintabs .elm_dd > a { height: 21px; padding: 1px 15px 0 7px; border: 1px solid var(--border); border-bottom: none; background-color: var(--tabbg); color: var(--maintext) }
+.elm_votedd .elm_dd ul li { text-align: left }
+.elm_dd_input  .elm_dd > a { background-color: var(--secbg); color: var(--maintext); border: 1px solid var(--secborder); font: 14px "Tahoma", "Arial", sans-serif; padding: 1px 15px 1px 2px; margin: -1px }
+.elm_dd_button .elm_dd > a { background-color: var(--boxbg); color: var(--maintext); border: 1px solid var(--secborder); font: 14px "Tahoma", "Arial", sans-serif; padding: 1px 15px 1px 5px; margin: -1px }
+.elm_dd_input.elm_dd_noarrow .elm_dd > a { padding-right: 2px }
+.elm_dd_noarrow .elm_dd > a { padding-right: 0 }
+.elm_dd_noarrow .elm_dd > a > span:last-child { display: none }
+.elm_dd_hover .elm_dd > div { display: none }
+.elm_dd_hover .elm_dd:hover > div { display: block }
+.elm_dd_left .elm_dd > div { float: left }
+.elm_dd_left .elm_dd > div > div { right: 0; top: -20px }
+.elm_dd_relextlink .elm_dd > a { padding-left: 4px; color: var(--link) }
+.elm_dd_relextlink ul a { text-align: right }
+.elm_dd_relextlink ul span { color: var(--maintext); padding-right: 10px }
+
+
 
 /***** Homepage ******/
 
@@ -324,13 +256,14 @@ p.screenshots           { text-align: center; margin-top: 10px; padding: 0; heig
 p.screenshots img       { margin: 2px; }
 li.announcement         { margin-bottom: 3px; margin-top: 3px }
 li.announcement a       { font-weight: bold; font-size: 15px; color: var(--maintext) }
-.homepage { margin: 21px 0 -10px 0; display: grid; gap: 10px; grid-template-columns: 1fr 1fr 1fr; }
-@media (max-width: 1300px) { .homepage { grid-template-columns: 1fr 1fr } }
-@media (max-width:  900px) { .homepage { grid-template-columns: 1fr } }
-.homepage > div { overflow: hidden; border: 1px solid var(--border); padding: 0 2px 10px 2px; background: var(--boxbg); }
+
+.homepage { margin: 21px 0 -10px 0; display: flex; flex-wrap: wrap; gap: 10px }
+.homepage article { flex: 1 1 0; min-width: 30%; margin: 0; padding: 0 2px 10px 2px; }
+@media (max-width: 1300px) { .homepage article { min-width: 45% } }
+@media (max-width:  900px) { .homepage article { min-width: 90% } }
 .homepage h1 { margin: 0 0 5px 0; font-size: 18px; font-weight: bold; color: var(--boxtitle) }
 .homepage h1 a { color: inherit; }
-.homepage h2 { font-size: 14px; margin-top: 3px; }
+.homepage h2 { margin-top: 3px; }
 .homepage ul { list-style-type: none; margin-left: 10px; }
 .homepage li { display: flex; line-height: 1.1 }
 .homepage li span { white-space: nowrap; padding-right: 4px; padding-bottom: 3px }
@@ -353,9 +286,7 @@ span.browseopts                 { text-align: center; padding: 10px; display: in
 .browseopts .optselected,
 .browseopts a:hover,
 .browseopts button:hover        { border: 0; padding: 2px 4px; }
-div.mainbox.browse              { padding: 0; }
-div.mainbox.browse table        { width: 100%; }
-div.mainbox.browse table td.tc1 { padding-left: 25px; }
+.browse table td.tc1 { padding-left: 25px; }
 table thead td, table thead th  { font-weight: bold; background-color: var(--secbg); }
 table thead th                  { text-align: left }
 fieldset.search                 { display: block; width: 100%; text-align: center; margin: 0 0 10px 0; }
@@ -375,18 +306,18 @@ p#searchtabs a:hover, p#searchtabs a.sel {
 
 /* history browser */
 
-table.histoptions { margin: 0 auto }
-table.histoptions select { width: 150px; scrollbar-width: none }
-table.histoptions select::-webkit-scrollbar { display: none }
+.histoptions { margin: 0 auto }
+.histoptions select { width: 150px; scrollbar-width: none }
+.histoptions select::-webkit-scrollbar { display: none }
 
-div.history td       { white-space: nowrap; padding-left: 15px }
-div.history td.tc1_0 { padding-right: 0; padding-left: 0 }
-div.history td.tc1_0 a { color: inherit; display: inline-block; width: 15px; border-bottom: 0; text-align: center }
-div.history td.tc1_1 { width: 70px; padding-right: 0; text-align: right }
-div.history td.tc1_2 { width: 30px; padding-left: 0 }
-div.history td.tc2   { width: 140px }
-div.history td.tc4   { width: 100% }
-div.history td.tc4 small { margin-left: 10px }
+.history td       { white-space: nowrap; padding-left: 15px }
+.history td.tc1_0 { padding-right: 0; padding-left: 0 }
+.history td.tc1_0 a { color: inherit; display: inline-block; width: 15px; border-bottom: 0; text-align: center }
+.history td.tc1_1 { width: 70px; padding-right: 0; text-align: right }
+.history td.tc1_2 { width: 30px; padding-left: 0 }
+.history td.tc2   { width: 140px }
+.history td.tc4   { width: 100% }
+.history td.tc4 small { margin-left: 10px }
 
 
 
@@ -394,37 +325,37 @@ div.history td.tc4 small { margin-left: 10px }
 /***** Discussions ******/
 
 /* threads page */
-#maincontent div.thread  { padding: 0; }
-div.thread table         { width: 100%; table-layout: fixed }
-div.thread tr:not(:last-child) td { border-bottom: 1px solid var(--border); }
-div.thread td.tc1        { width: 190px; padding: 5px 10px; border-right: 1px solid var(--border); }
-div.thread td.tc2        { padding: 10px 20px 10px 10px; }
-div.thread tr.deleted td { padding: 1px 10px; }
-div.thread tr:target, div.thread tr.target { outline: 1px dotted var(--standout) }
-div.thread .lastmod      { float: right; font-size: 11px; color: var(--grayedout); margin: 0 -10px -5px 0; }
-div.thread .edit         { float: right; color: var(--grayedout); margin: -10px -10px 0 0; visibility: hidden }
-div.thread td:hover .edit,
-div.thread td:active .edit { visibility: visible }
+.thread  { padding: 0; }
+.thread table         { width: 100%; table-layout: fixed }
+.thread tr:not(:last-child) td { border-bottom: 1px solid var(--border); }
+.thread td.tc1        { width: 190px; padding: 5px 10px; border-right: 1px solid var(--border); }
+.thread td.tc2        { padding: 10px 20px 10px 10px; }
+.thread tr.deleted td { padding: 1px 10px; }
+.thread tr:target, .thread tr.target { outline: 1px dotted var(--standout) }
+.thread .lastmod      { float: right; font-size: 11px; color: var(--grayedout); margin: 0 -10px -5px 0; }
+.thread .edit         { float: right; color: var(--grayedout); margin: -10px -10px 0 0; visibility: hidden }
+.thread td:hover .edit,
+.thread td:active .edit { visibility: visible }
 
 /* threads browser */
-div.mainbox.discussions td.tc4     { text-align: right; }
-div.mainbox.discussions a.locked   { text-decoration: line-through; }
-div.mainbox.discussions .boards    { padding-left: 10px }
-div.mainbox.discussions .boards a  { color: var(--grayedout) }
-div.discussions td.tc2             { width: 66px; text-align: right }
-div.discussions td.tc3             { width: 116px;  }
-div.discussions td.tc4             { width: 256px; }
-div.discussions .pollflag          { color: var(--grayedout); padding-right: 6px; }
+.discussions td.tc4     { text-align: right; }
+.discussions a.locked   { text-decoration: line-through; }
+.discussions .boards    { padding-left: 10px }
+.discussions .boards a  { color: var(--grayedout) }
+.discussions td.tc2     { width: 66px; text-align: right }
+.discussions td.tc3     { width: 116px;  }
+.discussions td.tc4     { width: 256px; }
+.discussions .pollflag  { color: var(--grayedout); padding-right: 6px; }
 .boardsearchoptions {
     margin: 0 auto;
     td { padding: 10px }
     select { width: 150px; scrollbar-width: none }
     select::-webkit-scrollbar { display: none }
 }
-div.postsearch td.tc1_1           { width: 60px; padding-left: 0; padding-right: 0; text-align: right }
-div.postsearch td.tc1_2           { width: 25px; padding-left: 0 }
-div.postsearch td.tc2             { width: 65px;  }
-div.postsearch td.tc3             { width: 90px; }
+.postsearch td.tc1_1           { width: 60px; padding-left: 0; padding-right: 0; text-align: right }
+.postsearch td.tc1_2           { width: 25px; padding-left: 0 }
+.postsearch td.tc2             { width: 65px;  }
+.postsearch td.tc3             { width: 90px; }
 
 
 /***** Release listings on VN & producer pages */
@@ -772,24 +703,24 @@ table.chare_traits .buts a.sl { border: none; background-color: #f40 }
 
 /***** Char browse *****/
 
-div.charb table    { table-layout: fixed }
-div.charb td       { white-space: nowrap }
-div.charb td.tc1   { text-align: right; width: 40px; padding-left: 0!important; padding-bottom: 0 }
-div.charb td.tc2   { overflow: hidden }
-div.charb td.tc2 small { margin-left: 10px }
-div.charb td.tc2 small a { color: inherit }
+.charb table    { table-layout: fixed }
+.charb td       { white-space: nowrap }
+.charb td.tc1   { text-align: right; width: 40px; padding-left: 0!important; padding-bottom: 0 }
+.charb td.tc2   { overflow: hidden }
+.charb td.tc2 small { margin-left: 10px }
+.charb td.tc2 small a { color: inherit }
 
-div.charbcard { padding: 0; display: flex; flex-wrap: wrap }
-div.charbcard > div { padding: 2px 2px 10px 2px; display: flex; flex: 1; min-width: 280px }
-div.charbcard > div:hover { background-color: var(--secbg) }
-div.charbcard > div > div:first-child { flex-shrink: 0; width: 90px; height: 120px; text-align: center }
-div.charbcard > div > div:nth-child(2) { height: 120px; padding-left: 5px; overflow-y: hidden }
-div.charbcard small a { color: inherit }
+.charbcard { padding: 0; display: flex; flex-wrap: wrap }
+.charbcard > div { padding: 2px 2px 10px 2px; display: flex; flex: 1; min-width: 280px }
+.charbcard > div:hover { background-color: var(--secbg) }
+.charbcard > div > div:first-child { flex-shrink: 0; width: 90px; height: 120px; text-align: center }
+.charbcard > div > div:nth-child(2) { height: 120px; padding-left: 5px; overflow-y: hidden }
+.charbcard small a { color: inherit }
 
-div.charbgrid { padding: 10px; display: flex; flex-wrap: wrap; justify-content: space-evenly }
-div.charbgrid a { margin: 5px 10px 15px 10px; flex: 1 0 200px; max-width: 256px; height: 300px; background-size: cover; background-repeat: no-repeat; background-position: top; text-align: center; opacity: 0.9 }
-div.charbgrid a:hover { border-bottom: none; opacity: 1 }
-div.charbgrid span { display: block; margin: 0 auto; padding: 2px; font-size: 15px; font-weight: bold; background-color: rgba(0,0,0,0.4); color: var(--maintext) }
+.charbgrid { padding: 10px; display: flex; flex-wrap: wrap; justify-content: space-evenly }
+.charbgrid a { margin: 5px 10px 15px 10px; flex: 1 0 200px; max-width: 256px; height: 300px; background-size: cover; background-repeat: no-repeat; background-position: top; text-align: center; opacity: 0.9 }
+.charbgrid a:hover { border-bottom: none; opacity: 1 }
+.charbgrid span { display: block; margin: 0 auto; padding: 2px; font-size: 15px; font-weight: bold; background-color: rgba(0,0,0,0.4); color: var(--maintext) }
 
 
 /***** Staff browse *****/

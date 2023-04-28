@@ -22,7 +22,7 @@ sub reviews_ {
     );
     return if !@$lst;
 
-    div_ class => 'mainbox', sub {
+    article_ sub {
         h1_ $mini ? 'Mini reviews' : 'Full reviews';
         debug_ $lst;
         div_ class => 'reviews', sub {

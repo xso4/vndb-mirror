@@ -741,8 +741,8 @@ view model =
 
     newform () =
       form_ "" DupSubmit (model.state == Api.Loading)
-      [ div [ class "mainbox" ] [ h1 [] [ text "Add a new visual novel" ], table [ class "formtable" ] titles ]
-      , div [ class "mainbox" ]
+      [ article [] [ h1 [] [ text "Add a new visual novel" ], table [ class "formtable" ] titles ]
+      , article []
         [ if List.isEmpty model.dupVNs then text "" else
           div []
           [ h1 [] [ text "Possible duplicates" ]
@@ -771,12 +771,12 @@ view model =
           , li [ classList [("tabselected", model.tab == All        )] ] [ a [ href "#", onClickD (Tab All        ) ] [ text "All items"    ] ]
           ]
         ]
-      , div [ class "mainbox", classList [("hidden", model.tab /= General     && model.tab /= All)] ] [ h1 [] [ text "General info" ], table [ class "formtable" ] geninfo ]
-      , div [ class "mainbox", classList [("hidden", model.tab /= Image       && model.tab /= All)] ] [ h1 [] [ text "Image" ], image ]
-      , div [ class "mainbox", classList [("hidden", model.tab /= Staff       && model.tab /= All)] ] ( h1 [] [ text "Staff" ] :: staff )
-      , div [ class "mainbox", classList [("hidden", model.tab /= Cast        && model.tab /= All)] ] [ h1 [] [ text "Cast" ], cast ]
-      , div [ class "mainbox", classList [("hidden", model.tab /= Screenshots && model.tab /= All)] ] [ h1 [] [ text "Screenshots" ], screenshots ]
-      , div [ class "mainbox" ] [ fieldset [ class "submit" ]
+      , article [ classList [("hidden", model.tab /= General     && model.tab /= All)] ] [ h1 [] [ text "General info" ], table [ class "formtable" ] geninfo ]
+      , article [ classList [("hidden", model.tab /= Image       && model.tab /= All)] ] [ h1 [] [ text "Image" ], image ]
+      , article [ classList [("hidden", model.tab /= Staff       && model.tab /= All)] ] ( h1 [] [ text "Staff" ] :: staff )
+      , article [ classList [("hidden", model.tab /= Cast        && model.tab /= All)] ] [ h1 [] [ text "Cast" ], cast ]
+      , article [ classList [("hidden", model.tab /= Screenshots && model.tab /= All)] ] [ h1 [] [ text "Screenshots" ], screenshots ]
+      , article [] [ fieldset [ class "submit" ]
           [ Html.map Editsum (Editsum.view model.editsum)
           , submitButton "Submit" model.state (isValid model)
           ]

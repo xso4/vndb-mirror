@@ -53,7 +53,7 @@ sub tablebox_ {
     my sub url { '?'.query_encode %$filt, p => $_ }
 
     paginate_ \&url, $filt->{p}, $np, 't' unless $opt{nopage};
-    div_ class => 'mainbox browse history mainbox-overflow-hack', sub {
+    article_ class => 'browse history overflow-hack', sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
                 td_ class => 'tc1_0', '' if auth->permDbmod;
@@ -176,7 +176,7 @@ TUWF::get qr{/(?:([upvrcsdgi][1-9][0-9]{0,6})/)?hist} => sub {
     framework_ title => $title, dbobj => $obj, tab => 'hist',
     sub {
         my $filt;
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ $title;
             $filt = filters_($id =~ /^(.)/ ? $1 : '');
         };

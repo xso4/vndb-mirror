@@ -11,7 +11,7 @@ sub listing_ {
     my($opt, $list, $count) = @_;
     my sub url { '?'.query_encode %$opt, @_ }
     paginate_ \&url, $opt->{p}, [$count, 50], 't';
-    div_ class => 'mainbox browse', sub {
+    article_ class => 'browse', sub {
         table_ class => 'stripe releases', sub {
             thead_ sub { tr_ sub {
                 td_ class => 'tc1', sub { txt_ 'Date';   sortable_ 'released',$opt, \&url; debug_ $list; };
@@ -76,7 +76,7 @@ TUWF::get qr{/r}, sub {
     $time = time - $time;
 
     framework_ title => 'Browse releases', sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ 'Browse releases';
             form_ action => '/r', method => 'get', sub {
                 searchbox_ r => $opt->{q}//'';

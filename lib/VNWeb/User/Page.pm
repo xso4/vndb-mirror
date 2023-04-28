@@ -199,12 +199,12 @@ TUWF::get qr{/$RE{uid}}, sub {
     my $title = user_displayname($u)."'s profile";
     framework_ title => $title, dbobj => $u,
     sub {
-        div_ class => 'mainbox userpage', sub {
+        article_ class => 'userpage', sub {
             h1_ $title;
             table_ class => 'stripe', sub { _info_table_ $u, $own };
         };
 
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ 'Vote statistics';
             div_ class => 'votestats', sub { _votestats_ $u, $own };
         } if grep $_->{votes} > 0, $u->{votes}->@*;

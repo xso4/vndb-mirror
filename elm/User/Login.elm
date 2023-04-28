@@ -88,7 +88,7 @@ view : Model -> Html Msg
 view model =
   let
     loginBox =
-      div [ class "mainbox" ]
+      article []
       [ h1 [] [ text "Login" ]
       , table [ class "formtable" ]
         [ formField "username::Username"
@@ -118,7 +118,7 @@ view model =
       ]
 
     changeBox =
-      div [ class "mainbox" ]
+      article []
       [ h1 [] [ text "Change your password" ]
       , div [ class "warning" ]
         [ h2 [] [ text "Your current password is not secure" ]
@@ -136,7 +136,7 @@ view model =
 
   in form_ "" Submit (model.state == Api.Loading)
       [ if model.insecure then changeBox else loginBox
-      , div [ class "mainbox" ]
+      , article []
         [ fieldset [ class "submit" ]
           [ if model.invalid then b [] [ text "Username or password is empty." ] else text ""
           , submitButton "Submit" model.state (not model.invalid)

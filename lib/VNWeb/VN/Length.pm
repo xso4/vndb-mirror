@@ -28,7 +28,7 @@ sub listing_ {
     }
 
     paginate_ $url, $opt->{p}, [$count, $opt->{s}->results], 't';
-    div_ class => 'mainbox browse lengthlist', sub {
+    article_ class => 'browse lengthlist', sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
                 td_ class => 'tc1', sub { txt_ 'Date';   sortable_ 'date', $opt, $url };
@@ -145,7 +145,7 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
 
     my $title = 'Length votes'.($mode ? ($mode eq 'v' ? ' for ' : ' by ').$o->{title}[1] : '');
     framework_ title => $title, dbobj => $o, sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ $title;
             p_ 'Nothing to list. :(' if !@$lst;
             stats_ $o if $mode eq 'v' && @$lst;

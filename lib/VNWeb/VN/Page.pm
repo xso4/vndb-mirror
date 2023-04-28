@@ -460,7 +460,7 @@ sub infobox_ {
         }
     }
 
-    div_ class => 'mainbox', sub {
+    article_ sub {
         itemmsg_ $v;
         h1_ tlang($v->{title}[0], $v->{title}[1]), $v->{title}[1];
         h2_ class => 'alttitle', tlang(@{$v->{title}}[2,3]), $v->{title}[3] if $v->{title}[3] && $v->{title}[3] ne $v->{title}[1];
@@ -619,7 +619,7 @@ sub releases_ {
         };
     }
 
-    div_ class => 'mainbox vnreleases', sub {
+    article_ class => 'vnreleases', sub {
         h1_ 'Releases';
         if(!$v->{releases}->@*) {
             p_ 'We don\'t have any information about releases of this visual novel yet...';
@@ -690,7 +690,7 @@ sub staff_ {
     push $staff{ $_->{eid} // '' }->@*, $_ for $v->{staff}->@*;
     my $pref = prefs;
 
-    div_ class => 'mainbox vnstaff', id => 'staff', sub {
+    article_ class => 'vnstaff', id => 'staff', sub {
         h1_ 'Staff';
         if (!$v->{editions}->@*) {
             staff_cols_ $v->{staff};
@@ -736,7 +736,7 @@ sub charsum_ {
          ORDER BY sa.sorttitle'
     ) }, $c;
 
-    div_ class => 'mainbox', 'data-mainbox-summarize' => 210, sub {
+    article_ 'data-mainbox-summarize' => 210, sub {
         p_ class => 'mainopts', sub {
             a_ href => "/$v->{id}/chars#chars", 'Full character list';
         };
@@ -836,7 +836,7 @@ sub stats_ {
         } if $v->{c_votecount};
     }
 
-    div_ class => 'mainbox', id => 'stats', sub {
+    article_ id => 'stats', sub {
         h1_ 'User stats';
         if(!@$stats) {
             p_ 'Nobody has voted on this visual novel yet...';
@@ -867,7 +867,7 @@ sub screenshots_ {
 
     input_ name => 'scrhide_s', id => "scrhide_s$_", type => 'radio', class => 'visuallyhidden', $sexs == $_ ? (checked => 'checked') : () for 0..2;
     input_ name => 'scrhide_v', id => "scrhide_v$_", type => 'radio', class => 'visuallyhidden', $vios == $_ ? (checked => 'checked') : () for 0..2;
-    div_ class => 'mainbox', id => 'screenshots', sub {
+    article_ id => 'screenshots', sub {
 
         p_ class => 'mainopts', sub {
             if($sexp < 0 || $sex[1] || $sex[2]) {
@@ -915,7 +915,7 @@ sub screenshots_ {
 sub tags_ {
     my($v) = @_;
     if(!$v->{tags}->@*) {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ 'Tags';
             p_ 'This VN has no tags assigned to it (yet).';
         };
@@ -976,7 +976,7 @@ sub tags_ {
         }
     }
 
-    div_ class => 'mainbox', sub {
+    article_ sub {
         my $max_spoil = max map $_->{lie}?2:$_->{spoiler}, values %tags;
         p_ class => 'mainopts', sub {
             if($max_spoil) {

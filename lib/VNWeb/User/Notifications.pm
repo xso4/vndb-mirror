@@ -104,7 +104,7 @@ sub listing_ {
     form_ action => "/$id/notify_update", method => 'POST', sub {
         input_ type => 'hidden', class => 'hidden', name => 'url', value => do { local $_ = $opt->{p}; url };
         paginate_ \&url, $opt->{p}, [$count, 25], 't';
-        div_ class => 'mainbox browse notifies', sub {
+        article_ class => 'browse notifies', sub {
             table_ class => 'stripe', \&tbl_;
         };
         paginate_ \&url, $opt->{p}, [$count, 25], 'b';
@@ -142,7 +142,7 @@ TUWF::get qr{/$RE{uid}/notifies}, sub {
 
     framework_ title => 'My notifications', js => 1,
     sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ 'My notifications';
             p_ class => 'browseopts', sub {
                 a_ !$opt->{r} ? (class => 'optselected') : (), href => '?r=0', 'Unread notifications';
@@ -151,7 +151,7 @@ TUWF::get qr{/$RE{uid}/notifies}, sub {
             p_ 'No notifications!' if !$count;
         };
         listing_ $id, $opt, $count, $list;
-        div_ class => 'mainbox', sub { settings_ $id };
+        article_ sub { settings_ $id };
     };
 };
 

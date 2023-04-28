@@ -7,7 +7,7 @@ use VNWeb::Discussions::Lib;
 TUWF::get qr{/t}, sub {
     framework_ title => 'Discussion board index', sub {
         form_ method => 'get', action => '/t/search', sub {
-            div_ class => 'mainbox', sub {
+            article_ sub {
                 h1_ 'Discussion board index';
                 boardtypes_ 'index';
                 boardsearch_;

@@ -8,7 +8,7 @@ sub listing_ {
     my($opt, $lst, $np, $url) = @_;
 
     paginate_ $url, $opt->{p}, $np, 't';
-    div_ class => 'mainbox browse taglinks', sub {
+    article_ class => 'browse taglinks', sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
                     td_ class => 'tc1', sub { txt_ 'Date'; sortable_ 'date', $opt, $url; debug_ $lst; };
@@ -87,7 +87,7 @@ TUWF::get qr{/g/links}, sub {
     my sub url { '?'.query_encode %$opt, @_ }
 
     framework_ title => 'Tag link browser', sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ 'Tag link browser';
             if($filt) {
                 p_ 'Active filters:';

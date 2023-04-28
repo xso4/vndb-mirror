@@ -9,7 +9,7 @@ sub listing_ {
     my sub url { '?'.query_encode @_ }
 
     paginate_ \&url, $page, [ $count, 50 ], 't';
-    div_ class => 'mainbox browse uposts', sub {
+    article_ class => 'browse uposts', sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
                 td_ class => 'tc1', sub { debug_ $list };
@@ -63,7 +63,7 @@ TUWF::get qr{/$RE{uid}/posts}, sub {
     my $title = $own ? 'My posts' : 'Posts by '.user_displayname $u;
     framework_ title => $title, dbobj => $u, tab => 'posts',
     sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ $title;
             if(!$count) {
                 p_ +($own ? 'You have' : user_displayname($u).' has').' not posted anything on the forums yet.';

@@ -331,7 +331,7 @@ view model =
         else text ""
       ]
 
-  in div [ class "mainbox" ]
+  in article []
   [ h1 [] [ text "Image flagging" ]
   , div [ class "imageflag", style "width" (px (boxwidth + 10)) ] <|
     if model.warn

@@ -115,7 +115,7 @@ sub chars_ {
     $time = time - $time;
 
     form_ action => "/$t->{id}", method => 'get', sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ 'Characters';
             p_ class => 'browseopts', sub {
                 button_ type => 'submit', name => 'm', value => 0, $opt->{m} == 0 ? (class => 'optselected') : (), 'Hide spoilers';
@@ -141,7 +141,7 @@ TUWF::get qr{/$RE{irev}}, sub {
 
     framework_ index => !$t->{hidden}, title => "Trait: $t->{name}", dbobj => $t, hiddenmsg => 1, sub {
         rev_ $t if tuwf->capture('rev');
-        div_ class => 'mainbox', sub { infobox_ $t; };
+        article_ sub { infobox_ $t; };
         tree_ i => $t->{id};
         chars_ $t if $t->{searchable} && !$t->{hidden};
     };

@@ -54,7 +54,7 @@ view : Model -> Html Msg
 view model =
   if model.success
   then
-    div [ class "mainbox" ]
+    article []
     [ h1 [] [ text "New password" ]
     , div [ class "notice" ]
       [ p []
@@ -65,7 +65,7 @@ view model =
     ]
   else
     form_ "" Submit (model.state == Api.Loading)
-    [ div [ class "mainbox" ]
+    [ article []
       [ h1 [] [ text "Forgot Password" ]
       , p []
         [ text "Forgot your password and can't login to VNDB anymore? "
@@ -75,7 +75,7 @@ view model =
       , table [ class "formtable" ]
         [ formField "email::E-Mail" [ inputText "email" model.email EMail GUPR.valEmail ] ]
       ]
-    , div [ class "mainbox" ]
+    , article []
       [ fieldset [ class "submit" ] [ submitButton "Submit" model.state True ]
       ]
     ]
