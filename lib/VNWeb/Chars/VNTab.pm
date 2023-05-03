@@ -13,7 +13,7 @@ sub chars_ {
             (map $_->{override}//($_->{lie}?2:$_->{spoil}), grep !$_->{hidden} && !(($_->{override}//0) == 3), $_->{traits}->@*),
             (map $_->{spoil}, $_->{vns}->@*),
             defined $_->{spoil_gender} ? 2 : 0,
-            $_->{desc} =~ /\[spoiler\]/i ? 2 : 0,
+            $_->{description} =~ /\[spoiler\]/i ? 2 : 0,
         ), @$chars
     );
     $chars = [ grep +grep($_->{spoil} <= $view->{spoilers}, $_->{vns}->@*), @$chars ];

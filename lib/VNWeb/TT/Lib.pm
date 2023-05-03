@@ -29,7 +29,7 @@ sub tree_ {
           WHERE NOT hidden
             AND", $id ? sql "id IN(SELECT id FROM ${table}_parents WHERE parent = ", \$id, ')'
                       : "NOT EXISTS(SELECT 1 FROM ${table}_parents tp WHERE tp.id = t.id)", "
-          ORDER BY ", $type eq 'g' || $id ? 'name' : '"order"'
+          ORDER BY ", $type eq 'g' || $id ? 'name' : 'gorder'
     );
     return if !@$top;
 
