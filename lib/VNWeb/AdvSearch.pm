@@ -321,7 +321,7 @@ f v =>  7 => 'released',  { fuzzyrdate => 1 }, sql => sub { sql 'v.c_released', 
 f v =>  9 => 'popularity',{ uint => 1, range => [ 0,  100] }, sql => sub { sql 'v.c_popularity', $_[0], \($_*100) };
 f v => 10 => 'rating',    { uint => 1, range => [10,  100] }, sql => sub { sql 'v.c_rating', $_[0], \($_*10) };
 f v => 11 => 'votecount', { uint => 1, range => [ 0,1<<30] }, sql => sub { sql 'v.c_votecount', $_[0], \$_ };
-f v => 61 => 'has_description', { uint => 1, range => [1,1] }, '=' => sub { 'v."desc" <> \'\'' };
+f v => 61 => 'has_description', { uint => 1, range => [1,1] }, '=' => sub { 'v.description <> \'\'' };
 f v => 62 => 'has_anime',       { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM vn_anime va WHERE va.id = v.id)' };
 f v => 63 => 'has_screenshot',  { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM vn_screenshots vs WHERE vs.id = v.id)' };
 f v => 64 => 'has_review',      { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM reviews r WHERE r.vid = v.id AND NOT r.c_flagged)' };
