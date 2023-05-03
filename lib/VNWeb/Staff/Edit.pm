@@ -13,7 +13,7 @@ my $FORM = {
         inuse     => { anybool => 1, _when => 'out' },
         wantdel   => { anybool => 1, _when => 'out' },
     } },
-    desc       => { required => 0, default => '', maxlength => 5000 },
+    description=> { required => 0, default => '', maxlength => 5000 },
     gender     => { default => 'unknown', enum => [qw[unknown m f]] },
     lang       => { default => 'ja', language => 1 },
     l_site     => { required => 0, default => '', weburl => 1 },
@@ -84,7 +84,7 @@ elm_api StaffEdit => $FORM_OUT, $FORM_IN, sub {
         $data->{locked} = $e->{locked}||0;
     }
     $data->{l_wp} = $e->{l_wp}||'';
-    $data->{desc} = bb_subst_links $data->{desc};
+    $data->{description} = bb_subst_links $data->{description};
 
     # The form validation only checks for duplicate aid's, but the name+latin should also be unique.
     my %names;

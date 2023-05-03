@@ -10,7 +10,7 @@ my $FORM = {
     name       => { maxlength => 200 },
     latin      => { required => 0, maxlength => 200 },
     alias      => { required => 0, default => '', maxlength => 500 },
-    desc       => { required => 0, default => '', maxlength => 5000 },
+    description=> { required => 0, default => '', maxlength => 5000 },
     gender     => { default => 'unknown', enum => \%GENDER },
     spoil_gender=>{ required => 0, enum => \%GENDER },
     b_month    => { required => 0, default => 0, uint => 1, range => [ 0, 12 ] },
@@ -72,9 +72,9 @@ TUWF::get qr{/$RE{crev}/(?<action>edit|copy)} => sub {
     $e->{main_ref} = tuwf->dbVali('SELECT 1 FROM chars WHERE main =', \$e->{id})||0;
 
     enrich_merge tid => sql(
-        'SELECT t.id AS tid, t.name, t.hidden, t.locked, t.applicable, g.name AS group, g.order AS order, false AS new
+        'SELECT t.id AS tid, t.name, t.hidden, t.locked, t.applicable, g.name AS group, g.gorder AS order, false AS new
            FROM traits t
-           LEFT JOIN traits g ON g.id = t.group
+           LEFT JOIN traits g ON g.id = t.gid
           WHERE', $copy ? 'NOT t.hidden AND t.applicable AND' : (), 't.id IN'), $e->{traits};
     $e->{traits} = [ sort { ($a->{order}//99) <=> ($b->{order}//99) || $a->{name} cmp $b->{name} } grep !$copy || $_->{applicable}, $e->{traits}->@* ];
 
@@ -130,7 +130,7 @@ elm_api CharEdit => $FORM_OUT, $FORM_IN, sub {
         $data->{hidden} = $e->{hidden}||0;
         $data->{locked} = $e->{locked}||0;
     }
-    $data->{desc} = bb_subst_links $data->{desc};
+    $data->{description} = bb_subst_links $data->{description};
     $data->{b_day} = 0 if !$data->{b_month};
 
     $data->{main} = undef if $data->{hidden};

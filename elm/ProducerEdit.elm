@@ -35,7 +35,7 @@ type alias Model =
   , lang        : String
   , website     : String
   , lWikidata   : Maybe Int
-  , desc        : TP.Model
+  , description : TP.Model
   , rel         : List GPE.RecvRelations
   , relSearch   : A.Model GApi.ApiProducerResult
   , id          : Maybe String
@@ -55,7 +55,7 @@ init d =
   , lang        = d.lang
   , website     = d.website
   , lWikidata   = d.l_wikidata
-  , desc        = TP.bbcode d.desc
+  , description = TP.bbcode d.description
   , rel         = d.relations
   , relSearch   = A.init ""
   , id          = d.id
@@ -77,7 +77,7 @@ encode model =
   , lang        = model.lang
   , website     = model.website
   , l_wikidata  = model.lWikidata
-  , desc        = model.desc.data
+  , description = model.description.data
   , relations   = List.map (\p -> { pid = p.pid, relation = p.relation }) model.rel
   }
 
@@ -114,7 +114,7 @@ update msg model =
     Lang s     -> ({ model | lang     = s }, Cmd.none)
     Website s  -> ({ model | website  = s }, Cmd.none)
     LWikidata n-> ({ model | lWikidata = n }, Cmd.none)
-    Desc m     -> let (nm,nc) = TP.update m model.desc in ({ model | desc = nm }, Cmd.map Desc nc)
+    Desc m     -> let (nm,nc) = TP.update m model.description in ({ model | description = nm }, Cmd.map Desc nc)
 
     RelDel idx        -> ({ model | rel = delidx idx model.rel }, Cmd.none)
     RelRel idx rel    -> ({ model | rel = modidx idx (\p -> { p | relation = rel }) model.rel }, Cmd.none)
@@ -179,7 +179,7 @@ view model =
       , formField "website::Website" [ inputText "website" model.website Website GPE.valWebsite ]
       , formField "l_wikidata::Wikidata ID" [ inputWikidata "l_wikidata" model.lWikidata LWikidata [] ]
       , formField "desc::Description"
-        [ TP.view "desc" model.desc Desc 600 (style "height" "180px" :: GPE.valDesc) [ b [] [ text "English please!" ] ] ]
+        [ TP.view "desc" model.description Desc 600 (style "height" "180px" :: GPE.valDescription) [ b [] [ text "English please!" ] ] ]
 
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Database relations" ] ]
       , formField "Related producers"

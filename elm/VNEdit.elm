@@ -56,7 +56,7 @@ type alias Model =
   , editsum     : Editsum.Model
   , titles      : List GVE.RecvTitles
   , alias       : String
-  , desc        : TP.Model
+  , description : TP.Model
   , devStatus   : Int
   , olang       : String
   , length      : Int
@@ -97,7 +97,7 @@ init d =
   , editsum     = { authmod = d.authmod, editsum = TP.bbcode d.editsum, locked = d.locked, hidden = d.hidden, hasawait = False }
   , titles      = d.titles
   , alias       = d.alias
-  , desc        = TP.bbcode d.desc
+  , description = TP.bbcode d.description
   , devStatus   = d.devstatus
   , olang       = d.olang
   , length      = d.length
@@ -137,7 +137,7 @@ encode model =
   , titles      = model.titles
   , alias       = model.alias
   , devstatus   = model.devStatus
-  , desc        = model.desc.data
+  , description = model.description.data
   , olang       = model.olang
   , length      = model.length
   , l_wikidata  = model.lWikidata
@@ -247,7 +247,7 @@ update msg model =
                   ({ model | tab = t, invalidDis = True }, Task.attempt (always InvalidEnable) (Ffi.elemCall "reportValidity" "mainform" |> Task.andThen (\_ -> Process.sleep 100)))
     InvalidEnable -> ({ model | invalidDis = False }, Cmd.none)
     Alias s    -> ({ model | alias    = s, dupVNs = [] }, Cmd.none)
-    Desc m     -> let (nm,nc) = TP.update m model.desc in ({ model | desc = nm }, Cmd.map Desc nc)
+    Desc m     -> let (nm,nc) = TP.update m model.description in ({ model | description = nm }, Cmd.map Desc nc)
     DevStatus b-> ({ model | devStatus = b }, Cmd.none)
     Length n   -> ({ model | length = n }, Cmd.none)
     LWikidata n-> ({ model | lWikidata = n }, Cmd.none)
@@ -450,7 +450,7 @@ view model =
 
     geninfo = titles ++
       [ formField "desc::Description"
-        [ TP.view "desc" model.desc Desc 600 (style "height" "180px" :: onInvalid (Invalid General) :: GVE.valDesc) [ b [] [ text "English please!" ] ]
+        [ TP.view "desc" model.description Desc 600 (style "height" "180px" :: onInvalid (Invalid General) :: GVE.valDescription) [ b [] [ text "English please!" ] ]
         , text "Short description of the main story. Please do not include spoilers, and don't forget to list the source in case you didn't write the description yourself."
         ]
       , formField "devstatus::Development status"

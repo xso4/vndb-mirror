@@ -100,7 +100,7 @@ sub enrich_item {
 sub og {
     my($v) = @_;
     +{
-        description => bb_format($v->{desc}, text => 1),
+        description => bb_format($v->{description}, text => 1),
         image => $v->{image} && !$v->{image}{sexual} && !$v->{image}{violence} ? imgurl($v->{image}{id}) :
                  [map $_->{scr}{sexual}||$_->{scr}{violence}?():(imgurl($_->{scr}{id})), $v->{screenshots}->@*]->[0]
     }
@@ -146,7 +146,7 @@ sub rev_ {
         }],
         [ alias       => 'Alias'          ],
         [ olang       => 'Original language', fmt => \%LANGUAGE ],
-        [ desc        => 'Description'    ],
+        [ description => 'Description'    ],
         [ devstatus   => 'Development status',fmt => \%DEVSTATUS ],
         [ length      => 'Length',        fmt => \%VN_LENGTH ],
         [ editions    => 'Editions',      fmt => sub {
@@ -539,7 +539,7 @@ sub infobox_ {
                 tr_ class => 'nostripe', sub {
                     td_ class => 'vndesc', colspan => 2, sub {
                         h2_ 'Description';
-                        p_ sub { lit_ $v->{desc} ? bb_format $v->{desc} : '-' };
+                        p_ sub { lit_ $v->{description} ? bb_format $v->{description} : '-' };
                         debug_ $v;
                     }
                 }

@@ -28,7 +28,7 @@ sub _rev_ {
         } ],
         [ gender => 'Gender',     fmt => \%GENDER   ],
         [ lang   => 'Language',   fmt => \%LANGUAGE ],
-        [ desc   => 'Description' ],
+        [ description => 'Description' ],
         revision_extlinks 's'
 }
 
@@ -189,7 +189,7 @@ TUWF::get qr{/$RE{srev}} => sub {
 
     framework_ title => $main->{title}[1], index => !tuwf->capture('rev'), dbobj => $s, hiddenmsg => 1,
         og => {
-            description => bb_format $s->{desc}, text => 1
+            description => bb_format $s->{description}, text => 1
         },
     sub {
         _rev_ $s if tuwf->capture('rev');
@@ -198,7 +198,7 @@ TUWF::get qr{/$RE{srev}} => sub {
             h1_ tlang(@{$main->{title}}[0,1]), $main->{title}[1];
             h2_ class => 'alttitle', tlang(@{$main->{title}}[2,3]), $main->{title}[3] if $main->{title}[3] && $main->{title}[3] ne $main->{title}[1];
             _infotable_ $main, $s;
-            div_ class => 'description', sub { lit_ bb_format $s->{desc} };
+            div_ class => 'description', sub { lit_ bb_format $s->{description} };
         };
 
         _roles_ $s;

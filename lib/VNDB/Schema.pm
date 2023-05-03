@@ -55,7 +55,7 @@ sub schema {
             die "Double primary key for '$table'?\n" if $schema{$table}{primary};
             $schema{$table}{primary} = [ map s/\s*"?([^\s"]+)"?\s*/$1/r, split /,/, $1 ];
 
-        } elsif($table && s/^\s+"?([^"\( ]+)"?\s+//) {
+        } elsif($table && s/^\s+([^"\( ]+)\s+//) {
             my $col = { name => $1 };
             push @{$schema{$table}{cols}}, $col;
 
@@ -66,7 +66,7 @@ sub schema {
                 die "Double primary key for '$table'?\n" if $schema{$table}{primary};
                 $schema{$table}{primary} = [ $col->{name} ];
             }
-            $col->{decl} = "\"$col->{name}\" $_";
+            $col->{decl} = "$col->{name} $_";
             $col->{type} = lc s/^([^ ]+)\s.+/$1/r;
         }
     }
@@ -115,9 +115,9 @@ sub references {
             decl => $_,
             from_table => $1,
             name => $2,
-            from_cols => [ map s/"//r, split /\s*,\s*/, $3 ],
+            from_cols => [ split /\s*,\s*/, $3 ],
             to_table => $4,
-            to_cols => [ map s/"//r, split /\s*,\s*/, $5 ]
+            to_cols => [ split /\s*,\s*/, $5 ]
         };
     }
     \@ref

@@ -53,7 +53,7 @@ type alias Model =
   , name        : String
   , latin       : Maybe String
   , alias       : String
-  , desc        : TP.Model
+  , description : TP.Model
   , gender      : String
   , spoilGender : Maybe String
   , bMonth      : Int
@@ -92,7 +92,7 @@ init d =
   , name        = d.name
   , latin       = d.latin
   , alias       = d.alias
-  , desc        = TP.bbcode d.desc
+  , description = TP.bbcode d.description
   , gender      = d.gender
   , spoilGender = d.spoil_gender
   , bMonth      = d.b_month
@@ -131,7 +131,7 @@ encode model =
   , name        = model.name
   , latin       = model.latin
   , alias       = model.alias
-  , desc        = model.desc.data
+  , description = model.description.data
   , gender      = model.gender
   , spoil_gender= model.spoilGender
   , b_month     = model.bMonth
@@ -215,7 +215,7 @@ update msg model =
     Name s     -> ({ model | name = s }, Cmd.none)
     Latin s -> ({ model | latin = if s == "" then Nothing else Just s }, Cmd.none)
     Alias s    -> ({ model | alias = s }, Cmd.none)
-    Desc m     -> let (nm,nc) = TP.update m model.desc in ({ model | desc = nm }, Cmd.map Desc nc)
+    Desc m     -> let (nm,nc) = TP.update m model.description in ({ model | description = nm }, Cmd.map Desc nc)
     Gender s   -> ({ model | gender = s }, Cmd.none)
     SpoilGender s->({model | spoilGender = s }, Cmd.none)
     BMonth n   -> ({ model | bMonth = n }, Cmd.none)
@@ -320,7 +320,7 @@ view model =
         , br [] []
         , text "(Un)official aliases, separated by a newline. Must not include spoilers!"
         ]
-      , formField "desc::Description" [ TP.view "desc" model.desc Desc 600 (style "height" "150px" :: onInvalid (Invalid General) :: GCE.valDesc)
+      , formField "desc::Description" [ TP.view "desc" model.description Desc 600 (style "height" "150px" :: onInvalid (Invalid General) :: GCE.valDescription)
         [ b [] [ text "English please!" ] ] ]
       , formField "bmonth::Birthday"
         [ inputSelect "bmonth" model.bMonth BMonth [style "width" "128px"] <| (0, "Unknown") :: RDate.monthSelect

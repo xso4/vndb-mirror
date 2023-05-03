@@ -118,7 +118,7 @@ sub _info_table_ {
         };
     };
 
-    my $traits = tuwf->dbAlli('SELECT u.tid, t.name, g.id as "group", g.name AS groupname FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.group WHERE u.id =', \$u->{id}, 'ORDER BY g.order, t.name');
+    my $traits = tuwf->dbAlli('SELECT u.tid, t.name, g.id as "group", g.name AS groupname FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id =', \$u->{id}, 'ORDER BY g.gorder, t.name');
     my @groups;
     for (@$traits) {
         push @groups, $_ if !@groups || $groups[$#groups]{group} ne $_->{group};

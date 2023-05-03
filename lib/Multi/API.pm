@@ -472,7 +472,7 @@ my %GET_VN = (
     },
     details => {
       select => 'v.image, i.c_sexual_avg, i.c_violence_avg, i.c_votecount, i.width AS image_width, i.height AS image_height, v.alias AS aliases,
-            v.length, v.c_length AS length_minutes, v.c_lengthnum AS length_votes, v.desc AS description, v.l_wp, v.l_encubed, v.l_renai, l_wikidata',
+            v.length, v.c_length AS length_minutes, v.c_lengthnum AS length_votes, v.description, v.l_wp, v.l_encubed, v.l_renai, l_wikidata',
       proc   => sub {
         $_[0]{aliases}     ||= undef;
         $_[0]{length}      *= 1;
@@ -853,7 +853,7 @@ my %GET_PRODUCER = (
       },
     },
     details => {
-      select => 'p.website, p.l_wp, p.l_wikidata, p.desc AS description, p.alias AS aliases',
+      select => 'p.website, p.l_wp, p.l_wikidata, p.description, p.alias AS aliases',
       proc => sub {
         $_[0]{description} ||= undef;
         $_[0]{aliases}     ||= undef;
@@ -930,7 +930,7 @@ my %GET_CHARACTER = (
       },
     },
     details => {
-      select => 'c.alias AS aliases, c.image, i.c_sexual_avg, i.c_violence_avg, i.c_votecount, i.width AS image_width, i.height AS image_height, c."desc" AS description, c.age',
+      select => 'c.alias AS aliases, c.image, i.c_sexual_avg, i.c_violence_avg, i.c_votecount, i.width AS image_width, i.height AS image_height, c.description, c.age',
       proc => sub {
         $_[0]{aliases}     ||= undef;
         $_[0]{description} ||= undef;
@@ -1049,7 +1049,7 @@ my %GET_STAFF = (
       },
     },
     details => {
-      select => 's."desc" AS description, s.l_wp, s.l_site, s.l_twitter, s.l_anidb, s.l_wikidata, s.l_pixiv',
+      select => 's.description, s.l_wp, s.l_site, s.l_twitter, s.l_anidb, s.l_wikidata, s.l_pixiv',
       proc => sub {
         $_[0]{description} ||= undef;
         $_[0]{links} = {

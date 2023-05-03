@@ -40,9 +40,9 @@ sub enrich_item {
     # so fetch the raw spoil as a separate column and do filtering/processing later.
     enrich_merge tid => sub { sql '
       SELECT t.id AS tid, t.name, t.hidden, t.locked, t.applicable, t.sexual, x.spoil AS override, x.color
-           , coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.order,0) AS order
+           , coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.gorder,0) AS order
         FROM traits t
-        LEFT JOIN traits g ON t.group = g.id
+        LEFT JOIN traits g ON t.gid = g.id
         LEFT JOIN', sql_trait_overrides(), 'x ON x.tid = t.id
        WHERE t.id IN', $_
     }, $c->{traits};
@@ -58,7 +58,7 @@ sub enrich_item {
 sub fetch_chars {
     my($vid, $where) = @_;
     my $l = tuwf->dbAlli('
-        SELECT id, title, alias, "desc", gender, spoil_gender, b_month, b_day, s_bust, s_waist, s_hip, height, weight, bloodt, cup_size, age, image
+        SELECT id, title, alias, description, gender, spoil_gender, b_month, b_day, s_bust, s_waist, s_hip, height, weight, bloodt, cup_size, age, image
           FROM', charst, 'c WHERE NOT hidden AND (', $where, ')
          ORDER BY sorttitle
     ');
@@ -74,13 +74,13 @@ sub fetch_chars {
 
     enrich traits => id => id => sub { sql '
         SELECT ct.id, ct.tid, ct.spoil, x.spoil AS override, x.color, ct.lie, t.name, t.hidden, t.locked, t.sexual
-             , coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.order,0) AS order
+             , coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.gorder,0) AS order
           FROM chars_traits ct
           JOIN traits t ON t.id = ct.tid
-          LEFT JOIN traits g ON t.group = g.id
+          LEFT JOIN traits g ON t.gid = g.id
           LEFT JOIN', sql_trait_overrides(), 'x ON x.tid = ct.tid
          WHERE x.spoil IS DISTINCT FROM 1+1+1 AND ct.id IN', $_, '
-         ORDER BY g.order NULLS FIRST, coalesce(g.name, t.name), t.name'
+         ORDER BY g.gorder NULLS FIRST, coalesce(g.name, t.name), t.name'
     }, $l;
 
     enrich_seiyuu $vid, $l;
@@ -95,7 +95,7 @@ sub _rev_ {
         [ name       => 'Name'           ],
         [ latin      => 'Name (latin)'   ],
         [ alias      => 'Aliases'        ],
-        [ desc       => 'Description'    ],
+        [ description=> 'Description'    ],
         [ gender     => 'Sex',           fmt => \%GENDER ],
         [ spoil_gender=> 'Sex (spoiler)',fmt => \%GENDER ],
         [ b_month    => 'Birthday/month',empty => 0 ],
@@ -248,9 +248,9 @@ sub chartable_ {
             tr_ class => 'nostripe', sub {
                 td_ colspan => 2, class => 'chardesc', sub {
                     h2_ 'Description';
-                    p_ sub { lit_ bb_format $c->{desc}, replacespoil => $view->{spoilers} != 2, keepspoil => $view->{spoilers} == 2 };
+                    p_ sub { lit_ bb_format $c->{description}, replacespoil => $view->{spoilers} != 2, keepspoil => $view->{spoilers} == 2 };
                 };
-            } if $c->{desc};
+            } if $c->{description};
         };
     };
     clearfloat_;
@@ -279,7 +279,7 @@ TUWF::get qr{/$RE{crev}} => sub {
         (map $_->{override}//($_->{lie}?2:$_->{spoil}), grep !$_->{hidden} && !(($_->{override}//0) == 3), $c->{traits}->@*),
         (map $_->{spoil}, $c->{vns}->@*),
         defined $c->{spoil_gender} ? 2 : 0,
-        $c->{desc} =~ /\[spoiler\]/i ? 2 : 0, # crude
+        $c->{description} =~ /\[spoiler\]/i ? 2 : 0, # crude
     );
     # Only display the sexual traits toggle when there are sexual traits within the current spoiler level.
     my $has_sex = grep !$_->{hidden} && $_->{sexual} && ($_->{override}//$_->{spoil}) <= $view->{spoilers}, map $_->{traits}->@*, $c, @$inst;
@@ -287,7 +287,7 @@ TUWF::get qr{/$RE{crev}} => sub {
     $c->{title} = titleprefs_swap tuwf->dbVali('SELECT c_lang FROM chars WHERE id =', \$c->{id}), @{$c}{qw/ name latin /};
     framework_ title => $c->{title}[1], index => !tuwf->capture('rev'), dbobj => $c, hiddenmsg => 1,
         og => {
-            description => bb_format($c->{desc}, text => 1),
+            description => bb_format($c->{description}, text => 1),
             image => $c->{image} && $c->{image}{votecount} && !$c->{image}{sexual} && !$c->{image}{violence} ? imgurl($c->{image}{id}) : undef,
         },
     sub {

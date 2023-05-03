@@ -14,7 +14,7 @@ my $FORM = {
         official => { anybool => 1 },
     } },
     alias      => { required => 0, default => '', maxlength => 500 },
-    desc       => { required => 0, default => '', maxlength => 10240 },
+    description=> { required => 0, default => '', maxlength => 10240 },
     devstatus  => { uint => 1, enum => \%DEVSTATUS },
     olang      => { enum => \%LANGUAGE, default => 'ja' },
     length     => { uint => 1, enum => \%VN_LENGTH },
@@ -159,7 +159,7 @@ elm_api VNEdit => $FORM_OUT, $FORM_IN, sub {
         $data->{hidden} = $e->{hidden}||0;
         $data->{locked} = $e->{locked}||0;
     }
-    $data->{desc} = bb_subst_links $data->{desc};
+    $data->{description} = bb_subst_links $data->{description};
     $data->{alias} =~ s/\n\n+/\n/;
     die "No title in original language" if !grep $_->{lang} eq $data->{olang}, $data->{titles}->@*;
 

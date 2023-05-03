@@ -31,7 +31,7 @@ type alias Model =
   , alias       : List GSE.RecvAlias
   , aliasDup    : Bool
   , aid         : Int
-  , desc        : TP.Model
+  , description : TP.Model
   , gender      : String
   , lang        : String
   , l_site      : String
@@ -52,7 +52,7 @@ init d =
   , alias       = d.alias
   , aliasDup    = False
   , aid         = d.aid
-  , desc        = TP.bbcode d.desc
+  , description = TP.bbcode d.description
   , gender      = d.gender
   , lang        = d.lang
   , l_site      = d.l_site
@@ -74,7 +74,7 @@ encode model =
   , locked      = model.editsum.locked
   , aid         = model.aid
   , alias       = List.map (\e -> { aid = e.aid, name = e.name, latin = e.latin }) model.alias
-  , desc        = model.desc.data
+  , description = model.description.data
   , gender      = model.gender
   , lang        = model.lang
   , l_site      = model.l_site
@@ -127,7 +127,7 @@ update msg model =
     LTwitter s -> ({ model | l_twitter = s }, Cmd.none)
     LAnidb s   -> ({ model | l_anidb   = if s == "" then Nothing else String.toInt s }, Cmd.none)
     LPixiv s   -> ({ model | l_pixiv   = Maybe.withDefault 0 (String.toInt s) }, Cmd.none)
-    Desc m     -> let (nm,nc) = TP.update m model.desc in ({ model | desc = nm }, Cmd.map Desc nc)
+    Desc m     -> let (nm,nc) = TP.update m model.description in ({ model | description = nm }, Cmd.map Desc nc)
 
     AliasDel i    -> (validate { model | dupStaff = [], alias = delidx i model.alias }, Cmd.none)
     AliasName i s -> (validate { model | dupStaff = [], alias = modidx i (\e -> { e | name     = s }) model.alias }, Cmd.none)
@@ -224,7 +224,7 @@ view model =
         [ h1 [] [ text "General info" ]
         , table [ class "formtable" ]
           [ formField "Names" [ names, br_ 1 ]
-          , formField "desc::Biography" [ TP.view "desc" model.desc Desc 500 GSE.valDesc [ b [] [ text "English please!" ] ] ]
+          , formField "desc::Biography" [ TP.view "desc" model.description Desc 500 GSE.valDescription [ b [] [ text "English please!" ] ] ]
           , formField "gender::Gender" [ inputSelect "gender" model.gender Gender []
             [ ("unknown", "Unknown or N/A")
             , ("f",       "Female")

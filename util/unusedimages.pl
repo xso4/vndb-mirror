@@ -48,16 +48,16 @@ sub cleandb {
             SELECT vndbid(case when img[1] = 'st' then 'sf' else img[1] end, img[2]::int)
               FROM (      SELECT content FROM docs
                 UNION ALL SELECT content FROM docs_hist
-                UNION ALL SELECT "desc" FROM vn
-                UNION ALL SELECT "desc" FROM vn_hist
-                UNION ALL SELECT "desc" FROM chars
-                UNION ALL SELECT "desc" FROM chars_hist
-                UNION ALL SELECT "desc" FROM producers
-                UNION ALL SELECT "desc" FROM producers_hist
+                UNION ALL SELECT description FROM vn
+                UNION ALL SELECT description FROM vn_hist
+                UNION ALL SELECT description FROM chars
+                UNION ALL SELECT description FROM chars_hist
+                UNION ALL SELECT description FROM producers
+                UNION ALL SELECT description FROM producers_hist
                 UNION ALL SELECT notes  FROM releases
                 UNION ALL SELECT notes  FROM releases_hist
-                UNION ALL SELECT "desc" FROM staff
-                UNION ALL SELECT "desc" FROM staff_hist
+                UNION ALL SELECT description FROM staff
+                UNION ALL SELECT description FROM staff_hist
                 UNION ALL SELECT description FROM tags
                 UNION ALL SELECT description FROM tags_hist
                 UNION ALL SELECT description FROM traits

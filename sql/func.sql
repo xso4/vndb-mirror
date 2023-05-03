@@ -232,7 +232,7 @@ $$ LANGUAGE SQL STABLE;
 
 -- Same for staff_aliast
 CREATE OR REPLACE FUNCTION staff_aliast(p titleprefs) RETURNS SETOF staff_aliast AS $$
-    SELECT s.id, s.gender, s.lang, s.l_anidb, s.l_wikidata, s.l_pixiv, s.locked, s.hidden, s."desc", s.l_wp, s.l_site, s.l_twitter, s.aid AS main
+    SELECT s.id, s.gender, s.lang, s.l_anidb, s.l_wikidata, s.l_pixiv, s.locked, s.hidden, s.description, s.l_wp, s.l_site, s.l_twitter, s.aid AS main
          , sa.aid, sa.name, sa.latin
          , titleprefs_swap(p, s.lang, sa.name, sa.latin), COALESCE(sa.latin, sa.name)
       FROM staff s
@@ -630,7 +630,7 @@ BEGIN
     WHEN 'c' THEN SELECT c.title, NULL::vndbid, c.hidden, c.locked INTO ret FROM charst($1) c     WHERE c.id = $2;
     WHEN 'd' THEN SELECT ARRAY[NULL, d.title, NULL, d.title], NULL::vndbid, d.hidden, d.locked INTO ret FROM docs d WHERE d.id = $2;
     WHEN 'g' THEN SELECT ARRAY[NULL, g.name,  NULL, g.name],  NULL::vndbid, g.hidden, g.locked INTO ret FROM tags g WHERE g.id = $2;
-    WHEN 'i' THEN SELECT ARRAY[NULL, COALESCE(g.name||' > ', '')||i.name, NULL, COALESCE(g.name||' > ', '')||i.name], NULL::vndbid, i.hidden, i.locked INTO ret FROM traits i LEFT JOIN traits g ON g.id = i.group WHERE i.id = $2;
+    WHEN 'i' THEN SELECT ARRAY[NULL, COALESCE(g.name||' > ', '')||i.name, NULL, COALESCE(g.name||' > ', '')||i.name], NULL::vndbid, i.hidden, i.locked INTO ret FROM traits i LEFT JOIN traits g ON g.id = i.gid WHERE i.id = $2;
     WHEN 's' THEN SELECT s.title, NULL::vndbid, s.hidden, s.locked INTO ret FROM staff_aliast($1) s WHERE s.id = $2 AND s.aid = s.main;
     WHEN 't' THEN SELECT ARRAY[NULL, t.title, NULL, t.title], NULL::vndbid, t.hidden OR t.private, t.locked INTO ret FROM threads t WHERE t.id = $2;
     WHEN 'w' THEN SELECT v.title, w.uid, w.c_flagged, w.locked INTO ret FROM reviews w JOIN vnt v ON v.id = w.vid WHERE w.id = $2;

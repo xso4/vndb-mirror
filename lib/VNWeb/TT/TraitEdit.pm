@@ -17,7 +17,7 @@ my $FORM = {
         name        => { _when => 'out' },
         group       => { _when => 'out', required => 0 },
     } },
-    order        => { uint => 1 },
+    gorder       => { uint => 1 },
     hidden       => { anybool => 1 },
     locked       => { anybool => 1 },
 
@@ -37,7 +37,7 @@ TUWF::get qr{/$RE{irev}/edit}, sub {
 
     enrich_merge parent => '
         SELECT i.id AS parent, i.name, g.name AS group
-          FROM traits i LEFT JOIN traits g ON g.id = i.group WHERE i.id IN', $e->{parents};
+          FROM traits i LEFT JOIN traits g ON g.id = i.gid WHERE i.id IN', $e->{parents};
 
     $e->{authmod} = auth->permTagmod;
     $e->{editsum} = $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
@@ -50,7 +50,7 @@ TUWF::get qr{/$RE{irev}/edit}, sub {
 
 TUWF::get qr{/(?:$RE{iid}/add|i/new)}, sub {
     my $id = tuwf->capture('id');
-    my $i = tuwf->dbRowi('SELECT i.id AS parent, i.name, g.name AS "group", i.sexual FROM traits i LEFT JOIN traits g ON g.id = i."group" WHERE i.id =', \$id);
+    my $i = tuwf->dbRowi('SELECT i.id AS parent, i.name, g.name AS "group", i.sexual FROM traits i LEFT JOIN traits g ON g.id = i.gid WHERE i.id =', \$id);
     return tuwf->resDenied if !can_edit i => {};
     return tuwf->resNotFound if $id && !$i->{parent};
 
@@ -91,7 +91,7 @@ elm_api TraitEdit => $FORM_OUT, $FORM_IN, sub {
         $data->{hidden} = $e->{hidden}//1;
         $data->{locked} = $e->{locked}//0;
     }
-    $data->{order} = 0 if $data->{parents}->@*;
+    $data->{gorder} = 0 if $data->{parents}->@*;
 
     # Make sure parent IDs exists and are not a child trait of the current trait (i.e. don't allow cycles)
     my @parents = map $_->{parent}, $data->{parents}->@*;
@@ -102,7 +102,7 @@ elm_api TraitEdit => $FORM_OUT, $FORM_IN, sub {
     }, @parents;
     die "No or multiple primary parents" if $data->{parents}->@* && 1 != grep $_->{main}, $data->{parents}->@*;
 
-    my $group = tuwf->dbVali('SELECT coalesce("group",id) FROM traits WHERE id =', \[grep $_->{main}, $data->{parents}->@*]->[0]{parent});
+    my $group = tuwf->dbVali('SELECT coalesce(gid,id) FROM traits WHERE id =', \[grep $_->{main}, $data->{parents}->@*]->[0]{parent});
 
     $data->{description} = bb_subst_links($data->{description});
 
@@ -114,7 +114,7 @@ elm_api TraitEdit => $FORM_OUT, $FORM_IN, sub {
           JOIN traits t ON n.id = t.id
          WHERE ', sql_and(
              $new ? () : sql('n.id <>', \$e->{id}),
-             sql('t."group" IS NOT DISTINCT FROM', \$group),
+             sql('t.gid IS NOT DISTINCT FROM', \$group),
              sql 'lower(n.name) IN', [ map lc($_), $data->{name}, grep length($_), split /$re/, $data->{alias} ]
          )
     );
@@ -122,11 +122,11 @@ elm_api TraitEdit => $FORM_OUT, $FORM_IN, sub {
 
     return elm_Unchanged if !$new && !form_changed $FORM_CMP, $data, $e;
     my $ch = db_edit i => $e->{id}, $data;
-    tuwf->dbExeci('UPDATE traits SET "group" = null WHERE id =', \$ch->{nitemid}) if !$group;
+    tuwf->dbExeci('UPDATE traits SET gid = null WHERE id =', \$ch->{nitemid}) if !$group;
     tuwf->dbExeci('
         WITH RECURSIVE childs (id) AS (
             SELECT ', \$ch->{nitemid}, '::vndbid UNION ALL SELECT tp.id FROM childs JOIN traits_parents tp ON tp.parent = childs.id AND tp.main
-        ) UPDATE traits SET "group" =', \$group, 'WHERE id IN(SELECT id FROM childs) AND "group" IS DISTINCT FROM', \$group
+        ) UPDATE traits SET gid =', \$group, 'WHERE id IN(SELECT id FROM childs) AND gid IS DISTINCT FROM', \$group
     ) if $group;
     elm_Redirect "/$ch->{nitemid}.$ch->{nrev}";
 };

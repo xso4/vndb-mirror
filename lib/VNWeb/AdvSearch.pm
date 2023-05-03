@@ -867,7 +867,7 @@ sub elm_search_query {
 
     $o{traits} = [ map +{id => $_}, grep /^i/, keys %ids ];
     enrich_merge id => 'SELECT t.id, t.name, t.searchable, t.applicable, t.defaultspoil, t.hidden, t.locked, g.id AS group_id, g.name AS group_name
-                          FROM traits t LEFT JOIN traits g ON g.id = t.group WHERE t.id IN', $o{traits};
+                          FROM traits t LEFT JOIN traits g ON g.id = t.gid WHERE t.id IN', $o{traits};
 
     $o{anime} = [ map +{id => $_=~s/^anime//rg}, grep /^anime/, keys %ids ];
     enrich_merge id => 'SELECT id, title_romaji AS title, title_kanji AS original FROM anime WHERE id IN', $o{anime};

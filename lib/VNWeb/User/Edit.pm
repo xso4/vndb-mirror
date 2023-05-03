@@ -139,9 +139,9 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
         $u->{prefs}{vnrel_langs} ||= [ keys %LANGUAGE ];
         $u->{prefs}{staffed_langs} ||= [ keys %LANGUAGE ];
         @{$u->{prefs}}{'titles','alttitles'} = @{ titleprefs_parse($u->{prefs}{titles}) // $DEFAULT_TITLE_PREFS };
-        $u->{prefs}{traits} = tuwf->dbAlli('SELECT u.tid, t.name, g.name AS "group" FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.group WHERE u.id =', \$u->{id}, 'ORDER BY g.order, t.name');
+        $u->{prefs}{traits} = tuwf->dbAlli('SELECT u.tid, t.name, g.name AS "group" FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id =', \$u->{id}, 'ORDER BY g.gorder, t.name');
         $u->{prefs}{tagprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.color, u.childs, t.name FROM users_prefs_tags u JOIN tags t ON t.id = u.tid WHERE u.id =', \$u->{id}, 'ORDER BY t.name');
-        $u->{prefs}{traitprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.color, u.childs, t.name, g.name as "group" FROM users_prefs_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.group WHERE u.id =', \$u->{id}, 'ORDER BY g.order, t.name');
+        $u->{prefs}{traitprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.color, u.childs, t.name, g.name as "group" FROM users_prefs_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id =', \$u->{id}, 'ORDER BY g.gorder, t.name');
         $u->{prefs}{api2} = auth->api2_tokens($u->{id});
         $_->{delete} = 0 for $u->{prefs}{api2}->@*;
     }

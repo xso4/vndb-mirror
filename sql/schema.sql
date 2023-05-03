@@ -236,7 +236,7 @@ CREATE TABLE chars ( -- dbentry_type=c
   name         varchar(250) NOT NULL DEFAULT '', -- [pub]
   latin        varchar(250), -- [pub]
   alias        varchar(500) NOT NULL DEFAULT '', -- [pub]
-  "desc"       text NOT NULL DEFAULT '', -- [pub]
+  description  text NOT NULL DEFAULT '', -- [pub]
   c_lang       language NOT NULL DEFAULT 'ja'
 );
 
@@ -261,7 +261,7 @@ CREATE TABLE chars_hist (
   name         varchar(250) NOT NULL DEFAULT '',
   latin        varchar(250),
   alias        varchar(500) NOT NULL DEFAULT '',
-  "desc"       text     NOT NULL DEFAULT ''
+  description  text     NOT NULL DEFAULT ''
 );
 
 -- chars_traits
@@ -400,7 +400,7 @@ CREATE TABLE producers ( -- dbentry_type=p
   latin      varchar(200), -- [pub]
   alias      varchar(500) NOT NULL DEFAULT '', -- [pub]
   website    varchar(1024) NOT NULL DEFAULT '', -- [pub]
-  "desc"     text NOT NULL DEFAULT '', -- [pub]
+  description text NOT NULL DEFAULT '', -- [pub]
   l_wp       varchar(150) -- (deprecated)
 );
 
@@ -414,7 +414,7 @@ CREATE TABLE producers_hist (
   latin      varchar(200),
   alias      varchar(500) NOT NULL DEFAULT '',
   website    varchar(1024) NOT NULL DEFAULT '',
-  "desc"     text NOT NULL DEFAULT '',
+  description text NOT NULL DEFAULT '',
   l_wp       varchar(150)
 );
 
@@ -853,7 +853,7 @@ CREATE TABLE staff ( -- dbentry_type=s
   l_pixiv     integer NOT NULL DEFAULT 0, -- [pub]
   locked      boolean NOT NULL DEFAULT FALSE,
   hidden      boolean NOT NULL DEFAULT FALSE,
-  "desc"      text NOT NULL DEFAULT '', -- [pub]
+  description text NOT NULL DEFAULT '', -- [pub]
   l_wp        varchar(150) NOT NULL DEFAULT '', -- (deprecated)
   l_site      varchar(250) NOT NULL DEFAULT '', -- [pub]
   l_twitter   varchar(16) NOT NULL DEFAULT '' -- [pub]
@@ -868,7 +868,7 @@ CREATE TABLE staff_hist (
   l_anidb     integer,
   l_wikidata  integer,
   l_pixiv     integer NOT NULL DEFAULT 0,
-  "desc"      text NOT NULL DEFAULT '',
+  description text NOT NULL DEFAULT '',
   l_wp        varchar(150) NOT NULL DEFAULT '',
   l_site      varchar(250) NOT NULL DEFAULT '',
   l_twitter   varchar(16) NOT NULL DEFAULT ''
@@ -1044,8 +1044,8 @@ CREATE TABLE traits ( -- dbentry_type=i
   id            vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('i', nextval('traits_id_seq')::int) CONSTRAINT traits_id_check CHECK(vndbid_type(id) = 'i'), -- [pub]
   c_items       integer NOT NULL DEFAULT 0,
   added         timestamptz NOT NULL DEFAULT NOW(),
-  "group"       vndbid, -- [pub] (technically a cached column, main parent's root trait)
-  "order"       smallint NOT NULL DEFAULT 0, -- [pub]
+  gid           vndbid, -- [pub] (technically a cached column, main parent's root trait)
+  gorder        smallint NOT NULL DEFAULT 0, -- [pub]
   defaultspoil  smallint NOT NULL DEFAULT 0, -- [pub]
   hidden        boolean NOT NULL DEFAULT TRUE,
   locked        boolean NOT NULL DEFAULT FALSE,
@@ -1060,7 +1060,7 @@ CREATE TABLE traits ( -- dbentry_type=i
 -- traits_hist
 CREATE TABLE traits_hist (
   chid          integer NOT NULL,
-  "order"       smallint NOT NULL DEFAULT 0,
+  gorder        smallint NOT NULL DEFAULT 0,
   defaultspoil  smallint NOT NULL DEFAULT 0,
   sexual        boolean NOT NULL DEFAULT false,
   searchable    boolean NOT NULL DEFAULT true,
@@ -1288,7 +1288,7 @@ CREATE TABLE vn ( -- dbentry_type=v
   l_wp          varchar(150) NOT NULL DEFAULT '', -- (deprecated)
   l_encubed     varchar(100) NOT NULL DEFAULT '', -- (deprecated)
   l_renai       varchar(100) NOT NULL DEFAULT '', -- [pub]
-  "desc"        text NOT NULL DEFAULT '', -- [pub]
+  description   text NOT NULL DEFAULT '', -- [pub]
   c_languages   language[] NOT NULL DEFAULT '{}',
   c_platforms   platform[] NOT NULL DEFAULT '{}',
   c_developers  vndbid[] NOT NULL DEFAULT '{}'
@@ -1307,7 +1307,7 @@ CREATE TABLE vn_hist (
   l_wp         varchar(150) NOT NULL DEFAULT '',
   l_encubed    varchar(100) NOT NULL DEFAULT '',
   l_renai      varchar(100) NOT NULL DEFAULT '',
-  "desc"       text NOT NULL DEFAULT ''
+  description  text NOT NULL DEFAULT ''
 );
 
 -- vn_anime
@@ -1534,7 +1534,7 @@ CREATE VIEW charst AS
 -- This joins staff & staff_alias and adds the title + sorttitle fields.
 CREATE VIEW staff_aliast AS
            -- Everything from 'staff', except 'aid' is renamed to 'main'
-    SELECT s.id, s.gender, s.lang, s.l_anidb, s.l_wikidata, s.l_pixiv, s.locked, s.hidden, s."desc", s.l_wp, s.l_site, s.l_twitter, s.aid AS main
+    SELECT s.id, s.gender, s.lang, s.l_anidb, s.l_wikidata, s.l_pixiv, s.locked, s.hidden, s.description, s.l_wp, s.l_site, s.l_twitter, s.aid AS main
          , sa.aid, sa.name, sa.latin
          , ARRAY [ s.lang::text, COALESCE(sa.latin, sa.name)
                  , s.lang::text, sa.name ] AS title

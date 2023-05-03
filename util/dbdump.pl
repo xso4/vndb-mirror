@@ -247,9 +247,9 @@ sub export_import_script {
         my $schema = $schema->{$table->{name}};
         my @primary = grep { my $n=$_; !!grep $_->{name} eq $n && $_->{pub}, $schema->{cols}->@* } ($schema->{primary}||[])->@*;
         print $F "\n";
-        print $F "CREATE TABLE \"$table->{name}\" (\n";
-        print $F join ",\n", map "  $_->{decl}" =~ s/" serial/" integer/ir =~ s/ +(?:check|constraint|default) +.*//ir, grep $_->{pub}, @{$schema->{cols}};
-        print $F ",\n  PRIMARY KEY(".join(', ', map "\"$_\"", @primary).")" if @primary;
+        print $F "CREATE TABLE $table->{name} (\n";
+        print $F join ",\n", map "  $_->{decl}" =~ s/ serial/ integer/ir =~ s/ +(?:check|constraint|default) +.*//ir, grep $_->{pub}, @{$schema->{cols}};
+        print $F ",\n  PRIMARY KEY(".join(', ', map "$_", @primary).")" if @primary;
         print $F "\n);\n";
     }
 

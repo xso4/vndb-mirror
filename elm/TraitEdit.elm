@@ -37,7 +37,7 @@ type alias Model =
   , defaultspoil : Int
   , parents      : List GTE.RecvParents
   , parentAdd    : A.Model GApi.ApiTraitResult
-  , order        : Int
+  , gorder       : Int
   , dupNames     : List GApi.ApiDupNames
   }
 
@@ -56,7 +56,7 @@ init d =
   , defaultspoil = d.defaultspoil
   , parents      = d.parents
   , parentAdd    = A.init ""
-  , order        = d.order
+  , gorder       = d.gorder
   , dupNames     = []
   }
 
@@ -88,7 +88,7 @@ encode m =
   , applicable   = m.applicable
   , defaultspoil = m.defaultspoil
   , parents      = List.map (\l -> {parent=l.parent, main=l.main}) m.parents
-  , order        = m.order
+  , gorder       = m.gorder
   }
 
 
@@ -118,7 +118,7 @@ update msg model =
     Applicable b  -> ({ model | applicable = b }, Cmd.none)
     Sexual b      -> ({ model | sexual = b }, Cmd.none)
     DefaultSpoil n-> ({ model | defaultspoil = n }, Cmd.none)
-    Order s       -> ({ model | order = Maybe.withDefault 0 (String.toInt s) }, Cmd.none)
+    Order s       -> ({ model | gorder = Maybe.withDefault 0 (String.toInt s) }, Cmd.none)
     Description m -> let (nm,nc) = TP.update m model.description in ({ model | description = nm }, Cmd.map Description nc)
     Editsum m     -> let (nm,nc) = Editsum.update m model.editsum in ({ model | editsum = nm }, Cmd.map Editsum nc)
 
@@ -192,8 +192,8 @@ view model =
         ]
       , if not (List.isEmpty model.parents) then text "" else
         formField "order::Group order"
-        [ inputText "order" (String.fromInt model.order) Order (style "width" "50px" :: GTE.valOrder)
-        , text " Only meaningful if this trait is as a \"group\", i.e. a trait without any parents."
+        [ inputText "order" (String.fromInt model.gorder) Order (style "width" "50px" :: GTE.valGorder)
+        , text " Only meaningful if this trait is a \"group\", i.e. a trait without any parents."
         , text " This number determines the order in which the groups are displayed on character pages."
         ]
       ]

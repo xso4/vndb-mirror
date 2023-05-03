@@ -19,7 +19,7 @@ sub rev_ {
         [ name       => 'Name'           ],
         [ latin      => 'Name (latin)'   ],
         [ alias      => 'Aliases'        ],
-        [ desc       => 'Description'    ],
+        [ description=> 'Description'    ],
         [ type       => 'Type',          fmt => \%PRODUCER_TYPE ],
         [ lang       => 'Language',      fmt => \%LANGUAGE ],
         [ relations  => 'Relations',     fmt => sub {
@@ -56,7 +56,7 @@ sub info_ {
         }, grep $rel{$_}, keys %PRODUCER_RELATION;
     } if $p->{relations}->@*;
 
-    div_ class => 'description', sub { lit_ bb_format $p->{desc} } if length $p->{desc};
+    div_ class => 'description', sub { lit_ bb_format $p->{description} } if length $p->{description};
 }
 
 
@@ -159,7 +159,7 @@ TUWF::get qr{/$RE{prev}(?:/(?<tab>vn|rel))?}, sub {
     framework_ title => $title->[1], index => !tuwf->capture('rev'), dbobj => $p, hiddenmsg => 1,
     og => {
         title       => $title->[1],
-        description => bb_format($p->{desc}, text => 1),
+        description => bb_format($p->{description}, text => 1),
     },
     sub {
         rev_ $p if tuwf->capture('rev');

@@ -12,7 +12,7 @@ my $FORM = {
     lang       => { default => 'ja', enum => \%LANGUAGE },
     website    => { required => 0, default => '', weburl => 1 },
     l_wikidata => { required => 0, uint => 1, max => (1<<31)-1 },
-    desc       => { required => 0, default => '', maxlength => 5000 },
+    description=> { required => 0, default => '', maxlength => 5000 },
     relations  => { sort_keys => 'pid', aoh => {
         pid      => { vndbid => 'p' },
         relation => { enum => \%PRODUCER_RELATION },
@@ -71,7 +71,7 @@ elm_api ProducerEdit => $FORM_OUT, $FORM_IN, sub {
         $data->{hidden} = $e->{hidden}||0;
         $data->{locked} = $e->{locked}||0;
     }
-    $data->{desc} = bb_subst_links $data->{desc};
+    $data->{description} = bb_subst_links $data->{description};
     $data->{alias} =~ s/\n\n+/\n/;
 
     $data->{relations} = [] if $data->{hidden};

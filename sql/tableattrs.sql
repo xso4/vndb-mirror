@@ -131,7 +131,7 @@ ALTER TABLE threads_poll_votes       ADD CONSTRAINT threads_poll_votes_optid_fke
 ALTER TABLE threads_posts            ADD CONSTRAINT threads_posts_tid_fkey             FOREIGN KEY (tid)       REFERENCES threads       (id) ON DELETE CASCADE;
 ALTER TABLE threads_posts            ADD CONSTRAINT threads_posts_uid_fkey             FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE SET DEFAULT;
 ALTER TABLE threads_boards           ADD CONSTRAINT threads_boards_tid_fkey            FOREIGN KEY (tid)       REFERENCES threads       (id) ON DELETE CASCADE;
-ALTER TABLE traits                   ADD CONSTRAINT traits_group_fkey                  FOREIGN KEY ("group")   REFERENCES traits        (id);
+ALTER TABLE traits                   ADD CONSTRAINT traits_gid_fkey                    FOREIGN KEY (gid)       REFERENCES traits        (id);
 ALTER TABLE traits_hist              ADD CONSTRAINT traits_hist_chid_fkey              FOREIGN KEY (chid)      REFERENCES changes       (id);
 ALTER TABLE traits_parents           ADD CONSTRAINT traits_parents_id_fkey             FOREIGN KEY (id)        REFERENCES traits        (id);
 ALTER TABLE traits_parents           ADD CONSTRAINT traits_parents_parent_fkey         FOREIGN KEY (parent)    REFERENCES traits        (id);

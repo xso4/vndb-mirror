@@ -22,7 +22,7 @@ sub rev_ {
         [ searchable   => 'Searchable',    fmt => 'bool' ],
         [ applicable   => 'Applicable',    fmt => 'bool' ],
         [ defaultspoil => 'Default spoiler level' ],
-        [ order        => 'Sort order'     ],
+        [ gorder       => 'Sort order'     ],
         [ parents      => 'Parent traits', fmt => sub { a_ href => "/$_->{parent}", $_->{name}; txt_ ' (primary)' if $_->{main} } ];
 }
 

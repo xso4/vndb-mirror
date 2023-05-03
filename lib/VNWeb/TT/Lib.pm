@@ -17,7 +17,7 @@ sub tagscore_ {
 # Add a 'group' name for traits
 sub enrich_group {
     my($type, @lst) = @_;
-    enrich_merge id => 'SELECT t.id, g.name AS "group" FROM traits t JOIN traits g ON g.id = t."group" WHERE t.id IN', @lst if $type eq 'i';
+    enrich_merge id => 'SELECT t.id, g.name AS "group" FROM traits t JOIN traits g ON g.id = t.gid WHERE t.id IN', @lst if $type eq 'i';
 }
 
 
