@@ -88,7 +88,9 @@ sub _roles_ {
     return if !@$roles;
     enrich_ulists_widget $roles;
 
-    h1_ class => 'boxtitle', sprintf 'Credits (%d)', scalar @$roles;
+    nav_ sub {
+        h1_ sprintf 'Credits (%d)', scalar @$roles;
+    };
     article_ class => 'browse staffroles', sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
@@ -141,9 +143,9 @@ sub _cast_ {
     my $spoilers = viewget->{spoilers};
     my $max_spoil = max(map $_->{spoil}, @$cast);
 
-    div_ class => 'maintabs', sub {
+    nav_ sub {
         h1_ sprintf 'Voiced characters (%d)', scalar @$cast;
-        ul_ sub {
+        menu_ sub {
             li_ mkclass(tabselected => $spoilers == 0), sub { a_ href => '?view='.viewset(spoilers => 0), 'hide spoilers' };
             li_ mkclass(tabselected => $spoilers == 1), sub { a_ href => '?view='.viewset(spoilers => 1), 'minor spoilers' };
             li_ mkclass(tabselected => $spoilers == 2), sub { a_ href => '?view='.viewset(spoilers => 2), 'spoil me!' } if $max_spoil == 2;

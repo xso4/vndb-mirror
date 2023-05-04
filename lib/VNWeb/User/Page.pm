@@ -210,7 +210,9 @@ TUWF::get qr{/$RE{uid}}, sub {
         } if grep $_->{votes} > 0, $u->{votes}->@*;
 
         if($u->{c_changes}) {
-            h1_ class => 'boxtitle', sub { a_ href => "/$u->{id}/hist", 'Recent changes' };
+            nav_ sub {
+                h1_ sub { a_ href => "/$u->{id}/hist", 'Recent changes' };
+            };
             VNWeb::Misc::History::tablebox_ $u->{id}, {p=>1}, nopage => 1, results => 10;
         }
     };

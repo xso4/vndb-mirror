@@ -414,8 +414,8 @@ sub _maintabs_ {
         };
     };
 
-    div_ class => 'maintabs right', sub {
-        ul_ sub {
+    nav_ class => 'right', sub {
+        menu_ sub {
             t '' => "/$id", $id if $t ne 't';
 
             t rg => "/$id/rg", 'relations'
@@ -847,14 +847,13 @@ sub paginate_ {
         }
     }
     my sub ell_ {
-        my($left) = @_;
-        li_ mkclass(ellipsis => 1, left => $left), '⋯';
+        li_ mkclass(ellipsis => 1), '⋯';
     }
 
-    div_ class => 'maintabs'.($al eq 't' ? '' : ' bottom'), sub {
+    nav_ class => $al eq 't' ? undef : 'bottom', sub {
         my $n = ceil($cnt/$pp);
         my $l = $n-$p+1;
-        ul_ class => 'browsetabs', sub {
+        menu_ class => 'browsetabs', sub {
             $p > 1 and tab_ $p-1, '‹ previous';
             if(ref $np) {
                 $p > 3 and tab_ 1;

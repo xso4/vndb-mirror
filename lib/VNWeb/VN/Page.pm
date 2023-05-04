@@ -558,8 +558,8 @@ sub tabs_ {
 
     return if !$chars && !$v->{reviews}{full} && !$v->{reviews}{mini} && !auth->permEdit && !auth->permReview;
     $tab ||= '';
-    div_ class => 'maintabs', sub {
-        ul_ sub {
+    nav_ sub {
+        menu_ sub {
             li_ class => ($tab eq ''        ? ' tabselected' : ''), sub { a_ href => "/$v->{id}#main", name => 'main', 'main' };
             li_ class => ($tab eq 'tags'    ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/tags#tags", name => 'tags', 'tags' };
             li_ class => ($tab eq 'chars'   ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/chars#chars", name => 'chars', "characters ($chars)" } if $chars;
@@ -570,7 +570,7 @@ sub tabs_ {
                 li_ class => ($tab =~ /reviews/ ?' tabselected':''),      sub { a_ href => "/$v->{id}/reviews#review", name => 'review', sprintf 'reviews (%d)', $v->{reviews}{total} };
             }
         };
-        ul_ sub {
+        menu_ sub {
             if(auth && canvote $v) {
                 my $id = tuwf->dbVali('SELECT id FROM reviews WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
                 li_ sub { a_ href => "/$v->{id}/addreview", 'add review' } if !$id && can_edit w => {};

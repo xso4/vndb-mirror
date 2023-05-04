@@ -502,8 +502,8 @@ view model =
 
   in
   form_ "mainform" Submit (model.state == Api.Loading)
-  [ div [ class "maintabs left" ]
-    [ ul []
+  [ nav []
+    [ menu []
       [ li [ classList [("tabselected", model.tab == General)] ] [ a [ href "#", onClickD (Tab General) ] [ text "General info" ] ]
       , li [ classList [("tabselected", model.tab == Image  )] ] [ a [ href "#", onClickD (Tab Image  ) ] [ text "Image"        ] ]
       , li [ classList [("tabselected", model.tab == Traits )] ] [ a [ href "#", onClickD (Tab Traits ) ] [ text "Traits"       ] ]

@@ -18,8 +18,10 @@ TUWF::get qr{/t}, sub {
         };
 
         for my $b (keys %BOARD_TYPE) {
-            h1_ class => 'boxtitle', sub {
-                a_ href => "/t/$b", $BOARD_TYPE{$b}{txt};
+            nav_ sub {
+                h1_ sub {
+                    a_ href => "/t/$b", $BOARD_TYPE{$b}{txt};
+                };
             };
             threadlist_
                 where   => sql('t.id IN(SELECT tid FROM threads_boards WHERE type =', \$b, ')'),

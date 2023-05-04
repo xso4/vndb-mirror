@@ -761,8 +761,8 @@ view model =
 
     fullform () =
       form_ "mainform" Submit (model.state == Api.Loading)
-      [ div [ class "maintabs left" ]
-        [ ul []
+      [ nav []
+        [ menu []
           [ li [ classList [("tabselected", model.tab == General    )] ] [ a [ href "#", onClickD (Tab General    ) ] [ text "General info" ] ]
           , li [ classList [("tabselected", model.tab == Image      )] ] [ a [ href "#", onClickD (Tab Image      ) ] [ text "Image"        ] ]
           , li [ classList [("tabselected", model.tab == Staff      )] ] [ a [ href "#", onClickD (Tab Staff      ) ] [ text "Staff"        ] ]

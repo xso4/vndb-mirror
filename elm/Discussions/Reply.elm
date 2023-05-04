@@ -58,9 +58,8 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-  form_ "" Submit (model.state == Api.Loading)
-  [ article [] <| [
-    if model.old
+  article [] [ form_ "" Submit (model.state == Api.Loading)
+  [ if model.old
     then
       p [ class "center" ]
       [ text "This thread has not seen any activity for more than 6 months, but you may still "

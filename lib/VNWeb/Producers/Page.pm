@@ -169,8 +169,8 @@ TUWF::get qr{/$RE{prev}(?:/(?<tab>vn|rel))?}, sub {
             h2_ class => 'alttitle', tlang(@{$title}[2,3]), $title->[3] if $title->[3] && $title->[3] ne $title->[1];
             info_ $p;
         };
-        div_ class => 'maintabs right', sub {
-            ul_ sub {
+        nav_ class => 'right', sub {
+            menu_ sub {
                 li_ mkclass(tabselected => $tab eq 'vn'),  sub { a_ href => "/$p->{id}/vn",  'Visual Novels' };
                 li_ mkclass(tabselected => $tab eq 'rel'), sub { a_ href => "/$p->{id}/rel", 'Releases' };
             };

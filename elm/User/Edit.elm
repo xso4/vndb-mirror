@@ -686,8 +686,8 @@ view model =
       ]
 
   in form_ "mainform" Submit (model.state == Api.Loading)
-    [ if model.prefs == Nothing then text "" else div [ class "maintabs left" ]
-      [ ul []
+    [ if model.prefs == Nothing then text "" else nav []
+      [ menu []
         [ li [ classList [("tabselected", model.tab == Profile    )] ] [ a [ href "#", onClickD (Tab Profile    ) ] [ text "Account" ] ]
         , li [ classList [("tabselected", model.tab == Preferences)] ] [ a [ href "#", onClickD (Tab Preferences) ] [ text "Display preferences" ] ]
         , li [ classList [("tabselected", model.tab == TTPref     )] ] [ a [ href "#", onClickD (Tab TTPref     ) ] [ text "Tags & Traits" ] ]

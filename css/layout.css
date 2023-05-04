@@ -56,8 +56,10 @@ main {
     h1, h2      { font-family: "Futura", "Century New Gothic", "Arial", serif; }
     h1          { color: var(--boxtitle); font-size: 24px; font-weight: normal; margin: -5px 0 15px 0 }
     h2.alttitle { color: var(--alttitle); font-size: 120%; font-weight: normal; margin: -17px 0 15px 15px }
-    article     {
-        margin: 21px 0 -10px 0; padding: 5px;
+
+    /* Box */
+    article {
+        margin-top: 10px; padding: 5px;
         &.browse {
             padding: 0;
             > table { width: 100% }
@@ -65,8 +67,44 @@ main {
         &.overflow-hack { overflow: hidden; width: 100% }
         &.relgraph { float: left; min-width: 100% }
     }
-}
+    > article:first-child, > form:first-child > article:first-child { margin-top: 21px; }
 
+    /* Tabs */
+    > nav, > form > nav, > form > fieldset > nav {
+        display: flex; justify-content: space-between; margin: 10px 0 -10px 0; align-items: flex-end;
+        &.right { justify-content: flex-end; }
+
+        > menu > li {
+            display: inline-block;
+            &:not(:first-child) { margin: 0 0 0 10px }
+            > a { display: inline-block; height: 21px; padding: 1px 7px 0 7px; border: 1px solid var(--border); border-bottom: none; background-color: var(--tabbg); color: var(--grayedout); }
+            > a:hover { border-bottom: none }
+            &.tabselected > a, > a:hover { background: var(--blendbg); color: var(--maintext); height: 22px; margin-bottom: -1px; }
+            > a.highlightselected { background: var(--secbg); color: var(--maintext); height: 22px; margin-bottom: -1px }
+            > a > svg { margin-top: 2px; margin-bottom: -2px }
+        }
+        .browsetabs > li {
+            > a { color: inherit }
+            &:not(:first-child) { margin-left: 5px }
+        }
+        &.bottom {
+            margin: 0; align-items: flex-start;
+            > menu {
+                > li {
+                    > a { padding: 4px 7px 2px 7px; border-bottom: 1px solid var(--border); border-top: none }
+                    &.tabselected > a, > a:hover { padding-top: 5px; height: 22px; margin-top: -1px }
+                }
+            }
+        }
+        .ellipsis { font-weight: bold; height: 19px }
+
+        > h1 {
+            font-size: 17px; color: var(--grayedout); margin: 0;
+            a { color: inherit }
+        }
+    }
+    > nav:first-child, > form:first-child > nav:first-child, > form:first-child > fieldset:first-child > nav:first-child { margin-top: 0 }
+}
 
 .threelayout {
     display: flex; gap: 10px;
@@ -81,9 +119,13 @@ main {
     .threelayout article { min-width: 90% }
 }
 
+.summarize_more { height: 20px; margin-top: -1px; border: 1px solid var(--border); border-top: none; background: var(--boxbg); text-align: center }
+
+
+
 
 
 main > footer {
-    margin: 15px auto 0 auto; text-align: center; color: var(--footer);
+    margin: 0 auto; text-align: center; color: var(--footer);
     a { color: inherit; text-decoration: underline }
 }

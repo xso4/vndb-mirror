@@ -254,7 +254,7 @@ js_api TableOptsSave => {
 sub widget_ {
     my($self,$url) = @_;
     my($v,$o) = $self->@*;
-    ul_ class => 'tableopts', VNWeb::HTML::widget(TableOpts => $FORM_OUT, {
+    menu_ class => 'tableopts', VNWeb::HTML::widget(TableOpts => $FORM_OUT, {
         save    => auth ? $o->{pref} : undef,
         views   => $o->{views},
         value   => $v,
