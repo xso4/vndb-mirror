@@ -14,6 +14,7 @@ body > header {
         a:hover { border-bottom: none }
     }
 }
+header nav { display: none }
 #bgright { position: absolute; top: 0px; right: 0px }
 #readonlymode { /* TODO TEST */
     position: absolute; top: 0px; left: 0px; width: 100%;
@@ -45,7 +46,6 @@ body > nav {
 
 #support { background: var(--boxbg); font-size: 92%; padding: 4px; margin-bottom: 5px; text-align: center }
 #support p { display: flex; justify-content: space-between }
-
 
 
 
@@ -121,6 +121,20 @@ main {
 
 .summarize_more { height: 20px; margin-top: -1px; border: 1px solid var(--border); border-top: none; background: var(--boxbg); text-align: center }
 
+
+
+/* Mobile view */
+
+@media (max-width: 800px) {
+    #mainmenu:not(:checked) ~ nav { display: none }
+    body > nav { margin-left: 10px }
+    main { padding-right: 10px }
+    #bgright { display: none /* XXX: This is theme-specific */ }
+    header nav {
+        display: block;
+        label { display: block; border: 1px solid var(--border); background: var(--boxbg); cursor: pointer; padding: 3px 15px; position: absolute; top: 155px; left: 10px }
+    }
+}
 
 
 

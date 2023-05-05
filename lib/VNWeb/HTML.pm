@@ -193,6 +193,7 @@ sub _head_ {
     link_ rel => 'stylesheet', href => _staticurl("g/$skin.css"), type => 'text/css', media => 'all';
     link_ rel => 'search', type => 'application/opensearchdescription+xml', title => 'VNDB Visual Novel Search', href => tuwf->reqBaseURI().'/opensearch.xml';
     link_ rel => 'stylesheet', href => sprintf '/%s.css?%x', $customcss->[0], $customcss->[1] if $customcss;
+    meta_ name => 'viewport', content => 'width=device-width, initial-scale=1.0, user-scalable=yes' if tuwf->reqGet('mobile-test');
     if($o->{feeds}) {
         link_ rel => 'alternate', type => 'application/atom+xml', href => "/feeds/announcements.atom", title => 'Site Announcements';
         link_ rel => 'alternate', type => 'application/atom+xml', href => "/feeds/changes.atom",       title => 'Recent Changes';
@@ -540,10 +541,14 @@ sub framework_ {
     html_ lang => 'en', sub {
         head_ sub { _head_ \%o };
         body_ sub {
+            input_ type => 'checkbox', class => 'hidden', id => 'mainmenu', name => 'mainmenu';
             header_ sub {
                 div_ id => 'bgright', ' ';
                 div_ id => 'readonlymode', config->{read_only} eq 1 ? 'The site is in read-only mode, account functionality is currently disabled.' : config->{read_only} if config->{read_only};
-                h1_ sub { a_ href => '/', 'the visual novel database' }
+                h1_ sub { a_ href => '/', 'the visual novel database' };
+                nav_ sub {
+                    label_ for => 'mainmenu', 'Menu';
+                };
             };
             nav_ sub { _menu_ \%o };
             main_ sub {
