@@ -136,7 +136,7 @@ sub copy_entry {
 
     # Image metadata
     my $image_ids = ids @$images;
-    copy images => "SELECT * FROM images WHERE id IN($image_ids)";
+    copy images => "SELECT * FROM images WHERE id IN($image_ids)", { uploader => 'user' };
     copy image_votes => "SELECT DISTINCT ON (id,vndbid('u', vndbid_num(uid)%10+10)) * FROM image_votes WHERE id IN($image_ids)", { uid => 'user' };
 
     # Threads (announcements)
