@@ -686,7 +686,7 @@ table.chare_traits .buts a.sl { border: none; background-color: #f40 }
 
 /***** Staff browse *****/
 
-div.staffbrowse	   { padding-bottom: 10px }
+.staffbrowse	   { padding-bottom: 10px }
 .staffbrowse ul    { margin-top: -5px; margin-left: 3%; column-width: 300px }
 .staffbrowse ul li { list-style-type: none; margin-bottom: 2px; }
 .staffbrowse ul li abbr { margin-right: 5px; margin-top: 1px; }
@@ -775,14 +775,14 @@ div.charsum_list .charsum_bubble {
 
 /* vote lists */
 
-div.votelist td.tc1 { width: 100px; padding-top: 0; padding-bottom: 0 }
-div.votelist td.tc2 { width: 50px; text-align: right; padding-right: 10px }
+.votelist td.tc1 { width: 100px; padding-top: 0; padding-bottom: 0 }
+.votelist td.tc2 { width: 50px; text-align: right; padding-right: 10px }
 
 
 
 /* vn/user length vote list */
 
-div.lengthlist {
+.lengthlist {
     .tc1 { width: 120px }
     .tc3 { width: 60px; white-space: nowrap }
     .tc4 { width: 100px; padding-left: 10px }
@@ -912,13 +912,13 @@ div.lengthlist {
 
 
 /***** User posts browser ****/
-div.uposts table    { table-layout: fixed }
-div.uposts td       { white-space: nowrap }
-div.uposts td.tc1   { width: 60px; padding-left: 0!important; padding-right: 0; text-align: right }
-div.uposts td.tc2   { width: 40px; padding-left: 0 }
-div.uposts td.tc3   { width: 80px; }
-div.uposts td.tc4   { overflow: hidden }
-div.uposts td.tc4 small { margin-left: 10px }
+.uposts table    { table-layout: fixed }
+.uposts td       { white-space: nowrap }
+.uposts td.tc1   { width: 60px; padding-left: 0!important; padding-right: 0; text-align: right }
+.uposts td.tc2   { width: 40px; padding-left: 0 }
+.uposts td.tc3   { width: 80px; }
+.uposts td.tc4   { overflow: hidden }
+.uposts td.tc4 small { margin-left: 10px }
 
 
 
@@ -999,23 +999,23 @@ table.tgl .tagmod_cat td    { font-weight: bold; padding-top: 10px }
 
 /****** Revision information ******/
 
-div.revision div.rev, div.revision table {
+.revision div.rev, .revision table {
   border: 1px solid var(--border);
   margin: 0 auto;
   width: 90%;
   background-color: var(--secbg);
   clear: both;
 }
-div.revision          { padding-bottom: 10px; }
-div.revision table thead tr td { background-color: transparent!important; text-align: center; font-weight: normal; }
-div.revision table td { border-right: 1px solid var(--border); padding: 5px; }
-div.revision td.tcval { width: 44%; }
-div.revision div.rev  { padding: 5px; text-align: center; }
+.revision          { padding-bottom: 10px; }
+.revision table thead tr td { background-color: transparent!important; text-align: center; font-weight: normal; }
+.revision table td { border-right: 1px solid var(--border); padding: 5px; }
+.revision td.tcval { width: 44%; }
+.revision div.rev  { padding: 5px; text-align: center; }
 .diff_add             { background-color: var(--diffadd); }
 .diff_del             { background-color: var(--diffdel); }
-div.revision .next    { float: right; margin-right: 5%; }
-div.revision .prev    { float: left; margin-left: 5%; }
-div.revision .item    { text-align: center; }
+.revision .next    { float: right; margin-right: 5%; }
+.revision .prev    { float: left; margin-left: 5%; }
+.revision .item    { text-align: center; }
 
 
 
@@ -1167,7 +1167,7 @@ div#iv_view {
 
 /****** Image browser (/img/browse) ******/
 
-div.imagebrowse { padding: 0; display: flex; flex-wrap: wrap }
+.imagebrowse { padding: 0; display: flex; flex-wrap: wrap }
 .imagebrowse .imagecard { padding: 2px; display: flex; flex: 1 }
 .imagebrowse .imagecard:hover { background-color: var(--secbg) }
 .imagebrowse .imagecard > a { flex-shrink: 0; display: block; width: 150px; height: 120px; background-size: contain; background-repeat: no-repeat; background-position: top right; border: none }

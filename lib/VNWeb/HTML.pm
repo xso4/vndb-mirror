@@ -805,7 +805,7 @@ sub revision_ {
         $new, $old||()
         if auth->permDbmod;
 
-    article_ => 'revision', sub {
+    article_ class => 'revision', sub {
         h1_ "Revision $new->{chrev}";
 
         a_ class => 'prev', href => sprintf('/%s.%d', $new->{id}, $new->{chrev}-1), '<- earlier revision' if $new->{chrev} > 1;
