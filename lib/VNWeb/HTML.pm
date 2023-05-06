@@ -403,10 +403,9 @@ sub _maintabs_subscribe_ {
 sub _maintabs_ {
     my $opt = shift;
     my($o, $sel) = @{$opt}{qw/dbobj tab/};
-    return if !$o;
 
-    my $id = $o->{id};
-    my($t) = $id =~ /^(.)/;
+    my $id = $o ? $o->{id} : '';
+    my($t) = $o ? $id =~ /^(.)/ : '';
 
     my sub t {
         my($tabname, $url, $text) = @_;
@@ -415,15 +414,16 @@ sub _maintabs_ {
         };
     };
 
-    nav_ class => 'right', sub {
+    nav_ sub {
+        label_ for => 'mainmenu', 'Menu';
         menu_ sub {
-            t '' => "/$id", $id if $t ne 't';
+            t '' => "/$id", $id if $o && $t ne 't';
 
             t rg => "/$id/rg", 'relations'
                 if $t =~ /[vp]/ && tuwf->dbVali('SELECT 1 FROM', $t eq 'v' ? 'vn_relations' : 'producers_relations', 'WHERE id =', \$o->{id}, 'LIMIT 1');
 
             t releases => "/$id/releases", 'releases' if $t eq 'v';
-            t edit => "/$id/edit", 'edit' if $t ne 't' && can_edit $t, $o;
+            t edit => "/$id/edit", 'edit' if $o && $t ne 't' && can_edit $t, $o;
             t copy => "/$id/copy", 'copy' if $t =~ /[rc]/ && can_edit $t, $o;
             t tagmod => "/$id/tagmod", 'modify tags' if $t eq 'v' && auth->permTag && !$o->{entry_hidden};
 
@@ -546,13 +546,10 @@ sub framework_ {
                 div_ id => 'bgright', ' ';
                 div_ id => 'readonlymode', config->{read_only} eq 1 ? 'The site is in read-only mode, account functionality is currently disabled.' : config->{read_only} if config->{read_only};
                 h1_ sub { a_ href => '/', 'the visual novel database' };
-                nav_ sub {
-                    label_ for => 'mainmenu', 'Menu';
-                };
+                _maintabs_ \%o;
             };
             nav_ sub { _menu_ \%o };
             main_ sub {
-                _maintabs_ \%o;
                 $cont->() unless $o{hiddenmsg} && _hidden_msg_ \%o;
                 footer_ \&_footer_;
             };
