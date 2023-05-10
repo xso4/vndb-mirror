@@ -11,7 +11,7 @@ use v5.24;
 use warnings;
 use Cwd 'abs_path';
 use JSON::XS;
-use TUWF ':html_';
+use TUWF ':html5_';
 use Time::HiRes 'time';
 
 $|=1; # Disable buffering on STDOUT, otherwise vndb-dev-server.pl won't pick up our readyness notification.
@@ -81,7 +81,7 @@ TUWF::set error_404_handler => sub {
     return eval { VNWeb::API::err(404, 'Not found.') } if VNWeb::Validation::is_api;
     tuwf->resStatus(404);
     VNWeb::HTML::framework_ title => 'Page Not Found', noindex => 1, sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ 'Page not found';
             div_ class => 'warning', sub {
                 h2_ 'Oops!';
@@ -103,7 +103,7 @@ TUWF::set error_500_handler => sub {
 sub TUWF::Object::resDenied {
     tuwf->resStatus(403);
     VNWeb::HTML::framework_ title => 'Access Denied', noindex => 1, sub {
-        div_ class => 'mainbox', sub {
+        article_ sub {
             h1_ 'Access Denied';
             div_ class => 'warning', sub {
                 if(!auth) {
