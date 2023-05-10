@@ -19,7 +19,7 @@ sub gensql {
 
   # table_name_without_hist => [ column_names_without_chid ]
   my %ts = map
-    +($_, [ map "\"$_->{name}\"", grep $_->{name} !~ /^chid$/, @{$schema->{"${_}_hist"}{cols}} ]),
+    +($_, [ map $_->{name}, grep $_->{name} !~ /^chid$/, @{$schema->{"${_}_hist"}{cols}} ]),
     map /^${item}_/ && /^(.+)_hist$/ ? $1 : (), keys %$schema;
 
   my %replace = ( item => $item, itemtype => $schema->{$item}{dbentry_type} );
