@@ -58,24 +58,22 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-  article [] [ form_ "" Submit (model.state == Api.Loading)
-  [ if model.old
-    then
-      p [ class "center" ]
-      [ text "This thread has not seen any activity for more than 6 months, but you may still "
-      , a [ href "#", onClickD NotOldAnymore ] [ text "reply" ]
-      , text " if you have something relevant to add."
-      , text " If your message is not directly relevant to this thread, perhaps it's better to "
-      , a [ href "/t/ge/new" ] [ text "create a new thread" ]
-      , text " instead."
+  article [ class "submit" ] [ form_ "" Submit (model.state == Api.Loading) (
+  if model.old then
+    [ p [ class "center" ]
+    [ text "This thread has not seen any activity for more than 6 months, but you may still "
+    , a [ href "#", onClickD NotOldAnymore ] [ text "reply" ]
+    , text " if you have something relevant to add."
+    , text " If your message is not directly relevant to this thread, perhaps it's better to "
+    , a [ href "/t/ge/new" ] [ text "create a new thread" ]
+    , text " instead."
+    ]]
+  else
+    [ TP.view "msg" model.msg Content 600 ([rows 4, cols 50] ++ GDR.valMsg)
+      [ strong [] [ text "Quick reply" ]
+      , b [] [ text " (English please!) " ]
+      , a [ href "/d9#4" ] [ text "Formatting" ]
       ]
-    else
-      fieldset [ class "submit" ]
-      [ TP.view "msg" model.msg Content 600 ([rows 4, cols 50] ++ GDR.valMsg)
-        [ strong [] [ text "Quick reply" ]
-        , b [] [ text " (English please!) " ]
-        , a [ href "/d9#4" ] [ text "Formatting" ]
-        ]
-      , submitButton "Submit" model.state True
-      ]
-  ] ]
+    , submitButton "Submit" model.state True
+    ]
+  )]

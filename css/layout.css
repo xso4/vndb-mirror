@@ -46,13 +46,13 @@ body > nav {
     margin-right: 10px;
     article       { margin: 0 0 10px 0 }
     article div   { padding: 2px 7px }
-    form          { padding: 0 7px 3px 6px }
+    fieldset      { padding: 0 7px 3px 6px }
     a             { color: var(--maintext) }
     a:hover       { border-bottom: 1px dotted var(--maintext); }
     h2            { border-bottom: 1px solid var(--border); background: var(--boxbg); padding: 1px 3px; }
     input.text    { width: 100% }
     .notifyget    { display: inline-block; width: 95%; padding: 4px; background: var(--warnbg); border: 1px solid var(--warnborder); }
-    .logout       { border: 0; border-bottom: 1px solid transparent; background: none; cursor: pointer }
+    .logout       { border: 0; border-bottom: 1px solid transparent; background: none; cursor: pointer; font: inherit; padding: 0; margin: 0 }
     .logout:hover { border-bottom: 1px dotted var(--maintext) }
 
     dl            { display: flex; flex-wrap: wrap }

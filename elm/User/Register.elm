@@ -111,8 +111,6 @@ view model =
           ]
         ]
       ]
-    , article []
-      [ fieldset [ class "submit" ] <|
-        if model.c18 && model.cpolicy then [ submitButton "Submit" model.state True ] else []
-      ]
+    , article [ class "submit" ] <|
+      if model.c18 && model.cpolicy then [ submitButton "Submit" model.state True ] else []
     ]

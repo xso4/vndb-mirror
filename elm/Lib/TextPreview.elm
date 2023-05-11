@@ -73,18 +73,18 @@ view name model cmdmap width attr header =
     display = model.display && model.preview /= ""
   in
     div [ class "textpreview", style "width" (String.fromInt width ++ "px") ]
-    [ span []
-      [ p [] header
-      , p [ class "right", classList [("invisible", model.data == "")] ]
+    [ div []
+      [ div [] header
+      , div [ classList [("invisible", model.data == "")] ]
         [ case model.state of
             Api.Loading -> span [ class "spinner" ] []
             Api.Error _ -> small [] [ text "Error loading preview. " ]
             Api.Normal  -> text ""
         , if display
           then a [ onClickN (cmdmap TextArea) ] [ text "Edit" ]
-          else i [] [text "Edit"]
+          else span [] [text "Edit"]
         , if display
-          then i [] [text "Preview"]
+          then span [] [text "Preview"]
           else a [ onClickN (cmdmap Preview) ] [ text "Preview" ]
         ]
       ]

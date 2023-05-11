@@ -79,7 +79,5 @@ view model =
         ]
       ]
    ]
-  , article []
-    [ fieldset [ class "submit" ] [ submitButton "Submit" model.state True ]
-    ]
+  , article [ class "submit" ] [ submitButton "Submit" model.state True ]
   ]

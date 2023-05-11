@@ -136,10 +136,8 @@ view model =
 
   in form_ "" Submit (model.state == Api.Loading)
       [ if model.insecure then changeBox else loginBox
-      , article []
-        [ fieldset [ class "submit" ]
-          [ if model.invalid then b [] [ text "Username or password is empty." ] else text ""
-          , submitButton "Submit" model.state (not model.invalid)
-          ]
+      , article [ class "submit" ]
+        [ if model.invalid then b [] [ text "Username or password is empty." ] else text ""
+        , submitButton "Submit" model.state (not model.invalid)
         ]
       ]

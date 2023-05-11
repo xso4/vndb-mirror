@@ -8,4 +8,10 @@ elm_api BBCode => undef, {
     elm_Content bb_format bb_subst_links shift->{content};
 };
 
+js_api BBCode => {
+    content => { required => 0, default => '' }
+}, sub {
+    +{ html => bb_format bb_subst_links shift->{content} };
+};
+
 1;

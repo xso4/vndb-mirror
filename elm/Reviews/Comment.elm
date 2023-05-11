@@ -38,13 +38,11 @@ update msg (state,id,content) =
 
 view : Model -> Html Msg
 view (state,_,content) =
-  article [] [ form_ "" Submit (state == Api.Loading)
-  [ fieldset [ class "submit" ]
-    [ TP.view "msg" content Content 600 ([rows 4, cols 50] ++ GRC.valMsg)
-      [ strong [] [ text "Comment" ]
-      , b [] [ text " (English please!) " ]
-      , a [ href "/d9#4" ] [ text "Formatting" ]
-      ]
-    , submitButton "Submit" state True
+  article [ class "submit" ] [ form_ "" Submit (state == Api.Loading)
+  [ TP.view "msg" content Content 600 ([rows 4, cols 50] ++ GRC.valMsg)
+    [ strong [] [ text "Comment" ]
+    , b [] [ text " (English please!) " ]
+    , a [ href "/d9#4" ] [ text "Formatting" ]
     ]
+  , submitButton "Submit" state True
   ] ]

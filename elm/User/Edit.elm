@@ -729,10 +729,9 @@ view model =
       [ h1 [] [ text "Tags & traits" ], Maybe.withDefault (text "") (Maybe.map ttprefsform model.prefs) ]
     , article [ classList [("hidden", model.tab /= API2)] ]
       [ h1 [] [ text "API tokens" ], Maybe.withDefault (text "") (Maybe.map api2form model.prefs) ]
-    , article []
-      [ fieldset [ class "submit" ]
-        [ submitButton "Submit" model.state (not model.passNeq)
-        , if model.saved then span [] [ br [] [], text "Saved!" ] else text "" ]
+    , article [ class "submit" ]
+      [ submitButton "Submit" model.state (not model.passNeq)
+      , if model.saved then span [] [ br [] [], text "Saved!" ] else text ""
       , if not model.mailConfirm then text "" else
           div [ class "notice" ]
           [ text "A confirmation email has been sent to your new address. Your address will be updated after following the instructions in that mail." ]

@@ -176,11 +176,7 @@ view model =
         ]
       ]
     ]
-  , article []
-    [ fieldset [ class "submit" ]
-      [ submitButton "Submit" model.state (len <= maxChars && len >= minChars)
-      ]
-    ]
+  , article [ class "submit" ] [ submitButton "Submit" model.state (len <= maxChars && len >= minChars) ]
   , if model.id == Nothing then text "" else
     article []
     [ h1 [] [ text "Delete review" ]

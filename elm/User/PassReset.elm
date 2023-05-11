@@ -75,7 +75,5 @@ view model =
       , table [ class "formtable" ]
         [ formField "email::E-Mail" [ inputText "email" model.email EMail GUPR.valEmail ] ]
       ]
-    , article []
-      [ fieldset [ class "submit" ] [ submitButton "Submit" model.state True ]
-      ]
+    , article [ class "submit" ] [ submitButton "Submit" model.state True ]
     ]

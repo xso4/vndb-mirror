@@ -13,6 +13,12 @@ class Api {
         return this.xhr && this.xhr.readyState != 4;
     }
 
+    abort() {
+        this.error = null;
+        if (this.xhr) this.xhr.abort();
+        this.xhr = null;
+    }
+
     _err(cb, msg) {
         this.error = msg;
         cb && cb();
@@ -26,6 +32,7 @@ class Api {
         if (xhr.status != 200) return this._err(cb, 'Server error '+xhr.status+', please try again later or report a bug if this persists.');
         if (xhr.response === null || "object" != typeof xhr.response) return this._err(cb, 'Invalid response from the server, please report a bug.');
         if (xhr.response._err) return this._err(cb, xhr.response._err);
+        if (xhr.response._redir) { location.href = xhr.response._redir; return }
         this.error = null;
         cb && cb(xhr.response);
         m.redraw();
@@ -34,8 +41,7 @@ class Api {
     // Runs the given callback when done. On success, the parsed response JSON
     // is passed as argument to the callback.
     call(data, cb) {
-        this.error = null;
-        if (this.xhr) this.xhr.abort();
+        this.abort();
 
         var xhr = new XMLHttpRequest();
         xhr.ontimeout = () => this._err(cb, 'Network timeout, please try again later.');

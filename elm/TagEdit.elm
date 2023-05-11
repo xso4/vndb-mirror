@@ -230,9 +230,8 @@ view model =
         ]
       ]
     ]
-  , article [] [ fieldset [ class "submit" ]
-      [ Html.map Editsum (Editsum.view model.editsum)
-      , submitButton "Submit" model.state (isValid model)
-      ]
+  , article [ class "submit" ]
+    [ Html.map Editsum (Editsum.view model.editsum)
+    , submitButton "Submit" model.state (isValid model)
     ]
   ]

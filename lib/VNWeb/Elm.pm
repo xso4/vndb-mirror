@@ -388,7 +388,7 @@ sub elm_empty {
     return [] if $schema->{type} eq 'array';
     return '' if $schema->{type} eq 'bool' || $schema->{type} eq 'scalar';
     return 0  if $schema->{type} eq 'num'  || $schema->{type} eq 'int';
-    return +{ map +($_, elm_empty($schema->{keys}{$_})), $schema->{keys} ? $schema->{keys}->%* : () } if $schema->{type} eq 'hash';
+    return +{ map +($_, elm_empty($schema->{keys}{$_})), $schema->{keys} ? keys $schema->{keys}->%* : () } if $schema->{type} eq 'hash';
     die "Unable to initialize required value of type '$schema->{type}' without a default";
 }
 

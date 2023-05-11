@@ -91,7 +91,7 @@ pre {
 
 /***** general form markup *****/
 
-input.text, input.submit, select, textarea, button {
+input.text, input.submit, input[type=text], input[type=button], input[type=submit], select, textarea, button {
   background-color: var(--secbg);
   color: var(--maintext);
   border: 1px solid var(--secborder);
@@ -106,16 +106,12 @@ select[multiple] option {
     &:checked:before     { position: absolute; left: 0; top: 0; content: '✓' }
 }
 optgroup option          { padding-left: 10px }
-input.submit, button     { background: var(--boxbg); padding: 1px 5px; cursor: pointer }
+input.submit, input[type=submit], input[type=button], button { background: var(--boxbg); padding: 1px 5px; cursor: pointer }
 input.text, select       { width: 200px; }
 input.obscured           { color: transparent; text-shadow: 0 0 8px var(--maintext); }
 input[type=number]       { -moz-appearance:textfield }
 input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0 }
 input[type=color]        { width: 30px; height: 21px }
-fieldset.submit          { width: 100%; text-align: center; margin: 5px; }
-fieldset.submit input[type=submit] { width: 150px; }
-fieldset.submit input[type=checkbox] { margin: 0 5px 0 15px; }
-fieldset.submit h2       { font-size: 13px!important; }
 td.label, td.label label { width: 130px; }
 td.label label           { display: block; }
 td.field label           { margin: 0 5px 0 5px; }
@@ -125,6 +121,12 @@ table.formtable tr.newfield > td { padding-top: 5px; }
 table.formtable tr.newpart td { padding-top: 20px; font-weight: bold; }
 table.formtable td table td { padding: 1px 15px 1px 0px }
 table.formtable td table    { margin-bottom: 5px }
+/* Form submit box, with optional edit summmary */
+article.submit {
+    text-align: center;
+    input[type=submit] { width: 150px }
+    .textpreview, textarea { text-align: left; margin: 0 auto; width: 600px }
+}
 
 table.formimage > tr > td:nth-child(1) { width: 300px; height: 300px; text-align: center }
 table.formimage > tr > td:nth-child(1) img { max-width: 290px; max-height: 500px }
@@ -163,12 +165,14 @@ a.checked { color: var(--maintext) }
 span.spinner { width: 1em; height: 1em }
 @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
 
-.textpreview > span { display: flex; justify-content: space-between; width: 100% }
-.textpreview > span > p { align-self: flex-end; text-align: left }
-.textpreview > span > p.right > * { margin-left: 10px; font-style: normal }
-.textpreview textarea { width: 100%; }
-.textpreview .preview { width: 100%; border: 1px solid var(--secborder); margin: 1px; padding: 5px; text-align: left }
-fieldset.submit .textpreview { margin: 0 auto }
+.textpreview {
+    > div:first-child {
+        display: flex; justify-content: space-between; width: 100%; align-items: flex-end;
+        > div:last-child > * { margin-left: 10px }
+    }
+    textarea { width: 100%; }
+    .preview { width: 100%; border: 1px solid var(--secborder); margin: 1px; padding: 5px }
+}
 
 /* .compact input elements are smaller and can be embedded in tables/inline text
  * .stealth input elements pretend to be just regular text, but turn into visibile input elements on mouse-over */

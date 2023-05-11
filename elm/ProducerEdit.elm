@@ -197,26 +197,25 @@ view model =
     newform () =
       form_ "" DupSubmit (model.state == Api.Loading)
       [ article [] [ h1 [] [ text "Add a new producer" ], table [ class "formtable" ] titles ]
-      , article []
-        [ if List.isEmpty model.dupProds then text "" else
-          div []
+      , if List.isEmpty model.dupProds then text "" else
+        article []
+        [ div []
           [ h1 [] [ text "Possible duplicates" ]
           , text "The following is a list of producers that match the name(s) you gave. "
           , text "Please check this list to avoid creating a duplicate producer entry. "
           , text "Be especially wary of items that have been deleted! To see why an entry has been deleted, click on its title."
           , ul [] <| List.map (\p -> li [] [ a [ href <| "/" ++ p.id ] [ text p.name ] ]) model.dupProds
           ]
-        , fieldset [ class "submit" ] [ submitButton (if List.isEmpty model.dupProds then "Continue" else "Continue anyway") model.state (isValid model) ]
         ]
+      , article [ class "submit" ] [ submitButton (if List.isEmpty model.dupProds then "Continue" else "Continue anyway") model.state (isValid model) ]
       ]
 
     fullform () =
       form_ "" Submit (model.state == Api.Loading)
       [ article [] [ h1 [] [ text "Edit producer" ], table [ class "formtable" ] geninfo ]
-      , article [] [ fieldset [ class "submit" ]
-          [ Html.map Editsum (Editsum.view model.editsum)
-          , submitButton "Submit" model.state (isValid model)
-          ]
+      , article [ class "submit" ]
+        [ Html.map Editsum (Editsum.view model.editsum)
+        , submitButton "Submit" model.state (isValid model)
         ]
       ]
   in if model.id == Nothing && not model.dupCheck then newform () else fullform ()

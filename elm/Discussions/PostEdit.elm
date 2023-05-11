@@ -108,6 +108,5 @@ view model =
       , formField "" [ inputCheck "" model.delete Delete, text " Permanently delete this post. This action can not be reverted, only do this with obvious spam!" ]
       ])
     ]
-  , article []
-    [ fieldset [ class "submit" ] [ submitButton "Submit" model.state True ] ]
+  , article [ class "submit" ] [ submitButton "Submit" model.state True ]
   ]

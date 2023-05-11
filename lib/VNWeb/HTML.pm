@@ -553,13 +553,17 @@ sub framework_ {
                 $cont->() unless $o{hiddenmsg} && _hidden_msg_ \%o;
                 footer_ \&_footer_;
             };
+
+            tuwf->req->{js}{elm} = 1 if tuwf->req->{pagevars}{elm};
+            tuwf->req->{js}{basic} = 1 if tuwf->req->{js}{elm} || tuwf->req->{pagevars}{widget} || $o{js};
+            # 'dbmod' value is used by the EditSum component
+            tuwf->req->{pagevars}{dbmod} = 1 if tuwf->req->{pagevars}{widget} && auth->permDbmod;
+
             script_ type => 'application/json', id => 'pagevars', sub {
                 # Escaping rules for a JSON <script> context are kinda weird, but more efficient than regular xml_escape().
                 lit_(JSON::XS->new->canonical->encode(tuwf->req->{pagevars}) =~ s{</}{<\\/}rg =~ s/<!--/<\\u0021--/rg);
             } if keys tuwf->req->{pagevars}->%*;
 
-            tuwf->req->{js}{elm} = 1 if tuwf->req->{pagevars}{elm};
-            tuwf->req->{js}{basic} = 1 if tuwf->req->{js}{elm} || tuwf->req->{pagevars}{widget} || $o{js};
             script_ defer => 'defer', src => _staticurl("g/$_.js"), '' for grep tuwf->req->{js}{$_}, qw/elm basic/;
         }
     }

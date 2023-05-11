@@ -79,18 +79,18 @@ widget('TableOpts', (vnode) => {
                 saved ? 'Saved!'
                 : save.loading() ? m('span.spinner')
                 : save.error ? m('b', save.error)
-                : m('input.submit[type=button]', {
+                : m('input[type=button]', {
                     value: 'Save current settings as default',
                     onclick: () => save.call(
                         { save: conf.save, value: opts.n },
                         () => { saved = true },
                     )
                 }),
-                conf.default == opts.n ? null : m('input.submit[type=button]', {
+                conf.default == opts.n ? null : m('input[type=button]', {
                     value: 'Load default view',
                     onclick: () => submit(new Opts(conf.default)),
                 }),
-                conf.usaved === null || conf.usaved == opts.n ? null : m('input.submit[type=button]', {
+                conf.usaved === null || conf.usaved == opts.n ? null : m('input[type=button]', {
                     value: 'Load my saved settings',
                     onclick: () => submit(new Opts(conf.usaved)),
                 }),
@@ -117,7 +117,7 @@ widget('TableOpts', (vnode) => {
                     checked: opts.isVis(c.id),
                     oninput: function() { saved = false; opts.setVis(c.id, this.checked) },
                 }))),
-                m('input[type=submit][class=submit][value=Update]'),
+                m('input[type=submit][value=Update]'),
             ]
         })),
         conf.sorts.length == 0 ? null : m('li.maintabs-dd.tableopts-sort', m(MainTabsDD, {

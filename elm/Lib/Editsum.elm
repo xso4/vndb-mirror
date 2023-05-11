@@ -58,7 +58,7 @@ view model =
     (if model.authmod then lockhid else [])
     ++
     [ TP.view "" model.editsum Editsum 600 [rows 4, cols 50, minlength 2, maxlength 5000, required True]
-      [ b [class "title"] [ text "Edit summary", b [] [ text " (English please!)" ] ]
+      [ strong [] [ text "Edit summary", b [] [ text " (English please!)" ] ]
       , br [] []
       , text "Summarize the changes you have made, including links to source(s)."
       ]

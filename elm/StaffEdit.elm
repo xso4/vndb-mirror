@@ -204,9 +204,9 @@ view model =
         [ h1 [] [ text "Add new staff" ]
         , table [ class "formtable" ] [ formField "Names" [ names, br_ 1 ] ]
         ]
-      , article []
-        [ if List.isEmpty model.dupStaff then text "" else
-          div []
+      , if List.isEmpty model.dupStaff then text "" else
+        article []
+        [ div []
           [ h1 [] [ text "Possible duplicates" ]
           , text "The following is a list of staff that match the name(s) you gave. "
           , text "Please check this list to avoid creating a duplicate staff entry. "
@@ -214,8 +214,8 @@ view model =
               [ a [ href <| "/" ++ s.id, title (s.alttitle) ] [ text s.title ] ]
             ) model.dupStaff
           ]
-        , fieldset [ class "submit" ] [ submitButton (if List.isEmpty model.dupStaff then "Continue" else "Continue anyway") model.state (isValid model) ]
         ]
+      , article [ class "submit" ] [ submitButton (if List.isEmpty model.dupStaff then "Continue" else "Continue anyway") model.state (isValid model) ]
       ]
 
     fullform () =
@@ -238,11 +238,9 @@ view model =
           , formField "l_pixiv::Pixiv ID" [ inputText "l_pixiv" (if model.l_pixiv == 0 then "" else String.fromInt model.l_pixiv) LPixiv GSE.valL_Pixiv ]
           ]
         ]
-      , article []
-        [ fieldset [ class "submit" ]
-          [ Html.map Editsum (Editsum.view model.editsum)
-          , submitButton "Submit" model.state (isValid model)
-          ]
+      , article [ class "submit" ]
+        [ Html.map Editsum (Editsum.view model.editsum)
+        , submitButton "Submit" model.state (isValid model)
         ]
       ]
   in if model.id == Nothing && not model.dupCheck then newform () else fullform ()

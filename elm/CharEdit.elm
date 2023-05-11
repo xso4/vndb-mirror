@@ -515,9 +515,8 @@ view model =
   , article [ classList [("hidden", model.tab /= Image   && model.tab /= All)] ] [ h1 [] [ text "Image" ], image ]
   , article [ classList [("hidden", model.tab /= Traits  && model.tab /= All)] ] [ h1 [] [ text "Traits" ], traits ]
   , article [ classList [("hidden", model.tab /= VNs     && model.tab /= All)] ] [ h1 [] [ text "Visual Novels" ], vns ]
-  , article [] [ fieldset [ class "submit" ]
-      [ Html.map Editsum (Editsum.view model.editsum)
-      , submitButton "Submit" model.state (isValid model)
-      ]
+  , article [ class "submit" ]
+    [ Html.map Editsum (Editsum.view model.editsum)
+    , submitButton "Submit" model.state (isValid model)
     ]
   ]
