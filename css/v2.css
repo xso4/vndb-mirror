@@ -1,6 +1,6 @@
 html         { box-sizing: border-box }
 *, *:before, *:after { box-sizing: inherit }
-*            { margin: 0; padding: 0; box-sizing: border-box; font: inherit; color: inherit }
+*            { margin: 0; padding: 0; box-sizing: border-box; font: inherit; color: inherit; text-size-adjust: none; -webkit-text-size-adjust: none; -moz-text-size-adjust: none }
 body         { font: 13px "Tahoma", "Arial", sans-serif; color: var(--maintext) }
 table        { border-collapse: collapse; }
 table td,
