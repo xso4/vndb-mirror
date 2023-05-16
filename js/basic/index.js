@@ -27,6 +27,7 @@ window.onerror = function(ev, source, lineno, colno, error) {
 @include .gen/mithril.js
 @include basic/api.js
 @include basic/components.js
+@include basic/ds.js
 
 // Load global page-wide variables from <script id="pagevars">...</script> and
 // store them into window.pageVars.

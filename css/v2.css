@@ -221,6 +221,27 @@ span.spinner { width: 1em; height: 1em }
 .elm_dd_relextlink ul span { color: var(--maintext); padding-right: 10px }
 
 
+/***** JS dropdown (ds.js) *****/
+
+#ds {
+    position: absolute; z-index: 2; background: var(--secbg); border: 1px solid var(--secborder);
+    > div {
+        input { width: 100% }
+        .spinner { position: absolute; top: 4px; right: 5px }
+    }
+    > ul {
+        width: 100%; margin: 0; list-style-type: none; overflow: hidden;
+        > li {
+            white-space: nowrap; cursor: pointer; padding: 3px 3px 3px 3px;
+            > span:first-child { visibility: hidden } /* I tried but failed to use list-style for the arrows. Meh. */
+            &.active {
+                background: var(--boxbg);
+                > span:first-child { visibility: visible }
+            }
+        }
+    }
+}
+
 
 /***** Homepage ******/
 

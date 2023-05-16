@@ -26,4 +26,12 @@ elm_api Engines => undef, {}, sub {
     });
 };
 
+
+js_api Engines => {}, sub {
+    +{ results => tuwf->dbAlli(q{
+        SELECT engine AS id, count(*) AS count FROM releases WHERE NOT hidden AND engine <> ''
+         GROUP BY engine ORDER BY count(*) DESC, engine
+    }) };
+};
+
 1;
