@@ -247,6 +247,5 @@ view model =
       , formField "" [ inputCheck "" model.delete Delete, text " Permanently delete this thread and all replies. This action can not be reverted, only do this with obvious spam!" ]
       ])
     ]
-  , article []
-    [ fieldset [ class "submit" ] [ submitButton "Submit" model.state (isValid model) ] ]
+  , article [ class "submit" ] [ submitButton "Submit" model.state (isValid model) ]
   ]
