@@ -23,12 +23,12 @@
 
 .PHONY: all prod clean cleaner chmod multi-stop multi-start multi-restart
 
-JS_BUNDLE_NAMES=$(shell echo js/*/ | sed 's#js/\(.\+\)/#\1#')
+JS_BUNDLE_NAMES=$(shell ls -d js/*/ | sed 's#js/\(.\+\)/#\1#g')
 JS_BUNDLE_INDICES=$(shell echo js/*/index.js)
-JS_BUNDLE_OUT=$(shell echo js/*/ | sed 's#js/\(.\+\)/#static/g/\1.js#')
-JS_BUNDLE_MIN=$(shell echo js/*/ | sed 's#js/\(.\+\)/#static/g/\1.min.js#')
-JS_BUNDLE_GZ=$(shell echo js/*/ | sed 's#js/\(.\+\)/#static/g/\1.min.js.gz#')
-JS_BUNDLE_BR=$(shell echo js/*/ | sed 's#js/\(.\+\)/#static/g/\1.min.js.br#')
+JS_BUNDLE_OUT=$(shell ls -d js/*/ | sed 's#js/\(.\+\)/#static/g/\1.js#g')
+JS_BUNDLE_MIN=$(shell ls -d js/*/ | sed 's#js/\(.\+\)/#static/g/\1.min.js#g')
+JS_BUNDLE_GZ=$(shell ls -d js/*/ | sed 's#js/\(.\+\)/#static/g/\1.min.js.gz#g')
+JS_BUNDLE_BR=$(shell ls -d js/*/ | sed 's#js/\(.\+\)/#static/g/\1.min.js.br#g')
 CSS_OUT=$(shell ls css/skins/*.sass | sed -e 's/css\/skins\/\(.\+\)\.sass/static\/g\/\1.css/g')
 CSS_GZ=$(shell ls css/skins/*.sass | sed -e 's/css\/skins\/\(.\+\)\.sass/static\/g\/\1.css.gz/g')
 CSS_BR=$(shell ls css/skins/*.sass | sed -e 's/css\/skins\/\(.\+\)\.sass/static\/g\/\1.css.br/g')

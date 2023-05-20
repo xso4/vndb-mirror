@@ -143,6 +143,7 @@ sub spoil_ {
 sub elm_ {
     my($mod, $schema, $data, $placeholder) = @_;
     die "Elm data without a schema" if defined $data && !defined $schema;
+    tuwf->req->{js}{elm} = 1;
     push tuwf->req->{pagevars}{elm}->@*, [ $mod, $data ? ($schema eq 'raw' ? $data : $schema->analyze->coerce_for_json($data, unknown => 'remove')) : () ];
     my @arg = (id => sprintf 'elm%d', $#{ tuwf->req->{pagevars}{elm} });
     $placeholder ? $placeholder->(@arg) : div_ @arg, '';
@@ -156,6 +157,7 @@ sub widget {
     my($name, $schema, $data) = @_;
     $data = $data ? $schema->analyze->coerce_for_json($data, unknown => 'pass') : $schema;
     tuwf->req->{widget_id} //= 0;
+    tuwf->req->{js}{ VNWeb::JS::widgets()->{$name} // die "No bundle found for widget '$name'" } = 1;
     my $id = ++tuwf->req->{widget_id};
     push tuwf->req->{pagevars}{widget}{$name}->@*, [ $id, $data ];
     (id => sprintf 'widget%d', $id)
@@ -554,7 +556,7 @@ sub framework_ {
                 footer_ \&_footer_;
             };
 
-            tuwf->req->{js}{elm} = 1 if tuwf->req->{pagevars}{elm};
+            # 'basic' bundle is always included if there's any JS at all
             tuwf->req->{js}{basic} = 1 if tuwf->req->{js}{elm} || tuwf->req->{pagevars}{widget} || $o{js};
             # 'dbmod' value is used by the EditSum component
             tuwf->req->{pagevars}{dbmod} = 1 if tuwf->req->{pagevars}{widget} && auth->permDbmod;
@@ -564,7 +566,7 @@ sub framework_ {
                 lit_(JSON::XS->new->canonical->encode(tuwf->req->{pagevars}) =~ s{</}{<\\/}rg =~ s/<!--/<\\u0021--/rg);
             } if keys tuwf->req->{pagevars}->%*;
 
-            script_ defer => 'defer', src => _staticurl("g/$_.js"), '' for grep tuwf->req->{js}{$_}, qw/elm basic/;
+            script_ defer => 'defer', src => _staticurl("g/$_.js"), '' for grep tuwf->req->{js}{$_}, qw/elm basic user/;
         }
     }
 }

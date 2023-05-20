@@ -1,6 +1,8 @@
 package VNWeb::JS;
 
+use v5.26;
 use TUWF;
+use VNDB::Config;
 use VNWeb::Validation ();
 use Exporter 'import';
 
@@ -38,5 +40,32 @@ TUWF::post qr{/js-error}, sub {
     $msg .= ($stack =~ s/[\r\n]+$//r)."\n" if $stack ne '-' && $stack ne 'undefined' && $stack ne 'null';
     warn $msg;
 };
+
+
+# Returns a hashref with widget_name => bundle_name.
+sub widgets {
+    state $w ||= do {
+        my %w;
+        my sub grab {
+            $w{$1} = $_[0] if $_[1] =~ /(?:^|\W)widget\s*\(\s*['"]([^'"]+)['"]/;
+        }
+        for my $index (glob config->{root}."/js/*/index.js") {
+            my $bundle = $index =~ s#.+/([^/]+)/index\.js$#$1#r;
+            my @f;
+            {
+                open my $F, '<', $index or die $!;
+                while(<$F>) {
+                    grab($bundle, $_);
+                    push @f, $1 if /^\@include (.+)/;
+                }
+            };
+            for (@f) {
+                open my $F, '<', config->{root}."/js/$_" or die $1;
+                grab($bundle, $_) while (<$F>);
+            }
+        }
+        \%w;
+    };
+}
 
 1;

@@ -42,8 +42,11 @@ Specific features to avoid:
 ## Bundles
 
 - `basic`: Primary bundle for functionality and library code common to popular
-  pages on the site. The goal is to keep this below 50kB minified+gzipped.
-
+  pages on the site. The goal is to keep this below 20kB minified+gzipped.
+- `user': Bundle for functionality that is commonly used by users with an
+  account.
+- `contrib`: *TODO*, Bundle for edit forms and other database contributions.
+- `advsearch`: *TODO*, the advanced search filter selection thing.
 
 ## Widgets
 

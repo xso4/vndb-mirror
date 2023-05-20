@@ -60,7 +60,6 @@ try { localStorage.removeItem('fools6') } catch (e) {}
 @include basic/elm-support.js
 
 // Widgets
-@include basic/Subscribe.js
 @include basic/TableOpts.js
 
 // Image viewer; after loading Elm modules to ensure it sees the screenshots in VNEdit.
