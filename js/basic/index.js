@@ -10,6 +10,7 @@
 "use strict";
 
 // Log errors to the server. This intentionally uses old-ish syntax and APIs.
+// (though it still won't catch parsing/syntax errors in this bundle...)
 window.onerror = function(ev, source, lineno, colno, error) {
     if (/\/g\/[a-z]+\.js/.test(source)
         // No clue what's up with these, sometimes happens in FF. Is Elm being initialized before the DOM is ready or something?
@@ -26,28 +27,28 @@ window.onerror = function(ev, source, lineno, colno, error) {
 
 @include .gen/mithril.js
 @include .gen/types.js
-@include basic/api.js
-@include basic/components.js
-@include basic/ds.js
+
+// Because I'm lazy.
+window.$ = sel => document.querySelector(sel);
+window.$$ = sel => Array.from(document.querySelectorAll(sel));
 
 // Load global page-wide variables from <script id="pagevars">...</script> and
 // store them into window.pageVars.
-window.pageVars = (e => e ? JSON.parse(e.innerHTML) : {})(document.getElementById('pagevars'));
+window.pageVars = (e => e ? JSON.parse(e.innerHTML) : {})($('#pagevars'));
 
 // Widget initialization, see README.md
 window.widget = (name, fun) =>
     ((pageVars.widget || {})[name] || []).forEach(([id, data]) => {
-        const e = document.getElementById('widget'+id);
+        const e = $('#widget'+id);
         // m.mount() instantly wipes the contents of e, let's make a copy in case the widget needs something from it.
         const oldContents = Array.from(e.childNodes);
         m.mount(e, {view: ()=>m(fun, {data, oldContents})})
     });
 
-// We used to use localStorage for some client-side preferences in the past.
-// Only clear the most recent one (the stupid April fools joke), the last use
-// of localStorage before that was long enough ago that it's most likely been
-// cleared for everyone already (43ef1a26d68f2b5dbc8b5ac3cc30e27b7bf89ca3).
-try { localStorage.removeItem('fools6') } catch (e) {}
+// Library stuff
+@include basic/api.js
+@include basic/components.js
+@include basic/ds.js
 
 // A bunch of old fashioned DOM manipulation features.
 @include basic/checkall.js

@@ -76,7 +76,7 @@ function create_div() {
     ivflag = document.createElement('a');
     ivlinks.appendChild(ivflag);
 
-    document.querySelector('body').appendChild(ivparent);
+    $('body').appendChild(ivparent);
 }
 
 
@@ -204,7 +204,7 @@ window.ivClose = function(ev) {
 
 window.ivInit = function() {
     cats = {};
-    document.querySelectorAll('a[data-iv]').forEach(function(o) {
+    $$('a[data-iv]').forEach(function(o) {
         if(o == ivnext || o == ivprev || o == ivfull || o == ivhoverprev || o == ivhovernext)
             return;
         o.addEventListener('click', show);

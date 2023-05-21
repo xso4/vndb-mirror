@@ -7,7 +7,7 @@ const ChangePass = vnode => {
     const ref = vnode.attrs.data.ref;
     const api = new Api('UserChangePass');
     const onsubmit = () => api.call({ username, oldpass: password, newpass: newpass1}, res => { if(res) location.href = ref });
-    const set = () => document.getElementById('newpass2').setCustomValidity(newpass1 === newpass2 ? '' : 'Passwords do not match.');
+    const set = () => $('#newpass2').setCustomValidity(newpass1 === newpass2 ? '' : 'Passwords do not match.');
     const view = () => m(Form, {api,onsubmit}, m('article',
         m('h1', 'Change password'),
         m('div.warning',
@@ -44,8 +44,8 @@ const Login = vnode => {
     const onsubmit = ev => {
         // Some crappy password manager autofill implementations don't trigger
         // oninput events, so make sure to read the fields again.
-        username = document.getElementById('username').value;
-        password = document.getElementById('password').value;
+        username = $('#username').value;
+        password = $('#password').value;
         // And they probably also don't trigger validation, so just to be sure:
         if (!ev.target.checkValidity())
             ev.target.reportValidity();
