@@ -300,7 +300,7 @@ sub _menu_ {
     article_ sub {
         h2_ 'User menu';
         div_ sub {
-            my $ref = uri_escape tuwf->reqPath().tuwf->reqQuery();
+            my $ref = uri_escape(tuwf->reqGet('ref') || tuwf->reqPath().tuwf->reqQuery());
             a_ href => "/u/login?ref=$ref", 'Login'; br_;
             a_ href => '/u/register', 'Register'; br_;
         }

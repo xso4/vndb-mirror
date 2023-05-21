@@ -91,7 +91,7 @@ pre {
 
 /***** general form markup *****/
 
-input.text, input.submit, input[type=text], input[type=button], input[type=submit], select, textarea, button {
+input.text, input.submit, input[type=text], input[type=password], input[type=button], input[type=submit], select, textarea, button {
   background-color: var(--secbg);
   color: var(--maintext);
   border: 1px solid var(--secborder);
@@ -112,6 +112,10 @@ input.obscured           { color: transparent; text-shadow: 0 0 8px var(--mainte
 input[type=number]       { -moz-appearance:textfield }
 input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0 }
 input[type=color]        { width: 30px; height: 21px }
+
+
+/* Old table-based form layout */
+
 td.label, td.label label { width: 130px; }
 td.label label           { display: block; }
 td.field label           { margin: 0 5px 0 5px; }
@@ -121,16 +125,38 @@ table.formtable tr.newfield > td { padding-top: 5px; }
 table.formtable tr.newpart td { padding-top: 20px; font-weight: bold; }
 table.formtable td table td { padding: 1px 15px 1px 0px }
 table.formtable td table    { margin-bottom: 5px }
+
+table.formimage > tr > td:nth-child(1) { width: 300px; height: 300px; text-align: center }
+table.formimage > tr > td:nth-child(1) img { max-width: 290px; max-height: 500px }
+table.formimage h2 { margin: 0 }
+
+/* New fielset-based form layout */
+
+fieldset.form {
+    margin-left: 140px;
+    > fieldset { margin-bottom: 5px }
+    > label, > fieldset > label { display: block; float: left; margin-left: -140px; width: 130px; text-align: right }
+    .lw { width: 100%; max-width: 500px } /* for longer titles */
+    .mw { width: 100%; max-width: 200px } /* for most inputs */
+    .sw { width: 50px }                   /* for shorter inputs, like numbers */
+}
+/* 'invalid' class is set on the parent <form> element after attempted
+ * submission, so that the element ':invalid' states and styling don't distract
+ * when working on an empty form */
+.invalid fieldset.form {
+    > fieldset:invalid > label { color: var(--standout) }
+    > fieldset:disabled > label { color: var(--grayedout) }
+    input:invalid { border-color: var(--standout) }
+}
+/* TODO: responsive form layout for mobile */
+
 /* Form submit box, with optional edit summmary */
+
 article.submit {
     text-align: center;
     input[type=submit] { width: 150px }
     .textpreview, textarea { text-align: left; margin: 0 auto; width: 600px }
 }
-
-table.formimage > tr > td:nth-child(1) { width: 300px; height: 300px; text-align: center }
-table.formimage > tr > td:nth-child(1) img { max-width: 290px; max-height: 500px }
-table.formimage h2 { margin: 0 }
 
 /* Format checkboxes and radio buttons as if they were normal links with unicode icons.
  * Usage:
@@ -140,6 +166,8 @@ table.formimage h2 { margin: 0 }
  *     <label for="xyz">Text</label>
  *     <em>(optional option separator)</em>
  *   </container>
+ *
+ * TODO: Get rid of these and just provide nicer default styling for checkboxes
  */
 p.linkradio { padding: 2px }
 .linkradio label { color: var(--link); cursor: pointer }

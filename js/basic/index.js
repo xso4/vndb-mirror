@@ -25,6 +25,7 @@ window.onerror = function(ev, source, lineno, colno, error) {
 };
 
 @include .gen/mithril.js
+@include .gen/types.js
 @include basic/api.js
 @include basic/components.js
 @include basic/ds.js

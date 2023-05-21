@@ -4,5 +4,6 @@
 "use strict";
 
 @include user/Subscribe.js
+@include user/UserLogin.js
 
 // @license-end

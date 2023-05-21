@@ -25,6 +25,28 @@ window.MainTabsDD = (initVnode) => {
 };
 
 
+// Wrapper around a <form> with a <fieldset> element. Attrs:
+// - onsubmit    - submit event, already has preventDefault()
+// - disabled    - set 'disabled' attribute on the fieldset
+// - api         - Api object, sets 'disabled' when api.loading()
+// The .invalid class is set on an invalid <form> *after* the user attempts to
+// submit it, to help with styling invalid inputs.
+window.Form = () => {
+    let invalid = false;
+    return { view: vnode =>
+        m('form', {
+            onsubmit: ev => { ev.preventDefault(); const x = vnode.attrs.onsubmit; x && x(ev) },
+            // Need a custom listener here to make sure we capture events of child nodes; the 'invalid' event doesn't bubble.
+            oncreate: v => v.dom.addEventListener('invalid', () => { invalid = !v.dom.valid; m.redraw() }, true),
+            class: invalid ? 'invalid' : ''
+        }, m('fieldset',
+            { disabled: vnode.attrs.disabled || vnode.attrs.api && vnode.attrs.api.loading() },
+            vnode.children
+        ))
+    };
+};
+
+
 // BBCode (TODO: & Markdown) editor with preview button.
 // Attrs:
 // - data + field -> raw text is read from and written to data[field]
@@ -63,7 +85,7 @@ window.TextPreview = initVnode => {
                 preview ? m('span', 'Preview') : m('a[href=#]', {onclick: load}, 'Preview'),
             ),
         ),
-        m('textarea[tabindex=10]', {
+        m('textarea', {
             class: preview ? 'hidden' : null,
             oninput: e => { html = null; data[field] = e.target.value },
             ...vnode.attrs.attrs
@@ -107,7 +129,7 @@ window.EditSum = vnode => {
                 'Summarize the changes you have made, including links to source(s).',
             ]
         }),
-        m('input[type=submit][tabindex=10][value=Submit]'),
+        m('input[type=submit][value=Submit]'),
         api.loading() ? m('span.spinner') : null,
         api.error ? m('b', m('br'), api.error) : null,
     );

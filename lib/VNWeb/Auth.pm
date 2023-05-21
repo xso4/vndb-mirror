@@ -7,7 +7,7 @@
 #     ..user is logged in
 #   }
 #
-#   my $success = auth->login($user, $pass);
+#   my $success = auth->login($uid, $pass);
 #   auth->logout;
 #
 #   my $uid = auth->uid;
@@ -183,14 +183,11 @@ sub new {
 
 
 # Returns 1 on success, 0 on failure
-# When $pretend is true, it only tests if the user/pass combination is correct,
+# When $pretend is true, it only tests if the uid/pass combination is correct,
 # but doesn't actually create a session.
 sub login {
-    my($self, $user, $pass, $pretend) = @_;
-    return 0 if $self->uid || !$user || !$pass;
-
-    my $uid = tuwf->dbVali('SELECT id FROM users WHERE lower(username) = lower(', \$user, ')');
-    return 0 if !$uid;
+    my($self, $uid, $pass, $pretend) = @_;
+    return 0 if $self->uid || !$uid || !$pass;
     my $encpass = $self->_encpass($uid, $pass);
     return 0 if !$encpass;
     $self->_create_session($uid, $encpass, $pretend);

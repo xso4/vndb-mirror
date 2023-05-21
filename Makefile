@@ -164,6 +164,9 @@ include js/.gen/deps.mk
 js/.gen/mithril.js: | js/.gen
 	curl -s 'https://code.blicky.net/yorhel/mithril-vndb/raw/branch/next/mithril.js' -o $@
 
+js/.gen/types.js: util/jsgen.pl lib/VNDB/Types.pm lib/VNWeb/Validation.pm | js/.gen
+	util/jsgen.pl types >$@
+
 ${JS_BUNDLE_OUT}: %.js: | static/g
 	cd js && perl -Mautodie -pe 'if(/^\@include (.+)/) { open F, $$1; local$$/=undef; $$_="/* start of $$1 */\n(()=>{\n".<F>."})();\n/* end of $$1 */\n\n" }' ../$< >../$@
 
