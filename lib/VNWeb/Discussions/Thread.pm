@@ -107,7 +107,7 @@ sub posts_ {
     paginate_ \&url, $page, [ $t->{count}, 25 ], 't';
     article_ class => 'thread', id => 'threadstart', sub {
         table_ class => 'stripe', sub {
-            tr_ mkclass(deleted => defined $_->{hidden}), id => $_->{num}, sub {
+            tr_ mkclass(deleted => defined $_->{hidden}), id => "p$_->{num}", sub {
                 td_ class => 'tc1', $_ == $posts->[$#$posts] ? (id => 'last') : (), sub {
                     a_ href => "/$t->{id}.$_->{num}", "#$_->{num}";
                     if(!defined $_->{hidden} || auth->permBoard) {
@@ -203,7 +203,7 @@ TUWF::get qr{/$RE{tid}(?:(?<sep>[\./])$RE{num})?}, sub {
 
     auth->notiRead($id, [ map $_->{num}, $posts->@* ]) if @$posts;
 
-    framework_ title => $t->{title}, dbobj => $t, $num ? (js => 1, pagevars => {sethash=>$num}) : (), sub {
+    framework_ title => $t->{title}, dbobj => $t, $num ? (js => 1, pagevars => {sethash=>"p$num"}) : (), sub {
         metabox_ $t, $posts;
         elm_ 'Discussions.Poll' => $POLL_OUT, {
             question    => $t->{poll_question},

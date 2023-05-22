@@ -139,7 +139,7 @@ TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
 
     my $title = "Review of $w->{title}[1]";
     framework_ title => $title, index => 1, dbobj => $w,
-        $num||$page>1 ? (pagevars => {sethash=>$num?$num:'threadstart'}) : (),
+        $num||$page>1 ? (pagevars => {sethash=>$num?"p$num":'threadstart'}) : (),
     sub {
         article_ sub {
             itemmsg_ $w;
