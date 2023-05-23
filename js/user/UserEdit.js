@@ -17,7 +17,6 @@ const Username = () => {
                     e.target.setCustomValidity('');
                 },
                 oncreate: n => {
-                    console.log("Create");
                     n.dom.value = v.attrs.data.username;
                     n.dom.focus();
                 },
@@ -30,6 +29,31 @@ const Username = () => {
                 '- Your old username will become available for other people to claim.', m('br'),
                 '- You may only change your username at once per day.',
             ),
+        ]),
+    )};
+};
+
+const Email = () => {
+    let edit = false, old = '';
+    return {view: v => m('fieldset.form',
+        m('legend', 'E-Mail'),
+        m('fieldset', !edit ? [
+            m('label', 'Current'), v.attrs.data.email, ' ',
+            m('input[type=button][value=Edit]', { onclick: () => { old = v.attrs.data.email; edit = true } }),
+        ] : [
+            m('label[for=email]', 'New email'),
+            m('input#email.mw[type=text]', {
+                oninput: e => {
+                    v.attrs.data.email = e.target.value;
+                    e.target.setCustomValidity('');
+                },
+                oncreate: n => {
+                    n.dom.value = v.attrs.data.email;
+                    n.dom.focus();
+                },
+                ...formVals.email }),
+            m('input[type=button][value=Cancel]', { onclick: () => { v.attrs.data.email = old; edit = false } }),
+            m('p', 'A verification mail will be send to your new address.'),
         ]),
     )};
 };
@@ -83,18 +107,73 @@ const Password = () => {
     )};
 };
 
-widget('UserEdit', initVnode => {
+const Admin = initVnode => {
     const data = initVnode.attrs.data;
+    const admin = data.admin;
+    const chk = (opt, perm, label) => !data['perm_'+perm] ? null : m('label.check',
+        m('input[type=checkbox]', { checked: admin['perm_'+opt], oninput: e => admin['perm_'+opt] = e.target.checked }),
+        ' ', opt, m('small', ' (', label, ')'), m('br')
+    );
+    const none = {
+        perm_board: false, perm_review: false, perm_edit: false, perm_imgvote: false, perm_lengthvote: false, perm_tag: false,
+        perm_boardmod: false, perm_usermod: false, perm_tagmod: false, perm_dbmod: false, ign_votes: false,
+    };
+    const def = {
+        perm_board: true, perm_review: true, perm_edit: true, perm_imgvote: true, perm_lengthvote: true, perm_tag: true,
+        perm_boardmod: false, perm_usermod: false, perm_tagmod: false, perm_dbmod: false, ign_votes: true,
+    };
+    return {view: () => m('fieldset.form',
+        m('legend', 'Admin options'),
+        m('fieldset',
+            m('label', 'Preset'),
+            m('input[type=button][value=None]', { onclick: () => Object.assign(admin, none) }),
+            m('input[type=button][value=Default]', { onclick: () => Object.assign(admin, def) }),
+        ),
+        m('fieldset',
+            m('label', data.perm_usermod ? 'User perms' : 'Permissions'),
+            chk('board',      'boardmod', 'creating new threads and replying to existing threads and reviews'),
+            chk('review',     'boardmod', 'submitting new reviews'),
+            chk('edit',       'dbmod',    'database editing & tag voting'),
+            chk('imgvote',    'dbmod',    'flagging images - existing votes stop counting when unset'),
+            chk('lengthvote', 'dbmod',    'submitting VN play times - existing votes stop counting when unset'),
+            chk('tag',        'tagmod',   'voting on VN tags - existing votes stop counting when unset'),
+        ),
+        !data.perm_usermod ? null : m('fieldset',
+            m('label', 'Mod perms'),
+            chk('dbmod',      'usermod',  'database moderation'),
+            chk('tagmod',     'usermod',  'tags'),
+            chk('boardmod',   'usermod',  'forums & reviews'),
+            chk('usermod',    'usermod',  'full user editing'),
+        ),
+        !data.perm_usermod ? null : m('fieldset',
+            m('label', 'Other'),
+            m('label.check',
+                m('input[type=checkbox]', { checked: admin.ign_votes, oninput: e => admin.ign_votes = e.target.checked }),
+                ' Ignore votes in VN statistics'
+            ),
+        ),
+    )};
+};
+
+widget('UserEdit', initVnode => {
+    let msg = '';
+    const data = initVnode.attrs.data;
+    const prefs = data.prefs;
     const api = new Api('UserEdit');
-    const onsubmit = ev => {
-        if (!ev.target.reportValidity()) return;
-        api.call(data);
-    }
+    const onsubmit = ev => api.call(data, res => {
+        msg = !res ? '' : res.email
+              ? 'A confirmation email has been sent to your new address. Your address will be updated after following the instructions in that mail.'
+              : 'Saved!';
+        // XXX: Timeout is ugly, better remove the message on user interaction with the form.
+        if (msg) setTimeout(() => { msg = ''; m.redraw() }, 5000);
+    });
 
     const account = () => [
         m('h1', 'Account'),
-        m(Username, {data}),
-        m(Password, {data}),
+        prefs ? m(Username, {data: prefs}) : null,
+        prefs ? m(Email, {data: prefs}) : null,
+        prefs ? m(Password, {data}) : null,
+        data.admin ? m(Admin, {data}) : null,
     ];
 
     const display = () => [
@@ -102,15 +181,16 @@ widget('UserEdit', initVnode => {
     ];
 
     const tabs = [
-        [ 'display', 'Display Preferences', display ],
         [ 'account', 'Account', account ],
-    ];
+    ].concat(!prefs ? [] : [
+        [ 'display', 'Display Preferences', display ],
+    ]);
     const view = () => m(Form, {onsubmit,api},
         m(FormTabs, {tabs}),
         m('article.submit',
             m('input[type=submit][value=Submit]'),
             m('span.spinner', { class: api.loading() ? '' : 'invisible' }),
-            api.error ? m('b', m('br'), api.error) : null,
+            msg ? m('p', msg) : api.error ? m('b', m('br'), api.error) : null,
         ),
     );
     return {view};

@@ -129,14 +129,13 @@ window.FormTabs = initVnode => {
     ];
     const oncreate = v => v.dom.closest('form').addEventListener('invalid', oninvalid, true);
     const onupdate = v => requestAnimationFrame(() => {
-        if (report) v.dom.closest('form').reportValidity();
+        if (report) requestAnimationFrame(() => v.dom.closest('form').reportValidity());
         report = false;
-        console.log("Update");
         // Set the 'invalid' class on the tabs. The form state is not known
         // during the view function, so this has to be done in an onupdate hook.
-        for (const t of tabs) {
-            $('#formtabst_'+t[0]).classList.toggle('invalid', !!$('#formtabs_'+t[0]+':invalid'));
-        }
+        if (tabs.length > 1)
+            for (const t of tabs)
+                $('#formtabst_'+t[0]).classList.toggle('invalid', !!$('#formtabs_'+t[0]+':invalid'));
     });
     return {view,oncreate,onupdate};
 };

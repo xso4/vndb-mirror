@@ -9,9 +9,31 @@ use Digest::SHA 'sha1';
 
 
 my $FORM = {
-    id             => { vndbid => 'u' },
-    username       => { username => 1 },
-    username_throttled => { _when => 'out', anybool => 1 },
+    id => { vndbid => 'u' },
+
+    # Permissions of the user editing this account
+    perm_dbmod     => { _when => 'out', anybool => 1 },
+    perm_usermod   => { _when => 'out', anybool => 1 },
+    perm_tagmod    => { _when => 'out', anybool => 1 },
+    perm_boardmod  => { _when => 'out', anybool => 1 },
+
+    password  => { _when => 'in', required => 0, type => 'hash', keys => {
+        old   => { password => 1 },
+        new   => { password => 1 }
+    } },
+
+    # Settings that require at least one perm_*mod
+    admin => { required => 0, type => 'hash', keys => {
+        ign_votes => { anybool => 1 },
+        map +("perm_$_" => { anybool => 1 }), VNWeb::Auth::listPerms
+    } },
+
+    # Settings that can only be read/modified by the user itself or a perm_usermod
+    prefs => { required => 0, type => 'hash', keys => {
+        username       => { username => 1 },
+        username_throttled => { _when => 'out', anybool => 1 },
+        email          => { email => 1 },
+    }},
 
     #    opts => { _when => 'out', type => 'hash', keys => {
     #        # Supporter options available to this user
@@ -20,17 +42,6 @@ my $FORM = {
     #        uniname_can    => { _when => 'out', anybool => 1 },
     #        pubskin_can    => { _when => 'out', anybool => 1 },
     #
-    #        # Permissions of the user editing this account
-    #        perm_dbmod     => { _when => 'out', anybool => 1 },
-    #        perm_usermod   => { _when => 'out', anybool => 1 },
-    #        perm_tagmod    => { _when => 'out', anybool => 1 },
-    #        perm_boardmod  => { _when => 'out', anybool => 1 },
-    #    } },
-    #
-    #    # Settings that require at least one perm_*mod
-    #    admin => { required => 0, type => 'hash', keys => {
-    #        ign_votes => { anybool => 1 },
-    #        map +("perm_$_" => { anybool => 1 }), VNWeb::Auth::listPerms
     #    } },
     #
     #    # Settings that can only be read/modified by the user itself or a perm_usermod
@@ -97,11 +108,6 @@ my $FORM = {
     #        uniname         => { required => 0, default => '', regex => qr/^.{2,15}$/ }, # Use regex to check length, HTML5 `maxlength` attribute counts UTF-16 code units...
     #        pubskin_enabled => { anybool => 1 },
     #    } },
-
-    password  => { _when => 'in', required => 0, type => 'hash', keys => {
-        old   => { password => 1 },
-        new   => { password => 1 }
-    } },
 };
 
 my $FORM_IN  = form_compile in  => $FORM;
@@ -123,23 +129,30 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
     my $u = tuwf->dbRowi('SELECT id, username FROM users WHERE id =', \tuwf->capture('id'));
     return tuwf->resNotFound if !$u->{id} || !can_edit u => $u;
 
-    $u->{username_throttled} = _namethrottled;
-    $u->{opts} = tuwf->dbRowi('SELECT nodistract_can, support_can, uniname_can, pubskin_can FROM users WHERE id =', \$u->{id});
-    $u->{opts}{perm_dbmod}    = auth->permDbmod;
-    $u->{opts}{perm_usermod}  = auth->permUsermod;
-    $u->{opts}{perm_tagmod}   = auth->permTagmod;
-    $u->{opts}{perm_boardmod} = auth->permBoardmod;
+    $u->{perm_dbmod}    = auth->permDbmod;
+    $u->{perm_usermod}  = auth->permUsermod;
+    $u->{perm_tagmod}   = auth->permTagmod;
+    $u->{perm_boardmod} = auth->permBoardmod;
 
-    $u->{prefs} = $u->{id} eq auth->uid || auth->permUsermod ?
-        tuwf->dbRowi(
-            'SELECT max_sexual, max_violence, traits_sexual, tags_all, tags_cont, tags_ero, tags_tech, prodrelexpand
-                  , vnrel_langs::text[], vnrel_olang, vnrel_mtl, staffed_langs::text[], staffed_olang, staffed_unoff
-                  , spoilers, skin, customcss, timezone, titles
-                  , nodistract_noads, nodistract_nofancy, support_enabled, uniname, pubskin_enabled
-               FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \$u->{id}
-        ) : undef;
+    $u->{prefs} = $u->{id} eq auth->uid || auth->permUsermod ? tuwf->dbRowi(
+        'SELECT username, max_sexual, max_violence, traits_sexual, tags_all, tags_cont, tags_ero, tags_tech, prodrelexpand
+              , vnrel_langs::text[], vnrel_olang, vnrel_mtl, staffed_langs::text[], staffed_olang, staffed_unoff
+              , spoilers, skin, customcss, timezone, titles
+              , nodistract_noads, nodistract_nofancy, support_enabled, uniname, pubskin_enabled
+           FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \$u->{id}
+    ) : undef;
     if($u->{prefs}) {
-        $u->{prefs}{email} = _getmail $u->{id};
+        $u->{prefs}{username_throttled} = _namethrottled;
+        $u->{prefs}{email}         = _getmail $u->{id};
+    }
+
+    $u->{admin} = auth->permDbmod || auth->permUsermod || auth->permTagmod || auth->permBoardmod ?
+        tuwf->dbRowi('SELECT ign_votes, ', sql_comma(map "perm_$_", auth->listPerms), 'FROM users u JOIN users_shadow us ON us.id = u.id WHERE u.id =', \$u->{id}) : undef;
+
+=pod
+    $u->{opts}          = tuwf->dbRowi('SELECT nodistract_can, support_can, uniname_can, pubskin_can FROM users WHERE id =', \$u->{id});
+
+    if($u->{prefs}) {
         $u->{prefs}{timezone} //= '';
         $u->{prefs}{skin} ||= config->{skin_default};
         $u->{prefs}{vnrel_langs} ||= [ keys %LANGUAGE ];
@@ -151,12 +164,7 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
         $u->{prefs}{api2} = auth->api2_tokens($u->{id});
         $_->{delete} = 0 for $u->{prefs}{api2}->@*;
     }
-
-    $u->{admin} = auth->permDbmod || auth->permUsermod || auth->permTagmod || auth->permBoardmod ?
-        tuwf->dbRowi('SELECT ign_votes, ', sql_comma(map "perm_$_", auth->listPerms), 'FROM users u JOIN users_shadow us ON us.id = u.id WHERE u.id =', \$u->{id}) : undef;
-
-    $u->{password} = undef;
-    $u->{browsertimezone} = '';
+=cut
 
     my $title = $u->{id} eq auth->uid ? 'My Account' : "Edit $u->{username}";
     framework_ title => $title, dbobj => $u, tab => 'edit',
@@ -221,6 +229,7 @@ js_api UserEdit => $FORM_IN, sub {
             }
         }
     }
+=cut
 
     if(auth->permUsermod) {
         $set{ign_votes} = $data->{admin}{ign_votes};
@@ -234,13 +243,13 @@ js_api UserEdit => $FORM_IN, sub {
     $set{perm_imgvote}    = $data->{admin}{perm_imgvote}    if auth->permDbmod;
     $set{perm_lengthvote} = $data->{admin}{perm_lengthvote} if auth->permDbmod;
     $set{perm_tag}        = $data->{admin}{perm_tag}        if auth->permTagmod;
-=cut
 
-    if($own && $data->{username} ne $username) {
+    if($own && $data->{prefs}{username} ne $username) {
         return +{ _err => 'You can only change your username once a day.' } if _namethrottled;
-        return +{ _field => 'username', _err => 'Username already taken.' } if !is_unique_username $data->{username}, $data->{id};
-        $set{username} = $data->{username};
-        tuwf->dbExeci('INSERT INTO users_username_hist', { id => $data->{id}, old => $username, new => $data->{username} });
+        return +{ _field => 'username', _err => 'Username already taken.' } if !is_unique_username $data->{prefs}{username}, $data->{id};
+        $set{username} = $data->{prefs}{username};
+        auth->audit($data->{id}, 'username change', "old=$username; new=$data->{prefs}{username}");
+        tuwf->dbExeci('INSERT INTO users_username_hist', { id => $data->{id}, old => $username, new => $data->{prefs}{username} });
     }
 
     if($own && $data->{password}) {
@@ -251,15 +260,13 @@ js_api UserEdit => $FORM_IN, sub {
         return +{ _field => 'opass', _err => 'Incorrect password' } if !$ok;
     }
 
-    die;
-=pod
-
-    my $ret = \&elm_Success;
+    my $ret = {ok=>1};
 
     my $newmail = $own && $data->{prefs}{email};
     my $oldmail = $own && _getmail $data->{id};
     if($own && $newmail ne $oldmail) {
-        return elm_DoubleEmail if tuwf->dbVali('SELECT 1 FROM user_emailtoid(', \$newmail, ') x(id) WHERE id <>', \$data->{id});
+        return +{ _field => 'email', _err => 'E-Mail address already in use by another account' }
+            if tuwf->dbVali('SELECT 1 FROM user_emailtoid(', \$newmail, ') x(id) WHERE id <>', \$data->{id});
         auth->audit($data->{id}, 'email change', "old=$oldmail; new=$newmail");
         if(auth->permUsermod) {
             tuwf->dbExeci(select => sql_func user_admin_setmail => \$data->{id}, \auth->uid, sql_fromhex(auth->token), \$newmail);
@@ -280,9 +287,10 @@ js_api UserEdit => $FORM_IN, sub {
                 From => 'VNDB <noreply@vndb.org>',
                 Subject => "Confirm e-mail change for $username",
             );
-            $ret = \&elm_MailChange;
+            $ret = {email=>1};
         }
     }
+
 
     my $old = tuwf->dbRowi('SELECT', sql_comma(keys %set, keys %setp), 'FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \$data->{id});
     tuwf->dbExeci('UPDATE users SET', \%set, 'WHERE id =', \$data->{id}) if keys %set;
@@ -292,10 +300,9 @@ js_api UserEdit => $FORM_IN, sub {
     $_ = JSON::XS->new->allow_nonref->encode($_) for values %$old, %$new;
     my @diff = grep $old->{$_} ne $new->{$_}, keys %set, keys %setp;
     auth->audit($data->{id}, 'user edit', join '; ', map "$_: $old->{$_} -> $new->{$_}", @diff)
-        if @diff && (auth->uid ne $data->{id} || grep /^(perm_|ign_votes|username)/, @diff);
+        if @diff && (auth->uid ne $data->{id} || grep /^(perm_|ign_votes)/, @diff);
 
-    $ret->();
-=cut
+    return $ret;
 };
 
 
