@@ -10,93 +10,93 @@ use Digest::SHA 'sha1';
 
 my $FORM = {
     id             => { vndbid => 'u' },
-    username       => { username => 1 }, # Can only be modified by the user itself or a perm_usermod
-    browsertimezone=> { _when => 'out' }, # Set by JS
+    username       => { username => 1 },
+    username_throttled => { _when => 'out', anybool => 1 },
 
-    opts => { _when => 'out', type => 'hash', keys => {
-        # Supporter options available to this user
-        nodistract_can => { _when => 'out', anybool => 1 },
-        support_can    => { _when => 'out', anybool => 1 },
-        uniname_can    => { _when => 'out', anybool => 1 },
-        pubskin_can    => { _when => 'out', anybool => 1 },
-
-        # Permissions of the user editing this account
-        perm_dbmod     => { _when => 'out', anybool => 1 },
-        perm_usermod   => { _when => 'out', anybool => 1 },
-        perm_tagmod    => { _when => 'out', anybool => 1 },
-        perm_boardmod  => { _when => 'out', anybool => 1 },
-    } },
-
-    # Settings that require at least one perm_*mod
-    admin => { required => 0, type => 'hash', keys => {
-        ign_votes => { anybool => 1 },
-        map +("perm_$_" => { anybool => 1 }), VNWeb::Auth::listPerms
-    } },
-
-    # Settings that can only be read/modified by the user itself or a perm_usermod
-    prefs => { required => 0, type => 'hash', keys => {
-        email           => { email => 1 },
-        max_sexual      => {  int => 1, range => [-1, 2 ] },
-        max_violence    => { uint => 1, range => [ 0, 2 ] },
-        traits_sexual   => { anybool => 1 },
-        tags_all        => { anybool => 1 },
-        tags_cont       => { anybool => 1 },
-        tags_ero        => { anybool => 1 },
-        tags_tech       => { anybool => 1 },
-        prodrelexpand   => { anybool => 1 },
-        spoilers        => { uint => 1, range => [ 0, 2 ] },
-        vnrel_langs     => { type => 'array', values => { enum => \%LANGUAGE }, sort => 'str', unique => 1 },
-        vnrel_olang     => { anybool => 1 },
-        vnrel_mtl       => { anybool => 1 },
-        staffed_langs   => { type => 'array', values => { enum => \%LANGUAGE }, sort => 'str', unique => 1 },
-        staffed_olang   => { anybool => 1 },
-        staffed_unoff   => { anybool => 1 },
-        skin            => { enum => skins },
-        customcss       => { required => 0, default => '', maxlength => 16*1024 },
-        timezone        => { required => 0, default => '', enum => \%ZONES },
-
-        traits          => { sort_keys => 'tid', maxlength => 100, aoh => {
-            tid     => { vndbid => 'i' },
-            name    => {},
-            group   => { required => 0 },
-        } },
-
-        titles          => { titleprefs => 1 },
-        alttitles       => { titleprefs => 1 },
-
-        tagprefs        => { sort_keys => 'tid', maxlength => 500, aoh => {
-            tid     => { vndbid => 'g' },
-            spoil   => { required => 0, int => 1, range => [ 0, 3 ] },
-            color   => { required => 0, regex => qr/^(standout|grayedout|#[a-fA-F0-9]{6})$/ },
-            childs  => { anybool => 1 },
-            name    => {},
-        } },
-        traitprefs      => { sort_keys => 'tid', maxlength => 500, aoh => {
-            tid     => { vndbid => 'i' },
-            spoil   => { required => 0, int => 1, range => [ 0, 3 ] },
-            color   => { required => 0, regex => qr/^(standout|grayedout|#[a-fA-F0-9]{6})$/ },
-            childs  => { anybool => 1 },
-            name    => {},
-            group   => { required => 0 },
-        } },
-
-        api2            => { maxlength => 64, aoh => {
-            token     => {},
-            added     => {},
-            lastused  => { required => 0, default => '' },
-            notes     => { required => 0, default => '', maxlength => 1000 },
-            listread  => { anybool => 1 },
-            listwrite => { anybool => 1 },
-            delete    => { anybool => 1 },
-        } },
-
-        # Supporter options
-        nodistract_noads   => { anybool => 1 },
-        nodistract_nofancy => { anybool => 1 },
-        support_enabled => { anybool => 1 },
-        uniname         => { required => 0, default => '', regex => qr/^.{2,15}$/ }, # Use regex to check length, HTML5 `maxlength` attribute counts UTF-16 code units...
-        pubskin_enabled => { anybool => 1 },
-    } },
+    #    opts => { _when => 'out', type => 'hash', keys => {
+    #        # Supporter options available to this user
+    #        nodistract_can => { _when => 'out', anybool => 1 },
+    #        support_can    => { _when => 'out', anybool => 1 },
+    #        uniname_can    => { _when => 'out', anybool => 1 },
+    #        pubskin_can    => { _when => 'out', anybool => 1 },
+    #
+    #        # Permissions of the user editing this account
+    #        perm_dbmod     => { _when => 'out', anybool => 1 },
+    #        perm_usermod   => { _when => 'out', anybool => 1 },
+    #        perm_tagmod    => { _when => 'out', anybool => 1 },
+    #        perm_boardmod  => { _when => 'out', anybool => 1 },
+    #    } },
+    #
+    #    # Settings that require at least one perm_*mod
+    #    admin => { required => 0, type => 'hash', keys => {
+    #        ign_votes => { anybool => 1 },
+    #        map +("perm_$_" => { anybool => 1 }), VNWeb::Auth::listPerms
+    #    } },
+    #
+    #    # Settings that can only be read/modified by the user itself or a perm_usermod
+    #    prefs => { required => 0, type => 'hash', keys => {
+    #        email           => { email => 1 },
+    #        max_sexual      => {  int => 1, range => [-1, 2 ] },
+    #        max_violence    => { uint => 1, range => [ 0, 2 ] },
+    #        traits_sexual   => { anybool => 1 },
+    #        tags_all        => { anybool => 1 },
+    #        tags_cont       => { anybool => 1 },
+    #        tags_ero        => { anybool => 1 },
+    #        tags_tech       => { anybool => 1 },
+    #        prodrelexpand   => { anybool => 1 },
+    #        spoilers        => { uint => 1, range => [ 0, 2 ] },
+    #        vnrel_langs     => { type => 'array', values => { enum => \%LANGUAGE }, sort => 'str', unique => 1 },
+    #        vnrel_olang     => { anybool => 1 },
+    #        vnrel_mtl       => { anybool => 1 },
+    #        staffed_langs   => { type => 'array', values => { enum => \%LANGUAGE }, sort => 'str', unique => 1 },
+    #        staffed_olang   => { anybool => 1 },
+    #        staffed_unoff   => { anybool => 1 },
+    #        skin            => { enum => skins },
+    #        customcss       => { required => 0, default => '', maxlength => 16*1024 },
+    #        timezone        => { required => 0, default => '', enum => \%ZONES },
+    #
+    #        traits          => { sort_keys => 'tid', maxlength => 100, aoh => {
+    #            tid     => { vndbid => 'i' },
+    #            name    => {},
+    #            group   => { required => 0 },
+    #        } },
+    #
+    #        titles          => { titleprefs => 1 },
+    #        alttitles       => { titleprefs => 1 },
+    #
+    #        tagprefs        => { sort_keys => 'tid', maxlength => 500, aoh => {
+    #            tid     => { vndbid => 'g' },
+    #            spoil   => { required => 0, int => 1, range => [ 0, 3 ] },
+    #            color   => { required => 0, regex => qr/^(standout|grayedout|#[a-fA-F0-9]{6})$/ },
+    #            childs  => { anybool => 1 },
+    #            name    => {},
+    #        } },
+    #        traitprefs      => { sort_keys => 'tid', maxlength => 500, aoh => {
+    #            tid     => { vndbid => 'i' },
+    #            spoil   => { required => 0, int => 1, range => [ 0, 3 ] },
+    #            color   => { required => 0, regex => qr/^(standout|grayedout|#[a-fA-F0-9]{6})$/ },
+    #            childs  => { anybool => 1 },
+    #            name    => {},
+    #            group   => { required => 0 },
+    #        } },
+    #
+    #        api2            => { maxlength => 64, aoh => {
+    #            token     => {},
+    #            added     => {},
+    #            lastused  => { required => 0, default => '' },
+    #            notes     => { required => 0, default => '', maxlength => 1000 },
+    #            listread  => { anybool => 1 },
+    #            listwrite => { anybool => 1 },
+    #            delete    => { anybool => 1 },
+    #        } },
+    #
+    #        # Supporter options
+    #        nodistract_noads   => { anybool => 1 },
+    #        nodistract_nofancy => { anybool => 1 },
+    #        support_enabled => { anybool => 1 },
+    #        uniname         => { required => 0, default => '', regex => qr/^.{2,15}$/ }, # Use regex to check length, HTML5 `maxlength` attribute counts UTF-16 code units...
+    #        pubskin_enabled => { anybool => 1 },
+    #    } },
 
     password  => { _when => 'in', required => 0, type => 'hash', keys => {
         old   => { password => 1 },
@@ -114,10 +114,16 @@ sub _getmail {
     tuwf->dbVali(select => sql_func user_getmail => \$uid, \auth->uid, sql_fromhex auth->token);
 }
 
+sub _namethrottled {
+    my($uid) = @_;
+    !auth->permUsermod && tuwf->dbVali('SELECT 1 FROM users_username_hist WHERE id =', \$uid, 'AND date > NOW()-\'1 day\'::interval')
+}
+
 TUWF::get qr{/$RE{uid}/edit}, sub {
     my $u = tuwf->dbRowi('SELECT id, username FROM users WHERE id =', \tuwf->capture('id'));
     return tuwf->resNotFound if !$u->{id} || !can_edit u => $u;
 
+    $u->{username_throttled} = _namethrottled;
     $u->{opts} = tuwf->dbRowi('SELECT nodistract_can, support_can, uniname_can, pubskin_can FROM users WHERE id =', \$u->{id});
     $u->{opts}{perm_dbmod}    = auth->permDbmod;
     $u->{opts}{perm_usermod}  = auth->permUsermod;
@@ -158,12 +164,13 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
         article_ sub {
             h1_ $title;
         };
-        elm_ 'User.Edit', $FORM_OUT, $u;
+        div_ widget(UserEdit => $FORM_OUT, $u), '';
+        #elm_ 'User.Edit', $FORM_OUT, $u;
     };
 };
 
 
-elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
+js_api UserEdit => $FORM_IN, sub {
     my $data = shift;
 
     my $username = tuwf->dbVali('SELECT username FROM users WHERE id =', \$data->{id});
@@ -173,6 +180,7 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
     my $own = $data->{id} eq auth->uid || auth->permUsermod;
     my(%set, %setp);
 
+=pod
     if($own) {
         my $p = $data->{prefs};
         $p->{skin} = '' if $p->{skin} eq config->{skin_default};
@@ -226,20 +234,25 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
     $set{perm_imgvote}    = $data->{admin}{perm_imgvote}    if auth->permDbmod;
     $set{perm_lengthvote} = $data->{admin}{perm_lengthvote} if auth->permDbmod;
     $set{perm_tag}        = $data->{admin}{perm_tag}        if auth->permTagmod;
+=cut
 
     if($own && $data->{username} ne $username) {
-        return elm_NameThrottle if tuwf->dbVali('SELECT 1 FROM users_username_hist WHERE id =', \$data->{id}, 'AND date > NOW()-\'1 day\'::interval');
-        return elm_Taken if !is_unique_username $data->{username}, $data->{id};
+        return +{ _err => 'You can only change your username once a day.' } if _namethrottled;
+        return +{ _field => 'username', _err => 'Username already taken.' } if !is_unique_username $data->{username}, $data->{id};
         $set{username} = $data->{username};
         tuwf->dbExeci('INSERT INTO users_username_hist', { id => $data->{id}, old => $username, new => $data->{username} });
     }
 
     if($own && $data->{password}) {
-        return elm_InsecurePass if is_insecurepass $data->{password}{new};
+        return +{ _field => 'npass', _err => 'Your new password is in a public database of leaked passwords, please choose a different password.' }
+            if is_insecurepass $data->{password}{new};
         my $ok = auth->setpass($data->{id}, undef, $data->{password}{old}, $data->{password}{new});
         auth->audit($data->{id}, $ok ? 'password change' : 'bad password', 'at user edit form');
-        return elm_BadCurPass if !$ok;
+        return +{ _field => 'opass', _err => 'Incorrect password' } if !$ok;
     }
+
+    die;
+=pod
 
     my $ret = \&elm_Success;
 
@@ -282,6 +295,7 @@ elm_api UserEdit => $FORM_OUT, $FORM_IN, sub {
         if @diff && (auth->uid ne $data->{id} || grep /^(perm_|ign_votes|username)/, @diff);
 
     $ret->();
+=cut
 };
 
 

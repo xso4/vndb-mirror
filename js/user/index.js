@@ -5,5 +5,6 @@
 
 @include user/Subscribe.js
 @include user/UserLogin.js
+@include user/UserEdit.js
 
 // @license-end

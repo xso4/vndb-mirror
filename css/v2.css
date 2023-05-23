@@ -133,9 +133,10 @@ table.formimage h2 { margin: 0 }
 /* New fielset-based form layout */
 
 fieldset.form {
-    margin-left: 140px;
+    margin-left: 140px; margin-bottom: 20px;
     > fieldset { margin-bottom: 5px }
-    > label, > fieldset > label { display: block; float: left; margin-left: -140px; width: 130px; text-align: right }
+    > legend { display: block; margin-left: -130px; margin-bottom: 5px; font-weight: bold }
+    > label:not(.check), > fieldset > label:not(.check) { display: block; float: left; margin-left: -130px; width: 130px }
     .lw { width: 100%; max-width: 500px } /* for longer titles */
     .mw { width: 100%; max-width: 200px } /* for most inputs */
     .sw { width: 50px }                   /* for shorter inputs, like numbers */
@@ -148,6 +149,8 @@ fieldset.form {
     > fieldset:disabled > label { color: var(--grayedout) }
     input:invalid { border-color: var(--standout) }
 }
+.invalid nav li.invalid a { color: var(--standout) }
+
 /* TODO: responsive form layout for mobile */
 
 /* Form submit box, with optional edit summmary */

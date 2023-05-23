@@ -25,25 +25,120 @@ window.MainTabsDD = (initVnode) => {
 };
 
 
-// Wrapper around a <form> with a <fieldset> element. Attrs:
+// Wrapper around a <form> with a <fieldset> element and some magic.
+// Attrs:
 // - onsubmit    - submit event, already has preventDefault()
 // - disabled    - set 'disabled' attribute on the fieldset
-// - api         - Api object, sets 'disabled' when api.loading()
+// - api         - Api object, see below, also sets 'disabled' when api.loading()
+//
 // The .invalid class is set on an invalid <form> *after* the user attempts to
 // submit it, to help with styling invalid inputs.
+//
+// The api object is monitored for errors. If the error response includes a
+// '_field' member, then a setCustomValidity() and reportValidity() is
+// performed on the element with that ID. It is up to the form code to reset
+// the error in response to an 'oninput' event.
 window.Form = () => {
-    let invalid = false;
-    return { view: vnode =>
-        m('form', {
+    let invalid = false, lasterr;
+    return { view: vnode => {
+        const api = vnode.attrs.api;
+        return m('form', {
+            class: invalid ? 'invalid' : '',
             onsubmit: ev => { ev.preventDefault(); const x = vnode.attrs.onsubmit; x && x(ev) },
             // Need a custom listener here to make sure we capture events of child nodes; the 'invalid' event doesn't bubble.
             oncreate: v => v.dom.addEventListener('invalid', () => { invalid = !v.dom.valid; m.redraw() }, true),
-            class: invalid ? 'invalid' : ''
+            onupdate: v => {
+                if (!api || lasterr === api.error) return;
+                lasterr = api.error;
+                const res = api.xhr && api.xhr.response;
+                if (api.error && res !== null && 'object' === typeof res && res._field) {
+                    $('#'+res._field).setCustomValidity(res._fielderr || api.error);
+                    // reportValidity() will synchronously run all 'invalid'
+                    // events, but those aren't necessarily written to be
+                    // called during a m.render context, so delay it for a bit.
+                    requestAnimationFrame(() => v.dom.reportValidity());
+                }
+            },
         }, m('fieldset',
-            { disabled: vnode.attrs.disabled || vnode.attrs.api && vnode.attrs.api.loading() },
+            { disabled: vnode.attrs.disabled || (api && api.loading()) },
             vnode.children
         ))
+    }};
+};
+
+
+// Draw a form with multiple tabs, attrs:
+// - tabs    - Array of tabs, each tab is a 3-element arrays:
+//     [ id, label, func ]
+//   func should return the contents of the tab.
+// - sel     - Id of initially selected tab.
+//
+// The currently selected tab is tracked in location.hash, so linking to a
+// specific tab is possible.
+//
+// There's a fair bit of magic going on to integrate with form validation: when
+// a validation error is reported, this component automatically switches to the
+// first tab containing the error. Tab headers also indicate which tabs contain
+// errors.
+//
+// The list of tabs must be static and known at component creation time,
+// dynamically adding/removing tabs is not supported.
+window.FormTabs = initVnode => {
+    const tabs = initVnode.attrs.tabs;
+    const h = location.hash.replace('#', '');
+    let sel = initVnode.attrs.sel || (
+        h && (h === 'all' || tabs.find(t => t[0] === h)) ? h : tabs[0][0]
+    );
+    let report;
+    const set = n => location.replace('#'+(sel=n));
+    const onclick = ev => {
+        ev.preventDefault();
+        set(ev.target.href.replace(/^.+#/, ''));
     };
+    // If there is a form validation error, we have to make sure that the field
+    // being reported is actually visible. If not, switch to the first invalid
+    // tab and re-report the error.
+    // Assumption: reportValidity() is always only used on the global form and
+    // not on individual elements, and it always reports the first invalid
+    // field in the DOM.
+    const oninvalid = () => {
+        // XXX: Validation on fieldsets is weird. No errors are reported
+        // through the JS validation API, but the :invalid CSS selector still
+        // matches. Let's just abuse that.
+        if(sel === 'all' || $('#formtabs_'+sel+':invalid')) return;
+        for (const t of tabs) {
+            if (sel === t[0] || $('#formtabs_'+t[0]+':valid')) continue;
+            set(t[0]);
+            report = true;
+            m.redraw();
+            return;
+        }
+    };
+    const view = () => [
+        tabs.length > 1 ? m('nav', m('menu',
+            tabs.concat([['all', 'All items']]).map(t =>
+                m('li', { key: t[0], id: 'formtabst_'+t[0], class: sel === t[0] ? 'tabselected' : ''},
+                    m('a', {onclick, href: '#'+t[0]}, t[1])
+                )
+            ),
+        )) : null,
+        tabs.map(t => m('article',
+            { key: t[0], class: sel === t[0] || sel === 'all' ? '' : 'hidden' },
+            m('fieldset', {id: 'formtabs_'+t[0]}, t[2]())
+        )),
+    ];
+    const oncreate = v => v.dom.closest('form').addEventListener('invalid', oninvalid, true);
+    const onupdate = v => requestAnimationFrame(() => {
+        if (report) v.dom.closest('form').reportValidity();
+        report = false;
+        console.log("Update");
+        // Set the 'invalid' class on the tabs. The form state is not known
+        // during the view function, so this has to be done in an onupdate hook.
+        for (const t of tabs) {
+            $('#formtabst_'+t[0]).classList.toggle('invalid', !!$('#formtabs_'+t[0]+':invalid'));
+        }
+    });
+    return {view,oncreate,onupdate};
 };
 
 
