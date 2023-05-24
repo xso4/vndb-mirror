@@ -107,6 +107,48 @@ const Password = () => {
     )};
 };
 
+const Support = initVnode => {
+    const data = initVnode.attrs.data;
+    return {view: () => data.editor_usermod || data.nodistract_can || data.support_can || data.uniname_can || data.pubskin_can ? m('fieldset.form',
+        m('legend', 'Supporter options⭐'),
+        data.editor_usermod ? m('p',
+            'Enabled options: ' + (['nodistract', 'support', 'uniname', 'pubskin'].filter(x => data[x+'_can']).join(', ')||'none') + '.'
+        ) : null,
+        data.editor_usermod || data.nodistract_can ? m('fieldset',
+            m('label.check',
+                m('input[type=checkbox]', { checked: data.nodistract_noads, oninput: e => data.nodistract_noads = e.target.checked }),
+                ' Disable advertising and other distractions (only hides the support box for the moment)',
+            ),
+            m('br'),
+            m('label.check',
+                m('input[type=checkbox]', { checked: data.nodistract_nofancy, oninput: e => data.nodistract_nofancy = e.target.checked }),
+                ' Disable supporters badges, custom display names and profile skins',
+            ),
+        ) : null,
+        data.editor_usermod || data.support_can ? m('fieldset',
+            m('label.check',
+                m('input[type=checkbox]', { checked: data.support_enabled, oninput: e => data.support_enabled = e.target.checked }),
+                ' Display my supporters badge',
+            )
+        ) : null,
+        data.editor_usermod || data.pubskin_can ? m('fieldset',
+            m('label.check',
+                m('input[type=checkbox]', { checked: data.pubskin_enabled, oninput: e => data.pubskin_enabled = e.target.checked }),
+                ' Apply my skin and custom CSS when others visit my profile',
+            )
+        ) : null,
+        data.editor_usermod || data.uniname_can ? m('fieldset',
+            m('label[for=uniname]', 'Display name'),
+            m('input#uniname[type=text][pattern=^.{2,15}$]', {
+                value: data.uniname,
+                placeholder: data.username,
+                oninput: e => { e.target.setCustomValidity(''); data.uniname = e.target.value },
+            }),
+            m('p', 'Between 2 and 15 characters, all unicode characters are accepted.'),
+        ) : null,
+    ) : null};
+};
+
 widget('UserEdit', initVnode => {
     let msg = '';
     const data = initVnode.attrs.data;
@@ -124,6 +166,7 @@ widget('UserEdit', initVnode => {
         m(Username, {data}),
         m(Email, {data}),
         m(Password, {data}),
+        m(Support, {data}),
     ];
 
     const display = () => [

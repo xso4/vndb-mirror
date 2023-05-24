@@ -18,18 +18,20 @@ my $FORM = {
         new          => { password => 1 }
     } },
 
-    #    opts => { _when => 'out', type => 'hash', keys => {
-    #        # Supporter options available to this user
-    #        nodistract_can => { _when => 'out', anybool => 1 },
-    #        support_can    => { _when => 'out', anybool => 1 },
-    #        uniname_can    => { _when => 'out', anybool => 1 },
-    #        pubskin_can    => { _when => 'out', anybool => 1 },
-    #
-    #    } },
-    #
-    #    # Settings that can only be read/modified by the user itself or a perm_usermod
+    # Supporter options available to this user
+    editor_usermod  => { anybool => 1 },
+    nodistract_can  => { _when => 'out', anybool => 1 },
+    support_can     => { _when => 'out', anybool => 1 },
+    uniname_can     => { _when => 'out', anybool => 1 },
+    pubskin_can     => { _when => 'out', anybool => 1 },
+    # Supporter options
+    nodistract_noads   => { anybool => 1 },
+    nodistract_nofancy => { anybool => 1 },
+    support_enabled => { anybool => 1 },
+    uniname         => { required => 0, default => '', length => [2,15] }, # regex => qr/^.{2,15}$/ }, # Use regex to check length, HTML5 `maxlength` attribute counts UTF-16 code units...
+    pubskin_enabled => { anybool => 1 },
+
     #    prefs => { required => 0, type => 'hash', keys => {
-    #        email           => { email => 1 },
     #        max_sexual      => {  int => 1, range => [-1, 2 ] },
     #        max_violence    => { uint => 1, range => [ 0, 2 ] },
     #        traits_sexual   => { anybool => 1 },
@@ -84,12 +86,6 @@ my $FORM = {
     #            delete    => { anybool => 1 },
     #        } },
     #
-    #        # Supporter options
-    #        nodistract_noads   => { anybool => 1 },
-    #        nodistract_nofancy => { anybool => 1 },
-    #        support_enabled => { anybool => 1 },
-    #        uniname         => { required => 0, default => '', regex => qr/^.{2,15}$/ }, # Use regex to check length, HTML5 `maxlength` attribute counts UTF-16 code units...
-    #        pubskin_enabled => { anybool => 1 },
     #    } },
 };
 
@@ -118,6 +114,7 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
     );
     return tuwf->resNotFound if !$u->{id} || !can_edit u => $u;
 
+    $u->{editor_usermod}     = auth->permUsermod;
     $u->{username_throttled} = _namethrottled;
     $u->{email}              = _getmail $u->{id};
 
@@ -156,25 +153,25 @@ js_api UserEdit => $FORM_IN, sub {
 
     my(%set, %setp);
 
-=pod
-    if($own) {
-        my $p = $data->{prefs};
-        $p->{skin} = '' if $p->{skin} eq config->{skin_default};
-        $p->{uniname} = '' if $p->{uniname} eq $username;
-        return elm_Taken if $p->{uniname} && tuwf->dbVali('SELECT 1 FROM users WHERE id <>', \$data->{id}, 'AND username =', \lc($p->{uniname}));
+    $data->{uniname} = '' if $data->{uniname} eq $u->{username};
+    return +{ _field => 'uniname', _err => 'Display name already taken.' }
+        if $data->{uniname} && tuwf->dbVali('SELECT 1 FROM users WHERE id <>', \$data->{id}, 'AND lower(username) =', \lc($data->{uniname}));
 
-        $p->{timezone}       = '' if $p->{timezone} eq 'UTC';
+    $set{$_} = $data->{$_} for qw/nodistract_noads nodistract_nofancy support_enabled uniname pubskin_enabled/;
+    $setp{customcss_csum} = length $data->{customcss} ? unpack 'q', sha1 do { utf8::encode(local $_=$data->{customcss}); $_ } : 0;
+
+=pod
+    $data->{skin} = '' if $data->{skin} eq config->{skin_default};
+    $data->{timezone} = '' if $data->{timezone} eq 'UTC';
+    $setp{$_} = $data->{$_} for qw/
+        max_sexual max_violence traits_sexual tags_all tags_cont tags_ero tags_tech prodrelexpand
+        vnrel_langs vnrel_olang vnrel_mtl staffed_langs staffed_olang staffed_unoff
+        spoilers skin customcss timezone titles
+    /;
         $p->{titles}         = titleprefs_fmt [ delete $p->{titles}, delete $p->{alttitles} ];
         $p->{titles}         = undef if $p->{titles} eq titleprefs_fmt $DEFAULT_TITLE_PREFS;
         $p->{vnrel_langs}    = $p->{vnrel_langs}->@* == keys %LANGUAGE ? undef : '{'.join(',',$p->{vnrel_langs}->@*).'}';
         $p->{staffed_langs}  = $p->{staffed_langs}->@* == keys %LANGUAGE ? undef : '{'.join(',',$p->{staffed_langs}->@*).'}';
-        $set{$_} = $p->{$_} for qw/nodistract_noads nodistract_nofancy support_enabled uniname pubskin_enabled/;
-        $setp{$_} = $p->{$_} for qw/
-            max_sexual max_violence traits_sexual tags_all tags_cont tags_ero tags_tech prodrelexpand
-            vnrel_langs vnrel_olang vnrel_mtl staffed_langs staffed_olang staffed_unoff
-            spoilers skin customcss timezone titles
-        /;
-        $setp{customcss_csum} = length $p->{customcss} ? unpack 'q', sha1 do { utf8::encode(local $_=$p->{customcss}); $_ } : 0;
         tuwf->dbExeci('DELETE FROM users_traits WHERE id =', \$data->{id});
         tuwf->dbExeci('INSERT INTO users_traits', { id => $data->{id}, tid => $_->{tid} }) for $p->{traits}->@*;
 
@@ -196,7 +193,6 @@ js_api UserEdit => $FORM_IN, sub {
                 auth->api2_set_token($data->{id}, %$t);
             }
         }
-    }
 =cut
 
     $set{email_confirmed} = 1 if auth->permUsermod;
