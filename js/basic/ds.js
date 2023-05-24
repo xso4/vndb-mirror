@@ -41,10 +41,14 @@ const close = ev => {
 //    x & y offsets for positioning
 // - width
 // - placeholder
-// - source
-//     Source object, see below
 // - onselect(obj)
 //     Called when an item has been selected
+// - props(obj)
+//     Called on each displayed object, should return null if the object should
+//     be filtered out or an object otherwise. The object supports the
+//     following options:
+//     - selectable: boolean, default true
+//     - append: vdom node to append to the item
 //
 // Actual positioning and size of the box may differ from the given options in
 // order to adjust for different window sizes; but that hasn't been implemented
@@ -56,11 +60,13 @@ const close = ev => {
 // - "Create new entry" option (e.g. for engines and labels)
 // - Multiselection?
 class DS {
-    constructor(opts) {
+    constructor(source, opts) {
         this.anchor = 'bl';
-        this.width = 300;
+        this.width = 400;
         this.input = '';
-        Object.assign(this, opts);
+        this.source = source;
+        if (source.opts) Object.assign(this, source.opts);
+        if (opts) Object.assign(this, opts);
         this.open = this.open.bind(this);
         this.list = [];
     }
@@ -89,13 +95,22 @@ class DS {
         this.selId = null;
     }
 
+    setSel(dir=1) {
+        let i = this.list.findIndex(e => e.id === this.selId) + dir;
+        for (; i >= 0 && i < this.list.length; i+=dir)
+            if (this.list[i]._props.selectable) {
+                this.selId = this.list[i].id;
+                return;
+            }
+    }
+
     keydown(ev) {
         const i = this.list.findIndex(e => e.id === this.selId);
         if (ev.key == 'ArrowDown') {
-            if (i >= 0 && i+1 < this.list.length) this.selId = this.list[i+1].id;
+            this.setSel();
             ev.preventDefault();
         } else if (ev.key == 'ArrowUp') {
-            if (i > 0) this.selId = this.list[i-1].id;
+            this.setSel(-1);
             ev.preventDefault();
         } else if (ev.key == 'Escape' || ev.key == 'Esc') {
             close();
@@ -106,8 +121,16 @@ class DS {
     }
 
     setList(lst) {
-        this.list = lst;
-        if(!lst.find(e => e.id === this.selId)) this.selId = lst.length > 0 ? lst[0].id : null;
+        this.list = [];
+        let hasSel = false;
+        for (const e of lst) {
+            e._props = this.props ? this.props(e) : {};
+            if (e._props === null) continue;
+            if (!('selectable' in e._props)) e._props.selectable = true;
+            this.list.push(e);
+            if (e.id === this.selId) hasSel = true;
+        }
+        if(!hasSel) this.setSel();
     }
 
     abort() {
@@ -149,6 +172,18 @@ class DS {
 
     view() {
         const loading = this.loadingTimer || (this.source.api && this.source.api.loading());
+        const item = e => {
+            const p = e._props;
+            return m('li', {
+                key: e.id,
+                class: this.selId === e.id ? 'active' : !p.selectable ? 'unselectable' : null,
+                onmouseover: p.selectable ? () => this.selId = e.id : null,
+                onclick: p.selectable ? () => this.select(this.selId = e.id) : null,
+            }, m('span', p.selectable ? '» ' : 'x '),
+                this.source.view(e),
+                p.append,
+            );
+        };
         return m('form#ds', {
                 style: { left: this.left+'px', top: this.top+'px', width: this.width+'px' },
                 onsubmit: ev => { ev.preventDefault(); this.select() },
@@ -165,14 +200,7 @@ class DS {
             ? m('b', this.source.api.error)
             : !loading && this.input.trim() !== '' && this.list.length == 0
             ? m('em', 'No results')
-            : m('ul',
-                this.list.map(e => m('li', {
-                    key: e.id,
-                    class: this.selId === e.id ? 'active' : null,
-                    onmouseover: () => this.selId = e.id,
-                    onclick: () => this.select(this.selId = e.id),
-                }, m('span', '» '), this.source.view(e)))
-            ),
+            : m('ul', this.list.map(item)),
         );
     }
 };
@@ -181,6 +209,8 @@ class DS {
 // Source interface:
 // - cache
 //     Optional cache object, will be used to memoize calls to list()
+// - opts
+//     Default DS constructor options.
 // - api
 //     Optional Api object.
 //     Used for a loading indicator & error reporting.
@@ -195,14 +225,28 @@ class DS {
 // - view(obj)
 //     Should return a vnode for the given object
 
+const tt_view = obj => [
+    obj.group_name ? m('small', obj.group_name, ' / ') : null,
+    obj.name,
+    obj.hidden && !obj.locked ? m('small', ' (awaiting approval)') : obj.hidden ? m('small', ' (deleted)') :
+    !obj.searchable && !obj.applicable ? m('small', ' (meta)') :
+    !obj.searchable ? m('small', ' (not searchable)') : !obj.applicable ? m('small', ' (not applicable)') : null
+];
+
 DS.Tags = {
     cache: {'':[]},
+    opts: { placeholder: 'Search tags...' },
     api: new Api('Tags'),
     list: (src, str, cb) => src.api.call({ search: str }, res => res && cb(res.results)),
-    view: obj => [ obj.name,
-        obj.hidden && !obj.locked ? m('small', ' (awaiting approval)') : obj.hidden ? m('small', ' (deleted)') :
-        !obj.searchable && !obj.applicable ? m('small', ' (meta)') :
-        !obj.searchable ? m('small', ' (not searchable)') : !obj.applicable ? m('small', ' (not applicable)') : null ]
+    view: tt_view,
+};
+
+DS.Traits = {
+    cache: {'':[]},
+    opts: { placeholder: 'Search traits...' },
+    api: new Api('Traits'),
+    list: (src, str, cb) => src.api.call({ search: str }, res => res && cb(res.results)),
+    view: tt_view,
 };
 
 DS.Engines = {

@@ -28,8 +28,14 @@ my $FORM = {
     nodistract_noads   => { anybool => 1 },
     nodistract_nofancy => { anybool => 1 },
     support_enabled => { anybool => 1 },
-    uniname         => { required => 0, default => '', length => [2,15] }, # regex => qr/^.{2,15}$/ }, # Use regex to check length, HTML5 `maxlength` attribute counts UTF-16 code units...
+    uniname         => { required => 0, default => '', length => [2,15] },
     pubskin_enabled => { anybool => 1 },
+
+    traits          => { sort_keys => 'tid', maxlength => 100, aoh => {
+        tid     => { vndbid => 'i' },
+        name    => { _when => 'out' },
+        group   => { _when => 'out', required => 0 },
+    } },
 
     #    prefs => { required => 0, type => 'hash', keys => {
     #        max_sexual      => {  int => 1, range => [-1, 2 ] },
@@ -50,12 +56,6 @@ my $FORM = {
     #        skin            => { enum => skins },
     #        customcss       => { required => 0, default => '', maxlength => 16*1024 },
     #        timezone        => { required => 0, default => '', enum => \%ZONES },
-    #
-    #        traits          => { sort_keys => 'tid', maxlength => 100, aoh => {
-    #            tid     => { vndbid => 'i' },
-    #            name    => {},
-    #            group   => { required => 0 },
-    #        } },
     #
     #        titles          => { titleprefs => 1 },
     #        alttitles       => { titleprefs => 1 },
@@ -118,6 +118,8 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
     $u->{username_throttled} = _namethrottled;
     $u->{email}              = _getmail $u->{id};
 
+    $u->{traits} = tuwf->dbAlli('SELECT u.tid, t.name, g.name AS "group" FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id =', \$u->{id}, 'ORDER BY g.gorder, t.name');
+
 =pod
     if($u->{prefs}) {
         $u->{prefs}{timezone} //= '';
@@ -125,7 +127,6 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
         $u->{prefs}{vnrel_langs} ||= [ keys %LANGUAGE ];
         $u->{prefs}{staffed_langs} ||= [ keys %LANGUAGE ];
         @{$u->{prefs}}{'titles','alttitles'} = @{ titleprefs_parse($u->{prefs}{titles}) // $DEFAULT_TITLE_PREFS };
-        $u->{prefs}{traits} = tuwf->dbAlli('SELECT u.tid, t.name, g.name AS "group" FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id =', \$u->{id}, 'ORDER BY g.gorder, t.name');
         $u->{prefs}{tagprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.color, u.childs, t.name FROM users_prefs_tags u JOIN tags t ON t.id = u.tid WHERE u.id =', \$u->{id}, 'ORDER BY t.name');
         $u->{prefs}{traitprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.color, u.childs, t.name, g.name as "group" FROM users_prefs_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id =', \$u->{id}, 'ORDER BY g.gorder, t.name');
         $u->{prefs}{api2} = auth->api2_tokens($u->{id});
@@ -172,8 +173,6 @@ js_api UserEdit => $FORM_IN, sub {
         $p->{titles}         = undef if $p->{titles} eq titleprefs_fmt $DEFAULT_TITLE_PREFS;
         $p->{vnrel_langs}    = $p->{vnrel_langs}->@* == keys %LANGUAGE ? undef : '{'.join(',',$p->{vnrel_langs}->@*).'}';
         $p->{staffed_langs}  = $p->{staffed_langs}->@* == keys %LANGUAGE ? undef : '{'.join(',',$p->{staffed_langs}->@*).'}';
-        tuwf->dbExeci('DELETE FROM users_traits WHERE id =', \$data->{id});
-        tuwf->dbExeci('INSERT INTO users_traits', { id => $data->{id}, tid => $_->{tid} }) for $p->{traits}->@*;
 
         tuwf->dbExeci('DELETE FROM users_prefs_tags WHERE id =', \$data->{id});
         tuwf->dbExeci('INSERT INTO users_prefs_tags', { id => $data->{id}, %{$_}{qw|tid spoil color childs|} }) for $p->{tagprefs}->@*;
@@ -242,6 +241,9 @@ js_api UserEdit => $FORM_IN, sub {
             $ret = {email=>1};
         }
     }
+
+    tuwf->dbExeci('DELETE FROM users_traits WHERE id =', \$data->{id});
+    tuwf->dbExeci('INSERT INTO users_traits', { id => $data->{id}, tid => $_->{tid} }) for $data->{traits}->@*;
 
     my $old = tuwf->dbRowi('SELECT', sql_comma(keys %set, keys %setp), 'FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \$data->{id});
     tuwf->dbExeci('UPDATE users SET', \%set, 'WHERE id =', \$data->{id}) if keys %set;

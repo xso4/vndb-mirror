@@ -140,6 +140,8 @@ fieldset.form {
     .lw { width: 100%; max-width: 500px } /* for longer titles */
     .mw { width: 100%; max-width: 200px } /* for most inputs */
     .sw { width: 50px }                   /* for shorter inputs, like numbers */
+    td    { padding: 1px 15px 1px 0px }
+    table { margin-bottom: 5px }
 }
 /* 'invalid' class is set on the parent <form> element after attempted
  * submission, so that the element ':invalid' states and styling don't distract
@@ -264,9 +266,13 @@ span.spinner { width: 1em; height: 1em }
         width: 100%; margin: 0; list-style-type: none; overflow: hidden;
         > li {
             white-space: nowrap; cursor: pointer; padding: 3px 3px 3px 3px;
-            > span:first-child { visibility: hidden } /* I tried but failed to use list-style for the arrows. Meh. */
+            > span:first-child { display: inline-block; width: 1em; visibility: hidden }
             &.active {
                 background: var(--boxbg);
+                > span:first-child { visibility: visible }
+            }
+            &.unselectable {
+                color: var(--grayedout);
                 > span:first-child { visibility: visible }
             }
         }

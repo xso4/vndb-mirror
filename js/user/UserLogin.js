@@ -12,7 +12,7 @@ const ChangePass = vnode => {
         m('div.warning',
             m('h2', 'Your current password is insecure.'),
             'Your password is listed in a ',
-            m('a[href=https://haveibeenpwned.com/][target=blank]', 'database of leaked passwords'),
+            m('a[href=https://haveibeenpwned.com/][target=_blank]', 'database of leaked passwords'),
             ', please set a new password to continue using your account.'
         ),
         m('fieldset.form',

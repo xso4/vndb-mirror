@@ -149,6 +149,39 @@ const Support = initVnode => {
     ) : null};
 };
 
+const Traits = initVnode => {
+    const data = initVnode.attrs.data;
+    const lookup = Object.fromEntries(data.traits.map(x => [x.tid,true]));
+    const ds = new DS(DS.Traits, {
+        props: obj =>
+            lookup[obj.id]
+            ? { selectable: false, append: m('small', ' (already listed)') }
+            : obj.hidden ? null : { selectable: obj.applicable },
+        onselect: obj => {
+            lookup[obj.id] = true;
+            data.traits.push({ tid: obj.id, group: obj.group_name, name: obj.name });
+        },
+    });
+    return {view: () => m('fieldset.form',
+        m('label', 'Traits'),
+        m('p', 'You can add up to 100 ', m('a[href=/i][target=_blank]', 'character traits'), ' to your account. These are displayed on your public profile.', m('br'), m('br')),
+        m('table',
+            m('tfoot', m('tr', m('td[colspan=2]',
+                data.traits.length >= 100
+                ? 'Maximum number of traits reached.'
+                : m('input.mw[type=button][value=Add trait]', { onclick: ds.open })
+            ))),
+            m('tbody', data.traits.map(t => m('tr', { key: t.tid },
+                m('td', t.group ? m('small', t.group, ' / ') : null, m('a[target=_blank]', { href: '/'+t.tid }, t.name)),
+                m('td', m('input[type=button][value=remove]', { onclick: () => {
+                    delete lookup[t.tid];
+                    data.traits = data.traits.filter(x => x.tid !== t.tid);
+                }})),
+            ))),
+        ),
+    )}
+};
+
 widget('UserEdit', initVnode => {
     let msg = '';
     const data = initVnode.attrs.data;
@@ -175,6 +208,7 @@ widget('UserEdit', initVnode => {
 
     const tabs = [
         [ 'account', 'Account', account ],
+        [ 'profile', 'Public Profile', () => [ m('h1', 'Public Profile'), m(Traits, {data}) ] ],
         [ 'display', 'Display Preferences', display ],
     ];
     const view = () => m(Form, {onsubmit,api},

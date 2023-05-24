@@ -32,6 +32,15 @@ window.onerror = function(ev, source, lineno, colno, error) {
 window.$ = sel => document.querySelector(sel);
 window.$$ = sel => Array.from(document.querySelectorAll(sel));
 
+// Polyfill
+if (!Object.fromEntries)
+	Object.fromEntries = lst => {
+		let obj = {};
+		for (let [key, value] of lst) obj[key] = value;
+		return obj;
+	};
+
+
 // Load global page-wide variables from <script id="pagevars">...</script> and
 // store them into window.pageVars.
 window.pageVars = (e => e ? JSON.parse(e.innerHTML) : {})($('#pagevars'));
