@@ -9,31 +9,14 @@ use Digest::SHA 'sha1';
 
 
 my $FORM = {
-    id => { vndbid => 'u' },
-
-    # Permissions of the user editing this account
-    perm_dbmod     => { _when => 'out', anybool => 1 },
-    perm_usermod   => { _when => 'out', anybool => 1 },
-    perm_tagmod    => { _when => 'out', anybool => 1 },
-    perm_boardmod  => { _when => 'out', anybool => 1 },
-
-    password  => { _when => 'in', required => 0, type => 'hash', keys => {
-        old   => { password => 1 },
-        new   => { password => 1 }
+    id             => { vndbid => 'u' },
+    username       => { username => 1 },
+    username_throttled => { _when => 'out', anybool => 1 },
+    email          => { email => 1 },
+    password       => { _when => 'in', required => 0, type => 'hash', keys => {
+        old          => { password => 1 },
+        new          => { password => 1 }
     } },
-
-    # Settings that require at least one perm_*mod
-    admin => { required => 0, type => 'hash', keys => {
-        ign_votes => { anybool => 1 },
-        map +("perm_$_" => { anybool => 1 }), VNWeb::Auth::listPerms
-    } },
-
-    # Settings that can only be read/modified by the user itself or a perm_usermod
-    prefs => { required => 0, type => 'hash', keys => {
-        username       => { username => 1 },
-        username_throttled => { _when => 'out', anybool => 1 },
-        email          => { email => 1 },
-    }},
 
     #    opts => { _when => 'out', type => 'hash', keys => {
     #        # Supporter options available to this user
@@ -114,7 +97,6 @@ my $FORM_IN  = form_compile in  => $FORM;
 my $FORM_OUT = form_compile out => $FORM;
 
 
-
 sub _getmail {
     my $uid = shift;
     tuwf->dbVali(select => sql_func user_getmail => \$uid, \auth->uid, sql_fromhex auth->token);
@@ -126,32 +108,20 @@ sub _namethrottled {
 }
 
 TUWF::get qr{/$RE{uid}/edit}, sub {
-    my $u = tuwf->dbRowi('SELECT id, username FROM users WHERE id =', \tuwf->capture('id'));
-    return tuwf->resNotFound if !$u->{id} || !can_edit u => $u;
-
-    $u->{perm_dbmod}    = auth->permDbmod;
-    $u->{perm_usermod}  = auth->permUsermod;
-    $u->{perm_tagmod}   = auth->permTagmod;
-    $u->{perm_boardmod} = auth->permBoardmod;
-
-    $u->{prefs} = $u->{id} eq auth->uid || auth->permUsermod ? tuwf->dbRowi(
-        'SELECT username, max_sexual, max_violence, traits_sexual, tags_all, tags_cont, tags_ero, tags_tech, prodrelexpand
+    my $u = tuwf->dbRowi(
+        'SELECT u.id, username, max_sexual, max_violence, traits_sexual, tags_all, tags_cont, tags_ero, tags_tech, prodrelexpand
               , vnrel_langs::text[], vnrel_olang, vnrel_mtl, staffed_langs::text[], staffed_olang, staffed_unoff
               , spoilers, skin, customcss, timezone, titles
+              , nodistract_can, support_can, uniname_can, pubskin_can
               , nodistract_noads, nodistract_nofancy, support_enabled, uniname, pubskin_enabled
-           FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \$u->{id}
-    ) : undef;
-    if($u->{prefs}) {
-        $u->{prefs}{username_throttled} = _namethrottled;
-        $u->{prefs}{email}         = _getmail $u->{id};
-    }
+           FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \tuwf->capture('id')
+    );
+    return tuwf->resNotFound if !$u->{id} || !can_edit u => $u;
 
-    $u->{admin} = auth->permDbmod || auth->permUsermod || auth->permTagmod || auth->permBoardmod ?
-        tuwf->dbRowi('SELECT ign_votes, ', sql_comma(map "perm_$_", auth->listPerms), 'FROM users u JOIN users_shadow us ON us.id = u.id WHERE u.id =', \$u->{id}) : undef;
+    $u->{username_throttled} = _namethrottled;
+    $u->{email}              = _getmail $u->{id};
 
 =pod
-    $u->{opts}          = tuwf->dbRowi('SELECT nodistract_can, support_can, uniname_can, pubskin_can FROM users WHERE id =', \$u->{id});
-
     if($u->{prefs}) {
         $u->{prefs}{timezone} //= '';
         $u->{prefs}{skin} ||= config->{skin_default};
@@ -173,7 +143,6 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
             h1_ $title;
         };
         div_ widget(UserEdit => $FORM_OUT, $u), '';
-        #elm_ 'User.Edit', $FORM_OUT, $u;
     };
 };
 
@@ -181,11 +150,10 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
 js_api UserEdit => $FORM_IN, sub {
     my $data = shift;
 
-    my $username = tuwf->dbVali('SELECT username FROM users WHERE id =', \$data->{id});
-    return tuwf->resNotFound if !length $username;
-    return elm_Unauth if !can_edit u => $data;
+    my $u = tuwf->dbRowi('SELECT id, username FROM users WHERE id =', \$data->{id});
+    return tuwf->resNotFound if !$u->{id};
+    return elm_Unauth if !can_edit u => $u;
 
-    my $own = $data->{id} eq auth->uid || auth->permUsermod;
     my(%set, %setp);
 
 =pod
@@ -231,28 +199,17 @@ js_api UserEdit => $FORM_IN, sub {
     }
 =cut
 
-    if(auth->permUsermod) {
-        $set{ign_votes} = $data->{admin}{ign_votes};
-        $set{email_confirmed} = 1;
-        tuwf->dbExeci(select => sql_func user_setperm_usermod => \$data->{id}, \auth->uid, sql_fromhex(auth->token), \$data->{admin}{perm_usermod});
-        $set{"perm_$_"} = $data->{admin}{"perm_$_"} for grep $_ ne 'usermod', auth->listPerms;
-    }
-    $set{perm_board}      = $data->{admin}{perm_board}      if auth->permBoardmod;
-    $set{perm_review}     = $data->{admin}{perm_review}     if auth->permBoardmod;
-    $set{perm_edit}       = $data->{admin}{perm_edit}       if auth->permDbmod;
-    $set{perm_imgvote}    = $data->{admin}{perm_imgvote}    if auth->permDbmod;
-    $set{perm_lengthvote} = $data->{admin}{perm_lengthvote} if auth->permDbmod;
-    $set{perm_tag}        = $data->{admin}{perm_tag}        if auth->permTagmod;
+    $set{email_confirmed} = 1 if auth->permUsermod;
 
-    if($own && $data->{prefs}{username} ne $username) {
+    if($data->{username} ne $u->{username}) {
         return +{ _err => 'You can only change your username once a day.' } if _namethrottled;
-        return +{ _field => 'username', _err => 'Username already taken.' } if !is_unique_username $data->{prefs}{username}, $data->{id};
-        $set{username} = $data->{prefs}{username};
-        auth->audit($data->{id}, 'username change', "old=$username; new=$data->{prefs}{username}");
-        tuwf->dbExeci('INSERT INTO users_username_hist', { id => $data->{id}, old => $username, new => $data->{prefs}{username} });
+        return +{ _field => 'username', _err => 'Username already taken.' } if !is_unique_username $data->{username}, $data->{id};
+        $set{username} = $data->{username};
+        auth->audit($data->{id}, 'username change', "old=$u->{username}; new=$data->{username}");
+        tuwf->dbExeci('INSERT INTO users_username_hist', { id => $data->{id}, old => $u->{username}, new => $data->{username} });
     }
 
-    if($own && $data->{password}) {
+    if($data->{password}) {
         return +{ _field => 'npass', _err => 'Your new password is in a public database of leaked passwords, please choose a different password.' }
             if is_insecurepass $data->{password}{new};
         my $ok = auth->setpass($data->{id}, undef, $data->{password}{old}, $data->{password}{new});
@@ -262,16 +219,15 @@ js_api UserEdit => $FORM_IN, sub {
 
     my $ret = {ok=>1};
 
-    my $newmail = $own && $data->{prefs}{email};
-    my $oldmail = $own && _getmail $data->{id};
-    if($own && $newmail ne $oldmail) {
+    my $oldmail = _getmail $data->{id};
+    if ($oldmail ne $data->{email}) {
         return +{ _field => 'email', _err => 'E-Mail address already in use by another account' }
-            if tuwf->dbVali('SELECT 1 FROM user_emailtoid(', \$newmail, ') x(id) WHERE id <>', \$data->{id});
-        auth->audit($data->{id}, 'email change', "old=$oldmail; new=$newmail");
+            if tuwf->dbVali('SELECT 1 FROM user_emailtoid(', \$data->{email}, ') x(id) WHERE id <>', \$data->{id});
+        auth->audit($data->{id}, 'email change', "old=$oldmail; new=$data->{email}");
         if(auth->permUsermod) {
-            tuwf->dbExeci(select => sql_func user_admin_setmail => \$data->{id}, \auth->uid, sql_fromhex(auth->token), \$newmail);
+            tuwf->dbExeci(select => sql_func user_admin_setmail => \$data->{id}, \auth->uid, sql_fromhex(auth->token), \$data->{email});
         } else {
-            my $token = auth->setmail_token($newmail);
+            my $token = auth->setmail_token($data->{email});
             my $body = sprintf
                 "Hello %s,"
                 ."\n\n"
@@ -280,27 +236,27 @@ js_api UserEdit => $FORM_IN, sub {
                 ."%s"
                 ."\n\n"
                 ."vndb.org",
-                $username, $oldmail, $newmail, tuwf->reqBaseURI()."/$data->{id}/setmail/$token";
+                $u->{username}, $oldmail, $data->{email}, tuwf->reqBaseURI()."/$data->{id}/setmail/$token";
 
             tuwf->mail($body,
-                To => $newmail,
+                To => $data->{email},
                 From => 'VNDB <noreply@vndb.org>',
-                Subject => "Confirm e-mail change for $username",
+                Subject => "Confirm e-mail change for $u->{username}",
             );
             $ret = {email=>1};
         }
     }
-
 
     my $old = tuwf->dbRowi('SELECT', sql_comma(keys %set, keys %setp), 'FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \$data->{id});
     tuwf->dbExeci('UPDATE users SET', \%set, 'WHERE id =', \$data->{id}) if keys %set;
     tuwf->dbExeci('UPDATE users_prefs SET', \%setp, 'WHERE id =', \$data->{id}) if keys %setp;
     my $new = tuwf->dbRowi('SELECT', sql_comma(keys %set, keys %setp), 'FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \$data->{id});
 
-    $_ = JSON::XS->new->allow_nonref->encode($_) for values %$old, %$new;
-    my @diff = grep $old->{$_} ne $new->{$_}, keys %set, keys %setp;
-    auth->audit($data->{id}, 'user edit', join '; ', map "$_: $old->{$_} -> $new->{$_}", @diff)
-        if @diff && (auth->uid ne $data->{id} || grep /^(perm_|ign_votes)/, @diff);
+    if (auth->uid ne $data->{id}) {
+        $_ = JSON::XS->new->allow_nonref->encode($_) for values %$old, %$new;
+        my @diff = grep $old->{$_} ne $new->{$_}, keys %set, keys %setp;
+        auth->audit($data->{id}, 'user edit', join '; ', map "$_: $old->{$_} -> $new->{$_}", @diff) if @diff;
+    }
 
     return $ret;
 };

@@ -430,6 +430,7 @@ sub _maintabs_ {
             t tagmod => "/$id/tagmod", 'modify tags' if $t eq 'v' && auth->permTag && !$o->{entry_hidden};
 
             do {
+                t admin => "/$id/admin", 'admin' if auth->isMod;
                 t list  => "/$id/ulist?vnlist=1", 'list';
                 t votes => "/$id/ulist?votes=1", 'votes';
                 t wish  => "/$id/ulist?wishlist=1", 'wishlist';

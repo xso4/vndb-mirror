@@ -289,7 +289,7 @@ sub validate_dbid {
 sub can_edit {
     my($type, $entry) = @_;
 
-    return auth->permUsermod || auth->permDbmod || auth->permBoardmod || auth->permTagmod || (auth && $entry->{id} eq auth->uid) if $type eq 'u';
+    return auth->permUsermod || (auth && $entry->{id} eq auth->uid) if $type eq 'u';
     return auth->permDbmod if $type eq 'd';
 
     if($type eq 't') {

@@ -107,58 +107,9 @@ const Password = () => {
     )};
 };
 
-const Admin = initVnode => {
-    const data = initVnode.attrs.data;
-    const admin = data.admin;
-    const chk = (opt, perm, label) => !data['perm_'+perm] ? null : m('label.check',
-        m('input[type=checkbox]', { checked: admin['perm_'+opt], oninput: e => admin['perm_'+opt] = e.target.checked }),
-        ' ', opt, m('small', ' (', label, ')'), m('br')
-    );
-    const none = {
-        perm_board: false, perm_review: false, perm_edit: false, perm_imgvote: false, perm_lengthvote: false, perm_tag: false,
-        perm_boardmod: false, perm_usermod: false, perm_tagmod: false, perm_dbmod: false, ign_votes: false,
-    };
-    const def = {
-        perm_board: true, perm_review: true, perm_edit: true, perm_imgvote: true, perm_lengthvote: true, perm_tag: true,
-        perm_boardmod: false, perm_usermod: false, perm_tagmod: false, perm_dbmod: false, ign_votes: true,
-    };
-    return {view: () => m('fieldset.form',
-        m('legend', 'Admin options'),
-        m('fieldset',
-            m('label', 'Preset'),
-            m('input[type=button][value=None]', { onclick: () => Object.assign(admin, none) }),
-            m('input[type=button][value=Default]', { onclick: () => Object.assign(admin, def) }),
-        ),
-        m('fieldset',
-            m('label', data.perm_usermod ? 'User perms' : 'Permissions'),
-            chk('board',      'boardmod', 'creating new threads and replying to existing threads and reviews'),
-            chk('review',     'boardmod', 'submitting new reviews'),
-            chk('edit',       'dbmod',    'database editing & tag voting'),
-            chk('imgvote',    'dbmod',    'flagging images - existing votes stop counting when unset'),
-            chk('lengthvote', 'dbmod',    'submitting VN play times - existing votes stop counting when unset'),
-            chk('tag',        'tagmod',   'voting on VN tags - existing votes stop counting when unset'),
-        ),
-        !data.perm_usermod ? null : m('fieldset',
-            m('label', 'Mod perms'),
-            chk('dbmod',      'usermod',  'database moderation'),
-            chk('tagmod',     'usermod',  'tags'),
-            chk('boardmod',   'usermod',  'forums & reviews'),
-            chk('usermod',    'usermod',  'full user editing'),
-        ),
-        !data.perm_usermod ? null : m('fieldset',
-            m('label', 'Other'),
-            m('label.check',
-                m('input[type=checkbox]', { checked: admin.ign_votes, oninput: e => admin.ign_votes = e.target.checked }),
-                ' Ignore votes in VN statistics'
-            ),
-        ),
-    )};
-};
-
 widget('UserEdit', initVnode => {
     let msg = '';
     const data = initVnode.attrs.data;
-    const prefs = data.prefs;
     const api = new Api('UserEdit');
     const onsubmit = ev => api.call(data, res => {
         msg = !res ? '' : res.email
@@ -170,10 +121,9 @@ widget('UserEdit', initVnode => {
 
     const account = () => [
         m('h1', 'Account'),
-        prefs ? m(Username, {data: prefs}) : null,
-        prefs ? m(Email, {data: prefs}) : null,
-        prefs ? m(Password, {data}) : null,
-        data.admin ? m(Admin, {data}) : null,
+        m(Username, {data}),
+        m(Email, {data}),
+        m(Password, {data}),
     ];
 
     const display = () => [
@@ -182,9 +132,8 @@ widget('UserEdit', initVnode => {
 
     const tabs = [
         [ 'account', 'Account', account ],
-    ].concat(!prefs ? [] : [
         [ 'display', 'Display Preferences', display ],
-    ]);
+    ];
     const view = () => m(Form, {onsubmit,api},
         m(FormTabs, {tabs}),
         m('article.submit',
