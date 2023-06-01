@@ -106,13 +106,14 @@ select[multiple] option {
     &:checked:before     { position: absolute; left: 0; top: 0; content: '✓' }
 }
 optgroup option          { padding-left: 10px }
-input.submit, input[type=submit], input[type=button], button { background: var(--boxbg); padding: 1px 5px; cursor: pointer }
+input.submit, input[type=submit], input[type=button], button { background-color: var(--boxbg); padding: 1px 5px; cursor: pointer }
+button.icon              { font-size: 1px; height: 22px }
+button.icon svg          { height: 14px; width: 14px }
 input.text, select       { width: 200px; }
 input.obscured           { color: transparent; text-shadow: 0 0 8px var(--maintext); }
 input[type=number]       { -moz-appearance:textfield }
 input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0 }
 input[type=color]        { width: 30px; height: 21px }
-
 
 /* Old table-based form layout */
 
@@ -142,6 +143,7 @@ fieldset.form {
     .sw { width: 50px }                   /* for shorter inputs, like numbers */
     td    { padding: 1px 15px 1px 0px }
     table { margin-bottom: 5px }
+    p + table { margin-top: 5px }
 }
 /* 'invalid' class is set on the parent <form> element after attempted
  * submission, so that the element ':invalid' states and styling don't distract
@@ -263,7 +265,7 @@ span.spinner { width: 1em; height: 1em }
         .spinner { position: absolute; top: 4px; right: 5px }
     }
     > ul {
-        width: 100%; margin: 0; list-style-type: none; overflow: hidden;
+        overflow: hidden scroll; width: 100%; margin: 0; list-style-type: none;
         > li {
             white-space: nowrap; cursor: pointer; padding: 3px 3px 3px 3px;
             > span:first-child { display: inline-block; width: 1em; visibility: hidden }

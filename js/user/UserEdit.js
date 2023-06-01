@@ -164,22 +164,65 @@ const Traits = initVnode => {
     });
     return {view: () => m('fieldset.form',
         m('label', 'Traits'),
-        m('p', 'You can add up to 100 ', m('a[href=/i][target=_blank]', 'character traits'), ' to your account. These are displayed on your public profile.', m('br'), m('br')),
-        m('table',
-            m('tfoot', m('tr', m('td[colspan=2]',
-                data.traits.length >= 100
-                ? 'Maximum number of traits reached.'
-                : m('input.mw[type=button][value=Add trait]', { onclick: ds.open })
-            ))),
+        m('p', 'You can add up to 100 ', m('a[href=/i][target=_blank]', 'character traits'), ' to your account. These are displayed on your public profile.'),
+        m('table.stripe',
             m('tbody', data.traits.map(t => m('tr', { key: t.tid },
-                m('td', t.group ? m('small', t.group, ' / ') : null, m('a[target=_blank]', { href: '/'+t.tid }, t.name)),
-                m('td', m('input[type=button][value=remove]', { onclick: () => {
+                m('td', m(DelButton, {onclick: () => {
                     delete lookup[t.tid];
                     data.traits = data.traits.filter(x => x.tid !== t.tid);
                 }})),
+                m('td', t.group ? m('small', t.group, ' / ') : null, m('a[target=_blank]', { href: '/'+t.tid }, t.name)),
+            ))),
+            m('tfoot', m('tr', m('td[colspan=2]',
+                data.traits.length >= 100
+                ? 'Maximum number of traits reached.'
+                : m('input[type=button][value=Add trait]', { onclick: ds.open })
             ))),
         ),
     )}
+};
+
+
+const romanized_langs = Object.fromEntries([ '', 'ar', 'fa', 'he', 'hi', 'ja', 'ko', 'ru', 'sk', 'th', 'uk', 'ur', 'zh', 'zh-Hans', 'zh-Hant' ].map(e => ([e,1])));
+
+const Titles = initVnode => {
+    const lst = initVnode.attrs.lst;
+    const langs = Object.fromEntries(vndbTypes.language);
+    const ds = new DS(DS.Lang, { onselect: obj => {
+        const o = lst.pop();
+        lst.push({lang: obj.id, latin: false, official: true });
+        lst.push(o);
+    }});
+    return {view: () => m('table.stripe',
+        m('tbody', lst.map((t,n) => m('tr',
+            m('td', '#'+(n+1)),
+            m('td', t.lang ? [LangIcon(t.lang), langs[t.lang]] : ['Original language']),
+            m('td', romanized_langs[t.lang || ''] ? m('label',
+                m('input[type=checkbox]', { checked: t.latin, oninput: ev => t.latin = ev.target.checked }),
+                ' romanized'
+            ) : null),
+            m('td', t.lang ? m('select.mw', { oninput: ev => t.official = [null, true, false][ev.target.selectedIndex] },
+                m('option', { selected: t.official === null  }, 'Original only'),
+                m('option', { selected: t.official === true  }, 'Official only'),
+                m('option', { selected: t.official === false }, 'Any'),
+            ) : null),
+            m('td',
+                m(UpButton, {visible: t.lang && n > 0, onclick: () => {
+                    lst[n] = lst[n-1];
+                    lst[n-1] = t;
+                }}),
+                m(DownButton, {visible: n < lst.length-2, onclick: () => {
+                    lst[n] = lst[n+1];
+                    lst[n+1] = t;
+                }}),
+                m(DelButton, {visible: !!t.lang, onclick: () => lst.splice(n,1)}),
+            ),
+        ))),
+        m('tfoot', m('tr', m('td[colspan=3]',
+            lst.length >= 5 ? null
+            : m('input[type=button][value=Add language]', {onclick: ds.open}),
+        )))
+    )};
 };
 
 widget('UserEdit', initVnode => {
@@ -204,6 +247,17 @@ widget('UserEdit', initVnode => {
 
     const display = () => [
         m('h1', 'Display preferences'),
+        // XXX: This could *really* use some help text.
+        m('fieldset.form',
+            m('legend', 'Title preferences'),
+            m('label', 'Title'),
+            m(Titles, {lst: data.titles}),
+        ),
+        m('fieldset.form',
+            m('label', 'Alternative title'),
+            m('p', 'The alternative title is used as tooltip for links or displayed next to the main title.'),
+            m(Titles, {lst: data.alttitles}),
+        ),
     ];
 
     const tabs = [

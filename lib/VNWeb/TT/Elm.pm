@@ -22,7 +22,7 @@ js_api Tags => { search => { searchquery => 1 } }, sub {
            FROM tags t', $q->sql_join('g', 't.id'), '
           WHERE NOT (t.hidden AND t.locked)
           ORDER BY sc.score DESC, t.name
-          LIMIT', \15
+          LIMIT', \30
     ) : [] }
 };
 
@@ -49,7 +49,7 @@ js_api Traits => { search => { searchquery => 1 } }, sub {
            LEFT JOIN traits g ON g.id = t.gid
           WHERE NOT (t.hidden AND t.locked)
           ORDER BY sc.score DESC, t.name
-          LIMIT', \15
+          LIMIT', \30
     ) : [] };
 };
 

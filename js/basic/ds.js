@@ -21,6 +21,45 @@ const keydown = ev => {
     m.redraw();
 };
 
+const position = () => {
+    const obj = $('#ds');
+    if(!obj) return;
+
+    // XXX: The actual height of the box is dynamic, but we'd rather not have
+    // it jump around on user input so better reserve some space.
+    const minHeight = 200;
+    const margin = 5;
+
+    const inst = activeInstance;
+    const opener = inst.opener.getBoundingClientRect(); // BUG: this doesn't work if ev.target is inside a positioned element
+    const header = obj.children[0].getBoundingClientRect().height;
+    const left = Math.max(margin, Math.min(
+        window.innerWidth - inst.width - 2*margin,
+        opener.x + (inst.xoff||0) + (inst.anchor == 'br' ? opener.width - inst.width : 0)
+    ));
+    const width = Math.min(window.innerWidth - margin*2, inst.width);
+
+    const top = Math.max(margin, Math.min(
+        window.innerHeight - minHeight - margin,
+        opener.y + (inst.yoff||0) + opener.height
+    ));
+    const height = Math.max(header + 20, Math.min(window.innerHeight - margin*2, window.innerHeight - top - margin));
+
+    obj.style.top  = (top  + window.scrollY) + 'px';
+    obj.style.left = (left + window.scrollX) + 'px';
+    obj.style.width = width + 'px';
+    const l = obj.children[1];
+    if (l && l.tagName == 'UL') l.style.maxHeight = (height - header) + 'px';
+
+    // Special case: if we've moved the box above the opener, make sure to
+    // expand the box even if there's nothing to select. Otherwise there's a
+    // weird disconnected floating input.
+    obj.style.minHeight = Math.max(0, opener.top - top) + 'px';
+
+    const e = obj.querySelector('li.active');
+    if (e) e.scrollIntoView({block: 'nearest'});
+};
+
 const close = ev => {
     if (!activeInstance) return;
     if (ev && (globalObj.contains(ev.target) || ev.target === activeInstance.opener)) return;
@@ -29,6 +68,8 @@ const close = ev => {
     activeInstance = null;
     document.removeEventListener('click', close);
     document.removeEventListener('keydown', keydown);
+    document.removeEventListener('scroll', position);
+    removeEventListener('resize', position);
     m.redraw();
 };
 
@@ -51,12 +92,9 @@ const close = ev => {
 //     - append: vdom node to append to the item
 //
 // Actual positioning and size of the box may differ from the given options in
-// order to adjust for different window sizes; but that hasn't been implemented
-// yet.
+// order to adjust for different window sizes.
 //
 // TODO:
-// - Make sure the box is inside the browsers' viewport
-// - Better handling of large lists (scrolling?)
 // - "Create new entry" option (e.g. for engines and labels)
 // - Multiselection?
 class DS {
@@ -76,13 +114,11 @@ class DS {
         setupObj();
         activeInstance = this;
         this.opener = ev.target;
-        // BUG: this doesn't work if ev.target is inside a positioned element
-        const rect = ev.target.getBoundingClientRect();
-        this.left = rect.x + window.scrollX + (this.xoff||0) + (this.anchor == 'br' ? rect.width - this.width : 0);
-        this.top  = rect.y + window.scrollY + (this.yoff||0) + rect.height;
         this.focus = v => { this.focus = null; v.dom.focus() };
         document.addEventListener('click', close);
         document.addEventListener('keydown', keydown);
+        document.addEventListener('scroll', position);
+        addEventListener('resize', position);
         this.setInput(this.input);
     }
 
@@ -104,13 +140,25 @@ class DS {
             }
     }
 
+    // Ignore the hover event for 200ms after calling this. In some cases a
+    // redraw/reselect is done that changes the positioning of the item
+    // currently under the cursor; that will fire an onmouseover event without
+    // it being the user's intent.
+    // The 200ms is a weird magic number that will not work reliably.
+    // This is an ugly hack, I'd rather see a better solution. :/
+    skipHover() {
+        this.doSkipHover = new Date();
+    }
+
     keydown(ev) {
         const i = this.list.findIndex(e => e.id === this.selId);
         if (ev.key == 'ArrowDown') {
             this.setSel();
+            this.skipHover();
             ev.preventDefault();
         } else if (ev.key == 'ArrowUp') {
             this.setSel(-1);
+            this.skipHover();
             ev.preventDefault();
         } else if (ev.key == 'Escape' || ev.key == 'Esc') {
             close();
@@ -122,6 +170,7 @@ class DS {
 
     setList(lst) {
         this.list = [];
+        this.skipHover();
         let hasSel = false;
         for (const e of lst) {
             e._props = this.props ? this.props(e) : {};
@@ -143,7 +192,7 @@ class DS {
         this.input = str_;
         if (activeInstance !== this) return;
         const src = this.source;
-        const str = str_.trim();
+        const str = str_.trim().toLowerCase();
         if (src.init && src._initState !== 2) {
             src._initState = 1;
             src.init(src, () => {
@@ -177,7 +226,10 @@ class DS {
             return m('li', {
                 key: e.id,
                 class: this.selId === e.id ? 'active' : !p.selectable ? 'unselectable' : null,
-                onmouseover: p.selectable ? () => this.selId = e.id : null,
+                onmouseover: p.selectable ? () => {
+                    if (this.doSkipHover && ((new Date()).getTime()-this.doSkipHover.getTime()) < 200) return;
+                    this.selId = e.id;
+                } : null,
                 onclick: p.selectable ? () => this.select(this.selId = e.id) : null,
             }, m('span', p.selectable ? '» ' : 'x '),
                 this.source.view(e),
@@ -185,8 +237,9 @@ class DS {
             );
         };
         return m('form#ds', {
-                style: { left: this.left+'px', top: this.top+'px', width: this.width+'px' },
                 onsubmit: ev => { ev.preventDefault(); this.select() },
+                onupdate: position,
+                oncreate: position,
             }, m('div',
                 m('input[type=text]', {
                     oncreate: this.focus, onupdate: this.focus,
@@ -252,8 +305,17 @@ DS.Traits = {
 DS.Engines = {
     api: new Api('Engines'),
     init: (src, cb) => src.api.call({}, res => res && cb(src.res = res.results, src.api = null)),
-    list: (src, str, cb) => cb(src.res.filter(e => e.id.toLowerCase().indexOf(str.toLowerCase()) !== -1).slice(0,15)),
+    list: (src, str, cb) => cb(src.res.filter(e => e.id.toLowerCase().includes(str)).slice(0,30)),
     view: obj => [ obj.id, m('small', ' ('+obj.count+')') ],
+};
+
+// TODO: Ranking? Popular langs, prefix match?
+DS.Lang = {
+    opts: { width: 250 },
+    list: (src, str, cb) => cb(vndbTypes.language
+        .filter(([id,label]) => str === id.toLowerCase() || label.toLowerCase().includes(str))
+        .map(([id,label]) => ({id,label}))),
+    view: obj => [ LangIcon(obj.id), obj.label ]
 };
 
 window.DS = DS;

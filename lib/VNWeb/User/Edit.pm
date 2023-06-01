@@ -37,6 +37,9 @@ my $FORM = {
         group   => { _when => 'out', required => 0 },
     } },
 
+    titles          => { titleprefs => 1 },
+    alttitles       => { titleprefs => 1 },
+
     #    prefs => { required => 0, type => 'hash', keys => {
     #        max_sexual      => {  int => 1, range => [-1, 2 ] },
     #        max_violence    => { uint => 1, range => [ 0, 2 ] },
@@ -57,8 +60,6 @@ my $FORM = {
     #        customcss       => { required => 0, default => '', maxlength => 16*1024 },
     #        timezone        => { required => 0, default => '', enum => \%ZONES },
     #
-    #        titles          => { titleprefs => 1 },
-    #        alttitles       => { titleprefs => 1 },
     #
     #        tagprefs        => { sort_keys => 'tid', maxlength => 500, aoh => {
     #            tid     => { vndbid => 'g' },
@@ -119,6 +120,7 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
     $u->{email}              = _getmail $u->{id};
 
     $u->{traits} = tuwf->dbAlli('SELECT u.tid, t.name, g.name AS "group" FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id =', \$u->{id}, 'ORDER BY g.gorder, t.name');
+    @{$u}{'titles','alttitles'} = @{ titleprefs_parse($u->{titles}) // $DEFAULT_TITLE_PREFS };
 
 =pod
     if($u->{prefs}) {
@@ -126,7 +128,6 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
         $u->{prefs}{skin} ||= config->{skin_default};
         $u->{prefs}{vnrel_langs} ||= [ keys %LANGUAGE ];
         $u->{prefs}{staffed_langs} ||= [ keys %LANGUAGE ];
-        @{$u->{prefs}}{'titles','alttitles'} = @{ titleprefs_parse($u->{prefs}{titles}) // $DEFAULT_TITLE_PREFS };
         $u->{prefs}{tagprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.color, u.childs, t.name FROM users_prefs_tags u JOIN tags t ON t.id = u.tid WHERE u.id =', \$u->{id}, 'ORDER BY t.name');
         $u->{prefs}{traitprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.color, u.childs, t.name, g.name as "group" FROM users_prefs_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id =', \$u->{id}, 'ORDER BY g.gorder, t.name');
         $u->{prefs}{api2} = auth->api2_tokens($u->{id});
@@ -161,6 +162,11 @@ js_api UserEdit => $FORM_IN, sub {
     $set{$_} = $data->{$_} for qw/nodistract_noads nodistract_nofancy support_enabled uniname pubskin_enabled/;
     $setp{customcss_csum} = length $data->{customcss} ? unpack 'q', sha1 do { utf8::encode(local $_=$data->{customcss}); $_ } : 0;
 
+    $data->{titles} = titleprefs_fmt [ $data->{titles}, delete $data->{alttitles} ];
+    $data->{titles} = undef if $data->{titles} eq titleprefs_fmt $DEFAULT_TITLE_PREFS;
+
+    $setp{$_} = $data->{$_} for qw/ titles /;
+
 =pod
     $data->{skin} = '' if $data->{skin} eq config->{skin_default};
     $data->{timezone} = '' if $data->{timezone} eq 'UTC';
@@ -169,8 +175,6 @@ js_api UserEdit => $FORM_IN, sub {
         vnrel_langs vnrel_olang vnrel_mtl staffed_langs staffed_olang staffed_unoff
         spoilers skin customcss timezone titles
     /;
-        $p->{titles}         = titleprefs_fmt [ delete $p->{titles}, delete $p->{alttitles} ];
-        $p->{titles}         = undef if $p->{titles} eq titleprefs_fmt $DEFAULT_TITLE_PREFS;
         $p->{vnrel_langs}    = $p->{vnrel_langs}->@* == keys %LANGUAGE ? undef : '{'.join(',',$p->{vnrel_langs}->@*).'}';
         $p->{staffed_langs}  = $p->{staffed_langs}->@* == keys %LANGUAGE ? undef : '{'.join(',',$p->{staffed_langs}->@*).'}';
 

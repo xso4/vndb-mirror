@@ -8,6 +8,7 @@ use lib "$ROOT/lib";
 use TUWF;
 use JSON::XS;
 use VNWeb::Validation ();
+use VNDB::Types;
 
 my $js = JSON::XS->new->pretty->canonical;
 
@@ -18,7 +19,13 @@ sub validations {
     }).";\n";
 }
 
+sub types {
+    print 'window.vndbTypes = '.$js->encode({
+        language => [ map [$_, $LANGUAGE{$_}], keys %LANGUAGE ],
+    }).";\n";
+}
+
 if ($ARGV[0] eq 'types') {
     validations;
-    # TODO: Also stuff from VNDB::Types, of course.
+    types;
 }
