@@ -449,7 +449,7 @@ sub proc_results {
 api_get '/schema', {}, sub {
     state $s = {
         enums => {
-            language => [ map +{ id => $_, label => $LANGUAGE{$_} }, keys %LANGUAGE ],
+            language => [ map +{ id => $_, label => $LANGUAGE{$_}{txt} }, keys %LANGUAGE ],
             platform => [ map +{ id => $_, label => $PLATFORM{$_} }, keys %PLATFORM ],
             medium   => [ map +{ id => $_, label => $MEDIUM{$_}{txt}, plural => $MEDIUM{$_}{plural}||undef }, keys %MEDIUM ],
         },

@@ -145,7 +145,7 @@ sub _infotable_ {
                     my($olang) = grep $_->{lang} eq $r->{olang}, $r->{titles}->@*;
                     tr_ class => 'nostripe title', sub {
                         td_ style => 'white-space: nowrap', sub {
-                            abbr_ class => "icon-lang-$_->{lang}", title => $LANGUAGE{$_->{lang}}, '';
+                            abbr_ class => "icon-lang-$_->{lang}", title => $LANGUAGE{$_->{lang}}{txt}, '';
                         };
                         td_ sub {
                             my $title = $_->{title}//$olang->{title};

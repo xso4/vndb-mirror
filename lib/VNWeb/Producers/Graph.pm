@@ -36,7 +36,7 @@ TUWF::get qr{/$RE{pid}/rg}, sub {
             qq|n$n->{id} [ $nodeid URL = "/$n->{id}", tooltip = "$tooltip", label=<|.
             qq|<TABLE CELLSPACING="0" CELLPADDING="2" BORDER="0" CELLBORDER="1" BGCOLOR="#222222">|.
             qq|<TR><TD COLSPAN="2" ALIGN="CENTER" CELLPADDING="3"><FONT POINT-SIZE="9">  $name  </FONT></TD></TR>|.
-            qq|<TR><TD ALIGN="CENTER"> $LANGUAGE{$n->{lang}} </TD><TD ALIGN="CENTER"> $PRODUCER_TYPE{$n->{type}} </TD></TR>|.
+            qq|<TR><TD ALIGN="CENTER"> $LANGUAGE{$n->{lang}}{txt} </TD><TD ALIGN="CENTER"> $PRODUCER_TYPE{$n->{type}} </TD></TR>|.
             qq|</TABLE>> ]|;
 
         push @lines, node_more $n->{id}, "/$n->{id}/rg$params", scalar grep !$nodes->{$_}, $n->{rels}->@*;

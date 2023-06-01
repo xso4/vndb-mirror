@@ -151,7 +151,7 @@ sub release_row_ {
         td_ class => 'tc3', sub {
             platform_ $_ for $r->{platforms}->@*;
             if(!$opt->{lang}) {
-                abbr_ class => "icon-lang-$_->{lang}".($_->{mtl}?' mtl':''), title => $LANGUAGE{$_->{lang}}, '' for $r->{titles}->@*;
+                abbr_ class => "icon-lang-$_->{lang}".($_->{mtl}?' mtl':''), title => $LANGUAGE{$_->{lang}}{txt}, '' for $r->{titles}->@*;
             }
             abbr_ class => "icon-rt$r->{rtype}", title => $r->{rtype}, '';
         };

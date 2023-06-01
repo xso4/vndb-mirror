@@ -52,7 +52,7 @@ sub listing_ {
                 td_ class => 'tc4'.($_->{ignore}?' grayedout':''), ['Slow','Normal','Fast','-']->[$_->{speed}//3];
                 td_ class => 'tc5', sub {
                     my %l = map +($_,1), map $_->{lang}->@*, $_->{rel}->@*;
-                    abbr_ class => "icon-lang-$_", title => $LANGUAGE{$_}, '' for sort keys %l;
+                    abbr_ class => "icon-lang-$_", title => $LANGUAGE{$_}{txt}, '' for sort keys %l;
                     join_ ',', sub { a_ href => "/$_->{id}", $_->{id} }, sort { idcmp $a->{id}, $b->{id} } $_->{rel}->@*;
                 };
                 td_ class => 'tc6'.($_->{ignore}?' grayedout':''), sub {

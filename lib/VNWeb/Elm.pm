@@ -1,4 +1,4 @@
-# This module is responsible for generating elm/Gen/*.
+# This module is responsible for generating elm/Gen/*;
 #
 # It exports an `elm_api` function to create an API endpoint, type definitions,
 # a JSON encoder and HTML5 validation attributes to simplify and synchronize
@@ -437,7 +437,7 @@ sub write_types {
 
     $data .= def adminEMail => String => string config->{admin_email};
     $data .= def skins      => 'List (String, String)' => list map tuple(string $_, string skins->{$_}{name}), sort { skins->{$a}{name} cmp skins->{$b}{name} } keys skins->%*;
-    $data .= def languages  => 'List (String, String)' => list map tuple(string $_, string $LANGUAGE{$_}), sort { $LANGUAGE{$a} cmp $LANGUAGE{$b} } keys %LANGUAGE;
+    $data .= def languages  => 'List (String, String)' => list map tuple(string $_, string $LANGUAGE{$_}{txt}), sort { $LANGUAGE{$a} cmp $LANGUAGE{$b} } keys %LANGUAGE;
     $data .= def platforms  => 'List (String, String)' => list map tuple(string $_, string $PLATFORM{$_}), keys %PLATFORM;
     $data .= def releaseTypes => 'List (String, String)' => list map tuple(string $_, string $RELEASE_TYPE{$_}), keys %RELEASE_TYPE;
     $data .= def media      => 'List (String, String, Bool)' => list map tuple(string $_, string $MEDIUM{$_}{txt}, $MEDIUM{$_}{qty}?'True':'False'), keys %MEDIUM;

@@ -42,7 +42,7 @@ my @rel_cols = (
     id            => 'lan',
     button_string => 'Language',
     default       => 1,
-    draw          => sub { join_ \&br_, sub { abbr_ class => "icon-lang-$_->{lang}", title => $LANGUAGE{$_->{lang}}, ''; }, $_[0]{titles}->@* },
+    draw          => sub { join_ \&br_, sub { abbr_ class => "icon-lang-$_->{lang}", title => $LANGUAGE{$_->{lang}}{txt}, ''; }, $_[0]{titles}->@* },
   }, { # Publication
     id            => 'pub',
     sort_field    => 'publication',
@@ -167,7 +167,7 @@ sub buttons_ {
         }
     };
     pl 'os',  \&platform_, map $_->{platforms}->@*, @$r if $opt->{pla};
-    pl 'lang', sub { abbr_ class => "icon-lang-$_[0]", title => $LANGUAGE{$_[0]}, '' }, map $_->{lang}, map $_->{titles}->@*, @$r if $opt->{lan};
+    pl 'lang', sub { abbr_ class => "icon-lang-$_[0]", title => $LANGUAGE{$_[0]}{txt}, '' }, map $_->{lang}, map $_->{titles}->@*, @$r if $opt->{lan};
 }
 
 

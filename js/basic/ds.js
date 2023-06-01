@@ -309,12 +309,18 @@ DS.Engines = {
     view: obj => [ obj.id, m('small', ' ('+obj.count+')') ],
 };
 
-// TODO: Ranking? Popular langs, prefix match?
 DS.Lang = {
     opts: { width: 250 },
     list: (src, str, cb) => cb(vndbTypes.language
         .filter(([id,label]) => str === id.toLowerCase() || label.toLowerCase().includes(str))
-        .map(([id,label]) => ({id,label}))),
+        // Sorting considerations: id match > prefix match > rank > label
+        .sort(([aid,alabel,,arank],[bid,blabel,,brank]) =>
+            aid === bid ? 0 : aid.toLowerCase() === str ? -1 : bid.toLowerCase() === str ? 1
+            : alabel.toLowerCase().startsWith(str) && !blabel.toLowerCase().startsWith(str) ? -1
+            : !alabel.toLowerCase().startsWith(str) && blabel.toLowerCase().startsWith(str) ? 1
+            : brank - arank) // sort() is stable so no need to compare label
+        .map(([id,label]) => ({id,label}))
+    ),
     view: obj => [ LangIcon(obj.id), obj.label ]
 };
 

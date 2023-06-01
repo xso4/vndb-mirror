@@ -46,7 +46,7 @@ sub _infotable_ {
 
         tr_ sub {
             td_ class => 'key', 'Language';
-            td_ $LANGUAGE{$s->{lang}};
+            td_ $LANGUAGE{$s->{lang}}{txt};
         };
 
         my @alias = grep !$_->{main}, $s->{alias}->@*;
@@ -108,7 +108,7 @@ sub _roles_ {
                 td_ class => 'tc1', sub {
                     a_ href => "/$v->{id}", tattr $v;
                     lit_ ' ' if $v->{name};
-                    abbr_ class => "icon-lang-$v->{lang}", title => $LANGUAGE{$v->{lang}}, '' if $v->{lang};
+                    abbr_ class => "icon-lang-$v->{lang}", title => $LANGUAGE{$v->{lang}}{txt}, '' if $v->{lang};
                     txt_ $v->{name} if $v->{name} && $v->{official};
                     small_ $v->{name} if $v->{name} && !$v->{official};
                 };

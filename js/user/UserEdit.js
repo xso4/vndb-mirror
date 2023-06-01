@@ -183,11 +183,10 @@ const Traits = initVnode => {
 };
 
 
-const romanized_langs = Object.fromEntries([ '', 'ar', 'fa', 'he', 'hi', 'ja', 'ko', 'ru', 'sk', 'th', 'uk', 'ur', 'zh', 'zh-Hans', 'zh-Hant' ].map(e => ([e,1])));
-
 const Titles = initVnode => {
     const lst = initVnode.attrs.lst;
     const langs = Object.fromEntries(vndbTypes.language);
+    const nonlatin = Object.fromEntries(vndbTypes.language.filter(l => !l[2]).map(l => [l[0],true]).concat([['',true]]));
     const ds = new DS(DS.Lang, { onselect: obj => {
         const o = lst.pop();
         lst.push({lang: obj.id, latin: false, official: true });
@@ -197,7 +196,7 @@ const Titles = initVnode => {
         m('tbody', lst.map((t,n) => m('tr',
             m('td', '#'+(n+1)),
             m('td', t.lang ? [LangIcon(t.lang), langs[t.lang]] : ['Original language']),
-            m('td', romanized_langs[t.lang || ''] ? m('label',
+            m('td', nonlatin[t.lang || ''] ? m('label',
                 m('input[type=checkbox]', { checked: t.latin, oninput: ev => t.latin = ev.target.checked }),
                 ' romanized'
             ) : null),

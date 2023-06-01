@@ -36,7 +36,7 @@ sub info_ {
     p_ class => 'center', sub {
         txt_ $PRODUCER_TYPE{$p->{type}};
         br_;
-        txt_ "Primary language: $LANGUAGE{$p->{lang}}";
+        txt_ "Primary language: $LANGUAGE{$p->{lang}}{txt}";
         if(length $p->{alias}) {
             br_;
             txt_ 'a.k.a. ';

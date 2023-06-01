@@ -21,7 +21,7 @@ sub validations {
 
 sub types {
     print 'window.vndbTypes = '.$js->encode({
-        language => [ map [$_, $LANGUAGE{$_}], keys %LANGUAGE ],
+        language => [ map [$_, $LANGUAGE{$_}{txt}, $LANGUAGE{$_}{latin}?\1:\0, $LANGUAGE{$_}{rank}], keys %LANGUAGE ],
     }).";\n";
 }
 

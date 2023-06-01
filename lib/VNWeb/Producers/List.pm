@@ -14,7 +14,7 @@ sub listing_ {
         h1_ $opt->{q} ? 'Search results' : 'Browse producers';
         ul_ sub {
             li_ sub {
-                abbr_ class => "icon-lang-$_->{lang}", title => $LANGUAGE{$_->{lang}}, '';
+                abbr_ class => "icon-lang-$_->{lang}", title => $LANGUAGE{$_->{lang}}{txt}, '';
                 a_ href => "/$_->{id}", tattr $_;
             } for @$list;
         }
