@@ -2,17 +2,20 @@ const langs = Object.fromEntries(vndbTypes.language);
 window.LangIcon = id => m('abbr', { class: 'icon-lang-'+id, title: langs[id] });
 
 
-const but = (title, svg) => ({view: vnode => m('button.icon', { title,
-        onclick: ev => { ev.preventDefault(); vnode.attrs.onclick(ev) },
-        style: { visibility: !('visible' in vnode.attrs) || vnode.attrs.visible ? 'visible' : 'hidden' },
-    }, m.trust(svg)
-)});
-
 // SVG icons from: https://lucide.dev/
 // License: MIT
-window.DelButton  = but('Delete item', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6"/></svg>');
-window.UpButton   = but('Move up',     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M9 18v-6H5l7-7 7 7h-4v6H9z"></path></svg>');
-window.DownButton = but('Move down',   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M15 6v6h4l-7 7-7-7h4V6h6z"/></svg>');
+// The nice thing about those icons is that they all have the same viewbox and fill/stroke options.
+const but = (title, svg) => ({view: vnode => m('button[type=button].icon', { title,
+        onclick: ev => { ev.preventDefault(); vnode.attrs.onclick(ev) },
+        style: { visibility: !('visible' in vnode.attrs) || vnode.attrs.visible ? 'visible' : 'hidden' },
+    }, m.trust('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+svg+'</g></svg>')
+)});
+
+window.DelButton        = but('Delete item', '<path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6"/>');
+window.UpButton         = but('Move up',     '<path d="M9 18v-6H5l7-7 7 7h-4v6H9z"/>');
+window.DownButton       = but('Move down',   '<path d="M15 6v6h4l-7 7-7-7h4V6h6z"/>');
+window.CheckAllButton   = but('Check all',   '<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>');
+window.UncheckAllButton = but('Uncheck all', '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="8" x2="16" y1="12" y2="12"/>');
 
 
 // Dropdown box for use in a <li class="maintabs-dd">.

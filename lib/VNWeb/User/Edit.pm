@@ -37,28 +37,28 @@ my $FORM = {
         group   => { _when => 'out', required => 0 },
     } },
 
+    timezone        => { required => 0, default => '', enum => \%ZONES },
+    max_sexual      => {  int => 1, range => [-1, 2 ] },
+    max_violence    => { uint => 1, range => [ 0, 2 ] },
+    spoilers        => { uint => 1, range => [ 0, 2 ] },
     titles          => { titleprefs => 1 },
     alttitles       => { titleprefs => 1 },
+    tags_all        => { anybool => 1 },
+    tags_cont       => { anybool => 1 },
+    tags_ero        => { anybool => 1 },
+    tags_tech       => { anybool => 1 },
+    vnrel_langs     => { required => 0, type => 'array', values => { enum => \%LANGUAGE }, sort => 'str', unique => 1 },
+    vnrel_olang     => { anybool => 1 },
+    vnrel_mtl       => { anybool => 1 },
+    staffed_langs   => { required => 0, type => 'array', values => { enum => \%LANGUAGE }, sort => 'str', unique => 1 },
+    staffed_olang   => { anybool => 1 },
+    staffed_unoff   => { anybool => 1 },
+    traits_sexual   => { anybool => 1 },
+    prodrelexpand   => { anybool => 1 },
+    skin            => { enum => skins },
+    customcss       => { required => 0, default => '', maxlength => 16*1024 },
 
     #    prefs => { required => 0, type => 'hash', keys => {
-    #        max_sexual      => {  int => 1, range => [-1, 2 ] },
-    #        max_violence    => { uint => 1, range => [ 0, 2 ] },
-    #        traits_sexual   => { anybool => 1 },
-    #        tags_all        => { anybool => 1 },
-    #        tags_cont       => { anybool => 1 },
-    #        tags_ero        => { anybool => 1 },
-    #        tags_tech       => { anybool => 1 },
-    #        prodrelexpand   => { anybool => 1 },
-    #        spoilers        => { uint => 1, range => [ 0, 2 ] },
-    #        vnrel_langs     => { type => 'array', values => { enum => \%LANGUAGE }, sort => 'str', unique => 1 },
-    #        vnrel_olang     => { anybool => 1 },
-    #        vnrel_mtl       => { anybool => 1 },
-    #        staffed_langs   => { type => 'array', values => { enum => \%LANGUAGE }, sort => 'str', unique => 1 },
-    #        staffed_olang   => { anybool => 1 },
-    #        staffed_unoff   => { anybool => 1 },
-    #        skin            => { enum => skins },
-    #        customcss       => { required => 0, default => '', maxlength => 16*1024 },
-    #        timezone        => { required => 0, default => '', enum => \%ZONES },
     #
     #
     #        tagprefs        => { sort_keys => 'tid', maxlength => 500, aoh => {
@@ -120,14 +120,12 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
     $u->{email}              = _getmail $u->{id};
 
     $u->{traits} = tuwf->dbAlli('SELECT u.tid, t.name, g.name AS "group" FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id =', \$u->{id}, 'ORDER BY g.gorder, t.name');
+    $u->{timezone} ||= 'UTC';
     @{$u}{'titles','alttitles'} = @{ titleprefs_parse($u->{titles}) // $DEFAULT_TITLE_PREFS };
+    $u->{skin} ||= config->{skin_default};
 
 =pod
     if($u->{prefs}) {
-        $u->{prefs}{timezone} //= '';
-        $u->{prefs}{skin} ||= config->{skin_default};
-        $u->{prefs}{vnrel_langs} ||= [ keys %LANGUAGE ];
-        $u->{prefs}{staffed_langs} ||= [ keys %LANGUAGE ];
         $u->{prefs}{tagprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.color, u.childs, t.name FROM users_prefs_tags u JOIN tags t ON t.id = u.tid WHERE u.id =', \$u->{id}, 'ORDER BY t.name');
         $u->{prefs}{traitprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.color, u.childs, t.name, g.name as "group" FROM users_prefs_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id =', \$u->{id}, 'ORDER BY g.gorder, t.name');
         $u->{prefs}{api2} = auth->api2_tokens($u->{id});
@@ -159,25 +157,23 @@ js_api UserEdit => $FORM_IN, sub {
     return +{ _field => 'uniname', _err => 'Display name already taken.' }
         if $data->{uniname} && tuwf->dbVali('SELECT 1 FROM users WHERE id <>', \$data->{id}, 'AND lower(username) =', \lc($data->{uniname}));
 
-    $set{$_} = $data->{$_} for qw/nodistract_noads nodistract_nofancy support_enabled uniname pubskin_enabled/;
-    $setp{customcss_csum} = length $data->{customcss} ? unpack 'q', sha1 do { utf8::encode(local $_=$data->{customcss}); $_ } : 0;
-
+    $data->{skin} = '' if $data->{skin} eq config->{skin_default};
+    $data->{timezone} = '' if $data->{timezone} eq 'UTC';
     $data->{titles} = titleprefs_fmt [ $data->{titles}, delete $data->{alttitles} ];
     $data->{titles} = undef if $data->{titles} eq titleprefs_fmt $DEFAULT_TITLE_PREFS;
 
-    $setp{$_} = $data->{$_} for qw/ titles /;
+    $data->{vnrel_langs}    = !$data->{vnrel_langs} || $data->{vnrel_langs}->@* == keys %LANGUAGE ? undef : '{'.join(',',$data->{vnrel_langs}->@*).'}';
+    $data->{staffed_langs}  = !$data->{staffed_langs} || $data->{staffed_langs}->@* == keys %LANGUAGE ? undef : '{'.join(',',$data->{staffed_langs}->@*).'}';
+
+    $set{$_} = $data->{$_} for qw/nodistract_noads nodistract_nofancy support_enabled uniname pubskin_enabled/;
+    $setp{$_} = $data->{$_} for qw/
+        tags_all tags_cont tags_ero tags_tech
+        vnrel_langs vnrel_olang vnrel_mtl staffed_langs staffed_olang staffed_unoff
+        skin customcss timezone max_sexual max_violence spoilers traits_sexual prodrelexpand titles
+    /;
+    $setp{customcss_csum} = length $data->{customcss} ? unpack 'q', sha1 do { utf8::encode(local $_=$data->{customcss}); $_ } : 0;
 
 =pod
-    $data->{skin} = '' if $data->{skin} eq config->{skin_default};
-    $data->{timezone} = '' if $data->{timezone} eq 'UTC';
-    $setp{$_} = $data->{$_} for qw/
-        max_sexual max_violence traits_sexual tags_all tags_cont tags_ero tags_tech prodrelexpand
-        vnrel_langs vnrel_olang vnrel_mtl staffed_langs staffed_olang staffed_unoff
-        spoilers skin customcss timezone titles
-    /;
-        $p->{vnrel_langs}    = $p->{vnrel_langs}->@* == keys %LANGUAGE ? undef : '{'.join(',',$p->{vnrel_langs}->@*).'}';
-        $p->{staffed_langs}  = $p->{staffed_langs}->@* == keys %LANGUAGE ? undef : '{'.join(',',$p->{staffed_langs}->@*).'}';
-
         tuwf->dbExeci('DELETE FROM users_prefs_tags WHERE id =', \$data->{id});
         tuwf->dbExeci('INSERT INTO users_prefs_tags', { id => $data->{id}, %{$_}{qw|tid spoil color childs|} }) for $p->{tagprefs}->@*;
 

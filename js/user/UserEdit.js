@@ -1,3 +1,11 @@
+const DSTimeZone = {
+    list: (src, str, cb) => cb(timeZones.filter(z => z.toLowerCase().includes(str)).map(id => ({id}))),
+    view: ({id}) => {
+        const [,region,place] = id.replace('_', ' ').match(/([^\/]+)\/(.+)/) || [0,'',id];
+        return [ region ? m('small', region, ' / ') : null, place ];
+    },
+};
+
 const Username = () => {
     let edit = false, old = '';
     return {view: v => m('fieldset.form',
@@ -224,6 +232,174 @@ const Titles = initVnode => {
     )};
 };
 
+const display = data => {
+    let custcss = !!data.customcss;
+    let savedcss = data.customcss;
+    const tz = new DS(DSTimeZone, { onselect: ({id}) => data.timezone = id });
+    const brtz = (e => timeZones.includes(e) && e)(window.Intl && Intl.DateTimeFormat().resolvedOptions().timeZone);
+
+    const vl = new DS(DS.Lang, {
+        checked: ({id}) => data.vnrel_langs.includes(id),
+        onselect: ({id},sel) => {if (sel) data.vnrel_langs.push(id); else data.vnrel_langs = data.vnrel_langs.filter(x => x !== id)},
+        checkall: () => data.vnrel_langs = vndbTypes.language.map(([x])=>x),
+        uncheckall: () => data.vnrel_langs = [],
+    });
+    let vlangs = data.vnrel_langs || [];
+
+    const sl = new DS(DS.Lang, {
+        checked: ({id}) => data.staffed_langs.includes(id),
+        onselect: ({id},sel) => {if (sel) data.staffed_langs.push(id); else data.staffed_langs = data.staffed_langs.filter(x => x !== id)},
+        checkall: () => data.staffed_langs = vndbTypes.language.map(([x])=>x),
+        uncheckall: () => data.staffed_langs = [],
+    });
+    let slangs = data.staffed_langs || [];
+
+    return () => [
+        m('h1', 'Display preferences'),
+        m('fieldset.form',
+            m('legend', 'Global'),
+            m('fieldset',
+                m('label[for=skin]', 'Skin'),
+                m('select#skin.lw', { oninput: ev => {
+                        data.skin = vndbSkins[ev.target.selectedIndex][0];
+                        (s => s.href = s.href.replace(/[^\/]+\.css/, data.skin+'.css'))($('link[rel=stylesheet]'));
+                    } },
+                    vndbSkins.map(([id,name]) => m('option', {selected: data.skin === id}, name))
+                ), ' ',
+                m('label.check', m('input[type=checkbox]', { checked: custcss, oninput: ev => {
+                    custcss = ev.target.checked;
+                    if (custcss) data.customcss = savedcss; else { savedcss = data.customcss; data.customcss = ''; }
+                }}), 'Custom css'),
+            ),
+            custcss ? m('fieldset',
+                m('label[for=customcss]', 'Custom CSS'),
+                m('textarea#customcss.xw[rows=5][cols=60]', { oninput: ev => data.customcss = ev.target.value }, data.customcss),
+                m('p.grayedout', '(@import statements do not work; future site updates may break your customizations)'),
+            ) : null,
+            m('fieldset',
+                m('label', 'Time zone'),
+                m('input.mw[type=button]', { value: data.timezone, onclick: tz.open }),
+                ' ', brtz && brtz != data.timezone
+                ? m('a[href=#]', { onclick: ev => { ev.preventDefault(); data.timezone = brtz }}, 'Set to '+brtz)
+                : null,
+                m('p', 'Select the city that is nearest to you in terms of time zone and all dates & times on the site are adjusted.'),
+            ),
+            m('fieldset',
+                m('label', 'Image display'),
+                m('label.check', m('input[type=checkbox]',
+                    { checked: data.max_sexual === -1, oninput: ev => data.max_sexual = ev.target.checked ? -1 : 0 }),
+                    ' Hide all images by default'
+                ),
+            ),
+            data.max_sexual === -1 ? null : m('fieldset',
+                'Maximum sexual level:', m('br'),
+                m('label.check', m('input[type=radio]', { checked: data.max_sexual === 0, onchange: () => data.max_sexual = 0 }), ' Safe'), m('br'),
+                m('label.check', m('input[type=radio]', { checked: data.max_sexual === 1, onchange: () => data.max_sexual = 1 }), ' Suggestive'), m('br'),
+                m('label.check', m('input[type=radio]', { checked: data.max_sexual === 2, onchange: () => data.max_sexual = 2 }), ' Explicit'),
+            ),
+            data.max_sexual === -1 ? null : m('fieldset',
+                'Maximum violence level:', m('br'),
+                m('label.check', m('input[type=radio]', { checked: data.max_violence === 0, onchange: () => data.max_violence = 0 }), ' Tame'), m('br'),
+                m('label.check', m('input[type=radio]', { checked: data.max_violence === 1, onchange: () => data.max_violence = 1 }), ' Violent'), m('br'),
+                m('label.check', m('input[type=radio]', { checked: data.max_violence === 2, onchange: () => data.max_violence = 2 }), ' Brutal'),
+            ),
+            m('fieldset',
+                m('label', 'Spoiler level'),
+                m('label.check', m('input[type=radio]', { checked: data.spoilers === 0, onchange: () => data.spoilers = 0 }), ' No spoilers'), m('br'),
+                m('label.check', m('input[type=radio]', { checked: data.spoilers === 1, onchange: () => data.spoilers = 1 }), ' Minor spoilers'), m('br'),
+                m('label.check', m('input[type=radio]', { checked: data.spoilers === 2, onchange: () => data.spoilers = 2 }), ' Major spoilers'),
+            ),
+        ),
+        // XXX: This could *really* use some help text.
+        m('fieldset.form',
+            m('legend', 'Titles'),
+            m('fieldset',
+                m('label', 'Title'),
+                m(Titles, {lst: data.titles}),
+            ),
+            m('fieldset',
+                m('label', 'Alternative title'),
+                m('p', 'The alternative title is used as tooltip for links or displayed next to the main title.'),
+                m(Titles, {lst: data.alttitles}),
+            )
+        ),
+        m('fieldset.form',
+            m('legend', 'Visual novel pages'),
+            m('label', 'Tags'),
+            m('fieldset', m('label.check', m('input[type=checkbox]',
+                { checked: data.tags_all, onchange: ev => data.tags_all = ev.target.checked },
+                ), " Show all tags by default (don't summarize)"
+            )),
+            m('fieldset',
+                'Default tag categories:', m('br'),
+                m('label.check', m('input[type=checkbox]', { checked: data.tags_cont, onchange: ev => data.tags_cont = ev.target.checked }), ' Content'), m('br'),
+                m('label.check', m('input[type=checkbox]', { checked: data.tags_ero,  onchange: ev => data.tags_ero  = ev.target.checked }), ' Sexual content'), m('br'),
+                m('label.check', m('input[type=checkbox]', { checked: data.tags_tech, onchange: ev => data.tags_tech = ev.target.checked }), ' Technical'),
+            ),
+
+            m('fieldset',
+                m('label', 'Releases'),
+                m('label.check', m('input[type=checkbox]',
+                    { checked: data.vnrel_langs === null, onchange: ev => {
+                        if (ev.target.checked) { vlangs = data.vnrel_langs; data.vnrel_langs = null }
+                        else data.vnrel_langs = vlangs
+                    }}),
+                    ' Expand all languages'
+                ),
+            ),
+            data.vnrel_langs === null ? null : m('fieldset',
+                m('input[type=button][value=Select languages]', { onclick: vl.open }),
+                data.vnrel_langs.map(LangIcon)
+            ),
+            m('fieldset',
+                data.vnrel_langs === null ? null : m('label.check', m('input[type=checkbox]',
+                    { checked: data.vnrel_olang, onchange: ev => data.vnrel_olang = ev.target.checked }),
+                    ' Always expand original language', m('br'),
+                ),
+                m('label.check', m('input[type=checkbox]', { checked: data.vnrel_mtl, onchange: ev => data.vnrel_mtl = ev.target.checked }), ' Expand machine translations'),
+            ),
+
+            m('fieldset',
+                m('label', 'Staff'),
+                m('label.check', m('input[type=checkbox]',
+                    { checked: data.staffed_langs === null, onchange: ev => {
+                        if (ev.target.checked) { slangs = data.staffed_langs; data.staffed_langs = null }
+                        else data.staffed_langs = slangs
+                    }}),
+                    ' Expand all languages'
+                ),
+            ),
+            data.staffed_langs === null ? null : m('fieldset',
+                m('input[type=button][value=Select languages]', { onclick: sl.open }),
+                data.staffed_langs.map(LangIcon)
+            ),
+            m('fieldset',
+                data.staffed_langs === null ? null : m('label.check', m('input[type=checkbox]',
+                    { checked: data.staffed_olang, onchange: ev => data.staffed_olang = ev.target.checked }),
+                    ' Always expand original edition', m('br'),
+                ),
+                m('label.check', m('input[type=checkbox]', { checked: data.staffed_unoff, onchange: ev => data.staffed_unoff = ev.target.checked }), ' Expand unofficial editions'),
+            ),
+        ),
+        m('fieldset.form',
+            m('legend', 'Other pages'),
+            m('fieldset',
+                m('label', 'Characters'),
+                m('label.check', m('input[type=checkbox]',
+                    { checked: data.traits_sexual, onchange: ev => data.traits_sexual = ev.target.checked }),
+                    ' Display sexual traits by default'
+                ),
+            ),
+            m('fieldset',
+                m('label', 'Producers'),
+                'Default tab:', m('br'),
+                m('label.check', m('input[type=radio]', { checked: !data.prodrelexpand, onchange: () => data.prodrelexpand = false }), ' Visual novels'), m('br'),
+                m('label.check', m('input[type=radio]', { checked:  data.prodrelexpand, onchange: () => data.prodrelexpand = true }), ' Releases'),
+            ),
+        ),
+    ];
+};
+
 widget('UserEdit', initVnode => {
     let msg = '';
     const data = initVnode.attrs.data;
@@ -244,25 +420,10 @@ widget('UserEdit', initVnode => {
         m(Support, {data}),
     ];
 
-    const display = () => [
-        m('h1', 'Display preferences'),
-        // XXX: This could *really* use some help text.
-        m('fieldset.form',
-            m('legend', 'Title preferences'),
-            m('label', 'Title'),
-            m(Titles, {lst: data.titles}),
-        ),
-        m('fieldset.form',
-            m('label', 'Alternative title'),
-            m('p', 'The alternative title is used as tooltip for links or displayed next to the main title.'),
-            m(Titles, {lst: data.alttitles}),
-        ),
-    ];
-
     const tabs = [
         [ 'account', 'Account', account ],
         [ 'profile', 'Public Profile', () => [ m('h1', 'Public Profile'), m(Traits, {data}) ] ],
-        [ 'display', 'Display Preferences', display ],
+        [ 'display', 'Display Preferences', display(data) ],
     ];
     const view = () => m(Form, {onsubmit,api},
         m(FormTabs, {tabs}),

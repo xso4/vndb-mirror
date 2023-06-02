@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 "use strict";
 
+@include .gen/user.js
 @include user/Subscribe.js
 @include user/UserLogin.js
 @include user/UserEdit.js

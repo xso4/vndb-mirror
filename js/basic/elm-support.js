@@ -64,14 +64,6 @@ const ports = Object.entries({
         }
     },
 
-    // User.Edit
-    skinChange: () => skin => {
-        const sheet = $('link[rel=stylesheet]');
-        sheet.href = sheet.href.replace(/[^\/]+\.css/, skin+'.css');
-    },
-
-    selectText: () => id => setTimeout(()=>$('#'+id).select(), 50),
-
     // VNEdit
     ivRefresh: () => () => setTimeout(ivInit, 10),
 });
@@ -102,12 +94,6 @@ const wrap = {
         if(e.checked) init(opt);
         else e.addEventListener('click', () => init(opt), { once: true });
     },
-
-    'User.Edit': (init, opt) => {
-        const tz = window.Intl ? Intl.DateTimeFormat().resolvedOptions().timeZone : '';
-        if(tz) opt.flags.browsertimezone = tz;
-        init(opt);
-    }
 }
 
 

@@ -8,6 +8,8 @@ use lib "$ROOT/lib";
 use TUWF;
 use JSON::XS;
 use VNWeb::Validation ();
+use VNWeb::TimeZone;
+use VNDB::Skins;
 use VNDB::Types;
 
 my $js = JSON::XS->new->pretty->canonical;
@@ -25,7 +27,19 @@ sub types {
     }).";\n";
 }
 
+sub zones {
+    print 'window.timeZones = '.$js->encode(\@ZONES).";\n";
+}
+
+sub vskins {
+    print 'window.vndbSkins = '.$js->encode([ map [$_, skins->{$_}{name}], sort { skins->{$a}{name} cmp skins->{$b}{name} } keys skins->%*]).";\n";
+}
+
 if ($ARGV[0] eq 'types') {
     validations;
     types;
+}
+if ($ARGV[0] eq 'user') {
+    zones;
+    vskins;
 }

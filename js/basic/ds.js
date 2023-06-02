@@ -82,21 +82,25 @@ const close = ev => {
 //    x & y offsets for positioning
 // - width
 // - placeholder
-// - onselect(obj)
-//     Called when an item has been selected
+// - onselect(obj,checked)
+//     Called when an item has been selected. 'checked' is always true for
+//     single-selection dropdowns.
 // - props(obj)
 //     Called on each displayed object, should return null if the object should
 //     be filtered out or an object otherwise. The object supports the
 //     following options:
 //     - selectable: boolean, default true
 //     - append: vdom node to append to the item
+// - checked(obj)
+//     Set for multiselection dropdowns.
+//     Called on each displayed object, should return whether this item is
+//     checked or not.
 //
 // Actual positioning and size of the box may differ from the given options in
 // order to adjust for different window sizes.
 //
 // TODO:
 // - "Create new entry" option (e.g. for engines and labels)
-// - Multiselection?
 class DS {
     constructor(source, opts) {
         this.anchor = 'bl';
@@ -125,10 +129,12 @@ class DS {
     select() {
         const obj = this.list.find(e => e.id === this.selId);
         if (!obj) return;
-        close();
-        this.onselect && this.onselect(obj);
-        this.setInput('');
-        this.selId = null;
+        this.onselect && this.onselect(obj, !this.checked || !this.checked(obj));
+        if (!this.checked) {
+            close();
+            this.setInput('');
+            this.selId = null;
+        }
     }
 
     setSel(dir=1) {
@@ -232,6 +238,7 @@ class DS {
                 } : null,
                 onclick: p.selectable ? () => this.select(this.selId = e.id) : null,
             }, m('span', p.selectable ? '» ' : 'x '),
+                this.checked ? [ m('input[type=checkbox]', { style: { visible: p.selectable ? 'visible' : 'hidden' }, checked: this.checked(e) }), ' ' ] : null,
                 this.source.view(e),
                 p.append,
             );
@@ -241,13 +248,17 @@ class DS {
                 onupdate: position,
                 oncreate: position,
             }, m('div',
-                m('input[type=text]', {
-                    oncreate: this.focus, onupdate: this.focus,
-                    value: this.input,
-                    oninput: ev => this.setInput(ev.target.value),
-                    placeholder: this.placeholder,
-                }),
-                loading ? m('span.spinner') : null,
+                m('div',
+                    m('input[type=text]', {
+                        oncreate: this.focus, onupdate: this.focus,
+                        value: this.input,
+                        oninput: ev => this.setInput(ev.target.value),
+                        placeholder: this.placeholder,
+                    }),
+                    loading ? m('span.spinner') : null,
+                ),
+                this.checkall   ? m('div', m(CheckAllButton,   { onclick: this.checkall   })) : null,
+                this.uncheckall ? m('div', m(UncheckAllButton, { onclick: this.uncheckall })) : null,
             ),
             this.source.api && this.source.api.error
             ? m('b', this.source.api.error)
