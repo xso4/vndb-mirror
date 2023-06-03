@@ -1,0 +1,224 @@
+/***** general form markup *****/
+
+/* TODO: The .text/.submit classes should be removed */
+
+input.text, input.submit, input[type=text], input[type=password], input[type=button], input[type=submit], select, textarea, button {
+    background-color: var(--boxbg);
+    color: var(--maintext);
+    border: 1px solid var(--secborder);
+    font: 14px "Tahoma", "Arial", sans-serif;
+    padding: 1px;
+    margin: 1px;
+    &:hover, &:focus { background-color: var(--secbg) }
+}
+input.submit, input[type=submit], input[type=button], button { padding: 1px 5px; cursor: pointer }
+form, fieldset           { border: 0; display: block }
+select[multiple] option  {
+    &                    { background: inherit; padding-left: 12px }
+    &:checked:before     { position: absolute; left: 0; top: 0; content: '✓' }
+}
+optgroup option          { padding-left: 10px }
+button                   { text-align: left }
+button svg               { height: 14px; width: 14px; margin-top: 1px; margin-bottom: -1px }
+button.ds svg            { float: right; margin-top: 3px; margin-left: 5px }
+input.obscured           { color: transparent; text-shadow: 0 0 8px var(--maintext); }
+input[type=number]       { -moz-appearance:textfield }
+input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0 }
+input[type=color]        { width: 30px; height: 21px }
+input[type=checkbox], input[type=radio] {
+    appearance: none; width: 15px; height: 15px; position: relative; top: 2px; margin-bottom: -1px; border: 2px solid var(--border);
+    &:focus { outline: 1px dotted #fff }
+    &:checked::before {
+        content: '';
+        display: block; width: 80%; height: 80%;
+        position: relative; top: 10%; left: 10%;
+        background-color: var(--maintext);
+        /* Path from https://moderncss.dev/pure-css-custom-checkbox-style/ */
+        clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+    }
+}
+input[type=radio] { border-radius: 50% }
+
+
+
+/* Old table-based form layout, used in Elm */
+
+td.label, td.label label { width: 130px; }
+td.label label           { display: block; }
+td.field label           { margin: 0 5px 0 5px; }
+table.formtable          { margin: 0 20px 20px 20px; }
+table.formtable td       { padding: 0; }
+table.formtable tr.newfield > td { padding-top: 5px; }
+table.formtable tr.newpart td { padding-top: 20px; font-weight: bold; }
+table.formtable td table td { padding: 1px 15px 1px 0px }
+table.formtable td table    { margin-bottom: 5px }
+table.formtable input.text, table.formtable select { width: 200px; }
+
+table.formimage > tr > td:nth-child(1) { width: 300px; height: 300px; text-align: center }
+table.formimage > tr > td:nth-child(1) img { max-width: 290px; max-height: 500px }
+table.formimage h2 { margin: 0 }
+
+
+
+/* New fielset-based form layout, used in JS */
+
+fieldset.form {
+    margin-left: 140px; margin-bottom: 20px;
+    > fieldset { margin-bottom: 5px }
+    > legend { margin-left: -130px; margin-bottom: 5px; font-weight: bold }
+    > label:not(.check), > fieldset > label:not(.check) { display: block; float: left; margin-left: -130px; width: 130px }
+    table.full { margin-left: -130px }
+    .xw { width: 100%; max-width: 500px } /* for long inputs */
+    .lw { width: 100%; max-width: 300px } /* for slightly longer inputs */
+    .mw { width: 100%; max-width: 200px } /* for most inputs */
+    .sw { width: 50px }                   /* for shorter inputs, like numbers */
+    td    { padding: 1px 15px 1px 0px }
+    table { margin-bottom: 5px }
+    p + table { margin-top: 5px }
+}
+/* 'invalid' class is set on the parent <form> element after attempted
+ * submission, so that the element ':invalid' states and styling don't distract
+ * when working on an empty form */
+.invalid fieldset.form {
+    > fieldset:invalid > label { color: var(--standout) }
+    > fieldset:disabled > label { color: var(--grayedout) }
+    input:invalid { border-color: var(--standout) }
+}
+.invalid nav li.invalid a { color: var(--standout) }
+
+/* TODO: responsive form layout for mobile */
+
+
+/* Form submit box, with optional edit summmary */
+article.submit {
+    text-align: center;
+    input[type=submit] { width: 150px }
+    .textpreview, textarea { text-align: left; margin: 0 auto; width: 600px }
+}
+
+
+
+/* Format checkboxes and radio buttons as if they were normal links with unicode icons.
+ * Usage:
+ *
+ *   <container class="linkradio">
+ *     <input type="checkbox|radio" id="xyz">
+ *     <label for="xyz">Text</label>
+ *     <em>(optional option separator)</em>
+ *   </container>
+ *
+ * TODO: Get rid of these and just use checkboxes/radio inputs.
+ */
+p.linkradio { padding: 2px }
+.linkradio label { color: var(--link); cursor: pointer }
+.linkradio label:before { content: '✗' }
+.linkradio input:checked + label { color: var(--maintext) }
+.linkradio input:checked + label:before { content: '✓' }
+.linkradio input:focus + label { outline: 1px dotted var(--link) }
+.linkradio input:focus:checked + label { outline: 1px dotted var(--maintext) }
+.linkradio em { font-weight: normal; font-style: normal; color: var(--grayedout) }
+
+/* Same styling, but for regular links.
+ * Usage:
+ *
+ *   <a href="#" class="linkradio">Unchecked option</a>
+ *   <a href="#" class="linkradio checked">Checked option</a>
+ */
+a.linkradio:before { content: '✗' }
+a.linkradio.checked:before { content: '✓' }
+a.checked { color: var(--maintext) }
+
+
+/* Spinner, <div class="spinner"></div> for a large one, <span> for a smaller inline-text version */
+.spinner { content: ''; border: 3px solid #9eaebd; border-bottom-color: transparent; border-radius: 100%; animation: spin 1s infinite linear; width: 16px; height: 16px; display: inline-block; margin: auto }
+span.spinner { width: 1em; height: 1em }
+@keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+
+
+.textpreview {
+    > div:first-child {
+        display: flex; justify-content: space-between; width: 100%; align-items: flex-end;
+        > div:last-child > * { margin-left: 10px }
+    }
+    textarea { width: 100%; }
+    .preview { width: 100%; border: 1px solid var(--secborder); margin: 1px; padding: 5px }
+}
+
+
+/* .compact input elements are smaller and can be embedded in tables/inline text
+ * .stealth input elements pretend to be just regular text, but turn into visibile input elements on mouse-over */
+.compact input.text, .compact select, .compact textarea { margin: -2px -1px; padding: 1px 0 }
+.compact input.submit                { margin: -2px -1px; padding: 1px 3px }
+.stealth input, .stealth select { font: inherit; background: none; border: 1px solid transparent; -moz-appearance: none; -webkit-appearance: none; appearance: none }
+.stealth input:hover, .stealth input:focus,
+.stealth select:hover, .stealth select:focus { border: 1px solid var(--secborder); background: var(--secbg) }
+
+
+
+
+/* Elm dropdowns (also in perl: VNWeb::Releases::Lib) */
+
+.elm_dd > a { color: var(--maintext); display: block; border: none; padding-right: 15px; position: relative }
+.elm_dd > a > span:last-child { position: absolute; right: 5px; top: 0; width: 16px; text-align: right; display: block }
+.elm_dd > a > span:last-child .arrow { visibility: hidden }
+.elm_dd > a .nowrap { display: block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.elm_dd > a:hover > span:last-child > .arrow,
+.elm_dd > a:focus > span:last-child > .arrow { visibility: visible }
+.elm_dd > div { position: relative; float: right; width: 0; height: 0 }
+.elm_dd > div > div { position: absolute; right: -10px; top: 0; border: 1px solid var(--border); background-color: var(--secbg); z-index: 1000; margin: 0; padding: 0; max-width: 400px }
+.elm_dd.search > div { float: left }
+.elm_dd.search > div > div { right: auto; left: 0; top: 23px }
+.elm_dd ul { width: 100%; list-style-type: none; margin: 0; padding: 0 }
+.elm_dd ul li { white-space: nowrap }
+.elm_dd ul li a { display: block; border: 0; padding: 3px 5px 3px 3px }
+.elm_dd ul li a.active,
+.elm_dd ul li a:hover  { background: var(--boxbg) }
+.elm_dd ul li p { white-space: normal; padding: 3px 5px 3px 3px }
+.elm_dd ul li.separator { margin-bottom: 22px }
+
+.elm_votedd .elm_dd ul li { text-align: left }
+.elm_dd_input  .elm_dd > a,
+.elm_dd_button .elm_dd > a { background-color: var(--boxbg); color: var(--maintext); border: 1px solid var(--secborder); font: 14px "Tahoma", "Arial", sans-serif; padding: 1px 15px 1px 5px; margin: -1px }
+.elm_dd_input  .elm_dd > a { padding: 1px 15px 1px 2px }
+.elm_dd_input  .elm_dd > a:hover,
+.elm_dd_button .elm_dd > a:hover { background-color: var(--secbg) }
+.elm_dd_input.elm_dd_noarrow .elm_dd > a { padding-right: 2px }
+.elm_dd_noarrow .elm_dd > a { padding-right: 0 }
+.elm_dd_noarrow .elm_dd > a > span:last-child { display: none }
+.elm_dd_hover .elm_dd > div { display: none }
+.elm_dd_hover .elm_dd:hover > div { display: block }
+.elm_dd_left .elm_dd > div { float: left }
+.elm_dd_left .elm_dd > div > div { right: 0; top: -20px }
+.elm_dd_relextlink .elm_dd > a { padding-left: 4px; color: var(--link) }
+.elm_dd_relextlink ul a { text-align: right }
+.elm_dd_relextlink ul span { color: var(--maintext); padding-right: 10px }
+
+
+/***** JS dropdown (ds.js) *****/
+
+#ds {
+    position: absolute; z-index: 2; background: var(--secbg); border: 1px solid var(--secborder);
+    > div {
+        display: flex;
+        > div:first-child {
+            flex: 1;
+            input { width: 100% }
+            .spinner { position: absolute; top: 4px; right: 5px }
+        }
+    }
+    > ul {
+        overflow: hidden scroll; width: 100%; margin: 0; list-style-type: none;
+        > li {
+            white-space: nowrap; cursor: pointer; padding: 3px 3px 3px 3px;
+            > span:first-child { display: inline-block; width: 1em; visibility: hidden }
+            &.active {
+                background: var(--boxbg);
+                > span:first-child { visibility: visible }
+            }
+            &.unselectable {
+                color: var(--grayedout);
+                > span:first-child { visibility: visible }
+            }
+        }
+    }
+}

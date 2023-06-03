@@ -248,7 +248,6 @@ sub _menu_ {
         };
         form_ action => '/v', method => 'get', sub {
             fieldset_ sub {
-                legend_ 'Search';
                 input_ type => 'text', class => 'text', id => 'sq', name => 'sq', value => $o->{search}||'', placeholder => 'search';
                 input_ type => 'submit', class => 'hidden', value => 'Search';
             }
