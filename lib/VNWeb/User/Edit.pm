@@ -75,17 +75,15 @@ my $FORM = {
         group   => { required => 0 },
     } },
 
-    #        api2            => { maxlength => 64, aoh => {
-    #            token     => {},
-    #            added     => {},
-    #            lastused  => { required => 0, default => '' },
-    #            notes     => { required => 0, default => '', maxlength => 1000 },
-    #            listread  => { anybool => 1 },
-    #            listwrite => { anybool => 1 },
-    #            delete    => { anybool => 1 },
-    #        } },
-    #
-    #    } },
+    api2            => { maxlength => 64, aoh => {
+        token     => {},
+        added     => {},
+        lastused  => { required => 0, default => '' },
+        notes     => { required => 0, default => '', maxlength => 200 },
+        listread  => { anybool => 1 },
+        listwrite => { anybool => 1 },
+        delete    => { anybool => 1 },
+    } },
 };
 
 my $FORM_IN  = form_compile in  => $FORM;
@@ -124,12 +122,8 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
 
     $u->{tagprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.color, u.childs, t.name FROM users_prefs_tags u JOIN tags t ON t.id = u.tid WHERE u.id =', \$u->{id}, 'ORDER BY t.name');
     $u->{traitprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.color, u.childs, t.name, g.name as "group" FROM users_prefs_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id =', \$u->{id}, 'ORDER BY g.gorder, t.name');
-=pod
-    if($u->{prefs}) {
-        $u->{prefs}{api2} = auth->api2_tokens($u->{id});
-        $_->{delete} = 0 for $u->{prefs}{api2}->@*;
-    }
-=cut
+
+    $u->{api2} = auth->api2_tokens($u->{id});
 
     my $title = $u->{id} eq auth->uid ? 'My Account' : "Edit $u->{username}";
     framework_ title => $title, dbobj => $u, tab => 'edit',
@@ -170,21 +164,6 @@ js_api UserEdit => $FORM_IN, sub {
         skin customcss timezone max_sexual max_violence spoilers traits_sexual prodrelexpand titles
     /;
     $setp{customcss_csum} = length $data->{customcss} ? unpack 'q', sha1 do { utf8::encode(local $_=$data->{customcss}); $_ } : 0;
-
-=pod
-        my %tokens = map +($_->{token},$_), $p->{api2}->@*;
-        for (auth->api2_tokens($data->{id})->@*) {
-            my $t = $tokens{$_->{token}} // next;
-            $t->{listwrite} = 0 if !$t->{listread};
-            if($t->{delete}) {
-                auth->api2_del_token($data->{id}, $t->{token});
-            } elsif($t->{notes} ne $_->{notes}
-                    || !$t->{listread} ne !$_->{listread}
-                    || !$t->{listwrite} ne !$_->{listwrite}) {
-                auth->api2_set_token($data->{id}, %$t);
-            }
-        }
-=cut
 
     $set{email_confirmed} = 1 if auth->permUsermod;
 
@@ -243,6 +222,19 @@ js_api UserEdit => $FORM_IN, sub {
     tuwf->dbExeci('DELETE FROM users_prefs_traits WHERE id =', \$data->{id});
     tuwf->dbExeci('INSERT INTO users_prefs_traits', { id => $data->{id}, %{$_}{qw|tid spoil color childs|} }) for $data->{traitprefs}->@*;
 
+    my %tokens = map +($_->{token},$_), $data->{api2}->@*;
+    for (auth->api2_tokens($data->{id})->@*) {
+        my $t = $tokens{$_->{token}} // next;
+        $t->{listwrite} = 0 if !$t->{listread};
+        if($t->{delete}) {
+            auth->api2_del_token($data->{id}, $t->{token});
+        } elsif($t->{notes} ne $_->{notes}
+                || !$t->{listread} ne !$_->{listread}
+                || !$t->{listwrite} ne !$_->{listwrite}) {
+            auth->api2_set_token($data->{id}, %$t);
+        }
+    }
+
     my $old = tuwf->dbRowi('SELECT', sql_comma(keys %set, keys %setp), 'FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \$data->{id});
     tuwf->dbExeci('UPDATE users SET', \%set, 'WHERE id =', \$data->{id}) if keys %set;
     tuwf->dbExeci('UPDATE users_prefs SET', \%setp, 'WHERE id =', \$data->{id}) if keys %setp;
@@ -273,8 +265,8 @@ TUWF::get qr{/$RE{uid}/setmail/(?<token>[a-f0-9]{40})}, sub {
 };
 
 
-elm_api UserApi2New => undef, { id => { vndbid => 'u' }}, sub {
-    elm_Api2Token auth->api2_set_token($_[0]{id}), strftime '%Y-%m-%d', localtime;
+js_api UserApi2New => { id => { vndbid => 'u' }}, sub {
+    +{ token => auth->api2_set_token($_[0]{id}), added => strftime '%Y-%m-%d', localtime }
 };
 
 1;

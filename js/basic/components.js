@@ -12,6 +12,7 @@ window.Icon = {
     ArrowBigUp:   icon('<path d="M9 18v-6H5l7-7 7 7h-4v6H9z"/>'),
     ArrowDownUp:  icon('<path d="m3 16 4 4 4-4"></path><path d="M7 20V4"></path><path d="m21 8-4-4-4 4"></path><path d="M17 4v16"></path>'),
     CheckSquare:  icon('<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'),
+    Copy:         icon('<rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>'),
     Eye:          icon('<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle>'),
     MinusSquare:  icon('<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="8" x2="16" y1="12" y2="12"/>'),
     Save:         icon('<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline>'),
@@ -27,6 +28,7 @@ window.Button = {
     Del:        but(Icon.Trash2,       'Delete item'),
     Up:         but(Icon.ArrowBigUp,   'Move up'),
     Down:       but(Icon.ArrowBigDown, 'Move down'),
+    Copy:       but(Icon.Copy,         'Copy'),
     CheckAll:   but(Icon.CheckSquare,  'Check all'),
     UncheckAll: but(Icon.MinusSquare,  'Uncheck all'),
 };

@@ -446,6 +446,68 @@ const TTPrefs = initVnode => {
     )};
 };
 
+const applications = data => {
+    const api = new Api('UserApi2New');
+    const clip = navigator.clipboard;
+    let copied;
+    return () => [
+        m('h1', 'Applications'),
+        m('p.description',
+            'Here you can create and manage tokens for use with ', m('a[href=/d11][target=_blank]', 'the API'), '.', m('br'),
+            "It's strongly recommended that you create a separate token for each application that you use,",
+            " so that you can easily change or revoke permissions on a per-application level.", m('br'),
+            'Tokens without permissions can still be used for identification.'
+        ),
+        data.api2.map(t => m('fieldset.form', {key: t.token},
+            m('legend', t.notes || (t.token.replace(/-.+/, '')+'-...')),
+            t.delete ? [ m('fieldset',
+                m('p',
+                    'This token is deleted on form submission. ',
+                    m('a[href=#]', { onclick: ev => { ev.preventDefault(); t.delete = false } }, 'Undo'), '.'
+                ),
+            )] : [ m('fieldset',
+                m('label', 'Token'),
+                m('input.lw.monospace.obscured[type=text][readonly]', {
+                    value: t.token,
+                    onfocus: ev => { ev.target.select(); ev.target.classList.remove('obscured') },
+                    onblur: ev => ev.target.classList.add('obscured'),
+                }),
+                clip ? m(Button.Copy, { onclick: () => clip.writeText(t.token).then(() => { copied = t.token; m.redraw() }) }) : null,
+                copied === t.token ? 'copied!' : null,
+            ),
+            m('fieldset',
+                m('label', 'Name'),
+                m('input.mw[type=text][maxlength=200]',
+                    { value: t.notes, oninput: ev => t.notes = ev.target.value }
+                ), ' (optional, for personal use)'
+            ),
+            m('fieldset',
+                m('label', 'Permissions'),
+                m('label.check', m('input[type=checkbox]',
+                    { checked: t.listread, oninput: ev => { t.listread = ev.target.checked; if (!t.listread) t.listwrite = false } }),
+                    ' Access private items on my list'
+                ), m('br'),
+                m('label.check', m('input[type=checkbox]',
+                    { checked: t.listwrite, oninput: ev => { t.listwrite = ev.target.checked; if (t.listwrite) t.listread = true } }),
+                    ' Add/remove/edit items on my list',
+                ),
+            ),
+            m('fieldset',
+                m(Button.Del, { onclick: () => t.delete = true }),
+                m('small', ' Created on ', t.added, ', ', t.lastused ? 'last used on '+t.lastused : 'never used', '.')
+            ),
+            ],
+        )),
+        m('fieldset.form', { disabled: api.loading() },
+            m('input[type=button][value=Create new token]', { onclick: () => api.call({id:data.id}, res =>
+                res && data.api2.push({token: res.token, added: res.added, notes: '', listread: false, listwrite: false })
+            )}),
+            api.loading() ? m('span.spinner') : null,
+            api.error ? m('b', m('br'), api.error) : null,
+        ),
+    ];
+};
+
 widget('UserEdit', initVnode => {
     let msg = '';
     const data = initVnode.attrs.data;
@@ -454,6 +516,7 @@ widget('UserEdit', initVnode => {
         msg = !res ? '' : res.email
               ? 'A confirmation email has been sent to your new address. Your address will be updated after following the instructions in that mail.'
               : 'Saved!';
+        data.api2 = data.api2.filter(x => !x.delete);
         // XXX: Timeout is ugly, better remove the message on user interaction with the form.
         if (msg) setTimeout(() => { msg = ''; m.redraw() }, 5000);
     });
@@ -483,6 +546,7 @@ widget('UserEdit', initVnode => {
         [ 'profile', 'Public Profile', () => [ m('h1', 'Public Profile'), m(Traits, {data}) ] ],
         [ 'display', 'Display Preferences', display(data) ],
         [ 'tt',      'Tags & Traits', tt ],
+        [ 'api',     'Applications', applications(data) ],
     ];
     const view = () => m(Form, {onsubmit,api},
         m(FormTabs, {tabs}),
