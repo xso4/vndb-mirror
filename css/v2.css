@@ -138,6 +138,7 @@ fieldset.form {
     > fieldset { margin-bottom: 5px }
     > legend { display: block; margin-left: -130px; margin-bottom: 5px; font-weight: bold }
     > label:not(.check), > fieldset > label:not(.check) { display: block; float: left; margin-left: -130px; width: 130px }
+    table.full { margin-left: -130px }
     .xw { width: 100%; max-width: 500px } /* for long inputs */
     .lw { width: 100%; max-width: 300px } /* for slightly longer inputs */
     .mw { width: 100%; max-width: 200px } /* for most inputs */

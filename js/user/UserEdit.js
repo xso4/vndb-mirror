@@ -225,7 +225,7 @@ const Titles = initVnode => {
                 m(Button.Del, {visible: !!t.lang, onclick: () => lst.splice(n,1)}),
             ),
         ))),
-        m('tfoot', m('tr', m('td[colspan=3]',
+        m('tfoot', m('tr', m('td[colspan=5]',
             lst.length >= 5 ? null
             : m('input[type=button][value=Add language]', {onclick: ds.open}),
         )))
@@ -400,6 +400,52 @@ const display = data => {
     ];
 };
 
+const TTPrefs = initVnode => {
+    const {data,prefix} = initVnode.attrs;
+    const pref = prefix === 'g' ? 'tagprefs' : 'traitprefs';
+    const ds = new DS(prefix === 'g' ? DS.Tags : DS.Traits, {
+        onselect: obj => data[pref].push({tid: obj.id, name: obj.name, group: obj.group_name, spoil: null, color: null, childs: true }),
+        props: obj => data[pref].find(o => obj.id === o.tid) ? { selectable: false, append: m('small', ' (already listed)') } : {},
+    });
+    return {view: () => m('fieldset.form',
+        m('legend', prefix === 'g' ? 'Tags' : 'Traits'),
+        m('table.full.stripe',
+            m('tbody', data[pref].map(t => m('tr', {key: t.tid},
+                m('td', m(Button.Del, { onclick: () => data[pref] = data[pref].filter(o => o.tid !== t.tid) })),
+                m('td',
+                    t.group ? m('small', t.group + ' / ') : null,
+                    m('a[target=_blank]', { href: '/'+t.tid }, t.name)
+                ),
+                m('td', m('select.mw', { onchange: ev => t.spoil = [null,0,1,2,3][ev.target.selectedIndex] },
+                    m('option', { selected: t.spoil === null }, 'Keep spoiler level'),
+                    m('option', { selected: t.spoil === 0    }, 'Always show'),
+                    m('option', { selected: t.spoil === 1    }, 'Force minor spoiler'),
+                    m('option', { selected: t.spoil === 2    }, 'Force major spoiler'),
+                    m('option', { selected: t.spoil === 3    }, 'Always hide'),
+                )),
+                m('td', t.spoil === 3 ? null : m('select.mw',
+                    { onchange: ev => t.color = [null,'standout','grayedout','#ffffff'][ev.target.selectedIndex] },
+                    m('option', { selected: t.color === null        }, "Don't highlight"),
+                    m('option', { selected: t.color === 'standout'  }, 'Stand out'),
+                    m('option', { selected: t.color === 'grayedout' }, 'Grayed out'),
+                    m('option', { selected: t.color && t.color.startsWith('#') }, 'Custom color'),
+                )),
+                m('td', t.spoil === 3 || !t.color || !t.color.startsWith('#') ? null :
+                    m('input[type=color]', { value: t.color, oninput: ev => t.color = ev.target.value })
+                ),
+                m('td', m('label.check',
+                    m('input[type=checkbox]', { checked: t.childs, oninput: ev => t.childs = ev.target.checked }),
+                    ' also apply to child ', prefix === 'g' ? 'tags' : 'traits',
+                )),
+            ))),
+            m('tfoot', m('tr', m('td[colspan=6]',
+                data[pref].length >= 500 ? null
+                : m('input[type=button]', {value: prefix === 'g' ? 'Add tag' : 'Add trait', onclick: ds.open})
+            ))),
+        ),
+    )};
+};
+
 widget('UserEdit', initVnode => {
     let msg = '';
     const data = initVnode.attrs.data;
@@ -420,10 +466,23 @@ widget('UserEdit', initVnode => {
         m(Support, {data}),
     ];
 
+    const tt = () => [
+        m('h1', 'Tags & traits'),
+        m('p.description',
+            "Here you can set display preferences for individual tags & traits.",
+            " This feature can be used to completely hide tags/traits you'd rather not see at all or you'd like to highlight as a possible trigger warning instead.",
+            m('br'),
+            "These settings are applied on visual novel and character pages, other listings on the site are unaffected."
+        ),
+        m(TTPrefs, {data, prefix: 'g'}),
+        m(TTPrefs, {data, prefix: 'i'}),
+    ];
+
     const tabs = [
         [ 'account', 'Account', account ],
         [ 'profile', 'Public Profile', () => [ m('h1', 'Public Profile'), m(Traits, {data}) ] ],
         [ 'display', 'Display Preferences', display(data) ],
+        [ 'tt',      'Tags & Traits', tt ],
     ];
     const view = () => m(Form, {onsubmit,api},
         m(FormTabs, {tabs}),

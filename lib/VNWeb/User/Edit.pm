@@ -58,25 +58,23 @@ my $FORM = {
     skin            => { enum => skins },
     customcss       => { required => 0, default => '', maxlength => 16*1024 },
 
-    #    prefs => { required => 0, type => 'hash', keys => {
-    #
-    #
-    #        tagprefs        => { sort_keys => 'tid', maxlength => 500, aoh => {
-    #            tid     => { vndbid => 'g' },
-    #            spoil   => { required => 0, int => 1, range => [ 0, 3 ] },
-    #            color   => { required => 0, regex => qr/^(standout|grayedout|#[a-fA-F0-9]{6})$/ },
-    #            childs  => { anybool => 1 },
-    #            name    => {},
-    #        } },
-    #        traitprefs      => { sort_keys => 'tid', maxlength => 500, aoh => {
-    #            tid     => { vndbid => 'i' },
-    #            spoil   => { required => 0, int => 1, range => [ 0, 3 ] },
-    #            color   => { required => 0, regex => qr/^(standout|grayedout|#[a-fA-F0-9]{6})$/ },
-    #            childs  => { anybool => 1 },
-    #            name    => {},
-    #            group   => { required => 0 },
-    #        } },
-    #
+    tagprefs        => { sort_keys => 'tid', maxlength => 500, aoh => {
+        tid     => { vndbid => 'g' },
+        spoil   => { required => 0, int => 1, range => [ 0, 3 ] },
+        color   => { required => 0, regex => qr/^(standout|grayedout|#[a-fA-F0-9]{6})$/ },
+        childs  => { anybool => 1 },
+        name    => {},
+    } },
+
+    traitprefs      => { sort_keys => 'tid', maxlength => 500, aoh => {
+        tid     => { vndbid => 'i' },
+        spoil   => { required => 0, int => 1, range => [ 0, 3 ] },
+        color   => { required => 0, regex => qr/^(standout|grayedout|#[a-fA-F0-9]{6})$/ },
+        childs  => { anybool => 1 },
+        name    => {},
+        group   => { required => 0 },
+    } },
+
     #        api2            => { maxlength => 64, aoh => {
     #            token     => {},
     #            added     => {},
@@ -124,10 +122,10 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
     @{$u}{'titles','alttitles'} = @{ titleprefs_parse($u->{titles}) // $DEFAULT_TITLE_PREFS };
     $u->{skin} ||= config->{skin_default};
 
+    $u->{tagprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.color, u.childs, t.name FROM users_prefs_tags u JOIN tags t ON t.id = u.tid WHERE u.id =', \$u->{id}, 'ORDER BY t.name');
+    $u->{traitprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.color, u.childs, t.name, g.name as "group" FROM users_prefs_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id =', \$u->{id}, 'ORDER BY g.gorder, t.name');
 =pod
     if($u->{prefs}) {
-        $u->{prefs}{tagprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.color, u.childs, t.name FROM users_prefs_tags u JOIN tags t ON t.id = u.tid WHERE u.id =', \$u->{id}, 'ORDER BY t.name');
-        $u->{prefs}{traitprefs} = tuwf->dbAlli('SELECT u.tid, u.spoil, u.color, u.childs, t.name, g.name as "group" FROM users_prefs_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id =', \$u->{id}, 'ORDER BY g.gorder, t.name');
         $u->{prefs}{api2} = auth->api2_tokens($u->{id});
         $_->{delete} = 0 for $u->{prefs}{api2}->@*;
     }
@@ -174,12 +172,6 @@ js_api UserEdit => $FORM_IN, sub {
     $setp{customcss_csum} = length $data->{customcss} ? unpack 'q', sha1 do { utf8::encode(local $_=$data->{customcss}); $_ } : 0;
 
 =pod
-        tuwf->dbExeci('DELETE FROM users_prefs_tags WHERE id =', \$data->{id});
-        tuwf->dbExeci('INSERT INTO users_prefs_tags', { id => $data->{id}, %{$_}{qw|tid spoil color childs|} }) for $p->{tagprefs}->@*;
-
-        tuwf->dbExeci('DELETE FROM users_prefs_traits WHERE id =', \$data->{id});
-        tuwf->dbExeci('INSERT INTO users_prefs_traits', { id => $data->{id}, %{$_}{qw|tid spoil color childs|} }) for $p->{traitprefs}->@*;
-
         my %tokens = map +($_->{token},$_), $p->{api2}->@*;
         for (auth->api2_tokens($data->{id})->@*) {
             my $t = $tokens{$_->{token}} // next;
@@ -244,6 +236,12 @@ js_api UserEdit => $FORM_IN, sub {
 
     tuwf->dbExeci('DELETE FROM users_traits WHERE id =', \$data->{id});
     tuwf->dbExeci('INSERT INTO users_traits', { id => $data->{id}, tid => $_->{tid} }) for $data->{traits}->@*;
+
+    tuwf->dbExeci('DELETE FROM users_prefs_tags WHERE id =', \$data->{id});
+    tuwf->dbExeci('INSERT INTO users_prefs_tags', { id => $data->{id}, %{$_}{qw|tid spoil color childs|} }) for $data->{tagprefs}->@*;
+
+    tuwf->dbExeci('DELETE FROM users_prefs_traits WHERE id =', \$data->{id});
+    tuwf->dbExeci('INSERT INTO users_prefs_traits', { id => $data->{id}, %{$_}{qw|tid spoil color childs|} }) for $data->{traitprefs}->@*;
 
     my $old = tuwf->dbRowi('SELECT', sql_comma(keys %set, keys %setp), 'FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \$data->{id});
     tuwf->dbExeci('UPDATE users SET', \%set, 'WHERE id =', \$data->{id}) if keys %set;
