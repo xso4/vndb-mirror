@@ -257,8 +257,8 @@ class DS {
                     }),
                     loading ? m('span.spinner') : null,
                 ),
-                this.checkall   ? m('div', m(CheckAllButton,   { onclick: this.checkall   })) : null,
-                this.uncheckall ? m('div', m(UncheckAllButton, { onclick: this.uncheckall })) : null,
+                this.checkall   ? m('div', m(Button.CheckAll,   { onclick: this.checkall   })) : null,
+                this.uncheckall ? m('div', m(Button.UncheckAll, { onclick: this.uncheckall })) : null,
             ),
             this.source.api && this.source.api.error
             ? m('b', this.source.api.error)

@@ -4,18 +4,33 @@ window.LangIcon = id => m('abbr', { class: 'icon-lang-'+id, title: langs[id] });
 
 // SVG icons from: https://lucide.dev/
 // License: MIT
-// The nice thing about those icons is that they all have the same viewbox and fill/stroke options.
-const but = (title, svg) => ({view: vnode => m('button[type=button].icon', { title,
-        onclick: ev => { ev.preventDefault(); vnode.attrs.onclick(ev) },
-        style: { visibility: !('visible' in vnode.attrs) || vnode.attrs.visible ? 'visible' : 'hidden' },
-    }, m.trust('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+svg+'</g></svg>')
-)});
+// The nice thing about these is that they all have the same viewbox and fill/stroke options.
+// Icon size should be set in CSS.
+const icon = svg => m.trust('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+svg+'</g></svg>');
+window.Icon = {
+    ArrowBigDown: icon('<path d="M15 6v6h4l-7 7-7-7h4V6h6z"/>'),
+    ArrowBigUp:   icon('<path d="M9 18v-6H5l7-7 7 7h-4v6H9z"/>'),
+    ArrowDownUp:  icon('<path d="m3 16 4 4 4-4"></path><path d="M7 20V4"></path><path d="m21 8-4-4-4 4"></path><path d="M17 4v16"></path>'),
+    CheckSquare:  icon('<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'),
+    Eye:          icon('<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle>'),
+    MinusSquare:  icon('<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="8" x2="16" y1="12" y2="12"/>'),
+    Save:         icon('<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline>'),
+    Trash2:       icon('<path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6"/>'),
+};
 
-window.DelButton        = but('Delete item', '<path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6"/>');
-window.UpButton         = but('Move up',     '<path d="M9 18v-6H5l7-7 7 7h-4v6H9z"/>');
-window.DownButton       = but('Move down',   '<path d="M15 6v6h4l-7 7-7-7h4V6h6z"/>');
-window.CheckAllButton   = but('Check all',   '<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>');
-window.UncheckAllButton = but('Uncheck all', '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="8" x2="16" y1="12" y2="12"/>');
+const but = (icon, title) => ({view: vnode => m('button[type=button].icon', { title,
+        onclick: ev => { ev.preventDefault(); vnode.attrs.onclick(ev) },
+        style: !('visible' in vnode.attrs) || vnode.attrs.visible ? null : 'visibility:hidden',
+    }, icon
+)});
+window.Button = {
+    Del:        but(Icon.Trash2,       'Delete item'),
+    Up:         but(Icon.ArrowBigUp,   'Move up'),
+    Down:       but(Icon.ArrowBigDown, 'Move down'),
+    CheckAll:   but(Icon.CheckSquare,  'Check all'),
+    UncheckAll: but(Icon.MinusSquare,  'Uncheck all'),
+};
+
 
 
 // Dropdown box for use in a <li class="maintabs-dd">.

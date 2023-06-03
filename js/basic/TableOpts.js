@@ -72,7 +72,7 @@ widget('TableOpts', (vnode) => {
     const view = () => [
         m('li.hidden', m('input[type=hidden][name=s]', { value: opts.encode() })),
         !conf.save ? null : m('li.maintabs-dd.tableopts-save', m(MainTabsDD, {
-            a_body: m.trust('<svg height=13 width=13 viewbox="0 0 1700 1700"><path d="M384 1536h768v-384H384v384zm896 0h128V640c0-19-17-60-30-73l-281-281c-14-14-53-30-73-30v416c0 53-43 96-96 96H352c-53 0-96-43-96-96V256H128v1280h128v-416c0-53 43-96 96-96h832c53 0 96 43 96 96v416zM896 608V288c0-17-15-32-32-32H672c-17 0-32 15-32 32v320c0 17 15 32 32 32h192c17 0 32-15 32-32zm640 32v928c0 53-43 96-96 96H96c-53 0-96-43-96-96V224c0-53 43-96 96-96h928c53 0 126 30 164 68l280 280c38 38 68 111 68 164z"/></svg>'),
+            a_body: Icon.Save,
             a_attrs: { title: 'save display settings' },
             content: () => [
                 m('h4', 'save display settings'),
@@ -109,7 +109,7 @@ widget('TableOpts', (vnode) => {
             ]
         })),
         conf.vis.length == 0 ? null : m('li.maintabs-dd.tableopts-cols', m(MainTabsDD, {
-            a_body: m.trust('<svg height=13 width=13 viewbox="0 0 20 20"><path d="M10 5.09c3.98 0 7.4 2.25 9 5.5-1.6 3.25-5.02 5.5-9 5.5s-7.4-2.25-9-5.5c1.6-3.25 5.02-5.5 9-5.5zm2.35 3.1c0-.59-.39-1.08-.92-1.24-.16-.02-.32-.03-.49-.04-.65.05-1.17.6-1.17 1.28 0 .71.58 1.29 1.29 1.29.72 0 1.29-.58 1.29-1.29zM10 14.89c3.36 0 6.25-1.88 7.6-4.3-.93-1.67-2.6-2.81-4.65-3.35a4.042 4.042 0 0 1-2.95 6.8 4.042 4.042 0 0 1-2.95-6.8C5 7.78 3.33 8.92 2.4 10.59c1.35 2.42 4.24 4.3 7.6 4.3z"/></svg>'),
+            a_body: Icon.Eye,
             a_attrs: { title: 'visible columns' },
             content: () => [
                 m('h4', 'visible columns'),
@@ -121,7 +121,7 @@ widget('TableOpts', (vnode) => {
             ]
         })),
         conf.sorts.length == 0 ? null : m('li.maintabs-dd.tableopts-sort', m(MainTabsDD, {
-            a_body: m.trust('<svg height=13 width=13 viewbox="0 0 20 20"><path d="M11 7H1l5 7zm-2 7h10l-5-7z"/></svg>'),
+            a_body: Icon.ArrowDownUp,
             a_attrs: { title: 'sort options' },
             content: () => [
                 m('h4', 'sort options'),

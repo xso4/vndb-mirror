@@ -175,7 +175,7 @@ const Traits = initVnode => {
         m('p', 'You can add up to 100 ', m('a[href=/i][target=_blank]', 'character traits'), ' to your account. These are displayed on your public profile.'),
         m('table.stripe',
             m('tbody', data.traits.map(t => m('tr', { key: t.tid },
-                m('td', m(DelButton, {onclick: () => {
+                m('td', m(Button.Del, {onclick: () => {
                     delete lookup[t.tid];
                     data.traits = data.traits.filter(x => x.tid !== t.tid);
                 }})),
@@ -214,15 +214,15 @@ const Titles = initVnode => {
                 m('option', { selected: t.official === false }, 'Any'),
             ) : null),
             m('td',
-                m(UpButton, {visible: t.lang && n > 0, onclick: () => {
+                m(Button.Up, {visible: t.lang && n > 0, onclick: () => {
                     lst[n] = lst[n-1];
                     lst[n-1] = t;
                 }}),
-                m(DownButton, {visible: n < lst.length-2, onclick: () => {
+                m(Button.Down, {visible: n < lst.length-2, onclick: () => {
                     lst[n] = lst[n+1];
                     lst[n+1] = t;
                 }}),
-                m(DelButton, {visible: !!t.lang, onclick: () => lst.splice(n,1)}),
+                m(Button.Del, {visible: !!t.lang, onclick: () => lst.splice(n,1)}),
             ),
         ))),
         m('tfoot', m('tr', m('td[colspan=3]',

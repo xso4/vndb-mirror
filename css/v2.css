@@ -952,6 +952,7 @@ div.charsum_list .charsum_bubble {
 .maintabs-dd > div { position: absolute; width: 1px }
 .maintabs-dd > div > div { width: 500px; border: 1px solid var(--border); background: var(--secbg); position: relative; bottom: 0; left: -470px; z-index: 100 }
 
+.tableopts > li > a > svg { width: 14px; height: 14px }
 .tableopts-results > div > div { width: 180px; left: -140px; text-align: center }
 .tableopts-save > div > div { width: 250px; left: -210px; text-align: center }
 .tableopts-save input { width: 97% }
