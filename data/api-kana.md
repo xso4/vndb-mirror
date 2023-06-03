@@ -96,7 +96,8 @@ is set.
 
 In all other cases, token authentication should to be used. Users can obtain a
 token by opening their "My Profile" form and going to the "Applications" tab.
-Tokens look like `xxxx-xxxxx-xxxxx-xxxx-xxxxx-xxxxx-xxxx`, with each `x`
+The URL `https://vndb.org/u/tokens` can also be used to redirect users to this
+form.  Tokens look like `xxxx-xxxxx-xxxxx-xxxx-xxxxx-xxxxx-xxxx`, with each `x`
 representing a lowercase z-base-32 character. The dashes in between are
 optional.
 

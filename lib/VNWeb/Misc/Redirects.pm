@@ -24,6 +24,8 @@ TUWF::get qr{/$RE{vid}/staff}, sub { tuwf->resRedirect(sprintf '/%s#staff',     
 TUWF::get qr{/$RE{vid}/stats}, sub { tuwf->resRedirect(sprintf '/%s#stats',       tuwf->capture('id')) };
 TUWF::get qr{/$RE{vid}/scr},   sub { tuwf->resRedirect(sprintf '/%s#screenshots', tuwf->capture('id')) };
 
+TUWF::get qr{/u/tokens}, sub { tuwf->resRedirect(auth ? '/'.auth->uid.'/edit#api' : '/u/login?ref=/u/tokens', 'temp') };
+
 
 TUWF::get qr{/v/rand}, sub {
     state $stats  ||= tuwf->dbRowi('SELECT COUNT(*) AS total, COUNT(*) FILTER(WHERE NOT hidden) AS subset FROM vn');
