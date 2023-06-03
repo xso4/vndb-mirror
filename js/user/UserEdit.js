@@ -184,7 +184,7 @@ const Traits = initVnode => {
             m('tfoot', m('tr', m('td[colspan=2]',
                 data.traits.length >= 100
                 ? 'Maximum number of traits reached.'
-                : m('input[type=button][value=Add trait]', { onclick: ds.open })
+                : m(DSButton, { onclick: ds.open }, 'Add trait'),
             ))),
         ),
     )}
@@ -227,7 +227,7 @@ const Titles = initVnode => {
         ))),
         m('tfoot', m('tr', m('td[colspan=5]',
             lst.length >= 5 ? null
-            : m('input[type=button][value=Add language]', {onclick: ds.open}),
+            : m(DSButton, {onclick: ds.open}, 'Add language'),
         )))
     )};
 };
@@ -273,7 +273,7 @@ const display = data => {
             ) : null,
             m('fieldset',
                 m('label', 'Time zone'),
-                m('input.mw[type=button]', { value: data.timezone, onclick: tz.open }),
+                m(DSButton, { class: 'lw', onclick: tz.open }, data.timezone),
                 ' ', brtz && brtz != data.timezone
                 ? m('a[href=#]', { onclick: ev => { ev.preventDefault(); data.timezone = brtz }}, 'Set to '+brtz)
                 : null,
@@ -343,7 +343,7 @@ const display = data => {
                 ),
             ),
             data.vnrel_langs === null ? null : m('fieldset',
-                m('input[type=button][value=Select languages]', { onclick: vl.open }),
+                m(DSButton, { onclick: vl.open }, 'Select languages'),
                 data.vnrel_langs.map(LangIcon)
             ),
             m('fieldset',
@@ -365,7 +365,7 @@ const display = data => {
                 ),
             ),
             data.staffed_langs === null ? null : m('fieldset',
-                m('input[type=button][value=Select languages]', { onclick: sl.open }),
+                m(DSButton, { onclick: sl.open }, 'Select languages'),
                 data.staffed_langs.map(LangIcon)
             ),
             m('fieldset',
@@ -435,7 +435,7 @@ const TTPrefs = initVnode => {
             ))),
             m('tfoot', m('tr', m('td[colspan=6]',
                 data[pref].length >= 500 ? null
-                : m('input[type=button]', {value: prefix === 'g' ? 'Add tag' : 'Add trait', onclick: ds.open})
+                : m(DSButton, { onclick: ds.open }, prefix === 'g' ? 'Add tag' : 'Add trait')
             ))),
         ),
     )};

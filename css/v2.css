@@ -107,8 +107,10 @@ select[multiple] option {
 }
 optgroup option          { padding-left: 10px }
 input.submit, input[type=submit], input[type=button], button { background-color: var(--boxbg); padding: 1px 5px; cursor: pointer }
+button                   { text-align: left }
 button.icon              { font-size: 1px; height: 22px }
-button.icon svg          { height: 14px; width: 14px }
+button svg               { height: 14px; width: 14px }
+button.ds svg            { float: right; margin-top: 3px; margin-left: 5px }
 input.text, select       { width: 200px; }
 input.obscured           { color: transparent; text-shadow: 0 0 8px var(--maintext); }
 input[type=number]       { -moz-appearance:textfield }

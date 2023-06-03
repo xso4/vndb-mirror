@@ -62,7 +62,7 @@ const position = () => {
 
 const close = ev => {
     if (!activeInstance) return;
-    if (ev && (globalObj.contains(ev.target) || ev.target === activeInstance.opener)) return;
+    if (ev && (globalObj.contains(ev.target) || activeInstance.opener.contains(ev.target))) return;
     if (!ev) activeInstance.opener.focus();
     activeInstance.abort();
     activeInstance = null;
@@ -117,7 +117,7 @@ class DS {
         ev.preventDefault();
         setupObj();
         activeInstance = this;
-        this.opener = ev.target;
+        this.opener = ev.currentTarget;
         this.focus = v => { this.focus = null; v.dom.focus() };
         document.addEventListener('click', close);
         document.addEventListener('keydown', keydown);
