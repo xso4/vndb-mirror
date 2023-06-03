@@ -233,8 +233,6 @@ const Titles = initVnode => {
 };
 
 const display = data => {
-    let custcss = !!data.customcss;
-    let savedcss = data.customcss;
     const tz = new DS(DSTimeZone, { onselect: ({id}) => data.timezone = id });
     const brtz = (e => timeZones.includes(e) && e)(window.Intl && Intl.DateTimeFormat().resolvedOptions().timeZone);
 
@@ -266,12 +264,9 @@ const display = data => {
                     } },
                     vndbSkins.map(([id,name]) => m('option', {selected: data.skin === id}, name))
                 ), ' ',
-                m('label.check', m('input[type=checkbox]', { checked: custcss, oninput: ev => {
-                    custcss = ev.target.checked;
-                    if (custcss) data.customcss = savedcss; else { savedcss = data.customcss; data.customcss = ''; }
-                }}), 'Custom css'),
+                m('label.check', m('input[type=checkbox]', { checked: data.customcss_csum, oninput: ev => data.customcss_csum = ev.target.checked }), 'Custom css'),
             ),
-            custcss ? m('fieldset',
+            data.customcss_csum ? m('fieldset',
                 m('label[for=customcss]', 'Custom CSS'),
                 m('textarea#customcss.xw[rows=5][cols=60]', { oninput: ev => data.customcss = ev.target.value }, data.customcss),
                 m('p.grayedout', '(@import statements do not work; future site updates may break your customizations)'),

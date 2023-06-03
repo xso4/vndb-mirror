@@ -57,6 +57,7 @@ my $FORM = {
     prodrelexpand   => { anybool => 1 },
     skin            => { enum => skins },
     customcss       => { required => 0, default => '', maxlength => 16*1024 },
+    customcss_csum  => { anybool => 1 },
 
     tagprefs        => { sort_keys => 'tid', maxlength => 500, aoh => {
         tid     => { vndbid => 'g' },
@@ -104,7 +105,7 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
     my $u = tuwf->dbRowi(
         'SELECT u.id, username, max_sexual, max_violence, traits_sexual, tags_all, tags_cont, tags_ero, tags_tech, prodrelexpand
               , vnrel_langs::text[], vnrel_olang, vnrel_mtl, staffed_langs::text[], staffed_olang, staffed_unoff
-              , spoilers, skin, customcss, timezone, titles
+              , spoilers, skin, customcss, customcss_csum, timezone, titles
               , nodistract_can, support_can, uniname_can, pubskin_can
               , nodistract_noads, nodistract_nofancy, support_enabled, uniname, pubskin_enabled
            FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \tuwf->capture('id')
@@ -163,7 +164,7 @@ js_api UserEdit => $FORM_IN, sub {
         vnrel_langs vnrel_olang vnrel_mtl staffed_langs staffed_olang staffed_unoff
         skin customcss timezone max_sexual max_violence spoilers traits_sexual prodrelexpand titles
     /;
-    $setp{customcss_csum} = length $data->{customcss} ? unpack 'q', sha1 do { utf8::encode(local $_=$data->{customcss}); $_ } : 0;
+    $setp{customcss_csum} = $data->{customcss_csum} && length $data->{customcss} ? unpack 'q', sha1 do { utf8::encode(local $_=$data->{customcss}); $_ } : 0;
 
     $set{email_confirmed} = 1 if auth->permUsermod;
 
