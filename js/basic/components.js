@@ -15,9 +15,11 @@ window.Icon = {
     ChevronDown:  icon('<polyline points="6 9 12 15 18 9">'),
     Copy:         icon('<rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>'),
     Eye:          icon('<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle>'),
+    Info:         icon('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>'),
     MinusSquare:  icon('<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="8" x2="16" y1="12" y2="12"/>'),
     Save:         icon('<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline>'),
     Trash2:       icon('<path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6"/>'),
+    X:            icon('<line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/>'),
 };
 
 const but = (icon, title) => ({view: vnode => m('button[type=button].icon', { title,
@@ -39,6 +41,17 @@ window.DSButton = {view: vnode => m('button.ds[type=button]', {
         onclick: ev => { ev.preventDefault(); vnode.attrs.onclick(ev) },
     }, vnode.children, Icon.ChevronDown
 )};
+
+const helpState = {};
+window.HelpButton = id => m('a.help[href=#][title=Info]',
+    { onclick: ev => { ev.preventDefault(); helpState[id] = !helpState[id]; } },
+    Icon.Info
+);
+window.Help = (id, ...content) => helpState[id] ? m('section.help',
+    { oncreate: vnode => vnode.dom.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'nearest'}) },
+    m('a[href=#]', { onclick: ev => { ev.preventDefault(); helpState[id] = false; } }, Icon.X),
+    content
+) : null;
 
 
 
