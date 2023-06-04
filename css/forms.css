@@ -112,6 +112,7 @@ article.submit {
 p.linkradio { padding: 2px }
 .linkradio label { color: var(--link); cursor: pointer }
 .linkradio label:before { content: '✗' }
+.linkradio input { display: none }
 .linkradio input:checked + label { color: var(--maintext) }
 .linkradio input:checked + label:before { content: '✓' }
 .linkradio input:focus + label { outline: 1px dotted var(--link) }

@@ -53,7 +53,7 @@ sub reviews_ {
                     $html .= xml_string sub { txt_ '... '; a_ href => "/$r->{id}#review", ' Read more »' } if !$mini;
                     if($r->{spoiler}) {
                         label_ class => 'review_spoil', sub {
-                            input_ type => 'checkbox', class => 'visuallyhidden', (auth->pref('spoilers')||0) == 2 ? ('checked', 'checked') : (), undef;
+                            input_ type => 'checkbox', class => 'hidden', (auth->pref('spoilers')||0) == 2 ? ('checked', 'checked') : (), undef;
                             div_ sub { lit_ $html };
                             span_ class => 'fake_link', 'This review contains spoilers, click to view.';
                         }

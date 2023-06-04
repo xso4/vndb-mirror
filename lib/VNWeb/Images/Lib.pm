@@ -114,7 +114,7 @@ sub image_ {
     my $small = $w*$h < 20000;
 
     label_ class => 'imghover', style => "width: ${w}px; height: ${h}px", sub {
-        input_ type => 'checkbox', class => 'visuallyhidden', $hidden ? () : (checked => 'checked') if $hide_on_click;
+        input_ type => 'checkbox', class => 'hidden', $hidden ? () : (checked => 'checked') if $hide_on_click;
         div_ class => 'imghover--visible', sub {
             a_ href => $opt{url} if $opt{url};
             img_ src => imgurl($img->{id}), width => $w, height => $h, $opt{alt} ? (alt => $opt{alt}) : ();

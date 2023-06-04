@@ -27,7 +27,7 @@ elm_api ReviewsComment => undef, $COMMENT, sub {
 sub review_ {
     my($w) = @_;
 
-    input_ type => 'checkbox', class => 'visuallyhidden', id => 'reviewspoil', (auth->pref('spoilers')||0) == 2 ? ('checked', 'checked') : (), undef;
+    input_ type => 'checkbox', class => 'hidden', id => 'reviewspoil', (auth->pref('spoilers')||0) == 2 ? ('checked', 'checked') : (), undef;
     my @spoil = $w->{spoiler} ? (class => 'reviewspoil') : ();
     table_ class => 'fullreview', sub {
         tr_ sub {

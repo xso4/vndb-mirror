@@ -206,7 +206,7 @@ sub infobox_relations_ {
         td_ 'Relations';
         td_ class => 'relations linkradio', sub {
             if($unoffcount >= 3) {
-                input_ type => 'checkbox', id => 'unoffrelations', class => 'visuallyhidden';
+                input_ type => 'checkbox', id => 'unoffrelations', class => 'hidden';
                 label_ for => 'unoffrelations', "unofficial ($unoffcount)";
             }
             dl_ sub {
@@ -399,21 +399,21 @@ sub infobox_tags_ {
         debug_ $v->{tags};
         my @ero = grep($_->{cat} eq 'ero', $v->{tags}->@*) ? ('ero') : ();
         for ('cont', @ero, 'tech') {
-            input_ id => "cat_$_", type => 'checkbox', class => 'visuallyhidden',
+            input_ id => "cat_$_", type => 'checkbox', class => 'hidden',
                 (auth ? auth->pref("tags_$_") : $_ ne 'ero') ? (checked => 'checked') : ();
             label_ for => "cat_$_", lc $TAG_CATEGORY{$_};
         }
         my $spoiler = auth->pref('spoilers') || 0;
-        input_ id => 'tag_spoil_none', type => 'radio', class => 'visuallyhidden', name => 'tag_spoiler', $spoiler == 0 ? (checked => 'checked') : ();
+        input_ id => 'tag_spoil_none', type => 'radio', class => 'hidden', name => 'tag_spoiler', $spoiler == 0 ? (checked => 'checked') : ();
         label_ for => 'tag_spoil_none', class => 'sec', 'hide spoilers';
-        input_ id => 'tag_spoil_some', type => 'radio', class => 'visuallyhidden', name => 'tag_spoiler', $spoiler == 1 ? (checked => 'checked') : ();
+        input_ id => 'tag_spoil_some', type => 'radio', class => 'hidden', name => 'tag_spoiler', $spoiler == 1 ? (checked => 'checked') : ();
         label_ for => 'tag_spoil_some', 'show minor spoilers';
-        input_ id => 'tag_spoil_all', type => 'radio', class => 'visuallyhidden', name => 'tag_spoiler', $spoiler == 2 ? (checked => 'checked') : ();
+        input_ id => 'tag_spoil_all', type => 'radio', class => 'hidden', name => 'tag_spoiler', $spoiler == 2 ? (checked => 'checked') : ();
         label_ for => 'tag_spoil_all', 'spoil me!';
 
-        input_ id => 'tag_toggle_summary', type => 'radio', class => 'visuallyhidden', name => 'tag_all', auth->pref('tags_all') ? () : (checked => 'checked');
+        input_ id => 'tag_toggle_summary', type => 'radio', class => 'hidden', name => 'tag_all', auth->pref('tags_all') ? () : (checked => 'checked');
         label_ for => 'tag_toggle_summary', class => 'sec', 'summary';
-        input_ id => 'tag_toggle_all', type => 'radio', class => 'visuallyhidden', name => 'tag_all', auth->pref('tags_all') ? (checked => 'checked') : ();
+        input_ id => 'tag_toggle_all', type => 'radio', class => 'hidden', name => 'tag_all', auth->pref('tags_all') ? (checked => 'checked') : ();
         label_ for => 'tag_toggle_all', class => 'lst', 'all';
         div_ id => 'vntags', sub {
             my %counts = map +($_,[0,0,0]), keys %TAG_CATEGORY;
@@ -865,8 +865,8 @@ sub screenshots_ {
     my %rel;
     push $rel{$_->{rid}}->@*, $_ for grep $_->{rid}, @$s;
 
-    input_ name => 'scrhide_s', id => "scrhide_s$_", type => 'radio', class => 'visuallyhidden', $sexs == $_ ? (checked => 'checked') : () for 0..2;
-    input_ name => 'scrhide_v', id => "scrhide_v$_", type => 'radio', class => 'visuallyhidden', $vios == $_ ? (checked => 'checked') : () for 0..2;
+    input_ name => 'scrhide_s', id => "scrhide_s$_", type => 'radio', class => 'hidden', $sexs == $_ ? (checked => 'checked') : () for 0..2;
+    input_ name => 'scrhide_v', id => "scrhide_v$_", type => 'radio', class => 'hidden', $vios == $_ ? (checked => 'checked') : () for 0..2;
     article_ id => 'screenshots', sub {
 
         p_ class => 'mainopts', sub {
