@@ -200,6 +200,7 @@ location / {
   rewrite ^/g/icons\.png /g/icons.opt.png;
   rewrite ^/g/elm\.js    /g/elm.min.js;
   rewrite ^/g/basic\.js  /g/basic.min.js;
+  rewrite ^/g/user\.js   /g/user.min.js;
   try_files $uri /path/to/vndb/static/$uri @fcgi;
 }
 ```

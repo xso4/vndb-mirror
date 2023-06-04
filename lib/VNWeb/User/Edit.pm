@@ -142,7 +142,7 @@ js_api UserEdit => $FORM_IN, sub {
 
     my $u = tuwf->dbRowi('SELECT id, username FROM users WHERE id =', \$data->{id});
     return tuwf->resNotFound if !$u->{id};
-    return elm_Unauth if !can_edit u => $u;
+    return tuwf->resDenied if !can_edit u => $u;
 
     my(%set, %setp);
 
