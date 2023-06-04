@@ -21,7 +21,6 @@ use VNDB::ExtLinks ();
 use VNDB::Skins;
 use VNWeb::Validation;
 use VNWeb::Auth;
-use VNWeb::TimeZone;
 
 our @EXPORT = qw/
     elm_api elm_empty
@@ -46,11 +45,8 @@ our %apis = (
     BadEmail       => [], # Unknown email address in password reset form
     Bot            => [], # User didn't pass bot verification
     Taken          => [], # Username already taken
-    NameThrottle   => [], # Username change throttled
     DoubleEmail    => [], # Account with same email already exists
     DoubleIP       => [], # Account with same IP already exists
-    BadCurPass     => [], # Current password is incorrect when changing password
-    MailChange     => [], # A confirmation mail has been sent to change a user's email address
     ImgFormat      => [], # Unrecognized image format
     LabelId        => [{uint => 1}], # Label created
     Api2Token      => [{},{}], # Generated API2 token
@@ -436,7 +432,6 @@ sub write_types {
     my $data = '';
 
     $data .= def adminEMail => String => string config->{admin_email};
-    $data .= def skins      => 'List (String, String)' => list map tuple(string $_, string skins->{$_}{name}), sort { skins->{$a}{name} cmp skins->{$b}{name} } keys skins->%*;
     $data .= def languages  => 'List (String, String)' => list map tuple(string $_, string $LANGUAGE{$_}{txt}), sort { $LANGUAGE{$a} cmp $LANGUAGE{$b} } keys %LANGUAGE;
     $data .= def platforms  => 'List (String, String)' => list map tuple(string $_, string $PLATFORM{$_}), keys %PLATFORM;
     $data .= def releaseTypes => 'List (String, String)' => list map tuple(string $_, string $RELEASE_TYPE{$_}), keys %RELEASE_TYPE;
@@ -459,9 +454,6 @@ sub write_types {
     $data .= def producerTypes=> 'List (String, String)' => list map tuple(string $_, string $PRODUCER_TYPE{$_}), keys %PRODUCER_TYPE;
     $data .= def tagCategories=> 'List (String, String)' => list map tuple(string $_, string $TAG_CATEGORY{$_}), keys %TAG_CATEGORY;
     $data .= def curYear    => Int => (gmtime)[5]+1900;
-    my %regions;
-    m{^([^/]+)/(.+)} && push $regions{$1}->@*, $2 for @ZONES;
-    $data .= def timeZones  => 'List (String, List String)' => list map tuple(string $_, list map string($_), $regions{$_}->@*), sort keys %regions;
 
     write_module Types => $data;
 }

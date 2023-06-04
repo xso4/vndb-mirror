@@ -29,12 +29,6 @@ onInputValidation msg = custom "input" <|
 onInvalid : msg -> Attribute msg
 onInvalid msg = on "invalid" (JD.succeed msg)
 
-onInputMultiple : (List String -> msg) -> Attribute msg
-onInputMultiple msg =
-  let dec = JD.at [ "target", "selectedOptions" ] <| JD.keyValuePairs <| JD.maybe (JD.field "value" JD.string)
-      f lst = msg (List.filterMap Tuple.second lst)
-  in on "input" (JD.map f dec)
-
 -- Multi-<br> (ugly but oh, so, convenient)
 br_ : Int -> Html m
 br_ n = if n == 1 then br [] [] else span [] <| List.repeat n <| br [] []
