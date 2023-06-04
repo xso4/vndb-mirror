@@ -16,7 +16,7 @@ TUWF::get '/u/login' => sub {
 
 
 js_api UserLogin => {
-    username => { username => 1 },
+    username => {},
     password => { password => 1 }
 }, sub {
     my $data = shift;
@@ -30,13 +30,16 @@ js_api UserLogin => {
 
     my $insecure = is_insecurepass $data->{password};
 
-    my $u = tuwf->dbRowi('SELECT id, user_getscryptargs(id) x FROM users WHERE lower(username) = lower(', \$data->{username}, ')');
-    return +{ _err => 'No user with that name.' } if !$u->{id};
+    my $u = tuwf->dbRowi('SELECT id, user_getscryptargs(id) x FROM users WHERE',
+        $data->{username} =~ /@/ ? sql('id IN(SELECT * FROM user_emailtoid(', \$data->{username}, '))')
+                                 : sql('lower(username) = lower(', \$data->{username}, ')')
+    );
+    return +{ _err => 'No user with that name or email.' } if !$u->{id};
     return +{ _err => 'Account disabled, please use the password reset form to re-activate your account.' } if !$u->{x};
 
     if(auth->login($u->{id}, $data->{password}, $insecure)) {
         auth->audit(auth->uid, 'login') if !$insecure;
-        return $insecure ? { insecurepass => 1 } : { ok => 1 };
+        return $insecure ? { insecurepass => 1, uid => $u->{id} } : { ok => 1 };
     }
 
     # Failed login, log and update throttle.
@@ -51,16 +54,14 @@ js_api UserLogin => {
 
 
 js_api UserChangePass => {
-    username => { username => 1 },
+    uid      => { vndbid => 'u' },
     oldpass  => { password => 1 },
     newpass  => { password => 1 },
 }, sub {
     my $data = shift;
-    my $uid = tuwf->dbVali('SELECT id FROM users WHERE lower(username) = lower(', \$data->{username}, ')');
-    die if !$uid;
     return +{ _err => 'Your new password has also been leaked.' } if is_insecurepass $data->{newpass};
-    auth->audit($uid, 'password change', 'after login with an insecure password');
-    die if !auth->setpass($uid, undef, $data->{oldpass}, $data->{newpass}); # oldpass should already have been verified.
+    die if !auth->setpass($data->{uid}, undef, $data->{oldpass}, $data->{newpass}); # oldpass should already have been verified.
+    auth->audit($data->{uid}, 'password change', 'after login with an insecure password');
     {}
 };
 

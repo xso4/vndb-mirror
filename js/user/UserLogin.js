@@ -1,12 +1,12 @@
 let needChange = false;
-let username = '';
+let uid;
 let password = '';
 
 const ChangePass = vnode => {
     let newpass1 = '', newpass2 = '';
     const ref = vnode.attrs.data.ref;
     const api = new Api('UserChangePass');
-    const onsubmit = () => api.call({ username, oldpass: password, newpass: newpass1}, res => { if(res) location.href = ref });
+    const onsubmit = () => api.call({ uid, oldpass: password, newpass: newpass1}, res => { if(res) location.href = ref });
     const view = () => m(Form, {api,onsubmit}, m('article',
         m('h1', 'Change password'),
         m('div.warning',
@@ -44,6 +44,7 @@ const ChangePass = vnode => {
 };
 
 const Login = vnode => {
+    let username = '';
     const ref = vnode.attrs.data.ref;
     const api = new Api('UserLogin');
     const onsubmit = ev => {
@@ -57,6 +58,7 @@ const Login = vnode => {
         else
             api.call({username, password}, res => {
                 needChange = res && res.insecurepass;
+                uid = res && res.uid;
                 if (res && res.ok) location.href = ref;
             });
     };
@@ -64,14 +66,14 @@ const Login = vnode => {
         m('h1', 'Login'),
         m('fieldset.form',
             m('fieldset',
-                m('label[for=username]', 'Username'),
-                m('input#username.mw[type=text][tabindex=1]', formVals.username),
+                m('label[for=username]', 'Username or email'),
+                m('input#username.mw[type=text][tabindex=1]'),
                 m('p', m('a[href=/u/register]', 'No account yet?')),
             ),
             m('fieldset',
                 m('label[for=password]', 'Password'),
                 m('input#password.mw[type=password][tabindex=1][required]', formVals.password),
-                m('p', m('a[href=/u/newpass]', 'Lost your username or password?')),
+                m('p', m('a[href=/u/newpass]', 'Lost your password?')),
             ),
             m('fieldset',
                 m('input[type=submit][value=Submit][tabindex=1]'),
