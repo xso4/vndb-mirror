@@ -8,11 +8,11 @@ widget('UserAdmin', initVnode => {
     );
     const none = {
         perm_board: false, perm_review: false, perm_edit: false, perm_imgvote: false, perm_lengthvote: false, perm_tag: false,
-        perm_boardmod: false, perm_usermod: false, perm_tagmod: false, perm_dbmod: false, ign_votes: false,
+        perm_boardmod: false, perm_usermod: false, perm_tagmod: false, perm_dbmod: false
     };
     const def = {
         perm_board: true, perm_review: true, perm_edit: true, perm_imgvote: true, perm_lengthvote: true, perm_tag: true,
-        perm_boardmod: false, perm_usermod: false, perm_tagmod: false, perm_dbmod: false, ign_votes: true,
+        perm_boardmod: false, perm_usermod: false, perm_tagmod: false, perm_dbmod: false
     };
     const view = () => m(Form, {api, onsubmit: () => api.call(data, () => msg = 'Saved' )},
         m('article',
