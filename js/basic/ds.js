@@ -33,16 +33,10 @@ const position = () => {
     const inst = activeInstance;
     const opener = inst.opener.getBoundingClientRect(); // BUG: this doesn't work if ev.target is inside a positioned element
     const header = obj.children[0].getBoundingClientRect().height;
-    const left = Math.max(margin, Math.min(
-        window.innerWidth - inst.width - 2*margin,
-        opener.x + (inst.xoff||0) + (inst.anchor == 'br' ? opener.width - inst.width : 0)
-    ));
+    const left = Math.max(margin, Math.min(window.innerWidth - inst.width - 2*margin, opener.x));
     const width = Math.min(window.innerWidth - margin*2, inst.width);
 
-    const top = Math.max(margin, Math.min(
-        window.innerHeight - minHeight - margin,
-        opener.y + (inst.yoff||0) + opener.height
-    ));
+    const top = Math.max(margin, Math.min(window.innerHeight - minHeight - margin, opener.y + opener.height));
     const height = Math.max(header + 20, Math.min(window.innerHeight - margin*2, window.innerHeight - top - margin));
 
     obj.style.top  = (top  + window.scrollY) + 'px';
@@ -75,11 +69,6 @@ const close = ev => {
 
 
 // Constructor options (all optional):
-// - anchor
-//    where to place the box w.r.t. the element that triggers its opening.
-//    'bl' -> bottom left, 'br' -> bottom right
-// - xoff / yoff
-//    x & y offsets for positioning
 // - width
 // - placeholder
 // - onselect(obj,checked)
@@ -103,7 +92,6 @@ const close = ev => {
 // - "Create new entry" option (e.g. for engines and labels)
 class DS {
     constructor(source, opts) {
-        this.anchor = 'bl';
         this.width = 400;
         this.input = '';
         this.source = source;
@@ -115,6 +103,7 @@ class DS {
 
     open(ev) {
         ev.preventDefault();
+        if (activeInstance === this) return close();
         setupObj();
         activeInstance = this;
         this.opener = ev.currentTarget;
@@ -157,7 +146,6 @@ class DS {
     }
 
     keydown(ev) {
-        const i = this.list.findIndex(e => e.id === this.selId);
         if (ev.key == 'ArrowDown') {
             this.setSel();
             this.skipHover();
@@ -169,7 +157,9 @@ class DS {
         } else if (ev.key == 'Escape' || ev.key == 'Esc') {
             close();
         } else if (ev.key == 'Tab') {
-            ev.shiftKey || i == -1 ? close() : this.select();
+            const f = this.list.find(e => e.id === this.selId);
+            ev.shiftKey || !f ? close() : this.select();
+            if (this.checked) close(); // Tab always closes, even on multiselection boxes
             ev.preventDefault();
         }
     }
@@ -255,7 +245,7 @@ class DS {
                         oninput: ev => this.setInput(ev.target.value),
                         placeholder: this.placeholder,
                     }),
-                    loading ? m('span.spinner') : null,
+                    m('span', {class: loading ? 'spinner' : ''}, loading ? null : Icon.Search),
                 ),
                 this.checkall   ? m('div', m(Button.CheckAll,   { onclick: this.checkall   })) : null,
                 this.uncheckall ? m('div', m(Button.UncheckAll, { onclick: this.uncheckall })) : null,

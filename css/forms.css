@@ -220,9 +220,10 @@ span.spinner { width: 1em; height: 1em }
     > div {
         display: flex;
         > div:first-child {
-            flex: 1;
-            input { width: 100% }
-            .spinner { position: absolute; top: 4px; right: 5px }
+            flex: 1; position: relative;
+            input { width: 100%; outline: none; border-top: none; border-right: none; border-left: none; margin: 0; padding: 2px }
+            span { position: absolute; top: 4px; right: 5px }
+            svg { width: 14px; height: 14px }
         }
     }
     > ul {
