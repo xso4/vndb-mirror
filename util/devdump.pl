@@ -17,36 +17,44 @@ use lib $ROOT.'/lib';
 
 my $db = DBI->connect('dbi:Pg:dbname=vndb', 'vndb', undef, { RaiseError => 1 });
 
-sub ids { join ',', map "'$_'", @_ }
+sub ids { join ',', map "'$_'", @{$_[0]} }
+sub idq { ids $db->selectcol_arrayref($_[0]) }
 
 
 # Figure out which DB entries to export
 
-my @vids = (qw/v3 v17 v97 v183 v264 v266 v384 v407 v1910 v2932 v5922 v6438 v9837/);
-my $vids = ids @vids;
-my $staff = $db->selectcol_arrayref(
+my $large = ($ARGV[0]||'') eq 'large';
+
+my $vids = $large ? 'SELECT id FROM vn' : ids [qw/v3 v17 v97 v183 v264 v266 v384 v407 v1910 v2932 v5922 v6438 v9837/];
+my $staff = $large ? 'SELECT id FROM staff' : idq(
     "SELECT c2.itemid FROM vn_staff_hist  v JOIN changes c ON c.id = v.chid JOIN staff_alias_hist a ON a.aid = v.aid JOIN changes c2 ON c2.id = a.chid WHERE c.itemid IN($vids) "
    ."UNION "
    ."SELECT c2.itemid FROM vn_seiyuu_hist v JOIN changes c ON c.id = v.chid JOIN staff_alias_hist a ON a.aid = v.aid JOIN changes c2 ON c2.id = a.chid WHERE c.itemid IN($vids)"
 );
-my $releases = $db->selectcol_arrayref("SELECT DISTINCT c.itemid FROM releases_vn_hist v JOIN changes c ON c.id = v.chid WHERE v.vid IN($vids)");
-my $producers = $db->selectcol_arrayref("SELECT pid FROM releases_producers_hist p JOIN changes c ON c.id = p.chid WHERE c.itemid IN(".ids(@$releases).")");
-my $characters = $db->selectcol_arrayref(
+my $releases = $large ? 'SELECT id FROM releases' : idq(
+    "SELECT DISTINCT c.itemid FROM releases_vn_hist v JOIN changes c ON c.id = v.chid WHERE v.vid IN($vids)"
+);
+my $producers = $large ? 'SELECT id FROM producers' : idq(
+    "SELECT pid FROM releases_producers_hist p JOIN changes c ON c.id = p.chid WHERE c.itemid IN($releases)"
+);
+my $characters = $large ? 'SELECT id FROM chars' : idq(
     "SELECT DISTINCT c.itemid FROM chars_vns_hist e JOIN changes c ON c.id = e.chid WHERE e.vid IN($vids) "
    ."UNION "
    ."SELECT DISTINCT h.main FROM chars_vns_hist e JOIN changes c ON c.id = e.chid JOIN chars_hist h ON h.chid = e.chid WHERE e.vid IN($vids) AND h.main IS NOT NULL"
 );
-my $images = $db->selectcol_arrayref(q{
-         SELECT image FROM chars_hist          ch JOIN changes c ON c.id = ch.chid WHERE c.itemid IN(}.ids(@$characters).qq{) AND ch.image IS NOT NULL
+my $imageids = !$large && $db->selectcol_arrayref("
+         SELECT image FROM chars_hist          ch JOIN changes c ON c.id = ch.chid WHERE c.itemid IN($characters) AND ch.image IS NOT NULL
    UNION SELECT image FROM vn_hist             vh JOIN changes c ON c.id = vh.chid WHERE c.itemid IN($vids) AND vh.image IS NOT NULL
    UNION SELECT scr   FROM vn_screenshots_hist vs JOIN changes c ON c.id = vs.chid WHERE c.itemid IN($vids)
-});
+");
+my $images = $large ? 'SELECT id FROM images' : ids($imageids);
 
 
 # Helper function to copy a table or SQL statement. Can do modifications on a
 # few columns (the $specials).
 sub copy {
     my($dest, $sql, $specials) = @_;
+    warn "$dest...\n";
 
     $sql ||= "SELECT * FROM $dest";
     $specials ||= {};
@@ -57,15 +65,11 @@ sub copy {
         grep !($specials->{$_} && $specials->{$_} eq 'del'), @{$s->{NAME}}
     };
 
-    printf "COPY %s (%s) FROM stdin;\n", $dest, join ', ', map "\"$_\"", @cols;
+    printf "COPY %s (%s) FROM stdin;\n", $dest, join ', ', @cols;
 
     $sql = "SELECT " . join(',', map {
         my $s = $specials->{$_} || '';
-        if($s eq 'user') {
-            qq{CASE WHEN vndbid_num("$_") % 10 = 0 THEN NULL ELSE vndbid('u', vndbid_num("$_") % 10) END AS "$_"}
-        } else {
-            qq{"$_"}
-        }
+        $s eq 'user' ? "CASE WHEN vndbid_num($_) % 10 = 0 THEN NULL ELSE vndbid('u', vndbid_num($_) % 10) END AS $_" : $_;
     } @cols) . " FROM ($sql) AS x";
     #warn $sql;
     $db->do("COPY ($sql) TO STDOUT");
@@ -79,7 +83,6 @@ sub copy {
 # Helper function to copy a full DB entry with history and all (doesn't handle references)
 sub copy_entry {
     my($tables, $ids) = @_;
-    $ids = ids @$ids;
     copy changes => "SELECT * FROM changes WHERE itemid IN($ids)", {requester => 'user', ip => 'del'};
     for(@$tables) {
         my $add = '';
@@ -128,25 +131,24 @@ sub copy_entry {
     print "SELECT ulist_labels_create(id) FROM users;\n";
 
     # Tags & traits
-    copy_entry [qw/tags tags_parents/], $db->selectcol_arrayref('SELECT id FROM tags');
-    copy_entry [qw/traits traits_parents/], $db->selectcol_arrayref('SELECT id FROM traits');
+    copy_entry [qw/tags tags_parents/], 'SELECT id FROM tags';
+    copy_entry [qw/traits traits_parents/], 'SELECT id FROM traits';
 
     # Wikidata (TODO: This could be a lot more selective)
     copy 'wikidata';
 
     # Image metadata
-    my $image_ids = ids @$images;
-    copy images => "SELECT * FROM images WHERE id IN($image_ids)", { uploader => 'user' };
-    copy image_votes => "SELECT DISTINCT ON (id,vndbid('u', vndbid_num(uid)%10+10)) * FROM image_votes WHERE id IN($image_ids)", { uid => 'user' };
+    copy images => "SELECT * FROM images WHERE id IN($images)", { uploader => 'user' };
+    copy image_votes => "SELECT DISTINCT ON (id,vndbid('u', vndbid_num(uid)%10+10)) * FROM image_votes WHERE id IN($images)", { uid => 'user' };
 
     # Threads (announcements)
-    my $threads = join ',', map "'$_'", @{ $db->selectcol_arrayref("SELECT tid FROM threads_boards b WHERE b.type = 'an'") };
+    my $threads = idq("SELECT tid FROM threads_boards b WHERE b.type = 'an'");
     copy threads        => "SELECT * FROM threads WHERE id IN($threads)";
     copy threads_boards => "SELECT * FROM threads_boards WHERE tid IN($threads)";
     copy threads_posts  => "SELECT * FROM threads_posts WHERE tid IN($threads)", { uid => 'user' };
 
     # Doc pages
-    copy_entry ['docs'], $db->selectcol_arrayref('SELECT id FROM docs');
+    copy_entry ['docs'], 'SELECT id FROM docs';
 
     # Staff
     copy_entry [qw/staff staff_alias/], $staff;
@@ -159,13 +161,13 @@ sub copy_entry {
 
     # Visual novels
     copy anime => "SELECT DISTINCT a.* FROM anime a JOIN vn_anime_hist v ON v.aid = a.id JOIN changes c ON c.id = v.chid WHERE c.itemid IN($vids)";
-    copy_entry [qw/vn vn_anime vn_editions vn_seiyuu vn_staff vn_relations vn_screenshots vn_titles/], \@vids;
+    copy_entry [qw/vn vn_anime vn_editions vn_seiyuu vn_staff vn_relations vn_screenshots vn_titles/], $vids;
 
     # VN-related niceties
     copy vn_length_votes => "SELECT DISTINCT ON (vid,vndbid_num(uid)%10) * FROM vn_length_votes WHERE NOT private AND vid IN($vids)", {uid => 'user'};
     copy tags_vn     => "SELECT DISTINCT ON (tag,vid,vndbid_num(uid)%10) * FROM tags_vn WHERE vid IN($vids)", {uid => 'user'};
     copy quotes      => "SELECT * FROM quotes WHERE vid IN($vids)";
-    copy ulist_vns   => "SELECT vid, vndbid('u', vndbid_num(uid)%8+2) AS uid, MIN(vote_date) AS vote_date, '{7}' AS labels
+    copy ulist_vns   => "SELECT vid, vndbid('u', vndbid_num(uid)%8+2) AS uid, MIN(vote_date) AS vote_date, '{7}' AS labels, false AS c_private
                               , (percentile_cont((vndbid_num(uid)%8+1)::float/9) WITHIN GROUP (ORDER BY vote))::smallint AS vote
                            FROM ulist_vns WHERE vid IN($vids) AND vote IS NOT NULL GROUP BY vid, vndbid_num(uid)%8", {uid => 'user'};
 
@@ -178,7 +180,7 @@ sub copy_entry {
     # Update some caches
     print "SELECT tag_vn_calc(NULL);\n";
     print "SELECT traits_chars_calc(NULL);\n";
-    print "SELECT update_vncache(id) FROM vn;\n";
+    print "SELECT count(*) FROM (SELECT update_vncache(id) FROM vn) x;\n";
     print "SELECT update_stats_cache_full();\n";
     print "SELECT update_vnvotestats();\n";
     print "SELECT update_users_ulist_stats(NULL);\n";
@@ -189,6 +191,7 @@ sub copy_entry {
 
     print "\\set ON_ERROR_STOP 0\n";
     print "\\i sql/perms.sql\n";
+    print "VACUUM ANALYZE;\n";
 
     select STDOUT;
     close $OUT;
@@ -196,10 +199,11 @@ sub copy_entry {
 
 
 
-
 # Now figure out which images we need, and throw everything in a tarball
-sub img { sprintf 'static/%s/%02d/%d.jpg', $_[0], $_[1]%100, $_[1] }
-my @imgpaths = sort map { my($t,$id) = /([a-z]+)([0-9]+)/; (img($t, $id), $t eq 'sf' ? img('st', $id) : ()) } @$images;
+if(!$large) {
+    sub img { sprintf 'static/%s/%02d/%d.jpg', $_[0], $_[1]%100, $_[1] }
+    my @imgpaths = sort map { my($t,$id) = /([a-z]+)([0-9]+)/; (img($t, $id), $t eq 'sf' ? img('st', $id) : ()) } @$imageids;
 
-system("tar -czf devdump.tar.gz dump.sql ".join ' ', @imgpaths);
-unlink 'dump.sql';
+    system("tar -czf devdump.tar.gz dump.sql ".join ' ', @imgpaths);
+    unlink 'dump.sql';
+}
