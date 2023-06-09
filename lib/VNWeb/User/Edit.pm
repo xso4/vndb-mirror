@@ -56,7 +56,7 @@ my $FORM = {
     traits_sexual   => { anybool => 1 },
     prodrelexpand   => { anybool => 1 },
     skin            => { enum => skins },
-    customcss       => { required => 0, default => '', maxlength => 16*1024 },
+    customcss       => { required => 0, default => '', maxlength => 256*1024 },
     customcss_csum  => { anybool => 1 },
 
     tagprefs        => { sort_keys => 'tid', maxlength => 500, aoh => {

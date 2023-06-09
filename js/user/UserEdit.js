@@ -268,7 +268,7 @@ const display = data => {
             ),
             data.customcss_csum ? m('fieldset',
                 m('label[for=customcss]', 'Custom CSS'),
-                m('textarea#customcss.xw[rows=5][cols=60]', { oninput: ev => data.customcss = ev.target.value }, data.customcss),
+                m('textarea#customcss.xw[rows=5][cols=60][maxlength=262144]', { oninput: ev => data.customcss = ev.target.value }, data.customcss),
                 m('p.grayedout', '(@import statements do not work; future site updates may break your customizations)'),
             ) : null,
             m('fieldset',

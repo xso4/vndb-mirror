@@ -19,8 +19,10 @@ sub js_api {
     TUWF::post qr{/js/\Q$endpoint\E\.json} => sub {
         my $data = tuwf->validate(json => $schema);
         if(!$data) {
-            warn "JSON validation failed\ninput: " . JSON::XS->new->allow_nonref->pretty->canonical->encode(tuwf->reqJSON) . "\nerror: " . JSON::XS->new->encode($data->err) . "\n";
-            return tuwf->resJSON({_err => 'Invalid request body, please report a bug.'});
+            my $err = $data->err;
+            warn "JSON validation failed\ninput: " . JSON::XS->new->allow_nonref->pretty->canonical->encode(tuwf->reqJSON) . "\nerror: " . JSON::XS->new->encode($err) . "\n";
+            $err = $err->{errors}[0]//{};
+            return tuwf->resJSON({_err => 'Form validation failed'.($err->{key} ? " ($err->{key})." : '.')});
         }
         my $res = $fun->($data->data);
         tuwf->resJSON(ref $res ? $res : {_err => $res});
