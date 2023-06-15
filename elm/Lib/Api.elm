@@ -38,13 +38,8 @@ showResponse res =
     Content _                       -> unexp
     InsecurePass                    -> "Your password appears in a database of leaked passwords, please use a more unique password."
     BadEmail                        -> "Unknown email address."
-    Bot                             -> "Invalid answer to the anti-bot question."
-    Taken                           -> "Username already taken, please choose a different name."
-    DoubleEmail                     -> "Email address already used for another account."
-    DoubleIP                        -> "You can only register one account from the same IP within 24 hours."
     ImgFormat                       -> "Unrecognized image format, only JPEG, PNG and WebP are accepted."
     LabelId _                       -> unexp
-    Api2Token _ _                   -> unexp
     DupNames _                      -> "Name or alias already in the database."
     Releases _                      -> unexp
     Resolutions _                   -> unexp

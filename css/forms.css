@@ -2,7 +2,7 @@
 
 /* TODO: The .text/.submit classes should be removed */
 
-input.text, input.submit, input[type=text], input[type=password], input[type=button], input[type=submit], select, textarea, button {
+input.text, input.submit, input[type=text], input[type=password], input[type=email], input[type=button], input[type=submit], select, textarea, button {
     background-color: var(--boxbg);
     color: var(--maintext);
     border: 1px solid var(--secborder);

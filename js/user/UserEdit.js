@@ -31,11 +31,7 @@ const Username = () => {
                 ...formVals.username }),
             m('input[type=button][value=Cancel]', { onclick: () => { v.attrs.data.username = old; edit = false } }),
             m('p',
-                'Username requirements:', m('br'),
-                '- Between 2 and 15 characters long.', m('br'),
-                '- Permitted characters: alphabetic, numbers and dash (-).', m('br'),
-                '- No diacritics or fancy Unicode characters.', m('br'),
-                '- May not look like a VNDB identifier (i.e. an alphabetic character followed only by numbers).', m('br'),
+                username_reqs, m('br'),
                 'Things to keep in mind:', m('br'),
                 '- Your old username(s) will be displayed on your profile for a month after the change.', m('br'),
                 '- You will not be able to log in with your old username(s).', m('br'),
@@ -55,7 +51,7 @@ const Email = () => {
             m('input[type=button][value=Edit]', { onclick: () => { old = v.attrs.data.email; edit = true } }),
         ] : [
             m('label[for=email]', 'New email'),
-            m('input#email.mw[type=text]', {
+            m('input#email.mw[type=email]', {
                 oninput: e => {
                     v.attrs.data.email = e.target.value;
                     e.target.setCustomValidity('');

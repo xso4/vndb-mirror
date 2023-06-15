@@ -43,13 +43,8 @@ our %apis = (
     Content        => [{}], # Rendered HTML content (for markdown/bbcode APIs)
     InsecurePass   => [], # Password is in a dictionary or breach database
     BadEmail       => [], # Unknown email address in password reset form
-    Bot            => [], # User didn't pass bot verification
-    Taken          => [], # Username already taken
-    DoubleEmail    => [], # Account with same email already exists
-    DoubleIP       => [], # Account with same IP already exists
     ImgFormat      => [], # Unrecognized image format
     LabelId        => [{uint => 1}], # Label created
-    Api2Token      => [{},{}], # Generated API2 token
     DupNames       => [ { aoh => { # Duplicate names/aliases (for tags & traits)
         id       => { vndbid => ['i','g'] },
         name     => {},

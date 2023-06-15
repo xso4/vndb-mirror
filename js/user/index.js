@@ -3,10 +3,18 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 "use strict";
 
+const username_reqs = [
+    'Username requirements:', m('br'),
+    '- Between 2 and 15 characters long.', m('br'),
+    '- Permitted characters: alphabetic, numbers and dash (-).', m('br'),
+    '- No spaces, diacritics or fancy Unicode characters.', m('br'),
+    '- May not look like a VNDB identifier (i.e. an alphabetic character followed only by numbers).',
+];
 @include .gen/user.js
 @include user/Subscribe.js
 @include user/UserLogin.js
 @include user/UserEdit.js
+@include user/UserRegister.js
 @include user/UserAdmin.js
 
 // @license-end
