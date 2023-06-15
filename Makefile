@@ -168,6 +168,10 @@ include js/.gen/deps.mk
 js/.gen/mithril.js: | js/.gen
 	curl -s 'https://code.blicky.net/yorhel/mithril-vndb/raw/branch/next/mithril.js' -o $@
 
+# TODO: Custom bundle with only the stuff we use
+js/.gen/d3.js: | js/.gen
+	curl -s 'https://d3js.org/d3.v7.min.js' -o $@
+
 js/.gen/types.js: util/jsgen.pl lib/VNDB/Types.pm lib/VNWeb/Validation.pm | js/.gen
 	util/jsgen.pl types >$@
 

@@ -46,6 +46,7 @@ Specific features to avoid:
 - `user`: Bundle for functionality that is commonly used by users with an
   account.
 - `contrib`: Bundle for edit forms and other database contributions.
+- `graph`: D3.js-based graphs.
 - `search`: *TODO*, the advanced search filter selection thing.
 
 ## Widgets

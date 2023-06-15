@@ -90,4 +90,39 @@ TUWF::get qr{/$RE{vid}/rg}, sub {
     };
 };
 
+
+TUWF::get qr{/$RE{vid}/rg2}, sub {
+    my $v = dbobj tuwf->capture(1);
+
+    # Big list of { id0, id1, relation, official } hashes.
+    # Each relation is included twice, with id0 and id1 reversed.
+    my $rel = tuwf->dbAlli(q{
+        WITH RECURSIVE rel(id0, id1, relation, official) AS (
+            SELECT id, vid, relation, official FROM vn_relations vr WHERE id =}, \$v->{id}, q{
+            UNION
+            SELECT id, vid, vr.relation, vr.official FROM vn_relations vr JOIN rel r ON vr.id = r.id1
+        ) SELECT * FROM rel ORDER BY id0
+    });
+    return tuwf->resNotFound if !@$rel;
+
+    # Get rid of duplicate relations and convert to a more efficient array-based format.
+    # For directional relations, keep the one that is preferred ("pref"), for unidirectional relations, keep the one with the lowest id0.
+    $rel = [
+        map [ @{$_}{qw/ id0 id1 relation official /} ],
+        grep $VN_RELATION{$_->{relation}}{pref} || ($VN_RELATION{$_->{relation}}{reverse} eq $_->{relation} && idcmp($_->{id0}, $_->{id1}) < 0), @$rel
+    ];
+
+    # Fetch the nodes
+    my %nodes = map +($_, {id => $_}), map @{$_}[0,1], @$rel;
+    enrich_merge id => sql("SELECT id, title[1+1] AS title, c_released AS released, array_to_string(c_languages, '/') AS lang FROM", vnt, "v WHERE id IN"), values %nodes;
+
+    framework_ title => "Relations for $v->{title}[1]", dbobj => $v, tab => 'rg',
+    sub {
+        article_ sub {
+            h1_ "Relations for $v->{title}[1]";
+            div_ widget(VNGraph => { main => $v->{id}, nodes => [values %nodes], rels => $rel }), ''
+        }
+    };
+};
+
 1;
