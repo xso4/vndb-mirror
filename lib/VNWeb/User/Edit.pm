@@ -113,7 +113,7 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
     return tuwf->resNotFound if !$u->{id} || !can_edit u => $u;
 
     $u->{editor_usermod}     = auth->permUsermod;
-    $u->{username_throttled} = _namethrottled;
+    $u->{username_throttled} = _namethrottled $u->{id};
     $u->{email}              = _getmail $u->{id};
 
     $u->{traits} = tuwf->dbAlli('SELECT u.tid, t.name, g.name AS "group" FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id =', \$u->{id}, 'ORDER BY g.gorder, t.name');
@@ -169,7 +169,7 @@ js_api UserEdit => $FORM_IN, sub {
     $set{email_confirmed} = 1 if auth->permUsermod;
 
     if($data->{username} ne $u->{username}) {
-        return +{ _err => 'You can only change your username once a day.' } if _namethrottled;
+        return +{ _err => 'You can only change your username once a day.' } if _namethrottled $data->{id};
         return +{ _field => 'username', _err => 'Username already taken.' } if !is_unique_username $data->{username}, $data->{id};
         $set{username} = $data->{username};
         auth->audit($data->{id}, 'username change', "old=$u->{username}; new=$data->{username}");
