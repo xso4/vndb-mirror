@@ -465,9 +465,10 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION tag_vn_calc(uvid vndbid) RETURNS void AS $$
 BEGIN
   -- tags_vn_direct
-  WITH new (tag, vid, rating, spoiler, lie) AS (
+  WITH new (tag, vid, rating, count, spoiler, lie) AS (
     -- Rows that we want
     SELECT tv.tag, tv.vid, avg(tv.vote)::real
+         , CASE WHEN COUNT(tv.vote) > 32000 THEN 32000::smallint ELSE COUNT(tv.vote)::smallint END
          , CASE WHEN COUNT(spoiler) = 0 THEN MIN(t.defaultspoil) WHEN AVG(spoiler) > 1.3 THEN 2 WHEN AVG(spoiler) > 0.4 THEN 1 ELSE 0 END
          , count(lie) filter(where lie) > 0 AND count(lie) filter (where lie) >= count(lie)>>1
       FROM tags_vn tv
@@ -481,15 +482,15 @@ BEGIN
     HAVING avg(tv.vote) > 0
   ), n AS (
     -- Add existing rows from tags_vn_direct as NULLs, so we can delete them during merge
-    SELECT coalesce(a.tag, b.tag) AS tag, coalesce(a.vid, b.vid) AS vid, a.rating, a.spoiler, a.lie
+    SELECT coalesce(a.tag, b.tag) AS tag, coalesce(a.vid, b.vid) AS vid, a.rating, a.count, a.spoiler, a.lie
       FROM new a
       FULL OUTER JOIN (SELECT tag, vid FROM tags_vn_direct WHERE uvid IS NULL OR vid = uvid) b on (a.tag, a.vid) = (b.tag, b.vid)
     -- Now merge
   ) MERGE INTO tags_vn_direct o USING n ON (n.tag, n.vid) = (o.tag, o.vid)
-     WHEN NOT MATCHED THEN INSERT (tag, vid, rating, spoiler, lie) VALUES (n.tag, n.vid, n.rating, n.spoiler, n.lie)
+     WHEN NOT MATCHED THEN INSERT (tag, vid, rating, count, spoiler, lie) VALUES (n.tag, n.vid, n.rating, (n)."count", n.spoiler, n.lie)
      WHEN MATCHED AND n.rating IS NULL THEN DELETE
-     WHEN MATCHED AND (o.rating, o.spoiler, o.lie) IS DISTINCT FROM (n.rating, n.spoiler, n.lie) THEN
-       UPDATE SET rating = n.rating, spoiler = n.spoiler, lie = n.lie;
+     WHEN MATCHED AND (o.rating, o.count, o.spoiler, o.lie) IS DISTINCT FROM (n.rating, n.count, n.spoiler, n.lie) THEN
+       UPDATE SET rating = n.rating, count = n.count, spoiler = n.spoiler, lie = n.lie;
 
   -- tags_vn_inherit, based on the data from tags_vn_direct
   WITH new (tag, vid, rating, spoiler, lie) AS (

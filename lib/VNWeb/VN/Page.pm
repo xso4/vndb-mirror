@@ -39,7 +39,7 @@ sub enrich_vn {
          WHERE NOT c_flagged AND vid =', \$v->{id}
     );
     $v->{tags} = !prefs()->{has_tagprefs} ? tuwf->dbAlli('
-        SELECT t.id, t.name, t.cat, tv.rating, tv.spoiler, tv.lie
+        SELECT t.id, t.name, t.cat, tv.rating, tv.count, tv.spoiler, tv.lie
           FROM tags t
           JOIN tags_vn_direct tv ON t.id = tv.tag
          WHERE tv.vid =', \$v->{id}, '
@@ -62,18 +62,18 @@ sub enrich_vn {
            WHERE x.childs
         ), tag_overrides_grouped (tid, spoil, color) AS (
           SELECT DISTINCT ON(tid) tid, spoil, color FROM tag_overrides ORDER BY tid, lvl
-        ), tag_direct (tid, rating, spoiler, lie, override, color) AS (
-          SELECT t.tag, t.rating, t.spoiler, t.lie, x.spoil, x.color
+        ), tag_direct (tid, rating, count, spoiler, lie, override, color) AS (
+          SELECT t.tag, t.rating, t.count, t.spoiler, t.lie, x.spoil, x.color
             FROM tags_vn_direct t
             LEFT JOIN tag_overrides_grouped x ON x.tid = t.tag
            WHERE t.vid =', \$v->{id}, 'AND x.spoil IS DISTINCT FROM 1+1+1
-        ), tag_indirect (tid, rating, spoiler, lie, override, color) AS (
-          SELECT t.tag, t.rating, t.spoiler, t.lie, x.spoil, x.color
+        ), tag_indirect (tid, rating, count, spoiler, lie, override, color) AS (
+          SELECT t.tag, t.rating, 0::smallint, t.spoiler, t.lie, x.spoil, x.color
             FROM tags_vn_inherit t
             JOIN users_prefs_tags x ON x.tid = t.tag
            WHERE t.vid =', \$v->{id}, 'AND x.id =', \auth->uid, 'AND NOT x.childs AND x.spoil = 0
              AND NOT EXISTS(SELECT 1 FROM tag_direct d WHERE d.tid = t.tag)
-        ) SELECT t.id, t.name, t.cat, d.rating, d.spoiler, d.lie, d.override, d.color
+        ) SELECT t.id, t.name, t.cat, d.rating, d.count, d.spoiler, d.lie, d.override, d.color
             FROM tags t
             JOIN (SELECT * FROM tag_direct UNION ALL SELECT * FROM tag_indirect) d ON d.tid = t.id
            ORDER BY d.rating DESC, t.name'
@@ -969,6 +969,7 @@ sub tags_ {
                 ), ($t->{color}//'') =~ /^#/ ? (style => "color: $t->{color}") : (),
                 $t->{name};
             spoil_ $t->{spoiler};
+            a_ href => "/g/links?v=$v->{id}&t=$t->{id}", class => 'grayedout', " ($t->{count})" if $t->{count};
         } if $lvl;
 
         if($t->{childs}) {

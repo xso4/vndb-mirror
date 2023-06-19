@@ -961,6 +961,7 @@ CREATE TABLE tags_vn_direct (
   rating  real NOT NULL,
   spoiler smallint NOT NULL,
   lie     boolean NOT NULL,
+  count   smallint NOT NULL,
   PRIMARY KEY(tag, vid)
 );
 
