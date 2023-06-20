@@ -6,17 +6,18 @@ const DSTimeZone = {
     },
 };
 
+let username_edit = false;
 const Username = () => {
-    let edit = false, old = '';
+    let old = '';
     return {view: v => m('fieldset.form',
         m('legend', 'Username'),
-        m('fieldset', !edit ? [
+        m('fieldset', !username_edit ? [
             m('label', 'Current'),
             v.attrs.data.username,
             ' ',
             v.attrs.data.username_throttled
             ? m('small', '(changed within the past 24 hours)')
-            : m('input[type=button][value=Edit]', { onclick: () => { old = v.attrs.data.username; edit = true } }),
+            : m('input[type=button][value=Edit]', { onclick: () => { old = v.attrs.data.username; username_edit = true } }),
         ] : [
             m('label[for=username]', 'New username'),
             m('input#username.mw[type=text]', {
@@ -29,7 +30,7 @@ const Username = () => {
                     n.dom.focus();
                 },
                 ...formVals.username }),
-            m('input[type=button][value=Cancel]', { onclick: () => { v.attrs.data.username = old; edit = false } }),
+            m('input[type=button][value=Cancel]', { onclick: () => { v.attrs.data.username = old; username_edit = false } }),
             m('p',
                 username_reqs, m('br'),
                 'Things to keep in mind:', m('br'),
@@ -42,13 +43,13 @@ const Username = () => {
     )};
 };
 
+let email_edit = false, email_old = '';
 const Email = () => {
-    let edit = false, old = '';
     return {view: v => m('fieldset.form',
         m('legend', 'E-Mail'),
-        m('fieldset', !edit ? [
+        m('fieldset', !email_edit ? [
             m('label', 'Current'), v.attrs.data.email, ' ',
-            m('input[type=button][value=Edit]', { onclick: () => { old = v.attrs.data.email; edit = true } }),
+            m('input[type=button][value=Edit]', { onclick: () => { email_old = v.attrs.data.email; email_edit = true } }),
         ] : [
             m('label[for=email]', 'New email'),
             m('input#email.mw[type=email]', {
@@ -61,28 +62,28 @@ const Email = () => {
                     n.dom.focus();
                 },
                 ...formVals.email }),
-            m('input[type=button][value=Cancel]', { onclick: () => { v.attrs.data.email = old; edit = false } }),
+            m('input[type=button][value=Cancel]', { onclick: () => { v.attrs.data.email = email_old; email_edit = false } }),
             m('p', 'A verification mail will be send to your new address.'),
         ]),
     )};
 };
 
+let password_edit = false, password_repeat = '';
 const Password = () => {
-    let edit = false, repeat = '';
     return {view: v => m('fieldset.form',
         m('legend', 'Password'),
         m('label.check',
-            m('input[type=checkbox]', { oninput: e => {
-                edit = e.target.checked;
-                if (!edit) {
+            m('input[type=checkbox]', { checked: password_edit, oninput: e => {
+                password_edit = e.target.checked;
+                if (!password_edit) {
                     v.attrs.data.password = null;
-                    repeat = '';
+                    password_repeat = '';
                 } else
                     v.attrs.data.password = { old: '', new: '' };
             }}),
             ' Change password'
         ),
-        !edit ? [] : [
+        !password_edit ? [] : [
             m('fieldset',
                 m('label[for=opass]', 'Current password'),
                 m('input#opass.mw[type=password]', {
@@ -107,8 +108,8 @@ const Password = () => {
             m('fieldset',
                 m('label[for=rpass]', 'Repeat'),
                 m('input#rpass.mw[type=password]', {
-                    oninput: e => repeat = e.target.value,
-                    onupdate: n => n.dom.setCustomValidity(v.attrs.data.password.new === repeat ? '' : 'Passwords do not match.'),
+                    oninput: e => password_repeat = e.target.value,
+                    onupdate: n => n.dom.setCustomValidity(v.attrs.data.password.new === password_repeat ? '' : 'Passwords do not match.'),
                     ...formVals.password
                 }),
             ),
@@ -535,9 +536,15 @@ widget('UserEdit', initVnode => {
         msg = !res ? '' : res.email
               ? 'A confirmation email has been sent to your new address. Your address will be updated after following the instructions in that mail.'
               : 'Saved!';
-        data.api2 = data.api2.filter(x => !x.delete);
         // XXX: Timeout is ugly, better remove the message on user interaction with the form.
         if (msg) setTimeout(() => { msg = ''; m.redraw() }, 5000);
+        if (res) {
+            username_edit = false;
+            if (email_edit) data.email = email_old;
+            email_edit = false;
+            password_edit = false; password_repeat = ''; data.password = null;
+            data.api2 = data.api2.filter(x => !x.delete);
+        }
     });
 
     const account = () => [
