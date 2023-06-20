@@ -67,7 +67,7 @@ const Login = vnode => {
         m('fieldset.form',
             m('fieldset',
                 m('label[for=username]', 'Username or email'),
-                m('input#username.mw[type=text][tabindex=1]'),
+                m('input#username.mw[type=text][tabindex=1][required]'),
                 m('p', m('a[href=/u/register]', 'No account yet?')),
             ),
             m('fieldset',
