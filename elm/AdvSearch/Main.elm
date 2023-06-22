@@ -14,7 +14,6 @@ import Json.Decode as JD
 import Gen.Api as GApi
 import Gen.AdvSearchSave as GASS
 import Gen.AdvSearchDel  as GASD
-import Gen.AdvSearchLoad as GASL
 import Lib.Html exposing (..)
 import Lib.Api as Api
 import Lib.Ffi as Ffi
@@ -57,6 +56,7 @@ type alias Model =
   , saveAct    : SaveAct
   , saveName   : String
   , saveDel    : Set.Set String
+  , loadQuery  : Maybe String
   }
 
 type Msg
@@ -68,7 +68,6 @@ type Msg
   | SaveSave String
   | SaveSaved SQuery GApi.Response
   | SaveLoad String
-  | SaveLoaded GApi.Response
   | SaveDelSel String
   | SaveDel (Set.Set String)
   | SaveDeleted (Set.Set String) GApi.Response
@@ -156,6 +155,7 @@ init arg =
       , saveAct    = Save
       , saveName   = ""
       , saveDel    = Set.empty
+      , loadQuery  = Nothing
       }
 
 
@@ -185,11 +185,7 @@ update msg model =
                         [] -> if rep then [] else [q]
       in ({ model | saveState = Api.Normal, saveDd = DD.toggle model.saveDd False, saved = f False model.saved }, Cmd.none)
     SaveSaved _ e -> ({ model | saveState = Api.Error e }, Cmd.none)
-    SaveLoad q -> ({ model | saveState = Api.Loading, saveDd = DD.toggle model.saveDd False }, GASL.send { qtype = showQType model.qtype, query = q } SaveLoaded)
-    SaveLoaded (GApi.AdvSearchQuery q) ->
-      let (_, query, dat) = loadQuery model.data q
-      in ({ model | saveState = Api.Normal, query = query, data = dat }, Task.attempt (always Noop) (Ffi.elemCall "click" "advsubmit"))
-    SaveLoaded e -> ({ model | saveState = Api.Error e }, Cmd.none)
+    SaveLoad q -> ({ model | saveState = Api.Loading, saveDd = DD.toggle model.saveDd False, loadQuery = Just q }, Task.attempt (always Noop) (Ffi.elemCall "click" "advsubmit"))
     SaveDelSel s -> ({ model | saveDel = (if Set.member s model.saveDel then Set.remove else Set.insert) s model.saveDel }, Cmd.none)
     SaveDel d -> ({ model | saveState = Api.Loading }, GASD.send { qtype = showQType model.qtype, name = Set.toList d } (SaveDeleted d))
     SaveDeleted d GApi.Success -> ({ model | saveState = Api.Normal, saveDel = Set.empty, saved = List.filter (\e -> not (Set.member e.name d)) model.saved }, Cmd.none)
@@ -201,7 +197,7 @@ view : Model -> Html Msg
 view model = div [ class "xsearch" ] <|
   let encQ = Maybe.withDefault "" <| Maybe.map encQuery (fieldToQuery model.data model.query)
   in
-  [ input [ type_ "hidden", id "f", name "f", value encQ ] []
+  [ input [ type_ "hidden", id "f", name "f", value (Maybe.withDefault encQ model.loadQuery) ] []
   , Html.map Field (fieldView model.data model.query)
   , if not model.buttons then text "" else
     div [ class "optbuttons" ]

@@ -28,13 +28,4 @@ elm_api 'AdvSearchDel' => undef, {
     elm_Success
 };
 
-
-elm_api 'AdvSearchLoad' => undef, {
-    qtype => { enum => \%VNWeb::AdvSearch::FIELDS },
-    query => {},
-}, sub {
-    my($d) = @_;
-    elm_AdvSearchQuery tuwf->compile({ advsearch => $d->{qtype} })->validate($d->{query})->data->elm_search_query;
-};
-
 1;
