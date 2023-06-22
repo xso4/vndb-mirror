@@ -17,6 +17,7 @@ import Gen.AdvSearchDel  as GASD
 import Gen.AdvSearchLoad as GASL
 import Lib.Html exposing (..)
 import Lib.Api as Api
+import Lib.Ffi as Ffi
 import Lib.DropDown as DD
 import Lib.Autocomplete as A
 import AdvSearch.Lib exposing (..)
@@ -187,7 +188,7 @@ update msg model =
     SaveLoad q -> ({ model | saveState = Api.Loading, saveDd = DD.toggle model.saveDd False }, GASL.send { qtype = showQType model.qtype, query = q } SaveLoaded)
     SaveLoaded (GApi.AdvSearchQuery q) ->
       let (_, query, dat) = loadQuery model.data q
-      in ({ model | saveState = Api.Normal, query = query, data = dat }, Cmd.none)
+      in ({ model | saveState = Api.Normal, query = query, data = dat }, Task.attempt (always Noop) (Ffi.elemCall "click" "advsubmit"))
     SaveLoaded e -> ({ model | saveState = Api.Error e }, Cmd.none)
     SaveDelSel s -> ({ model | saveDel = (if Set.member s model.saveDel then Set.remove else Set.insert) s model.saveDel }, Cmd.none)
     SaveDel d -> ({ model | saveState = Api.Loading }, GASD.send { qtype = showQType model.qtype, name = Set.toList d } (SaveDeleted d))
@@ -266,7 +267,7 @@ view model = div [ class "xsearch" ] <|
               ]
         ]
       ]
-    , input [ type_ "submit", class "submit", value "Search" ] []
+    , input [ id "advsubmit", type_ "submit", class "submit", value "Search" ] []
     ]
   , if model.error
     then b [] [ text "Error parsing search query. The URL was probably corrupted in some way. "
