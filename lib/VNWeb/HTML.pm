@@ -37,7 +37,6 @@ our @EXPORT = qw/
     searchbox_
     itemmsg_
     editmsg_
-    advsearch_msg_
 /;
 
 
@@ -1025,21 +1024,6 @@ sub editmsg_ {
             }
         };
     }
-}
-
-
-# Display the number of results and time it took. If the query timed out ($count is undef), an error message is displayed instead.
-sub advsearch_msg_ {
-    my($count, $time) = @_;
-    p_ class => 'center', sprintf '%d result%s in %.3fs', $count, $count == 1 ? '' : 's', $time if defined $count;
-    div_ class => 'warning', sub {
-        h2_ 'ERROR: Query timed out.';
-        p_ q{
-        This usually happens when your combination of filters is too complex for the server to handle.
-        This may also happen when the server is overloaded with other work, but that's much less common.
-        You can adjust your filters or try again later.
-        };
-    } if !defined $count;
 }
 
 1;

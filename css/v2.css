@@ -969,7 +969,7 @@ div#iv_view {
 
 /* The classes are called 'xsearch' instead of 'advsearch' because the latter triggers some ad blockers. :( */
 
-.xsearch { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center }
+.xsearch { max-width: 850px; margin: 0 auto; display: flex; flex-direction: row; justify-content: center }
 .xsearch .advrow > tr > td { padding: 0 2px 0 0 }
 .xsearch .advrow > tr > td:first-child { text-align: right; white-space: nowrap; }
 .xsearch .advrow > tr > td:first-child > div { width: auto }
@@ -997,8 +997,7 @@ div#iv_view {
 .xsearch .advheader .opts > * { margin: 0; white-space: nowrap }
 .xsearch .advheader .opselect > * { display: inline-block; font-size: 18px; padding: 0 5px }
 
-.xsearch .optbuttons { margin-top: 5px }
-.xsearch .optbuttons > .elm_dd_button { margin-top: 5px; margin-right: 10px; width: 120px; display: inline-block; }
+.xsearch svg { width: 15px; height: 15px; margin: 2px 0 -2px 0 }
 
 
 

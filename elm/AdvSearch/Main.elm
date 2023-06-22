@@ -38,7 +38,6 @@ type alias Recv =
   , defaultSpoil : Int
   , saved        : List SQuery
   , error        : Bool
-  , buttons      : Bool
   , query        : GApi.ApiAdvSearchQuery
   }
 
@@ -49,7 +48,6 @@ type alias Model =
   , qtype      : QType
   , data       : Data
   , error      : Bool
-  , buttons    : Bool
   , saved      : List SQuery
   , saveState  : Api.State
   , saveDd     : DD.Config Msg
@@ -148,7 +146,6 @@ init arg =
       , qtype      = qtype
       , data       = ndat
       , error      = arg.error
-      , buttons    = arg.buttons
       , saved      = arg.saved
       , saveState  = Api.Normal
       , saveDd     = DD.init "xsearch_save" SaveToggle
@@ -192,79 +189,77 @@ update msg model =
     SaveDeleted _ e -> ({ model | saveState = Api.Error e }, Cmd.none)
 
 
+saveIcon = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z\"></path><polyline points=\"17 21 17 13 7 13 7 21\"></polyline><polyline points=\"7 3 7 8 15 8\"></polyline></g></svg>"
 
 view : Model -> Html Msg
 view model = div [ class "xsearch" ] <|
   let encQ = Maybe.withDefault "" <| Maybe.map encQuery (fieldToQuery model.data model.query)
   in
   [ input [ type_ "hidden", id "f", name "f", value (Maybe.withDefault encQ model.loadQuery) ] []
-  , Html.map Field (fieldView model.data model.query)
-  , if not model.buttons then text "" else
-    div [ class "optbuttons" ]
-    [ if model.data.uid == Nothing then text "" else div [ class "elm_dd_button" ]
-      [ DD.view model.saveDd model.saveState (text "Save/Load") <| \() ->
-        [ div [ class "advheader", style "min-width" "300px" ]
-          [ div [ class "opts", style "margin-bottom" "5px" ]
-            [ if model.saveAct == Save    then strong [] [ text "Save"   ] else a [ href "#", onClickD (SaveAct Save   ) ] [ text "Save" ]
-            , if model.saveAct == Load    then strong [] [ text "Load"   ] else a [ href "#", onClickD (SaveAct Load   ) ] [ text "Load" ]
-            , if model.saveAct == Delete  then strong [] [ text "Delete" ] else a [ href "#", onClickD (SaveAct Delete ) ] [ text "Delete" ]
-            , if model.saveAct == Default then strong [] [ text "Default"] else a [ href "#", onClickD (SaveAct Default) ] [ text "Default" ]
-            ]
-          , h3 [] [ text <| case model.saveAct of
-                              Save -> "Save current filter"
-                              Load -> "Load filter"
-                              Delete -> "Delete saved filter"
-                              Default -> "Default filter" ]
+  , input [ type_ "submit", id "advsubmit", class "hidden" ] []
+  , if model.data.uid == Nothing then text "" else div [ class "elm_dd_input elm_dd_noarrow elm_dd_rightish short" ]
+    [ DD.view model.saveDd model.saveState (span [ Ffi.innerHtml saveIcon ] []) <| \() ->
+      [ div [ class "advheader", style "min-width" "300px" ]
+        [ div [ class "opts", style "margin-bottom" "5px" ]
+          [ if model.saveAct == Save    then strong [] [ text "Save"   ] else a [ href "#", onClickD (SaveAct Save   ) ] [ text "Save" ]
+          , if model.saveAct == Load    then strong [] [ text "Load"   ] else a [ href "#", onClickD (SaveAct Load   ) ] [ text "Load" ]
+          , if model.saveAct == Delete  then strong [] [ text "Delete" ] else a [ href "#", onClickD (SaveAct Delete ) ] [ text "Delete" ]
+          , if model.saveAct == Default then strong [] [ text "Default"] else a [ href "#", onClickD (SaveAct Default) ] [ text "Default" ]
           ]
-        , case (List.filter (\e -> e.name /= "") model.saved, model.saveAct) of
-            (_, Save) ->
-              if encQ == "" then text "Nothing to save." else
-              form_ "" (SaveSave model.saveName) False
-              [ inputText "xsearch_saveinput" model.saveName SaveName [ required True, maxlength 50, placeholder "Name...", style "width" "290px" ]
-              , if model.saveName /= "" && List.any (\e -> e.name == model.saveName) model.saved
-                then text "You already have a filter by that name, click save to overwrite it."
-                else text ""
-              , submitButton "Save" model.saveState True
-              ]
-            (_, Default) ->
-              div []
-              [ p [ class "center", style "padding" "0px 5px" ] <|
-                case model.qtype of
-                  V -> [ text "You can set a default filter that will be applied automatically to most listings on the site,"
-                       , text " this includes the \"Random visual novel\" button, lists on the homepage, tag pages, etc."
-                       , text " This feature is mainly useful to filter out tags, languages or platforms that you are not interested in seeing."
-                       ]
-                  R -> [ text "You can set a default filter that will be applied automatically to this release browser and the listings on the homepage."
-                       , text " This feature is mainly useful to filter out tags, languages or platforms that you are not interested in seeing."
-                       ]
-                  _ -> [ text "You can set a default filter that will be applied automatically when you open this listing." ]
-              , br [] []
-              , case List.filter (\e -> e.name == "") model.saved of
-                  [d] -> span []
-                         [ inputButton "Load my default filters" (SaveLoad d.query) [style "width" "100%"]
-                         , br [] []
-                         , br [] []
-                         , inputButton "Delete my default filters" (SaveDel (Set.fromList [""])) [style "width" "100%"]
-                         ]
-                  _ -> text "You don't have a default filter set."
-              , if encQ /= "" then inputButton "Save current filters as default" (SaveSave "") [ style "width" "100%" ] else text ""
-              ]
-            ([], _) -> text "You don't have any saved queries."
-            (l, Load) ->
-              div []
-              [ if encQ == "" || List.any (\e -> encQ == e.query) l
-                then text "" else text "Unsaved changes will be lost when loading a saved filter."
-              , ul [] <| List.map (\e -> li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ] [ a [ href "#", onClickD (SaveLoad e.query) ] [ text e.name ] ]) l
-              ]
-            (l, Delete) ->
-              div []
-              [ ul [] <| List.map (\e -> li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ] [ linkRadio (Set.member e.name model.saveDel) (always (SaveDelSel e.name)) [ text e.name ] ]) l
-              , inputButton "Delete selected" (SaveDel model.saveDel) [ disabled (Set.isEmpty model.saveDel) ]
-              ]
+        , h3 [] [ text <| case model.saveAct of
+                            Save -> "Save current filter"
+                            Load -> "Load filter"
+                            Delete -> "Delete saved filter"
+                            Default -> "Default filter" ]
         ]
+      , case (List.filter (\e -> e.name /= "") model.saved, model.saveAct) of
+          (_, Save) ->
+            if encQ == "" then text "Nothing to save." else
+            form_ "" (SaveSave model.saveName) False
+            [ inputText "xsearch_saveinput" model.saveName SaveName [ required True, maxlength 50, placeholder "Name...", style "width" "290px" ]
+            , if model.saveName /= "" && List.any (\e -> e.name == model.saveName) model.saved
+              then text "You already have a filter by that name, click save to overwrite it."
+              else text ""
+            , submitButton "Save" model.saveState True
+            ]
+          (_, Default) ->
+            div []
+            [ p [ class "center", style "padding" "0px 5px" ] <|
+              case model.qtype of
+                V -> [ text "You can set a default filter that will be applied automatically to most listings on the site,"
+                     , text " this includes the \"Random visual novel\" button, lists on the homepage, tag pages, etc."
+                     , text " This feature is mainly useful to filter out tags, languages or platforms that you are not interested in seeing."
+                     ]
+                R -> [ text "You can set a default filter that will be applied automatically to this release browser and the listings on the homepage."
+                     , text " This feature is mainly useful to filter out tags, languages or platforms that you are not interested in seeing."
+                     ]
+                _ -> [ text "You can set a default filter that will be applied automatically when you open this listing." ]
+            , br [] []
+            , case List.filter (\e -> e.name == "") model.saved of
+                [d] -> span []
+                       [ inputButton "Load my default filters" (SaveLoad d.query) [style "width" "100%"]
+                       , br [] []
+                       , br [] []
+                       , inputButton "Delete my default filters" (SaveDel (Set.fromList [""])) [style "width" "100%"]
+                       ]
+                _ -> text "You don't have a default filter set."
+            , if encQ /= "" then inputButton "Save current filters as default" (SaveSave "") [ style "width" "100%" ] else text ""
+            ]
+          ([], _) -> text "You don't have any saved queries."
+          (l, Load) ->
+            div []
+            [ if encQ == "" || List.any (\e -> encQ == e.query) l
+              then text "" else text "Unsaved changes will be lost when loading a saved filter."
+            , ul [] <| List.map (\e -> li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ] [ a [ href "#", onClickD (SaveLoad e.query) ] [ text e.name ] ]) l
+            ]
+          (l, Delete) ->
+            div []
+            [ ul [] <| List.map (\e -> li [ style "overflow" "hidden", style "text-overflow" "ellipsis" ] [ linkRadio (Set.member e.name model.saveDel) (always (SaveDelSel e.name)) [ text e.name ] ]) l
+            , inputButton "Delete selected" (SaveDel model.saveDel) [ disabled (Set.isEmpty model.saveDel) ]
+            ]
       ]
-    , input [ id "advsubmit", type_ "submit", class "submit", value "Search" ] []
     ]
+  , Html.map Field (fieldView model.data model.query)
   , if model.error
     then b [] [ text "Error parsing search query. The URL was probably corrupted in some way. "
                                 , text "Please report a bug if you opened this page from VNDB (as opposed to getting here from an external site)." ]

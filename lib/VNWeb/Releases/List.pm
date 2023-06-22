@@ -82,8 +82,7 @@ TUWF::get qr{/r}, sub {
                 searchbox_ r => $opt->{q}//'';
                 input_ type => 'hidden', name => 'o', value => $opt->{o};
                 input_ type => 'hidden', name => 's', value => $opt->{s};
-                $opt->{f}->elm_;
-                advsearch_msg_ $count, $time;
+                $opt->{f}->elm_($count, $time);
             };
         };
         listing_ $opt, $list, $count if $count;

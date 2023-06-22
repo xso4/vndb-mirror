@@ -127,8 +127,7 @@ sub chars_ {
                 button_ type => 'submit', name => 'l', value => 1,  $opt->{l} ? (class => 'optselected') : (), 'Exclude lies';
             };
             input_ type => 'hidden', name => 'm', value => $opt->{m};
-            $opt->{f}->elm_;
-            advsearch_msg_ $count, $time;
+            $opt->{f}->elm_($count, $time);
         };
         VNWeb::Chars::List::listing_ $opt, $list, $count, 1 if $count;
     };

@@ -14,7 +14,7 @@ use warnings;
 use B;
 use POSIX 'strftime';
 use List::Util 'max';
-use TUWF;
+use TUWF ':html5_';
 use VNWeb::Auth;
 use VNWeb::DB;
 use VNWeb::Validation;
@@ -879,7 +879,7 @@ sub elm_search_query {
 
 
 sub elm_ {
-    my($self, $nobuttons) = @_;
+    my($self, $count, $time) = @_;
 
     # TODO: labels can be lazily loaded to reduce page weight
     state $schema ||= tuwf->compile({ type => 'hash', keys => {
@@ -888,7 +888,6 @@ sub elm_ {
         defaultSpoil => { uint => 1 },
         saved        => { aoh => { name => {}, query => {} } },
         error        => { anybool => 1 },
-        buttons      => { anybool => 1 },
         query        => $VNWeb::Elm::apis{AdvSearchQuery}[0],
     }});
     VNWeb::HTML::elm_ 'AdvSearch.Main', $schema, {
@@ -897,9 +896,23 @@ sub elm_ {
         defaultSpoil => auth->pref('spoilers')||0,
         saved        => auth ? tuwf->dbAlli('SELECT name, query FROM saved_queries WHERE uid =', \auth->uid, ' AND qtype =', \$self->{type}, 'ORDER BY name') : [],
         error        => $self->{error}?1:0,
-        buttons      => !$nobuttons,
         query        => $self->elm_search_query(),
     };
+
+    if (@_ > 1) {
+        p_ class => 'center', sub {
+            input_ type => 'submit', value => 'Search';
+            txt_ sprintf ' %d result%s in %.3fs', $count, $count == 1 ? '' : 's', $time if defined $count;
+        };
+        div_ class => 'warning', sub {
+            h2_ 'ERROR: Query timed out.';
+            p_ q{
+            This usually happens when your combination of filters is too complex for the server to handle.
+            This may also happen when the server is overloaded with other work, but that's much less common.
+            You can adjust your filters or try again later.
+            };
+        } if !defined $count;
+    }
 }
 
 

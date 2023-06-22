@@ -139,8 +139,7 @@ sub vns_ {
             };
             input_ type => 'hidden', name => 'm', value => $opt->{m};
             input_ type => 'hidden', name => 'l', value => $opt->{l};
-            $opt->{f}->elm_;
-            advsearch_msg_ $count, $time;
+            $opt->{f}->elm_($count, $time);
         };
         VNWeb::VN::List::listing_ $opt, $list, $count, 1 if $count;
     };
