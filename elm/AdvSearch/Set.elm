@@ -219,7 +219,7 @@ devStatusView model =
   ( case Set.toList model.sel of
       []  -> small [] [ text "Status" ]
       [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" (lookup v GT.devStatus) ]
-      l   -> span [] [ lblPrefix model, text <| "Length (" ++ String.fromInt (List.length l) ++ ")" ]
+      l   -> span [] [ lblPrefix model, text <| "Dev Status (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
     [ div [ class "advheader" ]
       [ h3 [] [ text "Development status" ]
