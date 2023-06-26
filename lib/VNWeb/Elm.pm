@@ -427,7 +427,7 @@ sub write_types {
     my $data = '';
 
     $data .= def adminEMail => String => string config->{admin_email};
-    $data .= def languages  => 'List (String, String)' => list map tuple(string $_, string $LANGUAGE{$_}{txt}), sort { $LANGUAGE{$a} cmp $LANGUAGE{$b} } keys %LANGUAGE;
+    $data .= def languages  => 'List (String, String)' => list map tuple(string $_, string $LANGUAGE{$_}{txt}), sort { $LANGUAGE{$a}{txt} cmp $LANGUAGE{$b}{txt} } keys %LANGUAGE;
     $data .= def platforms  => 'List (String, String)' => list map tuple(string $_, string $PLATFORM{$_}), keys %PLATFORM;
     $data .= def releaseTypes => 'List (String, String)' => list map tuple(string $_, string $RELEASE_TYPE{$_}), keys %RELEASE_TYPE;
     $data .= def media      => 'List (String, String, Bool)' => list map tuple(string $_, string $MEDIUM{$_}{txt}, $MEDIUM{$_}{qty}?'True':'False'), keys %MEDIUM;
