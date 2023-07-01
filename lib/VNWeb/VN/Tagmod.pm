@@ -81,16 +81,22 @@ TUWF::get qr{/$RE{vid}/tagmod}, sub {
     return tuwf->resDenied if !can_tag;
 
     my $tags = tuwf->dbAlli('
-        SELECT t.id, t.name, t.cat, count(*) as count, t.hidden, t.locked, t.applicable
-             , coalesce(avg(CASE WHEN tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) THEN NULL ELSE tv.vote END), 0) as rating
-             , coalesce(avg(CASE WHEN tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) THEN NULL ELSE tv.spoiler END), t.defaultspoil) as spoiler
-             , count(lie) filter(where not tv.ignore and lie) > 0 and count(lie) filter (where not tv.ignore and lie) >= count(lie) filter (where not tv.ignore)>>1 as islie
-             , bool_or(tv.ignore) as overruled
-          FROM tags t
-          JOIN tags_vn tv ON tv.tag = t.id
-          LEFT JOIN users u ON u.id = tv.uid
-         WHERE tv.vid =', \$v->{id}, '
-         GROUP BY t.id, t.name, t.cat
+        SELECT t.id, t.name, t.cat, t.hidden, t.locked, t.applicable
+             , tv.count, tv.overruled
+             , coalesce(td.rating, 0) AS rating, coalesce(td.spoiler, t.defaultspoil) AS spoiler, coalesce(td.islie, false) AS islie
+          FROM (SELECT tag, count(*) AS count, bool_or(ignore) as overruled FROM tags_vn WHERE vid =', \$v->{id}, ' GROUP BY tag) tv
+          JOIN tags t ON t.id = tv.tag
+          LEFT JOIN (
+            SELECT tv.tag
+                 , COALESCE(AVG(tv.vote) filter (where tv.vote > 0), 1+1+1) * SUM(sign(tv.vote)) / COUNT(tv.vote) AS rating
+                 , AVG(tv.spoiler) AS spoiler
+                 , count(lie) filter(where lie) > 0 AND count(lie) filter (where lie) >= count(lie)>>1 AS islie
+              FROM tags_vn tv
+              JOIN tags t ON t.id = tv.tag
+              LEFT JOIN users u ON u.id = tv.uid
+             WHERE NOT tv.ignore AND (u.id IS NULL OR u.perm_tag) AND tv.vid =', \$v->{id}, '
+             GROUP BY tv.tag
+          ) td ON td.tag = tv.tag
          ORDER BY t.name'
     );
     enrich_merge id => sub { sql 'SELECT tag AS id, vote, spoiler AS spoil, lie, ignore, notes FROM tags_vn WHERE', { uid => auth->uid, vid => $v->{id} } }, $tags;

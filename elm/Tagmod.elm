@@ -132,7 +132,7 @@ viewTag t sel vid mod =
   let
     -- Similar to VNWeb::Tags::Lib::tagscore_
     tagscore s =
-      div [ class "tagscore", classList [("negative", s < 0)] ]
+      div [ class "tagscore", classList [("negative", s <= 0)] ]
       [ span [] [ text <| Ffi.fmtFloat s 1 ]
       , div [ style "width" <| String.fromFloat (abs (s/3*30)) ++ "px" ] []
       ]

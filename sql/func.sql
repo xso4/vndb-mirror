@@ -467,8 +467,11 @@ BEGIN
   -- tags_vn_direct
   WITH new (tag, vid, rating, count, spoiler, lie) AS (
     -- Rows that we want
-    SELECT tv.tag, tv.vid, avg(tv.vote)::real
-         , CASE WHEN COUNT(tv.vote) > 32000 THEN 32000::smallint ELSE COUNT(tv.vote)::smallint END
+    SELECT tv.tag, tv.vid
+           -- https://vndb.org/t13470.28 -> (z || 3) * ((x-y) / (x+y))
+           -- No exception is made for the x==y case, a score of 0 seems better to me.
+         , (COALESCE(AVG(tv.vote) filter (where tv.vote > 0), 3) * SUM(sign(tv.vote)) / COUNT(tv.vote))::real
+         , LEAST( COUNT(tv.vote) filter (where tv.vote > 0), 32000 )::smallint
          , CASE WHEN COUNT(spoiler) = 0 THEN MIN(t.defaultspoil) WHEN AVG(spoiler) > 1.3 THEN 2 WHEN AVG(spoiler) > 0.4 THEN 1 ELSE 0 END
          , count(lie) filter(where lie) > 0 AND count(lie) filter (where lie) >= count(lie)>>1
       FROM tags_vn tv
@@ -479,7 +482,7 @@ BEGIN
        AND vid NOT IN(SELECT id FROM vn WHERE hidden)
        AND (uvid IS NULL OR vid = uvid)
      GROUP BY tv.tag, tv.vid
-    HAVING avg(tv.vote) > 0
+    HAVING SUM(sign(tv.vote)) > 0
   ), n AS (
     -- Add existing rows from tags_vn_direct as NULLs, so we can delete them during merge
     SELECT coalesce(a.tag, b.tag) AS tag, coalesce(a.vid, b.vid) AS vid, a.rating, a.count, a.spoiler, a.lie
@@ -527,6 +530,7 @@ BEGIN
   RETURN;
 END;
 $$ LANGUAGE plpgsql;
+
 
 
 -- Recalculate traits_chars. Pretty much same thing as tag_vn_calc().
