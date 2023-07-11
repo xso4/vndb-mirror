@@ -795,11 +795,11 @@ sub stats_ {
         table_ class => 'votegraph', sub {
             thead_ sub { tr_ sub { td_ colspan => 2, 'Vote stats' } };
             tfoot_ sub { tr_ sub { td_ colspan => 2, sub {
-                txt_ sprintf '%d vote%s (rank %d)', $num, $num == 1 ? '' : 's', $rank->{c_pop_rank};
+                txt_ sprintf '%d vote%s%s', $num, $num == 1 ? '' : 's', $rank && $rank->{c_pop_rank} ? sprintf ' (rank %d)', $rank->{c_pop_rank} : '';
                 br_;
                 txt_ sprintf '%.02f average (%s%s)', $sum/$num/10,
-                    $rank->{c_rating} && $rank->{c_rating} != $rank->{c_average} ? sprintf '%.02f weighted, ', $rank->{c_rating}/100 : '',
-                    $rank->{c_rat_rank} ? sprintf('rank %d', $rank->{c_rat_rank}) : 'unranked';
+                    $rank && $rank->{c_rating} && $rank->{c_rating} != $rank->{c_average} ? sprintf '%.02f weighted, ', $rank->{c_rating}/100 : '',
+                    $rank && $rank->{c_rat_rank} ? sprintf('rank %d', $rank->{c_rat_rank}) : 'unranked';
             } } };
             tr_ sub {
                 my $num = $_;
