@@ -789,12 +789,18 @@ sub stats_ {
           LIMIT', \($v->{reviews}{total} ? 7 : 8)
     );
 
-    my $rank = $v->{c_votecount} && tuwf->dbRowi('SELECT c_rating, c_popularity, c_pop_rank, c_rat_rank FROM vn v WHERE id =', \$v->{id});
+    my $rank = $v->{c_votecount} && tuwf->dbRowi('SELECT c_average, c_rating, c_pop_rank, c_rat_rank FROM vn v WHERE id =', \$v->{id});
 
     my sub votestats_ {
         table_ class => 'votegraph', sub {
             thead_ sub { tr_ sub { td_ colspan => 2, 'Vote stats' } };
-            tfoot_ sub { tr_ sub { td_ colspan => 2, sprintf '%d vote%s total, average %.2f (%s)', $num, $num == 1 ? '' : 's', $sum/$num/10, fmtrating(floor($sum/$num/10)||1) } };
+            tfoot_ sub { tr_ sub { td_ colspan => 2, sub {
+                txt_ sprintf '%d vote%s (rank %d)', $num, $num == 1 ? '' : 's', $rank->{c_pop_rank};
+                br_;
+                txt_ sprintf '%.02f average (%s%s)', $sum/$num/10,
+                    $rank->{c_rating} && $rank->{c_rating} != $rank->{c_average} ? sprintf '%.02f weighted, ', $rank->{c_rating}/100 : '',
+                    $rank->{c_rat_rank} ? sprintf('rank %d', $rank->{c_rat_rank}) : 'unranked';
+            } } };
             tr_ sub {
                 my $num = $_;
                 my $votes = [grep $num == $_->{idx}, @$stats]->[0]{votes} || 0;
@@ -827,13 +833,7 @@ sub stats_ {
                 td_ fmtdate $_->{date};
             } for @$recent;
         } if $recent && @$recent;
-
         clearfloat_;
-        div_ sub {
-            h3_ 'Ranking';
-            p_ sprintf 'Popularity: ranked #%d with a score of %.2f', $rank->{c_pop_rank}, $rank->{c_popularity}/100 if defined $rank->{c_popularity};
-            p_ sprintf 'Bayesian rating: ranked #%d with a rating of %.2f', $rank->{c_rat_rank}, $rank->{c_rating}/100;
-        } if $v->{c_votecount};
     }
 
     article_ id => 'stats', sub {

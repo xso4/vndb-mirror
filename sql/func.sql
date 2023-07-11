@@ -295,40 +295,37 @@ CREATE OR REPLACE FUNCTION update_vncache(vndbid) RETURNS void AS $$
 $$ LANGUAGE sql;
 
 
--- Update vn.c_popularity, c_rating, c_votecount, c_pop_rank, c_rat_rank and c_average
+-- Update c_rating, c_votecount, c_pop_rank, c_rat_rank and c_average
 CREATE OR REPLACE FUNCTION update_vnvotestats() RETURNS void AS $$
   WITH votes(vid, uid, vote) AS ( -- List of all non-ignored VN votes
     SELECT vid, uid, vote FROM ulist_vns WHERE vote IS NOT NULL AND uid NOT IN(SELECT id FROM users WHERE ign_votes)
-  ), avgcount(avgcount) AS ( -- Average number of votes per VN
-    SELECT COUNT(vote)::real/COUNT(DISTINCT vid)::real FROM votes
   ), avgavg(avgavg) AS ( -- Average vote average
     SELECT AVG(a)::real FROM (SELECT AVG(vote) FROM votes GROUP BY vid) x(a)
+  ), top50(top50) AS ( -- Rating of the lowest VN in the previous top 50
+    SELECT c_rating::real/10 - 0.1 FROM vn WHERE NOT hidden ORDER BY c_rating DESC NULLS LAST LIMIT 1 OFFSET 50
   ), ratings(vid, count, average, rating) AS ( -- Ratings and vote counts
     SELECT vid, COALESCE(COUNT(uid), 0), (AVG(vote)*10)::smallint,
-           COALESCE(
-              ((SELECT avgcount FROM avgcount) * (SELECT avgavg FROM avgavg) + SUM(vote)::real) /
-              ((SELECT avgcount FROM avgcount) + COUNT(uid)::real),
-           0)
+           -- Bayesian average B(a,p,votes) = (p * a + sum(votes)) / (p + count(votes))
+           --   p = (1 - min(1, count(votes)/100)) * 3     i.e. linear interpolation from 3 to 0 for vote counts from 0 to 100.
+           --   a = Average vote average
+           -- No rating is calculated for VNs with less than 5 votes and the rating is capped to 'top50' below 30 votes.
+           CASE WHEN COALESCE(COUNT(uid), 0) < 5 THEN NULL ELSE LEAST(
+             CASE WHEN COUNT(uid) >= 30 THEN 100 ELSE (SELECT top50 FROM top50) END,
+             ( (1 - LEAST(1, COUNT(uid)::real/100))*3  *  (SELECT avgavg FROM avgavg)  +  SUM(vote) ) /
+             ( (1 - LEAST(1, COUNT(uid)::real/100))*3  +  COUNT(uid) )
+           ) END
       FROM votes
      GROUP BY vid
-  ), popularities(vid, win) AS ( -- Popularity scores (before normalization)
-    SELECT vid, SUM(rank)
-      FROM (
-        SELECT uid, vid, ((rank() OVER (PARTITION BY uid ORDER BY vote))::real - 1) ^ 0.36788 FROM votes
-      ) x(uid, vid, rank)
-     GROUP BY vid
-  ), stats(vid, rating, count, average, popularity, pop_rank, rat_rank) AS ( -- Combined stats
-    SELECT v.id, (r.rating*10)::smallint, COALESCE(r.count, 0), r.average
-         , COALESCE((p.win/(SELECT MAX(win) FROM popularities)*10000)::smallint, 0)
-         , rank() OVER(ORDER BY hidden, p.win DESC NULLS LAST)
+  ), stats(vid, count, average, rating, rat_rank, pop_rank) AS ( -- Combined stats
+    SELECT v.id, COALESCE(r.count, 0), r.average, (r.rating*10)::smallint
          , CASE WHEN r.rating IS NULL THEN NULL ELSE rank() OVER(ORDER BY hidden, r.rating DESC NULLS LAST) END
+         , rank() OVER(ORDER BY hidden, r.count DESC NULLS LAST)
       FROM vn v
       LEFT JOIN ratings r ON r.vid = v.id
-      LEFT JOIN popularities p ON p.vid = v.id AND p.win > 0
   )
-  UPDATE vn SET c_rating = rating, c_votecount = count, c_popularity = popularity, c_pop_rank = pop_rank, c_rat_rank = rat_rank, c_average = average
+  UPDATE vn SET c_rating = rating, c_votecount = count, c_pop_rank = pop_rank, c_rat_rank = rat_rank, c_average = average
     FROM stats
-   WHERE id = vid AND (c_rating, c_votecount, c_popularity, c_pop_rank, c_rat_rank, c_average) IS DISTINCT FROM (rating, count, popularity, pop_rank, rat_rank, average);
+   WHERE id = vid AND (c_rating, c_votecount, c_pop_rank, c_rat_rank, c_average) IS DISTINCT FROM (rating, count, pop_rank, rat_rank, average);
 $$ LANGUAGE SQL;
 
 

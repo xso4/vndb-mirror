@@ -16,6 +16,7 @@ my $monthly;
 
 
 sub run {
+  push_watcher schedule 57*60, 3600, \&hourly; # Every hour at xx:57
   push_watcher schedule 7*3600+1800, 24*3600, \&daily; # 7:30 UTC, 30 minutes before the daily DB dumps are created
   set_monthly();
 }
@@ -42,6 +43,11 @@ sub log_res {
   my($id, $res, $time) = @_;
   return if pg_expect $res, undef, $id;
   AE::log info => sprintf 'Finished %s in %.3fs (%d rows)', $id, $time, $res->cmdRows;
+}
+
+
+sub hourly {
+  pg_cmd 'SELECT update_vnvotestats()', undef, sub { log_res vnstats => @_ };
 }
 
 
@@ -76,9 +82,6 @@ my %dailies = (
 
   # takes about 11 seconds, OK
   traitcache => 'SELECT traits_chars_calc(NULL)',
-
-  # takes about 5 seconds, OK
-  vnstats => 'SELECT update_vnvotestats()',
 
   lengthcache => 'SELECT update_vn_length_cache(NULL)',
 

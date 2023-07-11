@@ -454,7 +454,7 @@ curl %endpoint%/vn --header 'Content-Type: application/json' --data '{
 }'
 ```
 
-Accepted values for `"sort"`: `id`, `title`, `released`, `popularity`, `rating`, `votecount`, `searchrank`.
+Accepted values for `"sort"`: `id`, `title`, `released`, `rating`, `votecount`, `searchrank`.
 
 ### Filters {#vn-filters}
 
@@ -477,8 +477,6 @@ Name              [F]  Description
                        falls back to the entries' `length` field when there are no votes.
 
 `released`        o,n  Release date.
-
-`popularity`      o    Popularity score, integer between 0 and 100.
 
 `rating`          o,i  Bayesian rating, integer between 10 and 100.
 
@@ -623,9 +621,6 @@ description
 
 rating
 :   Number between 10 and 100, null if nobody voted.
-
-popularity
-:   Number between 0 and 100.
 
 votecount
 :   Integer, number of votes.
@@ -1205,9 +1200,8 @@ If the user has visual novel entires on their list that have been deleted from
 the database, these will not be returned through the API even though they do
 show up on the website.
 
-Accepted values for `"sort"`: `id`, `title`, `released`, `popularity`,
-`rating`, `votecount`, `voted`, `vote`, `added`, `lastmod`, `started`,
-`finished`, `searchrank`.
+Accepted values for `"sort"`: `id`, `title`, `released`, `rating`, `votecount`,
+`voted`, `vote`, `added`, `lastmod`, `started`, `finished`, `searchrank`.
 
 Very important example on how to fetch Yorhel's top 10 voted visual novels:
 
@@ -1519,6 +1513,12 @@ bias in its selection due to the presence of id gaps, but you most likely don't
 need perfect uniform random selection anyway.
 
 # Change Log
+
+**2023-07-11**
+
+- Deprecated `popularity` sort options for [POST /ulist](#post-ulist) and [POST
+  /vn](#post-vn), it's now equivalent to sorting on the reverse of `votecount`.
+- Deprecated `popularity` filter and field for [POST /vn](#post-vn).
 
 **2023-04-05**
 

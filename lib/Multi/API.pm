@@ -19,7 +19,7 @@ use VNDB::Func 'imgurl', 'imgsize', 'norm_ip', 'resolution', 'is_insecurepass';
 use VNDB::Types;
 use VNDB::Config;
 use JSON::XS;
-use List::Util 'max';
+use List::Util 'min', 'max';
 use VNDB::ExtLinks 'sql_extlinks';
 
 # Linux-specific, not exported by the Socket module.
@@ -494,9 +494,9 @@ my %GET_VN = (
       },
     },
     stats => {
-      select => 'v.c_popularity, v.c_rating, v.c_votecount as votecount',
+      select => 'v.c_rating, v.c_votecount as votecount',
       proc => sub {
-        $_[0]{popularity} = 1 * sprintf '%.2f', (delete $_[0]{c_popularity} or 0)/100;
+        $_[0]{popularity} = 1 * sprintf '%.2f', min(100, ($_[0]{votecount} or 0)/150);
         $_[0]{rating}     = 1 * sprintf '%.2f', (delete $_[0]{c_rating} or 0)/100;
         $_[0]{votecount}  *= 1;
       },

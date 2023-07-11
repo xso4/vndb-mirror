@@ -445,7 +445,7 @@ fields =
   , f V "Length"             0  FMLength      AS.init                 AS.lengthFromQuery
   , f V "Development status" 0  FMDevStatus   AS.init                 AS.devStatusFromQuery
   , f V "Release date"       0  FMRDate       AD.init                 AD.fromQuery
-  , f V "Popularity"         0  FMPopularity  AR.popularityInit       AR.popularityFromQuery
+  , f V ""                  -1  FMPopularity  AR.popularityInit       AR.popularityFromQuery
   , f V "Rating"             0  FMRating      AR.ratingInit           AR.ratingFromQuery
   , f V "Number of votes"    0  FMVotecount   AR.votecountInit        AR.votecountFromQuery
   , f V "Anime"              0  FMAnime       AA.init                 AA.fromQuery

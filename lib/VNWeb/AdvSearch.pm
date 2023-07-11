@@ -318,7 +318,7 @@ f v =>  4 => 'platform',  { enum => \%PLATFORM }, '=' => sub { sql 'v.c_platform
 f v =>  5 => 'length',    { uint => 1, enum => \%VN_LENGTH },
     '=' => sub { sql 'COALESCE(v.c_length BETWEEN', \$VN_LENGTH{$_}{low}, 'AND', \$VN_LENGTH{$_}{high}, ', v.length =', \$_, ')' };
 f v =>  7 => 'released',  { fuzzyrdate => 1 }, sql => sub { sql 'v.c_released', $_[0], \($_ == 1 ? strftime('%Y%m%d', gmtime) : $_) };
-f v =>  9 => 'popularity',{ uint => 1, range => [ 0,  100] }, sql => sub { sql 'v.c_popularity', $_[0], \($_*100) };
+f v =>  9 => 'popularity',{ uint => 1, range => [ 0,  100] }, sql => sub { sql 'v.c_votecount', $_[0], \($_*150) }; # XXX: Deprecated
 f v => 10 => 'rating',    { uint => 1, range => [10,  100] }, sql => sub { sql 'v.c_rating', $_[0], \($_*10) };
 f v => 11 => 'votecount', { uint => 1, range => [ 0,1<<30] }, sql => sub { sql 'v.c_votecount', $_[0], \$_ };
 f v => 61 => 'has_description', { uint => 1, range => [1,1] }, '=' => sub { 'v.description <> \'\'' };

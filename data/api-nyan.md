@@ -405,14 +405,12 @@ titles | titles | array of objects | no | Full list of titles associated with th
 anime | anime | array of objects | no | (Possibly empty) list of anime related to the VN, each object has the following members:<br>"id", integer, [AniDB](http://anidb.net/) ID<br>"ann\_id", integer, [AnimeNewsNetwork](http://animenewsnetwork.com/) ID<br>"nfo\_id", string, [AnimeNfo](http://animenfo.com/) ID<br>"title\_romaji", string<br>"title\_kanji", string<br>"year", integer, year in which the anime was aired<br>"type", string<br>All members except the "id" can be **null**. Note that this data is courtesy of AniDB, and may not reflect the latest state of their information due to caching.
 relations | relations | array of objects | no | (Possibly empty) list of related visual novels, each object has the following members:<br>"id", integer<br>"relation", string, relation to the VN<br>"title", string, (romaji) title<br>"original", string, original/official title, can be **null**<br>"official", boolean.
 tags | tags | array of arrays | no | (Possibly empty) list of tags linked to this VN. Each tag is represented as an array with three elements:<br> tag id (integer),<br>score (number between 0 and 3),<br>spoiler level (integer, 0=none, 1=minor, 2=major)<br>Only tags with a positive score are included. Note that this list may be relatively large - more than 50 tags for a VN is quite possible.<br>General information for each tag is available in the [tags dump](https://vndb.org/d14#2). Keep in mind that it is possible that a tag has only recently been added and is not available in the dump yet, though this doesn't happen often.
-popularity | stats | number | no | Between 0 (unpopular) and 100 (most popular).
 rating | stats | number | no | Bayesian rating, between 1 and 10.
 votecount | stats | integer | no | Number of votes.
 screens | screens | array of objects | no | (Possibly empty) list of screenshots, each object has the following members:<br>"id", string, image ID<br>"image", string, URL of the full-size screenshot<br>"rid", integer, release ID<br>"nsfw", boolean (depecated)<br>"flagging", object, same format as "image\_flagging" field mentioned above<br>"height", integer, height of the full-size screenshot<br>"width", integer, width of the full-size screenshot<br>"thumbnail", string, URL to the thumbnail<br>"thumbnail\_width", integer<br>"thumbnail\_height", integer
 staff | staff | array of objects | no | (Possibly empty) list of staff related to the VN, each object has the following members:<br>"sid", integer, staff ID<br>"aid", integer, alias ID<br>"name", string<br>"original", string, possibly null<br>"role", string<br>"note", string, possibly null
 
-Sorting is possible on the following fields: id, title, released, popularity,
-rating, votecount.
+Sorting is possible on the following fields: id, title, released, rating, votecount.
 
 'get vn' accepts the following filter expressions:
 
@@ -827,6 +825,11 @@ settype
 This section lists the changes made in each version of the VNDB code. Check out
 the [announcements board](https://vndb.org/t/an) for more information about
 updates.
+
+**2023-07-11**
+
+- Deprecated "popularity" member of "get vn stats"
+- Deprecated "popularity" sort option of "get vn"
 
 **2022-10-04**
 

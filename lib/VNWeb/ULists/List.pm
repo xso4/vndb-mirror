@@ -136,7 +136,6 @@ sub vn_ {
             } if $own && ($v->{vote} || sprintf('%08d', $v->{c_released}||0) < strftime '%Y%m%d', gmtime);
         } if $opt->{s}->vis('vote');
 
-        td_ class => 'tc_pop',   sprintf '%.2f', ($v->{c_popularity}||0)/100 if $opt->{s}->vis('popularity');
         td_ class => 'tc_rating', sub {
             txt_ sprintf '%.2f', ($v->{c_rating}||0)/100;
             small_ sprintf ' (%d)', $v->{c_votecount};
@@ -223,7 +222,7 @@ sub listing_ {
 
     my $lst = tuwf->dbPagei({ page => $opt->{p}, results => $opt->{s}->results },
         'SELECT v.id, v.title, uv.vote, uv.notes, uv.labels, uv.started, uv.finished
-              , v.c_released, v.c_popularity, v.c_average, v.c_rating, v.c_votecount, v.c_released
+              , v.c_released, v.c_average, v.c_rating, v.c_votecount, v.c_released
               , v.image, v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang
               ,', sql_totime('uv.added'), ' as added
               ,', sql_totime('uv.lastmod'), ' as lastmod

@@ -4,6 +4,7 @@ use v5.26;
 use warnings;
 use TUWF;
 use Time::HiRes 'time', 'alarm';
+use List::Util 'min';
 use VNDB::Config;
 use VNDB::Func;
 use VNDB::ExtLinks;
@@ -681,7 +682,7 @@ api_query '/vn',
         length_votes => { select => 'v.c_lengthnum AS length_votes' },
         description => { select => 'v.description', @NSTR },
         rating      => { select => 'v.c_rating AS rating', proc => sub { $_[0] /= 10 if defined $_[0] } },
-        popularity  => { select => 'v.c_popularity AS popularity', proc => sub { $_[0] /= 100 if defined $_[0] } },
+        popularity  => { select => 'v.c_votecount AS popularity', proc => sub { $_[0] = min(100, $_[0]/150) if defined $_[0] } },
         votecount   => { select => 'v.c_votecount AS votecount' },
         screenshots => {
             enrich => sub { sql 'SELECT vs.id AS vid', $_[0], 'FROM vn_screenshots vs', $_[1], 'WHERE vs.id IN', $_[2] },
