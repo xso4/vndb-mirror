@@ -62,8 +62,6 @@ my $FORM = {
     } },
     hidden     => { anybool => 1 },
     locked     => { anybool => 1 },
-
-    authmod    => { _when => 'out', anybool => 1 },
     editsum    => { _when => 'in out', editsum => 1 },
 };
 
@@ -80,7 +78,6 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
     return tuwf->resDenied if !can_edit r => $copy ? {} : $e;
 
     $e->{editsum} = $copy ? "Copied from $e->{id}.$e->{chrev}" : $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
-    $e->{authmod} = auth->permDbmod;
 
     $e->{titles} = [ sort { $a->{lang} cmp $b->{lang} } $e->{titles}->@* ];
     to_extlinks $e;
@@ -96,7 +93,7 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
     framework_ title => $title, dbobj => $e, tab => tuwf->capture('action'),
     sub {
         editmsg_ r => $e, $title, $copy;
-        elm_ ReleaseEdit => $FORM_OUT, $copy ? {%$e, id=>undef} : $e;
+        div_ widget(ReleaseEdit => $FORM_OUT, $copy ? {%$e, id=>undef} : $e), '';
     };
 };
 
@@ -115,7 +112,6 @@ TUWF::get qr{/$RE{vid}/add}, sub {
         vntitles => tuwf->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$v->{id}),
         official => 1,
     };
-    $e->{authmod} = auth->permDbmod;
 
     framework_ title => "Add release to $v->{title}[1]",
     sub {
@@ -137,16 +133,16 @@ TUWF::get qr{/$RE{vid}/add}, sub {
             }
         } if @$delrel;
 
-        elm_ ReleaseEdit => $FORM_OUT, $e;
+        div_ widget(ReleaseEdit => $FORM_OUT, $e), '';
     };
 };
 
 
-elm_api ReleaseEdit => $FORM_OUT, $FORM_IN, sub {
+js_api ReleaseEdit => $FORM_IN, sub {
     my $data = shift;
     my $new = !$data->{id};
     my $e = $new ? { id => 0 } : db_entry $data->{id} or return tuwf->resNotFound;
-    return elm_Unauth if !can_edit r => $e;
+    return tuwf->resDenied if !can_edit r => $e;
 
     if(!auth->permDbmod) {
         $data->{hidden} = $e->{hidden}||0;
@@ -175,13 +171,13 @@ elm_api ReleaseEdit => $FORM_OUT, $FORM_IN, sub {
 
     to_extlinks $e;
 
-    return elm_Unchanged if !$new && !form_changed $FORM_CMP, $data, $e;
+    return 'No changes' if !$new && !form_changed $FORM_CMP, $data, $e;
 
     $data->{$_} = $data->{extlinks}{$_} for $data->{extlinks}->%*;
     delete $data->{extlinks};
 
     my $ch = db_edit r => $e->{id}, $data;
-    elm_Redirect "/$ch->{nitemid}.$ch->{nrev}";
+    +{ _redir => "/$ch->{nitemid}.$ch->{nrev}" };
 };
 
 

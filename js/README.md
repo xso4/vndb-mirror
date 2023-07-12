@@ -45,7 +45,7 @@ Specific features to avoid:
   pages on the site. The goal is to keep this below 20kB minified+gzipped.
 - `user`: Bundle for functionality that is commonly used by users with an
   account.
-- `contrib`: *TODO*, Bundle for edit forms and other database contributions.
+- `contrib`: Bundle for edit forms and other database contributions.
 - `search`: *TODO*, the advanced search filter selection thing.
 
 ## Widgets

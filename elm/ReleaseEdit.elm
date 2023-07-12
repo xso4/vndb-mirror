@@ -25,8 +25,8 @@ import Gen.Api as GApi
 import Gen.ExtLinks as GEL
 
 
-main : Program GRE.Recv Model Msg
-main = Browser.element
+--main : Program GRE.Recv Model Msg
+--main = Browser.element
   { init   = \e -> (init e, Cmd.none)
   , view   = view
   , update = update
