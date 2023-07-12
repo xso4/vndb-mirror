@@ -248,6 +248,64 @@ window.TextPreview = initVnode => {
 };
 
 
+// Release dates are integers with the following format: 0, 1 or yyyymmdd
+// Special values
+//          0 -> unknown
+//          1 -> "today" (only used as filter)
+//   99999999 -> TBA
+//   yyyy9999 -> year known, month & day unknown
+//   yyyymm99 -> year & month known, day unknown
+//
+// This component provides a friendly input for such dates.
+// Attrs:
+// - value
+// - oninput  -> callback accepting the new value
+// - id       -> id of the first select input
+// - today    -> bool, whether "today" should be accepted as an option
+// - unknown  -> bool, whether "unknown" should be accepted as an option
+window.RDate = () => {
+    const expand = v => ({
+        y: Math.floor(v / 10000),
+        m: Math.floor(v / 100) % 100,
+        d: v % 100,
+    });
+    const compact = ({y,m,d}) => y * 10000 + m * 100 + d;
+    const maxDay = ({y,m}) => new Date(y, m, 0).getDate();
+    const normalize = ({y,m,d}) =>
+        y ===    0 ? { y: 0, m: 0, d: d?1:0 } :
+        y === 9999 ? { y: 9999, m: 99, d: 99 } :
+        m ===    0 || m === 99 ? { y, m: 99, d: 99 } :
+        { y,m, d: d === 0 || d === 99 ? 99 : Math.min(d, maxDay({y,m})) };
+    const range = (start,end,f) => new Array(end-start+1).fill(0).map((x,i) => f(start+i));
+    const months = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ];
+    const view = vnode => {
+        const v = expand(vnode.attrs.value);
+        const oninput = ev => vnode.attrs.oninput && vnode.attrs.oninput(Math.floor(ev.target.options[ev.target.selectedIndex].value));
+        const o = (e,l) => {
+            const value = compact(normalize({...v, ...e}));
+            return m('option', { value, selected: value === vnode.attrs.value }, l);
+        };
+        return [
+            m('select', {oninput, id: vnode.attrs.id},
+                vnode.attrs.today ? o({y:1}, 'Today') : null,
+                vnode.attrs.unknown ? o({y:0}, 'Unknown') : null,
+                o({y:9999}, 'TBA'),
+                range(1980, new Date().getFullYear()+5, y => o({y},y)).reverse(),
+            ),
+            v.y > 0 && v.y < 9999 ? m('select', {oninput},
+                o({m:99}, '- month -'),
+                range(1, 12, m => o({m}, m + ' (' + months[m-1] + ')')),
+            ) : null,
+            v.m > 0 && v.m < 99 ? m('select', {oninput},
+                o({d:99}, '- day -'),
+                range(1, maxDay(v), d => o({d},d)),
+            ) : null,
+        ];
+    };
+    return {view};
+};
+
+
 // Edit summary & submit button box for DB entry edit forms.
 // Attrs:
 // - data  -> form data containing editsum, hidden & locked
