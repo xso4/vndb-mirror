@@ -128,7 +128,6 @@ sub TABLEOPTS {
             sort_num => 1,
             vis_id => $ulist ? 12 : 1,
             vis_default => 1,
-            sort_default => $tags || $vns ? undef : 'desc',
         },
         average => {
             name => 'Vote average',
@@ -142,6 +141,7 @@ sub TABLEOPTS {
             sort_id => $ulist ? 13 : 6,
             sort_sql => 'v.c_votecount ?o, v.sorttitle',
             sort_num => 1,
+            sort_default => $tags || $vns ? undef : 'desc',
         },
         id => {
             name => $ulist ? 'VN entry added' : 'Date added',
