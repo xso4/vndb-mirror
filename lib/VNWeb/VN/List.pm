@@ -64,14 +64,6 @@ sub TABLEOPTS {
                 vis_id => 1,
                 compat => 'vote'
             },
-            rating => {
-                name => 'Rating',
-                sort_sql => 'v.c_rating',
-                sort_id => 3,
-                sort_num => 1,
-                vis_id => 2,
-                compat => 'rating'
-            },
             label => {
                 name => 'Labels',
                 sort_sql => sql('ARRAY(SELECT ul.label FROM unnest(uv.labels) l(id) JOIN ulist_labels ul ON ul.id = l.id WHERE ul.uid = uv.uid AND l.id <> ', \7, ')'),
@@ -132,7 +124,7 @@ sub TABLEOPTS {
             name => 'Bayesian rating',
             compat => 'rating',
             sort_id => $ulist ? 11 : 4,
-            sort_sql => 'v.c_rat_rank !o NULLS LAST, v.sorttitle',
+            sort_sql => 'v.c_rat_rank !o NULLS LAST, v.c_votecount ?o, v.sorttitle',
             sort_num => 1,
             vis_id => $ulist ? 12 : 1,
             vis_default => 1,
@@ -208,11 +200,11 @@ sub listing_ {
                 td_ class => 'tc_rel',   sub { rdate_ $_->{c_released} };
                 td_ class => 'tc_length',sub { len_ $_ } if $opt->{s}->vis('length');
                 td_ class => 'tc_rating',sub {
-                    txt_ sprintf '%.2f', ($_->{c_rating}||0)/100;
+                    txt_ $_->{c_rating} ? sprintf '%.2f', $_->{c_rating}/100 : '-';
                     small_ sprintf ' (%d)', $_->{c_votecount};
                 } if $opt->{s}->vis('rating');
                 td_ class => 'tc_average',sub {
-                    txt_ sprintf '%.2f', ($_->{c_average}||0)/100;
+                    txt_ $_->{c_average} ? sprintf '%.2f', $_->{c_average}/100 : '-';
                     small_ sprintf ' (%d)', $_->{c_votecount} if !$opt->{s}->vis('rating');
                 } if $opt->{s}->vis('average');
             } for @$list;
@@ -283,14 +275,14 @@ sub listing_ {
             tr_ sub {
                 td_ 'Rating:';
                 td_ sub {
-                    txt_ sprintf '%.2f', ($_->{c_rating}||0)/100;
+                    txt_ $_->{c_rating} ? sprintf '%.2f', $_->{c_rating}/100 : '-';
                     small_ sprintf ' (%d)', $_->{c_votecount};
                 };
             } if $opt->{s}->vis('rating');
             tr_ sub {
                 td_ 'Average:';
                 td_ sub {
-                    txt_ sprintf '%.2f', ($_->{c_average}||0)/100;
+                    txt_ $_->{c_average} ? sprintf '%.2f', $_->{c_average}/100 : '';
                     small_ sprintf ' (%d)', $_->{c_votecount} if !$opt->{s}->vis('rating');
                 };
             } if $opt->{s}->vis('average');
