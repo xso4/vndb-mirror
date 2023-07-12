@@ -197,11 +197,10 @@ location / {
   gzip_http_version 1.0;
   # If you have the brotli plugin:
   #brotli_static on;
-  rewrite ^/g/icons\.png /g/icons.opt.png;
-  rewrite ^/g/elm\.js    /g/elm.min.js;
-  rewrite ^/g/basic\.js  /g/basic.min.js;
-  rewrite ^/g/user\.js   /g/user.min.js;
-  try_files $uri /path/to/vndb/static/$uri @fcgi;
+  set $min $uri;
+  if ($uri ~ ^/g/([^/]+)\.png) { set $min /g/$1.opt.png; }
+  if ($uri ~ ^/g/([^/]+)\.js)  { set $min /g/$1.min.js; }
+  try_files $min $uri @fcgi;
 }
 ```
 
