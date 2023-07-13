@@ -132,7 +132,7 @@ sub TABLEOPTS {
         average => {
             name => 'Vote average',
             sort_id => $ulist ? 12 : 5,
-            sort_sql => 'v.c_average ?o NULLS LAST, v.sorttitle',
+            sort_sql => 'v.c_average ?o NULLS LAST, v.c_votecount ?o, v.sorttitle',
             sort_num => 1,
             vis_id => $ulist ? 13 : 3,
         },
