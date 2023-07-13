@@ -301,27 +301,28 @@ CREATE OR REPLACE FUNCTION update_vnvotestats() RETURNS void AS $$
     SELECT vid, uid, vote FROM ulist_vns WHERE vote IS NOT NULL AND uid NOT IN(SELECT id FROM users WHERE ign_votes)
   ), avgavg(avgavg) AS ( -- Average vote average
     SELECT AVG(a)::real FROM (SELECT AVG(vote) FROM votes GROUP BY vid) x(a)
-  ), top50(top50) AS ( -- Rating of the lowest VN in the previous top 50
-    SELECT c_rating::real/10 - 0.1 FROM vn WHERE NOT hidden ORDER BY c_rating DESC NULLS LAST LIMIT 1 OFFSET 50
   ), ratings(vid, count, average, rating) AS ( -- Ratings and vote counts
-    SELECT vid, COALESCE(COUNT(uid), 0), (AVG(vote)*10)::smallint,
+    SELECT vid, COUNT(uid), (AVG(vote)*10)::smallint,
            -- Bayesian average B(a,p,votes) = (p * a + sum(votes)) / (p + count(votes))
-           --   p = (1 - min(1, count(votes)/100)) * 3     i.e. linear interpolation from 3 to 0 for vote counts from 0 to 100.
+           --   p = (1 - min(1, count(votes)/100)) * 7     i.e. linear interpolation from 7 to 0 for vote counts from 0 to 100.
            --   a = Average vote average
-           -- No rating is calculated for VNs with less than 5 votes and the rating is capped to 'top50' below 30 votes.
-           CASE WHEN COALESCE(COUNT(uid), 0) < 5 THEN NULL ELSE LEAST(
-             CASE WHEN COUNT(uid) >= 30 THEN 100 ELSE (SELECT top50 FROM top50) END,
-             ( (1 - LEAST(1, COUNT(uid)::real/100))*3  *  (SELECT avgavg FROM avgavg)  +  SUM(vote) ) /
-             ( (1 - LEAST(1, COUNT(uid)::real/100))*3  +  COUNT(uid) )
-           ) END
+           ( (1 - LEAST(1, COUNT(uid)::real/100))*7  *  (SELECT avgavg FROM avgavg)  +  SUM(vote) ) /
+           ( (1 - LEAST(1, COUNT(uid)::real/100))*7  +  COUNT(uid) )
       FROM votes
      GROUP BY vid
+  ), capped(vid, count, average, rating) AS ( -- Ratings, but capped
+     SELECT vid, count, average, CASE
+        WHEN count <   5 THEN NULL
+        WHEN count <  50 THEN LEAST(rating, (SELECT rating FROM ratings WHERE count >=  50 ORDER BY rating DESC LIMIT 1 OFFSET 101))
+        WHEN count < 100 THEN LEAST(rating, (SELECT rating FROM ratings WHERE count >= 100 ORDER BY rating DESC LIMIT 1 OFFSET  51))
+        ELSE rating END
+       FROM ratings
   ), stats(vid, count, average, rating, rat_rank, pop_rank) AS ( -- Combined stats
     SELECT v.id, COALESCE(r.count, 0), r.average, (r.rating*10)::smallint
          , CASE WHEN r.rating IS NULL THEN NULL ELSE rank() OVER(ORDER BY hidden, r.rating DESC NULLS LAST) END
          , rank() OVER(ORDER BY hidden, r.count DESC NULLS LAST)
       FROM vn v
-      LEFT JOIN ratings r ON r.vid = v.id
+      LEFT JOIN capped r ON r.vid = v.id
   )
   UPDATE vn SET c_rating = rating, c_votecount = count, c_pop_rank = pop_rank, c_rat_rank = rat_rank, c_average = average
     FROM stats
