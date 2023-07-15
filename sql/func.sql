@@ -27,15 +27,6 @@ CREATE OR REPLACE FUNCTION update_search_terms(objid vndbid) RETURNS SETOF recor
 DECLARE
   e int; -- because I'm too lazy to write out 'NULL::int' every time.
 BEGIN
-  -- VN, tag & trait search needs to support finding 'hidden' items, but for
-  -- other entry types we can safely exclude those from the search cache.
-  IF (vndbid_type(objid) = 'r' AND EXISTS(SELECT 1 FROM releases  WHERE hidden AND id = objid))
-  OR (vndbid_type(objid) = 'c' AND EXISTS(SELECT 1 FROM chars     WHERE hidden AND id = objid))
-  OR (vndbid_type(objid) = 'p' AND EXISTS(SELECT 1 FROM producers WHERE hidden AND id = objid))
-  OR (vndbid_type(objid) = 's' AND EXISTS(SELECT 1 FROM staff     WHERE hidden AND id = objid))
-  THEN RETURN;
-  END IF;
-
   CASE vndbid_type(objid)
   WHEN 'v' THEN RETURN QUERY
               SELECT e, 3, search_norm_term(title) FROM vn_titles WHERE id = objid
@@ -96,14 +87,31 @@ $$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION update_search(objid vndbid) RETURNS void AS $$
-  WITH uniq(subid, prio, label) AS (
+  WITH excluded(excluded) AS (
+    -- VN, tag & trait search needs to support finding 'hidden' items, but for
+    -- other entry types we can safely exclude those from the search cache.
+    SELECT 1
+     WHERE (vndbid_type(objid) = 'r' AND EXISTS(SELECT 1 FROM releases  WHERE hidden AND id = objid))
+        OR (vndbid_type(objid) = 'c' AND EXISTS(SELECT 1 FROM chars     WHERE hidden AND id = objid))
+        OR (vndbid_type(objid) = 'p' AND EXISTS(SELECT 1 FROM producers WHERE hidden AND id = objid))
+        OR (vndbid_type(objid) = 's' AND EXISTS(SELECT 1 FROM staff     WHERE hidden AND id = objid))
+  ), uniq(subid, prio, label) AS (
     SELECT subid, MAX(prio)::smallint, label
       FROM update_search_terms(objid) x (subid int, prio int, label text)
-     WHERE label IS NOT NULL AND label <> ''
+     WHERE label IS NOT NULL AND label <> '' AND NOT EXISTS(SELECT 1 FROM excluded)
      GROUP BY subid, label
+  ), terms(subid, prio, label) AS (
+    -- It's possible for some entries to have no searchable terms at all, e.g.
+    -- when their titles only consists of characters that are normalized away.
+    -- In that case we still need to have at least one row in the search_cache
+    -- table for the id-based search to work.  (Would be nicer to support
+    -- non-normalized search in those cases, but these cases aren't too common)
+    SELECT * FROM uniq
+    UNION ALL
+    SELECT NULL::int, 1, '' WHERE NOT EXISTS(SELECT 1 FROM excluded) AND NOT EXISTS(SELECT 1 FROM uniq)
   ), n(subid, prio, label) AS (
      SELECT COALESCE(t.subid, o.subid), t.prio, COALESCE(t.label, o.label)
-       FROM uniq t
+       FROM terms t
        FULL OUTER JOIN (SELECT subid, label FROM search_cache WHERE id = objid) o ON o.subid IS NOT DISTINCT FROM t.subid AND o.label = t.label
   ) MERGE INTO search_cache o USING n ON o.id = objid AND (o.subid, o.label) IS NOT DISTINCT FROM (n.subid, n.label)
       WHEN NOT MATCHED THEN INSERT (id, subid, prio, label) VALUES (objid, subid, n.prio, n.label)
