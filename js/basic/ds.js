@@ -33,7 +33,10 @@ const position = () => {
     const inst = activeInstance;
     const opener = inst.opener.getBoundingClientRect(); // BUG: this doesn't work if ev.target is inside a positioned element
     const header = obj.children[0].getBoundingClientRect().height;
-    const left = Math.max(margin, Math.min(window.innerWidth - inst.width - 2*margin, opener.x));
+    const left = Math.max(margin,
+        opener.x + opener.width - inst.width,
+        Math.min(window.innerWidth - inst.width - 2*margin, opener.x),
+    );
     const width = Math.min(window.innerWidth - margin*2, inst.width);
 
     const top = Math.max(margin, Math.min(window.innerHeight - minHeight - margin, opener.y + opener.height));
@@ -314,15 +317,20 @@ DS.Lang = {
     opts: { width: 250 },
     list: (src, str, cb) => cb(vndbTypes.language
         .filter(([id,label]) => str === id.toLowerCase() || label.toLowerCase().includes(str))
-        // Sorting considerations: id match > prefix match > rank > label
-        .sort(([aid,alabel,,arank],[bid,blabel,,brank]) =>
-            aid === bid ? 0 : aid.toLowerCase() === str ? -1 : bid.toLowerCase() === str ? 1
-            : alabel.toLowerCase().startsWith(str) && !blabel.toLowerCase().startsWith(str) ? -1
-            : !alabel.toLowerCase().startsWith(str) && blabel.toLowerCase().startsWith(str) ? 1
-            : brank - arank) // sort() is stable so no need to compare label
+        .anySort(([id,label,,rank]) => [id.toLowerCase() !== str, !label.toLowerCase().startsWith(str), 99-rank])
         .map(([id,label]) => ({id,label}))
     ),
     view: obj => [ LangIcon(obj.id), obj.label ]
+};
+
+DS.Platforms = {
+    opts: { width: 250 },
+    list: (src, str, cb) => cb(vndbTypes.platform
+        .filter(([id,label]) => str === id.toLowerCase() || label.toLowerCase().includes(str))
+        .anySort(([id,label]) => str ? [id.toLowerCase() !== str, !label.toLowerCase().startsWith(str), label] : 0)
+        .map(([id,label]) => ({id,label}))
+    ),
+    view: obj => [ PlatIcon(obj.id), obj.label ]
 };
 
 window.DS = DS;

@@ -29,34 +29,10 @@ console.error = e => { throw Error(e) };
 
 @include .gen/mithril.js
 @include .gen/types.js
-
-// Because I'm lazy.
-window.$ = sel => document.querySelector(sel);
-window.$$ = sel => Array.from(document.querySelectorAll(sel));
-
-// Polyfill
-if (!Object.fromEntries)
-	Object.fromEntries = lst => {
-		let obj = {};
-		for (let [key, value] of lst) obj[key] = value;
-		return obj;
-	};
-
-
-// Load global page-wide variables from <script id="pagevars">...</script> and
-// store them into window.pageVars.
-window.pageVars = (e => e ? JSON.parse(e.innerHTML) : {})($('#pagevars'));
-
-// Widget initialization, see README.md
-window.widget = (name, fun) =>
-    ((pageVars.widget || {})[name] || []).forEach(([id, data]) => {
-        const e = $('#widget'+id);
-        // m.mount() instantly wipes the contents of e, let's make a copy in case the widget needs something from it.
-        const oldContents = Array.from(e.childNodes);
-        m.mount(e, {view: ()=>m(fun, {data, oldContents})})
-    });
+@include basic/polyfills.js
 
 // Library stuff
+@include basic/utils.js
 @include basic/api.js
 @include basic/components.js
 @include basic/ds.js

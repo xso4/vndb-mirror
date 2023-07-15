@@ -24,6 +24,8 @@ sub validations {
 sub types {
     print 'window.vndbTypes = '.$js->encode({
         language => [ map [$_, $LANGUAGE{$_}{txt}, $LANGUAGE{$_}{latin}?\1:\0, $LANGUAGE{$_}{rank}], keys %LANGUAGE ],
+        platform => [ map [$_, $PLATFORM{$_} ], keys %PLATFORM ],
+        medium   => [ map [$_, $MEDIUM{$_}{txt}, $MEDIUM{$_}{qty}?\1:\0 ], keys %MEDIUM ],
         ageRating => [ map [1*$_, $AGE_RATING{$_}{txt}.($AGE_RATING{$_}{ex}?" ($AGE_RATING{$_}{ex})":'')], keys %AGE_RATING ],
     }).";\n";
 }

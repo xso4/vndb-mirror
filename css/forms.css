@@ -21,6 +21,7 @@ optgroup option          { padding-left: 10px }
 button                   { text-align: left }
 button svg               { height: 14px; width: 14px; margin-top: 1px; margin-bottom: -1px }
 button.ds svg            { float: right; margin-top: 3px; margin-left: 5px }
+button span              { white-space: nowrap }
 input.obscured           { color: transparent; text-shadow: 0 0 8px var(--maintext); }
 input[type=number]       { -moz-appearance:textfield }
 input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0 }
@@ -93,16 +94,22 @@ fieldset.form {
         dl { margin: 10px 0; display: grid; grid-template-columns: auto 1fr; grid-gap: 3px 10px }
         dt { font-weight: bold }
     }
+    p.invalid { display: none }
 }
-/* 'invalid' class is set on the parent <form> element after attempted
+
+/* 'invalid-form' class is set on the parent <form> element after attempted
  * submission, so that the element ':invalid' states and styling don't distract
  * when working on an empty form */
-.invalid fieldset.form {
+.invalid-form fieldset.form {
     > fieldset:invalid > label { color: var(--standout) }
     > fieldset:disabled > label { color: var(--grayedout) }
     input:invalid { border-color: var(--standout) }
+    p.invalid { display: block; color: var(--standout) }
 }
-.invalid nav li.invalid a { color: var(--standout) }
+.invalid-form .invalid-tab a { color: var(--standout) }
+
+.formerror { display: none }
+.invalid-form .formerror { display: block; color: var(--standout) }
 
 /* TODO: responsive form layout for mobile */
 

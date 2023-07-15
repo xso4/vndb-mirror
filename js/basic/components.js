@@ -1,5 +1,7 @@
 const langs = Object.fromEntries(vndbTypes.language);
+const plats = Object.fromEntries(vndbTypes.platform);
 window.LangIcon = id => m('abbr', { class: 'icon-lang-'+id, title: langs[id] });
+window.PlatIcon = id => m('abbr', { class: 'icon-plat-'+id, title: plats[id] });
 
 
 // SVG icons from: https://lucide.dev/
@@ -89,23 +91,40 @@ window.MainTabsDD = (initVnode) => {
 // - disabled    - set 'disabled' attribute on the fieldset
 // - api         - Api object, see below, also sets 'disabled' when api.loading()
 //
-// The .invalid class is set on an invalid <form> *after* the user attempts to
-// submit it, to help with styling invalid inputs.
+// The .invalid-form class is set on an invalid <form> *after* the user
+// attempts to submit it, to help with styling invalid inputs. The onsubmit
+// event is not dispatched when the form contains a .invalid element.
 //
 // The api object is monitored for errors. If the error response includes a
 // '_field' member, then a setCustomValidity() and reportValidity() is
 // performed on the element with that ID. It is up to the form code to reset
 // the error in response to an 'oninput' event.
+//
+// XXX: I'm not entirely sure that the HTML5 validity API is actually worth
+// using. It brings with it a fair bit of complexity, it can't be used for all
+// types of form errors and some browsers completely ignore it for some reason.
+let form_id = 0;
 window.Form = () => {
-    let invalid = false, lasterr;
+    let submitted = false, lasterr, focusinvalid;
+    const id = 'jsform_'+(form_id++);
     return { view: vnode => {
         const api = vnode.attrs.api;
-        return m('form', {
-            class: invalid ? 'invalid' : '',
-            onsubmit: ev => { ev.preventDefault(); const x = vnode.attrs.onsubmit; x && x(ev) },
+        return m('form', { id,
+            onsubmit: ev => {
+                ev.preventDefault();
+                submitted = true;
+                if (ev.target.querySelector('.invalid')) return (focusinvalid = true);
+                const x = vnode.attrs.onsubmit;
+                x && x(ev);
+            },
             // Need a custom listener here to make sure we capture events of child nodes; the 'invalid' event doesn't bubble.
-            oncreate: v => v.dom.addEventListener('invalid', () => { invalid = !v.dom.valid; m.redraw() }, true),
+            oncreate: v => v.dom.addEventListener('invalid', () => { if(!submitted) { submitted = true; m.redraw() } }, true),
             onupdate: v => {
+                const inv = v.dom.querySelector('.invalid');
+                v.dom.classList.toggle('invalid-form', submitted && (inv || $('#'+id+':invalid')));
+                if (inv && focusinvalid) inv.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'nearest'});
+                focusinvalid = false;
+
                 if (!api || lasterr === api.error) return;
                 lasterr = api.error;
                 const res = api.xhr && api.xhr.response;
@@ -138,6 +157,7 @@ window.Form = () => {
 // a validation error is reported, this component automatically switches to the
 // first tab containing the error. Tab headers also indicate which tabs contain
 // errors.
+// TODO: Should handle .invalid elements as well.
 //
 // The list of tabs must be static and known at component creation time,
 // dynamically adding/removing tabs is not supported.
@@ -193,7 +213,7 @@ window.FormTabs = initVnode => {
         // during the view function, so this has to be done in an onupdate hook.
         if (tabs.length > 1)
             for (const t of tabs)
-                $('#formtabst_'+t[0]).classList.toggle('invalid', !!$('#formtabs_'+t[0]+':invalid'));
+                $('#formtabst_'+t[0]).classList.toggle('invalid-tab', !!$('#formtabs_'+t[0]+':invalid'));
     });
     return {view,oncreate,onupdate};
 };
@@ -276,7 +296,6 @@ window.RDate = () => {
         y === 9999 ? { y: 9999, m: 99, d: 99 } :
         m ===    0 || m === 99 ? { y, m: 99, d: 99 } :
         { y,m, d: d === 0 || d === 99 ? 99 : Math.min(d, maxDay({y,m})) };
-    const range = (start,end,f) => new Array(end-start+1).fill(0).map((x,i) => f(start+i));
     const months = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ];
     const view = vnode => {
         const v = expand(vnode.attrs.value);
@@ -290,15 +309,15 @@ window.RDate = () => {
                 vnode.attrs.today ? o({y:1}, 'Today') : null,
                 vnode.attrs.unknown ? o({y:0}, 'Unknown') : null,
                 o({y:9999}, 'TBA'),
-                range(1980, new Date().getFullYear()+5, y => o({y},y)).reverse(),
+                range(new Date().getFullYear()+5, 1980, -1).map(y => o({y},y)),
             ),
             v.y > 0 && v.y < 9999 ? m('select', {oninput},
                 o({m:99}, '- month -'),
-                range(1, 12, m => o({m}, m + ' (' + months[m-1] + ')')),
+                range(1, 12).map(m => o({m}, m + ' (' + months[m-1] + ')')),
             ) : null,
             v.m > 0 && v.m < 99 ? m('select', {oninput},
                 o({d:99}, '- day -'),
-                range(1, maxDay(v), d => o({d},d)),
+                range(1, maxDay(v)).map(d => o({d},d)),
             ) : null,
         ];
     };
@@ -342,6 +361,7 @@ window.EditSum = vnode => {
         m('input[type=submit][value=Submit]'),
         api.loading() ? m('span.spinner') : null,
         api.error ? m('b', m('br'), api.error) : null,
+        m('p.formerror', 'The form contains errors'),
     );
     return {view};
 };

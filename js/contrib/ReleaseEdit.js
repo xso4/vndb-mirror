@@ -4,6 +4,7 @@ const Titles = initVnode => {
         onselect: obj => {
             const p = data.vntitles.find(t => t.lang === obj.id);
             data.titles.push({ lang: obj.id, mtl: false, title: p?p.title:'', latin: p?p.latin:'', new: true });
+            if (data.titles.length === 1) data.olang = data.titles[0].lang;
         },
         props: obj => data.titles.find(t => t.lang === obj.id) ? { selectable: false, append: m('small', ' (already listed)') } : {},
     });
@@ -53,11 +54,12 @@ const Titles = initVnode => {
                 onclick: () => data.titles = data.titles.filter(x => x !== t)
             }),
         )),
-        // TODO: Form error if there's no languages (happens only when creating a new release entry)
         m(DSButton, { onclick: ds.open }, 'Add language'),
+        data.titles.length > 0 ? null : m('p.invalid', 'At least one language must be selected.'),
     );
     return {view};
 };
+
 
 const Status = initVnode => {
     const {data} = initVnode.attrs;
@@ -103,6 +105,51 @@ const Status = initVnode => {
     return {view};
 }
 
+
+const Format = initVnode => {
+    const {data} = initVnode.attrs;
+    const plat = new DS(DS.Platforms, {
+        checked: ({id}) => !!data.platforms.find(p => p.platform === id),
+        onselect: ({id},sel) => { if (sel) data.platforms.push({platform:id}); else data.platforms = data.platforms.filter(p => p.platform !== id)},
+        checkall: () => data.platforms = vndbTypes.platform.map(([platform]) => ({platform})),
+        uncheckall: () => data.platforms = [],
+    });
+    const media = Object.fromEntries(vndbTypes.medium.map(([id,label,qty]) => [id,{label,qty}]));
+    const view = () => m('fieldset.form',
+        m('legend', 'Format'),
+        m('fieldset',
+            m('label', 'Platforms'),
+            m(DSButton, { class: 'lw', onclick: plat.open },
+                data.platforms.length === 0 ? 'No platforms selected' : null,
+                data.platforms.map(p => m('span', PlatIcon(p.platform), vndbTypes.platform.find(([x]) => x === p.platform)[1])).intersperse(' '),
+            ),
+        ),
+        m('fieldset',
+            m('label', 'Media'),
+            m('table.stripe',
+                m('tbody', data.media.map(x => m('tr',
+                    m('td',
+                        m(Button.Del, { onclick: () => data.media = data.media.filter(y => x !== y) }),
+                        ' ',
+                        media[x.medium].qty ? m('select.sw', { oninput: ev => x.qty = ev.target.selectedIndex+1 },
+                            range(1, 40).map(i => m('option', { selected: i === x.qty }, i))
+                        ) : null
+                    ),
+                    m('td', media[x.medium].label),
+                ))),
+                m('tfoot', m('tr', m('td[colspan=2]',
+                    m('select.mw', { oninput: ev => ev.target.selectedIndex > 0 && data.media.push({medium: vndbTypes.medium[ev.target.selectedIndex-1][0], qty:1}) },
+                        m('option[selected]', '- Add medium -'),
+                        vndbTypes.medium.map(([,label]) => m('option', label)),
+                    ),
+                ))),
+            ),
+        ),
+    );
+    return {view};
+};
+
+
 widget('ReleaseEdit', initVnode => {
     const data = initVnode.attrs.data;
     const api = new Api('ReleaseEdit');
@@ -111,6 +158,7 @@ widget('ReleaseEdit', initVnode => {
             m('h1', 'General info'),
             m(Titles, {data}),
             m(Status, {data}),
+            m(Format, {data}),
         ),
         m(EditSum, {data,api}),
     );
