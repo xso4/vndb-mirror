@@ -172,6 +172,11 @@ sub listing_ {
 
     paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 't', $opt->{s};
 
+    my sub votesort {
+        txt_ ' (';
+        sortable_ 'votes', $opt, \&url, 0;
+        txt_ ')'
+    }
     article_ class => 'browse vnbrowse', sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
@@ -183,8 +188,14 @@ sub listing_ {
                 td_ class => 'tc_lang',  '';
                 td_ class => 'tc_rel',   sub { txt_ 'Released';   sortable_ 'released',   $opt, \&url };
                 td_ class => 'tc_length',sub { txt_ 'Length';                                         } if $opt->{s}->vis('length');
-                td_ class => 'tc_rating',sub { txt_ 'Rating';     sortable_ 'rating',     $opt, \&url } if $opt->{s}->vis('rating');
-                td_ class => 'tc_average',sub{ txt_ 'Average';    sortable_ 'average',    $opt, \&url } if $opt->{s}->vis('average');
+                td_ class => 'tc_rating', sub {
+                    txt_ 'Rating'; sortable_ 'rating', $opt, \&url;
+                    votesort();
+                } if $opt->{s}->vis('rating');
+                td_ class => $opt->{s}->vis('rating') ? 'tc_average' : 'tc_rating', sub {
+                    txt_ 'Average'; sortable_ 'average', $opt, \&url;
+                    votesort() if !$opt->{s}->vis('rating');
+                } if $opt->{s}->vis('average');
             } };
             tr_ sub {
                 td_ class => 'tc_score', sub { tagscore_ $_->{tagscore} } if $tagscore;

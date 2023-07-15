@@ -883,14 +883,15 @@ sub paginate_ {
 # Options: $column_title, $column_name, $opt, $url
 # Where $url is a function that is given ('p', undef, 's', $column_name, 'o', $order) and returns a URL.
 sub sortable_ {
-    my($name, $opt, $url) = @_;
+    my($name, $opt, $url, $space) = @_;
+    txt_ ' ' if $space || !defined $space;
     if(ref $opt->{s}) {
         my $o = $opt->{s}->sorted($name);
-        $o eq 'a' ? txt_ ' ▴' : a_ href => $url->(p => undef, s => $opt->{s}->sort_param($name, 'a')), ' ▴';
-        $o eq 'd' ? txt_  '▾' : a_ href => $url->(p => undef, s => $opt->{s}->sort_param($name, 'd')),  '▾';
+        $o eq 'a' ? txt_ '▴' : a_ href => $url->(p => undef, s => $opt->{s}->sort_param($name, 'a')), '▴';
+        $o eq 'd' ? txt_ '▾' : a_ href => $url->(p => undef, s => $opt->{s}->sort_param($name, 'd')), '▾';
     } else {
-        $opt->{s} eq $name && $opt->{o} eq 'a' ? txt_ ' ▴' : a_ href => $url->(p => undef, s => $name, o => 'a'), ' ▴';
-        $opt->{s} eq $name && $opt->{o} eq 'd' ? txt_  '▾' : a_ href => $url->(p => undef, s => $name, o => 'd'),  '▾';
+        $opt->{s} eq $name && $opt->{o} eq 'a' ? txt_ '▴' : a_ href => $url->(p => undef, s => $name, o => 'a'), '▴';
+        $opt->{s} eq $name && $opt->{o} eq 'd' ? txt_ '▾' : a_ href => $url->(p => undef, s => $name, o => 'd'), '▾';
     }
 }
 
