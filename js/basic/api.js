@@ -6,7 +6,7 @@
 class Api {
     constructor(endpoint) {
         this.endpoint = endpoint;
-        this.error = null;
+        this.abort();
     }
 
     loading() {
@@ -17,6 +17,8 @@ class Api {
         this.error = null;
         if (this.xhr) this.xhr.abort();
         this.xhr = null;
+        this._saved = false;
+        this._lastdata = null;
     }
 
     _err(cb, msg) {
@@ -34,6 +36,7 @@ class Api {
         if (xhr.response._err) return this._err(cb, xhr.response._err);
         if (xhr.response._redir) { location.href = xhr.response._redir; return }
         this.error = null;
+        this._saved = this._lastdata;
         cb && cb(xhr.response);
         m.redraw();
     }
@@ -50,8 +53,17 @@ class Api {
         xhr.open('POST', '/js/'+this.endpoint+'.json', true);
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.responseType = 'json';
-        xhr.send(JSON.stringify(data));
+        xhr.send(this._lastdata = JSON.stringify(data));
         this.xhr = xhr;
+    }
+
+    // Returns true if the given 'data' has been "saved" by the most recent
+    // successful call().  This is level-triggered, once the 'data' is seen as
+    // being different it will remember that state till the next call().
+    saved(data) {
+        if (this._saved === false) return false;
+        if (this._saved !== JSON.stringify(data)) return (this._saved = false);
+        return true;
     }
 };
 window.Api = Api;

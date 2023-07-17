@@ -536,8 +536,6 @@ widget('UserEdit', initVnode => {
         msg = !res ? '' : res.email
               ? 'A confirmation email has been sent to your new address. Your address will be updated after following the instructions in that mail.'
               : 'Saved!';
-        // XXX: Timeout is ugly, better remove the message on user interaction with the form.
-        if (msg) setTimeout(() => { msg = ''; m.redraw() }, 5000);
         if (res) {
             username_edit = false;
             if (email_edit) data.email = email_old;
@@ -579,7 +577,7 @@ widget('UserEdit', initVnode => {
         m('article.submit',
             m('input[type=submit][value=Submit]'),
             m('span.spinner', { class: api.loading() ? '' : 'invisible' }),
-            msg ? m('p', msg) : api.error ? m('b', m('br'), api.error) : null,
+            api.error ? m('p', api.error) : msg && api.saved(data) ? m('p', msg) : null,
         ),
     );
     return {view};

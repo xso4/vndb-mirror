@@ -1,5 +1,4 @@
 widget('UserAdmin', initVnode => {
-    let msg = '';
     const data = initVnode.attrs.data;
     const api = new Api('UserAdmin');
     const chk = (opt, perm, label) => !data['editor_'+perm] ? null : m('label.check',
@@ -14,7 +13,7 @@ widget('UserAdmin', initVnode => {
         perm_board: true, perm_review: true, perm_edit: true, perm_imgvote: true, perm_lengthvote: true, perm_tag: true,
         perm_boardmod: false, perm_usermod: false, perm_tagmod: false, perm_dbmod: false
     };
-    const view = () => m(Form, {api, onsubmit: () => api.call(data, () => msg = 'Saved' )},
+    const view = () => m(Form, {api, onsubmit: () => api.call(data)},
         m('article',
             m('h1', 'Admin settings for '+data.username),
             m('fieldset.form',
@@ -49,8 +48,8 @@ widget('UserAdmin', initVnode => {
                 m('fieldset',
                     m('input[type=submit][value=Update]'),
                     api.loading() ? m('span.spinner')
-                    : api.error ? m('b', m('br'), api.error)
-                    : msg ? msg : null
+                    : api.error ? m('p', api.error)
+                    : api.saved(data) ? 'Saved!' : null
                 ),
             )
         )

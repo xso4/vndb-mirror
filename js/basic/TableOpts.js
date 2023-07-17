@@ -37,7 +37,6 @@ widget('TableOpts', (vnode) => {
     const conf = vnode.attrs.data;
     const opts = new Opts(conf.value);
     const save = new Api('TableOptsSave');
-    let saved = false;
 
     // This widget is loaded into an <ul> that contains a hidden input element
     // - which we don't need, we create our own - and potentially some view
@@ -67,8 +66,6 @@ widget('TableOpts', (vnode) => {
         title: s.name + ' ' + (desc ? 'descending' : 'ascending'),
     }, s.num ? (desc ? '9→1' : '1→9') : (desc ? 'Z→A' : 'A→Z'));
 
-    // SVG icons from Wordpress Dashicons, GPLv2.
-    // Except for the floppy icon, that's from Fork Awesome, SIL OFL 1.1.
     const view = () => [
         m('li.hidden', m('input[type=hidden][name=s]', { value: opts.encode() })),
         !conf.save ? null : m('li.maintabs-dd.tableopts-save', m(MainTabsDD, {
@@ -76,15 +73,12 @@ widget('TableOpts', (vnode) => {
             a_attrs: { title: 'save display settings' },
             content: () => [
                 m('h4', 'save display settings'),
-                saved ? 'Saved!'
+                save.saved({ save: conf.save, value: opts.n }) ? 'Saved!'
                 : save.loading() ? m('span.spinner')
                 : save.error ? m('b', save.error)
                 : m('input[type=button]', {
                     value: 'Save current settings as default',
-                    onclick: () => save.call(
-                        { save: conf.save, value: opts.n },
-                        () => { saved = true },
-                    )
+                    onclick: () => save.call({ save: conf.save, value: opts.n })
                 }),
                 conf.default == opts.n ? null : m('input[type=button]', {
                     value: 'Load default view',
@@ -115,7 +109,7 @@ widget('TableOpts', (vnode) => {
                 m('h4', 'visible columns'),
                 conf.vis.map(c => m('label', c.name, ' ', m('input[type=checkbox]', {
                     checked: opts.isVis(c.id),
-                    oninput: function() { saved = false; opts.setVis(c.id, this.checked) },
+                    oninput: ev => opts.setVis(c.id, ev.target.checked),
                 }))),
                 m('input[type=submit][value=Update]'),
             ]

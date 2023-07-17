@@ -13,7 +13,7 @@ my $FORM = {
     username       => { username => 1 },
     username_throttled => { _when => 'out', anybool => 1 },
     email          => { email => 1 },
-    password       => { _when => 'in', required => 0, type => 'hash', keys => {
+    password       => { required => 0, type => 'hash', keys => {
         old          => { password => 1 },
         new          => { password => 1 }
     } },
@@ -115,6 +115,7 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
     $u->{editor_usermod}     = auth->permUsermod;
     $u->{username_throttled} = _namethrottled $u->{id};
     $u->{email}              = _getmail $u->{id};
+    $u->{password}           = undef;
 
     $u->{traits} = tuwf->dbAlli('SELECT u.tid, t.name, g.name AS "group" FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id =', \$u->{id}, 'ORDER BY g.gorder, t.name');
     $u->{timezone} ||= 'UTC';
