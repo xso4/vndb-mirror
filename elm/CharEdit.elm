@@ -309,7 +309,7 @@ view model =
       [ formField "name::Name (original)" [ inputText "name" model.name Name (onInvalid (Invalid General) :: GCE.valName) ]
       , if not (model.latin /= Nothing || containsNonLatin model.name) then text "" else
         formField "latin::Name (latin)"
-        [ inputText "latin" (Maybe.withDefault "" model.latin) Latin (onInvalid (Invalid General) :: placeholder "Romanization" :: GCE.valLatin)
+        [ inputText "latin" (Maybe.withDefault "" model.latin) Latin (onInvalid (Invalid General) :: required True :: placeholder "Romanization" :: GCE.valLatin)
         , case model.latin of
             Just s -> if containsNonLatin s
                       then b [] [ br [] [], text "Romanization should only consist of characters in the latin alphabet." ] else text ""

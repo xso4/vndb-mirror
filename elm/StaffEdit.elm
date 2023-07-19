@@ -163,7 +163,7 @@ view model =
       , td [ class "tc_name" ] [ inputText "" e.name (AliasName n) (placeholder "Name (original script)" :: GSE.valAliasName) ]
       , td [ class "tc_latin" ] <|
         if not (e.latin /= Nothing || containsNonLatin e.name) then [] else
-        [ inputText "" (Maybe.withDefault "" e.latin) (AliasLatin n) (placeholder "Name (latin)" :: GSE.valAliasLatin)
+        [ inputText "" (Maybe.withDefault "" e.latin) (AliasLatin n) (placeholder "Name (latin)" :: required True :: GSE.valAliasLatin)
         , case e.latin of
             Just s -> if containsNonLatin s
                       then b [] [ text "Romanization should only consist of characters in the latin alphabet." ] else text ""

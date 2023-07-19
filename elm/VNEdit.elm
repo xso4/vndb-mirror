@@ -398,7 +398,7 @@ view model =
         [ inputText ("title_"++e.lang) e.title (TitleTitle i) (style "width" "500px" :: onInvalid (Invalid General) :: placeholder "Title (in the original script)" :: GVE.valTitlesTitle)
         , if not (e.latin /= Nothing || containsNonLatin e.title) then text "" else span []
           [ br [] []
-          , inputText "" (Maybe.withDefault "" e.latin) (TitleLatin i) (style "width" "500px" :: onInvalid (Invalid General) :: placeholder "Romanization" :: GVE.valTitlesLatin)
+          , inputText "" (Maybe.withDefault "" e.latin) (TitleLatin i) (style "width" "500px" :: required True :: onInvalid (Invalid General) :: placeholder "Romanization" :: GVE.valTitlesLatin)
           , case e.latin of
               Just s -> if containsNonLatin s then b [] [ br [] [], text "Romanization should only consist of characters in the latin alphabet." ] else text ""
               Nothing -> text ""

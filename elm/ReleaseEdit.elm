@@ -382,7 +382,7 @@ viewTitle model i e = tr []
         :: GRE.valTitlesTitle)
     , if not (e.latin /= Nothing || containsNonLatin (Maybe.withDefault "" e.title)) then text "" else span []
       [ br [] []
-      , inputText "" (Maybe.withDefault "" e.latin) (TitleLatin i) (style "width" "500px" :: placeholder "Romanization" :: GRE.valTitlesLatin)
+      , inputText "" (Maybe.withDefault "" e.latin) (TitleLatin i) (style "width" "500px" :: required True :: placeholder "Romanization" :: GRE.valTitlesLatin)
       , case e.latin of
           Just s -> if containsNonLatin s then b [] [ br [] [], text "Romanization should only consist of characters in the latin alphabet." ] else text ""
           Nothing -> text ""
