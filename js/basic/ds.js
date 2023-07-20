@@ -87,12 +87,11 @@ const close = ev => {
 //     Set for multiselection dropdowns.
 //     Called on each displayed object, should return whether this item is
 //     checked or not.
+// - erase()
+//     Set to add an erase button.
 //
 // Actual positioning and size of the box may differ from the given options in
 // order to adjust for different window sizes.
-//
-// TODO:
-// - "Create new entry" option (e.g. for engines and labels)
 class DS {
     constructor(source, opts) {
         this.width = 400;
@@ -191,7 +190,7 @@ class DS {
         this.input = str_;
         if (activeInstance !== this) return;
         const src = this.source;
-        const str = str_.trim().toLowerCase();
+        const str = str_.trim();
         if (src.init && src._initState !== 2) {
             src._initState = 1;
             src.init(src, () => {
@@ -248,10 +247,11 @@ class DS {
                         oninput: ev => this.setInput(ev.target.value),
                         placeholder: this.placeholder,
                     }),
-                    m('span', {class: loading ? 'spinner' : ''}, loading ? null : Icon.Search),
+                    m('span', {class: loading ? 'spinner' : ''}, loading ? null : Icon.Search()),
                 ),
                 this.checkall   ? m('div', m(Button.CheckAll,   { onclick: this.checkall   })) : null,
                 this.uncheckall ? m('div', m(Button.UncheckAll, { onclick: this.uncheckall })) : null,
+                this.erase      ? m('div', m(Button.Erase,      { onclick: () => { this.erase(); close() } })) : null,
             ),
             this.source.api && this.source.api.error
             ? m('b', this.source.api.error)
@@ -309,15 +309,22 @@ DS.Traits = {
 DS.Engines = {
     api: new Api('Engines'),
     init: (src, cb) => src.api.call({}, res => res && cb(src.res = res.results, src.api = null)),
-    list: (src, str, cb) => cb(src.res.filter(e => e.id.toLowerCase().includes(str)).slice(0,30)),
+    list: (src, str, cb) => cb(src.res.filter(e => e.id.toLowerCase().includes(str.toLowerCase())).slice(0,30)),
+    view: obj => [ obj.id, m('small', ' ('+obj.count+')') ],
+};
+
+DS.Resolutions = {
+    api: new Api('Resolutions'),
+    init: (src, cb) => src.api.call({}, res => res && cb(src.res = res.results, src.api = null)),
+    list: (src, str, cb) => cb(src.res.filter(e => e.id.toLowerCase().includes(str.toLowerCase())).slice(0,30)),
     view: obj => [ obj.id, m('small', ' ('+obj.count+')') ],
 };
 
 DS.Lang = {
     opts: { width: 250 },
     list: (src, str, cb) => cb(vndbTypes.language
-        .filter(([id,label]) => str === id.toLowerCase() || label.toLowerCase().includes(str))
-        .anySort(([id,label,,rank]) => [id.toLowerCase() !== str, !label.toLowerCase().startsWith(str), 99-rank])
+        .filter(([id,label]) => str === id.toLowerCase() || label.toLowerCase().includes(str.toLowerCase()))
+        .anySort(([id,label,,rank]) => [id.toLowerCase() !== str.toLowerCase(), !label.toLowerCase().startsWith(str.toLowerCase()), 99-rank])
         .map(([id,label]) => ({id,label}))
     ),
     view: obj => [ LangIcon(obj.id), obj.label ]
@@ -326,11 +333,26 @@ DS.Lang = {
 DS.Platforms = {
     opts: { width: 250 },
     list: (src, str, cb) => cb(vndbTypes.platform
-        .filter(([id,label]) => str === id.toLowerCase() || label.toLowerCase().includes(str))
-        .anySort(([id,label]) => str ? [id.toLowerCase() !== str, !label.toLowerCase().startsWith(str), label] : 0)
+        .filter(([id,label]) => str.toLowerCase() === id.toLowerCase() || label.toLowerCase().includes(str.toLowerCase()))
+        .anySort(([id,label]) => str ? [id.toLowerCase() !== str.toLowerCase(), !label.toLowerCase().startsWith(str.toLowerCase()), label] : 0)
         .map(([id,label]) => ({id,label}))
     ),
     view: obj => [ PlatIcon(obj.id), obj.label ]
 };
+
+
+// Wrap a source to add a "Create new entry" option.
+// Args:
+// - source
+// - match: (str,obj) => bool, should return whether the input string matches an existing object
+// - view: str => html
+// When selected, the 'onselect' callback will be given an object with {id:str, create:true}.
+DS.New = (src, match, view) => ({...src,
+    list: (x, str, cb) => src.list(x, str, lst => {
+        if (str && !lst.find(o => match(str,o)) && view(str)) lst.unshift({id:str, create:true});
+        cb(lst);
+    }),
+    view: obj => obj.create === true ? view(obj.id) : src.view(obj),
+});
 
 window.DS = DS;

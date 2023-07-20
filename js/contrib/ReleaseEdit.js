@@ -115,36 +115,79 @@ const Format = initVnode => {
         uncheckall: () => data.platforms = [],
     });
     const media = Object.fromEntries(vndbTypes.medium.map(([id,label,qty]) => [id,{label,qty}]));
+
+    const engines = new DS(DS.New(DS.Engines,
+        (str, obj) => obj.id === str,
+        str => m('em', 'Add new engine: ' + str),
+    ), {
+        onselect: obj => data.engine = obj.id,
+        erase: () => data.engine = '',
+    });
+
+    const resoParse = str => {
+        const v = str.toLowerCase().replaceAll('*', 'x').replaceAll('×', 'x').replace(/[-\s]+/g, '');
+        if (v === '' || v === 'unknown') return [0,0];
+        if (v === 'nonstandard') return [0,1];
+        const a = /^([0-9]+)x([0-9]+)$/.exec(v);
+        if (!a) return null;
+        const r = [Math.floor(a[1]), Math.floor(a[2])];
+        return r[0] > 0 && r[0] <= 32767 && r[1] > 0 && r[1] <= 32767 ? r : null;
+    };
+    const resoFmt = (x,y) => x ? x+'x'+y : y ? 'Non-standard' : '';
+
+    const resolutions = new DS(DS.New(DS.Resolutions,
+        (str, obj) => { const a = resoParse(obj.id); const b = resoParse(str); return b && a[0] === b[0] && a[1] === b[1] },
+        str => { const r = resoParse(str); return r ? m('em', 'Custom resolution: ' + resoFmt(r[0],r[1])) : null },
+    ), {
+        onselect: obj => { const r = resoParse(obj.id); data.reso_x = r?r[0]:0; data.reso_y = r?r[1]:0; },
+        erase: () => { data.reso_x = 0; data.reso_y = 0; },
+    });
+
     const view = () => m('fieldset.form',
         m('legend', 'Format'),
         m('fieldset',
             m('label', 'Platforms'),
-            m(DSButton, { class: 'lw', onclick: plat.open },
-                data.platforms.length === 0 ? 'No platforms selected' : null,
+            m(DSButton, { class: 'xw', onclick: plat.open },
+                data.platforms.length === 0 ? 'No platforms selected' :
                 data.platforms.map(p => m('span', PlatIcon(p.platform), vndbTypes.platform.find(([x]) => x === p.platform)[1])).intersperse(' '),
             ),
         ),
         m('fieldset',
             m('label', 'Media'),
-            m('table.stripe',
-                m('tbody', data.media.map(x => m('tr',
-                    m('td',
-                        m(Button.Del, { onclick: () => data.media = data.media.filter(y => x !== y) }),
-                        ' ',
-                        media[x.medium].qty ? m('select.sw', { oninput: ev => x.qty = ev.target.selectedIndex+1 },
-                            range(1, 40).map(i => m('option', { selected: i === x.qty }, i))
-                        ) : null
-                    ),
-                    m('td', media[x.medium].label),
-                ))),
-                m('tfoot', m('tr', m('td[colspan=2]',
-                    m('select.mw', { oninput: ev => ev.target.selectedIndex > 0 && data.media.push({medium: vndbTypes.medium[ev.target.selectedIndex-1][0], qty:1}) },
-                        m('option[selected]', '- Add medium -'),
-                        vndbTypes.medium.map(([,label]) => m('option', label)),
-                    ),
-                ))),
+            data.media.map(x => m('div',
+                m(Button.Del, { onclick: () => data.media = data.media.filter(y => x !== y) }), ' ',
+                m('select.sw', { oninput: ev => x.qty = ev.target.selectedIndex+1, class: media[x.medium].qty ? null : 'invisible' },
+                    range(1, 40).map(i => m('option', { selected: i === x.qty }, i))
+                ), ' ',
+                media[x.medium].label, m('br'),
+            )),
+            m('select.mw', { oninput: ev => ev.target.selectedIndex > 0 && data.media.push({medium: vndbTypes.medium[ev.target.selectedIndex-1][0], qty:1}) },
+                m('option[selected]', '- Add medium -'),
+                vndbTypes.medium.map(([,label]) => m('option', label)),
             ),
         ),
+        m('fieldset',
+            m('label', 'Engine'),
+            m(DSButton, { onclick: engines.open, class: 'mw' }, data.engine),
+        ),
+        m('fieldset',
+            m('label', 'Resolution'),
+            m(DSButton, { onclick: resolutions.open, class: 'mw' }, resoFmt(data.reso_x, data.reso_y)),
+        ),
+        m('fieldset',
+            m('label[for=voiced]', 'Voiced'),
+            m('select#voiced.mw', { oninput: ev => data.voiced = ev.target.selectedIndex },
+                vndbTypes.voiced.map((l,i) => m('option', { selected: i === data.voiced }, l))
+            )
+        ),
+        data.has_ero ? m('fieldset',
+            m('label[for=uncensored]', 'Censoring'),
+            m('select#uncensored.mw', { oninput: ev => data.uncensored = [null,false,true][ev.target.selectedIndex] },
+                m('option', { selected: data.uncensored === null }, 'Unknown'),
+                m('option', { selected: data.uncensored === false }, 'Censored graphics'),
+                m('option', { selected: data.uncensored === true }, 'Uncensored graphcs'),
+            ),
+        ) : null,
     );
     return {view};
 };
