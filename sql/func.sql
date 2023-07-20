@@ -479,7 +479,7 @@ BEGIN
          , (COALESCE(AVG(tv.vote) filter (where tv.vote > 0), 3) * SUM(sign(tv.vote)) / COUNT(tv.vote))::real
          , LEAST( COUNT(tv.vote) filter (where tv.vote > 0), 32000 )::smallint
          , CASE WHEN COUNT(spoiler) = 0 THEN MIN(t.defaultspoil) WHEN AVG(spoiler) > 1.3 THEN 2 WHEN AVG(spoiler) > 0.4 THEN 1 ELSE 0 END
-         , count(lie) filter(where lie) > 0 AND count(lie) filter (where lie) >= count(lie)>>1
+         , count(lie) filter(where lie) > 0 AND count(lie) filter (where lie) >= count(lie) filter(where not lie)
       FROM tags_vn tv
 	  JOIN tags t ON t.id = tv.tag
       LEFT JOIN users u ON u.id = tv.uid
