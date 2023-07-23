@@ -111,9 +111,9 @@ our %LINKS = (
                       , fmt2  => config->{denpa_url}
                       , regex => qr{(?:www\.)?denpasoft\.com/products?/([^/&#?:]+).*} },
         l_jlist    => { label => 'J-List'
-                      , fmt   => 'https://www.jlist.com/%s'
-                      , fmt2  => sub { config->{ shift->{l_jlist_jbox} ? 'jbox_url' : 'jlist_url' } }
-                      , regex => qr{(?:www\.)?(?:jlist|jbox)\.com/(?:.+/)?([a-z0-9-]*[0-9][a-z0-9-]*)} },
+                      , fmt   => 'https://www.jlist.com/shop/product/%s'
+                      #, fmt2  => sub { config->{ shift->{l_jlist_jbox} ? 'jbox_url' : 'jlist_url' } }
+                      , regex => qr{(?:www\.)?(?:jlist|jbox)\.com/shop/product/([^/#?]+).*} },
         l_jastusa  => { label => 'JAST USA'
                       , fmt   => 'https://jastusa.com/games/%s/vndb'
                       , fmt2  => sub { config->{jastusa_url} && sprintf config->{jastusa_url}, shift->{l_jast_slug}||'vndb' },
