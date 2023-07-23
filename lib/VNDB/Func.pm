@@ -246,7 +246,7 @@ sub tlang {
     # TODO: The -Latn suffix is redundant for languages that use the Latin script by default, need to check with a list.
     # English is the site's default, so no need to specify that.
     $lang && $lang ne 'en'
-        ? (lang => $lang . ($title =~ /[\x{0370}-\x{03FF}\x{3000}-\x{9fff}\x{ff00}-\x{ff9f}\x{0400}-\x{04ff}\x{1100}-\x{11ff}\x{ac00}-\x{d7af}\x{0600}-\x{06ff}\x{0e00}-\x{0e7f}\x{1400}-\x{167f}]/ ? '' : '-Latn'))
+        ? (lang => $lang . ($title =~ /[\x{0400}-\x{04ff}\x{0600}-\x{06ff}\x{0e00}-\x{0e7f}\x{1100}-\x{11ff}\x{1400}-\x{167f}\x{3040}-\x{3099}\x{30a1}-\x{30fa}\x{3100}-\x{9fff}\x{ac00}-\x{d7af}\x{ff66}-\x{ffdc}]/ ? '' : '-Latn'))
         : ();
 }
 
