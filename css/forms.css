@@ -95,6 +95,7 @@ fieldset.form {
         dt { font-weight: bold }
     }
     p.invalid { display: none }
+    .release-animation td { width: 180px }
 }
 
 /* 'invalid-form' class is set on the parent <form> element after attempted

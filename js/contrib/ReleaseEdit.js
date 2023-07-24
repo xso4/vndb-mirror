@@ -193,6 +193,104 @@ const Format = initVnode => {
 };
 
 
+const Animation = initVnode => {
+    const {data} = initVnode.attrs;
+    const hasAni = v => v !== null && v !== 0 && v !== 1;
+    let some = hasAni(data.ani_story_sp) || hasAni(data.ani_story_cg) || hasAni(data.ani_cutscene)
+            || hasAni(data.ani_ero_sp)   || hasAni(data.ani_ero_cg)
+            || (data.ani_face !== null && data.ani_face !== null)
+            || (data.ani_bg   !== null && data.ani_bg   !== null);
+
+    const flagmask = 4+8+16+32;
+    const freqmask = 256+512;
+    const lbl = (key, bit, name) => m('label.check',
+        { class: data[key] === null || data[key] === bit || (bit > 2 && data[key] > 2) ? null : 'grayedout' },
+        m('input[type=checkbox]', {
+            checked: data[key] === bit || (bit > 2 && (data[key] & bit) > 0),
+            onclick: ev => data[key] = bit <= 2
+                ? (ev.target.checked ? bit : null)
+                : (ev.target.checked ? ((data[key]||0) & ~3) | bit : ((data[key]||0) & flagmask) === bit ? null : ((data[key]||0) & ~bit))
+        }),
+        ' ', name, m('br')
+    );
+    const ani = (key, na) => ([
+        key === 'ani_cutscene' ? null : lbl(key, 0, 'Not animated'),
+        lbl(key,  1, na),
+        lbl(key,  4, 'Hand drawn'),
+        lbl(key,  8, 'Vectorial'),
+        lbl(key, 16, '3D'),
+        lbl(key, 32, 'Live action'),
+        key === 'ani_cutscene' || data[key] === null || data[key] <= 2 ? null : m('select.mw',
+            { oninput: ev => data[key] = (data[key] & ~freqmask) | (ev.target.selectedIndex * 256) },
+            m('option', { selected: (data[key] & freqmask) === 0 }, '- frequency -'),
+            m('option', { selected: (data[key] & freqmask) === 256 }, 'Some scenes'),
+            m('option', { selected: (data[key] & freqmask) === 512 }, 'All scenes'),
+        ),
+    ]);
+
+    const view = () => m('fieldset.form',
+        m('legend', 'Animation'),
+        m('fieldset',
+            m('label', 'Preset'),
+            m('label.check',
+                m('input[type=radio]', { checked: !some && data.ani_face === null, onclick: () => { some = false; Object.assign(data, {
+                    ani_story_sp: null, ani_story_cg: null, ani_cutscene: null,
+                    ani_ero_sp: null, ani_ero_cg: null, ani_face: null, ani_bg: null
+                })}}),
+                ' Unknown'
+            ),
+            ' / ',
+            m('label.check',
+                m('input[type=radio]', { checked: !some && data.ani_face === false, onclick: () => { some = false; Object.assign(data, {
+                    ani_story_sp: 0, ani_story_cg: 0, ani_cutscene: 1,
+                    ani_ero_sp: data.has_ero ? 1 : null, ani_ero_cg: data.has_ero ? 0 : null,
+                    ani_face: false, ani_bg: false
+                })}}),
+                ' No animation'
+            ),
+            ' / ',
+            m('label.check',
+                m('input[type=radio]', { checked: some, onclick: () => some = true }),
+                ' Some animation'
+            ),
+        ),
+        !some ? [] : [
+        m('fieldset',
+            m('label', 'Story scenes'),
+            m('table.release-animation', m('tr',
+                m('td', m('strong', 'Character sprites:'), m('br'), ani('ani_story_sp', 'No sprites')),
+                m('td', m('strong', 'CGs:'), m('br'), ani('ani_story_cg', 'No CGs')),
+                m('td', m('strong', 'Cutscenes:'), m('br'), ani('ani_cutscene', 'No cutscenes')),
+            )),
+        ),
+        data.has_ero ? m('fieldset',
+            m('label', 'Erotic scenes'),
+            m('table.release-animation', m('tr',
+                m('td', m('strong', 'Character sprites:'), m('br'), ani('ani_ero_sp', 'No sprites')),
+                m('td', m('strong', 'CGs:'), m('br'), ani('ani_ero_cg', 'No CGs')),
+            )),
+        ) : null,
+        m('fieldset',
+            m('label', 'Effects'),
+            m('table',
+                m('tr', m('td', 'Character lip movement and/or eye blink:'), m('td',
+                    m('label.check', m('input[type=radio]', { checked: data.ani_face === null,  onclick: () => data.ani_face = null  }), ' Unknown or N/A'), ' / ',
+                    m('label.check', m('input[type=radio]', { checked: data.ani_face === false, onclick: () => data.ani_face = false }), ' No'), ' / ',
+                    m('label.check', m('input[type=radio]', { checked: data.ani_face === true,  onclick: () => data.ani_face = true  }), ' Yes'),
+                )),
+                m('tr', m('td', 'Background effects:'), m('td',
+                    m('label.check', m('input[type=radio]', { checked: data.ani_bg === null,  onclick: () => data.ani_bg = null  }), ' Unknown or N/A'), ' / ',
+                    m('label.check', m('input[type=radio]', { checked: data.ani_bg === false, onclick: () => data.ani_bg = false }), ' No'), ' / ',
+                    m('label.check', m('input[type=radio]', { checked: data.ani_bg === true,  onclick: () => data.ani_bg = true  }), ' Yes'),
+                )),
+            ),
+        ),
+        ]
+    );
+    return {view};
+};
+
+
 widget('ReleaseEdit', initVnode => {
     const data = initVnode.attrs.data;
     const api = new Api('ReleaseEdit');
@@ -202,6 +300,7 @@ widget('ReleaseEdit', initVnode => {
             m(Titles, {data}),
             m(Status, {data}),
             m(Format, {data}),
+            m(Animation, {data}),
         ),
         m(EditSum, {data,api}),
     );
