@@ -73,7 +73,7 @@ fieldset.form {
     .lw { width: 100%; max-width: 300px } /* for slightly longer inputs */
     .mw { width: 100%; max-width: 200px } /* for most inputs */
     .sw { width: 50px }                   /* for shorter inputs, like numbers */
-    td    { padding: 1px 15px 1px 0px }
+    td    { padding: 1px 15px 1px 0px; line-height: 1.8 }
     table { margin-bottom: 5px }
     p + table { margin-top: 5px }
     a.help {
@@ -95,6 +95,7 @@ fieldset.form {
         dt { font-weight: bold }
     }
     p.invalid { display: none }
+    .textpreview { max-width: 600px }
     .release-animation td { width: 180px }
 }
 

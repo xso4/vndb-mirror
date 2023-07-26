@@ -341,6 +341,56 @@ const ExtLinks = initVnode => {
 };
 
 
+const VNs = initVnode => {
+    const {data} = initVnode.attrs;
+    const ds = new DS(DS.VNs, {
+        onselect: obj => data.vn.push({vid: obj.id, title: obj.title, rtype: 'complete' }),
+    });
+    const view = () => m('fieldset',
+        m('label', 'Visual novels'),
+        m('table', data.vn.map(v => m('tr', {key: v.vid},
+            m('td',
+                m(Button.Del, { onclick: () => data.vn = data.vn.filter(x => x !== v) }), ' ',
+                m('select', { oninput: ev => v.rtype = vndbTypes.releaseType[ev.target.selectedIndex][0] },
+                    vndbTypes.releaseType.map(([id,lbl]) => m('option', { selected: id === v.rtype }, lbl))
+                ),
+            ),
+            m('td', m('small', v.vid, ': '), m('a[target=_blank]', { href: '/'+v.vid }, v.title)),
+        ))),
+        m(DSButton, { onclick: ds.open }, 'Add visual novel'),
+    );
+    return {view};
+};
+
+
+const Producers = initVnode => {
+    const {data} = initVnode.attrs;
+    const ds = new DS(DS.Producers, {
+        onselect: obj => data.producers.push({pid: obj.id, name: obj.name, developer: true, publisher: true }),
+    });
+    const view = () => m('fieldset',
+        m('label', 'Producers'),
+        m('table', data.producers.map(p => m('tr', {key: p.pid},
+            m('td',
+                m(Button.Del, { onclick: () => data.producers = data.producers.filter(x => x !== p) }), ' ',
+                m('select', { oninput: ev => {
+                    const i = ev.target.selectedIndex;
+                    p.developer = i === 0 || i === 2;
+                    p.publisher = i === 1 || i === 2;
+                }},
+                    m('option', { selected: p.developer && !p.publisher }, 'Developer'),
+                    m('option', { selected: !p.developer && p.publisher }, 'Publisher'),
+                    m('option', { selected: p.developer && p.publisher }, 'Both'),
+                ),
+            ),
+            m('td', m('small', p.pid, ': '), m('a[target=_blank]', { href: '/'+p.pid }, p.name)),
+        ))),
+        m(DSButton, { onclick: ds.open }, 'Add producer'),
+    );
+    return {view};
+};
+
+
 widget('ReleaseEdit', initVnode => {
     const data = initVnode.attrs.data;
     const api = new Api('ReleaseEdit');
@@ -370,6 +420,19 @@ widget('ReleaseEdit', initVnode => {
                     m('input.xw[type=text]', { ...formVals.weburl, required: false, value: data.website, oninput: ev => data.website = ev.target.value }),
                 ),
                 m(ExtLinks, {data}),
+            ),
+            m('fieldset.form',
+                m('legend', 'Database relations'),
+                m(VNs, {data}),
+                m(Producers, {data}),
+            ),
+            m('fieldset.form',
+                m('label[for=notes]', 'Notes'),
+                m(TextPreview, {
+                    data, field: 'notes',
+                    header: m('b', '(English please!)'),
+                    attrs: { id: 'notes', rows: 5 },
+                }),
             ),
         ),
         m(EditSum, {data,api}),

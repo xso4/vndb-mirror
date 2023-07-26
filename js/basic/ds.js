@@ -306,6 +306,22 @@ DS.Traits = {
     view: tt_view,
 };
 
+DS.VNs = {
+    cache: {'':[]},
+    opts: { placeholder: 'Search visual novels...' },
+    api: new Api('VN'),
+    list: (src, str, cb) => src.api.call({ search: [str] }, res => res && cb(res.results)),
+    view: obj => [ m('small', obj.id, ': '), obj.title ],
+};
+
+DS.Producers = {
+    cache: {'':[]},
+    opts: { placeholder: 'Search producers...' },
+    api: new Api('Producers'),
+    list: (src, str, cb) => src.api.call({ search: [str] }, res => res && cb(res.results)),
+    view: obj => [ m('small', obj.id, ': '), obj.name ],
+};
+
 DS.Engines = {
     api: new Api('Engines'),
     init: (src, cb) => src.api.call({}, res => res && cb(src.res = res.results, src.api = null)),

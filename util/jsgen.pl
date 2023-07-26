@@ -30,6 +30,7 @@ sub types {
         medium   => [ map [$_, $MEDIUM{$_}{txt}, $MEDIUM{$_}{qty}?\1:\0 ], keys %MEDIUM ],
         voiced   => [ map [$VOICED{$_}{txt}], keys %VOICED ],
         ageRating => [ map [1*$_, $AGE_RATING{$_}{txt}.($AGE_RATING{$_}{ex}?" ($AGE_RATING{$_}{ex})":'')], keys %AGE_RATING ],
+        releaseType => [ map [$_, $RELEASE_TYPE{$_}], keys %RELEASE_TYPE ],
     }).";\n";
 }
 
