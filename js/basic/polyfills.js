@@ -14,3 +14,11 @@ if (!Array.prototype.flat)
 
 if (!Array.prototype.flatMap)
     Array.prototype.flatMap = function(f) { return this.map(f).flat(1) };
+
+if (!String.prototype.padStart)
+    String.prototype.padStart = function (len,s=' ') {
+        if (this.length > len) return this;
+        len -= this.length;
+        if (len > s.length) s += s.repeat(len/s.length);
+        return s.slice(0,len) + this;
+    };

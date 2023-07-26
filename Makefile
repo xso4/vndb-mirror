@@ -170,6 +170,9 @@ js/.gen/types.js: util/jsgen.pl lib/VNDB/Types.pm lib/VNWeb/Validation.pm | js/.
 js/.gen/user.js: util/jsgen.pl lib/VNWeb/TimeZone.pm | js/.gen
 	util/jsgen.pl user >$@
 
+js/.gen/extlinks.js: util/jsgen.pl lib/VNDB/ExtLinks.pm | js/.gen
+	util/jsgen.pl extlinks >$@
+
 ${JS_BUNDLE_OUT}: %.js: | static/g
 	cd js && perl -Mautodie -pe 'if(/^\@include (.+)/) { open F, $$1; local$$/=undef; $$_="/* start of $$1 */\n(()=>{\n".<F>."})();\n/* end of $$1 */\n\n" }' ../$< >../$@
 

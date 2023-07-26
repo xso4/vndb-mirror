@@ -6,9 +6,11 @@ BEGIN { ($ROOT = abs_path $0) =~ s{/util/jsgen\.pl$}{}; }
 
 use lib "$ROOT/lib";
 use TUWF;
+use TUWF::Validate::Interop;
 use JSON::XS;
 use VNWeb::Validation ();
 use VNWeb::TimeZone;
+use VNDB::ExtLinks ();
 use VNDB::Skins;
 use VNDB::Types;
 
@@ -39,11 +41,18 @@ sub vskins {
     print 'window.vndbSkins = '.$js->encode([ map [$_, skins->{$_}{name}], sort { skins->{$a}{name} cmp skins->{$b}{name} } keys skins->%*]).";\n";
 }
 
-if ($ARGV[0] eq 'types') {
-    validations;
-    types;
+sub extlinks {
+    print 'window.extLinks = '.$js->encode({release => [ map +{
+        id     => $_->{id},
+        name   => $_->{name},
+        fmt    => $_->{fmt},
+        regex  => TUWF::Validate::Interop::_re_compat($_->{regex}),
+        multi  => $_->{multi}?\1:\0,
+        int    => $_->{int}?\1:\0,
+        patt   => $_->{pattern},
+    }, VNDB::ExtLinks::extlinks_sites('r') ]}).";\n";
 }
-if ($ARGV[0] eq 'user') {
-    zones;
-    vskins;
-}
+
+if ($ARGV[0] eq 'types') { validations; types; }
+if ($ARGV[0] eq 'user') { zones; vskins; }
+if ($ARGV[0] eq 'extlinks') { extlinks; }

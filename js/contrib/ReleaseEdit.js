@@ -291,6 +291,56 @@ const Animation = initVnode => {
 };
 
 
+const ExtLinks = initVnode => {
+    const links = initVnode.attrs.data.extlinks;
+    const extlinks = extLinks.release;
+    const split = (fmt,v) => fmt.split(/(%[0-9]*[sd])/)
+        .map((p,i) => i !== 1 ? p : String(v).padStart(p.match(/%(?:0([0-9]+))?/)[1]||0, '0'));
+    let str = '';
+    let lnk = null;
+    const getval = () => (v => v === null ? null : lnk.int ? v>>0 : ''+v)(lnk && str.match(new RegExp(lnk.regex))[1]);
+    const isdup = () => (v => lnk && (lnk.multi ? links[lnk.id].find(x => x === v) : links[lnk.id] === v))(getval());
+    const view = () => m('fieldset',
+        m('label[for=extlinks]', 'External links', HelpButton('extlinks')),
+        m('table', extlinks.flatMap(l =>
+            (l.multi ? links[l.id] : links[l.id] ? [links[l.id]] : []).map(v =>
+                m('tr', {key: l.id + '-' + v },
+                    m('td', m(Button.Del, {onclick: () => links[l.id] = l.multi ? links[l.id].filter(x => x !== v) : l.int ? 0 : ''})),
+                    m('td', m('a[target=_blank]', { href: split(l.fmt, v).join('') }, l.name)),
+                    m('td', split(l.fmt, v).map((p,i) => m(i === 1 ? 'span' : 'small', p))),
+                )
+            )
+        )),
+        m('form', { onsubmit: ev => {
+            ev.preventDefault();
+            if (lnk && !isdup()) {
+                if (lnk.multi) links[lnk.id].push(getval());
+                else links[lnk.id] = getval();
+                str = '';
+                lnk = '';
+            }
+        } },
+            m('input#extlinks.xw[type=text][placeholder=Add URL...]', { value: str, oninput: ev => {
+                str = ev.target.value;
+                lnk = extlinks.find(l => new RegExp(l.regex).test(str));
+            }}),
+            str.length > 0 && !lnk ? m('p', ('small', '>>> '), m('b', 'Invalid or unrecognized URL.')) :
+            isdup() ? m('p', m('small', '>>> '), m('b', ' URL already listed.')) :
+            lnk ? m('p', m('input[type=submit]', { value: lnk.multi || links[lnk.id] === 0 || links[lnk.id] === '' ? 'Add' : 'Update' }), ' URL recognized as: ', lnk.name) : null,
+        ),
+        Help('extlinks',
+            m('p', 'Links to external websites. The following sites and URL formats are supported:'),
+            m('dl', extlinks.flatMap(e => [
+                m('dt', e.name),
+                m('dd', e.patt.map((p,i) => m(i % 2 ? 'strong' : 'span', p))),
+            ])),
+            m('p', 'Links to sites that are not in the above list can still be added in the notes field below.'),
+        ),
+    );
+    return {view};
+};
+
+
 widget('ReleaseEdit', initVnode => {
     const data = initVnode.attrs.data;
     const api = new Api('ReleaseEdit');
@@ -301,6 +351,26 @@ widget('ReleaseEdit', initVnode => {
             m(Status, {data}),
             m(Format, {data}),
             m(Animation, {data}),
+            m('fieldset.form',
+                m('legend', 'External identifiers & links'),
+                m('fieldset',
+                    m('label[for=gtin]', 'JAN/UPC/EAN'),
+                    m('input.mw[type=text]', {
+                        value: data.gtin && data.gtin !== '0' ? data.gtin : '',
+                        pattern: '[0-9]+',
+                        oninput: ev => data.gtin = ev.target.value === '' ? 0 : Math.floor(ev.target.value.replace(/[,\. -]+/g, ''))
+                    }),
+                ),
+                m('fieldset',
+                    m('label[for=catalog]', 'Catalog number'),
+                    m('input.mw[type=text][maxlength=50]', { value: data.catalog, oninput: ev => data.catalog = ev.target.value }),
+                ),
+                m('fieldset',
+                    m('label[for=website]', 'Website'),
+                    m('input.xw[type=text]', { ...formVals.weburl, required: false, value: data.website, oninput: ev => data.website = ev.target.value }),
+                ),
+                m(ExtLinks, {data}),
+            ),
         ),
         m(EditSum, {data,api}),
     );

@@ -5,6 +5,7 @@
 
 const nonLatin = /[\u0370-\u03ff\u3000-\u9fff\uff00-\uff9f\u0400-\u04ff\u1100-\u11ff\uac00-\ud7af\u0600-\u06ff\u0e00-\u0e7f\u1400-\u167f]/;
 
+@include .gen/extlinks.js
 @include contrib/ReleaseEdit.js
 
 // @license-end
