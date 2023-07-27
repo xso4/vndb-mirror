@@ -117,12 +117,9 @@ const Format = initVnode => {
     const media = Object.fromEntries(vndbTypes.medium.map(([id,label,qty]) => [id,{label,qty}]));
 
     const engines = new DS(DS.New(DS.Engines,
-        (str, obj) => obj.id === str,
-        str => m('em', 'Add new engine: ' + str),
-    ), {
-        onselect: obj => data.engine = obj.id,
-        erase: () => data.engine = '',
-    });
+        id => ({id}),
+        obj => m('em', obj.id ? 'Add new engine: ' + obj.id : 'Empty / unknown'),
+    ), { onselect: obj => data.engine = obj.id });
 
     const resoParse = str => {
         const v = str.toLowerCase().replaceAll('*', 'x').replaceAll('×', 'x').replace(/[-\s]+/g, '');
@@ -136,11 +133,10 @@ const Format = initVnode => {
     const resoFmt = (x,y) => x ? x+'x'+y : y ? 'Non-standard' : '';
 
     const resolutions = new DS(DS.New(DS.Resolutions,
-        (str, obj) => { const a = resoParse(obj.id); const b = resoParse(str); return b && a[0] === b[0] && a[1] === b[1] },
-        str => { const r = resoParse(str); return r ? m('em', 'Custom resolution: ' + resoFmt(r[0],r[1])) : null },
+        str => { const r = resoParse(str); return r ? {id:resoFmt(...r)} : null },
+        obj => m('em', obj.id ? 'Custom resolution: ' + resoFmt(...resoParse(obj.id)) : 'Empty / unknown'),
     ), {
         onselect: obj => { const r = resoParse(obj.id); data.reso_x = r?r[0]:0; data.reso_y = r?r[1]:0; },
-        erase: () => { data.reso_x = 0; data.reso_y = 0; },
     });
 
     const view = () => m('fieldset.form',
@@ -165,6 +161,8 @@ const Format = initVnode => {
                 m('option[selected]', '- Add medium -'),
                 vndbTypes.medium.map(([,label]) => m('option', label)),
             ),
+            data.media.anyDup(({medium,qty}) => [medium, media[medium].qty ? qty : null])
+            ?  m('p.invalid', 'List contains duplicates') : null,
         ),
         m('fieldset',
             m('label', 'Engine'),
@@ -296,10 +294,17 @@ const ExtLinks = initVnode => {
     const extlinks = extLinks.release;
     const split = (fmt,v) => fmt.split(/(%[0-9]*[sd])/)
         .map((p,i) => i !== 1 ? p : String(v).padStart(p.match(/%(?:0([0-9]+))?/)[1]||0, '0'));
-    let str = '';
-    let lnk = null;
-    const getval = () => (v => v === null ? null : lnk.int ? v>>0 : ''+v)(lnk && str.match(new RegExp(lnk.regex))[1]);
-    const isdup = () => (v => lnk && (lnk.multi ? links[lnk.id].find(x => x === v) : links[lnk.id] === v))(getval());
+    let str = ''; // input string
+    let lnk = null; // link object, if matched
+    let val = null; // extracted value, if matched
+    let dup = false; // if link is already present
+    const add = () => {
+        if (lnk.multi) links[lnk.id].push(val);
+        else links[lnk.id] = val;
+        str = '';
+        lnk = val = null;
+        dup = false;
+    };
     const view = () => m('fieldset',
         m('label[for=extlinks]', 'External links', HelpButton('extlinks')),
         m('table', extlinks.flatMap(l =>
@@ -311,22 +316,20 @@ const ExtLinks = initVnode => {
                 )
             )
         )),
-        m('form', { onsubmit: ev => {
-            ev.preventDefault();
-            if (lnk && !isdup()) {
-                if (lnk.multi) links[lnk.id].push(getval());
-                else links[lnk.id] = getval();
-                str = '';
-                lnk = '';
-            }
-        } },
+        m('form', { onsubmit: ev => { ev.preventDefault(); if (lnk && !dup) add(); } },
             m('input#extlinks.xw[type=text][placeholder=Add URL...]', { value: str, oninput: ev => {
                 str = ev.target.value;
                 lnk = extlinks.find(l => new RegExp(l.regex).test(str));
+                val = lnk && (v => lnk.int ? v>>0 : ''+v)(str.match(new RegExp(lnk.regex))[1]);
+                dup = lnk && (lnk.multi ? links[lnk.id].find(x => x === val) : links[lnk.id] === val);
+                if (lnk && !dup && (lnk.multi || links[lnk.id] === 0 || links[lnk.id] === '')) add();
             }}),
-            str.length > 0 && !lnk ? m('p', ('small', '>>> '), m('b', 'Invalid or unrecognized URL.')) :
-            isdup() ? m('p', m('small', '>>> '), m('b', ' URL already listed.')) :
-            lnk ? m('p', m('input[type=submit]', { value: lnk.multi || links[lnk.id] === 0 || links[lnk.id] === '' ? 'Add' : 'Update' }), ' URL recognized as: ', lnk.name) : null,
+            str.length > 0 && !lnk ? [ m('p', ('small', '>>> '), m('b.invalid', 'Invalid or unrecognized URL.')) ] :
+            dup ? [ m('p', m('small', '>>> '), m('b.invalid', ' URL already listed.')) ] :
+            lnk ? [
+                m('p', m('input[type=submit][value=Update]'), m('span.invalid', ' URL recognized as: ', lnk.name)),
+                m('p.invalid', 'Did you mean to update the URL?'),
+            ] : [],
         ),
         Help('extlinks',
             m('p', 'Links to external websites. The following sites and URL formats are supported:'),
@@ -348,7 +351,9 @@ const VNs = initVnode => {
     });
     const view = () => m('fieldset',
         m('label', 'Visual novels'),
-        m('table', data.vn.map(v => m('tr', {key: v.vid},
+        data.vn.length === 0
+        ? m('p.invalid', 'No visual novels selected.')
+        : m('table', data.vn.map(v => m('tr', {key: v.vid},
             m('td',
                 m(Button.Del, { onclick: () => data.vn = data.vn.filter(x => x !== v) }), ' ',
                 m('select', { oninput: ev => v.rtype = vndbTypes.releaseType[ev.target.selectedIndex][0] },
@@ -357,7 +362,7 @@ const VNs = initVnode => {
             ),
             m('td', m('small', v.vid, ': '), m('a[target=_blank]', { href: '/'+v.vid }, v.title)),
         ))),
-        m(DSButton, { onclick: ds.open }, 'Add visual novel'),
+        m(DSButton, { class: 'mw', onclick: ds.open }, 'Add visual novel'),
     );
     return {view};
 };
@@ -385,7 +390,7 @@ const Producers = initVnode => {
             ),
             m('td', m('small', p.pid, ': '), m('a[target=_blank]', { href: '/'+p.pid }, p.name)),
         ))),
-        m(DSButton, { onclick: ds.open }, 'Add producer'),
+        m(DSButton, { class: 'mw', onclick: ds.open }, 'Add producer'),
     );
     return {view};
 };

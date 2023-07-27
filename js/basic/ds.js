@@ -87,8 +87,6 @@ const close = ev => {
 //     Set for multiselection dropdowns.
 //     Called on each displayed object, should return whether this item is
 //     checked or not.
-// - erase()
-//     Set to add an erase button.
 //
 // Actual positioning and size of the box may differ from the given options in
 // order to adjust for different window sizes.
@@ -251,7 +249,6 @@ class DS {
                 ),
                 this.checkall   ? m('div', m(Button.CheckAll,   { onclick: this.checkall   })) : null,
                 this.uncheckall ? m('div', m(Button.UncheckAll, { onclick: this.uncheckall })) : null,
-                this.erase      ? m('div', m(Button.Erase,      { onclick: () => { this.erase(); close() } })) : null,
             ),
             this.source.api && this.source.api.error
             ? m('b', this.source.api.error)
@@ -360,15 +357,15 @@ DS.Platforms = {
 // Wrap a source to add a "Create new entry" option.
 // Args:
 // - source
-// - match: (str,obj) => bool, should return whether the input string matches an existing object
-// - view: str => html
-// When selected, the 'onselect' callback will be given an object with {id:str, create:true}.
-DS.New = (src, match, view) => ({...src,
+// - createobj: (str) => obj, should return an obj to add an option or null to not add anything.
+// - view: obj => html
+DS.New = (src, createobj, view) => ({...src,
     list: (x, str, cb) => src.list(x, str, lst => {
-        if (str && !lst.find(o => match(str,o)) && view(str)) lst.unshift({id:str, create:true});
+        const obj = createobj(str);
+        if (obj && !lst.find(o => o.id === obj.id)) lst.unshift({...obj, _create:true});
         cb(lst);
     }),
-    view: obj => obj.create === true ? view(obj.id) : src.view(obj),
+    view: obj => obj._create === true ? view(obj) : src.view(obj),
 });
 
 window.DS = DS;

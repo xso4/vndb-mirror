@@ -20,7 +20,7 @@ select[multiple] option  {
 optgroup option          { padding-left: 10px }
 button                   { text-align: left }
 button svg               { height: 14px; width: 14px; margin-top: 1px; margin-bottom: -1px }
-button.ds svg            { float: right; margin-top: 3px; margin-left: 5px }
+button.ds svg            { float: right; margin-top: 3px; margin-right: -2px; margin-left: -5px }
 button span              { white-space: nowrap }
 input.obscured           { color: transparent; text-shadow: 0 0 8px var(--maintext); }
 input[type=number]       { -moz-appearance:textfield }
@@ -86,9 +86,10 @@ fieldset.form {
         background-color: var(--noticebg); border: 1px solid var(--noticeborder);
         position: relative; padding: 5px;
         > a:first-child {
-            text-decoration: none;
-            position: absolute; right: 2px; top: 2px; color: var(--maintext);
-            svg { width: 14px; height: 14px; border: none; }
+            float: right; margin-top: -4px; margin-right: -4px;
+            text-decoration: none; color: var(--maintext);
+            svg { width: 18px; height: 18px; border: none; }
+            &:hover { border: none }
         }
         p + p { padding-top: 10px }
         dl { margin: 10px 0; display: grid; grid-template-columns: auto 1fr; grid-gap: 3px 10px }
@@ -96,22 +97,23 @@ fieldset.form {
     }
     p.invalid { display: none }
     .textpreview { max-width: 600px }
-    .release-animation td { width: 180px }
+    .release-animation td { width: 180px; line-height: normal }
 }
 
 /* 'invalid-form' class is set on the parent <form> element after attempted
  * submission, so that the element ':invalid' states and styling don't distract
  * when working on an empty form */
-.invalid-form fieldset.form {
-    > fieldset:invalid > label { color: var(--standout) }
-    > fieldset:disabled > label { color: var(--grayedout) }
-    input:invalid { border-color: var(--standout) }
-    p.invalid { display: block; color: var(--standout) }
+.invalid-form {
+    fieldset.form {
+        > fieldset:invalid > label { color: var(--standout) }
+        > fieldset:disabled > label { color: var(--grayedout) }
+        p.invalid { display: block; color: var(--standout) }
+    }
+    input:invalid, textarea:invalid { border-color: var(--standout) }
+    .invalid-tab a { color: var(--standout) }
+    .formerror { display: block; color: var(--standout) }
 }
-.invalid-form .invalid-tab a { color: var(--standout) }
-
 .formerror { display: none }
-.invalid-form .formerror { display: block; color: var(--standout) }
 
 /* TODO: responsive form layout for mobile */
 

@@ -47,8 +47,17 @@ const anyCmp = (a, b) => {
 };
 
 
-// Sort an array according to anyCmp().
+// Return a sorted array according to anyCmp().
 // The optional 'f' argument can be used to transform elements for comparison.
-Array.prototype.anySort = function(f=x=>x) { return this.sort((a,b) => anyCmp(f(a),f(b))) };
+Array.prototype.anySort = function(f=x=>x) { return [...this].sort((a,b) => anyCmp(f(a),f(b))) };
+
+// Check whether an array has duplicates according to anyCmp().
+// Also accepts an optional 'f' argument.
+Array.prototype.anyDup = function(f=x=>x) {
+    const lst = this.anySort(f);
+    for (let i=1; i<lst.length; i++)
+        if (!anyCmp(f(lst[i-1]), f(lst[i]))) return true;
+    return false;
+};
 
 Array.prototype.intersperse = function(sep) { return this.reduce((a,v)=>[...a,v,sep],[]).slice(0,-1) };

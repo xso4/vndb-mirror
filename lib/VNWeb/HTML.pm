@@ -151,10 +151,10 @@ sub elm_ {
 
 # Instantiate a JS widget.
 # Used as attribute to a html tag, which will then be used as parent node for the widget.
-# $schema is optional, if present it is only used to coerce the keys defined in the schema.
+# $schema is optional, if present it is used to normalize the data.
 sub widget {
     my($name, $schema, $data) = @_;
-    $data = $data ? $schema->analyze->coerce_for_json($data, unknown => 'pass') : $schema;
+    $data = $data ? $schema->analyze->coerce_for_json($data, unknown => 'remove') : $schema;
     tuwf->req->{widget_id} //= 0;
     tuwf->req->{js}{ VNWeb::JS::widgets()->{$name} // die "No bundle found for widget '$name'" } = 1;
     my $id = ++tuwf->req->{widget_id};
