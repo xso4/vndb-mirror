@@ -333,15 +333,18 @@ DS.Resolutions = {
     view: obj => [ obj.id, m('small', ' ('+obj.count+')') ],
 };
 
-DS.Lang = {
+const Lang = f => ({
     opts: { width: 250 },
     list: (src, str, cb) => cb(vndbTypes.language
-        .filter(([id,label]) => str === id.toLowerCase() || label.toLowerCase().includes(str.toLowerCase()))
+        .filter(([id,label]) => f(id) && (str === id.toLowerCase() || label.toLowerCase().includes(str.toLowerCase())))
         .anySort(([id,label,,rank]) => [id.toLowerCase() !== str.toLowerCase(), !label.toLowerCase().startsWith(str.toLowerCase()), 99-rank])
         .map(([id,label]) => ({id,label}))
     ),
     view: obj => [ LangIcon(obj.id), obj.label ]
-};
+});
+
+DS.Lang = Lang(() => true);
+DS.ScriptLang = Lang(l => l !== 'zh'); // Chinese has separate language entries for the scripts
 
 DS.Platforms = {
     opts: { width: 250 },

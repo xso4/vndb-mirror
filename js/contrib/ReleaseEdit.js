@@ -1,6 +1,6 @@
 const Titles = initVnode => {
     const {data} = initVnode.attrs;
-    const ds = new DS(DS.Lang, {
+    const ds = new DS(DS.ScriptLang, {
         onselect: obj => {
             const p = data.vntitles.find(t => t.lang === obj.id);
             data.titles.push({ lang: obj.id, mtl: false, title: p?p.title:'', latin: p?p.latin:'', new: true });
