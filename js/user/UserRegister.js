@@ -1,17 +1,14 @@
 widget('UserRegister', vnode => {
-    let success = false;
+    let c18 = false, cpolicy = false, ccheck = false, success = false;
     const api = new Api('UserRegister');
-    const onsubmit = ev => {
-        let username = $('#username').value;
-        let email = $('#email').value;
-        let c18 = $('#c18').checked;
-        let cpolicy = $('#cpolicy').checked;
-        let ccheck = $('#ccheck').checked;
-        // HTML5 validity API should take care of this, but mobile browsers may not do that properly.
-        // (username & email are also validated on the server, so those have a fallback already)
-        if (!c18 || !cpolicy || ccheck) return;
-        api.call({username, email}, res => success = res && res.ok);
-    };
+    const data = { username: '', email: '' };
+    const dupnames = {};
+    const dupemails = {};
+    const onsubmit = ev => api.call(data, res => {
+        if (res && res.err === 'username') dupnames[data.username] = true;
+        if (res && res.err === 'email') dupemails[data.email] = true;
+        success = res && res.ok;
+    });
     const donemsg = m('article',
         m('h1', 'Account created'),
         m('div.notice', m('p',
@@ -25,12 +22,18 @@ widget('UserRegister', vnode => {
         m('fieldset.form',
             m('fieldset',
                 m('label[for=username]', 'Username'),
-                m('input#username.mw[type=text]', formVals.username),
+                m(Input, {
+                    id: 'username', type: 'username', class: 'mw', required: true, data, field: 'username',
+                    invalid: dupnames[data.username] ? 'Username already taken' : null,
+                }),
                 m('p', username_reqs),
             ),
             m('fieldset',
                 m('label[for=email]', 'E-Mail'),
-                m('input#email.mw[type=email][required]', formVals.email),
+                m(Input, {
+                    id: 'email', type: 'email', class: 'mw', required: true, data, field: 'email',
+                    invalid: dupemails[data.email] ? 'This address is already used by another account' : null,
+                }),
                 m('p',
                     'A valid address is required in order to activate and use your account. ',
                     'Other than that, your address is only used in case you lose your password, ',
@@ -39,21 +42,24 @@ widget('UserRegister', vnode => {
             ),
             m('fieldset',
                 m('label.check',
-                    m('input#c18[type=checkbox][required]'),
+                    m('input#c18[type=checkbox]', { checked: c18, oninput: ev => c18 = ev.target.checked }),
                     ' I am 18 years or older.'
                 ),
+                c18 ? null : m('p.invalid', 'You must be 18 years or older to use this site.'),
             ),
             m('fieldset',
                 m('label.check',
-                    m('input#cpolicy[type=checkbox][required]'),
+                    m('input#cpolicy[type=checkbox]', { checked: cpolicy, oninput: ev => cpolicy = ev.target.checked }),
                     ' I have read the ', m('a[href=/d17]', 'privacy policy and contributor license agreement'), '.'
                 ),
+                cpolicy ? null : m('p.invalid', "You can at least pretend you've read it."),
             ),
             m('fieldset',
                 m('label.check',
-                    m('input#ccheck[type=checkbox]', { oninput: ev => ev.target.setCustomValidity(ev.target.checked ? 'Sigh.' : '') }),
+                    m('input#ccheck[type=checkbox]', { checked: ccheck, oninput: ev => ccheck = ev.target.checked }),
                     ' I click checkboxes without reading their label.'
                 ),
+                ccheck ? m('p.invalid', "*sigh* don't do that.") : null,
             ),
             m('fieldset',
                 m('input[type=submit][value=Submit]'),

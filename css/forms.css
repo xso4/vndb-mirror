@@ -66,6 +66,7 @@ table.formimage h2 { margin: 0 }
 fieldset.form {
     margin-left: 140px; margin-bottom: 20px;
     > fieldset { margin-bottom: 5px }
+    > fieldset:disabled > label { color: var(--grayedout) }
     > legend { margin-left: -130px; margin-bottom: 5px; font-weight: bold }
     > label:not(.check), > fieldset > label:not(.check) { display: block; float: left; margin-left: -130px; width: 130px }
     table.full { margin-left: -130px }
@@ -95,25 +96,23 @@ fieldset.form {
         dl { margin: 10px 0; display: grid; grid-template-columns: auto 1fr; grid-gap: 3px 10px }
         dt { font-weight: bold }
     }
-    p.invalid { display: none }
     .textpreview { max-width: 600px }
     .release-animation td { width: 180px; line-height: normal }
 }
 
+p.invalid { display: none }
+.formerror { display: none }
+
 /* 'invalid-form' class is set on the parent <form> element after attempted
- * submission, so that the element ':invalid' states and styling don't distract
- * when working on an empty form */
-.invalid-form {
-    fieldset.form {
-        > fieldset:invalid > label { color: var(--standout) }
-        > fieldset:disabled > label { color: var(--grayedout) }
-        p.invalid { display: block; color: var(--standout) }
-    }
-    input:invalid, textarea:invalid { border-color: var(--standout) }
+ * submission, so that error states and messages don't distract when working on
+ * an empty form */
+form.invalid-form {
+    p.invalid { display: block; color: var(--standout) }
+    input.invalid, textarea.invalid { border-color: var(--standout) }
+    label.invalid { color: var(--standout) }
     .invalid-tab a { color: var(--standout) }
     .formerror { display: block; color: var(--standout) }
 }
-.formerror { display: none }
 
 /* TODO: responsive form layout for mobile */
 

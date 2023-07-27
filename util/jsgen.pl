@@ -18,8 +18,8 @@ my $js = JSON::XS->new->pretty->canonical;
 
 sub validations {
     print 'window.formVals = '.$js->encode({
-        map +($_, { tuwf->compile({ $_ => 1 })->analyze->html5_validation() }),
-        qw/ username password email weburl /
+        map +($_, { tuwf->compile({ $_ => 1 })->analyze->html5_validation() }->{pattern}),
+        qw/ email weburl /
     }).";\n";
 }
 

@@ -25,9 +25,8 @@ js_api UserRegister => {
     my $data = shift;
     return 'Registration disabled.' if global_settings->{lockdown_registration};
 
-    return +{ _field => 'username', _err => 'Username already taken' } if !is_unique_username $data->{username};
-    return +{ _field => 'email', _err => 'E-Mail address already in use by another account' }
-        if tuwf->dbVali('SELECT 1 FROM user_emailtoid(', \$data->{email}, ') x');
+    return +{ err => 'username' } if !is_unique_username $data->{username};
+    return +{ err => 'email' } if tuwf->dbVali('SELECT 1 FROM user_emailtoid(', \$data->{email}, ') x');
 
     my $ip = tuwf->reqIP;
     return 'You can only register one account from the same IP within 24 hours.'

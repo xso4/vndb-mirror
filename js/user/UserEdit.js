@@ -7,29 +7,25 @@ const DSTimeZone = {
 };
 
 let username_edit = false;
+let username_taken = {};
 const Username = () => {
     let old = '';
     return {view: v => m('fieldset.form',
-        m('legend', 'Username'),
-        m('fieldset', !username_edit ? [
+        // Explicit keys to work around https://github.com/MithrilJS/mithril.js/issues/2842
+        m('legend', {key:1}, 'Username'),
+        !username_edit ? m('fieldset', {key:2},
             m('label', 'Current'),
             v.attrs.data.username,
             ' ',
             v.attrs.data.username_throttled
             ? m('small', '(changed within the past 24 hours)')
             : m('input[type=button][value=Edit]', { onclick: () => { old = v.attrs.data.username; username_edit = true } }),
-        ] : [
+        ) : m('fieldset', {key:3},
             m('label[for=username]', 'New username'),
-            m('input#username.mw[type=text]', {
-                oninput: e => {
-                    v.attrs.data.username = e.target.value;
-                    e.target.setCustomValidity('');
-                },
-                oncreate: n => {
-                    n.dom.value = v.attrs.data.username;
-                    n.dom.focus();
-                },
-                ...formVals.username }),
+            m(Input, {
+                id: 'username', class: 'mw', type: 'username', required: true, data: v.attrs.data, field: 'username', focus: true,
+                invalid: username_taken[v.attrs.data.username] ? 'Username already taken.' : null,
+            }),
             m('input[type=button][value=Cancel]', { onclick: () => { v.attrs.data.username = old; username_edit = false } }),
             m('p',
                 username_reqs, m('br'),
@@ -39,84 +35,68 @@ const Username = () => {
                 '- Your old username will become available for other people to claim.', m('br'),
                 '- You may only change your username at once per day.',
             ),
-        ]),
+        ),
     )};
 };
 
-let email_edit = false, email_old = '';
+let email_edit = false, email_old = '', email_taken = {};
 const Email = () => {
     return {view: v => m('fieldset.form',
-        m('legend', 'E-Mail'),
-        m('fieldset', !email_edit ? [
+        m('legend', {key:1}, 'E-Mail'),
+        !email_edit ? m('fieldset', {key:2},
             m('label', 'Current'), v.attrs.data.email, ' ',
             m('input[type=button][value=Edit]', { onclick: () => { email_old = v.attrs.data.email; email_edit = true } }),
-        ] : [
+        ) : m('fieldset', {key:3},
             m('label[for=email]', 'New email'),
-            m('input#email.mw[type=email]', {
-                oninput: e => {
-                    v.attrs.data.email = e.target.value;
-                    e.target.setCustomValidity('');
-                },
-                oncreate: n => {
-                    n.dom.value = v.attrs.data.email;
-                    n.dom.focus();
-                },
-                ...formVals.email }),
+            m(Input, {
+                id: 'email', class: 'mw', type: 'email', data: v.attrs.data, required: true, field: 'email', focus: true,
+                invalid: email_taken[v.attrs.data.email] ? 'Email already used by another account.' : null,
+            }),
             m('input[type=button][value=Cancel]', { onclick: () => { v.attrs.data.email = email_old; email_edit = false } }),
             m('p', 'A verification mail will be send to your new address.'),
-        ]),
+        ),
     )};
 };
 
-let password_edit = false, password_repeat = '';
+let password_repeat = {v:''}, password_leaked = {}, password_invalid = false;
 const Password = () => {
     return {view: v => m('fieldset.form',
         m('legend', 'Password'),
         m('label.check',
-            m('input[type=checkbox]', { checked: password_edit, oninput: e => {
-                password_edit = e.target.checked;
-                if (!password_edit) {
-                    v.attrs.data.password = null;
-                    password_repeat = '';
-                } else
-                    v.attrs.data.password = { old: '', new: '' };
+            m('input[type=checkbox]', { checked: !!v.attrs.data.password, oninput: e => {
+                if (e.target.checked) v.attrs.data.password = { old: '', new: '' };
+                else { v.attrs.data.password = null; password_repeat.v = ''; }
             }}),
             ' Change password'
         ),
-        !password_edit ? [] : [
+        !v.attrs.data.password ? [] : [
             m('fieldset',
                 m('label[for=opass]', 'Current password'),
-                m('input#opass.mw[type=password]', {
-                    oninput: e => {
-                        v.attrs.data.password.old = e.target.value;
-                        e.target.setCustomValidity('');
-                    },
-                    oncreate: v => v.dom.focus(),
-                    ...formVals.password
+                m(Input, {
+                    id: 'opass', class: 'mw', type: 'password', required: true, data: v.attrs.data.password, field: 'old', focus: 1,
+                    invalid: password_invalid ? 'Invalid password' : null,
+                    oninput: () => password_invalid = false,
                 }),
             ),
             m('fieldset',
                 m('label[for=npass]', 'New password'),
-                m('input#npass.mw[type=password]', {
-                    oninput: e => {
-                        v.attrs.data.password.new = e.target.value;
-                        e.target.setCustomValidity('');
-                    },
-                    ...formVals.password
+                m(Input, {
+                    id: 'npass', class: 'mw', type: 'password', required: true, data: v.attrs.data.password, field: 'new',
+                    invalid: password_leaked[v.attrs.data.password.new] ? 'Your new password is in a public database of leaked passwords, please choose a different password.' : null,
                 }),
             ),
             m('fieldset',
                 m('label[for=rpass]', 'Repeat'),
-                m('input#rpass.mw[type=password]', {
-                    oninput: e => password_repeat = e.target.value,
-                    onupdate: n => n.dom.setCustomValidity(v.attrs.data.password.new === password_repeat ? '' : 'Passwords do not match.'),
-                    ...formVals.password
+                m(Input, {
+                    id: 'rpass', class: 'mw', type: 'password', required: true, data: password_repeat, field: 'v',
+                    invalid: v.attrs.data.password.new !== password_repeat.v ? 'Passwords do not match.' : null,
                 }),
             ),
         ]
     )};
 };
 
+let uniname_taken = {};
 const Support = initVnode => {
     const data = initVnode.attrs.data;
     return {view: () => data.editor_usermod || data.nodistract_can || data.support_can || data.uniname_can || data.pubskin_can ? m('fieldset.form',
@@ -149,10 +129,9 @@ const Support = initVnode => {
         ) : null,
         data.editor_usermod || data.uniname_can ? m('fieldset',
             m('label[for=uniname]', 'Display name'),
-            m('input#uniname[type=text][pattern=^.{2,15}$]', {
-                value: data.uniname,
-                placeholder: data.username,
-                oninput: e => { e.target.setCustomValidity(''); data.uniname = e.target.value },
+            m(Input, {
+                id: 'uniname', class: 'mw', minlength: 2, maxlength: 15, data, field: 'uniname', placeholder: data.username,
+                invalid: uniname_taken[data.uniname] ? 'This name is already taken' : null,
             }),
             m('p', 'Between 2 and 15 characters, all unicode characters are accepted.'),
         ) : null,
@@ -496,10 +475,9 @@ const applications = data => {
                 copied === t.token ? 'copied!' : null,
             ),
             m('fieldset',
-                m('label', 'Name'),
-                m('input.mw[type=text][maxlength=200]',
-                    { value: t.notes, oninput: ev => t.notes = ev.target.value }
-                ), ' (optional, for personal use)'
+                m('label', { for: 'name'+t.token }, 'Name'),
+                m(Input, { id: 'name'+t.token, class: 'mw', maxlength: 200, data: t, field: 'notes' }),
+                ' (optional, for personal use)'
             ),
             m('fieldset',
                 m('label', 'Permissions'),
@@ -540,9 +518,19 @@ widget('UserEdit', initVnode => {
             username_edit = false;
             if (email_edit) data.email = email_old;
             email_edit = false;
-            password_edit = false; password_repeat = ''; data.password = null;
+            password_repeat.v = ''; data.password = null;
             data.api2 = data.api2.filter(x => !x.delete);
-        }
+            api.setsaved(data);
+        } else if (api.xhr.response && api.xhr.response.code === 'username_taken')
+            username_taken[data.username] = 1;
+        else if (api.xhr.response && api.xhr.response.code === 'email_taken')
+            email_taken[data.email] = 1;
+        else if (api.xhr.response && api.xhr.response.code === 'opass')
+            password_invalid = 1;
+        else if (api.xhr.response && api.xhr.response.code === 'npass')
+            password_leaked[data.password.new] = 1;
+        else if (api.xhr.response && api.xhr.response.code === 'uniname')
+            uniname_taken[data.uniname] = 1;
     });
 
     const account = () => [
@@ -577,7 +565,7 @@ widget('UserEdit', initVnode => {
         m('article.submit',
             m('input[type=submit][value=Submit]'),
             m('span.spinner', { class: api.loading() ? '' : 'invisible' }),
-            api.error ? m('p', api.error) : msg && api.saved(data) ? m('p', msg) : null,
+            api.error ? m('p.formerror', api.error) : msg && api.saved(data) ? m('p', msg) : null,
         ),
     );
     return {view};

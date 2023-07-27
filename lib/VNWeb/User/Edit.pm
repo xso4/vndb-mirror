@@ -148,7 +148,7 @@ js_api UserEdit => $FORM_IN, sub {
     my(%set, %setp);
 
     $data->{uniname} = '' if $data->{uniname} eq $u->{username};
-    return +{ _field => 'uniname', _err => 'Display name already taken.' }
+    return +{ code => 'uniname', _err => 'Display name already taken.' }
         if $data->{uniname} && tuwf->dbVali('SELECT 1 FROM users WHERE id <>', \$data->{id}, 'AND lower(username) =', \lc($data->{uniname}));
 
     $data->{skin} = '' if $data->{skin} eq config->{skin_default};
@@ -171,25 +171,25 @@ js_api UserEdit => $FORM_IN, sub {
 
     if($data->{username} ne $u->{username}) {
         return +{ _err => 'You can only change your username once a day.' } if _namethrottled $data->{id};
-        return +{ _field => 'username', _err => 'Username already taken.' } if !is_unique_username $data->{username}, $data->{id};
+        return +{ code => 'username_taken', _err => 'Username already taken.' } if !is_unique_username $data->{username}, $data->{id};
         $set{username} = $data->{username};
         auth->audit($data->{id}, 'username change', "old=$u->{username}; new=$data->{username}");
         tuwf->dbExeci('INSERT INTO users_username_hist', { id => $data->{id}, old => $u->{username}, new => $data->{username} });
     }
 
     if($data->{password}) {
-        return +{ _field => 'npass', _err => 'Your new password is in a public database of leaked passwords, please choose a different password.' }
+        return +{ code => 'npass', _err => 'Your new password is in a public database of leaked passwords, please choose a different password.' }
             if is_insecurepass $data->{password}{new};
         my $ok = auth->setpass($data->{id}, undef, $data->{password}{old}, $data->{password}{new});
         auth->audit($data->{id}, $ok ? 'password change' : 'bad password', 'at user edit form');
-        return +{ _field => 'opass', _err => 'Incorrect password' } if !$ok;
+        return +{ code => 'opass', _err => 'Incorrect password' } if !$ok;
     }
 
     my $ret = {ok=>1};
 
     my $oldmail = _getmail $data->{id};
     if ($oldmail ne $data->{email}) {
-        return +{ _field => 'email', _err => 'E-Mail address already in use by another account' }
+        return +{ code => 'email_taken', _err => 'E-Mail address already in use by another account' }
             if tuwf->dbVali('SELECT 1 FROM user_emailtoid(', \$data->{email}, ') x(id) WHERE id <>', \$data->{id});
         auth->audit($data->{id}, 'email change', "old=$oldmail; new=$data->{email}");
         if(auth->permUsermod) {

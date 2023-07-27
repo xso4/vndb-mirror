@@ -23,19 +23,19 @@ const Titles = initVnode => {
             ),
         ),
         data.titles.map(t => m('fieldset', {key: t.lang},
-            m('label', LangIcon(t.lang), langs[t.lang]),
-            m('input.xw[type=text][maxlength=300]', {
-                required: t.lang === data.olang,
+            m('label', { for: 'title-'+t.lang }, LangIcon(t.lang), langs[t.lang]),
+            m(Input, {
+                id: 'title-'+t.lang, class: 'xw',
+                maxlength: 300, required: t.lang === data.olang,
                 placeholder: t.lang === data.olang ? 'Title (in the original script)' : 'Title (leave empty if equivalent to the main title)',
-                value: t.title, oninput: ev => t.title = ev.target.value,
-                oncreate: t.new ? v => { t.new = false; v.dom.focus() } : null,
+                data: t, field: 'title', focus: t.new,
             }),
             !t.latin && !nonLatin.test(t.title) ? [] : [
                 m('br'),
-                m('input.xw[type=text][maxlength=300][required]', {
-                    placeholder: 'Romanization',
-                    value: t.latin, oninput: ev => t.latin = ev.target.value,
-                    onupdate: v => v.dom.setCustomValidity(nonLatin.test(t.latin) ? 'Romanization should only contain characters in the latin alphabet.' : ''),
+                m(Input, {
+                    class: 'xw', maxlength: 300, required: true,
+                    data: t, field: 'latin', placeholder: 'Romanization',
+                    invalid: nonLatin.test(t.latin) ? 'Romanization should only contain characters in the latin alphabet.' : null,
                 }),
             ],
             m('br'),
@@ -399,6 +399,7 @@ const Producers = initVnode => {
 widget('ReleaseEdit', initVnode => {
     const data = initVnode.attrs.data;
     const api = new Api('ReleaseEdit');
+    const gtin = {v: data.gtin === '0' ? '' : data.gtin};
     const view = () => m(Form, {api, onsubmit: () => api.call(data)},
         m('article',
             m('h1', 'General info'),
@@ -410,19 +411,18 @@ widget('ReleaseEdit', initVnode => {
                 m('legend', 'External identifiers & links'),
                 m('fieldset',
                     m('label[for=gtin]', 'JAN/UPC/EAN'),
-                    m('input.mw[type=text]', {
-                        value: data.gtin && data.gtin !== '0' ? data.gtin : '',
-                        pattern: '[0-9]+',
-                        oninput: ev => data.gtin = ev.target.value === '' ? 0 : Math.floor(ev.target.value.replace(/[,\. -]+/g, ''))
+                    m(Input, {
+                        id: 'gtin', class: 'mw', type: 'number', data: gtin, field: 'v',
+                        oninput: v => { data.gtin = v; gtin.v = v === 0 ? '' : v },
                     }),
                 ),
                 m('fieldset',
                     m('label[for=catalog]', 'Catalog number'),
-                    m('input.mw[type=text][maxlength=50]', { value: data.catalog, oninput: ev => data.catalog = ev.target.value }),
+                    m(Input, { id: 'catalog', class: 'mw', maxlength: 50, data, field: 'catalog' }),
                 ),
                 m('fieldset',
                     m('label[for=website]', 'Website'),
-                    m('input.xw[type=text]', { ...formVals.weburl, required: false, value: data.website, oninput: ev => data.website = ev.target.value }),
+                    m(Input, { id: 'website', class: 'xw', type: 'weburl', data, field: 'website' }),
                 ),
                 m(ExtLinks, {data}),
             ),

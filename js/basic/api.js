@@ -65,5 +65,10 @@ class Api {
         if (this._saved !== JSON.stringify(data)) return (this._saved = false);
         return true;
     }
+
+    // Manually override the data that's considered as "saved".
+    setsaved(data) {
+        this._saved = JSON.stringify(data);
+    }
 };
 window.Api = Api;

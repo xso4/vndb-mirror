@@ -57,7 +57,6 @@ window.Help = (id, ...content) => helpState[id] ? m('section.help',
 ) : null;
 
 
-
 // Dropdown box for use in a <li class="maintabs-dd">.
 // (This would be trivial enough to inline if it weren't for how tricky it is
 // to get the toggle functionality working as it should)
@@ -85,6 +84,12 @@ window.MainTabsDD = (initVnode) => {
 };
 
 
+const focusElem = el => {
+    if (el.tagName === 'LABEL' && el.htmlFor) el = $('#'+el.htmlFor);
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') el.focus();
+    else el.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'nearest'});
+};
+
 // Wrapper around a <form> with a <fieldset> element and some magic.
 // Attrs:
 // - onsubmit    - submit event, already has preventDefault()
@@ -94,48 +99,29 @@ window.MainTabsDD = (initVnode) => {
 // The .invalid-form class is set on an invalid <form> *after* the user
 // attempts to submit it, to help with styling invalid inputs. The onsubmit
 // event is not dispatched when the form contains a .invalid element.
-//
-// The api object is monitored for errors. If the error response includes a
-// '_field' member, then a setCustomValidity() and reportValidity() is
-// performed on the element with that ID. It is up to the form code to reset
-// the error in response to an 'oninput' event.
-//
-// XXX: I'm not entirely sure that the HTML5 validity API is actually worth
-// using. It brings with it a fair bit of complexity, it can't be used for all
-// types of form errors and some browsers completely ignore it for some reason.
-let form_id = 0;
 window.Form = () => {
-    let submitted = false, lasterr, focusinvalid;
-    const id = 'jsform_'+(form_id++);
+    let submitted = false, report;
     return { view: vnode => {
         const api = vnode.attrs.api;
-        return m('form', { id,
+        return m('form[novalidate]', {
             onsubmit: ev => {
                 ev.preventDefault();
-                submitted = true;
-                if (ev.target.querySelector('.invalid')) return (focusinvalid = true);
+                report = submitted = true;
+                if (ev.target.querySelector('.invalid')) return;
                 const x = vnode.attrs.onsubmit;
                 x && x(ev);
             },
-            // Need a custom listener here to make sure we capture events of child nodes; the 'invalid' event doesn't bubble.
-            oncreate: v => v.dom.addEventListener('invalid', () => { if(!submitted) { submitted = true; m.redraw() } }, true),
-            onupdate: v => {
+            onupdate: v => requestAnimationFrame(() => {
                 const inv = v.dom.querySelector('.invalid');
-                v.dom.classList.toggle('invalid-form', submitted && (inv || $('#'+id+':invalid')));
-                if (inv && focusinvalid) inv.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'nearest'});
-                focusinvalid = false;
-
-                if (!api || lasterr === api.error) return;
-                lasterr = api.error;
-                const res = api.xhr && api.xhr.response;
-                if (api.error && res !== null && 'object' === typeof res && res._field) {
-                    $('#'+res._field).setCustomValidity(res._fielderr || api.error);
-                    // reportValidity() will synchronously run all 'invalid'
-                    // events, but those aren't necessarily written to be
-                    // called during a m.render context, so delay it for a bit.
-                    requestAnimationFrame(() => v.dom.reportValidity());
+                v.dom.classList.toggle('invalid-form', submitted && (inv || (api && api.error)));
+                if (inv && report) {
+                    // If we have a FormTabs child, let that component do the reporting.
+                    const t = $('#js-formtabs');
+                    if (t) t.dispatchEvent(new Event('formerror'));
+                    else focusElem(inv);
                 }
-            },
+                report = false;
+            }),
         }, m('fieldset',
             { disabled: vnode.attrs.disabled || (api && api.loading()) },
             vnode.children
@@ -153,11 +139,10 @@ window.Form = () => {
 // The currently selected tab is tracked in location.hash, so linking to a
 // specific tab is possible.
 //
-// There's a fair bit of magic going on to integrate with form validation: when
-// a validation error is reported, this component automatically switches to the
-// first tab containing the error. Tab headers also indicate which tabs contain
-// errors.
-// TODO: Should handle .invalid elements as well.
+// The tabs integrate with a parent Form component to properly report errors:
+// on submission and if there's no error on the currently opened tab, it
+// automatically switches to the first tab with an error and focuses the
+// .invalid element.
 //
 // The list of tabs must be static and known at component creation time,
 // dynamically adding/removing tabs is not supported.
@@ -173,27 +158,21 @@ window.FormTabs = initVnode => {
         ev.preventDefault();
         set(ev.target.href.replace(/^.+#/, ''));
     };
-    // If there is a form validation error, we have to make sure that the field
-    // being reported is actually visible. If not, switch to the first invalid
-    // tab and re-report the error.
-    // Assumption: reportValidity() is always only used on the global form and
-    // not on individual elements, and it always reports the first invalid
-    // field in the DOM.
-    const oninvalid = () => {
-        // XXX: Validation on fieldsets is weird. No errors are reported
-        // through the JS validation API, but the :invalid CSS selector still
-        // matches. Let's just abuse that.
-        if(sel === 'all' || $('#formtabs_'+sel+':invalid')) return;
-        for (const t of tabs) {
-            if (sel === t[0] || $('#formtabs_'+t[0]+':valid')) continue;
-            set(t[0]);
-            report = true;
-            m.redraw();
-            return;
+    const onformerror = ev => {
+        report = true;
+        // Make sure we have a tab open with an error
+        if (tabs.length > 1 && sel !== 'all' && !$('#formtabs_'+sel+' .invalid')) {
+            for (const t of tabs) {
+                if (sel === t[0]) continue;
+                if ($('#formtabs_'+t[0]+' .invalid')) {
+                    set(t[0]);
+                    break;
+                }
+            }
         }
     };
     const view = () => [
-        tabs.length > 1 ? m('nav', m('menu',
+        tabs.length > 1 ? m('nav', {id: 'js-formtabs', onformerror}, m('menu',
             tabs.concat([['all', 'All items']]).map(t =>
                 m('li', { key: t[0], id: 'formtabst_'+t[0], class: sel === t[0] ? 'tabselected' : ''},
                     m('a', {onclick, href: '#'+t[0]}, t[1])
@@ -205,25 +184,109 @@ window.FormTabs = initVnode => {
             m('fieldset', {id: 'formtabs_'+t[0]}, t[2]())
         )),
     ];
-    const oncreate = v => v.dom.closest('form').addEventListener('invalid', oninvalid, true);
-    const onupdate = v => requestAnimationFrame(() => {
-        if (report) requestAnimationFrame(() => v.dom.closest('form').reportValidity());
-        report = false;
-        // Set the 'invalid' class on the tabs. The form state is not known
+    const onupdate = () => requestAnimationFrame(() => {
+        // Set the 'invalid-tab' class on the tabs. The form state is not known
         // during the view function, so this has to be done in an onupdate hook.
+        let inv;
         if (tabs.length > 1)
-            for (const t of tabs)
-                $('#formtabst_'+t[0]).classList.toggle('invalid-tab', !!$('#formtabs_'+t[0]+':invalid'));
+            for (const t of tabs) {
+                const el = $('#formtabs_'+t[0]+' .invalid');
+                if (!inv && (sel === 'all' || t[0] === sel)) inv = el;
+                $('#formtabst_'+t[0]).classList.toggle('invalid-tab', !!el);
+            }
+        if (report && inv) requestAnimationFrame(() => focusElem(inv));
+        report = false;
     });
-    return {view,oncreate,onupdate};
+    return {view,onupdate};
 };
+
+
+
+// Text input field.
+// Attrs:
+// - class
+// - id
+// - tabindex
+// - placeholder
+// - type
+//     'email', 'password', 'username', 'weburl'
+//     'number'      -> Only digits allowed
+//     'textarea'    -> <textarea>
+//     otherwise     -> regular text input field
+// - invalid       -> Custom HTML validation message
+// - data + field  -> input value is read from and written to 'data[field]'
+// - oninput       -> called after 'data[field]' has been modified, takes new value as argument
+// - required / minlength / maxlength
+//   HTML5 validation properties, except with a custom implementation.
+//   The length is properly counted in Unicode points rather than UTF-16 digits.
+// - focus         -> Bool, set input focus on create
+// - rows / cols   -> For texarea
+//
+// The HTML5 validity API has some annoying limitations and is not always
+// honored, so this component simply re-implements validation and reporting of
+// errors. When the field fails validation, the following happens:
+// - The input element gets a .invalid class
+// - The input element is followed by a 'p.invalid' element containing the message
+// - If a 'label[for=$id]' exists, that label is also given the .invalid class
+//
+// The Form and FormTabs components detect and handle .invalid inputs.
+window.Input = () => {
+    const validate = a => {
+        const v = String(a.data[a.field]).trim();
+        if (a.invalid) return a.invalid;
+        if (!v.length) return a.required ? 'This field is required.' : '';
+        if (a.type === 'username') { a.minlength = 2; a.maxlength = 15; }
+        if (a.type === 'password') { a.minlength = 4; a.maxlength = 500; }
+        if (a.minlength && [...v].length < a.minlength) return 'Please use at least '+a.minlength+' characters.';
+        if (a.maxlength && [...v].length > a.maxlength) return 'Please use at most '+a.maxlength+' characters.';
+        if (a.type === 'username') {
+            if (/^[a-zA-Z][0-9]+$/.test(v)) return 'Username must not look like a VNDB identifier (single alphabetic character followed only by digits).';
+            const dup = {};
+            const chrs = v.replace(/[a-zA-Z0-9-]/g, '').split('').sort().filter(c => !dup[c] && (dup[c]=1));
+            if (chrs.length === 1) return 'The character "'+chrs[0]+'" can not be used.';
+            if (chrs.length) return 'The following characters can not be used: '+chrs.join(', ')+'.';
+        }
+        if (a.type === 'email' && !new RegExp(formVals.email).test(v)) return 'Invalid email address.';
+        if (a.type === 'weburl' && !new RegExp(formVals.weburl).test(v)) return 'Invalid URL.';
+        return '';
+    };
+    const view = vnode => {
+        const a = vnode.attrs;
+        const invalid = validate(a);
+        const attrs = {
+            id: a.id, tabindex: a.tabindex, placeholder: a.placeholder,
+            rows: a.rows, cols: a.cols,
+            class: (a.class||'') + (invalid ? ' invalid' : ''),
+            oninput: ev => {
+                let v = ev.target.value;
+                if (a.type === 'number') v = Math.floor(v.replace(/[^0-9]+/g, '')||0);
+                a.data[a.field] = v;
+                a.oninput && a.oninput(v);
+            },
+            oncreate: a.focus ? v => v.dom.focus() : null,
+        };
+        return [
+            a.type === 'textarea'
+            ? m('textarea', { ...attrs }, a.data[a.field])
+            : m('input', { ...attrs, value: a.data[a.field],
+                type: a.type === 'email' ? 'email' : a.type === 'password' ? 'password' : 'text',
+            }),
+            invalid ? m('p.invalid', invalid) : null,
+        ];
+    };
+    // Searching the DOM for labels on every update isn't very optimal, but it hasn't been an issue so far.
+    const onupdate = vnode => vnode.attrs.id && $$('label[for='+vnode.attrs.id+']')
+        .map(el => el.classList.toggle('invalid', !!validate(vnode.attrs)));
+    return {view,onupdate};
+};
+
 
 
 // BBCode (TODO: & Markdown) editor with preview button.
 // Attrs:
 // - data + field -> raw text is read from and written to data[field]
 // - header       -> element to draw at the top-left
-// - attrs        -> attrs to add to the textarea
+// - attrs        -> attrs to add to the Input
 window.TextPreview = initVnode => {
     var preview = false;
     var html = null;
@@ -257,11 +320,11 @@ window.TextPreview = initVnode => {
                 preview ? m('span', 'Preview') : m('a[href=#]', {onclick: load}, 'Preview'),
             ),
         ),
-        m('textarea', {
-            class: preview ? 'hidden' : null,
-            oninput: e => { html = null; data[field] = e.target.value },
-            ...vnode.attrs.attrs
-        }, data[field]),
+        m(Input, { ...vnode.attrs.attrs,
+            type: 'textarea',
+            class: (vnode.attrs.attrs.class||'') + (preview ? ' hidden' : ''),
+            data, field, oninput: e => html = null
+        }),
         preview ? m('div.preview', m.trust(html)) : null,
     );
     return {view};
