@@ -262,7 +262,7 @@ window.TextPreview = initVnode => {
             oninput: e => { html = null; data[field] = e.target.value },
             ...vnode.attrs.attrs
         }, data[field]),
-        m('div.preview', { class: preview ? null : 'hidden' }, m.trust(html)),
+        preview ? m('div.preview', m.trust(html)) : null,
     );
     return {view};
 };

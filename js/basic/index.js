@@ -24,8 +24,6 @@ window.onerror = function(ev, source, lineno, colno, error) {
     }
     return false;
 };
-// Mithril.js calls console.error(), I want those too.
-console.error = e => { throw Error(e) };
 
 @include .gen/mithril.js
 @include .gen/types.js
