@@ -25,9 +25,6 @@ const position = () => {
     const obj = $('#ds');
     if(!obj) return;
 
-    // XXX: The actual height of the box is dynamic, but we'd rather not have
-    // it jump around on user input so better reserve some space.
-    const minHeight = 200;
     const margin = 5;
 
     const inst = activeInstance;
@@ -39,7 +36,7 @@ const position = () => {
     );
     const width = Math.min(window.innerWidth - margin*2, inst.width);
 
-    const top = Math.max(margin, Math.min(window.innerHeight - minHeight - margin, opener.y + opener.height));
+    const top = opener.y + opener.height;
     const height = Math.max(header + 20, Math.min(window.innerHeight - margin*2, window.innerHeight - top - margin));
 
     obj.style.top  = (top  + window.scrollY) + 'px';
@@ -48,13 +45,11 @@ const position = () => {
     const l = obj.children[1];
     if (l && l.tagName == 'UL') l.style.maxHeight = (height - header) + 'px';
 
-    // Special case: if we've moved the box above the opener, make sure to
-    // expand the box even if there's nothing to select. Otherwise there's a
-    // weird disconnected floating input.
-    obj.style.minHeight = Math.max(0, opener.top - top) + 'px';
-
-    const e = obj.querySelector('li.active');
-    if (e) e.scrollIntoView({block: 'nearest'});
+    // Only attempt to scroll if the obj is entirely into view, otherwise we may prevent page scroll
+    if (top > 0 && top+height < window.innerHeight) {
+        const e = obj.querySelector('li.active');
+        if (e) e.scrollIntoView({block: 'nearest'});
+    }
 };
 
 const close = ev => {
@@ -321,6 +316,7 @@ DS.Producers = {
 
 DS.Engines = {
     api: new Api('Engines'),
+    opts: { width: 250 },
     init: (src, cb) => src.api.call({}, res => cb(src.res = res.results, src.api = null)),
     list: (src, str, cb) => cb(src.res.filter(e => e.id.toLowerCase().includes(str.toLowerCase())).slice(0,30)),
     view: obj => [ obj.id, m('small', ' ('+obj.count+')') ],
@@ -328,6 +324,7 @@ DS.Engines = {
 
 DS.Resolutions = {
     api: new Api('Resolutions'),
+    opts: { width: 200 },
     init: (src, cb) => src.api.call({}, res => cb(src.res = res.results, src.api = null)),
     list: (src, str, cb) => cb(src.res.filter(e => e.id.toLowerCase().includes(str.toLowerCase())).slice(0,30)),
     view: obj => [ obj.id, m('small', ' ('+obj.count+')') ],
