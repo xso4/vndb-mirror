@@ -23,17 +23,17 @@ class Api {
 
     _err(cb, msg) {
         this.error = msg;
-        cb && cb();
+        cb && cb(this.xhr && this.xhr.response);
         m.redraw();
     }
 
-    _load(cb, xhr) {
-        if (xhr.status == 403) return this._err(cb, 'Permission denied. Your session may have expired, try reloading the page.');
-        if (xhr.status == 413) return this._err(cb, 'File upload too large.');
-        if (xhr.status == 429) return this._err(cb, 'Action throttled, please try again later.');
-        if (xhr.status != 200) return this._err(cb, 'Server error '+xhr.status+', please try again later or report a bug if this persists.');
-        if (xhr.response === null || "object" != typeof xhr.response) return this._err(cb, 'Invalid response from the server, please report a bug.');
-        if (xhr.response._err) return this._err(cb, xhr.response._err);
+    _load(cb, errcb, xhr) {
+        if (xhr.status == 403) return this._err(errcb, 'Permission denied. Your session may have expired, try reloading the page.');
+        if (xhr.status == 413) return this._err(errcb, 'File upload too large.');
+        if (xhr.status == 429) return this._err(errcb, 'Action throttled, please try again later.');
+        if (xhr.status != 200) return this._err(errcb, 'Server error '+xhr.status+', please try again later or report a bug if this persists.');
+        if (xhr.response === null || "object" != typeof xhr.response) return this._err(errcb, 'Invalid response from the server, please report a bug.');
+        if (xhr.response._err) return this._err(errcb, xhr.response._err);
         if (xhr.response._redir) { location.href = xhr.response._redir; return }
         this.error = null;
         this._saved = this._lastdata;
@@ -41,15 +41,14 @@ class Api {
         m.redraw();
     }
 
-    // Runs the given callback when done. On success, the parsed response JSON
-    // is passed as argument to the callback.
-    call(data, cb) {
+    // The parsed response JSON is passed as argument to the callback.
+    call(data, cb, errcb) {
         this.abort();
 
         var xhr = new XMLHttpRequest();
-        xhr.ontimeout = () => this._err(cb, 'Network timeout, please try again later.');
-        xhr.onerror = () => this._err(cb, 'Network error, please try again later.');
-        xhr.onload = () => this._load(cb, xhr);
+        xhr.ontimeout = () => this._err(errcb, 'Network timeout, please try again later.');
+        xhr.onerror = () => this._err(errcb, 'Network error, please try again later.');
+        xhr.onload = () => this._load(cb, errcb, xhr);
         xhr.open('POST', '/js/'+this.endpoint+'.json', true);
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.responseType = 'json';

@@ -291,7 +291,7 @@ DS.Tags = {
     cache: {'':[]},
     opts: { placeholder: 'Search tags...' },
     api: new Api('Tags'),
-    list: (src, str, cb) => src.api.call({ search: str }, res => res && cb(res.results)),
+    list: (src, str, cb) => src.api.call({ search: str }, res => cb(res.results)),
     view: tt_view,
 };
 
@@ -299,7 +299,7 @@ DS.Traits = {
     cache: {'':[]},
     opts: { placeholder: 'Search traits...' },
     api: new Api('Traits'),
-    list: (src, str, cb) => src.api.call({ search: str }, res => res && cb(res.results)),
+    list: (src, str, cb) => src.api.call({ search: str }, res => cb(res.results)),
     view: tt_view,
 };
 
@@ -307,7 +307,7 @@ DS.VNs = {
     cache: {'':[]},
     opts: { placeholder: 'Search visual novels...' },
     api: new Api('VN'),
-    list: (src, str, cb) => src.api.call({ search: [str] }, res => res && cb(res.results)),
+    list: (src, str, cb) => src.api.call({ search: [str] }, res => cb(res.results)),
     view: obj => [ m('small', obj.id, ': '), obj.title ],
 };
 
@@ -315,20 +315,20 @@ DS.Producers = {
     cache: {'':[]},
     opts: { placeholder: 'Search producers...' },
     api: new Api('Producers'),
-    list: (src, str, cb) => src.api.call({ search: [str] }, res => res && cb(res.results)),
+    list: (src, str, cb) => src.api.call({ search: [str] }, res => cb(res.results)),
     view: obj => [ m('small', obj.id, ': '), obj.name ],
 };
 
 DS.Engines = {
     api: new Api('Engines'),
-    init: (src, cb) => src.api.call({}, res => res && cb(src.res = res.results, src.api = null)),
+    init: (src, cb) => src.api.call({}, res => cb(src.res = res.results, src.api = null)),
     list: (src, str, cb) => cb(src.res.filter(e => e.id.toLowerCase().includes(str.toLowerCase())).slice(0,30)),
     view: obj => [ obj.id, m('small', ' ('+obj.count+')') ],
 };
 
 DS.Resolutions = {
     api: new Api('Resolutions'),
-    init: (src, cb) => src.api.call({}, res => res && cb(src.res = res.results, src.api = null)),
+    init: (src, cb) => src.api.call({}, res => cb(src.res = res.results, src.api = null)),
     list: (src, str, cb) => cb(src.res.filter(e => e.id.toLowerCase().includes(str.toLowerCase())).slice(0,30)),
     view: obj => [ obj.id, m('small', ' ('+obj.count+')') ],
 };

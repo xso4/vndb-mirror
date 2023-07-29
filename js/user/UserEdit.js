@@ -498,7 +498,7 @@ const applications = data => {
         )),
         m('fieldset.form', { disabled: api.loading() },
             m('input[type=button][value=Create new token]', { onclick: () => api.call({id:data.id}, res =>
-                res && data.api2.push({token: res.token, added: res.added, notes: '', listread: false, listwrite: false })
+                data.api2.push({token: res.token, added: res.added, notes: '', listread: false, listwrite: false })
             )}),
             api.loading() ? m('span.spinner') : null,
             api.error ? m('b', m('br'), api.error) : null,
@@ -510,28 +510,27 @@ widget('UserEdit', initVnode => {
     let msg = '';
     const data = initVnode.attrs.data;
     const api = new Api('UserEdit');
-    const onsubmit = ev => api.call(data, res => {
-        msg = !res ? '' : res.email
-              ? 'A confirmation email has been sent to your new address. Your address will be updated after following the instructions in that mail.'
-              : 'Saved!';
-        if (res) {
+    const onsubmit = ev => { msg = ''; api.call(data,
+        res => {
+            msg = res.email
+                  ? 'A confirmation email has been sent to your new address. Your address will be updated after following the instructions in that mail.'
+                  : 'Saved!';
             username_edit = false;
             if (email_edit) data.email = email_old;
             email_edit = false;
             password_repeat.v = ''; data.password = null;
             data.api2 = data.api2.filter(x => !x.delete);
             api.setsaved(data);
-        } else if (api.xhr.response && api.xhr.response.code === 'username_taken')
-            username_taken[data.username] = 1;
-        else if (api.xhr.response && api.xhr.response.code === 'email_taken')
-            email_taken[data.email] = 1;
-        else if (api.xhr.response && api.xhr.response.code === 'opass')
-            password_invalid = 1;
-        else if (api.xhr.response && api.xhr.response.code === 'npass')
-            password_leaked[data.password.new] = 1;
-        else if (api.xhr.response && api.xhr.response.code === 'uniname')
-            uniname_taken[data.uniname] = 1;
-    });
+        },
+        err => {
+            const c = err && err.code;
+            if (c === 'username_taken') username_taken[data.username] = 1;
+            if (c === 'email_taken') email_taken[data.email] = 1;
+            if (c === 'opass') password_invalid = 1;
+            if (c === 'npass') password_leaked[data.password.new] = 1;
+            if (c === 'uniname') uniname_taken[data.uniname] = 1;
+        },
+    )};
 
     const account = () => [
         m('h1', 'Account'),

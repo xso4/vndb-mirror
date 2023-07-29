@@ -4,7 +4,7 @@ const ChangePass = vnode => {
     let data = { pass1: '', pass2: '' };
     const ref = vnode.attrs.data.ref;
     const api = new Api('UserChangePass');
-    const onsubmit = () => api.call({ uid, oldpass: password, newpass: data.pass1 }, res => { if(res) location.href = ref });
+    const onsubmit = () => api.call({ uid, oldpass: password, newpass: data.pass1 }, res => location.href = ref);
     const view = () => m(Form, {api,onsubmit}, m('article',
         m('h1', 'Change password'),
         m('div.warning',
@@ -38,10 +38,12 @@ const Login = vnode => {
     const ref = vnode.attrs.data.ref;
     const api = new Api('UserLogin');
     const onsubmit = () => api.call(data, res => {
-        needChange = res && res.insecurepass;
-        uid = res && res.uid;
-        password = data.password;
-        if (res && res.ok) location.href = ref;
+        if (res.ok) location.href = ref;
+        if (res.insecurepass) {
+            needChange = true;
+            uid = res.uid;
+            password = data.password;
+        }
     });
     const view = () => m(Form, {onsubmit, api}, m('article',
         m('h1', 'Login'),

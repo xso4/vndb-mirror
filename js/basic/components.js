@@ -303,10 +303,10 @@ window.TextPreview = initVnode => {
         if (html) {
             preview = true;
         } else {
-            api.call({content: data[field]}, res => {
-                html = res ? res.html : '<b>'+api.error+'</b>';
-                preview = true;
-            });
+            api.call({content: data[field]},
+                res => { preview = true; html = res.html; },
+                () => { preview = true; html = '<b>'+api.error+'</b>'; },
+            );
         }
         return false;
     };
