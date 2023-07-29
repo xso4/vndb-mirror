@@ -238,7 +238,7 @@ span.spinner { width: 1em; height: 1em }
         }
     }
     > div:last-child {
-        overflow: hidden scroll; width: 100%;
+        overflow-x: hidden; overflow-y: scroll; width: 100%; position: relative;
         > ul {
             margin: 0; list-style-type: none; width: 100%; height: 100%;
             > li {

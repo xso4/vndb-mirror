@@ -49,11 +49,8 @@ const position = () => {
         d.children[0].style.columnCount = cols;
     }
 
-    // Only attempt to scroll if the obj is entirely into view, otherwise we may prevent page scroll
-    if (top > 0 && top+height < window.innerHeight) {
-        const e = obj.querySelector('li.active');
-        if (e) e.scrollIntoView({block: 'nearest'});
-    }
+    const e = obj.querySelector('li.active');
+    if (e) d.scrollTop = Math.max(Math.min(e.offsetTop, d.scrollTop), e.offsetTop + e.offsetHeight - d.offsetHeight);
 };
 
 const close = ev => {
