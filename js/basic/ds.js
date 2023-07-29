@@ -30,11 +30,12 @@ const position = () => {
     const inst = activeInstance;
     const opener = inst.opener.getBoundingClientRect(); // BUG: this doesn't work if ev.target is inside a positioned element
     const header = obj.children[0].getBoundingClientRect().height;
+    const cols = Math.max(1, Math.min(Math.floor((window.innerWidth - margin*2) / inst.width), inst.maxCols||1));
+    const width = Math.min(window.innerWidth - margin*2, inst.width*cols);
     const left = Math.max(margin,
-        opener.x + opener.width - inst.width,
-        Math.min(window.innerWidth - inst.width - 2*margin, opener.x),
+        opener.x + opener.width - width,
+        Math.min(window.innerWidth - width - 2*margin, opener.x),
     );
-    const width = Math.min(window.innerWidth - margin*2, inst.width);
 
     const top = opener.y + opener.height;
     const height = Math.max(header + 20, Math.min(window.innerHeight - margin*2, window.innerHeight - top - margin));
@@ -42,8 +43,11 @@ const position = () => {
     obj.style.top  = (top  + window.scrollY) + 'px';
     obj.style.left = (left + window.scrollX) + 'px';
     obj.style.width = width + 'px';
-    const l = obj.children[1];
-    if (l && l.tagName == 'UL') l.style.maxHeight = (height - header) + 'px';
+    const d = obj.children[1];
+    if (d && d.tagName == 'DIV') {
+        d.style.maxHeight = (height - header) + 'px';
+        d.children[0].style.columnCount = cols;
+    }
 
     // Only attempt to scroll if the obj is entirely into view, otherwise we may prevent page scroll
     if (top > 0 && top+height < window.innerHeight) {
@@ -68,6 +72,7 @@ const close = ev => {
 
 // Constructor options (all optional):
 // - width
+// - maxCols
 // - placeholder
 // - onselect(obj,checked)
 //     Called when an item has been selected. 'checked' is always true for
@@ -249,7 +254,7 @@ class DS {
             ? m('b', this.source.api.error)
             : !loading && this.input.trim() !== '' && this.list.length == 0
             ? m('em', 'No results')
-            : m('ul', this.list.map(item)),
+            : m('div', m('ul', this.list.map(item))),
         );
     }
 };
@@ -331,7 +336,7 @@ DS.Resolutions = {
 };
 
 const Lang = f => ({
-    opts: { width: 250 },
+    opts: { width: 250, maxCols: 3 },
     list: (src, str, cb) => cb(vndbTypes.language
         .filter(([id,label]) => f(id) && (str === id.toLowerCase() || label.toLowerCase().includes(str.toLowerCase())))
         .anySort(([id,label,,rank]) => [id.toLowerCase() !== str.toLowerCase(), !label.toLowerCase().startsWith(str.toLowerCase()), 99-rank])
@@ -344,7 +349,7 @@ DS.Lang = Lang(() => true);
 DS.ScriptLang = Lang(l => l !== 'zh'); // Chinese has separate language entries for the scripts
 
 DS.Platforms = {
-    opts: { width: 250 },
+    opts: { width: 250, maxCols: 3 },
     list: (src, str, cb) => cb(vndbTypes.platform
         .filter(([id,label]) => str.toLowerCase() === id.toLowerCase() || label.toLowerCase().includes(str.toLowerCase()))
         .anySort(([id,label]) => str ? [id.toLowerCase() !== str.toLowerCase(), !label.toLowerCase().startsWith(str.toLowerCase()), label] : 0)
