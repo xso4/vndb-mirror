@@ -78,7 +78,7 @@ fieldset.form {
     table { margin-bottom: 5px }
     p + table { margin-top: 5px }
     a.help {
-        border: none; margin-left: 3px;
+        border: none; margin-left: 3px; color: var(--helpbutton, var(--link));
         svg { width: 16px; height: 16px; margin-bottom: -2px }
     }
     section.help {
