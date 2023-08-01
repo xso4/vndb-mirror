@@ -54,7 +54,7 @@ const Titles = initVnode => {
                 onclick: () => data.titles = data.titles.filter(x => x !== t)
             }),
         )),
-        m(DSButton, { onclick: ds.open }, 'Add language'),
+        m(DS.Button, {ds}, 'Add language'),
         data.titles.length > 0 ? null : m('p.invalid', 'At least one language must be selected.'),
     );
     return {view};
@@ -119,7 +119,7 @@ const Format = initVnode => {
     const engines = new DS(DS.New(DS.Engines,
         id => ({id}),
         obj => m('em', obj.id ? 'Add new engine: ' + obj.id : 'Empty / unknown'),
-    ), { onselect: obj => data.engine = obj.id });
+    ), { more: true });
 
     const resoParse = str => {
         const v = str.toLowerCase().replaceAll('*', 'x').replaceAll('×', 'x').replace(/[-\s]+/g, '');
@@ -135,15 +135,14 @@ const Format = initVnode => {
     const resolutions = new DS(DS.New(DS.Resolutions,
         str => { const r = resoParse(str); return r ? {id:resoFmt(...r)} : null },
         obj => m('em', obj.id ? 'Custom resolution: ' + resoFmt(...resoParse(obj.id)) : 'Empty / unknown'),
-    ), {
-        onselect: obj => { const r = resoParse(obj.id); data.reso_x = r?r[0]:0; data.reso_y = r?r[1]:0; },
-    });
+    ), { more: true });
+    const resolution = {v:resoFmt(data.reso_x,data.reso_y)};
 
     const view = () => m('fieldset.form',
         m('legend', 'Format'),
         m('fieldset',
             m('label', 'Platforms'),
-            m(DSButton, { class: 'xw', onclick: plat.open },
+            m(DS.Button, { class: 'xw', ds: plat },
                 data.platforms.length === 0 ? 'No platforms selected' :
                 data.platforms.map(p => m('span', PlatIcon(p.platform), vndbTypes.platform.find(([x]) => x === p.platform)[1])).intersperse(' '),
             ),
@@ -165,12 +164,18 @@ const Format = initVnode => {
             ?  m('p.invalid', 'List contains duplicates') : null,
         ),
         m('fieldset',
-            m('label', 'Engine'),
-            m(DSButton, { onclick: engines.open, class: 'mw' }, data.engine),
+            m('label[for=engine]', 'Engine'),
+            m(DS.Input, { id: 'engine', class: 'mw', maxlength: 50, ds: engines, data, field: 'engine', onfocus: ev => ev.target.select() }),
         ),
         m('fieldset',
-            m('label', 'Resolution'),
-            m(DSButton, { onclick: resolutions.open, class: 'mw' }, resoFmt(data.reso_x, data.reso_y)),
+            m('label[for=resolution]', 'Resolution'),
+            m(DS.Input, {
+                id: 'resolution', class: 'mw', data: resolution, field: 'v', ds: resolutions,
+                placeholder: 'width x height',
+                onfocus: ev => ev.target.select(),
+                oninput: v => { const r = resoParse(v); data.reso_x = r?r[0]:0; data.reso_y = r?r[1]:0; },
+                invalid: resoParse(resolution.v) ? null : 'Invalid resolution, expected format is "{width}x{height}".',
+            }),
         ),
         m('fieldset',
             m('label[for=voiced]', 'Voiced'),
@@ -362,7 +367,7 @@ const VNs = initVnode => {
             ),
             m('td', m('small', v.vid, ': '), m('a[target=_blank]', { href: '/'+v.vid }, v.title)),
         ))),
-        m(DSButton, { class: 'mw', onclick: ds.open }, 'Add visual novel'),
+        m(DS.Button, { ds, class: 'mw' }, 'Add visual novel'),
     );
     return {view};
 };
@@ -390,7 +395,7 @@ const Producers = initVnode => {
             ),
             m('td', m('small', p.pid, ': '), m('a[target=_blank]', { href: '/'+p.pid }, p.name)),
         ))),
-        m(DSButton, { class: 'mw', onclick: ds.open }, 'Add producer'),
+        m(DS.Button, { ds, class: 'mw' }, 'Add producer'),
     );
     return {view};
 };

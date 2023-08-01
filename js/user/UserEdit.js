@@ -165,7 +165,7 @@ const Traits = initVnode => {
             m('tfoot', m('tr', m('td[colspan=2]',
                 data.traits.length >= 100
                 ? 'Maximum number of traits reached.'
-                : m(DSButton, { onclick: ds.open }, 'Add trait'),
+                : m(DS.Button, {ds}, 'Add trait'),
             ))),
         ),
     )}
@@ -208,7 +208,7 @@ const Titles = initVnode => {
         ))),
         m('tfoot', m('tr', m('td[colspan=5]',
             lst.length >= 5 ? null
-            : m(DSButton, {onclick: ds.open}, 'Add language'),
+            : m(DS.Button, {ds}, 'Add language'),
         )))
     )};
 };
@@ -254,7 +254,7 @@ const display = data => {
             ) : null,
             m('fieldset',
                 m('label', 'Time zone', HelpButton('timezone')),
-                m(DSButton, { class: 'lw', onclick: tz.open }, data.timezone),
+                m(DS.Button, { class: 'lw', ds: tz }, data.timezone),
                 ' ', brtz && brtz != data.timezone
                 ? m('a[href=#]', { onclick: ev => { ev.preventDefault(); data.timezone = brtz }}, 'Set to '+brtz)
                 : null,
@@ -347,7 +347,7 @@ const display = data => {
                 ),
             ),
             data.vnrel_langs === null ? null : m('fieldset',
-                m(DSButton, { onclick: vl.open }, 'Select languages'),
+                m(DS.Button, { ds: vl }, 'Select languages'),
                 data.vnrel_langs.map(LangIcon)
             ),
             m('fieldset',
@@ -369,7 +369,7 @@ const display = data => {
                 ),
             ),
             data.staffed_langs === null ? null : m('fieldset',
-                m(DSButton, { onclick: sl.open }, 'Select languages'),
+                m(DS.Button, { ds: sl }, 'Select languages'),
                 data.staffed_langs.map(LangIcon)
             ),
             m('fieldset',
@@ -439,7 +439,7 @@ const TTPrefs = initVnode => {
             ))),
             m('tfoot', m('tr', m('td[colspan=6]',
                 data[pref].length >= 500 ? null
-                : m(DSButton, { onclick: ds.open }, prefix === 'g' ? 'Add tag' : 'Add trait')
+                : m(DS.Button, {ds}, prefix === 'g' ? 'Add tag' : 'Add trait')
             ))),
         ),
     )};

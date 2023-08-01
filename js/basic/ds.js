@@ -57,7 +57,7 @@ const close = ev => {
     if (!activeInstance) return;
     if (ev && (globalObj.contains(ev.target) || activeInstance.opener.contains(ev.target))) return;
     if (!ev) activeInstance.opener.focus();
-    activeInstance.abort();
+    if (activeInstance) activeInstance.abort();
     activeInstance = null;
     document.removeEventListener('click', close);
     document.removeEventListener('keydown', keydown);
@@ -71,6 +71,8 @@ const close = ev => {
 // - width
 // - maxCols
 // - placeholder
+// - more
+//     Adds a "type for more options" as last option if search is empty.
 // - onselect(obj,checked)
 //     Called when an item has been selected. 'checked' is always true for
 //     single-selection dropdowns.
@@ -84,9 +86,16 @@ const close = ev => {
 //     Set for multiselection dropdowns.
 //     Called on each displayed object, should return whether this item is
 //     checked or not.
+// - checkall()
+//     Adds a "check all" button.
+// - uncheckall()
+//     Adds an "uncheck all" button.
 //
-// Actual positioning and size of the box may differ from the given options in
-// order to adjust for different window sizes.
+// To use a DS object as a selection dropdown:
+//   m(DS.Button, {ds}, ...)
+// Or to autocomplete an input field:
+//   m(DS.Input, {ds, ...})
+// Most of the above constructor options are ignored for autocompletion.
 class DS {
     constructor(source, opts) {
         this.width = 400;
@@ -98,12 +107,12 @@ class DS {
         this.list = [];
     }
 
-    open(ev) {
-        ev.preventDefault();
+    open(opener, autocomplete) {
         if (activeInstance === this) return close();
         setupObj();
         activeInstance = this;
-        this.opener = ev.currentTarget;
+        this.autocomplete = autocomplete;
+        this.opener = opener;
         this.focus = v => { this.focus = null; v.dom.focus() };
         document.addEventListener('click', close);
         document.addEventListener('keydown', keydown);
@@ -115,7 +124,8 @@ class DS {
     select() {
         const obj = this.list.find(e => e.id === this.selId);
         if (!obj) return;
-        this.onselect && this.onselect(obj, !this.checked || !this.checked(obj));
+        if (this.autocomplete) this.autocomplete(this.source.stringify ? this.source.stringify(obj) : obj.id);
+        else if (this.onselect) this.onselect(obj, !this.checked || !this.checked(obj));
         if (!this.checked) {
             close();
             this.setInput('');
@@ -157,7 +167,7 @@ class DS {
             const f = this.list.find(e => e.id === this.selId);
             ev.shiftKey || !f ? close() : this.select();
             if (this.checked) close(); // Tab always closes, even on multiselection boxes
-            ev.preventDefault();
+            if (!this.autocomplete) ev.preventDefault();
         }
     }
 
@@ -172,7 +182,7 @@ class DS {
             this.list.push(e);
             if (e.id === this.selId) hasSel = true;
         }
-        if(!hasSel) this.setSel();
+        if(!hasSel && (!this.autocomplete || this.input !== '')) this.setSel();
     }
 
     abort() {
@@ -212,8 +222,11 @@ class DS {
         });
     }
 
+    loading() {
+        return this.loadingTimer || (this.source.api && this.source.api.loading());
+    }
+
     view() {
-        const loading = this.loadingTimer || (this.source.api && this.source.api.loading());
         const item = e => {
             const p = e._props;
             return m('li', {
@@ -234,7 +247,7 @@ class DS {
                 onsubmit: ev => { ev.preventDefault(); this.select() },
                 onupdate: position,
                 oncreate: position,
-            }, m('div',
+            }, m('div', this.autocomplete ? [] : [
                 m('div',
                     m('input[type=text]', {
                         oncreate: this.focus, onupdate: this.focus,
@@ -242,19 +255,68 @@ class DS {
                         oninput: ev => this.setInput(ev.target.value),
                         placeholder: this.placeholder,
                     }),
-                    m('span', {class: loading ? 'spinner' : ''}, loading ? null : Icon.Search()),
+                    m('span', {class: this.loading() ? 'spinner' : ''}, this.loading() ? null : Icon.Search()),
                 ),
                 this.checkall   ? m('div', m(Button.CheckAll,   { onclick: this.checkall   })) : null,
                 this.uncheckall ? m('div', m(Button.UncheckAll, { onclick: this.uncheckall })) : null,
-            ),
+            ]),
             this.source.api && this.source.api.error
             ? m('b', this.source.api.error)
-            : !loading && this.input.trim() !== '' && this.list.length == 0
+            : this.autocomplete && this.loading() ? m('span.spinner')
+            : !this.loading() && this.input.trim() !== '' && this.list.length == 0
             ? m('em', 'No results')
-            : m('div', m('ul', this.list.map(item))),
+            : m('div', m('ul',
+                this.list.map(item),
+                this.more && this.input === '' ? m('li', m('small', 'Type for more options')) : null,
+            )),
         );
     }
 };
+
+
+DS.Button = {view: vnode => m('button.ds[type=button]', {
+        class: vnode.attrs.class,
+        onclick: ev => { ev.preventDefault(); vnode.attrs.onclick ? vnode.attrs.onclick(ev) : vnode.attrs.ds && vnode.attrs.ds.open(ev.target, null)  },
+    }, vnode.children, m('span.invisible', 'X'), Icon.ChevronDown()
+)};
+
+
+// Wrapper around an Input component, accepts the same attrs as an Input in
+// addition to a 'ds' attribute to provide autocompletion.
+DS.Input = {view: vnode => {
+    const a = vnode.attrs;
+    const open = () => {
+        a.ds.setInput(a.data[a.field]);
+        a.ds.open(vnode.dom.childNodes[0], v => {
+            a.data[a.field] = v;
+            a.oninput && a.oninput(v);
+        });
+    };
+    return m('form.ds', {
+        onsubmit: ev => {
+            ev.preventDefault();
+            const par = ev.target.parentNode.closest('form');
+            if (activeInstance === a.ds) { activeInstance.select(); close(); }
+            // requestSubmit() is a fairly recent browser addition, need to test for it.
+            // Browsers without it will simply ignore the enter key, which is 'kay-ish as well.
+            else if (par && par.requestSubmit) par.requestSubmit();
+        } },
+        m(Input, {
+            ...a,
+            onfocus: ev => {
+                open();
+                a.ds.selId = null; // Don't select anything yet, we don't want tabbing in and out of the input to change anything
+                a.ds.setInput(''); // Pretend the input is empty, so we get the default listing when the input hasn't been modified
+                a.onfocus && a.onfocus(ev);
+            },
+            oninput: v => {
+                if (activeInstance !== a.ds) open();
+                a.ds.setInput(v);
+                a.oninput && a.oninput(v);
+            },
+        }),
+    );
+}};
 
 
 // Source interface:
@@ -275,6 +337,9 @@ class DS {
 //     Each object must have a string 'id'
 // - view(obj)
 //     Should return a vnode for the given object
+// - stringify(obj)
+//     Should return a string representation of the given object.
+//     Only used for autocompletion, defaults to obj.id.
 
 const tt_view = obj => [
     obj.group_name ? m('small', obj.group_name, ' / ') : null,

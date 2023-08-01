@@ -39,12 +39,6 @@ window.Button = {
     UncheckAll: but(Icon.MinusSquare,  'Uncheck all'),
 };
 
-window.DSButton = {view: vnode => m('button.ds[type=button]', {
-        class: vnode.attrs.class,
-        onclick: ev => { ev.preventDefault(); vnode.attrs.onclick(ev) },
-    }, vnode.children, m('span.invisible', 'X'), Icon.ChevronDown()
-)};
-
 const helpState = {};
 window.HelpButton = id => m('a.help[href=#][title=Info]',
     { onclick: ev => { ev.preventDefault(); helpState[id] = !helpState[id]; } },
@@ -221,6 +215,7 @@ window.FormTabs = initVnode => {
 //   The length is properly counted in Unicode points rather than UTF-16 digits.
 // - focus         -> Bool, set input focus on create
 // - rows / cols   -> For texarea
+// - onfocus
 //
 // The HTML5 validity API has some annoying limitations and is not always
 // honored, so this component simply re-implements validation and reporting of
@@ -255,7 +250,7 @@ window.Input = () => {
         const invalid = validate(a);
         const attrs = {
             id: a.id, tabindex: a.tabindex, placeholder: a.placeholder,
-            rows: a.rows, cols: a.cols,
+            rows: a.rows, cols: a.cols, onfocus: a.onfocus,
             class: (a.class||'') + (invalid ? ' invalid' : ''),
             oninput: ev => {
                 let v = ev.target.value;
