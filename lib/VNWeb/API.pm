@@ -714,6 +714,11 @@ api_query '/vn',
                 lie      => { select => 'tv.lie', @BOOL },
             },
         },
+        developers => {
+            enrich => sub { sql 'SELECT v.id AS vid, p.id', $_[0], 'FROM vn v, unnest(v.c_developers) vp(id), producerst p', $_[1], 'WHERE p.id = vp.id AND v.id IN', $_[2] },
+            key => 'id', col => 'vid', num => 2,
+            inherit => '/producer',
+        },
     },
     sort => [
         id => 'v.id',

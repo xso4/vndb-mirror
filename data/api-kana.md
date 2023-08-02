@@ -665,9 +665,17 @@ tags.\*
     separate request. Otherwise the same tag info may get duplicated many times
     in the response.
 
+developers
+:   Array of objects. The developers of a VN are all producers with a
+    "developer" role on a release linked to the VN. You can get this same
+    information by fetching all relevant release entries, but if all you need
+    is the list of developers then querying this field is faster.
+
+developers.\*
+:   All [producer fields](#producer-fields) can be used here.
+
 *Currently missing from the old API: VN relations, staff, anime relations and
-external links. Also potentially useful: list of developers and VA's(?). Can
-add if there's interest.*
+external links. Can add if there's interest.*
 
 
 ## POST /release
@@ -909,7 +917,7 @@ Name                [F]   Description
 `type`                    Producer type, see the `type` field below.
 -----------------------------------------------------------------------------
 
-### Fields
+### Fields {#producer-fields}
 
 id
 :   vndbid.
@@ -1513,6 +1521,10 @@ bias in its selection due to the presence of id gaps, but you most likely don't
 need perfect uniform random selection anyway.
 
 # Change Log
+
+**2023-08-02**
+
+- Add `developers` field to [POST /vn](#post-vn).
 
 **2023-07-11**
 
