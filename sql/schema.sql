@@ -318,6 +318,23 @@ CREATE TABLE docs_hist (
   html       text -- cache
 );
 
+-- drm
+CREATE TABLE drm (
+  id          serial PRIMARY KEY, -- [pub]
+  c_ref       integer NOT NULL DEFAULT 0, -- [pub]
+  state       smallint NOT NULL DEFAULT 0, -- 0 = new, 1 = approved, 2 = deleted
+  disc        boolean NOT NULL, -- [pub]
+  cdkey       boolean NOT NULL, -- [pub]
+  activate    boolean NOT NULL, -- [pub]
+  alimit      boolean NOT NULL, -- [pub]
+  account     boolean NOT NULL, -- [pub]
+  online      boolean NOT NULL, -- [pub]
+  cloud       boolean NOT NULL, -- [pub]
+  physical    boolean NOT NULL, -- [pub]
+  name        text NOT NULL, -- [pub]
+  description text NOT NULL -- [pub]
+);
+
 -- global_settings
 CREATE TABLE global_settings (
   -- Only permit a single row in this table
@@ -591,6 +608,22 @@ CREATE TABLE releases_hist (
   l_patreonp   integer NOT NULL DEFAULT 0,
   l_patreon    text NOT NULL DEFAULT '',
   l_substar    text NOT NULL DEFAULT ''
+);
+
+-- releases_drm
+CREATE TABLE releases_drm (
+  id      vndbid NOT NULL, -- [pub]
+  drm     integer NOT NULL, -- [pub]
+  notes   text NOT NULL DEFAULT '', -- [pub]
+  PRIMARY KEY(id, drm)
+);
+
+-- releases_drm_hist
+CREATE TABLE releases_drm_hist (
+  chid    integer NOT NULL,
+  drm     integer NOT NULL,
+  notes   text NOT NULL DEFAULT '',
+  PRIMARY KEY(chid, drm)
 );
 
 -- releases_media

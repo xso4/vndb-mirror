@@ -748,6 +748,15 @@ BEGIN
     END IF;
   END IF;
 
+  -- Update drm.c_ref
+  IF vndbid_type(nitemid) = 'r' THEN
+    WITH
+      old (id) AS (SELECT r.drm FROM releases_drm_hist r, changes c WHERE r.chid = xoldchid AND c.id = xoldchid AND NOT c.ihid),
+      new (id) AS (SELECT r.drm FROM releases_drm_hist r, changes c WHERE r.chid = nchid    AND c.id = nchid    AND NOT c.ihid),
+      ins      AS (UPDATE drm SET c_ref = c_ref + 1 WHERE id IN(SELECT id FROM new EXCEPT SELECT id FROM old))
+                   UPDATE drm SET c_ref = c_ref - 1 WHERE id IN(SELECT id FROM old EXCEPT SELECT id FROM new);
+  END IF;
+
   -- Update tags_vn_* when the VN's hidden flag is changed
   IF vndbid_type(nitemid) = 'v' AND EXISTS(SELECT 1 FROM changes c1, changes c2 WHERE c1.ihid IS DISTINCT FROM c2.ihid AND c1.id = nchid AND c2.id = xoldchid) THEN
     PERFORM tag_vn_calc(nitemid);

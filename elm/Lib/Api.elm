@@ -42,6 +42,7 @@ showResponse res =
     Releases _                      -> unexp
     Resolutions _                   -> unexp
     Engines _                       -> unexp
+    DRM _                           -> unexp
     BoardResult _                   -> unexp
     TagResult _                     -> unexp
     TraitResult _                   -> unexp

@@ -52,6 +52,7 @@ const EditSum = vnode => {
 
 @include .gen/extlinks.js
 @include contrib/ReleaseEdit.js
+@include contrib/DRMEdit.js
 @include contrib/ProducerEdit.js
 
 // @license-end

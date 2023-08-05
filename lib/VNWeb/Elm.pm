@@ -66,6 +66,10 @@ our %apis = (
         engine   => {},
         count    => { uint => 1 },
     } } ],
+    DRM            => [ { aoh => { # Response to 'DRM'
+        name     => {},
+        count    => { uint => 1 },
+    } } ],
     BoardResult    => [ { aoh => { # Response to 'Boards'
         btype    => { enum => \%BOARD_TYPE },
         iid      => { default => undef, vndbid => ['p','v','u'] },

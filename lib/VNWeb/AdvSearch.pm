@@ -393,6 +393,7 @@ f r => 18 => 'rlist',    { uint => 1, enum => \%RLIST_STATUS }, sql_list => sub 
         sql 'r.id', $neg ? 'NOT' : '', 'IN(SELECT rid FROM rlists WHERE uid =', \auth->uid, 'AND status IN', $val, $all && @$val > 1 ? ('GROUP BY rid HAVING COUNT(status) =', \scalar @$val) : (), ')';
     };
 f r => 19 => 'extlink',  _extlink_filter('r');
+f r => 20 => 'drm-type', { required => 0, default => '' }, '=' => sub { sql 'EXISTS(SELECT 1 FROM drm JOIN releases_drm rd ON rd.drm = drm.id WHERE drm.name =', \$_, 'AND rd.id = r.id)' };
 f r => 61 => 'patch',    { uint => 1, range => [1,1] }, '=' => sub { 'r.patch' };
 f r => 62 => 'freeware', { uint => 1, range => [1,1] }, '=' => sub { 'r.freeware' };
 f r => 64 => 'uncensored',{uint => 1, range => [1,1] }, '=' => sub { 'r.uncensored' };

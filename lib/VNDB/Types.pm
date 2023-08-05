@@ -145,6 +145,17 @@ hash DEVSTATUS =>
     2 => 'Cancelled';
 
 
+hash DRM_PROPERTY => # No DRM: https://lucide.dev/icons/unlock (needs circle?)
+    disc      => 'Disc check',        # https://lucide.dev/icons/disc-3
+    cdkey     => 'CD-key',            # https://lucide.dev/icons/key-round (needs circle?)
+    activate  => 'Online activation', # https://lucide.dev/icons/wifi (needs circle?)
+    alimit    => 'Activation limit',
+    account   => 'Account-based',     # https://lucide.dev/icons/link  (needs circle?)
+    online    => 'Always online',
+    cloud     => 'Cloud gaming',
+    physical  => 'Physical';  # XXX: How does this relate to cdkey?
+
+
 # SQL: ENUM producer_relation
 # "Pref" relations are considered the "preferred" relation to show (as opposed to their reverse)
 hash PRODUCER_RELATION =>

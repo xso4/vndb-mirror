@@ -19,6 +19,7 @@ import AdvSearch.RDate as AD
 import AdvSearch.Range as AR
 import AdvSearch.Resolution as AE
 import AdvSearch.Engine as AEng
+import AdvSearch.DRM as ADRM
 import AdvSearch.Birthday as AB
 import AdvSearch.Lib exposing (..)
 
@@ -329,6 +330,7 @@ type FieldModel
   | FMRDate      AD.Model
   | FMResolution AE.Model
   | FMEngine     AEng.Model
+  | FMDRMType    ADRM.Model
   | FMTag        AG.Model
   | FMTrait      AI.Model
   | FMBirthday   AB.Model
@@ -375,6 +377,7 @@ type FieldMsg
   | FSRDate      AD.Msg
   | FSResolution AE.Msg
   | FSEngine     AEng.Msg
+  | FSDRMType    ADRM.Msg
   | FSTag        AG.Msg
   | FSTrait      AI.Msg
   | FSBirthday   AB.Msg
@@ -475,6 +478,7 @@ fields =
   , f R "Ero animation"      0  FMAniEro      AS.init                 (AS.animatedFromQuery False)
   , f R "Story animation"    0  FMAniStory    AS.init                 (AS.animatedFromQuery True)
   , f R "Engine"             0  FMEngine      AEng.init               AEng.fromQuery
+  , f R "DRM Type"           0  FMDRMType     ADRM.init               ADRM.fromQuery
   , f R "External links"     0  FMExtLinks    AS.init                 AS.extlinkFromQuery
   , f R "My List"            0  FMRList       AS.init                 AS.rlistFromQuery
   -- Deprecated
@@ -539,6 +543,7 @@ fieldUpdate dat msg_ (num, dd, model) =
           FMAnime      m -> Cmd.map FSAnime      (A.refocus m.conf)
           FMResolution m -> Cmd.map FSResolution (A.refocus m.conf)
           FMEngine     m -> Cmd.map FSEngine     (A.refocus m.conf)
+          FMDRMType    m -> Cmd.map FSDRMType    (A.refocus m.conf)
           _ -> Cmd.none
   in case (msg_, model) of
       -- Move to parent node is tricky, needs to be intercepted at this point so that we can access the parent NestModel.
@@ -606,6 +611,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSRDate msg,    FMRDate m)    -> maps FMRDate    (AD.update msg m)
       (FSResolution msg,FMResolution m)->mapf FMResolution FSResolution (AE.update dat msg m)
       (FSEngine msg,   FMEngine m)   -> mapf FMEngine FSEngine (AEng.update dat msg m)
+      (FSDRMType msg,  FMDRMType m)  -> mapf FMDRMType FSDRMType (ADRM.update dat msg m)
       (FSTag msg,      FMTag m)      -> mapf FMTag FSTag     (AG.update dat msg m)
       (FSTrait msg,    FMTrait m)    -> mapf FMTrait FSTrait (AI.update dat msg m)
       (FSBirthday msg, FMBirthday m) -> maps FMBirthday (AB.update msg m)
@@ -675,6 +681,7 @@ fieldView dat (_, dd, model) =
       FMRDate m      -> f FSRDate      (AD.view m)
       FMResolution m -> f FSResolution (AE.view m)
       FMEngine m     -> f FSEngine     (AEng.view m)
+      FMDRMType m    -> f FSDRMType    (ADRM.view m)
       FMTag m        -> f FSTag        (AG.view dat m)
       FMTrait m      -> f FSTrait      (AI.view dat m)
       FMBirthday m   -> f FSBirthday   (AB.view m)
@@ -725,6 +732,7 @@ fieldToQuery dat (_, _, model) =
     FMRDate m    -> AD.toQuery m
     FMResolution m-> AE.toQuery m
     FMEngine m   -> AEng.toQuery m
+    FMDRMType m  -> ADRM.toQuery m
     FMTag m      -> AG.toQuery m
     FMTrait m    -> AI.toQuery m
     FMBirthday m -> AB.toQuery m

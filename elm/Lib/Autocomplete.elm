@@ -14,6 +14,7 @@ module Lib.Autocomplete exposing
   , animeSource
   , resolutionSource
   , engineSource
+  , drmSource
   , init
   , clear
   , refocus
@@ -45,6 +46,7 @@ import Gen.Chars as GC
 import Gen.Anime as GA
 import Gen.Resolutions as GR
 import Gen.Engines as GE
+import Gen.DRM as GDRM
 
 
 type alias Config m a =
@@ -227,6 +229,19 @@ engineSource =
                 (\s l -> List.filter (\v -> String.contains (String.toLower s) (String.toLower v.engine)) l |> List.take 10)
   , view    = \i -> [ text i.engine, small [] [ text <| " (" ++ String.fromInt i.count ++ ")" ] ]
   , key     = \i -> i.engine
+  }
+
+
+drmSource : SourceConfig m GApi.ApiDRM
+drmSource =
+  { source  = LazyList
+                (GDRM.send {})
+                (\x -> case x of
+                        GApi.DRM e -> Just e
+                        _ -> Nothing)
+                (\s l -> List.filter (\v -> String.contains (String.toLower s) (String.toLower v.name)) l |> List.take 10)
+  , view    = \i -> [ text i.name, small [] [ text <| " (" ++ String.fromInt i.count ++ ")" ] ]
+  , key     = \i -> i.name
   }
 
 

@@ -28,6 +28,12 @@ my $FORM = {
         medium    => { enum => \%MEDIUM },
         qty       => { uint => 1, range => [0,40] },
     } },
+    drm        => { sort_keys => 'name', aoh => {
+        name      => { maxlength => 128 },
+        notes     => { required => 0, default => '' },
+        description => { required => 0, default => '', maxlength => 10240 },
+        map +($_,{anybool=>1}), keys %DRM_PROPERTY
+    } },
     gtin       => { gtin => 1 },
     catalog    => { default => '', maxlength => 50 },
     released   => { default => 99999999, min => 1, rdate => 1 },
@@ -86,6 +92,7 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
 
     enrich_merge vid => sql('SELECT id AS vid, title[1+1] FROM', vnt, 'v WHERE id IN'), $e->{vn};
     enrich_merge pid => sql('SELECT id AS pid, title[1+1] AS name FROM', producerst, 'p WHERE id IN'), $e->{producers};
+    enrich_merge drm => sql('SELECT id AS drm, name FROM drm WHERE id IN'), $e->{drm};
 
     $e->@{qw/gtin catalog extlinks/} = elm_empty($FORM_OUT)->@{qw/gtin catalog extlinks/} if $copy;
 
@@ -168,6 +175,16 @@ js_api ReleaseEdit => $FORM_IN, sub {
     $data->{notes} = bb_subst_links $data->{notes};
     die "No VNs selected" if !$data->{vn}->@*;
     die "Invalid resolution: ($data->{reso_x},$data->{reso_y})" if (!$data->{reso_x} && $data->{reso_y} > 1) || ($data->{reso_x} && !$data->{reso_y});
+
+    # We need the DRM names for form_changed()
+    enrich_merge drm => sql('SELECT id AS drm, name FROM drm WHERE id IN'), $e->{drm};
+    # And the DRM identifiers to actually save the new form.
+    enrich_merge name => sql('SELECT name, id AS drm FROM drm WHERE name IN'), $data->{drm};
+    for my $d ($data->{drm}->@*) {
+        $d->{notes} = bb_subst_links $d->{notes};
+        $d->{drm} = tuwf->dbVali('INSERT INTO drm', {map +($_,$d->{$_}), 'name', 'description', keys %DRM_PROPERTY}, 'RETURNING id')
+            if !defined $d->{drm};
+    }
 
     to_extlinks $e;
 

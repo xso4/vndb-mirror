@@ -4,6 +4,7 @@ CREATE        INDEX chars_main             ON chars (main) WHERE main IS NOT NUL
 CREATE        INDEX chars_vns_vid          ON chars_vns (vid);
 CREATE        INDEX chars_image            ON chars (image);
 CREATE        INDEX chars_traits_tid       ON chars_traits (tid);
+CREATE UNIQUE INDEX drm_name               ON drm (name);
 CREATE UNIQUE INDEX image_votes_pkey       ON image_votes (uid, id);
 CREATE        INDEX image_votes_id         ON image_votes (id);
 CREATE        INDEX notifications_uid_iid  ON notifications (uid,iid);
@@ -88,6 +89,10 @@ ALTER TABLE quotes                   ADD CONSTRAINT quotes_vid_fkey             
 ALTER TABLE releases                 ADD CONSTRAINT releases_olang_fkey                FOREIGN KEY (id,olang)  REFERENCES releases_titles(id,lang) DEFERRABLE INITIALLY DEFERRED;
 ALTER TABLE releases_hist            ADD CONSTRAINT releases_hist_chid_fkey            FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE releases_hist            ADD CONSTRAINT releases_hist_olang_fkey           FOREIGN KEY (chid,olang)REFERENCES releases_titles_hist(chid,lang) DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE releases_drm             ADD CONSTRAINT releases_drm_id_fkey               FOREIGN KEY (id)        REFERENCES releases      (id);
+ALTER TABLE releases_drm             ADD CONSTRAINT releases_drm_drm_fkey              FOREIGN KEY (drm)       REFERENCES drm           (id);
+ALTER TABLE releases_drm_hist        ADD CONSTRAINT releases_drm_hist_chid_fkey        FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
+ALTER TABLE releases_drm_hist        ADD CONSTRAINT releases_drm_hist_drm_fkey         FOREIGN KEY (drm)       REFERENCES drm           (id);
 ALTER TABLE releases_titles          ADD CONSTRAINT releases_titles_id_fkey            FOREIGN KEY (id)        REFERENCES releases      (id);
 ALTER TABLE releases_titles_hist     ADD CONSTRAINT releases_titles_hist_chid_fkey     FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE releases_media           ADD CONSTRAINT releases_media_id_fkey             FOREIGN KEY (id)        REFERENCES releases      (id);

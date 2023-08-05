@@ -27,6 +27,13 @@ elm_api Engines => undef, {}, sub {
 };
 
 
+elm_api DRM => undef, {}, sub {
+    elm_DRM tuwf->dbAlli(q{
+        SELECT name, c_ref AS count FROM drm WHERE c_ref > 0 ORDER BY state = 1+1, c_ref DESC, name
+    });
+};
+
+
 js_api Resolutions => {}, sub {
     +{ results => [ map +{ id => resolution($_), count => $_->{count} }, tuwf->dbAlli(q{
         SELECT reso_x, reso_y, count(*) AS count FROM releases WHERE NOT hidden AND NOT (reso_x = 0 AND reso_y = 0)
@@ -40,6 +47,11 @@ js_api Engines => {}, sub {
         SELECT engine AS id, count(*) AS count FROM releases WHERE NOT hidden AND engine <> ''
          GROUP BY engine ORDER BY count(*) DESC, engine
     }) };
+};
+
+
+js_api DRM => {}, sub {
+    +{ results => tuwf->dbAlli('SELECT name AS id, c_ref AS count, state FROM drm ORDER BY state = 1+1, c_ref DESC, name') };
 };
 
 1;

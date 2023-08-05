@@ -49,6 +49,7 @@ b, .standout  { font-weight: normal; color: var(--standout)!important }
 .hidden       { display: none!important }
 .invisible    { visibility: hidden }
 .linethrough  { text-decoration: line-through }
+.nowrap       { white-space: nowrap }
 .spoiler,         .spoiler       a { color: #000!important;            background-color: #000    }
 .spoiler:hover,   .spoiler:focus   { color: var(--maintext)!important; background-color: inherit }
 .spoiler:hover a, .spoiler:focus a { color: var(--link)!important;     background-color: inherit }

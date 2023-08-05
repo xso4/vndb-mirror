@@ -226,6 +226,46 @@ const Format = initVnode => {
 };
 
 
+const DRM = initVnode => {
+    const {data} = initVnode.attrs;
+    const ds = new DS(DS.New(DS.DRM,
+        id => id.length > 0 && id.length <= 128 ? {id,create:true} : null,
+        obj => m('em', 'Add new DRM type: ' + obj.id),
+    ), {
+        more: true,
+        placeholder: 'Search or add new DRM type',
+        props: obj =>
+            obj.state === 2 ? { selectable: false } :
+            data.drm.find(d => d.name === obj.id) ? { selectable: false, append: m('small', ' (already listed)') } : {},
+        onselect: obj => data.drm.push({ create: obj.create, name: obj.id, ...Object.fromEntries(vndbTypes.drmProperty.map(([id])=>[id,false])) }),
+    });
+    const view = () => m('fieldset.form',
+        m('legend', 'DRM'),
+        m('table', data.drm.map(d => m('tr',
+            m('td', m(Button.Del, {onclick: () => data.drm = data.drm.filter(x => x !== d)})),
+            m('td.nowrap', d.create ? d.name : m('a[target=_blank]', { href: '/r/drm?n='+encodeURIComponent(d.name) }, d.name)),
+            m('td.lw',
+                m(Input, { class: 'lw', placeholder: 'Notes (optional)', data: d, field: 'notes' }),
+                !d.create ? [] : [
+                    m('br'),
+                    m('strong', 'New DRM type will be added when you submit the form.'),
+                    m('br'),
+                    'Please check the properties that apply:',
+                    vndbTypes.drmProperty.map(([id,name]) => [ m('br'), m('label.check',
+                        m('input[type=checkbox]', { checked: d[id], oninput: ev => d[id] = ev.target.checked }),
+                        ' ', name
+                    )]),
+                    m('br'),
+                    m(Input, {class: 'lw', rows: 2, type: 'textarea', data: d, field: 'description', placeholder: 'Description (optional)'}),
+                ],
+            ),
+        ))),
+        m(DS.Button, {ds}, 'Add DRM type'),
+    );
+    return {view};
+};
+
+
 const Animation = initVnode => {
     const {data} = initVnode.attrs;
     const hasAni = v => v !== null && v !== 0 && v !== 1;
@@ -460,6 +500,7 @@ widget('ReleaseEdit', initVnode => {
             m(Titles, {data}),
             m(Status, {data}),
             m(Format, {data}),
+            m(DRM, {data}),
             m(Animation, {data}),
             m('fieldset.form',
                 m('legend', 'External identifiers & links'),
