@@ -13,15 +13,18 @@ sub enrich_item {
         $_->{title} = titleprefs_swap $s->{lang}, $_->{name}, $_->{latin};
     }
 
-    # Sort aliases by name
-    $s->{alias} = [ sort { ($a->{latin}//$a->{name}) cmp ($b->{latin}//$b->{name}) } $s->{alias}->@* ];
+    # Sort aliases by aid for more readable comparison at revisions.
+    $s->{alias} = [ sort { $a->{aid} <=> $b->{aid} } $s->{alias}->@* ];
 }
 
 
 sub _rev_ {
     my($s) = @_;
+    my %aid;
     revision_ $s, \&enrich_item,
         [ alias  => 'Names', fmt => sub {
+            my $num = ($aid{$_->{aid}} ||= keys %aid);
+            strong_ "$num: ";
             txt_ $_->{name};
             txt_ " ($_->{latin})" if $_->{latin};
             small_ ' (primary)' if $_->{main};
@@ -49,7 +52,7 @@ sub _infotable_ {
             td_ $LANGUAGE{$s->{lang}}{txt};
         };
 
-        my @alias = grep !$_->{main}, $s->{alias}->@*;
+        my @alias = sort { ($a->{latin}//$a->{name}) cmp ($b->{latin}//$b->{name}) } grep !$_->{main}, $s->{alias}->@*;
         tr_ sub {
             td_ @alias == 1 ? 'Alias' : 'Aliases';
             td_ sub {
