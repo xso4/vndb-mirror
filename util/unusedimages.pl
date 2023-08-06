@@ -17,7 +17,8 @@ BEGIN { ($ROOT = abs_path $0) =~ s{/util/unusedimages\.pl$}{}; }
 my $db = DBI->connect('dbi:Pg:dbname=vndb', 'vndb', undef, { RaiseError => 1 });
 
 my $count = 0;
-my $fnmatch = '/(cv|ch|sf|st)/[0-9][0-9]/([1-9][0-9]{0,6})\.jpg';
+my $dirmatch = '/(cv|ch|sf|st)(?:\.orig)?/';
+my $fnmatch = $dirmatch.'[0-9][0-9]/([1-9][0-9]{0,6})\.(?:jpg|webp|png)?';
 
 my(%scr, %cv, %ch);
 my %dir = (cv => \%cv, ch => \%ch, sf => \%scr, st => \%scr);
@@ -97,7 +98,7 @@ sub findunused {
         wanted => sub {
             return if -d "$File::Find::name";
             if($File::Find::name !~ /($fnmatch)$/) {
-                print "# Unknown file: $File::Find::name\n";
+                print "# Unknown file: $File::Find::name\n" if $File::Find::name =~ /$dirmatch/;
                 return;
             }
             if(!$dir{$2}{$3}) {
@@ -109,7 +110,7 @@ sub findunused {
                 $left++;
             }
         }
-    }, "$ROOT/static/cv", "$ROOT/static/ch", "$ROOT/static/sf", "$ROOT/static/st";
+    }, "$ROOT/static";
     printf "# Deleted %d files, left %d files, saved %d KiB\n", $count, $left, $size;
 }
 
