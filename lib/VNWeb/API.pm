@@ -692,7 +692,7 @@ api_query '/vn',
             },
             fields => {
                 IMG('vs.scr', 'image', 'i.'),
-                thumbnail => { select => "vs.scr AS thumbnail", col => 'thumbnail', proc => sub { $_[0] = imgurl $_[0], 1 } },
+                thumbnail => { select => "vs.scr AS thumbnail", col => 'thumbnail', proc => sub { $_[0] = imgurl $_[0], 'thumb' } },
                 thumbnail_dims => { join => 'image', col => 'thumbnail_dims'
                                   , select => "ARRAY[i.width, i.height] AS thumbnail_dims"
                                   , proc => sub { @{$_[0]} = imgsize @{$_[0]}, config->{scr_size}->@* } },

@@ -11,8 +11,11 @@
 /js/.gen/
 /static/g
 /static/ch
+/static/ch.orig
 /static/cv
+/static/cv.orig
 /static/sf
+/static/sf.orig
 /static/st
 /static/robots.txt
 /static/api

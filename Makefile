@@ -33,8 +33,12 @@ CSS_OUT=$(shell ls css/skins/*.sass | sed -e 's/css\/skins\/\(.\+\)\.sass/static
 CSS_GZ=$(shell ls css/skins/*.sass | sed -e 's/css\/skins\/\(.\+\)\.sass/static\/g\/\1.css.gz/g')
 CSS_BR=$(shell ls css/skins/*.sass | sed -e 's/css\/skins\/\(.\+\)\.sass/static\/g\/\1.css.br/g')
 
-ALL_KEEP=\
+IMG_DIRS=\
 	static/ch static/cv static/sf static/st \
+	static/ch.orig static/cv.orig static/sf.orig
+
+ALL_KEEP=\
+	${IMG_DIRS} \
 	data/log static/g www \
 	data/conf.pl \
 	www/robots.txt static/robots.txt
@@ -72,7 +76,7 @@ cleaner: clean
 sql/editfunc.sql: util/sqleditfunc.pl sql/schema.sql
 	util/sqleditfunc.pl
 
-static/ch static/cv static/sf static/st:
+${IMG_DIRS}:
 	mkdir -p $@;
 	for i in $$(seq -w 0 1 99); do mkdir -p "$@/$$i"; done
 
@@ -93,7 +97,7 @@ data/conf.pl:
 	brotli -f $< && touch $@
 
 chmod: all
-	chmod -R a-x+rwX static/{ch,cv,sf,st}
+	chmod -R a-x+rwX ${IMG_DIRS}
 
 
 

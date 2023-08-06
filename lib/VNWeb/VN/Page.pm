@@ -904,7 +904,7 @@ sub screenshots_ {
                     ),
                 sub {
                     my($w, $h) = imgsize $_->{scr}{width}, $_->{scr}{height}, config->{scr_size}->@*;
-                    img_ src => imgurl($_->{scr}{id}, 1), width => $w, height => $h, alt => "Screenshot $_->{scr}{id}";
+                    img_ src => imgurl($_->{scr}{id}, 'thumb'), width => $w, height => $h, alt => "Screenshot $_->{scr}{id}";
                 } for $rel{$r->{id}}->@*;
             }
         }

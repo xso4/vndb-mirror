@@ -571,7 +571,7 @@ my %GET_VN = (
           }
           for (@$n) {
             $_->{id} = $_->{scr};
-            $_->{thumbnail} = imgurl($_->{scr}, 1);
+            $_->{thumbnail} = imgurl($_->{scr}, 'thumb');
             $_->{image} = imgurl delete $_->{scr};
             $_->{rid} = idnum $_->{rid};
             $_->{nsfw} = !$_->{c_votecount} || $_->{c_sexual_avg} > 40 || $_->{c_violence_avg} > 40 ? TRUE : FALSE;
