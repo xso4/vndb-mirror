@@ -14,7 +14,7 @@ input.text, input.submit, input[type=text], input[type=password], input[type=ema
 input.submit, input[type=submit], input[type=button], button { padding: 1px 5px; cursor: pointer }
 form, fieldset           { border: 0; display: block }
 select[multiple] option  {
-    &                    { background: inherit; padding-left: 12px }
+    &                    { background: inherit; padding-left: 12px; position: relative }
     &:checked:before     { position: absolute; left: 0; top: 0; content: '✓' }
 }
 optgroup option          { padding-left: 10px }
