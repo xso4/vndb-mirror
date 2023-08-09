@@ -112,7 +112,7 @@ our %LINKS = (
                       , regex => qr{(?:www\.)?denpasoft\.com/products?/([^/&#?:]+).*} },
         l_jlist    => { label => 'J-List'
                       , fmt   => 'https://www.jlist.com/shop/product/%s'
-                      #, fmt2  => sub { config->{ shift->{l_jlist_jbox} ? 'jbox_url' : 'jlist_url' } }
+                      , fmt2  => config->{jlist_url},
                       , regex => qr{(?:www\.)?(?:jlist|jbox)\.com/shop/product/([^/#?]+).*} },
         l_jastusa  => { label => 'JAST USA'
                       , fmt   => 'https://jastusa.com/games/%s/vndb'
@@ -262,7 +262,7 @@ sub enrich_extlinks {
                  ,       smg.price AS l_mg_price,       smg.r18 AS l_mg_r18
                  ,    sdenpa.price AS l_denpa_price
                  ,     sjast.price AS l_jast_price,     sjast.slug AS l_jast_slug
-                 ,    sjlist.price AS l_jlist_price,    sjlist.jbox AS l_jlist_jbox
+                 ,    sjlist.price AS l_jlist_price
                  ,   sdlsite.price AS l_dlsite_price,   sdlsite.shop AS l_dlsite_shop
               FROM releases r
               LEFT JOIN shop_denpa  sdenpa    ON    sdenpa.id = r.l_denpa    AND    sdenpa.lastfetch IS NOT NULL AND    sdenpa.deadsince IS NULL
@@ -286,7 +286,7 @@ sub enrich_extlinks {
             );
         }
 
-        @cleanup = qw{l_mg_price l_mg_r18 l_denpa_price l_jast_price l_jast_slug l_jlist_price l_jlist_jbox l_dlsite_price l_dlsite_shop l_playasia};
+        @cleanup = qw{l_mg_price l_mg_r18 l_denpa_price l_jast_price l_jast_slug l_jlist_price l_dlsite_price l_dlsite_shop l_playasia};
     }
 
     for my $obj (@obj) {

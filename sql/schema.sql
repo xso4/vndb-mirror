@@ -813,7 +813,6 @@ CREATE TABLE shop_jastusa (
 CREATE TABLE shop_jlist (
   lastfetch  timestamptz,
   deadsince  timestamptz,
-  jbox       boolean NOT NULL DEFAULT false,
   id         text NOT NULL PRIMARY KEY,
   price      text NOT NULL DEFAULT '' -- empty when unknown or not in stock
 );
