@@ -325,7 +325,7 @@ const ExtLinks = initVnode => {
             m('input#extlinks.xw[type=text][placeholder=Add URL...]', { value: str, oninput: ev => {
                 str = ev.target.value;
                 lnk = extlinks.find(l => new RegExp(l.regex).test(str));
-                val = lnk && (v => lnk.int ? v>>0 : ''+v)(str.match(new RegExp(lnk.regex)).filter(x => x !== undefined)[1]);
+                val = lnk && (v => lnk.int ? v+0 : ''+v)(str.match(new RegExp(lnk.regex)).filter(x => x !== undefined)[1]);
                 dup = lnk && (lnk.multi ? links[lnk.id].find(x => x === val) : links[lnk.id] === val);
                 if (lnk && !dup && (lnk.multi || links[lnk.id] === 0 || links[lnk.id] === '')) add();
             }}),
