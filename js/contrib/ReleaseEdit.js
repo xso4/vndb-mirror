@@ -405,6 +405,23 @@ widget('ReleaseEdit', initVnode => {
     const data = initVnode.attrs.data;
     const api = new Api('ReleaseEdit');
     const gtin = {v: data.gtin === '0' ? '' : data.gtin};
+
+    // Lazy port of VNDB::Func::gtintype()
+    const validateGtin = v => {
+        if (!/^[0-9]{10,13}$/.test(v)) return false;
+        v = v.padStart(13, '0'); // GTIN-13
+
+        const n = v.split('').reverse();
+        let check = +n.shift();
+        n.forEach((v,i) => check += v * ((i % 2) !== 0 ? 1 : 3));
+        if ((check % 10) !== 0) return false;
+
+        if (/^4[59]/.test(v)) return true;
+        if (/^(?:0[01]|0[6-9]|13|75[45])/.test(v)) return true;
+        if (/^(?:0[2-5]|2|97[789]|9[6-9])/.test(v)) return false;
+        return true;
+    };
+
     const view = () => m(Form, {api, onsubmit: () => api.call(data)},
         m('article',
             m('h1', 'General info'),
@@ -419,6 +436,7 @@ widget('ReleaseEdit', initVnode => {
                     m(Input, {
                         id: 'gtin', class: 'mw', type: 'number', data: gtin, field: 'v',
                         oninput: v => { data.gtin = v; gtin.v = v === 0 ? '' : v },
+                        invalid: data.gtin !== '' && data.gtin !== '0' && data.gtin !== 0 && !validateGtin(String(data.gtin)) ? 'Invalid JAN/UPC/EAN code.' : '',
                     }),
                 ),
                 m('fieldset',
