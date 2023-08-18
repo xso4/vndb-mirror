@@ -44,7 +44,7 @@ sub fetch {
 
 
 # Also used by User::Page.
-# %opt: nopage => 1/0, results => $num
+# %opt: nopage => 1/0, nouser => 1/0, results => $num
 sub tablebox_ {
     my($id, $filt, %opt) = @_;
 
@@ -60,7 +60,7 @@ sub tablebox_ {
                 td_ class => 'tc1_1', 'Rev.';
                 td_ class => 'tc1_2', '';
                 td_ class => 'tc2', 'Date';
-                td_ class => 'tc3', 'User';
+                td_ class => 'tc3', 'User' unless $opt{nouser};
                 td_ class => 'tc4', sub { txt_ 'Page'; debug_ $lst; };
             }};
             tr_ sub {
@@ -75,7 +75,7 @@ sub tablebox_ {
                 td_ class => 'tc1_1', sub { a_ href => $revurl, $i->{itemid} };
                 td_ class => 'tc1_2', sub { a_ href => $revurl, ".$i->{rev}" };
                 td_ class => 'tc2', fmtdate $i->{added}, 'full';
-                td_ class => 'tc3', sub { user_ $i };
+                td_ class => 'tc3', sub { user_ $i } unless $opt{nouser};
                 td_ class => 'tc4', sub {
                     a_ href => $revurl, tattr $i;
                     small_ sub { lit_ bb_format $i->{comments}, maxlength => 150, inline => 1 };
@@ -180,7 +180,7 @@ TUWF::get qr{/(?:([upvrcsdgi][1-9][0-9]{0,6})/)?hist} => sub {
             h1_ $title;
             $filt = filters_($id =~ /^(.)/ ? $1 : '');
         };
-        tablebox_ $id, $filt;
+        tablebox_ $id, $filt, nouser => scalar $id =~ /^u/;
     };
 };
 

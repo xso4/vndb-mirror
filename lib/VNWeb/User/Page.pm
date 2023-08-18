@@ -213,7 +213,7 @@ TUWF::get qr{/$RE{uid}}, sub {
             nav_ sub {
                 h1_ sub { a_ href => "/$u->{id}/hist", 'Recent changes' };
             };
-            VNWeb::Misc::History::tablebox_ $u->{id}, {p=>1}, nopage => 1, results => 10;
+            VNWeb::Misc::History::tablebox_ $u->{id}, {p=>1}, nopage => 1, nouser => 1, results => 10;
         }
     };
 };
