@@ -43,7 +43,7 @@ sub fetch {
 }
 
 
-# Also used by User::Page.
+# Also used by User::Page and VNWeb::HTML.
 # %opt: nopage => 1/0, nouser => 1/0, results => $num
 sub tablebox_ {
     my($id, $filt, %opt) = @_;

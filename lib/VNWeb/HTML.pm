@@ -1009,12 +1009,6 @@ sub editmsg_ {
                         txt_ 'Check for any existing discussions on the ';
                         a_ href => '/t/'._board_id($obj), 'discussion board';
                     };
-                    # TODO: Include a list of the most recent edits in this page.
-                    li_ sub {
-                        txt_ 'Browse the ';
-                        a_ href => "/$obj->{id}/hist", 'edit history';
-                        txt_ ' for any recent changes related to what you want to change.';
-                    };
                 } elsif($type ne 'r') {
                     li_ sub {
                         a_ href => "/$type/all", 'Search the database';
@@ -1024,7 +1018,8 @@ sub editmsg_ {
                 li_ 'Fields marked with (*) may cause other fields to become (un)available depending on the selection.' if $type eq 'r';
             }
         };
-    }
+    };
+    VNWeb::Misc::History::tablebox_($obj->{id}, {p=>1}, results => 10, nopage => 1) if $obj;
 }
 
 1;
