@@ -1023,7 +1023,7 @@ sub editmsg_ {
             }
         };
     };
-    VNWeb::Misc::History::tablebox_($obj->{id}, {p=>1}, results => 10, nopage => 1) if $obj;
+    VNWeb::Misc::History::tablebox_($obj->{id}, {p=>1}, results => 10, nopage => 1) if $obj && !$copy;
 }
 
 1;
