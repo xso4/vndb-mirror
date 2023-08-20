@@ -3,7 +3,8 @@ package VNWeb::User::Admin;
 use VNWeb::Prelude;
 
 my $FORM = {
-    id => { vndbid => 'u' },
+    id       => { vndbid => 'u' },
+    username => {},
 
     # Permissions of the user editing this account
     editor_dbmod     => { _when => 'out', anybool => 1 },
