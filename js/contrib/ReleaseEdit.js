@@ -353,6 +353,7 @@ const VNs = initVnode => {
     const {data} = initVnode.attrs;
     const ds = new DS(DS.VNs, {
         onselect: obj => data.vn.push({vid: obj.id, title: obj.title, rtype: 'complete' }),
+        props: obj => data.vn.find(v => v.vid === obj.id) ? { selectable: false, append: m('small', ' (already listed)') } : {},
     });
     const view = () => m('fieldset',
         m('label', 'Visual novels'),
@@ -377,6 +378,7 @@ const Producers = initVnode => {
     const {data} = initVnode.attrs;
     const ds = new DS(DS.Producers, {
         onselect: obj => data.producers.push({pid: obj.id, name: obj.name, developer: true, publisher: true }),
+        props: obj => data.producers.find(p => p.pid === obj.id) ? { selectable: false, append: m('small', ' (already listed)') } : {},
     });
     const view = () => m('fieldset',
         m('label', 'Producers'),
