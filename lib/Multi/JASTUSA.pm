@@ -51,7 +51,7 @@ sub data {
     my $nfo = decode_json $body;
     return AE::log warn => "$prefix ERROR: $hdr->{Status} $hdr->{Reason}" if ref $nfo ne 'HASH' || !$nfo->{pages};
 
-    for my $p ($nfo->{products}{'hydra:member'}->@*) {
+    for my $p ($nfo->{products}->@*) {
         my $r = item($prefix, $p);
         AE::log warn => "$prefix $p->{code}: $r" if $r;
     }
