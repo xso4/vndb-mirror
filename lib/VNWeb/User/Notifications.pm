@@ -223,11 +223,13 @@ our $SUB = form_compile any => {
     subnum    => { undefbool => 1 },
     subreview => { anybool => 1 },
     subapply  => { anybool => 1 },
+    noti      => { uint => 1, required => 0 }, # used by the widget, ignored in the backend
 };
 
 js_api Subscribe => $SUB, sub {
     my($data) = @_;
     $data->{subreview} = 0 if $data->{id} !~ /^v/;
+    delete $data->{noti};
 
     my %where = (iid => delete $data->{id}, uid => auth->uid);
     if(!defined $data->{subnum} && !$data->{subreview} && !$data->{subapply}) {
