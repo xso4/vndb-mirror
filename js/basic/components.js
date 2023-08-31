@@ -242,7 +242,11 @@ window.Input = () => {
             if (chrs.length) return 'The following characters can not be used: '+chrs.join(', ')+'.';
         }
         if (a.type === 'email' && !new RegExp(formVals.email).test(v)) return 'Invalid email address.';
-        if (a.type === 'weburl' && !new RegExp(formVals.weburl).test(v)) return 'Invalid URL.';
+        if (a.type === 'weburl') {
+            if (!/^https?:\/\//.test(v)) return 'URL must start with http:// or https://.';
+            if (/^https?:\/\/[^/]+$/.test(v)) return "URL must have a path component (hint: add a '/'?).";
+            if (!new RegExp(formVals.weburl).test(v)) return 'Invalid URL.';
+        }
         return '';
     };
     const view = vnode => {
