@@ -112,7 +112,7 @@ TUWF::get qr{/$RE{uid}/list-export/xml}, sub {
             tag vn => id => $_->{id}, private => $_->{private}?'true':'false', sub {
                 tag title => title($_->{title});
                 tag date => $_->{date};
-                tag hours => $_->{length};
+                tag minutes => $_->{length};
                 tag speed => [qw/slow normal fast/]->[$_->{speed}] if defined $_->{speed};
                 tag notes => $_->{notes} if length $_->{notes};
                 tag release => id => $_->{id}, sub {
