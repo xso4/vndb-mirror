@@ -163,15 +163,19 @@ view model = div [class "lengthvotefrm"] <|
       , inputNumber "" model.minutes Minutes [ Html.Attributes.min "0", Html.Attributes.max "59" ]
       , text " minutes"
       , br [] []
-      , if model.defrid /= "" then text "" else div [] <| List.indexedMap (\n rid -> div []
-        [ inputSelect "" rid (Release n) []
+      , if model.defrid /= "" then text "" else table [] <| List.indexedMap (\n rid -> tr []
+        [ td [] [
+          inputSelect "" rid (Release n) []
             <| ("", "-- select release --") :: rels
             ++ if rid == "" || List.any (\(r,_) -> r == rid) rels then [] else [(rid, "[deleted/moved release: " ++ rid ++ "]")]
-        , if n == 0
-          then inputButton "+" ReleaseAdd [title "Add release"]
-          else inputButton "-" (ReleaseDel n) [title "Remove release"]
+          ]
+        , td []
+          [ if n == 0
+            then inputButton "+" ReleaseAdd [title "Add release"]
+            else inputButton "-" (ReleaseDel n) [title "Remove release"]
+          ]
         ]) model.rid
-      , inputSelect "" model.speed Speed [style "width" "100%"] (if model.maycount then selcounted else seluncounted)
+      , inputSelect "" model.speed Speed [] (if model.maycount then selcounted else seluncounted)
       , case model.speed of
           Just 9 -> span [] []
           Just 8 -> span []
