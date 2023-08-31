@@ -23,23 +23,30 @@ sub data {
         user   => tuwf->dbRowi('SELECT id, username as name FROM users WHERE id =', \$uid),
         labels => tuwf->dbAlli('SELECT id, label, private FROM ulist_labels WHERE uid =', \$uid, 'ORDER BY id'),
         vns    => tuwf->dbAlli('
-            SELECT v.id, v.title[1+1] AS title, v.title[1+1+1+1] AS original, uv.vote, uv.started, uv.finished, uv.notes
-                 , uv.c_private, uv.labels,', sql_comma(tz('uv.added', 'added'), tz('uv.lastmod', 'lastmod'), tz('uv.vote_date', 'vote_date')), '
+            SELECT v.id, v.title, uv.vote, uv.started, uv.finished, uv.notes, uv.c_private, uv.labels,',
+                   sql_comma(tz('uv.added', 'added'), tz('uv.lastmod', 'lastmod'), tz('uv.vote_date', 'vote_date')), '
               FROM ulist_vns uv
               JOIN vnt v ON v.id = uv.vid
              WHERE uv.uid =', \$uid, '
-             ORDER BY v.sorttitle')
+             ORDER BY v.sorttitle'),
+        'length-votes' => tuwf->dbAlli('
+            SELECT v.id, v.title, l.length, l.speed, l.private, l.notes, l.rid::text[] AS releases, ', tz('l.date', 'date'), '
+              FROM vn_length_votes l
+              JOIN vnt v ON v.id = l.vid
+             WHERE l.uid =', \$uid, '
+             ORDER BY v.sorttitle'),
     };
     enrich releases => id => vid => sub { sql '
-        SELECT rv.vid, r.id, r.title[1+1] AS title, r.title[1+1+1+1] original
-             , r.released, rl.status, ', tz('rl.added', 'added'), '
+        SELECT rv.vid, r.id, r.title, r.released, rl.status, ', tz('rl.added', 'added'), '
           FROM rlists rl
           JOIN releasest r ON r.id = rl.rid
           JOIN releases_vn rv ON rv.id = rl.rid
-          JOIN releases_titles ro ON ro.id = r.id AND ro.lang = r.olang
          WHERE rl.uid =', \$uid, '
          ORDER BY r.released, r.id'
     }, $d->{vns};
+    enrich_merge id => sub { sql '
+        SELECT id, title, released FROM releasest WHERE id IN', $_, 'ORDER BY released, id'
+    }, map +($_->{releases} = [map +{id=>$_}, $_->{releases}->@*]), $d->{'length-votes'}->@*;
     $d
 }
 
@@ -48,6 +55,12 @@ sub filename {
     my($d, $ext) = @_;
     my $date = $d->{'export-date'} =~ s/[-TZ:]//rg;
     "vndb-list-export-$d->{user}{name}-$date.$ext"
+}
+
+
+sub title {
+    my(@t) = $_[0]->@*;
+    return (length($t[3]) && $t[3] ne $t[1] ? (original => $t[3]) : (), $t[1]);
 }
 
 
@@ -79,7 +92,7 @@ TUWF::get qr{/$RE{uid}/list-export/xml}, sub {
         };
         tag vns => sub {
             tag vn => id => $_->{id}, private => $_->{c_private}?'true':'false', sub {
-                tag title => length($_->{original}) && $_->{original} ne $_->{title} ? (original => $_->{original}) : (), $_->{title};
+                tag title => title($_->{title});
                 tag label => id => $_, label => $labels{$_}{label}, undef for sort { $a <=> $b } $_->{labels}->@*;
                 tag added => $_->{added};
                 tag modified => $_->{lastmod} if $_->{added} ne $_->{lastmod};
@@ -88,12 +101,25 @@ TUWF::get qr{/$RE{uid}/list-export/xml}, sub {
                 tag finished => $_->{finished} if $_->{finished};
                 tag notes => $_->{notes} if length $_->{notes};
                 tag release => id => $_->{id}, sub {
-                    tag title => length($_->{original}) && $_->{original} ne $_->{title} ? (original => $_->{original}) : (), $_->{title};
+                    tag title => title($_->{title});
                     tag 'release-date' => rdate $_->{released};
                     tag status => $RLIST_STATUS{$_->{status}};
                     tag added => $_->{added};
                 } for $_->{releases}->@*;
             } for $d->{vns}->@*;
+        };
+        tag 'length-votes', sub {
+            tag vn => id => $_->{id}, private => $_->{private}?'true':'false', sub {
+                tag title => title($_->{title});
+                tag date => $_->{date};
+                tag hours => $_->{length};
+                tag speed => [qw/slow normal fast/]->[$_->{speed}] if defined $_->{speed};
+                tag notes => $_->{notes} if length $_->{notes};
+                tag release => id => $_->{id}, sub {
+                    tag title => title($_->{title});
+                    tag 'release-date' => rdate $_->{released};
+                } for $_->{releases}->@*;
+            } for $d->{'length-votes'}->@*;
         };
     };
 };
