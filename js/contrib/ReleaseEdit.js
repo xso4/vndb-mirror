@@ -14,12 +14,17 @@ const Titles = initVnode => {
         Help('titles',
             m('p', 'List of languages that this release is available in.'),
             m('p',
-                'The main language is the language that the script was originally authored in, ',
+                'A release can have different titles for different languages. ',
+                'The main language should always have a title, but this field can be left empty for other languages if it is the same as the main title.'
+            ),
+            m('p', m('strong', 'Main title: '),
+                'The title for the language that the script was originally authored in, ',
                 'or for translations, the primary language of the publisher.'
             ),
-            m('p',
-                'A release can have different titles for different languages. ',
-                'The main language should always have a title, but this field can be left empty for other languages if their title is the same as that of the main language.'
+            m('p', m('strong', 'Machine translation: '),
+                'Should be checked if automated programs, such as AI tools, were used to implement support for this language, either partially or fully. ',
+                'Should be checked even if the translation has been edited by a human. ',
+                'Should NOT be checked if the translation was entirely done by humans, even when its quality happens to be worse than machine translation.'
             ),
         ),
         data.titles.map(t => m('fieldset', {key: t.lang},
@@ -84,18 +89,31 @@ const Status = initVnode => {
         ),
         m('fieldset', m('label.check',
             m('input[type=checkbox]', { checked: data.freeware, oninput: ev => data.freeware = ev.target.checked }),
-            ' Freeware'
+            ' Freeware', HelpButton('freeware'),
         )),
+        Help('freeware', 'Set if this release is available at no cost.'),
         m('fieldset', m('label.check',
             m('input[type=checkbox]', { checked: data.has_ero, oninput: ev => data.has_ero = ev.target.checked }),
-            ' Contains erotic scenes (*)'
+            ' Contains erotic scenes (*)', HelpButton('has_ero'),
         )),
+        Help('has_ero',
+            'Not all 18+ titles have erotic content and not all sub-18+ titles are free of it, ',
+            'hence the presence of a checkbox which signals that the game contains erotic content. ',
+            'Refer to the ', m('a[href=/d3#2.1][target=_blank]', 'detailed guidelines'), ' for what should (not) be considered "erotic scenes".'
+        ),
         m('fieldset',
-            m('label[for=minage]', 'Age rating'),
+            m('label[for=minage]', 'Age rating', HelpButton('minage')),
             m('select.mw', { oninput: ev => data.minage = ev.target.selectedIndex === 0 ? null : vndbTypes.ageRating[ev.target.selectedIndex-1][0] },
                 m('option', { selected: data.minage === null }, 'Unknown'),
                 vndbTypes.ageRating.map(([id,label]) => m('option', { selected: id === data.minage }, label))
-            )
+            ),
+        ),
+        Help('minage',
+            m('p',
+                'The minimum official age rating for the release. For most releases, this is specified on the packaging or on product web pages. ',
+                'For indie or doujin projects, this is usually a recommended age stated by a developer or publisher. ',
+            ),
+            m('p', 'ONLY use official sources for this field - don\'t just assume "All ages" just because there\'s no erotic content!'),
         ),
         m('fieldset',
             m('label[for=released]', 'Release date'),
