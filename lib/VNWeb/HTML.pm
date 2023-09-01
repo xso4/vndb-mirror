@@ -255,14 +255,13 @@ sub _menu_ {
 
     article_ sub {
         my $uid = '/'.auth->uid;
-        my $nc = auth && tuwf->dbVali('SELECT count(*) FROM notifications WHERE uid =', \auth->uid, 'AND read IS NULL');
         h2_ sub { user_ auth->user, 'user_', 1 };
         div_ sub {
             a_ href => "$uid/edit", 'My Profile'; txt_ '⭐' if auth->pref('nodistract_can') && !auth->pref('nodistract_nofancy'); br_;
             a_ href => "$uid/ulist?vnlist=1", 'My Visual Novel List'; br_;
             a_ href => "$uid/ulist?votes=1",'My Votes'; br_;
             a_ href => "$uid/ulist?wishlist=1", 'My Wishlist'; br_;
-            a_ href => "$uid/notifies", $nc ? (class => 'notifyget') : (), 'My Notifications'.($nc?" ($nc)":''); br_;
+            a_ href => "$uid/notifies", $o->{unread_noti} ? (class => 'notifyget') : (), 'My Notifications'.($o->{unread_noti}?" ($o->{unread_noti})":''); br_;
             a_ href => "$uid/hist", 'My Recent Changes'; br_;
             a_ href => '/g/links?u='.auth->uid, 'My Tags'; br_;
             br_;
@@ -419,7 +418,10 @@ sub _maintabs_ {
     };
 
     nav_ sub {
-        label_ for => 'mainmenu', 'Menu';
+        label_ for => 'mainmenu', sub {
+            lit_ 'Menu';
+            b_ " ($opt->{unread_noti})" if $opt->{unread_noti};
+        };
         menu_ sub {
             t '' => "/$id", $id if $o && $t ne 't';
 
@@ -536,6 +538,7 @@ sub framework_ {
     my $cont = pop;
     my %o = @_;
     tuwf->req->{pagevars} = { tuwf->req->{pagevars} ? tuwf->req->{pagevars}->%* : (), $o{pagevars}->%* } if $o{pagevars};
+    $o{unread_noti} = auth && tuwf->dbVali('SELECT count(*) FROM notifications WHERE uid =', \auth->uid, 'AND read IS NULL');
 
     lit_ "<!--\n"
         ."  This HTML is an unreadable auto-generated mess, sorry for that.\n"
