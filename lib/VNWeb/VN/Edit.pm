@@ -161,7 +161,7 @@ elm_api VNEdit => $FORM_OUT, $FORM_IN, sub {
     }
     $data->{description} = bb_subst_links $data->{description};
     $data->{alias} =~ s/\n\n+/\n/;
-    die "No title in original language" if !grep $_->{lang} eq $data->{olang}, $data->{titles}->@*;
+    die "No title in original language" if !length [grep $_->{lang} eq $data->{olang}, $data->{titles}->@*]->[0]{title};
 
     validate_dbid 'SELECT id FROM anime WHERE id IN', map $_->{aid}, $data->{anime}->@*;
     validate_dbid 'SELECT id FROM images WHERE id IN', $data->{image} if $data->{image};

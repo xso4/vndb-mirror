@@ -162,7 +162,7 @@ js_api ReleaseEdit => $FORM_IN, sub {
     }
     ani_compat($data, $e);
 
-    die "No title in main language" if !grep $_->{lang} eq $data->{olang}, $data->{titles}->@*;
+    die "No title in main language" if !length [grep $_->{lang} eq $data->{olang}, $data->{titles}->@*]->[0]{title};
 
     $_->{qty} = $MEDIUM{$_->{medium}}{qty} ? $_->{qty}||1 : 0 for $data->{media}->@*;
     $data->{notes} = bb_subst_links $data->{notes};
