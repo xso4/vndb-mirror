@@ -90,7 +90,7 @@ sub _infotable_animation_ {
     }
 
     my @story = !$r->{ani_story} ? () :
-        defined $r->{ani_story_sp} || defined $r->{ani_story_cg} || defined $r->{ani_cutscene} ? (
+        defined $r->{ani_story_sp} || defined $r->{ani_story_cg} || defined $r->{ani_cutscene} || defined $r->{ani_bg} || defined $r->{ani_face} ? (
             defined $r->{ani_story_sp} ? sect $r->{ani_story_sp}, 'sprites' : (),
             defined $r->{ani_story_cg} ? sect $r->{ani_story_cg}, 'CGs' : (),
             defined $r->{ani_cutscene} ? sect $r->{ani_cutscene}, 'cutscenes' : (),
