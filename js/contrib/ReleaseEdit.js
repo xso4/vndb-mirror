@@ -84,8 +84,14 @@ const Status = initVnode => {
             ' Patch (*)', HelpButton('patch'),
         )),
         Help('patch',
-            'A patch is not a standalone release, but instead requires another release in order to be used. ',
-            'It may be helpful to indicate which releases this patch applies to in the notes.'
+            m('p',
+                'A patch is not a standalone release, but instead requires another release in order to be used. ',
+                'It may be helpful to indicate which releases this patch applies to in the notes.'
+            ),
+            m('p',
+                '*) The following release fields are unavailable for patch releases: Engine, Resolution, Voiced and Animation. ',
+                'These fields are automatically reset on form submission when the patch flag is set.'
+            ),
         ),
         m('fieldset', m('label.check',
             m('input[type=checkbox]', { checked: data.freeware, oninput: ev => data.freeware = ev.target.checked }),
@@ -97,9 +103,15 @@ const Status = initVnode => {
             ' Contains erotic scenes (*)', HelpButton('has_ero'),
         )),
         Help('has_ero',
-            'Not all 18+ titles have erotic content and not all sub-18+ titles are free of it, ',
-            'hence the presence of a checkbox which signals that the game contains erotic content. ',
-            'Refer to the ', m('a[href=/d3#2.1][target=_blank]', 'detailed guidelines'), ' for what should (not) be considered "erotic scenes".'
+            m('p',
+                'Not all 18+ titles have erotic content and not all sub-18+ titles are free of it, ',
+                'hence the presence of a checkbox which signals that the game contains erotic content. ',
+                'Refer to the ', m('a[href=/d3#2.1][target=_blank]', 'detailed guidelines'), ' for what should (not) be considered "erotic scenes".'
+            ),
+            m('p',
+                '*) The censoring and erotic scene animation fields are only available for releases that contain erotic scenes. ',
+                'These fields are automatically reset on form submission when the checkbox is unset.'
+            ),
         ),
         m('fieldset',
             m('label[for=minage]', 'Age rating', HelpButton('minage')),
@@ -181,11 +193,11 @@ const Format = initVnode => {
             data.media.anyDup(({medium,qty}) => [medium, media[medium].qty ? qty : null])
             ?  m('p.invalid', 'List contains duplicates') : null,
         ),
-        m('fieldset',
+        data.patch ? null : m('fieldset',
             m('label[for=engine]', 'Engine'),
             m(DS.Input, { id: 'engine', class: 'mw', maxlength: 50, ds: engines, data, field: 'engine', onfocus: ev => ev.target.select() }),
         ),
-        m('fieldset',
+        data.patch ? null : m('fieldset',
             m('label[for=resolution]', 'Resolution'),
             m(DS.Input, {
                 id: 'resolution', class: 'mw', data: resolution, field: 'v', ds: resolutions,
@@ -195,7 +207,7 @@ const Format = initVnode => {
                 invalid: resoParse(resolution.v) ? null : 'Invalid resolution, expected format is "{width}x{height}".',
             }),
         ),
-        m('fieldset',
+        data.patch ? null : m('fieldset',
             m('label[for=voiced]', 'Voiced'),
             m('select#voiced.mw', { oninput: ev => data.voiced = ev.target.selectedIndex },
                 vndbTypes.voiced.map((l,i) => m('option', { selected: i === data.voiced }, l))
@@ -249,7 +261,7 @@ const Animation = initVnode => {
         ),
     ]);
 
-    const view = () => m('fieldset.form',
+    const view = () => data.patch ? null : m('fieldset.form',
         m('legend', 'Animation'),
         m('fieldset',
             m('label', 'Preset'),
