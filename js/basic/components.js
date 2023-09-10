@@ -230,7 +230,6 @@ window.Input = () => {
         const v_ = a.data[a.field];
         const v = v_ === null ? '' : String(v_).trim();
         if (a.invalid) return a.invalid;
-        if (a.required) console.log(v, v.length);
         if (!v.length) return a.required ? 'This field is required.' : '';
         if (a.type === 'username') { a.minlength = 2; a.maxlength = 15; }
         if (a.type === 'password') { a.minlength = 4; a.maxlength = 500; }
