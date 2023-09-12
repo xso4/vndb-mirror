@@ -1,18 +1,15 @@
-package VNWeb::Reviews::Elm;
+package VNWeb::Reviews::JS;
 
 use VNWeb::Prelude;
 
-my $VOTE = {
+our $VOTE = form_compile any => {
     id       => { vndbid => 'w' },
     my       => { undefbool => 1 },
     overrule => { anybool => 1 },
-    mod      => { _when => 'out', anybool => 1 },
+    mod      => { anybool => 1 },
 };
 
-my  $VOTE_IN  = form_compile in  => $VOTE;
-our $VOTE_OUT = form_compile out => $VOTE;
-
-elm_api ReviewsVote => $VOTE_OUT, $VOTE_IN, sub {
+js_api ReviewsVote => $VOTE, sub {
     my($data) = @_;
     my %id = (auth ? (uid => auth->uid) : (ip => norm_ip tuwf->reqIP), id => $data->{id});
     my %val = (vote => $data->{my}, overrule => auth->permBoardmod ? $data->{overrule} : 0, date => sql 'NOW()');
@@ -21,7 +18,7 @@ elm_api ReviewsVote => $VOTE_OUT, $VOTE_IN, sub {
         ? sql 'INSERT INTO reviews_votes', {%id,%val}, 'ON CONFLICT (id,', auth ? 'uid' : 'ip', ') DO UPDATE SET', \%val
         : sql 'DELETE FROM reviews_votes WHERE', \%id
     );
-    elm_Success
+    +{}
 };
 
 1;
