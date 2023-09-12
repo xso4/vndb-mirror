@@ -25,48 +25,48 @@ sub reviews_ {
     article_ sub {
         h1_ $mini ? 'Mini reviews' : 'Full reviews';
         debug_ $lst;
-        div_ class => 'reviews', sub {
-            article_ class => 'reviewbox', sub {
-                my $r = $_;
-                div_ sub {
-                    span_ sub {
-                        txt_ 'By '; user_ $r; txt_ ' on '.fmtdate $r->{date}, 'compact';
-                        small_ ' contains spoilers' if $r->{spoiler} && (auth->pref('spoilers')||0) == 2;
-                    };
-                    a_ href => "/$r->{rid}", $r->{rid} if $r->{rid};
-                    span_ "Vote: ".fmtvote($r->{vote}) if $r->{vote};
+    };
+    div_ class => 'reviews', sub {
+        article_ sub {
+            my $r = $_;
+            div_ sub {
+                span_ sub {
+                    txt_ 'By '; user_ $r; txt_ ' on '.fmtdate $r->{date}, 'compact';
+                    small_ ' contains spoilers' if $r->{spoiler} && (auth->pref('spoilers')||0) == 2;
                 };
-                div_ sub {
-                    p_ sub { lit_ bb_format $r->{modnote} } if $r->{modnote};
-                };
-                div_ sub {
-                    span_ sub {
-                        txt_ '<';
-                        if(can_edit w => $r) {
-                            a_ href => "/$r->{id}/edit", 'edit';
-                            txt_ ' - ';
-                        }
-                        a_ href => "/report/$r->{id}", 'report';
-                        txt_ '>';
-                    };
-                    my $html = reviews_format $r, maxlength => $mini ? undef : 700;
-                    $html .= xml_string sub { txt_ '... '; a_ href => "/$r->{id}#review", ' Read more »' } if !$mini;
-                    if($r->{spoiler}) {
-                        label_ class => 'review_spoil', sub {
-                            input_ type => 'checkbox', class => 'hidden', (auth->pref('spoilers')||0) == 2 ? ('checked', 'checked') : (), undef;
-                            div_ sub { lit_ $html };
-                            span_ class => 'fake_link', 'This review contains spoilers, click to view.';
-                        }
-                    } else {
-                        lit_ $html;
+                a_ href => "/$r->{rid}", $r->{rid} if $r->{rid};
+                span_ "Vote: ".fmtvote($r->{vote}) if $r->{vote};
+            };
+            div_ sub {
+                p_ sub { lit_ bb_format $r->{modnote} } if $r->{modnote};
+            };
+            div_ sub {
+                span_ sub {
+                    txt_ '<';
+                    if(can_edit w => $r) {
+                        a_ href => "/$r->{id}/edit", 'edit';
+                        txt_ ' - ';
                     }
+                    a_ href => "/report/$r->{id}", 'report';
+                    txt_ '>';
                 };
-                div_ sub {
-                    a_ href => "/$r->{id}#threadstart", $r->{c_count} == 1 ? '1 comment' : "$r->{c_count} comments";
-                    reviews_vote_ $r;
-                };
-            } for @$lst;
-        }
+                my $html = reviews_format $r, maxlength => $mini ? undef : 700;
+                $html .= xml_string sub { txt_ '... '; a_ href => "/$r->{id}#review", ' Read more »' } if !$mini;
+                if($r->{spoiler}) {
+                    label_ class => 'review_spoil', sub {
+                        input_ type => 'checkbox', class => 'hidden', (auth->pref('spoilers')||0) == 2 ? ('checked', 'checked') : (), undef;
+                        div_ sub { lit_ $html };
+                        span_ class => 'fake_link', 'This review contains spoilers, click to view.';
+                    }
+                } else {
+                    lit_ $html;
+                }
+            };
+            div_ sub {
+                a_ href => "/$r->{id}#threadstart", $r->{c_count} == 1 ? '1 comment' : "$r->{c_count} comments";
+                reviews_vote_ $r;
+            };
+        } for @$lst;
     };
 }
 

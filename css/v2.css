@@ -315,20 +315,25 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid var
 #scrhide_v0:checked ~ #screenshots .scrlnk_v0 { display: none }
 #scrhide_v1:checked ~ #screenshots .scrlnk_v1 { display: none }
 
-.reviews { display: flex; justify-content: center; flex-wrap: wrap }
-.reviewbox { margin: 10px 12px 30px 12px; flex: 1 1; flex-basis: 450px }
-.reviewbox > div:nth-child(3) > span:first-child  { float: right; color: var(--grayedout); font-style: normal; margin: -5px 0 0 0; visibility: hidden }
-.reviewbox > div:nth-child(3):hover  > span:first-child,
-.reviewbox > div:nth-child(3):active > span:first-child { visibility: visible }
-.reviewbox .review_spoil input:checked       ~ span { display: none }
-.reviewbox .review_spoil input:not(:checked) ~ div  { display: none }
-.reviewbox > div:first-child { display: flex; justify-content: space-between; background: var(--secbg); font-weight: bold }
-.reviewbox > div:first-child > span:first-child { font-weight: bold }
-.reviewbox > div:nth-child(2) { background: var(--secbg) }
-.reviewbox > div:nth-child(2) p { padding: 2px; text-align: center }
-.reviewbox > div:nth-child(3) { padding: 10px; background: var(--boxbg) }
-.reviewbox > div:last-child { display: flex; justify-content: space-between; border-top: 1px solid var(--border) }
-.reviewbox .myvote { font-weight: bold; text-decoration: underline }
+.reviews {
+    display: flex; column-gap: 10px; flex-wrap: wrap;
+    > article {
+        flex: 1 1 0; flex-basis: 450px; padding: 0;
+        display: flex; flex-direction: column;
+        > div:nth-child(3) > span:first-child  { float: right; color: var(--grayedout); font-style: normal; margin: -5px 0 0 0; visibility: hidden }
+        > div:nth-child(3):hover  > span:first-child,
+        > div:nth-child(3):active > span:first-child { visibility: visible }
+        .review_spoil input:checked       ~ span { display: none }
+        .review_spoil input:not(:checked) ~ div  { display: none }
+        > div:first-child { padding: 3px 5px; display: flex; justify-content: space-between; background: var(--secbg); font-weight: bold }
+        > div:first-child > span:first-child { font-weight: bold }
+        > div:nth-child(2) { background: var(--secbg) }
+        > div:nth-child(2) p { padding: 2px; text-align: center }
+        > div:nth-child(3) { flex: 1; padding: 10px }
+        > div:last-child { padding: 2px 5px; display: flex; justify-content: space-between; background: var(--boxbg) }
+        .myvote { font-weight: bold; text-decoration: underline }
+    }
+}
 
 
 
