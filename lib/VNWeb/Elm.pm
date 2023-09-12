@@ -42,7 +42,6 @@ our %apis = (
     Editsum        => [], # Invalid edit summary
     Content        => [{}], # Rendered HTML content (for markdown/bbcode APIs)
     InsecurePass   => [], # Password is in a dictionary or breach database
-    BadEmail       => [], # Unknown email address in password reset form
     ImgFormat      => [], # Unrecognized image format
     LabelId        => [{uint => 1}], # Label created
     DupNames       => [ { aoh => { # Duplicate names/aliases (for tags & traits)

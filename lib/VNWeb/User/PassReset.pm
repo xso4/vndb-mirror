@@ -5,18 +5,18 @@ use VNWeb::Prelude;
 TUWF::get '/u/newpass' => sub {
     return tuwf->resRedirect('/', 'temp') if auth || config->{read_only};
     framework_ title => 'Password reset', sub {
-        elm_ 'User.PassReset';
+        div_ widget(UserPassReset => {}), '';
     };
 };
 
 
-elm_api UserPassReset => undef, {
+js_api UserPassReset => {
     email => { email => 1 },
 }, sub {
     my $data = shift;
 
     my($id, $token) = auth->resetpass($data->{email});
-    return elm_BadEmail if !$id;
+    return +{ _err => 'Unknown email address.' } if !$id;
 
     my $name = tuwf->dbVali('SELECT username FROM users WHERE id =', \$id);
     my $body = sprintf
@@ -36,7 +36,7 @@ elm_api UserPassReset => undef, {
       From => 'VNDB <noreply@vndb.org>',
       Subject => "Password reset for $name",
     );
-    elm_Success
+    +{}
 };
 
 1;
