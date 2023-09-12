@@ -36,7 +36,6 @@ showResponse res =
     Unauth                          -> "You do not have the permission to perform this action."
     Unchanged                       -> "No changes"
     Content _                       -> unexp
-    InsecurePass                    -> "Your password appears in a database of leaked passwords, please use a more unique password."
     ImgFormat                       -> "Unrecognized image format, only JPEG, PNG and WebP are accepted."
     LabelId _                       -> unexp
     DupNames _                      -> "Name or alias already in the database."

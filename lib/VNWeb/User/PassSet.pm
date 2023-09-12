@@ -2,16 +2,6 @@ package VNWeb::User::PassSet;
 
 use VNWeb::Prelude;
 
-my $FORM = {
-    uid      => { vndbid => 'u' },
-    token    => { regex => qr/[a-f0-9]{40}/ },
-    password => { _when => 'in', password => 1 },
-};
-
-my $FORM_IN  = form_compile in  => $FORM;
-my $FORM_OUT = form_compile out => $FORM;
-
-
 TUWF::get qr{/$RE{uid}/setpass/(?<token>[a-f0-9]{40})}, sub {
     return tuwf->resRedirect('/', 'temp') if auth || config->{read_only};
 
@@ -22,19 +12,25 @@ TUWF::get qr{/$RE{uid}/setpass/(?<token>[a-f0-9]{40})}, sub {
     return tuwf->resNotFound if !$name || !auth->isvalidtoken($id, $token);
 
     framework_ title => 'Set password', sub {
-        elm_ 'User.PassSet', $FORM_OUT, { uid => $id, token => $token };
+        div_ widget(UserPassSet => { uid => $id, token => $token }), '';
     };
 };
 
 
-elm_api UserPassSet => $FORM_OUT, $FORM_IN, sub {
+js_api UserPassSet => {
+    uid      => { vndbid => 'u' },
+    token    => { regex => qr/^[a-f0-9]{40}$/ },
+    password => { password => 1 },
+}, sub {
     my($data) = @_;
 
-    return elm_InsecurePass if is_insecurepass($data->{password});
-    return elm_Unauth if !auth->setpass($data->{uid}, $data->{token}, undef, $data->{password});
+    return +{ insecure => 1, _err => 'Your new password is in a public database of leaked passwords, please choose a different password.' }
+        if is_insecurepass($data->{password});
+    return +{ _err => 'Invalid token.' }
+        if !auth->setpass($data->{uid}, $data->{token}, undef, $data->{password});
     tuwf->dbExeci('UPDATE users SET email_confirmed = true WHERE id =', \$data->{uid});
     auth->audit($data->{uid}, 'password change', 'with email token');
-    elm_Success
+    +{ _redir => '/' }
 };
 
 1;

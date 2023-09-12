@@ -16,6 +16,7 @@ const username_reqs = [
 @include user/UserEdit.js
 @include user/UserRegister.js
 @include user/UserPassReset.js
+@include user/UserPassSet.js
 @include user/UserAdmin.js
 
 // @license-end

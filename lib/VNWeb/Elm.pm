@@ -41,7 +41,6 @@ our %apis = (
     Invalid        => [], # POST data did not validate the schema
     Editsum        => [], # Invalid edit summary
     Content        => [{}], # Rendered HTML content (for markdown/bbcode APIs)
-    InsecurePass   => [], # Password is in a dictionary or breach database
     ImgFormat      => [], # Unrecognized image format
     LabelId        => [{uint => 1}], # Label created
     DupNames       => [ { aoh => { # Duplicate names/aliases (for tags & traits)
