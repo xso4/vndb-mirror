@@ -492,6 +492,9 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid var
 .relbrowse .tc3 { width: 85px; text-align: right; padding: 0; }
 
 
+/***** DRM List ****/
+
+.drmlist > div { margin: 3px 20px 10px 20px }
 
 /***** Image hover thingy (VNWeb::Images::Lib::images_) ****/
 

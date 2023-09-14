@@ -220,7 +220,7 @@ sub _infotable_ {
             td_ 'DRM';
             td_ sub { join_ \&br_, sub {
                 # TODO: Property icons
-                a_ href => '/r/drm?n='.uri_escape($_->{name}), $_->{name};
+                a_ href => '/r/drm?s='.uri_escape($_->{name}), $_->{name};
                 lit_ ' ('.bb_format($_->{notes}, inline => 1).')' if length $_->{notes};
             }, $r->{drm}->@* };
         } if $r->{drm}->@*;

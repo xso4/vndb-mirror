@@ -11,7 +11,6 @@ TUWF::get '/r/drm', sub {
         u => { anybool => 1 },
     )->data;
     my $where = sql_and
-        $opt->{n} ? sql 'name =', \$opt->{n} : (),
         $opt->{s} ? sql 'name ILIKE', \('%'.sql_like($opt->{s}).'%') : (),
         defined $opt->{t} ? sql 'state =', \$opt->{t} : ();
 
@@ -43,19 +42,19 @@ TUWF::get '/r/drm', sub {
                 a_ href => '?'.query_encode(%$opt,t=>2), defined $opt->{t} && $opt->{t} == 2 ? (class => 'optselected') : (), 'Deleted';
             };
             my $unused = 0;
-            section_ sub {
+            section_ class => 'drmlist', sub {
                 my $d = $_;
                 h2_ !$d->{c_ref} && !$unused++ ? (id => 'unused') : (), sub {
                     span_ class => 'strikethrough', $d->{name} if $d->{state} == 2;
                     txt_ $d->{name} if $d->{state} != 2;
-                    small_ " ($d->{c_ref})"; # TODO Link
+                    a_ href => '/r?f='.tuwf->compile({advsearch => 'r'})->validate(['drm-type','=',$d->{name}])->data->query_encode, " ($d->{c_ref})";
                     b_ ' (new)' if $d->{state} == 0;
                     a_ href => "/r/drm/edit/$d->{id}?ref=".uri_escape(query_encode(%$opt)), ' edit' if auth->permDbmod;
                 };
                 my @prop = grep $d->{$_}, keys %DRM_PROPERTY;
                 # TODO: icons
                 p_ join(', ', map $DRM_PROPERTY{$_}, @prop).'.' if @prop;
-                p_ bb_format $d->{description} if $d->{description};
+                div_ sub { lit_ bb_format $d->{description} if $d->{description} };
             } for @$lst;
             p_ class => 'center', sub {
                 txt_ "$missing unused DRM type(s) not shown. ";

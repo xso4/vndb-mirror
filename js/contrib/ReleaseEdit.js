@@ -243,7 +243,7 @@ const DRM = initVnode => {
         m('legend', 'DRM'),
         m('table', data.drm.map(d => m('tr',
             m('td', m(Button.Del, {onclick: () => data.drm = data.drm.filter(x => x !== d)})),
-            m('td.nowrap', d.create ? d.name : m('a[target=_blank]', { href: '/r/drm?n='+encodeURIComponent(d.name) }, d.name)),
+            m('td.nowrap', d.create ? d.name : m('a[target=_blank]', { href: '/r/drm?s='+encodeURIComponent(d.name) }, d.name)),
             m('td.lw',
                 m(Input, { class: 'lw', placeholder: 'Notes (optional)', data: d, field: 'notes' }),
                 !d.create ? [] : [
