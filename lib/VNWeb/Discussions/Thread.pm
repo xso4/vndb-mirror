@@ -43,25 +43,22 @@ elm_api DiscussionsPoll => $POLL_OUT, $POLL_IN, sub {
 
 
 
-my $REPLY = {
+my $REPLY = form_compile any => {
     tid => { vndbid => 't' },
-    old => { _when => 'out', anybool => 1 },
-    msg => { _when => 'in', maxlength => 32768 }
+    old => { anybool => 1 },
+    msg => { maxlength => 32768 }
 };
 
-my $REPLY_IN  = form_compile in  => $REPLY;
-my $REPLY_OUT = form_compile out => $REPLY;
-
-elm_api DiscussionsReply => $REPLY_OUT, $REPLY_IN, sub {
+js_api DiscussionReply => $REPLY, sub {
     my($data) = @_;
     my $t = tuwf->dbRowi('SELECT id, locked FROM threads t WHERE id =', \$data->{tid}, 'AND', sql_visible_threads());
     return tuwf->resNotFound if !$t->{id};
-    return elm_Unauth if !can_edit t => $t;
+    return tuwf->resDenied if !can_edit t => $t;
 
     my $num = sql '(SELECT MAX(num)+1 FROM threads_posts WHERE tid =', \$data->{tid}, ')';
     my $msg = bb_subst_links $data->{msg};
     $num = tuwf->dbVali('INSERT INTO threads_posts', { tid => $t->{id}, num => $num, uid => auth->uid, msg => $msg }, 'RETURNING num');
-    elm_Redirect "/$t->{id}.$num#last";
+    +{ _redir => "/$t->{id}.$num#last" };
 };
 
 
@@ -148,7 +145,7 @@ sub reply_ {
     my($t, $posts, $page) = @_;
     return if $t->{count} > $page*25;
     if(can_edit t => $t) {
-        elm_ 'Discussions.Reply' => $REPLY_OUT, { tid => $t->{id}, old => $posts->[$#$posts]{date} < time-182*24*3600 };
+        div_ widget(DiscussionReply => $REPLY, { tid => $t->{id}, old => $posts->[$#$posts]{date} < time-182*24*3600 }), '';
     } else {
         article_ sub {
             h1_ 'Reply';
