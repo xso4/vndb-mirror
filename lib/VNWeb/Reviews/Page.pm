@@ -10,16 +10,16 @@ my $COMMENT = form_compile any => {
     msg => { maxlength => 32768 }
 };
 
-elm_api ReviewsComment => undef, $COMMENT, sub {
+js_api ReviewComment => $COMMENT, sub {
     my($data) = @_;
     my $w = tuwf->dbRowi('SELECT id, locked FROM reviews WHERE id =', \$data->{id});
     return tuwf->resNotFound if !$w->{id};
-    return elm_Unauth if !can_edit t => $w;
+    return tuwf->resDenied if !can_edit t => $w;
 
     my $num = sql 'COALESCE((SELECT MAX(num)+1 FROM reviews_posts WHERE id =', \$data->{id}, '),1)';
     my $msg = bb_subst_links $data->{msg};
     $num = tuwf->dbVali('INSERT INTO reviews_posts', { id => $w->{id}, num => $num, uid => auth->uid, msg => $msg }, 'RETURNING num');
-    elm_Redirect "/$w->{id}.$num#last";
+    +{ _redir => "/$w->{id}.$num#last" };
 };
 
 
@@ -158,7 +158,7 @@ TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
         } else {
             div_ id => 'threadstart', '';
         }
-        elm_ 'Reviews.Comment' => $COMMENT, { id => $w->{id}, msg => '' } if !$newreview && $w->{count} <= $page*25 && can_edit t => $w;
+        div_ widget(ReviewComment => $COMMENT, { id => $w->{id}, msg => '' }), '' if !$newreview && $w->{count} <= $page*25 && can_edit t => $w;
     };
 };
 
