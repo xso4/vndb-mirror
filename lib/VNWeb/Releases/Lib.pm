@@ -36,6 +36,7 @@ sub enrich_release {
     enrich_flatten platforms => id => id => sub { sql 'SELECT id, platform FROM releases_platforms WHERE id IN', $_, 'ORDER BY id, platform' }, $r;
     enrich titles => id => id => sub { 'SELECT id, lang, mtl, title, latin FROM releases_titles WHERE id IN', $_, 'ORDER BY id, mtl, lang' }, $r;
     enrich media => id => id => sub { 'SELECT id, medium, qty FROM releases_media WHERE id IN', $_, 'ORDER BY id, medium' }, $r;
+    enrich drm => id => id => sub { 'SELECT r.id, r.drm, r.notes, d.name FROM releases_drm r JOIN drm d ON d.id = r.drm WHERE r.id IN', $_, 'ORDER BY r.id, r.drm' }, $r;
 }
 
 
@@ -163,6 +164,12 @@ sub release_row_ {
             a_ href => "/$r->{id}", tattr $title;
             my $note = join ' ', $r->{official} ? () : 'unofficial', $mtl ? 'machine translation' : (), $r->{patch} ? 'patch' : ();
             small_ " ($note)" if $note;
+            if ($r->{drm}->@*) {
+                my $free = grep !$_->{drm}, $r->{drm}->@*;
+                my $drm = grep $_->{drm}, $r->{drm}->@*;
+                my $nfo = join "\n", map $_->{name}.($_->{notes} ? ' ('.bb_format($_->{notes}, text => 1).')' : ''), $r->{drm}->@*;
+                ($free && $drm ? \&span_ : $drm ? \&b_ : \&small_)->(title => $nfo, $free && !$drm ? ' (drm-free)' : ' (drm)');
+            }
         };
         td_ class => 'tc_icons', sub { icons_ $r };
         td_ class => 'tc_prod', join ' & ', $r->{publisher} ? 'Pub' : (), $r->{developer} ? 'Dev' : () if $opt->{prod};
