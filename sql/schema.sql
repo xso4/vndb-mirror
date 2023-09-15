@@ -437,6 +437,8 @@ CREATE TABLE producers_relations_hist (
 -- quotes
 CREATE TABLE quotes (
   vid        vndbid NOT NULL, -- [pub]
+  rand       real,
+  approved   boolean NOT NULL DEFAULT FALSE,
   quote      varchar(250) NOT NULL, -- [pub]
   PRIMARY KEY(vid, quote)
 );

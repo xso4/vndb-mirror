@@ -7,6 +7,7 @@ CREATE        INDEX chars_traits_tid       ON chars_traits (tid);
 CREATE UNIQUE INDEX image_votes_pkey       ON image_votes (uid, id);
 CREATE        INDEX image_votes_id         ON image_votes (id);
 CREATE        INDEX notifications_uid_iid  ON notifications (uid,iid);
+CREATE        INDEX quotes_rand            ON quotes (rand) WHERE rand IS NOT NULL;
 CREATE        INDEX releases_released      ON releases (released) WHERE NOT hidden; -- Mainly for the homepage
 CREATE        INDEX releases_producers_pid ON releases_producers (pid);
 CREATE        INDEX releases_vn_vid        ON releases_vn (vid);

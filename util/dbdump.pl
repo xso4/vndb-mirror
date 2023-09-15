@@ -97,7 +97,7 @@ my %tables = (
     image_votes         => { where => "id IN(SELECT id FROM images WHERE c_weight > 0)", order => 'uid, id' },
     producers           => { where => 'NOT hidden' },
     producers_relations => { where => 'id IN(SELECT id FROM producers WHERE NOT hidden)' },
-    quotes              => { where => 'vid IN(SELECT id FROM vn WHERE NOT hidden)' },
+    quotes              => { where => 'rand IS NOT NULL' },
     releases            => { where => 'NOT hidden' },
     releases_media      => { where => 'id IN(SELECT id FROM releases WHERE NOT hidden)' },
     releases_platforms  => { where => 'id IN(SELECT id FROM releases WHERE NOT hidden)' },

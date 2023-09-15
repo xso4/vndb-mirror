@@ -325,7 +325,7 @@ sub _menu_ {
 
 
 sub _footer_ {
-    my $q = tuwf->dbRow('SELECT vid, quote FROM quotes ORDER BY RANDOM() LIMIT 1');
+    my $q = tuwf->dbRow('SELECT vid, quote FROM quotes WHERE rand <= random() ORDER BY rand DESC LIMIT 1');
     if($q && $q->{vid}) {
         lit_ '"';
         a_ href => "/$q->{vid}", style => 'text-decoration: none', $q->{quote};

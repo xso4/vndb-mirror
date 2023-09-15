@@ -587,6 +587,22 @@ $$ LANGUAGE plpgsql;
 
 
 
+CREATE OR REPLACE FUNCTION quotes_rand_calc() RETURNS void AS $$
+  WITH q(vid,quote) AS (
+    SELECT vid, quote FROM quotes q WHERE approved AND EXISTS(SELECT 1 FROM vn v WHERE v.id = q.vid AND NOT v.hidden)
+  ), r(vid,quote,rand) AS (
+    SELECT vid, quote,
+           -- 'rand' is chosen such that each VN has an equal probability to be selected, regardless of how many quotes it has.
+           ((dense_rank() OVER (ORDER BY vid)) - 1)::real / (SELECT COUNT(DISTINCT vid) FROM q) +
+           (percent_rank() OVER (PARTITION BY vid ORDER BY quote)) / (SELECT COUNT(DISTINCT vid)+1 FROM q)
+      FROM q
+  ), u AS (
+    UPDATE quotes SET rand = NULL WHERE NOT EXISTS(SELECT 1 FROM r WHERE quotes.vid = r.vid AND quotes.quote = r.quote)
+  ) UPDATE quotes SET rand = r.rand FROM r WHERE r.vid = quotes.vid AND r.quote = quotes.quote
+$$ LANGUAGE SQL;
+
+
+
 -- Fully recalculate all rows in stats_cache
 CREATE OR REPLACE FUNCTION update_stats_cache_full() RETURNS void AS $$
 BEGIN
