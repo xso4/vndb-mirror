@@ -325,13 +325,15 @@ sub _menu_ {
 
 
 sub _footer_ {
+    my($o) = @_;
     my $q = tuwf->dbRow('SELECT vid, quote FROM quotes WHERE rand <= random() ORDER BY rand DESC LIMIT 1');
-    if($q && $q->{vid}) {
+    span_ sub {
         lit_ '"';
-        a_ href => "/$q->{vid}", style => 'text-decoration: none', $q->{quote};
-        txt_ '"';
+        a_ href => "/$q->{vid}", $q->{quote};
+        txt_ '" ';
+        a_ href => "/$o->{dbobj}{id}/quotes", '+' if $o->{dbobj} && $o->{dbobj}{id} =~ /^v/;
         br_;
-    }
+    } if $q && $q->{vid};
     a_ href => config->{source_url}, config->{version};
     txt_ ' | ';
     a_ href => '/d17', 'privacy & content policy';
@@ -350,7 +352,7 @@ sub _footer_ {
         br_;
         tuwf->dbCommit; # Hack to measure the commit time
 
-        my(@sql_r, @sql_i) = @_;
+        my(@sql_r, @sql_i) = ();
         for (tuwf->{_TUWF}{DB}{queries}->@*) {
             my($sql, $params, $time) = @$_;
             my @params = sort { $a =~ /^[0-9]+$/ && $b =~ /^[0-9]+$/ ? $a <=> $b : $a cmp $b } keys %$params;
@@ -559,7 +561,7 @@ sub framework_ {
             nav_ sub { _menu_ \%o };
             main_ sub {
                 $cont->() unless $o{hiddenmsg} && _hidden_msg_ \%o;
-                footer_ \&_footer_;
+                footer_ sub { _footer_ \%o };
             };
 
             # 'basic' bundle is always included if there's any JS at all

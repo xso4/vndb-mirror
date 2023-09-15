@@ -154,4 +154,5 @@ body > * nav {
 main > footer {
     margin: -7px auto 0 auto; text-align: center; color: var(--footer);
     a { color: inherit; text-decoration: underline }
+    span a { text-decoration: none }
 }
