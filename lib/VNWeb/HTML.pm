@@ -331,7 +331,7 @@ sub _footer_ {
         lit_ '"';
         a_ href => "/$q->{vid}", $q->{quote};
         txt_ '" ';
-        a_ href => "/$o->{dbobj}{id}/quotes", '+' if $o->{dbobj} && $o->{dbobj}{id} =~ /^v/;
+        a_ href => "/$o->{dbobj}{id}/quotes", '+' if auth && $o->{dbobj} && $o->{dbobj}{id} =~ /^v/;
         br_;
     } if $q && $q->{vid};
     a_ href => config->{source_url}, config->{version};
