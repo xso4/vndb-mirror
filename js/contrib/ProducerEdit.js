@@ -77,7 +77,7 @@ widget('ProducerEdit', initVnode => {
                     m('label[for=name]', 'Name (original)'),
                     m(Input, { class: 'xw', required: true, maxlength: 200, data, field: 'name', oninput: nameChange }),
                 ),
-                !data.latin && !nonLatin.test(data.title) ? null : m('fieldset',
+                !data.latin && !nonLatin.test(data.name) ? null : m('fieldset',
                     m('label[for=name]', 'Name (latin)'),
                     m(Input, {
                         class: 'xw', required: true, maxlength: 200, data, field: 'latin', placeholder: 'Romanization', oninput: nameChange,
