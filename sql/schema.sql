@@ -1488,7 +1488,9 @@ CREATE TABLE wikidata (
   itchio             text[],    -- [pub] P7294
   playstation_jp     text[],    -- [pub] P5999
   playstation_na     text[],    -- [pub] P5944
-  playstation_eu     text[]     -- [pub] P5971
+  playstation_eu     text[],    -- [pub] P5971
+  lutris             text[],    -- [pub] P7597
+  wine               integer[]  -- [pub] P600
 );
 
 

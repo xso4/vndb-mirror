@@ -51,6 +51,8 @@ our %WIKIDATA = (
     playstation_jp     => { type => 'text[]',     property => 'P5999', label => undef,            fmt => undef },
     playstation_na     => { type => 'text[]',     property => 'P5944', label => undef,            fmt => undef },
     playstation_eu     => { type => 'text[]',     property => 'P5971', label => undef,            fmt => undef },
+    lutris             => { type => 'text[]',     property => 'P7597', label => 'Lutris',         fmt => 'https://lutris.net/games/%s' },
+    wine               => { type => 'integer[]',  property => 'P600',  label => 'Wine AppDB',     fmt => 'https://appdb.winehq.org/appview.php?iAppId=%d' },
 );
 
 
@@ -342,6 +344,8 @@ sub enrich_extlinks {
             w 'howlongtobeat';
             w 'igdb_game';
             w 'pcgamingwiki';
+            w 'lutris';
+            w 'wine';
             l 'l_renai';
             c 'vnstat', 'VNStat', 'https://vnstat.net/novel/%d', $obj->{id} =~ s/^.//r if $obj->{c_votecount}>=20;
         }
