@@ -1128,7 +1128,7 @@ my %GET_STAFF = (
 
 
 my %GET_QUOTE = (
-  sql     => "SELECT %s FROM quotes q JOIN vnt v ON v.id = q.vid WHERE NOT v.hidden AND (%s) %s",
+  sql     => "SELECT %s FROM quotes q JOIN vnt v ON v.id = q.vid WHERE q.approved AND NOT v.hidden AND (%s) %s",
   select  => "v.id, v.title[2], q.quote",
   proc    => sub {
     $_[0]{id} = idnum $_[0]{id};

@@ -4,26 +4,23 @@ use VNWeb::Prelude;
 
 
 my $FORM = {
-    id         => { required => 0, vndbid => 'p' },
-    ptype      => { default => 'co', enum => \%PRODUCER_TYPE },
-    name       => { maxlength => 200 },
-    latin      => { required => 0, maxlength => 200 },
-    alias      => { required => 0, default => '', maxlength => 500 },
-    lang       => { default => 'ja', enum => \%LANGUAGE },
-    website    => { required => 0, default => '', weburl => 1 },
-    l_wikidata => { required => 0, uint => 1, max => (1<<31)-1 },
-    description=> { required => 0, default => '', maxlength => 5000 },
-    relations  => { sort_keys => 'pid', aoh => {
+    id          => { required => 0, vndbid => 'p' },
+    type        => { default => 'co', enum => \%PRODUCER_TYPE },
+    name        => { maxlength => 200 },
+    latin       => { required => 0, maxlength => 200 },
+    alias       => { required => 0, default => '', maxlength => 500 },
+    lang        => { enum => \%LANGUAGE },
+    website     => { required => 0, default => '', weburl => 1 },
+    l_wikidata  => { required => 0, uint => 1, max => (1<<31)-1 },
+    description => { required => 0, default => '', maxlength => 5000 },
+    relations   => { sort_keys => 'pid', aoh => {
         pid      => { vndbid => 'p' },
         relation => { enum => \%PRODUCER_RELATION },
         name     => { _when => 'out' },
-        altname  => { _when => 'out', required => 0 },
     } },
-    hidden     => { anybool => 1 },
-    locked     => { anybool => 1 },
-
-    authmod    => { _when => 'out', anybool => 1 },
-    editsum    => { _when => 'in out', editsum => 1 },
+    hidden      => { anybool => 1 },
+    locked      => { anybool => 1 },
+    editsum     => { _when => 'in out', editsum => 1 },
 };
 
 my $FORM_OUT = form_compile out => $FORM;
@@ -37,15 +34,14 @@ TUWF::get qr{/$RE{prev}/edit} => sub {
 
     $e->{authmod} = auth->permDbmod;
     $e->{editsum} = $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
-    $e->{ptype} = delete $e->{type};
 
-    enrich_merge pid => sql('SELECT id AS pid, title[1+1] AS name, title[1+1+1+1] AS altname FROM', producerst, 'p WHERE id IN'), $e->{relations};
+    enrich_merge pid => sql('SELECT id AS pid, title[1+1] AS name FROM', producerst, 'p WHERE id IN'), $e->{relations};
 
     my $title = titleprefs_swap @{$e}{qw/ lang name latin /};
     framework_ title => "Edit $title->[1]", dbobj => $e, tab => 'edit',
     sub {
         editmsg_ p => $e, "Edit $title->[1]";
-        elm_ ProducerEdit => $FORM_OUT, $e;
+        div_ widget(ProducerEdit => $FORM_OUT, $e), '';
     };
 };
 
@@ -56,16 +52,16 @@ TUWF::get qr{/p/add}, sub {
     framework_ title => 'Add producer',
     sub {
         editmsg_ p => undef, 'Add producer';
-        elm_ ProducerEdit => $FORM_OUT, elm_empty $FORM_OUT;
+        div_ widget(ProducerEdit => $FORM_OUT, elm_empty $FORM_OUT), '';
     };
 };
 
 
-elm_api ProducerEdit => $FORM_OUT, $FORM_IN, sub {
+js_api ProducerEdit => $FORM_IN, sub {
     my $data = shift;
     my $new = !$data->{id};
     my $e = $new ? { id => 0 } : db_entry $data->{id} or return tuwf->resNotFound;
-    return elm_Unauth if !can_edit p => $e;
+    return tuwf->resDenied if !can_edit p => $e;
 
     if(!auth->permDbmod) {
         $data->{hidden} = $e->{hidden}||0;
@@ -78,12 +74,10 @@ elm_api ProducerEdit => $FORM_OUT, $FORM_IN, sub {
     validate_dbid 'SELECT id FROM producers WHERE id IN', map $_->{pid}, $data->{relations}->@*;
     die "Relation with self" if grep $_->{pid} eq $e->{id}, $data->{relations}->@*;
 
-    $e->{ptype} = $e->{type};
-    $data->{type} = $data->{ptype};
-    return elm_Unchanged if !$new && !form_changed $FORM_CMP, $data, $e;
+    return +{ _err => 'No changes.' } if !$new && !form_changed $FORM_CMP, $data, $e;
     my $ch = db_edit p => $e->{id}, $data;
     update_reverse($ch->{nitemid}, $ch->{nrev}, $e, $data);
-    elm_Redirect "/$ch->{nitemid}.$ch->{nrev}";
+    +{ _redir => "/$ch->{nitemid}.$ch->{nrev}" };
 };
 
 

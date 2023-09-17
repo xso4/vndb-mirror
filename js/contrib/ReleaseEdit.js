@@ -491,7 +491,7 @@ widget('ReleaseEdit', initVnode => {
                 m(TextPreview, {
                     data, field: 'notes',
                     header: m('b', '(English please!)'),
-                    attrs: { id: 'notes', rows: 5 },
+                    attrs: { id: 'notes', rows: 5, maxlength: 10240 },
                 }),
             ),
         ),

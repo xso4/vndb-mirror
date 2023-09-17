@@ -408,7 +408,9 @@ const Lang = f => ({
 });
 
 DS.Lang = Lang(() => true);
-DS.ScriptLang = Lang(l => l !== 'zh'); // Chinese has separate language entries for the scripts
+// Chinese has separate language entries for the scripts
+DS.ScriptLang = Lang(l => l !== 'zh');
+DS.LocLang = Lang(l => l !== 'zh-Hans' && l !== 'zh-Hant');
 
 DS.Platforms = {
     opts: { width: 250, maxCols: 3 },

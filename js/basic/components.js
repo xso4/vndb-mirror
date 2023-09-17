@@ -100,14 +100,15 @@ window.Form = () => {
         return m('form[novalidate]', {
             onsubmit: ev => {
                 ev.preventDefault();
-                report = submitted = true;
+                report = true;
+                submitted = api;
                 if (ev.target.querySelector('.invalid')) return;
                 const x = vnode.attrs.onsubmit;
                 x && x(ev);
             },
             onupdate: v => requestAnimationFrame(() => {
                 const inv = v.dom.querySelector('.invalid');
-                v.dom.classList.toggle('invalid-form', submitted && (inv || (api && api.error)));
+                v.dom.classList.toggle('invalid-form', submitted === api && (inv || (api && api.error)));
                 if (inv && report) {
                     // If we have a FormTabs child, let that component do the reporting.
                     const t = $('#js-formtabs');
@@ -210,7 +211,7 @@ window.FormTabs = initVnode => {
 // - invalid       -> Custom HTML validation message
 // - data + field  -> input value is read from and written to 'data[field]'
 // - oninput       -> called after 'data[field]' has been modified, takes new value as argument
-// - required / minlength / maxlength
+// - required / minlength / maxlength / pattern
 //   HTML5 validation properties, except with a custom implementation.
 //   The length is properly counted in Unicode points rather than UTF-16 digits.
 // - focus         -> Bool, set input focus on create
@@ -248,6 +249,7 @@ window.Input = () => {
             if (/^https?:\/\/[^/]+$/.test(v)) return "URL must have a path component (hint: add a '/'?).";
             if (!new RegExp(formVals.weburl).test(v)) return 'Invalid URL.';
         }
+        if (a.pattern && !new RegExp(a.pattern).test(v)) return 'Invalid format.';
         return '';
     };
     const view = vnode => {
