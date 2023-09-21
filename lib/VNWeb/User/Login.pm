@@ -28,15 +28,22 @@ js_api UserLogin => {
     return +{ _err => 'Too many failed login attempts, please use the password reset form or try again later.' }
         if $tm-time() > config->{login_throttle}[1];
 
-    my $insecure = is_insecurepass $data->{password};
+    my $ismail = $data->{username} =~ /@/;
+    my $mailmsg = 'Invalid username or password.';
 
     my $u = tuwf->dbRowi('SELECT id, user_getscryptargs(id) x FROM users WHERE',
-        $data->{username} =~ /@/ ? sql('id IN(SELECT * FROM user_emailtoid(', \$data->{username}, '))')
-                                 : sql('lower(username) = lower(', \$data->{username}, ')')
+        $ismail ? sql('id IN(SELECT * FROM user_emailtoid(', \$data->{username}, '))')
+                : sql('lower(username) = lower(', \$data->{username}, ')')
     );
-    return +{ _err => 'No user with that name or email.' } if !$u->{id};
+    # When logging in with an email, make sure we don't disclose whether or not an account with that email exists.
+    if ($ismail && !$u->{id}) {
+        auth->wasteTime; # make timing attacks a bit harder (not 100% perfect, DB lookups & different scrypt args can still influence timing)
+        return +{ _err => $mailmsg };
+    }
+    return +{ _err => 'No user with that name.' } if !$u->{id};
     return +{ _err => 'Account disabled, please use the password reset form to re-activate your account.' } if !$u->{x};
 
+    my $insecure = is_insecurepass $data->{password};
     if(auth->login($u->{id}, $data->{password}, $insecure)) {
         auth->audit(auth->uid, 'login') if !$insecure;
         return $insecure ? { insecurepass => 1, uid => $u->{id} } : { ok => 1 };
@@ -49,7 +56,7 @@ js_api UserLogin => {
         timeout => sql_fromtime $tm + config->{login_throttle}[0]
     };
     tuwf->dbExeci('INSERT INTO login_throttle', $upd, 'ON CONFLICT (ip) DO UPDATE SET', $upd);
-    +{ _err => 'Incorrect password.' }
+    +{ _err => $ismail ? $mailmsg : 'Incorrect password.' }
 };
 
 

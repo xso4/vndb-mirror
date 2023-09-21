@@ -3,10 +3,8 @@ widget('UserRegister', vnode => {
     const api = new Api('UserRegister');
     const data = { username: '', email: '' };
     const dupnames = {};
-    const dupemails = {};
     const onsubmit = ev => api.call(data, res => {
         if (res && res.err === 'username') dupnames[data.username] = true;
-        if (res && res.err === 'email') dupemails[data.email] = true;
         success = res && res.ok;
     });
     const donemsg = m('article',
@@ -32,7 +30,6 @@ widget('UserRegister', vnode => {
                 m('label[for=email]', 'E-Mail'),
                 m(Input, {
                     id: 'email', type: 'email', class: 'mw', required: true, data, field: 'email',
-                    invalid: dupemails[data.email] ? 'This address is already used by another account' : null,
                 }),
                 m('p',
                     'A valid address is required in order to activate and use your account. ',

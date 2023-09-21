@@ -694,6 +694,12 @@ CREATE TABLE reports (
   log        text NOT NULL DEFAULT ''
 );
 
+-- reset_throttle
+CREATE TABLE reset_throttle (
+  ip        inet NOT NULL PRIMARY KEY,
+  timeout   timestamptz NOT NULL
+);
+
 -- reviews
 CREATE TABLE reviews (
   id         vndbid PRIMARY KEY DEFAULT vndbid('w', nextval('reviews_seq')::int) CONSTRAINT reviews_id_check CHECK(vndbid_type(id) = 'w'),

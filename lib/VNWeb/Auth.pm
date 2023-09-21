@@ -202,6 +202,12 @@ sub logout {
 }
 
 
+sub wasteTime {
+    my $self = shift;
+    $self->_preparepass(urandom(20));
+}
+
+
 # Create a random token that can be used to reset the password.
 # Returns ($uid, $token) if the email address is found in the DB, () otherwise.
 sub resetpass {

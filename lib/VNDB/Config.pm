@@ -24,6 +24,7 @@ my $config = {
     source_url        => 'https://code.blicky.net/yorhel/vndb',
     admin_email       => 'contact@vndb.org',
     login_throttle    => [ 24*3600/10, 24*3600 ], # interval between attempts, max burst (10 a day)
+    reset_throttle    => [ 24*3600/2,  24*3600 ], # interval between attempts, max burst (2 a day)
     board_edit_time   => 7*24*3600, # Time after which posts become immutable
     graphviz_path     => '/usr/bin/dot',
     convert_path      => '/usr/bin/convert',

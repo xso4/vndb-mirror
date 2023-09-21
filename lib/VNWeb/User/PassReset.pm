@@ -15,21 +15,37 @@ js_api UserPassReset => {
 }, sub {
     my $data = shift;
 
-    my($id, $token) = auth->resetpass($data->{email});
-    return +{ _err => 'Unknown email address.' } if !$id;
+    # Throttle exists to prevent email sending abuse
+    my $ip = norm_ip tuwf->reqIP;
+    my $tm = tuwf->dbVali(
+        'SELECT', sql_totime('greatest(timeout, now())'), 'FROM reset_throttle WHERE ip =', \$ip
+    ) || time;
+    return 'Too many password reset attempts, try again later.' if $tm-time() > config->{reset_throttle}[1];
 
-    my $name = tuwf->dbVali('SELECT username FROM users WHERE id =', \$id);
-    my $body = sprintf
+    my $upd = {ip => $ip, timeout => sql_fromtime $tm + config->{reset_throttle}[0]};
+    tuwf->dbExeci('INSERT INTO reset_throttle', $upd, 'ON CONFLICT (ip) DO UPDATE SET', $upd);
+
+    my($id, $token) = auth->resetpass($data->{email});
+    my $name = $id ? tuwf->dbVali('SELECT username FROM users WHERE id =', \$id) : $data->{email};
+    my $body = $id ? sprintf
          "Hello %s,"
-        ."\n\n"
-        ."You can set a new password for your VNDB.org account by following the link below:"
-        ."\n\n"
-        ."%s"
-        ."\n\n"
-        ."Now don't forget your password again! :-)"
-        ."\n\n"
-        ."vndb.org",
-        $name, tuwf->reqBaseURI()."/$id/setpass/$token";
+        ."\n"
+        ."\nYou can set a new password for your VNDB.org account by following the link below:"
+        ."\n"
+        ."\n%s"
+        ."\n"
+        ."\nNow don't forget your password again! :-)"
+        ."\n"
+        ."\nvndb.org",
+        $name, tuwf->reqBaseURI()."/$id/setpass/$token"
+    :   "Hello,"
+       ."\n"
+       ."\nSomeone has requested a password reset for the VNDB account associated with this email address."
+       ."\nIf this was not done by you, feel free to ignore this email."
+       ."\n"
+       ."\nThere is no VNDB account associated with this email address, perhaps you used another address to sign up?"
+       ."\n"
+       ."\nvndb.org";
 
     tuwf->mail($body,
       To => $data->{email},
