@@ -96,6 +96,7 @@ my %dailies = (
     SELECT id FROM (SELECT id, row_number() OVER (PARTITION BY uid ORDER BY id DESC) > 500 from notifications) AS x(id,del) WHERE x.del)|,
   rmunconfirmusers   => q|DELETE FROM users          WHERE registered < NOW()-'1 week'::interval AND NOT email_confirmed|,
   cleanthrottle      => q|DELETE FROM login_throttle WHERE timeout    < NOW()|,
+  cleanresthrottle   => q|DELETE FROM reset_throttle WHERE timeout    < NOW()|,
   cleanregthrottle   => q|DELETE FROM registration_throttle WHERE timeout < NOW()|,
 );
 
