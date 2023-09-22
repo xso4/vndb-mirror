@@ -52,8 +52,13 @@ TUWF::get '/r/drm', sub {
                     a_ href => "/r/drm/edit/$d->{id}?ref=".uri_escape(query_encode(%$opt)), ' edit' if auth->permDbmod;
                 };
                 my @prop = grep $d->{$_}, keys %DRM_PROPERTY;
-                # TODO: icons
-                p_ join(', ', map $DRM_PROPERTY{$_}, @prop).'.' if @prop;
+                p_ sub {
+                    join_ ' ', sub {
+                        abbr_ class => "icon-drm-$_", title => $DRM_PROPERTY{$_}, '';
+                        txt_ $DRM_PROPERTY{$_};
+                    }, @prop;
+                    join(', ', map $DRM_PROPERTY{$_}, @prop).'.' if @prop;
+                } if @prop;
                 div_ sub { lit_ bb_format $d->{description} if $d->{description} };
             } for @$lst;
             p_ class => 'center', sub {

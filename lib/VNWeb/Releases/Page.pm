@@ -10,14 +10,14 @@ sub enrich_item {
 
     enrich_merge pid => sql('SELECT id AS pid, title, sorttitle FROM', producerst, 'p WHERE id IN'), $r->{producers};
     enrich_merge vid => sql('SELECT id AS vid, title, sorttitle FROM', vnt, 'v WHERE id IN'), $r->{vn};
-    enrich_merge drm => sql('SELECT id AS drm, name FROM drm WHERE id IN'), $r->{drm};
+    enrich_merge drm => sql('SELECT id AS drm, name,', sql_join(',', keys %DRM_PROPERTY), 'FROM drm WHERE id IN'), $r->{drm};
 
     $r->{titles}    = [ sort { ($b->{lang} eq $r->{olang}) cmp ($a->{lang} eq $r->{olang}) || ($a->{mtl}?1:0) <=> ($b->{mtl}?1:0) || $a->{lang} cmp $b->{lang} } $r->{titles}->@* ];
     $r->{platforms} = [ sort map $_->{platform}, $r->{platforms}->@* ];
     $r->{vn}        = [ sort { $a->{sorttitle} cmp $b->{sorttitle} || idcmp($a->{vid}, $b->{vid}) } $r->{vn}->@*        ];
     $r->{producers} = [ sort { $a->{sorttitle} cmp $b->{sorttitle} || idcmp($a->{pid}, $b->{pid}) } $r->{producers}->@* ];
     $r->{media}     = [ sort { $a->{medium} cmp $b->{medium} || $a->{qty} <=> $b->{qty} } $r->{media}->@*     ];
-    $r->{drm}       = [ sort { $a->{drm} <=> $b->{drm} } $r->{drm}->@* ]; # XXX: Name, but "No DRM" first?
+    $r->{drm}       = [ sort { !$a->{drm} || !$b->{drm} ? $b->{drm} <=> $a->{drm} : $a->{name} cmp $b->{name} } $r->{drm}->@* ];
 
     $r->{resolution} = resolution $r;
 }
@@ -219,9 +219,10 @@ sub _infotable_ {
         tr_ sub {
             td_ 'DRM';
             td_ sub { join_ \&br_, sub {
-                # TODO: Property icons
-                a_ href => '/r/drm?s='.uri_escape($_->{name}), $_->{name};
-                lit_ ' ('.bb_format($_->{notes}, inline => 1).')' if length $_->{notes};
+                my $d = $_;
+                abbr_ class => "icon-drm-$_", title => $DRM_PROPERTY{$_}, '' for grep $d->{$_}, keys %DRM_PROPERTY;
+                a_ href => '/r/drm?s='.uri_escape($d->{name}), $d->{name};
+                lit_ ' ('.bb_format($d->{notes}, inline => 1).')' if length $d->{notes};
             }, $r->{drm}->@* };
         } if $r->{drm}->@*;
 

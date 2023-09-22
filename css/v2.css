@@ -1063,6 +1063,7 @@ div#iv_view {
 .icon-external,
 .icon-rtcomplete, .icon-rtpartial, .icon-rttrial { background-image: url(/g/icons.png?#{$png-version}) }
 [class^=icon-plat-],
+[class^=icon-drm-],
 [class^=icon-rel-],
 [class^=icon-list-],
 .icon-rss { background-image: url(/g/icons.svg?#{$svg-version}) }
