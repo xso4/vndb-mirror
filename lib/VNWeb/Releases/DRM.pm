@@ -22,9 +22,9 @@ TUWF::get '/r/drm', sub {
     ');
     my $missing = $opt->{u} ? 0 : tuwf->dbVali('SELECT COUNT(*) FROM drm WHERE', $where, 'AND c_ref = 0');
 
-    framework_ title => 'List of DRM types', sub {
+    framework_ title => 'List of DRM implementations', sub {
         article_ sub {
-            h1_ 'List of DRM types';
+            h1_ 'List of DRM implementations';
             form_ action => '/r/drm', method => 'get', sub {
                 fieldset_ class => 'search', sub {
                     input_ type => 'text', name => 's', id => 's', class => 'text', value => $opt->{s};
@@ -47,7 +47,7 @@ TUWF::get '/r/drm', sub {
                 h2_ !$d->{c_ref} && !$unused++ ? (id => 'unused') : (), sub {
                     span_ class => 'strikethrough', $d->{name} if $d->{state} == 2;
                     txt_ $d->{name} if $d->{state} != 2;
-                    a_ href => '/r?f='.tuwf->compile({advsearch => 'r'})->validate(['drm-type','=',$d->{name}])->data->query_encode, " ($d->{c_ref})";
+                    a_ href => '/r?f='.tuwf->compile({advsearch => 'r'})->validate(['drm','=',$d->{name}])->data->query_encode, " ($d->{c_ref})";
                     b_ ' (new)' if $d->{state} == 0;
                     a_ href => "/r/drm/edit/$d->{id}?ref=".uri_escape(query_encode(%$opt)), ' edit' if auth->permDbmod;
                 };

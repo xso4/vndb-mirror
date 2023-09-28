@@ -62,12 +62,12 @@ fromQuery dat q =
 view : Model -> (Html Msg, () -> List (Html Msg))
 view model =
   ( case Set.toList model.sel.sel of
-      []  -> small [] [ text "DRM Type" ]
+      []  -> small [] [ text "DRM implementation" ]
       [s] -> span [ class "nowrap" ] [ S.lblPrefix model.sel, text s ]
       l   -> span [] [ S.lblPrefix model.sel, text <| "DRM (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
     [ div [ class "advheader" ]
-      [ h3 [] [ text "DRM Type" ]
+      [ h3 [] [ text "DRM implementation" ]
       , Html.map Sel (S.opts model.sel False False)
       ]
     , ul [] <| List.map (\s ->

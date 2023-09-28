@@ -478,7 +478,7 @@ fields =
   , f R "Ero animation"      0  FMAniEro      AS.init                 (AS.animatedFromQuery False)
   , f R "Story animation"    0  FMAniStory    AS.init                 (AS.animatedFromQuery True)
   , f R "Engine"             0  FMEngine      AEng.init               AEng.fromQuery
-  , f R "DRM Type"           0  FMDRMType     ADRM.init               ADRM.fromQuery
+  , f R "DRM implementation" 0  FMDRMType     ADRM.init               ADRM.fromQuery
   , f R "External links"     0  FMExtLinks    AS.init                 AS.extlinkFromQuery
   , f R "My List"            0  FMRList       AS.init                 AS.rlistFromQuery
   -- Deprecated

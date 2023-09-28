@@ -230,10 +230,10 @@ const DRM = initVnode => {
     const {data} = initVnode.attrs;
     const ds = new DS(DS.New(DS.DRM,
         id => id.length > 0 && id.length <= 128 ? {id,create:true} : null,
-        obj => m('em', 'Add new DRM type: ' + obj.id),
+        obj => m('em', 'Add new DRM: ' + obj.id),
     ), {
         more: true,
-        placeholder: 'Search or add new DRM type',
+        placeholder: 'Search or add new DRM',
         props: obj =>
             obj.state === 2 ? { selectable: false } :
             data.drm.find(d => d.name === obj.id) ? { selectable: false, append: m('small', ' (already listed)') } : {},
@@ -248,7 +248,7 @@ const DRM = initVnode => {
                 m(Input, { class: 'lw', placeholder: 'Notes (optional)', data: d, field: 'notes' }),
                 !d.create ? [] : [
                     m('br'),
-                    m('strong', 'New DRM type will be added when you submit the form.'),
+                    m('strong', 'New DRM implementation will be added when you submit the form.'),
                     m('br'),
                     'Please check the properties that apply:',
                     vndbTypes.drmProperty.map(([id,name]) => [ m('br'), m('label.check',
@@ -260,7 +260,7 @@ const DRM = initVnode => {
                 ],
             ),
         ))),
-        m(DS.Button, {ds}, 'Add DRM type'),
+        m(DS.Button, {ds}, 'Add DRM'),
     );
     return {view};
 };
