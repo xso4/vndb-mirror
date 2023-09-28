@@ -57,8 +57,11 @@ TUWF::get '/r/drm', sub {
                         abbr_ class => "icon-drm-$_", title => $DRM_PROPERTY{$_}, '';
                         txt_ $DRM_PROPERTY{$_};
                     }, @prop;
-                    join(', ', map $DRM_PROPERTY{$_}, @prop).'.' if @prop;
-                } if @prop;
+                    if (!@prop) {
+                        abbr_ class => 'icon-drm-free', title => 'DRM-free', '';
+                        txt_ 'DRM-free';
+                    }
+                };
                 div_ sub { lit_ bb_format $d->{description} if $d->{description} };
             } for @$lst;
             p_ class => 'center', sub {

@@ -220,7 +220,9 @@ sub _infotable_ {
             td_ 'DRM';
             td_ sub { join_ \&br_, sub {
                 my $d = $_;
-                abbr_ class => "icon-drm-$_", title => $DRM_PROPERTY{$_}, '' for grep $d->{$_}, keys %DRM_PROPERTY;
+                my @prop = grep $d->{$_}, keys %DRM_PROPERTY;
+                abbr_ class => "icon-drm-$_", title => $DRM_PROPERTY{$_}, '' for @prop;
+                abbr_ class => 'icon-drm-free', title => 'DRM-free', '' if !@prop;
                 a_ href => '/r/drm?s='.uri_escape($d->{name}), $d->{name};
                 lit_ ' ('.bb_format($d->{notes}, inline => 1).')' if length $d->{notes};
             }, $r->{drm}->@* };
