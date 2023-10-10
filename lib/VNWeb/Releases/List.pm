@@ -37,7 +37,7 @@ TUWF::get qr{/r}, sub {
         f => { advsearch_err => 'r' },
         s => { onerror => 'qscore', enum => [qw/qscore released minage title/] },
         o => { onerror => 'a', enum => ['a','d'] },
-        fil => { required => 0 },
+        fil => { default => '' },
     )->data;
     $opt->{s} = 'qscore' if $opt->{q} && tuwf->reqGet('sb');
     $opt->{s} = 'title' if $opt->{s} eq 'qscore' && !$opt->{q};

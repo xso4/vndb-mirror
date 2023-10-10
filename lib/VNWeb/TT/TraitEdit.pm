@@ -3,9 +3,9 @@ package VNWeb::TT::TraitEdit;
 use VNWeb::Prelude;
 
 my $FORM = {
-    id           => { required => 0, vndbid => 'i' },
+    id           => { default => undef, vndbid => 'i' },
     name         => { maxlength => 250, regex => qr/^[^,\r\n]+$/ },
-    alias        => { maxlength => 1024, regex => qr/^[^,]+$/, required => 0, default => '' },
+    alias        => { maxlength => 1024, regex => qr/^[^,]+$/, default => '' },
     sexual       => { anybool => 1 },
     description  => { maxlength => 10240 },
     searchable   => { anybool => 1, default => 1 },
@@ -15,7 +15,7 @@ my $FORM = {
         parent      => { vndbid => 'i' },
         main        => { anybool => 1 },
         name        => { _when => 'out' },
-        group       => { _when => 'out', required => 0 },
+        group       => { _when => 'out', default => undef },
     } },
     gorder       => { uint => 1 },
     hidden       => { anybool => 1 },

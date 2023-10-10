@@ -231,18 +231,18 @@ sub vis_param {
 
 
 my $FORM_OUT = form_compile any => {
-    save    => { required => 0 },
+    save    => { default => undef },
     views   => { type => 'array', values => { uint => 1 } },
     value   => { uint => 1 },
     default => { uint => 1 },
-    usaved  => { uint => 1, required => 0 },
+    usaved  => { uint => 1, default => undef },
     sorts   => { aoh => { id => { uint => 1 }, name => {}, num => { anybool => 1 } } },
     vis     => { aoh => { id => { uint => 1 }, name => {} } },
 };
 
 js_api TableOptsSave => {
     save => { enum => ['tableopts_c', 'tableopts_v', 'tableopts_vt'] },
-    value => { required => 0, uint => 1 }
+    value => { default => undef, uint => 1 }
 }, sub {
     my($f) = @_;
     return tuwf->resDenied if !auth;

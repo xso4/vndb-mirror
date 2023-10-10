@@ -9,10 +9,10 @@ my $FORM = {
     tags  => { sort_keys => 'id', aoh => {
         id        => { vndbid => 'g' },
         vote      => { int => 1, enum => [ -3..3 ] },
-        spoil     => { required => 0, uint => 1, enum => [ 0..2 ] },
+        spoil     => { default => undef, uint => 1, enum => [ 0..2 ] },
         lie       => { undefbool => 1 },
         overrule  => { anybool => 1 },
-        notes     => { required => 0, default => '', maxlength => 1000 },
+        notes     => { default => '', maxlength => 1000 },
         cat       => { _when => 'out' },
         name      => { _when => 'out' },
         rating    => { _when => 'out', num => 1 },

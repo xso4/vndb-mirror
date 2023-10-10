@@ -5,9 +5,9 @@ use VNWeb::Prelude;
 # TODO: Let users edit their own tag while it's still waiting for approval?
 
 my $FORM = {
-    id           => { required => 0, vndbid => 'g' },
+    id           => { default => undef, vndbid => 'g' },
     name         => { maxlength => 250, regex => qr/^[^,\r\n]+$/ },
-    alias        => { maxlength => 1024, regex => qr/^[^,]+$/, required => 0, default => '' },
+    alias        => { maxlength => 1024, regex => qr/^[^,]+$/, default => '' },
     cat          => { enum => \%TAG_CATEGORY, default => 'cont' },
     description  => { maxlength => 10240 },
     searchable   => { anybool => 1, default => 1 },

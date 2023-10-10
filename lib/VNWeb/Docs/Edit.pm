@@ -7,7 +7,7 @@ use VNWeb::Docs::Lib;
 my $FORM = {
     id      => { vndbid => 'd' },
     title   => { maxlength => 200 },
-    content => { required => 0, default => '' },
+    content => { default => '' },
     hidden  => { anybool => 1 },
     locked  => { anybool => 1 },
 
@@ -46,7 +46,7 @@ elm_api DocEdit => $FORM_OUT, $FORM_IN, sub {
 
 
 elm_api Markdown => undef, {
-    content => { required => 0, default => '' }
+    content => { default => '' }
 }, sub {
     return elm_Unauth if !auth->permDbmod;
     elm_Content enrich_html md2html shift->{content};

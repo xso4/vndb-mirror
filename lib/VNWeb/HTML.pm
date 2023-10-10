@@ -801,8 +801,8 @@ sub revision_ {
 
     if(auth->permDbmod) {
         my $f = tuwf->validate(get =>
-            patrolled => { required => 0, uint => 1 },
-            unpatrolled => { required => 0, uint => 1 },
+            patrolled   => { default => 0, uint => 1 },
+            unpatrolled => { default => 0, uint => 1 },
         )->data;
         tuwf->dbExeci('INSERT INTO changes_patrolled', {id => $f->{patrolled}, uid => auth->uid}, 'ON CONFLICT (id,uid) DO NOTHING') if $f->{patrolled};
         tuwf->dbExeci('DELETE FROM changes_patrolled WHERE', {id => $f->{unpatrolled}, uid => auth->uid}) if $f->{unpatrolled};

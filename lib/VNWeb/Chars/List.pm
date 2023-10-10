@@ -86,7 +86,7 @@ TUWF::get qr{/c(?:/(?<char>all|[a-z0]))?}, sub {
         p => { upage => 1 },
         f => { advsearch_err => 'c' },
         ch=> { onerror => [], type => 'array', scalar => 1, values => { onerror => undef, enum => ['0', 'a'..'z'] } },
-        fil=>{ required => 0 },
+        fil=>{ default => '' },
         s => { tableopts => $TABLEOPTS },
     )->data;
     $opt->{ch} = $opt->{ch}[0];

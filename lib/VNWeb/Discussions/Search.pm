@@ -7,8 +7,8 @@ my @BOARDS = (keys %BOARD_TYPE, 'w');
 
 sub filters_ {
     state $schema = tuwf->compile({ type => 'hash', keys => {
-        bq => { required => 0, default => '' },
-        uq => { required => 0, default => '' },
+        bq => { default => '' },
+        uq => { default => '' },
         b  => { type => 'array', scalar => 1, onerror => \@BOARDS, values => { enum => \@BOARDS } },
         t  => { anybool => 1 },
         p  => { page => 1 },

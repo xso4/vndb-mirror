@@ -64,23 +64,23 @@ TUWF::set custom_validations => {
         my $re = qr/^(?:$types)[1-9][0-9]{0,6}$/;
         +{ _analyze_regex => $re, func => sub { $_[0] = "${types}$_[0]" if !$multi && $_[0] =~ /^[1-9][0-9]{0,6}$/; return $_[0] =~ $re } }
     },
-    editsum     => { required => 1, length => [ 2, 5000 ] },
-    page        => { uint => 1, min => 1, max => 1000, required => 0, default => 1, onerror => 1 },
-    upage       => { uint => 1, min => 1, required => 0, default => 1, onerror => 1 }, # pagination without a maximum
+    editsum     => { length => [ 2, 5000 ] },
+    page        => { uint => 1, min => 1, max => 1000, default => 1, onerror => 1 },
+    upage       => { uint => 1, min => 1, default => 1, onerror => 1 }, # pagination without a maximum
     username    => { regex => qr/^(?!-*[a-zA-Z][0-9]+-*$)[a-zA-Z0-9-]*$/, minlength => 2, maxlength => 15 },
     password    => { length => [ 4, 500 ] },
     language    => { enum => \%LANGUAGE },
-    gtin        => { required => 0, default => 0, func => sub { $_[0] = 0 if !length $_[0]; $_[0] eq 0 || gtintype($_[0]) } },
+    gtin        => { default => 0, func => sub { $_[0] = 0 if !length $_[0]; $_[0] eq 0 || gtintype($_[0]) } },
     rdate       => { uint => 1, func => \&_validate_rdate },
-    fuzzyrdate  => { required => 0, default => 0, func => \&_validate_fuzzyrdate },
+    fuzzyrdate  => { default => 0, func => \&_validate_fuzzyrdate },
     searchquery => { onerror => bless([],'VNWeb::Validate::SearchQuery'), func => sub { $_[0] = bless([$_[0]], 'VNWeb::Validate::SearchQuery'); 1 } },
     # Calendar date, limited to 1970 - 2099 for sanity.
     # TODO: Should also validate whether the day exists, currently "2022-11-31" is accepted, but that's a bug.
     caldate     => { regex => qr/^(?:19[7-9][0-9]|20[0-9][0-9])-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])$/ },
     # An array that may be either missing (returns undef), a single scalar (returns single-element array) or a proper array
-    undefarray  => sub { +{ required => 0, default => undef, type => 'array', scalar => 1, values => $_[0] } },
+    undefarray  => sub { +{ default => undef, type => 'array', scalar => 1, values => $_[0] } },
     # Accepts a user-entered vote string (or '-' or empty) and converts that into a DB vote number (or undef) - opposite of fmtvote()
-    vnvote      => { required => 0, default => undef, regex => qr/^(?:|-|[1-9]|10|[1-9]\.[0-9]|10\.0)$/, func => sub { $_[0] = $_[0] eq '-' ? undef : 10*$_[0]; 1 } },
+    vnvote      => { default => undef, regex => qr/^(?:|-|[1-9]|10|[1-9]\.[0-9]|10\.0)$/, func => sub { $_[0] = $_[0] eq '-' ? undef : 10*$_[0]; 1 } },
     # Sort an array by the listed hash keys, using string comparison on each key
     sort_keys   => sub {
         my @keys = ref $_[0] eq 'ARRAY' ? @{$_[0]} : $_[0];
@@ -97,7 +97,7 @@ TUWF::set custom_validations => {
     # Fields query parameter for the API, supports multiple values or comma-delimited list, returns a hash.
     fields      => sub {
         my %keys = map +($_,1), ref $_[0] eq 'ARRAY' ? @{$_[0]} : $_[0];
-        +{ required => 0, default => {}, type => 'array', values => {}, scalar => 1, func => sub {
+        +{ default => {}, type => 'array', values => {}, scalar => 1, func => sub {
             my @l = map split(/\s*,\s*/,$_), @{$_[0]};
             return 0 if grep !$keys{$_}, @l;
             $_[0] = { map +($_,1), @l };

@@ -365,7 +365,7 @@ f r =>  2 => 'lang',     { enum => \%LANGUAGE },
         sql 'r.id', $neg ? 'NOT' : '', 'IN(SELECT id FROM releases_titles WHERE NOT mtl AND lang IN', $val, $all && @$val > 1 ? ('GROUP BY id HAVING COUNT(lang) =', \scalar @$val) : (), ')';
     };
 
-f r =>  4 => 'platform', { required => 0, default => undef, enum => \%PLATFORM },
+f r =>  4 => 'platform', { default => undef, enum => \%PLATFORM },
     sql_list_grp => sub { defined $_ },
     sql_list => sub {
         my($neg, $all, $val) = @_;
@@ -378,14 +378,14 @@ f r =>  8 => 'resolution',        { type => 'array', length => 2, values => { ui
     sql => sub { sql 'NOT r.patch AND r.reso_x', $_[0], \$_->[0], 'AND r.reso_y', $_[0], \$_->[1], $_->[0] ? 'AND r.reso_x > 0' : () };
 f r =>  9 => 'resolution-aspect', { type => 'array', length => 2, values => { uint => 1, max => 32767 } },
     sql => sub { sql 'NOT r.patch AND r.reso_x', $_[0], \$_->[0], 'AND r.reso_y', $_[0], \$_->[1], 'AND r.reso_x*1000/GREATEST(1, r.reso_y) =', \(int ($_->[0]*1000/max(1,$_->[1]))), $_->[0] ? 'AND r.reso_x > 0' : () };
-f r => 10 => 'minage',   { required => 0, default => undef, uint => 1, enum => \%AGE_RATING },
+f r => 10 => 'minage',   { default => undef, uint => 1, enum => \%AGE_RATING },
     sql => sub { defined $_ ? sql 'r.minage', $_[0], \$_ : $_[0] eq '=' ? 'r.minage IS NULL' : 'r.minage IS NOT NULL' };
-f r => 11 => 'medium',   { required => 0, default => undef, enum => \%MEDIUM },
+f r => 11 => 'medium',   { default => undef, enum => \%MEDIUM },
     '=' => sub { !defined $_ ? 'NOT EXISTS(SELECT 1 FROM releases_media rm WHERE rm.id = r.id)' : sql 'EXISTS(SELECT 1 FROM releases_media rm WHERE rm.id = r.id AND rm.medium =', \$_, ')' };
-f r => 12 => 'voiced',   { required => 0, default => 0, uint => 1, enum => \%VOICED }, '=' => sub { sql 'NOT r.patch AND r.voiced =', \$_ };
+f r => 12 => 'voiced',   { default => 0, uint => 1, enum => \%VOICED }, '=' => sub { sql 'NOT r.patch AND r.voiced =', \$_ };
 f r => 13 => 'animation-ero',   { uint => 1, enum => \%ANIMATED }, '=' => sub { sql 'NOT r.patch AND r.ani_ero =', \$_ };
 f r => 14 => 'animation-story', { uint => 1, enum => \%ANIMATED }, '=' => sub { sql 'NOT r.patch AND r.ani_story =', \$_ };
-f r => 15 => 'engine',   { required => 0, default => '' }, '=' => sub { sql 'r.engine =', \$_ };
+f r => 15 => 'engine',   { default => '' }, '=' => sub { sql 'r.engine =', \$_ };
 f r => 16 => 'rtype',    { enum => \%RELEASE_TYPE }, '=' => sub { $#TYPE && $TYPE[$#TYPE-1] eq 'v' ? sql 'rv.rtype =', \$_ : sql 'r.id IN(SELECT id FROM releases_vn WHERE rtype =', \$_, ')' };
 f r => 18 => 'rlist',    { uint => 1, enum => \%RLIST_STATUS }, sql_list => sub {
         my($neg, $all, $val) = @_;
@@ -414,23 +414,23 @@ f c =>  2 => 'role',       { enum => \%CHAR_ROLE  }, '=' => sub { $#TYPE && $TYP
 f c =>  3 => 'blood_type', { enum => \%BLOOD_TYPE }, '=' => sub { sql 'c.bloodt =', \$_ };
 f c =>  4 => 'sex',        { enum => \%GENDER },     '=' => sub { sql 'c.gender =', \$_ };
 f c =>  5 => 'sex_spoil',  { enum => \%GENDER },     '=' => sub { sql '(c.gender =', \$_, 'AND c.spoil_gender IS NULL) OR c.spoil_gender IS NOT DISTINCT FROM', \$_ };
-f c =>  6 => 'height',     { required => 0, default => undef, uint => 1, max => 32767 },
+f c =>  6 => 'height',     { default => undef, uint => 1, max => 32767 },
     sql => sub { !defined $_ ? sql 'c.height', $_[0], 0 : sql 'c.height <> 0 AND c.height', $_[0], \$_ };
-f c =>  7 => 'weight',     { required => 0, default => undef, uint => 1, max => 32767 },
+f c =>  7 => 'weight',     { default => undef, uint => 1, max => 32767 },
     sql => sub { !defined $_ ? sql('c.weight IS', $_[0] eq '=' ? '' : 'NOT', 'NULL') : sql 'c.weight', $_[0], \$_ };
-f c =>  8 => 'bust',       { required => 0, default => undef, uint => 1, max => 32767 },
+f c =>  8 => 'bust',       { default => undef, uint => 1, max => 32767 },
     sql => sub { !defined $_ ? sql 'c.s_bust', $_[0], 0 : sql 'c.s_bust <> 0 AND c.s_bust', $_[0], \$_ };
-f c =>  9 => 'waist',      { required => 0, default => undef, uint => 1, max => 32767 },
+f c =>  9 => 'waist',      { default => undef, uint => 1, max => 32767 },
     sql => sub { !defined $_ ? sql 'c.s_waist', $_[0], 0 : sql 'c.s_waist <> 0 AND c.s_waist', $_[0], \$_ };
-f c => 10 => 'hips',       { required => 0, default => undef, uint => 1, max => 32767 },
+f c => 10 => 'hips',       { default => undef, uint => 1, max => 32767 },
     sql => sub { !defined $_ ? sql 'c.s_hip', $_[0], 0 : sql 'c.s_hip <> 0 AND c.s_hip', $_[0], \$_ };
-f c => 11 => 'cup',        { required => 0, default => undef, enum => \%CUP_SIZE },
+f c => 11 => 'cup',        { default => undef, enum => \%CUP_SIZE },
     sql => sub { !defined $_ ? sql 'c.cup_size', $_[0], "''" : sql 'c.cup_size <> \'\' AND c.cup_size', $_[0], \$_ };
-f c => 12 => 'age',        { required => 0, default => undef, uint => 1, max => 32767 },
+f c => 12 => 'age',        { default => undef, uint => 1, max => 32767 },
     sql => sub { !defined $_ ? sql('c.age IS', $_[0] eq '=' ? '' : 'NOT', 'NULL') : sql 'c.age', $_[0], \$_ };
 f c => 13 => 'trait',      { type => 'any', func => \&_validate_trait }, compact => \&_compact_trait, sql_list => _sql_where_trait('traits_chars', 'cid');
 f c => 15 => 'dtrait',     { type => 'any', func => \&_validate_trait }, compact => \&_compact_trait, sql_list => _sql_where_trait('chars_traits', 'id');
-f c => 14 => 'birthday',   { required => 0, default => [0,0], type => 'array', length => 2, values => { uint => 1, max => 31 } },
+f c => 14 => 'birthday',   { default => [0,0], type => 'array', length => 2, values => { uint => 1, max => 31 } },
     '=' => sub { sql 'c.b_month =', \$_->[0], $_->[1] ? ('AND c.b_day =', \$_->[1]) : () };
 
 # XXX: When this field is nested inside a VN query, it may match seiyuu linked to other VNs.
@@ -645,13 +645,13 @@ sub _validate_adv {
 
 
 # 'advsearch' validation, accepts either a compact encoded string, JSON string or an already decoded array.
-TUWF::set('custom_validations')->{advsearch} = sub { my($t) = @_; +{ required => 0, type => 'any', default => bless({type=>$t}, __PACKAGE__), func => sub { _validate_adv $t, @_ } } };
+TUWF::set('custom_validations')->{advsearch} = sub { my($t) = @_; +{ type => 'any', default => bless({type=>$t}, __PACKAGE__), func => sub { _validate_adv $t, @_ } } };
 
 # 'advsearch_err' validation; Same as the 'advsearch' validation except it never throws an error.
 # If the validation failed, this will log a warning and return an empty query that will cause elm_() to display a warning message.
 TUWF::set('custom_validations')->{advsearch_err} = sub {
     my ($t) = @_;
-    +{ required => 0, type => 'any', default => bless({type=>$t}, __PACKAGE__), func => sub {
+    +{ type => 'any', default => bless({type=>$t}, __PACKAGE__), func => sub {
         my $r = _validate_adv $t, @_;
         $_[0] = bless {type=>$t,error=>1}, __PACKAGE__ if !$r || ref $r eq 'HASH';
         1
@@ -883,7 +883,7 @@ sub elm_ {
 
     # TODO: labels can be lazily loaded to reduce page weight
     state $schema ||= tuwf->compile({ type => 'hash', keys => {
-        uid          => { vndbid => 'u', required => 0 },
+        uid          => { vndbid => 'u', default => undef },
         labels       => { aoh => { id => { uint => 1 }, label => {} } },
         defaultSpoil => { uint => 1 },
         saved        => { aoh => { name => {}, query => {} } },

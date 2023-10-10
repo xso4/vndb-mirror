@@ -50,7 +50,7 @@ our %apis = (
     Releases       => [ { aoh => { # Response to 'Release'
         id       => { vndbid => 'r' },
         title    => {},
-        alttitle => { required => 0, default => '' },
+        alttitle => { default => '' },
         released => { uint => 1 },
         rtype    => {},
         reso_x   => { uint => 1 },
@@ -68,8 +68,8 @@ our %apis = (
     } } ],
     BoardResult    => [ { aoh => { # Response to 'Boards'
         btype    => { enum => \%BOARD_TYPE },
-        iid      => { required => 0, vndbid => ['p','v','u'] },
-        title    => { required => 0 },
+        iid      => { default => undef, vndbid => ['p','v','u'] },
+        title    => { default => undef },
     } } ],
     TagResult      => [ { aoh => { # Response to 'Tags'
         id           => { vndbid => 'g' },
@@ -87,8 +87,8 @@ our %apis = (
         defaultspoil => { uint => 1 },
         hidden       => { anybool => 1 },
         locked       => { anybool => 1 },
-        group_id     => { required => 0, vndbid => 'i' },
-        group_name   => { required => 0 },
+        group_id     => { default => undef, vndbid => 'i' },
+        group_name   => { default => undef },
     } } ],
     VNResult       => [ { aoh => { # Response to 'VN'
         id       => { vndbid => 'v' },
@@ -98,7 +98,7 @@ our %apis = (
     ProducerResult => [ { aoh => { # Response to 'Producers'
         id       => { vndbid => 'p' },
         name     => {},
-        altname  => { required => 0 },
+        altname  => { default => undef },
     } } ],
     StaffResult    => [ { aoh => { # Response to 'Staff'
         id       => { vndbid => 's' },
@@ -111,7 +111,7 @@ our %apis = (
         id       => { vndbid => 'c' },
         title    => {},
         alttitle => {},
-        main     => { required => 0, type => 'hash', keys => {
+        main     => { default => undef, type => 'hash', keys => {
             id       => { vndbid => 'c' },
             title    => {},
             alttitle => {},
@@ -120,28 +120,28 @@ our %apis = (
     AnimeResult => [ { aoh => { # Response to 'Anime'
         id       => { id => 1 },
         title    => {},
-        original => { required => 0, default => '' },
+        original => { default => '' },
     } } ],
     ImageResult => [ { aoh => { # Response to 'Images'
         id              => { vndbid => ['ch','cv','sf'] },
-        token           => { required => 0 },
+        token           => { default => undef },
         width           => { uint => 1 },
         height          => { uint => 1 },
         votecount       => { uint => 1 },
-        sexual_avg      => { num => 1, required => 0 },
-        sexual_stddev   => { num => 1, required => 0 },
-        violence_avg    => { num => 1, required => 0 },
-        violence_stddev => { num => 1, required => 0 },
-        my_sexual       => { uint => 1, required => 0 },
-        my_violence     => { uint => 1, required => 0 },
+        sexual_avg      => { num => 1, default => undef },
+        sexual_stddev   => { num => 1, default => undef },
+        violence_avg    => { num => 1, default => undef },
+        violence_stddev => { num => 1, default => undef },
+        my_sexual       => { uint => 1, default => undef },
+        my_violence     => { uint => 1, default => undef },
         my_overrule     => { anybool => 1 },
-        entry           => { required => 0, type => 'hash', keys => {
+        entry           => { default => undef, type => 'hash', keys => {
             id       => {},
             title    => {},
         } },
         votes           => { unique => 0, aoh => {
             user     => {},
-            uid      => { vndbid => 'u', required => 0 },
+            uid      => { vndbid => 'u', default => undef },
             sexual   => { uint => 1 },
             violence => { uint => 1 },
             ignore   => { anybool => 1 },
@@ -162,18 +162,18 @@ $apis{UListWidget} = [ { type => 'hash', keys => { # Initialization for UList.Wi
         uid      => { vndbid => 'u' },
         vid      => { vndbid => 'v' },
         # Only includes selected labels, null if the VN is not on the list at all.
-        labels   => { required => 0, aoh => { id => { int => 1 }, label => {required => 0, default => ''} } },
+        labels   => { default => undef, aoh => { id => { int => 1 }, label => {default => ''} } },
         # Can be set to null to lazily load the extra data as needed
-        full     => { required => 0, type => 'hash', keys => {
+        full     => { default => undef, type => 'hash', keys => {
             title     => {},
             labels    => { aoh => { id => { int => 1 }, label => {}, private => { anybool => 1 } } },
             canvote   => { anybool => 1 },
             canreview => { anybool => 1 },
             vote      => { vnvote => 1 },
-            review    => { required => 0, vndbid => 'w' },
-            notes     => { required => 0, default => '' },
-            started   => { required => 0, default => '' },
-            finished  => { required => 0, default => '' },
+            review    => { default => undef, vndbid => 'w' },
+            notes     => { default => '' },
+            started   => { default => '' },
+            finished  => { default => '' },
             releases  => $apis{Releases}[0],
             rlist     => { aoh => { id => { vndbid => 'r' }, status => { uint => 1 } } },
         } },

@@ -116,7 +116,7 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
     my $mode = !$thing ? '' : $o->{id} =~ /^v/ ? 'v' : 'u';
 
     my $opt = tuwf->validate(get =>
-        ign => { required => 0, enum => [0,1] },
+        ign => { default => undef, enum => [0,1] },
         p   => { page => 1 },
         s   => { tableopts => $TABLEOPTS{$mode} },
     )->data;
@@ -188,12 +188,12 @@ our $LENGTHVOTE = form_compile any => {
     uid      => { vndbid => 'u' },
     vid      => { vndbid => 'v' },
     maycount => { anybool => 1 },
-    vote     => { type => 'hash', required => 0, keys => {
+    vote     => { type => 'hash', default => undef, keys => {
         rid     => { type => 'array', minlength => 1, values => { vndbid => 'r' } },
         length  => { uint => 1, range => [1,26159] }, # 435h59m, largest round-ish number where the 'fast' speed adjustment doesn't overflow a smallint
-        speed   => { required => 0, uint => 1, enum => [0,1,2] },
+        speed   => { default => undef, uint => 1, enum => [0,1,2] },
         private => { anybool => 1 },
-        notes   => { required => 0, default => '' },
+        notes   => { default => '' },
     } },
 };
 

@@ -4,15 +4,15 @@ use VNWeb::Prelude;
 
 
 my $FORM = {
-    id          => { required => 0, vndbid => 'p' },
+    id          => { default => undef, vndbid => 'p' },
     type        => { default => 'co', enum => \%PRODUCER_TYPE },
     name        => { maxlength => 200 },
-    latin       => { required => 0, maxlength => 200 },
-    alias       => { required => 0, default => '', maxlength => 500 },
+    latin       => { default => undef, maxlength => 200 },
+    alias       => { default => '', maxlength => 500 },
     lang        => { enum => \%LANGUAGE },
-    website     => { required => 0, default => '', weburl => 1 },
-    l_wikidata  => { required => 0, uint => 1, max => (1<<31)-1 },
-    description => { required => 0, default => '', maxlength => 5000 },
+    website     => { default => '', weburl => 1 },
+    l_wikidata  => { default => undef, uint => 1, max => (1<<31)-1 },
+    description => { default => '', maxlength => 5000 },
     relations   => { sort_keys => 'pid', aoh => {
         pid      => { vndbid => 'p' },
         relation => { enum => \%PRODUCER_RELATION },

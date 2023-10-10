@@ -5,11 +5,11 @@ use VNWeb::Discussions::Lib;
 
 
 my $FORM = {
-    tid           => { required => 0, vndbid => 't' }, # Thread ID, only when editing a post
+    tid           => { default => undef, vndbid => 't' }, # Thread ID, only when editing a post
 
-    title         => { required => 0, maxlength => 50 },
-    boards        => { required => 0, sort_keys => [ 'boardtype', 'iid' ], aoh => $VNWeb::Elm::apis{BoardResult}[0]{aoh} },
-    poll          => { required => 0, type => 'hash', keys => {
+    title         => { default => undef, maxlength => 50 },
+    boards        => { default => undef, sort_keys => [ 'boardtype', 'iid' ], aoh => $VNWeb::Elm::apis{BoardResult}[0]{aoh} },
+    poll          => { default => undef, type => 'hash', keys => {
         question    => { maxlength => 100 },
         max_options => { uint => 1, min => 1, max => 20 }, #
         options     => { type => 'array', values => { maxlength => 100 }, minlength => 2, maxlength => 20 },

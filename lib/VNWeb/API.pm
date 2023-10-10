@@ -130,7 +130,7 @@ sub api_del {
 
 sub api_patch {
     my($path, $req_schema, $sub) = @_;
-    $req_schema->{$_}{required} = 0 for keys $req_schema->%*;
+    $req_schema->{$_}{missing} = 'ignore' for keys $req_schema->%*;
     my $s = tuwf->compile({ type => 'hash', unknown => 'reject', keys => $req_schema });
     TUWF::patch qr{/api/kana$path}, sub {
         check_throttle;
@@ -230,17 +230,17 @@ sub api_query {
 
     my %sort = ($opt{sort}->@*, $opt{search} ? (searchrank => 'sc.score !o, sc.id, sc.subid') : ());
     my $req_schema = tuwf->compile({ type => 'hash', unknown => 'reject', keys => {
-        filters => { required => 0, advsearch => $opt{filters} },
-        fields => { required => 0, default => {}, func => sub { parse_fields($opt{fields}, $_[0]) } },
-        sort => { required => 0, default => $opt{sort}[0], enum => [ keys %sort ] },
-        reverse => { required => 0, default => 0, jsonbool => 1 },
-        results => { required => 0, default => 10, uint => 1, range => [0,100] },
-        page => { required => 0, default => 1, uint => 1, range => [1,1e6] },
-        count => { required => 0, default => 0, jsonbool => 1 },
-        user => { required => 0, vndbid => 'u' },
-        compact_filters => { required => 0, default => 0, jsonbool => 1 },
-        normalized_filters => { required => 0, default => 0, jsonbool => 1 },
-        time => { required => 0, default => 0, jsonbool => 1 },
+        filters  => { advsearch => $opt{filters} },
+        fields   => { default => {}, func => sub { parse_fields($opt{fields}, $_[0]) } },
+        sort     => { default => $opt{sort}[0], enum => [ keys %sort ] },
+        reverse  => { default => 0, jsonbool => 1 },
+        results  => { default => 10, uint => 1, range => [0,100] },
+        page     => { default => 1, uint => 1, range => [1,1e6] },
+        count    => { default => 0, jsonbool => 1 },
+        user     => { default => undef, vndbid => 'u' },
+        time     => { default => 0, jsonbool => 1 },
+        compact_filters    => { default => 0, jsonbool => 1 },
+        normalized_filters => { default => 0, jsonbool => 1 },
     }});
 
     TUWF::post qr{/api/kana\Q$path}, sub {
@@ -528,8 +528,8 @@ api_get '/ulist_labels', { labels => { aoh => {
     label   => {},
 }}}, sub {
     my $data = tuwf->validate(get =>
-        user   => { vndbid => 'u', required => !auth->uid, default => auth->uid },
-        fields => { required => 0, enum => ['count'] },
+        user   => { vndbid => 'u', default => auth->uid||\'required' },
+        fields => { default => undef, enum => ['count'] },
     );
     err 400, 'Invalid argument' if !$data;
     $data = $data->data;

@@ -185,7 +185,7 @@ TUWF::post qr{/$RE{uid}/notify_update}, sub {
 
     my $frm = tuwf->validate(post =>
         url       => { regex => qr{^/$id/notifies} },
-        notifysel => { required => 0, default => [], type => 'array', scalar => 1, values => { id => 1 } },
+        notifysel => { default => [], type => 'array', scalar => 1, values => { id => 1 } },
         markread  => { anybool => 1 },
         remove    => { anybool => 1 },
     )->data;
@@ -223,7 +223,7 @@ our $SUB = form_compile any => {
     subnum    => { undefbool => 1 },
     subreview => { anybool => 1 },
     subapply  => { anybool => 1 },
-    noti      => { uint => 1, required => 0 }, # used by the widget, ignored in the backend
+    noti      => { uint => 1, default => undef }, # used by the widget, ignored in the backend
 };
 
 js_api Subscribe => $SUB, sub {

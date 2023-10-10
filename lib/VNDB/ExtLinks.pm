@@ -451,7 +451,7 @@ sub validate_extlinks {
             $val{func} = sub { $val{int} && !$_[0] ? 1 : sprintf($p->{fmt}, $_[0]) =~ full_regex $p->{regex} };
             ($f, $s->{type} =~ /\[\]/
                 ? { type => 'array', values => \%val }
-                : { required => 0, default => $val{int} ? 0 : '', %val }
+                : { default => $val{int} ? 0 : '', %val }
             )
         } sort grep $LINKS{$type}{$_}{regex}, keys $LINKS{$type}->%*
     } }

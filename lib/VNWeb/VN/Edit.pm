@@ -6,20 +6,20 @@ use VNWeb::Releases::Lib;
 
 
 my $FORM = {
-    id         => { required => 0, vndbid => 'v' },
+    id         => { default => undef, vndbid => 'v' },
     titles     => { minlength => 1, sort_keys => 'lang', aoh => {
         lang     => { enum => \%LANGUAGE },
         title    => { maxlength => 250 },
-        latin    => { required => 0, default => undef, maxlength => 250 },
+        latin    => { default => undef, maxlength => 250 },
         official => { anybool => 1 },
     } },
-    alias      => { required => 0, default => '', maxlength => 500 },
-    description=> { required => 0, default => '', maxlength => 10240 },
+    alias      => { default => '', maxlength => 500 },
+    description=> { default => '', maxlength => 10240 },
     devstatus  => { uint => 1, enum => \%DEVSTATUS },
-    olang      => { enum => \%LANGUAGE, default => 'ja' },
+    olang      => { default => 'ja', enum => \%LANGUAGE },
     length     => { uint => 1, enum => \%VN_LENGTH },
-    l_wikidata => { required => 0, uint => 1, max => (1<<31)-1 },
-    l_renai    => { required => 0, default => '', maxlength => 100 },
+    l_wikidata => { default => undef, uint => 1, max => (1<<31)-1 },
+    l_renai    => { default => '', maxlength => 100 },
     relations  => { sort_keys => 'vid', aoh => {
         vid      => { vndbid => 'v' },
         relation => { enum => \%VN_RELATION },
@@ -29,21 +29,21 @@ my $FORM = {
     anime      => { sort_keys => 'aid', aoh => {
         aid      => { id => 1 },
         title    => { _when => 'out' },
-        original => { _when => 'out', required => 0, default => '' },
+        original => { _when => 'out', default => '' },
     } },
-    image      => { required => 0, vndbid => 'cv' },
-    image_info => { _when => 'out', required => 0, type => 'hash', keys => $VNWeb::Elm::apis{ImageResult}[0]{aoh} },
+    image      => { default => undef, vndbid => 'cv' },
+    image_info => { _when => 'out', default => undef, type => 'hash', keys => $VNWeb::Elm::apis{ImageResult}[0]{aoh} },
     editions   => { sort_keys => 'eid', aoh => {
         eid      => { uint => 1, max => 500 },
-        lang     => { required => 0, language => 1 },
+        lang     => { default => undef, language => 1 },
         name     => {},
         official => { anybool => 1 },
     } },
     staff      => { sort_keys => ['aid','eid','role'], aoh => {
         aid      => { id => 1 },
-        eid      => { required => 0, uint => 1 },
+        eid      => { default => undef, uint => 1 },
         role     => { enum => \%CREDIT_TYPE },
-        note     => { required => 0, default => '', maxlength => 250 },
+        note     => { default => '', maxlength => 250 },
         id       => { _when => 'out', vndbid => 's' },
         title    => { _when => 'out' },
         alttitle => { _when => 'out' },
@@ -51,7 +51,7 @@ my $FORM = {
     seiyuu     => { sort_keys => ['aid','cid'], aoh => {
         aid      => { id => 1 },
         cid      => { vndbid => 'c' },
-        note     => { required => 0, default => '', maxlength => 250 },
+        note     => { default => '', maxlength => 250 },
         # Staff info
         id       => { _when => 'out', vndbid => 's' },
         title    => { _when => 'out' },
@@ -59,7 +59,7 @@ my $FORM = {
     } },
     screenshots=> { sort_keys => 'scr', aoh => {
         scr      => { vndbid => 'sf' },
-        rid      => { required => 0, vndbid => 'r' },
+        rid      => { default => undef, vndbid => 'r' },
         info     => { _when => 'out', type => 'hash', keys => $VNWeb::Elm::apis{ImageResult}[0]{aoh} },
     } },
     hidden     => { anybool => 1 },

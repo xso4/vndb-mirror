@@ -29,7 +29,7 @@ TUWF::get qr{/s(?:/(?<char>all|[a-z0]))?}, sub {
         f => { advsearch_err => 's' },
         n => { onerror => [], type => 'array', scalar => 1, values => { anybool => 1 } },
         ch=> { onerror => [], type => 'array', scalar => 1, values => { onerror => undef, enum => ['0', 'a'..'z'] } },
-        fil => { required => 0 },
+        fil => { default => '' },
     )->data;
     $opt->{ch} = $opt->{ch}[0];
     $opt->{n} = $opt->{n}[0];

@@ -77,7 +77,7 @@ sub vns_ {
         s => { tableopts => $TABLEOPTS },
         m => { onerror => [auth->pref('spoilers')||0], type => 'array', scalar => 1, minlength => 1, values => { enum => [0..2] } },
         l => { onerror => [''], type => 'array', scalar => 1, minlength => 1, values => { anybool => 1 } },
-        fil => { required => 0 },
+        fil => { default => '' },
     )->data;
     $opt->{m} = $opt->{m}[0];
     $opt->{l} = $opt->{l}[0];

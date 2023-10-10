@@ -4,23 +4,23 @@ use VNWeb::Prelude;
 
 
 my $FORM = {
-    id          => { required => 0, vndbid => 's' },
+    id          => { default => undef, vndbid => 's' },
     aid         => { int => 1, range => [ -1000, 1<<40 ] }, # X
     alias       => { maxlength => 100, sort_keys => 'aid', aoh => {
         aid       => { int => 1, range => [ -1000, 1<<40 ] }, # X, negative IDs are for new aliases
         name      => { maxlength => 200 },
-        latin     => { maxlength => 200, required => 0 },
+        latin     => { maxlength => 200, default => undef },
         inuse     => { anybool => 1, _when => 'out' },
         wantdel   => { anybool => 1, _when => 'out' },
     } },
-    description=> { required => 0, default => '', maxlength => 5000 },
+    description=> { default => '', maxlength => 5000 },
     gender     => { default => 'unknown', enum => [qw[unknown m f]] },
     lang       => { default => 'ja', language => 1 },
-    l_site     => { required => 0, default => '', weburl => 1 },
-    l_wikidata => { required => 0, uint => 1, max => (1<<31)-1 },
-    l_twitter  => { required => 0, default => '', regex => qr/^\S+$/, maxlength => 16 },
-    l_anidb    => { required => 0, uint => 1, max => (1<<31)-1, default => undef },
-    l_pixiv    => { required => 0, uint => 1, max => (1<<31)-1, default => 0 },
+    l_site     => { default => '', weburl => 1 },
+    l_wikidata => { default => undef, uint => 1, max => (1<<31)-1 },
+    l_twitter  => { default => '', regex => qr/^\S+$/, maxlength => 16 },
+    l_anidb    => { default => undef, uint => 1, max => (1<<31)-1 },
+    l_pixiv    => { default => 0, uint => 1, max => (1<<31)-1 },
     hidden     => { anybool => 1 },
     locked     => { anybool => 1 },
 

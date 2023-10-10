@@ -52,10 +52,10 @@ sub is_throttled {
 
 my $FORM = form_compile any => {
     object   => {},
-    objectnum=> { required => 0, uint => 1 },
+    objectnum=> { default => undef, uint => 1 },
     title    => {},
     reason   => { maxlength => 50 },
-    message  => { required => 0, default => '', maxlength => 50000 },
+    message  => { default => '', maxlength => 50000 },
     loggedin => { anybool => 1 },
 };
 
@@ -144,9 +144,9 @@ TUWF::get qr{/report/list}, sub {
 
     my $opt = tuwf->validate(get =>
         p      => { upage => 1 },
-        s      => { enum => ['id','lastmod'], required => 0, default => 'id' },
-        status => { enum => \@STATUS, required => 0 },
-        id     => { id => 1, required => 0 },
+        s      => { enum => ['id','lastmod'], default => 'id' },
+        status => { enum => \@STATUS, default => undef },
+        id     => { id => 1, default => undef },
     )->data;
 
     my $where = sql_and
@@ -230,8 +230,8 @@ TUWF::post qr{/report/edit}, sub {
     my $frm = tuwf->validate(post =>
         id      => { id => 1 },
         url     => { regex => qr{^/report/list} },
-        status  => { enum => \@STATUS, required => 0 },
-        comment => { required => 0, default => '' },
+        status  => { enum => \@STATUS, default => undef },
+        comment => { default => '' },
     )->data;
     my $r = tuwf->dbRowi('SELECT id, status FROM reports WHERE id =', \$frm->{id});
     return tuwf->resNotFound if !$r->{id};

@@ -30,7 +30,7 @@ our $LABELS = form_compile any => {
         label   => { maxlength => 50 },
         private => { anybool => 1 },
         count   => { uint => 1 },
-        delete  => { required => 0, default => undef, uint => 1, range => [1, 3] }, # 1=keep vns, 2=delete when no other label, 3=delete all
+        delete  => { default => undef, uint => 1, range => [1, 3] }, # 1=keep vns, 2=delete when no other label, 3=delete all
     } }
 };
 
@@ -175,7 +175,7 @@ elm_api UListLabelEdit => $VNLABELS_OUT, $VNLABELS_IN, sub {
 our $VNDATE = form_compile any => {
     uid   => { vndbid => 'u' },
     vid   => { vndbid => 'v' },
-    date  => { required => 0, default => '', caldate => 1 },
+    date  => { default => '', caldate => 1 },
     start => { anybool => 1 }, # Field selection, started/finished
 };
 
@@ -207,7 +207,7 @@ our $VNOPT = form_compile any => {
 elm_api UListVNNotes => $VNOPT, {
     uid   => { vndbid => 'u' },
     vid   => { vndbid => 'v' },
-    notes => { required => 0, default => '', maxlength => 2000 },
+    notes => { default => '', maxlength => 2000 },
 }, sub {
     my($data) = @_;
     return elm_Unauth if !ulists_own $data->{uid};
@@ -240,8 +240,8 @@ elm_api UListDel => undef, {
 our $RLIST_STATUS = form_compile any => {
     uid => { vndbid => 'u' },
     rid => { vndbid => 'r' },
-    status => { required => 0, uint => 1, enum => \%RLIST_STATUS }, # undef meaning delete
-    empty => { required => 0, default => '' }, # An 'out' field
+    status => { default => undef, uint => 1, enum => \%RLIST_STATUS }, # undef meaning delete
+    empty => { default => '' }, # An 'out' field
 };
 elm_api UListRStatus => undef, $RLIST_STATUS, sub {
     my($data) = @_;

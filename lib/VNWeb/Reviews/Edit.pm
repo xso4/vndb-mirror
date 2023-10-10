@@ -5,13 +5,13 @@ use VNWeb::Releases::Lib;
 
 
 my $FORM = {
-    id      => { vndbid => 'w', required => 0 },
+    id      => { vndbid => 'w', default => undef },
     vid     => { vndbid => 'v' },
     vntitle => { _when => 'out' },
-    rid     => { vndbid => 'r', required => 0 },
+    rid     => { vndbid => 'r', default => undef },
     spoiler => { anybool => 1 },
     isfull  => { anybool => 1 },
-    modnote => { maxlength => 1024, required => 0, default => '' },
+    modnote => { maxlength => 1024, default => '' },
     text    => { maxlength => 100_000, default => '' },
     locked  => { anybool => 1 },
 

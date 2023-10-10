@@ -14,8 +14,8 @@ our @EXPORT = qw/filter_parse filter_vn_adv filter_release_adv filter_char_adv f
 
 
 my $VN = form_compile any => {
-    date_before => { required => 0, uint => 1, range => [0, 99999999] }, # don't use 'rdate' validation here, the search form allows invalid dates
-    date_after  => { required => 0, uint => 1, range => [0, 99999999] }, # ^
+    date_before => { default => undef, uint => 1, range => [0, 99999999] }, # don't use 'rdate' validation here, the search form allows invalid dates
+    date_after  => { default => undef, uint => 1, range => [0, 99999999] }, # ^
     released    => { undefbool => 1 },
     length      => { undefarray => { enum => \%VN_LENGTH } },
     hasani      => { undefbool => 1 },
@@ -24,7 +24,7 @@ my $VN = form_compile any => {
     tag_exc     => { undefarray => { id => 1 } },
     taginc      => { undefarray => {} }, # [old] Tag search by name
     tagexc      => { undefarray => {} }, # [old] Tag search by name
-    tagspoil    => { required => 0, default => 0, uint => 1, range => [0,2] },
+    tagspoil    => { default => 0, uint => 1, range => [0,2] },
     lang        => { undefarray => { enum => \%LANGUAGE } },
     olang       => { undefarray => { enum => \%LANGUAGE } },
     plat        => { undefarray => { enum => \%PLATFORM } },
@@ -37,13 +37,13 @@ my $VN = form_compile any => {
 };
 
 my $RELEASE = form_compile any => {
-    type        => { required => 0, enum => \%RELEASE_TYPE },
+    type        => { default => undef, enum => \%RELEASE_TYPE },
     patch       => { undefbool => 1 },
     freeware    => { undefbool => 1 },
     doujin      => { undefbool => 1 },
     uncensored  => { undefbool => 1 },
-    date_before => { required => 0, range => [0, 99999999] }, # don't use 'rdate' validation here, the search form allows invalid dates
-    date_after  => { required => 0, range => [0, 99999999] }, # ^
+    date_before => { default => undef, range => [0, 99999999] }, # don't use 'rdate' validation here, the search form allows invalid dates
+    date_after  => { default => undef, range => [0, 99999999] }, # ^
     released    => { undefbool => 1 },
     minage      => { undefarray => { enum => [-1, keys %AGE_RATING] } },
     lang        => { undefarray => { enum => \%LANGUAGE } },
@@ -56,29 +56,29 @@ my $RELEASE = form_compile any => {
     voiced      => { undefarray => { enum => \%VOICED } },
     ani_story   => { undefarray => { enum => \%ANIMATED } },
     ani_ero     => { undefarray => { enum => \%ANIMATED } },
-    engine      => { required => 0 },
+    engine      => { default => undef },
 };
 
 my $CHAR = form_compile any => {
     gender      => { undefarray => { enum => \%GENDER } },
     bloodt      => { undefarray => { enum => \%BLOOD_TYPE } },
-    bust_min    => { required => 0, uint => 1, range => [ 0, 32767 ] },
-    bust_max    => { required => 0, uint => 1, range => [ 0, 32767 ] },
-    waist_min   => { required => 0, uint => 1, range => [ 0, 32767 ] },
-    waist_max   => { required => 0, uint => 1, range => [ 0, 32767 ] },
-    hip_min     => { required => 0, uint => 1, range => [ 0, 32767 ] },
-    hip_max     => { required => 0, uint => 1, range => [ 0, 32767 ] },
-    height_min  => { required => 0, uint => 1, range => [ 0, 32767 ] },
-    height_max  => { required => 0, uint => 1, range => [ 0, 32767 ] },
-    weight_min  => { required => 0, uint => 1, range => [ 0, 32767 ] },
-    weight_max  => { required => 0, uint => 1, range => [ 0, 32767 ] },
-    cup_min     => { required => 0, enum => \%CUP_SIZE },
-    cup_max     => { required => 0, enum => \%CUP_SIZE },
+    bust_min    => { default => undef, uint => 1, range => [ 0, 32767 ] },
+    bust_max    => { default => undef, uint => 1, range => [ 0, 32767 ] },
+    waist_min   => { default => undef, uint => 1, range => [ 0, 32767 ] },
+    waist_max   => { default => undef, uint => 1, range => [ 0, 32767 ] },
+    hip_min     => { default => undef, uint => 1, range => [ 0, 32767 ] },
+    hip_max     => { default => undef, uint => 1, range => [ 0, 32767 ] },
+    height_min  => { default => undef, uint => 1, range => [ 0, 32767 ] },
+    height_max  => { default => undef, uint => 1, range => [ 0, 32767 ] },
+    weight_min  => { default => undef, uint => 1, range => [ 0, 32767 ] },
+    weight_max  => { default => undef, uint => 1, range => [ 0, 32767 ] },
+    cup_min     => { default => undef, enum => \%CUP_SIZE },
+    cup_max     => { default => undef, enum => \%CUP_SIZE },
     va_inc      => { undefarray => { id => 1 } },
     va_exc      => { undefarray => { id => 1 } },
     trait_inc   => { undefarray => { id => 1 } },
     trait_exc   => { undefarray => { id => 1 } },
-    tagspoil    => { required => 0, default => 0, uint => 1, range => [0,2] },
+    tagspoil    => { default => 0, uint => 1, range => [0,2] },
     role        => { undefarray => { enum => \%CHAR_ROLE } },
 };
 

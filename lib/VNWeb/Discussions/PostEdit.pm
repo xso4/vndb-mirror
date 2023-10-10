@@ -10,7 +10,7 @@ my $FORM = {
     num         => { id => 1 },
 
     can_mod     => { anybool => 1, _when => 'out' },
-    hidden      => { required => 0 }, # When can_mod
+    hidden      => { default => sub { $_[0] } }, # When can_mod
     nolastmod   => { anybool => 1, _when => 'in' }, # When can_mod
     delete      => { anybool => 1 }, # When can_mod
 

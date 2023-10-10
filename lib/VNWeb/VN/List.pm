@@ -352,9 +352,9 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
         p => { upage => 1 },
         f => { advsearch_err => 'v' },
         ch=> { onerror => [], type => 'array', scalar => 1, values => { onerror => undef, enum => ['0', 'a'..'z'] } },
-        fil  => { required => 0 },
-        rfil => { required => 0 },
-        cfil => { required => 0 },
+        fil  => { default => '' },
+        rfil => { default => '' },
+        cfil => { default => '' },
     )->data;
     $opt->{q} = $opt->{sq} if !$opt->{q};
     $opt->{s} = tuwf->validate(get => s => { tableopts => $opt->{q} ? $TABLEOPTS_Q : $TABLEOPTS })->data;

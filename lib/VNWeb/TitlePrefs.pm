@@ -82,7 +82,7 @@ TUWF::set('custom_validations')->{titleprefs} = {
     type => 'array',
     maxlength => 5,
     values => { type => 'hash', keys => {
-        lang     => { required => 0, enum => \%LANGUAGE }, # undef referring to the original title language
+        lang     => { default => undef, enum => \%LANGUAGE }, # undef referring to the original title language
         latin    => { anybool => 1 },
         official => { undefbool => 1 },
     }},
