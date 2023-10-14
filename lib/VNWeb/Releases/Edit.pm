@@ -30,8 +30,8 @@ my $FORM = {
     } },
     drm        => { sort_keys => 'name', aoh => {
         name      => { maxlength => 128 },
-        notes     => { required => 0, default => '' },
-        description => { required => 0, default => '', maxlength => 10240 },
+        notes     => { default => '' },
+        description => { default => '', maxlength => 10240 },
         map +($_,{anybool=>1}), keys %DRM_PROPERTY
     } },
     gtin       => { gtin => 1 },

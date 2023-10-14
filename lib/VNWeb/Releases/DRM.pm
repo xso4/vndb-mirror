@@ -77,8 +77,8 @@ my $FORM = form_compile any => {
     id          => { uint => 1 },
     state       => { uint => 1, range => [0,2] },
     name        => { maxlength => 128 },
-    description => { required => 0, default => '', maxlength => 10240 },
-    ref         => { required => 0 },
+    description => { default => '', maxlength => 10240 },
+    ref         => { default => '' },
     map +($_,{anybool=>1}), keys %DRM_PROPERTY
 };
 
@@ -106,7 +106,7 @@ js_api DRMEdit => $FORM, sub {
     my $d = info_ delete $data->{id};
     return tuwf->resNotFound if !defined $d->{id};
     my $ref = delete $data->{ref};
-    
+
     return +{ _er => 'Duplicate DRM name' }
         if tuwf->dbVali('SELECT 1 FROM drm WHERE id <>', \$d->{id}, 'AND name =', \$d->{name});
 
