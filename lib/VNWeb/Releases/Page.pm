@@ -73,7 +73,7 @@ sub _rev_ {
             txt_ ')';
         } ],
         [ drm        => 'DRM', fmt => sub {
-            a_ href => '/r/drm?n='.uri_escape($_->{name}), $_->{name};
+            a_ href => '/r/drm?s='.uri_escape($_->{name}), $_->{name};
             txt_ " ($_->{notes})" if length $_->{notes};
         } ],
         revision_extlinks 'r'
