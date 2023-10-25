@@ -29,7 +29,7 @@ sub obj_ {
         txt_ 'Comment ';
         a_ href => "/$lnk", "#$o->{objectnum}";
         txt_ ' on ';
-        a_ href => "/$lnk", tattr $o;
+        a_ href => "/$lnk", $o->{title} ? tattr $o : '<deleted>';
         txt_ ' by ';
         user_ $o;
 
