@@ -5,12 +5,13 @@ use VNWeb::AdvSearch;
 use VNWeb::Discussions::Lib 'enrich_boards';
 
 
-sub screens_ {
+sub screens {
     state $where  ||= sql 'i.c_weight > 0 and vndbid_type(i.id) =', \'sf', 'and i.c_sexual_avg <', \40, 'and i.c_violence_avg <', \40;
     state $stats  ||= tuwf->dbRowi('SELECT count(*) as total, count(*) filter(where', $where, ') as subset from images i');
     state $sample ||= 100*min 1, (200 / $stats->{subset}) * ($stats->{total} / $stats->{subset});
 
     my $filt = advsearch_default 'v';
+    my $start = time;
     my $lst = $filt->{query} ? tuwf->dbAlli(
         # Assumption: If we randomly select 30 matching VNs, there'll be at least 4 VNs with qualified screenshots
         # (As of Sep 2020, over half of the VNs in the database have screenshots, so that assumption usually works)
@@ -31,13 +32,7 @@ sub screens_ {
          ORDER BY random()
          LIMIT', \4
     );
-
-    p_ class => 'screenshots', sub {
-        a_ href => "/$_->{vid}", title => $_->{title}[1], sub {
-            my($w, $h) = imgsize $_->{width}, $_->{height}, config->{scr_size}->@*;
-            img_ src => imgurl($_->{id}, 1), alt => $_->{title}[1], width => $w, height => $h;
-        } for @$lst;
-    }
+    ($lst, $filt->{query} && time - $start > 0.3)
 }
 
 
@@ -161,7 +156,7 @@ sub recent_vn_posts_ {
 
 
 
-sub releases_ {
+sub releases {
     my($released) = @_;
 
     my $filt = advsearch_default 'r';
@@ -169,10 +164,12 @@ sub releases_ {
     # Drop any top-level date filters
     $filt->{query} = [ grep !(ref $_ eq 'ARRAY' && $_->[0] eq 'released'), $filt->{query}->@* ] if $filt->{query};
     delete $filt->{query} if $filt->{query} && ($filt->{query}[0] eq 'released' || $filt->{query}->@* < 2);
+    my $has_saved = !!$filt->{query};
 
     # Add the release date as filter, we need to construct a filter for the header link anyway
     $filt->{query} = [ 'and', [ released => $released ? '<=' : '>', 1 ], $filt->{query} || () ];
 
+    my $start = time;
     my $lst = tuwf->dbAlli('
         SELECT id, title, released
           FROM', releasest, 'r
@@ -180,8 +177,15 @@ sub releases_ {
            AND NOT EXISTS(SELECT 1 FROM releases_titles rt WHERE rt.id = r.id AND rt.mtl)
          ORDER BY released', $released ? 'DESC' : '', ', id LIMIT 10'
     );
+    my $end = time;
     enrich_flatten plat => id => id => 'SELECT id, platform FROM releases_platforms WHERE id IN', $lst;
     enrich_flatten lang => id => id => 'SELECT id, lang     FROM releases_titles    WHERE id IN', $lst;
+    ($lst, $filt, $has_saved && $end-$start > 0.3)
+}
+
+
+sub releases_ {
+    my($lst, $filt, $released) = @_;
 
     h1_ sub {
         a_ href => '/r?f='.$filt->query_encode().';o=a;s=released', 'Upcoming Releases' if !$released;
@@ -237,6 +241,11 @@ TUWF::get qr{/}, sub {
         'description' => 'VNDB.org strives to be a comprehensive database for information about visual novels.',
     );
 
+    my($screens, $slowscreens) = screens;
+    my($rel0, $filt0, $slowrel0) = releases 0;
+    my($rel1, $filt1, $slowrel1) = releases 1;
+    my $slowrel = $slowrel0 || $slowrel1;
+
     framework_ title => $meta{title}, feeds => 1, og => \%meta, index => 1, sub {
         article_ sub {
             h1_ $meta{title};
@@ -249,15 +258,27 @@ TUWF::get qr{/}, sub {
                   largest, most accurate and most up-to-date visual novel database on the web.
                 };
             };
-            screens_;
+            p_ class => 'screenshots', sub {
+                a_ href => "/$_->{vid}", title => $_->{title}[1], sub {
+                    my($w, $h) = imgsize $_->{width}, $_->{height}, config->{scr_size}->@*;
+                    img_ src => imgurl($_->{id}, 1), alt => $_->{title}[1], width => $w, height => $h;
+                } for @$screens;
+            };
+            p_ class => 'center standout', sub {
+                txt_ 'If VNDB appears to load a little slow for you, try clearing or adjusting your ';
+                a_ href => '/v', 'saved visual novel filters' if $slowscreens;
+                txt_ ' or ' if $slowscreens && $slowrel;
+                a_ href => '/r', 'saved release filters' if $slowrel;
+                txt_ '.';
+            } if $slowscreens || $slowrel;
         };
         div_ class => 'homepage', sub {
             article_ \&recent_changes_;
             article_ \&recent_db_posts_;
             article_ \&recent_vn_posts_;
             article_ sub { reviews_ };
-            article_ sub { releases_ 0 };
-            article_ sub { releases_ 1 };
+            article_ sub { releases_ $rel0, $filt0, 0 };
+            article_ sub { releases_ $rel1, $filt1, 1 };
         };
     };
 };
