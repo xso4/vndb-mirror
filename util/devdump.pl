@@ -172,7 +172,8 @@ sub copy_entry {
                            FROM ulist_vns WHERE vid IN($vids) AND vote IS NOT NULL GROUP BY vid, vndbid_num(uid)%8", {uid => 'user'};
 
     # Releases
-    copy_entry [qw/releases releases_media releases_platforms releases_producers releases_titles releases_vn/], $releases;
+    copy 'drm';
+    copy_entry [qw/releases releases_drm releases_media releases_platforms releases_producers releases_titles releases_vn/], $releases;
 
     print "\\i sql/tableattrs.sql\n";
     print "\\i sql/triggers.sql\n";
