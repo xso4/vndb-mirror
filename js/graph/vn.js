@@ -1,15 +1,3 @@
-// TODO: Grab these from VNDB::Types.
-// Excludes reverse relations, as those are filtered on the backend.
-const relTypes = [
-    [ 'seq', 'Sequel/prequel' ],
-    [ 'set', 'Same setting' ],
-    [ 'alt', 'Alternative version' ],
-    [ 'char', 'Shares characters' ],
-    [ 'side', 'Side story' ],
-    [ 'ser', 'Same series' ],
-    [ 'fan', 'Fandisc' ],
-];
-
 widget('VNGraph', initVnode => {
     const {data} = initVnode.attrs;
 
@@ -17,21 +5,31 @@ widget('VNGraph', initVnode => {
     let optOfficial = false;
     const hasUnoff = !!data.rels.find(([,,,o]) => !o);
 
+    const foundRelTypes = Object.fromEntries(data.rels.map(([,,r,]) => [r,true]));
+    // Excludes reverse relations, as those are filtered on the backend.
+    const relTypes = vndbTypes.vnRelation.filter(
+        ([id,lbl,rev,pref]) => foundRelTypes[id] && (id === rev || pref)
+    );
+
     let optTypes = Object.fromEntries(relTypes);
-    /*
     let dsTypes = new DS({
-        list: (,,cb) => cb(relTypes.map(([id,label]) => ({id,label}))),
+        list: (a,b,cb) => cb(relTypes.map(([id,label]) => ({id,label}))),
         view: obj => obj.label
     }, {
-        onselect: (obj, v) => optTypes[obj.id] = v,
+        onselect: (obj, v) => {
+            optTypes[obj.id] = v;
+            setGraph();
+            simulation.restart();
+        },
         checked: obj => optTypes[obj.id],
-    });*/
+        width: 160, nosearch: true,
+    });
 
     let svg;
     let autoscale = true;
     let height = 100, width = 100;
     const resize = () => {
-        height = Math.max(200, window.innerHeight - 100);
+        height = Math.max(200, window.innerHeight - 40);
         width = svg.clientWidth;
         m.redraw();
     };
@@ -110,40 +108,43 @@ widget('VNGraph', initVnode => {
             ev.subject.fy = null;
         }));
 
+    const newmain = ev => data.main = nodes[event.target.dataset.nodeidx].id;
+
     // TODO: Disable autoscale on *user*-initiated zoom. The "start" event also triggers by the autoscale code itself. -.-
     const zoom = d3.zoom()
         .on("zoom", ev => svg.childNodes[0].setAttribute('transform', ev.transform));
 
-    const view = () => [
-        hasUnoff ? m('label',
-            m('input[type=checkbox]', { checked: !optOfficial, oninput: ev => { optOfficial = !ev.target.checked; setGraph(); simulation.restart() }}),
-            ' include unofficial'
-        ) : null,
-        relTypes.map(([id,label]) => m('label',
-            m('input[type=checkbox]', { checked: optTypes[id], oninput: ev => { optTypes[id] = ev.target.checked; setGraph(); simulation.restart() }}),
-            ' ', label
-        )),
-
+    const view = () => m('div#vn-graph',
+        m('div', {
+            oncreate: v => v.dom.scrollIntoView(),
+        },
+            hasUnoff ? m('label',
+                m('input[type=checkbox]', { checked: optOfficial, oninput: ev => { optOfficial = ev.target.checked; setGraph(); simulation.restart() }}),
+                ' official only '
+            ) : null,
+            m(DS.Button, {ds: dsTypes}, 'relations'),
+        ),
         m('svg', {
-                width: '100%', height, viewBox: '0 0 '+width+' '+height,
+                height, viewBox: '0 0 '+width+' '+height,
                 oncreate: v => { svg = v.dom; resize(); d3.select(svg).call(zoom) },
             },
             m('g',
                 // TODO: stroke width depending on zoom level
-                m('g[stroke-width=5][stroke=#258]', links.map(l => m('line', {
+                // TODO: arrows/icons to indicate relation type
+                m('g.edges', links.map(l => m('line', {
                     key: l.source.id+l.target.id,
                     x1: l.source.x, y1: l.source.y,
                     x2: l.target.x, y2: l.target.y,
                     'stroke-dasharray': l.official ? 1 : '3,10',
                 }))),
-                m('g[fill=#ccc]', nodes.map((n,i) => m('circle', {
+                m('g.nodes', nodes.map((n,i) => m('circle', {
                     key: n.id, title: n.title,
-                    fill: n.id === data.main ? '#f00' : null,
-                    'data-nodeidx': i, oncreate: drag,
+                    class: n.id === data.main ? 'selected' : null,
+                    'data-nodeidx': i, oncreate: drag, ondblclick: newmain,
                     r: 50, cx: n.x, cy: n.y
                 }))),
             ),
         ),
-    ];
+    );
     return {view};
 });

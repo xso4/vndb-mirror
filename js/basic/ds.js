@@ -73,6 +73,8 @@ const close = ev => {
 // - placeholder
 // - more
 //     Adds a "type for more options" as last option if search is empty.
+// - nosearch
+//     Disable search input
 // - onselect(obj,checked)
 //     Called when an item has been selected. 'checked' is always true for
 //     single-selection dropdowns.
@@ -247,7 +249,7 @@ class DS {
                 onsubmit: ev => { ev.preventDefault(); this.select() },
                 onupdate: position,
                 oncreate: position,
-            }, m('div', this.autocomplete ? [] : [
+            }, m('div', this.nosearch || this.autocomplete ? [] : [
                 m('div',
                     m('input[type=text]', {
                         oncreate: this.focus, onupdate: this.focus,

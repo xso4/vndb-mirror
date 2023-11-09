@@ -1,0 +1,21 @@
+/* Styles js/graph/vn.js */
+#vn-graph {
+    > div { /* options div */
+        width: 100%;
+        text-align: right;
+        padding-top: 2px;
+    }
+    > svg { /* the graph */
+        width: 100%;
+        .edges line {
+            stroke-width: 5;
+            stroke: var(--grayedout);
+        }
+        .nodes circle {
+            fill: var(--maintext);
+            &.selected {
+                fill: var(--standout);
+            }
+        }
+    }
+}
