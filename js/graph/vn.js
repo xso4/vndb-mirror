@@ -1,3 +1,8 @@
+// TODO:
+// - VN cards on hover
+// - Replace VN circles with cover image or something
+// - Use location.hash for settings
+// - Option to set distance-from-main
 widget('VNGraph', initVnode => {
     const {data} = initVnode.attrs;
 
@@ -112,21 +117,28 @@ widget('VNGraph', initVnode => {
 
     // TODO: Disable autoscale on *user*-initiated zoom. The "start" event also triggers by the autoscale code itself. -.-
     const zoom = d3.zoom()
-        .on("zoom", ev => svg.childNodes[0].setAttribute('transform', ev.transform));
+        .on("zoom", ev => {
+            svg.childNodes[0].setAttribute('transform', ev.transform);
+            m.redraw(); // Only necessary to update the debug info, could be left out as an optimization
+        });
 
     const view = () => m('div#vn-graph',
-        m('div', {
-            oncreate: v => v.dom.scrollIntoView(),
-        },
-            hasUnoff ? m('label',
-                m('input[type=checkbox]', { checked: optOfficial, oninput: ev => { optOfficial = ev.target.checked; setGraph(); simulation.restart() }}),
-                ' official only '
-            ) : null,
-            m(DS.Button, {ds: dsTypes}, 'relations'),
+        m('div', { oncreate: v => v.dom.scrollIntoView() },
+            m('small', (() => {
+                const t = svg && d3.zoomTransform(svg);
+                return t ? 'a=' + simulation.alpha().toFixed(3) + ' x=' + t.x.toFixed(1) + ' y=' + t.y.toFixed(1) + ' k=' + t.k.toFixed(3) : null;
+            })()),
+            m('div',
+                hasUnoff ? m('label',
+                    m('input[type=checkbox]', { checked: optOfficial, oninput: ev => { optOfficial = ev.target.checked; setGraph(); simulation.restart() }}),
+                    ' official only '
+                ) : null,
+                m(DS.Button, {ds: dsTypes}, 'relations'),
+            ),
         ),
         m('svg', {
                 height, viewBox: '0 0 '+width+' '+height,
-                oncreate: v => { svg = v.dom; resize(); d3.select(svg).call(zoom) },
+                oncreate: v => { svg = v.dom; resize(); d3.select(svg).call(zoom).on("dblclick.zoom", null); },
             },
             m('g',
                 // TODO: stroke width depending on zoom level

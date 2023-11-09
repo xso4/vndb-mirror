@@ -2,8 +2,10 @@
 #vn-graph {
     > div { /* options div */
         width: 100%;
-        text-align: right;
         padding-top: 2px;
+        display: flex;
+        justify-content: space-between;
+        > small { font-size: 80% }
     }
     > svg { /* the graph */
         width: 100%;
