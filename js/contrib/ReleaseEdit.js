@@ -35,15 +35,15 @@ const Titles = initVnode => {
                 placeholder: t.lang === data.olang ? 'Title (in the original script)' : 'Title (leave empty if equivalent to the main title)',
                 data: t, field: 'title', focus: t.new,
             }),
-            !t.latin && !nonLatin.test(t.title) ? [] : [
+            !t.latin && !nonLatin.test(t.title) ? m('br') : m('span',
                 m('br'),
                 m(Input, {
                     class: 'xw', maxlength: 300, required: true,
                     data: t, field: 'latin', placeholder: 'Romanization',
                     invalid: nonLatin.test(t.latin) ? 'Romanization should only contain characters in the latin alphabet.' : null,
                 }),
-            ],
-            m('br'),
+                m('br'),
+            ),
             data.titles.length === 1 ? [] : [
                 m('span', m('label.check',
                     m('input[type=radio]', { checked: t.lang === data.olang, oninput: ev => data.olang = t.lang }),
