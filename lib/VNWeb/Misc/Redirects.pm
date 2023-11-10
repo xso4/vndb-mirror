@@ -29,7 +29,7 @@ TUWF::get qr{/u/tokens}, sub { tuwf->resRedirect(auth ? '/'.auth->uid.'/edit#api
 
 TUWF::get qr{/v/rand}, sub {
     state $stats  ||= tuwf->dbRowi('SELECT COUNT(*) AS total, COUNT(*) FILTER(WHERE NOT hidden) AS subset FROM vn');
-    state $sample ||= 100*min 1, (100 / $stats->{subset}) * ($stats->{total} / $stats->{subset});
+    state $sample ||= 100*min 1, (1000 / $stats->{subset}) * ($stats->{total} / $stats->{subset});
 
     my $filt = advsearch_default 'v';
     my $vn = tuwf->dbVali('
