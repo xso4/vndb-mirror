@@ -1,7 +1,6 @@
 // TODO:
 // - VN cards on hover
 // - Use location.hash for settings
-// - Option to set distance-from-main
 widget('VNGraph', initVnode => {
     const {data} = initVnode.attrs;
 
@@ -90,6 +89,8 @@ widget('VNGraph', initVnode => {
             m.redraw();
         });
 
+    let maxDistance = 0;
+    let optDistance = 9999;
     const nodeById = Object.fromEntries(data.nodes.map(n => ([n.id,n])));
     const linkObjects = data.rels.map(([a,b,relation,official]) => ({source: nodeById[a], target: nodeById[b], relation, official}));
     const setGraph = () => {
@@ -99,19 +100,22 @@ widget('VNGraph', initVnode => {
             source.links.push(target);
             target.links.push(source);
         });
-        const traverse = n => {
+        const traverse = dist => n => {
+            if (maxDistance < dist) maxDistance = dist;
             n.included = true;
-            n.links.filter(x => !x.included).forEach(traverse);
+            if (dist < optDistance) n.links.filter(x => !x.included).forEach(traverse(dist+1));
         };
-        traverse(nodeById[data.main]);
+        traverse(0)(nodeById[data.main]);
         data.nodes.forEach(n => { delete(n.links); if (!n.included) { delete(n.x); delete(n.y) }});
         nodes = data.nodes.filter(n => n.included);
+        links = links.filter(({source,target}) => source.included && target.included);
         autoscale = true;
         simulation.nodes(nodes);
         simulationLinks.links(links);
         simulation.alpha(1).restart();
     };
     setGraph();
+    if (optDistance > maxDistance) optDistance = maxDistance;
 
     const drag = vnode => d3.select(vnode.dom).call(d3.drag()
         .subject(nodes[vnode.dom.dataset.nodeidx])
@@ -129,7 +133,10 @@ widget('VNGraph', initVnode => {
             ev.subject.fy = null;
         }));
 
-    const newmain = ev => data.main = nodes[event.target.dataset.nodeidx].id;
+    const newmain = ev => {
+        data.main = nodes[event.target.dataset.nodeidx].id;
+        if (optDistance < maxDistance) { setGraph(); simulation.restart() }
+    };
     const noscale = () => autoscale = false;
 
     const zoom = d3.zoom()
@@ -142,9 +149,14 @@ widget('VNGraph', initVnode => {
         m('div', { oncreate: v => v.dom.scrollIntoView() },
             m('small', (() => {
                 const t = svg && d3.zoomTransform(svg);
-                return t ? 'a=' + simulation.alpha().toFixed(3) + ' x=' + t.x.toFixed(1) + ' y=' + t.y.toFixed(1) + ' k=' + t.k.toFixed(3) : null;
+                return t ? 'a=' + simulation.alpha().toFixed(3) + ' x=' + t.x.toFixed(1) + ' y=' + t.y.toFixed(1) + ' k=' + t.k.toFixed(3) + ' d='+optDistance : null;
             })()),
             m('div',
+                m('input[type=range][min=0]', {
+                    max: maxDistance, value: optDistance,
+                    oninput: ev => { optDistance = ev.target.value; setGraph(); simulation.restart() },
+                    style: { width: maxDistance <= 3 ? '100px' : maxDistance <= 10 ? '150px' : '200px' },
+                }),
                 hasUnoff ? m('label',
                     m('input[type=checkbox]', { checked: optOfficial, oninput: ev => { optOfficial = ev.target.checked; setGraph(); simulation.restart() }}),
                     ' official only '
