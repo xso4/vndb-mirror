@@ -89,9 +89,10 @@ widget('VNGraph', initVnode => {
             target.links.push(source);
         });
         const traverse = dist => n => {
+            if (n.included) return;
             if (maxDistance < dist) maxDistance = dist;
             n.included = true;
-            if (dist < optDistance) n.links.filter(x => !x.included).forEach(traverse(dist+1));
+            if (dist < optDistance) n.links.forEach(traverse(dist+1));
         };
         traverse(0)(nodeById[optMain]);
         data.nodes.forEach(n => { delete(n.links); if (!n.included) { delete(n.x); delete(n.y) }});
