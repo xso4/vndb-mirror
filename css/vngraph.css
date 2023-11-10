@@ -13,11 +13,7 @@
             stroke-width: 5;
             stroke: var(--grayedout);
         }
-        .nodes circle {
-            fill: var(--maintext);
-            &.selected {
-                fill: var(--standout);
-            }
-        }
+        .main circle { fill: var(--maintext) }
+        pattern circle { fill: var(--maintext) } /* No image */
     }
 }

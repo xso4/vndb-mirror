@@ -2,6 +2,7 @@ package VNWeb::VN::Graph;
 
 use VNWeb::Prelude;
 use VNWeb::Graph;
+use VNWeb::Images::Lib 'enrich_image_obj';
 
 
 TUWF::get qr{/$RE{vid}/rg}, sub {
@@ -114,13 +115,23 @@ TUWF::get qr{/$RE{vid}/rg2}, sub {
 
     # Fetch the nodes
     my %nodes = map +($_, {id => $_}), map @{$_}[0,1], @$rel;
-    enrich_merge id => sql("SELECT id, title[1+1] AS title, c_released AS released, array_to_string(c_languages, '/') AS lang FROM", vnt, "v WHERE id IN"), values %nodes;
+    enrich_merge id => sql("SELECT id, title[1+1] AS title, image FROM", vnt, "v WHERE id IN"), values %nodes;
+    enrich_image_obj image => values %nodes;
+
+    # compress image info a bit
+    $_->{image} = $_->{image} && [imgurl($_->{image}{id}), $_->{image}{sexual}, $_->{image}{violence}] for values %nodes;
 
     framework_ title => "Relations for $v->{title}[1]", dbobj => $v, tab => 'rg',
     sub {
         article_ sub {
             h1_ "Relations for $v->{title}[1]";
-            div_ widget(VNGraph => { main => $v->{id}, nodes => [values %nodes], rels => $rel }), ''
+            div_ widget(VNGraph => {
+                sexual   => 0+(auth->pref('max_sexual')||0),
+                violence => 0+(auth->pref('max_violence')||0),
+                main     => $v->{id},
+                nodes    => [values %nodes],
+                rels     => $rel,
+            }), ''
         }
     };
 };

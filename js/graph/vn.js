@@ -1,6 +1,5 @@
 // TODO:
 // - VN cards on hover
-// - Replace VN circles with cover image or something
 // - Use location.hash for settings
 // - Option to set distance-from-main
 widget('VNGraph', initVnode => {
@@ -30,6 +29,24 @@ widget('VNGraph', initVnode => {
         width: 160, nosearch: true,
     });
 
+    const imgprefs = [
+        { id: 0, field: 'sexual', label: 'Safe' },
+        { id: 1, field: 'sexual', label: 'Suggestive' },
+        { id: 2, field: 'sexual', label: 'Explicit' },
+        { id: 3, field: 'violence', label: 'Tame' },
+        { id: 4, field: 'violence', label: 'Violent' },
+        { id: 5, field: 'violence', label: 'Brutal' },
+    ];
+    let dsImgPref = new DS({
+        list: (a,b,cb) => cb(imgprefs),
+        view: obj => obj.label,
+    }, {
+        onselect: obj => data[obj.field] = obj.id % 3,
+        checked: obj => data[obj.field] === obj.id % 3,
+        width: 130, nosearch: true,
+    });
+    const needImgPrefs = !!data.nodes.find(n => n.image && (n.image[1] > 0 || n.image[2] > 0));
+
     let svg;
     let autoscale = true;
     let height = 100, width = 100;
@@ -52,7 +69,6 @@ widget('VNGraph', initVnode => {
         .force('y', d3.forceY().strength(0.1))
         .on('tick', () => {
             let minX = 0, maxX = 0, minY = 0, maxY = 0;
-            //minX = maxX = minY = maxY = 0;
             nodes.forEach(n => {
                 if (n.x < minX) minX = n.x;
                 if (n.y < minY) minY = n.y;
@@ -114,8 +130,8 @@ widget('VNGraph', initVnode => {
         }));
 
     const newmain = ev => data.main = nodes[event.target.dataset.nodeidx].id;
+    const noscale = () => autoscale = false;
 
-    // TODO: Disable autoscale on *user*-initiated zoom. The "start" event also triggers by the autoscale code itself. -.-
     const zoom = d3.zoom()
         .on("zoom", ev => {
             svg.childNodes[0].setAttribute('transform', ev.transform);
@@ -134,29 +150,39 @@ widget('VNGraph', initVnode => {
                     ' official only '
                 ) : null,
                 m(DS.Button, {ds: dsTypes}, 'relations'),
+                needImgPrefs ? m(DS.Button, {ds: dsImgPref}, 'nsfw') : null,
             ),
         ),
         m('svg', {
                 height, viewBox: '0 0 '+width+' '+height,
                 oncreate: v => { svg = v.dom; resize(); d3.select(svg).call(zoom).on("dblclick.zoom", null); },
-            },
-            m('g',
-                // TODO: stroke width depending on zoom level
-                // TODO: arrows/icons to indicate relation type
-                m('g.edges', links.map(l => m('line', {
-                    key: l.source.id+l.target.id,
-                    x1: l.source.x, y1: l.source.y,
-                    x2: l.target.x, y2: l.target.y,
-                    'stroke-dasharray': l.official ? 1 : '3,10',
-                }))),
-                m('g.nodes', nodes.map((n,i) => m('circle', {
-                    key: n.id, title: n.title,
-                    class: n.id === data.main ? 'selected' : null,
-                    'data-nodeidx': i, oncreate: drag, ondblclick: newmain,
-                    r: 50, cx: n.x, cy: n.y
-                }))),
+                onmousedown: () => autoscale = false,
+                onwheel: () => autoscale = false,
+            }, m('g',
+            m('defs',
+                // TODO: Better handle nsfw or missing images; blurhash or something? Title?
+                nodes.map(n => m('pattern', { id: 'p'+n.id, width: '100%', height: '100%' },
+                    n.image && n.image[1] <= data.sexual && n.image[2] <= data.violence
+                    ? m('image', { href: n.image[0], x: -20, y: -20, width: 240, height: 240 })
+                    : m('circle', { r: 80, cx: 100, cy: 100 })
+                )),
             ),
-        ),
+            // TODO: stroke width depending on zoom level
+            // TODO: arrows/icons to indicate relation type
+            m('g.edges', links.map(l => m('line', {
+                key: l.source.id+l.target.id,
+                x1: l.source.x, y1: l.source.y,
+                x2: l.target.x, y2: l.target.y,
+                'stroke-dasharray': l.official ? 1 : '3,10',
+            }))),
+            m('g.main', nodes.filter(n => n.id === data.main).map(n => m('circle', { r: 110, cx: n.x, cy: n.y }))),
+            m('g.nodes', nodes.map((n,i) => m('circle', {
+                key: n.id,
+                'data-nodeidx': i, oncreate: drag, onclick: newmain,
+                r: 100, cx: n.x, cy: n.y,
+                fill: 'url(#p'+n.id+')',
+            }))),
+        )),
     );
     return {view};
 });
