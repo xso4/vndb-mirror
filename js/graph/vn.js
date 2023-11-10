@@ -1,32 +1,22 @@
 // TODO:
 // - VN cards on hover
-// - Use location.hash for settings
 widget('VNGraph', initVnode => {
     const {data} = initVnode.attrs;
 
     let nodes, links;
-    let optOfficial = false;
-    const hasUnoff = !!data.rels.find(([,,,o]) => !o);
 
+    const hasUnoff = !!data.rels.find(([,,,o]) => !o);
     const foundRelTypes = Object.fromEntries(data.rels.map(([,,r,]) => [r,true]));
     // Excludes reverse relations, as those are filtered on the backend.
     const relTypes = vndbTypes.vnRelation.filter(
         ([id,lbl,rev,pref]) => foundRelTypes[id] && (id === rev || pref)
     );
 
+    let optMain = data.main;
+    let optOfficial = false;
     let optTypes = Object.fromEntries(relTypes);
-    let dsTypes = new DS({
-        list: (a,b,cb) => cb(relTypes.map(([id,label]) => ({id,label}))),
-        view: obj => obj.label
-    }, {
-        onselect: (obj, v) => {
-            optTypes[obj.id] = v;
-            setGraph();
-            simulation.restart();
-        },
-        checked: obj => optTypes[obj.id],
-        width: 160, nosearch: true,
-    });
+    let optDistance = 9999;
+    let maxDistance = 0;
 
     const imgprefs = [
         { id: 0, field: 'sexual', label: 'Safe' },
@@ -36,7 +26,7 @@ widget('VNGraph', initVnode => {
         { id: 4, field: 'violence', label: 'Violent' },
         { id: 5, field: 'violence', label: 'Brutal' },
     ];
-    let dsImgPref = new DS({
+    const dsImgPref = new DS({
         list: (a,b,cb) => cb(imgprefs),
         view: obj => obj.label,
     }, {
@@ -89,8 +79,6 @@ widget('VNGraph', initVnode => {
             m.redraw();
         });
 
-    let maxDistance = 0;
-    let optDistance = 9999;
     const nodeById = Object.fromEntries(data.nodes.map(n => ([n.id,n])));
     const linkObjects = data.rels.map(([a,b,relation,official]) => ({source: nodeById[a], target: nodeById[b], relation, official}));
     const setGraph = () => {
@@ -105,7 +93,7 @@ widget('VNGraph', initVnode => {
             n.included = true;
             if (dist < optDistance) n.links.filter(x => !x.included).forEach(traverse(dist+1));
         };
-        traverse(0)(nodeById[data.main]);
+        traverse(0)(nodeById[optMain]);
         data.nodes.forEach(n => { delete(n.links); if (!n.included) { delete(n.x); delete(n.y) }});
         nodes = data.nodes.filter(n => n.included);
         links = links.filter(({source,target}) => source.included && target.included);
@@ -133,11 +121,49 @@ widget('VNGraph', initVnode => {
             ev.subject.fy = null;
         }));
 
+    // Should be called whenever opt* variables are changed.
+    const save = reload => {
+        const types = relTypes.map(([id]) => optTypes[id] ? id : null).filter(v=>v);
+        const opts = [
+            optMain === data.main ? null : optMain,
+            optOfficial ? 'o1' : null,
+            optDistance === maxDistance ? null : 'd'+optDistance,
+            types.length === relTypes.length ? null : types,
+        ].flat().filter(v => v);
+        history.replaceState(null, "", '#'+opts.join(','));
+        if (reload) {
+            setGraph();
+            simulation.restart();
+        }
+    };
+
+    if (location.hash.length > 1) {
+        let types = {};
+        location.hash.substr(1).split(/,/).forEach(s => {
+            if (s === 'o1') optOfficial = true;
+            else if (s === 'o0') optOfficial = false;
+            else if (s.match(/^d[0-9]+$/)) optDistance = 1*s.substr(1);
+            else if (s.match(/^v[0-9]+$/)) optMain = s;
+            else if (Object.fromEntries(relTypes)[s]) types[s] = true;
+        });
+        if (Object.keys(types).length) optTypes = types;
+        save(true);
+    }
+
     const newmain = ev => {
-        data.main = nodes[event.target.dataset.nodeidx].id;
-        if (optDistance < maxDistance) { setGraph(); simulation.restart() }
+        optMain = nodes[event.target.dataset.nodeidx].id;
+        save(optDistance < maxDistance);
     };
     const noscale = () => autoscale = false;
+
+    const dsTypes = new DS({
+        list: (a,b,cb) => cb(relTypes.map(([id,label]) => ({id,label}))),
+        view: obj => obj.label
+    }, {
+        onselect: (obj, v) => { optTypes[obj.id] = v; save(true); },
+        checked: obj => optTypes[obj.id],
+        width: 160, nosearch: true,
+    });
 
     const zoom = d3.zoom()
         .on("zoom", ev => {
@@ -154,11 +180,11 @@ widget('VNGraph', initVnode => {
             m('div',
                 m('input[type=range][min=0]', {
                     max: maxDistance, value: optDistance,
-                    oninput: ev => { optDistance = ev.target.value; setGraph(); simulation.restart() },
+                    oninput: ev => { optDistance = ev.target.value; save(true) },
                     style: { width: maxDistance <= 3 ? '100px' : maxDistance <= 10 ? '150px' : '200px' },
                 }),
                 hasUnoff ? m('label',
-                    m('input[type=checkbox]', { checked: optOfficial, oninput: ev => { optOfficial = ev.target.checked; setGraph(); simulation.restart() }}),
+                    m('input[type=checkbox]', { checked: optOfficial, oninput: ev => { optOfficial = ev.target.checked; save(true); }}),
                     ' official only '
                 ) : null,
                 m(DS.Button, {ds: dsTypes}, 'relations'),
@@ -187,7 +213,7 @@ widget('VNGraph', initVnode => {
                 x2: l.target.x, y2: l.target.y,
                 'stroke-dasharray': l.official ? 1 : '3,10',
             }))),
-            m('g.main', nodes.filter(n => n.id === data.main).map(n => m('circle', { r: 110, cx: n.x, cy: n.y }))),
+            m('g.main', nodes.filter(n => n.id === optMain).map(n => m('circle', { r: 110, cx: n.x, cy: n.y }))),
             m('g.nodes', nodes.map((n,i) => m('circle', {
                 key: n.id,
                 'data-nodeidx': i, oncreate: drag, onclick: newmain,
