@@ -83,20 +83,24 @@ widget('VNGraph', initVnode => {
     const linkObjects = data.rels.map(([a,b,relation,official]) => ({source: nodeById[a], target: nodeById[b], relation, official}));
     const setGraph = () => {
         links = linkObjects.filter(l => (!optOfficial || l.official) && optTypes[l.relation]);
-        data.nodes.forEach(n => {n.included = false; n.links = []});
+        data.nodes.forEach(n => {n.dist = null; n.included = false; n.links = []});
         links.forEach(({source,target}) => {
             source.links.push(target);
             target.links.push(source);
         });
-        const traverse = dist => n => {
-            if (n.included) return;
-            if (maxDistance < dist) maxDistance = dist;
-            n.included = true;
-            if (dist < optDistance) n.links.forEach(traverse(dist+1));
-        };
-        traverse(0)(nodeById[optMain]);
-        data.nodes.forEach(n => { delete(n.links); if (!n.included) { delete(n.x); delete(n.y) }});
-        nodes = data.nodes.filter(n => n.included);
+        let lst = [ nodeById[optMain] ];
+        lst[0].dist = 0;
+        maxDistance = 0;
+        for (let i=0; i<lst.length; i++) {
+            const n = lst[i];
+            if (maxDistance < n.dist) maxDistance = n.dist;
+            const l = n.links.filter(x => x.dist === null);
+            l.forEach(x => x.dist = n.dist+1);
+            lst.push(...l);
+            delete(n.links);
+            n.included = n.dist <= optDistance;
+        }
+        nodes = data.nodes.filter(n => { if (!n.included) { delete(n.x); delete(n.y) } return n.included; });
         links = links.filter(({source,target}) => source.included && target.included);
         autoscale = true;
         simulation.nodes(nodes);
@@ -153,6 +157,9 @@ widget('VNGraph', initVnode => {
 
     const newmain = ev => {
         optMain = nodes[event.target.dataset.nodeidx].id;
+        // XXX: Restart simulation only when we hide/unhide entries. At least,
+        // that's the intention, but because maxDistance can change depending
+        // on which entry is 'main', this behavior is weird and wonky instead.
         save(optDistance < maxDistance);
     };
     const noscale = () => autoscale = false;
