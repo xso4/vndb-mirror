@@ -21,6 +21,7 @@ widget('VNGraph', initVnode => {
     const relTypes = vndbTypes.vnRelation.filter(
         ([id,lbl,rev,pref]) => foundRelTypes[id] && (id === rev || pref)
     );
+    const relTypesObj = Object.fromEntries(relTypes.map(([id,label,reverse,pref]) => [id,{id,label,reverse,pref}]));
 
     let optMain = data.main;
     let optOfficial = false;
@@ -159,7 +160,7 @@ widget('VNGraph', initVnode => {
             else if (s === 'o0') optOfficial = false;
             else if (s.match(/^d[0-9]+$/)) optDistance = 1*s.substr(1);
             else if (s.match(/^v[0-9]+$/)) optMain = s;
-            else if (Object.fromEntries(relTypes)[s]) types[s] = true;
+            else if (relTypesObj[s]) types[s] = true;
         });
         if (Object.keys(types).length) optTypes = types;
         save(true);
@@ -222,11 +223,11 @@ widget('VNGraph', initVnode => {
                     ? m('image', { href: n.image[0], x: -20, y: -20, width: 240, height: 240 })
                     : m('circle', { r: 80, cx: 100, cy: 100 })
                 )),
-                m('g.rels[fill=none][stroke=currentColor][stroke-width=2][stroke-linecap=round][stroke-linejoin=round]', relTypes.map(([id]) =>
-                    m('g', {id: 'r'+id}, m.trust(relIcons[id].raw))
-                )),
+                m('g.rels[fill=none][stroke=currentColor][stroke-width=2][stroke-linecap=round][stroke-linejoin=round]',
+                    relTypes.map(([id]) => m('g', {id: 'r'+id}, m.trust(relIcons[id].raw))),
+                ),
+                m('path#vn-graph-arrow[d=m13.5 27 9-9-9-9]')
             ),
-            // TODO: arrows to indicate relation direction
             m('g.edges', links.map(l => m('line', {
                 key: l.source.id+l.target.id,
                 x1: l.source.x, y1: l.source.y,
@@ -236,6 +237,11 @@ widget('VNGraph', initVnode => {
             m('g.rels[fill=none][stroke=currentColor][stroke-width=2][stroke-linecap=round][stroke-linejoin=round]', links.map(l =>
                 m('use', { href: '#r'+l.relation, x: (l.source.x+l.target.x)/2-12, y: (l.source.y+l.target.y)/2-12 }),
             )),
+            m('g.arrows', links.map(l => relTypesObj[l.relation].reverse === l.relation ? null : m('use[href=#vn-graph-arrow]', {
+                transform: 'translate(' + ((l.source.x+l.target.x)/2) + ' ' + ((l.source.y+l.target.y)/2) + ') '
+                         + 'rotate(' + (Math.atan2(l.target.y-l.source.y, l.target.x-l.source.x)*180/3.1415) + ') '
+                         + 'translate(10 -18)'
+            }))),
             m('g.main', nodes.filter(n => n.id === optMain).map(n => m('circle', { r: 110, cx: n.x, cy: n.y }))),
             m('g.nodes', nodes.map((n,i) => m('circle', {
                 key: n.id,

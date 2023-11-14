@@ -18,3 +18,4 @@
     }
 }
 .vn-rel-icon svg { width: 14px; height: 14px; margin-right: 5px }
+#vn-graph-arrow { stroke: var(--grayedout); fill: none; stroke-width: 2 }
