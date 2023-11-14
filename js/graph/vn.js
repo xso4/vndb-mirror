@@ -1,3 +1,13 @@
+const relIcons = {
+    seq:  Icon.StepForward,
+    set:  Icon.Globe,
+    alt:  Icon.Replace,
+    char: Icon.Users2,
+    side: Icon.Redo2,
+    ser:  Icon.Tv,
+    fan:  Icon.FolderHeart,
+};
+
 // TODO:
 // - VN cards on hover
 widget('VNGraph', initVnode => {
@@ -166,7 +176,7 @@ widget('VNGraph', initVnode => {
 
     const dsTypes = new DS({
         list: (a,b,cb) => cb(relTypes.map(([id,label]) => ({id,label}))),
-        view: obj => obj.label
+        view: obj => [ m('span.vn-rel-icon', relIcons[obj.id]()), obj.label ]
     }, {
         onselect: (obj, v) => { optTypes[obj.id] = v; save(true); },
         checked: obj => optTypes[obj.id],
@@ -212,15 +222,20 @@ widget('VNGraph', initVnode => {
                     ? m('image', { href: n.image[0], x: -20, y: -20, width: 240, height: 240 })
                     : m('circle', { r: 80, cx: 100, cy: 100 })
                 )),
+                m('g.rels[fill=none][stroke=currentColor][stroke-width=2][stroke-linecap=round][stroke-linejoin=round]', relTypes.map(([id]) =>
+                    m('g', {id: 'r'+id}, m.trust(relIcons[id].raw))
+                )),
             ),
-            // TODO: stroke width depending on zoom level
-            // TODO: arrows/icons to indicate relation type
+            // TODO: arrows to indicate relation direction
             m('g.edges', links.map(l => m('line', {
                 key: l.source.id+l.target.id,
                 x1: l.source.x, y1: l.source.y,
                 x2: l.target.x, y2: l.target.y,
                 'stroke-dasharray': l.official ? 1 : '3,10',
             }))),
+            m('g.rels[fill=none][stroke=currentColor][stroke-width=2][stroke-linecap=round][stroke-linejoin=round]', links.map(l =>
+                m('use', { href: '#r'+l.relation, x: (l.source.x+l.target.x)/2-12, y: (l.source.y+l.target.y)/2-12 }),
+            )),
             m('g.main', nodes.filter(n => n.id === optMain).map(n => m('circle', { r: 110, cx: n.x, cy: n.y }))),
             m('g.nodes', nodes.map((n,i) => m('circle', {
                 key: n.id,

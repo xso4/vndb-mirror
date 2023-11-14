@@ -17,3 +17,4 @@
         pattern circle { fill: var(--maintext) } /* No image */
     }
 }
+.vn-rel-icon svg { width: 14px; height: 14px; margin-right: 5px }
