@@ -206,4 +206,4 @@ location / {
 
 # License
 
-GNU AGPL, see COPYING file for details.
+AGPL-3.0-only, see COPYING file for details.
