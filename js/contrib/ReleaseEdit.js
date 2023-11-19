@@ -152,7 +152,7 @@ const Format = initVnode => {
     ), { more: true });
 
     const resoParse = str => {
-        const v = str.toLowerCase().replaceAll('*', 'x').replaceAll('×', 'x').replace(/[-\s]+/g, '');
+        const v = str.toLowerCase().replace(/\*/g, 'x').replace(/×/g, 'x').replace(/[-\s]+/g, '');
         if (v === '' || v === 'unknown') return [0,0];
         if (v === 'nonstandard') return [0,1];
         const a = /^([0-9]+)x([0-9]+)$/.exec(v);
