@@ -645,6 +645,18 @@ screenshots.release.\*
     is more efficient to only select `release.id` here and then grab detailed
     release info with a separate request.
 
+relations
+:   Array of objects, list of VNs directly related to this entry.
+
+relations.relation
+:   String, relation type.
+
+relations.relation\_official
+:   Boolean, whether this VN relation is official.
+
+relations.\*
+:   All [visual novel fields](#vn-fields) can be selected here.
+
 tags
 :   Array of objects, possibly empty. Only directly applied tags are returned,
     parent tags are not included.
@@ -674,8 +686,8 @@ developers
 developers.\*
 :   All [producer fields](#producer-fields) can be used here.
 
-*Currently missing from the old API: VN relations, staff, anime relations and
-external links. Can add if there's interest.*
+*Currently missing from the old API: staff, anime relations and external links.
+Can add if there's interest.*
 
 
 ## POST /release
@@ -1521,6 +1533,10 @@ bias in its selection due to the presence of id gaps, but you most likely don't
 need perfect uniform random selection anyway.
 
 # Change Log
+
+**2023-11-20**
+
+- Add `relations` field to [POST /vn](#post-vn).
 
 **2023-08-02**
 

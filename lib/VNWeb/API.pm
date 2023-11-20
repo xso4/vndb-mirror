@@ -704,6 +704,15 @@ api_query '/vn',
                 }
             },
         },
+        relations => {
+            enrich => sub { sql 'SELECT vr.id AS vid, v.id', $_[0], 'FROM vn_relations vr JOIN vnt v ON v.id = vr.vid', $_[1], 'WHERE vr.id IN', $_[2] },
+            key => 'id', col => 'vid', num => 3,
+            inherit => '/vn',
+            fields => {
+                relation          => { select => 'vr.relation' },
+                relation_official => { select => 'vr.official AS relation_official', @BOOL },
+            },
+        },
         tags => {
             enrich => sub { sql 'SELECT tv.vid, t.id', $_[0], 'FROM tags_vn_direct tv JOIN tags t ON t.id = tv.tag', $_[1], 'WHERE NOT t.hidden AND tv.vid IN', $_[2] },
             key => 'id', col => 'vid', num => 50,
