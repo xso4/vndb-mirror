@@ -58,9 +58,8 @@ TUWF::get qr{/$RE{vid}/rg}, sub {
     sub {
         article_ class => 'relgraph', sub {
             h1_ "Relations for $v->{title}[1]";
+            a_ href => "/$v->{id}/rgi", 'Interactive graph »';
             p_ sub {
-                a_ href => "/$v->{id}/rgi", 'Interactive graph »';
-                br_;
                 txt_ sprintf "Displaying %d out of %d related visual novels.", $visible_nodes, $total_nodes;
                 debug_ +{ nodes => $nodes, rel => $rel };
                 br_;
