@@ -115,7 +115,10 @@ TUWF::get qr{/$RE{vid}/rg2}, sub {
 
     # Fetch the nodes
     my %nodes = map +($_, {id => $_}), map @{$_}[0,1], @$rel;
-    enrich_merge id => sql("SELECT id, title[1+1] AS title, image FROM", vnt, "v WHERE id IN"), values %nodes;
+    enrich_merge id => sql("
+        SELECT id, title[1+1] AS title, title[1+1+1+1] AS alttitle, c_released AS released, image, c_languages::text[] AS languages
+          FROM", vnt, "v WHERE id IN"
+    ), values %nodes;
     enrich_image_obj image => values %nodes;
 
     # compress image info a bit

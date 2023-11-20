@@ -19,3 +19,9 @@
 }
 .vn-rel-icon svg { width: 14px; height: 14px; margin-right: 5px }
 #vn-graph-arrow { stroke: var(--grayedout); fill: none; stroke-width: 2 }
+#vn-graph-sel {
+    width: 400px; height: 80px; padding-top: 50px;
+    display: flex; justify-content: center; align-items: flex-end;
+    > div { padding: 5px; background: var(--secbg) }
+    a { font-size: 18px; }
+}

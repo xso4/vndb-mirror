@@ -359,25 +359,29 @@ window.TextPreview = initVnode => {
 // - id       -> id of the first select input
 // - today    -> bool, whether "today" should be accepted as an option
 // - unknown  -> bool, whether "unknown" should be accepted as an option
-window.RDate = () => {
-    const expand = v => ({
+window.RDate = {
+    expand: v => ({
         y: Math.floor(v / 10000),
         m: Math.floor(v / 100) % 100,
         d: v % 100,
-    });
-    const compact = ({y,m,d}) => y * 10000 + m * 100 + d;
-    const maxDay = ({y,m}) => new Date(y, m, 0).getDate();
-    const normalize = ({y,m,d}) =>
+    }),
+    compact: ({y,m,d}) => y * 10000 + m * 100 + d,
+    maxDay: ({y,m}) => new Date(y, m, 0).getDate(),
+    normalize: ({y,m,d}) =>
         y ===    0 ? { y: 0, m: 0, d: d?1:0 } :
         y === 9999 ? { y: 9999, m: 99, d: 99 } :
         m ===    0 || m === 99 ? { y, m: 99, d: 99 } :
-        { y,m, d: d === 0 || d === 99 ? 99 : Math.min(d, maxDay({y,m})) };
-    const months = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ];
-    const view = vnode => {
-        const v = expand(vnode.attrs.value);
+        { y,m, d: d === 0 || d === 99 ? 99 : Math.min(d, RDate.maxDay({y,m})) },
+    months: [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ],
+    fmt: ({y,m,d}) =>
+        y ===    0 ? (d ? 'Today' : 'Unknown') :
+        y === 9999 ? 'TBA' :
+        String(y) + (m === 0 ? '' : '-'+String(m).padStart(2,0) + (d === 0 ? '' : '-'+String(d).padStart(2,0))),
+    view: vnode => {
+        const v = RDate.expand(vnode.attrs.value);
         const oninput = ev => vnode.attrs.oninput && vnode.attrs.oninput(Math.floor(ev.target.options[ev.target.selectedIndex].value));
         const o = (e,l) => {
-            const value = compact(normalize({...v, ...e}));
+            const value = RDate.compact(RDate.normalize({...v, ...e}));
             return m('option', { value, selected: value === vnode.attrs.value }, l);
         };
         return [
@@ -389,13 +393,12 @@ window.RDate = () => {
             ),
             v.y > 0 && v.y < 9999 ? m('select', {oninput},
                 o({m:99}, '- month -'),
-                range(1, 12).map(m => o({m}, m + ' (' + months[m-1] + ')')),
+                range(1, 12).map(m => o({m}, m + ' (' + RDate.months[m-1] + ')')),
             ) : null,
             v.m > 0 && v.m < 99 ? m('select', {oninput},
                 o({d:99}, '- day -'),
-                range(1, maxDay(v)).map(d => o({d},d)),
+                range(1, RDate.maxDay(v)).map(d => o({d},d)),
             ) : null,
         ];
-    };
-    return {view};
+    },
 };

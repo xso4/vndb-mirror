@@ -8,8 +8,6 @@ const relIcons = {
     fan:  Icon.FolderHeart,
 };
 
-// TODO:
-// - VN cards on hover
 widget('VNGraph', initVnode => {
     const {data} = initVnode.attrs;
 
@@ -28,6 +26,7 @@ widget('VNGraph', initVnode => {
     let optTypes = Object.fromEntries(relTypes);
     let optDistance = 9999;
     let maxDistance = 0;
+    let optSel = null;
 
     const imgprefs = [
         { id: 0, field: 'sexual', label: 'Safe' },
@@ -122,7 +121,7 @@ widget('VNGraph', initVnode => {
     if (optDistance > maxDistance) optDistance = maxDistance;
 
     const drag = vnode => d3.select(vnode.dom).call(d3.drag()
-        .subject(nodes[vnode.dom.dataset.nodeidx])
+        .subject(vnode.dom.dataset.nodeid ? nodeById[vnode.dom.dataset.nodeid] : nodes[vnode.dom.dataset.nodeidx])
         .on("start", ev => {
             autoscale = false;
             if (!ev.active) simulation.alphaTarget(0.3).restart();
@@ -167,12 +166,14 @@ widget('VNGraph', initVnode => {
     }
 
     const newmain = ev => {
-        optMain = nodes[event.target.dataset.nodeidx].id;
+        optMain = nodes[ev.target.dataset.nodeidx].id;
         // XXX: Restart simulation only when we hide/unhide entries. At least,
         // that's the intention, but because maxDistance can change depending
         // on which entry is 'main', this behavior is weird and wonky instead.
         save(optDistance < maxDistance);
     };
+    const newsel = ev => optSel = ev.currentTarget.dataset.nodeid || nodes[ev.currentTarget.dataset.nodeidx].id;
+    const resetsel = ev => optSel = null;
     const noscale = () => autoscale = false;
 
     const dsTypes = new DS({
@@ -185,17 +186,11 @@ widget('VNGraph', initVnode => {
     });
 
     const zoom = d3.zoom()
-        .on("zoom", ev => {
-            svg.childNodes[0].setAttribute('transform', ev.transform);
-            m.redraw(); // Only necessary to update the debug info, could be left out as an optimization
-        });
+        .on("zoom", ev => svg.childNodes[0].setAttribute('transform', ev.transform));
 
     const view = () => m('div#vn-graph',
         m('div', { oncreate: v => v.dom.scrollIntoView() },
-            m('small', (() => {
-                const t = svg && d3.zoomTransform(svg);
-                return t ? 'a=' + simulation.alpha().toFixed(3) + ' x=' + t.x.toFixed(1) + ' y=' + t.y.toFixed(1) + ' k=' + t.k.toFixed(3) + ' d='+optDistance : null;
-            })()),
+            m('div', m('a', { href: '/'+data.main+'/rg' }, '« static graph')),
             m('div',
                 m('input[type=range][min=0]', {
                     max: maxDistance, value: optDistance,
@@ -242,13 +237,25 @@ widget('VNGraph', initVnode => {
                          + 'rotate(' + (Math.atan2(l.target.y-l.source.y, l.target.x-l.source.x)*180/3.1415) + ') '
                          + 'translate(10 -18)'
             }))),
-            m('g.main', nodes.filter(n => n.id === optMain).map(n => m('circle', { r: 110, cx: n.x, cy: n.y }))),
+            m('g.main', (n => m('circle', { r: 110, cx: n.x, cy: n.y }))(nodeById[optMain])),
             m('g.nodes', nodes.map((n,i) => m('circle', {
                 key: n.id,
-                'data-nodeidx': i, oncreate: drag, onclick: newmain,
+                'data-nodeidx': i, oncreate: drag, onclick: newsel, onmouseover: newsel, onmouseout: resetsel, ondblclick: newmain,
                 r: 100, cx: n.x, cy: n.y,
                 fill: 'url(#p'+n.id+')',
             }))),
+            optSel ? (n => m('foreignObject',
+                { 'data-nodeid': n.id, x: n.x-200, y: n.y+50, width: 400, height: 80, oncreate: drag, onmouseover: newsel, onmouseout: resetsel },
+                m('div#vn-graph-sel[xmlns=http://www.w3.org/1999/xhtml]',
+                    m('div',
+                        m('a', { href: '/'+n.id, title: n.alttitle }, n.title),
+                        m('div',
+                            RDate.fmt(RDate.expand(n.released)), ' ',
+                            n.languages.map(LangIcon),
+                        )
+                    ),
+                ),
+            ))(nodeById[optSel]) : null,
         )),
     );
     return {view};
