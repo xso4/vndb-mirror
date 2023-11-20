@@ -59,6 +59,8 @@ TUWF::get qr{/$RE{vid}/rg}, sub {
         article_ class => 'relgraph', sub {
             h1_ "Relations for $v->{title}[1]";
             p_ sub {
+                a_ href => "/$v->{id}/rgi", 'Interactive graph »';
+                br_;
                 txt_ sprintf "Displaying %d out of %d related visual novels.", $visible_nodes, $total_nodes;
                 debug_ +{ nodes => $nodes, rel => $rel };
                 br_;
@@ -92,7 +94,7 @@ TUWF::get qr{/$RE{vid}/rg}, sub {
 };
 
 
-TUWF::get qr{/$RE{vid}/rg2}, sub {
+TUWF::get qr{/$RE{vid}/rgi}, sub {
     my $v = dbobj tuwf->capture(1);
 
     # Big list of { id0, id1, relation, official } hashes.
