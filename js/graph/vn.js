@@ -25,6 +25,7 @@ widget('VNGraph', initVnode => {
     let optOfficial = false;
     let optTypes = Object.fromEntries(relTypes);
     let optDistance = 9999;
+    let defaultDistance = 0;
     let maxDistance = 0;
     let optSel = null;
 
@@ -107,6 +108,7 @@ widget('VNGraph', initVnode => {
             const l = n.links.filter(x => x.dist === null);
             l.forEach(x => x.dist = n.dist+1);
             lst.push(...l);
+            if (lst.length < 50 && defaultDistance < n.dist) defaultDistance = n.dist;
             delete(n.links);
             n.included = n.dist <= optDistance;
         }
@@ -119,6 +121,7 @@ widget('VNGraph', initVnode => {
     };
     setGraph();
     if (optDistance > maxDistance) optDistance = maxDistance;
+    if (defaultDistance > maxDistance) defaultDistance = maxDistance;
 
     const drag = vnode => d3.select(vnode.dom).call(d3.drag()
         .subject(vnode.dom.dataset.nodeid ? nodeById[vnode.dom.dataset.nodeid] : nodes[vnode.dom.dataset.nodeidx])
@@ -142,7 +145,7 @@ widget('VNGraph', initVnode => {
         const opts = [
             optMain === data.main ? null : optMain,
             optOfficial ? 'o1' : null,
-            optDistance === maxDistance ? null : 'd'+optDistance,
+            optDistance === defaultDistance ? null : 'd'+optDistance,
             types.length === relTypes.length ? null : types,
         ].flat().filter(v => v);
         history.replaceState(null, "", '#'+opts.join(','));
@@ -152,6 +155,7 @@ widget('VNGraph', initVnode => {
         }
     };
 
+    optDistance = defaultDistance;
     if (location.hash.length > 1) {
         let types = {};
         location.hash.substr(1).split(/,/).forEach(s => {
@@ -162,8 +166,8 @@ widget('VNGraph', initVnode => {
             else if (relTypesObj[s]) types[s] = true;
         });
         if (Object.keys(types).length) optTypes = types;
-        save(true);
     }
+    save(true);
 
     const newmain = ev => {
         optMain = nodes[ev.target.dataset.nodeidx].id;
