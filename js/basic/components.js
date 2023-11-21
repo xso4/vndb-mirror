@@ -8,11 +8,10 @@ window.PlatIcon = id => m('abbr', { class: 'icon-plat-'+id, title: plats[id] });
 // License: MIT
 // The nice thing about these is that they all have the same viewbox and fill/stroke options.
 // Icon size should be set in CSS.
-const icon = svg => {
-    const f = () => m.trust('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+svg+'</g></svg>');
-    f.raw = svg;
-    return f;
-};
+const icon = svg => ({
+    view: () => m.trust('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+svg+'</g></svg>'),
+    raw: svg,
+});
 window.Icon = {
     ArrowBigDown: icon('<path d="M15 6v6h4l-7 7-7-7h4V6h6z"/>'),
     ArrowBigUp:   icon('<path d="M9 18v-6H5l7-7 7 7h-4v6H9z"/>'),
@@ -39,7 +38,7 @@ window.Icon = {
 const but = (icon, title) => ({view: vnode => m('button[type=button].icon', { title,
         onclick: ev => { ev.preventDefault(); vnode.attrs.onclick(ev) },
         style: !('visible' in vnode.attrs) || vnode.attrs.visible ? null : 'visibility:hidden',
-    }, icon()
+    }, m(icon)
 )});
 window.Button = {
     Del:        but(Icon.Trash2,       'Delete item'),
@@ -53,11 +52,11 @@ window.Button = {
 const helpState = {};
 window.HelpButton = id => m('a.help[href=#][title=Info]',
     { onclick: ev => { ev.preventDefault(); helpState[id] = !helpState[id]; } },
-    Icon.Info()
+    m(Icon.Info)
 );
 window.Help = (id, ...content) => helpState[id] ? m('section.help',
     { oncreate: vnode => vnode.dom.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'nearest'}) },
-    m('a[href=#]', { onclick: ev => { ev.preventDefault(); helpState[id] = false; } }, Icon.X()),
+    m('a[href=#]', { onclick: ev => { ev.preventDefault(); helpState[id] = false; } }, m(Icon.X)),
     content
 ) : null;
 

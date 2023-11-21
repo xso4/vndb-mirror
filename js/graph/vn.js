@@ -182,7 +182,7 @@ widget('VNGraph', initVnode => {
 
     const dsTypes = new DS({
         list: (a,b,cb) => cb(relTypes.map(([id,label]) => ({id,label}))),
-        view: obj => [ m('span.vn-rel-icon', relIcons[obj.id]()), obj.label ]
+        view: obj => [ m('span.vn-rel-icon', m(relIcons[obj.id])), obj.label ]
     }, {
         onselect: (obj, v) => { optTypes[obj.id] = v; save(true); },
         checked: obj => optTypes[obj.id],

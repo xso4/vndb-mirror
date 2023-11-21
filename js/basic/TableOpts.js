@@ -69,7 +69,7 @@ widget('TableOpts', (vnode) => {
     const view = () => [
         m('li.hidden', m('input[type=hidden][name=s]', { value: opts.encode() })),
         !conf.save ? null : m('li.maintabs-dd.tableopts-save', m(MainTabsDD, {
-            a_body: Icon.Save(),
+            a_body: m(Icon.Save),
             a_attrs: { title: 'save display settings' },
             content: () => [
                 m('h4', 'save display settings'),
@@ -103,7 +103,7 @@ widget('TableOpts', (vnode) => {
             ]
         })),
         conf.vis.length == 0 ? null : m('li.maintabs-dd.tableopts-cols', m(MainTabsDD, {
-            a_body: Icon.Eye(),
+            a_body: m(Icon.Eye),
             a_attrs: { title: 'visible columns' },
             content: () => [
                 m('h4', 'visible columns'),
@@ -115,7 +115,7 @@ widget('TableOpts', (vnode) => {
             ]
         })),
         conf.sorts.length == 0 ? null : m('li.maintabs-dd.tableopts-sort', m(MainTabsDD, {
-            a_body: Icon.ArrowDownUp(),
+            a_body: m(Icon.ArrowDownUp),
             a_attrs: { title: 'sort options' },
             content: () => [
                 m('h4', 'sort options'),

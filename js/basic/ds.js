@@ -257,7 +257,7 @@ class DS {
                         oninput: ev => this.setInput(ev.target.value),
                         placeholder: this.placeholder,
                     }),
-                    m('span', {class: this.loading() ? 'spinner' : ''}, this.loading() ? null : Icon.Search()),
+                    m('span', {class: this.loading() ? 'spinner' : ''}, this.loading() ? null : m(Icon.Search)),
                 ),
                 this.checkall   ? m('div', m(Button.CheckAll,   { onclick: this.checkall   })) : null,
                 this.uncheckall ? m('div', m(Button.UncheckAll, { onclick: this.uncheckall })) : null,
@@ -279,7 +279,7 @@ class DS {
 DS.Button = {view: vnode => m('button.ds[type=button]', {
         class: vnode.attrs.class,
         onclick: ev => { ev.preventDefault(); vnode.attrs.onclick ? vnode.attrs.onclick(ev) : vnode.attrs.ds && vnode.attrs.ds.open(ev.target, null)  },
-    }, vnode.children, m('span.invisible', 'X'), Icon.ChevronDown()
+    }, vnode.children, m('span.invisible', 'X'), m(Icon.ChevronDown)
 )};
 
 
