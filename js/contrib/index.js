@@ -3,7 +3,18 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 "use strict";
 
-const nonLatin = /[\u0400-\u04ff\u0600-\u06ff\u0e00-\u0e7f\u1100-\u11ff\u1400-\u167f\u3040-\u3099\u30a1-\u30fa\u3100-\u9fff\uac00-\ud7af\uff66-\uffdc]/;
+// This list is incomplete, just an assortment of names and titles found in the DB
+const _greek = '\u0370-\u03ff\u1f00-\u1fff';
+const _cyrillic = '\u0400-\u04ff';
+const _arabic = '\u0600-\u06ff';
+const _thai = '\u0e00-\u0e7f';
+const _hangul = '\u1100-\u11ff\uac00-\ud7af';
+const _canadian = '\u1400-\u167f'; // Unified Canadian Aboriginal Syllabics, we have an actual Inuktitut title in the database
+const _kana = '\u3040-\u3099\u30a1-\u30fa\uff66-\uffdc'; // Hiragana + Katakana + Half/Full-width forms
+const _cjk = '\u3100-\u9fff'; // Whole range of CJK blocks
+const mustRomanize = new RegExp('[' +          _cyrillic + _arabic + _thai + _hangul + _canadian + _kana + _cjk + ']');
+// Greek characters are often used for styling and don't always need romanizing.
+const mayRomanize  = new RegExp('[' + _greek + _cyrillic + _arabic + _thai + _hangul + _canadian + _kana + _cjk + ']');
 
 
 // Edit summary & submit button box for DB entry edit forms.
