@@ -403,7 +403,7 @@ package VNWeb::Validate::SearchQuery {
     sub where {
         my($self, $type) = @_;
         my $lst = $self->words;
-        my @keywords = map sql('sc.label LIKE', \"%${_}%"), @$lst;
+        my @keywords = map sql('sc.label LIKE', \('%'.sql_like($_).'%')), @$lst;
         +(
             $type ? "sc.id BETWEEN '${type}1' AND vndbid_max('$type')" : (),
             $self->_isvndbid()
@@ -429,7 +429,7 @@ package VNWeb::Validate::SearchQuery {
         my $q = join '', @$lst;
         sql '(SELECT id, subid, max(sc.prio * (', VNWeb::DB::sql_join('+',
                 $self->_isvndbid() ? sql('CASE WHEN sc.id =', \$q, 'THEN 1+1 ELSE 0 END') : (),
-                sql('CASE WHEN sc.label LIKE', \"$q%", 'THEN 1::float/(1+1) ELSE 0 END'),
+                sql('CASE WHEN sc.label LIKE', \(sql_like($q).'%'), 'THEN 1::float/(1+1) ELSE 0 END'),
                 sql('similarity(sc.label,', \$q, ')'),
             ), ')) AS score
             FROM search_cache sc
