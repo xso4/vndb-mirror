@@ -280,7 +280,7 @@ window.Input = () => {
         return [
             a.type === 'textarea'
             ? m('textarea', { ...attrs }, a.data[a.field])
-            : m('input', { ...attrs, value: a.data[a.field],
+            : m('input', { ...attrs, value: a.data[a.field] === null ? '' : a.data[a.field],
                 type: a.type === 'email' ? 'email' : a.type === 'password' ? 'password' : 'text',
             }),
             invalid ? m('p.invalid', invalid) : null,

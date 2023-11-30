@@ -15,7 +15,7 @@ my $FORM = {
     } },
     description=> { default => '', maxlength => 5000 },
     gender     => { default => 'unknown', enum => [qw[unknown m f]] },
-    lang       => { default => 'ja', language => 1 },
+    lang       => { language => 1 },
     l_site     => { default => '', weburl => 1 },
     l_wikidata => { default => undef, uint => 1, max => (1<<31)-1 },
     l_twitter  => { default => '', regex => qr/^\S+$/, maxlength => 16 },
@@ -23,8 +23,6 @@ my $FORM = {
     l_pixiv    => { default => 0, uint => 1, max => (1<<31)-1 },
     hidden     => { anybool => 1 },
     locked     => { anybool => 1 },
-
-    authmod    => { _when => 'out', anybool => 1 },
     editsum    => { _when => 'in out', editsum => 1 },
 };
 
@@ -37,7 +35,6 @@ TUWF::get qr{/$RE{srev}/edit} => sub {
     my $e = db_entry tuwf->captures('id', 'rev') or return tuwf->resNotFound;
     return tuwf->resDenied if !can_edit s => $e;
 
-    $e->{authmod} = auth->permDbmod;
     $e->{editsum} = $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
 
     my $alias_inuse = 'EXISTS(SELECT 1 FROM vn_staff WHERE aid = sa.aid UNION ALL SELECT 1 FROM vn_seiyuu WHERE aid = sa.aid)';
@@ -54,7 +51,7 @@ TUWF::get qr{/$RE{srev}/edit} => sub {
     framework_ title => "Edit $name", dbobj => $e, tab => 'edit',
     sub {
         editmsg_ s => $e, "Edit $name";
-        elm_ StaffEdit => $FORM_OUT, $e;
+        div_ widget(StaffEdit => $FORM_OUT, $e), '';
     };
 };
 
@@ -64,20 +61,20 @@ TUWF::get qr{/s/new}, sub {
     framework_ title => 'Add staff member',
     sub {
         editmsg_ s => undef, 'Add staff member';
-        elm_ StaffEdit => $FORM_OUT, {
+        div_ widget(StaffEdit => $FORM_OUT, {
             elm_empty($FORM_OUT)->%*,
             alias => [ { aid => -1, name => '', latin => undef, inuse => 0, wantdel => 0 } ],
             aid => -1
-        };
+        }), '';
     };
 };
 
 
-elm_api StaffEdit => $FORM_OUT, $FORM_IN, sub {
+js_api StaffEdit => $FORM_IN, sub {
     my $data = shift;
     my $new = !$data->{id};
     my $e = $new ? { id => 0 } : db_entry $data->{id} or return tuwf->resNotFound;
-    return elm_Unauth if !can_edit s => $e;
+    return tuwf->resDenied if !can_edit s => $e;
 
     if(!auth->permDbmod) {
         $data->{hidden} = $e->{hidden}||0;
@@ -104,9 +101,9 @@ elm_api StaffEdit => $FORM_OUT, $FORM_IN, sub {
     }
     # We rely on Postgres to throw an error if we attempt to delete an alias that is still being referenced.
 
-    return elm_Unchanged if !$new && !form_changed $FORM_CMP, $data, $e;
+    return +{ _err => 'No changes.' } if !$new && !form_changed $FORM_CMP, $data, $e;
     my $ch = db_edit s => $e->{id}, $data;
-    elm_Redirect "/$ch->{nitemid}.$ch->{nrev}";
+    +{ _redir => "/$ch->{nitemid}.$ch->{nrev}" };
 };
 
 1;

@@ -1,0 +1,7 @@
+/* Corresponds to js/contrib/StaffEdit.js */
+
+.staffedit {
+    .tc_name, .tc_name input { width: 200px }
+    .names td { padding: 1px 2px }
+    .names tr.alias_new td { padding-top: 8px }
+}

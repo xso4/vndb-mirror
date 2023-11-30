@@ -83,7 +83,7 @@ pre {
 @import "css/layout";
 @import "css/forms";
 @import "css/vngraph";
-
+@import "css/staffedit";
 
 
 
@@ -612,17 +612,6 @@ div.charsum_list .charsum_bubble {
   margin: 3px;
   padding: 3px 10px;
 }
-
-
-/***** Staff edit *****/
-
-.staffedit td.tc_name,
-.staffedit td.tc_latin { width: 200px }
-.staffedit td.tc_name input,
-.staffedit td.tc_latin input { width: 200px }
-.staffedit td.tc_add { width: 40px; text-align: left; white-space: nowrap }
-.staffedit table.names td { padding: 1px 2px; vertical-align: middle; }
-.staffedit table.names tr.alias_new td { padding-top: 8px }
 
 
 /***** Documentation pages *****/
