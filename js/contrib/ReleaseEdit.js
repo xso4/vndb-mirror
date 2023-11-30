@@ -218,7 +218,7 @@ const Format = initVnode => {
             m('select#uncensored.mw', { oninput: ev => data.uncensored = [null,false,true][ev.target.selectedIndex] },
                 m('option', { selected: data.uncensored === null }, 'Unknown'),
                 m('option', { selected: data.uncensored === false }, 'Censored graphics'),
-                m('option', { selected: data.uncensored === true }, 'Uncensored graphcs'),
+                m('option', { selected: data.uncensored === true }, 'Uncensored graphics'),
             ),
         ) : null,
     );
