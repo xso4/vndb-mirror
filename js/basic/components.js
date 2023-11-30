@@ -16,6 +16,7 @@ window.Icon = {
     ArrowBigDown: icon('<path d="M15 6v6h4l-7 7-7-7h4V6h6z"/>'),
     ArrowBigUp:   icon('<path d="M9 18v-6H5l7-7 7 7h-4v6H9z"/>'),
     ArrowDownUp:  icon('<path d="m3 16 4 4 4-4"></path><path d="M7 20V4"></path><path d="m21 8-4-4-4 4"></path><path d="M17 4v16"></path>'),
+    Ban:          icon('<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>'),
     CheckSquare:  icon('<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'),
     ChevronDown:  icon('<polyline points="6 9 12 15 18 9">'),
     Copy:         icon('<rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>'),
@@ -24,6 +25,7 @@ window.Icon = {
     Globe:        icon('<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>'),
     Info:         icon('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>'),
     MinusSquare:  icon('<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="8" x2="16" y1="12" y2="12"/>'),
+    Pencil:       icon('<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/>'),
     Redo2:        icon('<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0A5.5 5.5 0 0 0 9.5 20H13"/>'),
     Replace:      icon('<path d="M14 4c0-1.1.9-2 2-2"/><path d="M20 2c1.1 0 2 .9 2 2"/><path d="M22 8c0 1.1-.9 2-2 2"/><path d="M16 10c-1.1 0-2-.9-2-2"/><path d="m3 7 3 3 3-3"/><path d="M6 10V5c0-1.7 1.3-3 3-3h1"/><rect width="8" height="8" x="2" y="14" rx="2"/>'),
     Save:         icon('<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline>'),
@@ -41,7 +43,9 @@ const but = (icon, title) => ({view: vnode => m('button[type=button].icon', { ti
     }, m(icon)
 )});
 window.Button = {
+    Edit:       but(Icon.Pencil,       'Edit'),
     Del:        but(Icon.Trash2,       'Delete item'),
+    Cancel:     but(Icon.Ban,          'Cancel'),
     Up:         but(Icon.ArrowBigUp,   'Move up'),
     Down:       but(Icon.ArrowBigDown, 'Move down'),
     Copy:       but(Icon.Copy,         'Copy'),

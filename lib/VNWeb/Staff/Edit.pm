@@ -47,6 +47,8 @@ TUWF::get qr{/$RE{srev}/edit} => sub {
            FROM staff_alias sa WHERE $alias_inuse AND sa.id =", \$e->{id}, 'AND sa.aid NOT IN', [ map $_->{aid}, $e->{alias}->@* ]
     )->@* if $e->{chrev} != $e->{maxrev};
 
+    $e->{alias} = [ sort { ($a->{latin}//$a->{name}) cmp ($b->{latin}//$b->{name}) } $e->{alias}->@* ];
+
     my $name = titleprefs_swap($e->{lang}, @{ (grep $_->{aid} == $e->{aid}, @{$e->{alias}})[0] }{qw/ name latin /})->[1];
     framework_ title => "Edit $name", dbobj => $e, tab => 'edit',
     sub {

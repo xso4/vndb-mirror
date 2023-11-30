@@ -34,22 +34,34 @@ widget('StaffEdit', initVnode => {
                 }}, 'Add alias'),
             ),
         )),
-        m('tbody', data.alias.map(a => m('tr', {key: a.aid},
-            m('td', m('input[type=radio]', { checked: a.aid === data.aid, onclick: () => data.aid = a.aid })),
-            m('td.tc_name', m(Input,
-                { required: true, maxlength: 200, data: a, field: 'name', oninput: nameChange, focus: a.focus }
-            )),
-            m('td.tc_name', !a.latin && !mayRomanize.test(a.name) ? m('br') : m('span', m(Input, {
-                required: mustRomanize.test(a.name), maxlength: 200, data: a, field: 'latin', placeholder: 'Romanization', oninput: nameChange,
-                invalid: mayRomanize.test(a.latin) ? 'Romanization should only contain characters in the latin alphabet.' : null,
-            }))),
-            m('td',
-                a.aid === data.aid ? m('small', 'primary') :
-                a.wantdel ? m('b', 'still referenced') :
-                a.inuse ? m('small', 'referenced') :
-                m(Button.Del, { onclick: () => nameChange(data.alias = data.alias.filter(x => x !== a)) }),
+        m('tbody', data.alias.flatMap(a => [
+            m('tr', {key: a.aid},
+                m('td', m('input[type=radio]', { checked: a.aid === data.aid, onclick: () => data.aid = a.aid })),
+                m('td.tc_name', a.editable || !a.inuse ? m('span', m(Input,
+                    { required: true, maxlength: 200, data: a, field: 'name', oninput: nameChange, focus: a.focus }
+                )) : a.name),
+                m('td.tc_name', !a.latin && !mayRomanize.test(a.name) ? m('br') : a.editable || !a.inuse ? m('span', m(Input, {
+                    required: mustRomanize.test(a.name), maxlength: 200, data: a, field: 'latin', placeholder: 'Romanization', oninput: nameChange,
+                    invalid: mayRomanize.test(a.latin) ? 'Romanization should only contain characters in the latin alphabet.' : null,
+                })) : a.latin),
+                m('td',
+                    a.editable ? m(Button.Cancel, { onclick: () => { a.name = a.orig_name; a.latin = a.orig_latin; a.editable = false } }) :
+                    a.inuse ? m(Button.Edit, { onclick: () => { a.orig_name = a.name; a.orig_latin = a.latin; a.editable = true } }) : null,
+                    a.aid === data.aid ? m('small', ' primary') :
+                    a.wantdel ? m('b', ' still referenced') :
+                    a.inuse ? m('small', ' referenced') :
+                    m(Button.Del, { onclick: () => nameChange(data.alias = data.alias.filter(x => x !== a)) }),
+                ),
             ),
-        ))),
+            a.editable ? m('tr', {key: 'w'+a.aid},
+                m('td'),
+                m('td[colspan=3]',
+                    m('b', 'WARNING: '),
+                    'You are editing an alias that is used in the credits of a visual novel. ',
+                    'Changing this name also changes the credits. Only do this for simple corrections!'
+                ),
+            ) : null,
+        ]).filter(x => x)),
     );
 
     const lang = new DS(DS.LocLang, {onselect: obj => data.lang = obj.id});
