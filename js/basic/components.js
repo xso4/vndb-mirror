@@ -298,16 +298,18 @@ window.Input = () => {
 
 
 
-// BBCode (TODO: & Markdown) editor with preview button.
+// BBCode & Markdown editor with preview button.
 // Attrs:
 // - data + field -> raw text is read from and written to data[field]
 // - header       -> element to draw at the top-left
 // - attrs        -> attrs to add to the Input
+// - type         -> 'bb' || 'markdown', defaults to bb
+// - full         -> Add 'full' class for full-width input
 window.TextPreview = initVnode => {
     var preview = false;
     var html = null;
     const {data,field} = initVnode.attrs;
-    const api = new Api('BBCode');
+    const api = new Api(initVnode.attrs.type === 'markdown' ? 'Markdown' : 'BBCode');
 
     const unload = () => {
         api.abort();
@@ -327,7 +329,7 @@ window.TextPreview = initVnode => {
         return false;
     };
 
-    const view = vnode => m('div.textpreview',
+    const view = vnode => m('div.textpreview', { class: vnode.attrs.full ? 'full' : null },
         m('div',
             m('div', vnode.attrs.header),
             m('div', data[field].length == 0 ? {class:'invisible'}:null,
@@ -341,7 +343,7 @@ window.TextPreview = initVnode => {
             class: (vnode.attrs.attrs.class||'') + (preview ? ' hidden' : ''),
             data, field, oninput: e => html = null
         }),
-        preview ? m('div.preview', m.trust(html)) : null,
+        preview ? m('div.preview', { class: vnode.attrs.type === 'markdown' ? 'docs' : null }, m.trust(html)) : null,
     );
     return {view};
 };

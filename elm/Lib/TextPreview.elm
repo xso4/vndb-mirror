@@ -7,7 +7,6 @@ import Lib.Html exposing (..)
 import Lib.Ffi as Ffi
 import Lib.Api as Api
 import Gen.Api as GApi
-import Gen.Markdown as GM
 import Gen.BBCode as GB
 
 
@@ -31,16 +30,6 @@ bbcode data =
   , class    = "preview bbcode"
   }
 
-
-markdown : String -> Model
-markdown data =
-  { state    = Api.Normal
-  , data     = data
-  , preview  = ""
-  , display  = False
-  , endpoint = GM.send
-  , class    = "preview docs"
-  }
 
 
 type Msg

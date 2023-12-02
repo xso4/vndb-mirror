@@ -27,29 +27,29 @@ TUWF::get qr{/$RE{drev}/edit} => sub {
 
     framework_ title => "Edit $d->{title}", dbobj => $d, tab => 'edit',
     sub {
-        elm_ DocEdit => $FORM_OUT, $d;
+        div_ widget(DocEdit => $FORM_OUT, $d), '';
     };
 };
 
 
-elm_api DocEdit => $FORM_OUT, $FORM_IN, sub {
+js_api DocEdit => $FORM_IN, sub {
     my $data = shift;
     my $doc = db_entry $data->{id} or return tuwf->resNotFound;
 
-    return elm_Unauth if !can_edit d => $doc;
-    return elm_Unchanged if !form_changed $FORM_CMP, $data, $doc;
+    return tuwf->resDenied if !can_edit d => $doc;
+    return +{ _err => 'No changes' } if !form_changed $FORM_CMP, $data, $doc;
 
     $data->{html} = md2html $data->{content};
     my $c = db_edit d => $doc->{id}, $data;
-    elm_Redirect "/$c->{nitemid}.$c->{nrev}";
+    +{ _redir => "/$c->{nitemid}.$c->{nrev}" };
 };
 
 
-elm_api Markdown => undef, {
+js_api Markdown => {
     content => { default => '' }
 }, sub {
-    return elm_Unauth if !auth->permDbmod;
-    elm_Content enrich_html md2html shift->{content};
+    return tuwf->resDenied if !auth->permDbmod;
+    +{ html => enrich_html md2html shift->{content} };
 };
 
 
