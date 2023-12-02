@@ -6,7 +6,14 @@ use VNDB::Config;
 use VNDB::Schema;
 use Exporter 'import';
 
-our @EXPORT = ('sql_extlinks', 'enrich_extlinks', 'revision_extlinks', 'validate_extlinks');
+our @EXPORT = qw/
+    sql_extlinks
+    enrich_extlinks
+    revision_extlinks
+    validate_extlinks
+    entry_to_extlinks
+    entry_from_extlinks
+/;
 
 
 # column name in wikidata table => \%info
@@ -212,10 +219,18 @@ our %LINKS = (
     },
     s => {
         l_site     => { label => 'Official website', fmt => '%s' },
-        l_wikidata => { label => 'Wikidata',         fmt => 'https://www.wikidata.org/wiki/Q%d' },
-        l_twitter  => { label => 'Twitter',          fmt => 'https://twitter.com/%s' },
-        l_anidb    => { label => 'AniDB',            fmt => 'https://anidb.net/cr%s' },
-        l_pixiv    => { label => 'Pixiv',            fmt => 'https://www.pixiv.net/member.php?id=%d' },
+        l_wikidata => { label => 'Wikidata'
+                      , fmt   => 'https://www.wikidata.org/wiki/Q%d'
+                      , regex => qr{www\.wikidata\.org/wiki/Q([1-9][0-9]*)} },
+        l_twitter  => { label => 'Xitter'
+                      , fmt   => 'https://twitter.com/%s'
+                      , regex => qr{(?:www\.)?twitter.com/(\S+)} },
+        l_anidb    => { label => 'AniDB'
+                      , fmt   => 'https://anidb.net/cr%s'
+                      , regex => qr{anidb\.net/(?:cr|creator/)([1-9][0-9]*)} },
+        l_pixiv    => { label => 'Pixiv'
+                      , fmt   => 'https://www.pixiv.net/member.php?id=%d'
+                      , regex => 'www.pixiv.net/member.php?id=([0-9]+)' },
         # deprecated
         l_wp       => { label => 'Wikipedia',        fmt => 'https://en.wikipedia.org/wiki/%s' },
     },
@@ -451,15 +466,31 @@ sub validate_extlinks {
             $val{func} = sub { $val{int} && !$_[0] ? 1 : sprintf($p->{fmt}, $_[0]) =~ full_regex $p->{regex} };
             ($f, $s->{type} =~ /\[\]/
                 ? { type => 'array', values => \%val }
-                : { default => $val{int} ? 0 : '', %val }
+                : { default => $s->{decl} !~ /not\s+null/i ? undef : $val{int} ? 0 : '', %val }
             )
         } sort grep $LINKS{$type}{$_}{regex}, keys $LINKS{$type}->%*
     } }
 }
 
 
-# Returns a list of sites for use in VNWeb::Elm:
-# { id => $id, name => $label, fmt => $label, regex => $regex, int => $bool, multi => $bool, default => 0||'""'||'[]', pattern => [..] }
+# For use with validate_extlinks(), moves an entry's external links fields into
+# a single 'extlinks' field.
+sub entry_to_extlinks {
+    my($type, $e) = @_;
+    my($schema) = grep +($_->{dbentry_type}||'') eq $type, values VNDB::Schema::schema->%*;
+    $e->{extlinks} = { map +($_, delete $e->{$_}), grep $LINKS{$type}{$_}{regex}, keys $LINKS{$type}->%* };
+}
+
+
+# And the reverse, does not need a $type argument
+sub entry_from_extlinks {
+    $_[0]{$_} = $_[0]{extlinks}{$_} for keys $_[0]{extlinks}->%*;
+    delete $_[0]{extlinks};
+}
+
+
+# Returns a list of sites for use in VNWeb::Elm and util/jsgen.pl:
+# { id => $id, name => $label, fmt => $label, regex => $regex, int => $bool, default => undef||0||''||[], pattern => [..] }
 sub extlinks_sites {
     my($type) = @_;
     my($schema) = grep +($_->{dbentry_type}||'') eq $type, values VNDB::Schema::schema->%*;
@@ -468,8 +499,8 @@ sub extlinks_sites {
         my($s) = grep $_->{name} eq $f, $schema->{cols}->@*;
         my $patt = $p->{patt} || ($p->{fmt} =~ s/%s/<code>/rg =~ s/%[0-9]*d/<number>/rg);
         +{ id => $f, name => $p->{label}, fmt => $p->{fmt}, regex => full_regex($p->{regex})
-         , int => $s->{type} =~ /^(big)?int/?1:0, multi => $s->{type} =~ /\[\]/?1:0
-         , default => $s->{type} =~ /\[\]/ ? '[]' : $s->{type} =~ /^(big)?int/ ? 0 : '""'
+         , int => $s->{type} =~ /^(big)?int/ ? 1 : 0,
+         , default => $s->{type} =~ /\[\]/ ? [] : $s->{decl} !~ /not\s+null/i ? undef : $s->{type} =~ /^(big)?int/ ? 0 : ''
          , pattern => [ split /(<[^>]+>)/, $patt ] }
     } sort grep $LINKS{$type}{$_}{regex}, keys $LINKS{$type}->%*
 }

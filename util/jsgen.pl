@@ -47,15 +47,21 @@ sub vskins {
 }
 
 sub extlinks {
-    print 'window.extLinks = '.$js->encode({release => [ map +{
-        id     => $_->{id},
-        name   => $_->{name},
-        fmt    => $_->{fmt},
-        regex  => TUWF::Validate::Interop::_re_compat($_->{regex}),
-        multi  => $_->{multi}?\1:\0,
-        int    => $_->{int}?\1:\0,
-        patt   => $_->{pattern},
-    }, VNDB::ExtLinks::extlinks_sites('r') ]}).";\n";
+    sub t {
+        [ map +{
+            id      => $_->{id},
+            name    => $_->{name},
+            fmt     => $_->{fmt},
+            default => $_->{default},
+            int     => $_->{int},
+            regex   => TUWF::Validate::Interop::_re_compat($_->{regex}),
+            patt    => $_->{pattern},
+        }, VNDB::ExtLinks::extlinks_sites($_[0]) ]
+    }
+    print 'window.extLinks = '.$js->encode({
+        release => t('r'),
+        staff   => t('s'),
+    }).";\n";
 }
 
 if ($ARGV[0] eq 'types') { validations; types; }

@@ -54,7 +54,7 @@ widget('UserRegister', vnode => {
             m('fieldset',
                 m('label.check',
                     m('input#ccheck[type=checkbox]', { checked: ccheck, oninput: ev => ccheck = ev.target.checked }),
-                    ' I click checkboxes without reading their label.'
+                    ' I click checkboxes without reading the label.'
                 ),
                 ccheck ? m('p.invalid', "*sigh* don't do that.") : null,
             ),

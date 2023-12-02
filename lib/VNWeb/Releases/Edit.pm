@@ -75,8 +75,6 @@ my $FORM_OUT = form_compile out => $FORM;
 my $FORM_IN  = form_compile in  => $FORM;
 my $FORM_CMP = form_compile cmp => $FORM;
 
-sub to_extlinks { $_[0]{extlinks} = { map +($_, delete $_[0]{$_}), grep /^l_/, keys $_[0]->%* } }
-
 
 TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
     my $e = db_entry tuwf->captures('id', 'rev') or return tuwf->resNotFound;
@@ -86,7 +84,7 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
     $e->{editsum} = $copy ? "Copied from $e->{id}.$e->{chrev}" : $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
 
     $e->{titles} = [ sort { $a->{lang} cmp $b->{lang} } $e->{titles}->@* ];
-    to_extlinks $e;
+    entry_to_extlinks r => $e;
 
     $e->{vntitles} = $e->{vn}->@* == 1 ? tuwf->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$e->{vn}[0]{vid}) : [];
 
@@ -186,13 +184,10 @@ js_api ReleaseEdit => $FORM_IN, sub {
             if !defined $d->{drm};
     }
 
-    to_extlinks $e;
-
+    entry_to_extlinks r => $e;
     return 'No changes' if !$new && !form_changed $FORM_CMP, $data, $e;
 
-    $data->{$_} = $data->{extlinks}{$_} for $data->{extlinks}->%*;
-    delete $data->{extlinks};
-
+    entry_from_extlinks $data;
     my $ch = db_edit r => $e->{id}, $data;
     +{ _redir => "/$ch->{nitemid}.$ch->{nrev}" };
 };

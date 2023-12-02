@@ -364,61 +364,6 @@ const Animation = initVnode => {
 };
 
 
-const ExtLinks = initVnode => {
-    const links = initVnode.attrs.data.extlinks;
-    const extlinks = extLinks.release;
-    const split = (fmt,v) => fmt.split(/(%[0-9]*[sd])/)
-        .map((p,i) => i !== 1 ? p : String(v).padStart(p.match(/%(?:0([0-9]+))?/)[1]||0, '0'));
-    let str = ''; // input string
-    let lnk = null; // link object, if matched
-    let val = null; // extracted value, if matched
-    let dup = false; // if link is already present
-    const add = () => {
-        if (lnk.multi) links[lnk.id].push(val);
-        else links[lnk.id] = val;
-        str = '';
-        lnk = val = null;
-        dup = false;
-    };
-    const view = () => m('fieldset',
-        m('label[for=extlinks]', 'External links', HelpButton('extlinks')),
-        m('table', extlinks.flatMap(l =>
-            (l.multi ? links[l.id] : links[l.id] ? [links[l.id]] : []).map(v =>
-                m('tr', {key: l.id + '-' + v },
-                    m('td', m(Button.Del, {onclick: () => links[l.id] = l.multi ? links[l.id].filter(x => x !== v) : l.int ? 0 : ''})),
-                    m('td', m('a[target=_blank]', { href: split(l.fmt, v).join('') }, l.name)),
-                    m('td', split(l.fmt, v).map((p,i) => m(i === 1 ? 'span' : 'small', p))),
-                )
-            )
-        )),
-        m('form', { onsubmit: ev => { ev.preventDefault(); if (lnk && !dup) add(); } },
-            m('input#extlinks.xw[type=text][placeholder=Add URL...]', { value: str, oninput: ev => {
-                str = ev.target.value;
-                lnk = extlinks.find(l => new RegExp(l.regex).test(str));
-                val = lnk && (v => lnk.int ? +v : ''+v)(str.match(new RegExp(lnk.regex)).filter(x => x !== undefined)[1]);
-                dup = lnk && (lnk.multi ? links[lnk.id].find(x => x === val) : links[lnk.id] === val);
-                if (lnk && !dup && (lnk.multi || links[lnk.id] === 0 || links[lnk.id] === '')) add();
-            }}),
-            str.length > 0 && !lnk ? [ m('p', ('small', '>>> '), m('b.invalid', 'Invalid or unrecognized URL.')) ] :
-            dup ? [ m('p', m('small', '>>> '), m('b.invalid', ' URL already listed.')) ] :
-            lnk ? [
-                m('p', m('input[type=submit][value=Update]'), m('span.invalid', ' URL recognized as: ', lnk.name)),
-                m('p.invalid', 'Did you mean to update the URL?'),
-            ] : [],
-        ),
-        Help('extlinks',
-            m('p', 'Links to external websites. The following sites and URL formats are supported:'),
-            m('dl', extlinks.flatMap(e => [
-                m('dt', e.name),
-                m('dd', e.patt.map((p,i) => m(i % 2 ? 'strong' : 'span', p))),
-            ])),
-            m('p', 'Links to sites that are not in the above list can still be added in the notes field below.'),
-        ),
-    );
-    return {view};
-};
-
-
 const VNs = initVnode => {
     const {data} = initVnode.attrs;
     const ds = new DS(DS.VNs, {
@@ -520,7 +465,7 @@ widget('ReleaseEdit', initVnode => {
                     m('label[for=website]', 'Website'),
                     m(Input, { id: 'website', class: 'xw', type: 'weburl', data, field: 'website' }),
                 ),
-                m(ExtLinks, {data}),
+                m(ExtLinks, {type: 'release', data}),
             ),
             m('fieldset.form',
                 m('legend', 'Database relations'),
