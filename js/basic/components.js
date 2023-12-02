@@ -297,6 +297,30 @@ window.Input = () => {
 };
 
 
+// Handy <select> abstraction.
+// Attrs:
+// - data + field -> value is read from and written to data[field]
+// - value        -> alternative to data+field
+// - options      -> array of [value,label] options
+// - oninput      -> called after value has changed
+// - id
+// - class
+//
+// 'value's are compared with '===' for equality, arrays are recursed into.
+const _eql = (a,b) => a === b || (Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((x,i) => _eql(x,b[i])));
+window.Select = { view: v => m('select',
+    {
+        id: v.attrs.id, class: v.attrs.class,
+        oninput: ev => {
+            const val = v.attrs.options[ev.target.selectedIndex][0];
+            if (v.attrs.data) v.attrs.data[v.attrs.field] = val;
+            v.attrs.oninput && v.attrs.oninput(val);
+        },
+    }, v.attrs.options.map(([value,label]) => m('option', { selected: _eql(v.attrs.data ? v.attrs.data[v.attrs.field] : v.attrs.value, value) }, label))
+)};
+
+
+
 
 // BBCode & Markdown editor with preview button.
 // Attrs:

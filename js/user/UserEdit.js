@@ -189,11 +189,11 @@ const Titles = initVnode => {
                 m('input[type=checkbox]', { checked: t.latin, oninput: ev => t.latin = ev.target.checked }),
                 ' romanized'
             ) : null),
-            m('td', t.lang ? m('select.mw', { oninput: ev => t.official = [null, true, false][ev.target.selectedIndex] },
-                m('option', { selected: t.official === null  }, 'Original only'),
-                m('option', { selected: t.official === true  }, 'Official only'),
-                m('option', { selected: t.official === false }, 'Any'),
-            ) : null),
+            m('td', t.lang ? m(Select, { class: 'mw', data: t, field: 'official', options: [
+                [ null,  'Original only' ],
+                [ true,  'Official only' ],
+                [ false, 'Any' ],
+            ]}) : null),
             m('td',
                 m(Button.Up, {visible: t.lang && n > 0, onclick: () => {
                     lst[n] = lst[n-1];
@@ -239,12 +239,11 @@ const display = data => {
             m('legend', 'Global'),
             m('fieldset',
                 m('label[for=skin]', 'Skin'),
-                m('select#skin.lw', { oninput: ev => {
-                        data.skin = vndbSkins[ev.target.selectedIndex][0];
-                        (s => s.href = s.href.replace(/[^\/]+\.css/, data.skin+'.css'))($('link[rel=stylesheet]'));
-                    } },
-                    vndbSkins.map(([id,name]) => m('option', {selected: data.skin === id}, name))
-                ), ' ',
+                m(Select, {
+                    id: 'skin', class: 'lw', data, field: 'skin',
+                    oninput: v => (s => s.href = s.href.replace(/[^\/]+\.css/, v+'.css'))($('link[rel=stylesheet]')),
+                    options: vndbSkins,
+                }), ' ',
                 m('label.check', m('input[type=checkbox]', { checked: data.customcss_csum, oninput: ev => data.customcss_csum = ev.target.checked }), 'Custom css'),
             ),
             data.customcss_csum ? m('fieldset',
@@ -415,20 +414,19 @@ const TTPrefs = initVnode => {
                     t.group ? m('small', t.group + ' / ') : null,
                     m('a[target=_blank]', { href: '/'+t.tid }, t.name)
                 ),
-                m('td', m('select.mw', { onchange: ev => t.spoil = [null,0,1,2,3][ev.target.selectedIndex] },
-                    m('option', { selected: t.spoil === null }, 'Keep spoiler level'),
-                    m('option', { selected: t.spoil === 0    }, 'Always show'),
-                    m('option', { selected: t.spoil === 1    }, 'Force minor spoiler'),
-                    m('option', { selected: t.spoil === 2    }, 'Force major spoiler'),
-                    m('option', { selected: t.spoil === 3    }, 'Always hide'),
-                )),
-                m('td', t.spoil === 3 ? null : m('select.mw',
-                    { onchange: ev => t.color = [null,'standout','grayedout','#ffffff'][ev.target.selectedIndex] },
-                    m('option', { selected: t.color === null        }, "Don't highlight"),
-                    m('option', { selected: t.color === 'standout'  }, 'Stand out'),
-                    m('option', { selected: t.color === 'grayedout' }, 'Grayed out'),
-                    m('option', { selected: t.color && t.color.startsWith('#') }, 'Custom color'),
-                )),
+                m('td', m(Select, { class: 'mw', data: t, field: 'spoil', options: [
+                    [ null, 'Keep spoiler level' ],
+                    [ 0,    'Always show' ],
+                    [ 1,    'Force minor spoiler' ],
+                    [ 2,    'Force major spoiler' ],
+                    [ 3,    'Always hide' ],
+                ]})),
+                m('td', t.spoil === 3 ? null : m(Select, { class: 'mw', data: t, field: 'color', options: [
+                    [ null,        "Don't highlight" ],
+                    [ 'standout',  'Stand out' ],
+                    [ 'grayedout', 'Grayed out' ],
+                    [ t.color && t.color.startsWith('#') ? t.color : '#ffffff', 'Custom color' ],
+                ]})),
                 m('td', t.spoil === 3 || !t.color || !t.color.startsWith('#') ? null :
                     m('input[type=color]', { value: t.color, oninput: ev => t.color = ev.target.value })
                 ),

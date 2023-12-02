@@ -69,11 +69,11 @@ widget('StaffEdit', initVnode => {
     const fields = () => [
         m('fieldset',
             m('label[for=gender]', 'Gender'),
-            m('select#gender.mw', { oninput: ev => data.gender = ['unknown','m','f'][ev.target.selectedIndex] },
-                m('option', { selected: data.gender === 'unknown' }, 'Unknown or N/A'),
-                m('option', { selected: data.gender === 'm' }, 'Male'),
-                m('option', { selected: data.gender === 'f' }, 'Female'),
-            )
+            m(Select, { id: 'gender', class: 'mw', data, field: 'gender', options: [
+                [ 'unknown', 'Unknown or N/A' ],
+                [ 'm', 'Male' ],
+                [ 'f', 'Female' ],
+            ] }),
         ),
         m('fieldset',
             m('label', { class: data.lang ? null : 'invalid' }, 'Primary language'),

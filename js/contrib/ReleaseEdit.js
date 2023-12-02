@@ -115,10 +115,7 @@ const Status = initVnode => {
         ),
         m('fieldset',
             m('label[for=minage]', 'Age rating', HelpButton('minage')),
-            m('select.mw', { oninput: ev => data.minage = ev.target.selectedIndex === 0 ? null : vndbTypes.ageRating[ev.target.selectedIndex-1][0] },
-                m('option', { selected: data.minage === null }, 'Unknown'),
-                vndbTypes.ageRating.map(([id,label]) => m('option', { selected: id === data.minage }, label))
-            ),
+            m(Select, { id: 'minage', class: 'mw', data, field: 'minage', options: [[ null, 'Unknown' ]].concat(vndbTypes.ageRating) }),
         ),
         Help('minage',
             m('p',
@@ -178,18 +175,17 @@ const Format = initVnode => {
             ),
         ),
         m('fieldset',
-            m('label', 'Media'),
+            m('label[for=addmedia]', 'Media'),
             data.media.map(x => m('div',
                 m(Button.Del, { onclick: () => data.media = data.media.filter(y => x !== y) }), ' ',
-                m('select.sw', { oninput: ev => x.qty = ev.target.selectedIndex+1, class: media[x.medium].qty ? null : 'invisible' },
-                    range(1, 40).map(i => m('option', { selected: i === x.qty }, i))
-                ), ' ',
+                m(Select, { class: media[x.medium].qty ? 'sw' : 'sw invisible', data: x, field: 'qty', options: range(1, 40).map(i=>[i,i]) }), ' ',
                 media[x.medium].label, m('br'),
             )),
-            m('select.mw', { oninput: ev => ev.target.selectedIndex > 0 && data.media.push({medium: vndbTypes.medium[ev.target.selectedIndex-1][0], qty:1}) },
-                m('option[selected]', '- Add medium -'),
-                vndbTypes.medium.map(([,label]) => m('option', label)),
-            ),
+            m(Select, {
+                class: 'mw', id: 'addmedia', value: null,
+                oninput: v => v !== null && data.media.push({medium: v, qty:1}),
+                options: [[null, '- Add medium -']].concat(vndbTypes.medium)
+            }),
             data.media.anyDup(({medium,qty}) => [medium, media[medium].qty ? qty : null])
             ?  m('p.invalid', 'List contains duplicates') : null,
         ),
@@ -209,17 +205,15 @@ const Format = initVnode => {
         ),
         data.patch ? null : m('fieldset',
             m('label[for=voiced]', 'Voiced'),
-            m('select#voiced.mw', { oninput: ev => data.voiced = ev.target.selectedIndex },
-                vndbTypes.voiced.map((l,i) => m('option', { selected: i === data.voiced }, l))
-            )
+            m(Select, { id: 'voiced', class: 'mw', data, field: 'voiced', options: vndbTypes.voiced.map((l,i)=>[i,l]) }),
         ),
         data.has_ero ? m('fieldset',
             m('label[for=uncensored]', 'Censoring'),
-            m('select#uncensored.mw', { oninput: ev => data.uncensored = [null,false,true][ev.target.selectedIndex] },
-                m('option', { selected: data.uncensored === null }, 'Unknown'),
-                m('option', { selected: data.uncensored === false }, 'Censored graphics'),
-                m('option', { selected: data.uncensored === true }, 'Uncensored graphics'),
-            ),
+            m(Select, { id: 'uncensored', class: 'mw', data, field: 'uncensored', options: [
+                [ null,  'Unknown' ],
+                [ false, 'Censored graphics' ],
+                [ true,  'Uncensored graphics' ],
+            ]}),
         ) : null,
     );
     return {view};
@@ -293,12 +287,11 @@ const Animation = initVnode => {
         lbl(key,  8, 'Vectorial'),
         lbl(key, 16, '3D'),
         lbl(key, 32, 'Live action'),
-        key === 'ani_cutscene' || data[key] === null || data[key] <= 2 ? null : m('select.mw',
-            { oninput: ev => data[key] = (data[key] & ~freqmask) | (ev.target.selectedIndex * 256) },
-            m('option', { selected: (data[key] & freqmask) === 0 }, '- frequency -'),
-            m('option', { selected: (data[key] & freqmask) === 256 }, 'Some scenes'),
-            m('option', { selected: (data[key] & freqmask) === 512 }, 'All scenes'),
-        ),
+        key === 'ani_cutscene' || data[key] === null || data[key] <= 2 ? null : m(Select, { class: 'mw',
+            oninput: v => data[key] = (data[key] & ~freqmask) | v,
+            value: data[key] & freqmask,
+            options: [ [0, '- frequency -'], [256, 'Some scenes'], [512, 'All scenes'] ]
+        }),
     ]);
 
     const view = () => data.patch ? null : m('fieldset.form',
@@ -377,9 +370,7 @@ const VNs = initVnode => {
         : m('table', data.vn.map(v => m('tr', {key: v.vid},
             m('td',
                 m(Button.Del, { onclick: () => data.vn = data.vn.filter(x => x !== v) }), ' ',
-                m('select', { oninput: ev => v.rtype = vndbTypes.releaseType[ev.target.selectedIndex][0] },
-                    vndbTypes.releaseType.map(([id,lbl]) => m('option', { selected: id === v.rtype }, lbl))
-                ),
+                m(Select, { data: v, field: 'rtype', options: vndbTypes.releaseType }),
             ),
             m('td', m('small', v.vid, ': '), m('a[target=_blank]', { href: '/'+v.vid }, v.title)),
         ))),
@@ -400,15 +391,15 @@ const Producers = initVnode => {
         m('table', data.producers.map(p => m('tr', {key: p.pid},
             m('td',
                 m(Button.Del, { onclick: () => data.producers = data.producers.filter(x => x !== p) }), ' ',
-                m('select', { oninput: ev => {
-                    const i = ev.target.selectedIndex;
-                    p.developer = i === 0 || i === 2;
-                    p.publisher = i === 1 || i === 2;
-                }},
-                    m('option', { selected: p.developer && !p.publisher }, 'Developer'),
-                    m('option', { selected: !p.developer && p.publisher }, 'Publisher'),
-                    m('option', { selected: p.developer && p.publisher }, 'Both'),
-                ),
+                m(Select, {
+                    oninput: v => { p.developer = v[0]; p.publisher = v[1] },
+                    value: [p.developer,p.publisher],
+                    options: [
+                        [ [true, false], 'Developer' ],
+                        [ [false, true], 'Publisher' ],
+                        [ [true, true ], 'Both' ],
+                    ],
+                }),
             ),
             m('td', m('small', p.pid, ': '), m('a[target=_blank]', { href: '/'+p.pid }, p.name)),
         ))),

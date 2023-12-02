@@ -16,9 +16,7 @@ widget('ProducerEdit', initVnode => {
     const fields = () => [
         m('fieldset',
             m('label[for=type]', 'Type'),
-            m('select.mw[id=type]', { oninput: ev => data.type = vndbTypes.producerType[ev.target.selectedIndex][0] },
-                vndbTypes.producerType.map(([v,t]) => m('option', { selected: v === data.type }, t))
-            ),
+            m(Select, { id: 'type', class: 'mw', data, field: 'type', options: vndbTypes.producerType }),
         ),
         m('fieldset',
             m('label[for=lang]', { class: data.lang ? null : 'invalid' }, 'Primary language'),
@@ -60,9 +58,7 @@ widget('ProducerEdit', initVnode => {
         : m('table', data.relations.map(p => m('tr', {key: p.pid},
             m('td',
                 m(Button.Del, { onclick: () => data.relations = data.relations.filter(x => x !== p) }), ' ',
-                m('select', { oninput: ev => p.relation = vndbTypes.producerRelation[ev.target.selectedIndex][0] },
-                    vndbTypes.producerRelation.map(([id,lbl]) => m('option', { selected: id === p.relation }, lbl))
-                ),
+                m(Select, { data: p, field: 'relation', options: vndbTypes.producerRelation }),
             ),
             m('td', m('small', p.pid, ': '), m('a[target=_blank]', { href: '/'+p.pid }, p.name)),
         ))),
