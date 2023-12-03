@@ -228,7 +228,31 @@ our %LINKS = (
                       , regex => qr{anidb\.net/(?:cr|creator/)([1-9][0-9]*)} },
         l_pixiv    => { label => 'Pixiv'
                       , fmt   => 'https://www.pixiv.net/member.php?id=%d'
-                      , regex => 'www.pixiv.net/member.php?id=([0-9]+)' },
+                      , regex => qr{www\.pixiv\.net/member\.php?id=([0-9]+)} },
+        l_vgmdb    => { label => 'VGMdb'
+                      , fmt   => 'https://vgmdb.net/artist/%d'
+                      , regex => qr{vgmdb\.net/artist/([0-9]+)} },
+        l_discogs  => { label => 'Discogs'
+                      , fmt   => 'https://www.discogs.com/artist/%d'
+                      , regex => qr{(?:www\.)?discogs\.com/artist/([0-9]+)(?:[?/-].*)?} },
+        l_mobygames=> { label => 'MobyGames'
+                      , fmt   => 'https://www.mobygames.com/person/%d'
+                      , regex => qr{(?:www\.)?mobygames\.com/person/([0-9]+)(?:[?/].*)?} },
+        l_bgmtv    => { label => 'Bangumi'
+                      , fmt   => 'https://bgm.tv/person/%d'
+                      , regex => qr{(?:www\.)?(?:bgm|bangumi)\.tv/person/([0-9]+)(?:[?/].*)?} },
+        l_imdb     => { label => 'IMDb'
+                      , fmt   => 'https://www.imdb.com/name/nm%07d'
+                      , regex => qr{(?:www\.)?imdb\.com/name/nm([0-9]{7})(?:[?/].*)?} },
+        l_mbrainz  => { label => 'MusicBrainz'
+                      , fmt   => 'https://musicbrainz.org/artist/%s'
+                      , regex => qr{musicbrainz\.org/artist/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})} },
+        l_scloud   => { label => 'SoundCloud'
+                      , fmt   => 'https://soundcloud.com/%s'
+                      , regex => qr{soundcloud\.com/([a-z0-9-]+)} },
+        l_vndb     => { label => 'VNDB user'
+                      , fmt   => 'https://vndb.org/%s'
+                      , regex => qr{vndb\.org/(u[1-9][0-9]*)} },
         # deprecated
         l_wp       => { label => 'Wikipedia',        fmt => 'https://en.wikipedia.org/wiki/%s' },
     },
@@ -411,11 +435,15 @@ sub enrich_extlinks {
             l 'l_twitter'; w 'twitter'      if !$obj->{l_twitter};
             l 'l_anidb';   w 'anidb_person' if !$obj->{l_anidb};
             l 'l_pixiv';   w 'pixiv_user'   if !$obj->{l_pixiv};
-            w 'musicbrainz_artist';
-            w 'vgmdb_artist';
-            w 'discogs_artist';
-            w 'doujinshi_author';
-            w 'soundcloud';
+            l 'l_mbrainz'; w 'musicbrainz_artist' if !$obj->{l_mbrainz};
+            l 'l_vgmdb';   w 'vgmdb_artist' if !$obj->{l_vgmdb};
+            l 'l_discogs'; w 'discogs_artist' if !$obj->{l_discogs};
+            l 'l_scloud';  w 'soundcloud'   if !$obj->{l_scloud};
+            l 'l_mobygames';
+            l 'l_bgmtv';
+            l 'l_imdb';
+            l 'l_vndb';
+            #w 'doujinshi_author';
         }
 
         # Producer links
@@ -423,7 +451,7 @@ sub enrich_extlinks {
             w 'twitter';
             w 'mobygames_company';
             w 'gamefaqs_company';
-            w 'doujinshi_author';
+            #w 'doujinshi_author';
             w 'soundcloud';
             c 'vnstat', 'VNStat', 'https://vnstat.net/developer/%d', $obj->{id} =~ s/^.//r;
         }

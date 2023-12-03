@@ -896,7 +896,15 @@ CREATE TABLE staff ( -- dbentry_type=s
   description text NOT NULL DEFAULT '', -- [pub]
   l_wp        varchar(150) NOT NULL DEFAULT '', -- (deprecated)
   l_site      varchar(250) NOT NULL DEFAULT '', -- [pub]
-  l_twitter   varchar(16) NOT NULL DEFAULT '' -- [pub]
+  l_twitter   varchar(16) NOT NULL DEFAULT '', -- [pub]
+  l_vgmdb     integer NOT NULL DEFAULT 0, -- [pub]
+  l_discogs   integer NOT NULL DEFAULT 0, -- [pub]
+  l_mobygames integer NOT NULL DEFAULT 0, -- [pub]
+  l_bgmtv     integer NOT NULL DEFAULT 0, -- [pub]
+  l_imdb      integer NOT NULL DEFAULT 0, -- [pub]
+  l_vndb      vndbid, -- [pub]
+  l_mbrainz   uuid, -- [pub]
+  l_scloud    text NOT NULL DEFAULT '' -- [pub]
 );
 
 -- staff_hist
@@ -911,7 +919,15 @@ CREATE TABLE staff_hist (
   description text NOT NULL DEFAULT '',
   l_wp        varchar(150) NOT NULL DEFAULT '',
   l_site      varchar(250) NOT NULL DEFAULT '',
-  l_twitter   varchar(16) NOT NULL DEFAULT ''
+  l_twitter   varchar(16) NOT NULL DEFAULT '',
+  l_vgmdb     integer NOT NULL DEFAULT 0,
+  l_discogs   integer NOT NULL DEFAULT 0,
+  l_mobygames integer NOT NULL DEFAULT 0,
+  l_bgmtv     integer NOT NULL DEFAULT 0,
+  l_imdb      integer NOT NULL DEFAULT 0,
+  l_vndb      vndbid,
+  l_mbrainz   uuid,
+  l_scloud    text NOT NULL DEFAULT ''
 );
 
 -- staff_alias
@@ -1576,7 +1592,8 @@ CREATE VIEW charst AS
 -- This joins staff & staff_alias and adds the title + sorttitle fields.
 CREATE VIEW staff_aliast AS
            -- Everything from 'staff', except 'aid' is renamed to 'main'
-    SELECT s.id, s.gender, s.lang, s.l_anidb, s.l_wikidata, s.l_pixiv, s.locked, s.hidden, s.description, s.l_wp, s.l_site, s.l_twitter, s.aid AS main
+    SELECT s.id, s.gender, s.lang, s.l_anidb, s.l_wikidata, s.l_pixiv, s.locked, s.hidden, s.description, s.aid AS main
+         , s.l_wp, s.l_site, s.l_twitter, s.l_vgmdb, s.l_discogs, s.l_mobygames, s.l_bgmtv, s.l_imdb, s.l_vndb, s.l_mbrainz, s.l_scloud
          , sa.aid, sa.name, sa.latin
          , ARRAY [ s.lang::text, COALESCE(sa.latin, sa.name)
                  , s.lang::text, sa.name ] AS title

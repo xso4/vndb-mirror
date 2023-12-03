@@ -240,7 +240,8 @@ $$ LANGUAGE SQL STABLE;
 
 -- Same for staff_aliast
 CREATE OR REPLACE FUNCTION staff_aliast(p titleprefs) RETURNS SETOF staff_aliast AS $$
-    SELECT s.id, s.gender, s.lang, s.l_anidb, s.l_wikidata, s.l_pixiv, s.locked, s.hidden, s.description, s.l_wp, s.l_site, s.l_twitter, s.aid AS main
+    SELECT s.id, s.gender, s.lang, s.l_anidb, s.l_wikidata, s.l_pixiv, s.locked, s.hidden, s.description, s.aid AS main
+         , s.l_wp, s.l_site, s.l_twitter, s.l_vgmdb, s.l_discogs, s.l_mobygames, s.l_bgmtv, s.l_imdb, s.l_vndb, s.l_mbrainz, s.l_scloud
          , sa.aid, sa.name, sa.latin
          , titleprefs_swap(p, s.lang, sa.name, sa.latin), COALESCE(sa.latin, sa.name)
       FROM staff s
