@@ -415,7 +415,7 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
          ORDER BY vndbid_type(x.id) DESC, i.title[1+1]
     ') : [];
 
-    return tuwf->resRedirect("/$list->[0]{id}") if $count && $count == 1 && $opt->{q} && !defined $opt->{ch} && !@$other;
+    return tuwf->resRedirect("/$list->[0]{id}") if $count && $count == 1 && $opt->{p} == 1 && $opt->{q} && !defined $opt->{ch} && !@$other;
 
     enrich_listing(1, $opt, $list);
     $time = time - $time;
