@@ -887,7 +887,7 @@ CREATE TABLE staff ( -- dbentry_type=s
   id          vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('s', nextval('staff_id_seq')::int) CONSTRAINT staff_id_check CHECK(vndbid_type(id) = 's'), -- [pub]
   gender      gender NOT NULL DEFAULT 'unknown', -- [pub]
   lang        language NOT NULL DEFAULT 'ja', -- [pub]
-  aid         integer NOT NULL DEFAULT 0, -- [pub] staff_alias.aid
+  main        integer NOT NULL DEFAULT 0, -- [pub] staff_alias.aid
   l_anidb     integer, -- [pub]
   l_wikidata  integer, -- [pub]
   l_pixiv     integer NOT NULL DEFAULT 0, -- [pub]
@@ -912,7 +912,7 @@ CREATE TABLE staff_hist (
   chid        integer NOT NULL PRIMARY KEY,
   gender      gender NOT NULL DEFAULT 'unknown',
   lang        language NOT NULL DEFAULT 'ja',
-  aid         integer NOT NULL DEFAULT 0, -- Can't refer to staff_alias.id, because the alias might have been deleted
+  main        integer NOT NULL DEFAULT 0, -- Can't refer to staff_alias.id, because the alias might have been deleted
   l_anidb     integer,
   l_wikidata  integer,
   l_pixiv     integer NOT NULL DEFAULT 0,
@@ -1591,10 +1591,7 @@ CREATE VIEW charst AS
 
 -- This joins staff & staff_alias and adds the title + sorttitle fields.
 CREATE VIEW staff_aliast AS
-           -- Everything from 'staff', except 'aid' is renamed to 'main'
-    SELECT s.id, s.gender, s.lang, s.l_anidb, s.l_wikidata, s.l_pixiv, s.locked, s.hidden, s.description, s.aid AS main
-         , s.l_wp, s.l_site, s.l_twitter, s.l_vgmdb, s.l_discogs, s.l_mobygames, s.l_bgmtv, s.l_imdb, s.l_vndb, s.l_mbrainz, s.l_scloud
-         , sa.aid, sa.name, sa.latin
+    SELECT s.*, sa.aid, sa.name, sa.latin
          , ARRAY [ s.lang::text, COALESCE(sa.latin, sa.name)
                  , s.lang::text, sa.name ] AS title
          , COALESCE(sa.latin, sa.name) AS sorttitle

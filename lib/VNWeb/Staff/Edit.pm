@@ -5,7 +5,7 @@ use VNWeb::Prelude;
 
 my $FORM = {
     id          => { default => undef, vndbid => 's' },
-    aid         => { int => 1, range => [ -1000, 1<<40 ] }, # X
+    main        => { int => 1, range => [ -1000, 1<<40 ] }, # X
     alias       => { maxlength => 100, sort_keys => 'aid', aoh => {
         aid       => { int => 1, range => [ -1000, 1<<40 ] }, # X, negative IDs are for new aliases
         name      => { maxlength => 200 },
@@ -46,7 +46,7 @@ TUWF::get qr{/$RE{srev}/edit} => sub {
 
     $e->{alias} = [ sort { ($a->{latin}//$a->{name}) cmp ($b->{latin}//$b->{name}) } $e->{alias}->@* ];
 
-    my $name = titleprefs_swap($e->{lang}, @{ (grep $_->{aid} == $e->{aid}, @{$e->{alias}})[0] }{qw/ name latin /})->[1];
+    my $name = titleprefs_swap($e->{lang}, @{ (grep $_->{aid} == $e->{main}, @{$e->{alias}})[0] }{qw/ name latin /})->[1];
     framework_ title => "Edit $name", dbobj => $e, tab => 'edit',
     sub {
         editmsg_ s => $e, "Edit $name";
@@ -95,7 +95,7 @@ js_api StaffEdit => $FORM_IN, sub {
     # For negative alias IDs: Assign a new ID.
     for my $alias (grep $_->{aid} < 0, $data->{alias}->@*) {
         my $new = tuwf->dbVali(select => sql_func nextval => \'staff_alias_aid_seq');
-        $data->{aid} = $new if $alias->{aid} == $data->{aid};
+        $data->{main} = $new if $alias->{aid} == $data->{main};
         $alias->{aid} = $new;
     }
     # We rely on Postgres to throw an error if we attempt to delete an alias that is still being referenced.

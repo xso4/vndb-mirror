@@ -240,9 +240,7 @@ $$ LANGUAGE SQL STABLE;
 
 -- Same for staff_aliast
 CREATE OR REPLACE FUNCTION staff_aliast(p titleprefs) RETURNS SETOF staff_aliast AS $$
-    SELECT s.id, s.gender, s.lang, s.l_anidb, s.l_wikidata, s.l_pixiv, s.locked, s.hidden, s.description, s.aid AS main
-         , s.l_wp, s.l_site, s.l_twitter, s.l_vgmdb, s.l_discogs, s.l_mobygames, s.l_bgmtv, s.l_imdb, s.l_vndb, s.l_mbrainz, s.l_scloud
-         , sa.aid, sa.name, sa.latin
+    SELECT s.*, sa.aid, sa.name, sa.latin
          , titleprefs_swap(p, s.lang, sa.name, sa.latin), COALESCE(sa.latin, sa.name)
       FROM staff s
       JOIN staff_alias sa ON sa.id = s.id
@@ -676,7 +674,7 @@ BEGIN
     WHEN 'd' THEN SELECT ARRAY[NULL, d.title, NULL, d.title   ],  h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN docs_hist d   ON h.id = d.chid WHERE h.itemid = $2 AND h.rev = $3;
     WHEN 'g' THEN SELECT ARRAY[NULL, g.name,  NULL, g.name    ],  h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN tags_hist g   ON h.id = g.chid WHERE h.itemid = $2 AND h.rev = $3;
     WHEN 'i' THEN SELECT ARRAY[NULL, i.name,  NULL, i.name    ],  h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN traits_hist i ON h.id = i.chid WHERE h.itemid = $2 AND h.rev = $3;
-    WHEN 's' THEN SELECT ARRAY[s.lang::text, COALESCE(sa.latin, sa.name), s.lang::text, sa.name], h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN staff_hist s     ON h.id = s.chid JOIN staff_alias_hist sa ON sa.chid = s.chid AND sa.aid = s.aid WHERE h.itemid = $2 AND h.rev = $3;
+    WHEN 's' THEN SELECT ARRAY[s.lang::text, COALESCE(sa.latin, sa.name), s.lang::text, sa.name], h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN staff_hist s     ON h.id = s.chid JOIN staff_alias_hist sa ON sa.chid = s.chid AND sa.aid = s.main WHERE h.itemid = $2 AND h.rev = $3;
     WHEN 't' THEN SELECT ARRAY[NULL, t.title, NULL, t.title], tp.uid, t.hidden OR t.private OR tp.hidden IS NOT NULL, t.locked INTO ret FROM threads t JOIN threads_posts tp ON tp.tid = t.id WHERE t.id = $2 AND tp.num = $3;
     WHEN 'w' THEN SELECT v.title, wp.uid, w.c_flagged OR wp.hidden IS NOT NULL, w.locked INTO ret FROM reviews w JOIN vnt($1) v ON v.id = w.vid JOIN reviews_posts wp ON wp.id = w.id WHERE w.id = $2 AND wp.num = $3;
     ELSE NULL;

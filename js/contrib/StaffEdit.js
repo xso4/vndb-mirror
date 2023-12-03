@@ -36,7 +36,7 @@ widget('StaffEdit', initVnode => {
         )),
         m('tbody', data.alias.flatMap(a => [
             m('tr', {key: a.aid},
-                m('td', m('input[type=radio]', { checked: a.aid === data.aid, onclick: () => data.aid = a.aid })),
+                m('td', m('input[type=radio]', { checked: a.aid === data.main, onclick: () => data.main = a.aid })),
                 m('td.tc_name', a.editable || !a.inuse ? m('span', m(Input,
                     { required: true, maxlength: 200, data: a, field: 'name', oninput: nameChange, focus: a.focus }
                 )) : a.name),
@@ -47,7 +47,7 @@ widget('StaffEdit', initVnode => {
                 m('td',
                     a.editable ? m(Button.Cancel, { onclick: () => { a.name = a.orig_name; a.latin = a.orig_latin; a.editable = false } }) :
                     a.inuse ? m(Button.Edit, { onclick: () => { a.orig_name = a.name; a.orig_latin = a.latin; a.editable = true } }) : null,
-                    a.aid === data.aid ? m('small', ' primary') :
+                    a.aid === data.main ? m('small', ' primary') :
                     a.wantdel ? m('b', ' still referenced') :
                     a.inuse ? m('small', ' referenced') :
                     m(Button.Del, { onclick: () => nameChange(data.alias = data.alias.filter(x => x !== a)) }),

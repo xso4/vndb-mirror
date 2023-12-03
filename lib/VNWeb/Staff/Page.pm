@@ -9,7 +9,7 @@ sub enrich_item {
 
     # Add a 'main' flag and title field to each alias
     for ($s->{alias}->@*) {
-        $_->{main} = $s->{aid} == $_->{aid};
+        $_->{main} = $s->{main} == $_->{aid};
         $_->{title} = titleprefs_swap $s->{lang}, $_->{name}, $_->{latin};
     }
 
@@ -190,7 +190,7 @@ TUWF::get qr{/$RE{srev}} => sub {
 
     enrich_item $s;
     enrich_extlinks s => 0, $s;
-    my($main) = grep $_->{aid} == $s->{aid}, $s->{alias}->@*;
+    my($main) = grep $_->{aid} == $s->{main}, $s->{alias}->@*;
 
     framework_ title => $main->{title}[1], index => !tuwf->capture('rev'), dbobj => $s, hiddenmsg => 1,
         og => {
