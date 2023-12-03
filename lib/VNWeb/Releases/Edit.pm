@@ -53,7 +53,6 @@ my $FORM = {
     ani_bg     => { undefbool => 1 },
     website    => { default => '', weburl => 1 },
     engine     => { default => '', maxlength => 50 },
-    extlinks   => validate_extlinks('r'),
     notes      => { default => '', maxlength => 10240 },
     vn         => { sort_keys => 'vid', aoh => {
         vid    => { vndbid => 'v' },
@@ -69,6 +68,7 @@ my $FORM = {
     hidden     => { anybool => 1 },
     locked     => { anybool => 1 },
     editsum    => { _when => 'in out', editsum => 1 },
+    validate_extlinks 'r'
 };
 
 my $FORM_OUT = form_compile out => $FORM;
@@ -84,7 +84,6 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
     $e->{editsum} = $copy ? "Copied from $e->{id}.$e->{chrev}" : $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
 
     $e->{titles} = [ sort { $a->{lang} cmp $b->{lang} } $e->{titles}->@* ];
-    entry_to_extlinks r => $e;
 
     $e->{vntitles} = $e->{vn}->@* == 1 ? tuwf->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$e->{vn}[0]{vid}) : [];
 
@@ -92,7 +91,8 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
     enrich_merge pid => sql('SELECT id AS pid, title[1+1] AS name FROM', producerst, 'p WHERE id IN'), $e->{producers};
     enrich_merge drm => sql('SELECT id AS drm, name FROM drm WHERE id IN'), $e->{drm};
 
-    $e->@{qw/gtin catalog extlinks/} = elm_empty($FORM_OUT)->@{qw/gtin catalog extlinks/} if $copy;
+    my @empty_fields = ('gtin', 'catalog', grep /^l_/, keys %$e);
+    $e->@{@empty_fields} = elm_empty($FORM_OUT)->@{@empty_fields} if $copy;
 
     my $title = ($copy ? 'Copy ' : 'Edit ').titleprefs_obj($e->{olang}, $e->{titles})->[1];
     framework_ title => $title, dbobj => $e, tab => tuwf->capture('action'),
@@ -184,10 +184,8 @@ js_api ReleaseEdit => $FORM_IN, sub {
             if !defined $d->{drm};
     }
 
-    entry_to_extlinks r => $e;
     return 'No changes' if !$new && !form_changed $FORM_CMP, $data, $e;
 
-    entry_from_extlinks $data;
     my $ch = db_edit r => $e->{id}, $data;
     +{ _redir => "/$ch->{nitemid}.$ch->{nrev}" };
 };

@@ -17,10 +17,10 @@ my $FORM = {
     gender     => { default => 'unknown', enum => [qw[unknown m f]] },
     lang       => { language => 1 },
     l_site     => { default => '', weburl => 1 },
-    extlinks   => validate_extlinks('s'),
     hidden     => { anybool => 1 },
     locked     => { anybool => 1 },
     editsum    => { _when => 'in out', editsum => 1 },
+    validate_extlinks 's'
 };
 
 my $FORM_OUT = form_compile out => $FORM;
@@ -45,7 +45,6 @@ TUWF::get qr{/$RE{srev}/edit} => sub {
     )->@* if $e->{chrev} != $e->{maxrev};
 
     $e->{alias} = [ sort { ($a->{latin}//$a->{name}) cmp ($b->{latin}//$b->{name}) } $e->{alias}->@* ];
-    entry_to_extlinks s => $e;
 
     my $name = titleprefs_swap($e->{lang}, @{ (grep $_->{aid} == $e->{aid}, @{$e->{alias}})[0] }{qw/ name latin /})->[1];
     framework_ title => "Edit $name", dbobj => $e, tab => 'edit',
@@ -101,10 +100,8 @@ js_api StaffEdit => $FORM_IN, sub {
     }
     # We rely on Postgres to throw an error if we attempt to delete an alias that is still being referenced.
 
-    entry_to_extlinks s => $e;
     return +{ _err => 'No changes.' } if !$new && !form_changed $FORM_CMP, $data, $e;
 
-    entry_from_extlinks $data;
     my $ch = db_edit s => $e->{id}, $data;
     +{ _redir => "/$ch->{nitemid}.$ch->{nrev}" };
 };

@@ -67,7 +67,7 @@ const EditSum = vnode => {
 
 
 const ExtLinks = initVnode => {
-    const links = initVnode.attrs.data.extlinks;
+    const links = initVnode.attrs.data;
     const extlinks = extLinks[initVnode.attrs.type];
     const split = (fmt,v) => fmt.split(/(%[0-9]*[sd])/)
         .map((p,i) => i !== 1 ? p : String(v).padStart(p.match(/%(?:0([0-9]+))?/)[1]||0, '0'));

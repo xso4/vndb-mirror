@@ -11,8 +11,6 @@ our @EXPORT = qw/
     enrich_extlinks
     revision_extlinks
     validate_extlinks
-    entry_to_extlinks
-    entry_from_extlinks
 /;
 
 
@@ -450,42 +448,24 @@ sub revision_extlinks {
 sub full_regex { qr{^(?:https?://)?$_[0](?:\#.*)?$} }
 
 
-# Returns a TUWF::Validate schema for a hash with links for the given entry type.
+# Returns a list of keys for inclusion into a TUWF::Validate schema.
 # Only includes links for which a 'regex' has been set.
 sub validate_extlinks {
     my($type) = @_;
     my($schema) = grep +($_->{dbentry_type}||'') eq $type, values VNDB::Schema::schema->%*;
 
-    +{ type => 'hash', keys => {
-        map {
-            my($f, $p) = ($_, $LINKS{$type}{$_});
-            my($s) = grep $_->{name} eq $f, $schema->{cols}->@*;
+    map {
+        my($f, $p) = ($_, $LINKS{$type}{$_});
+        my($s) = grep $_->{name} eq $f, $schema->{cols}->@*;
 
-            my %val;
-            $val{int} = 1 if $s->{type} =~ /^(big)?int/;
-            $val{func} = sub { $val{int} && !$_[0] ? 1 : sprintf($p->{fmt}, $_[0]) =~ full_regex $p->{regex} };
-            ($f, $s->{type} =~ /\[\]/
-                ? { type => 'array', values => \%val }
-                : { default => $s->{decl} !~ /not\s+null/i ? undef : $val{int} ? 0 : '', %val }
-            )
-        } sort grep $LINKS{$type}{$_}{regex}, keys $LINKS{$type}->%*
-    } }
-}
-
-
-# For use with validate_extlinks(), moves an entry's external links fields into
-# a single 'extlinks' field.
-sub entry_to_extlinks {
-    my($type, $e) = @_;
-    my($schema) = grep +($_->{dbentry_type}||'') eq $type, values VNDB::Schema::schema->%*;
-    $e->{extlinks} = { map +($_, delete $e->{$_}), grep $LINKS{$type}{$_}{regex}, keys $LINKS{$type}->%* };
-}
-
-
-# And the reverse, does not need a $type argument
-sub entry_from_extlinks {
-    $_[0]{$_} = $_[0]{extlinks}{$_} for keys $_[0]{extlinks}->%*;
-    delete $_[0]{extlinks};
+        my %val;
+        $val{int} = 1 if $s->{type} =~ /^(big)?int/;
+        $val{func} = sub { $val{int} && !$_[0] ? 1 : sprintf($p->{fmt}, $_[0]) =~ full_regex $p->{regex} };
+        ($f, $s->{type} =~ /\[\]/
+            ? { type => 'array', values => \%val }
+            : { default => $s->{decl} !~ /not\s+null/i ? undef : $val{int} ? 0 : '', %val }
+        )
+    } sort grep $LINKS{$type}{$_}{regex}, keys $LINKS{$type}->%*
 }
 
 
