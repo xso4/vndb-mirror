@@ -63,7 +63,7 @@ TUWF::get qr{/s/new}, sub {
         div_ widget(StaffEdit => $FORM_OUT, {
             elm_empty($FORM_OUT)->%*,
             alias => [ { aid => -1, name => '', latin => undef, inuse => 0, wantdel => 0 } ],
-            aid => -1
+            main => -1
         }), '';
     };
 };
