@@ -460,6 +460,7 @@ f s =>  5 => 'role',      { enum => [ 'seiyuu', keys %CREDIT_TYPE ] },
             sql 's.aid', $neg ? 'NOT' : '', 'IN(SELECT vs.aid FROM vn_staff vs JOIN vn v ON v.id = vs.id WHERE NOT v.hidden AND vs.role IN', $val, @grp, ')';
         }
     };
+f s =>  6 => 'extlink',  _extlink_filter('s');
 
 f p =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 'p.lang =', \$_ };
 f p =>  3 => 'id',        { vndbid => 'p' }, sql => sub { sql 'p.id', $_[0], \$_ };
@@ -494,7 +495,7 @@ sub _extlink_filter {
             _col => $n,
             _schema => $s,
             _regex => $l->{regex} && VNDB::ExtLinks::full_regex($l->{regex}),
-            _empty => $s->{type} =~ /\[\]/ ? "'{}'" : $s->{type} =~ /^(big)?int/i ? 0 : "''"
+            _hasval => $s->{type} =~ /\[\]/ ? "<> '{}'" : $s->{decl} !~ /not\s+null/i ? 'is not null' : $s->{type} =~ /^(big)?int/i ? '<> 0' : "<> ''"
         })
     } keys $VNDB::ExtLinks::LINKS{$type}->%*;
 
@@ -522,7 +523,7 @@ sub _extlink_filter {
     }
 
     my sub _sql {
-        return "$type.$links{$_}{_col} <> $links{$_}{_empty}" if !ref; # just name
+        return "$type.$links{$_}{_col} $links{$_}{_hasval}" if !ref; # just name
         my($l, $v) = ($links{$_->[0]}, $_->[1]);
         sql "$type.$l->{_col}", $l->{_schema}{type} =~ /\[\]/ ? ('&& ARRAY[', \$v, ']::', $l->{_schema}{type}) : ('=', \$v);
     }

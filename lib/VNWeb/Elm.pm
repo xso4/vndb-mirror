@@ -478,6 +478,7 @@ sub write_extlinks {
         } @links;
     }
     links release => VNDB::ExtLinks::extlinks_sites('r');
+    links staff => VNDB::ExtLinks::extlinks_sites('s');
 
     write_module ExtLinks => $data;
 }

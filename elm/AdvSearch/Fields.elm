@@ -22,6 +22,7 @@ import AdvSearch.Engine as AEng
 import AdvSearch.DRM as ADRM
 import AdvSearch.Birthday as AB
 import AdvSearch.Lib exposing (..)
+import Gen.ExtLinks as GEL
 
 
 -- "Nested" fields are a container for other fields.
@@ -310,7 +311,8 @@ type FieldModel
   | FMRList      (AS.Model Int)
   | FMSRole      (AS.Model String)
   | FMPType      (AS.Model String)
-  | FMExtLinks   (AS.Model String)
+  | FMRExtLinks  (AS.Model String)
+  | FMSExtLinks  (AS.Model String)
   | FMHeight     (AR.Model Int)
   | FMWeight     (AR.Model Int)
   | FMBust       (AR.Model Int)
@@ -357,7 +359,8 @@ type FieldMsg
   | FSRList      (AS.Msg Int)
   | FSSRole      (AS.Msg String)
   | FSPType      (AS.Msg String)
-  | FSExtLinks   (AS.Msg String)
+  | FSRExtLinks  (AS.Msg String)
+  | FSSExtLinks  (AS.Msg String)
   | FSHeight     AR.Msg
   | FSWeight     AR.Msg
   | FSBust       AR.Msg
@@ -479,7 +482,7 @@ fields =
   , f R "Story animation"    0  FMAniStory    AS.init                 (AS.animatedFromQuery True)
   , f R "Engine"             0  FMEngine      AEng.init               AEng.fromQuery
   , f R "DRM implementation" 0  FMDRMType     ADRM.init               ADRM.fromQuery
-  , f R "External links"     0  FMExtLinks    AS.init                 AS.extlinkFromQuery
+  , f R "External links"     0  FMRExtLinks   AS.init                 (AS.extlinkFromQuery 19)
   , f R "My List"            0  FMRList       AS.init                 AS.rlistFromQuery
   -- Deprecated
   , f R ""                   0  FMDeveloper   AP.init                 (AP.fromQuery 6)
@@ -516,6 +519,7 @@ fields =
   , f S "Language"           1  FMLang        (AS.langInit AS.LangStaff) (AS.langFromQuery AS.LangStaff)
   , f S "Gender"             2  FMGender      AS.init                 AS.genderFromQuery
   , f S "Role"               3  FMSRole       AS.init                 AS.sroleFromQuery
+  , f S "External links"     0  FMSExtLinks   AS.init                 (AS.extlinkFromQuery 6)
 
   , n P P "And/Or"
   , f P "Name"               0  FMProdId      AP.init                 (AP.fromQuery 3)
@@ -591,7 +595,8 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSRList  msg,   FMRList m)    -> maps FMRList    (AS.update msg m)
       (FSSRole  msg,   FMSRole m)    -> maps FMSRole    (AS.update msg m)
       (FSPType  msg,   FMPType m)    -> maps FMPType    (AS.update msg m)
-      (FSExtLinks msg ,FMExtLinks m) -> maps FMExtLinks (AS.update msg m)
+      (FSRExtLinks msg,FMRExtLinks m)-> maps FMRExtLinks (AS.update msg m)
+      (FSSExtLinks msg,FMSExtLinks m)-> maps FMSExtLinks (AS.update msg m)
       (FSHeight msg,   FMHeight m)   -> maps FMHeight   (AR.update msg m)
       (FSWeight msg,   FMWeight m)   -> maps FMWeight   (AR.update msg m)
       (FSBust msg,     FMBust m)     -> maps FMBust     (AR.update msg m)
@@ -661,7 +666,8 @@ fieldView dat (_, dd, model) =
       FMRList m      -> f FSRList      (AS.rlistView m)
       FMSRole m      -> f FSSRole      (AS.sroleView m)
       FMPType m      -> f FSPType      (AS.ptypeView m)
-      FMExtLinks m   -> f FSExtLinks   (AS.extlinkView m)
+      FMRExtLinks m  -> f FSRExtLinks  (AS.extlinkView GEL.releaseSites m)
+      FMSExtLinks m  -> f FSSExtLinks  (AS.extlinkView GEL.staffSites m)
       FMHeight m     -> f FSHeight     (AR.heightView m)
       FMWeight m     -> f FSWeight     (AR.weightView m)
       FMBust m       -> f FSBust       (AR.bustView m)
@@ -712,7 +718,8 @@ fieldToQuery dat (_, _, model) =
     FMRList m    -> AS.toQuery (QInt 18) m
     FMSRole m    -> AS.toQuery (QStr 5) m
     FMPType m    -> AS.toQuery (QStr 4) m
-    FMExtLinks m -> AS.toQuery (QStr 19) m
+    FMRExtLinks m-> AS.toQuery (QStr 19) m
+    FMSExtLinks m-> AS.toQuery (QStr 6) m
     FMHeight m   -> AR.toQuery (QInt 6) (QStr 6) m
     FMWeight m   -> AR.toQuery (QInt 7) (QStr 7) m
     FMBust m     -> AR.toQuery (QInt 8) (QStr 8) m

@@ -544,8 +544,8 @@ ptypeFromQuery = fromQuery (\q ->
 
 -- Extlinks (releases only, for now)
 
-extlinkView model =
-  let lst = List.map (\l -> (l.advid, l.name)) GEL.releaseSites
+extlinkView links model =
+  let lst = List.map (\l -> (l.advid, l.name)) links
   in
   ( case Set.toList model.sel of
       []  -> small [] [ text "External links" ]
@@ -559,7 +559,7 @@ extlinkView model =
     ]
   )
 
-extlinkFromQuery = fromQuery (\q ->
+extlinkFromQuery num = fromQuery (\q ->
   case q of
-    QStr 19 op v -> Just (op, v)
+    QStr n op v -> if n == num then Just (op, v) else Nothing
     _ -> Nothing)
