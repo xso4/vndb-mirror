@@ -135,7 +135,7 @@ TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
     auth->notiRead($id, undef);
     auth->notiRead($id, [ map $_->{num}, $posts->@* ]) if @$posts;
 
-    my $newreview = auth && auth->uid eq $w->{user_id} && tuwf->reqGet('submit');
+    my $newreview = auth && $w->{user_id} && auth->uid eq $w->{user_id} && tuwf->reqGet('submit');
 
     my $title = "Review of $w->{title}[1]";
     framework_ title => $title, index => 1, dbobj => $w,
