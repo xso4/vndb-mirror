@@ -28,7 +28,7 @@ my $FORM = {
     nodistract_noads   => { anybool => 1 },
     nodistract_nofancy => { anybool => 1 },
     support_enabled => { anybool => 1 },
-    uniname         => { default => '', length => [2,15] },
+    uniname         => { default => '', sl => 1, length => [2,15] },
     pubskin_enabled => { anybool => 1 },
 
     traits          => { sort_keys => 'tid', maxlength => 100, aoh => {
@@ -80,7 +80,7 @@ my $FORM = {
         token     => {},
         added     => {},
         lastused  => { default => '' },
-        notes     => { default => '', maxlength => 200 },
+        notes     => { default => '', sl => 1, maxlength => 200 },
         listread  => { anybool => 1 },
         listwrite => { anybool => 1 },
         delete    => { anybool => 1 },

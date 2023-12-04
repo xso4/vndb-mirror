@@ -12,7 +12,7 @@ my $FORM = {
         spoil     => { default => undef, uint => 1, enum => [ 0..2 ] },
         lie       => { undefbool => 1 },
         overrule  => { anybool => 1 },
-        notes     => { default => '', maxlength => 1000 },
+        notes     => { default => '', sl => 1, maxlength => 1000 },
         cat       => { _when => 'out' },
         name      => { _when => 'out' },
         rating    => { _when => 'out', num => 1 },

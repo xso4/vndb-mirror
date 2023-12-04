@@ -13,8 +13,8 @@ my $FORM = {
     titles     => { minlength => 1, sort_keys => 'lang', aoh => {
         lang      => { enum => \%LANGUAGE },
         mtl       => { anybool => 1 },
-        title     => { default => undef, maxlength => 300 },
-        latin     => { default => undef, maxlength => 300 },
+        title     => { default => undef, sl => 1, maxlength => 300 },
+        latin     => { default => undef, sl => 1, maxlength => 300 },
     } },
     # Titles fetched from the VN entry, for auto-filling
     vntitles   => { _when => 'out', aoh => {
@@ -29,13 +29,13 @@ my $FORM = {
         qty       => { uint => 1, range => [0,40] },
     } },
     drm        => { sort_keys => 'name', aoh => {
-        name      => { maxlength => 128 },
+        name      => { sl => 1, maxlength => 128 },
         notes     => { default => '' },
         description => { default => '', maxlength => 10240 },
         map +($_,{anybool=>1}), keys %DRM_PROPERTY
     } },
     gtin       => { gtin => 1 },
-    catalog    => { default => '', maxlength => 50 },
+    catalog    => { default => '', sl => 1, maxlength => 50 },
     released   => { default => 99999999, min => 1, rdate => 1 },
     minage     => { default => undef, int => 1, enum => \%AGE_RATING },
     uncensored => { undefbool => 1 },
@@ -52,7 +52,7 @@ my $FORM = {
     ani_face   => { undefbool => 1 },
     ani_bg     => { undefbool => 1 },
     website    => { default => '', weburl => 1 },
-    engine     => { default => '', maxlength => 50 },
+    engine     => { default => '', sl => 1, maxlength => 50 },
     notes      => { default => '', maxlength => 10240 },
     vn         => { sort_keys => 'vid', aoh => {
         vid    => { vndbid => 'v' },

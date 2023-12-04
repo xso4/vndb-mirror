@@ -24,7 +24,7 @@ TUWF::any ['GET', 'POST'], qr{/$RE{vid}/quotes}, sub {
             h1_ 'Submit quote';
 
             if (tuwf->reqMethod eq 'POST') {
-                my $quote = tuwf->validate(post => quote => { maxlength => 170 });
+                my $quote = tuwf->validate(post => quote => { sl => 1, maxlength => 170 });
                 if ($quote->err) {
                     div_ class => 'warning', 'Invalid quote.';
                 } else {

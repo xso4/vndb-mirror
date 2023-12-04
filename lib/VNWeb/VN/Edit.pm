@@ -9,8 +9,8 @@ my $FORM = {
     id         => { default => undef, vndbid => 'v' },
     titles     => { minlength => 1, sort_keys => 'lang', aoh => {
         lang     => { enum => \%LANGUAGE },
-        title    => { maxlength => 250 },
-        latin    => { default => undef, maxlength => 250 },
+        title    => { sl => 1, maxlength => 250 },
+        latin    => { default => undef, sl => 1, maxlength => 250 },
         official => { anybool => 1 },
     } },
     alias      => { default => '', maxlength => 500 },
@@ -19,7 +19,7 @@ my $FORM = {
     olang      => { default => 'ja', enum => \%LANGUAGE },
     length     => { uint => 1, enum => \%VN_LENGTH },
     l_wikidata => { default => undef, uint => 1, max => (1<<31)-1 },
-    l_renai    => { default => '', maxlength => 100 },
+    l_renai    => { default => '', sl => 1, maxlength => 100 },
     relations  => { sort_keys => 'vid', aoh => {
         vid      => { vndbid => 'v' },
         relation => { enum => \%VN_RELATION },
@@ -36,14 +36,14 @@ my $FORM = {
     editions   => { sort_keys => 'eid', aoh => {
         eid      => { uint => 1, max => 500 },
         lang     => { default => undef, language => 1 },
-        name     => {},
+        name     => { sl => 1 },
         official => { anybool => 1 },
     } },
     staff      => { sort_keys => ['aid','eid','role'], aoh => {
         aid      => { id => 1 },
         eid      => { default => undef, uint => 1 },
         role     => { enum => \%CREDIT_TYPE },
-        note     => { default => '', maxlength => 250 },
+        note     => { default => '', sl => 1, maxlength => 250 },
         id       => { _when => 'out', vndbid => 's' },
         title    => { _when => 'out' },
         alttitle => { _when => 'out' },
@@ -51,7 +51,7 @@ my $FORM = {
     seiyuu     => { sort_keys => ['aid','cid'], aoh => {
         aid      => { id => 1 },
         cid      => { vndbid => 'c' },
-        note     => { default => '', maxlength => 250 },
+        note     => { default => '', sl => 1, maxlength => 250 },
         # Staff info
         id       => { _when => 'out', vndbid => 's' },
         title    => { _when => 'out' },

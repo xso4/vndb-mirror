@@ -64,6 +64,7 @@ TUWF::set custom_validations => {
         my $re = qr/^(?:$types)[1-9][0-9]{0,6}$/;
         +{ _analyze_regex => $re, func => sub { $_[0] = "${types}$_[0]" if !$multi && $_[0] =~ /^[1-9][0-9]{0,6}$/; return $_[0] =~ $re } }
     },
+    sl          => { regex => qr/^[^\t\r\n]+$/ }, # "Single line", also excludes tabs because they're weird.
     editsum     => { length => [ 2, 5000 ] },
     page        => { uint => 1, min => 1, max => 1000, default => 1, onerror => 1 },
     upage       => { uint => 1, min => 1, default => 1, onerror => 1 }, # pagination without a maximum

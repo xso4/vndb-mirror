@@ -6,7 +6,7 @@ use VNWeb::Prelude;
 
 my $FORM = {
     id           => { default => undef, vndbid => 'g' },
-    name         => { maxlength => 250, regex => qr/^[^,\r\n]+$/ },
+    name         => { maxlength => 250, regex => qr/^[^,\r\n\t]+$/ },
     alias        => { maxlength => 1024, regex => qr/^[^,]+$/, default => '' },
     cat          => { enum => \%TAG_CATEGORY, default => 'cont' },
     description  => { maxlength => 10240 },

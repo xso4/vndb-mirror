@@ -6,7 +6,7 @@ use VNWeb::Docs::Lib;
 
 my $FORM = {
     id      => { vndbid => 'd' },
-    title   => { maxlength => 200 },
+    title   => { sl => 1, maxlength => 200 },
     content => { default => '' },
     hidden  => { anybool => 1 },
     locked  => { anybool => 1 },

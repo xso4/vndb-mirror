@@ -76,7 +76,7 @@ TUWF::get '/r/drm', sub {
 my $FORM = form_compile any => {
     id          => { uint => 1 },
     state       => { uint => 1, range => [0,2] },
-    name        => { maxlength => 128 },
+    name        => { sl => 1, maxlength => 128 },
     description => { default => '', maxlength => 10240 },
     ref         => { default => '' },
     map +($_,{anybool=>1}), keys %DRM_PROPERTY

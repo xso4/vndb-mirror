@@ -27,7 +27,7 @@ our $LABELS = form_compile any => {
     uid => { vndbid => 'u' },
     labels => { maxlength => 1500, aoh => {
         id      => { int => 1 },
-        label   => { maxlength => 50 },
+        label   => { sl => 1, maxlength => 50 },
         private => { anybool => 1 },
         count   => { uint => 1 },
         delete  => { default => undef, uint => 1, range => [1, 3] }, # 1=keep vns, 2=delete when no other label, 3=delete all
@@ -88,7 +88,7 @@ elm_api UListManageLabels => undef, $LABELS, sub {
 elm_api UListLabelAdd => undef, {
     uid   => { vndbid => 'u' },
     vid   => { vndbid => 'v' },
-    label => { maxlength => 50 },
+    label => { sl => 1, maxlength => 50 },
 }, sub {
     my($data) = @_;
     return elm_Unauth if !ulists_own $data->{uid};

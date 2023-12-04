@@ -8,8 +8,8 @@ my $FORM = {
     main        => { int => 1, range => [ -1000, 1<<40 ] }, # X
     alias       => { maxlength => 100, sort_keys => 'aid', aoh => {
         aid       => { int => 1, range => [ -1000, 1<<40 ] }, # X, negative IDs are for new aliases
-        name      => { maxlength => 200 },
-        latin     => { maxlength => 200, default => undef },
+        name      => { sl => 1, maxlength => 200 },
+        latin     => { sl => 1, maxlength => 200, default => undef },
         inuse     => { anybool => 1, _when => 'out' },
         wantdel   => { anybool => 1, _when => 'out' },
     } },

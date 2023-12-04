@@ -4,7 +4,7 @@ use VNWeb::Prelude;
 
 my $FORM = {
     id           => { default => undef, vndbid => 'i' },
-    name         => { maxlength => 250, regex => qr/^[^,\r\n]+$/ },
+    name         => { maxlength => 250, regex => qr/^[^,\r\n\t]+$/ },
     alias        => { maxlength => 1024, regex => qr/^[^,]+$/, default => '' },
     sexual       => { anybool => 1 },
     description  => { maxlength => 10240 },

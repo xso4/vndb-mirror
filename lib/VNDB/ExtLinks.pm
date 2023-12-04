@@ -488,6 +488,7 @@ sub validate_extlinks {
 
         my %val;
         $val{int} = 1 if $s->{type} =~ /^(big)?int/;
+        $val{maxlength} = 512 if !$val{int};
         $val{func} = sub { $val{int} && !$_[0] ? 1 : sprintf($p->{fmt}, $_[0]) =~ full_regex $p->{regex} };
         ($f, $s->{type} =~ /\[\]/
             ? { type => 'array', values => \%val }
