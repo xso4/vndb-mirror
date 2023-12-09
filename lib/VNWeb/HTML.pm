@@ -952,14 +952,14 @@ sub searchbox_ {
 sub itemmsg_ {
     my($obj) = @_;
     p_ class => 'itemmsg', sub {
-        if($obj->{id} !~ /^[dw]/) {
+        if($obj->{id} !~ /^[dwu]/) {
             if($obj->{entry_locked} && !$obj->{entry_hidden}) {
                 txt_ 'Locked for editing. ';
             } elsif(auth && !can_edit(($obj->{id} =~ /^(.)/), $obj)) {
                 txt_ 'You can not edit this page. ';
             }
         }
-        a_ href => "/report/$obj->{id}", 'Report an issue on this page.';
+        a_ href => "/report/$obj->{id}", $obj->{id} =~ /^u/ ? 'report user' : 'Report an issue on this page.';
     } if !config->{read_only};
 }
 

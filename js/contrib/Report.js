@@ -2,11 +2,11 @@ const editable = /^[vrpcs]/;
 // Name, Objtypes, cansubmit, msg
 const reasons = [
     [ '-- Select --' ],
-    [ 'Spam', null, true ],
-    [ 'Links to piracy or illegal content', null, true ],
+    [ 'Spam', /^[^du]/, true ],
+    [ 'Links to piracy or illegal content', /^[^u]/, true ],
     [ 'Off-topic', /^[tw]/, true ],
     [ 'Unwelcome behavior', /^[tw]/, true ],
-    [ 'Unmarked spoilers', null, true, id => (editable.test(id) ? [
+    [ 'Unmarked spoilers', /^[^u]/, true, id => (editable.test(id) ? [
         'VNDB is an open wiki, it is often easier if you removed the spoilers yourself by ',
         m('a', { href: '/'+id+'/edit' }, 'editing the entry'),
         '. You likely know more about this entry than our moderators, after all.',
@@ -14,7 +14,7 @@ const reasons = [
         "If you're not sure whether something is a spoiler or if you need help with editing, you can also report this issue on the ",
         m('a[href=/t/db]', 'discussion board'),
         ' so that others may be able to help you.',
-    ] : null) ],
+    ] : 'Please clearly explain what the spoiler is.') ],
     [ 'Unmarked or improperly flagged NSFW image', /^[vc]/, true ],
     [ 'Incorrect information', editable, false, id => [
         'VNDB is an open wiki, you can correct the information in this database yourself by ',
@@ -42,6 +42,11 @@ const reasons = [
     ] ],
     [ 'Does not belong here', /^[rpcs]/, true ],
     [ 'Duplicate entry', editable, true, () => 'Please include a link to the entry that this is a duplicate of.' ],
+    [ 'Personal information removal request', editable, false, () => [
+        "If the page contains personal information about you (as a developer, translator or otherwise) ",
+        "that you're not comfortable with, please contact us at contact@vndb.org."
+    ] ],
+    [ 'Engases in vote manipulation', /^u/, true ],
     [ 'Other', null, true, id => editable.test(id) ? [
         'Keep in mind that VNDB is an open wiki, you can edit most of the information in this database.',
         m('br'),
@@ -80,7 +85,7 @@ widget('Report', vnode => {
             ),
             m('fieldset',
                 m('label[for=reason]', 'Reason'),
-                m(Select, { id: 'reason', class: 'lw', data, field: 'reason', options: list.map(([t]) => [t,t]) }),
+                m(Select, { id: 'reason', class: 'xw', data, field: 'reason', options: list.map(([t]) => [t,t]) }),
             ),
             (([a,b,cansubmit,msg]) => [
                 msg ? m('fieldset', msg(data.object)) : null,

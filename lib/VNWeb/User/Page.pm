@@ -201,9 +201,9 @@ TUWF::get qr{/$RE{uid}}, sub {
     ');
 
     my $title = user_displayname($u)."'s profile";
-    framework_ title => $title, dbobj => $u,
-    sub {
+    framework_ title => $title, dbobj => $u, sub {
         article_ class => 'userpage', sub {
+            itemmsg_ $u;
             h1_ $title;
             table_ class => 'stripe', sub { _info_table_ $u, $own };
         };
