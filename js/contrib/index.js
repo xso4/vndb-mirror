@@ -128,5 +128,6 @@ const ExtLinks = initVnode => {
 @include contrib/ProducerEdit.js
 @include contrib/StaffEdit.js
 @include contrib/DocEdit.js
+@include contrib/Report.js
 
 // @license-end

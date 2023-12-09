@@ -59,11 +59,11 @@ my $FORM = form_compile any => {
     loggedin => { anybool => 1 },
 };
 
-elm_api Report => undef, $FORM, sub {
-    return elm_Unauth if is_throttled;
+js_api Report => $FORM, sub {
+    return tuwf->resDenied if is_throttled;
     my($data) = @_;
     my $obj = obj $data->{object}, $data->{objectnum};
-    return elm_Invalid if !$data;
+    return 'Invalid object' if !$data;
 
     tuwf->dbExeci('INSERT INTO reports', {
         uid      => auth->uid,
@@ -73,7 +73,7 @@ elm_api Report => undef, $FORM, sub {
         reason   => $data->{reason},
         message  => $data->{message},
     });
-    elm_Success
+    +{}
 };
 
 
@@ -88,7 +88,7 @@ TUWF::get qr{/report/(?<object>[vrpcsdtw]$RE{num})(?:\.(?<subid>$RE{num}))?}, su
                 p_ "Sorry, you can only submit $reportsperday reports per day. If you wish to report more, you can do so by sending an email to ".config->{admin_email}
             }
         } else {
-            elm_ Report => $FORM, { elm_empty($FORM)->%*, %$obj, loggedin => !!auth, title => xml_string sub { obj_ $obj } };
+            div_ widget(Report => $FORM, { elm_empty($FORM)->%*, %$obj, loggedin => !!auth, title => xml_string sub { obj_ $obj } }), '';
         }
     };
 };
