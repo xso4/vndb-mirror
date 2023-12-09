@@ -46,7 +46,7 @@ const reasons = [
         "If the page contains personal information about you (as a developer, translator or otherwise) ",
         "that you're not comfortable with, please contact us at contact@vndb.org."
     ] ],
-    [ 'Engases in vote manipulation', /^u/, true ],
+    [ 'Engages in vote manipulation', /^u/, true ],
     [ 'Other', null, true, id => editable.test(id) ? [
         'Keep in mind that VNDB is an open wiki, you can edit most of the information in this database.',
         m('br'),
