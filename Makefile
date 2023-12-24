@@ -128,6 +128,7 @@ ELM_MODULES=$(shell grep -l '^main =' ${ELM_FILES} | sed 's/^elm\///')
 # - Add @license and @source comments
 # - Redirect calls from Lib.Ffi.* to window.elmFfi_*
 # - Patch the virtualdom diffing algorithm to always apply the 'selected' attribute
+# - Patch the Regex library to always enable the 'u' flag
 define fix-elm
 	( echo '// @license magnet:?xt=urn:btih:0b31508aeb0634b347b8270c7bee4d411b5d4109&dn=agpl-3.0.txt AGPL-3.0-only'; \
 	  echo '// @license magnet:?xt=urn:btih:c80d50af7d3db9be66a4d0a86db0286e4fd33292&dn=bsd-3-clause.txt BSD-3-Clause'; \
@@ -138,7 +139,8 @@ define fix-elm
 	  echo '// @license-end' \
 	)   | sed 's/var \$$author\$$project\$$Lib\$$Ffi\$$/var __unused__/g' \
 		| sed -E 's/\$$author\$$project\$$Lib\$$Ffi\$$([a-zA-Z0-9_]+)/window.elmFfi_\1(_Json_wrap,_Browser_call)/g' \
-		| sed -E "s/([^ ]+) !== 'checked'/\\1 !== 'checked' \&\& \\1 !== 'selected'/g" >$@~
+		| sed -E "s/([^ ]+) !== 'checked'/\\1 !== 'checked' \&\& \\1 !== 'selected'/g" \
+		| sed -E "s/var flags = 'g'/var flags = 'gu'/g" >$@~
 	mv $@~ $@
 endef
 
