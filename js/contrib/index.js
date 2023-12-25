@@ -14,7 +14,7 @@ const _thai = '\u0e00-\u0e7f';
 const _hangul = '\u1100-\u11ff\uac00-\ud7af';
 const _canadian = '\u1400-\u167f'; // Unified Canadian Aboriginal Syllabics, we have an actual Inuktitut title in the database
 const _kana = '\u3040-\u3099\u30a1-\u30fa\uff66-\uffdc'; // Hiragana + Katakana + Half/Full-width forms
-const _cjk = '\u3100-\u9fff\u{20000}-\u{2ffff}'; // Whole range of CJK blocks
+const _cjk = '\u3100-\u9fff\u{20000}-\u{323af}'; // Whole range of CJK blocks
 const mustRomanize = new RegExp('[' +          _cyrillic + _arabic + _thai + _hangul + _canadian + _kana + _cjk + ']', 'u');
 // Greek characters are often used for styling and don't always need romanizing.
 const mayRomanize  = new RegExp('[' + _greek + _cyrillic + _arabic + _thai + _hangul + _canadian + _kana + _cjk + ']', 'u');
