@@ -243,7 +243,7 @@ our %LINKS = (
                       , regex => qr{(?:www\.)?(?:bgm|bangumi)\.tv/person/([0-9]+)(?:[?/].*)?} },
         l_imdb     => { label => 'IMDb'
                       , fmt   => 'https://www.imdb.com/name/nm%07d'
-                      , regex => qr{(?:www\.)?imdb\.com/name/nm([0-9]{7})(?:[?/].*)?} },
+                      , regex => qr{(?:www\.)?imdb\.com/name/nm([0-9]{7,8})(?:[?/].*)?} },
         l_mbrainz  => { label => 'MusicBrainz'
                       , fmt   => 'https://musicbrainz.org/artist/%s'
                       , regex => qr{musicbrainz\.org/artist/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})} },
