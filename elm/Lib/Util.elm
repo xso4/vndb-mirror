@@ -56,23 +56,6 @@ selfCmd : msg -> Cmd msg
 selfCmd m = Task.perform (always m) (Process.sleep 1.0)
 
 
--- Based on VNDBUtil::gtintype()
-validateGtin : String -> Bool
-validateGtin =
-  let check = String.fromInt
-        >> String.reverse
-        >> String.toList
-        >> List.indexedMap (\i c -> (Char.toCode c - Char.toCode '0') * if modBy 2 i == 0 then 1 else 3)
-        >> List.sum
-      inval n =
-            n <     1000000000
-        || (n >=  200000000000 && n <  600000000000)
-        || (n >= 2000000000000 && n < 3000000000000)
-        ||  n >= 9770000000000
-        || modBy 10 (check n) /= 0
-  in String.filter Char.isDigit >> String.toInt >> Maybe.map (not << inval) >> Maybe.withDefault False
-
-
 -- Convert an image ID (e.g. "sf500") into a URL.
 imageUrl : String -> String
 imageUrl id =

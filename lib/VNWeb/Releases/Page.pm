@@ -41,7 +41,7 @@ sub _rev_ {
         [ has_ero    => 'Has ero',         fmt => 'bool' ],
         [ doujin     => 'Doujin',          fmt => 'bool' ],
         [ uncensored => 'Uncensored',      fmt => 'bool' ],
-        [ gtin       => 'JAN/EAN/UPC',     empty => 0 ],
+        [ gtin       => 'JAN/EAN/UPC/ISBN',empty => 0 ],
         [ catalog    => 'Catalog number' ],
         [ titles     => 'Languages',       txt => sub {
             '['.$_->{lang}.($_->{mtl} ? ' machine translation' : '').'] '.($_->{title}//'').(length $_->{latin} ? " / $_->{latin}" : '')
