@@ -222,7 +222,7 @@ our %LINKS = (
                       , regex => qr{www\.wikidata\.org/wiki/Q([1-9][0-9]*)} },
         l_twitter  => { label => 'Xitter'
                       , fmt   => 'https://twitter.com/%s'
-                      , regex => qr{(?:www\.)?twitter\.com/([^?\/ ]{1,16})(?:[?/].*)?} },
+                      , regex => qr{(?:(?:www\.)?twitter\.com|nitter\.[^/]+)/([^?\/ ]{1,16})(?:[?/].*)?} },
         l_anidb    => { label => 'AniDB'
                       , fmt   => 'https://anidb.net/cr%s'
                       , regex => qr{anidb\.net/(?:cr|creator/)([1-9][0-9]*)} },
