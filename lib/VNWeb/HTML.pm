@@ -243,7 +243,7 @@ sub _menu_ {
             a_ href => '/v/rand','Random visual novel'; br_;
             a_ href => '/d11',   'API'; lit_ ' - ';
             a_ href => '/d14',   'Dumps'; lit_ ' - ';
-            a_ href => '/d18',   'Query';
+            a_ href => 'https://sqlbin.vndb.org/about', 'Query';
         };
         form_ action => '/v', method => 'get', sub {
             fieldset_ sub {
