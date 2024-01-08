@@ -43,6 +43,7 @@ BEGIN { ($ROOT = abs_path $0) =~ s{/util/dbdump\.pl$}{}; }
 
 use lib "$ROOT/lib";
 use VNDB::Schema;
+use VNDB::ExtLinks;
 
 
 # Ridiculous query to export 'ulist_vns' with private labels removed.
@@ -264,6 +265,19 @@ sub export_import_script {
         my %pub = map +($_->{name}, 1), grep $_->{pub}, @{$schema->{$ref->{from_table}}{cols}};
         next if grep !$pub{$_}, @{$ref->{from_cols}};
         print $F "$ref->{decl}\n";
+    }
+
+    print $F "\n\n";
+    print $F "-- Sparse documentation, but it's something!\n";
+    my $L = \%VNDB::ExtLinks::LINKS;
+    for my $table (@tables) {
+        my $schema = $schema->{$table->{name}};
+        print $F "COMMENT ON TABLE $table->{name} IS ".$db->quote($schema->{comment}).";\n" if $schema->{comment};
+        my $l = ($schema->{dbentry_type} && $L->{$schema->{dbentry_type}}) || {};
+        for (grep $_->{pub}, $schema->{cols}->@*) {
+            $_->{comment} = "$l->{$_->{name}}{label}, $l->{$_->{name}}{fmt} $_->{comment}" if $l->{$_->{name}} && $l->{$_->{name}}{fmt};
+            print $F "COMMENT ON COLUMN $table->{name}.$_->{name} IS ".$db->quote($_->{comment}).";\n" if $_->{comment};
+        }
     }
 }
 

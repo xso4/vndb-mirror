@@ -23,9 +23,11 @@ my $ROOT = $INC{'VNDB/Schema.pm'} =~ s{/lib/VNDB/Schema\.pm}{}r;
 #               type => 'serial',
 #               decl => 'id SERIAL', # full declaration, exluding comments and PRIMARY KEY marker
 #               pub => 1,
+#               comment => '',
 #           }, ...
 #       ],
 #       primary => ['id'],
+#       comment => '',
 #   }
 # }
 sub schema {
@@ -42,7 +44,8 @@ sub schema {
             next if /PARTITION OF/;
             $table = $1;
             $schema{$table}{name} = $table;
-            $schema{$table}{dbentry_type} = $1 if /--.*\s+dbentry_type=(.)/;
+            $schema{$table}{comment} = /--\s*(.*)\s*/ ? $1 : '';
+            $schema{$table}{dbentry_type} = $1 if $schema{$table}{comment} =~ s/\s*dbentry_type=(.)\s*//;
             $schema{$table}{cols} = [];
 
         } elsif(/^\s*\)(?: PARTITION .+)?;/) {
@@ -59,8 +62,8 @@ sub schema {
             my $col = { name => $1 };
             push @{$schema{$table}{cols}}, $col;
 
-            $col->{pub} = /--.*\[pub\]/;
-            s/,?\s*(?:--.*)?$//;
+            $col->{comment} = (s/,?\s*(?:--(.*))?$// && $1) || '';
+            $col->{pub} = $col->{comment} =~ s/\s*\[pub\]\s*//;
 
             if(s/\s+PRIMARY\s+KEY//i) {
                 die "Double primary key for '$table'?\n" if $schema{$table}{primary};
