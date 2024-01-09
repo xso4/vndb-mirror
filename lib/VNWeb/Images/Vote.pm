@@ -123,7 +123,7 @@ TUWF::get qr{/img/vote}, sub {
 };
 
 
-TUWF::get qr{/img/$RE{imgid}}, sub {
+TUWF::get qr{/$RE{imgid}}, sub {
     my $id = tuwf->capture('id');
 
     my $l = [{ id => $id }];

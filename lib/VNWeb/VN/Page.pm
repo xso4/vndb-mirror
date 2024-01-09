@@ -183,7 +183,8 @@ sub rev_ {
             txt_ '] ';
             a_ href => imgurl($_->{scr}{id}), 'data-iv' => "$_->{scr}{width}x$_->{scr}{height}:$rev:$_->{scr}{sexual}$_->{scr}{violence}$_->{scr}{votecount}", $_->{scr}{id};
             txt_ " [$_->{scr}{width}x$_->{scr}{height}; ";
-            a_ href => "/img/$_->{scr}{id}", image_flagging_display $_->{scr};
+            a_ href => "/$_->{scr}{id}", image_flagging_display $_->{scr} if auth;
+            span_ image_flagging_display $_->{scr} if !auth;
             txt_ '] ';
             # The old NSFW flag has been removed around 2020-07-14, so not relevant for edits made later on.
             small_ sprintf 'old flag: %s', $_->{nsfw} ? 'NSFW' : 'Safe' if $_[0]{rev_added} < 1594684800;

@@ -120,7 +120,8 @@ sub image_ {
             img_ src => imgurl($img->{id}), width => $w, height => $h, $opt{alt} ? (alt => $opt{alt}) : ();
             end_ if $opt{url};
             if(!exists $opt{overlay}) {
-                a_ class => 'imghover--overlay', href => "/img/$img->{id}?view=".viewset(show_nsfw=>1), image_flagging_display $img, $small;
+                a_ class => 'imghover--overlay', href => "/$img->{id}?view=".viewset(show_nsfw=>1), image_flagging_display $img, $small if auth;
+                span_ class => 'imghover--overlay', image_flagging_display $img, $small if !auth;
             } elsif(ref $opt{overlay} eq 'CODE') {
                 $opt{overlay}->();
             }

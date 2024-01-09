@@ -23,6 +23,7 @@ TUWF::get qr{/$RE{uid}/tags},  sub { tuwf->resRedirect('/g/links?u='.tuwf->captu
 TUWF::get qr{/$RE{vid}/staff}, sub { tuwf->resRedirect(sprintf '/%s#staff',       tuwf->capture('id')) };
 TUWF::get qr{/$RE{vid}/stats}, sub { tuwf->resRedirect(sprintf '/%s#stats',       tuwf->capture('id')) };
 TUWF::get qr{/$RE{vid}/scr},   sub { tuwf->resRedirect(sprintf '/%s#screenshots', tuwf->capture('id')) };
+TUWF::get qr{/img/$RE{imgid}}, sub { tuwf->resRedirect('/'.tuwf->capture(1).tuwf->reqQuery(), 'perm') };
 
 TUWF::get qr{/u/tokens}, sub { tuwf->resRedirect(auth ? '/'.auth->uid.'/edit#api' : '/u/login?ref=/u/tokens', 'temp') };
 

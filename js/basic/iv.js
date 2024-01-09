@@ -162,7 +162,7 @@ function show(ev) {
     var flag = opt[2] ? opt[2].match(/^([0-2])([0-2])([0-9]+)$/) : null;
     var imgid = u.match(/\/([a-z]{2})\/[0-9]{2}\/([0-9]+)\./);
     if(flag && imgid) {
-        ivflag.href = '/img/'+imgid[1]+imgid[2];
+        ivflag.href = '/'+imgid[1]+imgid[2];
         ivflag.textContent = flag[3] == 0 ? 'Not flagged' :
             (flag[1] == 0 ? 'Safe' : flag[1] == 1 ? 'Suggestive' : 'Explicit') + ' / ' +
             (flag[2] == 0 ? 'Tame' : flag[2] == 1 ? 'Violent'    : 'Brutal'  ) + ' (' + flag[3] + ')';
