@@ -228,7 +228,7 @@ our %LINKS = (
                       , regex => qr{anidb\.net/(?:cr|creator/)([1-9][0-9]*)} },
         l_pixiv    => { label => 'Pixiv'
                       , fmt   => 'https://www.pixiv.net/member.php?id=%d'
-                      , regex => qr{www\.pixiv\.net/member\.php\?id=([0-9]+)} },
+                      , regex => qr{www\.pixiv\.net/(?:member\.php\?id=|en/users/|users/)([0-9]+)} },
         l_vgmdb    => { label => 'VGMdb'
                       , fmt   => 'https://vgmdb.net/artist/%d'
                       , regex => qr{vgmdb\.net/artist/([0-9]+)} },
