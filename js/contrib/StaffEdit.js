@@ -42,7 +42,7 @@ widget('StaffEdit', initVnode => {
                 )) : a.name),
                 m('td.tc_name', !a.latin && !mayRomanize.test(a.name) ? m('br') : a.editable || !a.inuse ? m('span', m(Input, {
                     required: mustRomanize.test(a.name), maxlength: 200, data: a, field: 'latin', placeholder: 'Romanization', oninput: nameChange,
-                    invalid: mayRomanize.test(a.latin) ? 'Romanization should only contain characters in the latin alphabet.' : null,
+                    invalid: a.latin === a.name || mustRomanize.test(a.latin) ? 'Romanization should only contain characters in the latin alphabet.' : null,
                 })) : a.latin),
                 m('td',
                     a.editable ? m(Button.Cancel, { onclick: () => { a.name = a.orig_name; a.latin = a.orig_latin; a.editable = false } }) :

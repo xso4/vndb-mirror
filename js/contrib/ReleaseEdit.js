@@ -40,7 +40,7 @@ const Titles = initVnode => {
                 m(Input, {
                     class: 'xw', maxlength: 300, required: mustRomanize.test(t.title),
                     data: t, field: 'latin', placeholder: 'Romanization',
-                    invalid: mayRomanize.test(t.latin) ? 'Romanization should only contain characters in the latin alphabet.' : null,
+                    invalid: t.latin === t.title || mustRomanize.test(t.latin) ? 'Romanization should only contain characters in the latin alphabet.' : null,
                 }),
                 m('br'),
             ),

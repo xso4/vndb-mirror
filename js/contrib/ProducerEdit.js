@@ -77,7 +77,7 @@ widget('ProducerEdit', initVnode => {
                     m('label[for=name]', 'Name (latin)'),
                     m(Input, {
                         class: 'xw', required: mustRomanize.test(data.name), maxlength: 200, data, field: 'latin', placeholder: 'Romanization', oninput: nameChange,
-                        invalid: mayRomanize.test(data.latin) ? 'Romanization should only contain characters in the latin alphabet.' : null,
+                        invalid: data.latin === data.name || mustRomanize.test(data.latin) ? 'Romanization should only contain characters in the latin alphabet.' : null,
                     }),
                 ),
                 m('fieldset',
