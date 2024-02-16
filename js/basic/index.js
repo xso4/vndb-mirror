@@ -48,6 +48,7 @@ window.onerror = function(ev, source, lineno, colno, error) {
 
 // Widgets
 @include TableOpts.js
+@include NNM.js
 
 // Image viewer; after loading Elm modules to ensure it sees the screenshots in VNEdit.
 @include iv.js

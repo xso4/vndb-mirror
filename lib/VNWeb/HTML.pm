@@ -564,6 +564,7 @@ sub framework_ {
                 $cont->() unless $o{hiddenmsg} && _hidden_msg_ \%o;
                 footer_ sub { _footer_ \%o };
             };
+            div_ class => 'nnm', widget(NNM => VNWeb::Misc::NNM::list()), '';
 
             # 'basic' bundle is always included if there's any JS at all
             tuwf->req->{js}{basic} = 1 if tuwf->req->{js}{elm} || tuwf->req->{pagevars}{widget} || $o{js};
