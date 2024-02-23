@@ -315,3 +315,19 @@ END
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER reviews_votes_cache AFTER INSERT OR UPDATE OR DELETE ON reviews_votes FOR EACH ROW EXECUTE PROCEDURE update_reviews_votes_cache();
+
+
+
+
+-- Update quotes.score on every change to quotes_votes
+
+CREATE OR REPLACE FUNCTION update_quotes_votes_cache() RETURNS trigger AS $$
+BEGIN
+  UPDATE quotes
+     SET score = (SELECT SUM(vote) FROM quotes_votes WHERE quotes_votes.id = quotes.id)
+   WHERE id IN(OLD.id, NEW.id);
+  RETURN NULL;
+END
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER quotes_votes_cache AFTER INSERT OR UPDATE OR DELETE ON quotes_votes FOR EACH ROW EXECUTE PROCEDURE update_quotes_votes_cache();

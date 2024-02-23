@@ -587,17 +587,17 @@ $$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION quotes_rand_calc() RETURNS void AS $$
-  WITH q(vid,quote) AS (
-    SELECT vid, quote FROM quotes q WHERE approved AND EXISTS(SELECT 1 FROM vn v WHERE v.id = q.vid AND NOT v.hidden)
-  ), r(vid,quote,rand) AS (
-    SELECT vid, quote,
-           -- 'rand' is chosen such that each VN has an equal probability to be selected, regardless of how many quotes it has.
-           ((dense_rank() OVER (ORDER BY vid)) - 1)::real / (SELECT COUNT(DISTINCT vid) FROM q) +
-           (percent_rank() OVER (PARTITION BY vid ORDER BY quote)) / (SELECT COUNT(DISTINCT vid)+1 FROM q)
+  WITH q(id, vid, score) AS (
+    SELECT id, vid, score FROM quotes q WHERE score > 0 AND state = 1 AND EXISTS(SELECT 1 FROM vn v WHERE v.id = q.vid AND NOT v.hidden)
+  ), r(id,rand) AS (
+    SELECT id, -- 'rand' is chosen such that each VN has an equal probability to be selected, regardless of how many quotes it has.
+           ( ((dense_rank() OVER (ORDER BY vid)) - 1)::real -- [0..n-1] cumulative count of distinct VNs
+             + ((sum(score) OVER (PARTITION BY vid ORDER BY id) - score)::float / (sum(score) OVER (PARTITION BY vid))) -- [0,1) cumulative normalized score of this quote
+           ) / (SELECT count(DISTINCT vid) FROM q)
       FROM q
   ), u AS (
-    UPDATE quotes SET rand = NULL WHERE NOT EXISTS(SELECT 1 FROM r WHERE quotes.vid = r.vid AND quotes.quote = r.quote)
-  ) UPDATE quotes SET rand = r.rand FROM r WHERE r.vid = quotes.vid AND r.quote = quotes.quote
+    UPDATE quotes SET rand = NULL WHERE rand IS NOT NULL AND NOT EXISTS(SELECT 1 FROM r WHERE quotes.id = r.id)
+  ) UPDATE quotes SET rand = r.rand FROM r WHERE quotes.rand IS DISTINCT FROM r.rand AND r.id = quotes.id;
 $$ LANGUAGE SQL;
 
 

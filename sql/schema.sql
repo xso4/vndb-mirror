@@ -457,11 +457,31 @@ CREATE TABLE producers_relations_hist (
 
 -- quotes
 CREATE TABLE quotes (
+  id         serial PRIMARY KEY, -- [pub]
   vid        vndbid NOT NULL, -- [pub]
+  cid        vndbid, -- [pub]
+  addedby    vndbid,
   rand       real,
-  approved   boolean NOT NULL DEFAULT FALSE,
-  quote      varchar(250) NOT NULL, -- [pub]
-  PRIMARY KEY(vid, quote)
+  score      smallint NOT NULL DEFAULT 0, -- [pub]
+  state      smallint NOT NULL DEFAULT 0,
+  quote      text NOT NULL -- [pub]
+);
+
+-- quotes_log
+CREATE TABLE quotes_log (
+  date      timestamptz NOT NULL DEFAULT NOW(),
+  id        integer NOT NULL,
+  uid       vndbid,
+  action    text NOT NULL
+);
+
+-- quotes_votes
+CREATE TABLE quotes_votes (
+  date      timestamptz NOT NULL DEFAULT NOW(),
+  id        integer NOT NULL,
+  uid       vndbid NOT NULL,
+  vote      smallint NOT NULL,
+  PRIMARY KEY(id, uid)
 );
 
 -- registration_throttle

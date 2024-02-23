@@ -9,6 +9,8 @@ CREATE UNIQUE INDEX image_votes_pkey       ON image_votes (uid, id);
 CREATE        INDEX image_votes_id         ON image_votes (id);
 CREATE        INDEX notifications_uid_iid  ON notifications (uid,iid);
 CREATE        INDEX quotes_rand            ON quotes (rand) WHERE rand IS NOT NULL;
+CREATE        INDEX quotes_vid             ON quotes (vid);
+CREATE        INDEX quotes_log_id          ON quotes_log (id);
 CREATE        INDEX releases_released      ON releases (released) WHERE NOT hidden; -- Mainly for the homepage
 CREATE        INDEX releases_producers_pid ON releases_producers (pid);
 CREATE        INDEX releases_vn_vid        ON releases_vn (vid);
@@ -86,6 +88,12 @@ ALTER TABLE producers_relations      ADD CONSTRAINT producers_relations_pid_fkey
 ALTER TABLE producers_relations_hist ADD CONSTRAINT producers_relations_hist_id_fkey   FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE producers_relations_hist ADD CONSTRAINT producers_relations_hist_pid_fkey  FOREIGN KEY (pid)       REFERENCES producers     (id);
 ALTER TABLE quotes                   ADD CONSTRAINT quotes_vid_fkey                    FOREIGN KEY (vid)       REFERENCES vn            (id);
+ALTER TABLE quotes                   ADD CONSTRAINT quotes_cid_fkey                    FOREIGN KEY (cid)       REFERENCES chars         (id);
+ALTER TABLE quotes                   ADD CONSTRAINT quotes_addedby_fkey                FOREIGN KEY (addedby)   REFERENCES users         (id) ON DELETE SET DEFAULT;
+ALTER TABLE quotes_log               ADD CONSTRAINT quotes_log_id_fkey                 FOREIGN KEY (id)        REFERENCES quotes        (id) ON DELETE CASCADE;
+ALTER TABLE quotes_log               ADD CONSTRAINT quotes_log_uid_fkey                FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE SET DEFAULT;
+ALTER TABLE quotes_votes             ADD CONSTRAINT quotes_votes_id_fkey               FOREIGN KEY (id)        REFERENCES quotes        (id) ON DELETE CASCADE;
+ALTER TABLE quotes_votes             ADD CONSTRAINT quotes_votes_uid_fkey              FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE CASCADE;
 ALTER TABLE releases                 ADD CONSTRAINT releases_olang_fkey                FOREIGN KEY (id,olang)  REFERENCES releases_titles(id,lang) DEFERRABLE INITIALLY DEFERRED;
 ALTER TABLE releases_hist            ADD CONSTRAINT releases_hist_chid_fkey            FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE releases_hist            ADD CONSTRAINT releases_hist_olang_fkey           FOREIGN KEY (chid,olang)REFERENCES releases_titles_hist(chid,lang) DEFERRABLE INITIALLY DEFERRED;

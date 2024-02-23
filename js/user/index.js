@@ -21,5 +21,7 @@ const username_reqs = [
 @include user/DiscussionReply.js
 @include user/ReviewComment.js
 @include user/ReviewsVote.js
+@include user/QuoteEdit.js
+@include user/QuoteVote.js
 
 // @license-end

@@ -331,7 +331,6 @@ sub _footer_ {
         lit_ '"';
         a_ href => "/$q->{vid}", $q->{quote};
         txt_ '" ';
-        a_ href => "/$o->{dbobj}{id}/quotes", '+' if auth && $o->{dbobj} && $o->{dbobj}{id} =~ /^v/;
         br_;
     } if $q && $q->{vid};
     a_ href => config->{source_url}, config->{version};
@@ -566,7 +565,7 @@ sub framework_ {
 
             # 'basic' bundle is always included if there's any JS at all
             tuwf->req->{js}{basic} = 1 if tuwf->req->{js}{elm} || tuwf->req->{pagevars}{widget} || $o{js};
-            # 'dbmod' value is used by the EditSum component
+            # 'dbmod' value is used by various widgets
             tuwf->req->{pagevars}{dbmod} = 1 if tuwf->req->{pagevars}{widget} && auth->permDbmod;
 
             script_ type => 'application/json', id => 'pagevars', sub {

@@ -8,7 +8,7 @@ use VNDB::Func 'fmtrating';
 
 
 # Enrich everything necessary to at least render infobox_() and tabs_().
-# Also used by Chars::VNTab & Reviews::VNTab
+# Also used by Chars::VNTab, Reviews::VNTab and VN::Quotes
 sub enrich_vn {
     my($v, $revonly) = @_;
     $v->{title} = titleprefs_obj $v->{olang}, $v->{titles};
@@ -552,12 +552,11 @@ sub infobox_ {
 }
 
 
-# Also used by Chars::VNTab & Reviews::VNTab
+# Also used by Chars::VNTab, Reviews::VNTab and VN::Quotes
 sub tabs_ {
     my($v, $tab) = @_;
     my $chars = tuwf->dbVali('SELECT COUNT(DISTINCT c.id) FROM chars c JOIN chars_vns cv ON cv.id = c.id WHERE NOT c.hidden AND cv.vid =', \$v->{id});
 
-    return if !$chars && !$v->{reviews}{full} && !$v->{reviews}{mini} && !auth->permEdit && !auth->permReview;
     $tab ||= '';
     nav_ sub {
         menu_ sub {
@@ -570,6 +569,7 @@ sub tabs_ {
             } elsif($v->{reviews}{mini} || $v->{reviews}{full}) {
                 li_ class => ($tab =~ /reviews/ ?' tabselected':''),      sub { a_ href => "/$v->{id}/reviews#review", name => 'review', sprintf 'reviews (%d)', $v->{reviews}{total} };
             }
+            li_ class => ($tab eq 'quotes'  ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/quotes#quotes", name => 'quotes', 'quotes' };
         };
         menu_ sub {
             if(auth && canvote $v) {
