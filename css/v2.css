@@ -343,6 +343,14 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid var
     svg { width: 14px; height: 14px }
 }
 
+.browse.quotes {
+    .tc1, .tc2, .tc3 { white-space: nowrap }
+    .tc1 { width: 90px }
+    .tc2 { width: 130px }
+    .tc3 { width: 140px }
+    .setfil { font-size: 10px; padding-right: 3px }
+}
+
 
 /***** VN tags tab (/v+/tags) *******/
 

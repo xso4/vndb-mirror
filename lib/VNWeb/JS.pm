@@ -56,7 +56,7 @@ sub widgets {
             my @f;
             {
                 open my $F, '<', $index or die $!;
-                while(<$F>) {
+                while (local $_ = <$F>) {
                     grab($bundle, $_);
                     push @f, $1 if /^\@include (.+)/;
                 }

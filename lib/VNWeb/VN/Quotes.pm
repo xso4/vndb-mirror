@@ -2,6 +2,8 @@ package VNWeb::VN::Quotes;
 
 use VNWeb::Prelude;
 
+my @ST = qw/New Approved Deleted/;
+
 sub editable {
     my($q) = @_;
     auth->permDbmod || ($q->{state} == 0 && $q->{addedby} && auth && $q->{addedby} eq auth->uid && auth->permEdit);
@@ -10,6 +12,16 @@ sub editable {
 sub submittable {
     my($vid) = @_;
     auth->permDbmod || (auth->permEdit && tuwf->dbVali('SELECT COUNT(*) FROM quotes WHERE vid =', \$vid, 'AND addedby =', \auth->uid, 'AND state = 0') < 3);
+}
+
+sub votething_ {
+    my($q) = @_;
+    if (auth) {
+        $q->{id} *= 1;
+        span_ class => 'quote-score', widget(QuoteVote => [@{$q}{qw/id score state vote/}, editable($q) ? \1 : \0]), '';
+    } else {
+        [\&small_, \&txt_, \&b_]->[$q->{state}]->($q->{score});
+    }
 }
 
 TUWF::get qr{/$RE{vid}/quotes}, sub {
@@ -42,14 +54,16 @@ TUWF::get qr{/$RE{vid}/quotes}, sub {
         } if !@$lst;
         article_ sub {
             p_ class => 'mainopts', sub {
+                if (auth->permDbmod) {
+                    a_ href => "/v/quotes?v=$v->{id}", 'details';
+                    small_ ' | ';
+                }
                 a_ href => "/$v->{id}/addquote", 'submit a quote';
             } if submittable($v->{id});
             h1_ "Quotes";
             table_ sub {
                 tr_ sub {
-                    $_->{id} *= 1;
-                    td_ sub { small_ $_->{score} } if !auth;
-                    td_ class => 'quote-score', widget(QuoteVote => [@{$_}{qw/id score state vote/}, editable($_) ? \1 : \0]), '' if auth;
+                    td_ sub { votething_ $_ };
                     td_ sub {
                         if ($_->{cid}) {
                             small_ '[';
@@ -60,27 +74,157 @@ TUWF::get qr{/$RE{vid}/quotes}, sub {
                     };
                 } for @$lst;
             };
-
-            my $del = auth->permDbmod && tuwf->dbAlli('SELECT id, cid, quote FROM quotes WHERE state = 1+1 AND vid =', \$v->{id}, 'ORDER BY score DESC, quote');
-            if($del && @$del) {
-                br_;
-                h2_ 'Deleted quotes';
-                ul_ sub {
-                    li_ sub {
-                        a_ href => "/editquote/$_->{id}", 'edit';
-                        txt_ ' - ';
-                        if($_->{cid}) {
-                            small_ '[';
-                            a_ href => "/$_->{cid}";
-                            small_ '] ';
-                        }
-                        txt_ $_->{quote};
-                    } for @$del;
-                };
-            }
         } if @$lst;
     };
 };
+
+
+sub listing_ {
+    my($lst, $count, $opt, $url) = @_;
+    paginate_ $url, $opt->{p}, [$count, 50], 't';
+    article_ class => 'browse quotes', sub {
+        table_ class => 'stripe', sub {
+            tr_ sub {
+                td_ class => 'tc1', sub { votething_ $_ };
+                td_ class => 'tc2', sub { txt_ fmtdate $_->{added}, 'full' };
+                td_ class => 'tc3', sub {
+                    a_ href => $url->(u => $_->{addedby}, p=>undef), class => 'setfil', '> ' if $_->{addedby} && !defined $opt->{u};
+                    user_ $_;
+                };
+                td_ sub {
+                    a_ href => $url->(v => $_->{vid}, p=>undef), class => 'setfil', '> ' if !defined $opt->{v};
+                    a_ href => "/$_->{vid}/quotes#quotes", tattr $_;
+                    br_;
+                    if ($_->{cid}) {
+                        small_ '[';
+                        a_ href => "/$_->{cid}", tattr $_->{char};
+                        small_ '] ';
+                    }
+                    txt_ $_->{quote};
+                };
+            } for @$lst;
+        };
+    };
+    paginate_ $url, $opt->{p}, [$count, 50], 'b';
+}
+
+sub opts_ {
+    my($opt) = @_;
+
+    my sub obj_ {
+        my($key, $label) = @_;
+        my $v = $opt->{$key} // return;
+        my $o = dbobj $v;
+        tr_ sub {
+            td_ "$label:";
+            td_ sub {
+                input_ type => 'checkbox', name => $key, value => $v, checked => 'checked';
+                lit_ ' ';
+                a_ href => "/$v", $o && $o->{id} && $o->{title}[1] ? tattr $o : $v;
+            };
+        };
+    }
+
+    my sub opt_ {
+        my($key, $val, $label) = @_;
+        label_ sub {
+            lit_ ' ';
+            input_ type => 'radio', name => $key, value => $val//'',
+                checked => ($opt->{$key}//'undef') eq ($val//'undef') ? 'checked' : undef;
+            lit_ ' ';
+            txt_ $label;
+        };
+    };
+
+    form_ sub {
+        table_ style => 'margin: auto', sub {
+            obj_ v => 'VN';
+            obj_ u => 'User';
+            tr_ sub {
+                td_ 'State:';
+                td_ sub {
+                    opt_ st => undef, 'any';
+                    opt_ st => 0 => lc $ST[0];
+                    opt_ st => 1 => lc $ST[1];
+                    opt_ st => 2 => lc $ST[2] if auth->permDbmod;
+                };
+            };
+            tr_ sub {
+                td_ 'Has char:';
+                td_ sub {
+                    opt_ c => undef, 'any';
+                    opt_ c => 0, 'no';
+                    opt_ c => 1, 'yes';
+                };
+            };
+            tr_ sub {
+                td_ 'Order by:';
+                td_ sub {
+                    opt_ s => added => 'date added';
+                    opt_ s => lastmod => 'last modified';
+                    opt_ s => top => 'highest score';
+                    opt_ s => bottom => 'lowest score';
+                };
+            };
+            tr_ sub {
+                td_ '';
+                td_ sub { input_ type => 'submit', class => 'submit', value => 'Update' };
+            }
+        };
+    };
+}
+
+TUWF::get '/v/quotes', sub {
+    return tuwf->resDenied if !auth;
+    my $opt = tuwf->validate(get =>
+        v  => { default => undef, vndbid => 'v' },
+        u  => { default => undef, vndbid => 'u' },
+        st => { default => undef, enum => [0,1,2] },
+        c  => { undefbool => 1 },
+        s  => { default => 'added', enum => [qw/added lastmod top bottom/] },
+        p  => { upage => 1 },
+    )->data;
+    $opt->{st} = undef if $opt->{st} && $opt->{st} == 2 && !auth->permDbmod;
+
+    my $where = sql_and
+        $opt->{v} ? sql('q.vid =', \$opt->{v}) : (),
+        $opt->{u} ? sql('q.addedby =', \$opt->{u}) : (),
+        defined $opt->{st} ? sql('q.state =', \$opt->{st}) : auth->permDbmod ? () : ('q.state <> 1+1'),
+        defined $opt->{c} ? sql('q.cid', $opt->{c} ? 'IS NOT NULL' : 'IS NULL') : ();
+
+    my $count = tuwf->dbVali('SELECT COUNT(*) FROM quotes q WHERE', $where);
+    my $lst = !$count ? [] : tuwf->dbPagei({ results => 50, page => $opt->{p} }, '
+        SELECT q.id, q.state, q.score, q.quote, q.addedby, q.vid, q.cid
+             , v.title, c.title AS char,', sql_user(), '
+             , ', sql_totime('l.earliest'), 'added, ', sql_totime('l.latest'), 'lastmod
+          FROM quotes q
+          JOIN', vnt, 'v ON v.id = q.vid
+          LEFT JOIN', charst, 'c ON c.id = q.cid
+          LEFT JOIN users u ON u.id = q.addedby
+          JOIN (
+            SELECT id, MIN(date), MAX(date) FROM quotes_log GROUP BY id
+          ) l (id, earliest, latest) ON l.id = q.id
+         WHERE', $where, '
+         ORDER BY ', {
+             added   => 'q.id DESC',
+             lastmod => 'l.latest DESC, q.id DESC',
+             top     => 'q.score DESC, q.id',
+             bottom  => 'q.score, q.id',
+         }->{$opt->{s}}
+    );
+    enrich_merge id => sql('SELECT id, vote FROM quotes_votes WHERE uid =', \auth->uid, 'AND id IN'), $lst if auth;
+
+    my sub url { '?'.query_encode %$opt, @_ }
+
+    framework_ title => 'Quotes browser', sub {
+        article_ sub {
+            h1_ 'Quotes browser';
+            opts_ $opt;
+        };
+        listing_ $lst, $count, $opt, \&url if @$lst;
+    };
+};
+
 
 my $FORM = {
     id       => { uint => 1, default => undef },
@@ -186,12 +330,11 @@ js_api QuoteEdit => $FORM_IN, sub {
 
     if ($data->{id}) {
         my %set = map +($_, $data->{$_}), grep +($data->{$_}//'') ne ($q->{$_}//''), qw/state quote cid/;
-        my @st = qw/New Approved Deleted/;
         tuwf->dbExeci('UPDATE quotes SET', \%set, 'WHERE id =', \$data->{id}) if keys %set;
         tuwf->dbExeci('INSERT INTO quotes_log', {
             id => $data->{id}, uid => auth->uid,
             action => join '; ',
-                exists $set{state} ? "State: $st[$q->{state}] -> $st[$data->{state}]" : (),
+                exists $set{state} ? "State: $ST[$q->{state}] -> $ST[$data->{state}]" : (),
                 exists $set{cid} ? "Character: ".($q->{cid}||'empty')." -> ".($data->{cid}||'empty') : (),
                 exists $set{quote} ? "Quote: \"[i][raw]$q->{quote} [/raw][/i]\" -> \"[i][raw]$q->{quote} [/raw][/i]\"" : (),
         }) if keys %set;
