@@ -336,7 +336,7 @@ js_api QuoteEdit => $FORM_IN, sub {
             action => join '; ',
                 exists $set{state} ? "State: $ST[$q->{state}] -> $ST[$data->{state}]" : (),
                 exists $set{cid} ? "Character: ".($q->{cid}||'empty')." -> ".($data->{cid}||'empty') : (),
-                exists $set{quote} ? "Quote: \"[i][raw]$q->{quote} [/raw][/i]\" -> \"[i][raw]$q->{quote} [/raw][/i]\"" : (),
+                exists $set{quote} ? "Quote: \"[i][raw]$q->{quote} [/raw][/i]\" -> \"[i][raw]$data->{quote} [/raw][/i]\"" : (),
         }) if keys %set;
 
     } else {
