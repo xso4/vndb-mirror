@@ -53,6 +53,7 @@ TUWF::post qr{/elm/ImageUpload.json}, sub {
         unlink $fn0;
         unlink $fn1;
         unlink $fntmp;
+        tuwf->dbRollBack;
         return elm_ImgFormat;
     }
     my($ow,$oh,$rw,$rh) = ($1,$2, $type eq 'sf' ? ($1,$2) : ($3,$4));
