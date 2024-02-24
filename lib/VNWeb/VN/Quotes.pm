@@ -139,8 +139,9 @@ TUWF::get qr{/(?:$RE{vid}/addquote|editquote/$RE{num})}, sub {
             ul_ sub {
                 li_ 'Quotes must be in English. You may use your own translation.';
                 li_ 'You can submit up to 3 quotes per visual novel. This limit resets when your quotes are approved by a moderator.';
-                li_ 'Quotes should be funny and/or insightful out of context.';
+                li_ 'Quotes should be interesting, funny and/or insightful out of context.';
                 li_ 'Quotes must come from an actual release of the visual novel.';
+                li_ 'Quotes may not contain spoilers.';
                 li_ 'At most 170 characters per quote, but shorter quotes are preferred.';
                 li_ "This quotes feature is more of a silly gimmick than a proper database feature, keep your expectations low.";
             };

@@ -324,7 +324,7 @@ CREATE TRIGGER reviews_votes_cache AFTER INSERT OR UPDATE OR DELETE ON reviews_v
 CREATE OR REPLACE FUNCTION update_quotes_votes_cache() RETURNS trigger AS $$
 BEGIN
   UPDATE quotes
-     SET score = (SELECT SUM(vote) FROM quotes_votes WHERE quotes_votes.id = quotes.id)
+     SET score = COALESCE((SELECT SUM(vote) FROM quotes_votes WHERE quotes_votes.id = quotes.id), 0)
    WHERE id IN(OLD.id, NEW.id);
   RETURN NULL;
 END
