@@ -10,6 +10,7 @@ CREATE        INDEX image_votes_id         ON image_votes (id);
 CREATE        INDEX notifications_uid_iid  ON notifications (uid,iid);
 CREATE        INDEX quotes_rand            ON quotes (rand) WHERE rand IS NOT NULL;
 CREATE        INDEX quotes_vid             ON quotes (vid);
+CREATE        INDEX quotes_addedby         ON quotes (addedby);
 CREATE        INDEX quotes_log_id          ON quotes_log (id);
 CREATE        INDEX releases_released      ON releases (released) WHERE NOT hidden; -- Mainly for the homepage
 CREATE        INDEX releases_producers_pid ON releases_producers (pid);

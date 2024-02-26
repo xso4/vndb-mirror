@@ -463,8 +463,9 @@ CREATE TABLE quotes (
   addedby    vndbid,
   rand       real,
   score      smallint NOT NULL DEFAULT 0, -- [pub]
-  state      smallint NOT NULL DEFAULT 0,
-  quote      text NOT NULL -- [pub]
+  quote      text NOT NULL, -- [pub]
+  hidden     boolean NOT NULL DEFAULT FALSE,
+  added      timestamptz NOT NULL DEFAULT NOW()
 );
 
 -- quotes_log

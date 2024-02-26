@@ -588,7 +588,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION quotes_rand_calc() RETURNS void AS $$
   WITH q(id, vid, score) AS (
-    SELECT id, vid, score FROM quotes q WHERE score > 0 AND state = 1 AND EXISTS(SELECT 1 FROM vn v WHERE v.id = q.vid AND NOT v.hidden)
+    SELECT id, vid, score FROM quotes q WHERE score > 0 AND NOT hidden AND EXISTS(SELECT 1 FROM vn v WHERE v.id = q.vid AND NOT v.hidden)
   ), r(id,rand) AS (
     SELECT id, -- 'rand' is chosen such that each VN has an equal probability to be selected, regardless of how many quotes it has.
            ( ((dense_rank() OVER (ORDER BY vid)) - 1)::real -- [0..n-1] cumulative count of distinct VNs

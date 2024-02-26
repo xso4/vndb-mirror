@@ -2,25 +2,23 @@ package VNWeb::VN::Quotes;
 
 use VNWeb::Prelude;
 
-my @ST = qw/New Approved Deleted/;
-
 sub editable {
     my($q) = @_;
-    auth->permDbmod || ($q->{state} == 0 && $q->{addedby} && auth && $q->{addedby} eq auth->uid && auth->permEdit);
+    auth->permDbmod || (!$q->{hidden} && $q->{addedby} && auth && $q->{addedby} eq auth->uid && auth->permEdit && $q->{added} > time()-5*24*3600);
 }
 
 sub submittable {
     my($vid) = @_;
-    auth->permDbmod || (auth->permEdit && tuwf->dbVali('SELECT COUNT(*) FROM quotes WHERE vid =', \$vid, 'AND addedby =', \auth->uid, 'AND state = 0') < 3);
+    auth->permDbmod || (auth->permEdit && tuwf->dbVali(q{SELECT COUNT(*) FROM quotes WHERE added > NOW() - '1 day'::interval AND addedby =}, \auth->uid) < 5);
 }
 
 sub votething_ {
     my($q) = @_;
     if (auth) {
         $q->{id} *= 1;
-        span_ class => 'quote-score', widget(QuoteVote => [@{$q}{qw/id score state vote/}, editable($q) ? \1 : \0]), '';
+        span_ class => 'quote-score', widget(QuoteVote => [@{$q}{qw/id score vote/}, $_->{hidden} ? \1 : \0, editable($q) ? \1 : \0]), '';
     } else {
-        [\&small_, \&txt_, \&b_]->[$q->{state}]->($q->{score});
+        span_ $q->{score};
     }
 }
 
@@ -30,12 +28,12 @@ TUWF::get qr{/$RE{vid}/quotes}, sub {
     VNWeb::VN::Page::enrich_vn($v);
 
     my $lst = tuwf->dbAlli('
-        SELECT q.id, q.state, q.score, q.quote, q.addedby, q.cid, c.title
+        SELECT q.id, q.score, q.quote,', sql_totime('q.added'), 'AS added, q.addedby, q.cid, c.title
           FROM quotes q
           LEFT JOIN', charst, 'c ON c.id = q.cid
-         WHERE state <> 1+1
+         WHERE NOT q.hidden
            AND vid =', \$v->{id}, '
-         ORDER BY q.state DESC, q.score DESC, q.quote
+         ORDER BY q.score DESC, q.quote
     ');
     enrich_merge id => sql('SELECT id, vote FROM quotes_votes WHERE uid =', \auth->uid, 'AND id IN'), $lst if auth;
 
@@ -74,6 +72,9 @@ TUWF::get qr{/$RE{vid}/quotes}, sub {
                     };
                 } for @$lst;
             };
+            p_ sub {
+                small_ 'Vote to like/dislike a quote, typos and other errors should be reported on the forums.';
+            } if auth;
         } if @$lst;
     };
 };
@@ -143,12 +144,11 @@ sub opts_ {
             tr_ sub {
                 td_ 'State:';
                 td_ sub {
-                    opt_ st => undef, 'any';
-                    opt_ st => 0 => lc $ST[0];
-                    opt_ st => 1 => lc $ST[1];
-                    opt_ st => 2 => lc $ST[2] if auth->permDbmod;
+                    opt_ h => undef, 'any';
+                    opt_ h => 0 => 'Visible';
+                    opt_ h => 1 => 'Deleted';
                 };
-            };
+            } if auth->permDbmod;
             tr_ sub {
                 td_ 'Has char:';
                 td_ sub {
@@ -179,31 +179,31 @@ TUWF::get '/v/quotes', sub {
     my $opt = tuwf->validate(get =>
         v  => { default => undef, vndbid => 'v' },
         u  => { default => undef, vndbid => 'u' },
-        st => { default => undef, enum => [0,1,2] },
+        h  => { undefbool => 1 },
         c  => { undefbool => 1 },
         s  => { default => 'added', enum => [qw/added lastmod top bottom/] },
         p  => { upage => 1 },
     )->data;
-    $opt->{st} = undef if $opt->{st} && $opt->{st} == 2 && !auth->permDbmod;
+    $opt->{h} = 0 if !auth->permDbmod;
 
     my $where = sql_and
         $opt->{v} ? sql('q.vid =', \$opt->{v}) : (),
         $opt->{u} ? sql('q.addedby =', \$opt->{u}) : (),
-        defined $opt->{st} ? sql('q.state =', \$opt->{st}) : auth->permDbmod ? () : ('q.state <> 1+1'),
+        defined $opt->{h} ? sql($opt->{h} ? '' : 'NOT', 'q.hidden') : (),
         defined $opt->{c} ? sql('q.cid', $opt->{c} ? 'IS NOT NULL' : 'IS NULL') : ();
 
     my $count = tuwf->dbVali('SELECT COUNT(*) FROM quotes q WHERE', $where);
     my $lst = !$count ? [] : tuwf->dbPagei({ results => 50, page => $opt->{p} }, '
-        SELECT q.id, q.state, q.score, q.quote, q.addedby, q.vid, q.cid
+        SELECT q.id, q.hidden, q.score, q.quote, q.addedby, q.vid, q.cid
              , v.title, c.title AS char,', sql_user(), '
-             , ', sql_totime('l.earliest'), 'added, ', sql_totime('l.latest'), 'lastmod
+             , ', sql_totime('q.added'), 'added
           FROM quotes q
           JOIN', vnt, 'v ON v.id = q.vid
           LEFT JOIN', charst, 'c ON c.id = q.cid
           LEFT JOIN users u ON u.id = q.addedby
-          JOIN (
-            SELECT id, MIN(date), MAX(date) FROM quotes_log GROUP BY id
-          ) l (id, earliest, latest) ON l.id = q.id
+          ', $opt->{s} eq 'lastmod' ? 'LEFT JOIN (
+            SELECT id, MAX(date) FROM quotes_log GROUP BY id
+          ) l (id, latest) ON l.id = q.id' : (), '
          WHERE', $where, '
          ORDER BY ', {
              added   => 'q.id DESC',
@@ -229,7 +229,7 @@ TUWF::get '/v/quotes', sub {
 my $FORM = {
     id       => { uint => 1, default => undef },
     vid      => { vndbid => 'v' },
-    state    => { uint => 1, range => [0,2] },
+    hidden   => { anybool => 1 },
     quote    => { sl => 1, maxlength => 170 },
     cid      => { vndbid => 'c', default => undef },
     title    => { _when => 'out' },
@@ -248,7 +248,7 @@ TUWF::get qr{/(?:$RE{vid}/addquote|editquote/$RE{num})}, sub {
     my($vid, $qid) = tuwf->captures('id', 'num');
 
     my $q = $qid && tuwf->dbRowi('
-        SELECT q.id, q.vid, q.state, q.quote, q.addedby, q.cid, c.title
+        SELECT q.id, q.vid, q.hidden, q.quote,', sql_totime('q.added'), 'added, q.addedby, q.cid, c.title
           FROM quotes q
           LEFT JOIN', charst, 'c ON c.id = q.cid
          WHERE q.id = ', \$qid
@@ -282,16 +282,16 @@ TUWF::get qr{/(?:$RE{vid}/addquote|editquote/$RE{num})}, sub {
             h2_ 'Some rules:';
             ul_ sub {
                 li_ 'Quotes must be in English. You may use your own translation.';
-                li_ 'You can submit up to 3 quotes per visual novel. This limit resets when your quotes are approved by a moderator.';
                 li_ 'Quotes should be interesting, funny and/or insightful out of context.';
                 li_ 'Quotes must come from an actual release of the visual novel.';
                 li_ 'Quotes may not contain spoilers.';
                 li_ 'At most 170 characters per quote, but shorter quotes are preferred.';
+                li_ 'You may submit at most 5 quotes per day.';
                 li_ "This quotes feature is more of a silly gimmick than a proper database feature, keep your expectations low.";
             };
             br_;
             div_ widget(QuoteEdit => $FORM_OUT, { $qid ? (
-                id => $q->{id}, state => $q->{state}, quote => $q->{quote},
+                id => $q->{id}, hidden => $q->{hidden}, quote => $q->{quote},
                 cid => $q->{cid}, title => $q->{title}[1], alttitle => $q->{title}[3],
             ) : elm_empty($FORM_OUT)->%*, chars => $chars, vid => $vid }), '';
         };
@@ -325,22 +325,26 @@ js_api QuoteEdit => $FORM_IN, sub {
     my $v = dbobj $data->{vid};
     return tuwf->resNotFound if !$v->{id} || $v->{entry_hidden};
 
-    my $q = $data->{id} && tuwf->dbRowi('SELECT id, state, quote, addedby, cid FROM quotes WHERE id = ', \$data->{id});
+    my $q = $data->{id} && tuwf->dbRowi('SELECT id, hidden, quote,', sql_totime('added'), 'added, addedby, cid FROM quotes WHERE id = ', \$data->{id});
     return tuwf->resDenied if $data->{id} && (!$q->{id} || !editable $q);
 
     if ($data->{id}) {
-        my %set = map +($_, $data->{$_}), grep +($data->{$_}//'') ne ($q->{$_}//''), qw/state quote cid/;
+        my %set = (
+            !$data->{hidden} ne !$q->{hidden} ? (hidden => $data->{hidden}) : (),
+            $data->{quote} ne $q->{quote} ? (quote => $data->{quote}) : (),
+            ($data->{cid}//'') ne ($q->{cid}//'') ? (cid => $data->{cid}) : (),
+        );
         tuwf->dbExeci('UPDATE quotes SET', \%set, 'WHERE id =', \$data->{id}) if keys %set;
         tuwf->dbExeci('INSERT INTO quotes_log', {
             id => $data->{id}, uid => auth->uid,
             action => join '; ',
-                exists $set{state} ? "State: $ST[$q->{state}] -> $ST[$data->{state}]" : (),
+                exists $set{hidden} ? "State: ".($q->{hidden}?"Deleted":"New")." -> ".($data->{hidden}?"Deleted":"New") : (),
                 exists $set{cid} ? "Character: ".($q->{cid}||'empty')." -> ".($data->{cid}||'empty') : (),
                 exists $set{quote} ? "Quote: \"[i][raw]$q->{quote} [/raw][/i]\" -> \"[i][raw]$data->{quote} [/raw][/i]\"" : (),
         }) if keys %set;
 
     } else {
-        return 'You have already submitted 3 quotes for this VN.' if !submittable($data->{vid});
+        return 'You have already submitted 5 quotes today, try again tomorrow.' if !submittable($data->{vid});
         my sub norm { sql 'lower(regexp_replace(', $_[0], q{, '[\s",.]+', '', 'g'))} }
         return 'This quote has already been submitted.'
             if tuwf->dbVali('SELECT 1 FROM quotes WHERE vid =', \$data->{vid}, 'AND', norm(\$data->{quote}), '=', norm('quote'));
@@ -350,7 +354,7 @@ js_api QuoteEdit => $FORM_IN, sub {
             cid     => $data->{cid},
             addedby => auth->uid,
             quote   => $data->{quote},
-            auth->permDbmod ? (state => $data->{state}) : (),
+            auth->permDbmod ? (hidden => $data->{hidden}) : (),
         }, 'RETURNING id');
         tuwf->dbExeci('INSERT INTO quotes_votes', {id => $id, uid => auth->uid, vote => 1});
         tuwf->dbExeci('INSERT INTO quotes_log', {id => $id, uid => auth->uid, action => 'Submitted'});
