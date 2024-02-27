@@ -28,14 +28,18 @@ TUWF::get qr{/$RE{vid}/quotes}, sub {
     VNWeb::VN::Page::enrich_vn($v);
 
     my $lst = tuwf->dbAlli('
-        SELECT q.id, q.score, q.quote,', sql_totime('q.added'), 'AS added, q.addedby, q.cid, c.title
+        SELECT q.id, q.score, q.quote,', sql_totime('q.added'), 'AS added, q.addedby, q.cid, c.title, v.spoil
           FROM quotes q
           LEFT JOIN', charst, 'c ON c.id = q.cid
+          LEFT JOIN (SELECT id, MIN(spoil) FROM chars_vns WHERE vid =', \$v->{id}, 'GROUP BY id) v(id,spoil) ON c.id = v.id
          WHERE NOT q.hidden
            AND vid =', \$v->{id}, '
          ORDER BY q.score DESC, q.quote
     ');
     enrich_merge id => sql('SELECT id, vote FROM quotes_votes WHERE uid =', \auth->uid, 'AND id IN'), $lst if auth;
+
+    my $view = viewget;
+    my $max_spoil = max 0, grep $_, map $_->{spoil}, @$lst;
 
     framework_ title => "Quotes for $v->{title}[1]", dbobj => $v, hiddenmsg => 1, sub {
         VNWeb::VN::Page::infobox_($v);
@@ -52,6 +56,12 @@ TUWF::get qr{/$RE{vid}/quotes}, sub {
         } if !@$lst;
         article_ sub {
             p_ class => 'mainopts', sub {
+                if ($max_spoil) {
+                    a_ mkclass(checked => $view->{spoilers} == 0), href => '?view='.viewset(spoilers=>0).'#quotes', 'Hide spoilers';
+                    a_ mkclass(checked => $view->{spoilers} == 1), href => '?view='.viewset(spoilers=>1).'#quotes', 'Show minor spoilers';
+                    a_ mkclass(standout =>$view->{spoilers} == 2), href => '?view='.viewset(spoilers=>2).'#quotes', 'Spoil me!' if $max_spoil == 2;
+                    small_ ' | ';
+                }
                 if (auth->permDbmod) {
                     a_ href => "/v/quotes?v=$v->{id}", 'details';
                     small_ ' | ';
@@ -63,7 +73,7 @@ TUWF::get qr{/$RE{vid}/quotes}, sub {
                 tr_ sub {
                     td_ sub { votething_ $_ };
                     td_ sub {
-                        if ($_->{cid}) {
+                        if ($_->{cid} && ($_->{spoil}||0) <= $view->{spoilers}) {
                             small_ '[';
                             a_ href => "/$_->{cid}", tattr $_;
                             small_ '] ';
