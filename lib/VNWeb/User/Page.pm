@@ -121,6 +121,14 @@ sub _info_table_ {
             a_ href => "/$u->{id}/posts", 'Browse posts »';
         };
     };
+    my $quotes = tuwf->dbVali('SELECT COUNT(*) FROM quotes WHERE addedby =', \$u->{id}, auth->permDbmod ? () : 'AND NOT hidden');
+    tr_ sub {
+        td_ 'Quotes';
+        td_ sub {
+            txt_ sprintf '%d quote%s submitted. ', $quotes, $quotes == 1 ? '' : 's';
+            a_ href => "/v/quotes?u=$u->{id}", 'Browse quotes »' if auth;
+        };
+    } if $quotes;
 
     my $traits = tuwf->dbAlli('SELECT u.tid, t.name, g.id as "group", g.name AS groupname FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id =', \$u->{id}, 'ORDER BY g.gorder, t.name');
     my @groups;
