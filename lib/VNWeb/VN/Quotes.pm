@@ -281,7 +281,7 @@ TUWF::get qr{/(?:$RE{vid}/addquote|editquote/$RE{num})}, sub {
     my $chars = tuwf->dbAlli('
         SELECT id, title[1+1] AS title, title[1+1+1+1] AS alttitle
           FROM ', charst, '
-         WHERE id IN(SELECT id FROM chars_vns WHERE vid =', \$v->{id}, ')
+         WHERE NOT hidden AND id IN(SELECT id FROM chars_vns WHERE vid =', \$v->{id}, ')
          ORDER BY sorttitle, id
     ');
 
