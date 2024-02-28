@@ -240,6 +240,7 @@ div.vndetails td.relations dt { float: none; font-style: normal; }
 div.vndetails td.relations dd { margin-left: 15px; }
 div.vndetails td.relations label { float: right }
 div.vndetails td.relations input:not(:checked) ~ dl .unofficial { display: none }
+#buynow .ad { float: right }
 div.vndetails td.anime span    { font-size: 10px; padding-right: 4px; }
 div.vndetails .lengthvotefrm {
     margin-top: -18px; text-align: right;

@@ -350,6 +350,7 @@ sub infobox_affiliates_ {
     tr_ id => 'buynow', sub {
         td_ 'Shops';
         td_ sub {
+            small_ class => 'ad', 'sponsored links';
             join_ \&br_, sub {
                 b_ '» ';
                 a_ href => $_->[1], sub {
