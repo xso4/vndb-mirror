@@ -5,6 +5,7 @@ use VNWeb::Prelude;
 my $reportsperday = 5;
 
 my @STATUS = qw/new busy done dismissed/;
+my $STATUSRE = '(?:'.join('|', @STATUS).')';
 
 
 # Returns the object associated with the vndbid.num; Returns false if the object can't be reported.
@@ -135,6 +136,17 @@ sub report_ {
     };
     td_ sub {
         lit_ bb_format $r->{log};
+        my $status = $r->{log} =~ /$STATUSRE -> ($STATUSRE).*$/ ? $1 : 'new';
+        for ($r->{elog}->@*) {
+            txt_ fmtdate $_->{date}, 'full';
+            small_ ' <';
+            user_ $_;
+            small_ '> ';
+            em_ "$status -> $_->{status}. " if $status ne $_->{status};
+            $status = $_->{status};
+            lit_ bb_format $_->{message};
+            br_;
+        }
     };
 }
 
@@ -165,6 +177,13 @@ TUWF::get qr{/report/list}, sub {
          WHERE', $where, '
          ORDER BY', {id => 'r.id DESC', lastmod => 'r.lastmod DESC'}->{$opt->{s}}
     );
+    enrich elog => id => id => sub { sql '
+        SELECT l.id, l.status, l.message, ', sql_totime('l.date'), 'date,', sql_user(), '
+          FROM reports_log l
+          LEFT JOIN users u ON u.id = l.uid
+         WHERE l.id IN', $_[0], '
+         ORDER BY l.date'
+    }, $lst;
 
     tuwf->dbExeci(
         'UPDATE users_prefs SET last_reports = NOW()
@@ -236,17 +255,15 @@ TUWF::post qr{/report/edit}, sub {
     my $r = tuwf->dbRowi('SELECT id, status FROM reports WHERE id =', \$frm->{id});
     return tuwf->resNotFound if !$r->{id};
 
-    my $log = join '; ',
-        $frm->{status} && $r->{status} ne $frm->{status} ? "$r->{status} -> $frm->{status}" : (),
-        $frm->{comment} ? $frm->{comment} : ();
-
-    if($log) {
-        $log = sprintf "%s <%s> %s\n", fmtdate(time, 'full'), auth->user->{user_name}, $log;
+    if(($frm->{status} && $r->{status} ne $frm->{status}) || length $frm->{comment}) {
         tuwf->dbExeci('UPDATE reports SET', {
             lastmod => sql('NOW()'),
             $frm->{status} ? (status => $frm->{status}) : (),
-            log => sql('log ||', \$log)
         }, 'WHERE id =', \$r->{id});
+        tuwf->dbExeci('INSERT INTO reports_log', {
+            id => $r->{id}, uid => auth->uid,
+            status => $frm->{status}//$r->{status}, message => $frm->{comment}
+        });
     }
     tuwf->resRedirect($frm->{url}, 'post');
 };

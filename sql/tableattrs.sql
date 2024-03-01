@@ -17,6 +17,7 @@ CREATE        INDEX releases_producers_pid ON releases_producers (pid);
 CREATE        INDEX releases_vn_vid        ON releases_vn (vid);
 CREATE        INDEX reports_new            ON reports (date) WHERE status = 'new';
 CREATE        INDEX reports_lastmod        ON reports (lastmod);
+CREATE        INDEX reports_log_id         ON reports_log (id);
 CREATE UNIQUE INDEX reviews_vid_uid        ON reviews (vid,uid);
 CREATE        INDEX reviews_uid            ON reviews (uid);
 CREATE        INDEX reviews_ts             ON reviews USING gin(bb_tsvector(text));
@@ -116,6 +117,8 @@ ALTER TABLE releases_vn              ADD CONSTRAINT releases_vn_id_fkey         
 ALTER TABLE releases_vn              ADD CONSTRAINT releases_vn_vid_fkey               FOREIGN KEY (vid)       REFERENCES vn            (id);
 ALTER TABLE releases_vn_hist         ADD CONSTRAINT releases_vn_hist_chid_fkey         FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE releases_vn_hist         ADD CONSTRAINT releases_vn_hist_vid_fkey          FOREIGN KEY (vid)       REFERENCES vn            (id);
+ALTER TABLE reports_log              ADD CONSTRAINT reports_log_id_fkey                FOREIGN KEY (id)        REFERENCES reports       (id);
+ALTER TABLE reports_log              ADD CONSTRAINT reports_log_uid_fkey               FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE SET DEFAULT;
 ALTER TABLE reviews                  ADD CONSTRAINT reviews_vid_fkey                   FOREIGN KEY (vid)       REFERENCES vn            (id) ON DELETE CASCADE;
 ALTER TABLE reviews                  ADD CONSTRAINT reviews_uid_fkey                   FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE SET DEFAULT;
 ALTER TABLE reviews                  ADD CONSTRAINT reviews_rid_fkey                   FOREIGN KEY (rid)       REFERENCES releases      (id) ON DELETE SET DEFAULT;

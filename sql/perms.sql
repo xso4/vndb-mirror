@@ -57,6 +57,7 @@ GRANT SELECT, INSERT                 ON releases_producers_hist  TO vndb_site;
 GRANT SELECT, INSERT,         DELETE ON releases_vn              TO vndb_site;
 GRANT SELECT, INSERT                 ON releases_vn_hist         TO vndb_site;
 GRANT SELECT, INSERT, UPDATE         ON reports                  TO vndb_site;
+GRANT SELECT, INSERT                 ON reports_log              TO vndb_site;
 GRANT SELECT, INSERT, UPDATE         ON reset_throttle           TO vndb_site;
 GRANT SELECT, INSERT, UPDATE, DELETE ON reviews                  TO vndb_site;
 GRANT SELECT, INSERT, UPDATE, DELETE ON reviews_posts            TO vndb_site;

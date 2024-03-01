@@ -749,7 +749,16 @@ CREATE TABLE reports (
   ip         ipinfo, -- IP address of the visitor, if not logged in
   reason     text NOT NULL,
   message    text NOT NULL,
-  log        text NOT NULL DEFAULT ''
+  log        text NOT NULL DEFAULT '' -- replaced by reports_log for new reports
+);
+
+-- reports_log
+CREATE TABLE reports_log (
+  date       timestamptz NOT NULL DEFAULT NOW(),
+  id         integer NOT NULL,
+  status     report_status NOT NULL,
+  uid        vndbid,
+  message    text NOT NULL
 );
 
 -- reset_throttle
