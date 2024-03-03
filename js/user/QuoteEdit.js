@@ -12,29 +12,45 @@ widget('QuoteEdit', vnode => {
         data.alttitle = obj.alttitle;
     }});
 
-    const onsubmit = () => api.call(data, () => location.href = '/'+data.vid+'/quotes#quotes');
-    return {view: () => m(Form, {api,onsubmit}, m('fieldset.form',
-        m('fieldset',
-            m('label[for=quote]', 'Quote'),
-            m(Input, {id: 'quote', class: 'xw', data, field: 'quote', required: true, maxlength: 170 }),
-        ),
-        m('fieldset',
-            m('label', 'Character', HelpButton('chr')),
-            !data.cid ? [] : [
-                m(Button.Del, {onclick: () => data.cid = null }), ' ',
-                m('a[target=_blank]', { href: '/'+data.cid, title: data.alttitle }, data.title),
-                m('br'),
-            ],
-            m(DS.Button, {ds:chr}, 'Set character'),
-        ),
-        Help('chr', 'Story character who said this quote. Leave empty for narration or quotes that involve multiple characters.'),
-        !pageVars.dbmod ? null : m('fieldset',
-            m('label', 'State'),
-            m('label.check', m('input[type=radio]', { checked: !data.hidden, oninput: () => data.hidden = false }), ' Visible '),
-            m('label.check', m('input[type=radio]', { checked:  data.hidden, oninput: () => data.hidden = true }), ' Deleted '),
-        ),
-        m('input[type=submit][value=Submit]'),
-        m('span.spinner', { class: api.loading() ? '' : 'invisible' }),
-        api.error ? m('p.formerror', api.error) : null,
-    ))};
+    let del = false;
+    const delApi = new Api('QuoteDel');
+
+    const redir = () => location.href = '/'+data.vid+'/quotes#quotes';
+    return {view: () => [
+        m(Form, {api, onsubmit: () => api.call(data, redir) }, m('fieldset.form',
+            m('fieldset',
+                m('label[for=quote]', 'Quote'),
+                m(Input, {id: 'quote', class: 'xw', data, field: 'quote', required: true, maxlength: 170 }),
+            ),
+            m('fieldset',
+                m('label', 'Character', HelpButton('chr')),
+                !data.cid ? [] : [
+                    m(Button.Del, {onclick: () => data.cid = null }), ' ',
+                    m('a[target=_blank]', { href: '/'+data.cid, title: data.alttitle }, data.title),
+                    m('br'),
+                ],
+                m(DS.Button, {ds:chr}, 'Set character'),
+            ),
+            Help('chr', 'Story character who said this quote. Leave empty for narration or quotes that involve multiple characters.'),
+            !pageVars.dbmod ? null : m('fieldset',
+                m('label', 'State'),
+                m('label.check', m('input[type=radio]', { checked: !data.hidden, oninput: () => data.hidden = false }), ' Visible '),
+                m('label.check', m('input[type=radio]', { checked:  data.hidden, oninput: () => data.hidden = true }), ' Deleted '),
+            ),
+            m('input[type=submit][value=Submit]'),
+            m('span.spinner', { class: api.loading() ? '' : 'invisible' }),
+            api.error ? m('p.formerror', api.error) : null,
+
+        )), !data.delete ? null : m(Form, {api: delApi, onsubmit: () => delApi.call({id:data.id}, redir) }, m('fieldset.form',
+            m('fieldset',
+                m('input[type=checkbox]', { checked: del, onclick: ev => del = ev.target.checked }),
+                ' Delete this quote',
+            ),
+            !del ? null : m('fieldset',
+                m('input[type=submit][value=Delete]'),
+                m('span.spinner', { class: delApi.loading() ? '' : 'invisible' }),
+                delApi.error ? m('p.formerror', delApi.error) : null,
+            ),
+        )),
+    ]};
 });

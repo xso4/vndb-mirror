@@ -2,9 +2,13 @@ package VNWeb::VN::Quotes;
 
 use VNWeb::Prelude;
 
-sub editable {
+sub deletable {
     my($q) = @_;
-    auth->permDbmod || (!$q->{hidden} && $q->{addedby} && auth && $q->{addedby} eq auth->uid && auth->permEdit && $q->{added} > time()-5*24*3600);
+    !$q->{hidden} && $q->{addedby} && auth && $q->{addedby} eq auth->uid && auth->permEdit && $q->{added} > time()-5*24*3600;
+}
+
+sub editable {
+    auth->permDbmod || deletable @_;
 }
 
 sub submittable {
@@ -249,6 +253,7 @@ my $FORM = {
         title    => {},
         alttitle => {},
     } },
+    delete   => { anybool => 1 },
 };
 
 my $FORM_IN  = form_compile in  => $FORM;
@@ -303,7 +308,7 @@ TUWF::get qr{/(?:$RE{vid}/addquote|editquote/$RE{num})}, sub {
             div_ widget(QuoteEdit => $FORM_OUT, { $qid ? (
                 id => $q->{id}, hidden => $q->{hidden}, quote => $q->{quote},
                 cid => $q->{cid}, title => $q->{title}[1], alttitle => $q->{title}[3],
-            ) : elm_empty($FORM_OUT)->%*, chars => $chars, vid => $vid }), '';
+            ) : elm_empty($FORM_OUT)->%*, chars => $chars, vid => $vid, delete => deletable($q) }), '';
         };
         if ($log && @$log) {
             nav_ sub {
@@ -369,6 +374,13 @@ js_api QuoteEdit => $FORM_IN, sub {
         tuwf->dbExeci('INSERT INTO quotes_votes', {id => $id, uid => auth->uid, vote => 1});
         tuwf->dbExeci('INSERT INTO quotes_log', {id => $id, uid => auth->uid, action => 'Submitted'});
     }
+    +{}
+};
+
+js_api QuoteDel => { id => { uint => 1 } }, sub {
+    my $q = tuwf->dbRowi('SELECT id, hidden,', sql_totime('added'), 'added, addedby FROM quotes WHERE id = ', \$_[0]{id});
+    return tuwf->resDenied if !$q->{id} || !deletable $q;
+    tuwf->dbExeci('DELETE FROM quotes WHERE id =', \$q->{id});
     +{}
 };
 

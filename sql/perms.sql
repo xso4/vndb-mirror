@@ -37,7 +37,7 @@ GRANT SELECT                         ON producerst               TO vndb_site;
 GRANT SELECT, INSERT                 ON producers_hist           TO vndb_site;
 GRANT SELECT, INSERT,         DELETE ON producers_relations      TO vndb_site;
 GRANT SELECT, INSERT                 ON producers_relations_hist TO vndb_site;
-GRANT SELECT, INSERT, UPDATE         ON quotes                   TO vndb_site;
+GRANT SELECT, INSERT, UPDATE, DELETE ON quotes                   TO vndb_site;
 GRANT SELECT, INSERT                 ON quotes_log               TO vndb_site;
 GRANT SELECT, INSERT, UPDATE, DELETE ON quotes_votes             TO vndb_site;
 GRANT SELECT, INSERT, UPDATE         ON registration_throttle    TO vndb_site;
