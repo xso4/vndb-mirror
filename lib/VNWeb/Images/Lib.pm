@@ -45,7 +45,7 @@ sub enrich_image {
          ORDER BY u.username'
     }, $l;
 
-    for(@$l) {
+    for(grep defined $_->{width}, @$l) {
         $_->{entry} = $_->{entry_id} ? { id => $_->{entry_id}, title => $_->{entry_title} } : undef;
         delete $_->{entry_id};
         delete $_->{entry_title};

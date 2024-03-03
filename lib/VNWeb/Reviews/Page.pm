@@ -38,8 +38,9 @@ sub review_ {
                     br_;
                     platform_ $_ for $w->{platforms}->@*;
                     abbr_ class => "icon-lang-$_", title => $LANGUAGE{$_}{txt}, '' for $w->{lang}->@*;
-                    abbr_ class => "icon-rt$w->{rtype}", title => $w->{rtype}, '';
+                    abbr_ class => "icon-rt$w->{rtype}", title => $w->{rtype}, '' if $w->{rtype};
                     a_ href => "/$w->{rid}", tattr $w->{rtitle};
+                    b_ ' (different visual novel)' if !$w->{rtype};
                 }
             };
         };
