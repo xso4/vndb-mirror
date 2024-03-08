@@ -20,6 +20,7 @@ sub hash {
 hash LANGUAGE =>
     ar       => { latin => 0, rank => 0, txt => 'Arabic' },
     eu       => { latin => 1, rank => 0, txt => 'Basque' },
+    be       => { latin => 0, rank => 0, txt => 'Belarusian' },
     bg       => { latin => 1, rank => 0, txt => 'Bulgarian' },
     ca       => { latin => 1, rank => 0, txt => 'Catalan' },
     ck       => { latin => 0, rank => 0, txt => 'Cherokee' }, # 'chr' in ISO 639-2 but not present in ISO 639-1, let's just use an unassigned code
