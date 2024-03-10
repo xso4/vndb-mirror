@@ -24,7 +24,7 @@ chime in with ideas.
 Setup:
 
 ```
-  docker build -t vndb .
+  docker build --progress=plain -t vndb .
 ```
 
 Run (will run on the foreground):

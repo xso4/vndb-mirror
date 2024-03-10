@@ -1,7 +1,7 @@
 FROM alpine:3.17
 MAINTAINER Yorhel <contact@vndb.org>
 
-ENV VNDB_DOCKER_VERSION=12
+ENV VNDB_DOCKER_VERSION=13
 CMD /var/www/util/docker-init.sh
 
 RUN apk add --no-cache \
@@ -10,6 +10,7 @@ RUN apk add --no-cache \
         git \
         graphviz \
         imagemagick \
+        vips-dev \
         perl-algorithm-diff-xs \
         perl-anyevent \
         perl-app-cpanminus \

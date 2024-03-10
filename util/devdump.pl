@@ -166,7 +166,7 @@ sub copy_entry {
     # VN-related niceties
     copy vn_length_votes => "SELECT DISTINCT ON (vid,vndbid_num(uid)%10) * FROM vn_length_votes WHERE NOT private AND vid IN($vids)", {uid => 'user'};
     copy tags_vn     => "SELECT DISTINCT ON (tag,vid,vndbid_num(uid)%10) * FROM tags_vn WHERE vid IN($vids)", {uid => 'user'};
-    copy quotes      => "SELECT * FROM quotes WHERE rand IS NOT NULL AND vid IN($vids)";
+    copy quotes      => "SELECT * FROM quotes WHERE rand IS NOT NULL AND vid IN($vids)", {addedby => 'user'};
     copy ulist_vns   => "SELECT vid, vndbid('u', vndbid_num(uid)%8+2) AS uid, MIN(vote_date) AS vote_date, '{7}' AS labels, false AS c_private
                               , (percentile_cont((vndbid_num(uid)%8+1)::float/9) WITHIN GROUP (ORDER BY vote))::smallint AS vote
                            FROM ulist_vns WHERE vid IN($vids) AND vote IS NOT NULL GROUP BY vid, vndbid_num(uid)%8", {uid => 'user'};
