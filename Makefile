@@ -21,7 +21,7 @@
 #   environments. Patches to improve the portability are always welcome.
 
 
-.PHONY: all prod clean cleaner chmod multi-stop multi-start multi-restart
+.PHONY: all prod clean cleaner chmod test multi-stop multi-start multi-restart
 
 JS_BUNDLE_NAMES=$(shell ls -d js/*/ | sed 's#js/\(.\+\)/#\1#g')
 JS_BUNDLE_INDICES=$(shell echo js/*/index.js)
@@ -44,6 +44,7 @@ ALL_KEEP=\
 	www/robots.txt static/robots.txt
 
 ALL_CLEAN=\
+	imgproc/imgproc-portable \
 	static/g/elm.js \
 	static/g/icons.svg \
 	static/g/icons.png \
@@ -72,9 +73,13 @@ clean:
 
 cleaner: clean
 	rm -rf elm/elm-stuff js/.gen
+	make -C imgproc distclean
 
 sql/editfunc.sql: util/sqleditfunc.pl sql/schema.sql
 	util/sqleditfunc.pl
+
+imgproc/imgproc-portable: imgproc/imgproc.c
+	make -C imgproc
 
 ${IMG_DIRS}:
 	mkdir -p $@;
@@ -99,7 +104,9 @@ data/conf.pl:
 chmod: all
 	chmod -R a-x+rwX ${IMG_DIRS}
 
-
+test: all
+	prove util/bbcode-test.pl
+	[ -e imgproc/imgproc-custom ] && cd imgproc && ./test-custom.pl
 
 # Single rule for svg & png sprites. This uses a GNU multiple pattern rule in
 # order to have it parallelize correctly - splitting this up into two

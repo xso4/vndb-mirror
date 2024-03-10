@@ -6,6 +6,11 @@
 /dl/tmp
 /dl/img
 /dl/dump
+/imgproc/src/
+/imgproc/build/
+/imgproc/cmp/
+/imgproc/imgproc-custom
+/imgproc/imgproc-portable
 /elm/elm-stuff/
 /elm/Gen/
 /js/.gen/

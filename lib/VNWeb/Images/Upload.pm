@@ -11,7 +11,13 @@ TUWF::post qr{/elm/ImageUpload.json}, sub {
 
     my $type = tuwf->validate(post => type => { enum => [qw/cv ch sf/] })->data;
     my $imgdata = tuwf->reqUploadRaw('img');
-    my $fmt = $imgdata =~ /^\xff\xd8/ ? 'jpg' : $imgdata =~ /^\x89\x50/ ? 'png' : $imgdata =~ /^RIFF....WEBP/s ? 'webp' : undef;
+    my $fmt =
+        $imgdata =~ /^\xff\xd8/ ? 'jpg' :
+        $imgdata =~ /^\x89\x50/ ? 'png' :
+        $imgdata =~ /^RIFF....WEBP/s ? 'webp' :
+        $imgdata =~ /^....ftyp/s ? 'avif' : # Considers every heif file to be AVIF, not entirely correct but works fine.
+        $imgdata =~ /^\xff\x0a/ ? 'jxl' :
+        $imgdata =~ /^\x00\x00\x00\x00\x0CJXL / ? 'jxl' : undef;
     return elm_ImgFormat if !$fmt;
 
     my $seq = {qw/sf screenshots_seq cv covers_seq ch charimg_seq/}->{$type}||die;
@@ -25,42 +31,40 @@ TUWF::post qr{/elm/ImageUpload.json}, sub {
     my $fno = imgpath($id, 'orig', $fmt);
     my $fn0 = imgpath($id);
     my $fn1 = imgpath($id, 'thumb');
-    my $fntmp = "$fn0-tmp.jpg";
 
     {
         open my $F, '>', $fno or die $!;
         print $F $imgdata;
     }
 
-    sub resize { (-resize => "$_[0][0]x$_[0][1]>", -print => 'r:%wx%h') }
-    my @unsharp = (-unsharp => '0x0.75+0.75+0.008');
-    my @cmd = (
-        config->{convert_path}, $fno,
-        '-strip', -define => 'filter:Lagrange',
-        -background => '#fff', -alpha => 'Remove',
-        -quality => 90, -print => 'o:%wx%h',
-        $type eq 'ch' ? (resize(config->{ch_size}), -write => $fn0, @unsharp, $fntmp) :
-        $type eq 'cv' ? (resize(config->{cv_size}), -write => $fn0, @unsharp, $fntmp) :
-        $type eq 'sf' ? (-write => $fn0, resize(config->{scr_size}), @unsharp, $fn1) : die
-    );
+    my $rc = run_cmd(
+         [
+             config->{imgproc_path},
+             $type eq 'ch' ? (fit => config->{ch_size}->@*, size => jpeg => 1) :
+             $type eq 'cv' ? (fit => config->{cv_size}->@*, size => jpeg => 1) :
+             $type eq 'sf' ? (size => jpeg => 1 => fit => config->{scr_size}->@*, jpeg => 3) : die
+         ],
+         '<',  \$imgdata,
+         '>',  $fn0,
+         '2>', \my $err,
+         $type eq 'sf' ? ('3>', $fn1) : (),
+         close_all => 1,
+         on_prepare => sub { %ENV = () },
+    )->recv;
+    chomp($err);
 
-    run_cmd(\@cmd, '>', \my $out, '2>', \my $err)->recv;
-    warn "convert STDERR: $err" if $err;
-    if(!-f $fn0 || $out !~ /^o:([0-9]+)x([0-9]+)r:([0-9]+)x([0-9]+)/) {
-        warn "convert STDOUT: $out" if $out;
-        warn "Failed to run convert\n";
-        unlink $fno;
+    if($rc || !-s $fn0 || $err !~ /^([0-9]+)x([0-9]+)$/) {
+        warn "imgproc: $err\n" if $err;
+        warn "Failed to run imgproc for $id\n";
+        # keep original for troubleshooting
+        rename $fno, config->{root}."/static/${type}.orig/error-${id}.${fmt}";
         unlink $fn0;
         unlink $fn1;
-        unlink $fntmp;
         tuwf->dbRollBack;
         return elm_ImgFormat;
     }
-    my($ow,$oh,$rw,$rh) = ($1,$2, $type eq 'sf' ? ($1,$2) : ($3,$4));
-    tuwf->dbExeci('UPDATE images SET', { width => $rw, height => $rh }, 'WHERE id =', \$id);
-
-    rename $fntmp, $fn0 if $ow*$oh > $rw*$rh; # Use the -unsharp'ened image if we did a resize
-    unlink $fntmp;
+    my($w,$h) = ($1,$2);
+    tuwf->dbExeci('UPDATE images SET', { width => $w, height => $h }, 'WHERE id =', \$id);
 
     chmod 0666, $fno;
     chmod 0666, $fn0;

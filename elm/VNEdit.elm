@@ -286,7 +286,7 @@ update msg model =
           else ({ model | animeSearch = A.clear nm "", anime = model.anime ++ [{ aid = a.id, title = a.title, original = a.original }] }, c)
 
     ImageSet s b -> let (nm, nc) = Img.new b s in ({ model | image = nm }, Cmd.map ImageMsg nc)
-    ImageSelect -> (model, FSel.file ["image/png", "image/jpeg", "image/webp"] ImageSelected)
+    ImageSelect -> (model, FSel.file ["image/png", "image/jpeg", "image/webp", "image/avif", "image/jxl"] ImageSelected)
     ImageSelected f -> let (nm, nc) = Img.upload Api.Cv f in ({ model | image = nm }, Cmd.map ImageMsg nc)
     ImageMsg m -> let (nm, nc) = Img.update m model.image in ({ model | image = nm }, Cmd.map ImageMsg nc)
 
@@ -339,7 +339,7 @@ update msg model =
         Just s -> ({ model | seiyuuSearch = A.clear nm "", seiyuu = model.seiyuu ++ [{ id = s.id, aid = s.aid, title = s.title, alttitle = s.alttitle, cid = model.seiyuuDef, note = "" }] }, c)
 
     ScrUplRel s -> ({ model | scrUplRel = s }, Cmd.none)
-    ScrUplSel -> (model, FSel.files ["image/png", "image/jpeg", "image/webp"] ScrUpl)
+    ScrUplSel -> (model, FSel.files ["image/png", "image/jpeg", "image/webp", "image/avif", "image/jxl"] ScrUpl)
     ScrUpl f1 fl ->
       if 1 + List.length fl > 10 - List.length model.screenshots
       then ({ model | scrUplNum = Just (1 + List.length fl) }, Cmd.none)
@@ -523,7 +523,11 @@ view model =
         , h2 [] [ text "Upload new image" ]
         , inputButton "Browse image" ImageSelect []
         , br [] []
-        , text "Preferably the cover of the CD/DVD/package. Image must be in JPEG, PNG or WebP format and at most 10 MiB. Images larger than 256x400 will automatically be resized."
+        , text "Preferably the cover of the CD/DVD/package."
+        , br [] []
+        , text "Supported file types: JPEG, PNG, WebP, AVIF or JXL, at most 10 MiB."
+        , br [] []
+        , text "Images larger than 256x400 are automatically resized."
         , case Img.viewVote model.image ImageMsg (Invalid Image) of
             Nothing -> text ""
             Just v ->

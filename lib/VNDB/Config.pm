@@ -29,6 +29,7 @@ my $config = {
     graphviz_path     => '/usr/bin/dot',
     convert_path      => '/usr/bin/convert',
     identify_path     => '/usr/bin/identify',
+    imgproc_path      => "$ROOT/imgproc/imgproc-portable",
     trace_log         => 0,
     # Put the site in full read-only mode; Login is disabled and nothing is written to the DB. Handy for migrations.
     read_only         => 0,

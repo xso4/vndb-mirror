@@ -70,6 +70,7 @@ Global requirements:
 - Elm 0.19.1
 - Graphviz
 - ImageMagick
+- libvips
 - sassc
 
 **Perl modules** (core modules are not listed):

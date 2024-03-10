@@ -9,6 +9,9 @@
     # Global salt used to hash user passwords (used in addition to a user-specific salt)
     scrypt_salt => '<another unique string>',
 
+    # Use the more secure imgproc
+    #imgproc_path      => "$main::ROOT/imgproc/imgproc-custom",
+
     # TUWF configuration options, see the TUWF::set() documentation for options.
     tuwf => {
         db_login        => [ 'dbi:Pg:dbname=vndb', 'vndb_site', 'vndb_site' ],
