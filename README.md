@@ -69,7 +69,6 @@ Global requirements:
 - Perl 5.26+
 - Elm 0.19.1
 - Graphviz
-- ImageMagick
 - libvips
 - sassc
 

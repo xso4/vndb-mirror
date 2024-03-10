@@ -27,8 +27,6 @@ my $config = {
     reset_throttle    => [ 24*3600/2,  24*3600 ], # interval between attempts, max burst (2 a day)
     board_edit_time   => 7*24*3600, # Time after which posts become immutable
     graphviz_path     => '/usr/bin/dot',
-    convert_path      => '/usr/bin/convert',
-    identify_path     => '/usr/bin/identify',
     imgproc_path      => "$ROOT/imgproc/imgproc-portable",
     trace_log         => 0,
     # Put the site in full read-only mode; Login is disabled and nothing is written to the DB. Handy for migrations.
@@ -49,7 +47,7 @@ my $config = {
 };
 
 
-my $config_file = do $ROOT.'/data/conf.pl';
+my $config_file = do $ROOT.'/data/conf.pl' or die $!;
 my $config_merged;
 
 sub config {

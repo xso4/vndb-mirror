@@ -16,13 +16,16 @@ my $ticons = "$ROOT/static/g/icons~.png";
 my $css = "$ROOT/static/g/png.spritecss";
 
 my @img = map {
-    my $id = config->{identify_path};
-    my($w,$h) = split 'x', `$id -format "%wx%h" "$_"`;
+    local $/ = undef;
+    open my $F, '<', $_ or die $_;
+    my $data = <$F>;
+    # 8 byte PNG header, 4 byte IHDR chunk length, 4 bytes IHDR chunk identifier, 4 bytes width, 4 bytes height
+    my($w,$h) = unpack 'NN', substr $data, 16, 8;
     {
-        p => $_,
         f => /^\Q$path\E\/(.+)\.png/ && $1,
         w => $w,
         h => $h,
+        d => $data,
     }
 } glob("$path/*.png"), glob("$path/*/*.png");
 
@@ -96,11 +99,9 @@ sub minstrip {
 
 sub img {
     my($w, $h) = @_;
-    my @cmd = (config->{convert_path}, -size => "${w}x$h", 'canvas:rgba(0,0,0,0)',
-        map(+($_->{p}, -geometry => "+$_->{x}+$_->{y}", '-composite'), @img),
-        '-strip', "png32:$ticons"
-    );
-    system(@cmd);
+    open my $CMD, '|'.config->{imgproc_path}." composite >$ticons" or die $!;
+    print $CMD pack 'll', $w, $h;
+    print $CMD pack('lll', $_->{x}, $_->{y}, length $_->{d}).$_->{d} for @img;
 }
 
 

@@ -9,7 +9,6 @@ RUN apk add --no-cache \
         curl \
         git \
         graphviz \
-        imagemagick \
         vips-dev \
         perl-algorithm-diff-xs \
         perl-anyevent \

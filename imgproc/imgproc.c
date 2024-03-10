@@ -6,6 +6,8 @@
  *   size         - Output image dimensions to standard error.
  *   jpeg n       - Write a jpeg to fd n.
  *   fit x y      - Resize the image to fit within the given dimensions. Does not upscale.
+ *   composite    - For util/pngsprite.pl, must be first and only command.
+                    Combine multiple input images and write a png to stdout.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -91,11 +93,54 @@ err:
 
 /* The default glib logging handler attempt to do charset conversion, color
  * detection and other unnecessary crap that complicates parsing and sandboxing. */
-void log_func(const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data) {
+static void log_func(const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data) {
     if (g_log_writer_default_would_drop(log_level, log_domain)) return;
     /* https://github.com/libvips/libvips/discussions/2734 - fix not yet in a release */
     if (strcmp(message, "heifload: ignoring nclx profile") == 0) return;
     fprintf(stderr, "[%s#%d] %s\n", log_domain, (int)log_level, message);
+}
+
+
+static int composite(void) {
+    if (input_len < 8) return 1;
+
+    int offset = 0;
+#define RDINT ({ offset += 4; *((int *)(input_buffer+offset-4)); })
+
+    int width = RDINT;
+    int height = RDINT;
+    /*fprintf(stderr, "Output of %dx%d\n", width, height);*/
+    VipsImage *img;
+    vips_black(&img, width, height, "bands", 4, NULL);
+
+    while (input_len - offset > 12) {
+        int x = RDINT;
+        int y = RDINT;
+        int bytes = RDINT;
+        /*fprintf(stderr, "Image at %dx%d of %d bytes\n", x, y, bytes);*/
+        if (input_len - offset < bytes) return 1;
+        VipsImage *sub = vips_image_new_from_buffer(input_buffer+offset, bytes, "", NULL);
+        if (!img) vips_error_exit(NULL);
+        offset += bytes;
+
+        VipsImage *tmp;
+        if (!vips_image_hasalpha(sub)) {
+            if (vips_addalpha(sub, &tmp, NULL)) vips_error_exit(NULL);
+            VIPS_UNREF(sub);
+            sub = tmp;
+        }
+
+        if (vips_insert(img, sub, &tmp, x, y, NULL)) vips_error_exit(NULL);
+        VIPS_UNREF(img);
+        VIPS_UNREF(sub);
+        img = tmp;
+    }
+
+    VipsTarget *target = vips_target_new_to_descriptor(1);
+    if (vips_pngsave_target(img, target, "strip", TRUE, NULL))
+        vips_error_exit(NULL);
+    VIPS_UNREF(target);
+    return 0;
 }
 
 
@@ -136,6 +181,8 @@ int main(int argc, char **argv) {
         perror("reading input");
         exit(1);
     }
+
+    if (argc == 2 && strcmp(argv[1], "composite") == 0) return composite();
 
     VipsImage *img = vips_image_new_from_buffer(input_buffer, input_len, "", NULL);
     if (!img) vips_error_exit(NULL);
