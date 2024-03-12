@@ -106,13 +106,15 @@ chmod: all
 
 test: all
 	prove util/bbcode-test.pl
-	[ -e imgproc/imgproc-custom ] && cd imgproc && ./test-custom.pl
+	if [ -e imgproc/imgproc-custom ]; then cd imgproc && ./test-custom.pl; fi
 
 # Single rule for svg & png sprites. This uses a GNU multiple pattern rule in
 # order to have it parallelize correctly - splitting this up into two
 # individual rules is buggy.
-static/g/%.spritecss static/g/icons.%: util/%sprite.pl data/icons data/icons/* data/icons/*/* | static/g
+static/g/%.spritecss static/g/icons.%: util/%sprite.pl icons icons/* icons/*/* | static/g
 	$<
+
+static/g/png.spritecss static/g/icons.png: imgproc/imgproc-portable
 
 static/g/icons.opt.png: static/g/icons.png
 	rm -f $@

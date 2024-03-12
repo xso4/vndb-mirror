@@ -1,19 +1,11 @@
 #!/usr/bin/perl
 
-use strict;
-use warnings;
-use Cwd 'abs_path';
+use v5.28;
 
-our $ROOT;
-BEGIN { ($ROOT = abs_path $0) =~ s{/util/pngsprite\.pl$}{}; }
-
-use lib "$ROOT/lib";
-use VNDB::Config;
-
-my $path = "$ROOT/data/icons";
-my $icons = "$ROOT/static/g/icons.png";
-my $ticons = "$ROOT/static/g/icons~.png";
-my $css = "$ROOT/static/g/png.spritecss";
+my $icons = 'static/g/icons.png';
+my $ticons = 'static/g/icons~.png';
+my $css = 'static/g/png.spritecss';
+my $imgproc = 'imgproc/imgproc-portable';
 
 my @img = map {
     local $/ = undef;
@@ -22,12 +14,12 @@ my @img = map {
     # 8 byte PNG header, 4 byte IHDR chunk length, 4 bytes IHDR chunk identifier, 4 bytes width, 4 bytes height
     my($w,$h) = unpack 'NN', substr $data, 16, 8;
     {
-        f => /^\Q$path\E\/(.+)\.png/ && $1,
+        f => /^icons\/(.+)\.png/ && $1,
         w => $w,
         h => $h,
         d => $data,
     }
-} glob("$path/*.png"), glob("$path/*/*.png");
+} glob("icons/*.png"), glob("icons/*/*.png");
 
 
 @img = sort { $b->{h} <=> $a->{h} || $b->{w} <=> $a->{w} } @img;
@@ -99,7 +91,7 @@ sub minstrip {
 
 sub img {
     my($w, $h) = @_;
-    open my $CMD, '|'.config->{imgproc_path}." composite >$ticons" or die $!;
+    open my $CMD, "|$imgproc composite >$ticons" or die $!;
     print $CMD pack 'll', $w, $h;
     print $CMD pack('lll', $_->{x}, $_->{y}, length $_->{d}).$_->{d} for @img;
 }

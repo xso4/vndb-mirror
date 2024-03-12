@@ -1,12 +1,5 @@
 #!/usr/bin/perl
 
-# Assumptions about the SVG input files:
-# - Has a global viewBox that starts at (0,0)
-# - At most one <defs>
-# - No <style>
-# - No xlink (plain 'href' has wide enough support now?)
-# - Drawing doesn't extend too far outside its viewbox
-#
 # I had planned to use fragment identifiers as described in
 # https://css-tricks.com/svg-fragment-identifiers-work/
 # But it turns out Firefox doesn't cache/reuse the SVG when referenced with
@@ -16,7 +9,7 @@ use v5.26;
 use strict;
 use autodie;
 
-my %icons = map +((m{^data/icons/(.+)\.svg$})[0] =~ s#/#-#rg, $_), glob('data/icons/*.svg'), glob('data/icons/*/*.svg');
+my %icons = map +((m{^icons/(.+)\.svg$})[0] =~ s#/#-#rg, $_), glob('icons/*.svg'), glob('icons/*/*.svg');
 my $idnum = 'a';
 my($width, $height) = (-10,0);
 my($defs, $group, $css) = ('','','');
