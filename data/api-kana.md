@@ -2,6 +2,7 @@
 title: VNDB.org API v2 (Kana)
 header-includes: |
   <style>
+  body { max-width: 900px }
   td { vertical-align: top }
   header, header h1 { margin: 0 }
   @media (min-width: 1100px) {
@@ -686,8 +687,43 @@ developers
 developers.\*
 :   All [producer fields](#producer-fields) can be used here.
 
-*Currently missing from the old API: staff, anime relations and external links.
-Can add if there's interest.*
+editions
+:   Array of objects, possibly empty.
+
+editions.eid
+:   Integer, edition identifier. This identifier is local to the
+    visual novel and not stable across edits of the VN entry, it's only used
+    for organizing the staff listing (see below) and has no meaning beyond
+    that. But this is subject to change in the future.
+
+editions.lang
+:   String, possibly null, language.
+
+editions.name
+:   String, English name / label identifying this edition.
+
+editions.official
+:   Boolean.
+
+staff
+:   Array of objects, possibly empty.
+
+staff.eid
+:   Integer, edition identifier or *null* when the staff has worked on the
+    "original" version of the visual novel.
+
+staff.role
+:   String, see `enums.staff_role` in the [schema JSON](#get-schema) for
+    possible values.
+
+staff.note
+:   String, possibly null.
+
+staff.*
+:   All [staff fields](#staff-fields) can be used here.
+
+*Currently missing from the old API: voice actors, anime relations and external
+links.  Can add if there's interest.*
 
 
 ## POST /release
@@ -1107,11 +1143,106 @@ traits.\*
 
 ## POST /staff
 
-*TODO*
+Unlike other database entries, staff have more than one unique identifier.
+There is the main 'staff ID', which uniquely identifies a person and is what
+a staff page on the site represents.
+
+Additionally, every staff alias also has its own unique identifier, which is
+referenced from other database entries to identify which alias was used. This
+identifier is generally hidden on the site and aliases do not have their own
+page, but the IDs are exposed in this API in order to facilitate linking
+VNs/characters to staff names.
+
+This particular API queries staff *names*, not just staff *entries*, which
+means that a staff entry with multiple names can be included multiple times in
+the API results, once for each name they are known as. When searching or
+listing staff entries, this is usually what you want. When fetching more
+detailed information about specific staff entries, this is very much not what
+you want. The `ismain` filter can be used to remove this duplication and ensure
+you get at most one result per staff entry, for example:
+
+```sh
+curl %endpoint%/staff --header 'Content-Type: application/json' --data '{
+    "filters": ["and", ["ismain", "=", 1], ["id", "=", "s81"] ],
+    "fields": "lang,aliases{name,latin,ismain},description,extlinks{url,label}"
+}'
+```
+
+Accepted values for `"sort"`: `id`, `name`, `searchrank`.
 
 ### Filters {#staff-filters}
 
-### Fields
+-----------------------------------------------------------------------------
+Name                [F]   Description
+------------------  ----  -------------------------------------------------------
+`id`                o     vndbid
+
+`aid`                     integer, alias identifier
+
+`search`            m     String search.
+
+`lang`                    Language.
+
+`gender`                  Gender.
+
+`role`              m     String, can either be `"seiyuu"` or one of the values
+                          from `enums.staff_role` in the [schema JSON](#get-schema).
+                          If this filter is used when nested inside a visual
+                          novel filter, then this matches the `role` of the
+                          particular visual novel.  Otherwise, this matches the
+                          `role` of any linked visual novel.
+
+`extlink`           m     Match on external links, works similar to the `exlink`
+                          filter for [releases](#release-filters).
+
+`ismain`                  Only accepts a single value, integer `1`.
+-----------------------------------------------------------------------------
+
+### Fields {#staff-fields}
+
+id
+:   vndbid.
+
+aid
+:   Integer, alias id.
+
+ismain
+:   Boolean, whether the 'name' and 'original' fields represent the main name
+    for this staff entry.
+
+name
+:   String, possibly romanized name.
+
+original
+:   String, possibly null, name in original script.
+
+lang
+:   String, staff's primary language.
+
+gender
+:   String, possibly null, `"m"` or `"f"`.
+
+description
+:   String, possibly null, may contain [formatting codes](https://vndb.org/d9#4).
+
+extlinks
+:   Array, links to external websites. Works the same as the 'extlinks'
+    [release field](#release-fields).
+
+aliases
+:   Array, list of names used by this person.
+
+aliases.aid
+:   Integer, alias id.
+
+aliases.name
+:   String, name in original script.
+
+aliases.latin
+:   String, possibly null, romanized version of 'name'.
+
+aliases.ismain
+:   Boolean, whether this alias is used as "main" name for the staff entry.
 
 
 ## POST /tag
@@ -1533,6 +1664,12 @@ bias in its selection due to the presence of id gaps, but you most likely don't
 need perfect uniform random selection anyway.
 
 # Change Log
+
+**2024-03-13**
+
+- Add [POST /staff](#post-staff).
+- Add `editions` and `staff` fields to [POST /vn](#post-vn).
+- Add `enums.staff_role` and `extlinks./staff` members to [GET /schema](#get-schema).
 
 **2023-11-20**
 

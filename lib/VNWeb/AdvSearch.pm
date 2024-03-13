@@ -460,7 +460,10 @@ f s =>  5 => 'role',      { enum => [ 'seiyuu', keys %CREDIT_TYPE ] },
             sql 's.aid', $neg ? 'NOT' : '', 'IN(SELECT vs.aid FROM vn_staff vs JOIN vn v ON v.id = vs.id WHERE NOT v.hidden AND vs.role IN', $val, @grp, ')';
         }
     };
-f s =>  6 => 'extlink',  _extlink_filter('s');
+f s =>  6 => 'extlink',   _extlink_filter('s');
+f s => 61 => 'ismain',    { uint => 1, range => [1,1] }, '=' => sub { 's.aid = s.main' };
+f s => 80 => 'search',    { searchquery => 1 }, '=' => sub { $_->sql_where('s', 's.id', 's.aid') };
+f s => 81 => 'aid',       { id => 1 }, '=' => sub { sql 's.aid =', \$_ };
 
 f p =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 'p.lang =', \$_ };
 f p =>  3 => 'id',        { vndbid => 'p' }, sql => sub { sql 'p.id', $_[0], \$_ };

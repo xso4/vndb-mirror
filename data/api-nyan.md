@@ -2,7 +2,8 @@
 title: VNDB.org API v1 (Nyan)
 header-includes: |
   <style>
-  td { vertical-align: top; font-size: 0.7rem }
+  body { max-width: 900px }
+  td { vertical-align: top }
   header, header h1 { margin: 0 }
   @media (min-width: 1100px) {
       body { margin: 0 0 0 270px }

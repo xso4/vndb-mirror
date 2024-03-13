@@ -448,11 +448,17 @@ sub proc_results {
 
 
 api_get '/schema', {}, sub {
+    my sub el {
+        my $l = $VNDB::ExtLinks::LINKS{$_[0]};
+        [ map +{ name => $_ =~ s/^l_//r, label => $l->{$_}{label}, url_format => $l->{$_}{fmt} },
+            grep $l->{$_}{regex}, keys %$l ]
+    }
     state $s = {
         enums => {
             language => [ map +{ id => $_, label => $LANGUAGE{$_}{txt} }, keys %LANGUAGE ],
             platform => [ map +{ id => $_, label => $PLATFORM{$_} }, keys %PLATFORM ],
             medium   => [ map +{ id => $_, label => $MEDIUM{$_}{txt}, plural => $MEDIUM{$_}{plural}||undef }, keys %MEDIUM ],
+            staff_role => [ map +{ id => $_, label => $CREDIT_TYPE{$_} }, keys %CREDIT_TYPE ],
         },
         api_fields => { map +($_, (sub {
             +{ map {
@@ -463,11 +469,8 @@ api_get '/schema', {}, sub {
             } grep !$_[1]{$_}, keys $_[0]->%* }
         })->($OBJS{$_}{fields}, {})), keys %OBJS },
         extlinks => {
-            '/release' => do {
-                my $l = $VNDB::ExtLinks::LINKS{r};
-                [ map +{ name => $_ =~ s/^l_//r, label => $l->{$_}{label}, url_format => $l->{$_}{fmt} },
-                  grep $l->{$_}{regex}, keys %$l ]
-            },
+            '/release' => el('r'),
+            '/staff'   => el('s'),
         },
     }
 };
@@ -728,6 +731,26 @@ api_query '/vn',
             key => 'id', col => 'vid', num => 2,
             inherit => '/producer',
         },
+        editions => {
+            enrich => sub { sql 'SELECT id', $_[0], 'FROM vn_editions WHERE id IN', $_[2] },
+            key => 'id', col => 'id', num => 3,
+            fields => {
+                eid   => { select => 'eid' },
+                lang  => { select => 'lang' },
+                name  => { select => 'name' },
+                official => { select => 'official', @BOOL },
+            },
+        },
+        staff => {
+            enrich => sub { sql 'SELECT vs.id AS vid, s.id', $_[0], 'FROM vn_staff vs JOIN staff_aliast s ON s.aid = vs.aid', $_[1], 'WHERE NOT s.hidden AND vs.id IN', $_[2] },
+            key => 'id', col => 'vid', num => 20,
+            inherit => '/staff',
+            fields => {
+                eid   => { select => 'vs.eid' },
+                role  => { select => 'vs.role' },
+                note  => { select => 'vs.note', @NSTR },
+            },
+        }
     },
     sort => [
         id => 'v.id',
@@ -887,6 +910,40 @@ api_query '/character',
     sort => [
         id       => 'c.id',
         name     => 'c.name ?o, c.id',
+    ];
+
+
+api_query '/staff',
+    filters => 's',
+    sql => sub { sql 'SELECT s.id', $_[0], 'FROM staff_aliast s', $_[1], 'WHERE NOT s.hidden AND (', $_[2], ')' },
+    search => [ 's', 's.id', 's.aid' ],
+    fields => {
+        id       => {},
+        aid      => { select => 's.aid' },
+        ismain   => { select => 's.main = s.aid AS ismain', @BOOL },
+        name     => { select => 's.title[1+1] AS name' },
+        original => { ALTTITLE 's.title', 'original' },
+        lang     => { select => 's.lang' },
+        gender   => { select => "NULLIF(s.gender, 'unknown') AS gender" },
+        description => { select => 's.description', @NSTR },
+        extlinks => { extlinks => 's' },
+        aliases  => {
+            enrich => sub { sql 'SELECT sa.id', $_[0], 'FROM staff_alias sa', $_[1], 'WHERE sa.id IN', $_[2] },
+            key => 'id', col => 'id', num => 3,
+            joins => {
+                main => 'JOIN staff s ON s.id = sa.id',
+            },
+            fields => {
+                aid    => { select => 'sa.aid' },
+                name   => { select => 'sa.name' },
+                latin  => { select => 'sa.latin' },
+                ismain => { join => 'main', select => 'sa.aid = s.main AS ismain', @BOOL },
+            },
+        },
+    },
+    sort => [
+        id       => 's.id',
+        name     => 's.sorttitle ?o, s.id',
     ];
 
 
