@@ -25,7 +25,7 @@ js_api UserPassReset => {
     my $upd = {ip => $ip, timeout => sql_fromtime $tm + config->{reset_throttle}[0]};
     tuwf->dbExeci('INSERT INTO reset_throttle', $upd, 'ON CONFLICT (ip) DO UPDATE SET', $upd);
 
-    my($id, $token) = auth->resetpass($data->{email});
+    my($id, $mail, $token) = auth->resetpass($data->{email});
     my $name = $id ? tuwf->dbVali('SELECT username FROM users WHERE id =', \$id) : $data->{email};
     my $body = $id ? sprintf
          "Hello %s,"
@@ -48,7 +48,7 @@ js_api UserPassReset => {
        ."\nvndb.org";
 
     tuwf->mail($body,
-      To => $data->{email},
+      To => $mail // $data->{email},
       From => 'VNDB <noreply@vndb.org>',
       Subject => "Password reset for $name",
     );

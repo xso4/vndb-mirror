@@ -995,22 +995,22 @@ $$ LANGUAGE SQL SECURITY DEFINER;
 
 
 -- Used for duplicate email checks and user-by-email lookup for usermods.
-CREATE OR REPLACE FUNCTION user_emailtoid(text) RETURNS SETOF vndbid AS $$
-  SELECT id FROM users_shadow WHERE lower(mail) = lower($1)
-$$ LANGUAGE SQL SECURITY DEFINER;
+CREATE OR REPLACE FUNCTION user_emailtoid(text) RETURNS TABLE (uid vndbid, mail text) AS $$
+  SELECT id, mail FROM users_shadow WHERE hash_email(mail) = hash_email($1)
+$$ LANGUAGE SQL SECURITY DEFINER ROWS 1;
 
 
--- Create a password reset token. args: email, token. Returns: user id.
+-- Store a password reset token. args: email, token. Returns: user id, actual email.
 -- Doesn't work for usermods, otherwise an attacker could use this function to
 -- gain access to all user's emails by obtaining a reset token of a usermod.
 -- Ideally Postgres itself would send the user an email so that the application
 -- calling this function doesn't even get the token, and thus can't get access
 -- to someone's account. But alas, that'd require a separate process.
-CREATE OR REPLACE FUNCTION user_resetpass(text, bytea) RETURNS vndbid AS $$
+CREATE OR REPLACE FUNCTION user_resetpass(text, bytea, OUT vndbid, OUT text) AS $$
   INSERT INTO sessions (uid, token, expires, type)
     SELECT id, $2, NOW()+'1 week', 'pass' FROM users_shadow
-     WHERE lower(mail) = lower($1) AND length($2) = 20 AND NOT perm_usermod
-    RETURNING uid
+     WHERE hash_email(mail) = hash_email($1) AND length($2) = 20 AND NOT perm_usermod
+    RETURNING uid, mail
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 

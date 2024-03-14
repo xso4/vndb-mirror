@@ -54,7 +54,7 @@ CREATE UNIQUE INDEX chars_vns_hist_pkey    ON chars_vns_hist (chid, vid, rid) NU
 CREATE        INDEX ulist_vns_voted        ON ulist_vns (vid, vote_date) WHERE vote IS NOT NULL; -- For VN recent votes & vote graph. INCLUDE(vote) speeds up vote graph even more
 CREATE UNIQUE INDEX users_username_key     ON users (lower(username));
 CREATE        INDEX users_ign_votes        ON users (id) WHERE ign_votes;
-CREATE        INDEX users_shadow_mail      ON users_shadow (lower(mail)); -- Should be UNIQUE, but there was no duplicate check in earlier code
+CREATE        INDEX users_shadow_mail      ON users_shadow (hash_email(mail)); -- Should be UNIQUE, but there was no duplicate check in earlier code
 
 
 

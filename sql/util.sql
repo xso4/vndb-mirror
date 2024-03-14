@@ -123,3 +123,35 @@ BEGIN
   RETURN ret;
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
+
+
+-- E-mail normalization, used for account lookup and to provide a strong account opt-out.
+-- Totally imperfect, of course, but it catches common cases.
+-- Based on https://dev.maxmind.com/minfraud/normalizing-email-addresses-for-minfraud
+-- except this function assumes the address has already been validated.
+CREATE OR REPLACE FUNCTION norm_email(email text) RETURNS text AS $$
+  WITH n1 (u,d) AS (
+    SELECT lower(regexp_replace(email, '^(.+)@.+$', '\1')),
+           lower(regexp_replace(email, '^.+@(.+)$', '\1'))
+  ), n2 (u,d) AS (
+    SELECT u, CASE WHEN d = 'googlemail.com' THEN 'gmail.com'
+              WHEN d IN('pm.me', 'proton.me') THEN 'protonmail.com'
+              WHEN d IN('yandex.by', 'yandex.com', 'yandex.kz', 'yandex.ua', 'ya.ru') THEN 'yandex.ru'
+              ELSE d END FROM n1
+  ), n3 (u,d) AS (
+    SELECT CASE WHEN d IN('myyahoo.com', 'ymail.com', 'y7mail.com') OR d ~ '^yahoo.(ca|cl|cn|co|co\.id|co\.il|co\.in|co\.jp|co\.kr|com\.ar|com\.au|com\.br|com\.cn|com\.hk|com\.mx|com\.my|com\.ph|com\.sg|com\.tr|com\.tw|com\.vn|co\.nz|co\.th|co\.uk|co\.za|de|dk|es|fr|gr|hu|ie|in|it|ne\.jp|nl|no|pl|ro|se)$'
+           THEN regexp_replace(u, '-.*$', '')
+           ELSE regexp_replace(u, '\+.*$', '')
+           END, d FROM n2
+  ), n4 (u,d) AS (
+    SELECT CASE WHEN d = 'gmail.com' THEN regexp_replace(u, '\.', '', 'g') ELSE u END, d FROM n3
+  ) SELECT regexp_replace(u || '@' || d, -- https://www.fastmail.com/about/ourdomains/
+      '^.+@(.+)\.(123mail\.org|150mail\.com|150ml\.com|16mail\.com|2-mail\.com|4email\.net|50mail\.com|airpost\.net|allmail\.net|cluemail\.com|elitemail\.org|emailcorner\.net|emailengine\.net|emailengine\.org|emailgroups\.net|emailplus\.org|emailuser\.net|eml\.cc|f-m\.fm|fast-email\.com|fast-mail\.org|fastem\.com|fastemailer\.com|fastest\.cc|fastimap\.com|fastmail\.cn|fastmail\.co\.uk|fastmail\.com|fastmail\.com\.au|fastmail\.de|fastmail\.es|fastmail\.fm|fastmail\.fr|fastmail\.im|fastmail\.in|fastmail\.jp|fastmail\.mx|fastmail\.net|fastmail\.nl|fastmail\.org|fastmail\.se|fastmail\.to|fastmail\.tw|fastmail\.uk|fastmailbox\.net|fastmessaging\.com|fea\.st|fmail\.co\.uk|fmailbox\.com|fmgirl\.com|fmguy\.com|ftml\.net|hailmail\.net|imap-mail\.com|imap\.cc|imapmail\.org|inoutbox\.com|internet-e-mail\.com|internet-mail\.org|internetemails\.net|internetmailing\.net|jetemail\.net|justemail\.net|letterboxes\.org|mail-central\.com|mail-page\.com|mailas\.com|mailbolt\.com|mailc\.net|mailcan\.com|mailforce\.net|mailhaven\.com|mailingaddress\.org|mailite\.com|mailmight\.com|mailnew\.com|mailsent\.net|mailservice\.ms|mailup\.net|mailworks\.org|ml1\.net|mm\.st|myfastmail\.com|mymacmail\.com|nospammail\.net|ownmail\.net|petml\.com|postinbox\.com|postpro\.net|proinbox\.com|promessage\.com|realemail\.net|reallyfast\.biz|reallyfast\.info|rushpost\.com|sent\.as|sent\.at|sent\.com|speedpost\.net|speedymail\.org|ssl-mail\.com|swift-mail\.com|the-fastest\.net|the-quickest\.com|theinternetemail\.com|veryfast\.biz|veryspeedy\.net|warpmail\.net|xsmail\.com|yepmail\.net|your-mail\.com)$', '\1@\2')
+     FROM n4
+$$ LANGUAGE SQL IMMUTABLE;
+
+--SELECT norm_email('T.E.S.T+alias+2@GoogleMail.com') = 'test@gmail.com'
+--     , norm_email('hello-alias-2@yahoo.co.jp') = 'hello@yahoo.co.jp'
+--     , norm_email('somename@hello.4email.net') = 'hello@4email.net';
+
+CREATE OR REPLACE FUNCTION hash_email(email text) RETURNS uuid AS 'SELECT md5(norm_email(email))::uuid' LANGUAGE SQL IMMUTABLE;

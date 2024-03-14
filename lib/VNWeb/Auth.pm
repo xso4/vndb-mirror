@@ -209,14 +209,14 @@ sub wasteTime {
 
 
 # Create a random token that can be used to reset the password.
-# Returns ($uid, $token) if the email address is found in the DB, () otherwise.
+# Returns ($uid, $email, $token) if the email address is found in the DB, () otherwise.
 sub resetpass {
     my(undef, $mail) = @_;
     my $token = unpack 'H*', urandom(20);
-    my $id = tuwf->dbVali(
-        select => sql_func(user_resetpass => \$mail, sql_fromhex sha1_hex lc $token)
+    my $u = tuwf->dbRowi(
+        'SELECT uid, mail FROM', sql_func(user_resetpass => \$mail, sql_fromhex sha1_hex lc $token), 'x(uid, mail)'
     );
-    return $id ? ($id, $token) : ();
+    return $u->{uid} ? ($u->{uid}, $u->{mail}, $token) : ();
 }
 
 

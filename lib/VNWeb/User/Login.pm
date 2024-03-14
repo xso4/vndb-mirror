@@ -32,7 +32,7 @@ js_api UserLogin => {
     my $mailmsg = 'Invalid username or password.';
 
     my $u = tuwf->dbRowi('SELECT id, user_getscryptargs(id) x FROM users WHERE',
-        $ismail ? sql('id IN(SELECT * FROM user_emailtoid(', \$data->{username}, '))')
+        $ismail ? sql('id IN(SELECT uid FROM user_emailtoid(', \$data->{username}, '))')
                 : sql('lower(username) = lower(', \$data->{username}, ')')
     );
     # When logging in with an email, make sure we don't disclose whether or not an account with that email exists.
