@@ -60,7 +60,7 @@ js_api UserRegister => {
     tuwf->dbExeci('INSERT INTO users_prefs', {id => $id});
     tuwf->dbExeci('INSERT INTO users_shadow', {id => $id, ip => ipinfo(), mail => $data->{email}});
 
-    my(undef, $token) = auth->resetpass($data->{email});
+    my(undef, undef, $token) = auth->resetpass($data->{email});
 
     my $body = sprintf
          "Hello %s,"
