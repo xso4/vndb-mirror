@@ -1343,7 +1343,8 @@ CREATE TABLE users_shadow (
   --   32 bytes: scrypt(passwd, global_salt + salt, N, r, p, 32)
   -- Anything else is invalid, account disabled.
   passwd         bytea NOT NULL DEFAULT '',
-  ip             ipinfo
+  ip             ipinfo,
+  delete_at      timestamptz
 );
 
 -- users_traits

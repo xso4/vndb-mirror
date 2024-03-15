@@ -44,9 +44,14 @@ js_api UserLogin => {
     return +{ _err => 'Account disabled, please use the password reset form to re-activate your account.' } if !$u->{x};
 
     my $insecure = is_insecurepass $data->{password};
-    if(auth->login($u->{id}, $data->{password}, $insecure)) {
-        auth->audit(auth->uid, 'login') if !$insecure;
-        return $insecure ? { insecurepass => 1, uid => $u->{id} } : { ok => 1 };
+    my $ret = auth->login($u->{id}, $data->{password}, $insecure);
+    if($ret && $insecure) {
+        return +{ insecurepass => 1, uid => $u->{id} };
+    } elsif (40 == length $ret) {
+        return +{ _redir => "/$u->{id}/del/$ret" };
+    } else {
+        auth->audit(auth->uid, 'login');
+        return +{ ok => 1 };
     }
 
     # Failed login, log and update throttle.

@@ -28,6 +28,7 @@ sub _info_table_ {
             user_maybebanned_ $u;
             txt_ ' ('; a_ href => "/$u->{id}", $u->{id};
             txt_ ')';
+            b_ ' Scheduled for deletion' if auth->isMod && tuwf->dbVali('SELECT delete_at FROM users_shadow WHERE id =', \$u->{id});
             debug_ $u;
             sup if !($u->{user_uniname_can} && $u->{user_uniname});
             for(@$old) {

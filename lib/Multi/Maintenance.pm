@@ -92,6 +92,7 @@ my %dailies = (
 
   quotescache => 'SELECT quotes_rand_calc()',
 
+  deleteusers        => q|SELECT user_delete()|,
   cleansessions      => q|DELETE FROM sessions       WHERE expires    < NOW() AND type <> 'api2'|,
   cleannotifications => q|DELETE FROM notifications  WHERE read       < NOW()-'1 month'::interval|,
   cleannotifications2=> q|DELETE FROM notifications  WHERE id IN (

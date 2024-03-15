@@ -1048,6 +1048,15 @@ CREATE OR REPLACE FUNCTION user_getmail(vndbid, vndbid, bytea) RETURNS text AS $
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 
+-- Set or unset delete_at for this user.
+-- Args: uid, web-token, delete?.
+CREATE OR REPLACE FUNCTION user_setdelete(vndbid, bytea, boolean) RETURNS void AS $$
+  UPDATE users_shadow
+     SET delete_at = CASE WHEN $3 THEN NOW() + '1 week'::interval ELSE NULL END
+   WHERE id = $1 AND user_isauth($1, $1, $2)
+$$ LANGUAGE SQL SECURITY DEFINER;
+
+
 -- Set a token to change a user's email address.
 -- Args: uid, web-token, new-email-token, email
 CREATE OR REPLACE FUNCTION user_setmail_token(vndbid, bytea, bytea, text) RETURNS void AS $$
@@ -1152,6 +1161,7 @@ BEGIN
   DELETE FROM users_shadow WHERE id = userid;
   DELETE FROM users_traits WHERE id = userid;
   DELETE FROM users_username_hist WHERE id = userid;
+  DELETE FROM vn_length_votes WHERE private AND uid = userid;
   IF hard THEN
     -- Delete votes that have been invalidated by a moderator, otherwise they will suddenly start counting again
     DELETE FROM reviews_votes      WHERE uid = userid AND NOT EXISTS(SELECT 1 FROM users WHERE id = userid AND ign_votes);
@@ -1179,3 +1189,9 @@ BEGIN
   END IF;
 END
 $$ LANGUAGE plpgsql;
+
+
+-- Should be called from a cron, deletes user accounts with a delete_at in the past.
+CREATE OR REPLACE FUNCTION user_delete() RETURNS int AS $$
+  SELECT COUNT(*) FROM (SELECT user_delete(id, null) FROM users_shadow WHERE delete_at < NOW()) x
+$$ LANGUAGE SQL SECURITY DEFINER;

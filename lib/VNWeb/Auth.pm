@@ -132,7 +132,7 @@ sub _encpass {
 
 
 # Arguments: self, uid, encpass
-# Returns: 0 on error, 1 on success
+# Returns: 0 on error, 1 on success, token on !pretend && deleted account
 sub _create_session {
     my($self, $uid, $encpass, $pretend) = @_;
 
@@ -144,11 +144,11 @@ sub _create_session {
 
     if($pretend) {
         tuwf->dbExeci('SELECT', sql_func user_logout => \$uid, sql_fromhex $token_db);
+        return 1;
     } else {
         tuwf->resCookie(auth => unpack('H*', $token).'.'.$uid, httponly => 1, expires => time + 31536000);
-        $self->_load_session($uid, $token_db);
+        return $self->_load_session($uid, $token_db) ? 1 : $token_db;
     }
-    return 1;
 }
 
 
@@ -160,8 +160,9 @@ sub _load_session {
            FROM users u
            JOIN users_shadow us ON us.id = u.id
            JOIN users_prefs up ON up.id = u.id
-          WHERE u.id = ', \$uid,
-           'AND', sql_func(user_validate_session => 'u.id', sql_fromhex($token_db), \'web'), 'IS DISTINCT FROM NULL'
+          WHERE u.id = ', \$uid, '
+            AND us.delete_at IS NULL
+            AND', sql_func(user_validate_session => 'u.id', sql_fromhex($token_db), \'web'), 'IS DISTINCT FROM NULL'
     ) : {};
 
     # Drop the cookie if it's not valid
@@ -169,6 +170,7 @@ sub _load_session {
 
     $self->{user}  = $user;
     $self->{token} = $token_db;
+    $user->{user_id};
 }
 
 

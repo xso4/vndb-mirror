@@ -56,6 +56,7 @@ b, .standout  { font-weight: normal; color: var(--standout)!important }
 .small        { font-size: 11px }
 main p        { margin: 3px 20px; }
 main div p,
+main fieldset p,
 main table p  { margin: 0; }
 
 

@@ -536,6 +536,10 @@ widget('UserEdit', initVnode => {
         m(Email, {data}),
         m(Password, {data}),
         m(Support, {data}),
+        m('fieldset.form',
+            m('legend', 'Account deletion'),
+            m('button', { onclick: () => location.href = '/'+data.id+'/del' }, 'Delete my account'),
+        ),
     ];
 
     const tt = () => [
