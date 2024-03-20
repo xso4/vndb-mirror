@@ -660,7 +660,7 @@ BEGIN
     WHEN 's' THEN SELECT s.title, NULL::vndbid, s.hidden, s.locked INTO ret FROM staff_aliast($1) s WHERE s.id = $2 AND s.aid = s.main;
     WHEN 't' THEN SELECT ARRAY[NULL, t.title, NULL, t.title], NULL::vndbid, t.hidden OR t.private, t.locked INTO ret FROM threads t WHERE t.id = $2;
     WHEN 'w' THEN SELECT v.title, w.uid, w.c_flagged, w.locked INTO ret FROM reviews w JOIN vnt v ON v.id = w.vid WHERE w.id = $2;
-    WHEN 'u' THEN SELECT ARRAY[NULL, u.username, NULL, u.username], NULL::vndbid, FALSE, FALSE INTO ret FROM users u WHERE u.id = $2;
+    WHEN 'u' THEN SELECT ARRAY[NULL, COALESCE(u.username, u.id::text), NULL, COALESCE(u.username, u.id::text)], NULL::vndbid, u.username IS NULL, FALSE INTO ret FROM users u WHERE u.id = $2;
     ELSE NULL;
   END CASE;
   -- x#.#
@@ -1100,3 +1100,82 @@ $$ LANGUAGE SQL SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION user_api2_del_token(vndbid, vndbid, bytea, bytea) RETURNS void AS $$
   DELETE FROM sessions WHERE uid = $1 AND token = $4 AND user_isauth($1, $2, $3)
 $$ LANGUAGE SQL SECURITY DEFINER;
+
+
+CREATE OR REPLACE FUNCTION email_optout_check(text) RETURNS boolean AS $$
+  SELECT EXISTS(SELECT 1 FROM email_optout WHERE mail = hash_email($1))
+$$ LANGUAGE SQL SECURITY DEFINER;
+
+
+-- Delete a user account.
+-- A 'hard' delete means that the row in the 'users' table is also deleted and
+-- any database contributions referring to this user will refer to NULL
+-- instead.
+-- A non-'hard' delete still deletes all account information but keeps the row
+-- in the users table, so that we are still able to audit their database
+-- contributions.
+-- 'hard' can be set to NULL to do a hard delete when the user has not made any
+-- relevant contributions and a soft delete otherwise.
+CREATE OR REPLACE FUNCTION user_delete(userid vndbid, hard boolean) RETURNS void AS $$
+BEGIN
+  -- References can be audited with: grep 'REFERENCES users' sql/tableattrs.sql
+  IF hard IS NULL THEN
+    SELECT INTO hard NOT (
+         EXISTS(SELECT 1 FROM changes           WHERE userid = requester)
+      OR EXISTS(SELECT 1 FROM changes_patrolled WHERE userid = uid)
+      OR EXISTS(SELECT 1 FROM images            WHERE userid = uploader)
+      OR EXISTS(SELECT 1 FROM image_votes       WHERE userid = uid)
+      OR EXISTS(SELECT 1 FROM quotes            WHERE userid = addedby)
+      OR EXISTS(SELECT 1 FROM reports_log       WHERE userid = uid)
+      OR EXISTS(SELECT 1 FROM reviews           WHERE userid = uid)
+      OR EXISTS(SELECT 1 FROM reviews_posts     WHERE userid = uid)
+      OR EXISTS(SELECT 1 FROM tags_vn           WHERE userid = uid)
+      OR EXISTS(SELECT 1 FROM threads_posts     WHERE userid = uid)
+      OR EXISTS(SELECT 1 FROM vn_length_votes   WHERE userid = uid));
+  END IF;
+  INSERT INTO email_optout (mail)
+    SELECT hash_email(mail) FROM users_shadow WHERE id = userid
+    ON CONFLICT (mail) DO NOTHING;
+  -- Account-related data.
+  -- (This is unnecessary for a hard delete due to the ON DELETE CASCADE
+  -- constraint actions, but we need this code anyway for the soft deletes)
+  DELETE FROM notification_subs WHERE uid = userid;
+  DELETE FROM notifications WHERE uid = userid;
+  DELETE FROM rlists WHERE uid = userid;
+  DELETE FROM saved_queries WHERE uid = userid;
+  DELETE FROM sessions WHERE uid = userid;
+  DELETE FROM ulist_labels WHERE uid = userid;
+  DELETE FROM ulist_vns WHERE uid = userid;
+  DELETE FROM users_prefs WHERE id = userid;
+  DELETE FROM users_prefs_tags WHERE id = userid;
+  DELETE FROM users_prefs_traits WHERE id = userid;
+  DELETE FROM users_shadow WHERE id = userid;
+  DELETE FROM users_traits WHERE id = userid;
+  DELETE FROM users_username_hist WHERE id = userid;
+  IF hard THEN
+    -- Delete votes that have been invalidated by a moderator, otherwise they will suddenly start counting again
+    DELETE FROM reviews_votes      WHERE uid = userid AND NOT EXISTS(SELECT 1 FROM users WHERE id = userid AND ign_votes);
+    DELETE FROM threads_poll_votes WHERE uid = userid AND NOT EXISTS(SELECT 1 FROM users WHERE id = userid AND ign_votes);
+    DELETE FROM quotes_votes       WHERE uid = userid AND NOT EXISTS(SELECT 1 FROM users WHERE id = userid AND ign_votes);
+    DELETE FROM tags_vn            WHERE uid = userid AND NOT EXISTS(SELECT 1 FROM users WHERE id = userid AND perm_tag);
+    DELETE FROM vn_length_votes    WHERE uid = userid AND NOT EXISTS(SELECT 1 FROM users WHERE id = userid AND perm_lengthvote);
+    DELETE FROM image_votes        WHERE uid = userid AND NOT EXISTS(SELECT 1 FROM users WHERE id = userid AND perm_imgvote);
+    DELETE FROM users WHERE id = userid;
+    INSERT INTO audit_log (affected_uid, action) VALUES (userid, 'hard delete');
+  ELSE
+    UPDATE users SET
+        notify_dbedit = DEFAULT,
+        notify_announce = DEFAULT,
+        notify_post = DEFAULT,
+        notify_comment = DEFAULT,
+        nodistract_noads = DEFAULT,
+        nodistract_nofancy = DEFAULT,
+        support_enabled = DEFAULT,
+        pubskin_enabled = DEFAULT,
+        username = DEFAULT,
+        uniname = DEFAULT
+      WHERE id = userid;
+    INSERT INTO audit_log (affected_uid, action) VALUES (userid, 'soft delete');
+  END IF;
+END
+$$ LANGUAGE plpgsql;

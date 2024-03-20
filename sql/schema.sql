@@ -190,7 +190,7 @@ CREATE TABLE audit_log (
   date          timestamptz NOT NULL DEFAULT NOW(),
   by_uid        vndbid,
   affected_uid  vndbid,
-  by_ip         ipinfo NOT NULL,
+  by_ip         ipinfo,
   by_name       text,
   affected_name text,
   action        text NOT NULL,
@@ -336,6 +336,13 @@ CREATE TABLE drm ( -- DRM types, for use with release info
   physical    boolean NOT NULL, -- [pub]
   name        text NOT NULL, -- [pub]
   description text NOT NULL -- [pub]
+);
+
+-- email_optout
+CREATE TABLE email_optout (
+  mail        uuid, -- hash_email()
+  date        timestamptz NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (mail)
 );
 
 -- global_settings
@@ -1260,7 +1267,7 @@ CREATE TABLE users (
   perm_tagmod         boolean NOT NULL DEFAULT false,
   perm_review         boolean NOT NULL DEFAULT true,
   perm_lengthvote     boolean NOT NULL DEFAULT true, -- [pub] User's length votes don't count when false
-  username            varchar(20) NOT NULL, -- [pub]
+  username            varchar(20), -- [pub]
   uniname             text NOT NULL DEFAULT ''
 );
 

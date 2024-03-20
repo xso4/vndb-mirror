@@ -36,7 +36,7 @@ sub listing_ {
 
 TUWF::get qr{/$RE{uid}/posts}, sub {
     my $u = tuwf->dbRowi('SELECT id, ', sql_user(), 'FROM users u WHERE id =', \tuwf->capture('id'));
-    return tuwf->resNotFound if !$u->{id};
+    return tuwf->resNotFound if !$u->{id} || (!$u->{username} && !auth->isMod);
 
     my $page = tuwf->validate(get => p => { upage => 1 })->data;
 

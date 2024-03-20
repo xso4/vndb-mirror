@@ -154,7 +154,7 @@ TUWF::get qr{/img/list}, sub {
     $opt->{d} = 0 if !$opt->{u};
 
     my $u = $opt->{u} && tuwf->dbRowi('SELECT id, ', sql_user(), 'FROM users u WHERE id =', \$opt->{u});
-    return tuwf->resNotFound if $opt->{u} && !$u->{user_id};
+    return tuwf->resNotFound if $opt->{u} && (!$u->{id} || (!defined $u->{user_name} && !auth->isMod));
 
     my $where = sql_and
         $opt->{t}->@* ? sql_or(map sql('i.id BETWEEN vndbid(',\"$_",',1) AND vndbid_max(',\"$_",')'), $opt->{t}->@*) : (),

@@ -91,12 +91,14 @@ sub user_ {
     my $capital = shift;
     my sub f($) { $obj->{"${prefix}$_[0]"} }
 
-    return small_ 'anonymous' if !f 'id';
+    my $softdel = !defined f 'name';
+    return small_ 'anonymous' if ($softdel && !auth->isMod) || !f 'id';
     my $fancy = !(auth->pref('nodistract_can') && auth->pref('nodistract_nofancy'));
     my $uniname = f 'uniname_can' && f 'uniname';
     a_ href => '/'.f('id'),
+        $softdel ? (class => 'grayedout') : (),
         $fancy && $uniname ? (title => f('name'), $uniname) :
-        (!$fancy && $uniname ? (title => $uniname) : (), $capital ? f 'name' : f 'name');
+        (!$fancy && $uniname ? (title => $uniname) : (), ($capital ? f 'name' : f 'name') // f 'id');
     txt_ '⭐' if $fancy && f 'support_can' && f 'support_enabled';
     user_maybebanned_ $obj, $prefix;
 }
@@ -110,7 +112,7 @@ sub user_displayname {
 
     return 'anonymous' if !f 'id';
     my $fancy = !(auth->pref('nodistract_can') && auth->pref('nodistract_nofancy'));
-    $fancy && f 'uniname_can' && f 'uniname' ? f 'uniname' : f 'name'
+    $fancy && f 'uniname_can' && f 'uniname' ? f 'uniname' : f('name') // f 'id'
 }
 
 # Display a release date.

@@ -15,7 +15,7 @@ widget('UserAdmin', initVnode => {
     };
     const view = () => m(Form, {api, onsubmit: () => api.call(data)},
         m('article',
-            m('h1', 'Admin settings for '+data.username),
+            m('h1', 'Admin settings for '+(data.username||data.id)),
             m('fieldset.form',
                 m('fieldset',
                     m('label', 'Preset'),

@@ -171,6 +171,7 @@ TUWF::get qr{/(?:([upvrcsdgi][1-9][0-9]{0,6})/)?hist} => sub {
     my $obj = dbobj $id;
 
     return tuwf->resNotFound if $id && !$obj->{id};
+    return tuwf->resNotFound if $id =~ /^u/ && $obj->{entry_hidden} && !auth->isMod;
 
     my $title = $id ? "Edit history of $obj->{title}[1]" : 'Recent changes';
     framework_ title => $title, dbobj => $obj, tab => 'hist',

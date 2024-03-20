@@ -86,60 +86,61 @@ my $sql_ulist_vns = qq{
 # interesting references are excluded from the dumps. Keeping all references
 # consistent with those omissions complicates the WHERE clauses somewhat.
 my %tables = (
-    anime               => { where => 'id IN(SELECT va.aid FROM vn_anime va JOIN vn v ON v.id = va.id WHERE NOT v.hidden)' },
-    chars               => { where => 'NOT hidden' },
-    chars_traits        => { where => 'id IN(SELECT id FROM chars WHERE NOT hidden) AND tid IN(SELECT id FROM traits WHERE NOT hidden)' },
-    chars_vns           => { where => 'id IN(SELECT id FROM chars WHERE NOT hidden)'
-                                .' AND vid IN(SELECT id FROM vn WHERE NOT hidden)'
-                                .' AND (rid IS NULL OR rid IN(SELECT id FROM releases WHERE NOT hidden))'
-                           , order => 'id, vid, rid' },
-    docs                => { where => 'NOT hidden' },
-    images              => { where => "c_weight > 0" }, # Only images with a positive weight are referenced.
-    image_votes         => { where => "id IN(SELECT id FROM images WHERE c_weight > 0)", order => 'uid, id' },
-    producers           => { where => 'NOT hidden' },
-    producers_relations => { where => 'id IN(SELECT id FROM producers WHERE NOT hidden)' },
-    quotes              => { where => 'rand IS NOT NULL' },
-    releases            => { where => 'NOT hidden' },
-    releases_media      => { where => 'id IN(SELECT id FROM releases WHERE NOT hidden)' },
-    releases_platforms  => { where => 'id IN(SELECT id FROM releases WHERE NOT hidden)' },
-    releases_producers  => { where => 'id IN(SELECT id FROM releases WHERE NOT hidden) AND pid IN(SELECT id FROM producers WHERE NOT hidden)' },
-    releases_titles     => { where => 'id IN(SELECT id FROM releases WHERE NOT hidden)' },
-    releases_vn         => { where => 'id IN(SELECT id FROM releases WHERE NOT hidden) AND vid IN(SELECT id FROM vn WHERE NOT hidden)' },
+    anime               => { where => 'x.id IN(SELECT va.aid FROM vn_anime va JOIN vn v ON v.id = va.id WHERE NOT v.hidden)' },
+    chars               => { where => 'NOT x.hidden' },
+    chars_traits        => { where => 'x.id IN(SELECT id FROM chars WHERE NOT hidden) AND tid IN(SELECT id FROM traits WHERE NOT hidden)' },
+    chars_vns           => { where => 'x.id IN(SELECT id FROM chars WHERE NOT hidden)'
+                                .' AND x.vid IN(SELECT id FROM vn WHERE NOT hidden)'
+                                .' AND (x.rid IS NULL OR x.rid IN(SELECT id FROM releases WHERE NOT hidden))'
+                           , order => 'x.id, x.vid, x.rid' },
+    docs                => { where => 'NOT x.hidden' },
+    images              => { where => "x.c_weight > 0" }, # Only images with a positive weight are referenced.
+    image_votes         => { where => "x.id IN(SELECT id FROM images WHERE c_weight > 0)", order => 'x.uid, x.id' },
+    producers           => { where => 'NOT x.hidden' },
+    producers_relations => { where => 'x.id IN(SELECT id FROM producers WHERE NOT hidden)' },
+    quotes              => { where => 'x.rand IS NOT NULL' },
+    releases            => { where => 'NOT x.hidden' },
+    releases_media      => { where => 'x.id IN(SELECT id FROM releases WHERE NOT hidden)' },
+    releases_platforms  => { where => 'x.id IN(SELECT id FROM releases WHERE NOT hidden)' },
+    releases_producers  => { where => 'x.id IN(SELECT id FROM releases WHERE NOT hidden) AND pid IN(SELECT id FROM producers WHERE NOT hidden)' },
+    releases_titles     => { where => 'x.id IN(SELECT id FROM releases WHERE NOT hidden)' },
+    releases_vn         => { where => 'x.id IN(SELECT id FROM releases WHERE NOT hidden) AND vid IN(SELECT id FROM vn WHERE NOT hidden)' },
     rlists              => { where => 'EXISTS(SELECT 1 FROM releases r'
                                                     .' JOIN releases_vn rv ON rv.id = r.id'
                                                     .' JOIN vn v ON v.id = rv.vid'
                                                     .' JOIN ulist_vns uv ON uv.vid = rv.vid'
-                                                   .' WHERE r.id = rlists.rid AND uv.uid = rlists.uid AND NOT r.hidden AND NOT v.hidden AND NOT uv.c_private)' },
-    staff               => { where => 'NOT hidden' },
-    staff_alias         => { where => 'id IN(SELECT id FROM staff WHERE NOT hidden)' },
-    tags                => { where => 'NOT hidden' },
-    tags_parents        => { where => 'id IN(SELECT id FROM tags WHERE NOT hidden)' },
-    tags_vn             => { where => 'tag IN(SELECT id FROM tags WHERE NOT hidden) AND vid IN(SELECT id FROM vn WHERE NOT hidden)', order => 'tag, vid, uid, date' },
-    traits              => { where => 'NOT hidden' },
-    traits_parents      => { where => 'id IN(SELECT id FROM traits WHERE NOT hidden)' },
-    ulist_labels        => { where => 'NOT private AND EXISTS(SELECT 1 FROM ulist_vns uv JOIN vn v ON v.id = uv.vid
-                                        WHERE NOT v.hidden AND uv.labels && ARRAY[ulist_labels.id] AND ulist_labels.uid = uv.uid)' },
+                                                   .' WHERE r.id = x.rid AND uv.uid = x.uid AND NOT r.hidden AND NOT v.hidden AND NOT uv.c_private)' },
+    staff               => { where => 'NOT x.hidden' },
+    staff_alias         => { where => 'x.id IN(SELECT id FROM staff WHERE NOT hidden)' },
+    tags                => { where => 'NOT x.hidden' },
+    tags_parents        => { where => 'x.id IN(SELECT id FROM tags WHERE NOT hidden)' },
+    tags_vn             => { where => 'x.tag IN(SELECT id FROM tags WHERE NOT hidden) AND x.vid IN(SELECT id FROM vn WHERE NOT hidden)', order => 'x.tag, x.vid, x.uid, x.date' },
+    traits              => { where => 'NOT x.hidden' },
+    traits_parents      => { where => 'x.id IN(SELECT id FROM traits WHERE NOT hidden)' },
+    ulist_labels        => { where => 'NOT x.private AND EXISTS(SELECT 1 FROM ulist_vns uv JOIN vn v ON v.id = uv.vid
+                                        WHERE NOT v.hidden AND uv.labels && ARRAY[x.id] AND x.uid = uv.uid)' },
     ulist_vns           => { sql => $sql_ulist_vns },
-    users               => { where => 'id IN(SELECT DISTINCT uid FROM ulist_vns WHERE NOT c_private)'
-                                 .' OR id IN(SELECT DISTINCT uid FROM tags_vn)'
-                                 .' OR id IN(SELECT DISTINCT uid FROM image_votes)'
-                                 .' OR id IN(SELECT DISTINCT uid FROM vn_length_votes WHERE NOT private)' },
-    vn                  => { where => 'NOT hidden' },
-    vn_anime            => { where => 'id IN(SELECT id FROM vn WHERE NOT hidden)' },
-    vn_editions         => { where => 'id IN(SELECT id FROM vn WHERE NOT hidden)' },
-    vn_relations        => { where => 'id IN(SELECT id FROM vn WHERE NOT hidden)' },
-    vn_screenshots      => { where => 'id IN(SELECT id FROM vn WHERE NOT hidden)' },
-    vn_seiyuu           => { where => 'id IN(SELECT id FROM vn WHERE NOT hidden)'
-                                .' AND aid IN(SELECT sa.aid FROM staff_alias sa JOIN staff s ON s.id = sa.id WHERE NOT s.hidden)'
-                                .' AND cid IN(SELECT id FROM chars WHERE NOT hidden)' },
-    vn_staff            => { where => 'id IN(SELECT id FROM vn WHERE NOT hidden) AND aid IN(SELECT sa.aid FROM staff_alias sa JOIN staff s ON s.id = sa.id WHERE NOT s.hidden)'
-                           , order => 'id, eid, aid, role' },
-    vn_titles           => { where => 'id IN(SELECT id FROM vn WHERE NOT hidden)' },
-    vn_length_votes     => { where => 'vid IN(SELECT id FROM vn WHERE NOT hidden) AND NOT private'
-                           , order => 'vid, uid' },
-    wikidata            => { where => q{id IN(SELECT l_wikidata FROM producers WHERE NOT hidden
-                                        UNION SELECT l_wikidata FROM staff WHERE NOT hidden
-                                        UNION SELECT l_wikidata FROM vn WHERE NOT hidden)} },
+    users               => { where => 'x.username IS NOT NULL AND ('
+                                 .'    x.id IN(SELECT DISTINCT uid FROM ulist_vns WHERE NOT c_private)'
+                                 .' OR x.id IN(SELECT DISTINCT uid FROM tags_vn)'
+                                 .' OR x.id IN(SELECT DISTINCT uid FROM image_votes)'
+                                 .' OR x.id IN(SELECT DISTINCT uid FROM vn_length_votes WHERE NOT private))' },
+    vn                  => { where => 'NOT x.hidden' },
+    vn_anime            => { where => 'x.id IN(SELECT id FROM vn WHERE NOT hidden)' },
+    vn_editions         => { where => 'x.id IN(SELECT id FROM vn WHERE NOT hidden)' },
+    vn_relations        => { where => 'x.id IN(SELECT id FROM vn WHERE NOT hidden)' },
+    vn_screenshots      => { where => 'x.id IN(SELECT id FROM vn WHERE NOT hidden)' },
+    vn_seiyuu           => { where => 'x.id IN(SELECT id FROM vn WHERE NOT hidden)'
+                                .' AND x.aid IN(SELECT sa.aid FROM staff_alias sa JOIN staff s ON s.id = sa.id WHERE NOT s.hidden)'
+                                .' AND x.cid IN(SELECT id FROM chars WHERE NOT hidden)' },
+    vn_staff            => { where => 'x.id IN(SELECT id FROM vn WHERE NOT hidden) AND x.aid IN(SELECT sa.aid FROM staff_alias sa JOIN staff s ON s.id = sa.id WHERE NOT s.hidden)'
+                           , order => 'x.id, x.eid, x.aid, x.role' },
+    vn_titles           => { where => 'x.id IN(SELECT id FROM vn WHERE NOT hidden)' },
+    vn_length_votes     => { where => 'x.vid IN(SELECT id FROM vn WHERE NOT hidden) AND NOT x.private'
+                           , order => 'x.vid, x.uid' },
+    wikidata            => { where => q{x.id IN(SELECT l_wikidata FROM producers WHERE NOT hidden
+                                          UNION SELECT l_wikidata FROM staff WHERE NOT hidden
+                                          UNION SELECT l_wikidata FROM vn WHERE NOT hidden)} },
 );
 
 my @tables = map +{ name => $_, %{$tables{$_}} }, sort keys %tables;
@@ -169,7 +170,7 @@ sub consistent_snapshot {
 sub table_order {
     my $s = $schema->{$_[0]};
     my $c = $tables{$_[0]};
-    my $o = $s->{primary} ? join ', ', map "\"$_\"", $s->{primary}->@* : $c ? $c->{order} : '';
+    my $o = $s->{primary} ? join ', ', map "x.$_", $s->{primary}->@* : $c ? $c->{order} : '';
     $o ? "ORDER BY $o" : '';
 }
 
@@ -191,12 +192,27 @@ sub export_table {
     my $fn = "$dest/$table->{name}";
 
     my $sql = $table->{sql} // do {
-        # Truncate all timestamptz columns to a day, to avoid leaking privacy-sensitive info.
-        my $cols = join ', ', map $_->{type} eq 'timestamptz' ? "date_trunc('day', \"$_->{name}\")" : qq{"$_->{name}"}, @cols;
+        my %isuid =
+            map +($_->{from_cols}[0], 1),
+            grep $_->{to_table} eq 'users' && $_->{to_cols}[0] eq 'id' && $_->{from_table} eq $table->{name}, @$references;
+        my $join = '';
+
+        my $cols = join ', ', map {
+            # For uid columns, check against the users table and export NULL for deleted accounts
+            $isuid{$_->{name}} ? do {
+                my $t = "u_$_->{name}";
+                $join .= " LEFT JOIN users $t ON $t.id = x.$_->{name}";
+                "CASE WHEN $t.username IS NULL THEN NULL ELSE $t.id END"
+            }
+            # Truncate all timestamptz columns to a day, to avoid leaking privacy-sensitive info.
+            : $_->{type} eq 'timestamptz' ? "date_trunc('day', x.$_->{name})"
+            : qq{x.$_->{name}}
+        } @cols;
+
         my $where = $table->{where} ? "WHERE $table->{where}" : '';
         my $order = table_order $table->{name};
         die "Table '$table->{name}' is missing an ORDER BY clause\n" if !$order;
-        qq{SELECT $cols FROM "$table->{name}" $where $order}
+        qq{SELECT $cols FROM $table->{name} x $join $where $order}
     };
 
     my $start = time;
@@ -370,10 +386,10 @@ sub export_data {
     ) };
     printf "SELECT setval('%s', %d);\n", $_, $db->selectrow_array("SELECT last_value FROM \"$_\"", {}) for @seq;
     for my $t (sort { $a->{name} cmp $b->{name} } values %$schema) {
-        my $cols = join ',', map "\"$_->{name}\"", grep $_->{decl} !~ /\sGENERATED\s/, $t->{cols}->@*;
+        my $cols = join ',', map $_->{name}, grep $_->{decl} !~ /\sGENERATED\s/, $t->{cols}->@*;
         my $order = table_order $t->{name};
-        print "\nCOPY \"$t->{name}\" ($cols) FROM STDIN;\n";
-        $db->do("COPY (SELECT $cols FROM \"$t->{name}\" $order) TO STDOUT");
+        print "\nCOPY $t->{name} ($cols) FROM STDIN;\n";
+        $db->do("COPY (SELECT $cols FROM $t->{name} x $order) TO STDOUT");
         my $v;
         print $v while($db->pg_getcopydata($v) >= 0);
         print "\\.\n";

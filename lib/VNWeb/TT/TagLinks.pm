@@ -24,7 +24,7 @@ sub listing_ {
                 my $i = $_;
                 td_ class => 'tc1', fmtdate $i->{date};
                 td_ class => 'tc2', sub {
-                    a_ href => $url->(u => $i->{uid}, p=>undef), class => 'setfil', '> ' if $i->{uid} && !defined $opt->{u};
+                    a_ href => $url->(u => $i->{uid}, p=>undef), class => 'setfil', '> ' if $i->{uid} && !defined $opt->{u} && (defined $i->{user_name} || auth->isMod);
                     user_ $i;
                 };
                 td_ class => 'tc3', sub { tagscore_ $i->{vote}, $i->{ignore} };
@@ -64,6 +64,9 @@ TUWF::get qr{/g/links}, sub {
         t => { onerror => undef, vndbid => 'g' },
     )->data;
 
+    my $u = $opt->{u} && tuwf->dbRowi('SELECT id,', sql_user(), 'FROM users u WHERE id =', \$opt->{u});
+    return tuwf->resNotFound if $opt->{u} && (!$u->{id} || (!defined $u->{user_name} && !auth->isMod));
+
     my $where = sql_and
         defined $opt->{v} ? sql('tv.vid =', \$opt->{v}) : (),
         defined $opt->{u} ? sql('tv.uid =', \$opt->{u}) : (),
@@ -95,7 +98,7 @@ TUWF::get qr{/g/links}, sub {
                     li_ sub {
                         txt_ '['; a_ href => url(u=>undef, p=>undef), 'remove'; txt_ '] ';
                         txt_ 'User: ';
-                        user_ tuwf->dbRowi('SELECT', sql_user(), 'FROM users u WHERE id=', \$opt->{u});
+                        user_ $u;
                     } if defined $opt->{u};
                     li_ sub {
                         txt_ '['; a_ href => url(t=>undef, p=>undef), 'remove'; txt_ '] ';

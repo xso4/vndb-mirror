@@ -112,7 +112,7 @@ sub stats_ {
 TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
     my $thing = tuwf->capture('thing');
     my $o = $thing && dbobj $thing;
-    return tuwf->resNotFound if $thing && (!$o->{id} || $o->{entry_hidden});
+    return tuwf->resNotFound if $thing && (!$o->{id} || ($o->{entry_hidden} && !auth->isMod));
     my $mode = !$thing ? '' : $o->{id} =~ /^v/ ? 'v' : 'u';
 
     my $opt = tuwf->validate(get =>

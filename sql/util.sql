@@ -154,4 +154,4 @@ $$ LANGUAGE SQL IMMUTABLE;
 --     , norm_email('hello-alias-2@yahoo.co.jp') = 'hello@yahoo.co.jp'
 --     , norm_email('somename@hello.4email.net') = 'hello@4email.net';
 
-CREATE OR REPLACE FUNCTION hash_email(email text) RETURNS uuid AS 'SELECT md5(norm_email(email))::uuid' LANGUAGE SQL IMMUTABLE;
+CREATE OR REPLACE FUNCTION hash_email(email text) RETURNS uuid LANGUAGE SQL IMMUTABLE RETURN md5(norm_email(email))::uuid;

@@ -23,7 +23,8 @@ sub _info_table_ {
             auth->permUsermod ? () : 'AND date > NOW()-\'1 month\'::interval', 'ORDER BY date DESC');
         td_ class => 'key', 'Username';
         td_ sub {
-            txt_ $u->{user_name};
+            txt_ $u->{user_name} if defined $u->{user_name};
+            b_ 'Account deleted' if !defined $u->{user_name};
             user_maybebanned_ $u;
             txt_ ' ('; a_ href => "/$u->{id}", $u->{id};
             txt_ ')';
@@ -197,7 +198,7 @@ TUWF::get qr{/$RE{uid}}, sub {
           FROM users u
          WHERE id =}, \tuwf->capture('id')
     );
-    return tuwf->resNotFound if !$u->{id};
+    return tuwf->resNotFound if !$u->{id} || (!$u->{username} && !auth->isMod);
 
     my $own = (auth && auth->uid eq $u->{id}) || auth->permUsermod;
 

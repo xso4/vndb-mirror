@@ -34,6 +34,9 @@ js_api UserRegister => {
     my %throttle = (timeout => sql("NOW()+'1 day'::interval"), ip => norm_ip($ip));
     tuwf->dbExeci('INSERT INTO registration_throttle', \%throttle, 'ON CONFLICT (ip) DO UPDATE SET', \%throttle);
 
+    # Check for opt-out. Returning 'ok' here sucks balls, but otherwise we'd be vulnerable to email enumeration.
+    return +{ ok => 1 } if tuwf->dbVali('SELECT email_optout_check(', \$data->{email}, ')');
+
     # Check for duplicate email
     my $dupe = tuwf->dbVali('SELECT u.username FROM users u, user_emailtoid(', \$data->{email}, ') x(id) WHERE x.id = u.id');
     if (defined $dupe) {

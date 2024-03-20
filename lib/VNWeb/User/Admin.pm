@@ -4,7 +4,7 @@ use VNWeb::Prelude;
 
 my $FORM = {
     id       => { vndbid => 'u' },
-    username => {},
+    username => { default => '' },
 
     # Permissions of the user editing this account
     editor_dbmod     => { _when => 'out', anybool => 1 },
@@ -24,7 +24,7 @@ sub _userinfo {
     my $u = tuwf->dbRowi('
         SELECT u.id, username, ign_votes, ', sql_comma(map "perm_$_", auth->listPerms), '
           FROM users u
-          JOIN users_shadow us ON us.id = u.id
+          LEFT JOIN users_shadow us ON us.id = u.id
          WHERE u.id =', \$_[0]
     );
     if(!$u->{id}) { tuwf->resNotFound; tuwf->done; }
@@ -40,7 +40,7 @@ TUWF::get qr{/$RE{uid}/admin}, sub {
     $u->{editor_tagmod}   = auth->permTagmod;
     $u->{editor_boardmod} = auth->permBoardmod;
 
-    framework_ title => "Admin settings for $u->{username}", dbobj => $u, tab => 'admin',
+    framework_ title => "Admin settings for ".($u->{username}//$u->{id}), dbobj => $u, tab => 'admin',
     sub {
         div_ widget(UserAdmin => $FORM_OUT, $u), '';
     };

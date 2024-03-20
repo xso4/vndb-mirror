@@ -200,6 +200,9 @@ TUWF::get '/v/quotes', sub {
     )->data;
     $opt->{h} = 0 if !auth->permDbmod;
 
+    my $u = $opt->{u} && tuwf->dbRowi('SELECT id,', sql_user(), 'FROM users u WHERE id =', \$opt->{u});
+    return tuwf->resNotFound if $opt->{u} && (!$u->{id} || (!defined $u->{user_name} && !auth->isMod));
+
     my $where = sql_and
         $opt->{v} ? sql('q.vid =', \$opt->{v}) : (),
         $opt->{u} ? sql('q.addedby =', \$opt->{u}) : (),

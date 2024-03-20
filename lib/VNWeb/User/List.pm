@@ -67,6 +67,8 @@ TUWF::get qr{/u/(?<char>[0a-z]|all)}, sub {
     )->data;
 
     my @where = (
+        'username IS NOT NULL',
+        auth->permUsermod ? () : 'email_confirmed',
         $char eq 'all' ? () : sql('match_firstchar(username, ', \$char, ')'),
         $opt->{q} ? sql_or(
             auth->permUsermod && $opt->{q} =~ /@/ ? sql('id IN(SELECT uid FROM user_emailtoid(', \$opt->{q}, '))') : (),
@@ -106,6 +108,8 @@ TUWF::get qr{/u/(?<char>[0a-z]|all)}, sub {
                 a_ href => "/u/$_", $_ eq $char ? (class => 'optselected') : (), $_ eq 'all' ? 'ALL' : $_ ? uc $_ : '#'
                     for ('all', 'a'..'z', 0);
             };
+            b_ 'The given email address is on the opt-out list.'
+              if auth->permUsermod && $opt->{q} && $opt->{q} =~ /@/ && tuwf->dbVali('SELECT email_optout_check(', \$opt->{q}, ')');
         };
         listing_ $opt, $list, $count if $count;
     };
