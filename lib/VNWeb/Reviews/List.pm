@@ -51,7 +51,7 @@ TUWF::get qr{/w}, sub {
     $opt->{s} = 'id' if $opt->{s} eq 'rating' && !auth->isMod;
 
     my $u = $opt->{u} && tuwf->dbRowi('SELECT id, ', sql_user(), 'FROM users u WHERE id =', \$opt->{u});
-    return tuwf->resNotFound if $u && (!$u->{id} || (!$u->{username} && !auth->isMod));
+    return tuwf->resNotFound if $u && (!$u->{id} || (!$u->{user_name} && !auth->isMod));
 
     my $where = sql_and
         $u ? sql 'w.uid =', \$u->{id} : (),

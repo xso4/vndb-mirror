@@ -198,7 +198,7 @@ TUWF::get qr{/$RE{uid}}, sub {
           FROM users u
          WHERE id =}, \tuwf->capture('id')
     );
-    return tuwf->resNotFound if !$u->{id} || (!$u->{username} && !auth->isMod);
+    return tuwf->resNotFound if !$u->{id} || (!$u->{user_name} && !auth->isMod);
 
     my $own = (auth && auth->uid eq $u->{id}) || auth->permUsermod;
 

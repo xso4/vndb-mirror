@@ -13,6 +13,7 @@ TUWF::get qr{/t/(all|$BOARD_RE)}, sub {
 
     my $obj = $id ? dbobj $id : undef;
     return tuwf->resNotFound if $id && !$obj->{id};
+    return tuwf->resNotFound if $id && $id =~ /^u/ && $obj->{entry_hidden} && !auth->isMod;
 
     my $title = $obj ? "Related discussions for $obj->{title}[1]" : $type eq 'all' ? 'All boards' : $BOARD_TYPE{$type}{txt};
     my $createurl = '/t/'.($id || ($type eq 'db' ? 'db' : 'ge')).'/new';
