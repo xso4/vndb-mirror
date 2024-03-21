@@ -348,9 +348,9 @@ sub export_img {
 
     my %scr;
     my %dir = (ch => {}, cv => {}, sf => \%scr, st => \%scr);
-    $dir{sf}{$_->[0]} = 1 for $db->selectall_array("SELECT vndbid_num(scr) FROM vn_screenshots WHERE $tables{vn_screenshots}{where}");
-    $dir{cv}{$_->[0]} = 1 for $db->selectall_array("SELECT vndbid_num(image) FROM vn WHERE image IS NOT NULL AND $tables{vn}{where}");
-    $dir{ch}{$_->[0]} = 1 for $db->selectall_array("SELECT vndbid_num(image) FROM chars WHERE image IS NOT NULL AND $tables{chars}{where}");
+    $dir{sf}{$_->[0]} = 1 for $db->selectall_array("SELECT vndbid_num(scr) FROM vn_screenshots x WHERE $tables{vn_screenshots}{where}");
+    $dir{cv}{$_->[0]} = 1 for $db->selectall_array("SELECT vndbid_num(image) FROM vn x WHERE image IS NOT NULL AND $tables{vn}{where}");
+    $dir{ch}{$_->[0]} = 1 for $db->selectall_array("SELECT vndbid_num(image) FROM chars x WHERE image IS NOT NULL AND $tables{chars}{where}");
     $db->rollback;
     undef $db;
 
