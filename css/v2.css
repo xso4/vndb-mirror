@@ -129,13 +129,20 @@ table thead td, table thead th  { font-weight: bold; background-color: var(--sec
 table thead th                  { text-align: left }
 fieldset.search                 { display: block; width: 100%; text-align: center; margin: 0 0 10px 0; }
 fieldset.search .submit         { padding: 0 1px; }
-p#searchtabs                    { height: 15px; padding-right: 70px; }
-p#searchtabs a                  { padding: 2px 6px 2px 6px; margin: 0 2px; color: inherit; }
-p#searchtabs a:hover, p#searchtabs a.sel {
-  border: 1px solid var(--secborder);
-  border-bottom: none;
-  padding: 1px 5px 2px 5px;
-  background: var(--boxbg);
+#searchtabs {
+  display: flex; align-items: flex-end; justify-content: center; padding-right: 70px;
+  a {
+    padding: 2px 6px 0px 6px;
+    border: 1px solid transparent;
+    border-bottom: none;
+    margin: 0 2px;
+    color: inherit;
+  }
+  a:hover, a.sel {
+    border: 1px solid var(--secborder);
+    border-bottom: none;
+    background: var(--boxbg);
+  }
 }
 #q { width: 600px }
 #bq { width: 300px }
