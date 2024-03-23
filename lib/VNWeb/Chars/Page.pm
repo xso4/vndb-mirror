@@ -57,6 +57,7 @@ sub enrich_item {
          WHERE NOT q.hidden AND vid IN', [map $_->{vid}, $c->{vns}->@*], 'AND q.cid =', \$c->{id}, '
          ORDER BY q.score DESC, q.quote
     ');
+    enrich_merge id => sql('SELECT id, vote FROM quotes_votes WHERE uid =', \auth->uid, 'AND id IN'), $c->{quotes} if auth;
 }
 
 
