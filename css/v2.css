@@ -547,6 +547,7 @@ div.chardetails table        { float: left; width: 525px; }
 div.chardetails table td.key { width: 106px; }
 div.chardetails.charsep      { margin-top: 30px }
 div.chardetails .lie { text-decoration: line-through }
+div.charquotes { margin: 0 auto; width: 800px; }
 
 
 

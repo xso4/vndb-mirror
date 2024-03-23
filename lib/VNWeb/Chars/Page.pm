@@ -50,6 +50,13 @@ sub enrich_item {
     $c->{vns}    = [ sort { $a->{vn_released} <=> $b->{vn_released} || ($a->{rel_released}||0) <=> ($b->{rel_released}||0)
                           || $a->{sorttitle} cmp $b->{sorttitle} || idcmp($a->{vid}, $b->{vid}) || idcmp($a->{rid}||'r999999', $b->{rid}||'r999999') } $c->{vns}->@* ];
     $c->{traits} = [ sort { $a->{order} <=> $b->{order} || $a->{groupname} cmp $b->{groupname} || $a->{name} cmp $b->{name} } $c->{traits}->@* ];
+
+    $c->{quotes} = tuwf->dbAlli('
+        SELECT q.vid, q.id, q.score, q.quote,', sql_totime('q.added'), 'AS added, q.addedby
+          FROM quotes q
+         WHERE NOT q.hidden AND vid IN', [map $_->{vid}, $c->{vns}->@*], 'AND q.cid =', \$c->{id}, '
+         ORDER BY q.score DESC, q.quote
+    ');
 }
 
 
@@ -137,6 +144,8 @@ sub chartable_ {
     my($c, $link, $sep, $vn) = @_;
     my $view = viewget;
 
+    my @visvns = grep $_->{spoil} <= $view->{spoilers}, $c->{vns}->@*;
+
     div_ mkclass(chardetails => 1, charsep => $sep), sub {
         div_ class => 'charimg', sub { image_ $c->{image}, alt => $c->{title}[1] };
         table_ class => 'stripe', sub {
@@ -199,7 +208,6 @@ sub chartable_ {
                 }, $_->{traits}->@* };
             } for @groups;
 
-            my @visvns = grep $_->{spoil} <= $view->{spoilers}, $c->{vns}->@*;
             tr_ sub {
                 td_ class => 'key', $vn ? 'Releases' : 'Visual novels';
                 td_ sub {
@@ -251,9 +259,22 @@ sub chartable_ {
                     p_ sub { lit_ bb_format $c->{description}, replacespoil => $view->{spoilers} != 2, keepspoil => $view->{spoilers} == 2 };
                 };
             } if $c->{description};
+
         };
     };
     clearfloat_;
+
+    my %visvns = map +($_->{vid}, 1), @visvns;
+    my @quotes = grep $visvns{$_->{vid}}, $c->{quotes}->@*;
+    div_ class => 'charquotes', sub {
+        h2_ 'Quotes';
+        table_ sub {
+            tr_ sub {
+                td_ sub { VNWeb::VN::Quotes::votething_($_) };
+                td_ $_->{quote};
+            } for @quotes;
+        };
+    } if @quotes;
 }
 
 

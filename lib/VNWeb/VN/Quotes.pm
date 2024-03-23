@@ -16,6 +16,7 @@ sub submittable {
     auth->permDbmod || (auth->permEdit && tuwf->dbVali(q{SELECT COUNT(*) FROM quotes WHERE added > NOW() - '1 day'::interval AND addedby =}, \auth->uid) < 5);
 }
 
+# Also used by Chars::Page
 sub votething_ {
     my($q) = @_;
     if (auth) {
