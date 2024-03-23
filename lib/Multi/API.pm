@@ -295,7 +295,9 @@ sub login {
 
   } elsif(exists $arg->{sessiontoken}) {
     return cerr $c, badarg => 'Invalid session token', field => 'sessiontoken' if $arg->{sessiontoken} !~ /^[a-fA-F0-9]{40}$/;
-    cpg $c, 'SELECT id, username FROM users WHERE lower(username) = lower($1) AND user_validate_session(id, decode($2, \'hex\'), \'api\') IS DISTINCT FROM NULL',
+    cpg $c,
+      'SELECT u.id, u.username FROM users u JOIN users_shadow us ON us.id = u.id
+        WHERE lower(u.username) = lower($1) AND us.delete_at IS NULL AND user_validate_session(u.id, decode($2, \'hex\'), \'api\') IS DISTINCT FROM NULL',
       [ $arg->{username}, $arg->{sessiontoken} ], sub {
       if($_[0]->nRows == 1) {
         $c->{uid} = $_[0]->value(0,0);
@@ -325,7 +327,9 @@ sub login_auth {
       if $tm-AE::time() > config->{login_throttle}[1];
 
     # Fetch user info
-    cpg $c, 'SELECT id, username, encode(user_getscryptargs(id), \'hex\') FROM users WHERE lower(username) = lower($1)', [ $arg->{username} ], sub {
+    cpg $c, '
+      SELECT u.id, u.username, encode(user_getscryptargs(u.id), \'hex\') FROM users u JOIN users_shadow us ON us.id = u.id
+       WHERE us.delete_at IS NULL AND lower(u.username) = lower($1)', [ $arg->{username} ], sub {
       login_verify($c, $arg, $tm, $_[0]);
     };
   };
@@ -1128,7 +1132,7 @@ my %GET_STAFF = (
 
 
 my %GET_QUOTE = (
-  sql     => "SELECT %s FROM quotes q JOIN vnt v ON v.id = q.vid WHERE q.approved AND NOT v.hidden AND (%s) %s",
+  sql     => "SELECT %s FROM quotes q JOIN vnt v ON v.id = q.vid WHERE q.rand IS NOT NULL AND NOT v.hidden AND (%s) %s",
   select  => "v.id, v.title[2], q.quote",
   proc    => sub {
     $_[0]{id} = idnum $_[0]{id};

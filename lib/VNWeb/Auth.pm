@@ -359,8 +359,8 @@ sub _load_api2 {
     my $uid = _api2_get_uid $token;
     my $user = tuwf->dbRowi(
         'SELECT ', sql_user(), ', x.listread, x.listwrite
-           FROM users u,', sql_func(user_validate_session => \$uid, sql_fromhex($token), \'api2'), 'x
-          WHERE u.id = ', \$uid, 'AND x.uid = u.id'
+           FROM users u, users_shadow us, ', sql_func(user_validate_session => \$uid, sql_fromhex($token), \'api2'), 'x
+          WHERE u.id = ', \$uid, 'AND x.uid = u.id AND us.id = u.id AND us.delete_at IS NULL'
     );
     return VNWeb::API::err(401, 'Invalid token.') if !$user->{user_id};
     $self->{token} = $token;

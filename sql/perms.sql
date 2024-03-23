@@ -205,7 +205,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON ulist_labels             TO vndb_multi;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ulist_vns                TO vndb_multi;
 GRANT SELECT,         UPDATE, DELETE ON users                    TO vndb_multi;
 GRANT SELECT,         UPDATE, DELETE ON users_prefs              TO vndb_multi;
-GRANT SELECT (id),            DELETE ON users_shadow             TO vndb_multi;
+GRANT SELECT (id, delete_at), DELETE ON users_shadow             TO vndb_multi;
 GRANT SELECT,                 DELETE ON users_username_hist      TO vndb_multi;
 GRANT SELECT,         UPDATE         ON vn                       TO vndb_multi;
 GRANT SELECT                         ON vn_anime                 TO vndb_multi;
