@@ -5,132 +5,196 @@
 #   Create static assets for production. Requires the following additional dependencies:
 #   - uglifyjs
 #   - zopfli
+#   - zopflipng
 #   - brotli
 #   - pandoc
 #
-# chmod
-#   For when the http process is run from a different user than the files are
-#   chown'ed to. chmods all files and directories written to from vndb.pl.
+# test
+#   Run the few unit tests that we do have.
 #
 # multi-start, multi-stop, multi-restart:
 #   Start/stop/restart the Multi daemon. Provided for convenience, a proper initscript
 #   probably makes more sense.
-#
-# NOTE: This Makefile has only been tested using GNU make in a relatively
-#   up-to-date Gentoo & Alpine Linux environment, it may not work in other
-#   environments. Patches to improve the portability are always welcome.
 
+.PHONY: all prod clean test multi-stop multi-start multi-restart
+.DELETE_ON_ERROR:
 
-.PHONY: all prod clean cleaner chmod test multi-stop multi-start multi-restart
+VNDB_GEN ?= gen
+export VNDB_GEN
+GEN=${VNDB_GEN}
 
-JS_BUNDLE_NAMES=$(shell ls -d js/*/ | sed 's#js/\(.\+\)/#\1#g')
-JS_BUNDLE_INDICES=$(shell echo js/*/index.js)
-JS_BUNDLE_OUT=$(shell ls -d js/*/ | sed 's#js/\(.\+\)/#static/g/\1.js#g')
-JS_BUNDLE_MIN=$(shell ls -d js/*/ | sed 's#js/\(.\+\)/#static/g/\1.min.js#g')
-JS_BUNDLE_GZ=$(shell ls -d js/*/ | sed 's#js/\(.\+\)/#static/g/\1.min.js.gz#g')
-JS_BUNDLE_BR=$(shell ls -d js/*/ | sed 's#js/\(.\+\)/#static/g/\1.min.js.br#g')
-CSS_OUT=$(shell ls css/skins/*.sass | sed -e 's/css\/skins\/\(.\+\)\.sass/static\/g\/\1.css/g')
-CSS_GZ=$(shell ls css/skins/*.sass | sed -e 's/css\/skins\/\(.\+\)\.sass/static\/g\/\1.css.gz/g')
-CSS_BR=$(shell ls css/skins/*.sass | sed -e 's/css\/skins\/\(.\+\)\.sass/static\/g\/\1.css.br/g')
+CFLAGS ?= -O3 -Wall
 
-IMG_DIRS=\
-	static/ch static/cv static/sf static/st \
-	static/ch.orig static/cv.orig static/sf.orig
+ifdef V
+Q=
+T=@\#
+E=@\#
+else
+Q=@
+E=@echo
+T=@printf "%s $@\n"
+endif
 
-ALL_KEEP=\
-	${IMG_DIRS} \
-	data/log static/g www \
-	data/conf.pl \
-	www/robots.txt static/robots.txt
+JS_OUT=$(patsubst js/%/index.js,${GEN}/static/%.js,$(wildcard js/*/index.js))
+CSS_OUT=$(patsubst css/skins/%.sass,${GEN}/static/%.css,$(wildcard css/skins/*.sass))
 
-ALL_CLEAN=\
-	imgproc/imgproc-portable \
-	static/g/elm.js \
-	static/g/icons.svg \
-	static/g/icons.png \
-	sql/editfunc.sql \
-	${JS_BUNDLE_OUT} \
+all: \
+	${GEN}/editfunc.sql \
+	${GEN}/static/icons.svg \
+	${GEN}/static/icons.png \
+	${GEN}/static/elm.js \
+	${GEN}/imgproc \
+	${JS_OUT} \
 	${CSS_OUT}
 
-PROD=\
-	static/g/api-nyan.html static/g/api-kana.html\
-	static/g/elm.min.js static/g/elm.min.js.gz static/g/elm.min.js.br\
-	static/g/icons.svg.gz static/g/icons.svg.br\
-	static/g/icons.opt.png \
-	${JS_BUNDLE_GZ} ${JS_BUNDLE_BR} \
-	${CSS_GZ} ${CSS_BR}
-
-all: ${ALL_KEEP} ${ALL_CLEAN}
-prod: all ${PROD}
+prod: all \
+	${GEN}/api-nyan.html ${GEN}/api-kana.html \
+	${GEN}/static/icons.svg.gz ${GEN}/static/icons.svg.br \
+	${GEN}/static/icons.opt.png \
+	${GEN}/static/elm.min.js ${GEN}/static/elm.min.js.gz ${GEN}/static/elm.min.js.br \
+	${JS_OUT:js=min.js} ${JS_OUT:js=min.js} \
+	${JS_OUT:js=min.js.gz} ${JS_OUT:js=min.js.gz} \
+	${JS_OUT:js=min.js.br} ${JS_OUT:js=min.js.br} \
+	${CSS_OUT:css=css.gz} ${CSS_OUT:css=css.br}
 
 clean:
-	rm -f ${ALL_CLEAN} ${PROD}
-	rm -rf static/g/
-	rm -rf elm/Gen/
-	rm -rf elm/elm-stuff/build-artifacts
-	rm -rf js/.gen/deps.mk
-	$(MAKE) -C sql/c clean
-
-cleaner: clean
-	rm -rf elm/elm-stuff js/.gen
-	make -C imgproc distclean
-
-sql/editfunc.sql: util/sqleditfunc.pl sql/schema.sql
-	util/sqleditfunc.pl
-
-imgproc/imgproc-portable: imgproc/imgproc.c
-	make -C imgproc
-
-${IMG_DIRS}:
-	mkdir -p $@;
-	for i in $$(seq -w 0 1 99); do mkdir -p "$@/$$i"; done
-
-data/log www static/g js/.gen:
-	mkdir -p $@
-
-data/conf.pl:
-	cp -n data/conf_example.pl data/conf.pl
-
-%/robots.txt: | www
-	echo 'User-agent: *' > $@
-	echo 'Disallow: /' >> $@
+	rm -rf "${GEN}"
 
 %.gz: %
 	zopfli $<
 
 %.br: %
-	brotli -f $< && touch $@
+	brotli -f $<
+	@touch $@
 
-chmod: all
-	chmod -R a-x+rwX ${IMG_DIRS}
+${GEN} ${GEN}/static ${GEN}/js ${GEN}/elm/Gen:
+	mkdir -p $@
+
+${GEN}/editfunc.sql: util/sqleditfunc.pl sql/schema.sql | ${GEN}
+	util/sqleditfunc.pl >$@
+
+${GEN}/api-%.html: api-%.md | ${GEN}
+	$T DOC
+	$Q pandoc "$<" -st html5 --toc -o "$@"
 
 test: all
-	prove util/bbcode-test.pl
-	if [ -e imgproc/imgproc-custom ]; then cd imgproc && ./test-custom.pl; fi
+	prove util/test/bbcode.pl
+	if [ -e ${GEN}/imgproc-custom ]; then util/test/imgproc-custom.pl; fi
+
+
+
+
+###### Icons & CSS #####
 
 # Single rule for svg & png sprites. This uses a GNU multiple pattern rule in
 # order to have it parallelize correctly - splitting this up into two
 # individual rules is buggy.
-static/g/%.spritecss static/g/icons.%: util/%sprite.pl icons icons/* icons/*/* | static/g
+${GEN}/%.css ${GEN}/static/icons.%: util/%sprite.pl icons icons/* icons/*/* | ${GEN}/static
 	$<
 
-static/g/png.spritecss static/g/icons.png: imgproc/imgproc-portable
+${GEN}/static/png.css ${GEN}/static/icons.png: ${GEN}/imgproc
 
-static/g/icons.opt.png: static/g/icons.png
-	rm -f $@
-	zopflipng -m --lossy_transparent $< $@
+${GEN}/static/icons.opt.png: ${GEN}/static/icons.png
+	$T PNGOPT
+	$Q zopflipng -ym --lossy_transparent "$<" "$@" >/dev/null
 
-static/g/%.css: css/skins/%.sass css/*.css static/g/png.spritecss static/g/svg.spritecss | static/g
-	( echo '$$png-version: "$(shell sha1sum static/g/icons.png | head -c8)";'; \
-	  echo '$$svg-version: "$(shell sha1sum static/g/icons.svg | head -c8)";'; \
-	  echo '@import "css/skins/$*"' ) | sassc --stdin -I. --style compressed >$@
+${GEN}/static/%.css: css/skins/%.sass css/*.css ${GEN}/png.css ${GEN}/svg.css
+	$T SASS
+	$Q ( echo '$$png-version: "$(shell sha1sum ${GEN}/static/icons.png | head -c8)";'; \
+	  echo '$$svg-version: "$(shell sha1sum ${GEN}/static/icons.svg | head -c8)";'; \
+	  echo '@import "css/skins/$*";'; \
+	  echo '@import "${GEN}/png";'; \
+	  echo '@import "${GEN}/svg";'; \
+	) | sassc --stdin -I. --style compressed >$@
 
-static/g/api-%.html: data/api-%.md
-	pandoc "$<" -st html5 --toc -o "$@"
 
 
 
-ELM_FILES=elm/*.elm elm/*/*.elm
+###### imgproc #####
+
+${GEN}/imgproc: util/imgproc.c
+	$T CC
+	$Q ${CC} ${CFLAGS} $< -DDISABLE_SECCOMP `pkg-config --cflags --libs vips` -o $@
+
+VIPS_VER := 8.15.1
+# TODO: switch to a proper release when it includes this commit
+JXL_VER := 5e7560d9e431b40159cf688b9d9be6c0f2e229a1
+
+VIPS_DIR := ${GEN}/build/vips-${VIPS_VER}
+JXL_DIR := ${GEN}/build/libjxl-${JXL_VER}
+
+${GEN}/imgproc-custom: util/imgproc.c ${VIPS_DIR}/done Makefile
+	${CC} ${CFLAGS} $< `pkg-config --cflags --libs libseccomp` `PKG_CONFIG_PATH="$(realpath ${GEN})/build/inst/lib64/pkgconfig" pkg-config --cflags --libs vips` -o $@
+	@# Make sure we're not accidentally linking against system libjpeg
+	! ldd $@ | grep -q libjpeg
+
+# jpeg, jpgeg-xl and highway are provided by jxl
+${VIPS_DIR}/done: ${JXL_DIR}/done
+	mkdir -p ${VIPS_DIR}
+	curl -Ls https://github.com/libvips/libvips/releases/download/v${VIPS_VER}/vips-${VIPS_VER}.tar.xz | tar -C ${VIPS_DIR} --strip-components 1 -xJf-
+	PKG_CONFIG_PATH="$(realpath ${GEN})/build/inst/lib64/pkgconfig" meson \
+		setup --wipe --default-library=static --prefix="$(realpath ${GEN})/build/inst" \
+		-Dpng=enabled -Djpeg=enabled -Djpeg-xl=enabled -Dwebp=enabled -Dheif=enabled -Dlcms=enabled -Dhighway=enabled \
+		-Ddeprecated=false -Dexamples=false -Dcplusplus=false \
+		-Dmodules=disabled -Dintrospection=disabled -Dcfitsio=disabled -Dcgif=disabled \
+		-Dexif=disabled -Dfftw=disabled -Dfontconfig=disabled -Darchive=disabled \
+		-Dimagequant=disabled -Dmagick=disabled -Dmatio=disabled -Dnifti=disabled -Dopenjpeg=disabled \
+		-Dopenslide=disabled -Dorc=disabled -Dpangocairo=disabled \
+		-Dpdfium=disabled -Dpoppler=disabled -Dquantizr=disabled -Drsvg=disabled \
+		-Dspng=disabled -Dtiff=disabled -Dzlib=disabled \
+		-Dnsgif=false -Dppm=false -Danalyze=false -Dradiance=false \
+		${VIPS_DIR}/build ${VIPS_DIR}
+	cd ${VIPS_DIR}/build && meson compile && meson install
+	touch $@
+
+${JXL_DIR}/done:
+	mkdir -p ${JXL_DIR}
+	@#curl -Ls https://github.com/libjxl/libjxl/archive/refs/tags/v${JXL_VER}.tar.gz | tar -C $@ --strip-components 1 -xzf-
+	curl -Ls https://github.com/libjxl/libjxl/tarball/${JXL_VER} | tar -C ${JXL_DIR} --strip-components 1 -xzf-
+	cd ${JXL_DIR} && ./deps.sh
+	@# there's no option to build a static jpegli, patch the cmake file instead
+	sed -i 's/add_library(jpeg SHARED/add_library(jpeg STATIC/' ${JXL_DIR}/lib/jpegli.cmake
+	cd ${JXL_DIR} && cmake -L \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DBUILD_TESTING=OFF \
+		-DBUILD_SHARED_LIBS=OFF \
+		-DCMAKE_INSTALL_PREFIX="$(realpath ${GEN})/build/inst" \
+		-DJPEGXL_ENABLE_BENCHMARK=OFF \
+		-DJPEGXL_ENABLE_DOXYGEN=OFF \
+		-DJPEGXL_ENABLE_EXAMPLES=OFF \
+		-DJPEGXL_ENABLE_FUZZERS=OFF \
+		-DJPEGXL_ENABLE_JNI=OFF \
+		-DJPEGXL_ENABLE_JPEGLI=ON \
+		-DJPEGXL_ENABLE_JPEGLI_LIBJPEG=ON \
+		-DJPEGXL_INSTALL_JPEGLI_LIBJPEG=OFF \
+		-DJPEGXL_ENABLE_MANPAGES=OFF \
+		-DJPEGXL_ENABLE_OPENEXR=OFF \
+		-DJPEGXL_ENABLE_PLUGINS=OFF \
+		-DJPEGXL_ENABLE_SJPEG=OFF \
+		-DJPEGXL_ENABLE_TOOLS=OFF .
+	cd ${JXL_DIR} && cmake --build . -- -j`nproc`
+	cd ${JXL_DIR} && cmake --install .
+	@# jxl doesn't install a libjpeg.pc
+	@# It doesn't even install a static libjpeg.a at all, so we'll just grab it from the build dir directly.
+	@( \
+		echo "Name: libjpeg"; \
+		echo "Description: Actually jpegli"; \
+		echo "Version: 1.0"; \
+		echo "Libs: -L$(realpath ${JXL_DIR})/lib -L$(realpath ${GEN})/build/inst/lib64 -ljpeg -ljpegli-static -lhwy -lm -lstdc++"; \
+		echo "Cflags: -I$(realpath ${JXL_DIR})/lib/include/jpegli" \
+	) >${GEN}/build/inst/lib64/pkgconfig/libjpeg.pc
+	@# Additionally, pkg-config doesn't know we're linking these libs statically, so
+	@# make sure that libs in Requires.private are also included.
+	sed -i 's/Requires.private/Requires/' ${GEN}/build/inst/lib64/pkgconfig/*.pc
+	touch $@
+
+
+
+
+###### Elm #####
+
+ELM_FILES=elm/elm.json $(wildcard elm/*.elm elm/*/*.elm)
+ELM_CPFILES=${ELM_FILES:%=${GEN}/%}
 ELM_MODULES=$(shell grep -l '^main =' ${ELM_FILES} | sed 's/^elm\///')
 
 # Patch the Javascript generated by Elm:
@@ -139,7 +203,7 @@ ELM_MODULES=$(shell grep -l '^main =' ${ELM_FILES} | sed 's/^elm\///')
 # - Patch the virtualdom diffing algorithm to always apply the 'selected' attribute
 # - Patch the Regex library to always enable the 'u' flag
 define fix-elm
-	( echo '// @license magnet:?xt=urn:btih:0b31508aeb0634b347b8270c7bee4d411b5d4109&dn=agpl-3.0.txt AGPL-3.0-only'; \
+	$Q ( echo '// @license magnet:?xt=urn:btih:0b31508aeb0634b347b8270c7bee4d411b5d4109&dn=agpl-3.0.txt AGPL-3.0-only'; \
 	  echo '// @license magnet:?xt=urn:btih:c80d50af7d3db9be66a4d0a86db0286e4fd33292&dn=bsd-3-clause.txt BSD-3-Clause'; \
 	  echo '// @source: https://code.blicky.net/yorhel/vndb/src/branch/master/elm'; \
 	  echo '// SPDX-License-Identifier: AGPL-3.0-only and BSD-3-Clause'; \
@@ -150,58 +214,80 @@ define fix-elm
 		| sed -E 's/\$$author\$$project\$$Lib\$$Ffi\$$([a-zA-Z0-9_]+)/window.elmFfi_\1(_Json_wrap,_Browser_call)/g' \
 		| sed -E "s/([^ ]+) !== 'checked'/\\1 !== 'checked' \&\& \\1 !== 'selected'/g" \
 		| sed -E "s/var flags = 'g'/var flags = 'gu'/g" >$@~
-	mv $@~ $@
+	$Q mv $@~ $@
 endef
 
-elm/Gen/.generated: lib/VNWeb/*.pm lib/VNWeb/*/*.pm lib/VNDB/Types.pm lib/VNDB/ExtLinks.pm lib/VNDB/Config.pm data/conf.pl
+${ELM_CPFILES}: ${GEN}/%: %
+	$Q mkdir -p $(dir $@)
+	$Q cp $< $@
+
+${GEN}/elm/Gen/.generated: lib/VNWeb/*.pm lib/VNWeb/*/*.pm lib/VNDB/Types.pm lib/VNDB/ExtLinks.pm | ${GEN}/elm/Gen
 	util/vndb.pl elmgen
 
-static/g/elm.js: ${ELM_FILES} elm/Gen/.generated | static/g
-	cd elm && ELM_HOME=elm-stuff elm make ${ELM_MODULES} --output ../$@
+${GEN}/static/elm.js: ${ELM_CPFILES} ${GEN}/elm/Gen/.generated | ${GEN}/static
+	$T ELM
+	$Q cd ${GEN}/elm && ELM_HOME=elm-stuff elm make ${ELM_MODULES} --output ../static/elm.js >/dev/null
 	${fix-elm}
 
-static/g/elm.min.js: ${ELM_FILES} elm/Gen/.generated | static/g
-	cd elm && ELM_HOME=elm-stuff elm make --optimize ${ELM_MODULES} --output ../$@
+${GEN}/static/elm.min.js: ${ELM_CPFILES} ${GEN}/elm/Gen/.generated | ${GEN}/static
+	$T ELM
+	$Q cd ${GEN}/elm && ELM_HOME=elm-stuff elm make --optimize ${ELM_MODULES} --output ../static/elm.min.js >/dev/null
 	${fix-elm}
-	uglifyjs $@ --comments '/(@license|@source|SPDX-)/' --compress \
+	$T MINIFY
+	$Q uglifyjs $@ --comments '/(@license|@source|SPDX-)/' --compress \
 		'pure_funcs="F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9",pure_getters,keep_fargs=false,unsafe_comps,unsafe'\
 		| uglifyjs --mangle --comments all -o $@~
-	mv $@~ $@
+	$Q mv $@~ $@
 
-js/.gen/deps.mk: ${JS_BUNDLE_INDICES} | js/.gen
-	for f in ${JS_BUNDLE_NAMES}; do \
-		deps=$$(grep '^@include ' js/$$f/index.js | sed "s/@include / js\//" | tr -d '\n'); \
-		echo "static/g/$$f.js: js/$$f/index.js$$deps";echo; \
+
+
+
+###### Javascript #####
+
+${GEN}/jsdeps.mk: js/*/index.js | ${GEN}
+	$E JSDEP
+	$Q for f in $(patsubst js/%/index.js,%,$(wildcard js/*/index.js)); do \
+		deps=$$(grep '^@include ' js/$$f/index.js | sed -e "s/@include / js\\/$$f\\//" -e "s/js\\/$$f\\/\.gen/\$${GEN}/" | tr -d '\n'); \
+		echo "\$${GEN}/static/$$f.js: js/$$f/index.js$$deps";echo; \
 	done >$@
 
-include js/.gen/deps.mk
+include ${GEN}/jsdeps.mk
 
-js/.gen/mithril.js: | js/.gen
-	curl -s 'https://code.blicky.net/yorhel/mithril-vndb/raw/branch/next/mithril.js' -o $@
+${GEN}/mithril.js:
+	$T FETCH
+	$Q curl -s 'https://code.blicky.net/yorhel/mithril-vndb/raw/branch/next/mithril.js' -o $@
 
 # TODO: Custom bundle with only the stuff we use
-js/.gen/d3.js: | js/.gen
-	curl -s 'https://d3js.org/d3.v7.min.js' -o $@
+${GEN}/d3.js:
+	$T FETCH
+	$Q curl -s 'https://d3js.org/d3.v7.min.js' -o $@
 
-js/.gen/types.js: util/jsgen.pl lib/VNDB/Types.pm lib/VNWeb/Validation.pm | js/.gen
+${GEN}/types.js: util/jsgen.pl lib/VNDB/Types.pm lib/VNWeb/Validation.pm
 	util/jsgen.pl types >$@
 
-js/.gen/user.js: util/jsgen.pl lib/VNWeb/TimeZone.pm | js/.gen
+${GEN}/user.js: util/jsgen.pl lib/VNWeb/TimeZone.pm
 	util/jsgen.pl user >$@
 
-js/.gen/extlinks.js: util/jsgen.pl lib/VNDB/ExtLinks.pm | js/.gen
+${GEN}/extlinks.js: util/jsgen.pl lib/VNDB/ExtLinks.pm
 	util/jsgen.pl extlinks >$@
 
-${JS_BUNDLE_OUT}: %.js: | static/g
-	cd js && perl -Mautodie -pe 'if(/^\@include (.+)/) { open F, $$1; local$$/=undef; $$_="/* start of $$1 */\n(()=>{\n".<F>."})();\n/* end of $$1 */\n\n" }' ../$< >../$@
+${JS_OUT}: ${GEN}/static/%.js: | ${GEN}/static
+	$T JS
+	$Q perl -Mautodie -pe 'if(/^\@include (.+)/) { #\
+		$$n=$$1; open F, $$n =~ m#^\.gen/# ? $$n =~ s#^\.gen/#$$ENV{VNDB_GEN}/#r : "js/$*/$$n"; #\
+		local$$/=undef; $$_="/* start of $$n */\n(()=>{\n".<F>."})();\n/* end of $$1 */\n\n" #\
+	}' js/$*/index.js >$@
 
-${JS_BUNDLE_MIN}: %.min.js: %.js
-	uglifyjs $< --comments '/(@license|@source|SPDX-)/' --compress 'pure_getters,keep_fargs=false,unsafe_comps,unsafe' | uglifyjs --mangle --comments all -o $@
+${JS_OUT:js=min.js}: %.min.js: %.js
+	$T MINIFY
+	$Q uglifyjs $< --comments '/(@license|@source|SPDX-)/' --compress 'pure_getters,keep_fargs=false,unsafe_comps,unsafe' | uglifyjs --mangle --comments all -o $@
 
 
 
 
-# Multi
+###### Multi #####
+
+# (these should be removed, multi.pl should just run on the foreground)
 
 # may wait indefinitely, ^C and kill -9 in that case
 define multi-stop

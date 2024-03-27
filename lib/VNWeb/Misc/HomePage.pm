@@ -8,7 +8,7 @@ use VNWeb::Discussions::Lib 'enrich_boards';
 sub screens {
     state $where  ||= sql 'i.c_weight > 0 and vndbid_type(i.id) =', \'sf', 'and i.c_sexual_avg <', \40, 'and i.c_violence_avg <', \40;
     state $stats  ||= tuwf->dbRowi('SELECT count(*) as total, count(*) filter(where', $where, ') as subset from images i');
-    state $sample ||= 100*min 1, (200 / $stats->{subset}) * ($stats->{total} / $stats->{subset});
+    state $sample ||= 100*min 1, (200 / (1+$stats->{subset})) * ($stats->{total} / (1+$stats->{subset}));
 
     my $filt = advsearch_default 'v';
     my $start = time;
@@ -261,7 +261,7 @@ TUWF::get qr{/}, sub {
             p_ class => 'screenshots', sub {
                 a_ href => "/$_->{vid}", title => $_->{title}[1], sub {
                     my($w, $h) = imgsize $_->{width}, $_->{height}, config->{scr_size}->@*;
-                    img_ src => imgurl($_->{id}, 1), alt => $_->{title}[1], width => $w, height => $h;
+                    img_ src => imgurl($_->{id}, 't'), alt => $_->{title}[1], width => $w, height => $h;
                 } for @$screens;
             };
             p_ class => 'center standout', sub {

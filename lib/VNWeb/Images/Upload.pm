@@ -30,7 +30,7 @@ TUWF::post qr{/elm/ImageUpload.json}, sub {
 
     my $fno = imgpath($id, 'orig', $fmt);
     my $fn0 = imgpath($id);
-    my $fn1 = imgpath($id, 'thumb');
+    my $fn1 = imgpath($id, 't');
 
     {
         open my $F, '>', $fno or die $!;
@@ -57,7 +57,7 @@ TUWF::post qr{/elm/ImageUpload.json}, sub {
         warn "imgproc: $err\n" if $err;
         warn "Failed to run imgproc for $id\n";
         # keep original for troubleshooting
-        rename $fno, config->{root}."/static/${type}.orig/error-${id}.${fmt}";
+        rename $fno, config->{var_path}."/tmp/error-${id}.${fmt}";
         unlink $fn0;
         unlink $fn1;
         tuwf->dbRollBack;

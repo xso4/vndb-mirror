@@ -118,7 +118,7 @@ sub unload {
 
 sub run {
   my $p = shift;
-  $pidfile = config->{root}."/data/multi.pid";
+  $pidfile = config->{var_path}."/multi.pid";
   die "PID file already exists\n" if -e $pidfile;
 
   $stopcv = AE::cv;

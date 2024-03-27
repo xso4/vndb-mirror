@@ -145,15 +145,13 @@ sub minage {
 
 sub _path {
     my($t, $id) = $_[1] =~ /([a-z]+)([0-9]+)/;
-    $t = 'st' if $t eq 'sf' && $_[2] && $_[2] eq 'thumb';
-    $t = "$t.orig" if $_[2] && $_[2] eq 'orig';
-    sprintf '%s/%s/%02d/%d.%s', $_[0], $t, $id%100, $id, $_[3]||'jpg';
+    sprintf '%s/%s%s/%02d/%d.%s', $_[0], $t, $_[2] ? ".$_[2]" : '', $id%100, $id, $_[3]||'jpg';
 }
 
 # imgpath($image_id, $dir, $format)
-#   $dir = empty || 'thumb' || 'orig'
+#   $dir = empty || 't' || 'orig'
 #   $format = empty || $file_ext
-sub imgpath { _path config->{root}.'/static', @_ }
+sub imgpath { _path config->{var_path}.'/static', @_ }
 
 # imgurl($image_id, $dir, $format)
 sub imgurl { _path config->{url_static}, @_ }
@@ -307,7 +305,7 @@ sub md2html {
 sub is_insecurepass {
     utf8::encode(local $_ = shift);
     my $hash = sha1 $_;
-    my $dir = config->{root}.'/data/hibp';
+    my $dir = config->{var_path}.'/hibp';
     return 0 if !-d $dir;
 
     my $prefix = uc unpack 'H4', $hash;

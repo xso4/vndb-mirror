@@ -15,6 +15,8 @@ use Cwd 'abs_path';
 my $listen_port = $ENV{TUWF_HTTP_SERVER_PORT} || 3000;
 $ENV{TUWF_HTTP_SERVER_PORT} = $listen_port+1;
 
+$ENV{VNDB_VAR} //= 'var';
+
 my($pid, $prog, $killed);
 
 sub prog_start {
@@ -58,7 +60,7 @@ sub make_run {
         print "\n" if !$newline++;
         print $d;
     };
-    my $cb = run_cmd "cd $ROOT && make", '>', $out, '2>', $out;
+    my $cb = run_cmd "cd $ROOT && make -j4", '>', $out, '2>', $out;
     $cb->recv;
     print "\n" if $newline;
 }
@@ -100,10 +102,8 @@ sub checkmod {
     }, "$ROOT/lib";
 
     chdir $ROOT;
-    $check->($_) for (qw{
-        util/vndb.pl
-        data/conf.pl
-    });
+    $check->('util/vndb.pl');
+    $check->("$ENV{VNDB_VAR}/conf.pl");
 
     my $ismod = $newlastmod > $lastmod;
     $lastmod = $newlastmod;

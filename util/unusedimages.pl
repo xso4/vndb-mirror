@@ -14,11 +14,13 @@ use Cwd 'abs_path';
 my $ROOT;
 BEGIN { ($ROOT = abs_path $0) =~ s{/util/unusedimages\.pl$}{}; }
 
+$ENV{VNDB_VAR} //= 'var';
+
 my $db = DBI->connect('dbi:Pg:dbname=vndb', 'vndb', undef, { RaiseError => 1 });
 
 my $count = 0;
-my $dirmatch = '/(cv|ch|sf|st)(?:\.orig)?/';
-my $fnmatch = $dirmatch.'[0-9][0-9]/([1-9][0-9]{0,6})\.(?:jpg|webp|png)?';
+my $dirmatch = '/(cv|ch|sf|st)(?:\.orig|\.t)?/';
+my $fnmatch = $dirmatch.'[0-9][0-9]/([1-9][0-9]{0,6})\.(?:jpg|webp|png|avif|jxl)?';
 
 my(%scr, %cv, %ch);
 my %dir = (cv => \%cv, ch => \%ch, sf => \%scr, st => \%scr);
@@ -94,7 +96,6 @@ sub findunused {
     my $left = 0;
     find {
         no_chdir => 1,
-        follow => 1,
         wanted => sub {
             return if -d "$File::Find::name";
             if($File::Find::name !~ /($fnmatch)$/) {
@@ -110,7 +111,7 @@ sub findunused {
                 $left++;
             }
         }
-    }, "$ROOT/static";
+    }, "$ENV{VNDB_VAR}/static";
     printf "# Deleted %d files, left %d files, saved %d KiB\n", $count, $left, $size;
 }
 

@@ -5,7 +5,7 @@ use warnings;
 use autodie;
 use POSIX 'strftime';
 
-chdir 'dl/dump';
+chdir(($ENV{VNDB_VAR}//'var').'/dl/dump');
 
 my @pub = (glob('vndb-db-*'), glob('vndb-dev-*'), glob('vndb-votes-*'), glob('vndb-tags-*'), glob('vndb-traits-*'));
 

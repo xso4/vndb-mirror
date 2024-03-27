@@ -5,13 +5,10 @@
 
 use strict;
 use warnings;
-use Cwd 'abs_path';
 use Test::More;
 use Benchmark 'timethese';
 
-our($ROOT, %S);
-BEGIN { ($ROOT = abs_path $0) =~ s{/util/bbcode-test\.pl$}{}; }
-use lib "$ROOT/lib";
+use lib 'lib';
 use VNDB::BBCode;
 
 

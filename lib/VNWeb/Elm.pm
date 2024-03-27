@@ -271,7 +271,7 @@ sub encoder {
 
 sub write_module {
     my($module, $contents) = @_;
-    my $fn = sprintf '%s/elm/Gen/%s.elm', config->{root}, $module;
+    my $fn = sprintf '%s/elm/Gen/%s.elm', config->{gen_path}, $module;
 
     # The imports aren't necessary in all the files, but might as well add them.
     $contents = <<~"EOF";
@@ -428,7 +428,6 @@ sub write_api {
 sub write_types {
     my $data = '';
 
-    $data .= def adminEMail => String => string config->{admin_email};
     $data .= def languages  => 'List (String, String)' => list map tuple(string $_, string $LANGUAGE{$_}{txt}), sort { $LANGUAGE{$a}{txt} cmp $LANGUAGE{$b}{txt} } keys %LANGUAGE;
     $data .= def platforms  => 'List (String, String)' => list map tuple(string $_, string $PLATFORM{$_}), keys %PLATFORM;
     $data .= def releaseTypes => 'List (String, String)' => list map tuple(string $_, string $RELEASE_TYPE{$_}), keys %RELEASE_TYPE;
@@ -485,11 +484,10 @@ sub write_extlinks {
 
 
 if(tuwf->{elmgen}) {
-    mkdir config->{root}.'/elm/Gen';
     write_api;
     write_types;
     write_extlinks;
-    open my $F, '>', config->{root}.'/elm/Gen/.generated';
+    open my $F, '>', config->{gen_path}.'/elm/Gen/.generated';
     print $F scalar gmtime;
 }
 

@@ -7,6 +7,6 @@
 "use strict";
 
 @include .gen/d3.js
-@include graph/vn.js
+@include vn.js
 
 // @license-end

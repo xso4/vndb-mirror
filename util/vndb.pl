@@ -53,13 +53,17 @@ TUWF::hook before => sub {
     return if VNWeb::Validation::is_api;
 
     # Serve static files from www/
-    if(tuwf->resFile("$ROOT/www", tuwf->reqPath)) {
+    if(tuwf->resFile(config->{var_path}.'/www', tuwf->reqPath)) {
         tuwf->resHeader('Cache-Control' => 'max-age=86400');
         tuwf->done;
     }
 
     # If we're running standalone, serve static/ too.
-    if(tuwf->{_TUWF}{http} && tuwf->resFile("$ROOT/static", tuwf->reqPath)) {
+    if(tuwf->{_TUWF}{http} && (
+            tuwf->resFile(config->{var_path}.'/static', tuwf->reqPath) ||
+            tuwf->resFile(config->{gen_path}.'/static', tuwf->reqPath) ||
+            tuwf->resFile("$ROOT/static", tuwf->reqPath)
+    )) {
         tuwf->resHeader('Cache-Control' => 'max-age=31536000');
         tuwf->done;
     }
@@ -70,6 +74,13 @@ TUWF::hook before => sub {
 
     tuwf->req->{trace_start} = time if config->{trace_log};
 } if !$ONLYAPI;
+
+
+# Provide a default /robots.txt
+TUWF::get '/robots.txt', sub {
+    tuwf->resHeader('Content-Type' => 'text/plain');
+    lit_ "User-agent: *\nDisallow: /\n";
+};
 
 
 TUWF::set error_400_handler => sub {

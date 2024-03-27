@@ -20,6 +20,8 @@ my $db = DBI->connect('dbi:Pg:dbname=vndb', 'vndb', undef, { RaiseError => 1 });
 sub ids { join ',', map "'$_'", @{$_[0]} }
 sub idq { ids $db->selectcol_arrayref($_[0]) }
 
+chdir($ENV{VNDB_VAR}//'var');
+
 
 # Figure out which DB entries to export
 
@@ -203,7 +205,7 @@ sub copy_entry {
 # Now figure out which images we need, and throw everything in a tarball
 if(!$large) {
     sub img { sprintf 'static/%s/%02d/%d.jpg', $_[0], $_[1]%100, $_[1] }
-    my @imgpaths = sort map { my($t,$id) = /([a-z]+)([0-9]+)/; (img($t, $id), $t eq 'sf' ? img('st', $id) : ()) } @$imageids;
+    my @imgpaths = sort map { my($t,$id) = /([a-z]+)([0-9]+)/; (img($t, $id), $t eq 'sf' ? img('sf.t', $id) : ()) } @$imageids;
 
     system("tar -czf devdump.tar.gz dump.sql ".join ' ', @imgpaths);
     unlink 'dump.sql';

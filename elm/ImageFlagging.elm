@@ -149,7 +149,7 @@ update msg model =
       -- Preload next image
       pre (m, c) =
         case Array.get (m.index+1) m.images of
-          Just i  -> (m, Cmd.batch [ c, preload (imageUrl i.id) ])
+          Just i  -> (m, Cmd.batch [ c, preload (imageUrl "" i.id) ])
           Nothing -> (m, c)
   in
   case msg of
@@ -251,7 +251,7 @@ view model =
         ]
       , div [ style "width" (px (boxwidth + 10)), style "height" (px boxheight) ] <|
         -- Don't use an <img> here, changing the src= causes the old image to be displayed with the wrong dimensions while the new image is being loaded.
-        [ a [ href (imageUrl i.id), style "background-image" ("url("++imageUrl i.id++")")
+        [ a [ href (imageUrl "" i.id), style "background-image" ("url("++imageUrl "" i.id++")")
             , style "background-size" (if i.width > boxwidth || i.height > boxheight then "contain" else "auto")
             ] [ text "" ] ]
       , div []
@@ -268,7 +268,7 @@ view model =
         , span []
           [ a [ href <| "/img/" ++ i.id ] [ text i.id ]
           , small [] [ text " / " ]
-          , a [ href (imageUrl i.id) ] [ text <| String.fromInt i.width ++ "x" ++ String.fromInt i.height ]
+          , a [ href (imageUrl "" i.id) ] [ text <| String.fromInt i.width ++ "x" ++ String.fromInt i.height ]
           ]
         ]
       , div [] <| if i.token == Nothing then [] else
@@ -327,7 +327,7 @@ view model =
         ]
       , votestats i
       , if model.fullscreen -- really lazy fullscreen mode
-        then div [ class "fullscreen", style "background-image" ("url("++imageUrl i.id++")"), onClick (Fullscreen False) ] [ text "" ]
+        then div [ class "fullscreen", style "background-image" ("url("++imageUrl "" i.id++")"), onClick (Fullscreen False) ] [ text "" ]
         else text ""
       ]
 

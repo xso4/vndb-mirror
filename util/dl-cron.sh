@@ -1,17 +1,17 @@
 #!/bin/sh
 
-mkdir -p dl/dump dl/img dl/tmp
+[ -z "$VNDB_VAR" ] && VNDB_VAR=var
 
-die() {
-  echo $1
-  exit 1
-}
+mkdir -p "$VNDB_VAR/dl/dump" "$VNDB_VAR/dl/img" "$VNDB_VAR/tmp"
 
 # Keep only the last (non-symlink) files matching the given pattern, delete the rest.
 cleanup() {
-  PAT=$1
-  DEL=`find dl/dump -type f -name "$PAT" | sort | head -n -1`
-  [ -n "$DEL" ] && rm "$DEL"
+  (
+    cd "$VNDB_VAR/dl/dump"
+    for f in $(find . -type f -name "$1" | sort | head -n -1); do
+      rm "$f"
+    done
+  )
   util/dl-gendir.pl
 }
 
@@ -20,10 +20,10 @@ dumpfile() {
   FN=$1
   LATEST=$2
   CMD=$3
-  test -f "dl/dump/$FN" && echo "$FN already exists" && return
-  util/dbdump.pl $CMD "dl/tmp/$FN"
-  mv "dl/tmp/$FN" "dl/dump/$FN"
-  ln -sf "$FN" "dl/dump/$LATEST"
+  test -f "$VNDB_VAR/dl/dump/$FN" && echo "$FN already exists" && return
+  util/dbdump.pl $CMD "$VNDB_VAR/tmp/$FN"
+  mv "$VNDB_VAR/tmp/$FN" "$VNDB_VAR/dl/dump/$FN"
+  ln -sf "$FN" "$VNDB_VAR/dl/dump/$LATEST"
   util/dl-gendir.pl
 }
 
@@ -41,4 +41,4 @@ dumpfile "vndb-traits-`date +%F`.json.gz" "vndb-traits-latest.json.gz" export-tr
 cleanup "vndb-db-*.tar.zst"
 dumpfile "vndb-db-`date +%F`.tar.zst" "vndb-db-latest.tar.zst" export-db
 
-util/dbdump.pl export-img dl/img
+util/dbdump.pl export-img "$VNDB_VAR/dl/img"

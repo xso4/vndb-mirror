@@ -123,11 +123,11 @@ const ExtLinks = initVnode => {
 
 
 
-@include contrib/ReleaseEdit.js
-@include contrib/DRMEdit.js
-@include contrib/ProducerEdit.js
-@include contrib/StaffEdit.js
-@include contrib/DocEdit.js
-@include contrib/Report.js
+@include ReleaseEdit.js
+@include DRMEdit.js
+@include ProducerEdit.js
+@include StaffEdit.js
+@include DocEdit.js
+@include Report.js
 
 // @license-end

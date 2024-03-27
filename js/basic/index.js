@@ -27,29 +27,29 @@ window.onerror = function(ev, source, lineno, colno, error) {
 
 @include .gen/mithril.js
 @include .gen/types.js
-@include basic/polyfills.js
+@include polyfills.js
 
 // Library stuff
-@include basic/utils.js
-@include basic/api.js
-@include basic/components.js
-@include basic/ds.js
+@include utils.js
+@include api.js
+@include components.js
+@include ds.js
 
 // A bunch of old fashioned DOM manipulation features.
-@include basic/checkall.js
-@include basic/checkhidden.js
-@include basic/mainbox-summarize.js
-@include basic/searchtabs.js
-@include basic/sethash.js
-@include basic/ulist-actiontabs.js
-@include basic/ulist-labelfilters.js
+@include checkall.js
+@include checkhidden.js
+@include mainbox-summarize.js
+@include searchtabs.js
+@include sethash.js
+@include ulist-actiontabs.js
+@include ulist-labelfilters.js
 
-@include basic/elm-support.js
+@include elm-support.js
 
 // Widgets
-@include basic/TableOpts.js
+@include TableOpts.js
 
 // Image viewer; after loading Elm modules to ensure it sees the screenshots in VNEdit.
-@include basic/iv.js
+@include iv.js
 
 // @license-end

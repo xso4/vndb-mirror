@@ -56,11 +56,11 @@ selfCmd : msg -> Cmd msg
 selfCmd m = Task.perform (always m) (Process.sleep 1.0)
 
 
--- Convert an image ID (e.g. "sf500") into a URL.
-imageUrl : String -> String
-imageUrl id =
+-- Convert a dir suffix ("" or ".t") and an image ID (e.g. "sf500") into a URL.
+imageUrl : String -> String -> String
+imageUrl suff id =
   let num = String.dropLeft 2 id |> String.toInt |> Maybe.withDefault 0
-  in Ffi.urlStatic ++ "/" ++ String.left 2 id ++ "/" ++ String.fromInt (modBy 10 (num // 10)) ++ String.fromInt (modBy 10 num) ++ "/" ++ String.fromInt num ++ ".jpg"
+  in Ffi.urlStatic ++ "/" ++ String.left 2 id ++ suff ++ "/" ++ String.fromInt (modBy 10 (num // 10)) ++ String.fromInt (modBy 10 num) ++ "/" ++ String.fromInt num ++ ".jpg"
 
 
 vndbidNum : String -> Int

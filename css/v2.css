@@ -1075,12 +1075,12 @@ div#iv_view {
 [class^=icon-lang-],
 [class^=icon-gen-],
 .icon-external,
-.icon-rtcomplete, .icon-rtpartial, .icon-rttrial { background-image: url(/g/icons.png?#{$png-version}) }
+.icon-rtcomplete, .icon-rtpartial, .icon-rttrial { background-image: url(/icons.png?#{$png-version}) }
 [class^=icon-plat-],
 [class^=icon-drm-],
 [class^=icon-rel-],
 [class^=icon-list-],
-.icon-rss { background-image: url(/g/icons.svg?#{$svg-version}) }
+.icon-rss { background-image: url(/icons.svg?#{$svg-version}) }
 
 [class^=icon-lang-] { opacity: 0.5 }
 [class^=icon-lang-].mtl { filter: grayscale(1); opacity: 0.4 }
@@ -1090,9 +1090,6 @@ div#iv_view {
 .icon-rel-v2, .icon-rel-a2 { filter: hue-rotate(30deg); }
 .icon-rel-v3, .icon-rel-a3 { filter: invert(100%) hue-rotate(240deg); }
 .icon-rel-v4, .icon-rel-a4 { filter: hue-rotate(80deg); }
-
-@import 'static/g/png.spritecss';
-@import 'static/g/svg.spritecss';
 
 
 /* Relation graph */

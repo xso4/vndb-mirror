@@ -3,13 +3,19 @@ package VNDB::Config;
 use strict;
 use warnings;
 use Exporter 'import';
+use Cwd 'abs_path';
 our @EXPORT = ('config');
 
 my $ROOT = $INC{'VNDB/Config.pm'} =~ s{/lib/VNDB/Config\.pm$}{}r;
+my $GEN = abs_path($ENV{VNDB_GEN} // "$ROOT/gen");
+my $VAR = abs_path($ENV{VNDB_VAR} // "$ROOT/var");
 
 # Default config options
 my $config = {
-    url             => 'http://localhost:3000',
+    gen_path          => $GEN,
+    var_path          => $VAR,
+
+    url               => 'http://localhost:3000',
 
     tuwf => {
         db_login      => [ 'dbi:Pg:dbname=vndb', 'vndb_site', undef ],
@@ -27,7 +33,7 @@ my $config = {
     reset_throttle    => [ 24*3600/2,  24*3600 ], # interval between attempts, max burst (2 a day)
     board_edit_time   => 7*24*3600, # Time after which posts become immutable
     graphviz_path     => '/usr/bin/dot',
-    imgproc_path      => "$ROOT/imgproc/imgproc-portable",
+    imgproc_path      => "$GEN/imgproc",
     trace_log         => 0,
     # Put the site in full read-only mode; Login is disabled and nothing is written to the DB. Handy for migrations.
     read_only         => 0,
@@ -47,7 +53,7 @@ my $config = {
 };
 
 
-my $config_file = do $ROOT.'/data/conf.pl' or die $!;
+my $config_file = -e "$VAR/conf.pl" ? do("$VAR/conf.pl") || die $! : {};
 my $config_merged;
 
 sub config {
@@ -61,7 +67,7 @@ sub config {
         $c->{version} ||= `git -C "$ROOT" describe` =~ s/\-g[0-9a-f]+$//rg =~ s/\r?\n//rg;
         $c->{root} = $ROOT;
         $c->{Multi}{Core}{log_level} ||= 'debug';
-        $c->{Multi}{Core}{log_dir}   ||= $ROOT.'/data/log';
+        $c->{Multi}{Core}{log_dir}   ||= $VAR.'/log';
         $c
     };
     $config_merged

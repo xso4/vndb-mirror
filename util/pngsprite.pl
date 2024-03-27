@@ -2,10 +2,12 @@
 
 use v5.28;
 
-my $icons = 'static/g/icons.png';
-my $ticons = 'static/g/icons~.png';
-my $css = 'static/g/png.spritecss';
-my $imgproc = 'imgproc/imgproc-portable';
+my $GEN = $ENV{VNDB_GEN} // 'gen';
+
+my $icons = "$GEN/static/icons.png";
+my $ticons = "$GEN/static/icons~.png";
+my $css = "$GEN/png.css";
+my $imgproc = "$GEN/imgproc";
 
 my @img = map {
     local $/ = undef;

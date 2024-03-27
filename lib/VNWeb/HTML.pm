@@ -165,13 +165,13 @@ sub widget {
 }
 
 
-# Generate a url to a file in static/ and append a checksum.
+# Generate a url to a file in gen/static/ and append a checksum.
 sub _staticurl {
     my($file) = @_;
     state %urls;
     $urls{$file} //= do {
         my $c = Digest::SHA->new('sha1');
-        $c->addfile(config->{root}.'/static/'.$file);
+        $c->addfile(config->{gen_path}.'/static/'.$file);
         sprintf '%s/%s?%s', config->{url_static}, $file, substr $c->hexdigest(), 0, 8;
     };
 }
@@ -193,7 +193,7 @@ sub _head_ {
     title_ $o->{title}.' | vndb';
     base_ href => tuwf->reqURI();
     link_ rel => 'shortcut icon', href => '/favicon.ico', type => 'image/x-icon';
-    link_ rel => 'stylesheet', href => _staticurl("g/$skin.css"), type => 'text/css', media => 'all';
+    link_ rel => 'stylesheet', href => _staticurl("$skin.css"), type => 'text/css', media => 'all';
     link_ rel => 'search', type => 'application/opensearchdescription+xml', title => 'VNDB Visual Novel Search', href => tuwf->reqBaseURI().'/opensearch.xml';
     link_ rel => 'stylesheet', href => sprintf '/%s.css?%x', $customcss->[0], $customcss->[1] if $customcss;
     meta_ name => 'viewport', content => 'width=device-width, initial-scale=1.0, user-scalable=yes' if tuwf->reqGet('mobile-test');
@@ -575,7 +575,7 @@ sub framework_ {
                 lit_(JSON::XS->new->canonical->encode(tuwf->req->{pagevars}) =~ s{</}{<\\/}rg =~ s/<!--/<\\u0021--/rg);
             } if keys tuwf->req->{pagevars}->%*;
 
-            script_ defer => 'defer', src => _staticurl("g/$_.js"), '' for grep tuwf->req->{js}{$_}, qw/elm basic user contrib graph/;
+            script_ defer => 'defer', src => _staticurl("$_.js"), '' for grep tuwf->req->{js}{$_}, qw/elm basic user contrib graph/;
         }
     }
 }

@@ -12,7 +12,8 @@ which is processed by the top-level Makefile and then converted into
 `static/g/<bundle>.js`. `index.js` can include other files with `@include
 file.js` lines, these are substituted with the contents of `file.js` and
 wrapped inside anonymous JS functions for scoping. File names are resolved
-relative to this `js` directory.
+relative to the index.js file itself, the special virtual `.gen/` directory
+resolves to `$VNDB_GEN`, see the top-level Makefile for the generated JS files.
 
 Scripts use the global `window` object to share functions and data, but apart
 from a bit of common library code, most scripts ought to be fairly

@@ -11,17 +11,17 @@ const username_reqs = [
     '- May not look like a VNDB identifier (i.e. an alphabetic character followed only by numbers).',
 ];
 @include .gen/user.js
-@include user/Subscribe.js
-@include user/UserLogin.js
-@include user/UserEdit.js
-@include user/UserRegister.js
-@include user/UserPassReset.js
-@include user/UserPassSet.js
-@include user/UserAdmin.js
-@include user/DiscussionReply.js
-@include user/ReviewComment.js
-@include user/ReviewsVote.js
-@include user/QuoteEdit.js
-@include user/QuoteVote.js
+@include Subscribe.js
+@include UserLogin.js
+@include UserEdit.js
+@include UserRegister.js
+@include UserPassReset.js
+@include UserPassSet.js
+@include UserAdmin.js
+@include DiscussionReply.js
+@include ReviewComment.js
+@include ReviewsVote.js
+@include QuoteEdit.js
+@include QuoteVote.js
 
 // @license-end

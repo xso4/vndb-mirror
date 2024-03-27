@@ -3,12 +3,20 @@
 # This script requires an imagemagick compiled with all image formats supported by imgproc-custom.
 
 use v5.28;
-use lib '../lib';
+use warnings;
+use Cwd 'abs_path';
+
+my $ROOT;
+BEGIN { ($ROOT = abs_path $0) =~ s{/util/test/imgproc-custom\.pl$}{}; }
+
+use lib $ROOT.'/lib';
 use VNDB::Func;
+
+my $bin = ($ENV{VNDB_GEN} // 'gen').'/imgproc-custom';
 
 sub cmphash {
     my($fn, $out, $hash) = @_;
-    my $outd = `./imgproc-custom size fit 500 500 jpeg 1 <$fn 2>&1 >tst.jpg`;
+    my $outd = `$bin size fit 500 500 jpeg 1 <$fn 2>&1 >tst.jpg`;
     chomp($outd);
     my($hashd) = split / /, `sha1sum tst.jpg`;
     die "Hash mismatch for $fn, got $hashd see tst.jpg\n" if $hash ne $hashd;
@@ -27,13 +35,13 @@ sub cmpmagick {
 
 # These hashes are likely to change with libvips / libjpeg versions, output
 # should be manually verified and the hashes updated in that case.
-cmphash 'basn4a08.png', '32x32', '62c4f502c6e8f13fe72cd511267616ea75724503';
-cmphash 'basn6a16.png', '32x32', 'f85f1bb196ad6f8c284370bcb74d5cd8b19fc432';
+cmphash 'util/test/basn4a08.png', '32x32', '62c4f502c6e8f13fe72cd511267616ea75724503';
+cmphash 'util/test/basn6a16.png', '32x32', 'f85f1bb196ad6f8c284370bcb74d5cd8b19fc432';
 
 # Triggers g_warning() output
-die if `./imgproc-custom size <xd9n2c08.png 2>&1` !~ /Invalid IHDR data/;
+die if `$bin size <util/test/xd9n2c08.png 2>&1` !~ /Invalid IHDR data/;
 # Triggers vips_error_exit() output
-die if `./imgproc-custom jpeg 5 <basn4a08.png 2>&1` !~ /write error/;
+die if `$bin jpeg 5 <util/test/basn4a08.png 2>&1` !~ /write error/;
 
 # Large images are tested to see if extra memory or thread pool use triggers more unique system calls.
 # (it does, and yes it varies per input format)
@@ -59,7 +67,7 @@ exit; # don't need to test this often
 for my $w (10, 50, 256, 400) {
     for my $h (300..1000) {
         `convert -size ${w}x$h 'canvas:rgb(0,0,0)' tst.png`;
-        my $dim = `./imgproc-custom fit 256 300 size <tst.png 2>&1`;
+        my $dim = `$bin fit 256 300 size <tst.png 2>&1`;
         unlink 'tst.png';
         chomp($dim);
         my $size = join 'x', imgsize $w, $h, 256, 300;

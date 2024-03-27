@@ -58,11 +58,11 @@ sub widgets {
                 open my $F, '<', $index or die $!;
                 while (local $_ = <$F>) {
                     grab($bundle, $_);
-                    push @f, $1 if /^\@include (.+)/;
+                    push @f, $1 if /^\@include (.+)/ && !/ \.gen\//;
                 }
             };
             for (@f) {
-                open my $F, '<', config->{root}."/js/$_" or die $1;
+                open my $F, '<', config->{root}."/js/$bundle/$_" or die $!;
                 grab($bundle, $_) while (<$F>);
             }
         }

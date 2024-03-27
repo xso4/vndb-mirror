@@ -45,6 +45,7 @@ use lib "$ROOT/lib";
 use VNDB::Schema;
 use VNDB::ExtLinks;
 
+$ENV{VNDB_VAR} //= 'var';
 
 # Ridiculous query to export 'ulist_vns' with private labels removed.
 # Since doing a lookup in ulist_labels for each row+label in ulist_vns is
@@ -339,15 +340,15 @@ sub export_img {
 
     no autodie;
     mkdir ${dest};
-    mkdir sprintf '%s/%s', $dest, $_ for qw/ch cv sf st/;
-    mkdir sprintf '%s/%s/%02d', $dest, $_->[0], $_->[1] for map +([ch=>$_], [cv=>$_], [sf=>$_], [st=>$_]), 0..99;
+    mkdir sprintf '%s/%s', $dest, $_ for qw/ch cv sf sf.t/;
+    mkdir sprintf '%s/%s/%02d', $dest, $_->[0], $_->[1] for map +([ch=>$_], [cv=>$_], [sf=>$_], ['sf.t'=>$_]), 0..99;
 
     cp_p "$ROOT/util/dump/LICENSE-ODBL.txt", "$dest/LICENSE-ODBL.txt";
     cp_p "$ROOT/util/dump/README-img.txt", "$dest/README.txt";
     export_timestamp "$dest/TIMESTAMP";
 
     my %scr;
-    my %dir = (ch => {}, cv => {}, sf => \%scr, st => \%scr);
+    my %dir = (ch => {}, cv => {}, sf => \%scr, 'sf.t' => \%scr);
     $dir{sf}{$_->[0]} = 1 for $db->selectall_array("SELECT vndbid_num(scr) FROM vn_screenshots x WHERE $tables{vn_screenshots}{where}");
     $dir{cv}{$_->[0]} = 1 for $db->selectall_array("SELECT vndbid_num(image) FROM vn x WHERE image IS NOT NULL AND $tables{vn}{where}");
     $dir{ch}{$_->[0]} = 1 for $db->selectall_array("SELECT vndbid_num(image) FROM chars x WHERE image IS NOT NULL AND $tables{chars}{where}");
@@ -358,14 +359,14 @@ sub export_img {
         no_chdir => 1,
         wanted => sub {
             unlink $File::Find::name or warn "Unable to unlink $File::Find::name: $!\n"
-                if $File::Find::name =~ m{(cv|ch|sf|st)/[0-9][0-9]/([0-9]+)\.jpg$} && !$dir{$1}{$2};
+                if $File::Find::name =~ m{(cv|ch|sf|sf\.t)/[0-9][0-9]/([0-9]+)\.jpg$} && !$dir{$1}{$2};
         }
     }, $dest;
 
     for my $d (keys %dir) {
         for my $i (keys %{$dir{$d}}) {
             my $f = sprintf('%s/%02d/%d.jpg', $d, $i % 100, $i);
-            link "$ROOT/static/$f", "$dest/$f" or warn "Unable to link $f: $!\n" if !-e "$dest/$f";
+            link "$ENV{VNDB_VAR}/static/$f", "$dest/$f" or warn "Unable to link $f: $!\n" if !-e "$dest/$f";
         }
     }
 }

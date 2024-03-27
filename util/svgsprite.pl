@@ -9,6 +9,8 @@ use v5.26;
 use strict;
 use autodie;
 
+my $GEN = $ENV{VNDB_GEN} // 'gen';
+
 my %icons = map +((m{^icons/(.+)\.svg$})[0] =~ s#/#-#rg, $_), glob('icons/*.svg'), glob('icons/*/*.svg');
 my $idnum = 'a';
 my($width, $height) = (-10,0);
@@ -39,12 +41,12 @@ for my $id (sort keys %icons) {
 }
 
 {
-    open my $F, '>', 'static/g/svg.spritecss';
+    open my $F, '>', "$GEN/svg.css";
     print $F $css;
 }
 
 {
-    open my $F, '>', 'static/g/icons.svg';
+    open my $F, '>', "$GEN/static/icons.svg";
     print $F qq{<svg xmlns="http://www.w3.org/2000/svg" width="$width" height="$height" viewBox="0 0 $width $height">};
     print $F qq{<defs>$defs</defs>} if $defs;
     print $F $group;

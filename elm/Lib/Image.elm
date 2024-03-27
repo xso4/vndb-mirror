@@ -126,9 +126,9 @@ viewImg image =
       label [ class "imghover", style "width" (String.fromInt imgWidth++"px"), style "height" (String.fromInt imgHeight++"px") ]
       [ div [ class "imghover--visible" ]
         [ if String.startsWith "sf" i.id
-          then a [ href (imageUrl i.id), attribute "data-iv" <| String.fromInt i.width ++ "x" ++ String.fromInt i.height ++ ":scr" ]
-               [ img [ src <| imageUrl <| String.replace "sf" "st" i.id ] [] ]
-          else img [ src <| imageUrl i.id ] []
+          then a [ href (imageUrl "" i.id), attribute "data-iv" <| String.fromInt i.width ++ "x" ++ String.fromInt i.height ++ ":scr" ]
+               [ img [ src <| imageUrl ".t" i.id ] [] ]
+          else img [ src <| imageUrl "" i.id ] []
         , a [ class "imghover--overlay", href <| "/img/"++i.id ] <|
           case (i.sexual_avg, i.violence_avg) of
             (Just sex, Just vio) ->

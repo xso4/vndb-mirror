@@ -1,8 +1,10 @@
 FROM alpine:3.17
 MAINTAINER Yorhel <contact@vndb.org>
 
-ENV VNDB_DOCKER_VERSION=13
-CMD /var/www/util/docker-init.sh
+ENV VNDB_DOCKER_VERSION=14
+ENV VNDB_GEN=/vndb/docker/gen
+ENV VNDB_VAR=/vndb/docker/var
+CMD /vndb/util/docker-init.sh
 
 RUN apk add --no-cache \
         build-base \

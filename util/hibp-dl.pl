@@ -5,7 +5,7 @@
 # -> https://haveibeenpwned.com/API/v3#PwnedPasswords
 #
 # Output database format:
-#   data/hibp/####  -> file for hashes prefixed with those two bytes
+#   var/hibp/####  -> file for hashes prefixed with those two bytes
 #
 #   Each file is an ordered concatenation of raw hashes, excluding the first
 #   two bytes (part of the filename) and the last 8 bytes (truncated hashes),
@@ -29,8 +29,10 @@ my $run = AE::cv;
 
 my $ROOT = abs_path($0) =~ s{/util/hibp-dl\.pl$}{}r;
 
-mkdir "$ROOT/data/hibp";
-chdir "$ROOT/data/hibp" or die $!;
+$ENV{VNDB_VAR} //= 'var';
+
+mkdir "$ENV{VNDB_VAR}/hibp";
+chdir "$ENV{VNDB_VAR}/hibp" or die $!;
 
 
 $AnyEvent::HTTP::MAX_PER_HOST = $concurrency;
