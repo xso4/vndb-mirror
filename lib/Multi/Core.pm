@@ -84,7 +84,7 @@ sub run {
   open my $LOCK, '>', config->{var_path}.'/multi.lock' or die "multi.lock: $!\n";
   flock $LOCK, LOCK_EX|LOCK_NB or die "multi.lock: $!\n";
 
-  $stopcv = AE::cv;
+  my $stopcv = AE::cv;
   AnyEvent::Log::ctx('Multi')->attach(AnyEvent::Log::Ctx->new(level => config->{Multi}{Core}{log_level}||'trace',
     # Don't use log_to_file, it doesn't accept perl's unicode strings (and, in fact, crashes on them without logging anything).
     log_cb => sub {
