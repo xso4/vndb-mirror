@@ -8,7 +8,7 @@ package Multi::Maintenance;
 use strict;
 use warnings;
 use Multi::Core;
-use PerlIO::gzip;
+use POSIX 'strftime';
 use VNDB::Config;
 
 
@@ -19,6 +19,7 @@ sub run {
   push_watcher schedule 57*60, 3600, \&hourly; # Every hour at xx:57
   push_watcher schedule 7*3600+1800, 24*3600, \&daily; # 7:30 UTC, 30 minutes before the daily DB dumps are created
   set_monthly();
+  logrotate();
 }
 
 
@@ -51,9 +52,28 @@ sub hourly {
 }
 
 
+
 #
 #  D A I L Y   J O B S
 #
+
+
+sub logrotate {
+    my $today = strftime '%Y%m%d', localtime;
+    my $oldest = strftime '%Y%m%d', localtime(time() - 30*24*3600);
+
+    my $dir = config->{Multi}{Core}{log_dir};
+    opendir my $D, $dir or AE::log warn => "Unable to read $dir: $!";
+    while (local $_ = readdir $D) {
+        next if /^\./ || /~$/ || !-f "$dir/$_";
+        if (/-([0-9]{8})$/) {
+            unlink "$dir/$_" or AE::log warn => "Unable to rm $dir/$_: $!" if $1 lt $oldest;
+        } elsif (!-f "$dir/$_-$today") {
+            rename "$dir/$_", "$dir/$_-$today" or AE::log warn => "Unable to move $dir/$_: $!";
+        }
+    }
+    AE::log info => 'Logs rotated.';
+}
 
 
 my %dailies = (
@@ -119,6 +139,7 @@ sub daily {
     run_daily shift(@l), $s if @l;
   };
   $s->();
+  logrotate;
 }
 
 
@@ -139,27 +160,6 @@ my %monthlies = (
 );
 
 
-sub logrotate {
-  my $dir = sprintf '%s/old', config->{Multi}{Core}{log_dir};
-  mkdir $dir if !-d $dir;
-
-  for (glob sprintf '%s/*', config->{Multi}{Core}{log_dir}) {
-    next if /^\./ || /~$/ || !-f;
-    my $f = /([^\/]+)$/ ? $1 : $_;
-    my $n = sprintf '%s/%s.%04d-%02d-%02d.gz', $dir, $f, (localtime)[5]+1900, (localtime)[4]+1, (localtime)[3];
-    return if -f $n;
-    open my $I, '<', sprintf '%s/%s', config->{Multi}{Core}{log_dir}, $f;
-    open my $O, '>:gzip', $n;
-    print $O $_ while <$I>;
-    close $O;
-    close $I;
-    open $I, '>', sprintf '%s/%s', config->{Multi}{Core}{log_dir}, $f;
-    close $I;
-  }
-  AE::log info => 'Logs rotated.';
-}
-
-
 sub run_monthly {
   my($d, $sub) = @_;
   pg_cmd $monthlies{$d}, undef, sub {
@@ -175,8 +175,6 @@ sub monthly {
     run_monthly shift(@l), $s if @l;
   };
   $s->();
-
-  logrotate;
   set_monthly;
 }
 
