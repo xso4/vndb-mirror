@@ -11,10 +11,6 @@
 #
 # test
 #   Run the few unit tests that we do have.
-#
-# multi-start, multi-stop, multi-restart:
-#   Start/stop/restart the Multi daemon. Provided for convenience, a proper initscript
-#   probably makes more sense.
 
 .PHONY: all prod clean test multi-stop multi-start multi-restart
 .DELETE_ON_ERROR:
@@ -281,31 +277,3 @@ ${JS_OUT}: ${GEN}/static/%.js: | ${GEN}/static
 ${JS_OUT:js=min.js}: %.min.js: %.js
 	$T MINIFY
 	$Q uglifyjs $< --comments '/(@license|@source|SPDX-)/' --compress 'pure_getters,keep_fargs=false,unsafe_comps,unsafe' | uglifyjs --mangle --comments all -o $@
-
-
-
-
-###### Multi #####
-
-# (these should be removed, multi.pl should just run on the foreground)
-
-# may wait indefinitely, ^C and kill -9 in that case
-define multi-stop
-	if [ -s data/multi.pid ]; then\
-	  kill `cat data/multi.pid`;\
-	  while [ -s data/multi.pid ]; do\
-	    if kill -0 `cat data/multi.pid`; then sleep 1;\
-	    else rm -f data/multi.pid; fi\
-	  done;\
-	fi
-endef
-
-multi-stop:
-	$(multi-stop)
-
-multi-start:
-	util/multi.pl
-
-multi-restart:
-	$(multi-stop)
-	util/multi.pl

@@ -114,11 +114,8 @@ docker exec -ti vndb psql -U vndb   # postgres shell
 To start Multi, the optional application server:
 
 ```
-docker exec -ti vndb su -l devuser -c 'make -C /vndb multi-restart'
+docker exec -ti vndb su -l devuser -c /vndb/util/multi.pl
 ```
-
-It will run in the background for as long as the container is alive. Logs are
-written to *docker/var/log/multi.log*.
 
 All data is stored in the *docker/* directory. The `$VNDB_GEN` and `$VNDB_VAR`
 environment variables inside the container point into this directory and the

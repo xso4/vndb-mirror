@@ -12,7 +12,7 @@ use AnyEvent::Log;
 use AnyEvent::Pg::Pool;
 use Pg::PQ ':pgres';
 use DBI;
-use POSIX 'setsid', 'pause', 'SIGUSR1';
+use Fcntl 'LOCK_EX', 'LOCK_NB';
 use Exporter 'import';
 use VNDB::Config;
 
@@ -20,9 +20,6 @@ our @EXPORT = qw|pg pg_cmd pg_expect schedule push_watcher throttle|;
 
 
 my $PG;
-my $logger;
-my $pidfile;
-my $stopcv;
 my %throttle; # id => timeout
 my @watchers;
 
@@ -34,41 +31,6 @@ sub pg() { $PG }
 # long as Multi keeps running.
 sub push_watcher {
   push @watchers, shift;
-}
-
-
-sub daemon_init {
-  my $pid = fork();
-  die "fork(): $!" if !defined $pid or $pid < 0;
-
-  # parent process, log PID and wait for child to initialize
-  if($pid > 0) {
-    $SIG{CHLD} = sub { die "Initialization failed.\n"; };
-    $SIG{ALRM} = sub { kill $pid, 9; die "Initialization timeout.\n"; };
-    $SIG{USR1} = sub {
-      open my $P, '>', $pidfile or kill($pid, 9) && die $!;
-      print $P $pid;
-      close $P;
-      exit;
-    };
-    alarm(10);
-    pause();
-    exit 1;
-  }
-}
-
-
-sub daemon_done {
-  kill SIGUSR1, getppid();
-  setsid();
-  chdir '/';
-  umask 0022;
-  open STDIN, '/dev/null';
-  tie *STDOUT, 'Multi::Core::STDIO', 'STDOUT';
-  tie *STDERR, 'Multi::Core::STDIO', 'STDERR';
-
-  push_watcher AE::signal TERM => sub { $stopcv->send };
-  push_watcher AE::signal INT  => sub { $stopcv->send };
 }
 
 
@@ -117,9 +79,10 @@ sub unload {
 
 
 sub run {
-  my $p = shift;
-  $pidfile = config->{var_path}."/multi.pid";
-  die "PID file already exists\n" if -e $pidfile;
+  my($quiet) = @_;
+
+  open my $LOCK, '>', config->{var_path}.'/multi.lock' or die "multi.lock: $!\n";
+  flock $LOCK, LOCK_EX|LOCK_NB or die "multi.lock: $!\n";
 
   $stopcv = AE::cv;
   AnyEvent::Log::ctx('Multi')->attach(AnyEvent::Log::Ctx->new(level => config->{Multi}{Core}{log_level}||'trace',
@@ -127,14 +90,15 @@ sub run {
     log_cb => sub {
       open(my $F, '>>:utf8', config->{Multi}{Core}{log_dir}.'/multi.log');
       print $F $_[0];
+      print $_[0] unless $quiet;
     }
   ));
   $AnyEvent::Log::FILTER->level('fatal');
 
-  daemon_init;
   load_pg;
   load_mods;
-  daemon_done;
+  push_watcher AE::signal TERM => sub { $stopcv->send };
+  push_watcher AE::signal INT  => sub { $stopcv->send };
   AE::log info => "Starting Multi ".config->{version};
   push_watcher(schedule(60, 10*60, \&throttle_gc));
 

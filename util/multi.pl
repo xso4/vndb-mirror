@@ -10,4 +10,6 @@ BEGIN { ($ROOT = abs_path $0) =~ s{/util/multi\.pl$}{} }
 use lib $ROOT.'/lib';
 use Multi::Core;
 
-Multi::Core->run();
+my $quiet = grep '-q', @ARGV;
+
+Multi::Core::run $quiet;
