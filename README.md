@@ -58,6 +58,10 @@ sql/
     are idempotent and can also be used to load new features into an existing
     database, but see the *util/updates/README.md* for more details.
 
+static/
+:   Static assets. *static/s/* contains images used by CSS skins and
+    miscellaneous files go into *static/f/*.
+
 util/
 :   Command-line utilities for various tasks. See *util/README.md* for details.
 
