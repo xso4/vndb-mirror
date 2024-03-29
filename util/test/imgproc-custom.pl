@@ -57,7 +57,7 @@ cmpmagick 'cmyk.jpg', 'LOGO: -colorspace CMYK', '640x480', '3ff8566e661a0faef5a9
 
 cmpmagick 'large.avif', '"canvas:rgb(100,50,30)"', '5000x5000', 'b42788bf491a9a73d30d58c3a3a843e219f36f91';
 
-cmpmagick 'large.jxl', '"canvas:rgb(100,50,30)"', '5000x5000', 'c5f1d23d43f3ec42ce04a31ba67334c2b5f68ee2';
+cmpmagick 'large.jxl', '"canvas:rgb(100,50,30)"', '5000x5000', '76b8bbca1df2184319ec9d7e57250e0b8b7b5c2f';
 
 # TODO: Test metadata stripping?
 

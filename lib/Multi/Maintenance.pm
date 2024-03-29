@@ -19,7 +19,6 @@ sub run {
   push_watcher schedule 57*60, 3600, \&hourly; # Every hour at xx:57
   push_watcher schedule 7*3600+1800, 24*3600, \&daily; # 7:30 UTC, 30 minutes before the daily DB dumps are created
   set_monthly();
-  logrotate();
 }
 
 

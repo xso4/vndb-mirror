@@ -46,8 +46,8 @@ TUWF::get qr{/$RE{grev}/edit}, sub {
     $g->{editsum} = $g->{chrev} == $g->{maxrev} ? '' : "Reverted to revision $g->{id}.$g->{chrev}";
     $g->{merge} = [];
 
-    framework_ title => "Edit $g->{name}", dbobj => $g, tab => 'edit', sub {
-        elm_ TagEdit => $FORM_OUT, $g;
+    framework_ title => "Edit tag: $g->{name}", dbobj => $g, tab => 'edit', sub {
+        div_ widget(TagEdit => $FORM_OUT, $g), '';
     };
 };
 
@@ -79,17 +79,17 @@ TUWF::get qr{/(?:$RE{gid}/add|g/new)}, sub {
                 }
             }
         } if !auth->permTagmod;
-        elm_ TagEdit => $FORM_OUT, $e;
+        div_ widget(TagEdit => $FORM_OUT, $e), '';
     };
 };
 
 
-elm_api TagEdit => $FORM_OUT, $FORM_IN, sub {
+js_api TagEdit => $FORM_IN, sub {
     my($data) = @_;
     my $new = !$data->{id};
     my $e = $new ? {} : db_entry $data->{id} or return tuwf->resNotFound;
     return tuwf->resNotFound if !$new && !$e->{id};
-    return elm_Unauth if !can_edit g => $e;
+    return tuwf->resDenied if !can_edit g => $e;
 
     if(!auth->permTagmod) {
         $data->{hidden} = $e->{hidden}//1;
@@ -105,7 +105,7 @@ elm_api TagEdit => $FORM_OUT, $FORM_IN, sub {
              sql 'lower(name) IN', [ map lc($_), $data->{name}, grep length($_), split /$re/, $data->{alias} ]
          )
     );
-    return elm_DupNames $dups if @$dups;
+    return +{ dups => $dups } if @$dups;
 
     # Make sure parent IDs exists and are not a child tag of the current tag (i.e. don't allow cycles)
     validate_dbid sub {
@@ -143,11 +143,11 @@ elm_api TagEdit => $FORM_OUT, $FORM_IN, sub {
 
     if($new || form_changed $FORM_CMP, $data, $e) {
         my $ch = db_edit g => $e->{id}, $data;
-        elm_Redirect "/$ch->{nitemid}.$ch->{nrev}";
+        return +{ _redir => "/$ch->{nitemid}.$ch->{nrev}" };
     } elsif($changed) {
-        elm_Redirect "/$e->{id}";
+        return +{ _redir => "/$e->{id}" };
     } else {
-        elm_Unchanged;
+        return +{ _err => 'No changes' };
     }
 };
 

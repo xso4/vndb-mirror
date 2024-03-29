@@ -23,24 +23,27 @@ const mayRomanize  = new RegExp('[' + _greek + _cyrillic + _arabic + _thai + _ha
 
 // Edit summary & submit button box for DB entry edit forms.
 // Attrs:
-// - data  -> form data containing editsum, hidden & locked
-// - api   -> Api object for loading & error status
+// - data     -> form data containing editsum, hidden & locked
+// - api      -> Api object for loading & error status
+// - approval -> null for entries that don't require approval, otherwise a boolean indicating mod status
 //
-// TODO: Support for "awaiting approval" state.
 // TODO: Better feedback on pointless edit summaries like "-", "..", etc
 const EditSum = vnode => {
-    const {api,data} = vnode.attrs;
+    const {api,data,approval} = vnode.attrs;
     const rad = (l,h,lab) => m('label',
         m('input[type=radio]', {
             checked: l === data.locked && h === data.hidden,
             oninput: () => { data.locked = l; data.hidden = h }
         }), lab
     );
+    if (typeof approval !== 'boolean') approval = null;
+    const mod = approval === null ? pageVars.dbmod : approval;
     const view = () => m('article.submit',
-        pageVars.dbmod ? m('fieldset',
+        mod ? m('fieldset',
             rad(false, false, ' Normal '),
             rad(true , false, ' Locked '),
             rad(true , true , ' Deleted '),
+            approval === null ? null : rad(false, true, ' Awaiting approval '),
             data.locked && data.hidden ? m('span',
                 m('br'), 'Note: edit summary of the last edit should indicate the reason for the deletion.', m('br')
             ) : null,
@@ -128,6 +131,7 @@ const ExtLinks = initVnode => {
 @include ProducerEdit.js
 @include StaffEdit.js
 @include DocEdit.js
+@include TagEdit.js
 @include Report.js
 
 // @license-end

@@ -35,6 +35,7 @@ sub types {
         producerType => [ map [$_, $PRODUCER_TYPE{$_}], keys %PRODUCER_TYPE ],
         producerRelation => [ map [$_, $PRODUCER_RELATION{$_}{txt}], keys %PRODUCER_RELATION ],
         vnRelation => [ map [$_, $VN_RELATION{$_}{txt}, $VN_RELATION{$_}{reverse}, $VN_RELATION{$_}{pref}], keys %VN_RELATION ],
+        tagCategory => [ map [$_, $TAG_CATEGORY{$_}], keys %TAG_CATEGORY ],
     }).";\n";
 }
 
