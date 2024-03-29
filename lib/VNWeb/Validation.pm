@@ -318,7 +318,12 @@ sub can_edit {
     }
 
     if($type eq 'g' || $type eq 'i') {
-        return auth->permEdit && (auth->permTagmod || !$entry->{id});
+        return 1 if auth->permTagmod;
+        return auth->permEdit if !$entry->{id};
+        die if !exists $entry->{entry_hidden} || !exists $entry->{entry_locked};
+        # Let users edit their own tags/traits while it's still pending approval.
+        return auth && $entry->{entry_hidden} && !$entry->{entry_locked}
+            && tuwf->dbVali('SELECT 1 FROM changes WHERE itemid =', \$entry->{id}, 'AND rev = 1 AND requester =', \auth->uid);
     }
 
     die "Can't do authorization test when entry_hidden/entry_locked fields aren't present"
