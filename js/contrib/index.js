@@ -29,7 +29,7 @@ const mayRomanize  = new RegExp('[' + _greek + _cyrillic + _arabic + _thai + _ha
 //
 // TODO: Better feedback on pointless edit summaries like "-", "..", etc
 const EditSum = vnode => {
-    const {api,data,approval} = vnode.attrs;
+    let {api,data,approval} = vnode.attrs;
     const rad = (l,h,lab) => m('label',
         m('input[type=radio]', {
             checked: l === data.locked && h === data.hidden,
