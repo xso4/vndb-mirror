@@ -216,10 +216,10 @@ rm var/dump.sql
 util/vndb-dev-server.pl
 ```
 
-- (Optional) To start Multi, the application server:
+- (Optional) To run Multi, the application server:
 
 ```
-make multi-restart
+util/multi.pl
 ```
 
 

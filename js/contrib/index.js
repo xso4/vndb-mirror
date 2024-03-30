@@ -132,6 +132,7 @@ const ExtLinks = initVnode => {
 @include StaffEdit.js
 @include DocEdit.js
 @include TagEdit.js
+@include TraitEdit.js
 @include Report.js
 
 // @license-end

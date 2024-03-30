@@ -43,7 +43,7 @@ TUWF::get qr{/$RE{irev}/edit}, sub {
     $e->{editsum} = $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
 
     framework_ title => "Edit $e->{name}", dbobj => $e, tab => 'edit', sub {
-        elm_ TraitEdit => $FORM_OUT, $e;
+        div_ widget(TraitEdit => $FORM_OUT, $e), '';
     };
 };
 
@@ -75,17 +75,17 @@ TUWF::get qr{/(?:$RE{iid}/add|i/new)}, sub {
                 }
             }
         } if !auth->permTagmod;
-        elm_ TraitEdit => $FORM_OUT, $e;
+        div_ widget(TraitEdit => $FORM_OUT, $e), '';
     };
 };
 
 
-elm_api TraitEdit => $FORM_OUT, $FORM_IN, sub {
+js_api TraitEdit => $FORM_IN, sub {
     my($data) = @_;
     my $new = !$data->{id};
     my $e = $new ? {} : db_entry $data->{id} or return tuwf->resNotFound;
     return tuwf->resNotFound if !$new && !$e->{id};
-    return elm_Unauth if !can_edit i => $e;
+    return tuwf->resDenied if !can_edit i => $e;
 
     if(!auth->permTagmod) {
         $data->{hidden} = $e->{hidden}//1;
@@ -118,9 +118,9 @@ elm_api TraitEdit => $FORM_OUT, $FORM_IN, sub {
              sql 'lower(n.name) IN', [ map lc($_), $data->{name}, grep length($_), split /$re/, $data->{alias} ]
          )
     );
-    return elm_DupNames $dups if @$dups;
+    return +{ dups => $dups } if @$dups;
 
-    return elm_Unchanged if !$new && !form_changed $FORM_CMP, $data, $e;
+    return +{ _err => 'No changes' } if !$new && !form_changed $FORM_CMP, $data, $e;
     my $ch = db_edit i => $e->{id}, $data;
     tuwf->dbExeci('UPDATE traits SET gid = null WHERE id =', \$ch->{nitemid}) if !$group;
     tuwf->dbExeci('
@@ -128,7 +128,7 @@ elm_api TraitEdit => $FORM_OUT, $FORM_IN, sub {
             SELECT ', \$ch->{nitemid}, '::vndbid UNION ALL SELECT tp.id FROM childs JOIN traits_parents tp ON tp.parent = childs.id AND tp.main
         ) UPDATE traits SET gid =', \$group, 'WHERE id IN(SELECT id FROM childs) AND gid IS DISTINCT FROM', \$group
     ) if $group;
-    elm_Redirect "/$ch->{nitemid}.$ch->{nrev}";
+    return +{ _redir => "/$ch->{nitemid}.$ch->{nrev}" };
 };
 
 1;
