@@ -156,24 +156,3 @@ main > footer {
     a { color: inherit; text-decoration: underline }
     span a { text-decoration: none }
 }
-
-
-
-/* NNM */
-
-.nnm-msg {
-    position: fixed;
-    font-size: 26px;
-    text-shadow: 4px 4px 8px var(--border), 2px 2px 4px var(--border); /*, 1px 1px 2px var(--border);*/
-    white-space: pre;
-    pointer-events: none;
-}
-.nnm {
-    position: fixed; height: 50px; width: 100%; bottom: 5px; left: 0; display: flex; align-items: flex-end; pointer-events: none;
-    form { display: flex; max-width: 800px; width: 100% }
-    form * { pointer-events: auto; }
-    input[type=checkbox] { margin: 0 4px 10px 6px }
-    input[type=text] { flex: 1 }
-    button { width: 25px; text-align: center }
-    p { padding: 4px 15px 0 5px; background: var(--secbg) }
-}
