@@ -71,7 +71,7 @@ const save = () => {
 
 widget('NNM', initVnode => {
     list = initVnode.attrs.data;
-    //list.push({id:12485235, message: 'This is a test message!', wait: -1000});
+    //list.push({id:12485235, message: 'This is a                            test message!', wait: -1000});
     //list.push({id:131248523, message: '(It loads on every page)', wait: 100, color: '#ff0000'});
     const t = lastfetch = now();
     list.forEach(n => n.t = t + n.wait);
@@ -135,7 +135,7 @@ widget('NNM', initVnode => {
             m('p', "Message submitted ...wait for it! (or don't, takes a minute)"),
         ] : tab == 0 ? [
             m('input[type=color][title=Message color]', { value: settings.color || '#ffffff', oninput: ev => save(settings.color = ev.target.value) }),
-            m('input[type=text][placeholder=Say hi!][required][maxlength=250]'),
+            m('input[type=text][placeholder=Say hi!][required][maxlength=200]'),
             m('input[type=submit][value=Submit]'),
         ] : tab == 1 ? [
             m('p', 'Your message is displayed on every page after a one minute delay.')

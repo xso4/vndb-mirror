@@ -15,14 +15,16 @@ js_api NNMGet => {}, sub { +{ list => list } };
 
 js_api NNMSubmit => {
     color   => { default => undef, regex => qr/^#[a-fA-F0-9]{6}$/ },
-    message => { sl => 1, maxlength => 250 },
+    message => { sl => 1, maxlength => 200 },
 }, sub {
     my ($data) = @_;
+    my $sub = tuwf->reqIP;
+    $sub .= $sub =~ /:/ ? '/48' : '/23';
     return 'You may only submit one message per minute.' if tuwf->dbVali("
         SELECT 1
           FROM nnm
          WHERE date > now() - '1 minute'::interval
-           AND ((ip).ip IS NOT DISTINCT FROM ", \tuwf->reqIP,
+           AND ((ip).ip <<= ", \$sub,
                 auth ? (" OR uid IS NOT DISTINCT FROM ", \auth->uid) : (), "
                )"
     );
