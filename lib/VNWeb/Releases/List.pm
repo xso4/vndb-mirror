@@ -52,7 +52,10 @@ TUWF::get qr{/r}, sub {
 
     $opt->{f} = advsearch_default 'r' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
 
-    my $where = sql_and 'NOT r.hidden', $opt->{f}->sql_where();
+    my $where = sql_and
+        'NOT r.hidden',
+        'r.official OR EXISTS(SELECT 1 FROM releases_titles rt WHERE rt.id = r.id AND NOT rt.mtl)',
+        $opt->{f}->sql_where();
 
     my $time = time;
     my($count, $list);
