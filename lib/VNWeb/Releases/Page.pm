@@ -268,7 +268,11 @@ sub _infotable_ {
         tr_ sub {
             td_ 'Links';
             td_ sub {
-                join_ ', ', sub { a_ href => $_->{url2}, $_->{label} }, $r->{extlinks}->@*;
+                if ($r->{official} || !grep $_->{mtl}, $r->{titles}->@*) {
+                    join_ ', ', sub { a_ href => $_->{url2}, $_->{label} }, $r->{extlinks}->@*;
+                } else {
+                    small_ 'hidden';
+                }
             }
         } if $r->{extlinks}->@*;
 

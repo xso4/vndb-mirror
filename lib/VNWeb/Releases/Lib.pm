@@ -178,7 +178,9 @@ sub release_row_ {
         td_ class => 'tc5 elm_dd_left', sub {
             elm_ 'UList.ReleaseEdit', $VNWeb::ULists::Elm::RLIST_STATUS, { rid => $r->{id}, uid => auth->uid, status => $r->{rlist_status}, empty => '--' } if auth;
         };
-        td_ class => 'tc6', sub { release_extlinks_ $r, "$opt->{id}_$r->{id}" };
+        td_ class => 'tc6', sub {
+            release_extlinks_ $r, "$opt->{id}_$r->{id}" if $r->{official} || !grep $_->{mtl}, $r->{titles}->@*;
+        };
     }
 }
 
