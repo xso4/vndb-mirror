@@ -36,14 +36,14 @@ sub enrich_image {
         my @ch = grep /^ch/, $_[0]->@*;
         sql_join 'UNION ALL',
           @cv ? sql('SELECT image AS iid, id, title[1+1] AS title
-                       FROM', vnt, '
+                       FROM', vnt, 'v
                       WHERE NOT hidden AND image IN', \@cv) : (),
           @sf ? sql('SELECT vs.scr AS iid, v.id, v.title[1+1] AS title
                        FROM vn_screenshots vs
                        JOIN', vnt, 'v ON v.id = vs.id
                       WHERE NOT v.hidden AND vs.scr IN', \@sf) : (),
           @ch ? sql('SELECT image AS iid, id, title[1+1] AS title
-                       FROM', charst, '
+                       FROM', charst, 'c
                       WHERE NOT hidden AND image IN', \@ch) : (),
     }, $l;
 
