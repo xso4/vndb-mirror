@@ -337,6 +337,16 @@ hash CUP_SIZE =>
 
 
 
+# SQL: ENUM release_image_type
+hash RELEASE_IMAGE_TYPE =>
+    pkgfront => 'Package (front)',
+    pkgback => 'Package (back)',
+    pkgcontent => 'Package (contents)',
+    diglandscape => 'Digital promo art (landscape)',
+    digportrait => 'Digital promo art (portrait)';
+
+
+
 # SQL: ENUM char_role
 hash CHAR_ROLE =>
     main    => { txt => 'Protagonist',         plural => 'Protagonists'       },

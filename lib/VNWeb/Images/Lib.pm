@@ -9,6 +9,14 @@ our @EXPORT = qw/enrich_image validate_token image_flagging_display image_hidden
 my @SEX = qw/Safe Suggestive Explicit/;
 my @VIO = qw/Tame Violent    Brutal  /;
 
+sub set_verdict {
+    my($i) = @_;
+    # Still no clue why I chose these thresholds, but they seem to work.
+    $i->{sexual}   = !$i->{votecount} ? 2 : $i->{sexual_avg}   > 1.3 ? 2 : $i->{sexual_avg}   > 0.4 ? 1 : 0;
+    $i->{violence} = !$i->{votecount} ? 2 : $i->{violence_avg} > 1.3 ? 2 : $i->{violence_avg} > 0.4 ? 1 : 0;
+}
+
+
 # Enrich images so that they match the format expected by the 'ImageResult' Elm
 # API response.
 #
@@ -38,6 +46,10 @@ sub enrich_image {
           @cv ? sql('SELECT image AS iid, id, title[1+1] AS title
                        FROM', vnt, 'v
                       WHERE NOT hidden AND image IN', \@cv) : (),
+          @cv ? sql('SELECT ri.img AS iid, ri.id, r.title[1+1] AS title
+                       FROM releases_images ri
+                       JOIN', releasest, 'r ON r.id = ri.id
+                      WHERE NOT r.hidden AND ri.img IN', \@cv) : (),
           @sf ? sql('SELECT vs.scr AS iid, v.id, v.title[1+1] AS title
                        FROM vn_screenshots vs
                        JOIN', vnt, 'v ON v.id = vs.id
@@ -57,6 +69,7 @@ sub enrich_image {
     }, $l;
 
     for(grep defined $_->{width}, @$l) {
+        set_verdict $_;
         for my $v ($_->{votes}->@*) {
             $v->{user} = xml_string sub { user_ $v }; # Easier than duplicating user_() in Elm
             delete $v->{$_} for grep /^user_/, keys %$v;
@@ -160,15 +173,7 @@ sub image_ {
 sub enrich_image_obj {
     my $field = shift;
     enrich_obj $field => id => 'SELECT id, width, height, c_votecount AS votecount, c_sexual_avg::real/100 AS sexual_avg, c_violence_avg::real/100 AS violence_avg FROM images WHERE id IN', @_;
-
-    # Also add our final verdict. Still no clue why I chose these thresholds, but they seem to work.
-    for (map +(ref $_ eq 'ARRAY' ? @$_ : $_), @_) {
-        local $_ = $_->{$field};
-        if(ref $_) {
-            $_->{sexual}   = !$_->{votecount} ? 2 : $_->{sexual_avg}   > 1.3 ? 2 : $_->{sexual_avg}   > 0.4 ? 1 : 0;
-            $_->{violence} = !$_->{votecount} ? 2 : $_->{violence_avg} > 1.3 ? 2 : $_->{violence_avg} > 0.4 ? 1 : 0;
-        }
-    }
+    set_verdict $_ for grep $_, map $_->{$field}, map +(ref $_ eq 'ARRAY' ? @$_ : $_), @_;
 }
 
 1;

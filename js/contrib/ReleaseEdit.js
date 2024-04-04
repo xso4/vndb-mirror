@@ -360,7 +360,10 @@ const Animation = initVnode => {
 const VNs = initVnode => {
     const {data} = initVnode.attrs;
     const ds = new DS(DS.VNs, {
-        onselect: obj => data.vn.push({vid: obj.id, title: obj.title, rtype: 'complete' }),
+        onselect: obj => {
+            data._vn_added = true;
+            data.vn.push({vid: obj.id, title: obj.title, rtype: 'complete' });
+        },
         props: obj => data.vn.find(v => v.vid === obj.id) ? { selectable: false, append: m('small', ' (already listed)') } : {},
     });
     const view = () => m('fieldset',
@@ -409,6 +412,129 @@ const Producers = initVnode => {
 };
 
 
+const Images = initVnode => {
+    const {data} = initVnode.attrs;
+    let addsrc = null;
+
+    const vnimages = () => data.vnimages.filter(i => !data.images.find(x => x.img === i.id));
+
+    const thumbsize = img => img.width > img.height ? { width: 150, height: img.height * (150/img.width) } : { height: 150, width: img.width * (150/img.height) };
+    const Thumb = { view: v => m(IVLink, { img: v.attrs.img },
+        m('img', {...thumbsize(v.attrs.img), src: imgurl(v.attrs.img.id)})
+    ) };
+
+    const imageApi = new Api('Image');
+    const imageData = {id:''};
+    const imagePattern = '^(?:.+/)?(?:cv([0-9]+)|cv/[0-9][0-9]/([0-9]+)\.jpg).*';
+    const imageSubmit = ev => {
+        ev.stopPropagation();
+        ev.preventDefault();
+        const d = {id: 'cv'+imageData.id.match(new RegExp(imagePattern)).filter(x => x !== undefined)[1]};
+        imageApi.call(d, nfo => {
+            if (data.images.find(x => x.img === nfo.id))
+                imageApi.error = 'Image already selected.';
+            else {
+                imageData.id = '';
+                data.images.push({img: nfo.id, nfo});
+                addsrc = null;
+            }
+        });
+    };
+
+    const uploadApi = new Api('ImageUpload');
+    const uploadSubmit = ev => {
+        ev.stopPropagation();
+        ev.preventDefault();
+        const img = $('#file').files[0];
+        if (!img) {
+            uploadApi.error = 'No file selected';
+            return;
+        }
+        const form = new FormData();
+        form.append('type', 'cv');
+        form.append('img', img);
+        uploadApi.call(form, nfo => {
+            data.images.push({img: nfo.id, nfo});
+            addsrc = null;
+        });
+    };
+
+    const view = () => [ m('fieldset.form',
+        m('legend', 'Images'),
+        data.images.length === 0
+        ? m('p', 'No images assigned to this release.')
+        : m('table.full.stripe[style=width:100%]', m('tbody', data.images.map(e => m('tr',
+            m('td[style=text-align:right;width:170px]', m(Thumb, {img:e.nfo})),
+            m('td',
+                m('p',
+                    m(Button.Del, { onclick: () => data.images = data.images.filter(x => e !== x) }),
+                    ' ', m('small', e.img, ' / '), e.nfo.width, 'x', e.nfo.height,
+                ),
+                m(Select, { data: e, field: 'itype', class: 'lw', options: [[null, '-- Type --']].concat(vndbTypes.releaseImageType) }),
+                typeof e.itype !== 'string' ? m('p.invalid', 'Type is required.') : null,
+                m('br'),
+                m(Input, { data: e, field: 'label', class: 'xw', maxlength: 200, placeholder: '(Optional) label' }),
+                m('p', m('br'), 'TODO: Image flagging options here'),
+            ),
+        )))),
+    ), m('fieldset.form',
+        m('legend', 'Add image'),
+        m('fieldset',
+            m('label', 'Image source'),
+            m('label.check', m('input[type=radio]', { checked: addsrc === 0, onchange: () => addsrc = 0 }), ' Visual novel'), m('small', ' / '),
+            m('label.check', m('input[type=radio]', { checked: addsrc === 1, onchange: () => addsrc = 1 }), ' Image ID'), m('small', ' / '),
+            m('label.check', m('input[type=radio]', { checked: addsrc === 2, onchange: () => addsrc = 2 }), ' File upload'),
+        ),
+        // Source: visual novel
+        addsrc === 0 ? [ m('fieldset',
+            data._vn_added ? m('p', 'Images associated with VN(s) that you just added in the "General info" tab do not yet show up here, you can use the "Image ID" selector instead.') : null,
+            vnimages().length === 0 ? m('p', 'No more images associated with this visual novel, use the "Image ID" or "File upload" options instead.') : m('table',
+                vnimages().map(img => m('tr',
+                    m('td[style=text-align:right]', m(Thumb, {img})),
+                    m('td',
+                        m('button[type=button]', { onclick: () => { addsrc = null; data.images.push({img: img.id, nfo: img}) } }, 'Select image'),
+                        m('p', img.width, 'x', img.height),
+                        m('p', 'Used for:'),
+                        img.entries.map(e => m('p',
+                            e.id.match(/^v/) ? 'VN: ' : 'Release: ',
+                            m('small', e.id, ' / '),
+                            m('a[target=_blank]', { href: '/'+e.id }, e.title),
+                            // TODO: Type & maybe label would be nice to include here
+                        )),
+                    ),
+                )),
+            ),
+        // Source: image ID
+        )] : addsrc === 1 ? [m('fieldset',
+            m('label[for=imgid]', 'Image ID', HelpButton('imgid')),
+            m(Form, { onsubmit: imageSubmit, api: imageApi },
+                m(Input, { id: 'imgid', class: 'lw', data: imageData, field: 'id', pattern: imagePattern, oninput: () => imageApi.abort() }),
+                m('button[type=submit]', 'Add'),
+                imageApi.loading() ? m('span.spinner') : null,
+                imageApi.error ? m('b', m('br'), imageApi.error) : null,
+            ),
+        ), Help('imgid',
+            m('p', 'Select an image that is already on the server. Supported formats:'),
+            m('ul',
+                m('li', 'cv###'),
+                m('li', location.origin+'/cv###'),
+                m('li', imgurl('cv7432').replace('/32/7432', '/##/###')),
+            ),
+        // Source: file upload
+        )] : addsrc === 2 ? [m('fieldset',
+            m('label[for=file]', 'File'),
+            m(Form, { onsubmit: uploadSubmit },
+                m('input#file[type=file][required]', { accept: imageAccept, oninput: uploadSubmit }),
+                uploadApi.loading() ? m('span.spinner') : null,
+                uploadApi.error ? m('b', m('br'), uploadApi.error) : null,
+                m('p', 'Supported file types: JPEG, PNG, WebP, AVIF or JXL, at most 10 MiB.'),
+            ),
+        )] : null,
+    ) ];
+    return {view};
+};
+
+
 widget('ReleaseEdit', initVnode => {
     const data = initVnode.attrs.data;
     const api = new Api('ReleaseEdit');
@@ -431,48 +557,55 @@ widget('ReleaseEdit', initVnode => {
         return true;
     };
 
-    const view = () => m(Form, {api, onsubmit: () => api.call(data)},
-        m('article',
-            m('h1', 'General info'),
-            m(Titles, {data}),
-            m(Status, {data}),
-            m(Format, {data}),
-            m(DRM, {data}),
-            m(Animation, {data}),
-            m('fieldset.form',
-                m('legend', 'External identifiers & links'),
-                m('fieldset',
-                    m('label[for=gtin]', 'JAN/UPC/EAN/ISBN'),
-                    m(Input, {
-                        id: 'gtin', class: 'mw', type: 'number', data: gtin, field: 'v',
-                        oninput: v => { data.gtin = v; gtin.v = v === 0 ? '' : v },
-                        invalid: data.gtin !== '' && data.gtin !== '0' && data.gtin !== 0 && !validateGtin(String(data.gtin)) ? 'Invalid JAN/UPC/EAN/ISBN code.' : '',
-                    }),
-                ),
-                m('fieldset',
-                    m('label[for=catalog]', 'Catalog number'),
-                    m(Input, { id: 'catalog', class: 'mw', maxlength: 50, data, field: 'catalog' }),
-                ),
-                m('fieldset',
-                    m('label[for=website]', 'Website'),
-                    m(Input, { id: 'website', class: 'xw', type: 'weburl', data, field: 'website' }),
-                ),
-                m(ExtLinks, {type: 'release', data}),
-            ),
-            m('fieldset.form',
-                m('legend', 'Database relations'),
-                m(VNs, {data}),
-                m(Producers, {data}),
-            ),
-            m('fieldset.form',
-                m('label[for=notes]', 'Notes'),
-                m(TextPreview, {
-                    data, field: 'notes',
-                    header: m('b', '(English please!)'),
-                    attrs: { id: 'notes', rows: 5, maxlength: 10240 },
+    const geninfo = () => [
+        m('h1', 'General info'),
+        m(Titles, {data}),
+        m(Status, {data}),
+        m(Format, {data}),
+        m(DRM, {data}),
+        m(Animation, {data}),
+        m('fieldset.form',
+            m('legend', 'External identifiers & links'),
+            m('fieldset',
+                m('label[for=gtin]', 'JAN/UPC/EAN/ISBN'),
+                m(Input, {
+                    id: 'gtin', class: 'mw', type: 'number', data: gtin, field: 'v',
+                    oninput: v => { data.gtin = v; gtin.v = v === 0 ? '' : v },
+                    invalid: data.gtin !== '' && data.gtin !== '0' && data.gtin !== 0 && !validateGtin(String(data.gtin)) ? 'Invalid JAN/UPC/EAN/ISBN code.' : '',
                 }),
             ),
+            m('fieldset',
+                m('label[for=catalog]', 'Catalog number'),
+                m(Input, { id: 'catalog', class: 'mw', maxlength: 50, data, field: 'catalog' }),
+            ),
+            m('fieldset',
+                m('label[for=website]', 'Website'),
+                m(Input, { id: 'website', class: 'xw', type: 'weburl', data, field: 'website' }),
+            ),
+            m(ExtLinks, {type: 'release', data}),
         ),
+        m('fieldset.form',
+            m('legend', 'Database relations'),
+            m(VNs, {data}),
+            m(Producers, {data}),
+        ),
+        m('fieldset.form',
+            m('label[for=notes]', 'Notes'),
+            m(TextPreview, {
+                data, field: 'notes',
+                header: m('b', '(English please!)'),
+                attrs: { id: 'notes', rows: 5, maxlength: 10240 },
+            }),
+        ),
+    ];
+
+    const tabs = [
+        [ 'gen', 'General info', geninfo ],
+        [ 'img', 'Images', () => [ m('h1', 'Images'), m(Images, {data}) ] ],
+    ];
+
+    const view = () => m(Form, {api, onsubmit: () => api.call(data)},
+        m(FormTabs, {tabs}),
         m(EditSum, {data,api}),
     );
     return {view};

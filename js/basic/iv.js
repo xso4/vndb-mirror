@@ -1,4 +1,4 @@
-/* Simple image viewer widget. Usage:
+/* Simple image viewer widget. Usage from HTML:
  *
  *   <a href="full_image.jpg" data-iv="{width}x{height}:{category}:{flagging}">..</a>
  *
@@ -11,6 +11,13 @@
  *
  * ivInit() should be called when links with "data-iv" attributes are
  * dynamically added or removed from the DOM.
+ *
+ * Alternative usage from Mithril.js:
+ *
+ *   m(IVLink, { img: $ImageResultFromPerl, cat: $Category }, ..contents)
+ *
+ * (Most of the code below was written before the introduction of Mithril.js,
+ * it could probably be modernized and simplified)
  */
 
 // Cache of image categories and the list of associated link objects. Used to
@@ -147,6 +154,8 @@ function show(ev) {
     imgw = Math.floor(opt[0].split('x')[0]);
     imgh = Math.floor(opt[0].split('x')[1]);
 
+    if (opt[1] && this.getAttribute('data-iv-mithril')) ivInit(); // load categories
+
     create_div();
     var imgs = ivimg.getElementsByTagName("img")
     if (imgs.length !== 0)
@@ -207,7 +216,8 @@ window.ivInit = function() {
     $$('a[data-iv]').forEach(function(o) {
         if(o == ivnext || o == ivprev || o == ivfull || o == ivhoverprev || o == ivhovernext)
             return;
-        o.addEventListener('click', show);
+        if (!o.getAttribute('data-iv-mithril'))
+            o.addEventListener('click', show);
         var cat = o.getAttribute('data-iv').split(':')[1];
         if(cat) {
             if(!cats[cat])
@@ -218,3 +228,13 @@ window.ivInit = function() {
     });
 };
 ivInit();
+
+
+// Ugly but gets the job done.
+window.IVLink = { view: vnode => m('a[target=_blank]', {
+    href: imgurl(vnode.attrs.img.id),
+    'data-iv': vnode.attrs.img.width+'x'+vnode.attrs.img.height+':'+(vnode.attrs.cat||'')+':'+vnode.attrs.img.sexual+vnode.attrs.img.violence+vnode.attrs.img.votecount,
+    'data-iv-mithril': 1,
+    onclick: show,
+}, vnode.children) };
+

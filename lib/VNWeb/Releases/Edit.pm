@@ -1,6 +1,7 @@
 package VNWeb::Releases::Edit;
 
 use VNWeb::Prelude;
+use VNWeb::Images::Lib 'enrich_image';
 
 
 my $FORM = {
@@ -65,6 +66,13 @@ my $FORM = {
         publisher => { anybool => 1 },
         name      => { _when => 'out' },
     } },
+    images     => { sort_keys => 'itype', aoh => {
+        img       => { vndbid => 'cv' },
+        itype     => { enum => \%RELEASE_IMAGE_TYPE },
+        label     => { default => '', maxlength => 200 },
+        nfo       => { _when => 'out', type => 'hash', keys => $VNWeb::Elm::apis{ImageResult}[0]{aoh} },
+    } },
+    vnimages   => { _when => 'out', $VNWeb::Elm::apis{ImageResult}[0]->%* },
     hidden     => { anybool => 1 },
     locked     => { anybool => 1 },
     editsum    => { _when => 'in out', editsum => 1 },
@@ -76,6 +84,17 @@ my $FORM_IN  = form_compile in  => $FORM;
 my $FORM_CMP = form_compile cmp => $FORM;
 
 
+sub vnimages {
+    my($rid, @vid) = @_;
+    my $l = tuwf->dbAlli('
+      SELECT image AS id FROM vn WHERE image IS NOT NULL AND id IN', \@vid, '
+       UNION
+      SELECT ri.img AS id FROM releases_images ri JOIN releases_vn rv ON rv.id = ri.id
+       WHERE', $rid ? sql('ri.id <>', \$rid, 'AND') : (), 'rv.vid IN', \@vid);
+    enrich_image 0, $l;
+    $l;
+}
+
 TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
     my $e = db_entry tuwf->captures('id', 'rev') or return tuwf->resNotFound;
     my $copy = tuwf->capture('action') eq 'copy';
@@ -86,6 +105,9 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
     $e->{titles} = [ sort { $a->{lang} cmp $b->{lang} } $e->{titles}->@* ];
 
     $e->{vntitles} = $e->{vn}->@* == 1 ? tuwf->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$e->{vn}[0]{vid}) : [];
+
+    enrich_image 0, [map { $_->{nfo}{id} = $_->{img}; $_->{nfo} } $e->{images}->@*];
+    $e->{vnimages} = vnimages $e->{id}, map $_->{vid}, $e->{vn}->@*;
 
     enrich_merge vid => sql('SELECT id AS vid, title[1+1] FROM', vnt, 'v WHERE id IN'), $e->{vn};
     enrich_merge pid => sql('SELECT id AS pid, title[1+1] AS name FROM', producerst, 'p WHERE id IN'), $e->{producers};
@@ -115,6 +137,7 @@ TUWF::get qr{/$RE{vid}/add}, sub {
         elm_empty($FORM_OUT)->%*,
         vn       => [{vid => $v->{id}, title => $v->{title}[1], rtype => 'complete'}],
         vntitles => tuwf->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$v->{id}),
+        vnimages => vnimages(undef, $v->{id}),
         official => 1,
     };
 

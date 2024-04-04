@@ -7,6 +7,15 @@ window.$$ = sel => Array.from(document.querySelectorAll(sel));
 // store them into window.pageVars.
 window.pageVars = (e => e ? JSON.parse(e.innerHTML) : {})($('#pagevars'));
 
+window.urlStatic = $('link[rel=stylesheet]').href.replace(/^(https?:\/\/[^/]+)\/.*$/, '$1');
+
+
+// Like VNDB::Func::imgurl(), but without the fmt argument because we don't need that for now.
+window.imgurl = (id, dir) => urlStatic + '/' +
+    id.replace(/[0-9]+/, '') + (dir ? '.' + dir : '') + '/' +
+    id.replace(/^.*?([0-9]?[0-9])$/, '$1').padStart(2, '0') + '/' +
+    id.replace(/^[a-z]+/, '') + '.jpg';
+
 
 // Widget initialization, see README.md
 window.widget = (name, fun) =>

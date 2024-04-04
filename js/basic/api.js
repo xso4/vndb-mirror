@@ -44,15 +44,19 @@ class Api {
     // The parsed response JSON is passed as argument to the callback.
     call(data, cb, errcb) {
         this.abort();
-
         var xhr = new XMLHttpRequest();
         xhr.ontimeout = () => this._err(errcb, 'Network timeout, please try again later.');
         xhr.onerror = () => this._err(errcb, 'Network error, please try again later.');
         xhr.onload = () => this._load(cb, errcb, xhr);
         xhr.open('POST', '/js/'+this.endpoint+'.json', true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.responseType = 'json';
-        xhr.send(this._lastdata = JSON.stringify(data));
+        if (data instanceof FormData) {
+            xhr.send(data);
+            this._lastdata = null;
+        } else {
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(this._lastdata = JSON.stringify(data));
+        }
         this.xhr = xhr;
     }
 

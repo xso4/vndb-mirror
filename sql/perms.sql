@@ -46,6 +46,8 @@ GRANT SELECT                         ON releasest                TO vndb_site;
 GRANT SELECT, INSERT                 ON releases_hist            TO vndb_site;
 GRANT SELECT, INSERT,         DELETE ON releases_drm             TO vndb_site;
 GRANT SELECT, INSERT                 ON releases_drm_hist        TO vndb_site;
+GRANT SELECT, INSERT,         DELETE ON releases_images          TO vndb_site;
+GRANT SELECT, INSERT                 ON releases_images_hist     TO vndb_site;
 GRANT SELECT, INSERT,         DELETE ON releases_titles          TO vndb_site;
 GRANT SELECT, INSERT                 ON releases_titles_hist     TO vndb_site;
 GRANT SELECT, INSERT,         DELETE ON releases_media           TO vndb_site;

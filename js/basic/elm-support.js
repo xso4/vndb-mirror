@@ -4,9 +4,7 @@ if(!pageVars.elm) return;
 window.elmFfi_innerHtml = (wrap) => s => ({$: 'a2', n: 'innerHTML', o: wrap(s)});
 window.elmFfi_elemCall = (wrap,call) => call;
 window.elmFfi_fmtFloat = () => val => prec => val.toLocaleString('en-US', { minimumFractionDigits: prec, maximumFractionDigits: prec });
-
-const url_static = $('link[rel=stylesheet]').href.replace(/^(https?:\/\/[^/]+)\/.*$/, '$1');
-window.elmFfi_urlStatic = () => url_static;
+window.elmFfi_urlStatic = () => urlStatic;
 
 
 

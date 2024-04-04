@@ -103,6 +103,10 @@ ALTER TABLE releases_drm             ADD CONSTRAINT releases_drm_id_fkey        
 ALTER TABLE releases_drm             ADD CONSTRAINT releases_drm_drm_fkey              FOREIGN KEY (drm)       REFERENCES drm           (id);
 ALTER TABLE releases_drm_hist        ADD CONSTRAINT releases_drm_hist_chid_fkey        FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE releases_drm_hist        ADD CONSTRAINT releases_drm_hist_drm_fkey         FOREIGN KEY (drm)       REFERENCES drm           (id);
+ALTER TABLE releases_images          ADD CONSTRAINT releases_images_id_fkey            FOREIGN KEY (id)        REFERENCES releases      (id);
+ALTER TABLE releases_images          ADD CONSTRAINT releases_images_img_fkey           FOREIGN KEY (img)       REFERENCES images        (id);
+ALTER TABLE releases_images_hist     ADD CONSTRAINT releases_images_hist_chid_fkey     FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
+ALTER TABLE releases_images_hist     ADD CONSTRAINT releases_images_hist_img_fkey      FOREIGN KEY (img)       REFERENCES images        (id);
 ALTER TABLE releases_titles          ADD CONSTRAINT releases_titles_id_fkey            FOREIGN KEY (id)        REFERENCES releases      (id);
 ALTER TABLE releases_titles_hist     ADD CONSTRAINT releases_titles_hist_chid_fkey     FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE releases_media           ADD CONSTRAINT releases_media_id_fkey             FOREIGN KEY (id)        REFERENCES releases      (id);

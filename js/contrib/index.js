@@ -20,6 +20,8 @@ const mustRomanize = new RegExp('[' +          _cyrillic + _arabic + _thai + _ha
 const mayRomanize  = new RegExp('[' + _greek + _cyrillic + _arabic + _thai + _hangul + _canadian + _kana + _cjk + ']', 'u');
 
 
+const imageAccept = '.jpg,.jpeg,.png,.webp,.avif,.jxl,image/jpeg,image/png,image/webp,image/avif,image/jxl';
+
 
 // Edit summary & submit button box for DB entry edit forms.
 // Attrs:

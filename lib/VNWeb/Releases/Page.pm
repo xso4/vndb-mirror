@@ -2,6 +2,7 @@ package VNWeb::Releases::Page;
 
 use VNWeb::Prelude;
 use TUWF 'uri_escape';
+use VNWeb::Images::Lib;
 use VNWeb::Releases::Lib;
 
 
@@ -11,6 +12,7 @@ sub enrich_item {
     enrich_merge pid => sql('SELECT id AS pid, title, sorttitle FROM', producerst, 'p WHERE id IN'), $r->{producers};
     enrich_merge vid => sql('SELECT id AS vid, title, sorttitle FROM', vnt, 'v WHERE id IN'), $r->{vn};
     enrich_merge drm => sql('SELECT id AS drm, name,', sql_join(',', keys %DRM_PROPERTY), 'FROM drm WHERE id IN'), $r->{drm};
+    enrich_image_obj img => $r->{images};
 
     $r->{titles}    = [ sort { ($b->{lang} eq $r->{olang}) cmp ($a->{lang} eq $r->{olang}) || ($a->{mtl}?1:0) <=> ($b->{mtl}?1:0) || $a->{lang} cmp $b->{lang} } $r->{titles}->@* ];
     $r->{platforms} = [ sort map $_->{platform}, $r->{platforms}->@* ];
@@ -18,6 +20,7 @@ sub enrich_item {
     $r->{producers} = [ sort { $a->{sorttitle} cmp $b->{sorttitle} || idcmp($a->{pid}, $b->{pid}) } $r->{producers}->@* ];
     $r->{media}     = [ sort { $a->{medium} cmp $b->{medium} || $a->{qty} <=> $b->{qty} } $r->{media}->@*     ];
     $r->{drm}       = [ sort { !$a->{drm} || !$b->{drm} ? $b->{drm} <=> $a->{drm} : $a->{name} cmp $b->{name} } $r->{drm}->@* ];
+    # TODO: Ensure 'images' has a stable order
 
     $r->{resolution} = resolution $r;
 }
@@ -75,6 +78,15 @@ sub _rev_ {
         [ drm        => 'DRM', fmt => sub {
             a_ href => '/r/drm?s='.uri_escape($_->{name}), $_->{name};
             txt_ " ($_->{notes})" if length $_->{notes};
+        } ],
+        [ images     => 'Images', fmt => sub {
+            my $rev = $_[0]{chid} == $r->{chid} ? 'new' : 'old';
+            a_ href => imgurl($_->{img}{id}), 'data-iv' => "$_->{img}{width}x$_->{img}{height}:$rev:$_->{img}{sexual}$_->{img}{violence}$_->{img}{votecount}", $_->{img}{id};
+            txt_ " [$_->{img}{width}x$_->{img}{height}; ";
+            a_ href => "/$_->{img}{id}", image_flagging_display $_->{img} if auth;
+            span_ image_flagging_display $_->{img} if !auth;
+            txt_ "] $RELEASE_IMAGE_TYPE{$_->{itype}}";
+            small_ " $_->{label}" if length $_->{label};
         } ],
         revision_extlinks 'r'
 }

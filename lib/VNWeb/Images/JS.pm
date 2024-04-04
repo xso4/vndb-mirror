@@ -1,13 +1,34 @@
-package VNWeb::Misc::ImageUpload;
+package VNWeb::Images::JS;
 
 use VNWeb::Prelude;
 use VNWeb::Images::Lib;
 use AnyEvent::Util;
 
 
-TUWF::post qr{/elm/ImageUpload.json}, sub {
+# Fetch info about an image
+my $OUT = tuwf->compile({ type => 'hash', keys => $VNWeb::Elm::apis{ImageResult}[0]{aoh}});
+
+js_api 'Image', { id => { vndbid => [qw/ch cv sf/] } }, sub {
+    my $r = {id=>$_[0]{id}};
+    enrich_image 0, [$r];
+    return tuwf->resNotFound if !$r->{width};
+    $OUT->analyze->coerce_for_json($r);
+};
+
+
+elm_api Image => undef, { id => { vndbid => [qw/ch cv sf/] } }, sub {
+    my($data) = @_;
+    my $l = tuwf->dbAlli('SELECT id FROM images WHERE id =', \$data->{id});
+    enrich_image 0, $l;
+    elm_ImageResult $l;
+};
+
+
+TUWF::post qr{/(elm|js)/ImageUpload.json}, sub {
+    my $elm = tuwf->capture(0) eq 'elm';
+
     # Have to require the samesite cookie here as CSRF protection, because this API can be triggered as a regular HTML form post.
-    return elm_Unauth if !samesite || !(auth->permDbmod || (auth->permEdit && !global_settings->{lockdown_edit}));
+    return tuwf->resDenied if !samesite || !(auth->permDbmod || (auth->permEdit && !global_settings->{lockdown_edit}));
 
     my $type = tuwf->validate(post => type => { enum => [qw/cv ch sf/] })->data;
     my $imgdata = tuwf->reqUploadRaw('img');
@@ -18,7 +39,7 @@ TUWF::post qr{/elm/ImageUpload.json}, sub {
         $imgdata =~ /^....ftyp/s ? 'avif' : # Considers every heif file to be AVIF, not entirely correct but works fine.
         $imgdata =~ /^\xff\x0a/ ? 'jxl' :
         $imgdata =~ /^\x00\x00\x00\x00\x0CJXL / ? 'jxl' : undef;
-    return elm_ImgFormat if !$fmt;
+    return $elm ? elm_ImgFormat : tuwf->resJSON({_err => 'Unsupported image format'}) if !$fmt;
 
     my $seq = {qw/sf screenshots_seq cv covers_seq ch charimg_seq/}->{$type}||die;
     my $id = tuwf->dbVali('INSERT INTO images', {
@@ -61,7 +82,7 @@ TUWF::post qr{/elm/ImageUpload.json}, sub {
         unlink $fn0;
         unlink $fn1;
         tuwf->dbRollBack;
-        return elm_ImgFormat;
+        return $elm ? elm_ImgFormat : tuwf->resJSON({_err => 'Invalid image'});
     }
     my($w,$h) = ($1,$2);
     tuwf->dbExeci('UPDATE images SET', { width => $w, height => $h }, 'WHERE id =', \$id);
@@ -70,17 +91,9 @@ TUWF::post qr{/elm/ImageUpload.json}, sub {
     chmod 0666, $fn0;
     chmod 0666, $fn1;
 
-    my $l = [{id => $id}];
-    enrich_image 1, $l;
-    elm_ImageResult $l;
-};
-
-
-elm_api Image => undef, { id => { vndbid => [qw/ch cv sf/] } }, sub {
-    my($data) = @_;
-    my $l = tuwf->dbAlli('SELECT id FROM images WHERE id =', \$data->{id});
-    enrich_image 0, $l;
-    elm_ImageResult $l;
+    my @l = ({id => $id});
+    enrich_image 1, \@l;
+    $elm ? elm_ImageResult \@l : tuwf->resJSON($OUT->analyze->coerce_for_json(@l));
 };
 
 1;
