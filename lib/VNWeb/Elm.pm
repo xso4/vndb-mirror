@@ -139,7 +139,7 @@ our %apis = (
         my_sexual       => { uint => 1, default => undef },
         my_violence     => { uint => 1, default => undef },
         my_overrule     => { anybool => 1 },
-        entry           => { default => undef, type => 'hash', keys => {
+        entries         => { aoh => {
             id       => {},
             title    => {},
         } },

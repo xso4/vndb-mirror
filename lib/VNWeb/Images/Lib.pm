@@ -25,15 +25,26 @@ sub enrich_image {
            , i.c_violence_avg::real/100 AS violence_avg, i.c_violence_stddev::real/100 AS violence_stddev
            , iv.sexual AS my_sexual, iv.violence AS my_violence
            , COALESCE(EXISTS(SELECT 1 FROM image_votes iv0 WHERE iv0.id = i.id AND iv0.ignore) AND NOT iv.ignore, FALSE) AS my_overrule
-           , COALESCE(v.id, c.id, vsv.id) AS entry_id
-           , COALESCE(v.title[1+1], c.title[1+1], vsv.title[1+1]) AS entry_title
         FROM images i
         LEFT JOIN image_votes iv ON iv.id = i.id AND iv.uid =}, \auth->uid, q{
-        LEFT JOIN}, vnt, q{v ON i.id BETWEEN 'cv1' AND vndbid_max('cv') AND v.image = i.id
-        LEFT JOIN}, charst, q{c ON i.id BETWEEN 'ch1' AND vndbid_max('ch') AND c.image = i.id
-        LEFT JOIN vn_screenshots vs ON i.id BETWEEN 'sf1' AND vndbid_max('sf') AND vs.scr = i.id
-        LEFT JOIN}, vnt, q{vsv ON i.id BETWEEN 'sf1' AND vndbid_max('sf') AND vsv.id = vs.id
        WHERE i.id IN}, $_
+    }, $l;
+
+    enrich entries => id => iid => sub {
+        my @cv = grep /^cv/, $_[0]->@*;
+        my @sf = grep /^sf/, $_[0]->@*;
+        my @ch = grep /^ch/, $_[0]->@*;
+        sql_join 'UNION ALL',
+          @cv ? sql('SELECT image AS iid, id, title[1+1] AS title
+                       FROM', vnt, '
+                      WHERE NOT hidden AND image IN', \@cv) : (),
+          @sf ? sql('SELECT vs.scr AS iid, v.id, v.title[1+1] AS title
+                       FROM vn_screenshots vs
+                       JOIN', vnt, 'v ON v.id = vs.id
+                      WHERE NOT v.hidden AND vs.scr IN', \@sf) : (),
+          @ch ? sql('SELECT image AS iid, id, title[1+1] AS title
+                       FROM', charst, '
+                      WHERE NOT hidden AND image IN', \@ch) : (),
     }, $l;
 
     enrich votes => id => id => sub { sql '
@@ -46,9 +57,6 @@ sub enrich_image {
     }, $l;
 
     for(grep defined $_->{width}, @$l) {
-        $_->{entry} = $_->{entry_id} ? { id => $_->{entry_id}, title => $_->{entry_title} } : undef;
-        delete $_->{entry_id};
-        delete $_->{entry_title};
         for my $v ($_->{votes}->@*) {
             $v->{user} = xml_string sub { user_ $v }; # Easier than duplicating user_() in Elm
             delete $v->{$_} for grep /^user_/, keys %$v;

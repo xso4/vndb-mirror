@@ -241,7 +241,7 @@ view model =
       [ div []
         [ inputButton "««" Prev [ classList [("invisible", model.index == 0)] ]
         , span [] <|
-          case i.entry of
+          case List.head i.entries of
             Nothing -> []
             Just e ->
               [ small [] [ text (e.id ++ ":") ]
