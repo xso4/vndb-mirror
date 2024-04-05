@@ -112,7 +112,7 @@ ${GEN}/imgproc: util/imgproc.c
 	$T CC
 	$Q ${CC} ${CFLAGS} $< -DDISABLE_SECCOMP `pkg-config --cflags --libs vips` -o $@
 
-VIPS_VER := 8.15.1
+VIPS_VER := 8.15.2
 # TODO: switch to a proper release when it includes this commit
 JXL_VER := 5e7560d9e431b40159cf688b9d9be6c0f2e229a1
 

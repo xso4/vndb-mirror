@@ -95,8 +95,6 @@ err:
  * detection and other unnecessary crap that complicates parsing and sandboxing. */
 static void log_func(const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data) {
     if (g_log_writer_default_would_drop(log_level, log_domain)) return;
-    /* https://github.com/libvips/libvips/discussions/2734 - fix not yet in a release */
-    if (strcmp(message, "heifload: ignoring nclx profile") == 0) return;
     fprintf(stderr, "[%s#%d] %s\n", log_domain, (int)log_level, message);
 }
 
