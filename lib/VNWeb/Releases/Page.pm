@@ -268,10 +268,10 @@ sub _infotable_ {
         tr_ sub {
             td_ 'Links';
             td_ sub {
-                if ($r->{official} || !grep $_->{mtl}, $r->{titles}->@*) {
+                if ($r->{patch} || $r->{official} || !grep $_->{mtl}, $r->{titles}->@*) {
                     join_ ', ', sub { a_ href => $_->{url2}, $_->{label} }, $r->{extlinks}->@*;
                 } else {
-                    small_ 'hidden';
+                    small_ 'piracy link hidden';
                 }
             }
         } if $r->{extlinks}->@*;
