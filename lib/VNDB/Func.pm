@@ -21,7 +21,7 @@ our @EXPORT = ('bb_format', qw|
   minage
   fmtvote fmtmedia fmtage fmtdate fmtrating fmtspoil fmtanimation
   rdate
-  imgpath imgurl
+  imgpath imgurl thumburl
   tlang tattr
   query_encode
   md2html
@@ -156,6 +156,12 @@ sub imgpath { _path config->{var_path}.'/static', @_ }
 # imgurl($image_id, $dir, $format)
 sub imgurl { _path config->{url_static}, @_ }
 
+# thumburl($image_obj)
+sub thumburl {
+    _path config->{url_static}, $_[0]{id},
+        $_[0]{id} =~ /^sf/
+    || ($_[0]{id} =~ /^cv/ && ($_[0]{width} > config->{cv_size}[0] || $_[0]{height} > config->{cv_size}[1])) ? 't' : undef;
+}
 
 # Formats a vote number.
 sub fmtvote {

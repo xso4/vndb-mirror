@@ -319,7 +319,8 @@ sub listing_ {
     } if $opt->{s}->cards;
 
     article_ class => 'vngrid', sub {
-        div_ !$_->{image} || image_hidden($_->{image}) ? (class => 'noimage') : (style => 'background-image: url("'.imgurl($_->{image}{id}).'")'), sub {
+        # TODO: landscape images are badly upscaled, should probably generate more suitable thumbnails for this view.
+        div_ !$_->{image} || image_hidden($_->{image}) ? (class => 'noimage') : (style => 'background-image: url("'.thumburl($_->{image}).'")'), sub {
             ulists_widget_ $_;
             a_ href => "/$_->{id}", title => $_->{title}[3], sub { infoblock_ 0 };
         } for @$list;

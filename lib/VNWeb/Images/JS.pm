@@ -62,13 +62,13 @@ TUWF::post qr{/(elm|js)/ImageUpload.json}, sub {
          [
              config->{imgproc_path},
              $type eq 'ch' ? (fit => config->{ch_size}->@*, size => jpeg => 1) :
-             $type eq 'cv' ? (fit => config->{cv_size}->@*, size => jpeg => 1) :
+             $type eq 'cv' ? (size => jpeg => 1 => fit => config->{cv_size}->@*, jpeg => 3) :
              $type eq 'sf' ? (size => jpeg => 1 => fit => config->{scr_size}->@*, jpeg => 3) : die
          ],
          '<',  \$imgdata,
          '>',  $fn0,
          '2>', \my $err,
-         $type eq 'sf' ? ('3>', $fn1) : (),
+         $type eq 'sf' || $type eq 'cv' ? ('3>', $fn1) : (),
          close_all => 1,
          on_prepare => sub { %ENV = () },
     )->recv;

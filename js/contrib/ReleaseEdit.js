@@ -419,8 +419,9 @@ const Images = initVnode => {
     const vnimages = () => data.vnimages.filter(i => !data.images.find(x => x.img === i.id));
 
     const thumbsize = img => img.width > img.height ? { width: 150, height: img.height * (150/img.width) } : { height: 150, width: img.width * (150/img.height) };
+    const thumburl = img => imgurl(img.id, img.width <= 256 && img.height <= 400 ? null : 't');
     const Thumb = { view: v => m(IVLink, { img: v.attrs.img },
-        m('img', {...thumbsize(v.attrs.img), src: imgurl(v.attrs.img.id)})
+        m('img', {...thumbsize(v.attrs.img), src: thumburl(v.attrs.img)})
     ) };
 
     const imageApi = new Api('Image');

@@ -13,7 +13,7 @@ ln -sfT "$(realpath $VNDB_GEN/static)" "$VNDB_VAR/static/g"
 cd "$VNDB_VAR"
 mkdir -p tmp log
 
-for d in ch ch.orig cv cv.orig sf sf.orig sf.t; do
+for d in ch ch.orig cv cv.orig cv.t sf sf.orig sf.t; do
     for i in `seq -w 0 1 99`; do
         mkdir -p static/$d/$i
     done

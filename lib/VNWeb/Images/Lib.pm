@@ -135,6 +135,7 @@ sub image_ {
 
     my($sex,$vio) = $img->@{'sexual', 'violence'};
     my($w,$h) = $opt{width} ? @opt{'width','height'} : @{$img}{'width', 'height'};
+    ($w,$h) = imgsize $w, $h, config->{cv_size}->@* if $img->{id} =~ /^cv/;
     my $hidden = image_hidden $img;
     my $hide_on_click = $opt{url} ? $hidden : $sex || $vio || !$img->{votecount} || (auth->pref('max_sexual')||0) < 0;
     my $small = $w*$h < 20000;
@@ -143,7 +144,7 @@ sub image_ {
         input_ type => 'checkbox', class => 'hidden', $hidden ? () : (checked => 'checked') if $hide_on_click;
         div_ class => 'imghover--visible', sub {
             a_ href => $opt{url} if $opt{url};
-            img_ src => imgurl($img->{id}), width => $w, height => $h, $opt{alt} ? (alt => $opt{alt}) : ();
+            img_ src => thumburl($img), width => $w, height => $h, $opt{alt} ? (alt => $opt{alt}) : ();
             end_ if $opt{url};
             if(!exists $opt{overlay}) {
                 a_ class => 'imghover--overlay', href => "/$img->{id}?view=".viewset(show_nsfw=>1), image_flagging_display $img, $small if auth;

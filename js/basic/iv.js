@@ -58,6 +58,7 @@ function create_div() {
     ivparent.appendChild(ivlinks);
 
     ivfull = document.createElement('a');
+    ivfull.target = '_blank';
     ivlinks.appendChild(ivfull);
 
     ivprev = document.createElement('a');
