@@ -27,15 +27,19 @@ sub set_verdict {
 # influence the rating of a single image.
 sub enrich_image {
     my($canvote, $l) = @_;
-    enrich_merge id => sub { sql q{
+    $canvote ||= auth->permDbmod;
+    my $canownvote = auth->permImgvote && !global_settings->{lockdown_edit};
+
+    enrich_merge id => sub { sql '
       SELECT i.id, i.width, i.height, i.c_votecount AS votecount
            , i.c_sexual_avg::real/100 AS sexual_avg, i.c_sexual_stddev::real/100 AS sexual_stddev
            , i.c_violence_avg::real/100 AS violence_avg, i.c_violence_stddev::real/100 AS violence_stddev
            , iv.sexual AS my_sexual, iv.violence AS my_violence
            , COALESCE(EXISTS(SELECT 1 FROM image_votes iv0 WHERE iv0.id = i.id AND iv0.ignore) AND NOT iv.ignore, FALSE) AS my_overrule
+           , i.uploader IS NOT DISTINCT FROM', \auth->uid, ' AS own
         FROM images i
-        LEFT JOIN image_votes iv ON iv.id = i.id AND iv.uid =}, \auth->uid, q{
-       WHERE i.id IN}, $_
+        LEFT JOIN image_votes iv ON iv.id = i.id AND iv.uid =', \auth->uid, '
+       WHERE i.id IN', $_
     }, $l;
 
     enrich entries => id => iid => sub {
@@ -74,7 +78,8 @@ sub enrich_image {
             $v->{user} = xml_string sub { user_ $v }; # Easier than duplicating user_() in Elm
             delete $v->{$_} for grep /^user_/, keys %$v;
         }
-        $_->{token} = ($_->{votecount} == 0 && auth->permImgvote) || (ref $canvote eq 'CODE' ? $canvote->($_) : $canvote) ? auth->csrftoken(0, "imgvote-$_->{id}") : undef;
+        $_->{token} = $canvote || ($canownvote && ($_->{own} || defined $_->{my_sexual})) ? auth->csrftoken(0, "imgvote-$_->{id}") : undef;
+        delete $_->{own};
     }
 }
 

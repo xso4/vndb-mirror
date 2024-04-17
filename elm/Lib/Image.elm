@@ -180,5 +180,5 @@ viewVote model wrap msg =
   in case model.img of
       Nothing -> Nothing
       Just i ->
-        if i.token == Nothing then Nothing
+        if i.token == Nothing || i.votecount > 0 then Nothing
         else Just (vote i)

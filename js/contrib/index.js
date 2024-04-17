@@ -128,6 +128,66 @@ const ExtLinks = initVnode => {
 
 
 
+const ImageFlag = initVnode => {
+    const img = initVnode.attrs.img;
+    const api = new Api('ImageVote');
+    const sex = ['Safe', 'Suggestive', 'Explicit'];
+    const vio = ['Tame', 'Violent', 'Brutal'];
+
+    let editing = img.token && img.votecount == 0;
+    let saved_sex = img.my_sexual;
+    let saved_vio = img.my_violence;
+    let timer = null;
+
+    const save = () => {
+        clearTimeout(timer);
+        timer = null;
+        if (saved_sex !== img.my_sexual || saved_vio !== img.my_violence) {
+            saved_sex = img.my_sexual;
+            saved_vio = img.my_violence;
+            api.call({votes: [img]}, d => Object.assign(img, d[0]));
+        }
+    };
+
+    const edit = () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            if (img.my_sexual !== null && img.my_violence !== null) save();
+            m.redraw();
+        }, 1000);
+    };
+
+    const view = () => [
+        m('p',
+            api.loading() ? m('span.spinner')
+            : editing ? m(Button.Save, { onclick: () => {
+                if (img.my_sexual === null || img.my_violence === null)
+                    api.error = 'Please indicate both the sexual and violence ratings.';
+                else
+                    save(editing = false);
+              }})
+            : img.token ? m(Button.Edit, { onclick: () => editing = true }) : null,
+            ' ',
+            img.votecount === 0
+            ? m('span', 'Not yet flagged.')
+            : sex[img.sexual] + ' / ' + vio[img.violence] + ' (' + img.votecount + ' vote' + (img.votecount === 1 ? '' : 's') + ').'
+        ),
+        api.error ? m('p.standout', api.error) : null,
+        !editing ? null : m('table[style=margin-left:30px]',
+            m('thead', m('tr',
+                m('td', 'Sexual'),
+                m('td', 'Violence'),
+            )), m('tbody', range(0, 2).map(i => m('tr',
+                m('td', m('label.check', m('input[type=radio]', { checked: img.my_sexual   === i, onclick: () => edit(img.my_sexual   = i) }), ' ', sex[i])),
+                m('td', m('label.check', m('input[type=radio]', { checked: img.my_violence === i, onclick: () => edit(img.my_violence = i) }), ' ', vio[i])),
+            )))
+        ),
+    ];
+    return {view};
+};
+
+
+
 @include ReleaseEdit.js
 @include DRMEdit.js
 @include ProducerEdit.js

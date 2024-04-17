@@ -96,14 +96,49 @@ elm_api ImageVote => undef, {
 };
 
 
-sub my_votes {
-    auth ? tuwf->dbVali('SELECT c_imgvotes FROM users WHERE id =', \auth->uid) : 0
-}
+js_api ImageVote => {
+    votes => { sort_keys => 'id', aoh => {
+        id          => { vndbid => [qw/ch cv sf/] },
+        token       => {},
+        my_sexual   => { uint => 1, range => [0,2] },
+        my_violence => { uint => 1, range => [0,2] },
+        my_overrule => { anybool => 1 },
+    } },
+}, sub {
+    my($data) = @_;
+    return tuwf->resDenied if !can_vote;
+    return tuwf->resDenied if !validate_token $data->{votes};
+
+    # Lock the users table early to prevent deadlock with a concurrent DB edit that attempts to update c_changes.
+    tuwf->dbExeci('SELECT c_imgvotes FROM users WHERE id =', \auth->uid, 'FOR UPDATE');
+
+    # Find out if any of these images are being overruled
+    enrich_merge id => sub { sql 'SELECT id, bool_or(ignore) AS overruled FROM image_votes WHERE id IN', $_, 'GROUP BY id' }, $data->{votes};
+    enrich_merge id => sql('SELECT id, NOT ignore AS old_my_overrule FROM image_votes WHERE uid =', \auth->uid, 'AND id IN'),
+        grep $_->{overruled}, $data->{votes}->@* if auth->permDbmod;
+
+    for($data->{votes}->@*) {
+        $_->{my_overrule} = 0 if !auth->permDbmod;
+        my $d = {
+            id       => $_->{id},
+            uid      => auth->uid(),
+            sexual   => $_->{my_sexual},
+            violence => $_->{my_violence},
+            ignore   => !$_->{my_overrule} && !$_->{old_my_overrule} && $_->{overruled} ? 1 : 0,
+        };
+        tuwf->dbExeci('INSERT INTO image_votes', $d, 'ON CONFLICT (id, uid) DO UPDATE SET', $d, ', date = now()');
+        tuwf->dbExeci('UPDATE image_votes SET ignore =', \($_->{overrule}?1:0), 'WHERE uid IS DISTINCT FROM', \auth->uid, 'AND id =', \$_->{id})
+            if !$_->{my_overrule} != !$_->{old_my_overrule};
+    }
+
+    enrich_image 1, $data->{votes};
+    $data->{votes}
+};
 
 
 sub imgflag_ {
     elm_ 'ImageFlagging', $SEND, {
-        my_votes   => my_votes(),
+        my_votes   => auth ? tuwf->dbVali('SELECT c_imgvotes FROM users WHERE id =', \auth->uid) : 0,
         nsfw_token => viewset(show_nsfw => 1),
         mod        => auth->permDbmod()||0,
         @_
@@ -127,7 +162,7 @@ TUWF::get qr{/$RE{imgid}}, sub {
     my $id = tuwf->capture('id');
 
     my $l = [{ id => $id }];
-    enrich_image auth->permDbmod() || sub { defined $_[0]{my_sexual} }, $l;
+    enrich_image 0, $l;
     return tuwf->resNotFound if !defined $l->[0]{width};
 
     framework_ title => "Image flagging for $id", sub {

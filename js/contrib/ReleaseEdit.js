@@ -474,7 +474,7 @@ const Images = initVnode => {
                 typeof e.itype !== 'string' ? m('p.invalid', 'Type is required.') : null,
                 m('br'),
                 m(Input, { data: e, field: 'label', class: 'xw', maxlength: 200, placeholder: '(Optional) label' }),
-                m('p', m('br'), 'TODO: Image flagging options here'),
+                m(ImageFlag, { img: e.nfo }),
             ),
         )))),
     ), m('fieldset.form',

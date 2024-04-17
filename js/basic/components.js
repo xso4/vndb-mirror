@@ -51,6 +51,7 @@ window.Button = {
     Copy:       but(Icon.Copy,         'Copy'),
     CheckAll:   but(Icon.CheckSquare,  'Check all'),
     UncheckAll: but(Icon.MinusSquare,  'Uncheck all'),
+    Save:       but(Icon.Save,         'Save'),
 };
 
 const helpState = {};
