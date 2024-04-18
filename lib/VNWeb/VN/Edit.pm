@@ -31,8 +31,6 @@ my $FORM = {
         title    => { _when => 'out' },
         original => { _when => 'out', default => '' },
     } },
-    image      => { default => undef, vndbid => 'cv' },
-    image_info => { _when => 'out', default => undef, type => 'hash', keys => $VNWeb::Elm::apis{ImageResult}[0]{aoh} },
     editions   => { sort_keys => 'eid', aoh => {
         eid      => { uint => 1, max => 500 },
         lang     => { default => undef, language => 1 },
@@ -89,12 +87,6 @@ TUWF::get qr{/$RE{vrev}/edit} => sub {
     $e->{editsum} = $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
 
     $e->{titles} = [ sort { $a->{lang} cmp $b->{lang} } $e->{titles}->@* ];
-    if($e->{image}) {
-        $e->{image_info} = { id => $e->{image} };
-        enrich_image 0, [$e->{image_info}];
-    } else {
-        $e->{image_info} = undef;
-    }
     $_->{info} = {id=>$_->{scr}} for $e->{screenshots}->@*;
     enrich_image 0, [map $_->{info}, $e->{screenshots}->@*];
 
@@ -164,7 +156,6 @@ elm_api VNEdit => $FORM_OUT, $FORM_IN, sub {
     die "No title in original language" if !length [grep $_->{lang} eq $data->{olang}, $data->{titles}->@*]->[0]{title};
 
     validate_dbid 'SELECT id FROM anime WHERE id IN', map $_->{aid}, $data->{anime}->@*;
-    validate_dbid 'SELECT id FROM images WHERE id IN', $data->{image} if $data->{image};
     validate_dbid 'SELECT id FROM images WHERE id IN', map $_->{scr}, $data->{screenshots}->@*;
     validate_dbid 'SELECT aid FROM staff_alias WHERE aid IN', map $_->{aid}, $data->{staff}->@*;
     validate_dbid 'SELECT aid FROM staff_alias WHERE aid IN', map $_->{aid}, $data->{seiyuu}->@*;
@@ -194,6 +185,7 @@ elm_api VNEdit => $FORM_OUT, $FORM_IN, sub {
     }, map $_->{cid}, $data->{seiyuu}->@*;
 
     $data->{image_nsfw} = $e->{image_nsfw}||0;
+    $data->{image} = $e->{image}||undef;
     my %oldscr = map +($_->{scr}, $_->{nsfw}), @{ $e->{screenshots}||[] };
     $_->{nsfw} = $oldscr{$_->{scr}}||0 for $data->{screenshots}->@*;
 

@@ -66,7 +66,6 @@ type alias Model =
   , vnSearch    : A.Model GApi.ApiVNResult
   , anime       : List GVE.RecvAnime
   , animeSearch : A.Model GApi.ApiAnimeResult
-  , image       : Img.Image
   , editions    : List GVE.RecvEditions
   , staff       : List GVE.RecvStaff
     -- Search boxes matching the list of editions (n+1), first entry is for the NULL edition.
@@ -107,7 +106,6 @@ init d =
   , vnSearch    = A.init ""
   , anime       = d.anime
   , animeSearch = A.init ""
-  , image       = Img.info d.image_info
   , editions    = d.editions
   , staff       = d.staff
   , staffSearch = (staffConfig Nothing, A.init "") :: List.map (\e -> (staffConfig (Just e.eid), A.init "")) d.editions
@@ -144,7 +142,6 @@ encode model =
   , l_renai     = model.lRenai
   , relations   = List.map (\v -> { vid = v.vid, relation = v.relation, official = v.official }) model.vns
   , anime       = List.map (\a -> { aid = a.aid }) model.anime
-  , image       = model.image.id
   , editions    = model.editions
   , staff       = List.map (\s -> { aid = s.aid, eid = s.eid, note = s.note, role = s.role }) model.staff
   , seiyuu      = List.map (\s -> { aid = s.aid, cid = s.cid, note = s.note }) model.seiyuu
@@ -195,10 +192,6 @@ type Msg
   | VNSearch (A.Msg GApi.ApiVNResult)
   | AnimeDel Int
   | AnimeSearch (A.Msg GApi.ApiAnimeResult)
-  | ImageSet String Bool
-  | ImageSelect
-  | ImageSelected File
-  | ImageMsg Img.Msg
   | EditionAdd
   | EditionLang Int (Maybe String)
   | EditionName Int String
@@ -284,11 +277,6 @@ update msg model =
           if List.any (\l -> l.aid == a.id) model.anime
           then ({ model | animeSearch = A.clear nm "" }, c)
           else ({ model | animeSearch = A.clear nm "", anime = model.anime ++ [{ aid = a.id, title = a.title, original = a.original }] }, c)
-
-    ImageSet s b -> let (nm, nc) = Img.new b s in ({ model | image = nm }, Cmd.map ImageMsg nc)
-    ImageSelect -> (model, FSel.file ["image/png", "image/jpeg", "image/webp", "image/avif", "image/jxl"] ImageSelected)
-    ImageSelected f -> let (nm, nc) = Img.upload Api.Cv f in ({ model | image = nm }, Cmd.map ImageMsg nc)
-    ImageMsg m -> let (nm, nc) = Img.update m model.image in ({ model | image = nm }, Cmd.map ImageMsg nc)
 
     EditionAdd ->
       let f n acc =
@@ -380,7 +368,6 @@ isValid model = not
   (  List.any (\e -> e.title /= "" && Just e.title == e.latin) model.titles
   || List.isEmpty model.titles
   || relAlias model /= Nothing
-  || not (Img.isValid model.image)
   || List.any (\(_,i,r) -> r == Nothing || not (Img.isValid i)) model.screenshots
   || not (List.isEmpty model.scrQueue)
   || hasDuplicates (List.map (\e -> (Maybe.withDefault "" e.lang, e.name)) model.editions)
@@ -512,32 +499,16 @@ view model =
       ]
 
     image =
-      table [ class "formimage" ] [ tr []
-      [ td [] [ Img.viewImg model.image ]
-      , td []
-        [ h2 [] [ text "Image ID" ]
-        , input ([ type_ "text", class "text", tabindex 10, value (Maybe.withDefault "" model.image.id), onInputValidation ImageSet, onInvalid (Invalid Image) ] ++ GVE.valImage) []
-        , br [] []
-        , text "Use an image that already exists on the server or empty to remove the current image."
-        , br_ 2
-        , h2 [] [ text "Upload new image" ]
-        , inputButton "Browse image" ImageSelect []
-        , br [] []
-        , text "Preferably the cover of the CD/DVD/package."
-        , br [] []
-        , text "Supported file types: JPEG, PNG, WebP, AVIF or JXL, at most 10 MiB."
-        , br [] []
-        , text "Images larger than 256x400 are automatically resized."
-        , case Img.viewVote model.image ImageMsg (Invalid Image) of
-            Nothing -> text ""
-            Just v ->
-              div []
-              [ br [] []
-              , text "Please flag this image: (see the ", a [ href "/d19" ] [ text "image flagging guidelines" ], text " for guidance)"
-              , v
-              ]
-        ]
-      ] ]
+      p []
+      [ text "The main image can't be uploaded or edited in this form anymore, "
+      , text "instead it is now automatically selected from release images. "
+      , br [] []
+      , if model.id == Nothing
+        then text "You can add a release entry and upload images there after this visual novel entry has been created."
+        else if List.isEmpty model.releases
+        then text "Add a release entry to upload an image for this visual novel."
+        else text "Edit a release entry to change or upload a new image for this visual novel."
+      ]
 
     staff =
       let
