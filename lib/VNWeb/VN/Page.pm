@@ -12,11 +12,11 @@ use VNDB::Func 'fmtrating';
 sub enrich_vn {
     my($v, $revonly) = @_;
     $v->{title} = titleprefs_obj $v->{olang}, $v->{titles};
-    enrich_merge id => 'SELECT id, c_votecount, c_length, c_lengthnum FROM vn WHERE id IN', $v;
+    enrich_merge id => 'SELECT id, c_votecount, c_length, c_lengthnum, c_image FROM vn WHERE id IN', $v;
     enrich_merge vid => sql('SELECT id AS vid, title, sorttitle, c_released FROM', vnt, 'v WHERE id IN'), $v->{relations};
     enrich_merge aid => 'SELECT id AS aid, title_romaji, title_kanji, year, type, ann_id, lastfetch FROM anime WHERE id IN', $v->{anime};
     enrich_extlinks v => 0, $v;
-    enrich_image_obj image => $v;
+    enrich_image_obj c_image => $v;
     enrich_image_obj scr => $v->{screenshots};
 
     # The queries below are not relevant for revisions
@@ -87,6 +87,7 @@ sub enrich_item {
     enrich_vn $v, !$full;
     enrich_merge aid => sql('SELECT id AS sid, aid, title FROM', staff_aliast, 's WHERE aid IN'), $v->{staff}, $v->{seiyuu};
     enrich_merge cid => sql('SELECT id AS cid, title AS char_title FROM', charst, 'c WHERE id IN'), $v->{seiyuu};
+    enrich_image_obj image => $v if tuwf->capture('rev');
 
     $v->{relations}   = [ sort { idcmp($a->{vid}, $b->{vid}) } $v->{relations}->@* ];
     $v->{anime}       = [ sort { $a->{aid} <=> $b->{aid} } $v->{anime}->@* ];
@@ -101,7 +102,7 @@ sub og {
     my($v) = @_;
     +{
         description => bb_format($v->{description}, text => 1),
-        image => $v->{image} && !$v->{image}{sexual} && !$v->{image}{violence} ? imgurl($v->{image}{id}) :
+        image => $v->{c_image} && !$v->{c_image}{sexual} && !$v->{c_image}{violence} ? imgurl($v->{c_image}{id}) :
                  [map $_->{scr}{sexual}||$_->{scr}{violence}?():(imgurl($_->{scr}{id})), $v->{screenshots}->@*]->[0]
     }
 }
@@ -483,7 +484,7 @@ sub infobox_ {
         p_ class => 'center standout', sub { lit_ config->{special_games}{$v->{id}}; br_; br_ } if config->{special_games}{$v->{id}};
 
         div_ class => 'vndetails', sub {
-            div_ class => 'vnimg', sub { image_ $v->{image}, alt => $v->{title}[1]; };
+            div_ class => 'vnimg', sub { image_ $v->{c_image}, alt => $v->{title}[1]; };
 
             table_ class => 'stripe', sub {
                 tr_ sub {

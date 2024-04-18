@@ -50,7 +50,7 @@ sub listing_ {
     paginate_ $url, $opt->{p}, $np, 't';
     article_ class => 'imagebrowse', sub {
         div_ class => 'imagecard', sub {
-            a_ href => "/$_->{id}?view=$view", style => 'background-image: url('.imgurl($_->{id}, $_->{id} =~ /^sf/ ? 't' : '').')', '';
+            a_ href => "/$_->{id}?view=$view", style => 'background-image: url('.thumburl($_).')', '';
             div_ sub {
                 a_ href => "/$_->{id}?view=$view", $_->{id};
                 txt_ sprintf ' / %d', $_->{c_votecount},;

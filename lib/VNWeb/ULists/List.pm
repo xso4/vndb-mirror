@@ -223,7 +223,7 @@ sub listing_ {
     my $lst = tuwf->dbPagei({ page => $opt->{p}, results => $opt->{s}->results },
         'SELECT v.id, v.title, uv.vote, uv.notes, uv.labels, uv.started, uv.finished
               , v.c_released, v.c_average, v.c_rating, v.c_votecount, v.c_released
-              , v.image, v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang
+              , v.c_image, v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang
               ,', sql_totime('uv.added'), ' as added
               ,', sql_totime('uv.lastmod'), ' as lastmod
               ,', sql_totime('uv.vote_date'), ' as vote_date',

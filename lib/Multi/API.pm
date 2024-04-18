@@ -449,7 +449,7 @@ sub image_flagging {
 # }
 # filters => filters args for get_filters() (TODO: Document)
 my %GET_VN = (
-  sql     => 'SELECT %s FROM vnt v LEFT JOIN images i ON i.id = v.image WHERE NOT v.hidden AND (%s) %s',
+  sql     => 'SELECT %s FROM vnt v LEFT JOIN images i ON i.id = v.c_image WHERE NOT v.hidden AND (%s) %s',
   select  => 'v.id',
   proc    => sub {
     $_[0]{id} = idnum $_[0]{id};
@@ -475,7 +475,7 @@ my %GET_VN = (
       },
     },
     details => {
-      select => 'v.image, i.c_sexual_avg, i.c_violence_avg, i.c_votecount, i.width AS image_width, i.height AS image_height, v.alias AS aliases,
+      select => 'v.c_image AS image, i.c_sexual_avg, i.c_violence_avg, i.c_votecount, i.width AS image_width, i.height AS image_height, v.alias AS aliases,
             v.length, v.c_length AS length_minutes, v.c_lengthnum AS length_votes, v.description, v.l_wp, v.l_encubed, v.l_renai, l_wikidata',
       proc   => sub {
         $_[0]{aliases}     ||= undef;

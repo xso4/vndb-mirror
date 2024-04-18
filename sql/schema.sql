@@ -87,7 +87,7 @@ CREATE TYPE report_status     AS ENUM ('new', 'busy', 'done', 'dismissed');
 CREATE TYPE tag_category      AS ENUM('cont', 'ero', 'tech');
 CREATE TYPE vn_relation       AS ENUM ('seq', 'preq', 'set', 'alt', 'char', 'side', 'par', 'ser', 'fan', 'orig');
 CREATE TYPE session_type      AS ENUM ('web', 'pass', 'mail', 'api', 'api2');
-CREATE TYPE release_image_type AS ENUM ('pkgfront', 'pkgback', 'pkgcontent', 'diglangscape', 'digportrait');
+CREATE TYPE release_image_type AS ENUM ('pkgfront', 'pkgback', 'pkgcontent', 'diglandscape', 'digportrait');
 
 CREATE TYPE ipinfo AS (
     ip                 inet,
@@ -1386,7 +1386,7 @@ CREATE TABLE users_username_hist (
 CREATE TABLE vn ( -- dbentry_type=v
   id            vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('v', nextval('vn_id_seq')::int) CONSTRAINT vn_id_check CHECK(vndbid_type(id) = 'v'), -- [pub]
   olang         language NOT NULL DEFAULT 'ja', -- [pub] Original language
-  image         vndbid CONSTRAINT vn_image_check CHECK(vndbid_type(image) = 'cv'), -- [pub]
+  image         vndbid CONSTRAINT vn_image_check CHECK(vndbid_type(image) = 'cv'), -- [pub] deprecated, replaced with c_image
   l_wikidata    integer, -- [pub]
   c_votecount   integer NOT NULL DEFAULT 0, -- [pub]
   c_pop_rank    integer NOT NULL DEFAULT 10000000,
@@ -1408,7 +1408,8 @@ CREATE TABLE vn ( -- dbentry_type=v
   description   text NOT NULL DEFAULT '', -- [pub]
   c_languages   language[] NOT NULL DEFAULT '{}',
   c_platforms   platform[] NOT NULL DEFAULT '{}',
-  c_developers  vndbid[] NOT NULL DEFAULT '{}'
+  c_developers  vndbid[] NOT NULL DEFAULT '{}',
+  c_image       vndbid
 );
 
 -- vn_hist
