@@ -391,9 +391,10 @@ BEGIN
            , COALESCE(s.violence_avg*100, 200) AS violence_avg, COALESCE(s.violence_stddev*100, 0) AS violence_stddev
            , CASE WHEN s.votecount >= 15 THEN 1 -- Lock the weight at 1 at 15 votes, collecting more votes is just inefficient
              WHEN EXISTS(
-                          SELECT 1 FROM vn v                                        WHERE s.id BETWEEN 'cv1' AND vndbid_max('cv') AND NOT v.hidden AND v.image = s.id
-                UNION ALL SELECT 1 FROM vn_screenshots vs JOIN vn v ON v.id = vs.id WHERE s.id BETWEEN 'sf1' AND vndbid_max('sf') AND NOT v.hidden AND vs.scr = s.id
-                UNION ALL SELECT 1 FROM chars c                                     WHERE s.id BETWEEN 'ch1' AND vndbid_max('ch') AND NOT c.hidden AND c.image = s.id
+                          SELECT 1 FROM releases_images ri JOIN releases r ON r.id = ri.id WHERE s.id BETWEEN 'cv1' AND vndbid_max('cv') AND NOT r.hidden AND ri.img = s.id
+                UNION ALL SELECT 1 FROM vn v                                               WHERE s.id BETWEEN 'cv1' AND vndbid_max('cv') AND NOT v.hidden AND v.image = s.id
+                UNION ALL SELECT 1 FROM vn_screenshots vs JOIN vn v ON v.id = vs.id        WHERE s.id BETWEEN 'sf1' AND vndbid_max('sf') AND NOT v.hidden AND vs.scr = s.id
+                UNION ALL SELECT 1 FROM chars c                                            WHERE s.id BETWEEN 'ch1' AND vndbid_max('ch') AND NOT c.hidden AND c.image = s.id
              )
              THEN ceil(pow(2, greatest(0, 14 - s.votecount)) + coalesce(pow(s.sexual_stddev, 2), 0)*100 + coalesce(pow(s.violence_stddev, 2), 0)*100)
              ELSE 0 END AS weight
@@ -820,6 +821,10 @@ BEGIN
   IF vndbid_type(nitemid) = 'c'
   THEN
     PERFORM update_images_cache(image) FROM chars_hist WHERE chid IN(xoldchid,nchid) AND image IS NOT NULL;
+  END IF;
+  IF vndbid_type(nitemid) = 'r'
+  THEN
+    PERFORM update_images_cache(img) FROM releases_images_hist WHERE chid IN(xoldchid,nchid);
   END IF;
   IF vndbid_type(nitemid) = 'v'
   THEN
