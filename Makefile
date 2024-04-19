@@ -113,8 +113,11 @@ ${GEN}/imgproc: util/imgproc.c
 	$Q ${CC} ${CFLAGS} $< -DDISABLE_SECCOMP `pkg-config --cflags --libs vips` -o $@
 
 VIPS_VER := 8.15.2
-# TODO: switch to a proper release when it includes this commit
-JXL_VER := 5e7560d9e431b40159cf688b9d9be6c0f2e229a1
+# We need at least:
+#   5e7560d9e431b40159cf688b9d9be6c0f2e229a1 - to fix loading jpeg with libvips
+#   8928c7a0eb6421af470d3753464e9d42f8d1fc4a - to fix loading certain jpeg files
+# TODO: switch to a proper release when it includes these commits.
+JXL_VER := 8928c7a0eb6421af470d3753464e9d42f8d1fc4a
 
 VIPS_DIR := ${GEN}/build/vips-${VIPS_VER}
 JXL_DIR := ${GEN}/build/libjxl-${JXL_VER}
@@ -172,7 +175,7 @@ ${JXL_DIR}/done:
 	cd ${JXL_DIR} && cmake --install .
 	@# jxl doesn't install a libjpeg.pc
 	@# It doesn't even install a static libjpeg.a at all, so we'll just grab it from the build dir directly.
-	@( \
+	( \
 		echo "Name: libjpeg"; \
 		echo "Description: Actually jpegli"; \
 		echo "Version: 1.0"; \
