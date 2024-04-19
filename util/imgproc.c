@@ -49,6 +49,10 @@ static void setup_seccomp() {
     if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(munmap), 0)) goto err;
     if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(madvise), 1, SCMP_A2_32(SCMP_CMP_EQ, MADV_DONTNEED))) goto err;
 
+    /* (nearly) impossible to prevent glibc from trying to read /proc and /sys
+     * stuff, just block the attempts and have it use fallback code instead. */
+    if (seccomp_rule_add(ctx, SCMP_ACT_ERRNO(ENOSYS), SCMP_SYS(openat), 0)) goto err;
+
     /* Threading, very fiddly :(
      * These are likely specific to a particular glibc version on x86_64.
      * I made an attempt to patch libvips to not use threads, but that turned out to be far more challenging.
@@ -73,12 +77,6 @@ static void setup_seccomp() {
     if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(dup), 0)) goto err;
     if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(read), 1, SCMP_A0(SCMP_CMP_EQ, 0))) goto err;
     if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(write), 0)) goto err;
-
-    /* glib logging thing
-       (disabled, no need with our custom logging handler)
-    if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getpeername), 0)) goto err;
-    if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getpid), 0)) goto err;
-    if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioctl), 1, SCMP_A1(SCMP_CMP_EQ, TCGETS))) goto err;*/
 
     if (seccomp_load(ctx) < 0) goto err;
     seccomp_release(ctx);
@@ -154,9 +152,6 @@ int main(int argc, char **argv) {
     /* Timezone initialization loads data from disk */
     putenv("TZ=");
     tzset();
-
-    /* glibc malloc() trim feature attempts to read from /proc */
-    mallopt(M_TRIM_THRESHOLD, -1);
 #endif
 
     if (VIPS_INIT(argv[0])) vips_error_exit(NULL);
