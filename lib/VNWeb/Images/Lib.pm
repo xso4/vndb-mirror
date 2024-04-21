@@ -127,23 +127,28 @@ sub image_hidden {
 #   width   -> if different from original image
 #   height  -> if different from original image
 #   url     -> link the image to a page (if not hidden by settings)
+#   thumb   -> 0/1, show thumbnail and link to full-size image; conflicts with 'url'
 #   overlay -> CODE ref, html to replace the overlay with.
-# XXX: Not all of these options are used, could clean up a few.
 sub image_ {
     my($img, %opt) = @_;
     return p_ 'No image' if !$img;
 
-    my($sex,$vio) = $img->@{'sexual', 'violence'};
     my($w,$h) = $opt{width} ? @opt{'width','height'} : @{$img}{'width', 'height'};
-    ($w,$h) = imgsize $w, $h, config->{cv_size}->@* if $img->{id} =~ /^cv/;
+    if($opt{thumb}) {
+        ($w,$h) = imgsize $w, $h, config->{ $img->{id} =~ /^cv/ ? 'cv_size' : $img->{id} =~ /^sf/ ? 'scr_size' : 'ch_size' }->@*;
+        $opt{url} = imgurl $img->{id} if $w < $img->{width} || $h < $img->{height};
+    }
+
     my $hidden = image_hidden $img;
+    my($sex,$vio) = $img->@{'sexual', 'violence'};
     my $hide_on_click = $opt{url} ? $hidden : $sex || $vio || !$img->{votecount} || (auth->pref('max_sexual')||0) < 0;
     my $small = $w*$h < 20000;
+
 
     label_ class => 'imghover', style => "width: ${w}px; height: ${h}px", sub {
         input_ type => 'checkbox', class => 'hidden', $hidden ? () : (checked => 'checked') if $hide_on_click;
         div_ class => 'imghover--visible', sub {
-            a_ href => $opt{url} if $opt{url};
+            a_ $opt{thumb} ? imgiv($img) : (href => $opt{url}) if $opt{url};
             img_ src => thumburl($img), width => $w, height => $h, $opt{alt} ? (alt => $opt{alt}) : ();
             end_ if $opt{url};
             if(!exists $opt{overlay}) {

@@ -12,6 +12,7 @@ CREATE        INDEX quotes_rand            ON quotes (rand) WHERE rand IS NOT NU
 CREATE        INDEX quotes_vid             ON quotes (vid);
 CREATE        INDEX quotes_addedby         ON quotes (addedby);
 CREATE        INDEX quotes_log_id          ON quotes_log (id);
+CREATE        INDEX releases_images_img    ON releases_images (img);
 CREATE        INDEX releases_released      ON releases (released) WHERE NOT hidden; -- Mainly for the homepage
 CREATE        INDEX releases_producers_pid ON releases_producers (pid);
 CREATE        INDEX releases_vn_vid        ON releases_vn (vid);
@@ -105,6 +106,7 @@ ALTER TABLE releases_drm_hist        ADD CONSTRAINT releases_drm_hist_chid_fkey 
 ALTER TABLE releases_drm_hist        ADD CONSTRAINT releases_drm_hist_drm_fkey         FOREIGN KEY (drm)       REFERENCES drm           (id);
 ALTER TABLE releases_images          ADD CONSTRAINT releases_images_id_fkey            FOREIGN KEY (id)        REFERENCES releases      (id);
 ALTER TABLE releases_images          ADD CONSTRAINT releases_images_img_fkey           FOREIGN KEY (img)       REFERENCES images        (id);
+ALTER TABLE releases_images          ADD CONSTRAINT releases_images_vid_fkey           FOREIGN KEY (id,vid)    REFERENCES releases_vn   (id,vid) DEFERRABLE INITIALLY DEFERRED;
 ALTER TABLE releases_images_hist     ADD CONSTRAINT releases_images_hist_chid_fkey     FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE releases_images_hist     ADD CONSTRAINT releases_images_hist_img_fkey      FOREIGN KEY (img)       REFERENCES images        (id);
 ALTER TABLE releases_titles          ADD CONSTRAINT releases_titles_id_fkey            FOREIGN KEY (id)        REFERENCES releases      (id);

@@ -21,7 +21,7 @@ our @EXPORT = ('bb_format', qw|
   minage
   fmtvote fmtmedia fmtage fmtdate fmtrating fmtspoil fmtanimation
   rdate
-  imgpath imgurl thumburl
+  imgpath imgurl thumburl imgiv
   tlang tattr
   query_encode
   md2html
@@ -161,6 +161,11 @@ sub thumburl {
     _path config->{url_static}, $_[0]{id},
         $_[0]{id} =~ /^sf/
     || ($_[0]{id} =~ /^cv/ && ($_[0]{width} > config->{cv_size}[0] || $_[0]{height} > config->{cv_size}[1])) ? 't' : undef;
+}
+
+# imgiv($image_obj, $cat) - returns <a> attributes for an imageviewer link
+sub imgiv {
+    (href => imgurl($_[0]{id}), 'data-iv' => "$_[0]{width}x$_[0]{height}:".($_[1]||'').":$_[0]{sexual}$_[0]{violence}$_[0]{votecount}");
 }
 
 # Formats a vote number.

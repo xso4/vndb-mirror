@@ -473,6 +473,13 @@ const Images = initVnode => {
                 ),
                 m(Select, { data: e, field: 'itype', class: 'lw', options: [[null, '-- Type --']].concat(vndbTypes.releaseImageType) }),
                 typeof e.itype !== 'string' ? m('p.invalid', 'Type is required.') : null,
+                data.vn.length <= 1 ? [] : [
+                    m('br'),
+                    m(Select, {
+                        data: e, field: 'vid', class: 'xw',
+                        options: [[null, '-- not specific to a VN --']].concat(data.vn.map(v => [v.vid, v.title])),
+                    }),
+                ],
                 m('br'),
                 m(Input, { data: e, field: 'label', class: 'xw', maxlength: 200, placeholder: '(Optional) label' }),
                 m(ImageFlag, { img: e.nfo }),
@@ -493,7 +500,10 @@ const Images = initVnode => {
                 vnimages().map(img => m('tr',
                     m('td[style=text-align:right]', m(Thumb, {img})),
                     m('td',
-                        m('button[type=button]', { onclick: () => { addsrc = null; data.images.push({img: img.id, nfo: img}) } }, 'Select image'),
+                        m('button[type=button]', { onclick: () => {
+                            addsrc = null;
+                            data.images.push({img: img.id, nfo: img, vid: data.vn.length > 1 ? img.entries.flatMap(e => e.id.match(/^v/)?[e.id]:[])[0] : null });
+                        } }, 'Select image'),
                         m('p', img.width, 'x', img.height),
                         m('p', 'Used for:'),
                         img.entries.map(e => m('p',

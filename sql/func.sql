@@ -307,10 +307,12 @@ CREATE OR REPLACE FUNCTION update_vncache(vndbid) RETURNS void AS $$
          AND r.official
          AND NOT r.hidden
          AND ri.itype IN('pkgfront', 'digportrait', 'diglandscape')
+         AND (ri.vid IS NULL OR ri.vid = rv.vid)
        ORDER BY rv.rtype, -- complete -> partial -> trial
                 r.released, -- earlier releases first
+                ri.vid IS NULL, -- prefer images specifically assigned to this VN
                 ri.itype <> 'pkgfront',  -- prefer pkgfront
-                ri.itype <> 'diglandscape' -- otherwise, prefer landscape
+                ri.itype <> 'digportrait' -- otherwise, prefer portrait
        LIMIT 1
     ), image)
   WHERE id = $1;

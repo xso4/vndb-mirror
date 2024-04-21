@@ -182,7 +182,7 @@ sub rev_ {
             a_ href => "/$_->{rid}", $_->{rid} if $_->{rid};
             txt_ 'no release' if !$_->{rid};
             txt_ '] ';
-            a_ href => imgurl($_->{scr}{id}), 'data-iv' => "$_->{scr}{width}x$_->{scr}{height}:$rev:$_->{scr}{sexual}$_->{scr}{violence}$_->{scr}{votecount}", $_->{scr}{id};
+            a_ imgiv($_->{scr}, $rev), $_->{scr}{id};
             txt_ " [$_->{scr}{width}x$_->{scr}{height}; ";
             a_ href => "/$_->{scr}{id}", image_flagging_display $_->{scr} if auth;
             span_ image_flagging_display $_->{scr} if !auth;
@@ -190,7 +190,7 @@ sub rev_ {
             # The old NSFW flag has been removed around 2020-07-14, so not relevant for edits made later on.
             small_ sprintf 'old flag: %s', $_->{nsfw} ? 'NSFW' : 'Safe' if $_[0]{rev_added} < 1594684800;
         }],
-        [ image       => 'Image',         fmt => sub { image_ $_ } ],
+        [ image       => 'Image',         fmt => sub { image_ $_, thumb => 1 } ],
         [ img_nsfw    => 'Image NSFW (unused)', fmt => sub { txt_ $_ ? 'Not safe' : 'Safe' } ],
         revision_extlinks 'v'
 }
@@ -484,7 +484,7 @@ sub infobox_ {
         p_ class => 'center standout', sub { lit_ config->{special_games}{$v->{id}}; br_; br_ } if config->{special_games}{$v->{id}};
 
         div_ class => 'vndetails', sub {
-            div_ class => 'vnimg', sub { image_ $v->{c_image}, alt => $v->{title}[1]; };
+            div_ class => 'vnimg', sub { image_ $v->{c_image}, thumb => 1, alt => $v->{title}[1]; };
 
             table_ class => 'stripe', sub {
                 tr_ sub {

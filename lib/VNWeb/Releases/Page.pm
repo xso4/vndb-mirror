@@ -81,11 +81,16 @@ sub _rev_ {
         } ],
         [ images     => 'Images', fmt => sub {
             my $rev = $_[0]{chid} == $r->{chid} ? 'new' : 'old';
-            a_ href => imgurl($_->{img}{id}), 'data-iv' => "$_->{img}{width}x$_->{img}{height}:$rev:$_->{img}{sexual}$_->{img}{violence}$_->{img}{votecount}", $_->{img}{id};
+            a_ imgiv($_->{img}, $rev), $_->{img}{id};
             txt_ " [$_->{img}{width}x$_->{img}{height}; ";
             a_ href => "/$_->{img}{id}", image_flagging_display $_->{img} if auth;
             span_ image_flagging_display $_->{img} if !auth;
             txt_ "] $RELEASE_IMAGE_TYPE{$_->{itype}}";
+            if ($_->{vid}) {
+                small_ ' [';
+                a_ href => "/$_->{vid}", $_->{vid};
+                small_ ']';
+            }
             small_ " $_->{label}" if length $_->{label};
         } ],
         revision_extlinks 'r'

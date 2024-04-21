@@ -69,6 +69,7 @@ my $FORM = {
     images     => { sort_keys => 'itype', aoh => {
         img       => { vndbid => 'cv' },
         itype     => { enum => \%RELEASE_IMAGE_TYPE },
+        vid       => { vndbid => 'v', default => undef },
         label     => { default => '', maxlength => 200 },
         nfo       => { _when => 'out', type => 'hash', keys => $VNWeb::Elm::apis{ImageResult}[0]{aoh} },
     } },
@@ -196,6 +197,9 @@ js_api ReleaseEdit => $FORM_IN, sub {
     $data->{notes} = bb_subst_links $data->{notes};
     die "No VNs selected" if !$data->{vn}->@*;
     die "Invalid resolution: ($data->{reso_x},$data->{reso_y})" if (!$data->{reso_x} && $data->{reso_y} > 1) || ($data->{reso_x} && !$data->{reso_y});
+
+    my %vids = map +($_->{vid},1), $data->{vn}->@*;
+    $_->{vid} = undef for grep $_->{vid} && !$vids{$_->{vid}}, $data->{images}->@*;
 
     # We need the DRM names for form_changed()
     enrich_merge drm => sql('SELECT id AS drm, name FROM drm WHERE id IN'), $e->{drm};
