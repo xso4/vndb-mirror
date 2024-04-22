@@ -424,6 +424,23 @@ const Images = initVnode => {
         m('img', {...thumbsize(v.attrs.img), src: thumburl(v.attrs.img)})
     ) };
 
+    // Filter out image types:
+    // - landscape/portrait according to image dimensions
+    // - digital / physical options only available when the release has the appropriate media
+    const imgTypes = (cur, nfo) => vndbTypes.releaseImageType.filter(([t]) => cur === t || (
+        t !== (nfo.width < nfo.height ? 'diglandscape' : 'digportrait')
+        && (data.media.length === 0 || data.media.find(e => e.medium === 'in') || !t.match(/^dig/))
+        && (data.media.length === 0 || data.media.find(e => e.medium !== 'in') || !t.match(/^pkg/))
+    ));
+    const addImg = nfo => {
+        const vns = nfo.entries.filter(e => e.id.match(/^v/));
+        const vid = data.vn.length > 1 && vns.length === 1 ? vns[0].id : null;
+        const typ = imgTypes(null, nfo);
+        const itype = typ.length === 1 ? typ[0][0] : vns.length > 0 && typ.find(([t]) => t === 'pkgfront') ? 'pkgfront' : null;
+        data.images.push({img: nfo.id, nfo, vid, itype});
+        addsrc = null;
+    };
+
     const imageApi = new Api('Image');
     const imageData = {id:''};
     const imagePattern = '^(?:.+/)?(?:cv([0-9]+)|cv/[0-9][0-9]/([0-9]+)\.jpg).*';
@@ -436,8 +453,7 @@ const Images = initVnode => {
                 imageApi.error = 'Image already selected.';
             else {
                 imageData.id = '';
-                data.images.push({img: nfo.id, nfo});
-                addsrc = null;
+                addimg(nfo);
             }
         });
     };
@@ -454,10 +470,7 @@ const Images = initVnode => {
         const form = new FormData();
         form.append('type', 'cv');
         form.append('img', img);
-        uploadApi.call(form, nfo => {
-            data.images.push({img: nfo.id, nfo});
-            addsrc = null;
-        });
+        uploadApi.call(form, addImg);
     };
 
     const view = () => [ m('fieldset.form',
@@ -471,7 +484,7 @@ const Images = initVnode => {
                     m(Button.Del, { onclick: () => data.images = data.images.filter(x => e !== x) }),
                     ' ', m('small', e.img, ' / '), e.nfo.width, 'x', e.nfo.height,
                 ),
-                m(Select, { data: e, field: 'itype', class: 'lw', options: [[null, '-- Type --']].concat(vndbTypes.releaseImageType) }),
+                m(Select, { data: e, field: 'itype', class: 'lw', options: [[null, '-- Type --']].concat(imgTypes(e.itype, e.nfo)) }),
                 typeof e.itype !== 'string' ? m('p.invalid', 'Type is required.') : null,
                 data.vn.length <= 1 ? [] : [
                     m('br'),
@@ -500,10 +513,7 @@ const Images = initVnode => {
                 vnimages().map(img => m('tr',
                     m('td[style=text-align:right]', m(Thumb, {img})),
                     m('td',
-                        m('button[type=button]', { onclick: () => {
-                            addsrc = null;
-                            data.images.push({img: img.id, nfo: img, vid: data.vn.length > 1 ? img.entries.flatMap(e => e.id.match(/^v/)?[e.id]:[])[0] : null });
-                        } }, 'Select image'),
+                        m('button[type=button]', { onclick: () => addImg(img) }, 'Select image'),
                         m('p', img.width, 'x', img.height),
                         m('p', 'Used for:'),
                         img.entries.map(e => m('p',
