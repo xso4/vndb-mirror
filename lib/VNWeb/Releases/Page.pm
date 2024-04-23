@@ -85,7 +85,7 @@ sub _rev_ {
             txt_ " [$_->{img}{width}x$_->{img}{height}; ";
             a_ href => "/$_->{img}{id}", image_flagging_display $_->{img} if auth;
             span_ image_flagging_display $_->{img} if !auth;
-            txt_ "] $RELEASE_IMAGE_TYPE{$_->{itype}}";
+            txt_ "] $RELEASE_IMAGE_TYPE{$_->{itype}}{txt}";
             if ($_->{vid}) {
                 small_ ' [';
                 a_ href => "/$_->{vid}", $_->{vid};
@@ -306,6 +306,28 @@ sub _infotable_ {
 }
 
 
+sub _images_ {
+    my($r) = @_;
+
+    div_ class => 'relimg', sub {
+        div_ sub {
+            h3_ sub {
+                if ($_->{vid}) {
+                    small_ '[';
+                    a_ href => "/$_->{vid}", $_->{vid};
+                    small_ '] ';
+                }
+                txt_ $RELEASE_IMAGE_TYPE{$_->{itype}}{txt};
+            };
+            image_ $_->{img}, thumb => 1;
+            p_ sub {
+                lit_ bb_format $_->{label}, inline => 1;
+            } if length $_->{label};
+        } for sort { $RELEASE_IMAGE_TYPE{$a->{itype}}{ord} <=> $RELEASE_IMAGE_TYPE{$b->{itype}}{ord} } $r->{images}->@*;
+    };
+}
+
+
 TUWF::get qr{/$RE{rrev}} => sub {
     my $r = db_entry tuwf->captures('id','rev');
     return tuwf->resNotFound if !$r;
@@ -314,7 +336,7 @@ TUWF::get qr{/$RE{rrev}} => sub {
     enrich_item $r;
     enrich_extlinks r => 0, $r;
 
-    framework_ title => $r->{title}[1], index => !tuwf->capture('rev'), dbobj => $r, hiddenmsg => 1,
+    framework_ title => $r->{title}[1], index => !tuwf->capture('rev'), dbobj => $r, hiddenmsg => 1, js => 1,
         og => {
             description => bb_format $r->{notes}, text => 1
         },
@@ -326,6 +348,7 @@ TUWF::get qr{/$RE{rrev}} => sub {
             h2_ class => 'alttitle', tlang(@{$r->{title}}[2,3]), $r->{title}[3] if $r->{title}[3] && $r->{title}[3] ne $r->{title}[1];
             _infotable_ $r;
             div_ class => 'description', sub { lit_ bb_format $r->{notes} } if $r->{notes};
+            _images_ $r if $r->{images}->@*;
         };
     };
 };
