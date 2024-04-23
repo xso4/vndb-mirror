@@ -284,6 +284,9 @@ const display = data => {
                 m('label.check', m('input[type=radio]', { checked: data.spoilers === 1, onchange: () => data.spoilers = 1 }), ' Minor spoilers'), m('br'),
                 m('label.check', m('input[type=radio]', { checked: data.spoilers === 2, onchange: () => data.spoilers = 2 }), ' Major spoilers'),
             ),
+            m('fieldset',
+                m('small', 'Image & spoiler preferences are not applied when editing database information.')
+            ),
         ),
         m('fieldset.form',
             m('legend', 'Titles', HelpButton('titles')),
