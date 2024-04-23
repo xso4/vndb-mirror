@@ -391,7 +391,7 @@ sub enrich_extlinks {
         if($type eq 'r') {
             l 'l_egs';
             l 'l_steam';
-            c 'steamdb', 'SteamDB', 'https://steamdb.info/app/%d/info', $obj->{l_steam} if $obj->{l_steam};
+            c 'steamdb', 'SteamDB', 'https://steamdb.info/app/%d/info/', $obj->{l_steam} if $obj->{l_steam};
             l 'l_dlsite', $obj->{l_dlsite_price};
             l 'l_gog';
             l 'l_itch';
