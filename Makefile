@@ -4,8 +4,6 @@
 # prod
 #   Create static assets for production. Requires the following additional dependencies:
 #   - uglifyjs
-#   - zopfli
-#   - zopflipng
 #   - brotli
 #   - pandoc
 #
@@ -46,7 +44,6 @@ all: \
 prod: all \
 	${GEN}/api-nyan.html ${GEN}/api-kana.html \
 	${GEN}/static/icons.svg.gz ${GEN}/static/icons.svg.br \
-	${GEN}/static/icons.opt.png \
 	${GEN}/static/elm.min.js ${GEN}/static/elm.min.js.gz ${GEN}/static/elm.min.js.br \
 	${JS_OUT:js=min.js} ${JS_OUT:js=min.js} \
 	${JS_OUT:js=min.js.gz} ${JS_OUT:js=min.js.gz} \
@@ -57,7 +54,7 @@ clean:
 	rm -rf "${GEN}"
 
 %.gz: %
-	zopfli $<
+	gzip -fk9 $<
 
 %.br: %
 	brotli -f $<
@@ -89,10 +86,6 @@ ${GEN}/%.css ${GEN}/static/icons.%: util/%sprite.pl icons icons/* icons/*/* | ${
 	$<
 
 ${GEN}/static/png.css ${GEN}/static/icons.png: ${GEN}/imgproc
-
-${GEN}/static/icons.opt.png: ${GEN}/static/icons.png
-	$T PNGOPT
-	$Q zopflipng -ym --lossy_transparent "$<" "$@" >/dev/null
 
 ${GEN}/static/%.css: css/skins/%.sass css/*.css ${GEN}/png.css ${GEN}/svg.css
 	$T SASS

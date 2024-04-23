@@ -252,7 +252,6 @@ looks something like this:
 
 ```nginx
 map $uri $opt_asset {
-  ~^/(.+)\.png$ /$1.opt.png;
   ~^/(.+)\.js$ /$1.min.js;
   default $uri;
 }
