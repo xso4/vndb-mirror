@@ -251,11 +251,6 @@ With the above taken care of, the nginx configuration for a single-domain setup
 looks something like this:
 
 ```nginx
-map $uri $opt_asset {
-  ~^/(.+)\.js$ /$1.min.js;
-  default $uri;
-}
-
 server {
   ...
 
@@ -264,7 +259,7 @@ server {
   gzip_static on;
   gzip_http_version 1.0;
   brotli_static on;
-  try_files /var/static$uri /gen/static$opt_asset /gen/static$uri /static$uri @fcgi;
+  try_files /var/static$uri /gen/static$uri /static$uri @fcgi;
 
   location @fcgi {
     expires off;

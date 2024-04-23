@@ -12,9 +12,12 @@ use Time::HiRes 'time';
 use Cwd 'abs_path';
 (my $ROOT = abs_path $0) =~ s{/util/vndb-dev-server\.pl$}{};
 
+chdir $ROOT;
+
 my $listen_port = $ENV{TUWF_HTTP_SERVER_PORT} || 3000;
 $ENV{TUWF_HTTP_SERVER_PORT} = $listen_port+1;
 
+$ENV{VNDB_GEN} //= 'gen';
 $ENV{VNDB_VAR} //= 'var';
 
 my($pid, $prog, $killed);
@@ -30,7 +33,7 @@ sub prog_start {
         }
         print $d;
     };
-    $prog = run_cmd "$ROOT/util/vndb.pl",
+    $prog = run_cmd 'util/vndb.pl',
         '$$' => \$pid,
         '>'  => $output,
         '2>' => $output;
@@ -60,7 +63,7 @@ sub make_run {
         print "\n" if !$newline++;
         print $d;
     };
-    my $cb = run_cmd "cd $ROOT && make -j4", '>', $out, '2>', $out;
+    my $cb = run_cmd 'make -j4', '>', $out, '2>', $out;
     $cb->recv;
     print "\n" if $newline;
 }
@@ -99,9 +102,11 @@ sub checkmod {
 
     find sub {
         $check->($_) if /\.pm$/ && $_ ne 'Multi';
-    }, "$ROOT/lib";
+    }, 'lib';
+    find sub {
+        $check->($_) if /\.js$/;
+    }, "$ENV{VNDB_GEN}/static";
 
-    chdir $ROOT;
     $check->('util/vndb.pl');
     $check->("$ENV{VNDB_VAR}/conf.pl");
 

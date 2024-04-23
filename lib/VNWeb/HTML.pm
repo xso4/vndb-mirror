@@ -170,9 +170,12 @@ sub _staticurl {
     my($file) = @_;
     state %urls;
     $urls{$file} //= do {
+        my sub g { config->{gen_path}.'/static/'.$_[0] }
+        my $min = $file =~ s/\.js/.min.js/r;
+        my $fn = -e g($min) && (stat g $min)[9] >= (stat g $file)[9] ? $min : $file;
         my $c = Digest::SHA->new('sha1');
-        $c->addfile(config->{gen_path}.'/static/'.$file);
-        sprintf '%s/%s?%s', config->{url_static}, $file, substr $c->hexdigest(), 0, 8;
+        $c->addfile(g $fn);
+        sprintf '%s/%s?%s', config->{url_static}, $fn, substr $c->hexdigest(), 0, 8;
     };
 }
 
