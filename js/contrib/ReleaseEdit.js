@@ -453,7 +453,7 @@ const Images = initVnode => {
                 imageApi.error = 'Image already selected.';
             else {
                 imageData.id = '';
-                addimg(nfo);
+                addImg(nfo);
             }
         });
     };
