@@ -38,6 +38,8 @@ var ivflag;
 var imgw;
 var imgh;
 
+var cururl;
+
 function create_div() {
     if(ivparent)
         return;
@@ -155,6 +157,9 @@ function show(ev) {
     imgw = Math.floor(opt[0].split('x')[0]);
     imgh = Math.floor(opt[0].split('x')[1]);
 
+    if (cururl === u) { ivClose(); ev.preventDefault(); return }
+    cururl = u;
+
     if (opt[1] && this.getAttribute('data-iv-mithril')) ivInit(); // load categories
 
     create_div();
@@ -201,6 +206,7 @@ window.ivClose = function(ev) {
         targetlink = targetlink.parentNode;
     if(targetlink && targetlink.getAttribute('data-iv'))
         return false;
+    cururl = null;
     document.removeEventListener('click', ivClose);
     document.removeEventListener('keydown', keydown);
     window.removeEventListener('resize', resize);
