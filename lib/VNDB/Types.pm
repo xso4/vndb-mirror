@@ -275,6 +275,7 @@ hash MEDIUM =>
     umd => { qty => 1, txt => 'UMD',                   plural => 'UMDs',                   icon => 'disk'      },
     nod => { qty => 1, txt => 'Nintendo Optical Disc', plural => 'Nintendo Optical Discs', icon => 'disk'      },
     in  => { qty => 0, txt => 'Internet download',     plural => '',                       icon => 'download'  },
+    dc  => { qty => 0, txt => 'Download card',         plural => '',                       icon => 'download'  },
     otc => { qty => 0, txt => 'Other',                 plural => '',                       icon => 'cartridge' };
 
 
