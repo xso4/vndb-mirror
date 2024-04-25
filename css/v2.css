@@ -376,6 +376,16 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid var
 .vntaglist li .tagscore { margin-right: 10px }
 
 
+/***** VN covers tab (/v+/cv) *******/
+
+.vncovers {
+    > div {
+        display: flex; max-width: 900px; margin: 0 auto 20px auto;
+        > :first-child { flex: 0; width: 256px; }
+        > :last-child { flex: 1; padding-left: 10px; }
+    }
+}
+
 
 /***** Vote stats ****/
 

@@ -564,6 +564,7 @@ sub tabs_ {
     nav_ sub {
         menu_ sub {
             li_ class => ($tab eq ''        ? ' tabselected' : ''), sub { a_ href => "/$v->{id}#main", name => 'main', 'main' };
+            li_ class => ($tab eq 'cv'      ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/cv#cv", name => 'cv', 'covers' };
             li_ class => ($tab eq 'tags'    ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/tags#tags", name => 'tags', 'tags' };
             li_ class => ($tab eq 'chars'   ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/chars#chars", name => 'chars', "characters ($chars)" } if $chars;
             if($v->{reviews}{mini} > 4 || $tab eq 'minireviews' || $tab eq 'fullreviews') {
@@ -1000,6 +1001,56 @@ sub tags_ {
 }
 
 
+sub covers_ {
+    my($v) = @_;
+
+    my $lst = tuwf->dbAlli('
+        SELECT ri.img, ri.itype, r.id, r.released, r.title, rv.rtype
+          FROM releases_images ri
+          JOIN', releasest, 'r ON r.id = ri.id
+          JOIN releases_vn rv ON rv.id = ri.id
+         WHERE NOT r.hidden AND rv.vid =', \$v->{id}, '
+           AND (ri.vid IS NULL OR ri.vid =', \$v->{id}, ')
+         ORDER BY r.released
+    ');
+    enrich_image_obj img => $lst;
+    enrich lang => id => id => sub { sql('SELECT id, lang, mtl FROM releases_titles WHERE id IN', $_, 'ORDER BY lang') }, $lst;
+    enrich_flatten platforms => id => id => sub { sql('SELECT id, platform FROM releases_platforms WHERE id IN', $_, 'ORDER BY platform') }, $lst;
+
+    my %cv;
+    push $cv{$_->{img}{id}}->@*, $_ for @$lst;
+
+    my sub cover_ {
+        my($l) = @_;
+        div_ sub {
+            image_ $l->[0]{img}, thumb => 1;
+        };
+        div_ sub {
+            my %t;
+            h3_ join ', ', grep !$t{$_}++, map $RELEASE_IMAGE_TYPE{$_->{itype}}{txt}, @$l;
+            table_ sub {
+                tr_ sub {
+                    td_ sub { rdate_ $_->{released} };
+                    td_ sub {
+                        platform_ $_ for $_->{platforms}->@*;
+                        abbr_ class => "icon-lang-$_->{lang}".($_->{mtl}?' mtl':''), title => $LANGUAGE{$_->{lang}}{txt}, '' for $_->{lang}->@*;
+                        abbr_ class => "icon-rt$_->{rtype}", title => $_->{rtype}, '';
+                    };
+                    td_ sub { a_ href => "/$_->{id}", tattr $_ };
+                } for @$l;
+            };
+        };
+    };
+
+    article_ sub {
+        h1_ 'Release Covers';
+        div_ class => 'vncovers', sub {
+            div_ sub { cover_ $_ } for grep $_, map delete($cv{$_->{img}{id}}), @$lst;
+        };
+    };
+}
+
+
 TUWF::get qr{/$RE{vrev}}, sub {
     my $v = db_entry tuwf->captures('id', 'rev');
     return tuwf->resNotFound if !$v;
@@ -1031,6 +1082,21 @@ TUWF::get qr{/$RE{vid}/tags}, sub {
         infobox_ $v, 1;
         tabs_ $v, 'tags';
         tags_ $v;
+    };
+};
+
+
+TUWF::get qr{/$RE{vid}/cv}, sub {
+    my $v = db_entry tuwf->capture('id');
+    return tuwf->resNotFound if !$v;
+
+    enrich_vn $v;
+
+    framework_ title => $v->{title}[1], index => 1, dbobj => $v, hiddenmsg => 1,
+    sub {
+        infobox_ $v, 1;
+        tabs_ $v, 'cv';
+        covers_ $v;
     };
 };
 

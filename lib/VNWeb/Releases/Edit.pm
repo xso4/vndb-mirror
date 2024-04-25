@@ -91,7 +91,9 @@ sub vnimages {
       SELECT image AS id FROM vn WHERE image IS NOT NULL AND id IN', \@vid, '
        UNION
       SELECT ri.img AS id FROM releases_images ri JOIN releases_vn rv ON rv.id = ri.id
-       WHERE', $rid ? sql('ri.id <>', \$rid, 'AND') : (), 'rv.vid IN', \@vid);
+       WHERE (ri.vid IS NULL OR ri.vid = rv.vid)
+         AND rv.vid IN', \@vid,
+             $rid ? sql('AND ri.id <>', \$rid) : ());
     enrich_image 0, $l;
     $l;
 }
