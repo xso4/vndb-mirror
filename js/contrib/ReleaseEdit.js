@@ -424,12 +424,10 @@ const Images = initVnode => {
         m('img', {...thumbsize(v.attrs.img), src: thumburl(v.attrs.img)})
     ) };
 
-    // Filter out image types:
-    // - landscape/portrait according to image dimensions
+    // Filter out image types
     // - digital / physical options only available when the release has the appropriate media
     const imgTypes = (cur, nfo) => vndbTypes.releaseImageType.filter(([t]) => cur === t || (
-        t !== (nfo.width < nfo.height ? 'diglandscape' : 'digportrait')
-        && (data.media.length === 0 || data.media.find(e => e.medium === 'in') || !t.match(/^dig/))
+           (data.media.length === 0 || data.media.find(e => e.medium === 'in') || !t.match(/^dig/))
         && (data.media.length === 0 || data.media.find(e => e.medium !== 'in') || !t.match(/^pkg/))
     ));
     const addImg = nfo => {
@@ -494,7 +492,7 @@ const Images = initVnode => {
                     }),
                 ],
                 m('br'),
-                m(Input, { data: e, field: 'label', class: 'xw', maxlength: 200, placeholder: '(Optional) label' }),
+                m(Input, { data: e, field: 'label', class: 'xw', maxlength: 200, placeholder: 'Label (optional)' }),
                 m(ImageFlag, { img: e.nfo }),
             ),
         )))),

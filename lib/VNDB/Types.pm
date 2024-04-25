@@ -339,11 +339,10 @@ hash CUP_SIZE =>
 
 # SQL: ENUM release_image_type
 hash RELEASE_IMAGE_TYPE =>
-    pkgfront      => { ord => 1, txt => 'Package (front)' },
-    pkgback       => { ord => 4, txt => 'Package (back)' },
-    pkgcontent    => { ord => 5, txt => 'Package (contents)' },
-    diglandscape  => { ord => 2, txt => 'Digital promo art (landscape)' },
-    digportrait   => { ord => 3, txt => 'Digital promo art (portrait)' };
+    pkgfront   => { ord => 1, txt => 'Package (front)' },
+    pkgback    => { ord => 3, txt => 'Package (back)' },
+    pkgcontent => { ord => 4, txt => 'Package (contents)' },
+    dig        => { ord => 2, txt => 'Digital promo art' };
 
 
 
