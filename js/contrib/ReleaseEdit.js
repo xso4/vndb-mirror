@@ -471,7 +471,9 @@ const Images = initVnode => {
         uploadApi.call(form, addImg);
     };
 
-    const view = () => [ m('fieldset.form',
+    const view = () => !data.official ? [
+        m('p', 'This release has not been marked as "official". We currently do not allow images for unofficial releases.')
+    ] : [ m('fieldset.form',
         m('legend', 'Images'),
         data.images.length === 0
         ? m('p', 'No images assigned to this release.')
