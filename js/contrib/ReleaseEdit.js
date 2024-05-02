@@ -493,8 +493,6 @@ const Images = initVnode => {
                         options: [[null, '-- not specific to a VN --']].concat(data.vn.map(v => [v.vid, v.title])),
                     }),
                 ],
-                m('br'),
-                m(Input, { data: e, field: 'label', class: 'xw', maxlength: 200, placeholder: 'Label (optional)' }),
                 m(ImageFlag, { img: e.nfo }),
             ),
         )))),
@@ -543,7 +541,7 @@ const Images = initVnode => {
                             e.id.match(/^v/) ? 'VN: ' : 'Release: ',
                             m('small', e.id, ' / '),
                             m('a[target=_blank]', { href: '/'+e.id }, e.title),
-                            // TODO: Type & maybe label would be nice to include here
+                            // TODO: Type would be nice to include here
                         )),
                     ),
                 ))),

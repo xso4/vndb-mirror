@@ -91,7 +91,6 @@ sub _rev_ {
                 a_ href => "/$_->{vid}", $_->{vid};
                 small_ ']';
             }
-            small_ " $_->{label}" if length $_->{label};
         } ],
         revision_extlinks 'r'
 }
@@ -320,9 +319,6 @@ sub _images_ {
                 txt_ $RELEASE_IMAGE_TYPE{$_->{itype}}{txt};
             };
             image_ $_->{img}, thumb => 1;
-            p_ sub {
-                lit_ bb_format $_->{label}, inline => 1;
-            } if length $_->{label};
         } for sort { $RELEASE_IMAGE_TYPE{$a->{itype}}{ord} <=> $RELEASE_IMAGE_TYPE{$b->{itype}}{ord} } $r->{images}->@*;
     };
 }

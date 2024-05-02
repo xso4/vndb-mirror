@@ -70,7 +70,6 @@ my $FORM = {
         img       => { vndbid => 'cv' },
         itype     => { enum => \%RELEASE_IMAGE_TYPE },
         vid       => { vndbid => 'v', default => undef },
-        label     => { default => '', maxlength => 200 },
         nfo       => { _when => 'out', type => 'hash', keys => $VNWeb::Elm::apis{ImageResult}[0]{aoh} },
     } },
     vnimages   => { _when => 'out', $VNWeb::Elm::apis{ImageResult}[0]->%* },
