@@ -2,11 +2,7 @@
 
 use v5.28;
 use List::Util 'any';
-use Cwd 'abs_path';
-our $ROOT;
-BEGIN { ($ROOT = abs_path $0) =~ s{/util/sqleditfunc\.pl$}{}; }
-
-use lib "$ROOT/lib";
+use lib 'lib';
 use VNDB::Schema;
 
 my $schema = VNDB::Schema::schema;

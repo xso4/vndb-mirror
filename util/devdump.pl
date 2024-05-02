@@ -8,12 +8,6 @@ use warnings;
 use autodie;
 use DBI;
 use DBD::Pg;
-use Cwd 'abs_path';
-
-my $ROOT;
-BEGIN { ($ROOT = abs_path $0) =~ s{/util/devdump\.pl$}{}; }
-
-use lib $ROOT.'/lib';
 
 my $db = DBI->connect('dbi:Pg:dbname=vndb', 'vndb', undef, { RaiseError => 1 });
 

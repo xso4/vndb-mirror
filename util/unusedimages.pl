@@ -9,10 +9,6 @@ use strict;
 use warnings;
 use DBI;
 use File::Find;
-use Cwd 'abs_path';
-
-my $ROOT;
-BEGIN { ($ROOT = abs_path $0) =~ s{/util/unusedimages\.pl$}{}; }
 
 $ENV{VNDB_VAR} //= 'var';
 

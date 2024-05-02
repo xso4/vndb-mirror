@@ -20,14 +20,11 @@ use v5.28;
 use warnings;
 use AE;
 use AnyEvent::HTTP;
-use Cwd 'abs_path';
 
 my $API = 'https://api.pwnedpasswords.com/range/';
 my $concurrency = 5;
 my $lastnum = 0;
 my $run = AE::cv;
-
-my $ROOT = abs_path($0) =~ s{/util/hibp-dl\.pl$}{}r;
 
 $ENV{VNDB_VAR} //= 'var';
 

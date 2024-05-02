@@ -12,11 +12,7 @@
 
 use v5.24;
 use warnings;
-use Cwd 'abs_path';
-
-my $ROOT;
-BEGIN { ($ROOT = abs_path $0) =~ s{/util/revision-integrity\.pl$}{}; }
-use lib "$ROOT/lib";
+use lib 'lib';
 use VNDB::Schema;
 
 my $schema = VNDB::Schema::schema;

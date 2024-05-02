@@ -37,11 +37,7 @@ use File::Find 'find';
 use File::Path 'rmtree';
 use Time::HiRes 'time';
 
-use Cwd 'abs_path';
-our $ROOT;
-BEGIN { ($ROOT = abs_path $0) =~ s{/util/dbdump\.pl$}{}; }
-
-use lib "$ROOT/lib";
+use lib 'lib';
 use VNDB::Schema;
 use VNDB::ExtLinks;
 
@@ -315,7 +311,7 @@ sub export_db {
     mkdir "${dest}_dir";
     mkdir "${dest}_dir/db";
 
-    cp "$ROOT/util/dump/$_", "${dest}_dir/$_" for @static;
+    cp "util/dump/$_", "${dest}_dir/$_" for @static;
 
     export_timestamp "${dest}_dir/TIMESTAMP";
     export_table "${dest}_dir/db", $_ for @tables;
@@ -344,8 +340,8 @@ sub export_img {
     mkdir sprintf '%s/%s', $dest, $_ for qw/ch cv sf sf.t/;
     mkdir sprintf '%s/%s/%02d', $dest, $_->[0], $_->[1] for map +([ch=>$_], [cv=>$_], [sf=>$_], ['sf.t'=>$_]), 0..99;
 
-    cp_p "$ROOT/util/dump/LICENSE-ODBL.txt", "$dest/LICENSE-ODBL.txt";
-    cp_p "$ROOT/util/dump/README-img.txt", "$dest/README.txt";
+    cp_p "util/dump/LICENSE-ODBL.txt", "$dest/LICENSE-ODBL.txt";
+    cp_p "util/dump/README-img.txt", "$dest/README.txt";
     export_timestamp "$dest/TIMESTAMP";
 
     my %scr;

@@ -1,10 +1,6 @@
 #!/usr/bin/perl
 
-use Cwd 'abs_path';
-our $ROOT;
-BEGIN { ($ROOT = abs_path $0) =~ s{/util/jsgen\.pl$}{}; }
-
-use lib "$ROOT/lib";
+use lib 'lib';
 use TUWF;
 use TUWF::Validate::Interop;
 use JSON::XS;

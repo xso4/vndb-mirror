@@ -6,9 +6,10 @@ use Exporter 'import';
 use Cwd 'abs_path';
 our @EXPORT = ('config');
 
-my $ROOT = $INC{'VNDB/Config.pm'} =~ s{/lib/VNDB/Config\.pm$}{}r;
+my $ROOT = ($INC{'VNDB/Config.pm'} =~ s{lib/VNDB/Config\.pm$}{}r =~ s{/$}{}r) || '.';
 my $GEN = abs_path($ENV{VNDB_GEN} // "$ROOT/gen");
 my $VAR = abs_path($ENV{VNDB_VAR} // "$ROOT/var");
+$ROOT = abs_path $ROOT;
 
 # Default config options
 my $config = {

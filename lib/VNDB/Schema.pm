@@ -9,7 +9,7 @@ package VNDB::Schema;
 use v5.12;
 use warnings;
 
-my $ROOT = $INC{'VNDB/Schema.pm'} =~ s{/lib/VNDB/Schema\.pm}{}r;
+my $ROOT = ($INC{'VNDB/Schema.pm'} =~ s{lib/VNDB/Schema\.pm$}{}r =~ s{/$}{}r) || '.';
 
 
 # Reads schema.sql and returns a hashref with the following structure:
