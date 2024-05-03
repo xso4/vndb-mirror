@@ -540,14 +540,14 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid var
 
 /***** Image hover thingy (VNWeb::Images::Lib::images_) ****/
 
-.imghover { margin: 0 auto; display: block; text-align: center }
-.imghover input:checked       ~ div.imghover--warning { display: none }
-.imghover input:not(:checked) ~ div.imghover--visible { display: none }
-.imghover div.imghover--visible { position: relative }
-.imghover div.imghover--visible > a { border-bottom: 0 }
-.imghover div.imghover--visible .imghover--overlay { display: none; white-space: nowrap; font-size: 11px }
-.imghover:hover div.imghover--visible .imghover--overlay { display: block; position: absolute; right: 0; bottom: 0; padding: 5px 10px; background: var(--secbg); border: 0 }
-.imghover div.imghover--warning { border: 1px solid var(--border); background: var(--secbg); padding: 10px 5px }
+.imghover { margin: 0 auto; text-align: center }
+.imghover input:checked       ~ .imghover--warning { display: none }
+.imghover input:not(:checked) ~ .imghover--visible { display: none }
+.imghover .imghover--visible { position: relative }
+.imghover .imghover--visible > a { border-bottom: 0 }
+.imghover .imghover--visible .imghover--overlay { display: none; white-space: nowrap; font-size: 11px }
+.imghover:hover .imghover--visible .imghover--overlay { display: block; position: absolute; right: 0; bottom: 0; padding: 5px 10px; background: var(--secbg); border: 0 }
+.imghover .imghover--warning { display: block; border: 1px solid var(--border); background: var(--secbg); padding: 10px 5px }
 
 
 

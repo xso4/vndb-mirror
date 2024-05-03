@@ -144,9 +144,11 @@ sub image_ {
     my $hide_on_click = $opt{url} ? $hidden : $sex || $vio || !$img->{votecount} || (auth->pref('max_sexual')||0) < 0;
     my $small = $w*$h < 20000;
 
+    tuwf->{req}{imghover_id} //= 0;
+    my $id = tuwf->{req}{imghover_id}++;
 
-    label_ class => 'imghover', style => "width: ${w}px; height: ${h}px", sub {
-        input_ type => 'checkbox', class => 'hidden', $hidden ? () : (checked => 'checked') if $hide_on_click;
+    div_ class => 'imghover', style => "width: ${w}px; height: ${h}px", sub {
+        input_ type => 'checkbox', id => "imghover$id", class => 'hidden', $hidden ? () : (checked => 'checked') if $hide_on_click;
         div_ class => 'imghover--visible', sub {
             a_ $opt{thumb} ? imgiv($img) : (href => $opt{url}) if $opt{url};
             img_ src => thumburl($img), width => $w, height => $h, $opt{alt} ? (alt => $opt{alt}) : ();
@@ -158,7 +160,7 @@ sub image_ {
                 $opt{overlay}->();
             }
         };
-        div_ class => 'imghover--warning', sub {
+        label_ for => "imghover$id", class => 'imghover--warning', sub {
             if($img->{votecount}) {
                 if(!$small) {
                     txt_ 'This image has been flagged as:';
@@ -173,8 +175,10 @@ sub image_ {
             if(!$small) {
                 br_; br_;
                 span_ class => 'fake_link', 'Show me anyway';
-                br_; br_;
-                small_ 'This warning can be disabled in your account';
+                if ($h > 200) {
+                    br_; br_;
+                    small_ 'This warning can be disabled in your account';
+                }
             }
         } if $hide_on_click;
     }
