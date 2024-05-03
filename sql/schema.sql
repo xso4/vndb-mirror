@@ -665,6 +665,7 @@ CREATE TABLE releases_images (
   img     vndbid NOT NULL, -- [pub]
   itype   release_image_type NOT NULL, -- [pub]
   vid     vndbid, -- [pub]
+  lang    language, -- [pub]
   PRIMARY KEY(id, img)
 );
 
@@ -674,6 +675,7 @@ CREATE TABLE releases_images_hist (
   img     vndbid NOT NULL,
   itype   release_image_type NOT NULL,
   vid     vndbid,
+  lang    language,
   PRIMARY KEY(chid, img)
 );
 

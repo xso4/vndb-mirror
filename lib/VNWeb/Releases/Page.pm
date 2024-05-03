@@ -91,6 +91,7 @@ sub _rev_ {
                 a_ href => "/$_->{vid}", $_->{vid};
                 small_ ']';
             }
+            txt_ " [$_->{lang}]" if $_->{lang};
         } ],
         revision_extlinks 'r'
 }
@@ -311,6 +312,7 @@ sub _images_ {
     div_ class => 'relimg', sub {
         div_ sub {
             h3_ sub {
+                abbr_ class => "icon-lang-$_->{lang}", title => $LANGUAGE{$_->{lang}}{txt}, '' if $_->{lang};
                 if ($_->{vid}) {
                     small_ '[';
                     a_ href => "/$_->{vid}", $_->{vid};

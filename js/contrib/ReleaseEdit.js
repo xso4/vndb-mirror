@@ -493,6 +493,13 @@ const Images = initVnode => {
                         options: [[null, '-- not specific to a VN --']].concat(data.vn.map(v => [v.vid, v.title])),
                     }),
                 ],
+                data.titles.length <= 1 ? [] : [
+                    m('br'),
+                    m(Select, {
+                        data: e, field: 'lang', class: 'xw',
+                        options: [[null, '-- not specific to a language --']].concat(vndbTypes.language.filter(l => data.titles.find(t => t.lang === l[0]))),
+                    }),
+                ],
                 m(ImageFlag, { img: e.nfo }),
             ),
         )))),

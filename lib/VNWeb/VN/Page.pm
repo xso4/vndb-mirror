@@ -1015,7 +1015,7 @@ sub covers_ {
     my($v) = @_;
 
     my $lst = tuwf->dbAlli('
-        SELECT ri.img, ri.itype, r.id, r.released, r.title, rv.rtype
+        SELECT ri.img, ri.itype, ri.lang, r.id, r.released, r.title, rv.rtype
           FROM releases_images ri
           JOIN', releasest, 'r ON r.id = ri.id
           JOIN releases_vn rv ON rv.id = ri.id
@@ -1024,7 +1024,7 @@ sub covers_ {
          ORDER BY r.released
     ');
     enrich_image_obj img => $lst;
-    enrich lang => id => id => sub { sql('SELECT id, lang, mtl FROM releases_titles WHERE id IN', $_, 'ORDER BY lang') }, $lst;
+    enrich rlang => id => id => sub { sql('SELECT id, lang, mtl FROM releases_titles WHERE id IN', $_, 'ORDER BY lang') }, $lst;
     enrich_flatten platforms => id => id => sub { sql('SELECT id, platform FROM releases_platforms WHERE id IN', $_, 'ORDER BY platform') }, $lst;
 
     my %cv;
@@ -1043,7 +1043,11 @@ sub covers_ {
                     td_ sub { rdate_ $_->{released} };
                     td_ sub {
                         platform_ $_ for $_->{platforms}->@*;
-                        abbr_ class => "icon-lang-$_->{lang}".($_->{mtl}?' mtl':''), title => $LANGUAGE{$_->{lang}}{txt}, '' for $_->{lang}->@*;
+                        if ($_->{lang}) {
+                            abbr_ class => "icon-lang-$_->{lang}", title => $LANGUAGE{$_->{lang}}{txt}, '';
+                        } else {
+                            abbr_ class => "icon-lang-$_->{lang}".($_->{mtl}?' mtl':''), title => $LANGUAGE{$_->{lang}}{txt}, '' for $_->{rlang}->@*;
+                        }
                         abbr_ class => "icon-rt$_->{rtype}", title => $_->{rtype}, '';
                     };
                     td_ sub { a_ href => "/$_->{id}", tattr $_ };
