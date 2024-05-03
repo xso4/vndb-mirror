@@ -298,7 +298,7 @@ CREATE OR REPLACE FUNCTION update_vncache(vndbid) RETURNS void AS $$
       GROUP BY rp.pid
       ORDER BY rp.pid
     ),
-    c_image = COALESCE((
+    c_image = COALESCE(image, (
       SELECT ri.img
         FROM releases_images ri
         JOIN releases r ON r.id = ri.id
@@ -314,7 +314,7 @@ CREATE OR REPLACE FUNCTION update_vncache(vndbid) RETURNS void AS $$
                 ri.itype <> 'pkgfront', -- prefer pkgfront
                 ri.img -- Make sure the selection is deterministic
        LIMIT 1
-    ), image)
+    ))
   WHERE id = $1;
 $$ LANGUAGE sql;
 

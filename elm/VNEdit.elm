@@ -500,14 +500,9 @@ view model =
 
     image =
       p []
-      [ text "The main image can't be uploaded or edited in this form anymore, "
-      , text "instead it is now automatically selected from release images. "
-      , br [] []
-      , if model.id == Nothing
-        then text "You can add a release entry and upload images there after this visual novel entry has been created."
-        else if List.isEmpty model.releases
-        then text "Add a release entry to upload an image for this visual novel."
-        else text "Edit a release entry to change or upload a new image for this visual novel."
+      [ text "The main image can't be uploaded or edited in this form, "
+      , text "images can now be added directly to release entries. "
+      , text "We're still discussing what to do with the main VN image."
       ]
 
     staff =
