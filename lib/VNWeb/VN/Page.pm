@@ -38,6 +38,13 @@ sub enrich_vn {
           FROM reviews
          WHERE NOT c_flagged AND vid =', \$v->{id}
     );
+    $v->{relimgs} = tuwf->dbVali('
+        SELECT COUNT(DISTINCT img)
+          FROM releases r
+          JOIN releases_vn rv ON rv.id = r.id
+          JOIN releases_images ri ON ri.id = r.id
+         WHERE NOT r.hidden AND rv.vid =', \$v->{id}
+    );
     $v->{tags} = !prefs()->{has_tagprefs} ? tuwf->dbAlli('
         SELECT t.id, t.name, t.cat, tv.rating, tv.count, tv.spoiler, tv.lie
           FROM tags t
@@ -484,7 +491,10 @@ sub infobox_ {
         p_ class => 'center standout', sub { lit_ config->{special_games}{$v->{id}}; br_; br_ } if config->{special_games}{$v->{id}};
 
         div_ class => 'vndetails', sub {
-            div_ class => 'vnimg', sub { image_ $v->{c_image}, thumb => 1, alt => $v->{title}[1]; };
+            div_ class => 'vnimg', sub {
+                image_ $v->{c_image}, thumb => 1, alt => $v->{title}[1];
+                a_ href => "/$v->{id}/cv#cv", sprintf '%d cover%s »', $v->{relimgs}, $v->{relimgs} == 1 ? '' : 's' if $v->{relimgs};
+            };
 
             table_ class => 'stripe', sub {
                 tr_ sub {
@@ -564,7 +574,7 @@ sub tabs_ {
     nav_ sub {
         menu_ sub {
             li_ class => ($tab eq ''        ? ' tabselected' : ''), sub { a_ href => "/$v->{id}#main", name => 'main', 'main' };
-            li_ class => ($tab eq 'cv'      ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/cv#cv", name => 'cv', 'covers' };
+            li_ class => ($tab eq 'cv'      ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/cv#cv", name => 'cv', "covers ($v->{relimgs})" } if $v->{relimgs};
             li_ class => ($tab eq 'tags'    ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/tags#tags", name => 'tags', 'tags' };
             li_ class => ($tab eq 'chars'   ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/chars#chars", name => 'chars', "characters ($chars)" } if $chars;
             if($v->{reviews}{mini} > 4 || $tab eq 'minireviews' || $tab eq 'fullreviews') {
