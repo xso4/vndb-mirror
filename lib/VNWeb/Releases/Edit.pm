@@ -103,6 +103,9 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
     my $copy = tuwf->capture('action') eq 'copy';
     return tuwf->resDenied if !can_edit r => $copy ? {} : $e;
 
+    my @empty_fields = ('gtin', 'catalog', 'images', grep /^l_/, keys %$e);
+    $e->@{@empty_fields} = elm_empty($FORM_OUT)->@{@empty_fields} if $copy;
+
     $e->{editsum} = $copy ? "Copied from $e->{id}.$e->{chrev}" : $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
 
     $e->{titles} = [ sort { $a->{lang} cmp $b->{lang} } $e->{titles}->@* ];
@@ -115,9 +118,6 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
     enrich_merge vid => sql('SELECT id AS vid, title[1+1] FROM', vnt, 'v WHERE id IN'), $e->{vn};
     enrich_merge pid => sql('SELECT id AS pid, title[1+1] AS name FROM', producerst, 'p WHERE id IN'), $e->{producers};
     enrich_merge drm => sql('SELECT id AS drm, name FROM drm WHERE id IN'), $e->{drm};
-
-    my @empty_fields = ('gtin', 'catalog', grep /^l_/, keys %$e);
-    $e->@{@empty_fields} = elm_empty($FORM_OUT)->@{@empty_fields} if $copy;
 
     my $title = ($copy ? 'Copy ' : 'Edit ').titleprefs_obj($e->{olang}, $e->{titles})->[1];
     framework_ title => $title, dbobj => $e, tab => tuwf->capture('action'),
