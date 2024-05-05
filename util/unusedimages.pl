@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
-# This script finds all unused and unreferenced images in static/ and outputs a
-# shell script to remove them.
+# This script finds all unused and unreferenced images in var/static/ and
+# outputs a shell script to remove them.
 #
 # Use with care!
 
@@ -39,10 +39,12 @@ sub cleandb {
         SELECT * FROM (
                 SELECT scr   FROM vn_screenshots
           UNION SELECT scr   FROM vn_screenshots_hist
-          UNION SELECT image FROM vn           WHERE image IS NOT NULL
-          UNION SELECT image FROM vn_hist      WHERE image IS NOT NULL
-          UNION SELECT image FROM chars        WHERE image IS NOT NULL
-          UNION SELECT image FROM chars_hist   WHERE image IS NOT NULL
+          UNION SELECT img   FROM releases_images
+          UNION SELECT img   FROM releases_images_hist
+          UNION SELECT image FROM vn         WHERE image IS NOT NULL
+          UNION SELECT image FROM vn_hist    WHERE image IS NOT NULL
+          UNION SELECT image FROM chars      WHERE image IS NOT NULL
+          UNION SELECT image FROM chars_hist WHERE image IS NOT NULL
           UNION (
             SELECT vndbid(case when img[1] = 'st' then 'sf' else img[1] end, img[2]::int)
               FROM (      SELECT content FROM docs
