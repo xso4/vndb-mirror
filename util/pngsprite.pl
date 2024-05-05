@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use v5.28;
+use v5.36;
 
 my $GEN = $ENV{VNDB_GEN} // 'gen';
 
@@ -28,8 +28,7 @@ my @img = map {
 
 
 # Simple strip packing algortihm, First-Fit Decreasing Height.
-sub genstrip {
-    my $w = shift;
+sub genstrip($w) {
     my @l;
     my $h = 0;
     for my $i (@img) {
@@ -91,8 +90,7 @@ sub minstrip {
 }
 
 
-sub img {
-    my($w, $h) = @_;
+sub img($w, $h) {
     open my $CMD, "|$imgproc composite >$ticons" or die $!;
     print $CMD pack 'll', $w, $h;
     print $CMD pack('lll', $_->{x}, $_->{y}, length $_->{d}).$_->{d} for @img;

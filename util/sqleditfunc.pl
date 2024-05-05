@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use v5.28;
+use v5.36;
 use List::Util 'any';
 use lib 'lib';
 use VNDB::Schema;
@@ -8,9 +8,7 @@ use VNDB::Schema;
 my $schema = VNDB::Schema::schema;
 my $template = join '', <DATA>;
 
-sub gensql {
-  my $item = shift;
-
+sub gensql($item) {
   # table_name_without_hist => [ column_names_without_chid ]
   my %ts = map
     +($_, [ map $_->{name}, grep $_->{name} !~ /^chid$/, @{$schema->{"${_}_hist"}{cols}} ]),

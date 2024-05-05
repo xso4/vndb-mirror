@@ -5,8 +5,7 @@
 #
 # Use with care!
 
-use strict;
-use warnings;
+use v5.36;
 use DBI;
 use File::Find;
 

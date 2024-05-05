@@ -16,8 +16,7 @@
 #   a lower collision probability for the same amount of space, but is also
 #   more complex and expensive to manage.
 
-use v5.28;
-use warnings;
+use v5.36;
 use AE;
 use AnyEvent::HTTP;
 
@@ -34,8 +33,7 @@ chdir "$ENV{VNDB_VAR}/hibp" or die $!;
 
 $AnyEvent::HTTP::MAX_PER_HOST = $concurrency;
 
-sub save {
-    my($file, $count, $data) = @_;
+sub save($file, $count, $data) {
     {
         open my $OUT, '>', "$file~" or die $!;
         print $OUT $data;
@@ -44,9 +42,7 @@ sub save {
     say sprintf '%s -> %d hashes, %.0f KiB', $file, $count, length($data)/1024;
 }
 
-sub fetch_one {
-    my($file, $count, $data, $midnum) = @_;
-
+sub fetch_one($file, $count, $data, $midnum) {
     my $mid = sprintf '%X', $midnum;
     http_request GET => $API.$file.$mid, persistent => 1, sub {
         my($body, $hdr) = @_;
@@ -82,5 +78,5 @@ sub fetch_next {
 }
 
 $run->begin for (1..$concurrency);
-fetch_next() for (1..$concurrency);
+fetch_next for (1..$concurrency);
 $run->recv;

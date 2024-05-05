@@ -1,7 +1,6 @@
 #!/usr/bin/perl
 
-use v5.24;
-use warnings;
+use v5.36;
 use DBI;
 use lib 'lib';
 use VNDB::Func 'md2html';

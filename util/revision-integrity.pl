@@ -10,8 +10,7 @@
 # Outputs SQL statements that can be piped to 'psql'. The generated SELECT
 # statements should not return any rows.
 
-use v5.24;
-use warnings;
+use v5.36;
 use lib 'lib';
 use VNDB::Schema;
 

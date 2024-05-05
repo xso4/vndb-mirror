@@ -7,8 +7,7 @@
 #
 #   vndb.pl elmgen    # Generate Elm files and quit
 
-use v5.24;
-use warnings;
+use v5.36;
 use Cwd 'abs_path';
 use JSON::XS;
 use TUWF ':html5_';
@@ -143,8 +142,7 @@ sub TUWF::Object::resDenied {
 {
     no warnings 'redefine';
     my $f = \&TUWF::any;
-    *TUWF::any = sub {
-        my($meth, $path, $sub) = @_;
+    *TUWF::any = sub($meth, $path, $sub) {
         my $i = 0;
         my $loc = ['',0];
         while(my($pack, undef, $line, undef, undef, undef, undef, $is_require) = caller($i++)) {

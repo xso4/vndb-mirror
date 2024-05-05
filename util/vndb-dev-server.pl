@@ -1,7 +1,6 @@
 #!/usr/bin/perl
 
-use strict;
-use warnings;
+use v5.36;
 use AE;
 use AnyEvent::Util;
 use AnyEvent::Socket;
@@ -69,8 +68,7 @@ sub make_run {
 }
 
 
-sub pipe_fhs {
-    my($a_fh, $b_fh) = @_;
+sub pipe_fhs($a_fh, $b_fh) {
     my($a, $b);
     my $done = AE::cv;
     $done->begin;

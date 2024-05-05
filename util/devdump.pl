@@ -3,16 +3,15 @@
 # This script generates the devdump.tar.gz
 # See https://vndb.org/d8#3 for info.
 
-use strict;
-use warnings;
+use v5.36;
 use autodie;
 use DBI;
 use DBD::Pg;
 
 my $db = DBI->connect('dbi:Pg:dbname=vndb', 'vndb', undef, { RaiseError => 1 });
 
-sub ids { join ',', map "'$_'", @{$_[0]} }
-sub idq { ids $db->selectcol_arrayref($_[0]) }
+sub ids($l) { join ',', map "'$_'", @$l }
+sub idq($q) { ids $db->selectcol_arrayref($q) }
 
 chdir($ENV{VNDB_VAR}//'var');
 
@@ -39,21 +38,18 @@ my $characters = $large ? 'SELECT id FROM chars' : idq(
    ."SELECT DISTINCT h.main FROM chars_vns_hist e JOIN changes c ON c.id = e.chid JOIN chars_hist h ON h.chid = e.chid WHERE e.vid IN($vids) AND h.main IS NOT NULL"
 );
 my $imageids = !$large && $db->selectcol_arrayref("
-         SELECT image FROM chars_hist          ch JOIN changes c ON c.id = ch.chid WHERE c.itemid IN($characters) AND ch.image IS NOT NULL
-   UNION SELECT image FROM vn_hist             vh JOIN changes c ON c.id = vh.chid WHERE c.itemid IN($vids) AND vh.image IS NOT NULL
-   UNION SELECT scr   FROM vn_screenshots_hist vs JOIN changes c ON c.id = vs.chid WHERE c.itemid IN($vids)
+         SELECT image FROM chars_hist           ch JOIN changes c ON c.id = ch.chid WHERE c.itemid IN($characters) AND ch.image IS NOT NULL
+   UNION SELECT image FROM vn_hist              vh JOIN changes c ON c.id = vh.chid WHERE c.itemid IN($vids) AND vh.image IS NOT NULL
+   UNION SELECT scr   FROM vn_screenshots_hist  vs JOIN changes c ON c.id = vs.chid WHERE c.itemid IN($vids)
+   UNION SELECT img   FROM releases_images_hist ri JOIN changes c ON c.id = ri.chid WHERE c.itemid IN($releases)
 ");
 my $images = $large ? 'SELECT id FROM images' : ids($imageids);
 
 
 # Helper function to copy a table or SQL statement. Can do modifications on a
 # few columns (the $specials).
-sub copy {
-    my($dest, $sql, $specials) = @_;
+sub copy($dest, $sql ||= "SELECT * FROM $dest", $specials ||= {}) {
     warn "$dest...\n";
-
-    $sql ||= "SELECT * FROM $dest";
-    $specials ||= {};
 
     my @cols = do {
         my $s = $db->prepare($sql);
@@ -77,8 +73,7 @@ sub copy {
 
 
 # Helper function to copy a full DB entry with history and all (doesn't handle references)
-sub copy_entry {
-    my($tables, $ids) = @_;
+sub copy_entry($tables, $ids) {
     copy changes => "SELECT * FROM changes WHERE itemid IN($ids)", {requester => 'user', ip => 'del'};
     for(@$tables) {
         my $add = '';
@@ -169,7 +164,7 @@ sub copy_entry {
 
     # Releases
     copy 'drm';
-    copy_entry [qw/releases releases_drm releases_media releases_platforms releases_producers releases_titles releases_vn/], $releases;
+    copy_entry [qw/releases releases_drm releases_images releases_media releases_platforms releases_producers releases_titles releases_vn/], $releases;
 
     print "\\i sql/tableattrs.sql\n";
     print "\\i sql/triggers.sql\n";
@@ -198,8 +193,15 @@ sub copy_entry {
 
 # Now figure out which images we need, and throw everything in a tarball
 if(!$large) {
-    sub img { sprintf 'static/%s/%02d/%d.jpg', $_[0], $_[1]%100, $_[1] }
-    my @imgpaths = sort map { my($t,$id) = /([a-z]+)([0-9]+)/; (img($t, $id), $t eq 'sf' ? img('sf.t', $id) : ()) } @$imageids;
+    sub img($dir,$id) { sprintf 'static/%s/%02d/%d.jpg', $dir, $id%100, $id }
+    my @imgpaths = sort map {
+        my($t,$id) = /([a-z]+)([0-9]+)/;
+        (
+            img($t, $id),
+            $t eq 'sf' ? img('sf.t', $id) : (),
+            $t eq 'cv' && -f img('cv.t', $id) ? img('cv.t', $id) : (),
+        )
+    } @$imageids;
 
     system("tar -czf devdump.tar.gz dump.sql ".join ' ', @imgpaths);
     unlink 'dump.sql';

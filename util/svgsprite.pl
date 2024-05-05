@@ -5,8 +5,7 @@
 # But it turns out Firefox doesn't cache/reuse the SVG when referenced with
 # different fragments. :facepalm:
 
-use v5.26;
-use strict;
+use v5.36;
 use autodie;
 
 my $GEN = $ENV{VNDB_GEN} // 'gen';
