@@ -71,6 +71,7 @@ my $FORM = {
         itype     => { enum => \%RELEASE_IMAGE_TYPE },
         vid       => { vndbid => 'v', default => undef },
         lang      => { default => undef, enum => \%LANGUAGE },
+        photo     => { anybool => 1 },
         nfo       => { _when => 'out', type => 'hash', keys => $VNWeb::Elm::apis{ImageResult}[0]{aoh} },
     } },
     vnimages   => { _when => 'out', $VNWeb::Elm::apis{ImageResult}[0]->%* },
@@ -205,6 +206,7 @@ js_api ReleaseEdit => $FORM_IN, sub {
     $_->{vid} = undef for grep $_->{vid} && !$vids{$_->{vid}}, $data->{images}->@*;
     my %langs = map +($_->{lang},1), $data->{titles}->@*;
     $_->{lang} = undef for grep $_->{lang} && !$langs{$_->{lang}}, $data->{images}->@*;
+    $_->{photo} = 0 for grep $_->{itype} eq 'dig', $data->{images}->@*;
 
     # We need the DRM names for form_changed()
     enrich_merge drm => sql('SELECT id AS drm, name FROM drm WHERE id IN'), $e->{drm};

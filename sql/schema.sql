@@ -87,7 +87,7 @@ CREATE TYPE report_status     AS ENUM ('new', 'busy', 'done', 'dismissed');
 CREATE TYPE tag_category      AS ENUM('cont', 'ero', 'tech');
 CREATE TYPE vn_relation       AS ENUM ('seq', 'preq', 'set', 'alt', 'char', 'side', 'par', 'ser', 'fan', 'orig');
 CREATE TYPE session_type      AS ENUM ('web', 'pass', 'mail', 'api', 'api2');
-CREATE TYPE release_image_type AS ENUM ('pkgfront', 'pkgback', 'pkgcontent', 'dig');
+CREATE TYPE release_image_type AS ENUM ('pkgfront', 'pkgback', 'pkgcontent', 'pkgside', 'pkgmed', 'dig');
 
 CREATE TYPE ipinfo AS (
     ip                 inet,
@@ -666,6 +666,7 @@ CREATE TABLE releases_images (
   itype   release_image_type NOT NULL, -- [pub]
   vid     vndbid, -- [pub]
   lang    language, -- [pub]
+  photo   boolean NOT NULL DEFAULT FALSE,
   PRIMARY KEY(id, img)
 );
 
@@ -676,6 +677,7 @@ CREATE TABLE releases_images_hist (
   itype   release_image_type NOT NULL,
   vid     vndbid,
   lang    language,
+  photo   boolean NOT NULL DEFAULT FALSE,
   PRIMARY KEY(chid, img)
 );
 

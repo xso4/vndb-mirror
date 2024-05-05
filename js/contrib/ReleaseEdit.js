@@ -486,6 +486,10 @@ const Images = initVnode => {
                 ),
                 m(Select, { data: e, field: 'itype', class: 'lw', options: [[null, '-- Type --']].concat(imgTypes(e.itype, e.nfo)) }),
                 typeof e.itype !== 'string' ? m('p.invalid', 'Type is required.') : null,
+                e.itype === 'dig' ? [] : [ m('br'), m('label.check',
+                    m('input[type=checkbox]', { checked: e.photo, oninput: ev => e.photo = ev.target.checked }),
+                    ' This is a photo.',
+                ) ],
                 data.vn.length <= 1 ? [] : [
                     m('br'),
                     m(Select, {

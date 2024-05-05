@@ -303,16 +303,27 @@ CREATE OR REPLACE FUNCTION update_vncache(vndbid) RETURNS void AS $$
         FROM releases_images ri
         JOIN releases r ON r.id = ri.id
         JOIN releases_vn rv ON rv.id = r.id
+        JOIN releases_titles rl ON rl.id = r.id AND rl.lang = r.olang
        WHERE rv.vid = $1
          AND r.official
          AND NOT r.hidden
          AND ri.itype IN('pkgfront', 'dig')
+         AND NOT ri.photo
          AND (ri.vid IS NULL OR ri.vid = rv.vid)
-       ORDER BY rv.rtype, -- complete -> partial -> trial
-                r.released, -- earlier releases first
+       ORDER BY r.patch, -- patches last
+                rv.rtype, -- complete -> partial -> trial
+                vn.olang <> COALESCE(ri.lang, rl.lang), -- prefer original language
+                CASE WHEN rv.rtype = 'complete' THEN r.released ELSE -r.released END, -- earlier complete releases first, later partial/trials
                 ri.vid IS NULL, -- prefer images specifically assigned to this VN
                 ri.itype <> 'pkgfront', -- prefer pkgfront
                 ri.img -- Make sure the selection is deterministic
+       LIMIT 1
+    ), ( -- No release images? Fall back to the most SFW screenshot
+      SELECT vs.scr
+        FROM vn_screenshots vs
+        JOIN images i ON i.id = vs.scr
+       WHERE vs.id = $1
+       ORDER BY i.c_sexual_avg + i.c_violence_avg, vs.scr
        LIMIT 1
     ))
   WHERE id = $1;

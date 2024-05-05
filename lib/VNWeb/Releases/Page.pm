@@ -92,6 +92,7 @@ sub _rev_ {
                 small_ ']';
             }
             txt_ " [$_->{lang}]" if $_->{lang};
+            txt_ ' (photo)' if $_->{photo};
         } ],
         revision_extlinks 'r'
 }

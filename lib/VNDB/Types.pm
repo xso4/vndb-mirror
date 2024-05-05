@@ -342,6 +342,8 @@ hash RELEASE_IMAGE_TYPE =>
     pkgfront   => { ord => 1, txt => 'Package (front)' },
     pkgback    => { ord => 3, txt => 'Package (back)' },
     pkgcontent => { ord => 4, txt => 'Package (contents)' },
+    pkgside    => { ord => 5, txt => 'Package (side)' },
+    pkgmed     => { ord => 6, txt => 'Media' },
     dig        => { ord => 2, txt => 'Digital promo art' };
 
 

@@ -43,7 +43,8 @@ sub enrich_vn {
           FROM releases r
           JOIN releases_vn rv ON rv.id = r.id
           JOIN releases_images ri ON ri.id = r.id
-         WHERE NOT r.hidden AND rv.vid =', \$v->{id}
+         WHERE NOT r.hidden AND rv.vid =', \$v->{id}, '
+           AND (ri.vid IS NULL OR ri.vid =', \$v->{id}, ')'
     );
     $v->{tags} = !prefs()->{has_tagprefs} ? tuwf->dbAlli('
         SELECT t.id, t.name, t.cat, tv.rating, tv.count, tv.spoiler, tv.lie
