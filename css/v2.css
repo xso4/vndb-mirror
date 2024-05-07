@@ -379,13 +379,9 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid var
 /***** VN covers tab (/v+/cv) *******/
 
 .vncovers {
+    text-align: center;
     > div {
-        display: flex; max-width: 900px; margin: 0 auto 20px auto;
-        > :first-child {
-           flex: 0 0 256px;
-           > .imghover { margin: 0 0 0 auto }
-        }
-        > :last-child { flex: 1; padding-left: 10px; }
+        display: inline-block; text-align: left; vertical-align: top; margin: 15px;
     }
 }
 

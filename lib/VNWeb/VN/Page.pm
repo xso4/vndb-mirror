@@ -38,12 +38,13 @@ sub enrich_vn {
           FROM reviews
          WHERE NOT c_flagged AND vid =', \$v->{id}
     );
-    $v->{relimgs} = tuwf->dbVali('
-        SELECT COUNT(DISTINCT img)
+    $v->{relimgs} = tuwf->dbRowi("
+        SELECT COUNT(DISTINCT img) FILTER(WHERE ri.itype IN('dig', 'pkgfront')) AS covers
+             , COUNT(DISTINCT img) AS total
           FROM releases r
           JOIN releases_vn rv ON rv.id = r.id
           JOIN releases_images ri ON ri.id = r.id
-         WHERE NOT r.hidden AND rv.vid =', \$v->{id}, '
+         WHERE NOT r.hidden AND rv.vid =", \$v->{id}, '
            AND (ri.vid IS NULL OR ri.vid =', \$v->{id}, ')'
     );
     $v->{tags} = !prefs()->{has_tagprefs} ? tuwf->dbAlli('
@@ -494,7 +495,12 @@ sub infobox_ {
         div_ class => 'vndetails', sub {
             div_ class => 'vnimg', sub {
                 image_ $v->{c_image}, thumb => 1, alt => $v->{title}[1];
-                a_ href => "/$v->{id}/cv#cv", sprintf '%d cover%s »', $v->{relimgs}, $v->{relimgs} == 1 ? '' : 's' if $v->{relimgs};
+                a_ href => "/$v->{id}/cv#cv", sprintf '%d cover%s', $v->{relimgs}{covers}, $v->{relimgs}{covers} == 1 ? '' : 's' if $v->{relimgs}{covers};
+                my $other = $v->{relimgs}{total} - $v->{relimgs}{covers};
+                if ($other > 0) {
+                    lit_ ' + ';
+                    a_ href => "/$v->{id}/cv?a=1#cv", sprintf '%d package artwork', $other;
+                }
             };
 
             table_ class => 'stripe', sub {
@@ -575,7 +581,7 @@ sub tabs_ {
     nav_ sub {
         menu_ sub {
             li_ class => ($tab eq ''        ? ' tabselected' : ''), sub { a_ href => "/$v->{id}#main", name => 'main', 'main' };
-            li_ class => ($tab eq 'cv'      ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/cv#cv", name => 'cv', "covers ($v->{relimgs})" } if $v->{relimgs};
+            li_ class => ($tab eq 'cv'      ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/cv#cv", name => 'cv', "covers ($v->{relimgs}{total})" } if $v->{relimgs}{total};
             li_ class => ($tab eq 'tags'    ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/tags#tags", name => 'tags', 'tags' };
             li_ class => ($tab eq 'chars'   ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/chars#chars", name => 'chars', "characters ($chars)" } if $chars;
             if($v->{reviews}{mini} > 4 || $tab eq 'minireviews' || $tab eq 'fullreviews') {
@@ -1015,13 +1021,16 @@ sub tags_ {
 sub covers_ {
     my($v) = @_;
 
+    my $all = tuwf->reqParam('a');
+
     my $lst = tuwf->dbAlli('
         SELECT ri.img, ri.itype, ri.lang, r.id, r.released, r.title, rv.rtype
           FROM releases_images ri
           JOIN', releasest, 'r ON r.id = ri.id
           JOIN releases_vn rv ON rv.id = ri.id
          WHERE NOT r.hidden AND rv.vid =', \$v->{id}, '
-           AND (ri.vid IS NULL OR ri.vid =', \$v->{id}, ')
+           AND (ri.vid IS NULL OR ri.vid =', \$v->{id}, ')',
+               $all ? () : "AND ri.itype IN('dig', 'pkgfront')", '
          ORDER BY r.released
     ');
     enrich_image_obj img => $lst;
@@ -1033,31 +1042,33 @@ sub covers_ {
 
     my sub cover_ {
         my($l) = @_;
-        div_ sub {
-            image_ $l->[0]{img}, thumb => 1;
-        };
-        div_ sub {
+        my($w) = imgsize @{$l->[0]{img}}{'width','height'}, config->{cv_size}->@*;
+        $w = 150 if $w < 150;
+        div_ style => "width: ${w}px", sub {
             my %t;
+            image_ $l->[0]{img}, thumb => 1;
             h3_ join ', ', grep !$t{$_}++, map $RELEASE_IMAGE_TYPE{$_->{itype}}{txt}, @$l;
-            table_ sub {
-                tr_ sub {
-                    td_ sub { rdate_ $_->{released} };
-                    td_ sub {
-                        platform_ $_ for $_->{platforms}->@*;
-                        if ($_->{lang}) {
-                            abbr_ class => "icon-lang-$_->{lang}", title => $LANGUAGE{$_->{lang}}{txt}, '';
-                        } else {
-                            abbr_ class => "icon-lang-$_->{lang}".($_->{mtl}?' mtl':''), title => $LANGUAGE{$_->{lang}}{txt}, '' for $_->{rlang}->@*;
-                        }
-                        abbr_ class => "icon-rt$_->{rtype}", title => $_->{rtype}, '';
-                    };
-                    td_ sub { a_ href => "/$_->{id}", tattr $_ };
-                } for @$l;
-            };
+            p_ sub {
+                rdate_ $_->{released};
+                txt_ ' ';
+                platform_ $_ for $_->{platforms}->@*;
+                if ($_->{lang}) {
+                    abbr_ class => "icon-lang-$_->{lang}", title => $LANGUAGE{$_->{lang}}{txt}, '';
+                } else {
+                    abbr_ class => "icon-lang-$_->{lang}".($_->{mtl}?' mtl':''), title => $LANGUAGE{$_->{lang}}{txt}, '' for $_->{rlang}->@*;
+                }
+                abbr_ class => "icon-rt$_->{rtype}", title => $_->{rtype}, '';
+                br_;
+                a_ href => "/$_->{id}", tattr $_;
+            } for @$l;
         };
     };
 
     article_ sub {
+        p_ class => 'mainopts', sub {
+            a_ mkclass(checked => !$all), href => '?a=0#cv', "Only covers ($v->{relimgs}{covers})";
+            a_ mkclass(checked => $all ), href => '?a=1#cv', "All package artwork ($v->{relimgs}{total})";
+        } if $v->{relimgs}{total} > $v->{relimgs}{covers};
         h1_ 'Release Covers';
         div_ class => 'vncovers', sub {
             div_ sub { cover_ $_ } for grep $_, map delete($cv{$_->{img}{id}}), @$lst;
