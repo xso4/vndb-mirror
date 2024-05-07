@@ -147,6 +147,8 @@ sub image_ {
     tuwf->{req}{imghover_id} //= 0;
     my $id = tuwf->{req}{imghover_id}++;
 
+    tuwf->req->{js}{basic} = 1 if $opt{thumb};
+
     div_ class => 'imghover', style => "width: ${w}px; height: ${h}px", sub {
         input_ type => 'checkbox', id => "imghover$id", class => 'hidden', $hidden ? () : (checked => 'checked') if $hide_on_click;
         div_ class => 'imghover--visible', sub {
