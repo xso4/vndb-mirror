@@ -5,7 +5,7 @@ use warnings;
 use Exporter 'import';
 our @EXPORT = ('skins');
 
-my $ROOT = $INC{'VNDB/Skins.pm'} =~ s{/lib/VNDB/Skins\.pm$}{}r;
+my $ROOT = ($INC{'VNDB/Skins.pm'} =~ s{lib/VNDB/Skins\.pm$}{}r =~ s{/$}{}r) || '.';
 
 my $skins;
 
