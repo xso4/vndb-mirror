@@ -70,7 +70,7 @@ my $FORM = {
         img       => { vndbid => 'cv' },
         itype     => { enum => \%RELEASE_IMAGE_TYPE },
         vid       => { vndbid => 'v', default => undef },
-        lang      => { default => undef, enum => \%LANGUAGE },
+        lang      => { default => [], type => 'array', unique => 1, sort => 'str', values => { enum => \%LANGUAGE } },
         photo     => { anybool => 1 },
         nfo       => { _when => 'out', type => 'hash', keys => $VNWeb::Elm::apis{ImageResult}[0]{aoh} },
     } },
@@ -113,7 +113,7 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
 
     $e->{vntitles} = $e->{vn}->@* == 1 ? tuwf->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$e->{vn}[0]{vid}) : [];
 
-    enrich_image 0, [map { $_->{nfo}{id} = $_->{img}; $_->{nfo} } $e->{images}->@*];
+    enrich_image 0, [map { $_->{lang} //= []; $_->{nfo}{id} = $_->{img}; $_->{nfo} } $e->{images}->@*];
     $e->{vnimages} = vnimages $e->{id}, map $_->{vid}, $e->{vn}->@*;
 
     enrich_merge vid => sql('SELECT id AS vid, title[1+1] FROM', vnt, 'v WHERE id IN'), $e->{vn};
@@ -203,10 +203,13 @@ js_api ReleaseEdit => $FORM_IN, sub {
     die "Invalid resolution: ($data->{reso_x},$data->{reso_y})" if (!$data->{reso_x} && $data->{reso_y} > 1) || ($data->{reso_x} && !$data->{reso_y});
 
     my %vids = map +($_->{vid},1), $data->{vn}->@*;
-    $_->{vid} = undef for grep $_->{vid} && !$vids{$_->{vid}}, $data->{images}->@*;
     my %langs = map +($_->{lang},1), $data->{titles}->@*;
-    $_->{lang} = undef for grep $_->{lang} && !$langs{$_->{lang}}, $data->{images}->@*;
-    $_->{photo} = 0 for grep $_->{itype} eq 'dig', $data->{images}->@*;
+    for my $i ($data->{images}->@*) {
+        $i->{vid} = undef if $i->{vid} && !$vids{$i->{vid}};
+        $i->{lang} = [ grep $langs{$_}, $i->{lang}->@* ];
+        $i->{lang} = undef if !$i->{lang}->@* || $i->{lang}->@* == keys %langs;
+        $i->{photo} = 0 if $i->{itype} eq 'dig';
+    }
 
     # We need the DRM names for form_changed()
     enrich_merge drm => sql('SELECT id AS drm, name FROM drm WHERE id IN'), $e->{drm};

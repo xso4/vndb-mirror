@@ -1024,7 +1024,7 @@ sub covers_ {
     my $all = tuwf->reqParam('a');
 
     my $lst = tuwf->dbAlli('
-        SELECT ri.img, ri.itype, ri.lang, r.id, r.released, r.title, rv.rtype
+        SELECT ri.img, ri.itype, ri.lang::text[], r.id, r.released, r.title, rv.rtype
           FROM releases_images ri
           JOIN', releasest, 'r ON r.id = ri.id
           JOIN releases_vn rv ON rv.id = ri.id
@@ -1053,7 +1053,7 @@ sub covers_ {
                 txt_ ' ';
                 platform_ $_ for $_->{platforms}->@*;
                 if ($_->{lang}) {
-                    abbr_ class => "icon-lang-$_->{lang}", title => $LANGUAGE{$_->{lang}}{txt}, '';
+                    abbr_ class => "icon-lang-$_", title => $LANGUAGE{$_}{txt}, '' for $_->{lang}->@*;
                 } else {
                     abbr_ class => "icon-lang-$_->{lang}".($_->{mtl}?' mtl':''), title => $LANGUAGE{$_->{lang}}{txt}, '' for $_->{rlang}->@*;
                 }

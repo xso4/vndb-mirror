@@ -63,7 +63,7 @@ sub sql_and   { @_ ? sql_join 'AND', map sql('(', $_, ')'), @_ : sql '1=1' }
 sub sql_or    { @_ ? sql_join 'OR',  map sql('(', $_, ')'), @_ : sql '1=0' }
 
 # Construct a PostgreSQL array type from the function arguments.
-sub sql_array { 'ARRAY[', sql_join(',', map \$_, @_), ']' }
+sub sql_array { 'ARRAY[', sql_comma(map \$_, @_), ']' }
 
 # Call an SQL function
 sub sql_func {
@@ -315,7 +315,7 @@ sub db_entry {
 
     while(my($name, $tbl) = each $t->{tables}->%*) {
         $entry->{$name} = tuwf->dbAlli(
-            SELECT => sql_comma(map $_->{name}, grep $_->{name} ne 'chid', $tbl->{cols}->@*),
+            SELECT => sql_comma(map $_->{name}.($_->{type} eq 'language[]' ? '::text[]' : ''), grep $_->{name} ne 'chid', $tbl->{cols}->@*),
             FROM   => data_table($tbl->{name}),
         );
     }
@@ -349,7 +349,7 @@ sub db_edit {
     # as single bind params and Postgres can't infer their type.
     my sub val {
         my($v, $col) = @_;
-        ref $v ? (sql_array(@$v), '::'.$col->{type}) : \$v
+        ref $v ? sql(sql_array(@$v), '::'.$col->{type}) : \$v
     }
 
     {

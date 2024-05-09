@@ -417,6 +417,7 @@ const Images = initVnode => {
     let addsrc = null;
 
     const vnimages = () => data.vnimages.filter(i => !data.images.find(x => x.img === i.id));
+    const langs = Object.fromEntries(vndbTypes.language);
 
     const thumbsize = img => img.width > img.height ? { width: 150, height: img.height * (150/img.width) } : { height: 150, width: img.width * (150/img.height) };
     const thumburl = img => imgurl(img.id, img.width <= 256 && img.height <= 400 ? null : 't');
@@ -435,7 +436,7 @@ const Images = initVnode => {
         const vid = data.vn.length > 1 && vns.length === 1 ? vns[0].id : null;
         const typ = imgTypes(null, nfo);
         const itype = typ.length === 1 ? typ[0][0] : vns.length > 0 && typ.find(([t]) => t === 'pkgfront') ? 'pkgfront' : null;
-        data.images.push({img: nfo.id, nfo, vid, itype});
+        data.images.push({img: nfo.id, nfo, vid, itype, lang: []});
         addsrc = null;
     };
 
@@ -499,10 +500,12 @@ const Images = initVnode => {
                 ],
                 data.titles.length <= 1 ? [] : [
                     m('br'),
-                    m(Select, {
-                        data: e, field: 'lang', class: 'xw',
-                        options: [[null, '-- not specific to a language --']].concat(vndbTypes.language.filter(l => data.titles.find(t => t.lang === l[0]))),
-                    }),
+                    data.titles.map(t => m('label.check',
+                        m('input[type=checkbox]', {
+                            checked: e.lang.includes(t.lang),
+                            onclick: ev => ev.target.checked ? e.lang.push(t.lang) : (e.lang = e.lang.filter(x => x !== t.lang))
+                        }), ' ', LangIcon(t.lang), langs[t.lang]
+                    )).intersperse(' / '),
                 ],
                 m(ImageFlag, { img: e.nfo }),
             ),
