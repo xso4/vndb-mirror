@@ -291,7 +291,7 @@ BEGIN
          , first_value(ri.img) OVER (PARTITION BY rv.vid ORDER BY
               v.olang <> ANY(COALESCE(ri.lang, ARRAY[rl.lang])), -- prefer original language
               r.patch, -- patches last
-              rv.vid IS NULL AND EXISTS(SELECT 1 FROM releases_vn rvi WHERE rvi.id = rv.id AND rvi.vid <> rv.vid), -- bundle release and not an image specific to this VN
+              ri.vid IS NULL AND EXISTS(SELECT 1 FROM releases_vn rvi WHERE rvi.id = rv.id AND rvi.vid <> rv.vid), -- bundle release and not an image specific to this VN
               rv.rtype, -- complete -> partial -> trial
               CASE WHEN rv.rtype = 'complete' THEN r.released ELSE -r.released END, -- earlier complete releases, or later partial/trials
               ri.vid IS NULL, -- prefer images specifically assigned to this VN
@@ -301,7 +301,7 @@ BEGIN
          , first_value(ri.img) OVER (PARTITION BY rv.vid ORDER BY
               v.olang <> ANY(COALESCE(ri.lang, ARRAY[rl.lang])),
               r.patch,
-              rv.vid IS NULL AND EXISTS(SELECT 1 FROM releases_vn rvi WHERE rvi.id = rv.id AND rvi.vid <> rv.vid),
+              ri.vid IS NULL AND EXISTS(SELECT 1 FROM releases_vn rvi WHERE rvi.id = rv.id AND rvi.vid <> rv.vid),
               rv.rtype,
               -r.released,
               ri.vid IS NULL,
