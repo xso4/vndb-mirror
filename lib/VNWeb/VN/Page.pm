@@ -12,11 +12,11 @@ use VNDB::Func 'fmtrating';
 sub enrich_vn {
     my($v, $revonly) = @_;
     $v->{title} = titleprefs_obj $v->{olang}, $v->{titles};
-    enrich_merge id => 'SELECT id, c_votecount, c_length, c_lengthnum, c_image FROM vn WHERE id IN', $v;
+    enrich_merge id => sql('SELECT id, c_votecount, c_length, c_lengthnum,', sql_vnimage, 'FROM vn WHERE id IN'), $v;
     enrich_merge vid => sql('SELECT id AS vid, title, sorttitle, c_released FROM', vnt, 'v WHERE id IN'), $v->{relations};
     enrich_merge aid => 'SELECT id AS aid, title_romaji, title_kanji, year, type, ann_id, lastfetch FROM anime WHERE id IN', $v->{anime};
     enrich_extlinks v => 0, $v;
-    enrich_image_obj c_image => $v;
+    enrich_image_obj vnimage => $v;
     enrich_image_obj scr => $v->{screenshots};
 
     # The queries below are not relevant for revisions
@@ -111,7 +111,7 @@ sub og {
     my($v) = @_;
     +{
         description => bb_format($v->{description}, text => 1),
-        image => $v->{c_image} && !$v->{c_image}{sexual} && !$v->{c_image}{violence} ? imgurl($v->{c_image}{id}) :
+        image => $v->{vnimage} && !$v->{vnimage}{sexual} && !$v->{vnimage}{violence} ? imgurl($v->{vnimage}{id}) :
                  [map $_->{scr}{sexual}||$_->{scr}{violence}?():(imgurl($_->{scr}{id})), $v->{screenshots}->@*]->[0]
     }
 }
@@ -494,7 +494,7 @@ sub infobox_ {
 
         div_ class => 'vndetails', sub {
             div_ class => 'vnimg', sub {
-                image_ $v->{c_image}, thumb => 1, alt => $v->{title}[1];
+                image_ $v->{vnimage}, thumb => 1, alt => $v->{title}[1];
                 a_ href => "/$v->{id}/cv#cv", sprintf '%d cover%s', $v->{relimgs}{covers}, $v->{relimgs}{covers} == 1 ? '' : 's' if $v->{relimgs}{covers};
                 my $other = $v->{relimgs}{total} - $v->{relimgs}{covers};
                 if ($other > 0) {

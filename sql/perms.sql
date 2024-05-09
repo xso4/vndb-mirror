@@ -161,6 +161,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON registration_throttle    TO vndb_multi;
 GRANT SELECT                         ON releases                 TO vndb_multi;
 GRANT SELECT                         ON releasest                TO vndb_multi;
 GRANT SELECT                         ON releases_hist            TO vndb_multi;
+GRANT SELECT                         ON releases_images          TO vndb_multi;
 GRANT SELECT                         ON releases_titles          TO vndb_multi;
 GRANT SELECT                         ON releases_titles_hist     TO vndb_multi;
 GRANT SELECT                         ON releases_media           TO vndb_multi;

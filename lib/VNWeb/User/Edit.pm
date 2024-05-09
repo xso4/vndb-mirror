@@ -50,6 +50,7 @@ my $FORM = {
     vnrel_langs     => { default => undef, type => 'array', values => { enum => \%LANGUAGE }, sort => 'str', unique => 1 },
     vnrel_olang     => { anybool => 1 },
     vnrel_mtl       => { anybool => 1 },
+    vnimage         => { uint => 1, range => [0,2] },
     staffed_langs   => { default => undef, type => 'array', values => { enum => \%LANGUAGE }, sort => 'str', unique => 1 },
     staffed_olang   => { anybool => 1 },
     staffed_unoff   => { anybool => 1 },
@@ -104,7 +105,7 @@ sub _namethrottled {
 TUWF::get qr{/$RE{uid}/edit}, sub {
     my $u = tuwf->dbRowi(
         'SELECT u.id, username, max_sexual, max_violence, traits_sexual, tags_all, tags_cont, tags_ero, tags_tech, prodrelexpand
-              , vnrel_langs::text[], vnrel_olang, vnrel_mtl, staffed_langs::text[], staffed_olang, staffed_unoff
+              , vnrel_langs::text[], vnrel_olang, vnrel_mtl, vnimage, staffed_langs::text[], staffed_olang, staffed_unoff
               , spoilers, skin, customcss, customcss_csum, timezone, titles
               , nodistract_can, support_can, uniname_can, pubskin_can
               , nodistract_noads, nodistract_nofancy, support_enabled, uniname, pubskin_enabled
@@ -162,7 +163,7 @@ js_api UserEdit => $FORM_IN, sub {
     $set{$_} = $data->{$_} for qw/nodistract_noads nodistract_nofancy support_enabled uniname pubskin_enabled/;
     $setp{$_} = $data->{$_} for qw/
         tags_all tags_cont tags_ero tags_tech
-        vnrel_langs vnrel_olang vnrel_mtl staffed_langs staffed_olang staffed_unoff
+        vnrel_langs vnrel_olang vnrel_mtl vnimage staffed_langs staffed_olang staffed_unoff
         skin customcss timezone max_sexual max_violence spoilers traits_sexual prodrelexpand titles
     /;
     $setp{customcss_csum} = $data->{customcss_csum} && length $data->{customcss} ? unpack 'q', sha1 do { utf8::encode(local $_=$data->{customcss}); $_ } : 0;

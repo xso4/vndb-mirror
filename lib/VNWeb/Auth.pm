@@ -95,7 +95,7 @@ for my $perm (@perms) {
 my @pref_columns = qw/
     timezone skin customcss_csum titles
     notify_dbedit notify_post notify_comment
-    tags_all tags_cont tags_ero tags_tech
+    vnimage tags_all tags_cont tags_ero tags_tech
     spoilers traits_sexual max_sexual max_violence
     tableopts_c tableopts_v tableopts_vt
     nodistract_can nodistract_noads nodistract_nofancy

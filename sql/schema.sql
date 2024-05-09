@@ -1327,7 +1327,8 @@ CREATE TABLE users_prefs (
   alttitle_langs      jsonb, -- Deprecated, replaced by 'titles'
   vnrel_langs         language[], -- NULL meaning "show all languages"
   staffed_langs       language[],
-  titles              titleprefs
+  titles              titleprefs,
+  vnimage             smallint NOT NULL DEFAULT 0 -- default / first / last
 );
 
 -- users_prefs_tags

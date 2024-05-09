@@ -150,8 +150,7 @@ sub daily {
 
 
 my %monthlies = (
-  # This only takes about 3 seconds to complete
-  vncache_full => 'SELECT update_vncache(id) FROM vn',
+  vncache_full => 'SELECT update_vncache(NULL)',
 
   # This shouldn't really be necessary, the triggers in PgSQL should keep
   # these up-to-date nicely. But it takes less than a second, anyway.

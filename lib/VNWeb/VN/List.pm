@@ -304,9 +304,9 @@ sub listing_ {
         my($w,$h) = (90,120);
         div_ sub {
             div_ sub {
-                if($_->{c_image}) {
-                    my($iw,$ih) = imgsize $_->{c_image}{width}*100, $_->{c_image}{height}*100, $w, $h;
-                    image_ $_->{c_image}, width => $iw, height => $ih, url => "/$_->{id}", overlay => undef;
+                if($_->{vnimage}) {
+                    my($iw,$ih) = imgsize $_->{vnimage}{width}*100, $_->{vnimage}{height}*100, $w, $h;
+                    image_ $_->{vnimage}, width => $iw, height => $ih, url => "/$_->{id}", overlay => undef;
                 } else {
                     txt_ 'no image';
                 }
@@ -320,7 +320,7 @@ sub listing_ {
 
     article_ class => 'vngrid', sub {
         # TODO: landscape images are badly upscaled, should probably generate more suitable thumbnails for this view.
-        div_ !$_->{c_image} || image_hidden($_->{c_image}) ? (class => 'noimage') : (style => 'background-image: url("'.thumburl($_->{c_image}).'")'), sub {
+        div_ !$_->{vnimage} || image_hidden($_->{vnimage}) ? (class => 'noimage') : (style => 'background-image: url("'.thumburl($_->{vnimage}).'")'), sub {
             ulists_widget_ $_;
             a_ href => "/$_->{id}", title => $_->{title}[3], sub { infoblock_ 0 };
         } for @$list;
@@ -341,7 +341,7 @@ sub enrich_listing {
           WHERE p.id = vp.id AND v.id IN', $_[0], 'ORDER BY p.sorttitle, p.id'
     }, @lst if $opt->{s}->vis('developer');
 
-    enrich_image_obj c_image => @lst if !$opt->{s}->rows;
+    enrich_image_obj vnimage => @lst if !$opt->{s}->rows;
     enrich_ulists_widget @lst if $widget;
 }
 
@@ -394,7 +394,7 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
         $count = tuwf->dbVali('SELECT count(*) FROM', vnt, 'v WHERE', sql_and $where, $opt->{q}->sql_where('v', 'v.id'));
         $list = $count ? tuwf->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
             SELECT v.id, v.title, v.c_released, v.c_votecount, v.c_rating, v.c_average
-                 , v.c_image, v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang',
+                 , ', sql_vnimage, ', v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang',
                    $opt->{s}->vis('length') ? ', v.length, v.c_length, v.c_lengthnum' : (), '
               FROM', vnt, 'v', $opt->{q}->sql_join('v', 'v.id'), '
              WHERE', $where, '

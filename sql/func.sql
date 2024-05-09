@@ -250,84 +250,102 @@ $$ LANGUAGE SQL STABLE;
 
 -- update_vncache(id) - updates some c_* columns in the vn table
 CREATE OR REPLACE FUNCTION update_vncache(vndbid) RETURNS void AS $$
-  UPDATE vn SET
-    c_released = COALESCE((
-      SELECT MIN(r.released)
-        FROM releases r
-        JOIN releases_vn rv ON r.id = rv.id
-       WHERE rv.vid = $1
-         AND rv.rtype <> 'trial'
-         AND r.hidden = FALSE
-         AND r.released <> 0
-         AND r.official
-      GROUP BY rv.vid
-    ), 0),
-    c_languages = ARRAY(
-      SELECT rl.lang
-        FROM releases_titles rl
-        JOIN releases r ON r.id = rl.id
-        JOIN releases_vn rv ON r.id = rv.id
-       WHERE rv.vid = $1
-         AND rv.rtype <> 'trial'
-         AND NOT rl.mtl
-         AND r.released <= TO_CHAR('today'::timestamp, 'YYYYMMDD')::integer
-         AND r.hidden = FALSE
-      GROUP BY rl.lang
-      ORDER BY rl.lang
-    ),
-    c_platforms = ARRAY(
-      SELECT rp.platform
-        FROM releases_platforms rp
-        JOIN releases r ON rp.id = r.id
-        JOIN releases_vn rv ON rp.id = rv.id
-       WHERE rv.vid = $1
+BEGIN
+  WITH rel(vid, val) AS (
+    SELECT rv.vid, MIN(r.released)
+      FROM releases r
+      JOIN releases_vn rv ON r.id = rv.id
+      WHERE NOT r.hidden
         AND rv.rtype <> 'trial'
-        AND r.released <= TO_CHAR('today'::timestamp, 'YYYYMMDD')::integer
-        AND r.hidden = FALSE
-      GROUP BY rp.platform
-      ORDER BY rp.platform
-    ),
-    c_developers = ARRAY(
-      SELECT rp.pid
-        FROM releases_producers rp
-        JOIN releases r ON rp.id = r.id
-        JOIN releases_vn rv ON rv.id = r.id
-       WHERE rv.vid = $1
-         AND r.official AND rp.developer
-         AND r.hidden = FALSE
-      GROUP BY rp.pid
-      ORDER BY rp.pid
-    ),
-    c_image = COALESCE(image, (
-      SELECT ri.img
-        FROM releases_images ri
-        JOIN releases r ON r.id = ri.id
-        JOIN releases_vn rv ON rv.id = r.id
-        JOIN releases_titles rl ON rl.id = r.id AND rl.lang = r.olang
-       WHERE rv.vid = $1
-         AND r.official
-         AND NOT r.hidden
-         AND ri.itype IN('pkgfront', 'dig')
-         AND NOT ri.photo
-         AND (ri.vid IS NULL OR ri.vid = rv.vid)
-       ORDER BY r.patch, -- patches last
-                rv.rtype, -- complete -> partial -> trial
-                vn.olang <> COALESCE(ri.lang, rl.lang), -- prefer original language
-                CASE WHEN rv.rtype = 'complete' THEN r.released ELSE -r.released END, -- earlier complete releases first, later partial/trials
-                ri.vid IS NULL, -- prefer images specifically assigned to this VN
-                ri.itype <> 'pkgfront', -- prefer pkgfront
-                ri.img -- Make sure the selection is deterministic
-       LIMIT 1
-    ), ( -- No release images? Fall back to the most SFW screenshot
-      SELECT vs.scr
-        FROM vn_screenshots vs
-        JOIN images i ON i.id = vs.scr
-       WHERE vs.id = $1
-       ORDER BY i.c_sexual_avg + i.c_violence_avg, vs.scr
-       LIMIT 1
-    ))
-  WHERE id = $1;
-$$ LANGUAGE sql;
+        AND r.released <> 0
+        AND r.official
+      GROUP BY rv.vid
+  ), langs(vid, val) AS (
+    SELECT rv.vid, array_agg(DISTINCT rl.lang ORDER BY rl.lang)
+      FROM releases_titles rl
+      JOIN releases r ON r.id = rl.id
+      JOIN releases_vn rv ON r.id = rv.id
+     WHERE NOT r.hidden
+       AND rv.rtype <> 'trial'
+       AND NOT rl.mtl
+       AND r.released <= TO_CHAR('today'::timestamp, 'YYYYMMDD')::integer
+     GROUP BY rv.vid
+  ), plats(vid, val) AS (
+    SELECT rv.vid, array_agg(DISTINCT rp.platform ORDER BY rp.platform)
+      FROM releases_platforms rp
+      JOIN releases r ON rp.id = r.id
+      JOIN releases_vn rv ON rp.id = rv.id
+     WHERE NOT r.hidden
+       AND rv.rtype <> 'trial'
+       AND r.released <= TO_CHAR('today'::timestamp, 'YYYYMMDD')::integer
+     GROUP BY rv.vid
+  ), prod(vid, val) AS (
+    SELECT rv.vid, array_agg(DISTINCT rp.pid ORDER BY rp.pid)
+      FROM releases_producers rp
+      JOIN releases r ON rp.id = r.id
+      JOIN releases_vn rv ON rv.id = r.id
+     WHERE NOT r.hidden AND r.official AND rp.developer
+     GROUP BY rv.vid
+  ), img(vid, first, last) AS (
+    SELECT DISTINCT rv.vid
+         , first_value(ri.img) OVER (PARTITION BY rv.vid ORDER BY
+              v.olang <> COALESCE(ri.lang, rl.lang), -- prefer original language
+              r.patch, -- patches last
+              rv.vid IS NULL AND EXISTS(SELECT 1 FROM releases_vn rvi WHERE rvi.id = rv.id AND rvi.vid <> rv.vid), -- bundle release and not an image specific to this VN
+              rv.rtype, -- complete -> partial -> trial
+              CASE WHEN rv.rtype = 'complete' THEN r.released ELSE -r.released END, -- earlier complete releases, or later partial/trials
+              ri.vid IS NULL, -- prefer images specifically assigned to this VN
+              ri.itype <> 'pkgfront', -- prefer pkgfront
+              ri.img -- Make sure the selection is deterministic
+          )
+         , first_value(ri.img) OVER (PARTITION BY rv.vid ORDER BY
+              v.olang <> COALESCE(ri.lang, rl.lang),
+              r.patch,
+              rv.vid IS NULL AND EXISTS(SELECT 1 FROM releases_vn rvi WHERE rvi.id = rv.id AND rvi.vid <> rv.vid),
+              rv.rtype,
+              -r.released,
+              ri.vid IS NULL,
+              ri.itype <> 'pkgfront',
+              ri.img
+          )
+      FROM releases_images ri
+      JOIN releases r ON r.id = ri.id
+      JOIN releases_vn rv ON rv.id = r.id
+      JOIN releases_titles rl ON rl.id = r.id AND rl.lang = r.olang
+      JOIN vn v ON v.id = rv.vid
+     WHERE NOT r.hidden AND r.official
+       AND ri.itype IN('pkgfront', 'dig') AND NOT ri.photo
+       AND (ri.vid IS NULL OR ri.vid = rv.vid)
+  ), comp (vid, date, langs, plats, prods, img, imgfirst, imglast) AS (
+    SELECT vn.id
+          , COALESCE(rel.val, 0)
+          , COALESCE(langs.val, '{}')
+          , COALESCE(plats.val, '{}')
+          , COALESCE(prod.val, '{}')
+          , COALESCE(vn.image, img.last)
+          , COALESCE(img.first, vn.image)
+          , COALESCE(img.last, vn.image)
+      FROM vn
+      LEFT JOIN rel ON rel.vid = vn.id
+      LEFT JOIN langs ON langs.vid = vn.id
+      LEFT JOIN plats ON plats.vid = vn.id
+      LEFT JOIN prod ON prod.vid = vn.id
+      LEFT JOIN img ON img.vid = vn.id
+  ) UPDATE vn
+       SET c_released   = c.date
+         , c_languages  = c.langs
+         , c_platforms  = c.plats
+         , c_developers = c.prods
+         , c_image      = c.img
+         , c_imgfirst   = c.imgfirst
+         , c_imglast    = c.imglast
+      FROM comp c
+     WHERE ($1 IS NULL OR vn.id = $1)
+       AND c.vid = vn.id AND (c_released, c_languages, c_platforms, c_developers, c_image, c_imgfirst, c.imglast)
+            IS DISTINCT FROM (c.date,     c.langs,     c.plats,     c.prods,      c.img,   c.imgfirst, c.imglast);
+END;
+$$ LANGUAGE plpgsql;
+
 
 
 -- Update c_rating, c_votecount, c_pop_rank, c_rat_rank and c_average
