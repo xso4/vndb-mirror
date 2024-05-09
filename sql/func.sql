@@ -341,7 +341,7 @@ BEGIN
          , c_imglast    = c.imglast
       FROM comp c
      WHERE ($1 IS NULL OR vn.id = $1)
-       AND c.vid = vn.id AND (c_released, c_languages, c_platforms, c_developers, c_image, c_imgfirst, c.imglast)
+       AND c.vid = vn.id AND (c_released, c_languages, c_platforms, c_developers, c_image, c_imgfirst, c_imglast)
             IS DISTINCT FROM (c.date,     c.langs,     c.plats,     c.prods,      c.img,   c.imgfirst, c.imglast);
 END;
 $$ LANGUAGE plpgsql;
