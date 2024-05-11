@@ -307,7 +307,7 @@ sub can_edit {
                 if !exists $entry->{hidden} || !exists $entry->{date} || !exists $entry->{user_id};
             # beware: for threads the 'hidden' field is a non-undef boolean flag, for posts it is a possibly-undef text field.
             my $hidden = $entry->{id} =~ /^t/ && $entry->{num} == 1 ? $entry->{hidden} : defined $entry->{hidden};
-            return auth && $entry->{user_id} eq auth->uid && !$hidden && $entry->{date} > time-config->{board_edit_time};
+            return auth && ($entry->{user_id}//'') eq auth->uid && !$hidden && $entry->{date} > time-config->{board_edit_time};
         }
     }
 

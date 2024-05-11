@@ -63,7 +63,7 @@ sub titleprefs_fmt {
     my($p) = @_;
     return undef if !defined $p;
     my sub val { my $v = $p->[$_[0]][$_[1]]; $v && $v->{lang} ? $v->{$_[2]} : undef }
-    my sub l { val @_, 'lang' }
+    my sub l { val(@_, 'lang') || '' }
     my sub b { my $v = val @_, 'latin'; $v ? 't' : 'f' }
     my sub o { my $v = val @_, 'official'; !defined $v ? '' : $v ? 't' : 'f' }
     '('.join(',',
@@ -98,8 +98,8 @@ TUWF::set('custom_validations')->{titleprefs} = {
         my %l;
         $_[0] = [ grep {
             my $prio = !defined $_->{official} ? 3 : $_->{official} ? 2 : 1;
-            my $dupe = $l{$_->{lang}} && $l{$_->{lang}} <= $prio;
-            $l{$_->{lang}} = $prio if !$dupe;
+            my $dupe = $_->{lang} && $l{$_->{lang}} && $l{$_->{lang}} <= $prio;
+            $l{$_->{lang}} = $prio if $_->{lang} && !$dupe;
             !$dupe
         } $_[0]->@* ];
 
@@ -110,7 +110,7 @@ TUWF::set('custom_validations')->{titleprefs} = {
         # algorithm, but that selection code has multiple implementations and
         # is already subject to potential performance issues, so I'd rather
         # keep it simple)
-        $_[0] = [ map $_->{lang} eq 'zh' ? ($_, {%$_,lang=>'zh-Hant'}, {%$_,lang=>'zh-Hans'}) : ($_), $_[0]->@* ]
+        $_[0] = [ map $_->{lang} && $_->{lang} eq 'zh' ? ($_, {%$_,lang=>'zh-Hant'}, {%$_,lang=>'zh-Hans'}) : ($_), $_[0]->@* ]
             if $_[0]->@* <= 3 && !grep $_->{lang} && $_->{lang} =~ /^zh-/, $_[0]->@*;
         1;
     },

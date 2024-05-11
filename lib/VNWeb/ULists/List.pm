@@ -40,7 +40,7 @@ sub opt {
 
     $opt->{s} .= "/$opt->{o}" if $opt->{o};
     $opt->{s} = tuwf->compile({ tableopts => $TABLEOPTS })->validate($opt->{s})->data;
-    $opt->{s} = $opt->{s}->vis_param($opt->{c}->@*) if $opt->{c};
+    $opt->{s} = $opt->{s}->vis_param(map $_ eq 'rel' ? 'released' : $_, $opt->{c}->@*) if $opt->{c};
     delete $opt->{o};
     delete $opt->{c};
 
