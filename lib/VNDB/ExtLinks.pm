@@ -1,7 +1,6 @@
 package VNDB::ExtLinks;
 
-use v5.26;
-use warnings;
+use v5.36;
 use VNDB::Config;
 use VNDB::Schema;
 use Exporter 'import';

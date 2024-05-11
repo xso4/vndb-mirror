@@ -1,7 +1,6 @@
 package VNDB::Skins;
 
-use v5.26;
-use warnings;
+use v5.36;
 use Exporter 'import';
 our @EXPORT = ('skins');
 

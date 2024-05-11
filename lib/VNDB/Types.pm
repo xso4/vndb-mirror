@@ -1,15 +1,14 @@
 package VNDB::Types;
 
-use v5.24;
-no strict 'refs';
-use warnings;
+use v5.36;
 use Exporter 'import';
 
 our @EXPORT;
 sub hash {
     my $name = shift;
-    tie $name->%*, 'VNDB::Types::Hash', @_;
     push @EXPORT, "%$name";
+    no strict 'refs';
+    tie $name->%*, 'VNDB::Types::Hash', @_;
 }
 
 
@@ -360,7 +359,7 @@ hash CHAR_ROLE =>
 
 # Concise implementation of an immutable hash that remembers key order.
 package VNDB::Types::Hash;
-use v5.24;
+use v5.36;
 sub TIEHASH { shift; bless [ [ map $_[$_*2], 0..$#_/2 ], +{@_}, 0 ], __PACKAGE__ };
 sub FETCH { $_[0][1]{$_[1]} }
 sub EXISTS { exists $_[0][1]{$_[1]} }

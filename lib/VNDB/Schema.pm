@@ -6,8 +6,7 @@
 
 package VNDB::Schema;
 
-use v5.12;
-use warnings;
+use v5.36;
 
 my $ROOT = ($INC{'VNDB/Schema.pm'} =~ s{lib/VNDB/Schema\.pm$}{}r =~ s{/$}{}r) || '.';
 

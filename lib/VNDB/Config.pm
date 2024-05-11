@@ -1,7 +1,6 @@
 package VNDB::Config;
 
-use strict;
-use warnings;
+use v5.36;
 use Exporter 'import';
 use Cwd 'abs_path';
 our @EXPORT = ('config');

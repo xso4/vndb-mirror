@@ -1,7 +1,6 @@
 package VNDB::BBCode;
 
-use v5.26;
-use warnings;
+use v5.36;
 use Exporter 'import';
 use TUWF::XML 'xml_escape';
 
