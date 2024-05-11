@@ -289,7 +289,7 @@ BEGIN
   ), img(vid, first, last) AS (
     SELECT DISTINCT rv.vid
          , first_value(ri.img) OVER (PARTITION BY rv.vid ORDER BY
-              v.olang <> ANY(COALESCE(ri.lang, ARRAY[rl.lang])), -- prefer original language
+              v.olang <> ALL(COALESCE(ri.lang, ARRAY[rl.lang])), -- prefer original language
               r.patch, -- patches last
               ri.vid IS NULL AND EXISTS(SELECT 1 FROM releases_vn rvi WHERE rvi.id = rv.id AND rvi.vid <> rv.vid), -- bundle release and not an image specific to this VN
               rv.rtype, -- complete -> partial -> trial
@@ -299,7 +299,7 @@ BEGIN
               ri.img -- Make sure the selection is deterministic
           )
          , first_value(ri.img) OVER (PARTITION BY rv.vid ORDER BY
-              v.olang <> ANY(COALESCE(ri.lang, ARRAY[rl.lang])),
+              v.olang <> ALL(COALESCE(ri.lang, ARRAY[rl.lang])),
               r.patch,
               ri.vid IS NULL AND EXISTS(SELECT 1 FROM releases_vn rvi WHERE rvi.id = rv.id AND rvi.vid <> rv.vid),
               rv.rtype,
