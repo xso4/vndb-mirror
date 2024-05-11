@@ -605,6 +605,12 @@ image.violence
 image.votecount
 :   Integer, number of image flagging votes.
 
+image.thumbnail
+:   String, URL to the thumbnail.
+
+image.thumbnail\_dims
+:   Pixel dimensions of the thumbnail, array with two integer elements.
+
 length
 :   Integer, possibly null, rough length estimate of the VN between 1 (very
     short) and 5 (very long). This field is only used as a fallback for when
@@ -631,12 +637,6 @@ screenshots
 
 screenshots.\*
 :   The above `image.*` fields are also available for screenshots.
-
-screenshots.thumbnail
-:   String, URL to the thumbnail.
-
-screenshots.thumbnail\_dims
-:   Pixel dimensions of the thumbnail, array with two integer elements.
 
 screenshots.release.\*
 :   Release object. All [release fields](#release-fields) can be selected. It
@@ -1073,6 +1073,9 @@ description
 
 image.\*
 :   Object, possibly null, same sub-fields as the `image` [visual novel field](#vn-fields).
+    (Except for `thumbnail` and `thumbnail_dims` because character images are
+    currently always limited to 256x300px, but that is subject to change in the
+    future).
 
 blood\_type
 :   String, possibly null, `"a"`, `"b"`, `"ab"` or `"o"`.
@@ -1664,6 +1667,11 @@ bias in its selection due to the presence of id gaps, but you most likely don't
 need perfect uniform random selection anyway.
 
 # Change Log
+
+**2024-05-11**
+
+- Add `image{thumbnail,thumbnail_dims}` fields to [POST /vn](#post-vn).
+  Beware: VN images can now be larger than 256x400px.
 
 **2024-03-13**
 

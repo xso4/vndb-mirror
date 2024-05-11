@@ -676,7 +676,13 @@ api_query '/vn',
         languages => { select => 'v.c_languages::text[] AS languages' },
         platforms => { select => 'v.c_platforms::text[] AS platforms' },
         image => {
-            fields => { IMG 'v.c_image', 'image', 'i.' },
+            fields => {
+                IMG('v.c_image', 'image', 'i.'),
+                thumbnail => { select => "v.c_image AS thumbnail", col => 'thumbnail', proc => sub { $_[0] = imgurl $_[0], 't' } },
+                thumbnail_dims => { join => 'image', col => 'thumbnail_dims'
+                                  , select => "ARRAY[i.width, i.height] AS thumbnail_dims"
+                                  , proc => sub { @{$_[0]} = imgsize @{$_[0]}, config->{cv_size}->@* } },
+            },
             nullif => 'v.c_image IS NULL AS image_nullif',
         },
         length => { select => 'v.length', proc => sub { $_[0] = undef if !$_[0] } },
