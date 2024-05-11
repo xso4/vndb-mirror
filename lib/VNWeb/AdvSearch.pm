@@ -9,8 +9,7 @@ package VNWeb::AdvSearch;
 # $q->elm_;       # Instantiate an Elm widget
 
 
-use v5.26;
-use warnings;
+use v5.36;
 use B;
 use POSIX 'strftime';
 use List::Util 'max';

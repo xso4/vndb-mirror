@@ -1,7 +1,6 @@
 package Multi::DLsite;
 
-use strict;
-use warnings;
+use v5.36;
 use utf8;
 use Encode 'decode_utf8';
 use Multi::Core;

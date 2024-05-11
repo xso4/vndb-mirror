@@ -1,7 +1,6 @@
 # Importing this module is equivalent to:
 #
-#  use v5.26;
-#  use warnings;
+#  use v5.36;
 #  use utf8;
 #
 #  use TUWF ':html5_', 'mkclass', 'xml_string', 'xml_escape';
@@ -31,7 +30,7 @@ package VNWeb::Prelude;
 
 use strict;
 use warnings;
-use feature ':5.26';
+use feature ':5.36';
 use utf8;
 use VNWeb::Elm;
 use VNWeb::Auth;
@@ -44,7 +43,7 @@ sub import {
 
     strict->import;
     warnings->import;
-    feature->import(':5.26');
+    feature->import(':5.36');
     utf8->import;
 
     die $@ if !eval <<"    EOM;";

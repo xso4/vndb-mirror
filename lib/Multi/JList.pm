@@ -1,7 +1,6 @@
 package Multi::JList;
 
-use strict;
-use warnings;
+use v5.36;
 use Multi::Core;
 use AnyEvent::HTTP;
 use VNDB::Config;

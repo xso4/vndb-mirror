@@ -18,8 +18,7 @@
 #
 package VNWeb::Auth;
 
-use v5.24;
-use warnings;
+use v5.36;
 use TUWF;
 use Exporter 'import';
 

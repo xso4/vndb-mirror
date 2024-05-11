@@ -235,10 +235,10 @@ sub ani_compat {
     return if !grep +($r->{$_}//'_undef_') ne ($old->{$_}//'_undef_'),
         qw{ ani_story_sp ani_story_cg ani_cutscene ani_ero_sp ani_ero_cg ani_face ani_bg };
 
-    my sub known($) { defined $r->{"ani_$_[0]"} }
-    my sub hasani($) { $r->{"ani_$_[0]"} && $r->{"ani_$_[0]"} > 1 }
-    my sub someani($) { hasani $_[0] && ($r->{"ani_$_[0]"} & 512) == 0 }
-    my sub fullani($) { defined $r->{"ani_$_[0]"} && ($r->{"ani_$_[0]"} & 512) > 0 }
+    my sub known :prototype($) { defined $r->{"ani_$_[0]"} }
+    my sub hasani :prototype($) { $r->{"ani_$_[0]"} && $r->{"ani_$_[0]"} > 1 }
+    my sub someani :prototype($) { hasani $_[0] && ($r->{"ani_$_[0]"} & 512) == 0 }
+    my sub fullani :prototype($) { defined $r->{"ani_$_[0]"} && ($r->{"ani_$_[0]"} & 512) > 0 }
 
     $r->{ani_story} =
         !known  'story_sp' && !known  'story_cg' && !known  'cutscene' ? 0 :

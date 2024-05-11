@@ -1,6 +1,6 @@
 package Multi::JASTUSA;
 
-use v5.28;
+use v5.36;
 use Multi::Core;
 use AnyEvent::HTTP;
 use JSON::XS 'decode_json';

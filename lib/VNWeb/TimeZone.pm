@@ -1,7 +1,6 @@
 package VNWeb::TimeZone;
 
-use v5.28;
-use warnings;
+use v5.36;
 use TUWF;
 use VNWeb::Auth;
 use VNWeb::Validation 'is_api';

@@ -5,8 +5,7 @@
 
 package Multi::IRC;
 
-use strict;
-use warnings;
+use v5.38;
 use Multi::Core;
 use AnyEvent::IRC::Client;
 use AnyEvent::IRC::Util 'prefix_nick';

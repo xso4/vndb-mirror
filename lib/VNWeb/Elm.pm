@@ -9,8 +9,7 @@
 
 package VNWeb::Elm;
 
-use strict;
-use warnings;
+use v5.36;
 use TUWF;
 use Exporter 'import';
 use List::Util 'max';
@@ -205,15 +204,14 @@ for my $name (keys %apis) {
 
 
 # Formatting functions
-sub indent($) { $_[0] =~ s/\n/\n  /gr }
+sub indent    { $_[0] =~ s/\n/\n  /gr }
 sub list      { indent "\n[ ".join("\n, ", @_)."\n]" }
-sub string($) { '"'.($_[0] =~ s/([\\"])/\\$1/gr).'"' }
+sub string :prototype($) { '"'.($_[0] =~ s/([\\"])/\\$1/gr).'"' }
 sub tuple     { '('.join(', ', @_).')' }
-sub bool($)   { $_[0] ? 'True' : 'False' }
 sub to_camel  { (ucfirst $_[0]) =~ s/_([a-z])/'_'.uc $1/egr; }
 
 # Generate a variable definition: name, type, value
-sub def($$$)  { sprintf "\n%s : %s\n%1\$s = %s\n", @_; }
+sub def       { sprintf "\n%s : %s\n%1\$s = %s\n", @_; }
 
 
 # Generate an Elm type definition corresponding to a TUWF::Validate schema

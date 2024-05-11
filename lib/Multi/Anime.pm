@@ -5,8 +5,7 @@
 
 package Multi::Anime;
 
-use strict;
-use warnings;
+use v5.36;
 use Multi::Core;
 use AnyEvent::Socket;
 use AnyEvent::Util;
@@ -16,17 +15,19 @@ use VNDB::Types;
 use VNDB::Config;
 
 
-sub LOGIN_ACCEPTED         () { 200 }
-sub LOGIN_ACCEPTED_NEW_VER () { 201 }
-sub ANIME                  () { 230 }
-sub NO_SUCH_ANIME          () { 330 }
-sub NOT_LOGGED_IN          () { 403 }
-sub LOGIN_FIRST            () { 501 }
-sub CLIENT_BANNED          () { 504 }
-sub INVALID_SESSION        () { 506 }
-sub BANNED                 () { 555 }
-sub ANIDB_OUT_OF_SERVICE   () { 601 }
-sub SERVER_BUSY            () { 602 }
+use constant {
+    LOGIN_ACCEPTED         => 200,
+    LOGIN_ACCEPTED_NEW_VER => 201,
+    ANIME                  => 230,
+    NO_SUCH_ANIME          => 330,
+    NOT_LOGGED_IN          => 403,
+    LOGIN_FIRST            => 501,
+    CLIENT_BANNED          => 504,
+    INVALID_SESSION        => 506,
+    BANNED                 => 555,
+    ANIDB_OUT_OF_SERVICE   => 601,
+    SERVER_BUSY            => 602,
+};
 
 my @handled_codes = (
   LOGIN_ACCEPTED, LOGIN_ACCEPTED_NEW_VER, ANIME, NO_SUCH_ANIME, NOT_LOGGED_IN,

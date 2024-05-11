@@ -43,7 +43,7 @@ sub in {
 
 
 # Compare two vndbids, using proper numeric order
-sub idcmp($$) {
+sub idcmp :prototype($$) {
     my($a1, $a2) = $_[0] =~ /^([a-z]+)([0-9]+)$/;
     my($b1, $b2) = $_[1] =~ /^([a-z]+)([0-9]+)$/;
     $a1 cmp $b1 || $a2 <=> $b2

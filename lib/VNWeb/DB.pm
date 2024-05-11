@@ -1,7 +1,6 @@
 package VNWeb::DB;
 
-use v5.24;
-use warnings;
+use v5.36;
 use TUWF;
 use SQL::Interp ':all';
 use Carp 'carp';
@@ -72,27 +71,27 @@ sub sql_func {
 }
 
 # Convert a Perl hex value into Postgres bytea
-sub sql_fromhex($) {
+sub sql_fromhex :prototype($) {
     sql_func decode => \$_[0], "'hex'";
 }
 
 # Convert a Postgres bytea into a Perl hex value
-sub sql_tohex($) {
+sub sql_tohex :prototype($) {
     sql_func encode => $_[0], "'hex'";
 }
 
 # Convert a Perl time value (UNIX timestamp) into a Postgres timestamp
-sub sql_fromtime($) {
+sub sql_fromtime :prototype($) {
     sql_func to_timestamp => \$_[0];
 }
 
 # Convert a Postgres timestamp into a Perl time value
-sub sql_totime($) {
+sub sql_totime :prototype($) {
     sql "extract('epoch' from ", $_[0], ')';
 }
 
 # Escape a string to be used as a literal match in a LIKE pattern.
-sub sql_like($) {
+sub sql_like :prototype($) {
     $_[0] =~ s/([%_\\])/\\$1/rg
 }
 
@@ -123,7 +122,7 @@ sub global_settings {
 
 
 # Returns a 'vnimage' column that takes the user's vnimage preference into account.
-sub sql_vnimage() {
+sub sql_vnimage :prototype() {
     ['c_image', 'c_imgfirst', 'c_imglast']->[ VNWeb::Auth::auth()->pref('vnimage')||0 ].' AS vnimage'
 }
 
@@ -234,7 +233,7 @@ sub enrich_obj {
 
 # Run the given subroutine inside a savepoint and capture an SQL timeout.
 # Returns false and logs a warning on timeout.
-sub db_maytimeout(&) {
+sub db_maytimeout :prototype(&) {
     my($f) = @_;
     tuwf->dbh->pg_savepoint('maytimeout');
     my $r = eval { $f->(); 1 };

@@ -5,8 +5,7 @@
 
 package Multi::Core;
 
-use strict;
-use warnings;
+use v5.36;
 use AnyEvent;
 use AnyEvent::Log;
 use AnyEvent::Pg::Pool;
@@ -24,7 +23,7 @@ my %throttle; # id => timeout
 my @watchers;
 
 
-sub pg() { $PG }
+sub pg :prototype() { $PG }
 
 
 # Pushes a watcher to the list of watchers that need to be kept alive for as

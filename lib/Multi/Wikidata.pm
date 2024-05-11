@@ -5,8 +5,7 @@
 
 package Multi::Wikidata;
 
-use strict;
-use warnings;
+use v5.36;
 use Multi::Core;
 use JSON::XS 'decode_json';
 use AnyEvent::HTTP;

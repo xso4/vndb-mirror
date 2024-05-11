@@ -1,6 +1,6 @@
 package VNWeb::Validation;
 
-use v5.26;
+use v5.36;
 use TUWF 'uri_escape';
 use VNDB::Types;
 use VNDB::Config;
@@ -169,10 +169,10 @@ sub ipinfo {
     return sprintf "(%s,,,,,,,)", esc $ip if !$db;
 
     my sub f { Location::lookup_network_has_flag($db, $ip, "LOC_NETWORK_FLAG_$_[0]") ? 't' : 'f' }
-    my $asn = Location::lookup_asn($db, $ip);
-    sprintf "(%s,%s,%d,%s,%s,%s,%s,%s)", esc($ip),
+    my $asn = Location::lookup_asn($db, $ip)||'';
+    sprintf "(%s,%s,%s,%s,%s,%s,%s,%s)", esc($ip),
         esc(Location::lookup_country_code($db,$ip)),
-        $asn, esc(Location::get_as_name($db,$asn)),
+        $asn, $asn ? esc(Location::get_as_name($db,$asn)) : '',
         f('ANONYMOUS_PROXY'), f('SATELLITE_PROVIDER'), f('ANYCAST'), f('DROP');
 }
 
@@ -355,7 +355,7 @@ sub can_edit {
 # particular user for several hours.
 sub viewget {
     tuwf->req->{view} ||= do {
-        my($view, $token) = tuwf->reqGet('view') =~ /^([^-]*)-(.+)$/;
+        my($view, $token) = (tuwf->reqGet('view')||'') =~ /^([^-]*)-(.+)$/;
 
         # Abort this request and redirect if the token is invalid.
         if(length($view) && (!samesite || !length($token) || !auth->csrfcheck($token, 'view'))) {
@@ -365,7 +365,7 @@ sub viewget {
             tuwf->done;
         }
 
-        my($sp, $ts, $ns) = $view =~ /^([0-2])?([sS]?)([nN]?)$/;
+        my($sp, $ts, $ns) = ($view||'') =~ /^([0-2])?([sS]?)([nN]?)$/;
         {
             spoilers      => $sp // auth->pref('spoilers') || 0,
             traits_sexual => !$ts ? auth->pref('traits_sexual') : $ts eq 's',
@@ -445,6 +445,7 @@ package VNWeb::Validate::SearchQuery {
     }
 
     # Optionally returns a JOIN clause for sql_score, aliassed 'sc'
+    no warnings 'redefine';
     sub sql_join {
         my($self, $type, $id, $subid) = @_;
         return '' if !$self;

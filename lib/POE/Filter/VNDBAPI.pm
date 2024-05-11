@@ -91,7 +91,7 @@ sub get_pending {
 }
 
 
-sub _err($) { [ [ undef, { id => 'parse', msg => $_[0] } ] ] };
+sub _err { [ [ undef, { id => 'parse', msg => $_[0] } ] ] };
 
 sub get_one {
   my $self = shift;

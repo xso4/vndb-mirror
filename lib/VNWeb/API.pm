@@ -1,7 +1,6 @@
 package VNWeb::API;
 
-use v5.26;
-use warnings;
+use v5.36;
 use TUWF;
 use Time::HiRes 'time', 'alarm';
 use List::Util 'min';

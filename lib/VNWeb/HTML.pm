@@ -1,7 +1,6 @@
 package VNWeb::HTML;
 
-use v5.26;
-use warnings;
+use v5.36;
 use utf8;
 use Algorithm::Diff::XS 'sdiff', 'compact_diff';
 use JSON::XS;
@@ -62,7 +61,7 @@ sub debug_ {
 # Similar to join($sep, map $f->(), @list), but works for HTML generation functions.
 #   join_ ', ', sub { a_ href => '#', $_ }, @list;
 #   join_ \&br_, \&txt_, @list;
-sub join_($&@) {
+sub join_ :prototype($&@) {
     my($sep, $f, @list) = @_;
     for my $i (0..$#list) {
         ref $sep ? $sep->() : txt_ $sep if $i > 0;
@@ -75,7 +74,7 @@ sub join_($&@) {
 sub user_maybebanned_ {
     my($obj) = shift;
     my($prefix) = shift||'user_';
-    my sub f($) { $obj->{"${prefix}$_[0]"} }
+    my sub f :prototype($) { $obj->{"${prefix}$_[0]"} }
     span_ title => join("\n",
         !f 'perm_board' ? "Banned from posting" : (),
         !f 'perm_edit' ? "Banned from editing" : (),
@@ -89,7 +88,7 @@ sub user_ {
     my $obj = shift;
     my $prefix = shift||'user_';
     my $capital = shift;
-    my sub f($) { $obj->{"${prefix}$_[0]"} }
+    my sub f :prototype($) { $obj->{"${prefix}$_[0]"} }
 
     my $softdel = !defined f 'name';
     return small_ 'anonymous' if ($softdel && !auth->isMod) || !f 'id';
@@ -108,7 +107,7 @@ sub user_ {
 sub user_displayname {
     my $obj = shift;
     my $prefix = shift||'user_';
-    my sub f($) { $obj->{"${prefix}$_[0]"} }
+    my sub f :prototype($) { $obj->{"${prefix}$_[0]"} }
 
     return 'anonymous' if !f 'id';
     my $fancy = !(auth->pref('nodistract_can') && auth->pref('nodistract_nofancy'));

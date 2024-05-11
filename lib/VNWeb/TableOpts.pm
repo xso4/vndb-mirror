@@ -64,7 +64,7 @@ package VNWeb::TableOpts;
 #
 # This supports 64 column identifiers for sorting, 19 identifiers for visibility.
 
-use v5.26;
+use v5.36;
 use Carp 'croak';
 use Exporter 'import';
 use TUWF ':html5_';
@@ -93,7 +93,7 @@ sub tableopts {
         sort_ids  => [], # identifier => column config hash
         col_order => [], # column config hashes in the order listed in the config
         columns   => {}, # column name => config hash
-        views     => [], # supported views, as numbers
+        views     => [0],# supported views, as numbers
         default   => 0,  # default settings, integer form
     );
     my @vis;
@@ -118,7 +118,6 @@ sub tableopts {
         $o{default} |= ($v->{sort_id} << 6) | ({qw|asc 0 desc 32|}->{$v->{sort_default}}//croak("unknown sort_default: $v->{sort_default}")) if $v->{sort_default};
         $o{default} |= 1 << ($v->{vis_id} + 12) if $v->{vis_default};
     }
-    $o{views} ||= [0];
     $o{default} |= $o{views}[0];
     #warn "=== ".($o{pref}||'undef')."\n"; dump_ids(\%o);
     \%o

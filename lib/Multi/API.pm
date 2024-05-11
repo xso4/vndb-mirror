@@ -5,8 +5,7 @@
 
 package Multi::API;
 
-use v5.26;
-use warnings;
+use v5.36;
 use Multi::Core;
 use Socket 'SO_KEEPALIVE', 'SOL_SOCKET', 'IPPROTO_TCP';
 use AnyEvent::Socket;
@@ -22,14 +21,15 @@ use JSON::XS;
 use List::Util 'min', 'max';
 use VNDB::ExtLinks 'sql_extlinks';
 
-# Linux-specific, not exported by the Socket module.
-sub TCP_KEEPIDLE  () { 4 }
-sub TCP_KEEPINTVL () { 5 }
-sub TCP_KEEPCNT   () { 6 }
-
-# what our JSON encoder considers 'true' or 'false'
-sub TRUE  () { JSON::XS::true }
-sub FALSE () { JSON::XS::false }
+use constant {
+    # Linux-specific, not exported by the Socket module.
+    TCP_KEEPIDLE  => 4,
+    TCP_KEEPINTVL => 5,
+    TCP_KEEPCNT   => 6,
+    # what our JSON encoder considers 'true' or 'false'
+    TRUE  => JSON::XS::true(),
+    FALSE => JSON::XS::false(),
+};
 
 my %O = (
   port => 19534,

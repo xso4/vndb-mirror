@@ -5,8 +5,7 @@
 
 package Multi::Maintenance;
 
-use strict;
-use warnings;
+use v5.36;
 use Multi::Core;
 use POSIX 'strftime';
 use VNDB::Config;

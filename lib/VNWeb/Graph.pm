@@ -2,7 +2,7 @@ package VNWeb::Graph;
 
 # Utility functions for VNWeb::Producers::Graph anv VNWeb::VN::Graph.
 
-use v5.26;
+use v5.36;
 use AnyEvent::Util;
 use TUWF::XML 'xml_escape';
 use Exporter 'import';

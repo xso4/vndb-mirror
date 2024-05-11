@@ -1,6 +1,6 @@
 package VNWeb::JS;
 
-use v5.26;
+use v5.36;
 use TUWF;
 use VNDB::Config;
 use VNWeb::Validation ();
