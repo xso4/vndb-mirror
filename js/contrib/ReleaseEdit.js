@@ -458,18 +458,24 @@ const Images = initVnode => {
     };
 
     const uploadApi = new Api('ImageUpload');
+    let uploadQueue = [];
+    const uploadOne = () => {
+        const form = new FormData();
+        form.append('type', 'cv');
+        form.append('img', uploadQueue.shift());
+        uploadApi.call(form, r => {
+            addImg(r);
+            if (uploadQueue.length > 0) uploadOne();
+        });
+    };
     const uploadSubmit = ev => {
         ev.stopPropagation();
         ev.preventDefault();
-        const img = $('#file').files[0];
-        if (!img) {
+        uploadQueue = [...$('#file').files];
+        if (!uploadQueue.length)
             uploadApi.error = 'No file selected';
-            return;
-        }
-        const form = new FormData();
-        form.append('type', 'cv');
-        form.append('img', img);
-        uploadApi.call(form, addImg);
+        else
+            uploadOne();
     };
 
     const view = () => !data.official ? [
@@ -515,7 +521,7 @@ const Images = initVnode => {
         m('fieldset',
             m('label[for=file]', 'File upload', HelpButton('imgupl')),
             m(Form, { onsubmit: uploadSubmit },
-                m('input#file[type=file][required]', { accept: imageAccept, oninput: uploadSubmit }),
+                m('input#file[type=file][required][multiple]', { accept: imageAccept, oninput: uploadSubmit }),
                 uploadApi.loading() ? m('span.spinner') : null,
                 uploadApi.error ? m('b', m('br'), uploadApi.error) : null,
             ),
