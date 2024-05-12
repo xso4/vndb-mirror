@@ -314,7 +314,7 @@ sub can_edit {
     if($type eq 'w') {
         return 1 if auth->permBoardmod;
         return auth->permReview && (!global_settings->{lockdown_board} || auth->isMod) if !$entry->{id};
-        return auth && auth->uid eq $entry->{user_id};
+        return auth && $entry->{user_id} && auth->uid eq $entry->{user_id};
     }
 
     if($type eq 'g' || $type eq 'i') {
