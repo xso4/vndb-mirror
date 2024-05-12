@@ -678,7 +678,9 @@ api_query '/vn',
         image => {
             fields => {
                 IMG('v.c_image', 'image', 'i.'),
-                thumbnail => { select => "v.c_image AS thumbnail", col => 'thumbnail', proc => sub { $_[0] = imgurl $_[0], 't' } },
+                thumbnail => { join => 'image', col => 'thumbnail'
+                             , select => "ARRAY[v.c_image::text, i.width::text, i.height::text] AS thumbnail"
+                             , proc => sub { my($id,$w,$h) = $_[0]->@*; $_[0] = imgurl $id, $w <= config->{cv_size}[0] && $h <= config->{cv_size}[1] ? '' : 't' } },
                 thumbnail_dims => { join => 'image', col => 'thumbnail_dims'
                                   , select => "ARRAY[i.width, i.height] AS thumbnail_dims"
                                   , proc => sub { @{$_[0]} = imgsize @{$_[0]}, config->{cv_size}->@* } },
