@@ -722,8 +722,25 @@ staff.note
 staff.*
 :   All [staff fields](#staff-fields) can be used here.
 
-*Currently missing from the old API: voice actors, anime relations and external
-links.  Can add if there's interest.*
+va
+:   Array of objects, possibly empty. Each object represents a voice actor
+    relation. The same voice actor may be listed multiple times for different
+    characters and the same character may be listed multiple times if it has
+    been voiced by several people.
+
+va.note
+:   String, possibly null.
+
+va.staff.*
+:   Person who voiced the character, all [staff fields](#staff-fields) can be
+    used here.
+
+va.character.*
+:   VN character being voiced, all [character fields](#character-fields) can be
+    used here.
+
+*Currently missing from the old API: anime relations and external links.  Can
+add if there's interest.*
 
 
 ## POST /release
@@ -1054,7 +1071,7 @@ two-element array containing the trait ID and maximum spoiler level. These work
 similar to the tag filters for [visual novels](#vn-filters), except that traits
 don't have a rating.
 
-### Fields
+### Fields {#character-fields}
 
 id
 :   vndbid.
@@ -1667,6 +1684,10 @@ bias in its selection due to the presence of id gaps, but you most likely don't
 need perfect uniform random selection anyway.
 
 # Change Log
+
+**2024-05-18**
+
+- Add `vn.va` field to [POST /vn](#post-vn).
 
 **2024-05-11**
 

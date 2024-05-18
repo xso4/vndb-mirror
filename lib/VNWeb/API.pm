@@ -196,12 +196,19 @@ sub api_patch {
 #   proc   => sub {},  # Subroutine to do some formatting/processing of the value.
 #                      #   $_[0] is the value as returned from the DB, should be modified in-place.
 #
-# %field_definition for nested 1-to-1 objects:
+# %field_definition for nested 1-to-1 objects that fetch from the parent object:
 #   fields => {},    # Same as the parents' "fields" definitions.
 #                    # Can only be used to nest simple fields at a single level.
 #   nullif => 'SQL string',
 #                    # The entire object itself is set to null if this SQL value is true.
 #                    # The SQL string must return a column named "${fieldname}_nullif}".
+#
+# %field_definition for nested 1-to-1 objects that fetch from another API object:
+#   object   => '/path' # API path to inherit fields from
+#   select   => 'SQL',  # SQL to return the ID from the parent table.
+#                       # ID is replaced with a sub-object and thus not directly included in the output.
+#                       # May return NULL, in which case the entire object is null.
+#   subid    => 'SQL',  # SQL to match the ID in the other API object.
 #
 # %field_definition for nested 1-to-many objects:
 #   enrich   => sub { sql 'SELECT id', $_[0], 'FROM x', $_[1], 'WHERE id IN', $_[2] },
@@ -381,7 +388,7 @@ sub prepare_fields {
             push @select, $d->{select} if $d->{select};
             push @select, $d->{nullif} if $d->{nullif};
             push @select, sql_extlinks $d->{extlinks}, $d->{extlinks}.'.' if $d->{extlinks};
-            __SUB__->($d->{fields}, $_[1]{$f}) if $d->{fields} && !$d->{enrich};
+            __SUB__->($d->{fields}, $_[1]{$f}) if $d->{fields} && !($d->{enrich} || $d->{object});
         }
     })->($fields, $enabled);
     return (
@@ -426,7 +433,21 @@ sub proc_results {
             }
             $d->{proc}->($_->{$f}) for $d->{proc} ? @$results : ();
 
-        # nested 1-to-1 objects
+        # nested 1-to-1 objects (external)
+        } elsif($d->{object}) {
+            my $subidname = "${f}_objid";
+            my($select, $join) = prepare_fields($d->{fields}, $d->{joins}, $enabled->{$f});
+            $select .= ",$d->{subid} AS $subidname";
+            # This is enrich_obj()
+            my %ids = map defined($_->{$f}) ? ($_->{$f},undef) : (), @$results;
+            my $rows = keys %ids ? tuwf->dbAlli(
+                $OBJS{$d->{object}}{sql}->($select, $join, sql($d->{subid}, 'IN', [keys %ids]), $req)
+            ) : [];
+            proc_results($d->{fields}, $enabled->{$f}, $req, $rows);
+            $ids{ delete $_->{$subidname} } = $_ for @$rows;
+            $_->{$f} = defined $_->{$f} ? $ids{ $_->{$f} } : undef for @$results;
+
+        # nested 1-to-1 objects (internal)
         } elsif($d->{fields}) {
             for my $o (@$results) {
                 if($d->{nullif} && delete $o->{"${f}_nullif"}) {
@@ -462,8 +483,9 @@ api_get '/schema', {}, sub {
         api_fields => { map +($_, (sub {
             +{ map {
                 my $f = $_[0]{$_};
-                my $s = $f->{fields} ? __SUB__->($f->{fields}, $f->{inherit} ? $OBJS{$f->{inherit}}{fields} : {}) : {};
-                $s->{_inherit} = $f->{inherit} if $f->{inherit};
+                my $sub = $f->{inherit} // $f->{object};
+                my $s = $f->{fields} ? __SUB__->($f->{fields}, $sub ? $OBJS{$sub}{fields} : {}) : {};
+                $s->{_inherit} = $sub if $sub;
                 ($_, keys %$s ? $s : undef)
             } grep !$_[1]{$_}, keys $_[0]->%* }
         })->($OBJS{$_}{fields}, {})), keys %OBJS },
@@ -757,7 +779,16 @@ api_query '/vn',
                 role  => { select => 'vs.role' },
                 note  => { select => 'vs.note', @NSTR },
             },
-        }
+        },
+        va => {
+            enrich => sub { sql 'SELECT vs.id AS vid', $_[0], 'FROM vn_seiyuu vs JOIN staff_aliast s ON s.aid = vs.aid JOIN chars c ON c.id = vs.cid', $_[1], 'WHERE NOT s.hidden AND NOT c.hidden AND vs.id IN', $_[2] },
+            key => 'id', col => 'vid', num => 10,
+            fields => {
+                staff     => { object => '/staff',     select => 'vs.aid AS staff',     subid => 's.aid' },
+                character => { object => '/character', select => 'vs.cid AS character', subid => 'c.id' },
+                note      => { select => 'vs.note', @NSTR },
+            },
+        },
     },
     sort => [
         id => 'v.id',
@@ -1079,8 +1110,8 @@ api_query '/ulist',
 # - Expand 'extlinks' fields
 (sub {
     for my $f (values $_[0]->%*) {
-        if($f->{inherit}) {
-            my $o = $OBJS{$f->{inherit}};
+        if($f->{inherit} || $f->{object}) {
+            my $o = $OBJS{ $f->{inherit} || $f->{object} };
             $f->{fields}{$_} = $o->{fields}{$_} for keys %{ $o->{fields}||{} };
             $f->{joins}{$_} = $o->{joins}{$_} for keys %{ $o->{joins}||{} };
         }
