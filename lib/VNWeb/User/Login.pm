@@ -49,7 +49,7 @@ js_api UserLogin => {
         return +{ insecurepass => 1, uid => $u->{id} };
     } elsif (40 == length $ret) {
         return +{ _redir => "/$u->{id}/del/$ret" };
-    } else {
+    } elsif($ret) {
         auth->audit(auth->uid, 'login');
         return +{ ok => 1 };
     }
