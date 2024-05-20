@@ -196,12 +196,12 @@ sub filter_release_adv {
     defined $fil->{olang}       ? [ 'vn', '=', [ 'or', map [ 'olang', '=', $_ ], $fil->{olang}->@* ] ]  : (),
     defined $fil->{resolution}  ? [ 'or', map [ 'resolution', '=', $_ eq 'unknown' ? [0,0] : $_ eq 'nonstandard' ? [0,1] : [split /x/] ], $fil->{resolution}->@* ] : (),
     defined $fil->{plat}        ? [ 'or', map [ 'platform', '=', $_ eq 'unk' ? '' : $_ ], $fil->{plat}->@* ] : (),
-    defined $fil->{prod_inc}    ? [ 'or', map [ 'producer-id', '=', $_ ], $fil->{prod_inc}->@* ] : (),
-    defined $fil->{prod_exc}    ? [ 'and', map [ 'producer-id', '!=', $_ ], $fil->{prod_exc}->@* ] : (),
+    defined $fil->{prod_inc}    ? [ 'or', map [ 'producer_id', '=', $_ ], $fil->{prod_inc}->@* ] : (),
+    defined $fil->{prod_exc}    ? [ 'and', map [ 'producer_id', '!=', $_ ], $fil->{prod_exc}->@* ] : (),
     defined $fil->{med}         ? [ 'or', map [ 'medium', '=', $_ eq 'unk' ? '' : $_ ], $fil->{med}->@* ] : (),
     defined $fil->{voiced}      ? [ 'or', map [ 'voiced', '=', $_ ], $fil->{voiced}->@* ] : (),
-    defined $fil->{ani_story}   ? [ 'or', map [ 'animation-story', '=', $_ ], $fil->{ani_story}->@* ] : (),
-    defined $fil->{ani_ero}     ? [ 'or', map [ 'animation-ero',   '=', $_ ], $fil->{ani_ero}->@* ]  : (),
+    defined $fil->{ani_story}   ? [ 'or', map [ 'animation_story', '=', $_ ], $fil->{ani_story}->@* ] : (),
+    defined $fil->{ani_ero}     ? [ 'or', map [ 'animation_ero',   '=', $_ ], $fil->{ani_ero}->@* ]  : (),
     defined $fil->{engine}      ? [ 'engine', '=', $fil->{engine} ] : (),
     ]
 }
