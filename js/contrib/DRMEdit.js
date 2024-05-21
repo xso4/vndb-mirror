@@ -35,8 +35,7 @@ widget('DRMEdit', vnode => {
             m('fieldset',
                 m('input[type=submit][value=Save]'),
                 m('input[type=button][value=Cancel]', { onclick: () => location.href = '/r/drm?'+data.ref }),
-                api.loading() ? m('span.spinner') : null,
-                api.error ? m('b', m('br'), api.error) : null,
+                api.Status(),
             ),
         ),
     ));

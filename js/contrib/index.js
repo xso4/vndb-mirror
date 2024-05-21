@@ -61,10 +61,8 @@ const EditSum = vnode => {
             ]
         }),
         m('input[type=submit][value=Submit]'),
-        api.loading() ? m('span.spinner') : null,
-        api.error
-        ? m('b', m('br'), api.error)
-        : m('p.formerror', 'The form contains errors'),
+        api.Status(),
+        api.error ? null : m('p.formerror', 'The form contains errors'),
     );
     return {view};
 };

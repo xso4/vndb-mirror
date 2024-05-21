@@ -510,8 +510,7 @@ const applications = data => {
             m('input[type=button][value=Create new token]', { onclick: () => api.call({id:data.id}, res =>
                 data.api2.push({token: res.token, added: res.added, notes: '', listread: false, listwrite: false })
             )}),
-            api.loading() ? m('span.spinner') : null,
-            api.error ? m('b', m('br'), api.error) : null,
+            api.Status(),
         ),
     ];
 };
@@ -577,8 +576,8 @@ widget('UserEdit', initVnode => {
         m(FormTabs, {tabs}),
         m('article.submit',
             m('input[type=submit][value=Submit]'),
-            m('span.spinner', { class: api.loading() ? '' : 'invisible' }),
-            api.error ? m('p.formerror', api.error) : msg && api.saved(data) ? m('p', msg) : null,
+            api.Status(),
+            msg && api.saved(data) ? m('p', msg) : null,
         ),
     );
     return {view};

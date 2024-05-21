@@ -25,8 +25,7 @@ const ChangePass = vnode => {
             ),
             m('fieldset',
                 m('input[type=submit][value=Update]'),
-                api.loading() ? m('span.spinner') : null,
-                api.error ? m('b', m('br'), api.error) : null,
+                api.Status(),
             ),
         ),
     ));
@@ -60,8 +59,7 @@ const Login = vnode => {
             ),
             m('fieldset',
                 m('input[type=submit][value=Submit][tabindex=1]'),
-                api.loading() ? m('span.spinner') : null,
-                api.error ? m('b', m('br'), api.error) : null,
+                api.Status(),
             ),
         ),
     ));

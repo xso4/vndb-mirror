@@ -13,6 +13,13 @@ class Api {
         return this.xhr && this.xhr.readyState != 4;
     }
 
+    Status() {
+        return [
+            m('span.spinner', { class: this.loading() ? '' : 'invisible' }),
+            this.error ? m('b', m('br'), this.error) : null,
+        ];
+    }
+
     abort() {
         this.error = null;
         if (this.xhr) this.xhr.abort();

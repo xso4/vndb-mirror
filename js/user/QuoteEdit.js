@@ -38,8 +38,7 @@ widget('QuoteEdit', vnode => {
                 m('label.check', m('input[type=radio]', { checked:  data.hidden, oninput: () => data.hidden = true }), ' Deleted '),
             ),
             m('input[type=submit][value=Submit]'),
-            m('span.spinner', { class: api.loading() ? '' : 'invisible' }),
-            api.error ? m('p.formerror', api.error) : null,
+            api.Status(),
 
         )), !data.delete ? null : m(Form, {api: delApi, onsubmit: () => delApi.call({id:data.id}, redir) }, m('fieldset.form',
             m('fieldset',
@@ -48,8 +47,7 @@ widget('QuoteEdit', vnode => {
             ),
             !del ? null : m('fieldset',
                 m('input[type=submit][value=Delete]'),
-                m('span.spinner', { class: delApi.loading() ? '' : 'invisible' }),
-                delApi.error ? m('p.formerror', delApi.error) : null,
+                delApi.Status(),
             ),
         )),
     ]};

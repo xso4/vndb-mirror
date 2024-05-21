@@ -95,8 +95,7 @@ widget('Report', vnode => {
                 ) : null,
                 cansubmit ? [
                     m('input[type=submit][value=Submit]'),
-                    m('span.spinner', { class: api.loading() ? '' : 'invisible' }),
-                    api.error ? m('p.formerror', api.error) : null,
+                    api.Status(),
                 ] : [],
             ])(list.filter(([l]) => l === data.reason)[0] || reasons[0]),
         ),

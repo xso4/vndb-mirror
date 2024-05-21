@@ -47,9 +47,8 @@ widget('UserAdmin', initVnode => {
                 ),
                 m('fieldset',
                     m('input[type=submit][value=Update]'),
-                    api.loading() ? m('span.spinner')
-                    : api.error ? m('p', api.error)
-                    : api.saved(data) ? 'Saved!' : null
+                    api.Status(),
+                    api.saved(data) ? 'Saved!' : null
                 ),
             )
         )

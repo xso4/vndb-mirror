@@ -99,8 +99,7 @@ widget('ProducerEdit', initVnode => {
             m(EditSum, {data,api})
         ] : dupCheck === true ? [m('article.submit',
             m('input[type=submit][value=Continue]'),
-            dupApi.loading() ? m('span.spinner') : null,
-            dupApi.error ? m('b', m('br'), dupApi.error) : null,
+            dupApi.Status(),
         )] : [
             m('article',
                 m('h1', 'Possible duplicates'),

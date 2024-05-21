@@ -21,8 +21,7 @@ widget('UserPassReset', () => {
             ),
             m('fieldset',
                 m('input[type=submit][value=Submit]'),
-                api.loading() ? m('span.spinner') : null,
-                api.error ? m('b', m('br'), api.error) : null,
+                api.Status(),
             ),
         )
     ));

@@ -13,8 +13,7 @@ widget('ReviewComment', vnode => {
             ],
         }),
         m('input[type=submit][value=Submit]'),
-        m('span.spinner', { class: api.loading() ? '' : 'invisible' }),
-        api.error ? m('p.formerror', api.error) : null,
+        api.Status(),
     ));
     return {view};
 });
