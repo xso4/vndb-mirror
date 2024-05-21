@@ -45,23 +45,30 @@ js_api UserLogin => {
 
     my $insecure = is_insecurepass $data->{password};
     my $ret = auth->login($u->{id}, $data->{password}, $insecure);
-    if($ret && $insecure) {
+
+    # Failed login
+    if (!$ret) {
+        auth->audit($u->{id}, 'bad password', 'failed login attempt');
+        my $upd = {
+            ip      => \$ip,
+            timeout => sql_fromtime $tm + config->{login_throttle}[0]
+        };
+        tuwf->dbExeci('INSERT INTO login_throttle', $upd, 'ON CONFLICT (ip) DO UPDATE SET', $upd);
+        return +{ _err => $ismail ? $mailmsg : 'Incorrect password.' }
+
+    # Insecure password
+    } elsif ($insecure) {
         return +{ insecurepass => 1, uid => $u->{id} };
+
+    # Account marked for deletion
     } elsif (40 == length $ret) {
         return +{ _redir => "/$u->{id}/del/$ret" };
-    } elsif($ret) {
+
+    # Successful login
+    } elsif ($ret) {
         auth->audit(auth->uid, 'login');
         return +{ ok => 1 };
     }
-
-    # Failed login, log and update throttle.
-    auth->audit($u->{id}, 'bad password', 'failed login attempt');
-    my $upd = {
-        ip      => \$ip,
-        timeout => sql_fromtime $tm + config->{login_throttle}[0]
-    };
-    tuwf->dbExeci('INSERT INTO login_throttle', $upd, 'ON CONFLICT (ip) DO UPDATE SET', $upd);
-    +{ _err => $ismail ? $mailmsg : 'Incorrect password.' }
 };
 
 
