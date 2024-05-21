@@ -20,6 +20,7 @@ const username_reqs = [
 @include UserAdmin.js
 @include DiscussionReply.js
 @include ReviewComment.js
+@include ReviewEdit.js
 @include ReviewsVote.js
 @include QuoteEdit.js
 @include QuoteVote.js

@@ -12,7 +12,7 @@ my $FORM = {
     spoiler => { anybool => 1 },
     isfull  => { anybool => 1 },
     modnote => { maxlength => 1024, default => '' },
-    text    => { maxlength => 100_000, default => '' },
+    text    => { minlength => 200, maxlength => 100_000, default => '' },
     locked  => { anybool => 1 },
 
     mod     => { _when => 'out', anybool => 1 },
@@ -47,9 +47,9 @@ TUWF::get qr{/$RE{vid}/addreview}, sub {
                 p_ 'You can only submit 5 reviews per day. Check back later!';
             };
         } else {
-            elm_ 'Reviews.Edit' => $FORM_OUT, { elm_empty($FORM_OUT)->%*,
+            div_ widget(ReviewEdit => $FORM_OUT, { elm_empty($FORM_OUT)->%*,
                 vid => $v->{id}, vntitle => $v->{title}, releases => releases($v->{id}), mod => auth->permBoardmod()
-            };
+            }), '';
         }
     };
 };
@@ -66,19 +66,18 @@ TUWF::get qr{/$RE{wid}/edit}, sub {
     $e->{releases} = releases $e->{vid};
     $e->{mod} = auth->permBoardmod;
     framework_ title => "Edit review for $e->{vntitle}", dbobj => $e, tab => 'edit', sub {
-        elm_ 'Reviews.Edit' => $FORM_OUT, $e;
+        div_ widget('ReviewEdit' => $FORM_OUT, $e), '';
     };
 };
 
 
 
-elm_api ReviewsEdit => $FORM_OUT, $FORM_IN, sub {
-    my($data) = @_;
+js_api ReviewEdit => $FORM_IN, sub ($data) {
     my $id = delete $data->{id};
 
     my $review = $id ? tuwf->dbRowi('SELECT id, locked, modnote, text, uid AS user_id FROM reviews WHERE id =', \$id) : {};
     return tuwf->resNotFound if $id && !$review->{id};
-    return elm_Unauth if !can_edit w => $review;
+    return tuwf->resDenied if !can_edit w => $review;
 
     if(!auth->permBoardmod) {
         $data->{locked} = $review->{locked}||0;
@@ -88,7 +87,7 @@ elm_api ReviewsEdit => $FORM_OUT, $FORM_IN, sub {
     validate_dbid 'SELECT id FROM vn WHERE id IN', $data->{vid};
     validate_dbid 'SELECT id FROM releases WHERE id IN', $data->{rid} if defined $data->{rid};
 
-    die "Review too long" if !$data->{isfull} && length $data->{text} > 800;
+    return 'Review too long' if !$data->{isfull} && length $data->{text} > 800;
     $data->{text} = bb_subst_links $data->{text} if $data->{isfull};
 
     if($id) {
@@ -97,25 +96,25 @@ elm_api ReviewsEdit => $FORM_OUT, $FORM_IN, sub {
         auth->audit($review->{user_id}, 'review edit', "edited $review->{id}") if auth->uid ne $review->{user_id};
 
     } else {
-        return elm_Unauth if tuwf->dbVali('SELECT 1 FROM reviews WHERE vid =', \$data->{vid}, 'AND uid =', \auth->uid);
-        return elm_Unauth if throttled;
+        return 'You have already submitted a review for this visual novel.'
+            if tuwf->dbVali('SELECT 1 FROM reviews WHERE vid =', \$data->{vid}, 'AND uid =', \auth->uid);
+        return 'You may only submit 5 reviews per day.' if throttled;
         $data->{uid} = auth->uid;
         $id = tuwf->dbVali('INSERT INTO reviews', $data, 'RETURNING id');
     }
 
-    elm_Redirect "/$id".($data->{uid}?'?submit=1':'')
+    +{ _redir => "/$id".($data->{uid}?'?submit=1':'') };
 };
 
 
-elm_api ReviewsDelete => undef, { id => { vndbid => 'w' } }, sub {
-    my($data) = @_;
-    my $review = tuwf->dbRowi('SELECT id, uid AS user_id FROM reviews WHERE id =', \$data->{id});
+js_api ReviewDelete => { id => { vndbid => 'w' } }, sub ($data) {
+    my $review = tuwf->dbRowi('SELECT id, vid, uid AS user_id FROM reviews WHERE id =', \$data->{id});
     return tuwf->resNotFound if !$review->{id};
-    return elm_Unauth if !can_edit w => $review;
+    return tuwf->resDenied if !can_edit w => $review;
     auth->audit($review->{user_id}, 'review delete', "deleted $review->{id}");
     tuwf->dbExeci('DELETE FROM notifications WHERE iid =', \$data->{id});
     tuwf->dbExeci('DELETE FROM reviews WHERE id =', \$data->{id});
-    elm_Success
+    +{ _redir => "/$review->{vid}" }
 };
 
 

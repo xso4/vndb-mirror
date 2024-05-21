@@ -327,6 +327,7 @@ window.Select = { view: v => m('select',
 // Attrs:
 // - data + field -> raw text is read from and written to data[field]
 // - header       -> element to draw at the top-left
+// - footer
 // - attrs        -> attrs to add to the Input
 // - type         -> 'bb' || 'markdown', defaults to bb
 // - full         -> Add 'full' class for full-width input
@@ -369,6 +370,7 @@ window.TextPreview = initVnode => {
             data, field, oninput: e => html = null
         }),
         preview ? m('div.preview', { class: vnode.attrs.type === 'markdown' ? 'docs' : null }, m.trust(html)) : null,
+        vnode.attrs.footer,
     );
     return {view};
 };
