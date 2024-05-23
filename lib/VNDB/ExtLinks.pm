@@ -383,7 +383,7 @@ sub enrich_extlinks {
             w 'lutris';
             w 'wine';
             l 'l_renai';
-            c 'vnstat', 'VNStat', 'https://vnstat.net/novel/%d', $obj->{id} =~ s/^.//r if $obj->{c_votecount}>=20;
+            c 'vnstat', 'VNStat', 'https://vnstat.net/novel/%d', $obj->{id} =~ s/^.//r if ($obj->{c_votecount}||0) >= 20;
         }
 
         # Release links

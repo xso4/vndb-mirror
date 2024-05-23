@@ -468,6 +468,7 @@ sub proc_results {
 
 
 api_get '/schema', {}, sub {
+    # XXX: This only lists direct extlink fields of the object, not wikidata-derived or custom links.
     my sub el {
         my $l = $VNDB::ExtLinks::LINKS{$_[0]};
         [ map +{ name => $_ =~ s/^l_//r, label => $l->{$_}{label}, url_format => $l->{$_}{fmt} },
@@ -490,6 +491,7 @@ api_get '/schema', {}, sub {
             } grep !$_[1]{$_}, keys $_[0]->%* }
         })->($OBJS{$_}{fields}, {})), keys %OBJS },
         extlinks => {
+            '/vn'      => el('v'),
             '/release' => el('r'),
             '/staff'   => el('s'),
         },
@@ -789,6 +791,7 @@ api_query '/vn',
                 note      => { select => 'vs.note', @NSTR },
             },
         },
+        extlinks   => { extlinks => 'v' },
     },
     sort => [
         id => 'v.id',

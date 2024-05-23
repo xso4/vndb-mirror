@@ -739,8 +739,10 @@ va.character.*
 :   VN character being voiced, all [character fields](#character-fields) can be
     used here.
 
-*Currently missing from the old API: anime relations and external links.  Can
-add if there's interest.*
+extlinks
+:   Array, links to external websites. Works the same as the 'extlinks'
+    [release field](#release-fields).
+
 
 
 ## POST /release
@@ -1685,9 +1687,13 @@ need perfect uniform random selection anyway.
 
 # Change Log
 
+**2024-05-23**
+
+- Add `extlinks` field to [POST /vn](#post-vn).
+
 **2024-05-18**
 
-- Add `vn.va` field to [POST /vn](#post-vn).
+- Add `va` field to [POST /vn](#post-vn).
 
 **2024-05-11**
 
