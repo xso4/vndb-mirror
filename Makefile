@@ -139,8 +139,10 @@ ${VIPS_DIR}/done: ${JXL_DIR}/done
 	cd ${VIPS_DIR}/build && meson compile && meson install
 	touch $@
 
-${JXL_DIR}/done:
+${JXL_DIR}:
 	mkdir -p ${JXL_DIR}
+
+${JXL_DIR}/done: | ${JXL_DIR}
 	@#curl -Ls https://github.com/libjxl/libjxl/archive/refs/tags/v${JXL_VER}.tar.gz | tar -C $@ --strip-components 1 -xzf-
 	curl -Ls https://github.com/libjxl/libjxl/tarball/${JXL_VER} | tar -C ${JXL_DIR} --strip-components 1 -xzf-
 	cd ${JXL_DIR} && ./deps.sh
