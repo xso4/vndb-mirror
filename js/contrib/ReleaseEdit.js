@@ -189,7 +189,7 @@ const Format = initVnode => {
             data.media.anyDup(({medium,qty}) => [medium, media[medium].qty ? qty : null])
             ?  m('p.invalid', 'List contains duplicates') : null,
         ),
-        data.patch ? null : m('fieldset',
+        m('fieldset',
             m('label[for=engine]', 'Engine'),
             m(DS.Input, { id: 'engine', class: 'mw', maxlength: 50, ds: engines, data, field: 'engine', onfocus: ev => ev.target.select() }),
         ),
@@ -386,13 +386,13 @@ const VNs = initVnode => {
 const Producers = initVnode => {
     const {data} = initVnode.attrs;
     const ds = new DS(DS.Producers, {
-        onselect: obj => data.producers.push({pid: obj.id, name: obj.name, developer: true, publisher: true }),
+        onselect: obj => data.producers.push({pid: obj.id, name: obj.name, developer: data.official, publisher: true }),
         props: obj => data.producers.find(p => p.pid === obj.id) ? { selectable: false, append: m('small', ' (already listed)') } : {},
     });
     const view = () => m('fieldset',
         m('label', 'Producers'),
         m('table', data.producers.map(p => m('tr', {key: p.pid},
-            m('td',
+            !(data.official || data.producers.find(p => p.developer)) ? null : m('td',
                 m(Button.Del, { onclick: () => data.producers = data.producers.filter(x => x !== p) }), ' ',
                 m(Select, {
                     oninput: v => { p.developer = v[0]; p.publisher = v[1] },
