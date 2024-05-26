@@ -392,9 +392,9 @@ const Producers = initVnode => {
     const view = () => m('fieldset',
         m('label', 'Producers'),
         m('table', data.producers.map(p => m('tr', {key: p.pid},
-            !(data.official || data.producers.find(p => p.developer)) ? null : m('td',
+            m('td',
                 m(Button.Del, { onclick: () => data.producers = data.producers.filter(x => x !== p) }), ' ',
-                m(Select, {
+                !(data.official || p.developer) ? null : m(Select, {
                     oninput: v => { p.developer = v[0]; p.publisher = v[1] },
                     value: [p.developer,p.publisher],
                     options: [
