@@ -531,16 +531,25 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid var
 
 .drmlist > div { margin: 3px 20px 10px 20px }
 
+
 /***** Image hover thingy (VNWeb::Images::Lib::images_) ****/
 
-.imghover { margin: 0 auto; text-align: center }
-.imghover input:checked       ~ .imghover--warning { display: none }
-.imghover input:not(:checked) ~ .imghover--visible { display: none }
-.imghover .imghover--visible { position: relative }
-.imghover .imghover--visible > a { border-bottom: 0 }
-.imghover .imghover--visible .imghover--overlay { display: none; white-space: nowrap; font-size: 11px }
-.imghover:hover .imghover--visible .imghover--overlay { display: block; position: absolute; right: 0; bottom: 0; padding: 5px 10px; background: var(--secbg); border: 0 }
-.imghover .imghover--warning { display: block; border: 1px solid var(--border); background: var(--secbg); padding: 10px 5px }
+.imghover {
+    margin: 0 auto; text-align: center; position: relative;
+    &> a { border-bottom: 0 }
+    .imghover--overlay { display: none; white-space: nowrap; font-size: 11px }
+    &:hover .imghover--overlay { display: block; position: absolute; right: 0; bottom: 0; padding: 5px 10px; background: var(--secbg) }
+    summary {
+        list-style: none; height: 100%; border: 1px solid var(--border); background: var(--secbg); display: flex; flex-direction: column; justify-content: center;
+        > div { display: block; padding: 10px 5px; }
+        > span { display: none }
+    }
+    &[open] summary {
+        height: 0; border: 0;
+        > div { display: none }
+    }
+    &[open]:hover summary > span { display: block; position: absolute; right: 0; top: 0; background: var(--secbg); padding: 5px; }
+}
 
 
 

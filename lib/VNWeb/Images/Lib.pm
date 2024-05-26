@@ -141,7 +141,7 @@ sub image_ {
 
     my $hidden = image_hidden $img;
     my($sex,$vio) = $img->@{'sexual', 'violence'};
-    my $hide_on_click = $opt{url} ? $hidden : $sex || $vio || !$img->{votecount} || (auth->pref('max_sexual')||0) < 0;
+    my $hide_on_click = $sex || $vio || !$img->{votecount} || (auth->pref('max_sexual')||0) < 0;
     my $small = $w*$h < 20000;
 
     tuwf->{req}{imghover_id} //= 0;
@@ -149,41 +149,47 @@ sub image_ {
 
     tuwf->req->{js}{basic} = 1 if $opt{thumb};
 
-    div_ class => 'imghover', style => "width: ${w}px; height: ${h}px", sub {
-        input_ type => 'checkbox', id => "imghover$id", class => 'hidden', $hidden ? () : (checked => 'checked') if $hide_on_click;
-        div_ class => 'imghover--visible', sub {
-            a_ $opt{thumb} ? imgiv($img) : (href => $opt{url}) if $opt{url};
-            img_ src => thumburl($img), width => $w, height => $h, $opt{alt} ? (alt => $opt{alt}) : ();
-            end_ if $opt{url};
-            if(!exists $opt{overlay}) {
-                a_ class => 'imghover--overlay', href => "/$img->{id}?view=".viewset(show_nsfw=>1), image_flagging_display $img, $small if auth;
-                span_ class => 'imghover--overlay', image_flagging_display $img, $small if !auth;
-            } elsif(ref $opt{overlay} eq 'CODE') {
-                $opt{overlay}->();
-            }
-        };
-        label_ for => "imghover$id", class => 'imghover--warning', sub {
-            if($img->{votecount}) {
+    if ($hide_on_click) {
+        details_ class => 'imghover', open => $hidden ? undef : 'open', style => "width: ${w}px; height: ${h}px";
+        summary_ sub {
+            div_ sub {
+                if($img->{votecount}) {
+                    if(!$small) {
+                        txt_ 'This image has been flagged as:';
+                        br_; br_;
+                    }
+                    txt_ 'Sexual: '; $hidden & 1 ? b_ $SEX[$sex] : txt_ $SEX[$sex];
+                    br_;
+                    txt_ 'Violence: '; $hidden & 2 ? b_ $VIO[$vio] : txt_ $VIO[$vio];
+                } else {
+                    txt_ 'This image has not yet been flagged';
+                }
                 if(!$small) {
-                    txt_ 'This image has been flagged as:';
                     br_; br_;
+                    span_ class => 'fake_link', 'Show me anyway';
+                    if ($h > 200) {
+                        br_; br_;
+                        small_ 'This warning can be disabled in your account';
+                    }
                 }
-                txt_ 'Sexual: '; $hidden & 1 ? b_ $SEX[$sex] : txt_ $SEX[$sex];
-                br_;
-                txt_ 'Violence: '; $hidden & 2 ? b_ $VIO[$vio] : txt_ $VIO[$vio];
-            } else {
-                txt_ 'This image has not yet been flagged';
-            }
-            if(!$small) {
-                br_; br_;
-                span_ class => 'fake_link', 'Show me anyway';
-                if ($h > 200) {
-                    br_; br_;
-                    small_ 'This warning can be disabled in your account';
-                }
-            }
-        } if $hide_on_click;
+            };
+            span_ 'x';
+        };
+    } else {
+        div_ class => 'imghover', style => "width: ${w}px; height: ${h}px";
     }
+
+    a_ $opt{thumb} ? imgiv($img) : (href => $opt{url}) if $opt{url};
+    img_ src => thumburl($img), width => $w, height => $h, $opt{alt} ? (alt => $opt{alt}) : ();
+    end_ if $opt{url};
+    if(!exists $opt{overlay}) {
+        a_ class => 'imghover--overlay', href => "/$img->{id}?view=".viewset(show_nsfw=>1), image_flagging_display $img, $small if auth;
+        span_ class => 'imghover--overlay', image_flagging_display $img, $small if !auth;
+    } elsif(ref $opt{overlay} eq 'CODE') {
+        $opt{overlay}->();
+    }
+
+    end_;
 }
 
 
