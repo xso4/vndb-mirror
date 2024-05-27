@@ -12,7 +12,7 @@ my $FORM = {
     can_mod     => { anybool => 1, _when => 'out' },
     hidden      => { default => sub { $_[0] } }, # When can_mod
     nolastmod   => { anybool => 1, _when => 'in' }, # When can_mod
-    delete      => { anybool => 1 }, # When can_mod
+    delete      => { anybool => 1, _when => 'in' }, # When can_mod
 
     msg         => { maxlength => 32768 },
 };
@@ -35,14 +35,13 @@ sub _info {
 }
 
 
-elm_api DiscussionsPostEdit => $FORM_OUT, $FORM_IN, sub {
-    my($data) = @_;
+js_api PostEdit => $FORM_IN, sub ($data) {
     my $id  = $data->{id};
     my $num = $data->{num};
 
     my $t = _info $id, $num;
     return tuwf->resNotFound if !$t->{id};
-    return elm_Unauth if !can_edit t => $t;
+    return tuwf->resDenied if !can_edit t => $t;
 
     tuwf->dbExeci(q{DELETE FROM notifications WHERE iid =}, \$id, 'AND num =', \$num) if auth->permBoardmod && ($data->{delete} || defined $data->{hidden});
 
@@ -50,7 +49,7 @@ elm_api DiscussionsPostEdit => $FORM_OUT, $FORM_IN, sub {
         auth->audit($t->{user_id}, 'post delete', "deleted $id.$num");
         tuwf->dbExeci('DELETE FROM threads_posts WHERE tid =', \$id, 'AND num =', \$num);
         tuwf->dbExeci('DELETE FROM reviews_posts WHERE  id =', \$id, 'AND num =', \$num);
-        return elm_Redirect "/$id";
+        return +{ _redir => "/$id" };
     }
     auth->audit($t->{user_id}, 'post edit', "edited $id.$num") if $t->{user_id} ne auth->uid;
 
@@ -65,7 +64,7 @@ elm_api DiscussionsPostEdit => $FORM_OUT, $FORM_IN, sub {
     $post->{id} = delete $post->{tid};
     tuwf->dbExeci('UPDATE reviews_posts SET', $post, 'WHERE', {  id => $id, num => $num });
 
-    elm_Redirect "/$id.$num";
+    +{ _redir => "/$id.$num" };
 };
 
 
@@ -78,10 +77,8 @@ TUWF::get qr{/(?:$RE{tid}|$RE{wid})\.$RE{num}/edit}, sub {
     return tuwf->resDenied if !can_edit t => $t;
 
     $t->{can_mod} = auth->permBoardmod;
-    $t->{delete}  = 0;
-
     framework_ title => 'Edit post', sub {
-        elm_ 'Discussions.PostEdit' => $FORM_OUT, $t;
+        div_ widget(PostEdit => $FORM_OUT, $t);
     };
 };
 
