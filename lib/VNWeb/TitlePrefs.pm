@@ -170,7 +170,7 @@ sub gen_sql {
     my($has_official, $tbl_main, $tbl_titles, $join_col) = @_;
     my $p = pref || $DEFAULT_TITLE_PREFS;
 
-    sub id { (!defined $_[0]{official}?'r':$_[0]{official}?'o':'u').($_[0]{lang}//'') }
+    my sub id { (!defined $_[0]{official}?'r':!$has_official?'x':$_[0]{official}?'o':'u').($_[0]{lang}//'') }
 
     my %joins = map +(id($_),1), $p->[0]->@*, $p->[1]->@*;
     my $var = 'a';
