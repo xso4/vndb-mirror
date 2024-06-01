@@ -203,10 +203,10 @@ our %LINKS = (
                             , regex => qr{store\.playstation\.com/(?:[-a-z]+\/)?product\/(HP\d{4}-[A-Z]{4}\d{5}_00-[\dA-Z_]{16})} },
         l_nintendo     => { label => 'Nintendo'
                           , fmt   => 'https://www.nintendo.com/store/products/%s/'
-                          , regex => qr{www\.nintendo\.com\/store\/products\/([-a-z0-9]+-(?:switch|wii-u|3ds))\/} },
+                          , regex => qr{www\.nintendo\.com\/store\/products\/([-a-z0-9]+)\/} },
         l_nintendo_jp  => { label => 'Nintendo (JP)'
-                          , fmt   => 'https://store-jp.nintendo.com/list/software/%d.html'
-                          , regex => qr{store-jp\.nintendo\.com/list/software/([0-9]+).html} },
+                          , fmt   => 'https://store-jp.nintendo.com/list/software/%s.html'
+                          , regex => qr{store-jp\.nintendo\.com/list/software/([^/]+).html} },
         l_nintendo_hk  => { label => 'Nintendo (HK)'
                           , fmt   => 'https://store.nintendo.com.hk/%d'
                           , regex => qr{store\.nintendo\.com\.hk/([0-9]+)} },
