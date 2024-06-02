@@ -7,6 +7,14 @@ widget('ReviewEdit', initVnode => {
     const delApi = new Api('ReviewDelete');
     let del = false;
 
+    const relDs = new DS(DS.New(
+        DS.Releases(data.releases),
+        () => ({id:0}),
+        () => 'No release',
+    ), {
+        onselect: obj => data.rid = obj.id ? obj.id : null,
+    });
+
     const view = () => [ m(Form, { api, onsubmit: () => api.call(data) },
         m('article',
             m('h1', data.id ? 'Edit review' : 'Submit review'),
@@ -31,14 +39,9 @@ widget('ReviewEdit', initVnode => {
                 ),
                 m('fieldset',
                     m('label[for=rid]', 'Release'),
-                    // TODO: Fancier DS for release selection
-                    m(Select, { id: 'rid', class: 'xw', data, field: 'rid', options:
-                        [[null, 'No release selected']].concat(
-                            data.releases.map(r => [r.id, '[' + RDate.fmt(RDate.expand(r.released)) + ' ' + r.lang.join(',') + '] ' + r.title + ' (' + r.id + ')'])
-                        ).concat(
-                            data.rid && !data.releases.find(r => r.id == data.rid) ? [[data.rid, '(Moved or deleted release: '+data.rid+')']] : []
-                        )
-                    }),
+                    m(DS.Button, { ds:relDs, class: 'xw' }, !data.rid ? m('i', 'No release selected') : (r =>
+                        r ? m('span', Release(r,1)) : 'Moved or deleted release: '+data.rid
+                    )(data.releases.find(r => r.id == data.rid))),
                 ),
             ),
             m('fieldset.form',

@@ -2,6 +2,7 @@ package VNWeb::Releases::Edit;
 
 use VNWeb::Prelude;
 use VNWeb::Images::Lib 'enrich_image';
+use VNWeb::Releases::Lib;
 
 
 my $FORM = {
@@ -74,7 +75,9 @@ my $FORM = {
         photo     => { anybool => 1 },
         nfo       => { _when => 'out', type => 'hash', keys => $VNWeb::Elm::apis{ImageResult}[0]{aoh} },
     } },
+    supersedes => { sort_keys => 'rid', aoh => { rid => { vndbid => 'r' } } },
     vnimages   => { _when => 'out', $VNWeb::Elm::apis{ImageResult}[0]->%* },
+    vnreleases => { _when => 'out', $VNWeb::Elm::apis{Releases}[0]->%* },
     hidden     => { anybool => 1 },
     locked     => { anybool => 1 },
     editsum    => { _when => 'in out', editsum => 1 },
@@ -115,6 +118,7 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
 
     enrich_image 0, [map { $_->{lang} //= []; $_->{nfo}{id} = $_->{img}; $_->{nfo} } $e->{images}->@*];
     $e->{vnimages} = vnimages $e->{id}, map $_->{vid}, $e->{vn}->@*;
+    $e->{vnreleases} = [ grep $_->{id} ne $e->{id}, releases_by_vn(map $_->{vid}, $e->{vn}->@*)->@* ];
 
     enrich_merge vid => sql('SELECT id AS vid, title[1+1] FROM', vnt, 'v WHERE id IN'), $e->{vn};
     enrich_merge pid => sql('SELECT id AS pid, title[1+1] AS name FROM', producerst, 'p WHERE id IN'), $e->{producers};
@@ -139,10 +143,11 @@ TUWF::get qr{/$RE{vid}/add}, sub {
 
     my $e = {
         elm_empty($FORM_OUT)->%*,
-        vn       => [{vid => $v->{id}, title => $v->{title}[1], rtype => 'complete'}],
-        vntitles => tuwf->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$v->{id}),
-        vnimages => vnimages(undef, $v->{id}),
-        official => 1,
+        vn         => [{vid => $v->{id}, title => $v->{title}[1], rtype => 'complete'}],
+        vntitles   => tuwf->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$v->{id}),
+        vnimages   => vnimages(undef, $v->{id}),
+        vnreleases => releases_by_vn($v->{id}),
+        official   => 1,
     };
 
     framework_ title => "Add release to $v->{title}[1]",
@@ -219,6 +224,15 @@ js_api ReleaseEdit => $FORM_IN, sub {
         $d->{drm} = tuwf->dbVali('INSERT INTO drm', {map +($_,$d->{$_}), 'name', 'description', keys %DRM_PROPERTY}, 'RETURNING id')
             if !defined $d->{drm};
     }
+
+    $data->{supersedes} = [] if $data->{hidden};
+    validate_dbid sub {
+        'SELECT id FROM releases WHERE', sql_and
+            'NOT hidden',
+            sql('id IN', $_[0]),
+            sql('id IN(SELECT id FROM releases_vn WHERE vid IN', [ map $_->{vid}, $data->{vn}->@* ], ')'),
+            $new ? () : sql('id NOT IN(WITH RECURSIVE s(id) AS (SELECT', \$data->{id}, '::vndbid UNION SELECT rs.id FROM releases_supersedes rs JOIN s ON s.id = rs.rid) SELECT id FROM s)'),
+    }, map $_->{rid}, $data->{supersedes}->@*;
 
     return 'No changes' if !$new && !form_changed $FORM_CMP, $data, $e;
 

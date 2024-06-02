@@ -412,6 +412,42 @@ const Producers = initVnode => {
 };
 
 
+const Supersedes = initVnode => {
+    const {data} = initVnode.attrs;
+    const ds = new DS(DS.Releases(data.vnreleases), {
+        onselect: obj => data.supersedes.push({rid: obj.id}),
+        props: obj => data.supersedes.find(r => r.rid === obj.id) ? { selectable: false, append: m('small', ' (already listed)') } : {},
+    });
+    const view = () => [ m('fieldset',
+        m('label', 'Supersedes', HelpButton('supersedes')),
+        m('table', data.supersedes.map(({rid}) => m('tr',
+            m('td', m(Button.Del, { onclick: () => data.supersedes = data.supersedes.filter(x => x.rid !== rid) })),
+            m('td', (r => !r ? [
+                m('a[target=_blank]', { href: '/'+rid }, rid),
+                m('b.invalid', ' deleted or moved release.'),
+            ] : Release(r))(data.vnreleases.find(r => r.id === rid))),
+        ))),
+        m(DS.Button, { ds, class: 'mw' }, 'Add release'),
+    ), Help('supersedes',
+        m('p',
+            'List of other releases that are superseded/replaced by this release. ',
+            'In other words, the current release is an updated version of the other releases listed here.',
+        ),
+        m('p',
+            'Only add direct relations: if release A is superseded by release B ',
+            'and release B is superseded by the current release, only release B should be listed here. ',
+            'Release A in turn should be mentioned as "Supersedes" in release B.',
+        ),
+        m('p',
+            'This feature should only be used to mark releases from the same publisher. ',
+            'For example, an official release that adds a new language supersedes any older releases with fewer languages by the same publisher, ',
+            'but an unofficial translation project never supersedes an official release.',
+        ),
+    ) ];
+    return {view};
+};
+
+
 const Images = initVnode => {
     const {data} = initVnode.attrs;
     let addsrc = null;
@@ -623,6 +659,7 @@ widget('ReleaseEdit', initVnode => {
             m('legend', 'Database relations'),
             m(VNs, {data}),
             m(Producers, {data}),
+            m(Supersedes, {data}),
         ),
         m('fieldset.form',
             m('label[for=notes]', 'Notes'),

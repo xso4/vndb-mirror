@@ -278,7 +278,7 @@ class DS {
 
 DS.Button = {view: vnode => m('button.ds[type=button]', {
         class: vnode.attrs.class,
-        onclick: ev => { ev.preventDefault(); vnode.attrs.onclick ? vnode.attrs.onclick(ev) : vnode.attrs.ds && vnode.attrs.ds.open(ev.target, null)  },
+        onclick: function(ev) { ev.preventDefault(); vnode.attrs.onclick ? vnode.attrs.onclick(ev) : vnode.attrs.ds && vnode.attrs.ds.open(this, null) },
     }, vnode.children, m('span.invisible', 'X'), m(Icon.ChevronDown)
 )};
 
@@ -431,6 +431,14 @@ DS.Platforms = {
     ),
     view: obj => [ PlatIcon(obj.id), obj.label ]
 };
+
+DS.Releases = lst => ({
+    opts: { width: 800 },
+    list: (src, str, cb) => cb(lst.filter(r =>
+        (r.id + ' ' + RDate.fmt(RDate.expand(r.released)) + ' ' + r.title).toLowerCase().includes(str.toLowerCase())
+    )),
+    view: obj => Release(obj,true),
+});
 
 
 // Wrap a source to add a "Create new entry" option.

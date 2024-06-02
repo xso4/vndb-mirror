@@ -12,6 +12,8 @@ sub enrich_item {
     enrich_merge pid => sql('SELECT id AS pid, title, sorttitle FROM', producerst, 'p WHERE id IN'), $r->{producers};
     enrich_merge vid => sql('SELECT id AS vid, title, sorttitle FROM', vnt, 'v WHERE id IN'), $r->{vn};
     enrich_merge drm => sql('SELECT id AS drm, name,', sql_join(',', keys %DRM_PROPERTY), 'FROM drm WHERE id IN'), $r->{drm};
+    enrich_merge rid => sql('SELECT id AS rid, title, sorttitle, released, hidden FROM', releasest, 'r WHERE id IN'), $r->{supersedes};
+    enrich lang => rid => id => sub { sql('SELECT id, lang, mtl FROM releases_titles WHERE id IN', $_, 'ORDER BY lang') }, $r->{supersedes};
     enrich_image_obj img => $r->{images};
 
     $r->{titles}    = [ sort { ($b->{lang} eq $r->{olang}) cmp ($a->{lang} eq $r->{olang}) || ($a->{mtl}?1:0) <=> ($b->{mtl}?1:0) || $a->{lang} cmp $b->{lang} } $r->{titles}->@* ];
@@ -20,9 +22,19 @@ sub enrich_item {
     $r->{producers} = [ sort { $a->{sorttitle} cmp $b->{sorttitle} || idcmp($a->{pid}, $b->{pid}) } $r->{producers}->@* ];
     $r->{media}     = [ sort { $a->{medium} cmp $b->{medium} || $a->{qty} <=> $b->{qty} } $r->{media}->@*     ];
     $r->{drm}       = [ sort { !$a->{drm} || !$b->{drm} ? $b->{drm} <=> $a->{drm} : $a->{name} cmp $b->{name} } $r->{drm}->@* ];
+    $r->{supersedes}= [ sort { $a->{released} <=> $b->{released} || idcmp($a->{rid}, $b->{rid}) } $r->{supersedes}->@* ];
     # TODO: Ensure 'images' has a stable order
 
     $r->{resolution} = resolution $r;
+}
+
+
+sub _supersedes_($r) {
+    rdate_ $r->{released}; txt_ ' ';
+    abbr_ class => "icon-lang-$_->{lang}".($_->{mtl}?' mtl':''), title => $LANGUAGE{$_->{lang}}{txt}, '' for $r->{lang}->@*;
+    txt_ ' ';
+    a_ href => "/$r->{rid}", tattr $r;
+    small_ " ($r->{rid})";
 }
 
 
@@ -94,6 +106,7 @@ sub _rev_ {
             txt_ ' ['.join(',', $_->{lang}->@*).']' if $_->{lang};
             txt_ ' (photo)' if $_->{photo};
         } ],
+        [ supersedes => 'Supersedes', fmt => sub { _supersedes_ $_ } ],
         revision_extlinks 'r'
 }
 
@@ -282,6 +295,30 @@ sub _infotable_ {
             td_ 'Catalog no.';
             td_ $r->{catalog};
         } if $r->{catalog};
+
+        my @sup = grep !$_->{hidden}, $r->{supersedes}->@*;
+        tr_ sub {
+            td_ 'Supersedes';
+            td_ sub {
+                join_ \&br_, sub { _supersedes_ $_ }, @sup;
+            }
+        } if @sup;
+
+        my $sed = tuwf->dbAlli('
+            SELECT r.id AS rid, r.title, r.released
+              FROM', releasest, 'r
+              JOIN releases_supersedes rs ON rs.id = r.id
+             WHERE NOT r.hidden AND rs.rid =', \$r->{id}, '
+             ORDER BY r.released, r.sorttitle
+        ');
+        enrich lang => rid => id => sub { sql('SELECT id, lang, mtl FROM releases_titles WHERE id IN', $_, 'ORDER BY lang') }, $sed;
+
+        tr_ sub {
+            td_ 'Superseded by';
+            td_ sub {
+                join_ \&br_, sub { _supersedes_ $_ }, @$sed;
+            }
+        } if @$sed;
 
         tr_ sub {
             td_ 'Links';

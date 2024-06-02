@@ -16,6 +16,7 @@ CREATE        INDEX releases_images_img    ON releases_images (img);
 CREATE        INDEX releases_released      ON releases (released) WHERE NOT hidden; -- Mainly for the homepage
 CREATE        INDEX releases_producers_pid ON releases_producers (pid);
 CREATE        INDEX releases_vn_vid        ON releases_vn (vid);
+CREATE        INDEX releases_supersedes_rid ON releases_supersedes (rid);
 CREATE        INDEX reports_new            ON reports (date) WHERE status = 'new';
 CREATE        INDEX reports_lastmod        ON reports (lastmod);
 CREATE        INDEX reports_log_id         ON reports_log (id);
@@ -119,6 +120,10 @@ ALTER TABLE releases_producers       ADD CONSTRAINT releases_producers_id_fkey  
 ALTER TABLE releases_producers       ADD CONSTRAINT releases_producers_pid_fkey        FOREIGN KEY (pid)       REFERENCES producers     (id);
 ALTER TABLE releases_producers_hist  ADD CONSTRAINT releases_producers_hist_chid_fkey  FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE releases_producers_hist  ADD CONSTRAINT releases_producers_hist_pid_fkey   FOREIGN KEY (pid)       REFERENCES producers     (id);
+ALTER TABLE releases_supersedes      ADD CONSTRAINT releases_supersedes_id_fkey        FOREIGN KEY (id)        REFERENCES releases      (id);
+ALTER TABLE releases_supersedes      ADD CONSTRAINT releases_supersedes_rid_fkey       FOREIGN KEY (rid)       REFERENCES releases      (id);
+ALTER TABLE releases_supersedes_hist ADD CONSTRAINT releases_supersedes_hist_chid_fkey FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
+ALTER TABLE releases_supersedes_hist ADD CONSTRAINT releases_supersedes_hist_rid_fkey  FOREIGN KEY (rid)       REFERENCES releases      (id);
 ALTER TABLE releases_vn              ADD CONSTRAINT releases_vn_id_fkey                FOREIGN KEY (id)        REFERENCES releases      (id);
 ALTER TABLE releases_vn              ADD CONSTRAINT releases_vn_vid_fkey               FOREIGN KEY (vid)       REFERENCES vn            (id);
 ALTER TABLE releases_vn_hist         ADD CONSTRAINT releases_vn_hist_chid_fkey         FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;

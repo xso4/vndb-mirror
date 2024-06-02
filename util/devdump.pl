@@ -164,7 +164,7 @@ sub copy_entry($tables, $ids) {
 
     # Releases
     copy 'drm';
-    copy_entry [qw/releases releases_drm releases_images releases_media releases_platforms releases_producers releases_titles releases_vn/], $releases;
+    copy_entry [qw/releases releases_drm releases_images releases_media releases_platforms releases_producers releases_supersedes releases_titles releases_vn/], $releases;
 
     print "\\i sql/tableattrs.sql\n";
     print "\\i sql/triggers.sql\n";

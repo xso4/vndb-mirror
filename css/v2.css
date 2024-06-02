@@ -484,7 +484,7 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid var
 
 /***** Release page *****/
 
-.release table { width: 500px; margin: 0 auto; }
+.release > table { width: 100%; max-width: 700px; margin: 0 auto; }
 .release td.titles table  { margin-left: 96px }
 .release tr.title td     { padding: 0 0px }
 .release tr.title td:first-child { width: 20px }

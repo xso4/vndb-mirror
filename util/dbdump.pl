@@ -101,6 +101,7 @@ my %tables = (
     releases_media      => { where => 'x.id IN(SELECT id FROM releases WHERE NOT hidden)' },
     releases_platforms  => { where => 'x.id IN(SELECT id FROM releases WHERE NOT hidden)' },
     releases_producers  => { where => 'x.id IN(SELECT id FROM releases WHERE NOT hidden) AND pid IN(SELECT id FROM producers WHERE NOT hidden)' },
+    releases_supersedes => { where => 'x.id IN(SELECT id FROM releases WHERE NOT hidden) AND rid IN(SELECT id FROM releases WHERE NOT hidden)' },
     releases_titles     => { where => 'x.id IN(SELECT id FROM releases WHERE NOT hidden)' },
     releases_vn         => { where => 'x.id IN(SELECT id FROM releases WHERE NOT hidden) AND vid IN(SELECT id FROM vn WHERE NOT hidden)' },
     rlists              => { where => 'EXISTS(SELECT 1 FROM releases r'

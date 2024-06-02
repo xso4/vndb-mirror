@@ -731,6 +731,20 @@ CREATE TABLE releases_producers_hist (
   PRIMARY KEY(chid, pid)
 );
 
+-- releases_supersedes
+CREATE TABLE releases_supersedes (
+  id         vndbid NOT NULL, -- [pub]
+  rid        vndbid NOT NULL, -- [pub]
+  PRIMARY KEY(id, rid)
+);
+
+-- releases_supersedes_hist
+CREATE TABLE releases_supersedes_hist (
+  chid       integer NOT NULL,
+  rid        vndbid NOT NULL,
+  PRIMARY KEY(chid, rid)
+);
+
 -- releases_titles (also: languages this release is available in)
 CREATE TABLE releases_titles (
   id         vndbid NOT NULL, -- [pub]

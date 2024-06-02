@@ -391,7 +391,10 @@ window.TextPreview = initVnode => {
 // - id       -> id of the first select input
 // - today    -> bool, whether "today" should be accepted as an option
 // - unknown  -> bool, whether "unknown" should be accepted as an option
+//
+// Also provides some handy functions and properties.
 window.RDate = {
+    today: (d => d.getUTCFullYear()*10000 + (d.getUTCMonth()+1)*100 + d.getUTCDate())(new Date),
     expand: v => ({
         y: Math.floor(v / 10000),
         m: Math.floor(v / 100) % 100,
@@ -409,6 +412,7 @@ window.RDate = {
         y ===    0 ? (d ? 'Today' : 'Unknown') :
         y === 9999 ? 'TBA' :
         String(y) + (m === 0 ? '' : '-'+String(m).padStart(2,0) + (d === 0 ? '' : '-'+String(d).padStart(2,0))),
+    Fmt: v => (s => v > RDate.today ? m('b.future', s) : s)(RDate.fmt(RDate.expand(v))),
     view: vnode => {
         const v = RDate.expand(vnode.attrs.value);
         const oninput = ev => vnode.attrs.oninput && vnode.attrs.oninput(Math.floor(ev.target.options[ev.target.selectedIndex].value));
@@ -434,3 +438,15 @@ window.RDate = {
         ];
     },
 };
+
+
+window.Release = (r,nolnk) => [
+    RDate.Fmt(r.released),
+    ' ',
+    r.platforms.map(PlatIcon),
+    r.lang.map(LangIcon),
+    r.rtype ? m('abbr', { class: 'icon-rt'+r.rtype, title: r.rtype }) : null,
+    ' ',
+    nolnk ? r.title : m('a[target=_blank]', { href: '/'+r.id, title: r.alttitle }, r.title),
+    m('small', ' (', r.id, ')'),
+];

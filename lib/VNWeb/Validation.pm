@@ -254,7 +254,13 @@ sub validate_dbid {
     $sql = ref $sql eq 'CODE' ? do { local $_ = \@ids; sql $sql->(\@ids) } : sql $sql, \@ids;
     my %dbids = map +((values %$_)[0],1), @{ tuwf->dbAlli($sql) };
     my @missing = grep !$dbids{$_}, @ids;
-    croak "Invalid database IDs: ".join(',', @missing) if @missing;
+    return if !@missing;
+    # If this is a js_api, return a more helpful error message
+    if (tuwf->reqPath =~ /^\/js\//) {
+        tuwf->resJSON({_err => "Invalid reference to ".join(', ', @missing)});
+        tuwf->done;
+    }
+    croak "Invalid database IDs: ".join(',', @missing);
 }
 
 
