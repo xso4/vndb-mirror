@@ -1414,7 +1414,9 @@ CREATE TABLE vn ( -- dbentry_type=v
   c_languages   language[] NOT NULL DEFAULT '{}',
   c_platforms   platform[] NOT NULL DEFAULT '{}',
   c_developers  vndbid[] NOT NULL DEFAULT '{}',
-  c_image       vndbid
+  c_image       vndbid,
+  c_imgfirst    vndbid,
+  c_imglast     vndbid
 );
 
 -- vn_hist
