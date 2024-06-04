@@ -171,7 +171,7 @@ const Format = initVnode => {
             m('label', 'Platforms'),
             m(DS.Button, { class: 'xw', ds: plat },
                 data.platforms.length === 0 ? 'No platforms selected' :
-                data.platforms.map(p => m('span', PlatIcon(p.platform), vndbTypes.platform.find(([x]) => x === p.platform)[1])).intersperse(' '),
+                data.platforms.map(p => m('span.nowrap', PlatIcon(p.platform), vndbTypes.platform.find(([x]) => x === p.platform)[1])).intersperse(' '),
             ),
         ),
         m('fieldset',
