@@ -626,11 +626,15 @@ length\_votes
 description
 :   String, possibly null, may contain [formatting codes](https://vndb.org/d9#4).
 
+average
+:   Raw vote average, between 10 and 100, null if nobody voted (cached, may be
+    out of date by an hour).
+
 rating
-:   Number between 10 and 100, null if nobody voted.
+:   Bayesian rating, between 10 and 100, null if nobody voted (cached).
 
 votecount
-:   Integer, number of votes.
+:   Integer, number of votes (cached).
 
 screenshots
 :   Array of objects, possibly empty.
@@ -1686,6 +1690,10 @@ bias in its selection due to the presence of id gaps, but you most likely don't
 need perfect uniform random selection anyway.
 
 # Change Log
+
+**2024-06-05**
+
+- Add `average` field to [POST /vn](#post-vn).
 
 **2024-05-23**
 
