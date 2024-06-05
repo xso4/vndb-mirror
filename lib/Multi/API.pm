@@ -490,11 +490,16 @@ my %GET_VN = (
           renai     => delete($_[0]{l_renai})  ||undef,
           wikidata  => formatwd(delete $_[0]{l_wikidata}),
         };
-        $_[0]{image} = $_[0]{image} ? imgurl $_[0]{image} : undef;
-        $_[0]{image_nsfw}  = !$_[0]{image} ? FALSE : !$_[0]{c_votecount} || $_[0]{c_sexual_avg} > 40 || $_[0]{c_violence_avg} > 40 ? TRUE : FALSE;
+        if ($_[0]{image}) {
+          my($w,$h) = imgsize $_[0]{image_width}, $_[0]{image_height}, config->{cv_size}->@*;
+          $_[0]{image} = imgurl $_[0]{image}, $w < $_[0]{image_width} || $h < $_[0]{image_height} ? 't' : '';
+          $_[0]{image_nsfw}  = !$_[0]{c_votecount} || $_[0]{c_sexual_avg} > 40 || $_[0]{c_violence_avg} > 40 ? TRUE : FALSE;
+          $_[0]{image_width} = $w*1;
+          $_[0]{image_height} = $h*1;
+        } else {
+          $_[0]{image_nsfw} = FALSE;
+        }
         $_[0]{image_flagging} = image_flagging $_[0]{image}, $_[0];
-        $_[0]{image_width} *= 1 if defined $_[0]{image_width};
-        $_[0]{image_height} *= 1 if defined $_[0]{image_height};
       },
     },
     stats => {
