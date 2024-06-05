@@ -116,14 +116,21 @@ TUWF::get qr{/$RE{vid}/rgi}, sub {
 
     # Fetch the nodes
     my %nodes = map +($_, {id => $_}), map @{$_}[0,1], @$rel;
-    enrich_merge id => sql("
-        SELECT id, title[1+1] AS title, title[1+1+1+1] AS alttitle, c_released AS released, image, c_languages::text[] AS languages
-          FROM", vnt, "v WHERE id IN"
+    enrich_merge id => sql('
+        SELECT id, title[1+1] AS title, title[1+1+1+1] AS alttitle, c_released AS released,', sql_vnimage, ', c_languages::text[] AS languages
+          FROM', vnt, "v WHERE id IN"
     ), values %nodes;
-    enrich_image_obj image => values %nodes;
+    enrich_image_obj vnimage => values %nodes;
 
     # compress image info a bit
-    $_->{image} = $_->{image} && [imgurl($_->{image}{id}), $_->{image}{sexual}, $_->{image}{violence}] for values %nodes;
+    for (values %nodes) {
+        my $i = delete $_->{vnimage};
+        $_->{image} = $i && [
+            imgurl($i->{id}, $i->{width} > config->{cv_size}[0] || $i->{height} > config->{cv_size}[1] ? 't' : ''),
+            $i->{sexual},
+            $i->{violence}
+        ]
+    }
 
     framework_ title => "Relations for $v->{title}[1]", dbobj => $v, tab => 'rg',
     sub {
