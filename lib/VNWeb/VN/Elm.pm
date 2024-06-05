@@ -34,4 +34,18 @@ js_api VN => {
     ) : [] };
 };
 
+
+js_api VNImageVote => {
+    vid => { vndbid => 'v' },
+    img => { vndbid => 'cv' },
+    vote => { anybool => 1 },
+}, sub ($data) {
+    return tuwf->resDenied if !auth;
+
+    my $d = { vid => $data->{vid}, img => $data->{img}, uid => auth->uid };
+    tuwf->dbExeci('INSERT INTO vn_image_votes', $d, 'ON CONFLICT (vid, uid, img) DO NOTHING') if $data->{vote};
+    tuwf->dbExeci('DELETE FROM vn_image_votes WHERE', $d) if !$data->{vote};
+    +{}
+};
+
 1;

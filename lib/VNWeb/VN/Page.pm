@@ -1024,10 +1024,11 @@ sub covers_ {
     my $all = tuwf->reqParam('a');
 
     my $lst = tuwf->dbAlli('
-        SELECT ri.img, ri.itype, ri.lang::text[], r.id, r.released, r.title, rv.rtype
+        SELECT ri.img, ri.itype, ri.lang::text[], r.id, r.released, r.title, rv.rtype, viv.img IS NOT NULL AS voted
           FROM releases_images ri
           JOIN', releasest, 'r ON r.id = ri.id
           JOIN releases_vn rv ON rv.id = ri.id
+          LEFT JOIN vn_image_votes viv ON viv.vid =', \$v->{id}, 'AND viv.uid =', \auth->uid, 'AND viv.img = ri.img
          WHERE NOT r.hidden AND rv.vid =', \$v->{id}, '
            AND (ri.vid IS NULL OR ri.vid =', \$v->{id}, ')',
                $all ? () : "AND ri.itype IN('dig', 'pkgfront')", '
@@ -1045,8 +1046,11 @@ sub covers_ {
         my($w) = imgsize @{$l->[0]{img}}{'width','height'}, config->{cv_size}->@*;
         $w = 150 if $w < 150;
         div_ style => "width: ${w}px", sub {
+            my $canvote = auth && grep $_->{itype} eq 'dig' || $_->{itype} eq 'pkgfront', @$l;
+            image_ $l->[0]{img}, thumb => 1, extra => !$canvote ? undef : sub {
+                div_ class => 'vnimagevote', 'data-voting' => join(',', $v->{id}, $l->[0]{img}{id}, $l->[0]{voted}?1:0), '';
+            };
             my %t;
-            image_ $l->[0]{img}, thumb => 1;
             h3_ join ', ', grep !$t{$_}++, map $RELEASE_IMAGE_TYPE{$_->{itype}}{txt}, @$l;
             p_ sub {
                 rdate_ $_->{released};
@@ -1070,6 +1074,9 @@ sub covers_ {
             a_ mkclass(checked => $all ), href => '?a=1#cv', "All package artwork ($v->{relimgs}{total})";
         } if $v->{relimgs}{total} > $v->{relimgs}{covers};
         h1_ 'Release Covers';
+        p_ sub {
+            small_ '(BETA) Click the star icon for covers that you would like to see as main visual novel image. Your vote is currently just saved in the database, in the future the voting data will be made public and used to select the main visual novel image.';
+        } if auth;
         div_ class => 'vncovers', sub {
             div_ sub { cover_ $_ } for grep $_, map delete($cv{$_->{img}{id}}), @$lst;
         };

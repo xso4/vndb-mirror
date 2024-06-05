@@ -128,7 +128,8 @@ sub image_hidden {
 #   height  -> if different from original image
 #   url     -> link the image to a page (if not hidden by settings)
 #   thumb   -> 0/1, show thumbnail and link to full-size image; conflicts with 'url'
-#   overlay -> CODE ref, html to replace the overlay with.
+#   overlay -> 0/1, show the image flagging overlay (default 1)
+#   extra   -> CODE ref, extra stuff to put after the image
 sub image_ {
     my($img, %opt) = @_;
     return p_ 'No image' if !$img;
@@ -185,9 +186,8 @@ sub image_ {
     if(!exists $opt{overlay}) {
         a_ class => 'imghover--overlay', href => "/$img->{id}?view=".viewset(show_nsfw=>1), image_flagging_display $img, $small if auth;
         span_ class => 'imghover--overlay', image_flagging_display $img, $small if !auth;
-    } elsif(ref $opt{overlay} eq 'CODE') {
-        $opt{overlay}->();
     }
+    $opt{extra} && $opt{extra}->();
 
     end_;
 }

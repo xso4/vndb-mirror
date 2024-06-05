@@ -306,7 +306,7 @@ sub listing_ {
             div_ sub {
                 if($_->{vnimage}) {
                     my($iw,$ih) = imgsize $_->{vnimage}{width}*100, $_->{vnimage}{height}*100, $w, $h;
-                    image_ $_->{vnimage}, width => $iw, height => $ih, url => "/$_->{id}", overlay => undef;
+                    image_ $_->{vnimage}, width => $iw, height => $ih, url => "/$_->{id}", overlay => 0;
                 } else {
                     txt_ 'no image';
                 }

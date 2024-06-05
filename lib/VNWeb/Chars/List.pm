@@ -39,7 +39,7 @@ sub listing_ {
             div_ sub {
                 if($_->{image}) {
                     my($iw,$ih) = imgsize $_->{image}{width}*100, $_->{image}{height}*100, $w, $h;
-                    image_ $_->{image}, alt => $_->{title}[1], width => $iw, height => $ih, url => "/$_->{id}", overlay => undef;
+                    image_ $_->{image}, alt => $_->{title}[1], width => $iw, height => $ih, url => "/$_->{id}", overlay => 0;
                 } else {
                     txt_ 'no image';
                 }

@@ -212,3 +212,6 @@ ALTER TABLE vn_titles                ADD CONSTRAINT vn_titles_id_fkey           
 ALTER TABLE vn_titles_hist           ADD CONSTRAINT vn_titles_hist_chid_fkey           FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE vn_length_votes          ADD CONSTRAINT vn_length_votes_vid_fkey           FOREIGN KEY (vid)       REFERENCES vn            (id);
 ALTER TABLE vn_length_votes          ADD CONSTRAINT vn_length_votes_uid_fkey           FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE SET DEFAULT;
+ALTER TABLE vn_image_votes           ADD CONSTRAINT vn_image_votes_vid_fkey            FOREIGN KEY (vid)       REFERENCES vn            (id);
+ALTER TABLE vn_image_votes           ADD CONSTRAINT vn_image_votes_uid_fkey            FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE CASCADE;
+ALTER TABLE vn_image_votes           ADD CONSTRAINT vn_image_votes_img_fkey            FOREIGN KEY (img)       REFERENCES images        (id) ON DELETE CASCADE;

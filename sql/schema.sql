@@ -1588,6 +1588,15 @@ CREATE TABLE vn_length_votes (
   notes      text NOT NULL DEFAULT '' -- [pub]
 );
 
+-- vn_image_votes
+CREATE TABLE vn_image_votes (
+  vid        vndbid NOT NULL,
+  uid        vndbid NOT NULL,
+  img        vndbid NOT NULL,
+  date       timestamptz NOT NULL DEFAULT NOW(),
+  PRIMARY KEY(vid, uid, img)
+);
+
 -- wikidata
 CREATE TABLE wikidata ( -- Information fetched from Wikidata
   lastfetch          timestamptz,
