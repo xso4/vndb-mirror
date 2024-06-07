@@ -819,7 +819,7 @@ sub stats_ {
             tfoot_ sub { tr_ sub { td_ colspan => 2, sub {
                 txt_ sprintf '%d vote%s%s', $num, $num == 1 ? '' : 's', $rank && $rank->{c_pop_rank} ? sprintf ' (rank %d)', $rank->{c_pop_rank} : '';
                 br_;
-                txt_ sprintf '%.02f average (%s%s)', $sum/$num/10,
+                txt_ sprintf '%.2f average (%s%s)', int($sum/$num*10 + 0.5) / 100,
                     $rank && $rank->{c_rating} && $rank->{c_rating} != $rank->{c_average} ? sprintf '%.02f weighted, ', $rank->{c_rating}/100 : '',
                     $rank && $rank->{c_rat_rank} ? sprintf('rank %d', $rank->{c_rat_rank}) : 'unranked';
             } } };
