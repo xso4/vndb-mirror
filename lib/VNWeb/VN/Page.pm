@@ -1041,16 +1041,29 @@ sub covers_ {
     my %cv;
     push $cv{$_->{img}{id}}->@*, $_ for @$lst;
 
+    enrich votes => id => id => sub { sql '
+        SELECT viv.img AS id,', sql_user(), '
+          FROM vn_image_votes viv
+          JOIN users u ON u.id = viv.uid
+         WHERE viv.vid =', \$v->{id}, 'AND viv.img IN', $_, '
+         ORDER BY viv.date DESC'
+    }, map $_->[0]{img}, values %cv;
+
     my sub cover_ {
         my($l) = @_;
         my($w) = imgsize @{$l->[0]{img}}{'width','height'}, config->{cv_size}->@*;
         $w = 150 if $w < 150;
         div_ style => "width: ${w}px", sub {
+            my $img = $l->[0]{img};
             my $canvote = auth && grep $_->{itype} eq 'dig' || $_->{itype} eq 'pkgfront', @$l;
-            image_ $l->[0]{img}, thumb => 1, extra => !$canvote ? undef : sub {
-                div_ class => 'vnimagevote', 'data-voting' => join(',', $v->{id}, $l->[0]{img}{id}, $l->[0]{voted}?1:0), '';
+            image_ $img, thumb => 1, extra => !$canvote ? undef : sub {
+                div_ class => 'vnimagevote', 'data-voting' => join(',', $v->{id}, $img->{id}, $l->[0]{voted}?1:0), '';
             };
             my %t;
+            details_ class => 'votes', sub {
+                summary_ title => join(', ', map user_displayname($_), $img->{votes}->@*), sprintf '%d★', scalar $img->{votes}->@*;
+                join_ ', ', sub { user_ $_ }, $img->{votes}->@*;
+            } if $img->{votes}->@*;
             h3_ join ', ', grep !$t{$_}++, map $RELEASE_IMAGE_TYPE{$_->{itype}}{txt}, @$l;
             p_ sub {
                 rdate_ $_->{released};
