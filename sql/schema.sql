@@ -1594,6 +1594,7 @@ CREATE TABLE vn_image_votes (
   uid        vndbid NOT NULL,
   img        vndbid NOT NULL,
   date       timestamptz NOT NULL DEFAULT NOW(),
+  c_main     boolean NOT NULL DEFAULT false, -- Active img for the (vid, uid) combination
   PRIMARY KEY(vid, uid, img)
 );
 

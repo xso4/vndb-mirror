@@ -401,6 +401,23 @@ $$ LANGUAGE SQL;
 
 
 
+-- Updates vn_image_votes.c_main for a (vid, uid) combination
+CREATE OR REPLACE FUNCTION update_vn_image_votes(vndbid, vndbid) RETURNS void as $$
+  WITH m(vid, uid, img) AS (
+    SELECT viv.vid, viv.uid, first_value(viv.img) OVER (PARTITION BY viv.vid, viv.uid ORDER BY viv.date DESC)
+      FROM vn_image_votes viv
+      JOIN releases_images ri ON ri.img = viv.img
+      JOIN releases r ON r.id = ri.id
+      JOIN releases_vn rv ON rv.id = ri.id AND rv.vid = viv.vid
+     WHERE NOT r.hidden
+       AND ($1 IS NULL OR viv.vid = $1) AND ($2 IS NULL OR viv.uid = $2)
+ ) UPDATE vn_image_votes
+      SET c_main = EXISTS(SELECT 1 FROM m WHERE (m.vid, m.uid, m.img) = (vn_image_votes.vid, vn_image_votes.uid, vn_image_votes.img))
+    WHERE ($1 IS NULL OR vid = $1) AND ($2 IS NULL OR uid = $2)
+$$ LANGUAGE SQL;
+
+
+
 -- c_weight = if not_referenced then 0 else lower(c_votecount) -> higher(c_weight) && higher(*_stddev) -> higher(c_weight)
 --
 -- Current algorithm:
@@ -821,10 +838,9 @@ BEGIN
     ) UPDATE chars c SET c_lang = x.lang FROM x WHERE c.id = x.id AND c.c_lang <> x.lang;
   END IF;
 
-  -- Call update_vncache() for related VNs when a release has been created or edited
-  -- (This could be made more specific, but update_vncache() is fast enough that it's not worth the complexity)
+  -- Call update_vncache() and update_vn_image_votes() for related VNs when a release has been created or edited.
   IF vndbid_type(nitemid) = 'r' THEN
-    PERFORM update_vncache(vid) FROM (
+    PERFORM update_vncache(vid), update_vn_image_votes(vid, NULL) FROM (
       SELECT DISTINCT vid FROM releases_vn_hist WHERE chid IN(nchid, xoldchid)
     ) AS v(vid);
   END IF;

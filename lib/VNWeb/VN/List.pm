@@ -5,6 +5,7 @@ use VNWeb::AdvSearch;
 use VNWeb::Filters;
 use VNWeb::Images::Lib;
 use VNWeb::ULists::Lib;
+use VNWeb::VN::Lib;
 use VNWeb::TT::Lib 'tagscore_';
 
 # Returns the tableopts config for:
@@ -341,7 +342,7 @@ sub enrich_listing {
           WHERE p.id = vp.id AND v.id IN', $_[0], 'ORDER BY p.sorttitle, p.id'
     }, @lst if $opt->{s}->vis('developer');
 
-    enrich_image_obj vnimage => @lst if !$opt->{s}->rows;
+    enrich_vnimage @lst if !$opt->{s}->rows;
     enrich_ulists_widget @lst if $widget;
 }
 

@@ -43,8 +43,9 @@ js_api VNImageVote => {
     return tuwf->resDenied if !auth;
 
     my $d = { vid => $data->{vid}, img => $data->{img}, uid => auth->uid };
-    tuwf->dbExeci('INSERT INTO vn_image_votes', $d, 'ON CONFLICT (vid, uid, img) DO NOTHING') if $data->{vote};
+    tuwf->dbExeci('INSERT INTO vn_image_votes', $d, 'ON CONFLICT (vid, uid, img) DO UPDATE SET date = NOW()') if $data->{vote};
     tuwf->dbExeci('DELETE FROM vn_image_votes WHERE', $d) if !$data->{vote};
+    tuwf->dbExeci(select => sql_func update_vn_image_votes => \$d->{vid}, \$d->{uid});
     +{}
 };
 

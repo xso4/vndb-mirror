@@ -2,6 +2,7 @@ package VNWeb::ULists::Main;
 
 use VNWeb::Prelude;
 use VNWeb::ULists::Lib;
+use VNWeb::VN::Lib;
 use VNWeb::Releases::Lib;
 
 

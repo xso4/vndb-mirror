@@ -2,6 +2,7 @@ package VNWeb::VN::Page;
 
 use VNWeb::Prelude;
 use VNWeb::Releases::Lib;
+use VNWeb::VN::Lib;
 use VNWeb::Images::Lib qw/image_flagging_display image_ enrich_image_obj/;
 use VNWeb::ULists::Lib 'ulists_widget_full_data';
 use VNDB::Func 'fmtrating';
@@ -16,7 +17,7 @@ sub enrich_vn {
     enrich_merge vid => sql('SELECT id AS vid, title, sorttitle, c_released FROM', vnt, 'v WHERE id IN'), $v->{relations};
     enrich_merge aid => 'SELECT id AS aid, title_romaji, title_kanji, year, type, ann_id, lastfetch FROM anime WHERE id IN', $v->{anime};
     enrich_extlinks v => 0, $v;
-    enrich_image_obj vnimage => $v;
+    enrich_vnimage $v;
     enrich_image_obj scr => $v->{screenshots};
 
     # The queries below are not relevant for revisions
@@ -1088,7 +1089,9 @@ sub covers_ {
         } if $v->{relimgs}{total} > $v->{relimgs}{covers};
         h1_ 'Release Covers';
         p_ sub {
-            small_ '(BETA) Click the star icon for covers that you would like to see as main visual novel image. Your vote is currently just saved in the database, in the future the voting data will be made public and used to select the main visual novel image.';
+            small_ '(BETA) Click the star icon to select the cover you would like to see as main visual novel image. ';
+            small_ 'When you star multiple covers, the most recently starred cover is used. ' if keys %cv > 1;
+            small_ 'Votes are public and will be used to select the default visual novel image for other users in the future.';
         } if auth;
         div_ class => 'vncovers', sub {
             div_ sub { cover_ $_ } for grep $_, map delete($cv{$_->{img}{id}}), @$lst;

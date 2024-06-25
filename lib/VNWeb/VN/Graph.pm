@@ -2,7 +2,7 @@ package VNWeb::VN::Graph;
 
 use VNWeb::Prelude;
 use VNWeb::Graph;
-use VNWeb::Images::Lib 'enrich_image_obj';
+use VNWeb::VN::Lib;
 
 
 TUWF::get qr{/$RE{vid}/rg}, sub {
@@ -120,7 +120,7 @@ TUWF::get qr{/$RE{vid}/rgi}, sub {
         SELECT id, title[1+1] AS title, title[1+1+1+1] AS alttitle, c_released AS released,', sql_vnimage, ', c_languages::text[] AS languages
           FROM', vnt, "v WHERE id IN"
     ), values %nodes;
-    enrich_image_obj vnimage => values %nodes;
+    enrich_vnimage values %nodes;
 
     # compress image info a bit
     for (values %nodes) {
