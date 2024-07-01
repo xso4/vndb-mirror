@@ -38,9 +38,12 @@ window.range = (start, end, skip=1) => {
 // Compare two JS values, for the purpose of sorting.
 // Should only be used to compare values of identical types (or null).
 // Supports arrays, numbers, strings, bools and null.
+// Whitespace surrounding strings is ignored.
 // Recurses into arrays.
 // Null always sorts last.
 const anyCmp = (a, b) => {
+    if (typeof a === 'string') a = a.trim();
+    if (typeof b === 'string') b = b.trim();
     if (a === b) return 0;
     if (a === null && b !== null) return 1;
     if (b === null && a !== null) return -1;

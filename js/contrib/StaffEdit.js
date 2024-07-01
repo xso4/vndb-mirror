@@ -21,7 +21,7 @@ widget('StaffEdit', initVnode => {
         m('tfoot', m('tr.alias_new',
             m('td'),
             m('td[colspan=3]',
-                data.alias.anyDup(({name,latin}) => [name,latin])
+                data.alias.anyDup(({name,latin}) => [name,latin===''?null:latin])
                 ? m('p.invalid', 'There are duplicate aliases.') : null,
                 m('a[href=#]', { onclick: () => {
                     data.alias.push({
