@@ -83,7 +83,7 @@ $$ LANGUAGE SQL IMMUTABLE;
 -- Helper function for search normalization
 CREATE OR REPLACE FUNCTION search_norm_term(str text) RETURNS text AS $$
   SELECT regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(
-            translate(lower(public.unaccent(normalize(str, NFKC))), $s$@,_-‐.~～〜∼ー῀:[]()%+!?#$`♥★☆♪†「」『』【】・<>'$s$, 'a'), -- '
+            translate(lower(public.unaccent(normalize(translate(str, '™©®', ''), NFKC))), $s$@,_-‐.~～〜∼ー῀:[]()%+!?#$`♥★☆♪†「」『』【】・<>'$s$, 'a'), -- '
             '\s+', '', 'g'),
             '&', 'and', 'g'),
             'disc', 'disk', 'g'),
