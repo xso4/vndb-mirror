@@ -1,6 +1,7 @@
 package VNWeb::VN::Length;
 
 use VNWeb::Prelude;
+use VNWeb::Releases::Lib;
 
 # Also used from VN::Page
 sub can_vote { auth->permDbmod || (auth->permLengthvote && !global_settings->{lockdown_edit}) }
@@ -184,30 +185,75 @@ TUWF::post '/lengthvotes-edit', sub {
 };
 
 
-our $LENGTHVOTE = form_compile any => {
-    uid      => { vndbid => 'u' },
+
+my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     vid      => { vndbid => 'v' },
-    maycount => { anybool => 1 },
     vote     => { type => 'hash', default => undef, keys => {
-        rid     => { type => 'array', minlength => 1, values => { vndbid => 'r' } },
-        length  => { uint => 1, range => [1,26159] }, # 435h59m, largest round-ish number where the 'fast' speed adjustment doesn't overflow a smallint
-        speed   => { default => undef, uint => 1, enum => [0,1,2] },
-        private => { anybool => 1 },
-        notes   => { default => '' },
-    } },
+        rid      => { type => 'array', minlength => 1, values => { vndbid => 'r' } },
+        length   => { uint => 1, range => [1,26159] }, # 435h59m, largest round-ish number where the 'fast' speed adjustment doesn't overflow a smallint
+        speed    => { default => undef, uint => 1, enum => [0,1,2] },
+        private  => { anybool => 1 },
+        notes    => { default => '' },
+    }},
+    title    => { _when => 'out' },
+    maycount => { _when => 'out', anybool => 1 },
+    releases => { _when => 'out', $VNWeb::Elm::apis{Releases}[0]->%* },
 };
 
-elm_api VNLengthVote => undef, $LENGTHVOTE, sub {
-    my($data) = @_;
-    return elm_Unauth if !can_vote() || $data->{uid} ne auth->uid;
-    my %where = ( uid => $data->{uid}, vid => $data->{vid} );
-    tuwf->dbExeci('DELETE FROM vn_length_votes WHERE', \%where) if !$data->{vote};
-    $data->{vote}{rid} = sql sql_array($data->{vote}{rid}->@*), '::vndbid[]' if $data->{vote};
-    tuwf->dbExeci(
-        'INSERT INTO vn_length_votes', { %where, $data->{vote}->%* },
-        'ON CONFLICT (uid, vid) DO UPDATE SET', $data->{vote}
-    ) if $data->{vote};
-    return elm_Success;
+
+TUWF::get qr{/$RE{vid}/lengthvote}, sub {
+    my $v = tuwf->dbRowi('SELECT id, title[1+1], devstatus FROM', vnt, 'v WHERE NOT hidden AND id =', \tuwf->capture('id'));
+    return tuwf->resNotFound if !$v->{id};
+    return tuwf->resDenied if !can_vote;
+
+    my $my = tuwf->dbRowi('SELECT rid::text[] AS rid, length, speed, private, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
+
+    my $today = strftime '%Y%m%d', gmtime;
+    my $rels = [ grep $_->{released} <= $today, releases_by_vn($v->{id})->@* ];
+    my $hasnontrial = grep $_->{rtype} ne 'trial', @$rels;
+    # Voting on trials is only allowed if development has been cancelled and there's no other release.
+    $rels = [ grep $_->{rtype} ne 'trial' || ($v->{devstatus} == 2 && !$hasnontrial), @$rels ];
+
+    framework_ title => "Edit play time for $v->{title}", sub {
+        if (@$rels || $my->{rid}) {
+            div_ widget('VNLengthVote', $FORM_OUT, {
+                vid      => $v->{id},
+                vote     => $my->{rid} ? $my : undef,
+                title    => $v->{title},
+                maycount => $v->{devstatus} != 1,
+                releases => $rels,
+            }), '';
+        } else {
+            article_ sub {
+                h1_ 'Play time submission not (yet) available for this title';
+                div_ class => 'warning', sub {
+                    a_ href => "/$v->{id}", $v->{title};
+                    lit_ ' does not have any releases that are eligible for voting.';
+                };
+            };
+        }
+    };
+};
+
+
+js_api VNLengthVote => $FORM_IN, sub ($data) {
+    return tuwf->resDenied if !can_vote;
+    my %where = ( uid => auth->uid, vid => $data->{vid} );
+
+    if ($data->{vote}) {
+        my %fields = (
+            $data->{vote}->%*,
+            rid => sql sql_array($data->{vote}{rid}->@*), '::vndbid[]'
+        );
+        $fields{speed} = undef if $fields{private};
+        tuwf->dbExeci(
+            'INSERT INTO vn_length_votes', { %where, %fields },
+            'ON CONFLICT (uid, vid) DO UPDATE SET', \%fields
+        );
+    } else {
+        tuwf->dbExeci('DELETE FROM vn_length_votes WHERE', \%where);
+    }
+    +{};
 };
 
 1;

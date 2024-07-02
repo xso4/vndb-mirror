@@ -25,6 +25,7 @@ const username_reqs = [
 @include ReviewsVote.js
 @include QuoteEdit.js
 @include QuoteVote.js
+@include VNLengthVote.js
 @include vn-image-vote.js
 
 // @license-end

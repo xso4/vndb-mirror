@@ -244,6 +244,18 @@ sub infobox_length_ {
     tr_ sub {
         td_ 'Play time';
         td_ sub {
+            if (VNWeb::VN::Length::can_vote()) {
+                my $today = strftime '%Y%m%d', gmtime;
+                my $my = tuwf->dbVali('SELECT length FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
+                a_ class => 'mylengthvote', href => "/$v->{id}/lengthvote", sub {
+                    if ($my) {
+                        lit_ 'Mine: ';
+                        vnlength_ $my;
+                    } else {
+                        lit_ 'Vote »';
+                    }
+                } if $my || grep $_->{released} <= $today, $v->{releases}->@*;
+            };
             # Cached number, which means this VN has counted votes
             if($v->{c_lengthnum}) {
                 my $m = $v->{c_length};
@@ -263,14 +275,6 @@ sub infobox_length_ {
                     a_ href => "/$v->{id}/lengthvotes", sprintf '%d uncounted vote%s', $uncounted, $uncounted == 1 ? '' : 's' if $uncounted;
                     lit_ ')';
                 }
-            }
-            if (VNWeb::VN::Length::can_vote()) {
-                my $my = tuwf->dbRowi('SELECT rid::text[] AS rid, length, speed, private, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
-                elm_ VNLengthVote => $VNWeb::VN::Length::LENGTHVOTE, {
-                    uid => auth->uid, vid => $v->{id},
-                    vote => $my->{rid}?$my:undef,
-                    maycount => $v->{devstatus} != 1,
-                }, sub { span_ @_, ''};
             }
         };
     };
