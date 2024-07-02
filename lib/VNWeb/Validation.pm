@@ -204,8 +204,15 @@ sub _stripwhen {
 #       name  => { },
 #       ..
 #   };
+#
+# Also supports compiling with multiple $when's in a single call:
+#
+#   my ($IN, $OUT) = form_compile 'in', 'out', { .. };
+#
 sub form_compile {
-    tuwf->compile({ type => 'hash', keys => _stripwhen @_ });
+    my $schema = pop;
+    my @l = map tuwf->compile({ type => 'hash', keys => _stripwhen $_, $schema }), @_;
+    wantarray ? @l : $l[0];
 }
 
 

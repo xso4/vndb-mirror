@@ -4,7 +4,7 @@ use VNWeb::Prelude;
 use VNWeb::Releases::Lib;
 
 
-my $FORM = {
+my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     id      => { vndbid => 'w', default => undef },
     vid     => { vndbid => 'v' },
     vntitle => { _when => 'out' },
@@ -18,9 +18,6 @@ my $FORM = {
     mod     => { _when => 'out', anybool => 1 },
     releases => { _when => 'out', $VNWeb::Elm::apis{Releases}[0]->%* },
 };
-
-my $FORM_IN  = form_compile in  => $FORM;
-my $FORM_OUT = form_compile out => $FORM;
 
 
 sub throttled { tuwf->dbVali('SELECT COUNT(*) FROM reviews WHERE uid =', \auth->uid, 'AND date > date_trunc(\'day\', NOW())') >= 5 }

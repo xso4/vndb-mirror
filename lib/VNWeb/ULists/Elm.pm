@@ -138,7 +138,7 @@ elm_api UListVoteEdit => undef, $VNVOTE, sub {
 
 
 
-my $VNLABELS = {
+our($VNLABELS_IN, $VNLABELS_OUT) = form_compile 'in', 'out', {
     uid      => { vndbid => 'u' },
     vid      => { vndbid => 'v' },
     label    => { _when => 'in', id => 1 },
@@ -146,9 +146,6 @@ my $VNLABELS = {
     labels   => { _when => 'out', aoh => { id => { int => 1 }, label => {}, private => { anybool => 1 } } },
     selected => { _when => 'out', type => 'array', values => { id => 1 } },
 };
-
-our $VNLABELS_OUT = form_compile out => $VNLABELS;
-my  $VNLABELS_IN  = form_compile in  => $VNLABELS;
 
 elm_api UListLabelEdit => $VNLABELS_OUT, $VNLABELS_IN, sub {
     my($data) = @_;
@@ -278,14 +275,11 @@ our %SAVED_OPTS = (
     f   => { onerror => '' }, # AdvSearch
 );
 
-my $SAVED_OPTS = {
+our($SAVED_OPTS_IN, $SAVED_OPTS_OUT) = form_compile 'in', 'out', {
     uid   => { vndbid => 'u' },
     opts  => { type => 'hash', keys => \%SAVED_OPTS },
     field => { _when => 'in', enum => [qw/ vnlist votes wish /] },
 };
-
-my  $SAVED_OPTS_IN  = form_compile in  => $SAVED_OPTS;
-our $SAVED_OPTS_OUT = form_compile out => $SAVED_OPTS;
 
 elm_api UListSaveDefault => $SAVED_OPTS_OUT, $SAVED_OPTS_IN, sub {
     my($data) = @_;

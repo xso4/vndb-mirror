@@ -5,7 +5,7 @@ use VNWeb::Prelude;
 use VNWeb::Discussions::Lib;
 
 
-my $FORM = {
+my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     id          => { vndbid => ['t','w'] },
     num         => { id => 1 },
 
@@ -16,9 +16,6 @@ my $FORM = {
 
     msg         => { maxlength => 32768 },
 };
-
-my $FORM_OUT = form_compile out => $FORM;
-my $FORM_IN  = form_compile in  => $FORM;
 
 
 sub _info {

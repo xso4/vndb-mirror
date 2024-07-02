@@ -2,7 +2,7 @@ package VNWeb::TT::TraitEdit;
 
 use VNWeb::Prelude;
 
-my $FORM = {
+my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
     id           => { default => undef, vndbid => 'i' },
     name         => { maxlength => 250, regex => qr/^[^,\r\n\t]+$/ },
     alias        => { maxlength => 1024, regex => qr/^[^,]+$/, default => '' },
@@ -24,10 +24,6 @@ my $FORM = {
     authmod      => { _when => 'out', anybool => 1 },
     editsum      => { _when => 'in out', editsum => 1 },
 };
-
-my $FORM_OUT = form_compile out => $FORM;
-my $FORM_IN  = form_compile in  => $FORM;
-my $FORM_CMP = form_compile cmp => $FORM;
 
 
 TUWF::get qr{/$RE{irev}/edit}, sub {

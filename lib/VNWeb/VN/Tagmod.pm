@@ -3,7 +3,7 @@ package VNWeb::VN::Tagmod;
 use VNWeb::Prelude;
 
 
-my $FORM = {
+my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     id    => { vndbid => 'v' },
     title => { _when => 'out' },
     tags  => { sort_keys => 'id', aoh => {
@@ -27,9 +27,6 @@ my $FORM = {
     } },
     mod   => { _when => 'out', anybool => 1 },
 };
-
-my $FORM_IN  = form_compile in  => $FORM;
-my $FORM_OUT = form_compile out => $FORM;
 
 
 sub can_tag { auth->permTagmod || (auth->permTag && !global_settings->{lockdown_edit}) }

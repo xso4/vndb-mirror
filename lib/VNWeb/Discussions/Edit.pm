@@ -4,7 +4,7 @@ use VNWeb::Prelude;
 use VNWeb::Discussions::Lib;
 
 
-my $FORM = {
+my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     tid           => { default => undef, vndbid => 't' }, # Thread ID, only when editing a post
 
     title         => { default => undef, sl => 1, maxlength => 50 },
@@ -26,9 +26,6 @@ my $FORM = {
 
     msg           => { maxlength => 32768 },
 };
-
-my $FORM_OUT = form_compile out => $FORM;
-my $FORM_IN  = form_compile in  => $FORM;
 
 
 elm_api DiscussionsEdit => $FORM_OUT, $FORM_IN, sub {

@@ -3,7 +3,7 @@ package VNWeb::Producers::Edit;
 use VNWeb::Prelude;
 
 
-my $FORM = {
+my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
     id          => { default => undef, vndbid => 'p' },
     type        => { default => 'co', enum => \%PRODUCER_TYPE },
     name        => { sl => 1, maxlength => 200 },
@@ -22,10 +22,6 @@ my $FORM = {
     locked      => { anybool => 1 },
     editsum     => { _when => 'in out', editsum => 1 },
 };
-
-my $FORM_OUT = form_compile out => $FORM;
-my $FORM_IN  = form_compile in  => $FORM;
-my $FORM_CMP = form_compile cmp => $FORM;
 
 
 TUWF::get qr{/$RE{prev}/edit} => sub {

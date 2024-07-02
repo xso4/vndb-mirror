@@ -2,9 +2,7 @@ package VNWeb::TT::TagEdit;
 
 use VNWeb::Prelude;
 
-# TODO: Let users edit their own tag while it's still waiting for approval?
-
-my $FORM = {
+my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
     id           => { default => undef, vndbid => 'g' },
     name         => { maxlength => 250, regex => qr/^[^,\r\n\t]+$/ },
     alias        => { maxlength => 1024, regex => qr/^[^,]+$/, default => '' },
@@ -29,10 +27,6 @@ my $FORM = {
     authmod      => { _when => 'out', anybool => 1 },
     editsum      => { _when => 'in out', editsum => 1 },
 };
-
-my $FORM_OUT = form_compile out => $FORM;
-my $FORM_IN  = form_compile in  => $FORM;
-my $FORM_CMP = form_compile cmp => $FORM;
 
 
 TUWF::get qr{/$RE{grev}/edit}, sub {

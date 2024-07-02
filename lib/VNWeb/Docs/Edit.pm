@@ -4,7 +4,7 @@ use VNWeb::Prelude;
 use VNWeb::Docs::Lib;
 
 
-my $FORM = {
+my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
     id      => { vndbid => 'd' },
     title   => { sl => 1, maxlength => 200 },
     content => { default => '' },
@@ -13,10 +13,6 @@ my $FORM = {
 
     editsum => { _when => 'in out', editsum => 1 },
 };
-
-my $FORM_OUT = form_compile out => $FORM;
-my $FORM_IN  = form_compile in  => $FORM;
-my $FORM_CMP = form_compile cmp => $FORM;
 
 
 TUWF::get qr{/$RE{drev}/edit} => sub {

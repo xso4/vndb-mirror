@@ -2,7 +2,7 @@ package VNWeb::User::Admin;
 
 use VNWeb::Prelude;
 
-my $FORM = {
+my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     id       => { vndbid => 'u' },
     username => { default => '' },
 
@@ -15,9 +15,6 @@ my $FORM = {
     ign_votes => { anybool => 1 },
     map +("perm_$_" => { anybool => 1 }), VNWeb::Auth::listPerms
 };
-
-my $FORM_IN  = form_compile in  => $FORM;
-my $FORM_OUT = form_compile out => $FORM;
 
 sub _userinfo {
     if(!auth->isMod) { tuwf->resDenied; tuwf->done; }

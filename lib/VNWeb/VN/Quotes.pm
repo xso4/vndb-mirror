@@ -244,7 +244,7 @@ TUWF::get '/v/quotes', sub {
 };
 
 
-my $FORM = {
+my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     id       => { uint => 1, default => undef },
     vid      => { vndbid => 'v' },
     hidden   => { anybool => 1 },
@@ -259,9 +259,6 @@ my $FORM = {
     } },
     delete   => { anybool => 1 },
 };
-
-my $FORM_IN  = form_compile in  => $FORM;
-my $FORM_OUT = form_compile out => $FORM;
 
 TUWF::get qr{/(?:$RE{vid}/addquote|editquote/$RE{num})}, sub {
     my($vid, $qid) = tuwf->captures('id', 'num');

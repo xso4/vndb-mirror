@@ -5,7 +5,7 @@ use VNWeb::Images::Lib 'enrich_image';
 use VNWeb::Releases::Lib;
 
 
-my $FORM = {
+my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
     id         => { default => undef, vndbid => 'r' },
     official   => { anybool => 1 },
     patch      => { anybool => 1 },
@@ -83,10 +83,6 @@ my $FORM = {
     editsum    => { _when => 'in out', editsum => 1 },
     validate_extlinks 'r'
 };
-
-my $FORM_OUT = form_compile out => $FORM;
-my $FORM_IN  = form_compile in  => $FORM;
-my $FORM_CMP = form_compile cmp => $FORM;
 
 
 sub vnimages {

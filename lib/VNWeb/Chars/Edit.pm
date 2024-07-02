@@ -5,7 +5,7 @@ use VNWeb::Images::Lib 'enrich_image';
 use VNWeb::Releases::Lib;
 
 
-my $FORM = {
+my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
     id         => { default => undef, vndbid => 'c' },
     name       => { sl => 1, maxlength => 200 },
     latin      => { default => undef, sl => 1, maxlength => 200 },
@@ -57,10 +57,6 @@ my $FORM = {
         rels    => $VNWeb::Elm::apis{Releases}[0]
     } },
 };
-
-my $FORM_OUT = form_compile out => $FORM;
-my $FORM_IN  = form_compile in  => $FORM;
-my $FORM_CMP = form_compile cmp => $FORM;
 
 
 TUWF::get qr{/$RE{crev}/(?<action>edit|copy)} => sub {

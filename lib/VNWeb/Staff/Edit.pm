@@ -3,7 +3,7 @@ package VNWeb::Staff::Edit;
 use VNWeb::Prelude;
 
 
-my $FORM = {
+my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
     id          => { default => undef, vndbid => 's' },
     main        => { int => 1, range => [ -1000, 1<<40 ] }, # X
     alias       => { maxlength => 100, sort_keys => 'aid', aoh => {
@@ -22,10 +22,6 @@ my $FORM = {
     editsum    => { _when => 'in out', editsum => 1 },
     validate_extlinks 's'
 };
-
-my $FORM_OUT = form_compile out => $FORM;
-my $FORM_IN  = form_compile in  => $FORM;
-my $FORM_CMP = form_compile cmp => $FORM;
 
 
 TUWF::get qr{/$RE{srev}/edit} => sub {

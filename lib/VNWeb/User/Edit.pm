@@ -8,7 +8,7 @@ use VNWeb::TimeZone;
 use Digest::SHA 'sha1';
 
 
-my $FORM = {
+my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     id             => { vndbid => 'u' },
     username       => { username => 1 },
     username_throttled => { _when => 'out', anybool => 1 },
@@ -87,9 +87,6 @@ my $FORM = {
         delete    => { anybool => 1 },
     } },
 };
-
-my $FORM_IN  = form_compile in  => $FORM;
-my $FORM_OUT = form_compile out => $FORM;
 
 
 sub _getmail {

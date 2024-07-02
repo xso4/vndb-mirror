@@ -5,7 +5,7 @@ use VNWeb::Images::Lib 'enrich_image';
 use VNWeb::Releases::Lib;
 
 
-my $FORM = {
+my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
     id         => { default => undef, vndbid => 'v' },
     titles     => { minlength => 1, sort_keys => 'lang', aoh => {
         lang     => { enum => \%LANGUAGE },
@@ -73,10 +73,6 @@ my $FORM = {
         alttitle => {},
     } },
 };
-
-my $FORM_OUT = form_compile out => $FORM;
-my $FORM_IN  = form_compile in  => $FORM;
-my $FORM_CMP = form_compile cmp => $FORM;
 
 
 TUWF::get qr{/$RE{vrev}/edit} => sub {
