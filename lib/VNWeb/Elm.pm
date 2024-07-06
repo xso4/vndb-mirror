@@ -374,7 +374,7 @@ sub elm_api {
 sub elm_empty {
     my($schema) = @_;
     $schema = $schema->analyze if ref $schema eq 'TUWF::Validate';
-    return $schema->{default} if exists $schema->{default};
+    return ref $schema->{default} eq 'CODE' ? $schema->{default}->(undef) : $schema->{default} if exists $schema->{default};
     return undef if !$schema->{required};
     return [] if $schema->{type} eq 'array';
     return '' if $schema->{type} eq 'bool' || $schema->{type} eq 'scalar';
