@@ -439,7 +439,8 @@ sub write_types {
     $data .= def devStatus  => 'List (Int, String)' => list map tuple($_, string $DEVSTATUS{$_}), keys %DEVSTATUS;
     $data .= def voiced     => 'List (Int, String)' => list map tuple($_, string $VOICED{$_}{txt}), keys %VOICED;
     $data .= def animated   => 'List (Int, String)' => list map tuple($_, string $ANIMATED{$_}{txt}), keys %ANIMATED;
-    $data .= def genders    => 'List (String, String)' => list map tuple(string $_, string $GENDER{$_}), keys %GENDER;
+    $data .= def staffGenders => 'List (String, String)' => list map tuple(string $_, string $STAFF_GENDER{$_}), keys %STAFF_GENDER;
+    $data .= def charSex    => 'List (String, String)' => list map tuple(string $_, string $CHAR_SEX{$_}), keys %CHAR_SEX;
     $data .= def cupSizes   => 'List (String, String)' => list map tuple(string $_, string $CUP_SIZE{$_}), keys %CUP_SIZE;
     $data .= def bloodTypes => 'List (String, String)' => list map tuple(string $_, string $BLOOD_TYPE{$_}), keys %BLOOD_TYPE;
     $data .= def charRoles  => 'List (String, String)' => list map tuple(string $_, string $CHAR_ROLE{$_}{txt}), keys %CHAR_ROLE;

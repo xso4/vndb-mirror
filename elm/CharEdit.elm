@@ -54,8 +54,8 @@ type alias Model =
   , latin       : Maybe String
   , alias       : String
   , description : TP.Model
-  , gender      : String
-  , spoilGender : Maybe String
+  , sex         : String
+  , spoilSex    : Maybe String
   , bMonth      : Int
   , bDay        : Int
   , age         : Maybe Int
@@ -93,8 +93,8 @@ init d =
   , latin       = d.latin
   , alias       = d.alias
   , description = TP.bbcode d.description
-  , gender      = d.gender
-  , spoilGender = d.spoil_gender
+  , sex         = d.sex
+  , spoilSex    = d.spoil_sex
   , bMonth      = d.b_month
   , bDay        = if d.b_day == 0 then 1 else d.b_day
   , age         = d.age
@@ -132,8 +132,8 @@ encode model =
   , latin       = model.latin
   , alias       = model.alias
   , description = model.description.data
-  , gender      = model.gender
-  , spoil_gender= model.spoilGender
+  , sex         = model.sex
+  , spoil_sex   = model.spoilSex
   , b_month     = model.bMonth
   , b_day       = model.bDay
   , age         = model.age
@@ -171,8 +171,8 @@ type Msg
   | Latin String
   | Alias String
   | Desc TP.Msg
-  | Gender String
-  | SpoilGender (Maybe String)
+  | Sex String
+  | SpoilSex (Maybe String)
   | BMonth Int
   | BDay Int
   | Age (Maybe Int)
@@ -216,8 +216,8 @@ update msg model =
     Latin s -> ({ model | latin = if s == "" then Nothing else Just s }, Cmd.none)
     Alias s    -> ({ model | alias = s }, Cmd.none)
     Desc m     -> let (nm,nc) = TP.update m model.description in ({ model | description = nm }, Cmd.map Desc nc)
-    Gender s   -> ({ model | gender = s }, Cmd.none)
-    SpoilGender s->({model | spoilGender = s }, Cmd.none)
+    Sex s      -> ({ model | sex = s }, Cmd.none)
+    SpoilSex s -> ({model | spoilSex = s }, Cmd.none)
     BMonth n   -> ({ model | bMonth = n }, Cmd.none)
     BDay n     -> ({ model | bDay   = n }, Cmd.none)
     Age s      -> ({ model | age    = s }, Cmd.none)
@@ -302,6 +302,15 @@ spoilOpts =
   ]
 
 
+sexOpts =
+  [ ("", "Unknown")
+  , ("m", "Male (has penis)")
+  , ("f", "Female (has vagina)")
+  , ("b", "Has both")
+  , ("n", "Sexless (has neither)")
+  ]
+
+
 view : Model -> Html Msg
 view model =
   let
@@ -330,10 +339,10 @@ view model =
       , formField "age::Age" [ inputNumber "age" model.age Age (onInvalid (Invalid General) :: GCE.valAge), text " years" ]
 
       , tr [ class "newpart" ] [ td [ colspan 2 ] [ text "Body" ] ]
-      , formField "gender::Sex"
-        [ inputSelect "gender" model.gender Gender [] GT.genders
-        , label [] [ inputCheck "" (isJust model.spoilGender) (\b -> SpoilGender <| if b then (Just "unknown") else Nothing), text " spoiler" ]
-        , case model.spoilGender of
+      , formField "sex::Sex"
+        [ inputSelect "sex" model.sex Sex [] sexOpts
+        , label [] [ inputCheck "" (isJust model.spoilSex) (\b -> SpoilSex <| if b then (Just "") else Nothing), text " spoiler" ]
+        , case model.spoilSex of
             Nothing -> text ""
             Just gen -> span []
               [ br [] []
@@ -341,7 +350,7 @@ view model =
               , br [] []
               , text "▼ actual (spoiler) sex"
               , br [] []
-              , inputSelect "" gen (\s -> SpoilGender (Just s)) [] GT.genders
+              , inputSelect "" gen (\s -> SpoilSex (Just s)) [] sexOpts
               ]
         ]
       , formField "sbust::Bust"    [ inputNumber "sbust"  (if model.sBust  == 0 then Nothing else Just model.sBust ) SBust  (onInvalid (Invalid General) :: GCE.valS_Bust), text " cm" ]

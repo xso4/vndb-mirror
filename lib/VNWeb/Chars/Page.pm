@@ -66,7 +66,7 @@ sub enrich_item {
 sub fetch_chars {
     my($vid, $where) = @_;
     my $l = tuwf->dbAlli('
-        SELECT id, title, alias, description, gender, spoil_gender, b_month, b_day, s_bust, s_waist, s_hip, height, weight, bloodt, cup_size, age, image
+        SELECT id, title, alias, description, sex, spoil_sex, b_month, b_day, s_bust, s_waist, s_hip, height, weight, bloodt, cup_size, age, image
           FROM', charst, 'c WHERE NOT hidden AND (', $where, ')
          ORDER BY sorttitle
     ');
@@ -104,8 +104,8 @@ sub _rev_ {
         [ latin      => 'Name (latin)'   ],
         [ alias      => 'Aliases'        ],
         [ description=> 'Description'    ],
-        [ gender     => 'Sex',           fmt => \%GENDER ],
-        [ spoil_gender=> 'Sex (spoiler)',fmt => \%GENDER ],
+        [ sex        => 'Sex',           fmt => \%CHAR_SEX ],
+        [ spoil_sex  => 'Sex (spoiler)', empty => '_', fmt => \%CHAR_SEX ],
         [ b_month    => 'Birthday/month',empty => 0 ],
         [ b_day      => 'Birthday/day',  empty => 0 ],
         [ s_bust     => 'Bust',          empty => 0 ],
@@ -155,11 +155,11 @@ sub chartable_ {
                 ? a_ href => "/$c->{id}", style => 'margin-right: 10px; font-weight: bold', tlang($c->{title}[0], $c->{title}[1]), $c->{title}[1]
                 : span_ style => 'margin-right: 10px', tlang($c->{title}[0], $c->{title}[1]), $c->{title}[1];
                 small_ style => 'margin-right: 10px', tlang($c->{title}[2], $c->{title}[3]), $c->{title}[3] if $c->{title}[3] ne $c->{title}[1];
-                abbr_ class => "icon-gen-$c->{gender}", title => $GENDER{$c->{gender}}, '' if $c->{gender} ne 'unknown';
-                if($view->{spoilers} == 2 && defined $c->{spoil_gender}) {
+                abbr_ class => "icon-gen-$c->{sex}", title => $CHAR_SEX{$c->{sex}}, '' if $c->{sex};
+                if($view->{spoilers} == 2 && defined $c->{spoil_sex}) {
                     txt_ '(';
-                    abbr_ class => "icon-gen-$c->{spoil_gender}", title => $GENDER{$c->{spoil_gender}}, '' if $c->{spoil_gender} ne 'unknown';
-                    txt_ 'unknown' if $c->{spoil_gender} eq 'unknown';
+                    abbr_ class => "icon-gen-$c->{spoil_sex}", title => $CHAR_SEX{$c->{spoil_sex}}, '' if $c->{spoil_sex};
+                    txt_ 'unknown' if !$c->{spoil_sex};
                     spoil_ 2;
                     txt_ ')';
                 }
@@ -300,7 +300,7 @@ TUWF::get qr{/$RE{crev}} => sub {
         $inst_maxspoil||0,
         (map $_->{override}//($_->{lie}?2:$_->{spoil}), grep !$_->{hidden} && !(($_->{override}//0) == 3), $c->{traits}->@*),
         (map $_->{spoil}, $c->{vns}->@*),
-        defined $c->{spoil_gender} ? 2 : 0,
+        defined $c->{spoil_sex} ? 2 : 0,
         $c->{description} =~ /\[spoiler\]/i ? 2 : 0, # crude
     );
     # Only display the sexual traits toggle when there are sexual traits within the current spoiler level.

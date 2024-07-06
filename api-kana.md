@@ -1131,7 +1131,7 @@ birthday
 sex
 :   Possibly null, otherwise an array of two strings: the character's apparent
     (non-spoiler) sex and the character's real (spoiler) sex. Possible values
-    are `null`, `"m"`, `"f"` or `"b"` (meaning "both").
+    are `null`, `"m"`, `"f"`, `"b"` (meaning "both") or `"n"` (sexless).
 
 vns
 :   Array of objects, visual novels this character appears in. The same visual

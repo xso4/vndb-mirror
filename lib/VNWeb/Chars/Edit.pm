@@ -11,8 +11,8 @@ my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
     latin      => { default => undef, sl => 1, maxlength => 200 },
     alias      => { default => '', maxlength => 500 },
     description=> { default => '', maxlength => 5000 },
-    gender     => { default => 'unknown', enum => \%GENDER },
-    spoil_gender=>{ default => undef, enum => \%GENDER },
+    sex        => { default => '', enum => \%CHAR_SEX },
+    spoil_sex  => { default => sub { $_[0] }, enum => \%CHAR_SEX },
     b_month    => { default => 0, uint => 1, range => [ 0, 12 ] },
     b_day      => { default => 0, uint => 1, range => [ 0, 31 ] },
     age        => { default => undef, uint => 1, range => [ 0, 32767 ] },
@@ -128,6 +128,7 @@ elm_api CharEdit => $FORM_OUT, $FORM_IN, sub {
     }
     $data->{description} = bb_subst_links $data->{description};
     $data->{b_day} = 0 if !$data->{b_month};
+    $data->{spoil_sex} = undef if defined $data->{spoil_sex} && $data->{spoil_sex} eq $data->{sex};
 
     $data->{main} = undef if $data->{hidden};
     die "Attempt to set main to self" if $data->{main} && $e->{id} && $data->{main} eq $e->{id};

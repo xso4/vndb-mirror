@@ -21,7 +21,7 @@ sub listing_ {
         table_ class => 'stripe', sub {
             tr_ sub {
                 td_ class => 'tc1', sub {
-                    abbr_ class => "icon-gen-$_->{gender}", title => $GENDER{$_->{gender}}, '' if $_->{gender} ne 'unknown';
+                    abbr_ class => "icon-gen-$_->{sex}", title => $CHAR_SEX{$_->{sex}}, '' if $_->{sex};
                 };
                 td_ class => 'tc2', sub {
                     a_ href => "/$_->{id}", tattr $_;
@@ -45,7 +45,7 @@ sub listing_ {
                 }
             };
             div_ sub {
-                abbr_ class => "icon-gen-$_->{gender}", title => $GENDER{$_->{gender}}, '' if $_->{gender} ne 'unknown';
+                abbr_ class => "icon-gen-$_->{sex}", title => $CHAR_SEX{$_->{sex}}, '' if $_->{sex};
                 a_ href => "/$_->{id}", tattr $_;
                 br_;
                 small_ sub {
@@ -115,7 +115,7 @@ TUWF::get qr{/c(?:/(?<char>all|[a-z0]))?}, sub {
     db_maytimeout {
         $count = tuwf->dbVali('SELECT count(*) FROM', charst, 'c WHERE', sql_and $where, $opt->{q}->sql_where('c', 'c.id'));
         $list = $count ? tuwf->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
-            SELECT c.id, c.title, c.gender, c.image
+            SELECT c.id, c.title, c.sex, c.image
               FROM', charst, 'c', $opt->{q}->sql_join('c', 'c.id'), '
              WHERE', $where, '
              ORDER BY', $opt->{q} ? 'sc.score DESC, ' : (), 'c.sorttitle, c.id'

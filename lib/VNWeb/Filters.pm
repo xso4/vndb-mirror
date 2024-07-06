@@ -60,7 +60,7 @@ my $RELEASE = form_compile any => {
 };
 
 my $CHAR = form_compile any => {
-    gender      => { undefarray => { enum => \%GENDER } },
+    gender      => { undefarray => { enum => [qw/unknown m f b/] } },
     bloodt      => { undefarray => { enum => \%BLOOD_TYPE } },
     bust_min    => { default => undef, uint => 1, range => [ 0, 32767 ] },
     bust_max    => { default => undef, uint => 1, range => [ 0, 32767 ] },

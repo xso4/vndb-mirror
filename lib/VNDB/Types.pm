@@ -318,12 +318,21 @@ hash BLOOD_TYPE =>
 
 
 
-# SQL: ENUM gender
-hash GENDER =>
-    unknown => 'Unknown or N/A',
-    m       => 'Male',
-    f       => 'Female',
-    b       => 'Both';
+# SQL: ENUM staff_gender
+hash STAFF_GENDER =>
+    '' => 'Unknown or N/A',
+    m  => 'Male',
+    f  => 'Female';
+
+
+
+# SQL: ENUM char_sex
+hash CHAR_SEX =>
+    '' => 'Unknown',
+    m  => 'Male',
+    f  => 'Female',
+    b  => 'Both',
+    n  => 'Sexless';
 
 
 

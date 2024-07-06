@@ -12,7 +12,7 @@ sub chars_ {
         map max(
             (map $_->{override}//($_->{lie}?2:$_->{spoil}), grep !$_->{hidden} && !(($_->{override}//0) == 3), $_->{traits}->@*),
             (map $_->{spoil}, $_->{vns}->@*),
-            defined $_->{spoil_gender} ? 2 : 0,
+            defined $_->{spoil_sex} ? 2 : 0,
             $_->{description} =~ /\[spoiler\]/i ? 2 : 0,
         ), @$chars
     );

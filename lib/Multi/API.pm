@@ -930,10 +930,10 @@ my %GET_CHARACTER = (
   },
   flags  => {
     basic => {
-      select => 'c.title[2] AS name, c.title[4] AS original, c.gender, c.spoil_gender, c.bloodt, c.b_day, c.b_month',
+      select => 'c.title[2] AS name, c.title[4] AS original, c.sex AS gender, c.spoil_sex AS spoil_gender, c.bloodt, c.b_day, c.b_month',
       proc => sub {
         $_[0]{original} = undef if $_[0]{original} eq $_[0]{name};
-        $_[0]{gender}   = undef if $_[0]{gender} eq 'unknown';
+        $_[0]{gender}   = undef if !$_[0]{gender};
         $_[0]{bloodt}   = undef if $_[0]{bloodt} eq 'unknown';
         $_[0]{birthday} = [ delete($_[0]{b_day})*1||undef, delete($_[0]{b_month})*1||undef ];
       },
@@ -1054,7 +1054,7 @@ my %GET_STAFF = (
       select => 's.title[2] AS name, s.title[4] AS original, s.gender, s.lang AS language',
       proc => sub {
         $_[0]{original} = undef if $_[0]{original} eq $_[0]{name};
-        $_[0]{gender}   = undef if $_[0]{gender} eq 'unknown';
+        $_[0]{gender}   = undef if !$_[0]{gender};
       },
     },
     details => {

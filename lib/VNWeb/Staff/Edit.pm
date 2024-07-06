@@ -14,7 +14,7 @@ my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
         wantdel   => { anybool => 1, _when => 'out' },
     } },
     description=> { default => '', maxlength => 5000 },
-    gender     => { default => 'unknown', enum => [qw[unknown m f]] },
+    gender     => { default => '', enum => \%STAFF_GENDER },
     lang       => { language => 1 },
     l_site     => { default => '', weburl => 1 },
     hidden     => { anybool => 1 },

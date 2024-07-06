@@ -748,7 +748,7 @@ sub charsum_ {
 
     my $spoil = viewget->{spoilers};
     my $c = tuwf->dbAlli('
-        SELECT c.id, c.title, c.gender, v.role
+        SELECT c.id, c.title, c.sex, v.role
           FROM', charst, 'c
           JOIN (SELECT id, MIN(role) FROM chars_vns WHERE role <> \'appears\' AND spoil <=', \$spoil, 'AND vid =', \$v->{id}, 'GROUP BY id) v(id,role) ON c.id = v.id
          WHERE NOT c.hidden
@@ -772,7 +772,7 @@ sub charsum_ {
             div_ class => 'charsum_bubble', sub {
                 div_ class => 'name', sub {
                     span_ sub {
-                        abbr_ class => "icon-gen-$_->{gender}", title => $GENDER{$_->{gender}}, '' if $_->{gender} ne 'unknown';
+                        abbr_ class => "icon-gen-$_->{sex}", title => $CHAR_SEX{$_->{sex}}, '' if $_->{sex};
                         a_ href => "/$_->{id}", tattr $_;
                     };
                     em_ $CHAR_ROLE{$_->{role}}{txt};

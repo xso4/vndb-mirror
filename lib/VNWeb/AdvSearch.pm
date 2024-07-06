@@ -412,8 +412,8 @@ f c => 80 => 'id',         { vndbid => 'c' }, sql => sub { sql 'c.id', $_[0], \$
 f c => 81 => 'search',     { searchquery => 1 }, '=' => sub { $_->sql_where('c', 'c.id') };
 f c =>  2 => 'role',       { enum => \%CHAR_ROLE  }, '=' => sub { $#TYPE && $TYPE[$#TYPE-1] eq 'v' ? sql 'cv.role =', \$_ : sql 'c.id IN(SELECT id FROM chars_vns WHERE role =', \$_, ')' };
 f c =>  3 => 'blood_type', { enum => \%BLOOD_TYPE }, '=' => sub { sql 'c.bloodt =', \$_ };
-f c =>  4 => 'sex',        { enum => \%GENDER },     '=' => sub { sql 'c.gender =', \$_ };
-f c =>  5 => 'sex_spoil',  { enum => \%GENDER },     '=' => sub { sql '(c.gender =', \$_, 'AND c.spoil_gender IS NULL) OR c.spoil_gender IS NOT DISTINCT FROM', \$_ };
+f c =>  4 => 'sex',        { default => '', func => sub { $_[0] = '' if $_[0] eq 'unknown'; 1 }, enum => {%CHAR_SEX, unknown => 1} }, '=' => sub { sql 'c.sex =', \$_ };
+f c =>  5 => 'sex_spoil',  { default => '', func => sub { $_[0] = '' if $_[0] eq 'unknown'; 1 }, enum => {%CHAR_SEX, unknown => 1} }, '=' => sub { sql '(c.sex =', \$_, 'AND c.spoil_sex IS NULL) OR c.spoil_sex IS NOT DISTINCT FROM', \$_ };
 f c =>  6 => 'height',     { default => undef, uint => 1, max => 32767 },
     sql => sub { !defined $_ ? sql 'c.height', $_[0], 0 : sql 'c.height <> 0 AND c.height', $_[0], \$_ };
 f c =>  7 => 'weight',     { default => undef, uint => 1, max => 32767 },
@@ -443,7 +443,7 @@ f c => 53 => 'vn',     'v', '=' => sub { sql 'c.id IN(SELECT cv.id FROM chars_vn
 # Staff filters need 'staff_aliast s', aliases are treated as separate rows.
 f s =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 's.lang =', \$_ };
 f s =>  3 => 'id',        { vndbid => 's' }, sql => sub { sql 's.id', $_[0], \$_ };
-f s =>  4 => 'gender',    { enum => \%GENDER }, '=' => sub { sql 's.gender =', \$_ };
+f s =>  4 => 'gender',    { default => '', func => sub { $_[0] = '' if $_[0] eq 'unknown'; 1 }, enum => {%STAFF_GENDER, unknown => 1} }, '=' => sub { sql 's.gender =', \$_ };
 f s =>  5 => 'role',      { enum => [ 'seiyuu', keys %CREDIT_TYPE ] },
     sql_list_grp => sub { $_ eq 'seiyuu' ? undef : '' },
     sql_list => sub {

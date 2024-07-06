@@ -304,7 +304,7 @@ sexUpdate msg (spoil,model) =
 sexView (spoil,model) =
   ( case Set.toList model.sel of
       []  -> small [] [ text "Sex" ]
-      [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| "Sex: " ++ Maybe.withDefault "" (lookup v GT.genders) ]
+      [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| "Sex: " ++ Maybe.withDefault "" (lookup v GT.charSex) ]
       l   -> span [] [ lblPrefix model, text <| "Sex (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
     [ div [ class "advheader", style "width" "280px" ]
@@ -315,7 +315,7 @@ sexView (spoil,model) =
         , linkRadio model.neg (SexSel << Neg) [ text "invert" ]
         ]
       ]
-    , ul [] <| List.map (\(l,t) -> li [] [ linkRadio (Set.member l model.sel) (SexSel << Sel l) [ text t ] ]) GT.genders
+    , ul [] <| List.map (\(l,t) -> li [] [ linkRadio (Set.member l model.sel) (SexSel << Sel l) [ text t ] ]) GT.charSex
     ]
   )
 
@@ -327,13 +327,13 @@ sexView (spoil,model) =
 genderView model =
   ( case Set.toList model.sel of
       []  -> small [] [ text "Gender" ]
-      [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" (lookup v GT.genders) ]
+      [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| Maybe.withDefault "" (lookup v GT.staffGenders) ]
       l   -> span [] [ lblPrefix model, text <| "Gender (" ++ String.fromInt (List.length l) ++ ")" ]
   , \() ->
     [ div [ class "advheader" ]
       [ h3 [] [ text "Gender" ]
       , opts model False True ]
-    , ul [] <| List.map (\(k,l) -> li [] [ if k == "b" then text "" else linkRadio (Set.member k model.sel) (Sel k) [ text l ] ]) GT.genders
+    , ul [] <| List.map (\(k,l) -> li [] [ linkRadio (Set.member k model.sel) (Sel k) [ text l ] ]) GT.staffGenders
     ]
   )
 

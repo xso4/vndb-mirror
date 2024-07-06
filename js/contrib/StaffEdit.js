@@ -70,7 +70,7 @@ widget('StaffEdit', initVnode => {
         m('fieldset',
             m('label[for=gender]', 'Gender'),
             m(Select, { id: 'gender', class: 'mw', data, field: 'gender', options: [
-                [ 'unknown', 'Unknown or N/A' ],
+                [ '',  'Unknown or N/A' ],
                 [ 'm', 'Male' ],
                 [ 'f', 'Female' ],
             ] }),

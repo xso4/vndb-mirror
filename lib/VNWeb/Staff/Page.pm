@@ -29,7 +29,7 @@ sub _rev_ {
             txt_ " ($_->{latin})" if $_->{latin};
             small_ ' (primary)' if $_->{main};
         } ],
-        [ gender => 'Gender',     fmt => \%GENDER   ],
+        [ gender => 'Gender',     fmt => \%STAFF_GENDER ],
         [ lang   => 'Language',   fmt => \%LANGUAGE ],
         [ description => 'Description' ],
         revision_extlinks 's'
@@ -43,7 +43,7 @@ sub _infotable_ {
             td_ colspan => 2, sub {
                 span_ style => 'margin-right: 10px', tlang($main->{title}[0], $main->{title}[1]), $main->{title}[1];
                 small_ style => 'margin-right: 10px', tlang($main->{title}[2], $main->{title}[3]), $main->{title}[3] if $main->{title}[1] ne $main->{title}[3];
-                abbr_ class => "icon-gen-$s->{gender}", title => $GENDER{$s->{gender}}, '' if $s->{gender} ne 'unknown';
+                abbr_ class => "icon-gen-$s->{gender}", title => $STAFF_GENDER{$s->{gender}}, '' if $s->{gender};
             }
         } };
 

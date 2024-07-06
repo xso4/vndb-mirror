@@ -72,10 +72,10 @@ CREATE TYPE anime_type        AS ENUM ('tv', 'ova', 'mov', 'oth', 'web', 'spe', 
 CREATE TYPE blood_type        AS ENUM ('unknown', 'a', 'b', 'ab', 'o');
 CREATE TYPE board_type        AS ENUM ('an', 'db', 'ge', 'v', 'p', 'u');
 CREATE TYPE char_role         AS ENUM ('main', 'primary', 'side', 'appears');
+CREATE TYPE char_sex          AS ENUM ('', 'm', 'f', 'b', 'n');
 CREATE TYPE credit_type       AS ENUM ('scenario', 'chardesign', 'art', 'music', 'songs', 'director', 'translator', 'editor', 'qa', 'staff');
 CREATE TYPE cup_size          AS ENUM ('', 'AAA', 'AA', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z');
 CREATE TYPE dbentry_type      AS ENUM ('v', 'r', 'p', 'c', 's', 'd');
-CREATE TYPE gender            AS ENUM ('unknown', 'm', 'f', 'b');
 CREATE TYPE language          AS ENUM ('ar', 'be', 'bg', 'ca', 'cs', 'ck', 'da', 'de', 'el', 'en', 'eo', 'es', 'eu', 'fa', 'fi', 'fr', 'ga', 'gd', 'he', 'hi', 'hr', 'hu', 'id', 'it', 'iu', 'ja', 'ko', 'mk', 'ms', 'la', 'lt', 'lv', 'nl', 'no', 'pl', 'pt-pt', 'pt-br', 'ro', 'ru', 'sk', 'sl', 'sr', 'sv', 'ta', 'th', 'tr', 'uk', 'ur', 'vi', 'zh', 'zh-Hans', 'zh-Hant');
 CREATE TYPE medium            AS ENUM ('cd', 'dvd', 'gdr', 'blr', 'flp', 'cas', 'mrt', 'mem', 'umd', 'nod', 'in', 'dc', 'otc');
 CREATE TYPE notification_ntype AS ENUM ('pm', 'dbdel', 'listdel', 'dbedit', 'announce', 'post', 'comment', 'subpost', 'subedit', 'subreview', 'subapply');
@@ -87,6 +87,7 @@ CREATE TYPE report_status     AS ENUM ('new', 'busy', 'done', 'dismissed');
 CREATE TYPE tag_category      AS ENUM('cont', 'ero', 'tech');
 CREATE TYPE vn_relation       AS ENUM ('seq', 'preq', 'set', 'alt', 'char', 'side', 'par', 'ser', 'fan', 'orig');
 CREATE TYPE session_type      AS ENUM ('web', 'pass', 'mail', 'api', 'api2');
+CREATE TYPE staff_gender      AS ENUM ('', 'm', 'f');
 CREATE TYPE release_image_type AS ENUM ('pkgfront', 'pkgback', 'pkgcontent', 'pkgside', 'pkgmed', 'dig');
 
 CREATE TYPE ipinfo AS (
@@ -221,8 +222,8 @@ CREATE TABLE changes_patrolled (
 CREATE TABLE chars ( -- dbentry_type=c
   id           vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('c', nextval('chars_id_seq')::int) CONSTRAINT chars_id_check CHECK(vndbid_type(id) = 'c'), -- [pub]
   image        vndbid CONSTRAINT chars_image_check CHECK(vndbid_type(image) = 'ch'), -- [pub]
-  gender       gender NOT NULL DEFAULT 'unknown', -- [pub] Character's sex, not gender
-  spoil_gender gender, -- [pub] Character's actual sex, in case it's a spoiler
+  sex          char_sex NOT NULL DEFAULT '', -- [pub]
+  spoil_sex    char_sex, -- [pub] Character's actual sex, in case it's a spoiler
   bloodt       blood_type NOT NULL DEFAULT 'unknown', -- [pub] Blood type
   cup_size     cup_size NOT NULL DEFAULT '', -- [pub]
   main         vndbid, -- [pub] When this character is an instance of another character
@@ -248,8 +249,8 @@ CREATE TABLE chars ( -- dbentry_type=c
 CREATE TABLE chars_hist (
   chid         integer  NOT NULL PRIMARY KEY,
   image        vndbid CONSTRAINT chars_hist_image_check CHECK(vndbid_type(image) = 'ch'),
-  gender       gender NOT NULL DEFAULT 'unknown',
-  spoil_gender gender,
+  sex          char_sex NOT NULL DEFAULT '',
+  spoil_sex    char_sex,
   bloodt       blood_type NOT NULL DEFAULT 'unknown',
   cup_size     cup_size NOT NULL DEFAULT '',
   main         vndbid, -- chars.id
@@ -963,7 +964,7 @@ CREATE TABLE shop_playasia_gtin (
 -- staff
 CREATE TABLE staff ( -- dbentry_type=s
   id          vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('s', nextval('staff_id_seq')::int) CONSTRAINT staff_id_check CHECK(vndbid_type(id) = 's'), -- [pub]
-  gender      gender NOT NULL DEFAULT 'unknown', -- [pub]
+  gender      staff_gender NOT NULL DEFAULT '', -- [pub]
   lang        language NOT NULL DEFAULT 'ja', -- [pub]
   main        integer NOT NULL DEFAULT 0, -- [pub] Primary name for the staff entry
   l_anidb     integer, -- [pub]
@@ -988,7 +989,7 @@ CREATE TABLE staff ( -- dbentry_type=s
 -- staff_hist
 CREATE TABLE staff_hist (
   chid        integer NOT NULL PRIMARY KEY,
-  gender      gender NOT NULL DEFAULT 'unknown',
+  gender      staff_gender NOT NULL DEFAULT '',
   lang        language NOT NULL DEFAULT 'ja',
   main        integer NOT NULL DEFAULT 0, -- Can't refer to staff_alias.id, because the alias might have been deleted
   l_anidb     integer,
