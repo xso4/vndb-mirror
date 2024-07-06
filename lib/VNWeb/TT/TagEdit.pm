@@ -4,8 +4,8 @@ use VNWeb::Prelude;
 
 my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
     id           => { default => undef, vndbid => 'g' },
-    name         => { maxlength => 250, regex => qr/^[^,\r\n\t]+$/ },
-    alias        => { maxlength => 1024, regex => qr/^[^,]+$/, default => '' },
+    name         => { maxlength => 250, sl => 1 },
+    alias        => { maxlength => 1024, default => '' },
     cat          => { enum => \%TAG_CATEGORY, default => 'cont' },
     description  => { maxlength => 10240 },
     searchable   => { anybool => 1, default => 1 },
