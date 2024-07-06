@@ -464,9 +464,11 @@ sub enrich_extlinks {
 # Returns a list of @fields for use in VNWeb::HTML::revision_()
 sub revision_extlinks {
     my($type) = @_;
+    my($schema) = grep +($_->{dbentry_type}||'') eq $type, values VNDB::Schema::schema->%*;
     map {
         my($f, $p) = ($_, $LINKS{$type}{$_});
-        [ $f, $p->{label}, fmt => sub { TUWF::XML::a_(href => sprintf($p->{fmt}, $_), $_); }, empty => 0 ]
+        my($s) = grep $_->{name} eq $f, $schema->{cols}->@*;
+        [ $f, $p->{label}, fmt => sub { TUWF::XML::a_(href => sprintf($p->{fmt}, $_), $_); }, empty => $s->{type} =~ /^(big)?int/ ? 0 : '' ]
     } sort keys $LINKS{$type}->%*
 }
 

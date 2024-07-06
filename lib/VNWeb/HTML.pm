@@ -649,7 +649,7 @@ sub _revision_fmtcol_ {
         em_ '[empty]' if @$l > 1 && (($i == 1 && !grep $_->[0] ne '+', @$l) || ($i == 2 && !grep $_->[0] ne '-', @$l));
         join_ $opt->{join}||\&br_, sub {
             my($ch, $old, $new, $diff) = @$_;
-            my $val = $_->[$i];
+            my $val = ($i == 1 && $ch eq '+') || ($i == 2 && $ch eq '-') ? undef : $_->[$i];
 
             if($diff) {
                 my $lastchunk = int (($#$diff-2)/2);
