@@ -78,7 +78,7 @@ widget('VNLengthVote', initVnode => {
                     ),
                     m('br'),
                     m('label.check',
-                        m('input[type=radio]', { checked: vote.private, onclick: () => vote.private = true }), ' Private',
+                        m('input[type=radio]', { checked: vote.private, onclick: () => { vote.private = true; vote.speed = null } }), ' Private',
                         m('small', ' - Your play time does not count and is not publicly visible'),
                     ),
                     !vote.private && vote.speed !== null ? m('p',
