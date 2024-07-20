@@ -13,7 +13,7 @@ sub reviews_helpfulness {
 sub reviews_vote_ {
     my($w) = @_;
     span_ sub {
-        span_ widget(ReviewsVote => $VNWeb::Reviews::JS::VOTE, {%$w, mod => auth->permBoardmod||0}), '' if !config->{read_only};
+        span_ widget(ReviewsVote => $VNWeb::Reviews::JS::VOTE, {%$w, mod => auth->permBoardmod||0}), '' if !config->{read_only} && $w->{user_id} ne (auth->uid//'');
         my $p = reviews_helpfulness $w;
         small_ sprintf ' %d point%s', $p, $p == 1 ? '' : 's';
         small_ sprintf ' %.2f/%.2f', $w->{c_up}/100, $w->{c_down}/100 if auth->permBoardmod;
