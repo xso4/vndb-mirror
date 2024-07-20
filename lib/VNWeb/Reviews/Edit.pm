@@ -10,7 +10,6 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     vntitle => { _when => 'out' },
     rid     => { vndbid => 'r', default => undef },
     spoiler => { anybool => 1 },
-    isfull  => { anybool => 1 },
     modnote => { maxlength => 1024, default => '' },
     text    => { minlength => 200, maxlength => 100_000, default => '' },
     locked  => { anybool => 1 },
@@ -54,7 +53,7 @@ TUWF::get qr{/$RE{vid}/addreview}, sub {
 
 TUWF::get qr{/$RE{wid}/edit}, sub {
     my $e = tuwf->dbRowi(
-        'SELECT r.id, r.uid AS user_id, r.vid, r.rid, r.isfull, r.modnote, r.text, r.spoiler, r.locked, v.title[1+1] AS vntitle
+        'SELECT r.id, r.uid AS user_id, r.vid, r.rid, r.modnote, r.text, r.spoiler, r.locked, v.title[1+1] AS vntitle
           FROM reviews r JOIN', vnt, 'v ON v.id = r.vid WHERE r.id =', \tuwf->capture('id')
     );
     return tuwf->resNotFound if !$e->{id};
@@ -83,9 +82,6 @@ js_api ReviewEdit => $FORM_IN, sub ($data) {
 
     validate_dbid 'SELECT id FROM vn WHERE id IN', $data->{vid};
     validate_dbid 'SELECT id FROM releases WHERE id IN', $data->{rid} if defined $data->{rid};
-
-    return 'Review too long' if !$data->{isfull} && length $data->{text} > 800;
-    $data->{text} = bb_subst_links $data->{text} if $data->{isfull};
 
     if($id) {
         $data->{lastmod} = sql 'NOW()' if $review->{text} ne $data->{text};

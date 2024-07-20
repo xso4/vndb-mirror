@@ -35,7 +35,10 @@ sub enrich_vn {
     enrich_extlinks r => 0, $v->{releases};
 
     $v->{reviews} = tuwf->dbRowi('
-        SELECT COUNT(*) FILTER(WHERE isfull) AS full, COUNT(*) FILTER(WHERE NOT isfull) AS mini, COUNT(*) AS total
+        SELECT COUNT(*) FILTER(WHERE length = 0) AS short
+             , COUNT(*) FILTER(WHERE length = 1) AS medium
+             , COUNT(*) FILTER(WHERE length = 1+1) AS long
+             , COUNT(*) AS total
           FROM reviews
          WHERE NOT c_flagged AND vid =', \$v->{id}
     );
@@ -589,12 +592,7 @@ sub tabs_ {
             li_ class => ($tab eq 'cv'      ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/cv#cv", name => 'cv', "covers ($v->{relimgs}{total})" } if $v->{relimgs}{total};
             li_ class => ($tab eq 'tags'    ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/tags#tags", name => 'tags', 'tags' };
             li_ class => ($tab eq 'chars'   ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/chars#chars", name => 'chars', "characters ($chars)" } if $chars;
-            if($v->{reviews}{mini} > 4 || $tab eq 'minireviews' || $tab eq 'fullreviews') {
-                li_ class => ($tab eq 'minireviews'?' tabselected' : ''), sub { a_ href => "/$v->{id}/minireviews#review", name => 'review', "mini reviews ($v->{reviews}{mini})" } if $v->{reviews}{mini};
-                li_ class => ($tab eq 'fullreviews'?' tabselected' : ''), sub { a_ href => "/$v->{id}/fullreviews#review", name => 'review', "full reviews ($v->{reviews}{full})" } if $v->{reviews}{full};
-            } elsif($v->{reviews}{mini} || $v->{reviews}{full}) {
-                li_ class => ($tab =~ /reviews/ ?' tabselected':''),      sub { a_ href => "/$v->{id}/reviews#review", name => 'review', sprintf 'reviews (%d)', $v->{reviews}{total} };
-            }
+            li_ class => ($tab eq 'reviews' ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/reviews#review", name => 'review', "reviews ($v->{reviews}{total})" } if $v->{reviews}{total};
             li_ class => ($tab eq 'quotes'  ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/quotes#quotes", name => 'quotes', "quotes ($quotes)" };
         };
         menu_ sub {

@@ -1,8 +1,6 @@
 widget('ReviewEdit', initVnode => {
     const data = initVnode.attrs.data;
     const api = new Api('ReviewEdit');
-    const minl = () => data.isfull ? 1000 : 200;
-    const maxl = () => data.isfull ? 100000 : 800;
 
     const delApi = new Api('ReviewDelete');
     let del = false;
@@ -46,22 +44,6 @@ widget('ReviewEdit', initVnode => {
             ),
             m('fieldset.form',
                 m('fieldset',
-                    m('label', 'Review type'),
-                    m('label.check',
-                        m('input[type=radio]', { checked: !data.isfull, oninput: () => data.isfull = false }),
-                        m('strong', ' Mini review'),
-                        ' - Recommendation-style review, maxumum 800 characters.'
-                    ),
-                    m('br'),
-                    m('label.check',
-                        m('input[type=radio]', { checked: data.isfull, oninput: () => data.isfull = true }),
-                        m('strong', ' Full review'),
-                        ' - Long-form review, minimum 1000 characters.'
-                    ),
-                ),
-            ),
-            m('fieldset.form',
-                m('fieldset',
                     m('label.check',
                         m('input[type=checkbox]', { checked: data.spoiler, oninput: ev => data.spoiler = ev.target.checked }),
                         ' This review contains spoilers',
@@ -89,17 +71,14 @@ widget('ReviewEdit', initVnode => {
                         data, field: 'text',
                         attrs: {
                             id: 'text', required: true,
-                            minlength: minl(),
-                            maxlength: maxl(),
-                            rows: data.isfull ? 30 : 10,
+                            minlength: 200,
+                            maxlength: 100000,
+                            rows: 30,
                         },
                         header: m('a[href=/d9#4][target=_blank]', 'BBCode formatting supported'),
                         footer: m('div[style=text-align:right]', (l => [
-                            m(l < minl() ? 'b.invalid' : 'span', minl()),
-                            ' / ',
-                            m('strong', l),
-                            ' / ',
-                            m(l > maxl() ? 'b.invalid' : 'span', data.isfull ? '∞' : maxl()),
+                            l, ' / ',
+                            l < 200 ? m('b.invalid', 'too short') : l <= 800 ? 'short' : l <= 2500 ? 'medium' : l <= 100000 ? 'long' : m('b.invalid', 'too long')
                         ])(data.text.trim().length)),
                     }),
                 )

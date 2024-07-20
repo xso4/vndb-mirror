@@ -83,7 +83,7 @@ sub review_ {
         } if $w->{spoiler};
         tr_ @spoil, sub {
             td_ 'Review';
-            td_ sub { lit_ reviews_format $w }
+            td_ sub { lit_ bb_format bb_subst_links $w->{text} }
         };
         tr_ @spoil, sub {
             td_ '';
@@ -98,7 +98,7 @@ sub review_ {
 TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
     my($id, $sep, $num) = (tuwf->capture('id'), tuwf->capture('sep')||'', tuwf->capture('num'));
     my $w = tuwf->dbRowi(
-        'SELECT r.id, r.vid, r.rid, r.isfull, r.modnote, r.text, r.spoiler, r.locked, COALESCE(c.count,0) AS count, r.c_flagged, r.c_up, r.c_down, uv.vote, rm.id IS NULL AS can
+        'SELECT r.id, r.vid, r.rid, r.length, r.modnote, r.text, r.spoiler, r.locked, COALESCE(c.count,0) AS count, r.c_flagged, r.c_up, r.c_down, uv.vote
               , v.title, rel.title AS rtitle, relv.rtype, rv.vote AS my, COALESCE(rv.overrule,false) AS overrule
               , ', sql_user(), ',', sql_totime('r.date'), 'AS date,', sql_totime('r.lastmod'), 'AS lastmod
            FROM reviews r
@@ -109,7 +109,6 @@ TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
            LEFT JOIN ulist_vns uv ON uv.uid = r.uid AND uv.vid = r.vid
            LEFT JOIN (SELECT id, COUNT(*) FROM reviews_posts GROUP BY id) AS c(id,count) ON c.id = r.id
            LEFT JOIN reviews_votes rv ON rv.id = r.id AND', auth ? ('rv.uid =', \auth->uid) : ('rv.ip =', \norm_ip tuwf->reqIP), '
-           LEFT JOIN reviews rm ON rm.vid = r.vid AND rm.uid =', \auth->uid, '
           WHERE r.id =', \$id
     );
     return tuwf->resNotFound if !$w->{id};
