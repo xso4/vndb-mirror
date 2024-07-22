@@ -29,7 +29,7 @@ sub run {
        WHERE NOT hidden AND l_denpa <> ''
          AND NOT EXISTS(SELECT 1 FROM shop_denpa WHERE id = l_denpa)
     }, [], \&sync
-  }
+  };
 }
 
 
@@ -38,23 +38,25 @@ sub data {
   my $prefix = sprintf '[%.1fs] %s', $time, $id;
   return AE::log warn => "$prefix ERROR: $hdr->{Status} $hdr->{Reason}" if $hdr->{Status} !~ /^(2|404)/;
 
-  my $listprice    = $body =~ m{<meta property="product:price:amount" content="([^"]+)"} && $1;
-  my $currency     = $body =~ m{<meta property="product:price:currency" content="([^"]+)"} && $1;
-  my $availability = $body =~ m{<meta property="product:availability" content="([^"]+)"} && $1;
-  my $sku          = $body =~ m{<meta property="product:retailer_item_id" content="([^"]+)"} ? $1 : '';
+  # Same WooCommerce JSON-LD as J-List.
+  my $found = $hdr->{Status} ne '404' && $body =~ /"\@type":"Product"/;
+  my $outofstock = $body !~ m{"availability":"https?:\\?/\\?/schema\.org\\?/InStock"};
+  my $price = $body =~ /"price":"([0-9\.]+)"/ ? ($1 eq '0.00' ? 'free' : sprintf('US$ %.2f', $1)) : '';
 
-  # Meta properties aren't set if the product has multiple SKU's (e.g. multi-platform), fall back to some json-ld string.
-  ($listprice, $currency) = ($1,$2) if !$listprice && $body =~ /"priceSpecification":\{"price":"([^"]+)","priceCurrency":"([^"]+)"/;
+  # Out of stock? Update database.
+  if($outofstock) {
+    pg_cmd q{UPDATE shop_denpa SET deadsince = NULL, price = '', lastfetch = NOW() WHERE id = $1}, [ $id ];
+    AE::log debug => "$prefix is out of stock";
 
-  if($hdr->{Status} eq '404' || !$listprice || !$availability || $availability ne 'instock') {
-    pg_cmd q{UPDATE shop_denpa SET deadsince = COALESCE(deadsince, NOW()), lastfetch = NOW() WHERE id = $1}, [ $id ];
-    AE::log info => "$prefix not found or not in stock.";
+  # We have a price? Update database.
+  } elsif($price) {
+    pg_cmd q{UPDATE shop_denpa SET deadsince = NULL, price = $2, lastfetch = NOW() WHERE id = $1}, [ $id, $price ];
+    AE::log debug => "$prefix for $price";
 
+  # Not found? Update database.
   } else {
-    my $price = $listprice eq '0.00' ? 'free' : ($currency eq 'USD' ? 'US$' : $currency).' '.$listprice;
-    pg_cmd 'UPDATE shop_denpa SET deadsince = NULL, lastfetch = NOW(), sku = $2, price = $3 WHERE id = $1',
-      [ $id, $sku, $price ];
-    AE::log debug => "$prefix for $price at $sku";
+    pg_cmd q{UPDATE shop_denpa SET deadsince = NOW() WHERE deadsince IS NULL AND id = $1}, [ $id ];
+    AE::log info => "$prefix not found.";
   }
 }
 
