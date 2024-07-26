@@ -333,7 +333,6 @@ const display = data => {
                     [1, 'Earliest release' ],
                     [2, 'Latest release' ],
                 ]}),
-                m('small', ' (beta)'),
             ),
             m('label', 'Tags'),
             m('fieldset', m('label.check', m('input[type=checkbox]',

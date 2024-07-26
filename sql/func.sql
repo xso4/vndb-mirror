@@ -286,7 +286,7 @@ BEGIN
       JOIN releases_vn rv ON rv.id = r.id
      WHERE NOT r.hidden AND r.official AND rp.developer
      GROUP BY rv.vid
-  ), img(vid, first, last) AS (
+  ), img(vid, first, last, def) AS (
     SELECT DISTINCT rv.vid
          , first_value(ri.img) OVER (PARTITION BY rv.vid ORDER BY
               v.olang <> ALL(COALESCE(ri.lang, ARRAY[rl.lang])), -- prefer original language
@@ -297,7 +297,7 @@ BEGIN
               ri.vid IS NULL, -- prefer images specifically assigned to this VN
               ri.itype <> 'pkgfront', -- prefer pkgfront
               ri.img -- Make sure the selection is deterministic
-          )
+           )
          , first_value(ri.img) OVER (PARTITION BY rv.vid ORDER BY
               v.olang <> ALL(COALESCE(ri.lang, ARRAY[rl.lang])),
               r.patch,
@@ -307,12 +307,30 @@ BEGIN
               ri.vid IS NULL,
               ri.itype <> 'pkgfront',
               ri.img
-          )
+           )
+         , first_value(ri.img) OVER (PARTITION BY rv.vid ORDER BY
+              -- Give a -3 penalty to patches or non-olang images
+              -GREATEST(0, COALESCE(vo.votes, 0) +
+                CASE WHEN r.patch OR v.olang <> ALL(COALESCE(ri.lang, ARRAY[rl.lang])) THEN -3 ELSE 0 END
+              ),
+              -- Same score? Fall back to the same order as the 'last' image selection
+              v.olang <> ALL(COALESCE(ri.lang, ARRAY[rl.lang])),
+              r.patch,
+              ri.vid IS NULL AND EXISTS(SELECT 1 FROM releases_vn rvi WHERE rvi.id = rv.id AND rvi.vid <> rv.vid),
+              rv.rtype,
+              -r.released,
+              ri.vid IS NULL,
+              ri.itype <> 'pkgfront',
+              ri.img
+           )
       FROM releases_images ri
       JOIN releases r ON r.id = ri.id
       JOIN releases_vn rv ON rv.id = r.id
       JOIN releases_titles rl ON rl.id = r.id AND rl.lang = r.olang
       JOIN vn v ON v.id = rv.vid
+      LEFT JOIN (
+        SELECT vid, img, COUNT(*) AS votes FROM vn_image_votes GROUP BY vid, img
+      ) vo ON vo.img = ri.img AND vo.vid = rv.vid
      WHERE NOT r.hidden AND r.official
        AND ri.itype IN('pkgfront', 'dig') AND NOT ri.photo
        AND (ri.vid IS NULL OR ri.vid = rv.vid)
@@ -322,7 +340,7 @@ BEGIN
           , COALESCE(langs.val, '{}')
           , COALESCE(plats.val, '{}')
           , COALESCE(prod.val, '{}')
-          , COALESCE(vn.image, img.last)
+          , COALESCE(img.def, vn.image)
           , COALESCE(img.first, vn.image)
           , COALESCE(img.last, vn.image)
       FROM vn

@@ -13,7 +13,7 @@ use VNDB::Func 'fmtrating';
 sub enrich_vn {
     my($v, $revonly) = @_;
     $v->{title} = titleprefs_obj $v->{olang}, $v->{titles};
-    enrich_merge id => sql('SELECT id, c_votecount, c_length, c_lengthnum,', sql_vnimage, 'FROM vn WHERE id IN'), $v;
+    enrich_merge id => sql('SELECT id, c_votecount, c_length, c_lengthnum, c_image, c_imgfirst, c_imglast,', sql_vnimage, 'FROM vn WHERE id IN'), $v;
     enrich_merge vid => sql('SELECT id AS vid, title, sorttitle, c_released FROM', vnt, 'v WHERE id IN'), $v->{relations};
     enrich_merge aid => 'SELECT id AS aid, title_romaji, title_kanji, year, type, ann_id, lastfetch FROM anime WHERE id IN', $v->{anime};
     enrich_extlinks v => 0, $v;
@@ -1027,7 +1027,7 @@ sub covers_ {
     my $all = tuwf->reqParam('a');
 
     my $lst = tuwf->dbAlli('
-        SELECT ri.img, ri.itype, ri.lang::text[], r.id, r.released, r.title, rv.rtype, viv.img IS NOT NULL AS voted
+        SELECT ri.img, ri.itype, ri.lang::text[], ri.photo, r.id, r.released, r.title, r.patch, rv.rtype, viv.img IS NOT NULL AS voted
           FROM releases_images ri
           JOIN', releasest, 'r ON r.id = ri.id
           JOIN releases_vn rv ON rv.id = ri.id
@@ -1063,10 +1063,32 @@ sub covers_ {
                 div_ class => 'vnimagevote', 'data-voting' => join(',', $v->{id}, $img->{id}, $l->[0]{voted}?1:0), '';
             };
             my %t;
+            my $photo = !grep !$_->{photo}, @$l;
+            my $ismain     = $v->{c_image}    && $img->{id} eq $v->{c_image};
+            my $isearliest = $v->{c_imgfirst} && $img->{id} eq $v->{c_imgfirst};
+            my $islatest   = $v->{c_imglast}  && $img->{id} eq $v->{c_imglast};
             details_ class => 'votes', sub {
-                summary_ title => join(', ', map user_displayname($_), $img->{votes}->@*), sprintf '%d★', scalar $img->{votes}->@*;
+                summary_ class => $photo ? 'grayedout' : undef, sub {
+                    lit_ scalar $img->{votes}->@* if $img->{votes}->@*;
+                    lit_ '♥' if $ismain;
+                    lit_ '↶' if !$ismain && $isearliest;
+                    lit_ '↷' if !$ismain && $islatest;
+                };
                 join_ ', ', sub { user_ $_ }, $img->{votes}->@*;
-            } if $img->{votes}->@*;
+                if ($photo) {
+                    div_ class => 'grayedout', 'Flagged as a photo';
+                } elsif (!grep +(grep $_ eq $v->{olang}, $_->{lang} ? $_->{lang}->@* : map $_->{lang}, $_->{rlang}->@*), @$l) {
+                    div_ class => 'grayedout', '-3 not original language';
+                } elsif (!grep !$_->{patch}, @$l) {
+                    div_ class => 'grayedout', '-3 patch release';
+                }
+                my @sel = (
+                    $ismain     ? '♥ default image' : (),
+                    $isearliest ? '↶ earliest release' : (),
+                    $islatest   ? '↷ latest release' : (),
+                );
+                div_ sub { join_ ' ', sub { span_ class => 'nowrap', $_ }, @sel } if @sel;
+            } if $img->{votes}->@* || $ismain || $isearliest || $islatest;
             h3_ join ', ', grep !$t{$_}++, map $RELEASE_IMAGE_TYPE{$_->{itype}}{txt}, @$l;
             p_ sub {
                 rdate_ $_->{released};
@@ -1091,9 +1113,9 @@ sub covers_ {
         } if $v->{relimgs}{total} > $v->{relimgs}{covers};
         h1_ 'Release Covers';
         p_ sub {
-            small_ '(BETA) Click the star icon to select the cover you would like to see as main visual novel image. ';
+            small_ 'Click the star icon to select the cover you would like to see as main visual novel image. ';
             small_ 'When you star multiple covers, the most recently starred cover is used. ' if keys %cv > 1;
-            small_ 'Votes are public and will be used to select the default visual novel image for other users in the future.';
+            small_ 'Votes are public and used to select the default image for this visual novel.';
         } if auth;
         div_ class => 'vncovers', sub {
             div_ sub { cover_ $_ } for grep $_, map delete($cv{$_->{img}{id}}), @$lst;
