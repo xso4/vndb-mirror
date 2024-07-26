@@ -33,7 +33,7 @@ our %WIKIDATA = (
     ann_anime          => { type => 'integer[]',  property => 'P1985', label => undef,            fmt => undef },
     ann_manga          => { type => 'integer[]',  property => 'P1984', label => undef,            fmt => undef },
     musicbrainz_artist => { type => 'uuid[]',     property => 'P434',  label => 'MusicBrainz',    fmt => 'https://musicbrainz.org/artist/%s' },
-    twitter            => { type => 'text[]',     property => 'P2002', label => 'Twitter',        fmt => 'https://twitter.com/%s' },
+    twitter            => { type => 'text[]',     property => 'P2002', label => 'Twitter',        fmt => 'https://x.com/%s' },
     vgmdb_product      => { type => 'integer[]',  property => 'P5659', label => 'VGMdb',          fmt => 'https://vgmdb.net/product/%s' },
     vgmdb_artist       => { type => 'integer[]',  property => 'P3435', label => 'VGMdb',          fmt => 'https://vgmdb.net/artist/%s' },
     discogs_artist     => { type => 'integer[]',  property => 'P1953', label => 'Discogs',        fmt => 'https://www.discogs.com/artist/%s' },
@@ -220,8 +220,8 @@ our %LINKS = (
                       , fmt   => 'https://www.wikidata.org/wiki/Q%d'
                       , regex => qr{www\.wikidata\.org/wiki/Q([1-9][0-9]*)} },
         l_twitter  => { label => 'Xitter'
-                      , fmt   => 'https://twitter.com/%s'
-                      , regex => qr{(?:(?:www\.)?twitter\.com|nitter\.[^/]+)/([^?\/ ]{1,16})(?:[?/].*)?} },
+                      , fmt   => 'https://x.com/%s'
+                      , regex => qr{(?:(?:www\.)?(?:x|twitter)\.com|nitter\.[^/]+)/([^?\/ ]{1,16})(?:[?/].*)?} },
         l_anidb    => { label => 'AniDB'
                       , fmt   => 'https://anidb.net/cr%s'
                       , regex => qr{anidb\.net/(?:cr|creator/)([1-9][0-9]*)} },
