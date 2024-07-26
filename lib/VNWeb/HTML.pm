@@ -511,12 +511,7 @@ sub _hidden_msg_ {
                     txt_ '.';
                     br_;
                 }
-                txt_ 'This item has been deleted from the database. You may file a request on the ';
-                a_ href => '/t/'._board_id($o->{dbobj}), "discussion board";
-                txt_ ' if you believe that this entry should be restored.';
                 if($msg->{rev} > 1) {
-                    br_;
-                    br_;
                     lit_ bb_format $msg->{comments};
                 }
             }
