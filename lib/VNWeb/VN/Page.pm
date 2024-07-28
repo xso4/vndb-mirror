@@ -26,8 +26,7 @@ sub enrich_vn {
     # This fetches rather more information than necessary for infobox_(), but it'll have to do.
     # (And we'll need it for the releases tab anyway)
     $v->{releases} = tuwf->dbAlli('
-        SELECT r.id, rv.rtype, r.patch, r.released, r.gtin,', sql_extlinks(r => 'r.'), '
-             , (SELECT COUNT(*) FROM releases_vn rv WHERE rv.id = r.id) AS num_vns
+        SELECT r.id, rv.rtype, r.patch, r.released, r.gtin, r.c_bundle, ', sql_extlinks(r => 'r.'), '
           FROM releases r
           JOIN releases_vn rv ON rv.id = r.id
          WHERE NOT r.hidden AND rv.vid =', \$v->{id}
@@ -359,7 +358,7 @@ sub infobox_affiliates_ {
         my $type =     $rel->{patch} ? 4 :
             $rel->{rtype} eq 'trial' ? 3 :
           $rel->{rtype} eq 'partial' ? 2 :
-                 $rel->{num_vns} > 1 ? 0 : 1;
+                    $rel->{c_bundle} ? 0 : 1;
 
         $links{$_->{url2}} = [ @{$_}{qw/label url2 price/}, min $type, $links{$_->{url2}}[3]||9 ] for grep $_->{price}, $rel->{extlinks}->@*;
     }
@@ -1027,7 +1026,7 @@ sub covers_ {
     my $all = tuwf->reqParam('a');
 
     my $lst = tuwf->dbAlli('
-        SELECT ri.img, ri.itype, ri.lang::text[], ri.photo, r.id, r.released, r.title, r.patch, rv.rtype, viv.img IS NOT NULL AS voted
+        SELECT ri.img, ri.itype, ri.lang::text[], ri.photo, r.id, r.released, r.title, r.patch, r.c_bundle, rv.rtype, viv.img IS NOT NULL AS voted
           FROM releases_images ri
           JOIN', releasest, 'r ON r.id = ri.id
           JOIN releases_vn rv ON rv.id = ri.id
@@ -1081,6 +1080,8 @@ sub covers_ {
                     div_ class => 'grayedout', '-3 not original language';
                 } elsif (!grep !$_->{patch}, @$l) {
                     div_ class => 'grayedout', '-3 patch release';
+                } elsif (!grep !$_->{c_bundle}, @$l) {
+                    div_ class => 'grayedout', '-3 bundle release';
                 }
                 my @sel = (
                     $ismain     ? '♥ default image' : (),

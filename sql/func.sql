@@ -291,7 +291,7 @@ BEGIN
          , first_value(ri.img) OVER (PARTITION BY rv.vid ORDER BY
               v.olang <> ALL(COALESCE(ri.lang, ARRAY[rl.lang])), -- prefer original language
               r.patch, -- patches last
-              ri.vid IS NULL AND EXISTS(SELECT 1 FROM releases_vn rvi WHERE rvi.id = rv.id AND rvi.vid <> rv.vid), -- bundle release and not an image specific to this VN
+              ri.vid IS NULL AND r.c_bundle, -- bundle release and not an image specific to this VN
               rv.rtype, -- complete -> partial -> trial
               CASE WHEN rv.rtype = 'complete' THEN r.released ELSE -r.released END, -- earlier complete releases, or later partial/trials
               ri.vid IS NULL, -- prefer images specifically assigned to this VN
@@ -301,7 +301,7 @@ BEGIN
          , first_value(ri.img) OVER (PARTITION BY rv.vid ORDER BY
               v.olang <> ALL(COALESCE(ri.lang, ARRAY[rl.lang])),
               r.patch,
-              ri.vid IS NULL AND EXISTS(SELECT 1 FROM releases_vn rvi WHERE rvi.id = rv.id AND rvi.vid <> rv.vid),
+              ri.vid IS NULL AND r.c_bundle,
               rv.rtype,
               -r.released,
               ri.vid IS NULL,
@@ -309,14 +309,14 @@ BEGIN
               ri.img
            )
          , first_value(ri.img) OVER (PARTITION BY rv.vid ORDER BY
-              -- Give a -3 penalty to patches or non-olang images
+              -- Give a -3 penalty to patches, non-olang or bundle images
               -GREATEST(0, COALESCE(vo.votes, 0) +
-                CASE WHEN r.patch OR v.olang <> ALL(COALESCE(ri.lang, ARRAY[rl.lang])) THEN -3 ELSE 0 END
+                CASE WHEN r.patch OR v.olang <> ALL(COALESCE(ri.lang, ARRAY[rl.lang])) OR (ri.vid IS NULL AND r.c_bundle) THEN -3 ELSE 0 END
               ),
               -- Same score? Fall back to the same order as the 'last' image selection
               v.olang <> ALL(COALESCE(ri.lang, ARRAY[rl.lang])),
               r.patch,
-              ri.vid IS NULL AND EXISTS(SELECT 1 FROM releases_vn rvi WHERE rvi.id = rv.id AND rvi.vid <> rv.vid),
+              ri.vid IS NULL AND r.c_bundle,
               rv.rtype,
               -r.released,
               ri.vid IS NULL,
@@ -827,6 +827,11 @@ BEGIN
     THEN
       PERFORM update_search(vid) FROM releases_vn_hist WHERE chid IN(nchid, xoldchid);
     END IF;
+  END IF;
+
+  -- Update releases.c_bundle
+  IF vndbid_type(nitemid) = 'r' THEN
+    UPDATE releases SET c_bundle = (SELECT COUNT(*) > 1 FROM releases_vn WHERE id = nitemid) WHERE id = nitemid;
   END IF;
 
   -- Update drm.c_ref

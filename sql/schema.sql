@@ -571,7 +571,8 @@ CREATE TABLE releases ( -- dbentry_type=r
   l_booth      integer NOT NULL DEFAULT 0, -- [pub]
   l_patreonp   integer NOT NULL DEFAULT 0, -- [pub]
   l_patreon    text NOT NULL DEFAULT '', -- [pub]
-  l_substar    text NOT NULL DEFAULT '' -- [pub]
+  l_substar    text NOT NULL DEFAULT '', -- [pub]
+  c_bundle     boolean NOT NULL DEFAULT false
 );
 
 -- releases_hist
