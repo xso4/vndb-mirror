@@ -310,7 +310,7 @@ BEGIN
            )
          , first_value(ri.img) OVER (PARTITION BY rv.vid ORDER BY
               -- Give a -3 penalty to patches, non-olang or bundle images
-              -GREATEST(0, COALESCE(vo.votes, 0) +
+              -(COALESCE(vo.votes, 0) +
                 CASE WHEN r.patch OR v.olang <> ALL(COALESCE(ri.lang, ARRAY[rl.lang])) OR (ri.vid IS NULL AND r.c_bundle) THEN -3 ELSE 0 END
               ),
               -- Same score? Fall back to the same order as the 'last' image selection

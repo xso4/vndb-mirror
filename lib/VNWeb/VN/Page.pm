@@ -1026,7 +1026,8 @@ sub covers_ {
     my $all = tuwf->reqParam('a');
 
     my $lst = tuwf->dbAlli('
-        SELECT ri.img, ri.itype, ri.lang::text[], ri.photo, r.id, r.released, r.title, r.patch, r.c_bundle, rv.rtype, viv.img IS NOT NULL AS voted
+        SELECT ri.img, ri.itype, ri.lang::text[], ri.photo, r.id, r.released, r.title, r.patch
+             , r.c_bundle AND ri.vid IS NULL AS bundle, rv.rtype, viv.img IS NOT NULL AS voted
           FROM releases_images ri
           JOIN', releasest, 'r ON r.id = ri.id
           JOIN releases_vn rv ON rv.id = ri.id
@@ -1080,7 +1081,7 @@ sub covers_ {
                     div_ class => 'grayedout', '-3 not original language';
                 } elsif (!grep !$_->{patch}, @$l) {
                     div_ class => 'grayedout', '-3 patch release';
-                } elsif (!grep !$_->{c_bundle}, @$l) {
+                } elsif (!grep !$_->{bundle}, @$l) {
                     div_ class => 'grayedout', '-3 bundle release';
                 }
                 my @sel = (
