@@ -25,8 +25,8 @@ my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
         latin     => { default => undef },
     } },
     olang      => { enum => \%LANGUAGE, default => 'ja' },
-    platforms  => { aoh => { platform => { enum => \%PLATFORM } } },
-    media      => { aoh => {
+    platforms  => { minlength => 1, aoh => { platform => { enum => \%PLATFORM } } },
+    media      => { minlength => 1, aoh => {
         medium    => { enum => \%MEDIUM },
         qty       => { uint => 1, range => [0,40] },
     } },

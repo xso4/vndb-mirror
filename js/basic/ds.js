@@ -277,7 +277,7 @@ class DS {
 
 
 DS.Button = {view: vnode => m('button.ds[type=button]', {
-        class: vnode.attrs.class,
+        class: vnode.attrs.invalid ? 'invalid ' + (vnode.attrs.class||'') : vnode.attrs.class,
         onclick: function(ev) { ev.preventDefault(); vnode.attrs.onclick ? vnode.attrs.onclick(ev) : vnode.attrs.ds && vnode.attrs.ds.open(this, null) },
     }, vnode.children, m('span.invisible', 'X'), m(Icon.ChevronDown)
 )};

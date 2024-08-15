@@ -131,7 +131,7 @@ p.invalid { display: none }
  * an empty form */
 form.invalid-form {
     p.invalid { display: block; color: var(--standout) }
-    input.invalid, textarea.invalid { border-color: var(--standout) }
+    input.invalid, textarea.invalid, button.invalid { border-color: var(--standout) }
     label.invalid { color: var(--standout) }
     .invalid-tab a { color: var(--standout) }
     .formerror { display: block; color: var(--standout) }
