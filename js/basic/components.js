@@ -225,8 +225,9 @@ window.FormTabs = initVnode => {
 //     otherwise     -> regular text input field
 // - invalid       -> Custom HTML validation message
 // - data + field  -> input value is read from and written to 'data[field]'
+// - empty         -> value to assign if the text input is empty
 // - oninput       -> called after 'data[field]' has been modified, takes new value as argument
-// - required / minlength / maxlength / pattern
+// - required / minlength / maxlength / pattern / min / max
 //   HTML5 validation properties, except with a custom implementation.
 //   The length is properly counted in Unicode points rather than UTF-16 digits.
 // - focus         -> Bool, set input focus on create
@@ -242,6 +243,7 @@ window.FormTabs = initVnode => {
 //
 // The Form and FormTabs components detect and handle .invalid inputs.
 window.Input = () => {
+    const empty = a => 'empty' in a ? a.empty : a.type === 'number' ? 0 : '';
     const validate = a => {
         const v_ = a.data[a.field];
         const v = v_ === null ? '' : String(v_).trim();
@@ -264,6 +266,8 @@ window.Input = () => {
             if (/^https?:\/\/[^/]+$/.test(v)) return "URL must have a path component (hint: add a '/'?).";
             if (!new RegExp(formVals.weburl).test(v)) return 'Invalid URL.';
         }
+        if ('min' in a && Math.floor(v) < a.min) return 'Number too small.';
+        if ('max' in a && Math.floor(v) > a.max) return 'Number too large.';
         if (a.pattern && !new RegExp(a.pattern).test(v)) return 'Invalid format.';
         return '';
     };
@@ -276,7 +280,8 @@ window.Input = () => {
             class: (a.class||'') + (invalid ? ' invalid' : ''),
             oninput: ev => {
                 let v = ev.target.value;
-                if (a.type === 'number') v = Math.floor(v.replace(/[^0-9]+/g, '')||0);
+                if (!v.trim().length) v = empty(a)
+                else if (a.type === 'number') v = Math.floor(v.replace(/[^0-9]+/g, '')||0);
                 a.data[a.field] = v;
                 a.oninput && a.oninput(v);
             },
@@ -285,7 +290,7 @@ window.Input = () => {
         return [
             a.type === 'textarea'
             ? m('textarea', { ...attrs }, a.data[a.field])
-            : m('input', { ...attrs, value: a.data[a.field] === null ? '' : a.data[a.field],
+            : m('input', { ...attrs, value: a.data[a.field] === null || a.data[a.field] === empty(a) ? '' : a.data[a.field],
                 type: a.type === 'email' ? 'email' : a.type === 'password' ? 'password' : 'text',
             }),
             invalid ? m('p.invalid', invalid) : null,

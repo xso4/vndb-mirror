@@ -1,0 +1,22 @@
+/* For js/contrib/CharEdit.js */
+
+.chare_traits {
+    td[colspan] { padding: 10px 0 2px 10px; font-weight: bold }
+    tr td:not([colspan]):first-child { padding: 0 0 0 20px }
+    tr td:nth-child(3) { white-space: nowrap; padding: 0 }
+    tr td:nth-child(2) {
+        padding: 0 20px;
+        a    { display: block; width: 15px; height: 14px; border: 1px solid var(--border); margin: 0; float: left }
+        a.s0 { border: none; background-color: #0f0 }
+        a.s1 { border: none; background-color: #f80 }
+        a.s2 { border: none; background-color: #f40 }
+        a:nth-child(4) { margin-left: 20px }
+        a.sl { border: none; background-color: #f40 }
+    }
+}
+
+.chare_vnrel {
+    tr.top td { padding-left: 30px }
+    tr:not(:first-child).top td { padding-top: 15px }
+    tr.opt td { padding-left: 60px }
+}

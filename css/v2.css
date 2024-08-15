@@ -85,6 +85,7 @@ pre {
 @import "css/forms";
 @import "css/vngraph";
 @import "css/staffedit";
+@import "css/charedit";
 
 
 
@@ -566,19 +567,6 @@ div.chardetails table td.key { width: 106px; }
 div.chardetails.charsep      { margin-top: 30px }
 div.chardetails .lie { text-decoration: line-through }
 div.charquotes { margin: 0 auto; width: 800px; }
-
-
-
-/***** Char edit *****/
-
-
-table.chare_traits .buts      { padding: 0 20px }
-table.chare_traits .buts a    { display: block; width: 15px; height: 14px; border: 1px solid var(--border); margin: 0; float: left }
-table.chare_traits .buts a.s0 { border: none; background-color: #0f0 }
-table.chare_traits .buts a.s1 { border: none; background-color: #f80 }
-table.chare_traits .buts a.s2 { border: none; background-color: #f40 }
-table.chare_traits .buts a:nth-child(4) { margin-left: 20px }
-table.chare_traits .buts a.sl { border: none; background-color: #f40 }
 
 
 /***** Char browse *****/

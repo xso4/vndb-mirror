@@ -21,6 +21,16 @@ const mayRomanize  = new RegExp('[' + _greek + _cyrillic + _arabic + _thai + _ha
 
 
 const imageAccept = '.jpg,.jpeg,.png,.webp,.avif,.jxl,image/jpeg,image/png,image/webp,image/avif,image/jxl';
+const imageFormats = 'Supported file types: JPEG, PNG, WebP, AVIF or JXL, at most 10 MiB.';
+
+const imagePattern = t => '^(?:.+/)?(?:' + t + '([0-9]+)|' + t + '/[0-9][0-9]/([0-9]+)\.jpg).*';
+const imagePatternId = (t,v) => t + v.match(new RegExp(imagePattern(t))).filter(x => x !== undefined)[1];
+
+const spoilLevels = [
+    [0, 'No spoiler'],
+    [1, 'Minor spoiler'],
+    [2, 'Major spoiler'],
+];
 
 
 // Edit summary & submit button box for DB entry edit forms.
@@ -191,6 +201,7 @@ const ImageFlag = initVnode => {
 @include ProducerEdit.js
 @include StaffEdit.js
 @include DocEdit.js
+@include CharEdit.js
 @include TagEdit.js
 @include TraitEdit.js
 @include Report.js

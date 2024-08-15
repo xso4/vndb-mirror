@@ -34,6 +34,11 @@ elm_api DRM => undef, {}, sub {
 };
 
 
+js_api Release => { vid => { vndbid => 'v' } }, sub ($data,@) {
+    +{ results => releases_by_vn $data->{vid} }
+};
+
+
 js_api Resolutions => {}, sub {
     +{ results => [ map +{ id => resolution($_), count => $_->{count} }, tuwf->dbAlli(q{
         SELECT reso_x, reso_y, count(*) AS count FROM releases WHERE NOT hidden AND NOT (reso_x = 0 AND reso_y = 0)

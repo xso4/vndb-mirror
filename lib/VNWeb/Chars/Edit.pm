@@ -38,23 +38,21 @@ my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
         hidden  => { _when => 'out', anybool => 1 },
         locked  => { _when => 'out', anybool => 1 },
         applicable => { _when => 'out', anybool => 1 },
-        new     => { _when => 'out', anybool => 1 },
     } },
     vns        => { sort_keys => ['vid', 'rid'], aoh => {
         vid     => { vndbid => 'v' },
         rid     => { vndbid => 'r', default => undef },
         spoil   => { uint => 1, range => [0,2] },
         role    => { enum => \%CHAR_ROLE },
-        title   => { _when => 'out' },
     } },
     hidden     => { anybool => 1 },
     locked     => { anybool => 1 },
 
-    authmod    => { _when => 'out', anybool => 1 },
     editsum    => { _when => 'in out', editsum => 1 },
-    releases   => { _when => 'out', aoh => {
-        id      => { vndbid => 'r' },
-        rels    => $VNWeb::Elm::apis{Releases}[0]
+    vnstate    => { _when => 'out', aoh => {
+        id      => { vndbid => 'v' },
+        rels    => $VNWeb::Elm::apis{Releases}[0],
+        title   => {},
     } },
 };
 
@@ -74,11 +72,10 @@ TUWF::get qr{/$RE{crev}/(?<action>edit|copy)} => sub {
           WHERE', $copy ? 'NOT t.hidden AND t.applicable AND' : (), 't.id IN'), $e->{traits};
     $e->{traits} = [ sort { ($a->{order}//99) <=> ($b->{order}//99) || $a->{name} cmp $b->{name} } grep !$copy || $_->{applicable}, $e->{traits}->@* ];
 
-    enrich_merge vid => sql('SELECT id AS vid, title[1+1] AS title, sorttitle FROM', vnt, 'v WHERE id IN'), $e->{vns};
-    $e->{vns} = [ sort { $a->{sorttitle} cmp $b->{sorttitle} || idcmp($a->{vid}, $b->{vid}) || idcmp($a->{rid}||'r0', $b->{rid}||'r0') } $e->{vns}->@* ];
-
+    $e->{vns} = [ sort { idcmp($a->{vid}, $b->{vid}) || idcmp($a->{rid}||'r0', $b->{rid}||'r0') } $e->{vns}->@* ];
     my %vns;
-    $e->{releases} = [ map !$vns{$_->{vid}}++ ? { id => $_->{vid}, rels => releases_by_vn $_->{vid} } : (), $e->{vns}->@* ];
+    $e->{vnstate} = [ map !$vns{$_->{vid}}++ ? { id => $_->{vid}, rels => releases_by_vn $_->{vid} } : (), $e->{vns}->@* ];
+    enrich_merge id => sql('SELECT id, title[1+1] FROM', vnt, 'WHERE id IN'), $e->{vnstate};
 
     if($e->{image}) {
         $e->{image_info} = { id => $e->{image} };
@@ -94,7 +91,7 @@ TUWF::get qr{/$RE{crev}/(?<action>edit|copy)} => sub {
     framework_ title => $title, dbobj => $e, tab => tuwf->capture('action'),
     sub {
         editmsg_ c => $e, $title, $copy;
-        elm_ CharEdit => $FORM_OUT, $copy ? {%$e, id=>undef} : $e;
+        div_ widget(CharEdit => $FORM_OUT, $copy ? {%$e, id=>undef} : $e), '';
     };
 };
 
@@ -105,22 +102,21 @@ TUWF::get qr{/$RE{vid}/addchar}, sub {
     return tuwf->resNotFound if !$v->{id};
 
     my $e = elm_empty($FORM_OUT);
-    $e->{vns} = [{ vid => $v->{id}, title => $v->{title}, rid => undef, spoil => 0, role => 'primary' }];
-    $e->{releases} = [{ id => $v->{id}, rels => releases_by_vn $v->{id} }];
+    $e->{vns} = [{ vid => $v->{id}, rid => undef, spoil => 0, role => 'primary' }];
+    $e->{vnstate} = [{ id => $v->{id}, title => $v->{title}, rels => releases_by_vn $v->{id} }];
 
     framework_ title => 'Add character',
     sub {
         editmsg_ c => undef, 'Add character';
-        elm_ CharEdit => $FORM_OUT, $e;
+        div_ widget(CharEdit => $FORM_OUT, $e), '';
     };
 };
 
 
-elm_api CharEdit => $FORM_OUT, $FORM_IN, sub {
-    my $data = shift;
+js_api CharEdit => $FORM_IN, sub ($data,@) {
     my $new = !$data->{id};
     my $e = $new ? {} : db_entry $data->{id} or return tuwf->resNotFound;
-    return elm_Unauth if !can_edit c => $e;
+    return tuwf->resDenied if !can_edit c => $e;
 
     if(!auth->permDbmod) {
         $data->{hidden} = $e->{hidden}||0;
@@ -152,9 +148,9 @@ elm_api CharEdit => $FORM_OUT, $FORM_IN, sub {
         die "Bad release for $_->{vid}: $_->{rid}\n" if defined $_->{rid} && !tuwf->dbVali('SELECT 1 FROM releases_vn WHERE id =', \$_->{rid}, 'AND vid =', \$_->{vid});
     }
 
-    return elm_Unchanged if !$new && !form_changed $FORM_CMP, $data, $e;
+    return 'No changes' if !$new && !form_changed $FORM_CMP, $data, $e;
     my $ch = db_edit c => $e->{id}, $data;
-    elm_Redirect "/$ch->{nitemid}.$ch->{nrev}";
+    +{ _redir => "/$ch->{nitemid}.$ch->{nrev}" };
 };
 
 1;

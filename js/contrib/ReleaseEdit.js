@@ -479,11 +479,10 @@ const Images = initVnode => {
 
     const imageApi = new Api('Image');
     const imageData = {id:''};
-    const imagePattern = '^(?:.+/)?(?:cv([0-9]+)|cv/[0-9][0-9]/([0-9]+)\.jpg).*';
     const imageSubmit = ev => {
         ev.stopPropagation();
         ev.preventDefault();
-        const d = {id: 'cv'+imageData.id.match(new RegExp(imagePattern)).filter(x => x !== undefined)[1]};
+        const d = {id: imagePatternId('cv', imageData.id)};
         imageApi.call(d, nfo => {
             if (data.images.find(x => x.img === nfo.id))
                 imageApi.error = 'Image already selected.';
@@ -563,14 +562,13 @@ const Images = initVnode => {
                 m('input#file[type=file][required][multiple]', { accept: imageAccept, oninput: uploadSubmit }),
                 uploadApi.Status(),
             ),
-        ), Help('imgupl',
-            m('p', 'Supported file types: JPEG, PNG, WebP, AVIF or JXL, at most 10 MiB.'),
         ),
+        Help('imgupl', m('p', imageFormats)),
         m('fieldset', m('label', m('small', '-- or --'))),
         m('fieldset',
             m('label[for=imgid]', 'Image ID', HelpButton('imgid')),
             m(Form, { onsubmit: imageSubmit, api: imageApi },
-                m(Input, { id: 'imgid', class: 'lw', data: imageData, field: 'id', pattern: imagePattern, oninput: () => imageApi.abort() }),
+                m(Input, { id: 'imgid', class: 'lw', data: imageData, field: 'id', pattern: imagePattern('cv'), oninput: () => imageApi.abort() }),
                 m('button[type=submit]', 'Add'),
                 imageApi.Status(),
             ),

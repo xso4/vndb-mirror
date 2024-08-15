@@ -75,6 +75,8 @@ const close = ev => {
 //     Adds a "type for more options" as last option if search is empty.
 // - nosearch
 //     Disable search input
+// - keep
+//     Keep box active but cleared on item select.
 // - onselect(obj,checked)
 //     Called when an item has been selected. 'checked' is always true for
 //     single-selection dropdowns.
@@ -129,7 +131,7 @@ class DS {
         if (this.autocomplete) this.autocomplete(this.source.stringify ? this.source.stringify(obj) : obj.id);
         else if (this.onselect) this.onselect(obj, !this.checked || !this.checked(obj));
         if (!this.checked) {
-            close();
+            if (!this.keep) close();
             this.setInput('');
             this.selId = null;
         }
@@ -168,7 +170,7 @@ class DS {
         } else if (ev.key == 'Tab') {
             const f = this.list.find(e => e.id === this.selId);
             ev.shiftKey || !f ? close() : this.select();
-            if (this.checked) close(); // Tab always closes, even on multiselection boxes
+            if (this.keep || this.checked) close(); // Tab always closes, even on multiselection boxes
             if (!this.autocomplete) ev.preventDefault();
         }
     }
@@ -381,6 +383,17 @@ DS.Producers = {
     api: new Api('Producers'),
     list: (src, str, cb) => src.api.call({ search: [str] }, res => cb(res.results)),
     view: obj => [ m('small', obj.id, ': '), obj.name ],
+};
+
+DS.Chars = {
+    cache: {'':[]},
+    opts: { placeholder: 'Search characters...' },
+    api: new Api('Chars'),
+    list: (src, str, cb) => src.api.call({ search: str }, res => cb(res.results)),
+    view: obj => [
+        m('small', obj.id, ': '), obj.title,
+        obj.main ? m('small', ' (instance of ' + obj.main.id + ': ' + obj.main.title + ')') : null,
+    ],
 };
 
 DS.Engines = {

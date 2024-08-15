@@ -48,11 +48,7 @@ widget('TagEdit', vnode => {
         ),
         m('fieldset',
             m('label[for=defaultspoil]', 'Default spoiler level'),
-            m(Select, { class: 'mw', id: 'defaultspoil', data, field: 'defaultspoil', options: [
-                [0, 'No spoiler'],
-                [1, 'Minor spoiler'],
-                [2, 'Major spoiler'],
-            ]}),
+            m(Select, { class: 'mw', id: 'defaultspoil', data, field: 'defaultspoil', options: spoilLevels }),
         ),
         m('fieldset',
             m('label[for=description]', 'Description'),

@@ -33,6 +33,10 @@ sub types {
         producerRelation => [ map [$_, $PRODUCER_RELATION{$_}{txt}], keys %PRODUCER_RELATION ],
         vnRelation => [ map [$_, $VN_RELATION{$_}{txt}, $VN_RELATION{$_}{reverse}, $VN_RELATION{$_}{pref}], keys %VN_RELATION ],
         tagCategory => [ map [$_, $TAG_CATEGORY{$_}], keys %TAG_CATEGORY ],
+        bloodType => [ map [$_, $BLOOD_TYPE{$_}], keys %BLOOD_TYPE ],
+        charSex   => [ map [$_, $CHAR_SEX{$_}], keys %CHAR_SEX ],
+        charRole  => [ map [$_, $CHAR_ROLE{$_}{txt}], keys %CHAR_ROLE ],
+        cupSize   => [ map [$_, $CUP_SIZE{$_}], keys %CUP_SIZE ],
     }).";\n";
 }
 
