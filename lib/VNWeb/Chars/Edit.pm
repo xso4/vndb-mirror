@@ -75,7 +75,7 @@ TUWF::get qr{/$RE{crev}/(?<action>edit|copy)} => sub {
     $e->{vns} = [ sort { idcmp($a->{vid}, $b->{vid}) || idcmp($a->{rid}||'r0', $b->{rid}||'r0') } $e->{vns}->@* ];
     my %vns;
     $e->{vnstate} = [ map !$vns{$_->{vid}}++ ? { id => $_->{vid}, rels => releases_by_vn $_->{vid}, charlink => 1 } : (), $e->{vns}->@* ];
-    enrich_merge id => sql('SELECT id, title[1+1] FROM', vnt, 'WHERE id IN'), $e->{vnstate};
+    enrich_merge id => sql('SELECT id, title[1+1] FROM', vnt, 'v WHERE id IN'), $e->{vnstate};
 
     if($e->{image}) {
         $e->{image_info} = { id => $e->{image} };

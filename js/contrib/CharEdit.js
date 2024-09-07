@@ -299,7 +299,6 @@ const VNs = vnode => {
         props: obj => vnstate[obj.id] ? {selectable: false, append: m('small', ' (already selected)')} : {},
     });
 
-    // TODO: Trials and unofficial releases should not be included here
     const rds = r => new DS(
         DS.New(DS.Releases(vnstate[r.vid].rels), () => ({id:''}), () => 'Default'),
         { onselect: obj => r.rid = obj.id === '' ? null : obj.id }
