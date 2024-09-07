@@ -15,12 +15,13 @@ sub enrich_release_elm {
 }
 
 # Return the list of releases associated with a VN in the format suitable as 'Releases' Elm response.
-sub releases_by_vn(@id) {
+sub releases_by_vn($id, %opt) {
     my $l = tuwf->dbAlli('
         SELECT r.id, MIN(rv.rtype) AS rtype
           FROM ', releasest, 'r
           JOIN releases_vn rv ON rv.id = r.id
-         WHERE NOT r.hidden AND rv.vid IN', \@id, '
+         WHERE NOT r.hidden AND rv.vid IN', ref $id ? $id : [$id],
+               $opt{charlink} ? "AND r.official AND rv.rtype <> 'trial'" : (), '
          GROUP BY r.id
          ORDER BY min(r.released), min(r.sorttitle), r.id
     ');

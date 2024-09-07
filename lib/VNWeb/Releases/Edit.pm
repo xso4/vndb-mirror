@@ -114,7 +114,7 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
 
     enrich_image 0, [map { $_->{lang} //= []; $_->{nfo}{id} = $_->{img}; $_->{nfo} } $e->{images}->@*];
     $e->{vnimages} = vnimages $e->{id}, map $_->{vid}, $e->{vn}->@*;
-    $e->{vnreleases} = [ grep $copy || $_->{id} ne $e->{id}, releases_by_vn(map $_->{vid}, $e->{vn}->@*)->@* ];
+    $e->{vnreleases} = [ grep $copy || $_->{id} ne $e->{id}, releases_by_vn([map $_->{vid}, $e->{vn}->@*])->@* ];
 
     enrich_merge vid => sql('SELECT id AS vid, title[1+1] FROM', vnt, 'v WHERE id IN'), $e->{vn};
     enrich_merge pid => sql('SELECT id AS pid, title[1+1] AS name FROM', producerst, 'p WHERE id IN'), $e->{producers};

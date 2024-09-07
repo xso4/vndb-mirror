@@ -287,7 +287,7 @@ const VNs = vnode => {
         onselect: obj => {
             data.vns.push({ vid: obj.id, rid: null, spoil: 0, role: 'primary' })
             const l = new Api('Release');
-            l.call({vid: obj.id}, r => vnstate[obj.id].rels = r.results);
+            l.call({vid: obj.id, charlink:true}, r => vnstate[obj.id].rels = r.results);
             vnstate[obj.id] = {
                 id: obj.id,
                 title: obj.title,

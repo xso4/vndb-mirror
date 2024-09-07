@@ -74,7 +74,7 @@ TUWF::get qr{/$RE{crev}/(?<action>edit|copy)} => sub {
 
     $e->{vns} = [ sort { idcmp($a->{vid}, $b->{vid}) || idcmp($a->{rid}||'r0', $b->{rid}||'r0') } $e->{vns}->@* ];
     my %vns;
-    $e->{vnstate} = [ map !$vns{$_->{vid}}++ ? { id => $_->{vid}, rels => releases_by_vn $_->{vid} } : (), $e->{vns}->@* ];
+    $e->{vnstate} = [ map !$vns{$_->{vid}}++ ? { id => $_->{vid}, rels => releases_by_vn $_->{vid}, charlink => 1 } : (), $e->{vns}->@* ];
     enrich_merge id => sql('SELECT id, title[1+1] FROM', vnt, 'WHERE id IN'), $e->{vnstate};
 
     if($e->{image}) {
@@ -103,7 +103,7 @@ TUWF::get qr{/$RE{vid}/addchar}, sub {
 
     my $e = elm_empty($FORM_OUT);
     $e->{vns} = [{ vid => $v->{id}, rid => undef, spoil => 0, role => 'primary' }];
-    $e->{vnstate} = [{ id => $v->{id}, title => $v->{title}, rels => releases_by_vn $v->{id} }];
+    $e->{vnstate} = [{ id => $v->{id}, title => $v->{title}, rels => releases_by_vn $v->{id}, charlink => 1 }];
 
     framework_ title => 'Add character',
     sub {
@@ -141,11 +141,14 @@ js_api CharEdit => $FORM_IN, sub ($data,@) {
         map $_->{tid}, $data->{traits}->@*;
 
     validate_dbid 'SELECT id FROM vn WHERE id IN', map $_->{vid}, $data->{vns}->@*;
-    # XXX: This will also die when the release has been moved to a different VN
-    # and the char hasn't been updated yet. Would be nice to give a better
-    # error message in that case.
     for($data->{vns}->@*) {
-        die "Bad release for $_->{vid}: $_->{rid}\n" if defined $_->{rid} && !tuwf->dbVali('SELECT 1 FROM releases_vn WHERE id =', \$_->{rid}, 'AND vid =', \$_->{vid});
+        return "Invalid release for $_->{vid}: $_->{rid}\n" if defined $_->{rid} && !tuwf->dbVali('
+            SELECT 1
+              FROM releases r
+              JOIN releases_vn rv ON rv.id = r.id
+             WHERE rv.id =', \$_->{rid}, 'AND rv.vid =', \$_->{vid}, "
+               AND NOT r.hidden AND r.official AND rv.rtype <> 'trial'"
+         );
     }
 
     return 'No changes' if !$new && !form_changed $FORM_CMP, $data, $e;

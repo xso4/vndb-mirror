@@ -34,8 +34,8 @@ elm_api DRM => undef, {}, sub {
 };
 
 
-js_api Release => { vid => { vndbid => 'v' } }, sub ($data,@) {
-    +{ results => releases_by_vn $data->{vid} }
+js_api Release => { vid => { vndbid => 'v' }, charlink => {anybool => 1}, }, sub ($data,@) {
+    +{ results => releases_by_vn $data->{vid}, charlink => $data->{charlink} }
 };
 
 
