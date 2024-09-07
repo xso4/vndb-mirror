@@ -12,10 +12,7 @@
 // Log errors to the server. This intentionally uses old-ish syntax and APIs.
 // (though it still won't catch parsing/syntax errors in this bundle...)
 window.onerror = function(ev, source, lineno, colno, error) {
-    if (/\/g\/[a-z]+\.js/.test(source)
-        // No clue what's up with these, sometimes happens in FF. Is Elm being initialized before the DOM is ready or something?
-        && !(/elm\.js/.test(source) && /InvalidStateError/.test(ev))
-    ) {
+    if (/\/(basic|contrib|graph|user)\.js/.test(source)) {
         var h = new XMLHttpRequest();
         var e = encodeURIComponent;
         h.open('POST', '/js-error?2', true);
