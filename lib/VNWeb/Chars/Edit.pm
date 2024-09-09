@@ -108,7 +108,12 @@ TUWF::get qr{/$RE{vid}/addchar}, sub {
 
     my $e = elm_empty($FORM_OUT);
     $e->{vns} = [{ vid => $v->{id}, rid => undef, spoil => 0, role => 'primary' }];
-    $e->{vnstate} = [{ id => $v->{id}, title => $v->{title}, rels => releases_by_vn $v->{id}, charlink => 1 }];
+    $e->{vnstate} = [{
+        id => $v->{id},
+        title => $v->{title},
+        rels => releases_by_vn($v->{id}, charlink => 1),
+        prods => VNWeb::VN::Lib::charproducers($v->{id}),
+    }];
 
     framework_ title => 'Add character',
     sub {
