@@ -855,6 +855,24 @@ api_query '/release',
                 publisher => { select => 'rp.publisher', @BOOL },
             },
         },
+        images => {
+            enrich => sub { sql 'SELECT ri.id AS rid', $_[0], 'FROM releases_images ri', $_[1], 'WHERE ri.id IN', $_[2] },
+            key => 'id', col => 'rid', num => 3,
+            joins => {
+                image => 'JOIN images i ON i.id = ri.img',
+            },
+            fields => {
+                IMG('ri.img', 'image', 'i.'),
+                thumbnail => { select => 'ri.img AS thumbnail', col => 'thumbnail', proc => sub { $_[0] = imgurl $_[0], 't' } },
+                thumbnail_dims => { join => 'image', col => 'thumbnail_dims'
+                                  , select => "ARRAY[i.width, i.height] AS thumbnail_dims"
+                                  , proc => sub { @{$_[0]} = imgsize @{$_[0]}, config->{cv_size}->@* } },
+                type      => { select => 'ri.itype AS type' },
+                vn        => { select => 'ri.vid AS vn' },
+                languages => { select => 'ri.lang::text[] AS languages' },
+                photo     => { select => 'ri.photo', @BOOL },
+            },
+        },
         released   => { select => 'r.released', @RDATE },
         minage     => { select => 'r.minage' },
         patch      => { select => 'r.patch', @BOOL },

@@ -900,6 +900,27 @@ producers.publisher
 producers.\*
 :   All [producer fields](#producer-fields) are available.
 
+images
+:   Array of objects, possibly empty.
+
+images.\*
+:   All [visual novel](#vn-fields) `image.*` fields are available here as well.
+
+images.type
+:   Image type, valid values are `"pkgfront"`, `"pkgback"`, `"pkgcontent"`,
+    `"pkgside"`, `"pkgmed"` and `"dig"`.
+
+images.vn
+:   Visual novel ID to which this image applies, usually null. This field is
+    only useful for bundle releases that are linked to multiple VNs.
+
+images.languages
+:   Array of languages for which this image is valid, or null if the image is
+    valid for all languages assigned to this release.
+
+images.photo
+:   Boolean.
+
 released
 :   Release date.
 
@@ -1690,6 +1711,10 @@ bias in its selection due to the presence of id gaps, but you most likely don't
 need perfect uniform random selection anyway.
 
 # Change Log
+
+**2024-09-09**
+
+- Add `images` field to [POST /release](#post-release).
 
 **2024-06-05**
 
