@@ -277,17 +277,18 @@ const Traits = vnode => {
 
 const VNs = vnode => {
     const data = vnode.attrs.data;
-    const vnstate = Object.fromEntries(data.vnstate.map(({id,rels,title}) => [id,{
-        id, rels, title,
+    const vnstate = Object.fromEntries(data.vnstate.map(({id,rels,prods,title}) => [id,{
+        id, rels, prods, title,
         adv: data.vns.find(x => x.vid === id && x.rid !== null),
     }]));
 
-    // TODO: Show a big warning when adding a VN with no overlapping producers
     const ds = new DS(DS.VNs, {
         onselect: obj => {
             data.vns.push({ vid: obj.id, rid: null, spoil: 0, role: 'primary' })
             const l = new Api('Release');
             l.call({vid: obj.id, charlink:true}, r => vnstate[obj.id].rels = r.results);
+            const p = new Api('VNCharProducers');
+            p.call({vid: obj.id}, r => vnstate[obj.id].prods = r.results);
             vnstate[obj.id] = {
                 id: obj.id,
                 title: obj.title,
@@ -304,12 +305,32 @@ const VNs = vnode => {
         { onselect: obj => r.rid = obj.id === '' ? null : obj.id }
     );
 
+    const allprods = Object.fromEntries(data.vnstate.flatMap(({prods}) => prods.map(({id,title}) => [id,title])));
+
     const vn = (v,rels) => m('fieldset.form',
         m('legend',
             m(Button.Del, { onclick: () => { data.vns = data.vns.filter(x => x.vid !== v.id); delete vnstate[v.id]; } }),
             m('small', ' ', v.id, ': '),
             m('a[target=_blank]', { href: '/'+v.id }, v.title)
         ),
+        v.rload && v.prods && !v.prods.find(({id}) => allprods[id]) ? m('div.warning',
+            m('h2', 'No common publishers'),
+            m('p',
+                'A single character entry should NOT be linked to visual novels from different publishers. ',
+                'You may want to create a separate instance instead, see ', m('a[target=_blank][href=/d12#2]', 'the instance guidelines'), ' for more information.',
+            ),
+            m('p',
+                m('br'),
+                'If this visual novel was indeed created by the same developer or published by the same publisher, ',
+                'but under a different producer entry, then feel free to ignore this warning.',
+            ),
+            m('p',
+                m('br'),
+                'Existing producers: ', Object.keys(allprods).map(id => m('a[target=_blank]', { href: '/'+id }, allprods[id])).intersperse(', '),
+                m('br'),
+                'Producers of this VN: ', v.prods.map(({id,title}) => m('a[target=_blank]', { href: '/'+id }, title)).intersperse(', '),
+            ),
+        ) : null,
         v.adv ? [
             m('table.full.chare_vnrel',
                 m('tr.top', m('td',

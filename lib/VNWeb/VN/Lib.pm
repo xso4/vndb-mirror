@@ -24,4 +24,19 @@ sub enrich_vnimage {
     enrich_image_obj vnimage => @_;
 }
 
+
+# List of official producers for this VN, used by Chars::Edit to determine if
+# the a character can be linked to relevant VNs.
+sub charproducers($vid) {
+    tuwf->dbAlli('
+        SELECT DISTINCT ON (p.id) p.id, p.title[1+1]
+          FROM releases_vn rv
+          JOIN releases r ON r.id = rv.id
+          JOIN releases_producers rp ON rp.id = rv.id
+          JOIN', producerst, 'p ON rp.pid = p.id
+         WHERE rv.vid =', \$vid, "AND r.official AND NOT rv.rtype = 'trial'
+         ORDER BY p.id
+   ");
+}
+
 1;

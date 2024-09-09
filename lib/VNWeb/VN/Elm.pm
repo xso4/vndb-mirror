@@ -50,4 +50,10 @@ js_api VNImageVote => {
     +{}
 };
 
+
+js_api VNCharProducers => { vid => { vndbid => 'v' }}, sub ($data,@) {
+    return tuwf->resDenied if !auth;
+    +{ results => VNWeb::VN::Lib::charproducers($data->{vid}) }
+};
+
 1;

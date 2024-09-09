@@ -52,6 +52,7 @@ my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
     vnstate    => { _when => 'out', aoh => {
         id      => { vndbid => 'v' },
         rels    => $VNWeb::Elm::apis{Releases}[0],
+        prods   => { aoh => { id => { vndbid => 'p' }, title => {} } },
         title   => {},
     } },
 };
@@ -74,7 +75,11 @@ TUWF::get qr{/$RE{crev}/(?<action>edit|copy)} => sub {
 
     $e->{vns} = [ sort { idcmp($a->{vid}, $b->{vid}) || idcmp($a->{rid}||'r0', $b->{rid}||'r0') } $e->{vns}->@* ];
     my %vns;
-    $e->{vnstate} = [ map !$vns{$_->{vid}}++ ? { id => $_->{vid}, rels => releases_by_vn $_->{vid}, charlink => 1 } : (), $e->{vns}->@* ];
+    $e->{vnstate} = [ map !$vns{$_->{vid}}++ ? {
+        id => $_->{vid},
+        rels => releases_by_vn($_->{vid}, charlink => 1),
+        prods => VNWeb::VN::Lib::charproducers($_->{vid}),
+    } : (), $e->{vns}->@* ];
     enrich_merge id => sql('SELECT id, title[1+1] FROM', vnt, 'v WHERE id IN'), $e->{vnstate};
 
     if($e->{image}) {
