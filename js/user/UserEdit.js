@@ -142,6 +142,7 @@ const Traits = initVnode => {
     const data = initVnode.attrs.data;
     const lookup = Object.fromEntries(data.traits.map(x => [x.tid,true]));
     const ds = new DS(DS.Traits, {
+        keep: true,
         props: obj =>
             lookup[obj.id]
             ? { selectable: false, append: m('small', ' (already listed)') }
@@ -413,6 +414,7 @@ const TTPrefs = initVnode => {
     const {data,prefix} = initVnode.attrs;
     const pref = prefix === 'g' ? 'tagprefs' : 'traitprefs';
     const ds = new DS(prefix === 'g' ? DS.Tags : DS.Traits, {
+        keep: true,
         onselect: obj => data[pref].push({tid: obj.id, name: obj.name, group: obj.group_name, spoil: null, color: null, childs: true }),
         props: obj => data[pref].find(o => obj.id === o.tid) ? { selectable: false, append: m('small', ' (already listed)') } : {},
     });
