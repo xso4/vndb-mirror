@@ -14,10 +14,10 @@ const _thai = '\u0e00-\u0e7f';
 const _hangul = '\u1100-\u11ff\uac00-\ud7af';
 const _canadian = '\u1400-\u167f'; // Unified Canadian Aboriginal Syllabics, we have an actual Inuktitut title in the database
 const _kana = '\u3040-\u3099\u30a1-\u30fa\uff66-\uffdc'; // Hiragana + Katakana + Half/Full-width forms
-const _cjk = '\u3100-\u9fff\u{20000}-\u{323af}'; // Whole range of CJK blocks
-const mustRomanize = new RegExp('[' +          _cyrillic + _arabic + _thai + _hangul + _canadian + _kana + _cjk + ']', 'u');
-// Greek characters are often used for styling and don't always need romanizing.
-const mayRomanize  = new RegExp('[' + _greek + _cyrillic + _arabic + _thai + _hangul + _canadian + _kana + _cjk + ']', 'u');
+const _cjk = '\u3100-\u5f60\u5f62\u9fff\u{20000}-\u{323af}'; // Whole range of CJK blocks (excluding _special)
+const _special = '\u5f61'; // Characters sometimes used for styling, may or may not need romanization
+const mustRomanize = new RegExp('[' +                     _cyrillic + _arabic + _thai + _hangul + _canadian + _kana + _cjk + ']', 'u');
+const mayRomanize  = new RegExp('[' + _greek + _special + _cyrillic + _arabic + _thai + _hangul + _canadian + _kana + _cjk + ']', 'u');
 
 
 const imageAccept = '.jpg,.jpeg,.png,.webp,.avif,.jxl,image/jpeg,image/png,image/webp,image/avif,image/jxl';
