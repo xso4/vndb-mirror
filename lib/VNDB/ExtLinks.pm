@@ -252,6 +252,12 @@ our %LINKS = (
         l_vndb     => { label => 'VNDB user'
                       , fmt   => 'https://vndb.org/%s'
                       , regex => qr{vndb\.org/(u[1-9][0-9]*)} },
+        l_egs      => { label => 'ErogameScape'
+                      , fmt   => 'https://erogamescape.dyndns.org/~ap2/ero/toukei_kaiseki/creater.php?creater=%d'
+                      , regex => qr{erogamescape\.dyndns\.org/~ap2/ero/toukei_kaiseki/(?:before_)?creater\.php\?(?:.*&)?creater=([0-9]+)(?:&.*)?} },
+        l_anison   => { label => 'Anison'
+                      , fmt   => 'http://anison.info/data/person/%d.html'
+                      , regex => qr{anison\.info/data/person/([0-9]+)\.html} },
         # deprecated
         l_wp       => { label => 'Wikipedia',        fmt => 'https://en.wikipedia.org/wiki/%s' },
     },
@@ -442,6 +448,8 @@ sub enrich_extlinks {
             l 'l_bgmtv';
             l 'l_imdb';
             l 'l_vndb';
+            l 'l_egs';
+            l 'l_anison';
             #w 'doujinshi_author';
         }
 

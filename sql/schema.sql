@@ -984,7 +984,9 @@ CREATE TABLE staff ( -- dbentry_type=s
   l_imdb      integer NOT NULL DEFAULT 0, -- [pub]
   l_vndb      vndbid, -- [pub]
   l_mbrainz   uuid, -- [pub]
-  l_scloud    text NOT NULL DEFAULT '' -- [pub]
+  l_scloud    text NOT NULL DEFAULT '', -- [pub]
+  l_egs       integer NOT NULL DEFAULT 0, -- [pub]
+  l_anison    integer NOT NULL DEFAULT 0 -- [pub]
 );
 
 -- staff_hist
@@ -1007,7 +1009,9 @@ CREATE TABLE staff_hist (
   l_imdb      integer NOT NULL DEFAULT 0,
   l_vndb      vndbid,
   l_mbrainz   uuid,
-  l_scloud    text NOT NULL DEFAULT ''
+  l_scloud    text NOT NULL DEFAULT '',
+  l_egs       integer NOT NULL DEFAULT 0,
+  l_anison    integer NOT NULL DEFAULT 0
 );
 
 -- staff_alias
