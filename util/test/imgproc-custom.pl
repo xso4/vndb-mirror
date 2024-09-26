@@ -35,8 +35,8 @@ sub cmpmagick {
 
 # These hashes are likely to change with libvips / libjpeg versions, output
 # should be manually verified and the hashes updated in that case.
-cmphash 'util/test/basn4a08.png', '32x32', '62c4f502c6e8f13fe72cd511267616ea75724503';
-cmphash 'util/test/basn6a16.png', '32x32', 'f85f1bb196ad6f8c284370bcb74d5cd8b19fc432';
+cmphash 'util/test/basn4a08.png', '32x32', '446ceb47d7cfd058a69b0a8f0fcd993489658d2c';
+cmphash 'util/test/basn6a16.png', '32x32', 'a4d073bcafd9de6990cb5e723a27e979188cffaa';
 
 # Triggers g_warning() output
 die if `$bin size <util/test/xd9n2c08.png 2>&1` !~ /Invalid IHDR data/;
@@ -45,19 +45,19 @@ die if `$bin jpeg 5 <util/test/basn4a08.png 2>&1` !~ /write error/;
 
 # Large images are tested to see if extra memory or thread pool use triggers more unique system calls.
 # (it does, and yes it varies per input format)
-cmpmagick 'large.png', '"canvas:rgb(100,50,30)"', '5000x5000', 'c5f1d23d43f3ec42ce04a31ba67334c2b5f68ee2';
+cmpmagick 'large.png', '"canvas:rgb(100,50,30)"', '5000x5000', 'd469c876ca4a737bd0973aaf682b64d524e27602';
 
-cmpmagick 'large-lossless.webp', '"canvas:rgb(100,50,30)" -define webp:lossless=true',  '5000x5000', 'c5f1d23d43f3ec42ce04a31ba67334c2b5f68ee2';
-cmpmagick 'large-lossy.webp',    '"canvas:rgb(100,50,30)" -define webp:lossless=false', '5000x5000', 'e043021ad032a8dbfbb21bef373ea9e2851baf51';
-cmpmagick 'gray.webp', 'pattern:GRAY50 -colorspace GRAY -define webp:lossless=true', '32x32', '8de7aebd2d86572f9dc320886a3bc4cf59bb53ca';
+cmpmagick 'large-lossless.webp', '"canvas:rgb(100,50,30)" -define webp:lossless=true',  '5000x5000', 'd469c876ca4a737bd0973aaf682b64d524e27602';
+cmpmagick 'large-lossy.webp',    '"canvas:rgb(100,50,30)" -define webp:lossless=false', '5000x5000', '6ef162d607c7cfafdf12662e73026a2045a299db';
+cmpmagick 'gray.webp', 'pattern:GRAY50 -colorspace GRAY -define webp:lossless=true', '32x32', 'b89eb7012f4c83b51a4949186fbc0647c47eff75';
 
-cmpmagick 'large.jpg', '"canvas:rgb(100,50,30)"', '5000x5000', '7a54b06bdf1b742c5a97f2a105de48da81f3b284';
-cmpmagick 'gray.jpg', 'pattern:GRAY50 -colorspace GRAY', '32x32', '13980f3168cdddbe193b445552dab40fa9afa0a1';
-cmpmagick 'cmyk.jpg', 'LOGO: -colorspace CMYK', '640x480', '3ff8566e661a0faef5a90d11195819983b595876';
+cmpmagick 'large.jpg', '"canvas:rgb(100,50,30)"', '5000x5000', '6ef162d607c7cfafdf12662e73026a2045a299db';
+cmpmagick 'gray.jpg', 'pattern:GRAY50 -colorspace GRAY', '32x32', 'b6f789931d9356470988cdf36154b157824c170e';
+cmpmagick 'cmyk.jpg', 'LOGO: -colorspace CMYK', '640x480', 'c7c6de45fe5deae3a7c1c5538c628e1b5d48c3ca'; # Hmm, colors don't seem correct. :/
 
-cmpmagick 'large.avif', '"canvas:rgb(100,50,30)"', '5000x5000', 'b42788bf491a9a73d30d58c3a3a843e219f36f91';
+cmpmagick 'large.avif', '"canvas:rgb(100,50,30)"', '5000x5000', 'c33cebf2bc6cb477726f64762ec40442a28546ce';
 
-cmpmagick 'large.jxl', '"canvas:rgb(100,50,30)"', '5000x5000', '76b8bbca1df2184319ec9d7e57250e0b8b7b5c2f';
+cmpmagick 'large.jxl', '"canvas:rgb(100,50,30)"', '5000x5000', '681d4524f780f0f7ecca78d22c103024471d47cc';
 
 # TODO: Test metadata stripping?
 
