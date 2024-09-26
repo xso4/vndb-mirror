@@ -830,7 +830,7 @@ CREATE TABLE reviews (
   c_flagged  boolean NOT NULL DEFAULT false,
   text       text NOT NULL,
   modnote    text NOT NULL DEFAULT '',
-  length     smallint NOT NULL GENERATED ALWAYS AS CASE WHEN length(text) <= 800 THEN 0 WHEN length(text) <= 2500 THEN 1 ELSE 2 END STORED
+  length     smallint NOT NULL GENERATED ALWAYS AS (CASE WHEN length(text) <= 800 THEN 0 WHEN length(text) <= 2500 THEN 1 ELSE 2 END) STORED
 );
 
 -- reviews_posts
