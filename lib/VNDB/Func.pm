@@ -234,8 +234,8 @@ sub fmtanimation($a, $cat) {
 
 
 # Format a release date as a string.
-sub rdate($date//=0) {
-    my($y, $m, $d) = ($1, $2, $3) if sprintf('%08d', $date) =~ /^([0-9]{4})([0-9]{2})([0-9]{2})$/;
+sub rdate($date=0) {
+    my($y, $m, $d) = ($1, $2, $3) if sprintf('%08d', $date//0) =~ /^([0-9]{4})([0-9]{2})([0-9]{2})$/;
     $y ==    0 ? 'unknown' :
     $y == 9999 ? 'TBA' :
     $m ==   99 ? sprintf('%04d', $y) :
