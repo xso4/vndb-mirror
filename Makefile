@@ -244,7 +244,7 @@ include ${GEN}/jsdeps.mk
 
 ${GEN}/mithril.js:
 	$T FETCH
-	$Q curl -s 'https://code.blicky.net/yorhel/mithril-vndb/raw/branch/next/mithril.js' -o $@
+	$Q curl -s 'https://code.blicky.net/yorhel/mithril-vndb/raw/branch/main/mithril.js' -o $@
 
 # TODO: Custom bundle with only the stuff we use
 ${GEN}/d3.js:

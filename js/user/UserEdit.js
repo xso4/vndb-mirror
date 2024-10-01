@@ -11,16 +11,15 @@ let username_taken = {};
 const Username = () => {
     let old = '';
     return {view: v => m('fieldset.form',
-        // Explicit keys to work around https://github.com/MithrilJS/mithril.js/issues/2842
-        m('legend', {key:1}, 'Username'),
-        !username_edit ? m('fieldset', {key:2},
+        m('legend', 'Username'),
+        !username_edit ? m('fieldset',
             m('label', 'Current'),
             v.attrs.data.username,
             ' ',
             v.attrs.data.username_throttled
             ? m('small', '(changed within the past 24 hours)')
             : m('input[type=button][value=Edit]', { onclick: () => { old = v.attrs.data.username; username_edit = true } }),
-        ) : m('fieldset', {key:3},
+        ) : m('fieldset',
             m('label[for=username]', 'New username'),
             m(Input, {
                 id: 'username', class: 'mw', type: 'username', required: true, data: v.attrs.data, field: 'username', focus: true,
