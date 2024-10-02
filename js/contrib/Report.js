@@ -1,8 +1,16 @@
 const editable = /^[vrpcs]/;
+const hasimage = /^[vrc]/;
 // Name, Objtypes, cansubmit, msg
 const reasons = [
     [ '-- Select --' ],
     [ 'Spam', /^[^du]/, true ],
+    [ 'Sexual content involving minors', hasimage, true, () => [
+        m('strong', 'DO NOT report:'), m('br'),
+        '- Lolicon or shotacon with anime-style art.', m('br'),
+        '- Text-only sexual content.', m('br'),
+        m('strong', 'DO report:'), m('br'),
+        '- Semi-realistic 3D art, realistic looking AI-generated art or actual photos.',
+    ] ],
     [ 'Links to piracy or illegal content', /^[^u]/, true ],
     [ 'Off-topic', /^[tw]/, true ],
     [ 'Unwelcome behavior', /^[tw]/, true ],
@@ -15,7 +23,7 @@ const reasons = [
         m('a[href=/t/db]', 'discussion board'),
         ' so that others may be able to help you.',
     ] : 'Please clearly explain what the spoiler is.') ],
-    [ 'Unmarked or improperly flagged NSFW image', /^[vc]/, true ],
+    [ 'Unmarked or improperly flagged NSFW image', hasimage, true ],
     [ 'Incorrect information', editable, false, id => [
         'VNDB is an open wiki, you can correct the information in this database yourself by ',
         m('a', { href: '/'+id+'/edit' }, 'editing the entry'),
@@ -81,7 +89,7 @@ widget('Report', vnode => {
                 : 'We usually do not provide feedback on reports, but you may leave your email address in the message if you wish to be available for clarification.',
                 m('br'),
                 'Keep in mind that not every report is acted upon, we may decide that the problem you ',
-                'reported is not serious enough or does not require moderator intervention.',
+                'reported is does not violate any rules or does not require moderator intervention.',
             ),
             m('fieldset',
                 m('label[for=reason]', 'Reason'),
