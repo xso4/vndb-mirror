@@ -258,6 +258,25 @@ our %LINKS = (
         l_anison   => { label => 'Anison'
                       , fmt   => 'http://anison.info/data/person/%d.html'
                       , regex => qr{anison\.info/data/person/([0-9]+)\.html} },
+        l_patreon  => { label => 'Patreon'
+                      , fmt   => 'https://www.patreon.com/%s'
+                      , regex => qr{(?:www\.)?patreon\.com/(?!user[\?/]|posts[\?/]|join[\?/])([^/?]+).*} },
+        l_substar  => { label => 'SubscribeStar'
+                      , fmt   => 'https://subscribestar.%s'
+                      , regex => qr{(?:www\.)?subscribestar\.((?:adult|com)/[^/?]+).*}
+                      , patt  => 'https://subscribestar.<adult or com>/<name>' },
+        l_youtube  => { label => 'Youtube'
+                      , fmt   => 'https://www.youtube.com/@%s'  # There's also /user/<name> syntax, but <name> may be different in this form *sigh*.
+                      , regex => qr{(?:www\.)?youtube\.com/@([^/?]+)} },
+        l_instagram=> { label => 'Instagram'
+                      , fmt   => 'https://www.instagram.com/%s/'
+                      , regex => qr{(?:www\.)?instagram\.com/([^/?]+)(?:[?/].*)?} },
+        l_deviantar=> { label => 'DeviantArt'
+                      , fmt   => 'https://www.deviantart.com/%s'
+                      , regex => qr{(?:([a-z0-9-]+)\.deviantart\.com/?|(?:www\.)?deviantart\.com/([^/?]+)(?:[?/].*)?)} },
+        l_tumblr   => { label => 'Tumblr'
+                      , fmt   => 'https://%s.tumblr.com/'
+                      , regex => qr{([a-z0-9-]+)\.tumblr\.com/.*} },
         # deprecated
         l_wp       => { label => 'Wikipedia',        fmt => 'https://en.wikipedia.org/wiki/%s' },
     },
@@ -450,6 +469,12 @@ sub enrich_extlinks {
             l 'l_vndb';
             l 'l_egs';
             l 'l_anison';
+            l 'l_patreon';
+            l 'l_substar';
+            l 'l_youtube';
+            l 'l_instagram';
+            l 'l_deviantar';
+            l 'l_tumblr';
             #w 'doujinshi_author';
         }
 

@@ -986,7 +986,13 @@ CREATE TABLE staff ( -- dbentry_type=s
   l_mbrainz   uuid, -- [pub]
   l_scloud    text NOT NULL DEFAULT '', -- [pub]
   l_egs       integer NOT NULL DEFAULT 0, -- [pub]
-  l_anison    integer NOT NULL DEFAULT 0 -- [pub]
+  l_anison    integer NOT NULL DEFAULT 0, -- [pub]
+  l_patreon   text NOT NULL DEFAULT '', -- [pub]
+  l_substar   text NOT NULL DEFAULT '', -- [pub]
+  l_youtube   text NOT NULL DEFAULT '', -- [pub]
+  l_instagram text NOT NULL DEFAULT '', -- [pub]
+  l_deviantar text NOT NULL DEFAULT '', -- [pub]
+  l_tumblr    text NOT NULL DEFAULT '' -- [pub]
 );
 
 -- staff_hist
@@ -1011,7 +1017,13 @@ CREATE TABLE staff_hist (
   l_mbrainz   uuid,
   l_scloud    text NOT NULL DEFAULT '',
   l_egs       integer NOT NULL DEFAULT 0,
-  l_anison    integer NOT NULL DEFAULT 0
+  l_anison    integer NOT NULL DEFAULT 0,
+  l_patreon   text NOT NULL DEFAULT '',
+  l_substar   text NOT NULL DEFAULT '',
+  l_youtube   text NOT NULL DEFAULT '',
+  l_instagram text NOT NULL DEFAULT '',
+  l_deviantar text NOT NULL DEFAULT '',
+  l_tumblr    text NOT NULL DEFAULT ''
 );
 
 -- staff_alias
