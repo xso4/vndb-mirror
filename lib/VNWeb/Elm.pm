@@ -41,6 +41,7 @@ our %apis = (
     Editsum        => [], # Invalid edit summary
     Content        => [{}], # Rendered HTML content (for markdown/bbcode APIs)
     ImgFormat      => [], # Unrecognized image format
+    ImgSize        => [], # Image too large
     LabelId        => [{uint => 1}], # Label created
     DupNames       => [ { aoh => { # Duplicate names/aliases (for tags & traits)
         id       => { vndbid => ['i','g'] },

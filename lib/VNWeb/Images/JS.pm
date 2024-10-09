@@ -74,19 +74,29 @@ TUWF::post qr{/(elm|js)/ImageUpload.json}, sub {
     )->recv;
     chomp($err);
 
+    my sub cleanup {
+        unlink $fno;
+        unlink $fn0;
+        unlink $fn1;
+        tuwf->dbRollBack;
+    }
+
     if($rc || !-s $fn0 || $err !~ /^([0-9]+)x([0-9]+)$/) {
         warn "imgproc: $err\n" if $err;
         warn "Failed to run imgproc for $id\n";
         # keep original for troubleshooting
         rename $fno, config->{var_path}."/tmp/error-${id}.${fmt}";
-        unlink $fn0;
-        unlink $fn1;
-        tuwf->dbRollBack;
+        cleanup;
         return $elm ? elm_ImgFormat : tuwf->resJSON({_err => 'Invalid image'});
     }
     my($w,$h) = ($1,$2);
-    tuwf->dbExeci('UPDATE images SET', { width => $w, height => $h }, 'WHERE id =', \$id);
 
+    if (-s $fn0 >= TUWF::set('max_post_body')) {
+        cleanup;
+        return $elm ? elm_ImgSize : tuwf->resJSON({_err => 'Encoded image too large, try a lower resolution'});
+    }
+
+    tuwf->dbExeci('UPDATE images SET', { width => $w, height => $h }, 'WHERE id =', \$id);
     chmod 0666, $fno;
     chmod 0666, $fn0;
     chmod 0666, $fn1;

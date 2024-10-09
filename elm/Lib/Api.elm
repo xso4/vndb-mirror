@@ -36,7 +36,8 @@ showResponse res =
     Unauth                          -> "You do not have the permission to perform this action."
     Unchanged                       -> "No changes"
     Content _                       -> unexp
-    ImgFormat                       -> "Unrecognized image format, only JPEG, PNG and WebP are accepted."
+    ImgFormat                       -> "Unrecognized image format, only JPEG, JPEG XL, PNG and WebP are accepted."
+    ImgSize                         -> "Encoded image too large, try a lower resolution."
     LabelId _                       -> unexp
     DupNames _                      -> "Name or alias already in the database."
     Releases _                      -> unexp
