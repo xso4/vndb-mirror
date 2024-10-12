@@ -463,10 +463,9 @@ const Images = initVnode => {
     ) };
 
     // Filter out image types
-    // - digital / physical options only available when the release has the appropriate media
-    const imgTypes = cur => vndbTypes.releaseImageType.filter(([t]) => cur === t || (
-           (data.media.length === 0 || data.media.find(e => e.medium === 'in') || !t.match(/^dig/))
-        && (data.media.length === 0 || data.media.find(e => e.medium !== 'in') || !t.match(/^pkg/))
+    // - physical options only available when the release has the appropriate media
+    const imgTypes = cur => vndbTypes.releaseImageType.filter(([t]) => cur === t || t == 'dig' || (
+        (data.media.length === 0 || data.media.find(e => e.medium !== 'in') || !t.match(/^pkg/))
     ));
     const addImg = nfo => {
         const vns = nfo.entries.filter(e => e.id.match(/^v/));
