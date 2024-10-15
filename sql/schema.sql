@@ -507,7 +507,7 @@ CREATE TABLE releases ( -- dbentry_type=r
   gtin         bigint NOT NULL DEFAULT 0, -- [pub] JAN/UPC/EAN/ISBN
   l_toranoana  bigint NOT NULL DEFAULT 0, -- [pub]
   l_appstore   bigint NOT NULL DEFAULT 0, -- [pub]
-  l_nintendo_jp text NOT NULL DEFAULT '', -- [pub]
+  l_nintendo_jp bigint NOT NULL DEFAULT 0, -- [pub]
   l_nintendo_hk bigint NOT NULL DEFAULT 0, -- [pub]
   released     integer NOT NULL DEFAULT 0, -- [pub]
   l_steam      integer NOT NULL DEFAULT 0, -- [pub]
@@ -582,7 +582,7 @@ CREATE TABLE releases_hist (
   gtin         bigint NOT NULL DEFAULT 0,
   l_toranoana  bigint NOT NULL DEFAULT 0,
   l_appstore   bigint NOT NULL DEFAULT 0,
-  l_nintendo_jp text NOT NULL DEFAULT '',
+  l_nintendo_jp bigint NOT NULL DEFAULT 0,
   l_nintendo_hk bigint NOT NULL DEFAULT 0,
   released     integer NOT NULL DEFAULT 0,
   l_steam      integer NOT NULL DEFAULT 0,
