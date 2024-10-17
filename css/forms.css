@@ -104,7 +104,7 @@ fieldset.form {
         svg { width: 16px; height: 16px; margin-bottom: -2px }
     }
     section.help {
-        margin: -5px 0 5px -130px;
+        margin: -3px 0 5px -130px;
         max-width: 700px;
         background-color: var(--noticebg); border: 1px solid var(--noticeborder);
         position: relative; padding: 5px;
@@ -114,7 +114,8 @@ fieldset.form {
             svg { width: 18px; height: 18px; border: none; }
             &:hover { border: none }
         }
-        p + p { padding-top: 10px }
+        p + p, ul + p { padding-top: 10px }
+        ul { padding-top: 5px }
         dl { margin: 10px 0; display: grid; grid-template-columns: auto 1fr; grid-gap: 3px 10px }
         dt { font-weight: bold }
     }

@@ -35,6 +35,7 @@ sub types {
         tagCategory => [ map [$_, $TAG_CATEGORY{$_}], keys %TAG_CATEGORY ],
         bloodType => [ map [$_, $BLOOD_TYPE{$_}], keys %BLOOD_TYPE ],
         charSex   => [ map [$_, $CHAR_SEX{$_}], keys %CHAR_SEX ],
+        charGender=> [ map [$_, $CHAR_GENDER{$_}], keys %CHAR_GENDER ],
         charRole  => [ map [$_, $CHAR_ROLE{$_}{txt}], keys %CHAR_ROLE ],
         cupSize   => [ map [$_, $CUP_SIZE{$_}], keys %CUP_SIZE ],
     }).";\n";

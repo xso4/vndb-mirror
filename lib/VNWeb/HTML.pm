@@ -28,6 +28,7 @@ our @EXPORT = qw/
     rdate_
     vnlength_
     spoil_
+    charsex_
     elm_ widget
     framework_
     revision_patrolled_ revision_
@@ -135,6 +136,18 @@ sub vnlength_ {
 sub spoil_ {
     sup_ title => 'Minor spoiler', 'S' if $_[0] == 1;
     sup_ title => 'Major spoiler', class => 'standout', 'S' if $_[0] == 2;
+}
+
+
+# Character sex/gender icon
+sub charsex_($sex, $gender) {
+    my $icon = defined $gender ? ($gender eq 'n' ? 'nb' : $gender || 'u') : $sex || 'u';
+    my $color = !defined $gender || !defined $sex ? 'w' : $sex;
+    abbr_ class => "icon-char-$icon charsex-$color",
+        title => join(', ',
+            defined $sex ? "Sex: $CHAR_SEX{$sex}" : (),
+            defined $gender ? "Gender: $CHAR_GENDER{$gender}" : ()
+        ), '';
 }
 
 
@@ -622,7 +635,7 @@ sub _revision_header_ {
 
 sub _revision_fmtval_ {
     my($opt, $val, $obj) = @_;
-    return em_ '[empty]' if !defined $val || (defined $opt->{empty} ? $val eq $opt->{empty} : !length $val);
+    return em_ '[empty]' if !defined $val || (exists $opt->{empty} ? ($val//'__UNDEF__') eq ($opt->{empty}//'__UNDEF__') : !length $val);
     return lit_ html_escape $val if !$opt->{fmt};
     if(ref $opt->{fmt} eq 'HASH') {
         my $h = $opt->{fmt}{$val};

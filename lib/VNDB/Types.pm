@@ -336,6 +336,16 @@ hash CHAR_SEX =>
 
 
 
+# SQL: ENUM char_gender
+hash CHAR_GENDER =>
+    '' => 'Unknown',
+    m  => 'Man',
+    f  => 'Woman',
+    o  => 'Non-binary',
+    a  => 'Ambiguous';
+
+
+
 # SQL: ENUM cup_size
 hash CUP_SIZE =>
     ''  => 'Unknown or N/A',
@@ -426,7 +436,7 @@ hash CHFLAGS =>
         Description
         Image
         Age
-        Sex
+        Gender
         Measurements
         BloodType
         Main

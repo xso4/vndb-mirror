@@ -78,6 +78,7 @@ CREATE TYPE blood_type        AS ENUM ('unknown', 'a', 'b', 'ab', 'o');
 CREATE TYPE board_type        AS ENUM ('an', 'db', 'ge', 'v', 'p', 'u');
 CREATE TYPE char_role         AS ENUM ('main', 'primary', 'side', 'appears');
 CREATE TYPE char_sex          AS ENUM ('', 'm', 'f', 'b', 'n');
+CREATE TYPE char_gender       AS ENUM ('', 'm', 'f', 'o', 'a');
 CREATE TYPE credit_type       AS ENUM ('scenario', 'chardesign', 'art', 'music', 'songs', 'director', 'translator', 'editor', 'qa', 'staff');
 CREATE TYPE cup_size          AS ENUM ('', 'AAA', 'AA', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z');
 CREATE TYPE dbentry_type      AS ENUM ('v', 'r', 'p', 'c', 's', 'd');
@@ -248,15 +249,17 @@ CREATE TABLE chars ( -- dbentry_type=c
   latin        varchar(250), -- [pub]
   alias        varchar(500) NOT NULL DEFAULT '', -- [pub]
   description  text NOT NULL DEFAULT '', -- [pub]
-  c_lang       language NOT NULL DEFAULT 'ja'
+  c_lang       language NOT NULL DEFAULT 'ja',
+  gender       char_gender, -- [pub]
+  spoil_gender char_gender -- [pub]
 );
 
 -- chars_hist
 CREATE TABLE chars_hist (
   chid         integer  NOT NULL PRIMARY KEY,
   image        vndbid CONSTRAINT chars_hist_image_check CHECK(vndbid_type(image) = 'ch'), -- cf=Image
-  sex          char_sex NOT NULL DEFAULT '', -- cf=Sex
-  spoil_sex    char_sex, -- cf=Sex
+  sex          char_sex NOT NULL DEFAULT '', -- cf=Gender
+  spoil_sex    char_sex, -- cf=Gender
   bloodt       blood_type NOT NULL DEFAULT 'unknown', -- cf=BloodType
   cup_size     cup_size NOT NULL DEFAULT '', -- cf=Measurements
   main         vndbid, -- cf=Main chars.id
@@ -272,7 +275,9 @@ CREATE TABLE chars_hist (
   name         varchar(250) NOT NULL DEFAULT '', -- cf=Name
   latin        varchar(250), -- cf=Name
   alias        varchar(500) NOT NULL DEFAULT '', -- cf=Name
-  description  text     NOT NULL DEFAULT '' -- cf=Description
+  description  text NOT NULL DEFAULT '', -- cf=Description
+  gender       char_gender, -- cf=Gender
+  spoil_gender char_gender -- cf=Gender
 );
 
 -- chars_traits

@@ -98,20 +98,10 @@ sub img($w, $h) {
 
 
 sub css {
-    # The gender icons need special treatment, they're 3 icons in one image.
-    my $gender;
-
     open my $F, '>', $css or die $!;
-    for my $i (@img) {
-        if($i->{f} eq 'gender') {
-            $gender = $i;
-            next;
-        }
-        printf $F ".icon-%s { background-position: %dpx %dpx; width: %dpx; height: %dpx }\n", $i->{f} =~ s#/#-#rg, -$i->{x}, -$i->{y}, $i->{w}, $i->{h};
-    }
-    printf $F ".icon-gen-f, .icon-gen-b { background-position: %dpx %dpx; width: 14px; height: 14px }\n", -$gender->{x}, -$gender->{y};
-    print  $F ".icon-gen-b { width: 28px }\n";
-    printf $F ".icon-gen-m { background-position: %dpx %dpx; width: 14px; height: 14px }\n", -($gender->{x}+14), -$gender->{y};
+    printf $F ".icon-%s { background-position: %dpx %dpx; width: %dpx; height: %dpx }\n",
+        $_->{f} =~ s#/#-#rg, -$_->{x}, -$_->{y}, $_->{w}, $_->{h}
+        for @img;
 }
 
 

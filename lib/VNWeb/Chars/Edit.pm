@@ -13,6 +13,8 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     description=> { default => '', maxlength => 5000 },
     sex        => { default => '', enum => \%CHAR_SEX },
     spoil_sex  => { default => sub { $_[0] }, enum => \%CHAR_SEX },
+    gender     => { default => sub { $_[0] }, enum => \%CHAR_GENDER },
+    spoil_gender=>{ default => sub { $_[0] }, enum => \%CHAR_GENDER },
     b_month    => { default => 0, uint => 1, range => [ 0, 12 ] },
     b_day      => { default => 0, uint => 1, range => [ 0, 31 ] },
     age        => { default => undef, uint => 1, range => [ 0, 32767 ] },
@@ -48,6 +50,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     hidden     => { anybool => 1 },
     locked     => { anybool => 1 },
 
+    hasgender  => { _when => 'out', anybool => 1 },
     editsum    => { editsum => 1 },
     vnstate    => { _when => 'out', aoh => {
         id      => { vndbid => 'v' },
@@ -80,7 +83,8 @@ TUWF::get qr{/$RE{crev}/(?<action>edit|copy)} => sub {
         rels => releases_by_vn($_->{vid}, charlink => 1),
         prods => VNWeb::VN::Lib::charproducers($_->{vid}),
     } : (), $e->{vns}->@* ];
-    enrich_merge id => sql('SELECT id, title[1+1] FROM', vnt, 'v WHERE id IN'), $e->{vnstate};
+    enrich_merge id => sql('SELECT id, title[1+1], olang FROM', vnt, 'v WHERE id IN'), $e->{vnstate};
+    $e->{hasgender} = grep $_->{olang} eq 'en', $e->{vnstate}->@*;
 
     if($e->{image}) {
         $e->{image_info} = { id => $e->{image} };
@@ -103,11 +107,12 @@ TUWF::get qr{/$RE{crev}/(?<action>edit|copy)} => sub {
 
 TUWF::get qr{/$RE{vid}/addchar}, sub {
     return tuwf->resDenied if !can_edit c => undef;
-    my $v = tuwf->dbRowi('SELECT id, title[1+1] AS title FROM', vnt, 'v WHERE NOT hidden AND id =', \tuwf->capture('id'));
+    my $v = tuwf->dbRowi('SELECT id, title[1+1] AS title, olang FROM', vnt, 'v WHERE NOT hidden AND id =', \tuwf->capture('id'));
     return tuwf->resNotFound if !$v->{id};
 
     my $e = elm_empty($FORM_OUT);
     $e->{vns} = [{ vid => $v->{id}, rid => undef, spoil => 0, role => 'primary' }];
+    $e->{hasgender} = $v->{olang} eq 'en';
     $e->{vnstate} = [{
         id => $v->{id},
         title => $v->{title},
@@ -134,7 +139,12 @@ js_api CharEdit => $FORM_IN, sub ($data,@) {
     }
     $data->{description} = bb_subst_links $data->{description};
     $data->{b_day} = 0 if !$data->{b_month};
-    $data->{spoil_sex} = undef if defined $data->{spoil_sex} && $data->{spoil_sex} eq $data->{sex};
+
+    $data->{spoil_sex} //= $data->{sex} if defined $data->{spoil_gender};
+    my $sex = ($data->{sex}//'-').($data->{spoil_sex}//'-');
+    my $gen = ($data->{gender}//'-').($data->{spoil_gender}//'-');
+    ($data->{gender}, $data->{spoil_gender}) = (undef, undef) if $sex eq $gen;
+    $data->{spoil_sex} = undef if !defined $data->{gender} && defined $data->{spoil_sex} && $data->{spoil_sex} eq $data->{sex};
 
     $data->{main} = undef if $data->{hidden};
     die "Attempt to set main to self" if $data->{main} && $e->{id} && $data->{main} eq $e->{id};

@@ -769,7 +769,7 @@ sub charsum_ {
             div_ class => 'charsum_bubble', sub {
                 div_ class => 'name', sub {
                     span_ sub {
-                        abbr_ class => "icon-gen-$_->{sex}", title => $CHAR_SEX{$_->{sex}}, '' if $_->{sex};
+                        charsex_ $_->{sex}, $_->{gender} if $_->{sex} || defined $_->{gender};
                         a_ href => "/$_->{id}", tattr $_;
                     };
                     em_ $CHAR_ROLE{$_->{role}}{txt};
