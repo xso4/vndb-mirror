@@ -365,6 +365,99 @@ hash CHAR_ROLE =>
 
 
 
+# Change flags for database entries, up to 63 categories can be listed per type.
+# The first category is hardcoded to refer to the hidden/locked flags.
+# Array indices are used as category identifier in the database and in URLs,
+# changing order or semantics requires a cache rebuild. (And may break some
+# urls, but these aren't the type of URLs where stability is super important)
+# (Support for placeholder entries can be added later on if we ever want some
+# flexibility to avoid rebuilds and breakage)
+hash CHFLAGS =>
+    v => [qw[
+        Modflags
+        Title
+        Language
+        Image
+        Links
+        Description
+        Status
+        Length
+        Anime
+        Relations
+        Screenshots
+        VA
+        Staff
+    ]],
+    r => [qw[
+        Modflags
+        Title
+        Language
+        Image
+        Links
+        Date
+        Voiced
+        Resolution
+        AgeRating
+        Ero
+        Publication
+        Engine
+        Notes
+        Media
+        Platforms
+        Animation
+        Identifiers
+        VN
+        DRM
+        Producers
+        Supersedes
+    ]],
+    p => [qw[
+        Modflags
+        Name
+        Description
+        Type
+        Language
+        Links
+        Relations
+    ]],
+    c => [qw[
+        Modflags
+        Name
+        Description
+        Image
+        Age
+        Sex
+        Measurements
+        BloodType
+        Main
+        Traits
+        VN
+    ]],
+    s => [qw[
+        Modflags
+        Name
+        Language
+        Description
+        Gender
+        Links
+    ]],
+    d => [qw[Modflags Title Content]],
+    g => [qw[
+        Modflags
+        Name
+        Category
+        Description
+        Flags
+        Parent
+    ]],
+    i => [qw[
+        Modflags
+        Name
+        Description
+        Flags
+        Parent
+    ]];
+
 
 # Concise implementation of an immutable hash that remembers key order.
 package VNDB::Types::Hash;

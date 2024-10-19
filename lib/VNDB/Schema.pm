@@ -22,10 +22,12 @@ my $ROOT = ($INC{'VNDB/Schema.pm'} =~ s{lib/VNDB/Schema\.pm$}{}r =~ s{/$}{}r) ||
 #               type => 'serial',
 #               decl => 'id SERIAL', # full declaration, exluding comments and PRIMARY KEY marker
 #               pub => 1,
+#               cf => 'chflag',
 #               comment => '',
 #           }, ...
 #       ],
 #       primary => ['id'],
+#       cf => 'chflag',
 #       comment => '',
 #   }
 # }
@@ -39,12 +41,16 @@ sub schema {
         next if /^\s*CREATE\s+(?:TYPE|SEQUENCE|FUNCTION|DOMAIN|VIEW)/;
 
         if(/^\s*CREATE\s+TABLE\s+([^ ]+)/) {
-            die "Unexpected 'CREATE TABLE $1'\n" if $table;
+            die "schema.sql: Unexpected 'CREATE TABLE $1'\n" if $table;
             next if /PARTITION OF/;
             $table = $1;
             $schema{$table}{name} = $table;
             $schema{$table}{comment} = /--\s*(.*)\s*/ ? $1 : '';
             $schema{$table}{dbentry_type} = $1 if $schema{$table}{comment} =~ s/\s*dbentry_type=(.)\s*//;
+            if ($schema{$table}{comment} =~ s/\s*cf=([^\s]+)\s*//) {
+                $schema{$table}{chflag} = $1;
+                die "schema.sql: 'cf' attribute on non-hist table '$table'\n" if $table !~ /_hist$/;
+            }
             $schema{$table}{cols} = [];
 
         } elsif(/^\s*\)(?: PARTITION .+)?;/) {
@@ -54,7 +60,7 @@ sub schema {
             # ignore
 
         } elsif($table && /^\s+PRIMARY\s+KEY\s*\(([^\)]+)\)/i) {
-            die "Double primary key for '$table'?\n" if $schema{$table}{primary};
+            die "schema.sql: Double primary key for '$table'?\n" if $schema{$table}{primary};
             $schema{$table}{primary} = [ map s/\s*"?([^\s"]+)"?\s*/$1/r, split /,/, $1 ];
 
         } elsif($table && s/^\s+([^"\( ]+)\s+//) {
@@ -63,9 +69,13 @@ sub schema {
 
             $col->{comment} = (s/,?\s*(?:--(.*))?$// && $1) || '';
             $col->{pub} = $col->{comment} =~ s/\s*\[pub\]\s*//;
+            if ($col->{comment} =~ s/\s*cf=([^\s]+)\s*//) {
+                $col->{chflag} = $1;
+                die "schema.sql: 'cf' attribute on non-hist table '$table'\n" if $table !~ /_hist$/;
+            }
 
             if(s/\s+PRIMARY\s+KEY//i) {
-                die "Double primary key for '$table'?\n" if $schema{$table}{primary};
+                die "schema.sql: Double primary key for '$table'?\n" if $schema{$table}{primary};
                 $schema{$table}{primary} = [ $col->{name} ];
             }
             $col->{decl} = "$col->{name} $_";

@@ -36,6 +36,11 @@
 --     -- field-specific columns here
 --   );
 --
+-- Columns in *_hist tables must be marked with their change category in the
+-- form of a 'cf=Category' comment. Item-related tables can be marked as such
+-- when all columns have the same category. The list of available categories is
+-- maintained in %VNDB::Types::CHFLAGS.
+--
 -- The changes and *_hist tables contain all the data. In a sense, the other
 -- tables related to the item are just a cache/view into the latest versions.
 -- All modifications to the item tables has to go through the edit_* functions
@@ -208,7 +213,8 @@ CREATE TABLE changes (
   rev        integer NOT NULL DEFAULT 1,
   ihid       boolean NOT NULL DEFAULT FALSE,
   ilock      boolean NOT NULL DEFAULT FALSE,
-  comments   text NOT NULL DEFAULT ''
+  comments   text NOT NULL DEFAULT '',
+  c_chflags  bigint NOT NULL DEFAULT 0 -- bitflag of changed fields, depends on itemid type, see VNDB::Types::CHFLAGS
 );
 
 -- changes_patrolled
@@ -248,25 +254,25 @@ CREATE TABLE chars ( -- dbentry_type=c
 -- chars_hist
 CREATE TABLE chars_hist (
   chid         integer  NOT NULL PRIMARY KEY,
-  image        vndbid CONSTRAINT chars_hist_image_check CHECK(vndbid_type(image) = 'ch'),
-  sex          char_sex NOT NULL DEFAULT '',
-  spoil_sex    char_sex,
-  bloodt       blood_type NOT NULL DEFAULT 'unknown',
-  cup_size     cup_size NOT NULL DEFAULT '',
-  main         vndbid, -- chars.id
-  s_bust       smallint NOT NULL DEFAULT 0,
-  s_waist      smallint NOT NULL DEFAULT 0,
-  s_hip        smallint NOT NULL DEFAULT 0,
-  b_month      smallint NOT NULL DEFAULT 0,
-  b_day        smallint NOT NULL DEFAULT 0,
-  height       smallint NOT NULL DEFAULT 0,
-  weight       smallint,
-  main_spoil   smallint NOT NULL DEFAULT 0,
-  age          smallint,
-  name         varchar(250) NOT NULL DEFAULT '',
-  latin        varchar(250),
-  alias        varchar(500) NOT NULL DEFAULT '',
-  description  text     NOT NULL DEFAULT ''
+  image        vndbid CONSTRAINT chars_hist_image_check CHECK(vndbid_type(image) = 'ch'), -- cf=Image
+  sex          char_sex NOT NULL DEFAULT '', -- cf=Sex
+  spoil_sex    char_sex, -- cf=Sex
+  bloodt       blood_type NOT NULL DEFAULT 'unknown', -- cf=BloodType
+  cup_size     cup_size NOT NULL DEFAULT '', -- cf=Measurements
+  main         vndbid, -- cf=Main chars.id
+  s_bust       smallint NOT NULL DEFAULT 0, -- cf=Measurements
+  s_waist      smallint NOT NULL DEFAULT 0, -- cf=Measurements
+  s_hip        smallint NOT NULL DEFAULT 0, -- cf=Measurements
+  b_month      smallint NOT NULL DEFAULT 0, -- cf=Age
+  b_day        smallint NOT NULL DEFAULT 0, -- cf=Age
+  height       smallint NOT NULL DEFAULT 0, -- cf=Measurements
+  weight       smallint, -- cf=Measurements
+  main_spoil   smallint NOT NULL DEFAULT 0, -- cf=Main
+  age          smallint, -- cf=Age
+  name         varchar(250) NOT NULL DEFAULT '', -- cf=Name
+  latin        varchar(250), -- cf=Name
+  alias        varchar(500) NOT NULL DEFAULT '', -- cf=Name
+  description  text     NOT NULL DEFAULT '' -- cf=Description
 );
 
 -- chars_traits
@@ -279,7 +285,7 @@ CREATE TABLE chars_traits (
 );
 
 -- chars_traits_hist
-CREATE TABLE chars_traits_hist (
+CREATE TABLE chars_traits_hist ( -- cf=Traits
   chid       integer NOT NULL,
   tid        vndbid NOT NULL, -- traits.id
   spoil      smallint NOT NULL DEFAULT 0,
@@ -297,7 +303,7 @@ CREATE TABLE chars_vns (
 );
 
 -- chars_vns_hist
-CREATE TABLE chars_vns_hist (
+CREATE TABLE chars_vns_hist ( -- cf=VN
   chid       integer NOT NULL,
   vid        vndbid NOT NULL, -- vn.id
   rid        vndbid NULL, -- releases.id
@@ -318,9 +324,9 @@ CREATE TABLE docs ( -- dbentry_type=d
 -- docs_hist
 CREATE TABLE docs_hist (
   chid       integer  NOT NULL PRIMARY KEY,
-  title      varchar(200) NOT NULL DEFAULT '',
-  content    text NOT NULL DEFAULT '',
-  html       text -- cache
+  title      varchar(200) NOT NULL DEFAULT '', -- cf=Title
+  content    text NOT NULL DEFAULT '', -- cf=Content
+  html       text -- cf=Content cache
 );
 
 -- drm
@@ -437,15 +443,15 @@ CREATE TABLE producers ( -- dbentry_type=p
 -- producers_hist
 CREATE TABLE producers_hist (
   chid       integer NOT NULL PRIMARY KEY,
-  type       producer_type NOT NULL DEFAULT 'co',
-  lang       language NOT NULL DEFAULT 'ja',
-  l_wikidata integer,
-  name       varchar(200) NOT NULL DEFAULT '',
-  latin      varchar(200),
-  alias      varchar(500) NOT NULL DEFAULT '',
-  website    varchar(1024) NOT NULL DEFAULT '',
-  description text NOT NULL DEFAULT '',
-  l_wp       varchar(150)
+  type       producer_type NOT NULL DEFAULT 'co', -- cf=Type
+  lang       language NOT NULL DEFAULT 'ja', -- cf=Language
+  l_wikidata integer, -- cf=Links
+  name       varchar(200) NOT NULL DEFAULT '', -- cf=Name
+  latin      varchar(200), -- cf=Name
+  alias      varchar(500) NOT NULL DEFAULT '', -- cf=Name
+  website    varchar(1024) NOT NULL DEFAULT '', -- cf=Links
+  description text NOT NULL DEFAULT '', -- cf=Description
+  l_wp       varchar(150) -- cf=Links
 );
 
 -- producers_relations
@@ -457,7 +463,7 @@ CREATE TABLE producers_relations (
 );
 
 -- producers_relations_hist
-CREATE TABLE producers_relations_hist (
+CREATE TABLE producers_relations_hist ( -- cf=Relations
   chid       integer NOT NULL,
   pid        vndbid NOT NULL, -- producers.id
   relation   producer_relation NOT NULL,
@@ -578,71 +584,71 @@ CREATE TABLE releases ( -- dbentry_type=r
 -- releases_hist
 CREATE TABLE releases_hist (
   chid         integer NOT NULL PRIMARY KEY,
-  olang        language NOT NULL DEFAULT 'ja',
-  gtin         bigint NOT NULL DEFAULT 0,
-  l_toranoana  bigint NOT NULL DEFAULT 0,
-  l_appstore   bigint NOT NULL DEFAULT 0,
-  l_nintendo_jp bigint NOT NULL DEFAULT 0,
-  l_nintendo_hk bigint NOT NULL DEFAULT 0,
-  released     integer NOT NULL DEFAULT 0,
-  l_steam      integer NOT NULL DEFAULT 0,
-  l_digiket    integer NOT NULL DEFAULT 0,
-  l_melon      integer NOT NULL DEFAULT 0,
-  l_mg         integer NOT NULL DEFAULT 0,
-  l_getchu     integer NOT NULL DEFAULT 0,
-  l_getchudl   integer NOT NULL DEFAULT 0,
-  l_egs        integer NOT NULL DEFAULT 0,
-  l_erotrail   integer NOT NULL DEFAULT 0,
-  l_melonjp    integer NOT NULL DEFAULT 0,
-  l_gamejolt   integer NOT NULL DEFAULT 0,
-  l_animateg   integer NOT NULL DEFAULT 0,
-  l_freem      integer NOT NULL DEFAULT 0,
-  l_novelgam   integer NOT NULL DEFAULT 0,
-  voiced       smallint NOT NULL DEFAULT 0,
-  reso_x       smallint NOT NULL DEFAULT 0,
-  reso_y       smallint NOT NULL DEFAULT 0,
-  minage       smallint,
-  ani_story    smallint NOT NULL DEFAULT 0,
-  ani_ero      smallint NOT NULL DEFAULT 0,
-  ani_story_sp animation,
-  ani_story_cg animation,
-  ani_cutscene animation,
-  ani_ero_sp   animation,
-  ani_ero_cg   animation,
-  ani_bg       boolean,
-  ani_face     boolean,
-  has_ero      boolean NOT NULL DEFAULT FALSE,
-  patch        boolean NOT NULL DEFAULT FALSE,
-  freeware     boolean NOT NULL DEFAULT FALSE,
-  doujin       boolean NOT NULL DEFAULT FALSE,
-  uncensored   boolean,
-  official     boolean NOT NULL DEFAULT TRUE,
-  website      varchar(1024) NOT NULL DEFAULT '',
-  catalog      varchar(50) NOT NULL DEFAULT '',
-  engine       varchar(50) NOT NULL DEFAULT '',
-  notes        text NOT NULL DEFAULT '',
-  l_dlsite     text NOT NULL DEFAULT '',
-  l_dlsiteen   text NOT NULL DEFAULT '',
-  l_gog        text NOT NULL DEFAULT '',
-  l_denpa      text NOT NULL DEFAULT '',
-  l_jlist      text NOT NULL DEFAULT '',
-  l_jastusa    text NOT NULL DEFAULT '',
-  l_itch       text NOT NULL DEFAULT '',
-  l_nutaku     text NOT NULL DEFAULT '',
-  l_googplay   text NOT NULL DEFAULT '',
-  l_fakku      text NOT NULL DEFAULT '',
-  l_freegame   text NOT NULL DEFAULT '',
-  l_playstation_jp text NOT NULL DEFAULT '',
-  l_playstation_na text NOT NULL DEFAULT '',
-  l_playstation_eu text NOT NULL DEFAULT '',
-  l_playstation_hk text NOT NULL DEFAULT '',
-  l_nintendo    text NOT NULL DEFAULT '',
-  l_gyutto     integer[] NOT NULL DEFAULT '{}',
-  l_dmm        text[] NOT NULL DEFAULT '{}',
-  l_booth      integer NOT NULL DEFAULT 0,
-  l_patreonp   integer NOT NULL DEFAULT 0,
-  l_patreon    text NOT NULL DEFAULT '',
-  l_substar    text NOT NULL DEFAULT ''
+  olang        language NOT NULL DEFAULT 'ja', -- cf=Language
+  gtin         bigint NOT NULL DEFAULT 0, -- cf=Identifiers
+  l_toranoana  bigint NOT NULL DEFAULT 0, -- cf=Links
+  l_appstore   bigint NOT NULL DEFAULT 0, -- cf=Links
+  l_nintendo_jp bigint NOT NULL DEFAULT 0, -- cf=Links
+  l_nintendo_hk bigint NOT NULL DEFAULT 0, -- cf=Links
+  released     integer NOT NULL DEFAULT 0, -- cf=Date
+  l_steam      integer NOT NULL DEFAULT 0, -- cf=Links
+  l_digiket    integer NOT NULL DEFAULT 0, -- cf=Links
+  l_melon      integer NOT NULL DEFAULT 0, -- cf=Links
+  l_mg         integer NOT NULL DEFAULT 0, -- cf=Links
+  l_getchu     integer NOT NULL DEFAULT 0, -- cf=Links
+  l_getchudl   integer NOT NULL DEFAULT 0, -- cf=Links
+  l_egs        integer NOT NULL DEFAULT 0, -- cf=Links
+  l_erotrail   integer NOT NULL DEFAULT 0, -- cf=Links
+  l_melonjp    integer NOT NULL DEFAULT 0, -- cf=Links
+  l_gamejolt   integer NOT NULL DEFAULT 0, -- cf=Links
+  l_animateg   integer NOT NULL DEFAULT 0, -- cf=Links
+  l_freem      integer NOT NULL DEFAULT 0, -- cf=Links
+  l_novelgam   integer NOT NULL DEFAULT 0, -- cf=Links
+  voiced       smallint NOT NULL DEFAULT 0, -- cf=Voiced
+  reso_x       smallint NOT NULL DEFAULT 0, -- cf=Resolution
+  reso_y       smallint NOT NULL DEFAULT 0, -- cf=Resolution
+  minage       smallint, -- cf=AgeRating
+  ani_story    smallint NOT NULL DEFAULT 0, -- cf=Animation
+  ani_ero      smallint NOT NULL DEFAULT 0, -- cf=Animation
+  ani_story_sp animation, -- cf=Animation
+  ani_story_cg animation, -- cf=Animation
+  ani_cutscene animation, -- cf=Animation
+  ani_ero_sp   animation, -- cf=Animation
+  ani_ero_cg   animation, -- cf=Animation
+  ani_bg       boolean, -- cf=Animation
+  ani_face     boolean, -- cf=Animation
+  has_ero      boolean NOT NULL DEFAULT FALSE, -- cf=Ero
+  patch        boolean NOT NULL DEFAULT FALSE, -- cf=Publication
+  freeware     boolean NOT NULL DEFAULT FALSE, -- cf=Publication
+  doujin       boolean NOT NULL DEFAULT FALSE, -- cf=Publication
+  uncensored   boolean, -- cf=Ero
+  official     boolean NOT NULL DEFAULT TRUE, -- cf=Publication
+  website      varchar(1024) NOT NULL DEFAULT '', -- cf=Links
+  catalog      varchar(50) NOT NULL DEFAULT '', -- cf=Identifiers
+  engine       varchar(50) NOT NULL DEFAULT '', -- cf=Engine
+  notes        text NOT NULL DEFAULT '', -- cf=Notes
+  l_dlsite     text NOT NULL DEFAULT '', -- cf=Links
+  l_dlsiteen   text NOT NULL DEFAULT '', -- cf=Links
+  l_gog        text NOT NULL DEFAULT '', -- cf=Links
+  l_denpa      text NOT NULL DEFAULT '', -- cf=Links
+  l_jlist      text NOT NULL DEFAULT '', -- cf=Links
+  l_jastusa    text NOT NULL DEFAULT '', -- cf=Links
+  l_itch       text NOT NULL DEFAULT '', -- cf=Links
+  l_nutaku     text NOT NULL DEFAULT '', -- cf=Links
+  l_googplay   text NOT NULL DEFAULT '', -- cf=Links
+  l_fakku      text NOT NULL DEFAULT '', -- cf=Links
+  l_freegame   text NOT NULL DEFAULT '', -- cf=Links
+  l_playstation_jp text NOT NULL DEFAULT '', -- cf=Links
+  l_playstation_na text NOT NULL DEFAULT '', -- cf=Links
+  l_playstation_eu text NOT NULL DEFAULT '', -- cf=Links
+  l_playstation_hk text NOT NULL DEFAULT '', -- cf=Links
+  l_nintendo    text NOT NULL DEFAULT '', -- cf=Links
+  l_gyutto     integer[] NOT NULL DEFAULT '{}', -- cf=Links
+  l_dmm        text[] NOT NULL DEFAULT '{}', -- cf=Links
+  l_booth      integer NOT NULL DEFAULT 0, -- cf=Links
+  l_patreonp   integer NOT NULL DEFAULT 0, -- cf=Links
+  l_patreon    text NOT NULL DEFAULT '', -- cf=Links
+  l_substar    text NOT NULL DEFAULT '' -- cf=Links
 );
 
 -- releases_drm
@@ -654,7 +660,7 @@ CREATE TABLE releases_drm (
 );
 
 -- releases_drm_hist
-CREATE TABLE releases_drm_hist (
+CREATE TABLE releases_drm_hist ( -- cf=DRM
   chid    integer NOT NULL,
   drm     integer NOT NULL,
   notes   text NOT NULL DEFAULT '',
@@ -673,7 +679,7 @@ CREATE TABLE releases_images (
 );
 
 -- releases_images_hist
-CREATE TABLE releases_images_hist (
+CREATE TABLE releases_images_hist ( -- cf=Image
   chid    integer NOT NULL,
   img     vndbid NOT NULL,
   itype   release_image_type NOT NULL,
@@ -692,7 +698,7 @@ CREATE TABLE releases_media (
 );
 
 -- releases_media_hist
-CREATE TABLE releases_media_hist (
+CREATE TABLE releases_media_hist ( -- cf=Media
   chid       integer NOT NULL,
   medium     medium NOT NULL,
   qty        smallint NOT NULL DEFAULT 1,
@@ -707,7 +713,7 @@ CREATE TABLE releases_platforms (
 );
 
 -- releases_platforms_hist
-CREATE TABLE releases_platforms_hist (
+CREATE TABLE releases_platforms_hist ( -- cf=Platforms
   chid       integer NOT NULL,
   platform   platform NOT NULL,
   PRIMARY KEY(chid, platform)
@@ -724,7 +730,7 @@ CREATE TABLE releases_producers (
 );
 
 -- releases_producers_hist
-CREATE TABLE releases_producers_hist (
+CREATE TABLE releases_producers_hist ( -- cf=Producers
   chid       integer NOT NULL,
   pid        vndbid NOT NULL, -- producers.id
   developer  boolean NOT NULL DEFAULT FALSE,
@@ -741,7 +747,7 @@ CREATE TABLE releases_supersedes (
 );
 
 -- releases_supersedes_hist
-CREATE TABLE releases_supersedes_hist (
+CREATE TABLE releases_supersedes_hist ( -- cf=Supersedes
   chid       integer NOT NULL,
   rid        vndbid NOT NULL,
   PRIMARY KEY(chid, rid)
@@ -760,10 +766,10 @@ CREATE TABLE releases_titles (
 -- releases_titles_hist
 CREATE TABLE releases_titles_hist (
   chid       integer NOT NULL,
-  lang       language NOT NULL,
-  mtl        boolean NOT NULL DEFAULT false,
-  title      text,
-  latin      text,
+  lang       language NOT NULL, -- cf=Language
+  mtl        boolean NOT NULL DEFAULT false, -- cf=Language
+  title      text, -- cf=Title
+  latin      text, -- cf=Title
   PRIMARY KEY(chid, lang)
 );
 
@@ -776,7 +782,7 @@ CREATE TABLE releases_vn (
 );
 
 -- releases_vn_hist
-CREATE TABLE releases_vn_hist (
+CREATE TABLE releases_vn_hist ( -- cf=VN
   chid       integer NOT NULL,
   vid        vndbid NOT NULL, -- vn.id
   rtype      release_type NOT NULL,
@@ -998,32 +1004,32 @@ CREATE TABLE staff ( -- dbentry_type=s
 -- staff_hist
 CREATE TABLE staff_hist (
   chid        integer NOT NULL PRIMARY KEY,
-  gender      staff_gender NOT NULL DEFAULT '',
-  lang        language NOT NULL DEFAULT 'ja',
-  main        integer NOT NULL DEFAULT 0, -- Can't refer to staff_alias.id, because the alias might have been deleted
-  l_anidb     integer,
-  l_wikidata  integer,
-  l_pixiv     integer NOT NULL DEFAULT 0,
-  description text NOT NULL DEFAULT '',
-  l_wp        varchar(150) NOT NULL DEFAULT '',
-  l_site      varchar(250) NOT NULL DEFAULT '',
-  l_twitter   varchar(16) NOT NULL DEFAULT '',
-  l_vgmdb     integer NOT NULL DEFAULT 0,
-  l_discogs   integer NOT NULL DEFAULT 0,
-  l_mobygames integer NOT NULL DEFAULT 0,
-  l_bgmtv     integer NOT NULL DEFAULT 0,
-  l_imdb      integer NOT NULL DEFAULT 0,
-  l_vndb      vndbid,
-  l_mbrainz   uuid,
-  l_scloud    text NOT NULL DEFAULT '',
-  l_egs       integer NOT NULL DEFAULT 0,
-  l_anison    integer NOT NULL DEFAULT 0,
-  l_patreon   text NOT NULL DEFAULT '',
-  l_substar   text NOT NULL DEFAULT '',
-  l_youtube   text NOT NULL DEFAULT '',
-  l_instagram text NOT NULL DEFAULT '',
-  l_deviantar text NOT NULL DEFAULT '',
-  l_tumblr    text NOT NULL DEFAULT ''
+  gender      staff_gender NOT NULL DEFAULT '', -- cf=Gender
+  lang        language NOT NULL DEFAULT 'ja', -- cf=Language
+  main        integer NOT NULL DEFAULT 0, -- cf=Name  Can't refer to staff_alias.id, because the alias might have been deleted
+  l_anidb     integer, -- cf=Links
+  l_wikidata  integer, -- cf=Links
+  l_pixiv     integer NOT NULL DEFAULT 0, -- cf=Links
+  description text NOT NULL DEFAULT '', -- cf=Description
+  l_wp        varchar(150) NOT NULL DEFAULT '', -- cf=Links
+  l_site      varchar(250) NOT NULL DEFAULT '', -- cf=Links
+  l_twitter   varchar(16) NOT NULL DEFAULT '', -- cf=Links
+  l_vgmdb     integer NOT NULL DEFAULT 0, -- cf=Links
+  l_discogs   integer NOT NULL DEFAULT 0, -- cf=Links
+  l_mobygames integer NOT NULL DEFAULT 0, -- cf=Links
+  l_bgmtv     integer NOT NULL DEFAULT 0, -- cf=Links
+  l_imdb      integer NOT NULL DEFAULT 0, -- cf=Links
+  l_vndb      vndbid, -- cf=Links
+  l_mbrainz   uuid, -- cf=Links
+  l_scloud    text NOT NULL DEFAULT '', -- cf=Links
+  l_egs       integer NOT NULL DEFAULT 0, -- cf=Links
+  l_anison    integer NOT NULL DEFAULT 0, -- cf=Links
+  l_patreon   text NOT NULL DEFAULT '', -- cf=Links
+  l_substar   text NOT NULL DEFAULT '', -- cf=Links
+  l_youtube   text NOT NULL DEFAULT '', -- cf=Links
+  l_instagram text NOT NULL DEFAULT '', -- cf=Links
+  l_deviantar text NOT NULL DEFAULT '', -- cf=Links
+  l_tumblr    text NOT NULL DEFAULT '' -- cf=Links
 );
 
 -- staff_alias
@@ -1035,7 +1041,7 @@ CREATE TABLE staff_alias (
 );
 
 -- staff_alias_hist
-CREATE TABLE staff_alias_hist (
+CREATE TABLE staff_alias_hist ( -- cf=Name
   chid       integer NOT NULL,
   aid        integer NOT NULL, -- staff_alias.aid, but can't reference it because the alias may have been deleted
   name       varchar(200) NOT NULL DEFAULT '',
@@ -1068,13 +1074,13 @@ CREATE TABLE tags ( -- dbentry_type=g
 -- tags_hist
 CREATE TABLE tags_hist (
   chid         integer NOT NULL PRIMARY KEY,
-  cat          tag_category NOT NULL DEFAULT 'cont',
-  defaultspoil smallint NOT NULL DEFAULT 0,
-  searchable   boolean NOT NULL DEFAULT TRUE,
-  applicable   boolean NOT NULL DEFAULT TRUE,
-  name         varchar(250) NOT NULL DEFAULT '',
-  alias        varchar(500) NOT NULL DEFAULT '',
-  description  text NOT NULL DEFAULT ''
+  cat          tag_category NOT NULL DEFAULT 'cont', -- cf=Category
+  defaultspoil smallint NOT NULL DEFAULT 0, -- cf=Flags
+  searchable   boolean NOT NULL DEFAULT TRUE, -- cf=Flags
+  applicable   boolean NOT NULL DEFAULT TRUE, -- cf=Flags
+  name         varchar(250) NOT NULL DEFAULT '', -- cf=Name
+  alias        varchar(500) NOT NULL DEFAULT '', -- cf=Name
+  description  text NOT NULL DEFAULT '' -- cf=Description
 );
 
 -- tags_parents
@@ -1086,7 +1092,7 @@ CREATE TABLE tags_parents (
 );
 
 -- tags_parents_hist
-CREATE TABLE tags_parents_hist (
+CREATE TABLE tags_parents_hist ( -- cf=Parent
   chid     integer NOT NULL,
   parent   vndbid NOT NULL,
   main     boolean NOT NULL DEFAULT false,
@@ -1213,14 +1219,14 @@ CREATE TABLE traits ( -- dbentry_type=i
 -- traits_hist
 CREATE TABLE traits_hist (
   chid          integer NOT NULL,
-  gorder        smallint NOT NULL DEFAULT 0,
-  defaultspoil  smallint NOT NULL DEFAULT 0,
-  sexual        boolean NOT NULL DEFAULT false,
-  searchable    boolean NOT NULL DEFAULT true,
-  applicable    boolean NOT NULL DEFAULT true,
-  name          varchar(250) NOT NULL DEFAULT '',
-  alias         varchar(500) NOT NULL DEFAULT '',
-  description   text NOT NULL DEFAULT ''
+  gorder        smallint NOT NULL DEFAULT 0, -- cf=Flags
+  defaultspoil  smallint NOT NULL DEFAULT 0, -- cf=Flags
+  sexual        boolean NOT NULL DEFAULT false, -- cf=Flags
+  searchable    boolean NOT NULL DEFAULT true, -- cf=Flags
+  applicable    boolean NOT NULL DEFAULT true, -- cf=Flags
+  name          varchar(250) NOT NULL DEFAULT '', -- cf=Name
+  alias         varchar(500) NOT NULL DEFAULT '', -- cf=Name
+  description   text NOT NULL DEFAULT '' -- cf=Description
 );
 
 -- traits_chars
@@ -1244,7 +1250,7 @@ CREATE TABLE traits_parents (
 );
 
 -- traits_parents_hist
-CREATE TABLE traits_parents_hist (
+CREATE TABLE traits_parents_hist ( -- cf=Parent
   chid     integer NOT NULL,
   parent   vndbid NOT NULL,
   main     boolean NOT NULL DEFAULT false,
@@ -1454,17 +1460,17 @@ CREATE TABLE vn ( -- dbentry_type=v
 -- vn_hist
 CREATE TABLE vn_hist (
   chid         integer NOT NULL PRIMARY KEY,
-  olang        language NOT NULL DEFAULT 'ja',
-  image        vndbid CONSTRAINT vn_hist_image_check CHECK(vndbid_type(image) = 'cv'),
-  l_wikidata   integer,
-  length       smallint NOT NULL DEFAULT 0,
-  devstatus    smallint NOT NULL DEFAULT 0,
-  img_nsfw     boolean NOT NULL DEFAULT FALSE,
-  alias        varchar(500) NOT NULL DEFAULT '',
-  l_wp         varchar(150) NOT NULL DEFAULT '',
-  l_encubed    varchar(100) NOT NULL DEFAULT '',
-  l_renai      varchar(100) NOT NULL DEFAULT '',
-  description  text NOT NULL DEFAULT ''
+  olang        language NOT NULL DEFAULT 'ja', -- cf=Language
+  image        vndbid CONSTRAINT vn_hist_image_check CHECK(vndbid_type(image) = 'cv'), -- cf=Image
+  l_wikidata   integer, -- cf=Links
+  length       smallint NOT NULL DEFAULT 0, -- cf=Length
+  devstatus    smallint NOT NULL DEFAULT 0, -- cf=Status
+  img_nsfw     boolean NOT NULL DEFAULT FALSE, -- cf=Image
+  alias        varchar(500) NOT NULL DEFAULT '', -- cf=Title
+  l_wp         varchar(150) NOT NULL DEFAULT '', -- cf=Links
+  l_encubed    varchar(100) NOT NULL DEFAULT '', -- cf=Links
+  l_renai      varchar(100) NOT NULL DEFAULT '', -- cf=Links
+  description  text NOT NULL DEFAULT '' -- cf=Description
 );
 
 -- vn_anime
@@ -1475,7 +1481,7 @@ CREATE TABLE vn_anime (
 );
 
 -- vn_anime_hist
-CREATE TABLE vn_anime_hist (
+CREATE TABLE vn_anime_hist ( -- cf=Anime
   chid       integer NOT NULL,
   aid        integer NOT NULL, -- anime.id
   PRIMARY KEY(chid, aid)
@@ -1492,7 +1498,7 @@ CREATE TABLE vn_editions (
 );
 
 -- vn_editions_hist
-CREATE TABLE vn_editions_hist (
+CREATE TABLE vn_editions_hist ( -- cf=Staff
   chid       integer NOT NULL,
   lang       language,
   eid        smallint NOT NULL,
@@ -1511,7 +1517,7 @@ CREATE TABLE vn_relations (
 );
 
 -- vn_relations_hist
-CREATE TABLE vn_relations_hist (
+CREATE TABLE vn_relations_hist ( -- cf=Relations
   chid       integer NOT NULL,
   vid        vndbid NOT NULL, -- vn.id
   relation   vn_relation NOT NULL,
@@ -1529,7 +1535,7 @@ CREATE TABLE vn_screenshots (
 );
 
 -- vn_screenshots_hist
-CREATE TABLE vn_screenshots_hist (
+CREATE TABLE vn_screenshots_hist ( -- cf=Screenshots
   chid       integer NOT NULL,
   scr        vndbid NOT NULL CONSTRAINT vn_screenshots_hist_scr_check CHECK(vndbid_type(scr) = 'sf'),
   rid        vndbid,
@@ -1547,7 +1553,7 @@ CREATE TABLE vn_seiyuu (
 );
 
 -- vn_seiyuu_hist
-CREATE TABLE vn_seiyuu_hist (
+CREATE TABLE vn_seiyuu_hist ( -- cf=VA
   chid       integer NOT NULL,
   aid        integer NOT NULL, -- staff_alias.aid, but can't reference it because the alias may have been deleted
   cid        vndbid NOT NULL,
@@ -1565,7 +1571,7 @@ CREATE TABLE vn_staff (
 );
 
 -- vn_staff_hist
-CREATE TABLE vn_staff_hist (
+CREATE TABLE vn_staff_hist ( -- cf=Staff
   chid       integer NOT NULL,
   aid        integer NOT NULL, -- See note at vn_seiyuu_hist.aid
   role       credit_type NOT NULL DEFAULT 'staff',
@@ -1586,10 +1592,10 @@ CREATE TABLE vn_titles (
 -- vn_titles_hist
 CREATE TABLE vn_titles_hist (
   chid       integer NOT NULL,
-  lang       language NOT NULL,
-  official   boolean NOT NULL,
-  title      text NOT NULL,
-  latin      text,
+  lang       language NOT NULL, -- cf=Language
+  official   boolean NOT NULL, -- cf=Title
+  title      text NOT NULL, -- cf=Title
+  latin      text, -- cf=Title
   PRIMARY KEY(chid, lang)
 );
 

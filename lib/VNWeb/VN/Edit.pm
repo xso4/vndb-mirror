@@ -5,7 +5,7 @@ use VNWeb::Images::Lib 'enrich_image';
 use VNWeb::Releases::Lib;
 
 
-my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
+my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     id         => { default => undef, vndbid => 'v' },
     titles     => { minlength => 1, sort_keys => 'lang', aoh => {
         lang     => { enum => \%LANGUAGE },
@@ -64,7 +64,7 @@ my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
     locked     => { anybool => 1 },
 
     authmod    => { _when => 'out', anybool => 1 },
-    editsum    => { _when => 'in out', editsum => 1 },
+    editsum    => { editsum => 1 },
     releases   => { _when => 'out', $VNWeb::Elm::apis{Releases}[0]->%* },
     reltitles  => { _when => 'out', aoh => { id => { vndbid => 'r' }, title => {} } },
     chars      => { _when => 'out', aoh => {
@@ -185,8 +185,8 @@ elm_api VNEdit => $FORM_OUT, $FORM_IN, sub {
     my %oldscr = map +($_->{scr}, $_->{nsfw}), @{ $e->{screenshots}||[] };
     $_->{nsfw} = $oldscr{$_->{scr}}||0 for $data->{screenshots}->@*;
 
-    return elm_Unchanged if !$new && !form_changed $FORM_CMP, $data, $e;
     my $ch = db_edit v => $e->{id}, $data;
+    return elm_Unchanged if !$ch->{nitemid};
     update_reverse($ch->{nitemid}, $ch->{nrev}, $e, $data);
     elm_Redirect "/$ch->{nitemid}.$ch->{nrev}";
 };

@@ -5,7 +5,7 @@ use VNWeb::Images::Lib 'enrich_image';
 use VNWeb::Releases::Lib;
 
 
-my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
+my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     id         => { default => undef, vndbid => 'c' },
     name       => { sl => 1, maxlength => 200 },
     latin      => { default => undef, sl => 1, maxlength => 200 },
@@ -48,7 +48,7 @@ my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
     hidden     => { anybool => 1 },
     locked     => { anybool => 1 },
 
-    editsum    => { _when => 'in out', editsum => 1 },
+    editsum    => { editsum => 1 },
     vnstate    => { _when => 'out', aoh => {
         id      => { vndbid => 'v' },
         rels    => $VNWeb::Elm::apis{Releases}[0],
@@ -161,8 +161,8 @@ js_api CharEdit => $FORM_IN, sub ($data,@) {
          );
     }
 
-    return 'No changes' if !$new && !form_changed $FORM_CMP, $data, $e;
     my $ch = db_edit c => $e->{id}, $data;
+    return 'No changes' if !$ch->{nitemid};
     +{ _redir => "/$ch->{nitemid}.$ch->{nrev}" };
 };
 

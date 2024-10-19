@@ -2,7 +2,7 @@ package VNWeb::TT::TraitEdit;
 
 use VNWeb::Prelude;
 
-my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
+my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     id           => { default => undef, vndbid => 'i' },
     name         => { maxlength => 250, sl => 1 },
     alias        => { maxlength => 1024, default => '' },
@@ -22,7 +22,7 @@ my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
     locked       => { anybool => 1 },
 
     authmod      => { _when => 'out', anybool => 1 },
-    editsum      => { _when => 'in out', editsum => 1 },
+    editsum      => { editsum => 1 },
 };
 
 
@@ -116,8 +116,8 @@ js_api TraitEdit => $FORM_IN, sub {
     );
     return +{ dups => $dups } if @$dups;
 
-    return +{ _err => 'No changes' } if !$new && !form_changed $FORM_CMP, $data, $e;
     my $ch = db_edit i => $e->{id}, $data;
+    return 'No changes.' if !$ch->{nitemid};
     tuwf->dbExeci('UPDATE traits SET gid = null WHERE id =', \$ch->{nitemid}) if !$group;
     tuwf->dbExeci('
         WITH RECURSIVE childs (id) AS (

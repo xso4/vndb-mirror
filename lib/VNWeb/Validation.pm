@@ -18,7 +18,6 @@ our @EXPORT = qw/
     is_unique_username
     ipinfo
     form_compile
-    form_changed
     validate_dbid
     can_edit
     viewget viewset
@@ -213,37 +212,6 @@ sub form_compile {
     my $schema = pop;
     my @l = map tuwf->compile({ type => 'hash', keys => _stripwhen $_, $schema }), @_;
     wantarray ? @l : $l[0];
-}
-
-
-sub _eq_deep {
-    my($a, $b) = @_;
-    return 0 if ref $a ne ref $b;
-    return 0 if defined $a != defined $b;
-    return 1 if !defined $a;
-    return 1 if !ref $a && $a eq $b;
-    return 1 if ref $a eq 'ARRAY' && (@$a == @$b && !grep !_eq_deep($a->[$_], $b->[$_]), 0..$#$a);
-    return 1 if ref $a eq 'HASH' && _eq_deep([sort keys %$a], [sort keys %$b]) && !grep !_eq_deep($a->{$_}, $b->{$_}), keys %$a;
-    0
-}
-
-
-# Usage: form_changed $schema, $a, $b
-# Returns 1 if there is a difference between the data ($a) and the form input
-# ($b), using the normalization defined in $schema. The $schema must validate.
-sub form_changed {
-    my($schema, $a, $b) = @_;
-    my sub norm {
-        my $v = $schema->validate($_[0]);
-        if($v->err) {
-            require Data::Dumper;
-            my $e = Data::Dumper->new([$v->err])->Terse(1)->Pair(':')->Indent(0)->Sortkeys(1)->Dump;
-            my $j = JSON::XS->new->pretty->encode($_[0]);
-            warn "form_changed() input did not validate according to the schema.\nError: $e\nInput: $j";
-        }
-        $v->unsafe_data;
-    }
-    !_eq_deep norm($a), norm($b);
 }
 
 

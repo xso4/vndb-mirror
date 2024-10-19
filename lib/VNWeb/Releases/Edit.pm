@@ -5,7 +5,7 @@ use VNWeb::Images::Lib 'enrich_image';
 use VNWeb::Releases::Lib;
 
 
-my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
+my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     id         => { default => undef, vndbid => 'r' },
     official   => { anybool => 1 },
     patch      => { anybool => 1 },
@@ -80,7 +80,7 @@ my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
     vnreleases => { _when => 'out', $VNWeb::Elm::apis{Releases}[0]->%* },
     hidden     => { anybool => 1 },
     locked     => { anybool => 1 },
-    editsum    => { _when => 'in out', editsum => 1 },
+    editsum    => { editsum => 1 },
     validate_extlinks 'r'
 };
 
@@ -211,9 +211,7 @@ js_api ReleaseEdit => $FORM_IN, sub {
         $i->{photo} = 0 if $i->{itype} eq 'dig';
     }
 
-    # We need the DRM names for form_changed()
-    enrich_merge drm => sql('SELECT id AS drm, name FROM drm WHERE id IN'), $e->{drm};
-    # And the DRM identifiers to actually save the new form.
+    # We need the DRM identifiers to actually save the new form.
     enrich_merge name => sql('SELECT name, id AS drm FROM drm WHERE name IN'), $data->{drm};
     for my $d ($data->{drm}->@*) {
         $d->{notes} = bb_subst_links $d->{notes};
@@ -230,9 +228,8 @@ js_api ReleaseEdit => $FORM_IN, sub {
             $new ? () : sql('id NOT IN(WITH RECURSIVE s(id) AS (SELECT', \$data->{id}, '::vndbid UNION SELECT rs.id FROM releases_supersedes rs JOIN s ON s.id = rs.rid) SELECT id FROM s)'),
     }, map $_->{rid}, $data->{supersedes}->@*;
 
-    return 'No changes' if !$new && !form_changed $FORM_CMP, $data, $e;
-
     my $ch = db_edit r => $e->{id}, $data;
+    return 'No changes' if !$ch->{nitemid};
     +{ _redir => "/$ch->{nitemid}.$ch->{nrev}" };
 };
 

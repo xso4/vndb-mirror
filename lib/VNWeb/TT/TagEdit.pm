@@ -2,7 +2,7 @@ package VNWeb::TT::TagEdit;
 
 use VNWeb::Prelude;
 
-my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
+my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     id           => { default => undef, vndbid => 'g' },
     name         => { maxlength => 250, sl => 1 },
     alias        => { maxlength => 1024, default => '' },
@@ -17,7 +17,7 @@ my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
         name        => { _when => 'out' },
     } },
     wipevotes    => { _when => 'in', anybool => 1 },
-    merge        => { _when => 'in out', aoh => {
+    merge        => { aoh => {
         id          => { vndbid => 'g' },
         name        => { _when => 'out' },
     } },
@@ -25,7 +25,7 @@ my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
     locked       => { anybool => 1 },
 
     authmod      => { _when => 'out', anybool => 1 },
-    editsum      => { _when => 'in out', editsum => 1 },
+    editsum      => { editsum => 1 },
 };
 
 
@@ -135,14 +135,8 @@ js_api TagEdit => $FORM_IN, sub {
         $changed++;
     }
 
-    if($new || form_changed $FORM_CMP, $data, $e) {
-        my $ch = db_edit g => $e->{id}, $data;
-        return +{ _redir => "/$ch->{nitemid}.$ch->{nrev}" };
-    } elsif($changed) {
-        return +{ _redir => "/$e->{id}" };
-    } else {
-        return +{ _err => 'No changes' };
-    }
+    my $ch = db_edit g => $e->{id}, $data;
+    return $ch->{nitemid} ? +{ _redir => "/$ch->{nitemid}.$ch->{nrev}" } : $changed ? +{ _redir => "/$e->{id}" } : 'No changes.';
 };
 
 1;

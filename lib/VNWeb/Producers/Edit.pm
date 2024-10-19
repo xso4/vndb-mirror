@@ -3,7 +3,7 @@ package VNWeb::Producers::Edit;
 use VNWeb::Prelude;
 
 
-my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
+my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     id          => { default => undef, vndbid => 'p' },
     type        => { default => 'co', enum => \%PRODUCER_TYPE },
     name        => { sl => 1, maxlength => 200 },
@@ -20,7 +20,7 @@ my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
     } },
     hidden      => { anybool => 1 },
     locked      => { anybool => 1 },
-    editsum     => { _when => 'in out', editsum => 1 },
+    editsum     => { editsum => 1 },
 };
 
 
@@ -69,8 +69,8 @@ js_api ProducerEdit => $FORM_IN, sub {
     validate_dbid 'SELECT id FROM producers WHERE id IN', map $_->{pid}, $data->{relations}->@*;
     die "Relation with self" if grep $_->{pid} eq $e->{id}, $data->{relations}->@*;
 
-    return +{ _err => 'No changes.' } if !$new && !form_changed $FORM_CMP, $data, $e;
     my $ch = db_edit p => $e->{id}, $data;
+    return 'No changes.' if !$ch->{nitemid};
     update_reverse($ch->{nitemid}, $ch->{nrev}, $e, $data);
     +{ _redir => "/$ch->{nitemid}.$ch->{nrev}" };
 };

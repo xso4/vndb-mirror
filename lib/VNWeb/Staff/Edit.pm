@@ -3,7 +3,7 @@ package VNWeb::Staff::Edit;
 use VNWeb::Prelude;
 
 
-my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
+my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     id          => { default => undef, vndbid => 's' },
     main        => { int => 1, range => [ -1000, 1<<40 ] }, # X
     alias       => { maxlength => 100, sort_keys => 'aid', aoh => {
@@ -19,7 +19,7 @@ my($FORM_IN, $FORM_OUT, $FORM_CMP) = form_compile 'in', 'out', 'cmp', {
     l_site     => { default => '', weburl => 1 },
     hidden     => { anybool => 1 },
     locked     => { anybool => 1 },
-    editsum    => { _when => 'in out', editsum => 1 },
+    editsum    => { editsum => 1 },
     validate_extlinks 's'
 };
 
@@ -96,9 +96,8 @@ js_api StaffEdit => $FORM_IN, sub {
     }
     # We rely on Postgres to throw an error if we attempt to delete an alias that is still being referenced.
 
-    return +{ _err => 'No changes.' } if !$new && !form_changed $FORM_CMP, $data, $e;
-
     my $ch = db_edit s => $e->{id}, $data;
+    return 'No changes.' if !$ch->{nitemid};
     +{ _redir => "/$ch->{nitemid}.$ch->{nrev}" };
 };
 

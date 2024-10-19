@@ -4,43 +4,131 @@ use v5.36;
 use List::Util 'any';
 use lib 'lib';
 use VNDB::Schema;
+use VNDB::Types;
 
 my $schema = VNDB::Schema::schema;
 my $template = join '', <DATA>;
 
+
+sub editvars($item) {
+    # table_name_without_hist => [ column_names_without_chid ]
+    my %ts =
+        map +($_, [ map $_->{name}, grep $_->{name} !~ /^chid$/, $schema->{"${_}_hist"}{cols}->@* ]),
+        map /^${item}_/ && /^(.+)_hist$/ ? $1 : (),
+        keys %$schema;
+
+    +(
+    createtemptables => join("\n", map sprintf(
+        "    CREATE TEMPORARY TABLE edit_%s (LIKE %s INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING GENERATED);\n".
+        "    ALTER TABLE edit_%1\$s DROP COLUMN %s;",
+        $_, $_ eq 'staff_alias' ? ($_, 'id') : ("${_}_hist", 'chid') # staff_alias copies from the non-_hist table, because it needs the sequence
+    ), sort keys %ts),
+
+    temptablenames => join(', ', map "edit_$_", sort keys %ts),
+
+    loadtemptables => join("\n", map sprintf(
+        "    INSERT INTO edit_%s (%s) SELECT %2\$s FROM %1\$s_hist WHERE chid = xchid;",
+        $_, join ', ', $ts{$_}->@*
+    ), sort keys %ts),
+
+    copyfromtemp => join("\n", map sprintf(
+        "  DELETE FROM %1\$s WHERE id = nitemid;\n".
+        "  INSERT INTO %1\$s (id, %2\$s) SELECT nitemid, %2\$s FROM edit_%1\$s;\n".
+        "  INSERT INTO %1\$s_hist (chid, %2\$s) SELECT nchid, %2\$s FROM edit_%1\$s;",
+        $_, join ', ', $ts{$_}->@*
+    ), grep $_ ne $item, sort keys %ts),
+
+    copymainfromtemp => sprintf(
+        "  INSERT INTO %1\$s_hist (chid, %2\$s) SELECT nchid, %2\$s FROM edit_%1\$s;\n".
+        "  UPDATE %1\$s SET locked = (SELECT ilock FROM edit_revision), hidden = (SELECT ihid FROM edit_revision),\n".
+        "    %3\$s FROM edit_%1\$s x WHERE id = nitemid;",
+        $item,
+        join(', ', $ts{$item}->@*),
+        join(', ', map "$_ = x.$_", $ts{$item}->@*)
+    )
+    );
+}
+
+
+sub charray(@args) {
+    return "ARRAY[\n      ".join(",\n      ",
+        map 'json_build_array('.join(', ', @$_).')::text', @args
+    )."]";
+}
+
+sub chagg($main, @cols) {
+    if (@cols == 1) {
+        return $cols[0]{name} if $main;
+        return "jsonb_agg($cols[0]{name} ORDER BY $cols[0]{name})";
+    }
+    my $cols = join ', ', map $_->{name}, @cols;
+    return "jsonb_build_array($cols)" if $main;
+    "jsonb_agg(jsonb_build_array($cols) ORDER BY $cols)"
+}
+
+sub chvars($item) {
+    my $cfg = $CHFLAGS{$schema->{$item}{dbentry_type}};
+    # chflag name => { id, cols }
+    my %flags = map +($cfg->[$_], { id => $_ }), 0..$#$cfg;
+    my %unused = map +($_,1), grep $flags{$_}{id}, keys %flags;
+
+    my sub checkflag($flg, $loc) {
+        die "schema.sql: Unknown 'cf=$flg' flag at $loc.\n" if !$flags{$flg};
+        die "schema.sql: Flag id=0 not allowed at $loc.\n" if !$flags{$flg}{id};
+        delete $unused{$flg};
+    }
+
+    for my $basetbl (map /^${item}_/ && /^(.+)_hist$/ ? $1 : (), keys %$schema) {
+        my $tbl = $schema->{"${basetbl}_hist"};
+        my @cols = grep $_->{name} ne 'chid', $tbl->{cols}->@*;
+        if ($tbl->{chflag}) {
+            checkflag $tbl->{chflag}, "table $tbl->{name}";
+            $flags{$tbl->{chflag}}{cols}{$basetbl} = \@cols;
+            next;
+        }
+        for my $col (@cols) {
+            die "schema.sql: Column $tbl->{name}.$col->{name} has no 'cf' flag.\n" if !$col->{chflag};
+            checkflag $col->{chflag}, "column $tbl->{name}.$col->{name}";
+            push $flags{$col->{chflag}}{cols}{$basetbl}->@*, $col;
+        }
+    }
+
+    die "schema.sql: Unused chflags for '$item': ".join(', ', sort keys %unused)."\n" if keys %unused;
+    my @flags = map $flags{$cfg->[$_]}, 1..$#$cfg;
+
+    +(
+        editchflags => charray(
+            ['(SELECT jsonb_build_array(ihid,ilock) FROM edit_revision)'],
+            map {
+                my $f = $_;
+                [ map "(SELECT ".chagg($_ eq $item, $f->{cols}{$_}->@*)." FROM edit_$_)", sort keys $f->{cols}->%* ]
+            } @flags
+        ),
+        emptychflags => charray(
+            ["'[false,false]'::jsonb"],
+            map {
+                my $f = $_;
+                [ map $_ eq $item ? "(SELECT ".chagg(1, $f->{cols}{$_}->@*)." FROM _edit_chflags_$_)" : 'null', sort keys $f->{cols}->%* ]
+            } @flags
+        ),
+        dbchflags => charray(
+            ['(SELECT jsonb_build_array(ihid,ilock) FROM changes WHERE id = xchid)'],
+            map {
+                my $f = $_;
+                [ map "(SELECT ".chagg($_ eq $item, $f->{cols}{$_}->@*)." FROM ${_}_hist WHERE chid = xchid)", sort keys $f->{cols}->%* ]
+            } @flags
+        ),
+    );
+}
+
 sub gensql($item) {
-  # table_name_without_hist => [ column_names_without_chid ]
-  my %ts = map
-    +($_, [ map $_->{name}, grep $_->{name} !~ /^chid$/, @{$schema->{"${_}_hist"}{cols}} ]),
-    map /^${item}_/ && /^(.+)_hist$/ ? $1 : (), keys %$schema;
-
-  my %replace = ( item => $item, itemtype => $schema->{$item}{dbentry_type} );
-
-  $replace{createtemptables} = join "\n", map sprintf(
-    "    CREATE TEMPORARY TABLE edit_%s (LIKE %s INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING GENERATED);\n".
-    "    ALTER TABLE edit_%1\$s DROP COLUMN %s;",
-    $_, $_ eq 'staff_alias' ? ($_, 'id') : ("${_}_hist", 'chid') # staff_alias copies from the non-_hist table, because it needs the sequence
-  ), sort keys %ts;
-
-  $replace{temptablenames} = join ', ', map "edit_$_", sort keys %ts;
-
-  $replace{loadtemptables} = join "\n", map sprintf(
-    "    INSERT INTO edit_%s (%s) SELECT %2\$s FROM %1\$s_hist WHERE chid = xchid;",
-    $_, join ', ', @{$ts{$_}}), sort keys %ts;
-
-  $replace{copyfromtemp} = join "\n", map sprintf(
-    "  DELETE FROM %1\$s WHERE id = nitemid;\n".
-    "  INSERT INTO %1\$s (id, %2\$s) SELECT nitemid, %2\$s FROM edit_%1\$s;\n".
-    "  INSERT INTO %1\$s_hist (chid, %2\$s) SELECT nchid, %2\$s FROM edit_%1\$s;",
-    $_, join ', ', @{$ts{$_}}), grep $_ ne $item, sort keys %ts;
-
-  $replace{copymainfromtemp} = sprintf
-    "  INSERT INTO %1\$s_hist (chid, %2\$s) SELECT nchid, %2\$s FROM edit_%1\$s;\n".
-    "  UPDATE %1\$s SET locked = (SELECT ilock FROM edit_revision), hidden = (SELECT ihid FROM edit_revision),\n".
-    "    %3\$s FROM edit_%1\$s x WHERE id = nitemid;",
-    $item, join(', ', @{$ts{$item}}), join(', ', map "$_ = x.$_", @{$ts{$item}});
-
-  $template =~ s/{([a-z]+)}/$replace{$1}/gr;
+    my %replace = (
+        item => $item,
+        itemtype => $schema->{$item}{dbentry_type},
+        editvars($item),
+        chvars($item),
+    );
+    $template =~ s/{([a-z]+)}/$replace{$1}/gr;
 }
 
 
@@ -49,6 +137,25 @@ print gensql $_ for sort grep $schema->{$_}{dbentry_type}, keys %$schema;
 
 
 __DATA__
+
+CREATE OR REPLACE FUNCTION edit_{itemtype}_chfields(xchid integer) RETURNS text[] AS $$
+BEGIN
+  IF xchid IS NULL THEN
+    RETURN {editchflags};
+  ELSEIF xchid = 0 THEN
+    BEGIN
+      CREATE TEMPORARY TABLE _edit_chflags_{item} (LIKE {item}_hist INCLUDING DEFAULTS);
+      ALTER TABLE _edit_chflags_{item} DROP COLUMN chid;
+      INSERT INTO _edit_chflags_{item} DEFAULT VALUES;
+    EXCEPTION WHEN duplicate_table THEN
+    END;
+    RETURN {emptychflags};
+  ELSE
+    RETURN {dbchflags};
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
 
 CREATE OR REPLACE FUNCTION edit_{itemtype}_init(xid vndbid, xrev integer) RETURNS void AS $$
 DECLARE
@@ -74,10 +181,14 @@ $$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION edit_{itemtype}_commit(out nchid integer, out nitemid vndbid, out nrev integer) AS $$
+DECLARE
+  chflags bigint;
 BEGIN
   IF (SELECT COUNT(*) FROM edit_{item}) <> 1 THEN
     RAISE 'edit_{item} must have exactly one row!';
   END IF;
+  SELECT chflags_diff(edit_{itemtype}_chfields(NULL), edit_{itemtype}_chfields((SELECT chid FROM edit_revision))) INTO chflags;
+  IF chflags = 0 THEN RETURN; END IF;
   SELECT itemid INTO nitemid FROM edit_revision;
   -- figure out revision number
   SELECT MAX(rev)+1 INTO nrev FROM changes WHERE itemid = nitemid;
@@ -87,12 +198,11 @@ BEGIN
     INSERT INTO {item} DEFAULT VALUES RETURNING id INTO nitemid;
   END IF;
   -- insert change
-  INSERT INTO changes (itemid, rev, requester, comments, ihid, ilock)
-    SELECT nitemid, nrev, requester, comments, ihid, ilock FROM edit_revision RETURNING id INTO nchid;
+  INSERT INTO changes (itemid, rev, requester, comments, ihid, ilock, c_chflags)
+    SELECT nitemid, nrev, requester, comments, ihid, ilock, chflags FROM edit_revision RETURNING id INTO nchid;
   -- insert data
 {copyfromtemp}
 {copymainfromtemp}
   PERFORM edit_committed(nchid, nitemid, nrev);
 END;
 $$ LANGUAGE plpgsql;
-

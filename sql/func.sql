@@ -771,7 +771,12 @@ $$ LANGUAGE plpgsql STABLE;
 --           revision insertion abstraction             --
 ----------------------------------------------------------
 
--- The two functions below are utility functions used by the item-specific functions in editfunc.sql
+-- The functions below are utility functions used by the item-specific functions in editfunc.sql
+
+CREATE OR REPLACE FUNCTION chflags_diff(la text[], lb text[]) RETURNS bigint AS $$
+  SELECT SUM(CASE WHEN a = b THEN 0 ELSE 1::bigint<<(n::int-1) END) FROM unnest(la, lb) WITH ORDINALITY x (a, b, n)
+$$ LANGUAGE SQL;
+
 
 -- create temporary table for generic revision info, and returns the chid of the revision being edited (or NULL).
 CREATE OR REPLACE FUNCTION edit_revtable(xitemid vndbid, xrev integer) RETURNS integer AS $$
@@ -780,6 +785,7 @@ DECLARE
 BEGIN
   BEGIN
     CREATE TEMPORARY TABLE edit_revision (
+      chid integer,
       itemid vndbid,
       requester vndbid,
       comments text,
@@ -790,7 +796,7 @@ BEGIN
     TRUNCATE edit_revision;
   END;
   SELECT INTO x id, ihid, ilock FROM changes c WHERE itemid = xitemid AND rev = xrev;
-  INSERT INTO edit_revision (itemid, ihid, ilock) VALUES (xitemid, COALESCE(x.ihid, FALSE), COALESCE(x.ilock, FALSE));
+  INSERT INTO edit_revision (chid, itemid, ihid, ilock) VALUES (COALESCE(x.id, 0), xitemid, COALESCE(x.ihid, FALSE), COALESCE(x.ilock, FALSE));
   RETURN x.id;
 END;
 $$ LANGUAGE plpgsql;
