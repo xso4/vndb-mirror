@@ -266,8 +266,8 @@ const Animation = initVnode => {
     const hasAni = v => v !== null && v !== 0 && v !== 1;
     let some = hasAni(data.ani_story_sp) || hasAni(data.ani_story_cg) || hasAni(data.ani_cutscene)
             || hasAni(data.ani_ero_sp)   || hasAni(data.ani_ero_cg)
-            || (data.ani_face !== null && data.ani_face !== null)
-            || (data.ani_bg   !== null && data.ani_bg   !== null);
+            || (data.ani_face !== null && data.ani_face)
+            || (data.ani_bg   !== null && data.ani_bg);
 
     const flagmask = 4+8+16+32;
     const freqmask = 256+512;
