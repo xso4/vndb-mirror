@@ -92,7 +92,7 @@ sub tablebox_ {
 
 
 sub filters_ {
-    my($type) = @_;
+    my($id, $type) = @_;
 
     my @types = (
         [ v => 'Visual novels' ],
@@ -146,9 +146,13 @@ sub filters_ {
             td_ class => $type eq $_ || ($filt->{t} && $filt->{t}->@* == 1 && $filt->{t}[0] eq $_) ? undef : 'hidden', id => "histoptions-cf$_", sub {
                 my $k = $_;
                 my $v = sum 0, map 1<<$_, $filt->{"cf$k"}->@*;
+                my @lst = sort { $a->[1] cmp $b->[1] } map [$_, $CHFLAGS{$k}[$_]], 0..$#{$CHFLAGS{$k}};
+                if ($type eq $k) {
+                    my $available = tuwf->dbVali('SELECT bit_or(c_chflags) FROM changes WHERE itemid =', \$id)||~0;
+                    @lst = grep $available & (1<<$_->[0]), @lst;
+                }
                 select_ multiple => 1, size => scalar @types, name => "cf$k", sub {
-                    option_ selected => $v & (1<<$_->[0]) ? 1 : undef, value => $_->[0], $_->[1]
-                        for (sort { $a->[1] cmp $b->[1] } map [$_, $CHFLAGS{$k}[$_]], 0..$#{$CHFLAGS{$k}});
+                    option_ selected => $v & (1<<$_->[0]) ? 1 : undef, value => $_->[0], $_->[1] for (@lst);
                 }
             } for (grep !$type || $type eq 'u' || $type eq $_, keys %CHFLAGS);
 
@@ -193,7 +197,7 @@ TUWF::get qr{/(?:([upvrcsdgi][1-9][0-9]{0,6})/)?hist} => sub {
         my $filt;
         article_ sub {
             h1_ $title;
-            $filt = filters_($id =~ /^(.)/ ? $1 : '');
+            $filt = filters_($id, $id =~ /^(.)/ ? $1 : '');
         };
         tablebox_ $id, $filt, nouser => scalar $id =~ /^u/;
     };
