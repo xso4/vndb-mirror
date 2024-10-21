@@ -82,14 +82,19 @@ sub chvars($item) {
         my $tbl = $schema->{"${basetbl}_hist"};
         my @cols = grep $_->{name} ne 'chid', $tbl->{cols}->@*;
         if ($tbl->{chflag}) {
-            checkflag $tbl->{chflag}, "table $tbl->{name}";
-            $flags{$tbl->{chflag}}{cols}{$basetbl} = \@cols;
+            for my $f ($tbl->{chflag}->@*) {
+                checkflag $f, "table $tbl->{name}";
+                $flags{$f}{cols}{$basetbl} = \@cols;
+            }
             next;
         }
         for my $col (@cols) {
             die "schema.sql: Column $tbl->{name}.$col->{name} has no 'cf' flag.\n" if !$col->{chflag};
-            checkflag $col->{chflag}, "column $tbl->{name}.$col->{name}";
-            push $flags{$col->{chflag}}{cols}{$basetbl}->@*, $col;
+            for my $f ($col->{chflag}->@*) {
+                next if $f eq '-';
+                checkflag $f, "column $tbl->{name}.$col->{name}";
+                push $flags{$f}{cols}{$basetbl}->@*, $col;
+            }
         }
     }
 

@@ -22,12 +22,12 @@ my $ROOT = ($INC{'VNDB/Schema.pm'} =~ s{lib/VNDB/Schema\.pm$}{}r =~ s{/$}{}r) ||
 #               type => 'serial',
 #               decl => 'id SERIAL', # full declaration, exluding comments and PRIMARY KEY marker
 #               pub => 1,
-#               cf => 'chflag',
+#               cf => ['chflag'],
 #               comment => '',
 #           }, ...
 #       ],
 #       primary => ['id'],
-#       cf => 'chflag',
+#       cf => ['chflag'],
 #       comment => '',
 #   }
 # }
@@ -48,7 +48,7 @@ sub schema {
             $schema{$table}{comment} = /--\s*(.*)\s*/ ? $1 : '';
             $schema{$table}{dbentry_type} = $1 if $schema{$table}{comment} =~ s/\s*dbentry_type=(.)\s*//;
             if ($schema{$table}{comment} =~ s/\s*cf=([^\s]+)\s*//) {
-                $schema{$table}{chflag} = $1;
+                $schema{$table}{chflag} = [ split /,/, $1 ];
                 die "schema.sql: 'cf' attribute on non-hist table '$table'\n" if $table !~ /_hist$/;
             }
             $schema{$table}{cols} = [];
@@ -70,7 +70,7 @@ sub schema {
             $col->{comment} = (s/,?\s*(?:--(.*))?$// && $1) || '';
             $col->{pub} = $col->{comment} =~ s/\s*\[pub\]\s*//;
             if ($col->{comment} =~ s/\s*cf=([^\s]+)\s*//) {
-                $col->{chflag} = $1;
+                $col->{chflag} = [ split /,/, $1 ];
                 die "schema.sql: 'cf' attribute on non-hist table '$table'\n" if $table !~ /_hist$/;
             }
 

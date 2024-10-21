@@ -326,7 +326,7 @@ CREATE TABLE docs_hist (
   chid       integer  NOT NULL PRIMARY KEY,
   title      varchar(200) NOT NULL DEFAULT '', -- cf=Title
   content    text NOT NULL DEFAULT '', -- cf=Content
-  html       text -- cf=Content cache
+  html       text -- cf=- cache
 );
 
 -- drm
@@ -766,7 +766,7 @@ CREATE TABLE releases_titles (
 -- releases_titles_hist
 CREATE TABLE releases_titles_hist (
   chid       integer NOT NULL,
-  lang       language NOT NULL, -- cf=Language
+  lang       language NOT NULL, -- cf=Title,Language
   mtl        boolean NOT NULL DEFAULT false, -- cf=Language
   title      text, -- cf=Title
   latin      text, -- cf=Title
@@ -1592,7 +1592,7 @@ CREATE TABLE vn_titles (
 -- vn_titles_hist
 CREATE TABLE vn_titles_hist (
   chid       integer NOT NULL,
-  lang       language NOT NULL, -- cf=Language
+  lang       language NOT NULL, -- cf=Title,Language
   official   boolean NOT NULL, -- cf=Title
   title      text NOT NULL, -- cf=Title
   latin      text, -- cf=Title
