@@ -145,7 +145,7 @@ sub filters_ {
 
             td_ class => $type eq $_ || ($filt->{t} && $filt->{t}->@* == 1 && $filt->{t}[0] eq $_) ? undef : 'hidden', id => "histoptions-cf$_", sub {
                 my $k = $_;
-                my $v = sum map 1<<$_, $filt->{"cf$k"}->@*;
+                my $v = sum 0, map 1<<$_, $filt->{"cf$k"}->@*;
                 select_ multiple => 1, size => scalar @types, name => "cf$k", sub {
                     option_ selected => $v & (1<<$_->[0]) ? 1 : undef, value => $_->[0], $_->[1]
                         for (sort { $a->[1] cmp $b->[1] } map [$_, $CHFLAGS{$k}[$_]], 0..$#{$CHFLAGS{$k}});
@@ -188,7 +188,7 @@ TUWF::get qr{/(?:([upvrcsdgi][1-9][0-9]{0,6})/)?hist} => sub {
     return tuwf->resNotFound if $id =~ /^u/ && $obj->{entry_hidden} && !auth->isMod;
 
     my $title = $id ? "Edit history of $obj->{title}[1]" : 'Recent changes';
-    framework_ title => $title, dbobj => $obj, tab => 'hist', js => !$id || $id =~ /^u/,
+    framework_ title => $title, dbobj => $obj, tab => 'hist', js => !!($id =~ /^(u|$)/),
     sub {
         my $filt;
         article_ sub {
