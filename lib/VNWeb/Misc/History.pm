@@ -151,7 +151,7 @@ sub filters_ {
                     my $available = tuwf->dbVali('SELECT bit_or(c_chflags) FROM changes WHERE itemid =', \$id)||~0;
                     @lst = grep $available & (1<<$_->[0]), @lst;
                 }
-                select_ multiple => 1, size => scalar @types, name => "cf$k", sub {
+                select_ multiple => 1, size => min(scalar @lst, scalar @types), name => "cf$k", sub {
                     option_ selected => $v & (1<<$_->[0]) ? 1 : undef, value => $_->[0], $_->[1] for (@lst);
                 }
             } for (grep !$type || $type eq 'u' || $type eq $_, keys %CHFLAGS);
