@@ -26,7 +26,11 @@ sub fetch {
                 WHERE c_i.itemid = c.itemid AND',
                     $filt->{h} == -2 ? 'c_i.ihid AND NOT c_i.ilock' :
                     $filt->{h} == -1 ? 'c_i.ihid AND c_i.ilock' : 'NOT c_i.ihid', '
-                  AND c_i.rev = (SELECT MAX(c_ii.rev) FROM changes c_ii WHERE c_ii.itemid = c.itemid))' : ();
+                  AND c_i.rev = (SELECT MAX(c_ii.rev) FROM changes c_ii WHERE c_ii.itemid = c.itemid))' : (),
+
+         (map $filt->{"cf$_"} && $filt->{"cf$_"}->@* > 0 ? sql
+             '(c.c_chflags & ', \sum(map 1<<$_, $filt->{"cf$_"}->@*), '> 0
+                OR c.itemid NOT BETWEEN vndbid(', \"$_", ', 1) AND vndbid_max(', \"$_", '))' : (), keys %CHFLAGS);
 
     my $lst = tuwf->dbAlli('
         SELECT c.id, c.itemid, c.comments, c.rev,', sql_totime('c.added'), 'AS added,', sql_user(), ', x.title, u.perm_dbmod AS rev_dbmod
@@ -109,6 +113,7 @@ sub filters_ {
         e => { onerror => 0, enum => [ -1..1 ] }, # Existing/new items
         r => { onerror => 0, enum => [ 0, 1 ] },  # Include releases
         p => { page => 1 },
+        (map +("cf$_" => { onerror => [], type => 'array', scalar => 1, values => { enum => [0..$#{$CHFLAGS{$_}}] } }), keys %CHFLAGS)
     }});
     my $filt = tuwf->validate(get => $schema)->data;
 
@@ -133,10 +138,19 @@ sub filters_ {
     form_ method => 'get', action => tuwf->reqPath(), sub {
         table_ class => 'histoptions', sub { tr_ sub {
             td_ sub {
-                select_ multiple => 1, size => scalar @types, name => 't', sub {
+                select_ multiple => 1, size => scalar @types, name => 't', id => 'histoptions-t', sub {
                     option_ $t{$_->[0]} ? (selected => 1) : (), value => $_->[0], $_->[1] for @types;
                 }
             } if exists $filt->{t};
+
+            td_ class => $type eq $_ || ($filt->{t} && $filt->{t}->@* == 1 && $filt->{t}[0] eq $_) ? undef : 'hidden', id => "histoptions-cf$_", sub {
+                my $k = $_;
+                my $v = sum map 1<<$_, $filt->{"cf$k"}->@*;
+                select_ multiple => 1, size => scalar @types, name => "cf$k", sub {
+                    option_ selected => $v & (1<<$_->[0]) ? 1 : undef, value => $_->[0], $_->[1]
+                        for (sort { $a->[1] cmp $b->[1] } map [$_, $CHFLAGS{$k}[$_]], 0..$#{$CHFLAGS{$k}});
+                }
+            } for (grep !$type || $type eq 'u' || $type eq $_, keys %CHFLAGS);
 
             td_ sub {
                 p_ class => 'linkradio', sub {
@@ -174,7 +188,7 @@ TUWF::get qr{/(?:([upvrcsdgi][1-9][0-9]{0,6})/)?hist} => sub {
     return tuwf->resNotFound if $id =~ /^u/ && $obj->{entry_hidden} && !auth->isMod;
 
     my $title = $id ? "Edit history of $obj->{title}[1]" : 'Recent changes';
-    framework_ title => $title, dbobj => $obj, tab => 'hist',
+    framework_ title => $title, dbobj => $obj, tab => 'hist', js => !$id || $id =~ /^u/,
     sub {
         my $filt;
         article_ sub {

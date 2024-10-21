@@ -40,6 +40,7 @@ window.onerror = function(ev, source, lineno, colno, error) {
 @include sethash.js
 @include ulist-actiontabs.js
 @include ulist-labelfilters.js
+@include histoptions.js
 
 @include elm-support.js
 

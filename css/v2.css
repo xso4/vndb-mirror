@@ -152,9 +152,12 @@ fieldset.search .submit         { padding: 0 1px; }
 
 /* history browser */
 
-.histoptions { margin: 0 auto }
-.histoptions select { width: 150px; scrollbar-width: none }
-.histoptions select::-webkit-scrollbar { display: none }
+.histoptions {
+    margin: 0 auto;
+    select { width: 150px }
+    select[name=t] { scrollbar-width: none }
+    select[name=t]::-webkit-scrollbar { display: none }
+}
 
 .history td       { white-space: nowrap; padding-left: 15px }
 .history td.tc1_0 { padding-right: 0; padding-left: 0 }
