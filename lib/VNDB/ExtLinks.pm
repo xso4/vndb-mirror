@@ -107,7 +107,7 @@ our %LINKS = (
                       , regex => qr{(?:www\.)?patreon\.com/posts/(?:[^/?]+-)?([0-9]+).*} },
         l_patreon  => { label => 'Patreon'
                       , fmt   => 'https://www.patreon.com/%s'
-                      , regex => qr{(?:www\.)?patreon\.com/(?!user[\?/]|posts[\?/]|join[\?/])([^/?]+).*} },
+                      , regex => qr{(?:www\.)?patreon\.com/(?:c/)?(?!user[\?/]|posts[\?/]|join[\?/])([^/?]+).*} },
         l_substar  => { label => 'SubscribeStar'
                       , fmt   => 'https://subscribestar.%s'
                       , regex => qr{(?:www\.)?subscribestar\.((?:adult|com)/[^/?]+).*}
@@ -260,7 +260,7 @@ our %LINKS = (
                       , regex => qr{anison\.info/data/person/([0-9]+)\.html} },
         l_patreon  => { label => 'Patreon'
                       , fmt   => 'https://www.patreon.com/%s'
-                      , regex => qr{(?:www\.)?patreon\.com/(?!user[\?/]|posts[\?/]|join[\?/])([^/?]+).*} },
+                      , regex => qr{(?:www\.)?patreon\.com/(?:c/)?(?!user[\?/]|posts[\?/]|join[\?/])([^/?]+).*} },
         l_substar  => { label => 'SubscribeStar'
                       , fmt   => 'https://subscribestar.%s'
                       , regex => qr{(?:www\.)?subscribestar\.((?:adult|com)/[^/?]+).*}
