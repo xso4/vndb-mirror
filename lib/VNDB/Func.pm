@@ -171,8 +171,8 @@ sub fmtvote($v) {
 sub fmtmedia($med, $qty) {
     $med = $MEDIUM{$med};
     join ' ',
-        ($med->{qty} ? ($qty) : ()),
-        $med->{ $med->{qty} && $qty > 1 ? 'plural' : 'txt' };
+        $qty || (),
+        $med->{ $qty > 1 ? 'plural' : 'txt' };
 }
 
 # Formats a UNIX timestamp as a '<number> <unit> ago' string

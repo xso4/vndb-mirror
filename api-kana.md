@@ -875,8 +875,8 @@ media.medium
 :   String.
 
 media.qty
-:   Integer, quantity. This is `0` for media where a quantity does not make
-    sense, like "internet download".
+:   Integer, quantity. This is `0` for media where the quantity is unknown or
+    where it does not make sense, like "internet download".
 
 vns
 :   Array of objects, the list of visual novels this release is linked to.

@@ -179,7 +179,7 @@ const Format = initVnode => {
             data.media.length === 0 ? m('p.invalid', 'No media selected.') : null,
             data.media.map(x => m('div',
                 m(Button.Del, { onclick: () => data.media = data.media.filter(y => x !== y) }), ' ',
-                m(Select, { class: media[x.medium].qty ? 'sw' : 'sw invisible', data: x, field: 'qty', options: range(1, 40).map(i=>[i,i]) }), ' ',
+                m(Select, { class: media[x.medium].qty ? 'sw' : 'sw invisible', data: x, field: 'qty', options: range(1, 40).map(i=>[i,i]).concat([[0, 'Unknown quantity']]) }), ' ',
                 media[x.medium].label, m('br'),
             )),
             m(Select, {
