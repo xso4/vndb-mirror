@@ -135,9 +135,23 @@ const Status = initVnode => {
 
 const Format = initVnode => {
     const {data} = initVnode.attrs;
-    const plat = new DS(DS.Platforms, {
-        checked: ({id}) => !!data.platforms.find(p => p.platform === id),
-        onselect: ({id},sel) => { if (sel) data.platforms.push({platform:id}); else data.platforms = data.platforms.filter(p => p.platform !== id)},
+
+    let unknownMedia = data.id && data.media.length == 0;
+    let unknownPlat = data.id && data.platforms.length == 0;
+    const plat = new DS(DS.New(DS.Platforms,
+        id => ({id: '_unk_'}),
+        obj => 'Unknown',
+    ), {
+        checked: ({id}) => (id === '_unk_' && unknownPlat) || !!data.platforms.find(p => p.platform === id),
+        onselect: ({id},sel) => {
+            if (id === '_unk_') {
+                unknownPlat = sel;
+                data.platforms = [];
+            } else {
+                if (sel) data.platforms.push({platform:id});
+                else data.platforms = data.platforms.filter(p => p.platform !== id)
+            }
+        },
         checkall: () => data.platforms = vndbTypes.platform.map(([platform]) => ({platform})),
         uncheckall: () => data.platforms = [],
     });
@@ -168,24 +182,30 @@ const Format = initVnode => {
     const view = () => m('fieldset.form',
         m('legend', 'Format'),
         m('fieldset',
-            m('label', { class: data.platforms.length === 0 ? 'invalid' : null }, 'Platforms'),
-            m(DS.Button, { class: 'xw', ds: plat, invalid: data.platforms.length === 0 },
-                data.platforms.length === 0 ? 'No platforms selected' :
+            m('label', { class: !unknownPlat && data.platforms.length === 0 ? 'invalid' : null }, 'Platforms'),
+            m(DS.Button, { class: 'xw', ds: plat, invalid: !unknownPlat && data.platforms.length === 0 },
+                unknownPlat ? 'Unknown' : data.platforms.length === 0 ? 'No platforms selected' :
                 data.platforms.map(p => m('span.nowrap', PlatIcon(p.platform), vndbTypes.platform.find(([x]) => x === p.platform)[1])).intersperse(' '),
             ),
         ),
         m('fieldset',
-            m('label[for=addmedia]', { class: data.media.length === 0 ? 'invalid' : null }, 'Media'),
-            data.media.length === 0 ? m('p.invalid', 'No media selected.') : null,
+            m('label[for=addmedia]', { class: !unknownMedia && data.media.length === 0 ? 'invalid' : null }, 'Media'),
+            data.media.length == 0 && !unknownMedia ? m('p.invalid', 'No media selected.') : null,
             data.media.map(x => m('div',
                 m(Button.Del, { onclick: () => data.media = data.media.filter(y => x !== y) }), ' ',
                 m(Select, { class: media[x.medium].qty ? 'sw' : 'sw invisible', data: x, field: 'qty', options: range(1, 40).map(i=>[i,i]).concat([[0, 'Unknown quantity']]) }), ' ',
                 media[x.medium].label, m('br'),
             )),
             m(Select, {
-                class: 'mw', id: 'addmedia', value: null,
-                oninput: v => v !== null && data.media.push({medium: v, qty:1}),
-                options: [[null, '- Add medium -']].concat(vndbTypes.medium)
+                class: 'mw', id: 'addmedia', value: unknownMedia ? 'unk' : null,
+                oninput: v => {
+                    if (v === 'unk') unknownMedia = true;
+                    else if (v !== null) {
+                        data.media.push({medium: v, qty:1});
+                        unknownMedia = false;
+                    }
+                },
+                options: [[null, '- Add medium -']].concat(data.media.length === 0 ? [['unk', 'Unknown']] : []).concat(vndbTypes.medium)
             }),
             data.media.anyDup(({medium,qty}) => [medium, media[medium].qty ? qty : null])
             ?  m('p.invalid', 'List contains duplicates') : null,
