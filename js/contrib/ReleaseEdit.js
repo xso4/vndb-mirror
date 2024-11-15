@@ -539,7 +539,7 @@ const Images = initVnode => {
         m('legend', 'Images'),
         data.images.length === 0
         ? m('p', 'No images assigned to this release.')
-        : m('table.full.stripe[style=width:100%]', m('tbody', data.images.map(e => m('tr',
+        : m('table.full.stripe[style=width:100%]', m('tbody', data.images.map(e => m('tr', {key: e.img},
             m('td[style=text-align:right;width:170px]', m(Thumb, {img:e.nfo})),
             m('td',
                 m('p',
