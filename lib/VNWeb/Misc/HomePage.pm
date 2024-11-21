@@ -196,9 +196,12 @@ sub releases_ {
             span_ sub {
                 rdate_ $_->{released};
                 txt_ ' ';
-                platform_ $_ for $_->{plat}->@*;
-                abbr_ class => "icon-lang-$_", title => $LANGUAGE{$_}{txt}, '' for $_->{lang}->@*;
-                txt_ ' ';
+                my $icons = $_->{plat}->@* + $_->{lang}->@*;
+                platform_ $_
+                    for @{$_->{plat}}[0 .. min $#{$_->{plat}}, $icons > 5 ? 2 : 5];
+                abbr_ class => "icon-lang-$_", title => $LANGUAGE{$_}{txt}, ''
+                    for @{$_->{lang}}[0.. min $#{$_->{lang}}, $icons > 5 ? max 1, 4 - $_->{plat}->@* : 5];
+                txt_ $icons > 5 ? '… ' : ' ';
                 a_ href => "/$_->{id}", tattr $_;
             }
         } for @$lst;
