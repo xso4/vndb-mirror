@@ -56,13 +56,15 @@ sub listing_ {
 
 TUWF::get qr{/g/links}, sub {
     my $opt = tuwf->validate(get =>
-        p => { page => 1 },
         o => { onerror => 'd', enum => ['a', 'd'] },
         s => { onerror => 'date', enum => [qw|date tag|] },
         v => { onerror => undef, vndbid => 'v' },
         u => { onerror => undef, vndbid => 'u' },
         t => { onerror => undef, vndbid => 'g' },
     )->data;
+    # Allow full browsing when a filter is enabled, but limit the page count if not.
+    my $filt = defined $opt->{u} || defined $opt->{t} || defined $opt->{v};
+    $opt->{p} = tuwf->validate(get => p => $filt ? { upage => 1 } : { page => 1 })->data;
 
     my $u = $opt->{u} && tuwf->dbRowi('SELECT id,', sql_user(), 'FROM users u WHERE id =', \$opt->{u});
     return tuwf->resNotFound if $opt->{u} && (!$u->{id} || (!defined $u->{user_name} && !auth->isMod));
@@ -71,8 +73,6 @@ TUWF::get qr{/g/links}, sub {
         defined $opt->{v} ? sql('tv.vid =', \$opt->{v}) : (),
         defined $opt->{u} ? sql('tv.uid =', \$opt->{u}) : (),
         defined $opt->{t} ? sql('tv.tag =', \$opt->{t}) : ();
-
-    my $filt = defined $opt->{u} || defined $opt->{t} || defined $opt->{v};
 
     my $count = $filt && tuwf->dbVali('SELECT COUNT(*) FROM tags_vn tv WHERE', $where);
     my($lst, $np) = tuwf->dbPagei({ page => $opt->{p}, results => 50 }, '
