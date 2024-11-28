@@ -146,10 +146,12 @@ const Format = initVnode => {
         onselect: ({id},sel) => {
             if (id === '_unk_') {
                 unknownPlat = sel;
-                data.platforms = [];
+                if (sel) data.platforms = [];
             } else {
-                if (sel) data.platforms.push({platform:id});
-                else data.platforms = data.platforms.filter(p => p.platform !== id)
+                if (sel) {
+                    data.platforms.push({platform:id});
+                    unknownPlat = false;
+                } else data.platforms = data.platforms.filter(p => p.platform !== id)
             }
         },
         checkall: () => data.platforms = vndbTypes.platform.map(([platform]) => ({platform})),
