@@ -109,7 +109,7 @@ JPEGLI_VER := 038935426df9cb037ddddd2ed01e92f6fa3a5867
 JPEGLI_DIR := ${GEN}/build/jpegli-${JPEGLI_VER}
 
 ${GEN}/imgproc-custom: util/imgproc.c ${GEN}/lib/libjpeg.so Makefile
-	${CC} ${CFLAGS} $< `pkg-config --cflags --libs libseccomp vips` "-Wl,-rpath,$(realpath ${GEN})/lib" -ljpeg -o $@
+	${CC} ${CFLAGS} $< `pkg-config --cflags --libs libseccomp vips` -DCUSTOM_JPEGLI -L${GEN}/lib "-Wl,-rpath,$(realpath ${GEN})/lib" -ljpeg -o $@
 
 ${JPEGLI_DIR}:
 	mkdir -p ${JPEGLI_DIR}
@@ -119,6 +119,7 @@ ${GEN}/lib/libjpeg.so: | ${JPEGLI_DIR}
 		git clone https://github.com/google/jpegli .  && \
 		git reset --hard ${JPEGLI_VER} && \
 		git submodule update --init --recursive --depth 1 --recommend-shallow
+	echo 'extern "C" { extern void vndb_jpeg_is_jpegli(void) {} }' >>${JPEGLI_DIR}/lib/jpegli/libjpeg_wrapper.cc
 	cd ${JPEGLI_DIR} && cmake -L \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DBUILD_TESTING=OFF \

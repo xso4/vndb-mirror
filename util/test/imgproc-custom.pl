@@ -42,6 +42,9 @@ cmphash 'util/test/basn6a16.png', '32x32', 'a4d073bcafd9de6990cb5e723a27e979188c
 die if `$bin size <util/test/xd9n2c08.png 2>&1` !~ /Invalid IHDR data/;
 # Triggers vips_error_exit() output
 die if `$bin jpeg 5 <util/test/basn4a08.png 2>&1` !~ /write error/;
+# Trigger seccomp violation
+die if `$bin seccomp-test </dev/null 2>&1`;
+die if (($? >> 8) & 127) != 31; # SIGSYS
 
 # Large images are tested to see if extra memory or thread pool use triggers more unique system calls.
 # (it does, and yes it varies per input format)

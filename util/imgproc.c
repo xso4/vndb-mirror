@@ -32,6 +32,12 @@ char input_buffer[MAX_INPUT_SIZE];
 size_t input_len;
 
 
+/* Ensure we didn't accidentally load system libjpeg */
+#if CUSTOM_JPEGLI
+extern void vndb_jpeg_is_jpegli(void);
+#endif
+
+
 #ifndef DISABLE_SECCOMP
 
 static void setup_seccomp() {
@@ -141,6 +147,10 @@ static int composite(void) {
 
 
 int main(int argc, char **argv) {
+#if CUSTOM_JPEGLI
+    vndb_jpeg_is_jpegli();
+#endif
+
 #ifndef DISABLE_SECCOMP
     /* don't write to temporary files when working with large images,
        unless we need more than 1g, then we'll just crash. */
@@ -164,6 +174,8 @@ int main(int argc, char **argv) {
     g_get_charset(NULL);
 
     setup_seccomp();
+
+    if (argc == 2 && strcmp(argv[1], "seccomp-test") == 0) return read(1, input_buffer, 1);
 #endif
 
     /* Reading into a buffer allows for more strict seccomp rules than using vips_source_new_from_descriptor() */
