@@ -26,7 +26,7 @@ sub cmphash {
 
 sub cmpmagick {
     my($fn, $arg, $size, $hash) = @_;
-    `convert -size $size $arg $fn`;
+    `magick -size $size $arg $fn`;
     cmphash $fn, $size, $hash;
     unlink $fn;
 }
@@ -66,7 +66,7 @@ cmpmagick 'large.jxl', '"canvas:rgb(100,50,30)"', '5000x5000', '681d4524f780f0f7
 exit; # don't need to test this often
 for my $w (10, 50, 256, 400) {
     for my $h (300..1000) {
-        `convert -size ${w}x$h 'canvas:rgb(0,0,0)' tst.png`;
+        `magick -size ${w}x$h 'canvas:rgb(0,0,0)' tst.png`;
         my $dim = `$bin fit 256 300 size <tst.png 2>&1`;
         unlink 'tst.png';
         chomp($dim);

@@ -105,77 +105,38 @@ ${GEN}/imgproc: util/imgproc.c
 	$T CC
 	$Q ${CC} ${CFLAGS} $< -DDISABLE_SECCOMP `pkg-config --cflags --libs vips` -o $@
 
-VIPS_VER := 8.15.2
-JXL_VER := 0.11.0
+JPEGLI_VER := 038935426df9cb037ddddd2ed01e92f6fa3a5867
+JPEGLI_DIR := ${GEN}/build/jpegli-${JPEGLI_VER}
 
-VIPS_DIR := ${GEN}/build/vips-${VIPS_VER}
-JXL_DIR := ${GEN}/build/libjxl-${JXL_VER}
+${GEN}/imgproc-custom: util/imgproc.c ${GEN}/lib/libjpeg.so Makefile
+	${CC} ${CFLAGS} $< `pkg-config --cflags --libs libseccomp vips` "-Wl,-rpath,$(realpath ${GEN})/lib" -ljpeg -o $@
 
-${GEN}/imgproc-custom: util/imgproc.c ${VIPS_DIR}/done Makefile
-	${CC} ${CFLAGS} $< `pkg-config --cflags --libs libseccomp` `PKG_CONFIG_PATH="$(realpath ${GEN})/build/inst/lib64/pkgconfig" pkg-config --cflags --libs vips` -o $@
-	@# Make sure we're not accidentally linking against system libjpeg
-	! ldd $@ | grep -q libjpeg
+${JPEGLI_DIR}:
+	mkdir -p ${JPEGLI_DIR}
 
-# jpeg, jpgeg-xl and highway are provided by jxl
-${VIPS_DIR}/done: ${JXL_DIR}/done
-	mkdir -p ${VIPS_DIR}
-	curl -Ls https://github.com/libvips/libvips/releases/download/v${VIPS_VER}/vips-${VIPS_VER}.tar.xz | tar -C ${VIPS_DIR} --strip-components 1 -xJf-
-	PKG_CONFIG_PATH="$(realpath ${GEN})/build/inst/lib64/pkgconfig" meson \
-		setup --wipe --default-library=static --prefix="$(realpath ${GEN})/build/inst" \
-		-Dpng=enabled -Djpeg=enabled -Djpeg-xl=enabled -Dwebp=enabled -Dheif=enabled -Dlcms=enabled -Dhighway=enabled \
-		-Ddeprecated=false -Dexamples=false -Dcplusplus=false \
-		-Dmodules=disabled -Dintrospection=disabled -Dcfitsio=disabled -Dcgif=disabled \
-		-Dexif=disabled -Dfftw=disabled -Dfontconfig=disabled -Darchive=disabled \
-		-Dimagequant=disabled -Dmagick=disabled -Dmatio=disabled -Dnifti=disabled -Dopenjpeg=disabled \
-		-Dopenslide=disabled -Dorc=disabled -Dpangocairo=disabled \
-		-Dpdfium=disabled -Dpoppler=disabled -Dquantizr=disabled -Drsvg=disabled \
-		-Dspng=disabled -Dtiff=disabled -Dzlib=disabled \
-		-Dnsgif=false -Dppm=false -Danalyze=false -Dradiance=false \
-		${VIPS_DIR}/build ${VIPS_DIR}
-	cd ${VIPS_DIR}/build && meson compile && meson install
-	touch $@
-
-${JXL_DIR}:
-	mkdir -p ${JXL_DIR}
-
-${JXL_DIR}/done: | ${JXL_DIR}
-	curl -Ls https://github.com/libjxl/libjxl/archive/refs/tags/v${JXL_VER}.tar.gz | tar -C ${JXL_DIR} --strip-components 1 -xzf-
-	cd ${JXL_DIR} && ./deps.sh
-	@# there's no option to build a static jpegli, patch the cmake file instead
-	sed -i 's/add_library(jpeg SHARED/add_library(jpeg STATIC/' ${JXL_DIR}/lib/jpegli.cmake
-	cd ${JXL_DIR} && cmake -L \
+${GEN}/lib/libjpeg.so: | ${JPEGLI_DIR}
+	cd ${JPEGLI_DIR} && \
+		git clone https://github.com/google/jpegli .  && \
+		git reset --hard ${JPEGLI_VER} && \
+		git submodule update --init --recursive --depth 1 --recommend-shallow
+	cd ${JPEGLI_DIR} && cmake -L \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DBUILD_TESTING=OFF \
-		-DBUILD_SHARED_LIBS=OFF \
+		-DBUILD_SHARED_LIBS=ON \
 		-DCMAKE_INSTALL_PREFIX="$(realpath ${GEN})/build/inst" \
+		-DJPEGXL_FORCE_SYSTEM_HWY=ON \
+		-DJPEGXL_FORCE_SYSTEM_BROTLI=ON \
+		-DJPEGXL_FORCE_SYSTEM_LCMS2=ON \
+		-DJPEGXL_ENABLE_MANPAGES=OFF \
 		-DJPEGXL_ENABLE_BENCHMARK=OFF \
 		-DJPEGXL_ENABLE_DOXYGEN=OFF \
-		-DJPEGXL_ENABLE_EXAMPLES=OFF \
 		-DJPEGXL_ENABLE_FUZZERS=OFF \
-		-DJPEGXL_ENABLE_JNI=OFF \
-		-DJPEGXL_ENABLE_JPEGLI=ON \
 		-DJPEGXL_ENABLE_JPEGLI_LIBJPEG=ON \
 		-DJPEGXL_INSTALL_JPEGLI_LIBJPEG=OFF \
-		-DJPEGXL_ENABLE_MANPAGES=OFF \
-		-DJPEGXL_ENABLE_OPENEXR=OFF \
-		-DJPEGXL_ENABLE_PLUGINS=OFF \
-		-DJPEGXL_ENABLE_SJPEG=OFF \
 		-DJPEGXL_ENABLE_TOOLS=OFF .
-	cd ${JXL_DIR} && cmake --build . -- -j`nproc`
-	cd ${JXL_DIR} && cmake --install .
-	@# jxl doesn't install a libjpeg.pc
-	@# It doesn't even install a static libjpeg.a at all, so we'll just grab it from the build dir directly.
-	( \
-		echo "Name: libjpeg"; \
-		echo "Description: Actually jpegli"; \
-		echo "Version: 1.0"; \
-		echo "Libs: -L$(realpath ${JXL_DIR})/lib -L$(realpath ${GEN})/build/inst/lib64 -ljpeg -ljpegli-static -lhwy -lm -lstdc++"; \
-		echo "Cflags: -I$(realpath ${JXL_DIR})/lib/include/jpegli" \
-	) >${GEN}/build/inst/lib64/pkgconfig/libjpeg.pc
-	@# Additionally, pkg-config doesn't know we're linking these libs statically, so
-	@# make sure that libs in Requires.private are also included.
-	sed -i 's/Requires.private/Requires/' ${GEN}/build/inst/lib64/pkgconfig/*.pc
-	touch $@
+	cd ${JPEGLI_DIR} && make -j`nproc`
+	mkdir -p ${GEN}/lib
+	mv ${JPEGLI_DIR}/lib/jpegli/libjpeg.so* ${GEN}/lib
 
 
 
