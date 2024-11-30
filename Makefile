@@ -109,7 +109,7 @@ JPEGLI_VER := 038935426df9cb037ddddd2ed01e92f6fa3a5867
 JPEGLI_DIR := ${GEN}/build/jpegli-${JPEGLI_VER}
 
 ${GEN}/imgproc-custom: util/imgproc.c ${GEN}/lib/libjpeg.so Makefile
-	${CC} ${CFLAGS} $< `pkg-config --cflags --libs libseccomp vips` -DCUSTOM_JPEGLI -L${GEN}/lib "-Wl,-rpath,$(realpath ${GEN})/lib" -ljpeg -o $@
+	${CC} ${CFLAGS} $< `pkg-config --cflags --libs libseccomp vips` -DCUSTOM_JPEGLI -L${GEN}/lib '-Wl,-rpath,$$ORIGIN/lib' -ljpeg -o $@
 
 ${JPEGLI_DIR}:
 	mkdir -p ${JPEGLI_DIR}
