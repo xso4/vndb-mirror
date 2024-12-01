@@ -950,12 +950,16 @@ sub searchbox_ {
 sub itemmsg_ {
     my($obj) = @_;
     p_ class => 'itemmsg', sub {
-        if($obj->{id} !~ /^[dwu]/) {
+        if($obj->{id} !~ /^[dgiwu]/) {
             if($obj->{entry_locked} && !$obj->{entry_hidden}) {
                 txt_ 'Locked for editing. ';
             } elsif(auth && !can_edit(($obj->{id} =~ /^(.)/), $obj)) {
                 txt_ 'You can not edit this page. ';
             }
+        }
+        if($obj->{id} =~ /^[gi]/ && !$obj->{hidden} && can_edit g => {}) {
+            a_ href => "/$obj->{id}/add", 'Create child '.($obj->{id} =~ /^g/ ? 'tag' : 'trait');
+            small_ ' | ';
         }
         a_ href => "/report/$obj->{id}", $obj->{id} =~ /^u/ ? 'report user' : 'Report an issue on this page.';
     } if !config->{read_only};

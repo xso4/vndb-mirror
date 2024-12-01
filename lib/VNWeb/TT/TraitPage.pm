@@ -30,9 +30,7 @@ sub rev_ {
 sub infobox_ {
     my($t) = @_;
 
-    p_ class => 'mainopts', sub {
-        a_ href => "/$t->{id}/add", 'Create child trait';
-    } if !$t->{hidden} && can_edit i => {};
+    itemmsg_ $t;
     h1_ "Trait: $t->{name}";
     debug_ $t;
 

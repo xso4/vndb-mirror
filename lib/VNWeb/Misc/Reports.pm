@@ -16,7 +16,7 @@ sub obj {
     $o->{objectnum} = $num;
     $o->{title} //= [undef,$o->{object},undef,$o->{object}];
     my $can = !defined $o->{title} ? 0
-            : $id =~ /^[vrpcsdu]/ ? !$num
+            : $id =~ /^[vrpcsdugi]/ ? !$num
             : $id =~ /^w/ ? 1
             : $id =~ /^t/ ? $num && !$o->{hidden} : 0;
     $can && $o
@@ -35,7 +35,7 @@ sub obj_ {
         user_ $o;
 
     } else {
-        txt_ {qw/v VN r Release p Producer c Character s Staff d Doc w Review t Thread u User/}->{substr $o->{object}, 0, 1};
+        txt_ {qw/v VN r Release p Producer c Character s Staff d Doc g Tag i Trait w Review t Thread u User/}->{substr $o->{object}, 0, 1};
         txt_ ': ';
         a_ href => "/$lnk", tattr $o;
         if($o->{user_name}) {
@@ -78,7 +78,7 @@ js_api Report => $FORM, sub {
 };
 
 
-TUWF::get qr{/report/(?<object>[vrpcsdtwu]$RE{num})(?:\.(?<subid>$RE{num}))?}, sub {
+TUWF::get qr{/report/(?<object>[vrpcsdgitwu]$RE{num})(?:\.(?<subid>$RE{num}))?}, sub {
     my $obj = obj tuwf->captures('object', 'subid');
     return tuwf->resNotFound if !$obj || config->{read_only};
 
