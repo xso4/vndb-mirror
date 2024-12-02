@@ -12,11 +12,14 @@ header-includes: |
   </style>
 ---
 
+# DEPRECATION WARNING
+
+This old version 1 API is deprecated and may be removed in the future. Please
+migrate to the [new HTTPS API](https://api.vndb.org/kana).
+
 # Introduction
 
-This document describes the legacy TCP API of VNDB. Usage of this TCP API in
-new applications in discouraged, refer to the [new HTTPS
-API](https://api.vndb.org/kana) for a more modern replacement.
+This document describes the legacy TCP API of VNDB.
 
 **Usage terms**
 

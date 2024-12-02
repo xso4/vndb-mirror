@@ -245,7 +245,7 @@ sub _menu_ {
             a_ href => '/t',     'Discussion board'; br_;
             a_ href => '/d6',    'FAQ'; br_;
             a_ href => '/v/rand','Random visual novel'; br_;
-            a_ href => '/d11',   'API'; lit_ ' - ';
+            a_ href => 'https://api.vndb.org/kana', 'API'; lit_ ' - ';
             a_ href => '/d14',   'Dumps'; lit_ ' - ';
             a_ href => 'https://query.vndb.org/about', 'Query';
         };

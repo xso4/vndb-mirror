@@ -22,7 +22,6 @@ sub _index_ {
         li_ sub { a_ href => '/d6',  'FAQ' };
         li_ sub { a_ href => '/d7',  'About Us' };
         li_ sub { a_ href => '/d17', 'Privacy Policy & Licensing' };
-        li_ sub { a_ href => '/d11', 'Database API' };
         li_ sub { a_ href => '/d14', 'Database Dumps' };
         li_ sub { a_ href => '/d8',  'Development' };
     }

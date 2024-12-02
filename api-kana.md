@@ -17,11 +17,8 @@ header-includes: |
 This document describes the HTTPS API to query information from the
 [VNDB](https://vndb.org/) database and manage user lists.
 
-This version of the API is intended to replace the [old TCP-based
-API](https://vndb.org/d11), although the old API will likely remain available
-for the forseeable future.
-
-**Status**: Stable, but still missing some functionality.
+This version of the API replaces the [old TCP-based
+API](https://api.vndb.org/nyan).
 
 **API endpoint**: `%endpoint%`
 
