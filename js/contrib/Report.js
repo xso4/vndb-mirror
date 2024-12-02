@@ -3,7 +3,9 @@ const hasimage = /^[vrc]/;
 // Name, Objtypes, cansubmit, msg
 const reasons = [
     [ '-- Select --' ],
-    [ 'Spam', /^[^du]/, true ],
+    [ 'Spam', /^[^dgiu]/, true ],
+    [ 'Incorrect or missing information', /^[dgi]/, true ],
+    [ 'Broken link', /^[dgi]/, true ],
     [ 'Sexual content involving minors', hasimage, true, () => [
         m('strong', 'DO NOT report:'), m('br'),
         '- Lolicon or shotacon with anime-style art.', m('br'),
