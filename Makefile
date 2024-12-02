@@ -71,8 +71,7 @@ ${GEN}/api-%.html: api-%.md | ${GEN}
 	$Q pandoc "$<" -st html5 --toc -o "$@"
 
 test: all
-	prove util/test/bbcode.pl
-	if [ -e ${GEN}/imgproc-custom ]; then util/test/imgproc-custom.pl; fi
+	prove -Ilib
 
 
 

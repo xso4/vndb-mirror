@@ -62,6 +62,9 @@ static/
 :   Static assets. *static/s/* contains images used by CSS skins and
     miscellaneous files go into *static/f/*.
 
+t/
+:   Test scripts.
+
 util/
 :   Command-line utilities for various tasks. See *util/README.md* for details.
 
