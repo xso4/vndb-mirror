@@ -57,7 +57,7 @@ sub stats_($stats, $opt, $url) {
         thead_ sub { tr_ sub {
             td_ '';
             td_ 'Unread';
-            td_ 'All';
+            td_ 'Total';
         }};
         for (@$stats) {
             my $nsel = +($_->{ntype}||'') eq ($opt->{n}||'');
@@ -167,7 +167,7 @@ TUWF::get qr{/$RE{uid}/notifies}, sub {
           LEFT JOIN users u ON u.id = t.uid
          WHERE ', sql_and(
              sql('n.uid =', \$id),
-             $opt->{r} ? () : 'n.unread NOT NULL',
+             $opt->{r} ? () : 'n.read IS NULL',
              $opt->{n} ? sql('n.ntype && ARRAY[', \$opt->{n}, '::notification_ntype]') : (),
          ),
         'ORDER BY n.id', $opt->{r} ? 'DESC' : 'ASC'
