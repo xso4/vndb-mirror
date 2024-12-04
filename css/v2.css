@@ -766,6 +766,12 @@ div.charsum_list .charsum_bubble {
 
 /***** User notifications *****/
 
+.usernotifies {
+    margin: 0 auto;
+    td:not(:first-child) { text-align: right }
+    tr.sel td:first-child, td.sel { font-weight: bold }
+}
+
 .browse.notifies td.tc1       { width: 14px }
 .browse.notifies td.tc3       { width: 100px }
 .browse.notifies td.tc4       { width: 75px }

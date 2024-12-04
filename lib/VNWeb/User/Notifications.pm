@@ -52,11 +52,35 @@ sub settings_ {
 }
 
 
-sub listing_ {
-    my($id, $opt, $count, $list) = @_;
+sub stats_($stats, $opt, $url) {
+    table_ class => 'usernotifies', sub {
+        thead_ sub { tr_ sub {
+            td_ '';
+            td_ 'Unread';
+            td_ 'All';
+        }};
+        for (@$stats) {
+            my $nsel = +($_->{ntype}||'') eq ($opt->{n}||'');
+            tr_ class => $nsel ? 'sel' : undef, sub {
+                td_ sub {
+                    em_ 'All types' if !$_->{ntype};
+                    txt_ $ntypes{$_->{ntype}} if $_->{ntype};
+                };
+                td_ class => $nsel && !$opt->{r} ? 'sel' : undef, sub {
+                    txt_ 0 if !$_->{unread};
+                    a_ href => $url->(p=>undef,r=>undef,n=>$_->{ntype}), $_->{unread} if $_->{unread};
+                };
+                td_ class => $nsel && $opt->{r} ? 'sel' : undef, sub {
+                    txt_ 0 if !$_->{all};
+                    a_ href => $url->(p=>undef,r=>1,n=>$_->{ntype}), $_->{all} if $_->{all};
+                };
+            }
+        };
+    };
+}
 
-    my sub url { "/$id/notifies?r=$opt->{r}&p=$_" }
 
+sub listing_($id, $opt, $count, $list, $url) {
     my sub tbl_ {
         thead_ sub { tr_ sub {
             td_ '';
@@ -102,12 +126,12 @@ sub listing_ {
     }
 
     form_ action => "/$id/notify_update", method => 'POST', sub {
-        input_ type => 'hidden', class => 'hidden', name => 'url', value => do { local $_ = $opt->{p}; url };
-        paginate_ \&url, $opt->{p}, [$count, 25], 't';
+        input_ type => 'hidden', class => 'hidden', name => 'url', value => $url->();
+        paginate_ $url, $opt->{p}, [$count, 25], 't';
         article_ class => 'browse notifies', sub {
             table_ class => 'stripe', \&tbl_;
         };
-        paginate_ \&url, $opt->{p}, [$count, 25], 'b';
+        paginate_ $url, $opt->{p}, [$count, 25], 'b';
     } if $count;
 }
 
@@ -123,34 +147,42 @@ TUWF::get qr{/$RE{uid}/notifies}, sub {
     my $opt = tuwf->validate(get =>
         p => { page => 1 },
         r => { anybool => 1 },
+        n => { default => undef, enum => \%ntypes },
     )->data;
 
-    my $where = sql_and(
-        sql('n.uid =', \$id),
-        $opt->{r} ? () : 'n.read IS NULL'
-    );
-    my $count = tuwf->dbVali('SELECT count(*) FROM notifications n WHERE', $where);
-    my $list = tuwf->dbPagei({ results => 25, page => $opt->{p} },
+    my $stats = tuwf->dbAlli('
+        SELECT x.ntype, count(*) filter (where n.read IS NULL) AS unread, count(*) AS all
+          FROM notifications n, unnest(n.ntype) x(ntype)
+         WHERE n.uid = ', \$id, '
+         GROUP BY GROUPING SETS ((), (x.ntype))
+         ORDER BY count(*) DESC');
+
+    my($count) = map $_->{ $opt->{r} ? 'all' : 'unread'}, grep +($_->{ntype}||'') eq ($opt->{n}||''), @$stats;
+    $count ||= 0;
+    my $list = $count && tuwf->dbPagei({ results => 25, page => $opt->{p} },
        'SELECT n.id, n.ntype::text[] AS ntype, n.iid, n.num, t.title, ', sql_user(), '
              , ', sql_totime('n.date'), ' as date
              , ', sql_totime('n.read'), ' as read
           FROM notifications n,', item_info('n.iid', 'n.num'), 't
           LEFT JOIN users u ON u.id = t.uid
-         WHERE ', $where,
+         WHERE ', sql_and(
+             sql('n.uid =', \$id),
+             $opt->{r} ? () : 'n.unread NOT NULL',
+             $opt->{n} ? sql('n.ntype && ARRAY[', \$opt->{n}, '::notification_ntype]') : (),
+         ),
         'ORDER BY n.id', $opt->{r} ? 'DESC' : 'ASC'
     );
+
+    my sub url { "/$id/notifies?".query_encode %$opt, @_ }
 
     framework_ title => 'My notifications', js => 1,
     sub {
         article_ sub {
             h1_ 'My notifications';
-            p_ class => 'browseopts', sub {
-                a_ !$opt->{r} ? (class => 'optselected') : (), href => '?r=0', 'Unread notifications';
-                a_  $opt->{r} ? (class => 'optselected') : (), href => '?r=1', 'All notifications';
-            };
+            stats_ $stats, $opt, \&url if grep $_->{all}, @$stats;
             p_ 'No notifications!' if !$count;
         };
-        listing_ $id, $opt, $count, $list;
+        listing_ $id, $opt, $count, $list, \&url;
         article_ sub { settings_ $id };
     };
 };
