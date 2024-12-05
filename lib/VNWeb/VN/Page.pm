@@ -745,7 +745,7 @@ sub charsum_ {
 
     my $spoil = viewget->{spoilers};
     my $c = tuwf->dbAlli('
-        SELECT c.id, c.title, c.sex, v.role
+        SELECT c.id, c.title, c.sex, c.gender, v.role
           FROM', charst, 'c
           JOIN (SELECT id, MIN(role) FROM chars_vns WHERE role <> \'appears\' AND spoil <=', \$spoil, 'AND vid =', \$v->{id}, 'GROUP BY id) v(id,role) ON c.id = v.id
          WHERE NOT c.hidden
