@@ -1,6 +1,7 @@
 #!/bin/sh
 
 VER=`test -f /vndb/Dockerfile && grep VNDB_DOCKER_VERSION= /vndb/Dockerfile | sed -E s/^.+=//`
+PGVER=17
 
 if [ -z "$VER" -o -z "$VNDB_DOCKER_VERSION" -o "$VER" != "$VNDB_DOCKER_VERSION" ]; then
     echo "The Docker image version ($VNDB_DOCKER_VERSION) does not match the version in the currently checked out source code ($VER)."
@@ -51,13 +52,13 @@ pg_start() {
     make -j4
     util/setup-var.sh
 
-    if [ ! -d docker/pg15 ]; then
-        mkdir -p docker/pg15
-        initdb -D docker/pg15 --locale en_US.UTF-8 -A trust
+    if [ ! -d docker/pg$PGVER ]; then
+        mkdir -p docker/pg$PGVER
+        initdb -D docker/pg$PGVER --locale en_US.UTF-8 -A trust
     fi
-    pg_ctl -D /vndb/docker/pg15 -l /vndb/docker/pg15/logfile start
+    pg_ctl -D /vndb/docker/pg$PGVER -l /vndb/docker/pg$PGVER/logfile start
 
-    if test -f docker/pg15/vndb-init-done; then
+    if test -f docker/pg$PGVER/vndb-init-done; then
         echo
         echo "Database initialization already done."
         echo
@@ -93,7 +94,7 @@ pg_start() {
         psql -U vndb -f sql/all.sql
     fi
 
-    touch docker/pg15/vndb-init-done
+    touch docker/pg$PGVER/vndb-init-done
 
     echo
     echo "Database initialization done!"

@@ -3,6 +3,9 @@
  */
 
 #include "postgres.h"
+#if PG_MAJORVERSION_NUM > 15
+#include "varatt.h"
+#endif
 #include "fmgr.h"
 #include "libpq/pqformat.h"
 #include "utils/sortsupport.h"
