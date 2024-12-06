@@ -3,6 +3,14 @@ const GenInfo = vnode => {
 
     const defGender = {'':'n', 'm':'f', 'f':'m', 'b':'o', 'n':'o'};
 
+    const sexAdd = {
+        m: ' (has penis)',
+        f: ' (has vagina)',
+        b: ' (has penis + vagina)',
+        n: ' (has neither)',
+    };
+    const sexOpts = vndbTypes.charSex.map(([k,v]) => [k,v + (sexAdd[k]||'')]);
+
     let main = data.main !== null;
     const mainDs = new DS(DS.Chars, {
         onselect: obj => { data.main = obj.id; data.main_name = obj.title; },
@@ -11,7 +19,7 @@ const GenInfo = vnode => {
     });
 
     const sex = () => [
-        m(Select, { id: 'sex', data, field: 'sex', class: 'mw', options: vndbTypes.charSex }),
+        m(Select, { id: 'sex', data, field: 'sex', class: 'mw', options: sexOpts }),
         m('label.check',
             ' ',
             m('input[type=checkbox]', {
@@ -23,7 +31,7 @@ const GenInfo = vnode => {
         data.spoil_sex === null ? null : m('div',
             '▲ apparent (non-spoiler) sex', m('br'),
             '▼ actual (spoiler) sex', m('br'),
-            m(Select, { data, field: 'spoil_sex', class: 'mw', options: vndbTypes.charSex }),
+            m(Select, { data, field: 'spoil_sex', class: 'mw', options: sexOpts }),
         )
     ];
 

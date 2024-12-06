@@ -141,8 +141,9 @@ sub spoil_ {
 
 # Character sex/gender icon
 sub charsex_($sex, $gender) {
+    $gender = undef if ($gender//'_') eq ($sex//'_');
     my $icon = defined $gender ? ($gender eq 'n' ? 'nb' : $gender || 'u') : $sex || 'u';
-    my $color = !defined $gender || !defined $sex || ($gender//'_') eq ($sex//'_') ? 'w' : $sex;
+    my $color = !defined $gender || !defined $sex ? 'w' : $sex;
     abbr_ class => "icon-char-$icon charsex-$color",
         title => join(', ',
             defined $sex ? "Sex: $CHAR_SEX{$sex}" : (),
