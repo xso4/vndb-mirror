@@ -15,7 +15,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     spoil_sex  => { default => sub { $_[0] }, enum => \%CHAR_SEX },
     gender     => { default => sub { $_[0] }, enum => \%CHAR_GENDER },
     spoil_gender=>{ default => sub { $_[0] }, enum => \%CHAR_GENDER },
-    birthday   => { default => 0, uint => 1, regex => qr/^([1-9]|1[012])([012][0-9]|3[012])$/ },
+    birthday   => { default => 0, uint => 1, regex => qr/^(0|([1-9]|1[012])([012][0-9]|3[012]))$/ },
     age        => { default => undef, uint => 1, range => [ 0, 32767 ] },
     s_bust     => { default => 0, uint => 1, range => [ 0, 32767 ] },
     s_waist    => { default => 0, uint => 1, range => [ 0, 32767 ] },
