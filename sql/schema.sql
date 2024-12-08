@@ -237,8 +237,7 @@ CREATE TABLE chars ( -- dbentry_type=c
   s_bust       smallint NOT NULL DEFAULT 0, -- [pub] cm
   s_waist      smallint NOT NULL DEFAULT 0, -- [pub] cm
   s_hip        smallint NOT NULL DEFAULT 0, -- [pub] cm
-  b_month      smallint NOT NULL DEFAULT 0, -- [pub] Birthday month, 1-12
-  b_day        smallint NOT NULL DEFAULT 0, -- [pub] Birthday day, 1-32
+  birthday     smallint NOT NULL DEFAULT 0, -- [pub] Birthday, 0 or mmdd
   height       smallint NOT NULL DEFAULT 0, -- [pub] cm
   weight       smallint, -- [pub] kg
   main_spoil   smallint NOT NULL DEFAULT 0, -- [pub]
@@ -266,8 +265,7 @@ CREATE TABLE chars_hist (
   s_bust       smallint NOT NULL DEFAULT 0, -- cf=Measurements
   s_waist      smallint NOT NULL DEFAULT 0, -- cf=Measurements
   s_hip        smallint NOT NULL DEFAULT 0, -- cf=Measurements
-  b_month      smallint NOT NULL DEFAULT 0, -- cf=Age
-  b_day        smallint NOT NULL DEFAULT 0, -- cf=Age
+  birthday     smallint NOT NULL DEFAULT 0, -- cf=Age
   height       smallint NOT NULL DEFAULT 0, -- cf=Measurements
   weight       smallint, -- cf=Measurements
   main_spoil   smallint NOT NULL DEFAULT 0, -- cf=Main

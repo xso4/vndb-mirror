@@ -431,7 +431,7 @@ f c => 12 => 'age',        { default => undef, uint => 1, max => 32767 },
 f c => 13 => 'trait',      { type => 'any', func => \&_validate_trait }, compact => \&_compact_trait, sql_list => _sql_where_trait('traits_chars', 'cid');
 f c => 15 => 'dtrait',     { type => 'any', func => \&_validate_trait }, compact => \&_compact_trait, sql_list => _sql_where_trait('chars_traits', 'id');
 f c => 14 => 'birthday',   { default => [0,0], type => 'array', length => 2, values => { uint => 1, max => 31 } },
-    '=' => sub { sql 'c.b_month =', \$_->[0], $_->[1] ? ('AND c.b_day =', \$_->[1]) : () };
+    '=' => sub { $_->[1] ? sql 'c.birthday =', \($_->[0]*100 + $_->[1]) : sql 'c.birthday BETWEEN', \($_->[0]*100), 'AND', \($_->[0]*100 + 99) };
 
 # XXX: When this field is nested inside a VN query, it may match seiyuu linked to other VNs.
 # This can be trivially fixed by adding an (AND vs.id = v.id) clause, but that results in extremely slow queries that I've no clue how to optimize.

@@ -66,7 +66,7 @@ sub enrich_item {
 sub fetch_chars {
     my($vid, $where) = @_;
     my $l = tuwf->dbAlli('
-        SELECT id, title, alias, description, sex, spoil_sex, gender, spoil_gender, b_month, b_day
+        SELECT id, title, alias, description, sex, spoil_sex, gender, spoil_gender, birthday
              , s_bust, s_waist, s_hip, height, weight, bloodt, cup_size, age, image
           FROM', charst, 'c WHERE NOT hidden AND (', $where, ')
          ORDER BY sorttitle
@@ -109,8 +109,7 @@ sub _rev_ {
         [ spoil_sex  => 'Sex (spoiler)', empty => undef, fmt => \%CHAR_SEX ],
         [ gender     => 'Gender identity', empty => undef, fmt => \%CHAR_GENDER ],
         [ spoil_gender=>'Gender (spoiler)',empty => undef, fmt => \%CHAR_GENDER ],
-        [ b_month    => 'Birthday/month',empty => 0 ],
-        [ b_day      => 'Birthday/day',  empty => 0 ],
+        [ birthday   => 'Birthday',      empty => 0, fmt => sub { txt_ fmtbirthday $_ } ],
         [ s_bust     => 'Bust',          empty => 0 ],
         [ s_waist    => 'Waist',         empty => 0 ],
         [ s_hip      => 'Hips',          empty => 0 ],
@@ -187,8 +186,8 @@ sub chartable_ {
 
             tr_ sub {
                 td_ class => 'key', 'Birthday';
-                td_ $c->{b_day}.' '.[qw{January February March April May June July August September October November December}]->[$c->{b_month}-1];
-            } if $c->{b_day} && $c->{b_month};
+                td_ fmtbirthday $c->{birthday};
+            } if $c->{birthday};
 
             tr_ sub {
                 td_ class => 'key', 'Age';

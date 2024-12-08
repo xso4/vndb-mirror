@@ -68,14 +68,18 @@ const GenInfo = vnode => {
         m('fieldset',
             m('label[for=bmonth]', 'Birthday'),
             m(Select, {
-                id: 'bmonth', data, field: 'b_month',
+                id: 'bmonth',
                 options: range(0, 12).map(m => [m, m ? m + ' (' + RDate.months[m-1] + ')' : 'Unknown']),
+                value: Math.trunc(data.birthday / 100),
+                oninput: v => data.birthday = v * 100 + (v === 0 ? 0 : data.birthday % 100),
             }),
-            data.b_month === 0 ? null : m(Select, {
-                data, field: 'b_day', class: 'sw',
+            data.birthday === 0 ? null : m(Select, {
+                class: 'sw',
                 options: range(0, 31).map(m => [m,m === 0 ? 'day' : m]),
+                value: data.birthday % 100,
+                oninput: v => data.birthday = Math.trunc(data.birthday / 100)*100 + v,
             }),
-            data.b_month !== 0 && data.b_day === 0 ? m('p.invalid', 'Day is required.') : null,
+            data.birthday !== 0 && (data.birthday % 100) === 0 ? m('p.invalid', 'Day is required.') : null,
         ),
         m('fieldset',
             m('label[for=age]', 'Age'),

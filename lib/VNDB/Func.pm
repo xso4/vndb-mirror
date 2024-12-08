@@ -20,7 +20,7 @@ our @EXPORT = (qw|
     imgsize
     norm_ip
     minage
-    fmtvote fmtmedia fmtage fmtdate fmtrating fmtspoil fmtanimation
+    fmtvote fmtmedia fmtage fmtdate fmtrating fmtspoil fmtanimation fmtbirthday
     rdate
     imgpath imgurl thumburl imgiv
     tlang tattr
@@ -230,6 +230,12 @@ sub fmtanimation($a, $cat) {
         $a & 16 ? '3D' : (),
         $a & 32 ? 'Live action' : ()
     ).($cat ? " $cat" : '');
+}
+
+
+sub fmtbirthday($b) {
+    state @m = qw{January February March April May June July August September October November December};
+    $b ? sprintf '%d %s', $b%100, $m[int($b/100)-1] : ''
 }
 
 

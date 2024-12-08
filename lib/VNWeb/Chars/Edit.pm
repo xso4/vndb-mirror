@@ -15,8 +15,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     spoil_sex  => { default => sub { $_[0] }, enum => \%CHAR_SEX },
     gender     => { default => sub { $_[0] }, enum => \%CHAR_GENDER },
     spoil_gender=>{ default => sub { $_[0] }, enum => \%CHAR_GENDER },
-    b_month    => { default => 0, uint => 1, range => [ 0, 12 ] },
-    b_day      => { default => 0, uint => 1, range => [ 0, 31 ] },
+    birthday   => { default => 0, uint => 1, regex => qr/^([1-9]|1[012])([012][0-9]|3[012])$/ },
     age        => { default => undef, uint => 1, range => [ 0, 32767 ] },
     s_bust     => { default => 0, uint => 1, range => [ 0, 32767 ] },
     s_waist    => { default => 0, uint => 1, range => [ 0, 32767 ] },
@@ -138,7 +137,6 @@ js_api CharEdit => $FORM_IN, sub ($data,@) {
         $data->{locked} = $e->{locked}||0;
     }
     $data->{description} = bb_subst_links $data->{description};
-    ($data->{b_month}, $data->{b_day}) = (0,0) if !$data->{b_day} || !$data->{b_month};
 
     $data->{spoil_sex} //= $data->{sex} if defined $data->{spoil_gender};
     my $sex = ($data->{sex}//'-').($data->{spoil_sex}//'-');
