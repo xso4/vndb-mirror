@@ -72,8 +72,10 @@ const GenInfo = vnode => {
                 options: range(0, 12).map(m => [m, m ? m + ' (' + RDate.months[m-1] + ')' : 'Unknown']),
             }),
             data.b_month === 0 ? null : m(Select, {
-                data, field: 'b_day', class: 'sw', options: range(1, 31).map(m => [m,m])
+                data, field: 'b_day', class: 'sw',
+                options: range(0, 31).map(m => [m,m === 0 ? 'day' : m]),
             }),
+            data.b_month !== 0 && data.b_day === 0 ? m('p.invalid', 'Day is required.') : null,
         ),
         m('fieldset',
             m('label[for=age]', 'Age'),

@@ -138,7 +138,7 @@ js_api CharEdit => $FORM_IN, sub ($data,@) {
         $data->{locked} = $e->{locked}||0;
     }
     $data->{description} = bb_subst_links $data->{description};
-    $data->{b_day} = 0 if !$data->{b_month};
+    ($data->{b_month}, $data->{b_day}) = (0,0) if !$data->{b_day} || !$data->{b_month};
 
     $data->{spoil_sex} //= $data->{sex} if defined $data->{spoil_gender};
     my $sex = ($data->{sex}//'-').($data->{spoil_sex}//'-');
