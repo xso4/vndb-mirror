@@ -19,7 +19,7 @@ use VNDB::Types;
 use VNDB::Config;
 use JSON::XS;
 use List::Util 'min', 'max';
-use VNDB::ExtLinks 'sql_extlinks';
+use VNDB::ExtLinks ();
 
 use constant {
     # Linux-specific, not exported by the Socket module.
@@ -658,7 +658,7 @@ my %GET_VN = (
 );
 
 my %GET_RELEASE = (
-  sql     => 'SELECT %s FROM releasest r WHERE NOT hidden AND (%s) %s',
+  sql     => "SELECT %s FROM releasest r LEFT JOIN releases_extlinks re ON re.id = r.id AND re.c_site = 'website' LEFT JOIN extlinks el ON el.id = re.link WHERE NOT hidden AND (%s) %s",
   select  => 'r.id',
   sortdef => 'id',
   sorts   => {
@@ -694,9 +694,8 @@ my %GET_RELEASE = (
       ]],
     },
     details => {
-      select => 'r.website, r.notes, r.minage, r.gtin, r.catalog, r.reso_x, r.reso_y, r.voiced, r.ani_story, r.ani_ero',
+      select => 'el.value AS website, r.notes, r.minage, r.gtin, r.catalog, r.reso_x, r.reso_y, r.voiced, r.ani_story, r.ani_ero',
       proc   => sub {
-        $_[0]{website}  ||= undef;
         $_[0]{notes}    ||= undef;
         $_[0]{minage}   *= 1 if defined $_[0]{minage};
         $_[0]{gtin}     ||= undef;
@@ -779,19 +778,18 @@ my %GET_RELEASE = (
       ]],
     },
     links => {
-      select => sql_extlinks('r'),
-      proc => sub {
-        my($e) = @_;
-        $e->{links} = [];
-        for my $l (keys $VNDB::ExtLinks::LINKS{r}->%*) {
-          my $i = $VNDB::ExtLinks::LINKS{r}{$l};
-          my $v = $e->{$l};
-          push $e->{links}->@*,
-            map +{ label => $i->{label}, url => sprintf($i->{fmt}, $_) },
-            !$v || $v eq '{}' ? () : $v =~ /^{(.+)}$/ ? split /,/, $1 : ($v);
-          delete $e->{$l};
+      fetch => [[ 'id', 'SELECT re.id, el.site, el.value FROM releases_extlinks re JOIN extlinks el ON el.id = re.link WHERE re.id IN(%s)',
+        sub { my($n, $r) = @_;
+          for my $i (@$n) {
+            $i->{links} = [ grep $i->{id} eq $_->{id}, @$r ];
+          }
+          for (@$r) {
+            $_->{label} = $VNDB::ExtLinks::LINKS{$_->{site}}{label};
+            $_->{url} = sprintf $VNDB::ExtLinks::LINKS{$_->{site}}{fmt}, $_->{value};
+            delete @{$_}{qw/ id site value /};
+          }
         }
-      },
+      ]],
     },
   },
   filters => {
@@ -1058,18 +1056,25 @@ my %GET_STAFF = (
       },
     },
     details => {
-      select => 's.description, s.l_wp, s.l_site, s.l_twitter, s.l_anidb, s.l_wikidata, s.l_pixiv',
+      select => 's.description',
       proc => sub {
         $_[0]{description} ||= undef;
-        $_[0]{links} = {
-          wikipedia => delete($_[0]{l_wp})     ||undef,
-          homepage  => delete($_[0]{l_site})   ||undef,
-          twitter   => delete($_[0]{l_twitter})||undef,
-          anidb     => (delete($_[0]{l_anidb})||0)*1||undef,
-          wikidata  => formatwd(delete $_[0]{l_wikidata}),
-          pixiv     => delete($_[0]{l_pixiv})*1||undef,
-        };
       },
+      fetch => [[ 'id', 'SELECT se.id, el.site, el.value FROM staff_extlinks se JOIN extlinks el ON el.id = se.link WHERE se.id IN(%s)',
+        sub { my($n, $r) = @_;
+          for my $i (@$n) {
+            my %l = map +($_->{site}, $_->{value}), grep $i->{id} eq $_->{id}, @$r;
+            $i->{links} = {
+              wikipedia => $l{wp}     ||undef,
+              homepage  => $l{website}||undef,
+              twitter   => $l{twitter}||undef,
+              anidb     => ($l{anidb}||0)*1||undef,
+              wikidata  => formatwd($l{wikidata}),
+              pixiv     => ($l{pixiv}||0)*1||undef,
+            };
+          }
+        }
+      ]],
     },
     aliases => {
       select => 's.aid',

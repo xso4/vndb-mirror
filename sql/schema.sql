@@ -96,6 +96,69 @@ CREATE TYPE session_type      AS ENUM ('web', 'pass', 'mail', 'api', 'api2');
 CREATE TYPE staff_gender      AS ENUM ('', 'm', 'f');
 CREATE TYPE release_image_type AS ENUM ('pkgfront', 'pkgback', 'pkgcontent', 'pkgside', 'pkgmed', 'dig');
 
+-- keys of %VNDB::Extlinks::LINKS
+CREATE TYPE extlink_site AS ENUM (
+    'anidb',
+    'animateg',
+    'anison',
+    'appstore',
+    'bgmtv',
+    'booth',
+    'denpa',
+    'deviantar',
+    'digiket',
+    'discogs',
+    'dlsite',
+    'dlsiteen',
+    'dmm',
+    'egs',
+    'egs_creator',
+    'erotrail',
+    'fakku',
+    'freegame',
+    'freem',
+    'gamejolt',
+    'getchu',
+    'getchudl',
+    'gog',
+    'googplay',
+    'gyutto',
+    'imdb',
+    'instagram',
+    'itch',
+    'jastusa',
+    'jlist',
+    'mbrainz',
+    'melon',
+    'melonjp',
+    'mg',
+    'mobygames',
+    'nintendo',
+    'nintendo_hk',
+    'nintendo_jp',
+    'novelgam',
+    'nutaku',
+    'patreon',
+    'patreonp',
+    'pixiv',
+    'playstation_eu',
+    'playstation_hk',
+    'playstation_jp',
+    'playstation_na',
+    'scloud',
+    'steam',
+    'substar',
+    'toranoana',
+    'tumblr',
+    'twitter',
+    'vgmdb',
+    'vndb',
+    'website',
+    'wikidata',
+    'wp',
+    'youtube'
+);
+
 CREATE TYPE ipinfo AS (
     ip                 inet,
     country            text,
@@ -356,6 +419,18 @@ CREATE TABLE email_optout (
   PRIMARY KEY (mail)
 );
 
+-- extlinks
+CREATE TABLE extlinks (
+  id         serial PRIMARY KEY, -- [pub]
+  site       extlink_site NOT NULL, -- [pub]
+  c_ref      boolean NOT NULL DEFAULT FALSE,
+  value      text NOT NULL, -- [pub]
+  data       text,
+  price      text,
+  lastfetch  timestamptz,
+  deadsince  timestamptz
+);
+
 -- global_settings
 CREATE TABLE global_settings (
   -- Only permit a single row in this table
@@ -514,24 +589,7 @@ CREATE TABLE releases ( -- dbentry_type=r
   id           vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('r', nextval('releases_id_seq')::int) CONSTRAINT releases_id_check CHECK(vndbid_type(id) = 'r'), -- [pub]
   olang        language NOT NULL DEFAULT 'ja', -- [pub] Refers to the main title to use for display purposes, not necessarily the original language.
   gtin         bigint NOT NULL DEFAULT 0, -- [pub] JAN/UPC/EAN/ISBN
-  l_toranoana  bigint NOT NULL DEFAULT 0, -- [pub]
-  l_appstore   bigint NOT NULL DEFAULT 0, -- [pub]
-  l_nintendo_jp bigint NOT NULL DEFAULT 0, -- [pub]
-  l_nintendo_hk bigint NOT NULL DEFAULT 0, -- [pub]
   released     integer NOT NULL DEFAULT 0, -- [pub]
-  l_steam      integer NOT NULL DEFAULT 0, -- [pub]
-  l_digiket    integer NOT NULL DEFAULT 0, -- [pub]
-  l_melon      integer NOT NULL DEFAULT 0, -- [pub]
-  l_mg         integer NOT NULL DEFAULT 0, -- [pub]
-  l_getchu     integer NOT NULL DEFAULT 0, -- [pub]
-  l_getchudl   integer NOT NULL DEFAULT 0, -- [pub]
-  l_egs        integer NOT NULL DEFAULT 0, -- [pub]
-  l_erotrail   integer NOT NULL DEFAULT 0, -- [pub] (deprecated, site hasn't been reachable for a while)
-  l_melonjp    integer NOT NULL DEFAULT 0, -- [pub]
-  l_gamejolt   integer NOT NULL DEFAULT 0, -- [pub]
-  l_animateg   integer NOT NULL DEFAULT 0, -- [pub]
-  l_freem      integer NOT NULL DEFAULT 0, -- [pub]
-  l_novelgam   integer NOT NULL DEFAULT 0, -- [pub]
   voiced       smallint NOT NULL DEFAULT 0, -- [pub]
   reso_x       smallint NOT NULL DEFAULT 0, -- [pub] When reso_x is 0, reso_y is either 0 for 'unknown' or 1 for 'non-standard'.
   reso_y       smallint NOT NULL DEFAULT 0, -- [pub]
@@ -555,32 +613,9 @@ CREATE TABLE releases ( -- dbentry_type=r
   official     boolean NOT NULL DEFAULT TRUE, -- [pub]
   locked       boolean NOT NULL DEFAULT FALSE,
   hidden       boolean NOT NULL DEFAULT FALSE,
-  website      varchar(1024) NOT NULL DEFAULT '', -- [pub]
   catalog      varchar(50) NOT NULL DEFAULT '', -- [pub]
   engine       varchar(50) NOT NULL DEFAULT '', -- [pub]
   notes        text NOT NULL DEFAULT '', -- [pub]
-  l_dlsite     text NOT NULL DEFAULT '', -- [pub]
-  l_dlsiteen   text NOT NULL DEFAULT '', -- (deprecated, DLsite doesn't have a separate English shop anymore)
-  l_gog        text NOT NULL DEFAULT '', -- [pub]
-  l_denpa      text NOT NULL DEFAULT '', -- [pub]
-  l_jlist      text NOT NULL DEFAULT '', -- [pub]
-  l_jastusa    text NOT NULL DEFAULT '', -- [pub]
-  l_itch       text NOT NULL DEFAULT '', -- [pub]
-  l_nutaku     text NOT NULL DEFAULT '', -- [pub]
-  l_googplay   text NOT NULL DEFAULT '', -- [pub]
-  l_fakku      text NOT NULL DEFAULT '', -- [pub]
-  l_freegame   text NOT NULL DEFAULT '', -- [pub]
-  l_playstation_jp text NOT NULL DEFAULT '', -- [pub]
-  l_playstation_na text NOT NULL DEFAULT '', -- [pub]
-  l_playstation_eu text NOT NULL DEFAULT '',  -- [pub]
-  l_playstation_hk text NOT NULL DEFAULT '', -- [pub]
-  l_nintendo    text NOT NULL DEFAULT '', -- [pub]
-  l_gyutto     integer[] NOT NULL DEFAULT '{}', -- [pub]
-  l_dmm        text[] NOT NULL DEFAULT '{}', -- [pub]
-  l_booth      integer NOT NULL DEFAULT 0, -- [pub]
-  l_patreonp   integer NOT NULL DEFAULT 0, -- [pub]
-  l_patreon    text NOT NULL DEFAULT '', -- [pub]
-  l_substar    text NOT NULL DEFAULT '', -- [pub]
   c_bundle     boolean NOT NULL DEFAULT false
 );
 
@@ -589,24 +624,7 @@ CREATE TABLE releases_hist (
   chid         integer NOT NULL PRIMARY KEY,
   olang        language NOT NULL DEFAULT 'ja', -- cf=Language
   gtin         bigint NOT NULL DEFAULT 0, -- cf=Identifiers
-  l_toranoana  bigint NOT NULL DEFAULT 0, -- cf=Links
-  l_appstore   bigint NOT NULL DEFAULT 0, -- cf=Links
-  l_nintendo_jp bigint NOT NULL DEFAULT 0, -- cf=Links
-  l_nintendo_hk bigint NOT NULL DEFAULT 0, -- cf=Links
   released     integer NOT NULL DEFAULT 0, -- cf=Date
-  l_steam      integer NOT NULL DEFAULT 0, -- cf=Links
-  l_digiket    integer NOT NULL DEFAULT 0, -- cf=Links
-  l_melon      integer NOT NULL DEFAULT 0, -- cf=Links
-  l_mg         integer NOT NULL DEFAULT 0, -- cf=Links
-  l_getchu     integer NOT NULL DEFAULT 0, -- cf=Links
-  l_getchudl   integer NOT NULL DEFAULT 0, -- cf=Links
-  l_egs        integer NOT NULL DEFAULT 0, -- cf=Links
-  l_erotrail   integer NOT NULL DEFAULT 0, -- cf=Links
-  l_melonjp    integer NOT NULL DEFAULT 0, -- cf=Links
-  l_gamejolt   integer NOT NULL DEFAULT 0, -- cf=Links
-  l_animateg   integer NOT NULL DEFAULT 0, -- cf=Links
-  l_freem      integer NOT NULL DEFAULT 0, -- cf=Links
-  l_novelgam   integer NOT NULL DEFAULT 0, -- cf=Links
   voiced       smallint NOT NULL DEFAULT 0, -- cf=Voiced
   reso_x       smallint NOT NULL DEFAULT 0, -- cf=Resolution
   reso_y       smallint NOT NULL DEFAULT 0, -- cf=Resolution
@@ -626,32 +644,9 @@ CREATE TABLE releases_hist (
   doujin       boolean NOT NULL DEFAULT FALSE, -- cf=Publication
   uncensored   boolean, -- cf=Ero
   official     boolean NOT NULL DEFAULT TRUE, -- cf=Publication
-  website      varchar(1024) NOT NULL DEFAULT '', -- cf=Links
   catalog      varchar(50) NOT NULL DEFAULT '', -- cf=Identifiers
   engine       varchar(50) NOT NULL DEFAULT '', -- cf=Engine
-  notes        text NOT NULL DEFAULT '', -- cf=Notes
-  l_dlsite     text NOT NULL DEFAULT '', -- cf=Links
-  l_dlsiteen   text NOT NULL DEFAULT '', -- cf=Links
-  l_gog        text NOT NULL DEFAULT '', -- cf=Links
-  l_denpa      text NOT NULL DEFAULT '', -- cf=Links
-  l_jlist      text NOT NULL DEFAULT '', -- cf=Links
-  l_jastusa    text NOT NULL DEFAULT '', -- cf=Links
-  l_itch       text NOT NULL DEFAULT '', -- cf=Links
-  l_nutaku     text NOT NULL DEFAULT '', -- cf=Links
-  l_googplay   text NOT NULL DEFAULT '', -- cf=Links
-  l_fakku      text NOT NULL DEFAULT '', -- cf=Links
-  l_freegame   text NOT NULL DEFAULT '', -- cf=Links
-  l_playstation_jp text NOT NULL DEFAULT '', -- cf=Links
-  l_playstation_na text NOT NULL DEFAULT '', -- cf=Links
-  l_playstation_eu text NOT NULL DEFAULT '', -- cf=Links
-  l_playstation_hk text NOT NULL DEFAULT '', -- cf=Links
-  l_nintendo    text NOT NULL DEFAULT '', -- cf=Links
-  l_gyutto     integer[] NOT NULL DEFAULT '{}', -- cf=Links
-  l_dmm        text[] NOT NULL DEFAULT '{}', -- cf=Links
-  l_booth      integer NOT NULL DEFAULT 0, -- cf=Links
-  l_patreonp   integer NOT NULL DEFAULT 0, -- cf=Links
-  l_patreon    text NOT NULL DEFAULT '', -- cf=Links
-  l_substar    text NOT NULL DEFAULT '' -- cf=Links
+  notes        text NOT NULL DEFAULT '' -- cf=Notes
 );
 
 -- releases_drm
@@ -668,6 +663,21 @@ CREATE TABLE releases_drm_hist ( -- cf=DRM
   drm     integer NOT NULL,
   notes   text NOT NULL DEFAULT '',
   PRIMARY KEY(chid, drm)
+);
+
+-- releases_extlinks
+CREATE TABLE releases_extlinks (
+  id      vndbid NOT NULL, -- [pub]
+  c_site  extlink_site NOT NULL, -- duplicated from extlinks.site
+  link    integer NOT NULL, -- [pub]
+  PRIMARY KEY(id, link)
+);
+
+-- releases_extlinks_hist
+CREATE TABLE releases_extlinks_hist ( -- cf=Links
+  chid    integer NOT NULL,
+  link    integer NOT NULL,
+  PRIMARY KEY(chid, link)
 );
 
 -- releases_images
@@ -912,50 +922,6 @@ CREATE TABLE sessions (
   PRIMARY KEY (uid, token)
 );
 
--- shop_denpa
-CREATE TABLE shop_denpa (
-  lastfetch  timestamptz,
-  deadsince  timestamptz,
-  id         text NOT NULL PRIMARY KEY,
-  sku        text NOT NULL DEFAULT '',
-  price      text NOT NULL DEFAULT ''
-);
-
--- shop_dlsite
-CREATE TABLE shop_dlsite (
-  lastfetch  timestamptz,
-  deadsince  timestamptz,
-  id         text NOT NULL PRIMARY KEY,
-  shop       text NOT NULL DEFAULT '',
-  price      text NOT NULL DEFAULT ''
-);
-
--- shop_jastusa
-CREATE TABLE shop_jastusa (
-  lastfetch  timestamptz,
-  deadsince  timestamptz,
-  id         text NOT NULL PRIMARY KEY,
-  price      text NOT NULL DEFAULT '',
-  slug       text NOT NULL DEFAULT ''
-);
-
--- shop_jlist
-CREATE TABLE shop_jlist (
-  lastfetch  timestamptz,
-  deadsince  timestamptz,
-  id         text NOT NULL PRIMARY KEY,
-  price      text NOT NULL DEFAULT '' -- empty when unknown or not in stock
-);
-
--- shop_mg
-CREATE TABLE shop_mg (
-  lastfetch  timestamptz,
-  deadsince  timestamptz,
-  id         integer NOT NULL PRIMARY KEY,
-  r18        boolean NOT NULL DEFAULT true,
-  price      text NOT NULL DEFAULT ''
-);
-
 -- shop_playasia
 CREATE TABLE shop_playasia (
   gtin       bigint NOT NULL,
@@ -977,31 +943,9 @@ CREATE TABLE staff ( -- dbentry_type=s
   gender      staff_gender NOT NULL DEFAULT '', -- [pub]
   lang        language NOT NULL DEFAULT 'ja', -- [pub]
   main        integer NOT NULL DEFAULT 0, -- [pub] Primary name for the staff entry
-  l_anidb     integer, -- [pub]
-  l_wikidata  integer, -- [pub]
-  l_pixiv     integer NOT NULL DEFAULT 0, -- [pub]
   locked      boolean NOT NULL DEFAULT FALSE,
   hidden      boolean NOT NULL DEFAULT FALSE,
-  description text NOT NULL DEFAULT '', -- [pub]
-  l_wp        varchar(150) NOT NULL DEFAULT '', -- (deprecated)
-  l_site      varchar(250) NOT NULL DEFAULT '', -- [pub]
-  l_twitter   varchar(16) NOT NULL DEFAULT '', -- [pub]
-  l_vgmdb     integer NOT NULL DEFAULT 0, -- [pub]
-  l_discogs   integer NOT NULL DEFAULT 0, -- [pub]
-  l_mobygames integer NOT NULL DEFAULT 0, -- [pub]
-  l_bgmtv     integer NOT NULL DEFAULT 0, -- [pub]
-  l_imdb      integer NOT NULL DEFAULT 0, -- [pub]
-  l_vndb      vndbid, -- [pub]
-  l_mbrainz   uuid, -- [pub]
-  l_scloud    text NOT NULL DEFAULT '', -- [pub]
-  l_egs       integer NOT NULL DEFAULT 0, -- [pub]
-  l_anison    integer NOT NULL DEFAULT 0, -- [pub]
-  l_patreon   text NOT NULL DEFAULT '', -- [pub]
-  l_substar   text NOT NULL DEFAULT '', -- [pub]
-  l_youtube   text NOT NULL DEFAULT '', -- [pub]
-  l_instagram text NOT NULL DEFAULT '', -- [pub]
-  l_deviantar text NOT NULL DEFAULT '', -- [pub]
-  l_tumblr    text NOT NULL DEFAULT '' -- [pub]
+  description text NOT NULL DEFAULT '' -- [pub]
 );
 
 -- staff_hist
@@ -1010,29 +954,7 @@ CREATE TABLE staff_hist (
   gender      staff_gender NOT NULL DEFAULT '', -- cf=Gender
   lang        language NOT NULL DEFAULT 'ja', -- cf=Language
   main        integer NOT NULL DEFAULT 0, -- cf=Name  Can't refer to staff_alias.id, because the alias might have been deleted
-  l_anidb     integer, -- cf=Links
-  l_wikidata  integer, -- cf=Links
-  l_pixiv     integer NOT NULL DEFAULT 0, -- cf=Links
-  description text NOT NULL DEFAULT '', -- cf=Description
-  l_wp        varchar(150) NOT NULL DEFAULT '', -- cf=Links
-  l_site      varchar(250) NOT NULL DEFAULT '', -- cf=Links
-  l_twitter   varchar(16) NOT NULL DEFAULT '', -- cf=Links
-  l_vgmdb     integer NOT NULL DEFAULT 0, -- cf=Links
-  l_discogs   integer NOT NULL DEFAULT 0, -- cf=Links
-  l_mobygames integer NOT NULL DEFAULT 0, -- cf=Links
-  l_bgmtv     integer NOT NULL DEFAULT 0, -- cf=Links
-  l_imdb      integer NOT NULL DEFAULT 0, -- cf=Links
-  l_vndb      vndbid, -- cf=Links
-  l_mbrainz   uuid, -- cf=Links
-  l_scloud    text NOT NULL DEFAULT '', -- cf=Links
-  l_egs       integer NOT NULL DEFAULT 0, -- cf=Links
-  l_anison    integer NOT NULL DEFAULT 0, -- cf=Links
-  l_patreon   text NOT NULL DEFAULT '', -- cf=Links
-  l_substar   text NOT NULL DEFAULT '', -- cf=Links
-  l_youtube   text NOT NULL DEFAULT '', -- cf=Links
-  l_instagram text NOT NULL DEFAULT '', -- cf=Links
-  l_deviantar text NOT NULL DEFAULT '', -- cf=Links
-  l_tumblr    text NOT NULL DEFAULT '' -- cf=Links
+  description text NOT NULL DEFAULT '' -- cf=Description
 );
 
 -- staff_alias
@@ -1050,6 +972,21 @@ CREATE TABLE staff_alias_hist ( -- cf=Name
   name       varchar(200) NOT NULL DEFAULT '',
   latin      varchar(200),
   PRIMARY KEY(chid, aid)
+);
+
+-- staff_extlinks
+CREATE TABLE staff_extlinks (
+  id      vndbid NOT NULL, -- [pub]
+  c_site  extlink_site NOT NULL,
+  link    integer NOT NULL, -- [pub]
+  PRIMARY KEY(id, link)
+);
+
+-- staff_extlinks_hist
+CREATE TABLE staff_extlinks_hist ( -- cf=Links
+  chid    integer NOT NULL,
+  link    integer NOT NULL,
+  PRIMARY KEY(chid, link)
 );
 
 -- stats_cache

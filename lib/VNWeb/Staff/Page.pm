@@ -15,6 +15,8 @@ sub enrich_item {
 
     # Sort aliases by aid for more readable comparison at revisions.
     $s->{alias} = [ sort { $a->{aid} <=> $b->{aid} } $s->{alias}->@* ];
+
+    VNDB::ExtLinks::enrich $s;
 }
 
 
@@ -32,7 +34,7 @@ sub _rev_ {
         [ gender => 'Gender',     fmt => \%STAFF_GENDER ],
         [ lang   => 'Language',   fmt => \%LANGUAGE ],
         [ description => 'Description' ],
-        revision_extlinks 's'
+        $VNDB::ExtLinks::REVISION
 }
 
 
@@ -41,6 +43,7 @@ sub _infotable_ {
     table_ class => 'stripe', sub {
         thead_ sub { tr_ sub {
             td_ colspan => 2, sub {
+                debug_ $s;
                 span_ style => 'margin-right: 10px', tlang($main->{title}[0], $main->{title}[1]), $main->{title}[1];
                 small_ style => 'margin-right: 10px', tlang($main->{title}[2], $main->{title}[3]), $main->{title}[3] if $main->{title}[1] ne $main->{title}[3];
                 abbr_ class => "icon-char-$s->{gender} charsex-w", title => $STAFF_GENDER{$s->{gender}}, '' if $s->{gender};
@@ -68,9 +71,9 @@ sub _infotable_ {
         tr_ sub {
             td_ class => 'key', 'Links';
             td_ sub {
-                join_ \&br_, sub { a_ href => $_->{url2}, $_->{label} }, $s->{extlinks}->@*;
+                join_ \&br_, sub { a_ href => $_->{url2}, $_->{label} }, $s->{vislinks}->@*;
             };
-        } if $s->{extlinks}->@*;
+        } if $s->{vislinks}->@*;
     };
 }
 
@@ -189,7 +192,7 @@ TUWF::get qr{/$RE{srev}} => sub {
     return tuwf->resNotFound if !$s;
 
     enrich_item $s;
-    enrich_extlinks s => 0, $s;
+    enrich_vislinks s => 0, $s;
     my($main) = grep $_->{aid} == $s->{main}, $s->{alias}->@*;
 
     framework_ title => $main->{title}[1], index => !tuwf->capture('rev'), dbobj => $s, hiddenmsg => 1,

@@ -458,28 +458,16 @@ sub write_types {
 
 
 sub write_extlinks {
-    my $data =<<~'_';
-        import Regex
+    my $L = \%VNDB::ExtLinks::LINKS;
+    my $data = "type alias Site = { name : String, advid : String }\n";
 
-        type alias Site =
-          { name  : String
-          , advid : String
-          }
-        _
-
-    my sub links {
-        my($name, @links) = @_;
-        $data .= def $name.'Sites' => "List (Site)" => list map {
-            my $l = $_;
-            my $addval = $l->{int} ? 'toint v' : 'v';
-            '{ '.join("\n  , ",
-                'name  = '.string($l->{name}),
-                'advid = '.string($l->{id} =~ s/^l_//r),
-            )."\n  }";
-        } @links;
+    my sub links($name, $ent) {
+        $data .= def $name.'Sites' => "List (Site)" => list
+            map sprintf("{ name = %s, advid = %s }", string($L->{$_}{label}), string($_)),
+            sort grep $L->{$_}{regex} && $L->{$_}{ent} =~ /$ent/i, keys %$L;
     }
-    links release => VNDB::ExtLinks::extlinks_sites('r');
-    links staff => VNDB::ExtLinks::extlinks_sites('s');
+    links release => 'r';
+    links staff => 's';
 
     write_module ExtLinks => $data;
 }

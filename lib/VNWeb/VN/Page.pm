@@ -16,7 +16,7 @@ sub enrich_vn {
     enrich_merge id => sql('SELECT id, c_votecount, c_length, c_lengthnum, c_image, c_imgfirst, c_imglast,', sql_vnimage, 'FROM vn WHERE id IN'), $v;
     enrich_merge vid => sql('SELECT id AS vid, title, sorttitle, c_released FROM', vnt, 'v WHERE id IN'), $v->{relations};
     enrich_merge aid => 'SELECT id AS aid, title_romaji, title_kanji, year, type, ann_id, lastfetch FROM anime WHERE id IN', $v->{anime};
-    enrich_extlinks v => 0, $v;
+    enrich_vislinks v => 0, $v;
     enrich_vnimage $v;
     enrich_image_obj scr => $v->{screenshots};
 
@@ -26,12 +26,12 @@ sub enrich_vn {
     # This fetches rather more information than necessary for infobox_(), but it'll have to do.
     # (And we'll need it for the releases tab anyway)
     $v->{releases} = tuwf->dbAlli('
-        SELECT r.id, rv.rtype, r.patch, r.released, r.gtin, r.c_bundle, ', sql_extlinks(r => 'r.'), '
+        SELECT r.id, rv.rtype, r.patch, r.released, r.c_bundle
           FROM releases r
           JOIN releases_vn rv ON rv.id = r.id
          WHERE NOT r.hidden AND rv.vid =', \$v->{id}
     );
-    enrich_extlinks r => 0, $v->{releases};
+    enrich_vislinks r => 0, $v->{releases};
 
     $v->{reviews} = tuwf->dbRowi('
         SELECT COUNT(*) FILTER(WHERE length = 0) AS short
@@ -204,7 +204,10 @@ sub rev_ {
         }],
         [ image       => 'Image',         fmt => sub { image_ $_, thumb => 1 } ],
         [ img_nsfw    => 'Image NSFW (unused)', fmt => sub { txt_ $_ ? 'Not safe' : 'Safe' } ],
-        revision_extlinks 'v'
+        [ l_renai     => 'Renai.us',      fmt => sub { a_ href => "https://renai.us/game/$_", $_ } ],
+        [ l_wikidata  => 'Wikidata',      fmt => sub { a_ href => "https://www.wikidata.org/wiki/Q$_", $_ } ],
+        [ l_wp        => 'Wikipedia',     fmt => sub { a_ href => "https://en.wikipedia.org/wiki/$_", $_ } ],
+        [ l_encubed   => 'Novelnews',     fmt => sub { a_ href => "http://novelnews.net/tag/$_/", $_ } ],
 }
 
 
@@ -360,7 +363,7 @@ sub infobox_affiliates_ {
           $rel->{rtype} eq 'partial' ? 2 :
                     $rel->{c_bundle} ? 0 : 1;
 
-        $links{$_->{url2}} = [ @{$_}{qw/label url2 price/}, min $type, $links{$_->{url2}}[3]||9 ] for grep $_->{price}, $rel->{extlinks}->@*;
+        $links{$_->{url2}} = [ @{$_}{qw/label url2 price/}, min $type, $links{$_->{url2}}[3]||9 ] for grep $_->{price}, $rel->{vislinks}->@*;
     }
     return if !keys %links;
 
@@ -550,8 +553,8 @@ sub infobox_ {
 
                 tr_ sub {
                     td_ 'Links';
-                    td_ sub { join_ ', ', sub { a_ href => $_->{url2}, $_->{label} }, $v->{extlinks}->@* };
-                } if $v->{extlinks}->@*;
+                    td_ sub { join_ ', ', sub { a_ href => $_->{url2}, $_->{label} }, $v->{vislinks}->@* };
+                } if $v->{vislinks}->@*;
 
                 infobox_affiliates_ $v;
                 infobox_anime_ $v;

@@ -128,6 +128,11 @@ sub copy_entry($tables, $ids) {
     # Wikidata (TODO: This could be a lot more selective)
     copy 'wikidata';
 
+    copy extlinks => "SELECT id, site, c_ref, value FROM extlinks WHERE id IN(
+             SELECT link FROM releases_extlinks_hist re JOIN changes c ON c.id = re.chid WHERE c.itemid IN($releases)
+       UNION SELECT link FROM staff_extlinks_hist    se JOIN changes c ON c.id = se.chid WHERE c.itemid IN($staff)
+    )";
+
     # Image metadata
     copy images => "SELECT * FROM images WHERE id IN($images)", { uploader => 'user' };
     copy image_votes => "SELECT DISTINCT ON (id,vndbid('u', vndbid_num(uid)%10+10)) * FROM image_votes WHERE id IN($images)", { uid => 'user' };
@@ -142,7 +147,7 @@ sub copy_entry($tables, $ids) {
     copy_entry ['docs'], 'SELECT id FROM docs';
 
     # Staff
-    copy_entry [qw/staff staff_alias/], $staff;
+    copy_entry [qw/staff staff_alias staff_extlinks/], $staff;
 
     # Producers (TODO: Relations)
     copy_entry [qw/producers/], $producers;
@@ -164,7 +169,7 @@ sub copy_entry($tables, $ids) {
 
     # Releases
     copy 'drm';
-    copy_entry [qw/releases releases_drm releases_images releases_media releases_platforms releases_producers releases_supersedes releases_titles releases_vn/], $releases;
+    copy_entry [qw/releases releases_drm releases_extlinks releases_images releases_media releases_platforms releases_producers releases_supersedes releases_titles releases_vn/], $releases;
 
     print "\\i sql/tableattrs.sql\n";
     print "\\i sql/triggers.sql\n";

@@ -18,7 +18,7 @@ sub run {
     $C{ua} = sprintf 'VNDB.org Affiliate Crawler (Multi v%s; contact@vndb.org)', config->{version};
     %C = (%C, @_);
 
-    push_watcher schedule 35*60, $C{sync_timeout}, \&sync;
+    push_watcher schedule 35*60, $C{sync_timeout}, sub { fetch(1) };
 }
 
 
@@ -38,7 +38,7 @@ sub item {
     return 'No price info' if !defined $var->{price};
     my $price = $var->{price} ? sprintf 'US$ %.2f', $var->{price}/100 : 'free';
     AE::log info => "$prefix $p->{code} at $slug for $price";
-    pg_cmd 'UPDATE shop_jastusa SET lastfetch = NOW(), deadsince = NULL, price = $1, slug = $2 WHERE id = $3',
+    pg_cmd q{UPDATE extlinks SET lastfetch = NOW(), deadsince = NULL, price = $1, data = $2 WHERE site = 'jastusa' AND value = $3},
         [ $price, $slug, $p->{code} ];
     0
 }
@@ -59,7 +59,7 @@ sub data {
     if($page < $nfo->{pages}) {
         fetch($page+1);
     } else {
-        pg_cmd "UPDATE shop_jastusa SET deadsince = NOW(), price = '' WHERE deadsince IS NULL AND (lastfetch IS NULL OR lastfetch < NOW()-'1 hour'::interval)";
+        pg_cmd "UPDATE extlinks SET deadsince = NOW(), price = '' WHERE site = 'jastusa' AND deadsince IS NULL AND (lastfetch IS NULL OR lastfetch < NOW()-'1 hour'::interval)";
     }
 }
 
@@ -71,17 +71,6 @@ sub fetch {
         headers => {'User-Agent' => $C{ua}},
         timeout => 60,
         sub { data($page, AE::now-$ts, @_) };
-}
-
-sub sync {
-    pg_cmd 'DELETE FROM shop_jastusa WHERE id NOT IN(SELECT l_jastusa FROM releases WHERE NOT hidden)';
-    pg_cmd q{
-      INSERT INTO shop_jastusa (id)
-      SELECT DISTINCT l_jastusa
-        FROM releases
-       WHERE NOT hidden AND l_jastusa <> ''
-         AND NOT EXISTS(SELECT 1 FROM shop_jastusa WHERE id = l_jastusa)
-    }, [], sub { fetch(1) }
 }
 
 1;

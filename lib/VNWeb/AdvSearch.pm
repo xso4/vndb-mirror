@@ -391,7 +391,7 @@ f r => 18 => 'rlist',    { uint => 1, enum => \%RLIST_STATUS }, sql_list => sub 
         return '1=0' if !auth;
         sql 'r.id', $neg ? 'NOT' : '', 'IN(SELECT rid FROM rlists WHERE uid =', \auth->uid, 'AND status IN', $val, $all && @$val > 1 ? ('GROUP BY rid HAVING COUNT(status) =', \scalar @$val) : (), ')';
     };
-f r => 19 => 'extlink',  _extlink_filter('r');
+f r => 19 => 'extlink',  _extlink_filter('r', 'releases_extlinks');
 f r => 20 => 'drm',      { default => '' }, '=' => sub { sql 'EXISTS(SELECT 1 FROM drm JOIN releases_drm rd ON rd.drm = drm.id WHERE drm.name =', \$_, 'AND rd.id = r.id)' };
 f r => 61 => 'patch',    { uint => 1, range => [1,1] }, '=' => sub { 'r.patch' };
 f r => 62 => 'freeware', { uint => 1, range => [1,1] }, '=' => sub { 'r.freeware' };
@@ -459,7 +459,7 @@ f s =>  5 => 'role',      { enum => [ 'seiyuu', keys %CREDIT_TYPE ] },
             sql 's.aid', $neg ? 'NOT' : '', 'IN(SELECT vs.aid FROM vn_staff vs JOIN vn v ON v.id = vs.id WHERE NOT v.hidden AND vs.role IN', $val, @grp, ')';
         }
     };
-f s =>  6 => 'extlink',   _extlink_filter('s');
+f s =>  6 => 'extlink',   _extlink_filter('s', 'staff_extlinks');
 f s => 61 => 'ismain',    { uint => 1, range => [1,1] }, '=' => sub { 's.aid = s.main' };
 f s => 80 => 'search',    { searchquery => 1 }, '=' => sub { $_->sql_where('s', 's.id', 's.aid') };
 f s => 81 => 'aid',       { id => 1 }, '=' => sub { sql 's.aid =', \$_ };
@@ -486,27 +486,16 @@ f i => 80 => 'search',    { searchquery => 1 }, '=' => sub { $_->sql_where('i', 
 # - "$name,$val"     - Compact version of above (not really *compact* by any means, but this filter isn't common anyway)
 # - "http://..."     - Auto-detect version of [$name,$val]
 # TODO: This only handles links defined in %LINKS, but it would be nice to also support links from Wikidata & PlayAsia.
-sub _extlink_filter {
-    my($type) = @_;
-    my $schema = (grep +($_->{dbentry_type}||'') eq $type, values VNDB::Schema::schema->%*)[0];
-    my %links = map {
-        my $n = $_;
-        my $l = $VNDB::ExtLinks::LINKS{$type}{$n};
-        my $s = (grep $_->{name} eq $n, $schema->{cols}->@*)[0];
-        (s/^l_//r, +{ %$l,
-            _col => $n,
-            _schema => $s,
-            _regex => $l->{regex} && VNDB::ExtLinks::full_regex($l->{regex}),
-            _hasval => $s->{type} =~ /\[\]/ ? "<> '{}'" : $s->{decl} !~ /not\s+null/i ? 'is not null' : $s->{type} =~ /^(big)?int/i ? '<> 0' : "<> ''"
-        })
-    } keys $VNDB::ExtLinks::LINKS{$type}->%*;
+sub _extlink_filter($type, $tbl) {
+    my $L = \%VNDB::ExtLinks::LINKS;
+    my %links = map +($_, $L->{$_}), grep $L->{$_}{ent} =~ /$type/i, keys %$L;
 
     my sub _val {
         return 1 if !ref $_[0] && $links{$_[0]}; # just $name
         if(!ref $_[0] && $_[0] =~ /^https?:/) { # URL
             for (keys %links) {
-                if($links{$_}{_regex} && $_[0] =~ $links{$_}{_regex}) {
-                    $_[0] = [ $_, $1 ];
+                if($links{$_}{full_regex} && $_[0] =~ $links{$_}{full_regex}) {
+                    $_[0] = [ $_, (grep defined, @{^CAPTURE})[0] ];
                     last;
                 }
             }
@@ -516,20 +505,15 @@ sub _extlink_filter {
 
         # normalized $name,$val form
         return 0 if ref $_[0] ne 'ARRAY' || $_[0]->@* != 2 || ref $_[0][0] || ref $_[0][1] || !defined $_[0][1];
-        my $l = $links{$_[0][0]};
-        return { msg => "Unknown field '$_[0][0]'" } if !$l;
-        return { msg => "Invalid value '$_[0][1]'" } if $l->{_schema}{type} =~ /^int/i && ($_[0][1] !~ /^-?[0-9]+$/ || $_[0][1] >= (1<<31) || $_[0][1] <= -(1<<31));
-        return { msg => "Invalid value '$_[0][1]'" } if $l->{_schema}{type} =~ /^bigint/i && ($_[0][1] !~ /^-?[0-9]+$/ || $_[0][1] >= (1<<63) || $_[0][1] <= -(1<<63));
-        $_[0][1] *= 1 if $l->{_schema}{type} =~ /^(big)?int/i;
+        return { msg => "Unknown site '$_[0][0]'" } if !$links{$_[0][0]};
         1
     }
 
     my sub _sql {
-        return "$type.$links{$_}{_col} $links{$_}{_hasval}" if !ref; # just name
-        my($l, $v) = ($links{$_->[0]}, $_->[1]);
-        sql "$type.$l->{_col}", $l->{_schema}{type} =~ /\[\]/ ? ('&& ARRAY[', \$v, ']::', $l->{_schema}{type}) : ('=', \$v);
+        return sql "EXISTS(SELECT 1 FROM $tbl ix WHERE ix.id = $type.id AND ix.c_site =", \"$_", ')' if !ref; # just name
+        sql "EXISTS(SELECT 1 FROM $tbl ix JOIN extlinks il ON il.id = ix.link AND il.site = ix.c_site WHERE ix.id = $type.id AND il.site =", \"$_->[0]", 'AND il.value =', \"$_->[1]", ')';
     }
-    my sub _comp { ref $_ ? $_->[0].','.(my $x=$_->[1]) : $_ }
+    my sub _comp { ref $_ ? $_->[0].','.$_->[1] : $_ }
     ({ type => 'any', func => \&_val }, '=' => \&_sql, compact => \&_comp)
 }
 
@@ -847,7 +831,7 @@ sub _extract_ids {
         my $f = $FIELDS{$t}{$q->[0]};
         $ids->{$q->[2]} = 1 if $f->{vndbid};
         $ids->{"anime$q->[2]"} = 1 if $q->[0] eq 'anime_id';
-        $ids->{$q->[2][0]} = 1 if ref $f->{value} && ref $q->[2] eq 'ARRAY'; # Ugly heuristic, may have false positives
+        $ids->{$q->[2][0]} = 1 if $q->[0] ne 'extlink' && ref $f->{value} && ref $q->[2] eq 'ARRAY'; # Ugly heuristic, may have false positives
         _extract_ids($f->{value}, $q->[2], $ids) if !ref $f->{value};
     }
 }

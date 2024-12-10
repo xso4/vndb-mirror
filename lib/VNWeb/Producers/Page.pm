@@ -7,7 +7,7 @@ use VNWeb::ULists::Lib;
 
 sub enrich_item {
     my($p) = @_;
-    enrich_extlinks p => 0, $p;
+    enrich_vislinks p => 0, $p;
     enrich_merge pid => sql('SELECT id AS pid, title, sorttitle FROM', producerst, 'p WHERE id IN'), $p->{relations};
     $p->{relations} = [ sort { $a->{sorttitle} cmp $b->{sorttitle} || idcmp($a->{pid}, $b->{pid}) } $p->{relations}->@* ];
 }
@@ -26,7 +26,9 @@ sub rev_ {
             txt_ $PRODUCER_RELATION{$_->{relation}}{txt}.': ';
             a_ href => "/$_->{pid}", tattr $_;
         } ],
-        revision_extlinks 'p'
+        [ website    => 'Official website', fmt => sub { a_ href => $_, $_ } ],
+        [ l_wikidata => 'Wikidata',         fmt => sub { a_ href => "https://www.wikidata.org/wiki/Q$_", $_ } ],
+        [ l_wp       => 'Wikipedia',        fmt => sub { a_ href => "https://en.wikipedia.org/wiki/$_", $_ } ],
 }
 
 
@@ -42,8 +44,8 @@ sub info_ {
             txt_ 'a.k.a. ';
             txt_ $p->{alias} =~ s/\n/, /gr;
         }
-        br_ if $p->{extlinks}->@*;
-        join_ ' - ', sub { a_ href => $_->{url2}, $_->{label} }, $p->{extlinks}->@*;
+        br_ if $p->{vislinks}->@*;
+        join_ ' - ', sub { a_ href => $_->{url2}, $_->{label} }, $p->{vislinks}->@*;
     };
 
     p_ class => 'center', sub {
@@ -64,14 +66,14 @@ sub rel_ {
     my($p) = @_;
 
     my $r = tuwf->dbAlli('
-        SELECT r.id, r.patch, r.released, r.gtin, rp.publisher, rp.developer, ', sql_extlinks(r => 'r.'), '
+        SELECT r.id, r.patch, r.released, rp.publisher, rp.developer
           FROM releases r
           JOIN releases_producers rp ON rp.id = r.id
          WHERE rp.pid =', \$p->{id}, ' AND NOT r.hidden
          ORDER BY r.released
     ');
     $_->{rtype} = 1 for @$r; # prevent enrich_release() from fetching rtypes
-    enrich_extlinks r => 0, $r;
+    enrich_vislinks r => 0, $r;
     enrich_release $r;
     enrich vn => id => rid => sub { sql '
         SELECT rv.id as rid, rv.rtype, v.id, v.title

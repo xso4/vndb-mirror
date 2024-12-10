@@ -387,7 +387,7 @@ sub prepare_fields {
             $join{$d->{join}} = 1 if $d->{join};
             push @select, $d->{select} if $d->{select};
             push @select, $d->{nullif} if $d->{nullif};
-            push @select, sql_extlinks $d->{extlinks}, $d->{extlinks}.'.' if $d->{extlinks};
+            push @select, 'v.l_wikidata, v.l_renai' if $d->{extlinks} && $d->{extlinks} eq 'v';
             __SUB__->($d->{fields}, $_[1]{$f}) if $d->{fields} && !($d->{enrich} || $d->{object});
         }
     })->($fields, $enabled);
@@ -412,8 +412,11 @@ sub proc_results {
 
         # extlinks
         if($d->{extlinks}) {
-            enrich_extlinks $d->{extlinks}, $enabled->{$f}, $results;
-            delete @{$_}{ keys $VNDB::ExtLinks::LINKS{$d->{extlinks}}->%* } for @$results;
+            enrich_vislinks $d->{extlinks}, $enabled->{$f}, $results;
+            $_->{extlinks} = delete $_->{vislinks} for @$results;
+            if ($d->{extlinks} eq 'v') {
+                delete @{$_}{ qw/l_renai l_wikidata/ } for @$results;
+            }
 
         # nested 1-to-many objects
         } elsif($d->{enrich}) {
@@ -469,10 +472,10 @@ sub proc_results {
 
 api_get '/schema', {}, sub {
     # XXX: This only lists direct extlink fields of the object, not wikidata-derived or custom links.
-    my sub el {
-        my $l = $VNDB::ExtLinks::LINKS{$_[0]};
-        [ map +{ name => $_ =~ s/^l_//r, label => $l->{$_}{label}, url_format => $l->{$_}{fmt} },
-            grep $l->{$_}{regex}, keys %$l ]
+    my sub el($t) {
+        my $L = \%VNDB::ExtLinks::LINKS;
+        [ map +{ name => $_, label => $L->{$_}{label}, url_format => $L->{$_}{fmt} },
+            grep $L->{$_}{regex} && $L->{$_}{ent} =~ /$t/i, keys %$L ]
     }
     state $s = {
         enums => {

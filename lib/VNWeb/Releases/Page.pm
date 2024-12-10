@@ -15,6 +15,7 @@ sub enrich_item {
     enrich_merge rid => sql('SELECT id AS rid, title, sorttitle, released, hidden FROM', releasest, 'r WHERE id IN'), $r->{supersedes};
     enrich lang => rid => id => sub { sql('SELECT id, lang, mtl FROM releases_titles WHERE id IN', $_, 'ORDER BY lang') }, $r->{supersedes};
     enrich_image_obj img => $r->{images};
+    VNDB::ExtLinks::enrich $r;
 
     $r->{titles}    = [ sort { ($b->{lang} eq $r->{olang}) cmp ($a->{lang} eq $r->{olang}) || ($a->{mtl}?1:0) <=> ($b->{mtl}?1:0) || $a->{lang} cmp $b->{lang} } $r->{titles}->@* ];
     $r->{platforms} = [ sort map $_->{platform}, $r->{platforms}->@* ];
@@ -107,7 +108,7 @@ sub _rev_ {
             txt_ ' (photo)' if $_->{photo};
         } ],
         [ supersedes => 'Supersedes', fmt => sub { _supersedes_ $_ } ],
-        revision_extlinks 'r'
+        $VNDB::ExtLinks::REVISION
 }
 
 
@@ -324,12 +325,12 @@ sub _infotable_ {
             td_ 'Links';
             td_ sub {
                 if ($r->{patch} || $r->{official} || !grep $_->{mtl}, $r->{titles}->@*) {
-                    join_ ', ', sub { a_ href => $_->{url2}, $_->{label} }, $r->{extlinks}->@*;
+                    join_ ', ', sub { a_ href => $_->{url2}, $_->{label} }, $r->{vislinks}->@*;
                 } else {
                     small_ 'piracy link hidden';
                 }
             }
-        } if $r->{extlinks}->@*;
+        } if $r->{vislinks}->@*;
 
         tr_ sub {
             td_ 'User options';
@@ -370,7 +371,7 @@ TUWF::get qr{/$RE{rrev}} => sub {
 
     $r->{title} = titleprefs_obj $r->{olang}, $r->{titles};
     enrich_item $r;
-    enrich_extlinks r => 0, $r;
+    enrich_vislinks r => 0, $r;
 
     framework_ title => $r->{title}[1], index => !tuwf->capture('rev'), dbobj => $r, hiddenmsg => 1, js => 1,
         og => {

@@ -33,9 +33,11 @@ sub editvars($item) {
 
     copyfromtemp => join("\n", map sprintf(
         "  DELETE FROM %1\$s WHERE id = nitemid;\n".
-        "  INSERT INTO %1\$s (id, %2\$s) SELECT nitemid, %2\$s FROM edit_%1\$s;\n".
+        "  INSERT INTO %1\$s (id, %2\$s%3\$s) SELECT nitemid, %2\$s%4\$s FROM edit_%1\$s;\n".
         "  INSERT INTO %1\$s_hist (chid, %2\$s) SELECT nchid, %2\$s FROM edit_%1\$s;",
-        $_, join ', ', $ts{$_}->@*
+        $_, join(', ', $ts{$_}->@*),
+        # _extlinks tables require special casing to set c_site
+        /_extlinks/ ? (', c_site', ', (SELECT site FROM extlinks WHERE id = link)') : ('','')
     ), grep $_ ne $item, sort keys %ts),
 
     copymainfromtemp => sprintf(

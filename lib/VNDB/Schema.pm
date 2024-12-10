@@ -96,11 +96,9 @@ sub schema {
 sub types {
     my %types;
     open my $F, '<', "$ROOT/sql/schema.sql" or die "schema.sql: $!";
-    while(<$F>) {
-        chomp;
-        if(/^CREATE (?:TYPE|DOMAIN) ([^ ]+)/) {
-            $types{$1} = { decl => $_ };
-        }
+    my $s = do { local $/=undef; <$F> };
+    while ($s =~ /(CREATE (?:TYPE|DOMAIN) ([^ ]+)[^;]+;)/sg) {
+        $types{$2} = { decl => $1 };
     }
     \%types
 }

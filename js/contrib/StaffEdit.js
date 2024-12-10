@@ -65,7 +65,6 @@ widget('StaffEdit', initVnode => {
     );
 
     const lang = new DS(DS.LocLang, {onselect: obj => data.lang = obj.id});
-    const wikidata = { v: data.l_wikidata === null ? '' : 'Q'+data.l_wikidata };
     const fields = () => [
         m('fieldset',
             m('label[for=gender]', 'Gender'),
@@ -80,11 +79,7 @@ widget('StaffEdit', initVnode => {
             m(DS.Button, {class: 'mw', ds:lang}, data.lang ? Object.fromEntries(vndbTypes.language)[data.lang] : '-- select --'),
             data.lang ? null : m('p.invalid', 'No language selected.'),
         ),
-        m('fieldset',
-            m('label[for=l_site]', 'Website'),
-            m(Input, { id: 'l_site', class: 'xw', type: 'weburl', data, field: 'l_site' }),
-        ),
-        m(ExtLinks, {data, type: 'staff'}),
+        m(ExtLinks, {type: 'staff', links: data.extlinks}),
         m('fieldset',
             m('label[for=description]', 'Notes / Biography'),
             m(TextPreview, {

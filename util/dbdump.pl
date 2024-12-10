@@ -91,12 +91,14 @@ my %tables = (
                                 .' AND (x.rid IS NULL OR x.rid IN(SELECT id FROM releases WHERE NOT hidden))'
                            , order => 'x.id, x.vid, x.rid' },
     docs                => { where => 'NOT x.hidden' },
+    extlinks            => { where => 'x.c_ref' },
     images              => { where => "x.c_weight > 0" }, # Only images with a positive weight are referenced.
     image_votes         => { where => "x.id IN(SELECT id FROM images WHERE c_weight > 0)", order => 'x.uid, x.id' },
     producers           => { where => 'NOT x.hidden' },
     producers_relations => { where => 'x.id IN(SELECT id FROM producers WHERE NOT hidden)' },
     quotes              => { where => 'x.rand IS NOT NULL' },
     releases            => { where => 'NOT x.hidden' },
+    releases_extlinks   => { where => 'x.id IN(SELECT id FROM releases WHERE NOT hidden)' },
     releases_images     => { where => 'x.id IN(SELECT id FROM releases WHERE NOT hidden)' },
     releases_media      => { where => 'x.id IN(SELECT id FROM releases WHERE NOT hidden)' },
     releases_platforms  => { where => 'x.id IN(SELECT id FROM releases WHERE NOT hidden)' },
@@ -111,6 +113,7 @@ my %tables = (
                                                    .' WHERE r.id = x.rid AND uv.uid = x.uid AND NOT r.hidden AND NOT v.hidden AND NOT uv.c_private)' },
     staff               => { where => 'NOT x.hidden' },
     staff_alias         => { where => 'x.id IN(SELECT id FROM staff WHERE NOT hidden)' },
+    staff_extlinks      => { where => 'x.id IN(SELECT id FROM staff WHERE NOT hidden)' },
     tags                => { where => 'NOT x.hidden' },
     tags_parents        => { where => 'x.id IN(SELECT id FROM tags WHERE NOT hidden)' },
     tags_vn             => { where => 'x.tag IN(SELECT id FROM tags WHERE NOT hidden) AND x.vid IN(SELECT id FROM vn WHERE NOT hidden)', order => 'x.tag, x.vid, x.uid, x.date' },
@@ -141,7 +144,7 @@ my %tables = (
     vn_length_votes     => { where => 'x.vid IN(SELECT id FROM vn WHERE NOT hidden) AND NOT x.private'
                            , order => 'x.vid, x.uid' },
     wikidata            => { where => q{x.id IN(SELECT l_wikidata FROM producers WHERE NOT hidden
-                                          UNION SELECT l_wikidata FROM staff WHERE NOT hidden
+                                          UNION SELECT value::int FROM extlinks WHERE site = 'wikidata' AND c_ref
                                           UNION SELECT l_wikidata FROM vn WHERE NOT hidden)} },
 );
 

@@ -1,6 +1,5 @@
 package VNWeb::Releases::List;
 
-use VNDB::Func 'gtintype';
 use VNWeb::Prelude;
 use VNWeb::AdvSearch;
 use VNWeb::Filters;
@@ -62,7 +61,7 @@ TUWF::get qr{/r}, sub {
     db_maytimeout {
         $count = tuwf->dbVali('SELECT count(*) FROM releases r WHERE', sql_and $where, $opt->{q}->sql_where('r', 'r.id'));
         $list = $count ? tuwf->dbPagei({results => 50, page => $opt->{p}}, '
-            SELECT r.id, r.patch, r.released, r.gtin, ', sql_extlinks(r => 'r.'), '
+            SELECT r.id, r.patch, r.released
               FROM', releasest, 'r', $opt->{q}->sql_join('r', 'r.id'), '
              WHERE', $where, '
              ORDER BY', sprintf {
@@ -74,7 +73,7 @@ TUWF::get qr{/r}, sub {
         ) : [];
     } || (($count, $list) = (undef, []));
 
-    enrich_extlinks r => 0, $list;
+    enrich_vislinks r => 0, $list;
     enrich_release $list;
     $time = time - $time;
 

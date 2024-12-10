@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 
+use v5.36;
 use lib 'lib';
 use TUWF;
 use TUWF::Validate::Interop;
@@ -50,16 +51,16 @@ sub vskins {
 }
 
 sub extlinks {
-    sub t {
+    sub t($t) {
+        my $L = \%VNDB::ExtLinks::LINKS;
         [ map +{
-            id      => $_->{id},
-            name    => $_->{name},
-            fmt     => $_->{fmt},
-            default => $_->{default},
-            int     => $_->{int},
-            regex   => TUWF::Validate::Interop::_re_compat($_->{regex}),
-            patt    => $_->{pattern},
-        }, VNDB::ExtLinks::extlinks_sites($_[0]) ]
+            site    => $_,
+            label   => $L->{$_}{label},
+            fmt     => $L->{$_}{fmt},
+            patt    => [ split /(<[^>]+>)/, $L->{$_}{patt} || ($L->{$_}{fmt} =~ s/%s/<code>/rg =~ s/%[0-9]*d/<number>/rg) ],
+            $L->{$_}{regex} ? (regex => TUWF::Validate::Interop::_re_compat($L->{$_}{full_regex})) : (),
+            $L->{$_}{ent} =~ /\U$t/ ? (multi => 1) : (),
+        }, grep $L->{$_}{ent} =~ /$t/i, sort keys %$L ]
     }
     print 'window.extLinks = '.$js->encode({
         release => t('r'),

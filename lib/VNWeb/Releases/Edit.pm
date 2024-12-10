@@ -53,9 +53,9 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     ani_ero_cg   => { default => undef, uint => 1, range => [0,32767] },
     ani_face   => { undefbool => 1 },
     ani_bg     => { undefbool => 1 },
-    website    => { default => '', weburl => 1 },
     engine     => { default => '', sl => 1, maxlength => 50 },
     notes      => { default => '', maxlength => 10240 },
+    extlinks   => { extlinks => 'r' },
     vn         => { sort_keys => 'vid', aoh => {
         vid    => { vndbid => 'v' },
         title  => { _when => 'out' },
@@ -81,7 +81,6 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     hidden     => { anybool => 1 },
     locked     => { anybool => 1 },
     editsum    => { editsum => 1 },
-    validate_extlinks 'r'
 };
 
 
@@ -119,6 +118,7 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
     enrich_merge vid => sql('SELECT id AS vid, title[1+1] FROM', vnt, 'v WHERE id IN'), $e->{vn};
     enrich_merge pid => sql('SELECT id AS pid, title[1+1] AS name FROM', producerst, 'p WHERE id IN'), $e->{producers};
     enrich_merge drm => sql('SELECT id AS drm, name FROM drm WHERE id IN'), $e->{drm};
+    VNDB::ExtLinks::enrich $e;
 
     my $title = ($copy ? 'Copy ' : 'Edit ').titleprefs_obj($e->{olang}, $e->{titles})->[1];
     framework_ title => $title, dbobj => $e, tab => tuwf->capture('action'),
@@ -227,6 +227,8 @@ js_api ReleaseEdit => $FORM_IN, sub {
             sql('id IN(SELECT id FROM releases_vn WHERE vid IN', [ map $_->{vid}, $data->{vn}->@* ], ')'),
             $new ? () : sql('id NOT IN(WITH RECURSIVE s(id) AS (SELECT', \$data->{id}, '::vndbid UNION SELECT rs.id FROM releases_supersedes rs JOIN s ON s.id = rs.rid) SELECT id FROM s)'),
     }, map $_->{rid}, $data->{supersedes}->@*;
+
+    VNDB::ExtLinks::normalize $e, $data;
 
     my $ch = db_edit r => $e->{id}, $data;
     return 'No changes' if !$ch->{nitemid};

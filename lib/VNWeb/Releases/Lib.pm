@@ -31,7 +31,8 @@ sub releases_by_vn($id, %opt) {
 
 
 # Enrich a list of releases so that it's suitable for release_row_().
-# Assumption: Each release already has id, patch, released, gtin and enrich_extlinks().
+# Does not call enrich_vislinks(), which is also needed for release_row_().
+# Assumption: Each release already has id, patch, released.
 sub enrich_release {
     my($r) = @_;
     enrich_merge id => sql(
@@ -62,12 +63,14 @@ sub sort_releases {
 }
 
 
-sub release_extlinks_ {
+sub release_vislinks_ {
     my($r, $id) = @_;
-    return if !$r->{extlinks}->@*;
+    return if !$r->{vislinks}->@*;
 
-    if($r->{extlinks}->@* == 1 && $r->{website}) {
-        a_ href => $r->{extlinks}[0]{url2}, sub {
+    my $website = (grep $_->{name} eq 'website', $r->{vislinks}->@*)[0];
+
+    if($r->{vislinks}->@* == 1 && $website) {
+        a_ href => $website->{url2}, sub {
             abbr_ class => 'icon-external', title => 'Official website', '';
         };
         return
@@ -75,8 +78,8 @@ sub release_extlinks_ {
 
     div_ class => 'elm_dd_noarrow elm_dd_hover elm_dd_left elm_dd_relextlink', sub {
         div_ class => 'elm_dd', sub {
-            a_ href => $r->{website}||'#', sub {
-                txt_ scalar $r->{extlinks}->@*;
+            a_ href => $website ? $website->{url2} : '#', sub {
+                txt_ scalar $r->{vislinks}->@*;
                 abbr_ class => 'icon-external', title => 'External link', '';
             };
             div_ sub {
@@ -87,7 +90,7 @@ sub release_extlinks_ {
                                 span_ $_->{price} if length $_->{price};
                                 txt_ $_->{label};
                             }
-                        } for $r->{extlinks}->@*;
+                        } for $r->{vislinks}->@*;
                     }
                 }
             }
@@ -186,7 +189,7 @@ sub release_row_ {
             elm_ 'UList.ReleaseEdit', $VNWeb::ULists::Elm::RLIST_STATUS, { rid => $r->{id}, uid => auth->uid, status => $r->{rlist_status}, empty => '--' } if auth;
         };
         td_ class => 'tc6', sub {
-            release_extlinks_ $r, "$opt->{id}_$r->{id}" if $r->{patch} || $r->{official} || !grep $_->{mtl}, $r->{titles}->@*;
+            release_vislinks_ $r, "$opt->{id}_$r->{id}" if $r->{patch} || $r->{official} || !grep $_->{mtl}, $r->{titles}->@*;
         };
     }
 }

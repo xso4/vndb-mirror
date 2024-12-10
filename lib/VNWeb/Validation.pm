@@ -4,6 +4,7 @@ use v5.36;
 use TUWF 'uri_escape';
 use VNDB::Types;
 use VNDB::Config;
+use VNDB::ExtLinks ();
 use VNWeb::Auth;
 use VNWeb::DB;
 use VNDB::Func 'gtintype';
@@ -74,6 +75,7 @@ TUWF::set custom_validations => {
     rdate       => { uint => 1, func => \&_validate_rdate },
     fuzzyrdate  => { default => 0, func => \&_validate_fuzzyrdate },
     searchquery => { onerror => bless([],'VNWeb::Validate::SearchQuery'), func => sub { $_[0] = bless([$_[0]], 'VNWeb::Validate::SearchQuery'); 1 } },
+    extlinks    => \&_validate_extlinks,
     # Calendar date, limited to 1970 - 2099 for sanity.
     # TODO: Should also validate whether the day exists, currently "2022-11-31" is accepted, but that's a bug.
     caldate     => { regex => qr/^(?:19[7-9][0-9]|20[0-9][0-9])-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])$/ },
@@ -131,7 +133,26 @@ sub _validate_fuzzyrdate {
     $_[0] = "${1}${2}99" if $_[0] =~ /^([0-9]{4})-([0-9]{2})$/;
     $_[0] = "${1}${2}$3" if $_[0] =~ /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/;
     return 1 if $_[0] eq 1;
-    VNWeb::Validation::_validate_rdate($_[0]);
+    _validate_rdate($_[0]);
+}
+
+
+sub _validate_extlinks($t) {
+    my $L = \%VNDB::ExtLinks::LINKS;
+    my %sites = map +($_, $L->{$_}), grep $L->{$_}{ent} =~ /$t/i, keys %$L;
+    +{ default => [], type => 'array', unique => sub {
+        $sites{$_[0]{site}}{ent} =~ /\U$t/ ? "$_[0]{site}$_[0]{value}" : $_[0]{site}
+    }, values => {
+        type => 'hash',
+        keys => { site => { enum => \%sites }, value => { maxlength => 512 } },
+        func => sub {
+            my $re = $sites{$_[0]{site}}{full_regex};
+            return 1 if !$re;
+            return 0 if sprintf($sites{$_[0]{site}}{fmt}, $_[0]{value}) !~ $re;
+            $_[0]{value} = (grep defined, @{^CAPTURE})[0];
+            1
+        }
+    } };
 }
 
 

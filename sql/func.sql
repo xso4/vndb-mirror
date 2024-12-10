@@ -485,6 +485,20 @@ END; $$ LANGUAGE plpgsql;
 
 
 
+-- Updates extlinks.c_ref
+CREATE OR REPLACE FUNCTION update_extlinks_cache(int) RETURNS void AS $$
+BEGIN
+  WITH ref(id, ref) AS (
+    SELECT id, EXISTS(SELECT 1 FROM releases_extlinks e JOIN releases r ON r.id = e.id WHERE NOT r.hidden AND e.c_site = l.site AND e.link = l.id)
+            OR EXISTS(SELECT 1 FROM staff_extlinks    e JOIN staff    s ON s.id = e.id WHERE NOT s.hidden AND e.c_site = l.site AND e.link = l.id)
+      FROM extlinks l
+     WHERE $1 IS NULL OR id = $1
+  ) UPDATE extlinks SET c_ref = ref FROM ref WHERE extlinks.id = ref.id AND c_ref <> ref;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
 -- Update reviews.c_up, c_down and c_flagged
 CREATE OR REPLACE FUNCTION update_reviews_votes_cache(vndbid) RETURNS void AS $$
 BEGIN
@@ -891,6 +905,16 @@ BEGIN
     INSERT INTO ulist_vns (uid, vid)
       SELECT rl.uid, rv.vid FROM rlists rl JOIN releases_vn rv ON rv.id = rl.rid WHERE rl.rid = nitemid
     ON CONFLICT (uid, vid) DO NOTHING;
+  END IF;
+
+  -- Update extlinks.c_ref
+  IF vndbid_type(nitemid) = 'r'
+  THEN
+    PERFORM update_extlinks_cache(link) FROM releases_extlinks_hist WHERE chid IN(xoldchid,nchid);
+  END IF;
+  IF vndbid_type(nitemid) = 's'
+  THEN
+    PERFORM update_extlinks_cache(link) FROM staff_extlinks_hist WHERE chid IN(xoldchid,nchid);
   END IF;
 
   -- Call update_images_cache() where appropriate

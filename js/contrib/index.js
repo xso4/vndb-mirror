@@ -80,57 +80,68 @@ const EditSum = vnode => {
 
 
 const ExtLinks = initVnode => {
-    const links = initVnode.attrs.data;
+    const links = initVnode.attrs.links;
     const extlinks = extLinks[initVnode.attrs.type];
+    const extlinksMap = Object.fromEntries(extlinks.map(x => [x.site,x]));
+    const hasWeb = extlinks.find(l => l.site === 'website');
     const split = (fmt,v) => fmt.split(/(%[0-9]*[sd])/)
         .map((p,i) => i !== 1 ? p : String(v).padStart(p.match(/%(?:0([0-9]+))?/)[1]||0, '0'));
-    let str = ''; // input string
-    let lnk = null; // link object, if matched
-    let val = null; // extracted value, if matched
-    let dup = false; // if link is already present
-    extlinks.forEach(l => l.multi = Array.isArray(l.default));
-    const add = () => {
-        if (lnk.multi) links[lnk.id].push(val);
-        else links[lnk.id] = val;
-        str = '';
-        lnk = val = null;
-        dup = false;
+
+    let inp = {str: ''};
+    let web = {str: (l => l ? l.value : '')(links.find(l => l.site === 'website'))};
+    const add = o => {
+        if (o.lnk.multi || !links.find(l => l.site === o.lnk.site))
+            links.push({ site: o.lnk.site, value: o.val });
+        else links.forEach(l => { if(l.site === o.lnk.site) l.value = o.val });
+        o.str = '';
+        o.lnk = o.val = null;
+        o.dup = false;
     };
-    const view = () => m('fieldset',
+    const set = (o,v) => {
+        if (v !== null) o.str = v;
+        o.lnk = extlinks.find(l => l.regex && new RegExp(l.regex).test(o.str));
+        o.val = o.lnk && o.str.match(new RegExp(o.lnk.regex)).filter(x => x !== undefined)[1];
+        o.dup = o.lnk && links.find(l => l.site === o.lnk.site && l.value === o.val);
+        if (o.lnk && !o.dup && (o.lnk.multi || !links.find(l => l.site === o.lnk.site))) add(o);
+    };
+    const Msg = (o,isinp) =>
+        isinp && o.str.length > 0 && !o.lnk ? [ m('p', ('small', '>>> '), m('b.invalid', 'Invalid or unrecognized URL.')) ] :
+        o.dup ? [ m('p', m('small', '>>> '), m('b.invalid', ' URL already listed.')) ] :
+        o.lnk ? [
+            m('p', m('input[type=button][value=Update]', { onclick: () => add(o) }), m('span.invalid', ' URL recognized as: ', o.lnk.label)),
+            m('p.invalid', 'Did you mean to update the URL?'),
+        ] : null;
+    const Website = () => hasWeb ? m('fieldset',
+        m('label[for=website]', 'Website'),
+        m(Input, { id: 'website', class: 'xw', type: 'weburl', data: web, field: 'str', oninput: v => {
+            const l = links.find(l => l.site === 'website');
+            if(l) links.splice(links.indexOf(l), 1);
+            set(web,v);
+            if(!web.lnk && web.str.length > 0) links.push({ site: 'website', value: v });
+        }}),
+        Msg(web),
+    ) : null;
+
+    const view = () => [ Website(), m('fieldset',
         m('label[for=extlinks]', 'External links', HelpButton('extlinks')),
-        m('table', extlinks.flatMap(l =>
-            (l.multi ? links[l.id] : links[l.id] ? [links[l.id]] : []).map(v =>
-                m('tr', {key: l.id + '-' + v },
-                    m('td', m(Button.Del, {onclick: () => links[l.id] = l.multi ? links[l.id].filter(x => x !== v) : l.default})),
-                    m('td', m('a[target=_blank]', { href: split(l.fmt, v).join('') }, l.name)),
-                    m('td', split(l.fmt, v).map((p,i) => m(i === 1 ? 'span' : 'small', p))),
-                )
-            )
-        )),
-        m('form', { onsubmit: ev => { ev.preventDefault(); if (lnk && !dup) add(); } },
-            m('input#extlinks.xw[type=text][placeholder=Add URL...]', { value: str, oninput: ev => {
-                str = ev.target.value;
-                lnk = extlinks.find(l => new RegExp(l.regex).test(str));
-                val = lnk && (v => lnk.int ? +v : ''+v)(str.match(new RegExp(lnk.regex)).filter(x => x !== undefined)[1]);
-                dup = lnk && (lnk.multi ? links[lnk.id].find(x => x === val) : links[lnk.id] === val);
-                if (lnk && !dup && (lnk.multi || links[lnk.id] === null || links[lnk.id] === 0 || links[lnk.id] === '')) add();
-            }}),
-            str.length > 0 && !lnk ? [ m('p', ('small', '>>> '), m('b.invalid', 'Invalid or unrecognized URL.')) ] :
-            dup ? [ m('p', m('small', '>>> '), m('b.invalid', ' URL already listed.')) ] :
-            lnk ? [
-                m('p', m('input[type=submit][value=Update]'), m('span.invalid', ' URL recognized as: ', lnk.name)),
-                m('p.invalid', 'Did you mean to update the URL?'),
-            ] : [],
+        m('table', links.filter(l => extlinksMap[l.site] && extlinksMap[l.site].regex).map(l => m('tr', {key: l.site+'-'+l.value},
+            m('td', m(Button.Del, {onclick: () => { links.splice(links.indexOf(l), 1); set(inp,null)}})),
+            m('td', m('a[target=_blank]', { href: split(extlinksMap[l.site].fmt, l.value).join('') }, extlinksMap[l.site].label)),
+            m('td', split(extlinksMap[l.site].fmt, l.value).map((p,i) => m(i === 1 ? 'span' : 'small', p))),
+        ))),
+        m('form', { onsubmit: ev => { ev.preventDefault(); if (inp.lnk && !inp.dup) add(inp); } },
+            m('input#extlinks.xw[type=text][placeholder=Add URL...]', { value: inp.str, oninput: ev => set(inp, ev.target.value)}),
+            Msg(inp,1),
         ),
         Help('extlinks',
             m('p', 'Links to external websites. The following sites and URL formats are supported:'),
-            m('dl', extlinks.flatMap(e => [
-                m('dt', e.name),
+            m('dl', extlinks.filter(l => extlinksMap[l.site] && extlinksMap[l.site].regex).flatMap(e => [
+                m('dt', e.label),
                 m('dd', e.patt.map((p,i) => m(i % 2 ? 'strong' : 'span', p))),
             ])),
             m('p', 'Links to sites that are not in the above list can still be added in the notes field below.'),
         ),
-    );
+    )];
     return {view};
 };
 
