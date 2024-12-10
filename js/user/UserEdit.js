@@ -545,7 +545,7 @@ widget('UserEdit', initVnode => {
         m('h1', 'Account'),
         m(Username, {data}),
         m(Email, {data}),
-        m(Password, {data}),
+        data.editor_usermod ? null : m(Password, {data}),
         m(Support, {data}),
         m('fieldset.form',
             m('legend', 'Account deletion'),

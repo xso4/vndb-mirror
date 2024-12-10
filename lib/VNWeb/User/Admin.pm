@@ -48,9 +48,6 @@ js_api UserAdmin => $FORM_IN, sub {
     my($data) = @_;
     my $u = _userinfo $data->{id};
 
-    tuwf->dbExeci(select => sql_func user_setperm_usermod => \$u->{id}, \auth->uid, sql_fromhex(auth->token), \$data->{perm_usermod})
-        if auth->permUsermod;
-
     my @set = (
         auth->permUsermod
         ? ('ign_votes', map "perm_$_", grep $_ ne 'usermod', auth->listPerms)

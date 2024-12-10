@@ -1127,8 +1127,16 @@ CREATE OR REPLACE FUNCTION user_setpass(vndbid, bytea, bytea) RETURNS boolean AS
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 
+-- Internal function, used to verify that the user/token combination allows for
+-- changing account data.
+CREATE OR REPLACE FUNCTION user_isself(vndbid, bytea) RETURNS boolean AS $$
+  SELECT true FROM sessions WHERE uid = $1 AND token = $2 AND type = 'web'
+$$ LANGUAGE SQL;
+
+
 -- Internal function, used to verify whether user ($2 with session $3) is
 -- allowed to access sensitive data from user $1.
+-- Same as user_isself() but also permits access to usermods.
 CREATE OR REPLACE FUNCTION user_isauth(vndbid, vndbid, bytea) RETURNS boolean AS $$
   SELECT true FROM users_shadow
    WHERE id = $2
@@ -1149,7 +1157,7 @@ $$ LANGUAGE SQL SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION user_setdelete(vndbid, bytea, boolean) RETURNS void AS $$
   UPDATE users_shadow
      SET delete_at = CASE WHEN $3 THEN NOW() + '1 week'::interval ELSE NULL END
-   WHERE id = $1 AND user_isauth($1, $1, $2)
+   WHERE id = $1 AND user_isself($1, $2)
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 
@@ -1158,7 +1166,7 @@ $$ LANGUAGE SQL SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION user_setmail_token(vndbid, bytea, bytea, text) RETURNS void AS $$
   INSERT INTO sessions (uid, token, expires, type, mail)
     SELECT id, $3, NOW()+'1 week', 'mail', $4 FROM users
-     WHERE id = $1 AND user_isauth($1, $1, $2) AND length($3) = 20
+     WHERE id = $1 AND user_isself($1, $2) AND length($3) = 20
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 
@@ -1171,21 +1179,8 @@ CREATE OR REPLACE FUNCTION user_setmail_confirm(vndbid, bytea) RETURNS boolean A
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 
-CREATE OR REPLACE FUNCTION user_setperm_usermod(vndbid, vndbid, bytea, boolean) RETURNS void AS $$
-  UPDATE users_shadow SET perm_usermod = $4 WHERE id = $1 AND user_isauth(NULL, $2, $3)
-$$ LANGUAGE SQL SECURITY DEFINER;
-
-
-CREATE OR REPLACE FUNCTION user_admin_setpass(vndbid, vndbid, bytea, bytea) RETURNS void AS $$
-  WITH upd(id) AS (
-    UPDATE users_shadow SET passwd = $4 WHERE id = $1 AND user_isauth(NULL, $2, $3) AND length($4) = 46 RETURNING id
-  )
-  DELETE FROM sessions WHERE uid IN(SELECT id FROM upd)
-$$ LANGUAGE SQL SECURITY DEFINER;
-
-
 CREATE OR REPLACE FUNCTION user_admin_setmail(vndbid, vndbid, bytea, text) RETURNS void AS $$
-  UPDATE users_shadow SET mail = $4 WHERE id = $1 AND user_isauth(NULL, $2, $3)
+  UPDATE users_shadow SET mail = $4 WHERE id = $1 AND NOT perm_usermod AND user_isauth(NULL, $2, $3)
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 

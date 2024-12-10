@@ -110,7 +110,7 @@ TUWF::get qr{/$RE{uid}/edit}, sub {
     );
     return tuwf->resNotFound if !$u->{id} || !can_edit u => $u;
 
-    $u->{editor_usermod}     = auth->permUsermod;
+    $u->{editor_usermod}     = $u->{id} ne auth->uid;
     $u->{username_throttled} = _namethrottled $u->{id};
     $u->{email}              = _getmail $u->{id};
     $u->{password}           = undef;
@@ -165,8 +165,6 @@ js_api UserEdit => $FORM_IN, sub {
     /;
     $setp{customcss_csum} = $data->{customcss_csum} && length $data->{customcss} ? unpack 'q', sha1 do { utf8::encode(local $_=$data->{customcss}); $_ } : 0;
 
-    $set{email_confirmed} = 1 if auth->permUsermod;
-
     if($data->{username} ne $u->{username}) {
         return +{ _err => 'You can only change your username once a day.' } if _namethrottled $data->{id};
         return +{ code => 'username_taken', _err => 'Username already taken.' } if !is_unique_username $data->{username}, $data->{id};
@@ -190,8 +188,9 @@ js_api UserEdit => $FORM_IN, sub {
         return +{ code => 'email_taken', _err => 'E-Mail address already in use by another account' }
             if tuwf->dbVali('SELECT 1 FROM user_emailtoid(', \$data->{email}, ') x(id) WHERE id <>', \$data->{id});
         auth->audit($data->{id}, 'email change', "old=$oldmail; new=$data->{email}");
-        if(auth->permUsermod) {
+        if($data->{id} ne auth->uid) {
             tuwf->dbExeci(select => sql_func user_admin_setmail => \$data->{id}, \auth->uid, sql_fromhex(auth->token), \$data->{email});
+            $set{email_confirmed} = 1;
         } else {
             my $token = auth->setmail_token($data->{email});
             my $body = sprintf
