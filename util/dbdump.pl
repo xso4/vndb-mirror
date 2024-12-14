@@ -123,7 +123,8 @@ my %tables = (
                                  .'    x.id IN(SELECT DISTINCT uid FROM ulist_vns WHERE NOT c_private)'
                                  .' OR x.id IN(SELECT DISTINCT uid FROM tags_vn)'
                                  .' OR x.id IN(SELECT DISTINCT uid FROM image_votes)'
-                                 .' OR x.id IN(SELECT DISTINCT uid FROM vn_length_votes WHERE NOT private))' },
+                                 .' OR x.id IN(SELECT DISTINCT uid FROM vn_length_votes WHERE NOT private)'
+                                 .' OR x.id IN(SELECT DISTINCT uid FROM vn_image_votes))' },
     vn                  => { where => 'NOT x.hidden' },
     vn_anime            => { where => 'x.id IN(SELECT id FROM vn WHERE NOT hidden)' },
     vn_editions         => { where => 'x.id IN(SELECT id FROM vn WHERE NOT hidden)' },
@@ -135,6 +136,8 @@ my %tables = (
     vn_staff            => { where => 'x.id IN(SELECT id FROM vn WHERE NOT hidden) AND x.aid IN(SELECT sa.aid FROM staff_alias sa JOIN staff s ON s.id = sa.id WHERE NOT s.hidden)'
                            , order => 'x.id, x.eid, x.aid, x.role' },
     vn_titles           => { where => 'x.id IN(SELECT id FROM vn WHERE NOT hidden)' },
+    vn_image_votes      => { where => 'x.vid IN(SELECT id FROM vn WHERE NOT hidden)'
+                                .' AND x.img IN(SELECT id FROM images WHERE c_weight > 0)' },
     vn_length_votes     => { where => 'x.vid IN(SELECT id FROM vn WHERE NOT hidden) AND NOT x.private'
                            , order => 'x.vid, x.uid' },
     wikidata            => { where => q{x.id IN(SELECT l_wikidata FROM producers WHERE NOT hidden

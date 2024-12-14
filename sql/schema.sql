@@ -1455,7 +1455,7 @@ CREATE TABLE vn ( -- dbentry_type=v
   c_languages   language[] NOT NULL DEFAULT '{}',
   c_platforms   platform[] NOT NULL DEFAULT '{}',
   c_developers  vndbid[] NOT NULL DEFAULT '{}',
-  c_image       vndbid,
+  c_image       vndbid, -- [pub]
   c_imgfirst    vndbid,
   c_imglast     vndbid
 );
@@ -1617,9 +1617,9 @@ CREATE TABLE vn_length_votes (
 
 -- vn_image_votes
 CREATE TABLE vn_image_votes (
-  vid        vndbid NOT NULL,
-  uid        vndbid NOT NULL,
-  img        vndbid NOT NULL,
+  vid        vndbid NOT NULL, -- [pub]
+  uid        vndbid NOT NULL, -- [pub]
+  img        vndbid NOT NULL, -- [pub]
   date       timestamptz NOT NULL DEFAULT NOW(),
   c_main     boolean NOT NULL DEFAULT false, -- Active img for the (vid, uid) combination
   PRIMARY KEY(vid, uid, img)
