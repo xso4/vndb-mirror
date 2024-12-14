@@ -1252,6 +1252,7 @@ BEGIN
   DELETE FROM users_shadow WHERE id = userid;
   DELETE FROM users_traits WHERE id = userid;
   DELETE FROM users_username_hist WHERE id = userid;
+  DELETE FROM vn_image_votes WHERE uid = userid;
   DELETE FROM vn_length_votes WHERE private AND uid = userid;
   IF hard THEN
     -- Delete votes that have been invalidated by a moderator, otherwise they will suddenly start counting again
