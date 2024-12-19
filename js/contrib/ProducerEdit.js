@@ -74,6 +74,7 @@ widget('ProducerEdit', initVnode => {
                         class: 'xw', type: 'textarea', rows: 3, maxlength: 500, data, field: 'alias', oninput: nameChange,
                         invalid: names().anyDup() ? 'List contains duplicate aliases.' : '',
                     }),
+                    data.alias.match(/,/) ? m('p', 'Reminder: one alias per line!') : null,
                     m('p', '(Un)official aliases, separated by a newline.'),
                 ),
                 dupCheck === false ? fields() : [],

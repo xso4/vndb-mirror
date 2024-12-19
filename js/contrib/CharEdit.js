@@ -55,6 +55,7 @@ const GenInfo = vnode => {
             m(Input, {
                 id: 'alias', class: 'lw', maxlength: 500, data, field: 'alias', type: 'textarea', rows: 3,
             }),
+            data.alias.match(/,/) ? m('p', 'Reminder: one alias per line!') : null,
             m('p', '(Un)official aliases, separated by a newline. Must not include spoilers!'),
         ),
         m('fieldset',

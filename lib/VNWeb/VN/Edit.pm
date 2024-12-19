@@ -27,9 +27,9 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
         title    => { _when => 'out' },
     } },
     anime      => { sort_keys => 'aid', aoh => {
-        aid      => { id => 1 },
-        title    => { _when => 'out' },
-        original => { _when => 'out', default => '' },
+        aid          => { id => 1 },
+        title_romaji => { _when => 'out' },
+        title_kanji  => { _when => 'out', default => '' },
     } },
     editions   => { sort_keys => 'eid', aoh => {
         eid      => { uint => 1, max => 500 },
@@ -42,7 +42,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
         eid      => { default => undef, uint => 1 },
         role     => { enum => \%CREDIT_TYPE },
         note     => { default => '', sl => 1, maxlength => 250 },
-        id       => { _when => 'out', vndbid => 's' },
+        sid      => { _when => 'out', vndbid => 's' },
         title    => { _when => 'out' },
         alttitle => { _when => 'out' },
     } },
@@ -51,7 +51,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
         cid      => { vndbid => 'c' },
         note     => { default => '', sl => 1, maxlength => 250 },
         # Staff info
-        id       => { _when => 'out', vndbid => 's' },
+        sid      => { _when => 'out', vndbid => 's' },
         title    => { _when => 'out' },
         alttitle => { _when => 'out' },
     } },
@@ -63,10 +63,9 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     hidden     => { anybool => 1 },
     locked     => { anybool => 1 },
 
-    authmod    => { _when => 'out', anybool => 1 },
     editsum    => { editsum => 1 },
     releases   => { _when => 'out', $VNWeb::Elm::apis{Releases}[0]->%* },
-    reltitles  => { _when => 'out', aoh => { id => { vndbid => 'r' }, title => {} } },
+    reltitles  => { _when => 'out', type => 'array', values => {} },
     chars      => { _when => 'out', aoh => {
         id       => { vndbid => 'c' },
         title    => {},
@@ -79,16 +78,13 @@ TUWF::get qr{/$RE{vrev}/edit} => sub {
     my $e = db_entry tuwf->captures('id', 'rev') or return tuwf->resNotFound;
     return tuwf->resDenied if !can_edit v => $e;
 
-    $e->{authmod} = auth->permDbmod;
     $e->{editsum} = $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
 
-    $e->{titles} = [ sort { $a->{lang} cmp $b->{lang} } $e->{titles}->@* ];
     $_->{info} = {id=>$_->{scr}} for $e->{screenshots}->@*;
     enrich_image 0, [map $_->{info}, $e->{screenshots}->@*];
 
     $_->{title} = $_->{title}[1] for $e->{relations}->@*;
-    ($_->{title}, $_->{original}) = ($_->{title_romaji}, $_->{title_kanji}||'') for $e->{anime}->@*;
-    ($_->{id}, $_->{title}, $_->{alttitle}) = ($_->{sid}, $_->{title}[1], $_->{title}[3]) for ($e->{staff}->@*, $e->{seiyuu}->@*);
+    ($_->{title}, $_->{alttitle}) = ($_->{title}[1], $_->{title}[3]) for ($e->{staff}->@*, $e->{seiyuu}->@*);
 
     # It's possible for older revisions to link to aliases that have been removed.
     # Let's exclude those to make sure the form will at least load.
@@ -96,14 +92,14 @@ TUWF::get qr{/$RE{vrev}/edit} => sub {
     $e->{seiyuu} = [ grep $_->{sid}, $e->{seiyuu}->@* ];
 
     $e->{releases} = releases_by_vn $e->{id};
-    $e->{reltitles} = tuwf->dbAlli('
-        SELECT DISTINCT r.id, i.title
+    $e->{reltitles} = [ map $_->{x}, tuwf->dbAlli('
+        SELECT DISTINCT lower(i.title) AS x
           FROM releases r
           JOIN releases_vn rv ON rv.id = r.id
           JOIN releases_titles rt ON rt.id = r.id
           JOIN unnest(ARRAY[rt.title,rt.latin]) i(title) ON i.title IS NOT NULL
          WHERE NOT r.hidden AND rv.vid =', \$e->{id}
-    );
+    )->@* ];
 
     $e->{chars} = tuwf->dbAlli('
         SELECT id, title[1+1], title[1+1+1+1] AS alttitle FROM', charst, '
@@ -115,7 +111,7 @@ TUWF::get qr{/$RE{vrev}/edit} => sub {
     framework_ title => "Edit $title->[1]", dbobj => $e, tab => 'edit',
     sub {
         editmsg_ v => $e, "Edit $title->[1]";
-        elm_ VNEdit => $FORM_OUT, $e;
+        div_ widget(VNEdit => $FORM_OUT, $e), '';
     };
 };
 
@@ -126,16 +122,16 @@ TUWF::get qr{/v/add}, sub {
     framework_ title => 'Add visual novel',
     sub {
         editmsg_ v => undef, 'Add visual novel';
-        elm_ VNEdit => $FORM_OUT, elm_empty($FORM_OUT);
+        div_ widget(VNEdit => $FORM_OUT, elm_empty($FORM_OUT)), '';
     };
 };
 
 
-elm_api VNEdit => $FORM_OUT, $FORM_IN, sub {
+js_api VNEdit => $FORM_IN, sub {
     my $data = shift;
     my $new = !$data->{id};
     my $e = $new ? { id => 0 } : db_entry $data->{id} or return tuwf->resNotFound;
-    return elm_Unauth if !can_edit v => $e;
+    return tuwf->resDenied if !can_edit v => $e;
 
     if(!auth->permDbmod) {
         $data->{hidden} = $e->{hidden}||0;
@@ -143,7 +139,10 @@ elm_api VNEdit => $FORM_OUT, $FORM_IN, sub {
     }
     $data->{description} = bb_subst_links $data->{description};
     $data->{alias} =~ s/\n\n+/\n/;
-    die "No title in original language" if !length [grep $_->{lang} eq $data->{olang}, $data->{titles}->@*]->[0]{title};
+
+    my($otitle) = grep $_->{lang} eq $data->{olang}, $data->{titles}->@*;
+    die "No title in original language" if !$otitle;
+    $otitle->{official} = 1;
 
     validate_dbid 'SELECT id FROM anime WHERE id IN', map $_->{aid}, $data->{anime}->@*;
     validate_dbid 'SELECT id FROM images WHERE id IN', map $_->{scr}, $data->{screenshots}->@*;
@@ -180,9 +179,9 @@ elm_api VNEdit => $FORM_OUT, $FORM_IN, sub {
     $_->{nsfw} = $oldscr{$_->{scr}}||0 for $data->{screenshots}->@*;
 
     my $ch = db_edit v => $e->{id}, $data;
-    return elm_Unchanged if !$ch->{nitemid};
+    return 'No changes' if !$ch->{nitemid};
     update_reverse($ch->{nitemid}, $ch->{nrev}, $e, $data);
-    elm_Redirect "/$ch->{nitemid}.$ch->{nrev}";
+    +{ _redir => "/$ch->{nitemid}.$ch->{nrev}" };
 };
 
 
