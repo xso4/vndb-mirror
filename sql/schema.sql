@@ -259,8 +259,8 @@ CREATE TABLE anime ( -- Anime information fetched from AniDB, only used for link
 -- audit_log
 CREATE TABLE audit_log (
   date          timestamptz NOT NULL DEFAULT NOW(),
-  by_uid        vndbid,
-  affected_uid  vndbid,
+  by_uid        vndbid(u),
+  affected_uid  vndbid(u),
   by_ip         ipinfo,
   by_name       text,
   affected_name text,
@@ -271,7 +271,7 @@ CREATE TABLE audit_log (
 -- changes
 CREATE TABLE changes (
   itemid     vndbid NOT NULL,
-  requester  vndbid,
+  requester  vndbid(u),
   added      timestamptz NOT NULL DEFAULT NOW(),
   c_chflags  bigint NOT NULL DEFAULT 0, -- bitflag of changed fields, depends on itemid type, see VNDB::Types::CHFLAGS
   id         SERIAL PRIMARY KEY,
@@ -284,14 +284,14 @@ CREATE TABLE changes (
 -- changes_patrolled
 CREATE TABLE changes_patrolled (
   id         integer NOT NULL,
-  uid        vndbid NOT NULL,
+  uid        vndbid(u) NOT NULL,
   PRIMARY KEY(id,uid)
 );
 
 -- chars
 CREATE TABLE chars ( -- dbentry_type=c
-  id           vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('c', nextval('chars_id_seq')::int) CONSTRAINT chars_id_check CHECK(vndbid_type(id) = 'c'), -- [pub]
-  image        vndbid CONSTRAINT chars_image_check CHECK(vndbid_type(image) = 'ch'), -- [pub]
+  id           vndbid(c) NOT NULL PRIMARY KEY DEFAULT vndbid('c', nextval('chars_id_seq')), -- [pub]
+  image        vndbid(ch), -- [pub]
   bloodt       blood_type NOT NULL DEFAULT 'unknown', -- [pub] Blood type
   cup_size     cup_size NOT NULL DEFAULT '', -- [pub]
   c_lang       language NOT NULL DEFAULT 'ja',
@@ -299,7 +299,7 @@ CREATE TABLE chars ( -- dbentry_type=c
   spoil_sex    char_sex, -- [pub] Character's actual sex, in case it's a spoiler
   gender       char_gender, -- [pub]
   spoil_gender char_gender, -- [pub]
-  main         vndbid, -- [pub] When this character is an instance of another character
+  main         vndbid(c), -- [pub] When this character is an instance of another character
   main_spoil   smallint NOT NULL DEFAULT 0, -- [pub]
   s_bust       smallint NOT NULL DEFAULT 0, -- [pub] cm
   s_waist      smallint NOT NULL DEFAULT 0, -- [pub] cm
@@ -319,14 +319,14 @@ CREATE TABLE chars ( -- dbentry_type=c
 -- chars_hist
 CREATE TABLE chars_hist (
   chid         integer  NOT NULL PRIMARY KEY,
-  image        vndbid CONSTRAINT chars_hist_image_check CHECK(vndbid_type(image) = 'ch'), -- cf=Image
+  image        vndbid(ch), -- cf=Image
   bloodt       blood_type NOT NULL DEFAULT 'unknown', -- cf=BloodType
   cup_size     cup_size NOT NULL DEFAULT '', -- cf=Measurements
   sex          char_sex NOT NULL DEFAULT '', -- cf=Gender
   spoil_sex    char_sex, -- cf=Gender
   gender       char_gender, -- cf=Gender
   spoil_gender char_gender, -- cf=Gender
-  main         vndbid, -- cf=Main chars.id
+  main         vndbid(c), -- cf=Main chars.id
   main_spoil   smallint NOT NULL DEFAULT 0, -- cf=Main
   s_bust       smallint NOT NULL DEFAULT 0, -- cf=Measurements
   s_waist      smallint NOT NULL DEFAULT 0, -- cf=Measurements
@@ -343,8 +343,8 @@ CREATE TABLE chars_hist (
 
 -- chars_traits
 CREATE TABLE chars_traits (
-  id         vndbid NOT NULL, -- [pub]
-  tid        vndbid NOT NULL, -- [pub]
+  id         vndbid(c) NOT NULL, -- [pub]
+  tid        vndbid(i) NOT NULL, -- [pub]
   spoil      smallint NOT NULL DEFAULT 0, -- [pub]
   lie        boolean NOT NULL DEFAULT false, -- [pub]
   PRIMARY KEY(id, tid)
@@ -353,7 +353,7 @@ CREATE TABLE chars_traits (
 -- chars_traits_hist
 CREATE TABLE chars_traits_hist ( -- cf=Traits
   chid       integer NOT NULL,
-  tid        vndbid NOT NULL, -- traits.id
+  tid        vndbid(i) NOT NULL, -- traits.id
   spoil      smallint NOT NULL DEFAULT 0,
   lie        boolean NOT NULL DEFAULT false,
   PRIMARY KEY(chid, tid)
@@ -361,9 +361,9 @@ CREATE TABLE chars_traits_hist ( -- cf=Traits
 
 -- chars_vns
 CREATE TABLE chars_vns (
-  id         vndbid NOT NULL, -- [pub]
-  vid        vndbid NOT NULL, -- [pub]
-  rid        vndbid NULL, -- [pub]
+  id         vndbid(c) NOT NULL, -- [pub]
+  vid        vndbid(v) NOT NULL, -- [pub]
+  rid        vndbid(r) NULL, -- [pub]
   role       char_role NOT NULL DEFAULT 'main', -- [pub]
   spoil      smallint NOT NULL DEFAULT 0 -- [pub]
 );
@@ -371,15 +371,15 @@ CREATE TABLE chars_vns (
 -- chars_vns_hist
 CREATE TABLE chars_vns_hist ( -- cf=VN
   chid       integer NOT NULL,
-  vid        vndbid NOT NULL, -- vn.id
-  rid        vndbid NULL, -- releases.id
+  vid        vndbid(v) NOT NULL, -- vn.id
+  rid        vndbid(r) NULL, -- releases.id
   role       char_role NOT NULL DEFAULT 'main',
   spoil      smallint NOT NULL DEFAULT 0
 );
 
 -- docs
 CREATE TABLE docs ( -- dbentry_type=d
-  id         vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('d', nextval('docs_id_seq')::int) CONSTRAINT docs_id_check CHECK(vndbid_type(id) = 'd') , -- [pub]
+  id         vndbid(d) NOT NULL PRIMARY KEY DEFAULT vndbid('d', nextval('docs_id_seq')), -- [pub]
   locked     boolean NOT NULL DEFAULT FALSE,
   hidden     boolean NOT NULL DEFAULT FALSE,
   title      text NOT NULL DEFAULT '', -- [pub]
@@ -455,7 +455,7 @@ CREATE TABLE images (
   c_violence_stddev smallint NOT NULL DEFAULT 0, -- [pub]
   c_weight          smallint NOT NULL DEFAULT 0, -- [pub] Random selection weight for the image flagging UI
   c_uids            vndbid[] NOT NULL DEFAULT '{}',
-  uploader          vndbid
+  uploader          vndbid(u)
   -- (technically, c_votecount is redundant as it can be easily derived from
   --  c_uids, but otherwise we'd lose the space to padding anyway)
 );
@@ -463,7 +463,7 @@ CREATE TABLE images (
 -- image_votes
 CREATE TABLE image_votes (
   id       vndbid NOT NULL, -- [pub]
-  uid      vndbid, -- [pub]
+  uid      vndbid(u), -- [pub]
   date     timestamptz NOT NULL DEFAULT NOW(),-- [pub]
   sexual   smallint NOT NULL CHECK(sexual >= 0 AND sexual <= 2), -- [pub] 0 = safe, 1 = suggestive, 2 = explicit
   violence smallint NOT NULL CHECK(violence >= 0 AND violence <= 2), -- [pub] 0 = tame, 1 = violent, 2 = brutal
@@ -478,7 +478,7 @@ CREATE TABLE login_throttle (
 
 -- notification_subs
 CREATE TABLE notification_subs (
-  uid         vndbid NOT NULL,
+  uid         vndbid(u) NOT NULL,
   iid         vndbid NOT NULL,
   -- Indicates a subscription on the creation of a new 'num' for the item, i.e. new post, new comment, new edit.
   -- Affects the following ntypes: dbedit, subedit, pm, post, comment, subpost. Does not affect: dbdel, listdel.
@@ -493,7 +493,7 @@ CREATE TABLE notification_subs (
 
 -- notifications
 CREATE TABLE notifications (
-  uid      vndbid NOT NULL,
+  uid      vndbid(u) NOT NULL,
   date     timestamptz NOT NULL DEFAULT NOW(),
   read     timestamptz,
   iid      vndbid NOT NULL,
@@ -504,7 +504,7 @@ CREATE TABLE notifications (
 
 -- producers
 CREATE TABLE producers ( -- dbentry_type=p
-  id         vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('p', nextval('producers_id_seq')::int) CONSTRAINT producers_id_check CHECK(vndbid_type(id) = 'p'), -- [pub]
+  id         vndbid(p) NOT NULL PRIMARY KEY DEFAULT vndbid('p', nextval('producers_id_seq')), -- [pub]
   type       producer_type NOT NULL DEFAULT 'co', -- [pub]
   lang       language NOT NULL DEFAULT 'ja', -- [pub]
   l_wikidata integer, -- [pub]
@@ -534,8 +534,8 @@ CREATE TABLE producers_hist (
 
 -- producers_relations
 CREATE TABLE producers_relations (
-  id         vndbid NOT NULL, -- [pub]
-  pid        vndbid NOT NULL, -- [pub]
+  id         vndbid(p) NOT NULL, -- [pub]
+  pid        vndbid(p) NOT NULL, -- [pub]
   relation   producer_relation NOT NULL, -- [pub]
   PRIMARY KEY(id, pid)
 );
@@ -543,7 +543,7 @@ CREATE TABLE producers_relations (
 -- producers_relations_hist
 CREATE TABLE producers_relations_hist ( -- cf=Relations
   chid       integer NOT NULL,
-  pid        vndbid NOT NULL, -- producers.id
+  pid        vndbid(p) NOT NULL, -- producers.id
   relation   producer_relation NOT NULL,
   PRIMARY KEY(chid, pid)
 );
@@ -551,9 +551,9 @@ CREATE TABLE producers_relations_hist ( -- cf=Relations
 -- quotes
 CREATE TABLE quotes (
   id         serial PRIMARY KEY, -- [pub]
-  vid        vndbid NOT NULL, -- [pub]
-  cid        vndbid, -- [pub]
-  addedby    vndbid,
+  vid        vndbid(v) NOT NULL, -- [pub]
+  cid        vndbid(c), -- [pub]
+  addedby    vndbid(u),
   rand       real,
   score      smallint NOT NULL DEFAULT 0, -- [pub]
   quote      text NOT NULL, -- [pub]
@@ -564,7 +564,7 @@ CREATE TABLE quotes (
 -- quotes_log
 CREATE TABLE quotes_log (
   id        integer NOT NULL,
-  uid       vndbid,
+  uid       vndbid(u),
   date      timestamptz NOT NULL DEFAULT NOW(),
   action    text NOT NULL
 );
@@ -572,7 +572,7 @@ CREATE TABLE quotes_log (
 -- quotes_votes
 CREATE TABLE quotes_votes (
   id        integer NOT NULL,
-  uid       vndbid NOT NULL,
+  uid       vndbid(u) NOT NULL,
   date      timestamptz NOT NULL DEFAULT NOW(),
   vote      smallint NOT NULL,
   PRIMARY KEY(id, uid)
@@ -586,7 +586,7 @@ CREATE TABLE registration_throttle (
 
 -- releases
 CREATE TABLE releases ( -- dbentry_type=r
-  id           vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('r', nextval('releases_id_seq')::int) CONSTRAINT releases_id_check CHECK(vndbid_type(id) = 'r'), -- [pub]
+  id           vndbid(r) NOT NULL PRIMARY KEY DEFAULT vndbid('r', nextval('releases_id_seq')), -- [pub]
   gtin         bigint NOT NULL DEFAULT 0, -- [pub] JAN/UPC/EAN/ISBN
   olang        language NOT NULL DEFAULT 'ja', -- [pub] Refers to the main title to use for display purposes, not necessarily the original language.
   released     integer NOT NULL DEFAULT 0, -- [pub]
@@ -651,7 +651,7 @@ CREATE TABLE releases_hist (
 
 -- releases_drm
 CREATE TABLE releases_drm (
-  id      vndbid NOT NULL, -- [pub]
+  id      vndbid(r) NOT NULL, -- [pub]
   drm     integer NOT NULL, -- [pub]
   notes   text NOT NULL DEFAULT '', -- [pub]
   PRIMARY KEY(id, drm)
@@ -667,7 +667,7 @@ CREATE TABLE releases_drm_hist ( -- cf=DRM
 
 -- releases_extlinks
 CREATE TABLE releases_extlinks (
-  id      vndbid NOT NULL, -- [pub]
+  id      vndbid(r) NOT NULL, -- [pub]
   c_site  extlink_site NOT NULL, -- duplicated from extlinks.site
   link    integer NOT NULL, -- [pub]
   PRIMARY KEY(id, link)
@@ -682,9 +682,9 @@ CREATE TABLE releases_extlinks_hist ( -- cf=Links
 
 -- releases_images
 CREATE TABLE releases_images (
-  id      vndbid NOT NULL, -- [pub]
-  img     vndbid NOT NULL, -- [pub]
-  vid     vndbid, -- [pub]
+  id      vndbid(r) NOT NULL, -- [pub]
+  img     vndbid(cv) NOT NULL, -- [pub]
+  vid     vndbid(v), -- [pub]
   itype   release_image_type NOT NULL, -- [pub]
   lang    language[], -- [pub]
   photo   boolean NOT NULL DEFAULT FALSE,
@@ -694,8 +694,8 @@ CREATE TABLE releases_images (
 -- releases_images_hist
 CREATE TABLE releases_images_hist ( -- cf=Image
   chid    integer NOT NULL,
-  img     vndbid NOT NULL,
-  vid     vndbid,
+  img     vndbid(cv) NOT NULL,
+  vid     vndbid(v),
   itype   release_image_type NOT NULL,
   lang    language[],
   photo   boolean NOT NULL DEFAULT FALSE,
@@ -704,7 +704,7 @@ CREATE TABLE releases_images_hist ( -- cf=Image
 
 -- releases_media
 CREATE TABLE releases_media (
-  id         vndbid NOT NULL, -- [pub]
+  id         vndbid(r) NOT NULL, -- [pub]
   medium     medium NOT NULL, -- [pub]
   qty        smallint NOT NULL DEFAULT 1, -- [pub]
   PRIMARY KEY(id, medium, qty)
@@ -720,7 +720,7 @@ CREATE TABLE releases_media_hist ( -- cf=Media
 
 -- releases_platforms
 CREATE TABLE releases_platforms (
-  id         vndbid NOT NULL, -- [pub]
+  id         vndbid(r) NOT NULL, -- [pub]
   platform   platform NOT NULL, -- [pub]
   PRIMARY KEY(id, platform)
 );
@@ -734,8 +734,8 @@ CREATE TABLE releases_platforms_hist ( -- cf=Platforms
 
 -- releases_producers
 CREATE TABLE releases_producers (
-  id         vndbid NOT NULL, -- [pub]
-  pid        vndbid NOT NULL, -- [pub]
+  id         vndbid(r) NOT NULL, -- [pub]
+  pid        vndbid(p) NOT NULL, -- [pub]
   developer  boolean NOT NULL DEFAULT FALSE, -- [pub]
   publisher  boolean NOT NULL DEFAULT TRUE, -- [pub]
   CONSTRAINT releases_producers_check1 CHECK(developer OR publisher),
@@ -745,7 +745,7 @@ CREATE TABLE releases_producers (
 -- releases_producers_hist
 CREATE TABLE releases_producers_hist ( -- cf=Producers
   chid       integer NOT NULL,
-  pid        vndbid NOT NULL, -- producers.id
+  pid        vndbid(p) NOT NULL, -- producers.id
   developer  boolean NOT NULL DEFAULT FALSE,
   publisher  boolean NOT NULL DEFAULT TRUE,
   CHECK(developer OR publisher),
@@ -754,21 +754,21 @@ CREATE TABLE releases_producers_hist ( -- cf=Producers
 
 -- releases_supersedes
 CREATE TABLE releases_supersedes (
-  id         vndbid NOT NULL, -- [pub]
-  rid        vndbid NOT NULL, -- [pub]
+  id         vndbid(r) NOT NULL, -- [pub]
+  rid        vndbid(r) NOT NULL, -- [pub]
   PRIMARY KEY(id, rid)
 );
 
 -- releases_supersedes_hist
 CREATE TABLE releases_supersedes_hist ( -- cf=Supersedes
   chid       integer NOT NULL,
-  rid        vndbid NOT NULL,
+  rid        vndbid(r) NOT NULL,
   PRIMARY KEY(chid, rid)
 );
 
 -- releases_titles (also: languages this release is available in)
 CREATE TABLE releases_titles (
-  id         vndbid NOT NULL, -- [pub]
+  id         vndbid(r) NOT NULL, -- [pub]
   lang       language NOT NULL, -- [pub]
   mtl        boolean NOT NULL DEFAULT false, -- [pub]
   title      text, -- [pub]
@@ -788,8 +788,8 @@ CREATE TABLE releases_titles_hist (
 
 -- releases_vn
 CREATE TABLE releases_vn (
-  id         vndbid NOT NULL, -- [pub]
-  vid        vndbid NOT NULL, -- [pub]
+  id         vndbid(r) NOT NULL, -- [pub]
+  vid        vndbid(v) NOT NULL, -- [pub]
   rtype      release_type NOT NULL, -- [pub]
   PRIMARY KEY(id, vid)
 );
@@ -797,7 +797,7 @@ CREATE TABLE releases_vn (
 -- releases_vn_hist
 CREATE TABLE releases_vn_hist ( -- cf=VN
   chid       integer NOT NULL,
-  vid        vndbid NOT NULL, -- vn.id
+  vid        vndbid(v) NOT NULL, -- vn.id
   rtype      release_type NOT NULL,
   PRIMARY KEY(chid, vid)
 );
@@ -808,7 +808,7 @@ CREATE TABLE reports (
   status     report_status NOT NULL DEFAULT 'new',
   date       timestamptz NOT NULL DEFAULT NOW(),
   lastmod    timestamptz,
-  uid        vndbid, -- user who created the report, if logged in
+  uid        vndbid(u), -- user who created the report, if logged in
   object     vndbid NOT NULL, -- The id of the thing being reported
   objectnum  integer, -- The sub-id of the thing to be reported
   ip         ipinfo, -- IP address of the visitor, if not logged in
@@ -822,7 +822,7 @@ CREATE TABLE reports_log (
   date       timestamptz NOT NULL DEFAULT NOW(),
   id         integer NOT NULL,
   status     report_status NOT NULL,
-  uid        vndbid,
+  uid        vndbid(u),
   message    text NOT NULL
 );
 
@@ -834,12 +834,12 @@ CREATE TABLE reset_throttle (
 
 -- reviews
 CREATE TABLE reviews (
-  id         vndbid PRIMARY KEY DEFAULT vndbid('w', nextval('reviews_seq')::int) CONSTRAINT reviews_id_check CHECK(vndbid_type(id) = 'w'),
+  id         vndbid(w) PRIMARY KEY DEFAULT vndbid('w', nextval('reviews_seq')),
   date       timestamptz NOT NULL DEFAULT NOW(),
   lastmod    timestamptz,
-  uid        vndbid,
-  vid        vndbid NOT NULL,
-  rid        vndbid,
+  uid        vndbid(u),
+  vid        vndbid(v) NOT NULL,
+  rid        vndbid(r),
   c_up       integer NOT NULL DEFAULT 0,
   c_down     integer NOT NULL DEFAULT 0,
   c_count    smallint NOT NULL DEFAULT 0,
@@ -854,8 +854,8 @@ CREATE TABLE reviews (
 
 -- reviews_posts
 CREATE TABLE reviews_posts (
-  id       vndbid NOT NULL,
-  uid      vndbid,
+  id       vndbid(w) NOT NULL,
+  uid      vndbid(u),
   date     timestamptz NOT NULL DEFAULT NOW(),
   edited   timestamptz,
   num      smallint NOT NULL,
@@ -866,8 +866,8 @@ CREATE TABLE reviews_posts (
 
 -- reviews_votes
 CREATE TABLE reviews_votes (
-  id        vndbid NOT NULL,
-  uid       vndbid,
+  id        vndbid(w) NOT NULL,
+  uid       vndbid(u),
   date      timestamptz NOT NULL,
   vote      boolean NOT NULL, -- true = upvote, false = downvote
   overrule  boolean NOT NULL DEFAULT false,
@@ -876,8 +876,8 @@ CREATE TABLE reviews_votes (
 
 -- rlists
 CREATE TABLE rlists ( -- User's releases list
-  uid      vndbid NOT NULL, -- [pub]
-  rid      vndbid NOT NULL, -- [pub]
+  uid      vndbid(u) NOT NULL, -- [pub]
+  rid      vndbid(r) NOT NULL, -- [pub]
   added    timestamptz NOT NULL DEFAULT NOW(), -- [pub]
   status   smallint NOT NULL DEFAULT 0, -- [pub] 0 = Unknown, 1 = Pending, 2 = Obtained, 3 = On loan, 4 = Deleted
   PRIMARY KEY(uid, rid)
@@ -885,7 +885,7 @@ CREATE TABLE rlists ( -- User's releases list
 
 -- saved_queries
 CREATE TABLE saved_queries (
-  uid     vndbid NOT NULL,
+  uid     vndbid(u) NOT NULL,
   qtype   dbentry_type NOT NULL,
   name    text NOT NULL, -- Empty string is the users' default filter for the given qtype
   query   text NOT NULL, -- compact encoded form
@@ -910,7 +910,7 @@ CREATE TABLE search_cache_i PARTITION OF search_cache FOR VALUES FROM ('i1') TO 
 
 -- sessions
 CREATE TABLE sessions (
-  uid        vndbid NOT NULL,
+  uid        vndbid(u) NOT NULL,
   added      timestamptz NOT NULL DEFAULT NOW(),
   expires    timestamptz NOT NULL, -- 'api2' tokens don't expire, this column is used for last-use tracking
   type       session_type NOT NULL,
@@ -939,7 +939,7 @@ CREATE TABLE shop_playasia_gtin (
 
 -- staff
 CREATE TABLE staff ( -- dbentry_type=s
-  id          vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('s', nextval('staff_id_seq')::int) CONSTRAINT staff_id_check CHECK(vndbid_type(id) = 's'), -- [pub]
+  id          vndbid(s) NOT NULL PRIMARY KEY DEFAULT vndbid('s', nextval('staff_id_seq')), -- [pub]
   gender      staff_gender NOT NULL DEFAULT '', -- [pub]
   lang        language NOT NULL DEFAULT 'ja', -- [pub]
   main        integer NOT NULL DEFAULT 0, -- [pub] Primary name for the staff entry
@@ -959,7 +959,7 @@ CREATE TABLE staff_hist (
 
 -- staff_alias
 CREATE TABLE staff_alias (
-  id         vndbid NOT NULL, -- [pub]
+  id         vndbid(s) NOT NULL, -- [pub]
   aid        SERIAL PRIMARY KEY, -- [pub] Globally unique ID of this alias
   name       text NOT NULL DEFAULT '', -- [pub]
   latin      text -- [pub]
@@ -976,7 +976,7 @@ CREATE TABLE staff_alias_hist ( -- cf=Name
 
 -- staff_extlinks
 CREATE TABLE staff_extlinks (
-  id        vndbid NOT NULL, -- [pub]
+  id        vndbid(s) NOT NULL, -- [pub]
   c_site    extlink_site NOT NULL,
   link      integer NOT NULL, -- [pub]
   PRIMARY KEY(id, link)
@@ -997,7 +997,7 @@ CREATE TABLE stats_cache (
 
 -- tags
 CREATE TABLE tags ( -- dbentry_type=g
-  id           vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('g', nextval('tags_id_seq')::int) CONSTRAINT tags_id_check CHECK(vndbid_type(id) = 'g'), -- [pub]
+  id           vndbid(g) NOT NULL PRIMARY KEY DEFAULT vndbid('g', nextval('tags_id_seq')), -- [pub]
   added        timestamptz NOT NULL DEFAULT NOW(), -- Tag creation time. Relic of a long forgotten past where changes to tag entries weren't logged.
   cat          tag_category NOT NULL DEFAULT 'cont', -- [pub]
   c_items      integer NOT NULL DEFAULT 0,
@@ -1025,8 +1025,8 @@ CREATE TABLE tags_hist (
 
 -- tags_parents
 CREATE TABLE tags_parents (
-  id       vndbid NOT NULL, -- [pub]
-  parent   vndbid NOT NULL, -- [pub]
+  id       vndbid(g) NOT NULL, -- [pub]
+  parent   vndbid(g) NOT NULL, -- [pub]
   main     boolean NOT NULL DEFAULT false, -- [pub]
   PRIMARY KEY(id, parent)
 );
@@ -1034,7 +1034,7 @@ CREATE TABLE tags_parents (
 -- tags_parents_hist
 CREATE TABLE tags_parents_hist ( -- cf=Parent
   chid     integer NOT NULL,
-  parent   vndbid NOT NULL,
+  parent   vndbid(g) NOT NULL,
   main     boolean NOT NULL DEFAULT false,
   PRIMARY KEY(chid, parent)
 );
@@ -1042,9 +1042,9 @@ CREATE TABLE tags_parents_hist ( -- cf=Parent
 -- tags_vn
 CREATE TABLE tags_vn (
   date     timestamptz NOT NULL DEFAULT NOW(), -- [pub]
-  tag      vndbid NOT NULL, -- [pub]
-  vid      vndbid NOT NULL, -- [pub]
-  uid      vndbid, -- [pub]
+  tag      vndbid(g) NOT NULL, -- [pub]
+  vid      vndbid(v) NOT NULL, -- [pub]
+  uid      vndbid(u), -- [pub]
   vote     smallint NOT NULL DEFAULT 3 CHECK (vote >= -3 AND vote <= 3 AND vote <> 0), -- [pub] negative for downvote, 1-3 otherwise
   spoiler  smallint CHECK(spoiler >= 0 AND spoiler <= 2), -- [pub]
   ignore   boolean NOT NULL DEFAULT false, -- [pub]
@@ -1054,8 +1054,8 @@ CREATE TABLE tags_vn (
 
 -- tags_vn_direct
 CREATE TABLE tags_vn_direct (
-  tag      vndbid NOT NULL,
-  vid      vndbid NOT NULL,
+  tag      vndbid(g) NOT NULL,
+  vid      vndbid(v) NOT NULL,
   rating   real NOT NULL,
   spoiler  smallint NOT NULL,
   count    smallint NOT NULL,
@@ -1065,8 +1065,8 @@ CREATE TABLE tags_vn_direct (
 
 -- tags_vn_inherit
 CREATE TABLE tags_vn_inherit (
-  tag      vndbid NOT NULL,
-  vid      vndbid NOT NULL,
+  tag      vndbid(g) NOT NULL,
+  vid      vndbid(v) NOT NULL,
   rating   real NOT NULL,
   spoiler  smallint NOT NULL,
   lie      boolean NOT NULL,
@@ -1075,7 +1075,7 @@ CREATE TABLE tags_vn_inherit (
 
 -- threads
 CREATE TABLE threads (
-  id               vndbid PRIMARY KEY DEFAULT vndbid('t', nextval('threads_id_seq')::int) CONSTRAINT threads_id_check CHECK(vndbid_type(id) = 't'),
+  id               vndbid(t) PRIMARY KEY DEFAULT vndbid('t', nextval('threads_id_seq')),
   poll_max_options smallint NOT NULL DEFAULT 1,
   c_count          smallint NOT NULL DEFAULT 0, -- Number of non-hidden posts
   c_lastnum        smallint NOT NULL DEFAULT 1, -- 'num' of the most recent non-hidden post
@@ -1090,13 +1090,13 @@ CREATE TABLE threads (
 -- threads_poll_options
 CREATE TABLE threads_poll_options (
   id       SERIAL PRIMARY KEY,
-  tid      vndbid NOT NULL,
+  tid      vndbid(t) NOT NULL,
   option   text NOT NULL
 );
 
 -- threads_poll_votes
 CREATE TABLE threads_poll_votes (
-  uid      vndbid NOT NULL,
+  uid      vndbid(u) NOT NULL,
   date     timestamptz DEFAULT NOW(),
   optid    integer NOT NULL,
   PRIMARY KEY (optid, uid)
@@ -1104,8 +1104,8 @@ CREATE TABLE threads_poll_votes (
 
 -- threads_posts
 CREATE TABLE threads_posts (
-  tid      vndbid NOT NULL,
-  uid      vndbid,
+  tid      vndbid(t) NOT NULL,
+  uid      vndbid(u),
   date     timestamptz NOT NULL DEFAULT NOW(),
   edited   timestamptz,
   num      smallint NOT NULL,
@@ -1117,9 +1117,9 @@ CREATE TABLE threads_posts (
 
 -- threads_boards
 CREATE TABLE threads_boards (
-  tid     vndbid NOT NULL,
-  iid     vndbid
-  type    board_type NOT NULL,
+  tid     vndbid(t) NOT NULL,
+  iid     vndbid,
+  type    board_type NOT NULL
 );
 
 -- trace_log
@@ -1140,8 +1140,8 @@ CREATE TABLE trace_log (
 
 -- traits
 CREATE TABLE traits ( -- dbentry_type=i
-  id            vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('i', nextval('traits_id_seq')::int) CONSTRAINT traits_id_check CHECK(vndbid_type(id) = 'i'), -- [pub]
-  gid           vndbid, -- [pub] Trait group (technically a cached column, main parent's root trait)
+  id            vndbid(i) NOT NULL PRIMARY KEY DEFAULT vndbid('i', nextval('traits_id_seq')), -- [pub]
+  gid           vndbid(i), -- [pub] Trait group (technically a cached column, main parent's root trait)
   added         timestamptz NOT NULL DEFAULT NOW(),
   c_items       integer NOT NULL DEFAULT 0,
   gorder        smallint NOT NULL DEFAULT 0, -- [pub] Group order, only used when gid IS NULL
@@ -1174,8 +1174,8 @@ CREATE TABLE traits_hist (
 -- into parent traits. In order to improve performance, there are no foreign
 -- key constraints on this table.
 CREATE TABLE traits_chars (
-  cid      vndbid NOT NULL,  -- chars (id)
-  tid      vndbid NOT NULL,  -- traits (id)
+  cid      vndbid(c) NOT NULL,  -- chars (id)
+  tid      vndbid(i) NOT NULL,  -- traits (id)
   spoil    smallint NOT NULL DEFAULT 0,
   lie      boolean NOT NULL DEFAULT false,
   PRIMARY KEY (tid, cid)
@@ -1183,8 +1183,8 @@ CREATE TABLE traits_chars (
 
 -- traits_parents
 CREATE TABLE traits_parents (
-  id       vndbid NOT NULL, -- [pub]
-  parent   vndbid NOT NULL, -- [pub]
+  id       vndbid(i) NOT NULL, -- [pub]
+  parent   vndbid(i) NOT NULL, -- [pub]
   main     boolean NOT NULL DEFAULT false, -- [pub]
   PRIMARY KEY(id, parent)
 );
@@ -1192,14 +1192,14 @@ CREATE TABLE traits_parents (
 -- traits_parents_hist
 CREATE TABLE traits_parents_hist ( -- cf=Parent
   chid     integer NOT NULL,
-  parent   vndbid NOT NULL,
+  parent   vndbid(i) NOT NULL,
   main     boolean NOT NULL DEFAULT false,
   PRIMARY KEY(chid, parent)
 );
 
 -- ulist_labels
 CREATE TABLE ulist_labels ( -- User labels assigned to visual novels
-  uid      vndbid NOT NULL, -- [pub]
+  uid      vndbid(u) NOT NULL, -- [pub]
   id       smallint NOT NULL, -- [pub] 0 < builtin < 10 <= custom, ids are reused
   private  boolean NOT NULL,
   label    text NOT NULL, -- [pub]
@@ -1209,8 +1209,8 @@ CREATE TABLE ulist_labels ( -- User labels assigned to visual novels
 -- ulist_vns
 -- XXX: dbdump.pl has a custom query for this table, make sure to sync that when adding/removing [pub] columns.
 CREATE TABLE ulist_vns ( -- User's VN lists
-  uid         vndbid NOT NULL, -- [pub]
-  vid         vndbid NOT NULL, -- [pub]
+  uid         vndbid(u) NOT NULL, -- [pub]
+  vid         vndbid(v) NOT NULL, -- [pub]
   added       timestamptz NOT NULL DEFAULT NOW(), -- [pub]
   lastmod     timestamptz NOT NULL DEFAULT NOW(), -- [pub] updated when any column in this row has changed
   vote_date   timestamptz, -- [pub] Not updated when the vote is changed
@@ -1237,7 +1237,7 @@ CREATE TABLE ulist_vns ( -- User's VN lists
 
 -- users
 CREATE TABLE users (
-  id                  vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('u', nextval('users_id_seq')::int) CONSTRAINT users_id_check CHECK(vndbid_type(id) = 'u'), -- [pub]
+  id                  vndbid(u) NOT NULL PRIMARY KEY DEFAULT vndbid('u', nextval('users_id_seq')), -- [pub]
   registered          timestamptz NOT NULL DEFAULT NOW(),
   c_votes             integer NOT NULL DEFAULT 0,
   c_changes           integer NOT NULL DEFAULT 0,
@@ -1275,8 +1275,8 @@ CREATE TABLE users (
 -- Additional, less frequently accessed fields for the 'users' table.
 -- (Separated to debloat the main users table, which is often used in JOINs)
 CREATE TABLE users_prefs (
+  id                  vndbid(u) NOT NULL PRIMARY KEY,
   customcss_csum      bigint NOT NULL DEFAULT 0, -- hash of 'customcss'
-  id                  vndbid NOT NULL PRIMARY KEY,
   last_reports        timestamptz, -- For mods: Most recent activity seen on the reports listing
   tableopts_c         integer,
   tableopts_v         integer,
@@ -1308,8 +1308,8 @@ CREATE TABLE users_prefs (
 
 -- users_prefs_tags
 CREATE TABLE users_prefs_tags (
-  id       vndbid NOT NULL,
-  tid      vndbid NOT NULL,
+  id       vndbid(u) NOT NULL,
+  tid      vndbid(g) NOT NULL,
   spoil    smallint, -- 0 = always show, 3 = always hide
   childs   boolean NOT NULL,
   color    text, -- NULL / 'standout' / 'grayedout' / '#customcolor'
@@ -1318,8 +1318,8 @@ CREATE TABLE users_prefs_tags (
 
 -- users_prefs_traits
 CREATE TABLE users_prefs_traits (
-  id       vndbid NOT NULL,
-  tid      vndbid NOT NULL,
+  id       vndbid(u) NOT NULL,
+  tid      vndbid(i) NOT NULL,
   spoil    smallint,
   childs   boolean NOT NULL,
   color    text,
@@ -1329,7 +1329,7 @@ CREATE TABLE users_prefs_traits (
 -- Additional fields for the 'users' table, but with some protected columns.
 -- (Separated from the users table to simplify permission management)
 CREATE TABLE users_shadow (
-  id             vndbid NOT NULL PRIMARY KEY,
+  id             vndbid(u) NOT NULL PRIMARY KEY,
   -- Usermods can see other users' mail and edit their passwords, so this
   -- permission is separated in this table to prevent unauthorized writes.
   perm_usermod   boolean NOT NULL DEFAULT false,
@@ -1348,15 +1348,15 @@ CREATE TABLE users_shadow (
 
 -- users_traits
 CREATE TABLE users_traits (
-  id    vndbid NOT NULL,
-  tid   vndbid NOT NULL,
+  id    vndbid(u) NOT NULL,
+  tid   vndbid(i) NOT NULL,
   PRIMARY KEY(id, tid)
 );
 
 -- users_username_hist
 CREATE TABLE users_username_hist (
+  id    vndbid(u) NOT NULL,
   date  timestamptz NOT NULL DEFAULT NOW(),
-  id    vndbid NOT NULL,
   old   text NOT NULL,
   new   text NOT NULL,
   PRIMARY KEY(id, date)
@@ -1364,11 +1364,11 @@ CREATE TABLE users_username_hist (
 
 -- vn
 CREATE TABLE vn ( -- dbentry_type=v
-  id            vndbid NOT NULL PRIMARY KEY DEFAULT vndbid('v', nextval('vn_id_seq')::int) CONSTRAINT vn_id_check CHECK(vndbid_type(id) = 'v'), -- [pub]
-  image         vndbid CONSTRAINT vn_image_check CHECK(vndbid_type(image) = 'cv'), -- [pub] deprecated, replaced with c_image
-  c_image       vndbid, -- [pub]
-  c_imgfirst    vndbid,
-  c_imglast     vndbid,
+  id            vndbid(v) NOT NULL PRIMARY KEY DEFAULT vndbid('v', nextval('vn_id_seq')), -- [pub]
+  image         vndbid(cv), -- [pub] deprecated, replaced with c_image
+  c_image       vndbid(cv), -- [pub]
+  c_imgfirst    vndbid(cv),
+  c_imglast     vndbid(cv),
   olang         language NOT NULL DEFAULT 'ja', -- [pub] Original language
   l_wikidata    integer, -- [pub]
   c_votecount   integer NOT NULL DEFAULT 0, -- [pub]
@@ -1397,7 +1397,7 @@ CREATE TABLE vn ( -- dbentry_type=v
 -- vn_hist
 CREATE TABLE vn_hist (
   chid         integer NOT NULL PRIMARY KEY,
-  image        vndbid CONSTRAINT vn_hist_image_check CHECK(vndbid_type(image) = 'cv'), -- cf=Image
+  image        vndbid(cv), -- cf=Image
   olang        language NOT NULL DEFAULT 'ja', -- cf=Language
   l_wikidata   integer, -- cf=Links
   length       smallint NOT NULL DEFAULT 0, -- cf=Length
@@ -1412,7 +1412,7 @@ CREATE TABLE vn_hist (
 
 -- vn_anime
 CREATE TABLE vn_anime (
-  id         vndbid NOT NULL, -- [pub]
+  id         vndbid(v) NOT NULL, -- [pub]
   aid        integer NOT NULL, -- [pub]
   PRIMARY KEY(id, aid)
 );
@@ -1426,7 +1426,7 @@ CREATE TABLE vn_anime_hist ( -- cf=Anime
 
 -- vn_editions
 CREATE TABLE vn_editions (
-  id         vndbid NOT NULL, -- [pub]
+  id         vndbid(v) NOT NULL, -- [pub]
   lang       language, -- [pub]
   eid        smallint NOT NULL, -- [pub] Edition identifier, local to the VN, not stable across revisions
   official   boolean NOT NULL DEFAULT TRUE, -- [pub]
@@ -1446,8 +1446,8 @@ CREATE TABLE vn_editions_hist ( -- cf=Staff
 
 -- vn_relations
 CREATE TABLE vn_relations (
-  id         vndbid NOT NULL, -- [pub]
-  vid        vndbid NOT NULL, -- [pub]
+  id         vndbid(v) NOT NULL, -- [pub]
+  vid        vndbid(v) NOT NULL, -- [pub]
   relation   vn_relation NOT NULL, -- [pub]
   official   boolean NOT NULL DEFAULT TRUE, -- [pub]
   PRIMARY KEY(id, vid)
@@ -1456,7 +1456,7 @@ CREATE TABLE vn_relations (
 -- vn_relations_hist
 CREATE TABLE vn_relations_hist ( -- cf=Relations
   chid       integer NOT NULL,
-  vid        vndbid NOT NULL, -- vn.id
+  vid        vndbid(v) NOT NULL, -- vn.id
   relation   vn_relation NOT NULL,
   official   boolean NOT NULL DEFAULT TRUE,
   PRIMARY KEY(chid, vid)
@@ -1464,9 +1464,9 @@ CREATE TABLE vn_relations_hist ( -- cf=Relations
 
 -- vn_screenshots
 CREATE TABLE vn_screenshots (
-  id         vndbid NOT NULL, -- [pub]
-  scr        vndbid NOT NULL CONSTRAINT vn_screenshots_scr_check CHECK(vndbid_type(scr) = 'sf'), -- [pub]
-  rid        vndbid, -- [pub]
+  id         vndbid(v) NOT NULL, -- [pub]
+  scr        vndbid(sf) NOT NULL, -- [pub]
+  rid        vndbid(r), -- [pub]
   nsfw       boolean NOT NULL DEFAULT FALSE, -- (deprecated)
   PRIMARY KEY(id, scr)
 );
@@ -1474,16 +1474,16 @@ CREATE TABLE vn_screenshots (
 -- vn_screenshots_hist
 CREATE TABLE vn_screenshots_hist ( -- cf=Screenshots
   chid       integer NOT NULL,
-  scr        vndbid NOT NULL CONSTRAINT vn_screenshots_hist_scr_check CHECK(vndbid_type(scr) = 'sf'),
-  rid        vndbid,
+  scr        vndbid(sf) NOT NULL,
+  rid        vndbid(r),
   nsfw       boolean NOT NULL DEFAULT FALSE,
   PRIMARY KEY(chid, scr)
 );
 
 -- vn_seiyuu
 CREATE TABLE vn_seiyuu (
-  id         vndbid NOT NULL, -- [pub]
-  cid        vndbid NOT NULL, -- [pub]
+  id         vndbid(v) NOT NULL, -- [pub]
+  cid        vndbid(c) NOT NULL, -- [pub]
   aid        integer NOT NULL, -- [pub]
   note       text NOT NULL DEFAULT '', -- [pub]
   PRIMARY KEY (id, aid, cid)
@@ -1492,7 +1492,7 @@ CREATE TABLE vn_seiyuu (
 -- vn_seiyuu_hist
 CREATE TABLE vn_seiyuu_hist ( -- cf=VA
   chid       integer NOT NULL,
-  cid        vndbid NOT NULL,
+  cid        vndbid(c) NOT NULL,
   aid        integer NOT NULL, -- staff_alias.aid, but can't reference it because the alias may have been deleted
   note       text NOT NULL DEFAULT '',
   PRIMARY KEY (chid, aid, cid)
@@ -1500,7 +1500,7 @@ CREATE TABLE vn_seiyuu_hist ( -- cf=VA
 
 -- vn_staff
 CREATE TABLE vn_staff (
-  id         vndbid NOT NULL, -- [pub]
+  id         vndbid(v) NOT NULL, -- [pub]
   aid        integer NOT NULL, -- [pub]
   role       credit_type NOT NULL DEFAULT 'staff', -- [pub]
   eid        smallint, -- [pub]
@@ -1518,7 +1518,7 @@ CREATE TABLE vn_staff_hist ( -- cf=Staff
 
 -- vn_titles
 CREATE TABLE vn_titles (
-  id         vndbid NOT NULL, -- [pub]
+  id         vndbid(v) NOT NULL, -- [pub]
   lang       language NOT NULL, -- [pub]
   official   boolean NOT NULL, -- [pub]
   title      text NOT NULL, -- [pub]
@@ -1538,8 +1538,8 @@ CREATE TABLE vn_titles_hist (
 
 -- vn_length_votes
 CREATE TABLE vn_length_votes (
-  vid        vndbid NOT NULL, -- [pub]
-  uid        vndbid, -- [pub]
+  vid        vndbid(v) NOT NULL, -- [pub]
+  uid        vndbid(u), -- [pub]
   date       timestamptz NOT NULL DEFAULT NOW(), -- [pub]
   id         serial PRIMARY KEY,
   length     smallint NOT NULL, -- [pub] minutes
@@ -1551,9 +1551,9 @@ CREATE TABLE vn_length_votes (
 
 -- vn_image_votes
 CREATE TABLE vn_image_votes (
-  vid        vndbid NOT NULL, -- [pub]
-  uid        vndbid NOT NULL, -- [pub]
-  img        vndbid NOT NULL, -- [pub]
+  vid        vndbid(v) NOT NULL, -- [pub]
+  uid        vndbid(u) NOT NULL, -- [pub]
+  img        vndbid(cv) NOT NULL, -- [pub]
   date       timestamptz NOT NULL DEFAULT NOW(),
   c_main     boolean NOT NULL DEFAULT false, -- Active img for the (vid, uid) combination
   PRIMARY KEY(vid, uid, img)
