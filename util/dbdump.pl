@@ -27,8 +27,7 @@ _
 # - Import
 # - Consolidate with devdump.pl?
 
-use strict;
-use warnings;
+use v5.36;
 use autodie;
 use DBI;
 use DBD::Pg;
@@ -236,10 +235,29 @@ sub export_table {
 }
 
 
+sub export_schema($plain, $dest) {
+    open my $F, '>', $dest;
+    for my $table (@tables) {
+        my $schema = $schema->{$table->{name}};
+        my @primary = grep { my $n=$_; !!grep $_->{name} eq $n && $_->{pub}, $schema->{cols}->@* } ($schema->{primary}||[])->@*;
+        print $F "\n";
+        print $F "CREATE TABLE $table->{name} (\n";
+        print $F join ",\n", map
+            "  $_->{decl}"
+                =~ s/ serial/ integer/ir
+                =~ s/ +(?:check|constraint|default) +.*//ir
+                =~ s/(vndbid(?:\([^\)]+\))?)/$plain ? 'text' : $1/er,
+            grep $_->{pub}, @{$schema->{cols}};
+        print $F ",\n  PRIMARY KEY(".join(', ', map "$_", @primary).")" if @primary;
+        print $F "\n);\n";
+    }
+}
+
+
 sub export_import_script {
     my $dest = shift;
     open my $F, '>', $dest;
-    print $F <<'    _' =~ s/^    //mgr;
+    print $F <<~'_';
     -- This script will create the necessary tables and import all data into an
     -- existing PostgreSQL database.
     --
@@ -249,31 +267,33 @@ sub export_import_script {
     --
     -- The imported database does not include any indices, other than primary keys.
     -- You may want to create some indices by hand to speed up complex queries.
-
+    --
+    -- This script automatically detects whether you have the 'vndbid' type loaded
+    -- into the database and will use that when it is available. To use it, load
+    -- sql/vndbid.sql from the VNDB source repository into your database before
+    -- running this import script. If the type is not detected, vndbid's will be
+    -- imported into a generic text column instead. This works fine for most use
+    -- cases, but is slightly less efficient, lacks some convenience functions and
+    -- identifiers will compare and sort differently.
+    --
     -- Uncomment to import the schema and data into a separate namespace:
     --CREATE SCHEMA vndb;
     --SET search_path TO vndb;
-
-    -- 'vndbid' is a custom base type used in the VNDB codebase, but it's safe to treat
-    -- it as just text. If you want to use the proper type, load sql/vndbid.sql from
-    -- the VNDB source code into your database and comment out the following line.
-    -- (or ignore the error message about 'vndbid' already existing)
-    CREATE DOMAIN vndbid AS text;
     _
 
     print $F "\n\n";
     my %types = map +($_->{type}, 1), grep $_->{pub}, map @{$schema->{$_->{name}}{cols}}, @tables;
     print $F "$types->{$_}{decl}\n" for (sort grep $types->{$_}, keys %types);
 
-    for my $table (@tables) {
-        my $schema = $schema->{$table->{name}};
-        my @primary = grep { my $n=$_; !!grep $_->{name} eq $n && $_->{pub}, $schema->{cols}->@* } ($schema->{primary}||[])->@*;
-        print $F "\n";
-        print $F "CREATE TABLE $table->{name} (\n";
-        print $F join ",\n", map "  $_->{decl}" =~ s/ serial/ integer/ir =~ s/ +(?:check|constraint|default) +.*//ir, grep $_->{pub}, @{$schema->{cols}};
-        print $F ",\n  PRIMARY KEY(".join(', ', map "$_", @primary).")" if @primary;
-        print $F "\n);\n";
-    }
+    print $F "\n\n";
+    print $F <<~'_';
+    SELECT EXISTS(SELECT 1 FROM pg_type WHERE typname = 'vndbtag') as has_vndbtag\gset
+    \if :has_vndbtag
+      \i schema_vndbid.sql
+    \else
+      \i schema_plain.sql
+    \endif
+    _
 
     print $F "\n\n";
     print $F "-- You can comment out tables you don't need, to speed up the import and save some disk space.\n";
@@ -322,10 +342,12 @@ sub export_db {
 
     export_timestamp "${dest}_dir/TIMESTAMP";
     export_table "${dest}_dir/db", $_ for @tables;
+    export_schema 0, "${dest}_dir/schema_vndbid.sql";
+    export_schema 1, "${dest}_dir/schema_plain.sql";
     export_import_script "${dest}_dir/import.sql";
 
     #print "# Compressing\n";
-    `tar -cf "$dest" -I 'zstd -7' --sort=name -C "${dest}_dir" @static import.sql TIMESTAMP db`;
+    `tar -cf "$dest" -I 'zstd -7' --sort=name -C "${dest}_dir" @static import.sql schema_plain.sql schema_vndbid.sql TIMESTAMP db`;
     rmtree "${dest}_dir";
 }
 
