@@ -57,9 +57,9 @@ js_api PostEdit => $FORM_IN, sub ($data) {
         auth->permBoardmod ? (hidden => $data->{hidden}) : (),
         (auth->permBoardmod && $data->{nolastmod}) ? () : (edited => sql 'NOW()')
     };
-    tuwf->dbExeci('UPDATE threads_posts SET', $post, 'WHERE', { tid => $id, num => $num });
+    tuwf->dbExeci('UPDATE threads_posts SET', $post, 'WHERE', { tid => $id, num => $num }) if $id =~ /^t/;
     $post->{id} = delete $post->{tid};
-    tuwf->dbExeci('UPDATE reviews_posts SET', $post, 'WHERE', {  id => $id, num => $num });
+    tuwf->dbExeci('UPDATE reviews_posts SET', $post, 'WHERE', {  id => $id, num => $num }) if $id =~ /^w/;
 
     +{ _redir => "/$id.$num" };
 };
