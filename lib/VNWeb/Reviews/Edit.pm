@@ -33,7 +33,7 @@ TUWF::get qr{/$RE{vid}/addreview}, sub {
     return tuwf->resNotFound if !$v->{id};
 
     my $id = tuwf->dbVali('SELECT id FROM reviews WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
-    return tuwf->resRedirect("/$id/edit") if $id;
+    return tuwf->resRedirect("/$id/edit", 'temp') if $id;
     return tuwf->resDenied if !can_edit w => {};
 
     framework_ title => "Write review for $v->{title}", sub {
