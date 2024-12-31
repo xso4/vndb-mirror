@@ -102,7 +102,7 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
     my $copy = tuwf->capture('action') eq 'copy';
     return tuwf->resDenied if !can_edit r => $copy ? {} : $e;
 
-    my @empty_fields = (qw/gtin catalog images ani_ero ani_story supersedes/, grep /^l_/, keys %$e);
+    my @empty_fields = (qw/gtin catalog images ani_ero ani_story supersedes extlinks/);
     $e->@{@empty_fields} = elm_empty($FORM_OUT)->@{@empty_fields} if $copy;
 
     $e->{editsum} = $copy ? "Copied from $e->{id}.$e->{chrev}" : $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
