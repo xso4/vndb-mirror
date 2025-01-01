@@ -7,7 +7,7 @@ our @EXPORT = qw/ tagscore_ enrich_group tree_ parents_ /;
 
 sub tagscore_ {
     my($s, $ign) = @_;
-    div_ mkclass(tagscore => 1, negative => $s <= 0, ignored => $ign), sub {
+    div_ class => 'tagscore', '+' => $s <= 0 ? 'negative' : undef, '+' => $ign ? 'ignored' : undef, sub {
         span_ sprintf '%.1f', $s;
         div_ style => sprintf('width: %.0fpx', abs $s/3*30), '';
     };

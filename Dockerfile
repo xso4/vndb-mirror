@@ -1,7 +1,7 @@
 FROM alpine:3.21
 MAINTAINER Yorhel <contact@vndb.org>
 
-ENV VNDB_DOCKER_VERSION=15
+ENV VNDB_DOCKER_VERSION=16
 ENV VNDB_GEN=/vndb/docker/gen
 ENV VNDB_VAR=/vndb/docker/var
 CMD /vndb/util/docker-init.sh

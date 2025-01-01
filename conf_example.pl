@@ -15,7 +15,6 @@
     # TUWF configuration options, see the TUWF::set() documentation for options.
     tuwf => {
         db_login        => [ 'dbi:Pg:dbname=vndb', 'vndb_site', 'vndb_site' ],
-        xml_pretty      => 0,
         log_queries     => 0,
         debug           => 1,
         cookie_defaults => { domain => 'localhost', path => '/' },

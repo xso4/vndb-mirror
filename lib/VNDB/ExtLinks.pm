@@ -664,8 +664,8 @@ our $REVISION = [
     extlinks => 'External links',
     fmt => sub {
         my $l = $LINKS{$_->{site}};
-        TUWF::XML::txt_($l->{label}.': ');
-        TUWF::XML::a_(href => sprintf($l->{fmt}, $_->{value}), $_->{value});
+        TUWF::func::txt_($l->{label}.': ');
+        TUWF::func::a_(href => sprintf($l->{fmt}, $_->{value}), $_->{value});
     },
 ];
 

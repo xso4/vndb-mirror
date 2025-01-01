@@ -4,7 +4,7 @@ package VNWeb::Graph;
 
 use v5.36;
 use AnyEvent::Util;
-use TUWF::XML 'xml_escape';
+use TUWF 'xml_escape';
 use Exporter 'import';
 use List::Util 'max';
 use VNDB::Config;

@@ -2,7 +2,6 @@ package VNDB::BBCode;
 
 use v5.36;
 use Exporter 'import';
-use TUWF::XML 'xml_escape';
 
 our @EXPORT = qw/bb_format bb_subst_links/;
 
@@ -90,6 +89,10 @@ my %STATE = (
   url     => [\&_url_end,     \&_raw_start],
   raw     => [\&_raw_end      ],
 );
+
+
+my %XML = qw/& &amp; < &lt; " &quot;/;
+sub xml_escape { $_[0] =~ s/([&<"])/$XML{$1}/gr }
 
 
 # Usage:

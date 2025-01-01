@@ -203,14 +203,15 @@ sub listing_ {
                         $cspan++;
                         next;
                     }
-                    td_ $cspan > 1 ? (colspan => $cspan) : (),
-                    $col[$c]{column_width} && $opt->{cw} ? (style => "max-width: $col[$c]{column_width}px") : ();
-                    if($r->{patch} && $col[$c]{na_for_patch}) {
-                        txt_ 'NA for patches';
-                    } else {
-                        $col[$c]{draw}->($r);
-                    }
-                    end_;
+                    td_ colspan => $cspan > 1 ? $cspan : undef,
+                        style => $col[$c]{column_width} && $opt->{cw} ? "max-width: $col[$c]{column_width}px" : undef,
+                    sub {
+                        if($r->{patch} && $col[$c]{na_for_patch}) {
+                            txt_ 'NA for patches';
+                        } else {
+                            $col[$c]{draw}->($r);
+                        }
+                    };
                     $cspan = 1;
                 }
             } for @r;

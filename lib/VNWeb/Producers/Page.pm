@@ -173,8 +173,8 @@ TUWF::get qr{/$RE{prev}(?:/(?<tab>vn|rel))?}, sub {
         };
         nav_ class => 'right', sub {
             menu_ sub {
-                li_ mkclass(tabselected => $tab eq 'vn'),  sub { a_ href => "/$p->{id}/vn",  'Visual Novels' };
-                li_ mkclass(tabselected => $tab eq 'rel'), sub { a_ href => "/$p->{id}/rel", 'Releases' };
+                li_ class => $tab eq 'vn'  ? 'tabselected' : undef, sub { a_ href => "/$p->{id}/vn",  'Visual Novels' };
+                li_ class => $tab eq 'rel' ? 'tabselected' : undef, sub { a_ href => "/$p->{id}/rel", 'Releases' };
             };
         };
         article_ sub { rel_ $p } if $tab eq 'rel';

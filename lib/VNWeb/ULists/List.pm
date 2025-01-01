@@ -105,7 +105,7 @@ sub filters_ {
 
 sub vn_ {
     my($uid, $own, $opt, $n, $v, $labels) = @_;
-    tr_ mkclass(odd => $n % 2 == 0), id => "ulist_tr_$v->{id}", sub {
+    tr_ class => $n % 2 == 0 ? 'odd' : undef, id => "ulist_tr_$v->{id}", sub {
         my %labels = map +($_,1), $v->{labels}->@*;
 
         td_ class => 'tc1', sub {
@@ -114,12 +114,12 @@ sub vn_ {
                 my $obtained = grep $_->{status} == 2, $v->{rels}->@*;
                 my $total = $v->{rels}->@*;
                 span_ id => 'ulist_relsum_'.$v->{id},
-                    mkclass(done => $total && $obtained == $total, todo => $obtained < $total),
+                    class => $total && $obtained == $total ? 'done' : $obtained < $total ? 'todo' : undef,
                     sprintf '%d/%d', $obtained, $total;
                 if($own) {
                     my $public = List::Util::any { $labels{$_->{id}} && !$_->{private} } @$labels;
                     my $publicLabel = List::Util::any { $_->{id} != 7 && $labels{$_->{id}} && !$_->{private} } @$labels;
-                    span_ mkclass(invisible => !$public),
+                    span_ class => !$public ? 'invisible' : undef,
                           id              => 'ulist_public_'.$v->{id},
                           'data-publabel' => !!$publicLabel,
                           'data-voted'    => !!$labels{7},
@@ -130,7 +130,7 @@ sub vn_ {
 
         td_ class => 'tc_voted',    $v->{vote_date} ? fmtdate $v->{vote_date}, 'compact' : '-' if $opt->{s}->vis('voted');
 
-        td_ mkclass(tc_vote => 1, compact => $own, stealth => $own), sub {
+        td_ class => 'tc_vote', '+' => $own ? 'compact stealth' : undef, sub {
             txt_ fmtvote $v->{vote} if !$own;
             elm_ 'UList.VoteEdit' => $VNWeb::ULists::Elm::VNVOTE, { uid => $uid, vid => $v->{id}, vote => fmtvote($v->{vote}) }, sub {
                 div_ @_, fmtvote $v->{vote}
@@ -189,7 +189,7 @@ sub vn_ {
         td_ class => 'tc_length',sub { VNWeb::VN::List::len_($v) } if $opt->{s}->vis('length');
     };
 
-    tr_ mkclass(hidden => 1, 'collapsed_vid'.$v->{id} => 1, odd => $n % 2 == 0), sub {
+    tr_ class => "hidden collapsed_vid$v->{id}", '+' => $n % 2 == 0 ? 'odd' : undef, sub {
         td_ colspan => 7, class => 'tc_opt', sub {
             my $relstatus = [ map $_->{status}, $v->{rels}->@* ];
             elm_ 'UList.Opt' => $VNWeb::ULists::Elm::VNOPT, { own => $own?1:0, uid => $uid, vid => $v->{id}, notes => $v->{notes}, rels => $v->{rels}, relstatus => $relstatus };

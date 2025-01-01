@@ -150,8 +150,21 @@ sub image_ {
 
     tuwf->req->{js}{basic} = 1 if $opt{thumb};
 
-    if ($hide_on_click) {
-        details_ class => 'imghover', open => $hidden ? undef : 'open', style => "width: ${w}px; height: ${h}px";
+    my sub _img {
+        img_ src => thumburl($img), width => $w, height => $h, $opt{alt} ? (alt => $opt{alt}) : (), undef;
+    }
+    my sub _content {
+        a_ $opt{thumb} ? imgiv($img) : (href => $opt{url}), \&_img if $opt{url};
+        _img() if !$opt{url};
+
+        if(!exists $opt{overlay}) {
+            a_ class => 'imghover--overlay', href => "/$img->{id}?view=".viewset(show_nsfw=>1), image_flagging_display $img, $small if auth;
+            span_ class => 'imghover--overlay', image_flagging_display $img, $small if !auth;
+        }
+        $opt{extra} && $opt{extra}->();
+    }
+
+    details_ class => 'imghover', open => $hidden ? undef : 'open', style => "width: ${w}px; height: ${h}px", sub {
         summary_ sub {
             div_ sub {
                 if($img->{votecount}) {
@@ -176,20 +189,9 @@ sub image_ {
             };
             span_ 'x';
         };
-    } else {
-        div_ class => 'imghover', style => "width: ${w}px; height: ${h}px";
-    }
-
-    a_ $opt{thumb} ? imgiv($img) : (href => $opt{url}) if $opt{url};
-    img_ src => thumburl($img), width => $w, height => $h, $opt{alt} ? (alt => $opt{alt}) : ();
-    end_ if $opt{url};
-    if(!exists $opt{overlay}) {
-        a_ class => 'imghover--overlay', href => "/$img->{id}?view=".viewset(show_nsfw=>1), image_flagging_display $img, $small if auth;
-        span_ class => 'imghover--overlay', image_flagging_display $img, $small if !auth;
-    }
-    $opt{extra} && $opt{extra}->();
-
-    end_;
+        _content();
+    } if $hide_on_click;
+    div_ class => 'imghover', style => "width: ${w}px; height: ${h}px", \&_content if !$hide_on_click;
 }
 
 

@@ -4,7 +4,7 @@ use v5.36;
 use utf8;
 use Algorithm::Diff::XS 'sdiff', 'compact_diff';
 use JSON::XS;
-use TUWF ':html5_', 'uri_escape', 'html_escape', 'mkclass';
+use TUWF ':html5_', 'uri_escape', 'html_escape';
 use Exporter 'import';
 use POSIX 'ceil', 'floor', 'strftime';
 use Carp 'croak';
@@ -431,7 +431,7 @@ sub _maintabs_ {
 
     my sub t {
         my($tabname, $url, $text) = @_;
-        li_ mkclass(tabselected => $tabname eq ($sel||'')), sub {
+        li_ class => $tabname eq ($sel||'') ? 'tabselected' : undef, sub {
             a_ href => $url, $text;
         };
     };
@@ -875,7 +875,7 @@ sub paginate_ {
         }
     }
     my sub ell_ {
-        li_ mkclass(ellipsis => 1), '⋯';
+        li_ class => 'ellipsis', '⋯';
     }
 
     nav_ class => $al eq 't' ? undef : 'bottom', sub {

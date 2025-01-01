@@ -10,7 +10,7 @@
 use v5.36;
 use Cwd 'abs_path';
 use JSON::XS;
-use TUWF ':html5_';
+use TUWF ':xmlxs', ':html5_';
 use Time::HiRes 'time';
 
 $|=1; # Disable buffering on STDOUT, otherwise vndb-dev-server.pl won't pick up our readyness notification.
@@ -95,10 +95,11 @@ TUWF::set error_404_handler => sub {
             h1_ 'Page not found';
             div_ class => 'warning', sub {
                 h2_ 'Oops!';
-                p_;
-                txt_ 'It seems the page you were looking for does not exist,';
-                br_;
-                txt_ 'you may want to try using the menu on your left to find what you are looking for.';
+                p_ sub {
+                    txt_ 'It seems the page you were looking for does not exist,';
+                    br_;
+                    txt_ 'you may want to try using the menu on your left to find what you are looking for.';
+                };
             }
         }
     }

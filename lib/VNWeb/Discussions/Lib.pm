@@ -76,7 +76,7 @@ sub threadlist_ {
                 my $l = $_;
                 td_ class => 'tc1', sub {
                     my $system = $l->{private} && $l->{firstpost_id} && $l->{firstpost_id} eq 'u1';
-                    a_ mkclass(locked => !$system && $l->{locked}), href => "/$l->{id}", sub {
+                    a_ class => !$system && $l->{locked} ? 'locked' : undef, href => "/$l->{id}", sub {
                         span_ class => 'pollflag', '[poll]' if $l->{haspoll};
                         span_ class => 'pollflag', $system ? '[system]' : '[private]' if $l->{private};
                         span_ class => 'pollflag', '[hidden]' if $l->{hidden};
@@ -122,7 +122,7 @@ sub boardsearch_ {
 sub boardtypes_ {
     my($type) = @_;
     p_ class => 'browseopts', sub {
-        a_ href => $_->[0] eq 'index' ? '/t' : '/t/'.$_->[0], mkclass(optselected => $type && $type eq $_->[0]), $_->[1] for (
+        a_ href => $_->[0] eq 'index' ? '/t' : '/t/'.$_->[0], class => $type && $type eq $_->[0] ? 'optselected' : undef, $_->[1] for (
             [ index => 'Index'      ],
             [ all   => 'All boards' ],
             map [ $_, $BOARD_TYPE{$_}{txt} ], keys %BOARD_TYPE

@@ -448,8 +448,8 @@ sub infobox_tags_ {
                 my $cut = defined $_->{override} ? '' : $cnt->[0] > 15 ? ' cut cut2 cut1 cut0' : $cnt->[1] > 15 ? ' cut cut2 cut1' : $cnt->[2] > 15 ? ' cut cut2' : '';
                 span_ class => "tagspl$spoil cat_$_->{cat} $cut", sub {
                     a_ href => "/$_->{id}",
-                        mkclass(defined $_->{override} ? 'lieo' : 'lie', $_->{lie},
-                                $_->{color} ? ($_->{color}, $_->{color} =~ /standout|grayedout/ ? 1 : 0) : ()),
+                        class => !$_->{lie} ? undef : defined $_->{override} ? 'lieo' : 'lie',
+                        '+'   => $_->{color} && $_->{color} =~ /standout|grayedout/ ? $_->{color} : undef,
                         style => sprintf('font-size: %dpx', $_->{rating}*3.5+6)
                                  .(($_->{color}//'') =~ /^#/ ? "; color: $_->{color}" : ''),
                         $_->{name};
@@ -468,7 +468,7 @@ sub infobox_ {
 
     sub tlang_ {
         my($t) = @_;
-        tr_ mkclass(title => 1, grayedout => !$t->{official}), sub {
+        tr_ class => 'title', '+' => $t->{official} ? undef : 'grayedout', sub {
             td_ sub {
                 abbr_ class => "icon-lang-$t->{lang}", title => $LANGUAGE{$t->{lang}}{txt}, '';
             };
@@ -921,14 +921,12 @@ sub screenshots_ {
             div_ class => 'scr', sub {
                 a_ href => imgurl($_->{scr}{id}),
                     'data-iv' => "$_->{scr}{width}x$_->{scr}{height}:scr:$_->{scr}{sexual}$_->{scr}{violence}$_->{scr}{votecount}",
-                    mkclass(
-                        scrlnk => 1,
-                        scrlnk_s0 => $_->{scr}{sexual} <= 0,
-                        scrlnk_s1 => $_->{scr}{sexual} <= 1,
-                        scrlnk_v0 => $_->{scr}{violence} >= 1,
-                        scrlnk_v1 => $_->{scr}{violence} >= 2,
-                        nsfw => $_->{scr}{sexual} || $_->{scr}{violence},
-                    ),
+                    class => 'scrlnk',
+                    '+'   => $_->{scr}{sexual} <= 0   ? 'scrlnk_s0' : undef,
+                    '+'   => $_->{scr}{sexual} <= 1   ? 'scrlnk_s1' : undef,
+                    '+'   => $_->{scr}{violence} >= 1 ? 'scrlnk_v0' : undef,
+                    '+'   => $_->{scr}{violence} >= 2 ? 'scrlnk_v1' : undef,
+                    '+'   => $_->{scr}{sexual} || $_->{scr}{violence} ? 'nsfw' : undef,
                 sub {
                     my($w, $h) = imgsize $_->{scr}{width}, $_->{scr}{height}, config->{scr_size}->@*;
                     img_ src => imgurl($_->{scr}{id}, 't'), width => $w, height => $h, alt => "Screenshot $_->{scr}{id}";
@@ -986,14 +984,14 @@ sub tags_ {
             h3_ sub { a_ href => "/$t->{id}", $t->{name} }
         } if !$lvl;
 
-        li_ $lvl == 1 ? (class => 'tagvnlist-parent') : $t->{inherited} ? (class => 'tagvnlist-inherited') : (), sub {
+        li_ class => $lvl == 1 ? 'tagvnlist-parent' : $t->{inherited} ? 'tagvnlist-inherited' : undef, sub {
             VNWeb::TT::Lib::tagscore_($t->{rating}, $t->{inherited});
             small_ '━━'x($lvl-1).' ' if $lvl > 1;
-            a_ href => "/$t->{id}", mkclass(
-                    $t->{color} ? ($t->{color}, $t->{color} =~ /standout|grayedout/ ? 1 : 0) : (),
-                    lie => $t->{lie} && ($view->{spoilers} > 1 || defined $t->{override}),
-                    parent => !$t->{rating}
-                ), ($t->{color}//'') =~ /^#/ ? (style => "color: $t->{color}") : (),
+            a_ href => "/$t->{id}",
+                class => $t->{color} && $t->{color} =~ /standout|grayedout/ ? $t->{color} : undef,
+                '+'   => $t->{lie} && ($view->{spoilers} > 1 || defined $t->{override}) ? 'lie' : undef,
+                '+'   => !$t->{rating} ? 'parent' : undef,
+                style => ($t->{color}//'') =~ /^#/ ? "color: $t->{color}" : undef,
                 $t->{name};
             spoil_ $t->{spoiler};
             a_ href => "/g/links?v=$v->{id}&t=$t->{id}", class => 'grayedout', " ($t->{count})" if $t->{count};
@@ -1008,9 +1006,9 @@ sub tags_ {
         my $max_spoil = max map $_->{lie}?2:$_->{spoiler}, values %tags;
         p_ class => 'mainopts', sub {
             if($max_spoil) {
-                a_ mkclass(checked => $view->{spoilers} == 0), href => '?view='.viewset(spoilers=>0).'#tags', 'Hide spoilers';
-                a_ mkclass(checked => $view->{spoilers} == 1), href => '?view='.viewset(spoilers=>1).'#tags', 'Show minor spoilers';
-                a_ mkclass(standout =>$view->{spoilers} == 2), href => '?view='.viewset(spoilers=>2).'#tags', 'Spoil me!' if $max_spoil == 2;
+                a_ class => $view->{spoilers} == 0 ? 'checked' : undef, href => '?view='.viewset(spoilers=>0).'#tags', 'Hide spoilers';
+                a_ class => $view->{spoilers} == 1 ? 'checked' : undef, href => '?view='.viewset(spoilers=>1).'#tags', 'Show minor spoilers';
+                a_ class => $view->{spoilers} == 2 ? 'standout': undef, href => '?view='.viewset(spoilers=>2).'#tags', 'Spoil me!' if $max_spoil == 2;
             }
         } if $max_spoil;
 
@@ -1113,8 +1111,8 @@ sub covers_ {
 
     article_ sub {
         p_ class => 'mainopts', sub {
-            a_ mkclass(checked => !$all), href => '?a=0#cv', "Only covers ($v->{relimgs}{covers})";
-            a_ mkclass(checked => $all ), href => '?a=1#cv', "All package artwork ($v->{relimgs}{total})";
+            a_ class => !$all ? 'checked' : undef, href => '?a=0#cv', "Only covers ($v->{relimgs}{covers})";
+            a_ class =>  $all ? 'checked' : undef, href => '?a=1#cv', "All package artwork ($v->{relimgs}{total})";
         } if $v->{relimgs}{total} > $v->{relimgs}{covers};
         h1_ 'Release Covers';
         p_ sub {

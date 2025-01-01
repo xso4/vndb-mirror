@@ -1,6 +1,6 @@
 package VNWeb::ULists::Export;
 
-use TUWF::XML ':xml';
+use TUWF 'xml', 'tag_';
 use VNWeb::Prelude;
 use VNWeb::ULists::Lib;
 
@@ -75,50 +75,52 @@ TUWF::get qr{/$RE{uid}/list-export/xml}, sub {
 
     my %labels = map +($_->{id}, $_), $d->{labels}->@*;
 
-    my $fd = tuwf->resFd;
-    TUWF::XML->new(
-        write  => sub { print $fd $_ for @_ },
-        pretty => 2,
-        default => 1,
-    );
     xml;
-    tag 'vndb-export' => version => '1.0', date => $d->{'export-date'}, sub {
-        tag user => sub {
-            tag name => $d->{user}{name};
-            tag url => config->{url}.'/'.$d->{user}{id};
+    tag_ 'vndb-export' => version => '1.0', date => $d->{'export-date'}, sub {
+        lit_ "\n";
+        tag_ user => sub {
+            tag_ name => $d->{user}{name};
+            tag_ url => config->{url}.'/'.$d->{user}{id};
         };
-        tag labels => sub {
-            tag label => id => $_->{id}, label => $_->{label}, private => $_->{private}?'true':'false', undef for $d->{labels}->@*;
+        lit_ "\n";
+        tag_ labels => sub {
+            tag_ label => id => $_->{id}, label => $_->{label}, private => $_->{private}?'true':'false', undef for $d->{labels}->@*;
         };
-        tag vns => sub {
-            tag vn => id => $_->{id}, private => $_->{c_private}?'true':'false', sub {
-                tag title => title($_->{title});
-                tag label => id => $_, label => $labels{$_}{label}, undef for sort { $a <=> $b } $_->{labels}->@*;
-                tag added => $_->{added};
-                tag modified => $_->{lastmod} if $_->{added} ne $_->{lastmod};
-                tag vote => timestamp => $_->{vote_date}, fmtvote $_->{vote} if $_->{vote};
-                tag started => $_->{started} if $_->{started};
-                tag finished => $_->{finished} if $_->{finished};
-                tag notes => $_->{notes} if length $_->{notes};
-                tag release => id => $_->{id}, sub {
-                    tag title => title($_->{title});
-                    tag 'release-date' => rdate $_->{released};
-                    tag status => $RLIST_STATUS{$_->{status}};
-                    tag added => $_->{added};
+        lit_ "\n";
+        tag_ vns => sub {
+            lit_ "\n";
+            tag_ vn => id => $_->{id}, private => $_->{c_private}?'true':'false', sub {
+                tag_ title => title($_->{title});
+                tag_ label => id => $_, label => $labels{$_}{label}, undef for sort { $a <=> $b } $_->{labels}->@*;
+                tag_ added => $_->{added};
+                tag_ modified => $_->{lastmod} if $_->{added} ne $_->{lastmod};
+                tag_ vote => timestamp => $_->{vote_date}, fmtvote $_->{vote} if $_->{vote};
+                tag_ started => $_->{started} if $_->{started};
+                tag_ finished => $_->{finished} if $_->{finished};
+                tag_ notes => $_->{notes} if length $_->{notes};
+                tag_ release => id => $_->{id}, sub {
+                    tag_ title => title($_->{title});
+                    tag_ 'release-date' => rdate $_->{released};
+                    tag_ status => $RLIST_STATUS{$_->{status}};
+                    tag_ added => $_->{added};
                 } for $_->{releases}->@*;
+                lit_ "\n";
             } for $d->{vns}->@*;
         };
-        tag 'length-votes', sub {
-            tag vn => id => $_->{id}, private => $_->{private}?'true':'false', sub {
-                tag title => title($_->{title});
-                tag date => $_->{date};
-                tag minutes => $_->{length};
-                tag speed => [qw/slow normal fast/]->[$_->{speed}] if defined $_->{speed};
-                tag notes => $_->{notes} if length $_->{notes};
-                tag release => id => $_->{id}, sub {
-                    tag title => title($_->{title});
-                    tag 'release-date' => rdate $_->{released};
+        lit_ "\n";
+        tag_ 'length-votes', sub {
+            lit_ "\n";
+            tag_ vn => id => $_->{id}, private => $_->{private}?'true':'false', sub {
+                tag_ title => title($_->{title});
+                tag_ date => $_->{date};
+                tag_ minutes => $_->{length};
+                tag_ speed => [qw/slow normal fast/]->[$_->{speed}] if defined $_->{speed};
+                tag_ notes => $_->{notes} if length $_->{notes};
+                tag_ release => id => $_->{id}, sub {
+                    tag_ title => title($_->{title});
+                    tag_ 'release-date' => rdate $_->{released};
                 } for $_->{releases}->@*;
+                lit_ "\n";
             } for $d->{'length-votes'}->@*;
         };
     };

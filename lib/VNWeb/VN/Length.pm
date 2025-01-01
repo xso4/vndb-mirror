@@ -23,11 +23,6 @@ my %TABLEOPTS = map +($_, opts $_), '', 'v', 'u';
 sub listing_ {
     my($opt, $url, $count, $list, $mode) = @_;
 
-    if(auth->permDbmod) {
-        form_ method => 'post', action => '/lengthvotes-edit';
-        input_ type => 'hidden', class => 'hidden', name => 'url', value => tuwf->reqPath.tuwf->reqQuery, undef;
-    }
-
     paginate_ $url, $opt->{p}, [$count, $opt->{s}->results], 't';
     article_ class => 'browse lengthlist', sub {
         table_ class => 'stripe', sub {
@@ -73,8 +68,6 @@ sub listing_ {
         };
     };
     paginate_ $url, $opt->{p}, [$count, $opt->{s}->results], 'b';
-
-    end_ 'form' if auth->permDbmod;
 }
 
 
@@ -156,7 +149,16 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
                 a_ href => url(p => undef, ign => 1), class => defined $opt->{ign} &&  $opt->{ign} ? 'optselected' : undef, 'Ignored';
             } if auth->permDbmod;
         };
-        listing_ $opt, \&url, $count, $lst, $mode if @$lst;
+
+        return if !@$lst;
+        if(auth->permDbmod) {
+            form_ method => 'post', action => '/lengthvotes-edit', sub {
+                input_ type => 'hidden', class => 'hidden', name => 'url', value => tuwf->reqPath.tuwf->reqQuery, undef;
+                listing_ $opt, \&url, $count, $lst, $mode;
+            };
+        } else {
+            listing_ $opt, \&url, $count, $lst, $mode;
+        }
     };
 };
 

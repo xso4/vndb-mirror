@@ -62,9 +62,9 @@ TUWF::get qr{/$RE{vid}/quotes}, sub {
         article_ sub {
             p_ class => 'mainopts', sub {
                 if ($max_spoil) {
-                    a_ mkclass(checked => $view->{spoilers} == 0), href => '?view='.viewset(spoilers=>0).'#quotes', 'Hide spoilers';
-                    a_ mkclass(checked => $view->{spoilers} == 1), href => '?view='.viewset(spoilers=>1).'#quotes', 'Show minor spoilers';
-                    a_ mkclass(standout =>$view->{spoilers} == 2), href => '?view='.viewset(spoilers=>2).'#quotes', 'Spoil me!' if $max_spoil == 2;
+                    a_ class => $view->{spoilers} == 0 ? 'checked' : undef, href => '?view='.viewset(spoilers=>0).'#quotes', 'Hide spoilers';
+                    a_ class => $view->{spoilers} == 1 ? 'checked' : undef, href => '?view='.viewset(spoilers=>1).'#quotes', 'Show minor spoilers';
+                    a_ class => $view->{spoilers} == 2 ? 'standout': undef, href => '?view='.viewset(spoilers=>2).'#quotes', 'Spoil me!' if $max_spoil == 2;
                     small_ ' | ';
                 }
                 if (auth->permDbmod) {

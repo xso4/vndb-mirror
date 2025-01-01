@@ -123,7 +123,7 @@ sub posts_ {
     paginate_ \&url, $page, [ $t->{count}, 25 ], 't';
     article_ class => 'thread', id => 'threadstart', sub {
         table_ class => 'stripe', sub {
-            tr_ mkclass(deleted => defined $_->{hidden}), id => "p$_->{num}", sub {
+            tr_ class => defined $_->{hidden} ? 'deleted' : undef, id => "p$_->{num}", sub {
                 td_ class => 'tc1', $_ == $posts->[$#$posts] ? (id => 'last') : (), sub {
                     a_ href => "/$t->{id}.$_->{num}", "#$_->{num}";
                     if(!defined $_->{hidden} || auth->permBoard) {
