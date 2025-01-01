@@ -31,9 +31,9 @@ sub cleandb {
     my $cnt = $db->do(q{
       DELETE FROM images WHERE id IN(
         SELECT id FROM images
-         WHERE id NOT IN(SELECT id FROM images WHERE id BETWEEN vndbid('ch',1) AND vndbid_max('ch') ORDER BY id DESC LIMIT  30)
-           AND id NOT IN(SELECT id FROM images WHERE id BETWEEN vndbid('cv',1) AND vndbid_max('cv') ORDER BY id DESC LIMIT  30)
-           AND id NOT IN(SELECT id FROM images WHERE id BETWEEN vndbid('sf',1) AND vndbid_max('sf') ORDER BY id DESC LIMIT 100)
+         WHERE id NOT IN(SELECT id FROM images WHERE id ^= 'ch' ORDER BY id DESC LIMIT  30)
+           AND id NOT IN(SELECT id FROM images WHERE id ^= 'cv' ORDER BY id DESC LIMIT  30)
+           AND id NOT IN(SELECT id FROM images WHERE id ^= 'sf' ORDER BY id DESC LIMIT 100)
         EXCEPT
         SELECT * FROM (
                 SELECT scr   FROM vn_screenshots
@@ -45,7 +45,7 @@ sub cleandb {
           UNION SELECT image FROM chars      WHERE image IS NOT NULL
           UNION SELECT image FROM chars_hist WHERE image IS NOT NULL
           UNION (
-            SELECT vndbid(case when img[1] = 'st' then 'sf' else img[1] end, img[2]::int)
+            SELECT vndbid(case when img[1] = 'st' then 'sf' else img[1] end::vndbtag, img[2]::int)
               FROM (      SELECT content FROM docs
                 UNION ALL SELECT content FROM docs_hist
                 UNION ALL SELECT description FROM vn
@@ -76,7 +76,7 @@ sub cleandb {
 
 
 sub addimagessql {
-    my $st = $db->prepare('SELECT vndbid_type(id), vndbid_num(id) FROM images');
+    my $st = $db->prepare('SELECT ~id, #id FROM images');
     $st->execute();
     $count = 0;
     while((my $num = $st->fetch())) {
