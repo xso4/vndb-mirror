@@ -94,8 +94,8 @@ our %LINKS = (
     appstore =>
         { ent   => 'r'
         , label => 'App Store'
-        , fmt   => 'https://apps.apple.com/app/id%d'
-        , regex => qr{(?:itunes|apps)\.apple\.com/(?:[^/]+/)?app/(?:[^/]+/)?id$int([/\?].*)?}
+        , fmt   => 'https://apps.apple.com/%s'
+        , regex => qr{(?:itunes|apps)\.apple\.com/((?:[^/]+/)?app/(?:[^/]+/)?id$int)(?:[/\?].*)?}
         },
     bgmtv =>
         { ent   => 's'
