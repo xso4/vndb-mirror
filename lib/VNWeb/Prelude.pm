@@ -3,7 +3,7 @@
 #  use v5.36;
 #  use utf8;
 #
-#  use TUWF ':html5_', 'xml_string', 'xml_escape';
+#  use TUWF @html5_tags, 'xml_string', 'xml_escape';
 #  use Exporter 'import';
 #  use Time::HiRes 'time';
 #  use List::Util 'min', 'max', 'sum';
@@ -37,6 +37,14 @@ use VNWeb::Auth;
 use VNWeb::DB;
 use TUWF;
 
+# Only export a subset of ':html5_' functions to avoid bloating symbol tables too much.
+our @html5_tags = qw/
+    a_ abbr_ article_ b_ br_ button_ dd_ details_ div_ dl_ dt_ em_ fieldset_
+    form_ h1_ h2_ h3_ i_ img_ input_ label_ li_ menu_ nav_ option_ p_ section_
+    select_ small_ span_ strong_ summary_ table_ tbody_ td_ textarea_ tfoot_
+    th_ thead_ tr_ ul_
+/;
+
 
 sub import {
     my $c = caller;
@@ -49,7 +57,7 @@ sub import {
     die $@ if !eval <<"    EOM;";
     package $c;
 
-    use TUWF ':html5_', 'xml_string', 'xml_escape';
+    use TUWF \@VNWeb::Prelude::html5_tags, qw/tag_ txt_ lit_ xml_string xml_escape/;
     use Exporter 'import';
     use Time::HiRes 'time';
     use List::Util 'min', 'max', 'sum';
