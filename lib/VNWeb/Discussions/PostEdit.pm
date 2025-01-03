@@ -75,7 +75,7 @@ TUWF::get qr{/(?:$RE{tid}|$RE{wid})\.$RE{num}/edit}, sub {
 
     $t->{can_mod} = auth->permBoardmod;
     framework_ title => 'Edit post', sub {
-        div_ widget(PostEdit => $FORM_OUT, $t);
+        div_ widget(PostEdit => $FORM_OUT, $t), '';
     };
 };
 
