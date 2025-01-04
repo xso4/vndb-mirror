@@ -91,7 +91,10 @@ sub vns_ {
             $f = filter_vn_adv $f;
             tuwf->compile({ advsearch => 'v' })->validate(@$f > 1 ? $f : undef)->data;
         };
-        return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode(%$opt, fil => undef, f => $q), 'perm') if $q;
+        if ($q) {
+            tuwf->resRedirect(tuwf->reqPath().'?'.query_encode(%$opt, fil => undef, f => $q), 'perm');
+            tuwf->done;
+        }
     }
 
     $opt->{f} = advsearch_default 'v' if !$opt->{f}{query} && !defined tuwf->reqGet('f');

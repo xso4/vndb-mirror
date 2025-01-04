@@ -83,7 +83,10 @@ sub chars_ {
             $f = filter_char_adv $f;
             tuwf->compile({ advsearch => 'c' })->validate(@$f > 1 ? $f : undef)->data;
         };
-        return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode(%$opt, fil => undef, f => $q), 'perm') if $q;
+        if ($q) {
+            tuwf->resRedirect(tuwf->reqPath().'?'.query_encode(%$opt, fil => undef, f => $q), 'perm');
+            tuwf->done;
+        }
     }
 
     $opt->{f} = advsearch_default 'c' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
