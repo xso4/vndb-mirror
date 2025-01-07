@@ -1127,6 +1127,21 @@ api_query '/ulist',
     ];
 
 
+api_query '/quote',
+    filters => 'q',
+    sql => sub { sql 'SELECT q.id', $_[0], 'FROM quotes q', $_[1], 'WHERE NOT q.hidden AND (', $_[2], ')' },
+    fields => {
+        id        => {},
+        quote     => { select => 'q.quote' },
+        score     => { select => 'q.score', @INT },
+        vn        => { object => '/vn', select => 'q.vid AS vn', subid => 'v.id' },
+        character => { object => '/character', select => 'q.cid AS character', subid => 'c.id' },
+    },
+    sort => [
+        id         => 'q.id',
+        score      => 'q.score',
+    ];
+
 
 
 

@@ -1382,6 +1382,77 @@ char\_count
     child traits.
 
 
+## POST /quote
+
+Query visual novel quotes.
+
+Accepted values for `"sort"`: `id`, `score`.
+
+To fetch a random quote, using the same algorithm as on the website footer:
+
+```sh
+curl %endpoint%/quote --header 'Content-Type: application/json' --data '{
+    "fields": "vn{id,title},character{id,name},quote",
+    "filters": [ "random", "=", 1 ]
+}'
+```
+
+To fetch all quotes from a visual novel, ordered by score:
+
+```sh
+curl %endpoint%/quote --header 'Content-Type: application/json' --data '{
+    "fields": "character{id,name},quote,score",
+    "filters": [ "vn", "=", [ "id", "=", "v5" ] ],
+    "sort": "score",
+    "reverse": true
+}'
+```
+
+### Filters
+
+-----------------------------------------------------------------------------
+Name                [F]   Description
+------------------  ----  -------------------------------------------------------
+`id`                o     vndbid
+
+`vn`                      Match quotes from the visual novel(s) described by
+                          [visual novel filters](#vn-filters).
+
+`character`               Match quotes from the characters(s) described by
+                          [character filters](#character-filters).
+
+`random`                  Only accepts a single value, integer `1`. Matches
+                          exactly one random quote from the list of *all*
+                          quotes with a positive score.
+-----------------------------------------------------------------------------
+
+The `random` filter does not really combine with any other filters; adding
+other filters to the query means you may randomly get zero results instead.
+You *could* select more than one random quote by putting multiple `random`
+filters inside an `or` clause, but then there's still the possibility that you
+get fewer quotes than requested, when the algorithm happens to select the same
+quote multiple times. See [random entry](#random) for alternative strategies.
+
+### Fields {#quote-fields}
+
+id
+:   vndbid.
+
+quote
+:   String.
+
+score
+:   Integer.
+
+vn\.*
+:   Visual novel info, all [visual novel fields](#vn-fields) can be selected
+    here.
+
+character\.*
+:   Character info, all [character fields](#character-fields) can be selected
+    here.
+
+
 
 # List Management
 
@@ -1676,7 +1747,7 @@ you can fetch the next page by filtering on `["id",">","v123"]`.
 This approach tends to not work as well when sorting on other fields, so
 `"page"`-based pagination is often still the better solution in those cases.
 
-## Random entry
+## Random entry {#random}
 
 Fetching a random entry from a database is, in general, pretty challenging to
 do in a performant way. Here's one approach that can be used with the API:
@@ -1708,6 +1779,10 @@ bias in its selection due to the presence of id gaps, but you most likely don't
 need perfect uniform random selection anyway.
 
 # Change Log
+
+**2025-01-07**
+
+- Add [POST /quote](#post-quote).
 
 **2024-09-09**
 

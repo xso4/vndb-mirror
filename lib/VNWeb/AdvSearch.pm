@@ -479,6 +479,13 @@ f i =>  2 => 'id',        { vndbid => 'i' }, sql => sub { sql 't.id', $_[0], \$_
 f i => 80 => 'search',    { searchquery => 1 }, '=' => sub { $_->sql_where('i', 't.id') };
 
 
+f q =>  2 => 'id',        { vndbid => 'q' }, sql => sub { sql 'q.id', $_[0], \$_ };
+f q => 53 => 'vn',        'v', '=' => sub { sql 'EXISTS(SELECT 1 FROM vn v WHERE NOT v.hidden AND q.vid = v.id AND', $_, ')' };
+f q => 54 => 'character', 'c', '=' => sub { sql 'EXISTS(SELECT 1 FROM chars c WHERE NOT c.hidden AND q.cid = c.id AND', $_, ')' };
+f q => 81 => 'random',    { uint => 1, range => [1,1] },
+    '=' => sub { sql 'q.id = (SELECT id FROM quotes WHERE rand <= (SELECT random()) ORDER BY rand DESC LIMIT 1)' };
+
+
 
 # 'extlink' filter accepts the following values:
 # - $name            - Whether the entry has a link of site $name
