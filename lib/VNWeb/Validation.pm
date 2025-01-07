@@ -41,6 +41,7 @@ our %RE = (
     tid  => qr{(?<id>t$num)},
     gid  => qr{(?<id>g$num)},
     wid  => qr{(?<id>w$num)},
+    qid  => qr{(?<id>q$num)},
     imgid=> qr{(?<id>(?:ch|cv|sf)$num)},
     vrev => qr{(?<id>v$num)$rev?},
     rrev => qr{(?<id>r$num)$rev?},

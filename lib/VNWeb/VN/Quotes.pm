@@ -20,7 +20,6 @@ sub submittable {
 sub votething_ {
     my($q) = @_;
     if (auth) {
-        $q->{id} *= 1;
         span_ class => 'quote-score', widget(QuoteVote => [@{$q}{qw/id score vote/}, $_->{hidden} ? \1 : \0, editable($q) ? \1 : \0]), '';
     } else {
         span_ $q->{score};
@@ -245,7 +244,7 @@ TUWF::get '/v/quotes', sub {
 
 
 my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
-    id       => { uint => 1, default => undef },
+    id       => { vndbid => 'q', default => undef },
     vid      => { vndbid => 'v' },
     hidden   => { anybool => 1 },
     quote    => { sl => 1, maxlength => 170 },
@@ -260,8 +259,8 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     delete   => { anybool => 1 },
 };
 
-TUWF::get qr{/(?:$RE{vid}/addquote|editquote/$RE{num})}, sub {
-    my($vid, $qid) = tuwf->captures('id', 'num');
+TUWF::get qr{/(?:$RE{vid}/addquote|editquote/$RE{qid})}, sub {
+    my($vid, $qid) = tuwf->captures(1, 2);
 
     my $q = $qid && tuwf->dbRowi('
         SELECT q.id, q.vid, q.hidden, q.quote,', sql_totime('q.added'), 'added, q.addedby, q.cid, c.title
@@ -378,14 +377,14 @@ js_api QuoteEdit => $FORM_IN, sub {
     +{}
 };
 
-js_api QuoteDel => { id => { uint => 1 } }, sub {
+js_api QuoteDel => { id => { vndbid => 'q' } }, sub {
     my $q = tuwf->dbRowi('SELECT id, hidden,', sql_totime('added'), 'added, addedby FROM quotes WHERE id = ', \$_[0]{id});
     return tuwf->resDenied if !$q->{id} || !deletable $q;
     tuwf->dbExeci('DELETE FROM quotes WHERE id =', \$q->{id});
     +{}
 };
 
-js_api QuoteVote => { id => { uint => 1 }, vote => { default => undef, enum => [-1,1] } }, sub {
+js_api QuoteVote => { id => { vndbid => 'q' }, vote => { default => undef, enum => [-1,1] } }, sub {
     my($data) = @_;
     tuwf->dbExeci('DELETE FROM quotes_votes WHERE', { uid => auth->uid, id => $data->{id} }) if !$data->{vote};
     $data->{uid} = auth->uid;

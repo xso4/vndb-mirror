@@ -235,6 +235,7 @@ CREATE SEQUENCE docs_id_seq;
 CREATE SEQUENCE producers_id_seq;
 CREATE SEQUENCE releases_id_seq;
 CREATE SEQUENCE reviews_seq;
+CREATE SEQUENCE quotes_id_seq;
 CREATE SEQUENCE screenshots_seq;
 CREATE SEQUENCE staff_id_seq;
 CREATE SEQUENCE tags_id_seq;
@@ -550,7 +551,7 @@ CREATE TABLE producers_relations_hist ( -- cf=Relations
 
 -- quotes
 CREATE TABLE quotes (
-  id         serial PRIMARY KEY, -- [pub]
+  id         vndbid(q) NOT NULL PRIMARY KEY DEFAULT vndbid('q', nextval('quotes_id_seq')), -- [pub]
   vid        vndbid(v) NOT NULL, -- [pub]
   cid        vndbid(c), -- [pub]
   addedby    vndbid(u),
@@ -563,7 +564,7 @@ CREATE TABLE quotes (
 
 -- quotes_log
 CREATE TABLE quotes_log (
-  id        integer NOT NULL,
+  id        vndbid(q) NOT NULL,
   uid       vndbid(u),
   date      timestamptz NOT NULL DEFAULT NOW(),
   action    text NOT NULL
@@ -571,7 +572,7 @@ CREATE TABLE quotes_log (
 
 -- quotes_votes
 CREATE TABLE quotes_votes (
-  id        integer NOT NULL,
+  id        vndbid(q) NOT NULL,
   uid       vndbid(u) NOT NULL,
   date      timestamptz NOT NULL DEFAULT NOW(),
   vote      smallint NOT NULL,
