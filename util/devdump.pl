@@ -150,7 +150,7 @@ sub copy_entry($tables, $ids) {
     copy_entry [qw/staff staff_alias staff_extlinks/], $staff;
 
     # Producers (TODO: Relations)
-    copy_entry [qw/producers/], $producers;
+    copy_entry [qw/producers producers_extlinks/], $producers;
 
     # Characters
     copy_entry [qw/chars chars_traits chars_vns/], $characters;

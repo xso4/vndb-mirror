@@ -94,6 +94,7 @@ my %tables = (
     images              => { where => "x.c_weight > 0" }, # Only images with a positive weight are referenced.
     image_votes         => { where => "x.id IN(SELECT id FROM images WHERE c_weight > 0)", order => 'x.uid, x.id' },
     producers           => { where => 'NOT x.hidden' },
+    producers_extlinks  => { where => 'x.id IN(SELECT id FROM producers WHERE NOT hidden)' },
     producers_relations => { where => 'x.id IN(SELECT id FROM producers WHERE NOT hidden)' },
     quotes              => { where => 'x.rand IS NOT NULL' },
     releases            => { where => 'NOT x.hidden' },
