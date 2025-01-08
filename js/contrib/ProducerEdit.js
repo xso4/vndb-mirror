@@ -12,7 +12,6 @@ widget('ProducerEdit', initVnode => {
     );
 
     const lang = new DS(DS.LocLang, {onselect: obj => data.lang = obj.id});
-    const wikidata = { v: data.l_wikidata === null ? '' : 'Q'+data.l_wikidata };
     const fields = () => [
         m('fieldset',
             m('label[for=type]', 'Type'),
@@ -24,18 +23,6 @@ widget('ProducerEdit', initVnode => {
             data.lang ? null : m('p.invalid', 'No language selected.'),
         ),
         m('fieldset',
-            m('label[for=website]', 'Website'),
-            m(Input, { id: 'website', class: 'xw', type: 'weburl', data, field: 'website' }),
-        ),
-        m('fieldset',
-            m('label[for=wikidata]', 'Wikidata ID'),
-            m(Input, { id: 'wikidata', class: 'mw',
-                data: wikidata, field: 'v',
-                pattern: '^Q?[1-9][0-9]{0,8}$',
-                oninput: v => { v = v.replace(/[^0-9]/g, ''); data.l_wikidata = v?v:null; wikidata.v = v?'Q'+v:''; },
-            }),
-        ),
-        m('fieldset',
             m('label[for=description]', 'Description'),
             m(TextPreview, {
                 data, field: 'description',
@@ -43,6 +30,7 @@ widget('ProducerEdit', initVnode => {
                 attrs: { id: 'description', rows: 6, maxlength: 5000 },
             }),
         ),
+        m(ExtLinks, {type: 'producer', links: data.extlinks}),
     ];
 
     const prod = new DS(DS.Producers, {

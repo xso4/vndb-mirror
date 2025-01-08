@@ -842,7 +842,11 @@ my %GET_RELEASE = (
 );
 
 my %GET_PRODUCER = (
-  sql     => 'SELECT %s FROM producerst p WHERE NOT p.hidden AND (%s) %s',
+  sql     => "SELECT %s FROM producerst p
+     LEFT JOIN producers_extlinks psl ON psl.id = p.id AND psl.c_site = 'website' LEFT JOIN extlinks pse ON pse.id = psl.link
+     LEFT JOIN producers_extlinks pwl ON pwl.id = p.id AND pwl.c_site = 'wp' LEFT JOIN extlinks pwe ON pwe.id = pwl.link
+     LEFT JOIN producers_extlinks pdl ON pdl.id = p.id AND pdl.c_site = 'wikidata' LEFT JOIN extlinks pde ON pde.id = pdl.link
+     WHERE NOT p.hidden AND (%s) %s",
   select  => 'p.id',
   proc    => sub {
     $_[0]{id} = idnum $_[0]{id}
@@ -860,14 +864,14 @@ my %GET_PRODUCER = (
       },
     },
     details => {
-      select => 'p.website, p.l_wp, p.l_wikidata, p.description, p.alias AS aliases',
+      select => 'pse.value AS website, pwe.value AS wp, pde.value AS wikidata, p.description, p.alias AS aliases',
       proc => sub {
         $_[0]{description} ||= undef;
         $_[0]{aliases}     ||= undef;
         $_[0]{links} = {
           homepage  => delete($_[0]{website})||undef,
-          wikipedia => delete $_[0]{l_wp},
-          wikidata  => formatwd(delete $_[0]{l_wikidata}),
+          wikipedia => delete $_[0]{wp},
+          wikidata  => formatwd(delete $_[0]{wikidata}),
         };
       },
     },

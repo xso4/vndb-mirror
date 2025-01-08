@@ -9,6 +9,7 @@ sub enrich_item {
     my($p) = @_;
     enrich_vislinks p => 0, $p;
     enrich_merge pid => sql('SELECT id AS pid, title, sorttitle FROM', producerst, 'p WHERE id IN'), $p->{relations};
+    VNDB::ExtLinks::enrich $p;
     $p->{relations} = [ sort { $a->{sorttitle} cmp $b->{sorttitle} || idcmp($a->{pid}, $b->{pid}) } $p->{relations}->@* ];
 }
 
@@ -26,9 +27,7 @@ sub rev_ {
             txt_ $PRODUCER_RELATION{$_->{relation}}{txt}.': ';
             a_ href => "/$_->{pid}", tattr $_;
         } ],
-        [ website    => 'Official website', fmt => sub { a_ href => $_, $_ } ],
-        [ l_wikidata => 'Wikidata',         fmt => sub { a_ href => "https://www.wikidata.org/wiki/Q$_", $_ } ],
-        [ l_wp       => 'Wikipedia',        fmt => sub { a_ href => "https://en.wikipedia.org/wiki/$_", $_ } ],
+        $VNDB::ExtLinks::REVISION
 }
 
 

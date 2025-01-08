@@ -142,8 +142,7 @@ my %tables = (
                                 .' AND x.img IN(SELECT id FROM images WHERE c_weight > 0)' },
     vn_length_votes     => { where => 'x.vid IN(SELECT id FROM vn WHERE NOT hidden) AND NOT x.private'
                            , order => 'x.vid, x.uid' },
-    wikidata            => { where => q{x.id IN(SELECT l_wikidata FROM producers WHERE NOT hidden
-                                          UNION SELECT value::int FROM extlinks WHERE site = 'wikidata' AND c_ref
+    wikidata            => { where => q{x.id IN(SELECT value::int FROM extlinks WHERE site = 'wikidata' AND c_ref
                                           UNION SELECT l_wikidata FROM vn WHERE NOT hidden)} },
 );
 

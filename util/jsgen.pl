@@ -63,8 +63,9 @@ sub extlinks {
         }, grep $L->{$_}{ent} =~ /$t/i, sort keys %$L ]
     }
     print 'window.extLinks = '.$js->encode({
-        release => t('r'),
-        staff   => t('s'),
+        release  => t('r'),
+        producer => t('p'),
+        staff    => t('s'),
     }).";\n";
 }
 

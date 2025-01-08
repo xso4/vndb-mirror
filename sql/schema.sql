@@ -508,15 +508,12 @@ CREATE TABLE producers ( -- dbentry_type=p
   id         vndbid(p) NOT NULL PRIMARY KEY DEFAULT vndbid('p', nextval('producers_id_seq')), -- [pub]
   type       producer_type NOT NULL DEFAULT 'co', -- [pub]
   lang       language NOT NULL DEFAULT 'ja', -- [pub]
-  l_wikidata integer, -- [pub]
   locked     boolean NOT NULL DEFAULT FALSE,
   hidden     boolean NOT NULL DEFAULT FALSE,
   name       text NOT NULL DEFAULT '', -- [pub]
   latin      text, -- [pub]
   alias      text NOT NULL DEFAULT '', -- [pub]
-  website    text NOT NULL DEFAULT '', -- [pub]
-  description text NOT NULL DEFAULT '', -- [pub]
-  l_wp       text -- (deprecated)
+  description text NOT NULL DEFAULT '' -- [pub]
 );
 
 -- producers_hist
@@ -524,13 +521,25 @@ CREATE TABLE producers_hist (
   chid       integer NOT NULL PRIMARY KEY,
   type       producer_type NOT NULL DEFAULT 'co', -- cf=Type
   lang       language NOT NULL DEFAULT 'ja', -- cf=Language
-  l_wikidata integer, -- cf=Links
   name       text NOT NULL DEFAULT '', -- cf=Name
   latin      text, -- cf=Name
   alias      text NOT NULL DEFAULT '', -- cf=Name
-  website    text NOT NULL DEFAULT '', -- cf=Links
-  description text NOT NULL DEFAULT '', -- cf=Description
-  l_wp       text -- cf=Links
+  description text NOT NULL DEFAULT '' -- cf=Description
+);
+
+-- producers_extlinks
+CREATE TABLE producers_extlinks (
+  id      vndbid(p) NOT NULL, -- [pub]
+  c_site  extlink_site NOT NULL,
+  link    integer NOT NULL, -- [pub]
+  PRIMARY KEY(id, link)
+);
+
+-- producers_extlinks_hist
+CREATE TABLE producers_extlinks_hist ( -- cf=Links
+  chid    integer NOT NULL,
+  link    integer NOT NULL,
+  PRIMARY KEY(chid, link)
 );
 
 -- producers_relations

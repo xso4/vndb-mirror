@@ -10,14 +10,13 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     latin       => { default => undef, sl => 1, maxlength => 200 },
     alias       => { default => '', maxlength => 500 },
     lang        => { enum => \%LANGUAGE },
-    website     => { default => '', weburl => 1 },
-    l_wikidata  => { default => undef, uint => 1, max => (1<<31)-1 },
     description => { default => '', maxlength => 5000 },
     relations   => { sort_keys => 'pid', aoh => {
         pid      => { vndbid => 'p' },
         relation => { enum => \%PRODUCER_RELATION },
         name     => { _when => 'out' },
     } },
+    extlinks    => { extlinks => 'p' },
     hidden      => { anybool => 1 },
     locked      => { anybool => 1 },
     editsum     => { editsum => 1 },
@@ -31,6 +30,7 @@ TUWF::get qr{/$RE{prev}/edit} => sub {
     $e->{editsum} = $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
 
     enrich_merge pid => sql('SELECT id AS pid, title[1+1] AS name FROM', producerst, 'p WHERE id IN'), $e->{relations};
+    VNDB::ExtLinks::enrich $e;
 
     my $title = titleprefs_swap @{$e}{qw/ lang name latin /};
     framework_ title => "Edit $title->[1]", dbobj => $e, tab => 'edit',
@@ -68,6 +68,8 @@ js_api ProducerEdit => $FORM_IN, sub {
     $data->{relations} = [] if $data->{hidden};
     validate_dbid 'SELECT id FROM producers WHERE id IN', map $_->{pid}, $data->{relations}->@*;
     die "Relation with self" if grep $_->{pid} eq $e->{id}, $data->{relations}->@*;
+
+    VNDB::ExtLinks::normalize $e, $data;
 
     my $ch = db_edit p => $e->{id}, $data;
     return 'No changes.' if !$ch->{nitemid};

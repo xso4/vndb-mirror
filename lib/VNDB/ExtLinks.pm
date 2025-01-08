@@ -424,18 +424,18 @@ our %LINKS = (
         , regex => qr{vndb\.org/(u[1-9][0-9]*)}
         },
     website => # Official website, catch-all
-        { ent   => 'rs'
+        { ent   => 'rsp'
         , label => 'Official website'
         , fmt   => '%s'
         },
     wikidata =>
-        { ent   => 's'
+        { ent   => 'sp'
         , label => 'Wikidata'
         , fmt   => 'https://www.wikidata.org/wiki/Q%d'
         , regex => qr{www\.wikidata\.org/wiki/Q$int}
         },
     wp => # Deprecated, replaced with wikidata
-        { ent => 'rs'
+        { ent => 'rsp'
         , label => 'Wikipedia'
         , fmt => 'https://en.wikipedia.org/wiki/%s'
         },
@@ -452,7 +452,7 @@ our %LINKS = (
 $_->{full_regex} = qr{^(?:https?://)?$_->{regex}(?:\#.*)?$} for grep $_->{regex}, values %LINKS;
 
 
-# For producer and VN entries, which have visible links but no proper extlinks table yet.
+# For VN entries, which have visible links but no proper extlinks table yet.
 sub enrich_vislinks_old($type, $enabled, @obj) {
     my @w_ids = grep $_, map $_->{l_wikidata}, @obj;
     my $w = @w_ids ? { map +($_->{id}, $_), $TUWF::OBJ->dbAlli('SELECT * FROM wikidata WHERE id IN', \@w_ids)->@* } : {};
@@ -494,33 +494,21 @@ sub enrich_vislinks_old($type, $enabled, @obj) {
             }
         }
 
-        l 'website';
         w 'enwiki';
         w 'jawiki';
         l 'l_wikidata';
-
-        if($type eq 'v') {
-            w 'mobygames';
-            w 'gamefaqs_game';
-            w 'vgmdb_product';
-            w 'acdb_source';
-            w 'indiedb_game';
-            w 'howlongtobeat';
-            w 'igdb_game';
-            w 'pcgamingwiki';
-            w 'lutris';
-            w 'wine';
-            l 'l_renai';
-            c 'vnstat', 'VNStat', 'https://vnstat.net/novel/%d', $obj->{id} =~ s/^.//r if ($obj->{c_votecount}||0) >= 20;
-        }
-
-        if($type eq 'p') {
-            w 'twitter';
-            w 'mobygames_company';
-            w 'gamefaqs_company';
-            w 'soundcloud';
-            c 'vnstat', 'VNStat', 'https://vnstat.net/developer/%d', $obj->{id} =~ s/^.//r;
-        }
+        w 'mobygames';
+        w 'gamefaqs_game';
+        w 'vgmdb_product';
+        w 'acdb_source';
+        w 'indiedb_game';
+        w 'howlongtobeat';
+        w 'igdb_game';
+        w 'pcgamingwiki';
+        w 'lutris';
+        w 'wine';
+        l 'l_renai';
+        c 'vnstat', 'VNStat', 'https://vnstat.net/novel/%d', $obj->{id} =~ s/^.//r if ($obj->{c_votecount}||0) >= 20;
 
         $obj->{vislinks} = \@links;
     }
@@ -539,7 +527,7 @@ sub enrich_vislinks($type, $enabled, @obj) {
     @obj = map ref $_ eq 'ARRAY' ? @$_ : ($_), @obj;
     return if !@obj;
 
-    return enrich_vislinks_old $type, $enabled, @obj if $type =~ /[vp]/;
+    return enrich_vislinks_old $type, $enabled, @obj if $type =~ /v/;
 
     my %l_ids;
     my %ids = map {
@@ -667,6 +655,18 @@ sub enrich_vislinks($type, $enabled, @obj) {
         l 'instagram';
         l 'deviantar';
         l 'tumblr';
+    }
+
+    for ($type eq 'p' ? @obj : ()) {$o=$_;
+        l 'website';
+        w 'enwiki';
+        w 'jawiki';
+        l 'wikidata';
+        w 'twitter';
+        w 'mobygames_company';
+        w 'gamefaqs_company';
+        w 'soundcloud';
+        c 'vnstat', 'VNStat', $o->{id} =~ s/^.//r, sprintf 'https://vnstat.net/developer/%d', $o->{id} =~ s/^.//r;
     }
 
     delete $_->{_l} for @obj;
