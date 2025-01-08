@@ -95,20 +95,25 @@ CREATE OR REPLACE FUNCTION update_search(objid vndbid) RETURNS void AS $$
         OR (vndbid_type(objid) = 'c' AND EXISTS(SELECT 1 FROM chars     WHERE hidden AND id = objid))
         OR (vndbid_type(objid) = 'p' AND EXISTS(SELECT 1 FROM producers WHERE hidden AND id = objid))
         OR (vndbid_type(objid) = 's' AND EXISTS(SELECT 1 FROM staff     WHERE hidden AND id = objid))
+  ), rawterms(subid, prio, label) AS (
+    SELECT subid, prio, label
+      FROM update_search_terms(objid) x (subid int, prio int, label text)
+     WHERE NOT EXISTS(SELECT 1 FROM excluded)
   ), uniq(subid, prio, label) AS (
     SELECT subid, MAX(prio)::smallint, label
-      FROM update_search_terms(objid) x (subid int, prio int, label text)
-     WHERE label IS NOT NULL AND label <> '' AND NOT EXISTS(SELECT 1 FROM excluded)
+      FROM rawterms
+     WHERE label IS NOT NULL AND label <> ''
      GROUP BY subid, label
   ), terms(subid, prio, label) AS (
     -- It's possible for some entries to have no searchable terms at all, e.g.
     -- when their titles only consists of characters that are normalized away.
     -- In that case we still need to have at least one row in the search_cache
-    -- table for the id-based search to work.  (Would be nicer to support
-    -- non-normalized search in those cases, but these cases aren't too common)
+    -- table for each unique subid in order for id-based search to work.
+    -- (Would be nicer to support non-normalized search in those cases, but
+    -- these cases aren't too common)
     SELECT * FROM uniq
     UNION ALL
-    SELECT NULL::int, 1, '' WHERE NOT EXISTS(SELECT 1 FROM excluded) AND NOT EXISTS(SELECT 1 FROM uniq)
+    SELECT subid, 1, '' FROM (SELECT DISTINCT subid FROM rawterms EXCEPT SELECT DISTINCT subid FROM uniq) t
   ), n(subid, prio, label) AS (
      SELECT COALESCE(t.subid, o.subid), t.prio, COALESCE(t.label, o.label)
        FROM terms t
