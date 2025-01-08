@@ -541,18 +541,32 @@ sub enrich_vislinks($type, $enabled, @obj) {
 
     return enrich_vislinks_old $type, $enabled, @obj if $type =~ /[vp]/;
 
-    my %ids = map { $_->{vislinks} = []; +($_->{id}, $_) } @obj;
+    my %l_ids;
+    my %ids = map {
+        my $o = $_;
+        $o->{vislinks} = [];
+        push $l_ids{$_->{link}}->@*, $o for $o->{extlinks} ? $o->{extlinks}->@* : ();
+        +($o->{id}, $_)
+    } @obj;
     my @ids = keys %ids;
     my @w_ids;
 
-    for ($TUWF::OBJ->dbAlli('
-        SELECT e.id, l.site, l.value', $enabled->{price} || $enabled->{url2} ? ', l.data, l.price' : (), '
+    # Fetch extlinks for objects that do not already have an 'extlinks' field
+    my @ids_ne = grep !$ids{$_}{extlinks}, @ids;
+    for my $s (@ids_ne ? $TUWF::OBJ->dbAlli('
+        SELECT e.id, l.site, l.value, l.data, l.price
           FROM', {qw/r releases_extlinks  s staff_extlinks/}->{$type}, 'e
           JOIN extlinks l ON l.id = e.link
-         WHERE e.id IN', \@ids
-    )->@*) {
-        push $ids{$_->{id}}{_l}{$_->{site}}->@*, $_;
-        push @w_ids, $_->{value} if $_->{site} eq 'wikidata';
+         WHERE e.id IN', \@ids_ne
+    )->@* : ()) {
+        push $ids{$s->{id}}{_l}{$s->{site}}->@*, $s;
+        push @w_ids, $s->{value} if $s->{site} eq 'wikidata';
+    }
+
+    # Enrich and transform extlinks for objects that do
+    for my $s (keys %l_ids ? $TUWF::OBJ->dbAlli('SELECT id, site, value, data, price FROM extlinks WHERE id IN', [ keys %l_ids ])->@* : ()) {
+        push $_->{_l}{$s->{site}}->@*, $s for $l_ids{$s->{id}}->@*;
+        push @w_ids, $s->{value} if $s->{site} eq 'wikidata';
     }
 
     my $w = @w_ids ? { map +($_->{id}, $_), $TUWF::OBJ->dbAlli('SELECT * FROM wikidata WHERE id IN', \@w_ids)->@* } : {};
