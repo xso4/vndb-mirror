@@ -43,6 +43,10 @@ DROP TRIGGER producers_hist_wikidata_edit ON producers_hist;
 ALTER TABLE producers      DROP COLUMN l_wikidata, DROP COLUMN l_wp, DROP COLUMN website;
 ALTER TABLE producers_hist DROP COLUMN l_wikidata, DROP COLUMN l_wp, DROP COLUMN website;
 
+ALTER TYPE extlink_site ADD VALUE 'gamefaqs_comp' AFTER 'freem';
+ALTER TYPE extlink_site ADD VALUE 'itch_dev' AFTER 'itch';
+ALTER TYPE extlink_site ADD VALUE 'mobygames_comp' AFTER 'mobygames';
+
 COMMIT;
 
 \i sql/schema.sql

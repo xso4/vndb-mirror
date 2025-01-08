@@ -191,6 +191,12 @@ our %LINKS = (
         , fmt   => 'https://www.freem.ne.jp/win/game/%d'
         , regex => qr{(?:www\.)?freem\.ne\.jp/win/game/$int}
         },
+    gamefaqs_comp =>
+        { ent   => 'p'
+        , label => 'GameFAQs'
+        , fmt   => 'https://gamefaqs.gamespot.com/company/%d-'
+        , regex => qr{(?:www\.)?gamefaqs\.gamespot\.com/(?:games/)?company/$int-.*}
+        },
     gamejolt =>
         { ent   => 'r'
         , label => 'Game Jolt'
@@ -234,7 +240,7 @@ our %LINKS = (
         , regex => qr{(?:www\.)?imdb\.com/name/nm$int(?:[?/].*)?}
         },
     instagram =>
-        { ent   => 's'
+        { ent   => 'sp'
         , label => 'Instagram'
         , fmt   => 'https://www.instagram.com/%s/'
         , regex => qr{(?:www\.)?instagram\.com/([^/?]+)(?:[?/].*)?}
@@ -245,6 +251,12 @@ our %LINKS = (
         , fmt   => 'https://%s'
         , regex => qr{([a-z0-9_-]+\.itch\.io/[a-z0-9_-]+)}
         , patt  => 'https://<artist>.itch.io/<product>'
+        },
+    itch_dev =>
+        { ent   => 'p'
+        , label => 'Itch.io'
+        , fmt   => 'https://%s.itch.io/'
+        , regex => qr{([a-z0-9_-]+)\.itch\.io/.*}
         },
     jastusa =>
         { ent   => 'r'
@@ -292,6 +304,12 @@ our %LINKS = (
         , fmt   => 'https://www.mobygames.com/person/%d'
         , regex => qr{(?:www\.)?mobygames\.com/person/$int(?:[?/].*)?}
         },
+    mobygames_comp =>
+        { ent   => 'p'
+        , label => 'MobyGames'
+        , fmt   => 'https://www.mobygames.com/company/%d'
+        , regex => qr{(?:www\.)?mobygames\.com/company/$int(?:[?/].*)?}
+        },
     nintendo =>
         { ent   => 'r'
         , label => 'Nintendo'
@@ -324,7 +342,7 @@ our %LINKS = (
         , regex => qr{(?:www\.)?nutaku\.net/games/(?:mobile/|download/|app/)?([a-z0-9-]+)/?}
         },
     patreon =>
-        { ent   => 'rs'
+        { ent   => 'rsp'
         , label => 'Patreon'
         , fmt   => 'https://www.patreon.com/%s'
         , regex => qr{(?:www\.)?patreon\.com/(?:c/)?(?!user[\?/]|posts[\?/]|join[\?/])([^/?]+).*}
@@ -336,7 +354,7 @@ our %LINKS = (
         , regex => qr{(?:www\.)?patreon\.com/posts/(?:[^/?]+-)?$int.*}
         },
     pixiv =>
-        { ent   => 's'
+        { ent   => 'sp'
         , label => 'Pixiv'
         , fmt   => 'https://www.pixiv.net/member.php?id=%d'
         , regex => qr{www\.pixiv\.net/(?:member\.php\?id=|en/users/|users/)$int}
@@ -371,7 +389,7 @@ our %LINKS = (
         , fmt   => 'https://renai.us/game/%s'
         },
     scloud =>
-        { ent   => 's'
+        { ent   => 'sp'
         , label => 'SoundCloud'
         , fmt   => 'https://soundcloud.com/%s'
         , regex => qr{soundcloud\.com/([a-z0-9-]+)}
@@ -384,7 +402,7 @@ our %LINKS = (
         , regex => qr{(?:www\.)?(?:store\.steampowered\.com/app/$int(?:/.*)?|steamcommunity\.com/(?:app|games)/$int(?:/.*)?|steamdb\.info/app/$int(?:/.*)?)}
         },
     substar =>
-        { ent   => 'rs'
+        { ent   => 'rsp'
         , label => 'SubscribeStar'
         , fmt   => 'https://subscribestar.%s'
         , regex => qr{(?:www\.)?subscribestar\.((?:adult|com)/[^/?]+).*}
@@ -406,7 +424,7 @@ our %LINKS = (
         , regex => qr{([a-z0-9-]+)\.tumblr\.com/.*}
         },
     twitter =>
-        { ent   => 's',
+        { ent   => 'sp',
         , label => 'Xitter'
         , fmt   => 'https://x.com/%s'
         , regex => qr{(?:(?:www\.)?(?:x|twitter)\.com|nitter\.[^/]+)/([^?\/ ]{1,16})(?:[?/].*)?}
@@ -440,7 +458,7 @@ our %LINKS = (
         , fmt => 'https://en.wikipedia.org/wiki/%s'
         },
     youtube =>
-        { ent   => 's'
+        { ent   => 'sp'
         , label => 'Youtube'
         # There's also /user/<name> syntax, but <name> may be different in this form *sigh*.
         , fmt   => 'https://www.youtube.com/@%s'
@@ -662,10 +680,16 @@ sub enrich_vislinks($type, $enabled, @obj) {
         w 'enwiki';
         w 'jawiki';
         l 'wikidata';
-        w 'twitter';
-        w 'mobygames_company';
-        w 'gamefaqs_company';
-        w 'soundcloud';
+        l 'twitter';          w 'twitter'            if !$o->{_l}{twitter};
+        l 'pixiv';            w 'pixiv_user'         if !$o->{_l}{pixiv};
+        l 'mobygames_comp';   w 'mobygames_company'  if !$o->{_l}{mobygames_comp};
+        l 'gamefaqs_comp';    w 'gamefaqs_company'   if !$o->{_l}{gamefaqs_comp};
+        l 'scloud';           w 'soundcloud'         if !$o->{_l}{scloud};
+        l 'patreon';
+        l 'substar';
+        l 'youtube';
+        l 'instagram';
+        l 'itch_dev';
         c 'vnstat', 'VNStat', $o->{id} =~ s/^.//r, sprintf 'https://vnstat.net/developer/%d', $o->{id} =~ s/^.//r;
     }
 
