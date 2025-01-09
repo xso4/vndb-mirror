@@ -468,6 +468,7 @@ sub write_extlinks {
     }
     links release => 'r';
     links staff => 's';
+    links producer => 'p';
 
     write_module ExtLinks => $data;
 }

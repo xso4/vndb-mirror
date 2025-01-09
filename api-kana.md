@@ -1004,6 +1004,9 @@ Name                [F]   Description
 `lang`                    Language.
 
 `type`                    Producer type, see the `type` field below.
+
+`extlink`           m     Match on external links, works similar to the `extlink`
+                          filter for [releases](#release-filters).
 -----------------------------------------------------------------------------
 
 ### Fields {#producer-fields}
@@ -1030,7 +1033,11 @@ type
 description
 :   String, possibly null, may contain [formatting codes](https://vndb.org/d9#4).
 
-*Missing: External links, relations.*
+extlinks
+:   Array, links to external websites. Works the same as the 'extlinks'
+    [release field](#release-fields).
+
+*Missing: relations.*
 
 
 ## POST /character
@@ -1236,7 +1243,7 @@ Name                [F]   Description
                           particular visual novel.  Otherwise, this matches the
                           `role` of any linked visual novel.
 
-`extlink`           m     Match on external links, works similar to the `exlink`
+`extlink`           m     Match on external links, works similar to the `extlink`
                           filter for [releases](#release-filters).
 
 `ismain`                  Only accepts a single value, integer `1`.
@@ -1779,6 +1786,10 @@ bias in its selection due to the presence of id gaps, but you most likely don't
 need perfect uniform random selection anyway.
 
 # Change Log
+
+**2025-01-09**
+
+- Add `extlink` filter and `extlinks` field to [POST /producer](#post-producer).
 
 **2025-01-07**
 

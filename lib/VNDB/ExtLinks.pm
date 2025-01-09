@@ -561,7 +561,7 @@ sub enrich_vislinks($type, $enabled, @obj) {
     my @ids_ne = grep !$ids{$_}{extlinks}, @ids;
     for my $s (@ids_ne ? $TUWF::OBJ->dbAlli('
         SELECT e.id, l.site, l.value, l.data, l.price
-          FROM', {qw/r releases_extlinks  s staff_extlinks/}->{$type}, 'e
+          FROM', {qw/r releases_extlinks  s staff_extlinks  p producers_extlinks/}->{$type}, 'e
           JOIN extlinks l ON l.id = e.link
          WHERE e.id IN', \@ids_ne
     )->@* : ()) {

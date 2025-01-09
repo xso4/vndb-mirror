@@ -497,6 +497,7 @@ api_get '/schema', {}, sub {
             '/vn'      => el('v'),
             '/release' => el('r'),
             '/staff'   => el('s'),
+            '/producer'=> el('p'),
         },
     }
 };
@@ -911,6 +912,7 @@ api_query '/producer',
         lang     => { select => 'p.lang' },
         type     => { select => 'p.type' },
         description => { select => 'p.description', @NSTR },
+        extlinks => { extlinks => 'p' },
     },
     sort => [
         id       => 'p.id',
