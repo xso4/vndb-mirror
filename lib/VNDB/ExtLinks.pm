@@ -103,6 +103,12 @@ our %LINKS = (
         , fmt   => 'https://bgm.tv/person/%d'
         , regex => qr{(?:www\.)?(?:bgm|bangumi)\.tv/person/$int(?:[?/].*)?}
         },
+    boosty =>
+        { ent   => 'sp'
+        , label => 'Boosty'
+        , fmt   => 'https://boosty.to/%s'
+        , regex => qr{boosty\.to/([a-z0-9_.]+)/?}
+        },
     booth =>
         { ent   => 'r'
         , label => 'BOOTH'
@@ -144,9 +150,9 @@ our %LINKS = (
         , patt  => 'https://www.dlsite.com/<store>/work/=/product_id/<VJ or RJ-code>'
         },
     dlsiteen => # Deprecated, stores have been merged.
-        { ent => 'r'
+        { ent   => 'r'
         , label => 'DLsite (eng)'
-        , fmt => 'https://www.dlsite.com/eng/work/=/product_id/%s.html'
+        , fmt   => 'https://www.dlsite.com/eng/work/=/product_id/%s.html'
         },
     dmm =>
         { ent   => 'R'
@@ -168,9 +174,15 @@ our %LINKS = (
         , regex => qr{erogamescape\.dyndns\.org/~ap2/ero/toukei_kaiseki/(?:before_)?creater\.php\?(?:.*&)?creater=$int(?:&.*)?}
         },
     erotrail => # Deprecated, site has been unavailable since early 2022.
-        { ent => 'r'
+        { ent   => 'r'
         , label => 'ErogeTrailers'
-        , fmt => 'http://erogetrailers.com/soft/%d'
+        , fmt   => 'http://erogetrailers.com/soft/%d'
+        },
+    facebook =>
+        { ent   => 'sp'
+        , label => 'Facebook'
+        , fmt   => 'https://www.facebook.com/%s'
+        , regex => qr{(?:www\.)?facebook\.com/([a-zA-Z0-9.-]+)/?(:?\?.*)?},
         },
     fakku =>
         { ent   => 'r'
@@ -253,7 +265,7 @@ our %LINKS = (
         , patt  => 'https://<artist>.itch.io/<product>'
         },
     itch_dev =>
-        { ent   => 'p'
+        { ent   => 'sp'
         , label => 'Itch.io'
         , fmt   => 'https://%s.itch.io/'
         , regex => qr{([a-z0-9_-]+)\.itch\.io/.*}
@@ -272,6 +284,12 @@ our %LINKS = (
         , fmt   => 'https://www.jlist.com/shop/product/%s'
         , fmt2  => config->{jlist_url},
         , regex => qr{(?:www\.)?(?:jlist|jbox)\.com/shop/product/([^/#?]+).*}
+        },
+    kofi =>
+        { ent   => 's'
+        , label => 'Ko-fi'
+        , fmt   => 'https://ko-fi.com/%s'
+        , regex => qr{(?:www\.)?ko-fi\.com/([^/?]+)(?:[?/].*)?}
         },
     mbrainz =>
         { ent   => 's'
@@ -434,6 +452,12 @@ our %LINKS = (
         , label => 'VGMdb'
         , fmt   => 'https://vgmdb.net/artist/%d'
         , regex => qr{vgmdb\.net/artist/$int}
+        },
+    vk =>
+        { ent   => 'sp'
+        , label => 'VK'
+        , fmt   => 'https://vk.com/%s'
+        , regex => qr{vk\.com/([a-zA-Z0-9_.]+)}
         },
     vndb =>
         { ent   => 's'
@@ -669,10 +693,15 @@ sub enrich_vislinks($type, $enabled, @obj) {
         l 'anison';
         l 'patreon';
         l 'substar';
+        l 'kofi';
+        l 'boosty';
         l 'youtube';
         l 'instagram';
         l 'deviantar';
+        l 'facebook';
         l 'tumblr';
+        l 'vk';
+        l 'itch_dev';
     }
 
     for ($type eq 'p' ? @obj : ()) {$o=$_;
@@ -687,8 +716,11 @@ sub enrich_vislinks($type, $enabled, @obj) {
         l 'scloud';           w 'soundcloud'         if !$o->{_l}{scloud};
         l 'patreon';
         l 'substar';
+        l 'boosty';
         l 'youtube';
         l 'instagram';
+        l 'facebook';
+        l 'vk';
         l 'itch_dev';
         c 'vnstat', 'VNStat', $o->{id} =~ s/^.//r, sprintf 'https://vnstat.net/developer/%d', $o->{id} =~ s/^.//r;
     }
