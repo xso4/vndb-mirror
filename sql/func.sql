@@ -494,8 +494,9 @@ END; $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION update_extlinks_cache(int) RETURNS void AS $$
 BEGIN
   WITH ref(id, ref) AS (
-    SELECT id, EXISTS(SELECT 1 FROM releases_extlinks e JOIN releases r ON r.id = e.id WHERE NOT r.hidden AND e.c_site = l.site AND e.link = l.id)
-            OR EXISTS(SELECT 1 FROM staff_extlinks    e JOIN staff    s ON s.id = e.id WHERE NOT s.hidden AND e.c_site = l.site AND e.link = l.id)
+    SELECT id, EXISTS(SELECT 1 FROM releases_extlinks  e JOIN releases  r ON r.id = e.id WHERE NOT r.hidden AND e.c_site = l.site AND e.link = l.id)
+            OR EXISTS(SELECT 1 FROM staff_extlinks     e JOIN staff     s ON s.id = e.id WHERE NOT s.hidden AND e.c_site = l.site AND e.link = l.id)
+            OR EXISTS(SELECT 1 FROM producers_extlinks e JOIN producers p ON p.id = e.id WHERE NOT p.hidden AND e.c_site = l.site AND e.link = l.id)
       FROM extlinks l
      WHERE $1 IS NULL OR id = $1
   ) UPDATE extlinks SET c_ref = ref FROM ref WHERE extlinks.id = ref.id AND c_ref <> ref;
