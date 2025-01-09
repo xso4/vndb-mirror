@@ -83,7 +83,7 @@ TUWF::get qr{/g/links}, sub {
           LEFT JOIN users u ON u.id = tv.uid
           JOIN tags t ON t.id = tv.tag
          WHERE', $where, '
-         ORDER BY', { date => 'tv.date', tag => 't.name' }->{$opt->{s}}, { a => 'ASC', d => 'DESC' }->{$opt->{o}}
+         ORDER BY', sprintf { date => 'tv.date %s, tv.vid, tv.tag', tag => 't.name %s, tv.vid, tv.uid' }->{$opt->{s}}, { a => 'ASC', d => 'DESC' }->{$opt->{o}}
     );
     $np = [ $count, 50 ] if $count;
 
