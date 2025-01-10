@@ -922,6 +922,10 @@ BEGIN
   THEN
     PERFORM update_extlinks_cache(link) FROM staff_extlinks_hist WHERE chid IN(xoldchid,nchid);
   END IF;
+  IF vndbid_type(nitemid) = 'p'
+  THEN
+    PERFORM update_extlinks_cache(link) FROM producers_extlinks_hist WHERE chid IN(xoldchid,nchid);
+  END IF;
 
   -- Call update_images_cache() where appropriate
   IF vndbid_type(nitemid) = 'c'
