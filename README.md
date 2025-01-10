@@ -2,7 +2,7 @@
 
 ## How to contribute
 
-First, a warning: VNDB's code base is a ~~little~~ *very* weird when compared
+First, a warning: VNDB's code base is slightly unusual when compared
 to many other web projects, don't expect to be productive very fast or
 solutions to be very obvious. This is by design; VNDB's code is optimized so
 that **I** can reason about its reliability and performance while being
