@@ -410,7 +410,7 @@ our %LINKS = (
         { ent   => 'sp'
         , label => 'SoundCloud'
         , fmt   => 'https://soundcloud.com/%s'
-        , regex => qr{soundcloud\.com/([a-z0-9-]+)}
+        , regex => qr{soundcloud\.com/([a-z0-9_-]+)}
         },
     steam =>
         { ent   => 'r'
