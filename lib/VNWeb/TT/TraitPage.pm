@@ -103,7 +103,7 @@ sub chars_ {
     db_maytimeout {
         $count = tuwf->dbVali('SELECT count(*) FROM chars c JOIN traits_chars tc ON tc.cid = c.id WHERE', $where);
         $list = $count ? tuwf->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
-            SELECT c.id, c.title, c.sex, c.image
+            SELECT c.id, c.title, c.sex, c.gender, c.image
               FROM', charst, 'c
               JOIN traits_chars tc ON tc.cid = c.id
              WHERE', $where, '
