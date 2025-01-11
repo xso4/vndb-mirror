@@ -30,7 +30,6 @@ TUWF::get qr{/$RE{prev}/edit} => sub {
     $e->{editsum} = $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
 
     enrich_merge pid => sql('SELECT id AS pid, title[1+1] AS name FROM', producerst, 'p WHERE id IN'), $e->{relations};
-    VNDB::ExtLinks::enrich $e;
 
     my $title = titleprefs_swap @{$e}{qw/ lang name latin /};
     framework_ title => "Edit $title->[1]", dbobj => $e, tab => 'edit',

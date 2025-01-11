@@ -15,7 +15,6 @@ sub enrich_item {
     enrich_merge rid => sql('SELECT id AS rid, title, sorttitle, released, hidden FROM', releasest, 'r WHERE id IN'), $r->{supersedes};
     enrich lang => rid => id => sub { sql('SELECT id, lang, mtl FROM releases_titles WHERE id IN', $_, 'ORDER BY lang') }, $r->{supersedes};
     enrich_image_obj img => $r->{images};
-    VNDB::ExtLinks::enrich $r;
 
     $r->{titles}    = [ sort { ($b->{lang} eq $r->{olang}) cmp ($a->{lang} eq $r->{olang}) || ($a->{mtl}?1:0) <=> ($b->{mtl}?1:0) || $a->{lang} cmp $b->{lang} } $r->{titles}->@* ];
     $r->{platforms} = [ sort map $_->{platform}, $r->{platforms}->@* ];

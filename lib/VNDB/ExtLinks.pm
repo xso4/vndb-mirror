@@ -571,15 +571,17 @@ sub enrich_vislinks($type, $enabled, @obj) {
 
     return enrich_vislinks_old $type, $enabled, @obj if $type =~ /v/;
 
-    my %l_ids;
+    my @w_ids;
     my %ids = map {
         my $o = $_;
         $o->{vislinks} = [];
-        push $l_ids{$_->{link}}->@*, $o for $o->{extlinks} ? $o->{extlinks}->@* : ();
+        for ($o->{extlinks} ? $o->{extlinks}->@* : ()) {
+            push $o->{_l}{$_->{site}}->@*, $_;
+            push @w_ids, $_->{value} if $_->{site} eq 'wikidata';
+        }
         +($o->{id}, $_)
     } @obj;
     my @ids = keys %ids;
-    my @w_ids;
 
     # Fetch extlinks for objects that do not already have an 'extlinks' field
     my @ids_ne = grep !$ids{$_}{extlinks}, @ids;
@@ -590,12 +592,6 @@ sub enrich_vislinks($type, $enabled, @obj) {
          WHERE e.id IN', \@ids_ne
     )->@* : ()) {
         push $ids{$s->{id}}{_l}{$s->{site}}->@*, $s;
-        push @w_ids, $s->{value} if $s->{site} eq 'wikidata';
-    }
-
-    # Enrich and transform extlinks for objects that do
-    for my $s (keys %l_ids ? $TUWF::OBJ->dbAlli('SELECT id, site, value, data, price FROM extlinks WHERE id IN', [ keys %l_ids ])->@* : ()) {
-        push $_->{_l}{$s->{site}}->@*, $s for $l_ids{$s->{id}}->@*;
         push @w_ids, $s->{value} if $s->{site} eq 'wikidata';
     }
 
@@ -740,13 +736,6 @@ our $REVISION = [
 ];
 
 
-# Enrich & sort an entry's extlinks for the purpose of $REVISION and edit forms.
-sub enrich($obj) {
-    VNWeb::DB::enrich_merge(link => 'SELECT id AS link, site, value FROM extlinks WHERE id IN', $obj->{extlinks});
-    $obj->{extlinks} = [ sort { $a->{site} cmp $b->{site} || $a->{value} cmp $b->{value} } $obj->{extlinks}->@* ];
-}
-
-
 # For use in conjuction with the 'extlinks' validation. Converts the extlinks
 # in $new to a format suitable for the entry's extlinks table.
 # Sites without a regex can't be edited through the form and are thus copied
@@ -755,7 +744,6 @@ sub normalize($old, $new) {
     $old->{extlinks} ||= [];
     $new->{extlinks} = [ grep $_->{site} eq 'website' || $LINKS{$_->{site}}{regex}, $new->{extlinks}->@* ];
 
-    VNWeb::DB::enrich_merge(link => 'SELECT id AS link, site, value FROM extlinks WHERE id IN', $old->{extlinks});
     my %link2id = map +("$_->{site} $_->{value}", $_->{id}), $old->{extlinks}->@*;
 
     # Don't use INSERT .. ON CONFLICT here, that will increment the sequence even when the link already exists.

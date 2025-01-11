@@ -9,7 +9,6 @@ sub enrich_item {
     my($p) = @_;
     enrich_vislinks p => 0, $p;
     enrich_merge pid => sql('SELECT id AS pid, title, sorttitle FROM', producerst, 'p WHERE id IN'), $p->{relations};
-    VNDB::ExtLinks::enrich $p;
     $p->{relations} = [ sort { $a->{sorttitle} cmp $b->{sorttitle} || idcmp($a->{pid}, $b->{pid}) } $p->{relations}->@* ];
 }
 

@@ -40,7 +40,6 @@ TUWF::get qr{/$RE{srev}/edit} => sub {
     )->@* if $e->{chrev} != $e->{maxrev};
 
     $e->{alias} = [ sort { ($a->{latin}//$a->{name}) cmp ($b->{latin}//$b->{name}) } $e->{alias}->@* ];
-    VNDB::ExtLinks::enrich $e;
 
     my $name = titleprefs_swap($e->{lang}, @{ (grep $_->{aid} == $e->{main}, @{$e->{alias}})[0] }{qw/ name latin /})->[1];
     framework_ title => "Edit $name", dbobj => $e, tab => 'edit',

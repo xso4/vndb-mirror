@@ -274,6 +274,15 @@ my $entry_types = do {
 };
 
 
+# Automatically enrich selected tables, arg is: [ $select, $joins, $orderby ]
+# (Enriching the main entry's table is not yet supported, just data tables for now)
+my %enrich = (
+    staff_extlinks     => [ 'l.site, l.value, l.data, l.price', 'JOIN extlinks l ON l.id = x.link', 'l.site, l.value' ],
+    releases_extlinks  => [ 'l.site, l.value, l.data, l.price', 'JOIN extlinks l ON l.id = x.link', 'l.site, l.value' ],
+    producers_extlinks => [ 'l.site, l.value, l.data, l.price', 'JOIN extlinks l ON l.id = x.link', 'l.site, l.value' ],
+);
+
+
 # Returns everything for a specific entry ID. The top-level hash also includes
 # the following keys:
 #
@@ -296,19 +305,24 @@ sub db_entry {
     # Fetch data from the main entry tables if rev == maxrev, from the _hist
     # tables otherwise. This should improve caching a bit.
     my sub data_table {
-        $entry->{chrev} == $entry->{maxrev} ? sql $_[0] =~ s/_hist$//r, 'WHERE id =', \$id
-                                            : sql $_[0], 'WHERE chid =', \$entry->{chid}
+        $entry->{chrev} == $entry->{maxrev} ? sql $_[0] =~ s/_hist$//r, 'x', $_[1], 'WHERE x.id =', \$id
+                                            : sql $_[0], 'x', $_[1], 'WHERE x.chid =', \$entry->{chid}
     }
 
     %$entry = (%$entry, tuwf->dbRowi(
         SELECT => sql_comma(map $_->{name}, grep $_->{name} ne 'chid', $t->{base}{cols}->@*),
-        FROM   => data_table $t->{base}{name}
+        FROM   => data_table $t->{base}{name}, ''
     )->%*);
 
     while(my($name, $tbl) = each $t->{tables}->%*) {
+        my $enrich = $enrich{ $tbl->{name} =~ s/_hist$//r } || [];
         $entry->{$name} = tuwf->dbAlli(
-            SELECT => sql_comma(map $_->{name}.($_->{type} eq 'language[]' ? '::text[]' : ''), grep $_->{name} ne 'chid', $tbl->{cols}->@*),
-            FROM   => data_table($tbl->{name}),
+            SELECT => sql_comma(
+                (map 'x.'.$_->{name}.($_->{type} eq 'language[]' ? '::text[]' : ''), grep $_->{name} ne 'chid', $tbl->{cols}->@*),
+                $enrich->[0] || (),
+            ),
+            FROM   => data_table($tbl->{name}, $enrich->[1] || ''),
+            $enrich->[2] ? ('ORDER BY', $enrich->[2]) : (),
         );
     }
     $entry
