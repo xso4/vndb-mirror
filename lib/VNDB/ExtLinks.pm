@@ -268,7 +268,7 @@ our %LINKS = (
         { ent   => 'sp'
         , label => 'Itch.io'
         , fmt   => 'https://%s.itch.io/'
-        , regex => qr{([a-z0-9_-]+)\.itch\.io/.*}
+        , regex => qr{(?:([a-z0-9_-]+)\.itch\.io/.*|itch\.io/profile/([a-z0-9_-]+))}
         },
     jastusa =>
         { ent   => 'r'
