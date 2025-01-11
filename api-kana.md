@@ -1063,6 +1063,12 @@ Name                [F]   Description
 
 `sex`                     String.
 
+`sex_spoil`               String.
+
+`gender`                  String.
+
+`gender_spoil`            String.
+
 `height`            o,n,i Integer, cm.
 
 `weight`            o,n,i Integer, kg.
@@ -1189,7 +1195,7 @@ traits.lie
 traits.\*
 :   All [trait fields](#trait-fields) are available here.
 
-*Missing: instances, voice actor*
+*Missing: gender, instances, voice actor*
 
 
 ## POST /staff
@@ -1786,6 +1792,10 @@ bias in its selection due to the presence of id gaps, but you most likely don't
 need perfect uniform random selection anyway.
 
 # Change Log
+
+**2025-01-11**
+
+- Add `gender` and `gender_spoil` filters to [POST /character](#post-character).
 
 **2025-01-09**
 

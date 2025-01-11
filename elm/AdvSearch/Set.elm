@@ -322,6 +322,46 @@ sexView (spoil,model) =
 
 
 
+-- Character gender
+
+type alias CGenModel = (Bool, Model String)
+
+type CGenMsg = CGenSpoil | CGenSel (Msg String)
+
+cgenInit spoil dat = init dat |> Tuple.mapSecond (\m -> (spoil,m))
+
+cgenFromQuery spoil dat qf = Maybe.map (Tuple.mapSecond (\m -> (spoil,m))) <| fromQuery (\q ->
+  case (spoil, q) of
+    (False, QStr 16 op v) -> Just (op, v)
+    (True,  QStr 17 op v) -> Just (op, v)
+    _ -> Nothing) dat qf
+
+cgenUpdate msg (spoil,model) =
+  case msg of
+    CGenSpoil -> (not spoil, model)
+    CGenSel m -> (spoil, update m model)
+
+cgenView (spoil,model) =
+  ( case Set.toList model.sel of
+      []  -> small [] [ text "Gender" ]
+      [v] -> span [ class "nowrap" ] [ lblPrefix model, text <| "Gender: " ++ Maybe.withDefault "" (lookup v GT.charGender) ]
+      l   -> span [] [ lblPrefix model, text <| "Gender (" ++ String.fromInt (List.length l) ++ ")" ]
+  , \() ->
+    [ div [ class "advheader", style "width" "280px" ]
+      [ h3 [] [ text "Gender" ]
+      , div [ class "opts" ]
+        [ Html.map CGenSel (optsMode model False True)
+        , a [ href "#", onClickD CGenSpoil ] [ text <| if spoil then "spoilers" else "no spoilers" ]
+        , linkRadio model.neg (CGenSel << Neg) [ text "invert" ]
+        ]
+      ]
+    , ul [] <| List.map (\(l,t) -> li [] [ linkRadio (Set.member l model.sel) (CGenSel << Sel l) [ text t ] ]) GT.charGender
+    ]
+  )
+
+
+
+
 -- Staff gender
 
 genderView model =

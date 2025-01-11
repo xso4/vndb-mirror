@@ -301,6 +301,7 @@ type FieldModel
   | FMRole       (AS.Model String)
   | FMBlood      (AS.Model String)
   | FMSex        (AS.SexModel)
+  | FMCGen       (AS.CGenModel)
   | FMGender     (AS.Model String)
   | FMMedium     (AS.Model String)
   | FMVoiced     (AS.Model Int)
@@ -350,6 +351,7 @@ type FieldMsg
   | FSRole       (AS.Msg String)
   | FSBlood      (AS.Msg String)
   | FSSex        AS.SexMsg
+  | FSCGen       AS.CGenMsg
   | FSGender     (AS.Msg String)
   | FSMedium     (AS.Msg String)
   | FSVoiced     (AS.Msg Int)
@@ -499,6 +501,8 @@ fields =
   , f C "Birthday"           0  FMBirthday    AB.init                 AB.fromQuery
   , f C "Sex"                2  FMSex         (AS.sexInit False)      (AS.sexFromQuery False)
   , f C ""                   0  FMSex         (AS.sexInit True)       (AS.sexFromQuery True)
+  , f C "Gender"             0  FMCGen        (AS.cgenInit False)     (AS.cgenFromQuery False)
+  , f C ""                   0  FMCGen        (AS.cgenInit True)      (AS.cgenFromQuery True)
   , f C "Traits"             3  FMTrait       AI.init                 (AI.fromQuery -1 True False)
   , f C ""                   0  FMTrait       AI.init                 (AI.fromQuery 0 True False)
   , f C ""                   0  FMTrait       AI.init                 (AI.fromQuery 1 True False)
@@ -588,6 +592,7 @@ fieldUpdate dat msg_ (num, dd, model) =
       (FSRole msg,     FMRole m)     -> maps FMRole     (AS.update msg m)
       (FSBlood msg,    FMBlood m)    -> maps FMBlood    (AS.update msg m)
       (FSSex msg,      FMSex m)      -> maps FMSex      (AS.sexUpdate msg m)
+      (FSCGen msg,     FMCGen m)     -> maps FMCGen     (AS.cgenUpdate msg m)
       (FSGender msg,   FMGender m)   -> maps FMGender   (AS.update msg m)
       (FSMedium msg,   FMMedium m)   -> maps FMMedium   (AS.update msg m)
       (FSVoiced msg,   FMVoiced m)   -> maps FMVoiced   (AS.update msg m)
@@ -660,6 +665,7 @@ fieldView dat (_, dd, model) =
       FMRole m       -> f FSRole       (AS.roleView m)
       FMBlood m      -> f FSBlood      (AS.bloodView m)
       FMSex m        -> f FSSex        (AS.sexView m)
+      FMCGen m       -> f FSCGen       (AS.cgenView m)
       FMGender m     -> f FSGender     (AS.genderView m)
       FMMedium m     -> f FSMedium     (AS.mediumView m)
       FMVoiced m     -> f FSVoiced     (AS.voicedView m)
@@ -713,6 +719,7 @@ fieldToQuery dat (_, _, model) =
     FMRole m     -> AS.toQuery (QStr 2) m
     FMBlood m    -> AS.toQuery (QStr 3) m
     FMSex (s,m)  -> AS.toQuery (QStr (if s then 5 else 4)) m
+    FMCGen (s,m) -> AS.toQuery (QStr (if s then 17 else 16)) m
     FMGender m   -> AS.toQuery (QStr 4) m
     FMMedium m   -> AS.toQuery (QStr 11) m
     FMVoiced m   -> AS.toQuery (QInt 12) m

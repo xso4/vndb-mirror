@@ -414,6 +414,13 @@ f c =>  2 => 'role',       { enum => \%CHAR_ROLE  }, '=' => sub { $#TYPE && $TYP
 f c =>  3 => 'blood_type', { enum => \%BLOOD_TYPE }, '=' => sub { sql 'c.bloodt =', \$_ };
 f c =>  4 => 'sex',        { default => '', func => sub { $_[0] = '' if $_[0] eq 'unknown'; 1 }, enum => {%CHAR_SEX, unknown => 1} }, '=' => sub { sql 'c.sex =', \$_ };
 f c =>  5 => 'sex_spoil',  { default => '', func => sub { $_[0] = '' if $_[0] eq 'unknown'; 1 }, enum => {%CHAR_SEX, unknown => 1} }, '=' => sub { sql '(c.sex =', \$_, 'AND c.spoil_sex IS NULL) OR c.spoil_sex IS NOT DISTINCT FROM', \$_ };
+f c => 16 => 'gender',     { default => '', func => sub { $_[0] = '' if $_[0] eq 'unknown'; 1 }, enum => {%CHAR_GENDER, unknown => 1} },
+    '=' => sub { sql 'c.gender =', \$_, /^(|m|f)$/ ? ('OR (c.gender IS NULL AND c.sex =', \$_, ')') : () };
+f c => 17 => 'gender_spoil',{default => '', func => sub { $_[0] = '' if $_[0] eq 'unknown'; 1 }, enum => {%CHAR_GENDER, unknown => 1} }, '=' => sub { sql_or
+        sql('c.gender =', \$_, 'AND c.spoil_gender IS NULL'),
+        sql('c.spoil_gender =', \$_),
+        /^(|m|f)$/ ? sql('c.spoil_gender IS NULL AND c.gender IS NULL AND (c.spoil_sex =', \$_, 'OR (c.spoil_sex IS NULL AND c.sex =', \$_, '))') : (),
+    };
 f c =>  6 => 'height',     { default => undef, uint => 1, max => 32767 },
     sql => sub { !defined $_ ? sql 'c.height', $_[0], 0 : sql 'c.height <> 0 AND c.height', $_[0], \$_ };
 f c =>  7 => 'weight',     { default => undef, uint => 1, max => 32767 },
