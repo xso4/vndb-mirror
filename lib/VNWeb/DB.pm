@@ -277,9 +277,42 @@ my $entry_types = do {
 # Automatically enrich selected tables, arg is: [ $select, $joins, $orderby ]
 # (Enriching the main entry's table is not yet supported, just data tables for now)
 my %enrich = (
-    staff_extlinks     => [ 'l.site, l.value, l.data, l.price', 'JOIN extlinks l ON l.id = x.link', 'l.site, l.value' ],
-    releases_extlinks  => [ 'l.site, l.value, l.data, l.price', 'JOIN extlinks l ON l.id = x.link', 'l.site, l.value' ],
-    producers_extlinks => [ 'l.site, l.value, l.data, l.price', 'JOIN extlinks l ON l.id = x.link', 'l.site, l.value' ],
+    releases_extlinks   => [ 'l.site, l.value, l.data, l.price', 'JOIN extlinks l ON l.id = x.link', 'l.site, l.value' ],
+    producers_extlinks  => [ 'l.site, l.value, l.data, l.price', 'JOIN extlinks l ON l.id = x.link', 'l.site, l.value' ],
+    staff_extlinks      => [ 'l.site, l.value, l.data, l.price', 'JOIN extlinks l ON l.id = x.link', 'l.site, l.value' ],
+
+    chars_vns           => [
+        'v.title, r.title AS rtitle',
+        sub { sql 'JOIN', VNWeb::TitlePrefs::vnt(), 'v ON v.id = x.vid LEFT JOIN', VNWeb::TitlePrefs::releasest(), 'r ON r.id = x.rid' },
+        'v.c_released, v.sorttitle, r.released, x.vid, x.rid' ],
+
+    staff_alias         => [ undef, undef, 'x.aid' ],
+
+    releases_producers  => [ 'p.title', sub { sql('JOIN', VNWeb::TitlePrefs::producerst(), 'p ON p.id = x.pid') }, 'p.sorttitle, x.pid' ],
+    releases_vn         => [ 'v.title', sub { sql('JOIN', VNWeb::TitlePrefs::vnt(), 'v ON v.id = x.vid') }, 'v.sorttitle, x.vid' ],
+    releases_supersedes => [ 'r.title, r.released, r.hidden', sub { sql('JOIN', VNWeb::TitlePrefs::releasest(), 'r ON r.id = x.rid') }, 'r.released, x.rid' ],
+    releases_drm        => [ 'd.name, '.join(',', keys %VNDB::Types::DRM_PROPERTY), 'JOIN drm d ON d.id = x.drm', 'x.drm <> 0, d.name' ],
+    releases_media      => [ undef, undef, 'x.medium, x.qty' ],
+    releases_titles     => [ undef, undef, 'x.lang' ],
+    releases_images     => [ undef, undef, 'x.itype, x.lang, x.vid, x.img' ],
+    releases_platforms  => [ undef, undef, 'x.platform' ],
+
+    vn_anime            => [ 'a.title_romaji, a.title_kanji, a.year, a.type, a.ann_id, a.lastfetch', 'JOIN anime a ON a.id = x.aid', 'a.year, a.title_romaji, x.aid' ],
+    vn_staff            => [ 's.id AS sid, s.title', sub { sql 'LEFT JOIN', VNWeb::TitlePrefs::staff_aliast(), 's ON s.aid = x.aid' }, 'x.eid NULLS FIRST, s.sorttitle, x.aid, x.role' ],
+    vn_seiyuu           => [
+        's.id AS sid, s.title, c.title AS char_title',
+        sub { sql 'LEFT JOIN', VNWeb::TitlePrefs::staff_aliast(), 's ON s.aid = x.aid JOIN', VNWeb::TitlePrefs::charst(), 'c ON c.id = x.cid' },
+        'x.aid, x.cid, x.note' ],
+    vn_screenshots      => [ undef, undef, 'x.scr' ],
+    vn_titles           => [ undef, undef, 'NOT x.official, x.lang' ],
+    vn_editions         => [ undef, undef, 'x.lang NULLS FIRST, NOT x.official, x.name' ],
+    vn_relations        => [ 'v.title, v.c_released', sub { sql 'JOIN', VNWeb::TitlePrefs::vnt(), 'v ON v.id = x.vid' }, 'NOT x.official, v.c_released, v.sorttitle, x.vid' ],
+
+    producers_relations => [ 'p.title', sub { sql('JOIN', VNWeb::TitlePrefs::producerst(), 'p ON p.id = x.pid') }, 'p.sorttitle, x.pid' ],
+
+    tags_parents        => [ 't.name', 'JOIN tags t ON t.id = x.parent', 't.name, x.parent' ],
+
+    traits_parents      => [ 't.name, g.name AS group', 'JOIN traits t ON t.id = x.parent LEFT JOIN traits g ON g.id = t.gid', 't.name, x.parent' ],
 );
 
 
@@ -305,8 +338,9 @@ sub db_entry {
     # Fetch data from the main entry tables if rev == maxrev, from the _hist
     # tables otherwise. This should improve caching a bit.
     my sub data_table {
-        $entry->{chrev} == $entry->{maxrev} ? sql $_[0] =~ s/_hist$//r, 'x', $_[1], 'WHERE x.id =', \$id
-                                            : sql $_[0], 'x', $_[1], 'WHERE x.chid =', \$entry->{chid}
+        my $join = ref $_[1] ? $_[1]->() : $_[1] || '';
+        $entry->{chrev} == $entry->{maxrev} ? sql $_[0] =~ s/_hist$//r, 'x', $join, 'WHERE x.id =', \$id
+                                            : sql $_[0], 'x', $join, 'WHERE x.chid =', \$entry->{chid}
     }
 
     %$entry = (%$entry, tuwf->dbRowi(
@@ -321,7 +355,7 @@ sub db_entry {
                 (map 'x.'.$_->{name}.($_->{type} eq 'language[]' ? '::text[]' : ''), grep $_->{name} ne 'chid', $tbl->{cols}->@*),
                 $enrich->[0] || (),
             ),
-            FROM   => data_table($tbl->{name}, $enrich->[1] || ''),
+            FROM   => data_table($tbl->{name}, $enrich->[1]),
             $enrich->[2] ? ('ORDER BY', $enrich->[2]) : (),
         );
     }

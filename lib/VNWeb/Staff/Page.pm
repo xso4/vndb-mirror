@@ -12,9 +12,6 @@ sub enrich_item {
         $_->{main} = $s->{main} == $_->{aid};
         $_->{title} = titleprefs_swap $s->{lang}, $_->{name}, $_->{latin};
     }
-
-    # Sort aliases by aid for more readable comparison at revisions.
-    $s->{alias} = [ sort { $a->{aid} <=> $b->{aid} } $s->{alias}->@* ];
 }
 
 

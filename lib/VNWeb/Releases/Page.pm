@@ -9,22 +9,11 @@ use VNWeb::Releases::Lib;
 sub enrich_item {
     my($r) = @_;
 
-    enrich_merge pid => sql('SELECT id AS pid, title, sorttitle FROM', producerst, 'p WHERE id IN'), $r->{producers};
-    enrich_merge vid => sql('SELECT id AS vid, title, sorttitle FROM', vnt, 'v WHERE id IN'), $r->{vn};
-    enrich_merge drm => sql('SELECT id AS drm, name,', sql_join(',', keys %DRM_PROPERTY), 'FROM drm WHERE id IN'), $r->{drm};
-    enrich_merge rid => sql('SELECT id AS rid, title, sorttitle, released, hidden FROM', releasest, 'r WHERE id IN'), $r->{supersedes};
     enrich lang => rid => id => sub { sql('SELECT id, lang, mtl FROM releases_titles WHERE id IN', $_, 'ORDER BY lang') }, $r->{supersedes};
     enrich_image_obj img => $r->{images};
 
     $r->{titles}    = [ sort { ($b->{lang} eq $r->{olang}) cmp ($a->{lang} eq $r->{olang}) || ($a->{mtl}?1:0) <=> ($b->{mtl}?1:0) || $a->{lang} cmp $b->{lang} } $r->{titles}->@* ];
-    $r->{platforms} = [ sort map $_->{platform}, $r->{platforms}->@* ];
-    $r->{vn}        = [ sort { $a->{sorttitle} cmp $b->{sorttitle} || idcmp($a->{vid}, $b->{vid}) } $r->{vn}->@*        ];
-    $r->{producers} = [ sort { $a->{sorttitle} cmp $b->{sorttitle} || idcmp($a->{pid}, $b->{pid}) } $r->{producers}->@* ];
-    $r->{media}     = [ sort { $a->{medium} cmp $b->{medium} || $a->{qty} <=> $b->{qty} } $r->{media}->@*     ];
-    $r->{drm}       = [ sort { !$a->{drm} || !$b->{drm} ? $b->{drm} <=> $a->{drm} : $a->{name} cmp $b->{name} } $r->{drm}->@* ];
-    $r->{supersedes}= [ sort { $a->{released} <=> $b->{released} || idcmp($a->{rid}, $b->{rid}) } $r->{supersedes}->@* ];
-    # TODO: Ensure 'images' has a stable order
-
+    $r->{platforms} = [ map $_->{platform}, $r->{platforms}->@* ];
     $r->{resolution} = resolution $r;
 }
 

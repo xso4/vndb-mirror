@@ -33,8 +33,6 @@ sub enrich_item {
     my($c) = @_;
 
     enrich_image_obj image => $c;
-    enrich_merge vid => sql('SELECT id AS vid, title, sorttitle, c_released AS vn_released FROM', vnt, 'v WHERE id IN'), $c->{vns};
-    enrich_merge rid => sql('SELECT id AS rid, title AS rtitle, released AS rel_released FROM', releasest, 'r WHERE id IN'), grep $_->{rid}, $c->{vns}->@*;
 
     # Even with trait overrides, we'll want to see the raw data in revision diffs,
     # so fetch the raw spoil as a separate column and do filtering/processing later.
@@ -47,8 +45,6 @@ sub enrich_item {
        WHERE t.id IN', $_
     }, $c->{traits};
 
-    $c->{vns}    = [ sort { $a->{vn_released} <=> $b->{vn_released} || ($a->{rel_released}||0) <=> ($b->{rel_released}||0)
-                          || $a->{sorttitle} cmp $b->{sorttitle} || idcmp($a->{vid}, $b->{vid}) || idcmp($a->{rid}||'r999999', $b->{rid}||'r999999') } $c->{vns}->@* ];
     $c->{traits} = [ sort { $a->{order} <=> $b->{order} || $a->{groupname} cmp $b->{groupname} || $a->{name} cmp $b->{name} } $c->{traits}->@* ];
 
     $c->{quotes} = tuwf->dbAlli('

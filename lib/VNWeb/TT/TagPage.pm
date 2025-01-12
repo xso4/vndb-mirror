@@ -10,12 +10,7 @@ use VNWeb::TT::Lib 'tree_', 'parents_';
 
 sub rev_ {
     my($t) = @_;
-    sub enrich_item {
-        enrich_merge parent => 'SELECT id AS parent, name FROM tags WHERE id IN', $_[0]{parents};
-        $_[0]{parents} = [ sort { $a->{name} cmp $b->{name} || $a->{parent} <=> $b->{parent} } $_[0]{parents}->@* ];
-    }
-    enrich_item $t;
-    revision_ $t, \&enrich_item,
+    revision_ $t, sub{},
         [ name         => 'Name'           ],
         [ alias        => 'Aliases'        ],
         [ cat          => 'Category',      fmt => \%TAG_CATEGORY ],

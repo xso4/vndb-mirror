@@ -75,7 +75,6 @@ TUWF::get qr{/$RE{crev}/(?<action>edit|copy)} => sub {
           WHERE', $copy ? 'NOT t.hidden AND t.applicable AND' : (), 't.id IN'), $e->{traits};
     $e->{traits} = [ sort { ($a->{order}//99) <=> ($b->{order}//99) || $a->{name} cmp $b->{name} } grep !$copy || $_->{applicable}, $e->{traits}->@* ];
 
-    $e->{vns} = [ sort { idcmp($a->{vid}, $b->{vid}) || idcmp($a->{rid}||'r0', $b->{rid}||'r0') } $e->{vns}->@* ];
     my %vns;
     $e->{vnstate} = [ map !$vns{$_->{vid}}++ ? {
         id => $_->{vid},

@@ -107,17 +107,14 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
 
     $e->{editsum} = $copy ? "Copied from $e->{id}.$e->{chrev}" : $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
 
-    $e->{titles} = [ sort { $a->{lang} cmp $b->{lang} } $e->{titles}->@* ];
-
     $e->{vntitles} = $e->{vn}->@* == 1 ? tuwf->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$e->{vn}[0]{vid}) : [];
 
     enrich_image 0, [map { $_->{lang} //= []; $_->{nfo}{id} = $_->{img}; $_->{nfo} } $e->{images}->@*];
     $e->{vnimages} = vnimages $e->{id}, map $_->{vid}, $e->{vn}->@*;
     $e->{vnreleases} = [ grep $copy || $_->{id} ne $e->{id}, releases_by_vn([map $_->{vid}, $e->{vn}->@*])->@* ];
 
-    enrich_merge vid => sql('SELECT id AS vid, title[1+1] FROM', vnt, 'v WHERE id IN'), $e->{vn};
-    enrich_merge pid => sql('SELECT id AS pid, title[1+1] AS name FROM', producerst, 'p WHERE id IN'), $e->{producers};
-    enrich_merge drm => sql('SELECT id AS drm, name FROM drm WHERE id IN'), $e->{drm};
+    $_->{title} = $_->{title}[1] for $e->{vn}->@*;
+    $_->{name} = $_->{title}[1] for $e->{producers}->@*;
 
     my $title = ($copy ? 'Copy ' : 'Edit ').titleprefs_obj($e->{olang}, $e->{titles})->[1];
     framework_ title => $title, dbobj => $e, tab => tuwf->capture('action'),

@@ -14,8 +14,6 @@ sub enrich_vn {
     my($v, $revonly) = @_;
     $v->{title} = titleprefs_obj $v->{olang}, $v->{titles};
     enrich_merge id => sql('SELECT id, c_votecount, c_length, c_lengthnum, c_image, c_imgfirst, c_imglast,', sql_vnimage, 'FROM vn WHERE id IN'), $v;
-    enrich_merge vid => sql('SELECT id AS vid, title, sorttitle, c_released FROM', vnt, 'v WHERE id IN'), $v->{relations};
-    enrich_merge aid => 'SELECT id AS aid, title_romaji, title_kanji, year, type, ann_id, lastfetch FROM anime WHERE id IN', $v->{anime};
     enrich_vislinks v => 0, $v;
     enrich_vnimage $v;
     enrich_image_obj scr => $v->{screenshots};
@@ -97,16 +95,7 @@ sub enrich_vn {
 sub enrich_item {
     my($v, $full) = @_;
     enrich_vn $v, !$full;
-    enrich_merge aid => sql('SELECT id AS sid, aid, title FROM', staff_aliast, 's WHERE aid IN'), $v->{staff}, $v->{seiyuu};
-    enrich_merge cid => sql('SELECT id AS cid, title AS char_title FROM', charst, 'c WHERE id IN'), $v->{seiyuu};
     enrich_image_obj image => $v if tuwf->capture('rev');
-
-    $v->{relations}   = [ sort { idcmp($a->{vid}, $b->{vid}) } $v->{relations}->@* ];
-    $v->{anime}       = [ sort { $a->{aid} <=> $b->{aid} } $v->{anime}->@* ];
-    $v->{editions}    = [ sort { ($a->{lang}||'') cmp ($b->{lang}||'') || $b->{official} cmp $a->{official} || $a->{name} cmp $b->{name} } $v->{editions}->@* ];
-    $v->{staff}       = [ sort { ($a->{eid}//-1) <=> ($b->{eid}//-1) || $a->{aid} <=> $b->{aid} || $a->{role} cmp $b->{role} } $v->{staff}->@* ];
-    $v->{seiyuu}      = [ sort { $a->{aid} <=> $b->{aid} || idcmp($a->{cid}, $b->{cid}) || $a->{note} cmp $b->{note} } $v->{seiyuu}->@* ];
-    $v->{screenshots} = [ sort { idcmp($a->{scr}{id}, $b->{scr}{id}) } $v->{screenshots}->@* ];
 }
 
 
@@ -216,7 +205,7 @@ sub infobox_relations_ {
     return if !$v->{relations}->@*;
 
     my %rel;
-    push $rel{$_->{relation}}->@*, $_ for sort { $b->{official} <=> $a->{official} || $a->{c_released} <=> $b->{c_released} || $a->{sorttitle} cmp $b->{sorttitle} } $v->{relations}->@*;
+    push $rel{$_->{relation}}->@*, $_ for $v->{relations}->@*;
     my $unoffcount = grep !$_->{official}, $v->{relations}->@*;
 
     tr_ sub {
@@ -410,7 +399,7 @@ sub infobox_anime_ {
                 abbr_ title => $_->{title_kanji}||$_->{title_romaji}, shorten $_->{title_romaji}, 50;
                 span_ ' ('.(defined $_->{type} ? $ANIME_TYPE{$_->{type}}{txt}.', ' : '').$_->{year}.')';
             }
-        }, sort { ($a->{year}||9999) <=> ($b->{year}||9999) } $v->{anime}->@* }
+        }, $v->{anime}->@* }
     }
 }
 
@@ -528,7 +517,7 @@ sub infobox_ {
                                 table_ sub { tlang_ grep $_->{lang} eq $v->{olang}, $v->{titles}->@* };
                             };
                             table_ sub {
-                                tlang_ $_ for grep $_->{lang} ne $v->{olang}, sort { $b->{official} cmp $a->{official} || $a->{lang} cmp $b->{lang} } $v->{titles}->@*;
+                                tlang_ $_ for grep $_->{lang} ne $v->{olang}, $v->{titles}->@*;
                             };
                         };
                     };

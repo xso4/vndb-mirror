@@ -5,17 +5,9 @@ use VNWeb::Releases::Lib;
 use VNWeb::ULists::Lib;
 
 
-sub enrich_item {
-    my($p) = @_;
-    enrich_vislinks p => 0, $p;
-    enrich_merge pid => sql('SELECT id AS pid, title, sorttitle FROM', producerst, 'p WHERE id IN'), $p->{relations};
-    $p->{relations} = [ sort { $a->{sorttitle} cmp $b->{sorttitle} || idcmp($a->{pid}, $b->{pid}) } $p->{relations}->@* ];
-}
-
-
 sub rev_ {
     my($p) = @_;
-    revision_ $p, \&enrich_item,
+    revision_ $p, sub{},
         [ name       => 'Name'           ],
         [ latin      => 'Name (latin)'   ],
         [ alias      => 'Aliases'        ],
@@ -149,7 +141,7 @@ sub vns_ {
 TUWF::get qr{/$RE{prev}(?:/(?<tab>vn|rel))?}, sub {
     my $p = db_entry tuwf->captures('id', 'rev');
     return tuwf->resNotFound if !$p;
-    enrich_item $p;
+    enrich_vislinks p => 0, $p;
 
     my $tab = tuwf->capture('tab')
         || (auth && (tuwf->dbVali('SELECT prodrelexpand FROM users_prefs WHERE id=', \auth->uid) ? 'rel' : 'vn'))

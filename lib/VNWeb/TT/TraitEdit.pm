@@ -31,10 +31,6 @@ TUWF::get qr{/$RE{irev}/edit}, sub {
     return tuwf->resNotFound if !$e->{id};
     return tuwf->resDenied if !can_edit i => $e;
 
-    enrich_merge parent => '
-        SELECT i.id AS parent, i.name, g.name AS group
-          FROM traits i LEFT JOIN traits g ON g.id = i.gid WHERE i.id IN', $e->{parents};
-
     $e->{authmod} = auth->permTagmod;
     $e->{editsum} = $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
 
