@@ -87,7 +87,7 @@ TUWF::get qr{/$RE{vrev}/edit} => sub {
     enrich_image 0, [map $_->{info}, $e->{screenshots}->@*];
 
     $_->{title} = $_->{title}[1] for $e->{relations}->@*;
-    $_->{title_kanji} ||= '' for $e->{anime}->@*;
+    ($_->{title}, $_->{original}) = ($_->{title_romaji}, $_->{title_kanji}||'') for $e->{anime}->@*;
     ($_->{id}, $_->{title}, $_->{alttitle}) = ($_->{sid}, $_->{title}[1], $_->{title}[3]) for ($e->{staff}->@*, $e->{seiyuu}->@*);
 
     # It's possible for older revisions to link to aliases that have been removed.
