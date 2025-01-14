@@ -33,6 +33,8 @@ sub types {
         producerType => [ map [$_, $PRODUCER_TYPE{$_}], keys %PRODUCER_TYPE ],
         producerRelation => [ map [$_, $PRODUCER_RELATION{$_}{txt}], keys %PRODUCER_RELATION ],
         vnRelation => [ map [$_, $VN_RELATION{$_}{txt}, $VN_RELATION{$_}{reverse}, $VN_RELATION{$_}{pref}], keys %VN_RELATION ],
+        vnLength  => [ map [1*$_, $VN_LENGTH{$_}{txt}.($VN_LENGTH{$_}{time}?" ($VN_LENGTH{$_}{time})":'')], keys %VN_LENGTH ],
+        devStatus => [ map [1*$_, $DEVSTATUS{$_} ], keys %DEVSTATUS ],
         tagCategory => [ map [$_, $TAG_CATEGORY{$_}], keys %TAG_CATEGORY ],
         bloodType => [ map [$_, $BLOOD_TYPE{$_}], keys %BLOOD_TYPE ],
         charSex   => [ map [$_, $CHAR_SEX{$_}], keys %CHAR_SEX ],

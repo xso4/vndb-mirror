@@ -100,9 +100,58 @@ widget('VNEdit', initVnode => {
         res => dupCheck = res.results.length ? res.results : false,
     );
 
+    const hasCompleteRelease = data.releases.find(r => r.rtype === 'complete' && r.released <= RDate.today);
+
+    const wikidata = { v: data.l_wikidata === null ? '' : 'Q'+data.l_wikidata };
     const geninfo = () => [
         m('h1', 'General info'),
         m(Titles, {data}),
+        m('fieldset.form',
+            m('legend', 'General info'),
+            m('fieldset',
+                m('label[for=description]', 'Description'),
+                m(TextPreview, {
+                    data, field: 'description',
+                    header: m('b', '(English please!)'),
+                    attrs: { id: 'description', rows: 8, maxlength: 10240 },
+                }),
+                m('p',
+                    "Short description of the main story. ",
+                    "Please do not include spoilers, and don't forget to list the source in case you didn't write the description yourself."
+                ),
+            ),
+            m('fieldset',
+                m('label[for=devstatus]', 'Development status'),
+                m(Select, { id: 'devstatus', class: 'mw', data, field: 'devstatus', options: vndbTypes.devStatus }),
+                data.devstatus === 0 && data.releases.length > 0 && !hasCompleteRelease ? m('p', m('b', 'WARNING: '),
+                    'Development is marked as finished, but there is no complete release in the database.', m('br'),
+                    'Please adjust the development status or ensure there is a completed release entry.', m('br'),
+                    m('b', '"In development" should always be selected when the game is not yet available, even if the developer announced that development has finished!'),
+                ) : data.devstatus !== 0 && hasCompleteRelease ? m('p', m('b', 'WARNING: '),
+                    'Development is not marked as finished, but there is a complete release in the database.', m('br'),
+                    'Please adjust the development status or set the release to partial or TBA.',
+                ) : null,
+            ),
+            data.devstatus !== 1 ? m('fieldset',
+                m('label[for=length]', 'Length'),
+                m(Select, { id: 'length', class: 'mw', data, field: 'length', options: vndbTypes.vnLength }),
+                ' (only displayed if there are no length votes)',
+            ) : null,
+            m('fieldset',
+                m('label[for=wikidata]', 'Wikidata ID'),
+                m(Input, { id: 'wikidata', class: 'mw',
+                    data: wikidata, field: 'v',
+                    pattern: '^Q?[1-9][0-9]{0,8}$',
+                    oninput: v => { v = v.replace(/[^0-9]/g, ''); data.l_wikidata = v?v:null; wikidata.v = v?'Q'+v:''; },
+                }),
+            ),
+            m('fieldset',
+                m('label[for=renai]', 'Renai.us link'),
+                'https://renai.us/game/',
+                m(Input, { id: 'renai', class: 'mw', data, field: 'l_renai', maxlength: 100 }),
+                '.shtml',
+            ),
+        ),
     ];
 
     const tabs = [

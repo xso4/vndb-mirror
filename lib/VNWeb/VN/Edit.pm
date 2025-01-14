@@ -144,6 +144,8 @@ js_api VNEdit => $FORM_IN, sub {
     die "No title in original language" if !$otitle;
     $otitle->{official} = 1;
 
+    $data->{length} = 0 if $data->{devstatus} == 1;
+
     validate_dbid 'SELECT id FROM anime WHERE id IN', map $_->{aid}, $data->{anime}->@*;
     validate_dbid 'SELECT id FROM images WHERE id IN', map $_->{scr}, $data->{screenshots}->@*;
     validate_dbid 'SELECT aid FROM staff_alias WHERE aid IN', map $_->{aid}, $data->{staff}->@*;
