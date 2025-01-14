@@ -4,11 +4,15 @@ use v5.36;
 use Test::More;
 use VNDB::ExtLinks;
 
+no warnings 'qw'; # '#' triggers "Possible attempt to put comments in qw() list"
 my @tests = qw{
     scloud     halite_28   https://soundcloud.com/halite_28
 
     itch_dev   nuar-games  https://itch.io/profile/nuar-games
     itch_dev   nuar-games  https://nuar-games.itch.io/
+
+    wikidata   106518103   https://www.wikidata.org/wiki/Q106518103
+    wikidata   106518103   https://wikidata.org/wiki/Special:EntityPage/Q106518103#sitelinks-wikipedia
 };
 
 plan tests => @tests/3*2;

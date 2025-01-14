@@ -474,7 +474,7 @@ our %LINKS = (
         { ent   => 'sp'
         , label => 'Wikidata'
         , fmt   => 'https://www.wikidata.org/wiki/Q%d'
-        , regex => qr{www\.wikidata\.org/wiki/Q$int}
+        , regex => qr{(?:www\.)?wikidata\.org/wiki/(?:Special:EntityPage/)?Q$int}
         },
     wp => # Deprecated, replaced with wikidata
         { ent => 'rsp'
