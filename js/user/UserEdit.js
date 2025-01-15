@@ -47,8 +47,8 @@ const Email = () => {
             m('input[type=button][value=Edit]', { onclick: () => { email_old = v.attrs.data.email; email_edit = true } }),
         ) : m('fieldset', {key:3},
             m('label[for=email]', 'New email'),
-            m(Input, {
-                id: 'email', class: 'mw', type: 'email', data: v.attrs.data, required: true, field: 'email', focus: true,
+            m(EmailInput, {
+                id: 'email', class: 'mw', data: v.attrs.data, required: true, field: 'email', focus: true,
                 invalid: email_taken[v.attrs.data.email] ? 'Email already used by another account.' : null,
             }),
             m('input[type=button][value=Cancel]', { onclick: () => { v.attrs.data.email = email_old; email_edit = false } }),

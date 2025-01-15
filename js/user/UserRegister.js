@@ -30,8 +30,8 @@ widget('UserRegister', vnode => {
             ),
             m('fieldset',
                 m('label[for=email]', 'E-Mail'),
-                m(Input, {
-                    id: 'email', type: 'email', class: 'mw', required: true, data, field: 'email',
+                m(EmailInput, {
+                    id: 'email', class: 'mw', required: true, data, field: 'email',
                 }),
                 m('p',
                     'A valid address is required in order to activate and use your account. ',

@@ -17,7 +17,7 @@ widget('UserPassReset', () => {
             ),
             m('fieldset',
                 m('label[for=email]', 'E-Mail'),
-                m(Input, { id: 'email', type: 'email', class: 'mw', required: true, data, field: 'email' }),
+                m(EmailInput, { id: 'email', class: 'mw', required: true, data, field: 'email' }),
             ),
             m('fieldset',
                 m('input[type=submit][value=Submit]'),
