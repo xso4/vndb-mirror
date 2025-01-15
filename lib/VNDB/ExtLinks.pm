@@ -442,7 +442,7 @@ our %LINKS = (
         , regex => qr{([a-z0-9-]+)\.tumblr\.com/.*}
         },
     twitter =>
-        { ent   => 'sp',
+        { ent   => 'SP',
         , label => 'Xitter'
         , fmt   => 'https://x.com/%s'
         , regex => qr{(?:(?:www\.)?(?:x|twitter)\.com|nitter\.[^/]+)/([^?\/ ]{1,16})(?:[?/].*)?}
