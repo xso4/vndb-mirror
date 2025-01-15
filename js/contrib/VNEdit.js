@@ -116,6 +116,24 @@ const Relations = initVnode => {
 };
 
 
+const Anime = initVnode => {
+    const {data} = initVnode.attrs;
+    const ds = new DS(DS.Anime(false), {
+        onselect: obj => data.anime.push({aid: obj.id, title_romaji: obj.title_romaji, title_kanji: obj.title_kanji}),
+        props: obj => data.anime.find(a => a.aid === obj.id) ? { selectable: false, append: m('small', ' (already listed)') } : {},
+    });
+    const view = () => m('fieldset',
+        m('label', 'Related anime'),
+        m('table', data.anime.map(a => m('tr', {key: a.aid},
+            m('td', m(Button.Del, { onclick: () => data.anime = data.anime.filter(x => x !== a) })),
+            m('td', m('small', 'a', a.aid, ': '), m('a[target=_blank]', { href: 'https://anidb.net/anime/'+a.aid }, a.title_romaji)),
+        ))),
+        m(DS.Button, { ds, class: 'mw' }, 'Add anime'),
+    );
+    return {view};
+};
+
+
 widget('VNEdit', initVnode => {
     const data = initVnode.attrs.data;
     const api = new Api('VNEdit');
@@ -185,6 +203,7 @@ widget('VNEdit', initVnode => {
         m('fieldset.form',
             m('legend', 'Database relations'),
             m(Relations, {data}),
+            m(Anime, {data}),
         ),
     ];
 
