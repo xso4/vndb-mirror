@@ -86,6 +86,36 @@ const Titles = initVnode => {
     return {view};
 };
 
+
+const Relations = initVnode => {
+    const {data} = initVnode.attrs;
+    const ds = new DS(DS.VNs, {
+        onselect: obj => data.relations.push({vid: obj.id, relation: 'sequel', official: true, title: obj.title}),
+        props: obj =>
+            obj.id === data.id ? { selectable: false, append: m('small', ' (this entry)') } :
+            data.relations.find(v => v.vid === obj.id) ? { selectable: false, append: m('small', ' (already listed)') } : {},
+    });
+    const view = () => m('fieldset',
+        m('label', 'Related VNs'),
+        m('table', data.relations.map(v => m('tr', {key: v.vid},
+            m('td', m(Button.Del, { onclick: () => data.relations = data.relations.filter(x => x !== v) })),
+            m('td', m('small', v.vid, ': '), m('a[target=_blank]', { href: '/'+v.vid }, v.title)),
+            m('td',
+                'is an ',
+                m('label',
+                    m('input[type=checkbox]', { checked: v.official, oninput: e => v.official = e.target.checked }),
+                    ' official '
+                ),
+                m(Select, { data: v, field: 'relation', options: vndbTypes.vnRelation }),
+                ' of this VN',
+            ),
+        ))),
+        m(DS.Button, { ds, class: 'mw' }, 'Add visual novel'),
+    );
+    return {view};
+};
+
+
 widget('VNEdit', initVnode => {
     const data = initVnode.attrs.data;
     const api = new Api('VNEdit');
@@ -151,6 +181,10 @@ widget('VNEdit', initVnode => {
                 m(Input, { id: 'renai', class: 'mw', data, field: 'l_renai', maxlength: 100 }),
                 '.shtml',
             ),
+        ),
+        m('fieldset.form',
+            m('legend', 'Database relations'),
+            m(Relations, {data}),
         ),
     ];
 

@@ -443,7 +443,7 @@ const Supersedes = initVnode => {
     });
     const view = () => [ m('fieldset',
         m('label', 'Supersedes', HelpButton('supersedes')),
-        m('table', data.supersedes.map(({rid}) => m('tr',
+        m('table', data.supersedes.map(({rid}) => m('tr', {key: rid},
             m('td', m(Button.Del, { onclick: () => data.supersedes = data.supersedes.filter(x => x.rid !== rid) })),
             m('td', (r => !r ? [
                 m('a[target=_blank]', { href: '/'+rid }, rid),
