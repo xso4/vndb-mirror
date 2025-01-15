@@ -134,6 +134,62 @@ const Anime = initVnode => {
 };
 
 
+const Staff = initVnode => {
+    const {data} = initVnode.attrs;
+    let id = 0;
+    data.staff.forEach(s => s._id = ++id);
+
+    const newds = eid => new DS(DS.Staff, {
+        onselect: obj => data.staff.push({sid: obj.id, aid: obj.aid, title: obj.title, alttitle: obj.alttitle, eid, role: 'staff', note: '', _id: ++id}),
+    });
+    const ds = Object.fromEntries([null].concat(data.editions).map(e => [e?e.eid:'', newds(e?e.eid:null)]));
+
+    const view = () => [ [null].concat(data.editions).map(e => m('fieldset.form', {key: e?e.eid:''},
+        m('legend', !e ? 'Original edition' : e.name === '' ? 'Unnamed edition' : e.name),
+        e ? m('fieldset.full',
+            m(Input, { data: e, field: 'name', maxlength: 150, required: true, placeholder: 'Edition title', class: 'lw' }),
+            m(Select, { data: e, field: 'lang', class: 'mw', options: [[null,'Original language']].concat(vndbTypes.language) }),
+            m('label.check', ' ',
+                m('input[type=checkbox]', { checked: e.official, oninput: ev => e.official = ev.target.checked }),
+                ' official'
+            ),
+            m('button[type=button][style=margin-left:30px]', { onclick: () => {
+                data.staff = data.staff.filter(s => s.eid !== e.eid);
+                data.editions = data.editions.filter(x => x !== e);
+            }}, 'remove edition'),
+        ) : null,
+        m('table.full.stripe',
+            m('thead', m('tr',
+                m('td'),
+                m('td', 'Staff'),
+                m('td', 'Role'),
+                m('td', 'Note'),
+                m('td'),
+            )),
+            m('tbody', data.staff.filter(s => s.eid === (e?e.eid:null)).map(s => m('tr', {key: s._id},
+                m('td', m('small', s.sid)),
+                m('td', m('a[target=_blank]', { href: '/'+s.sid }, s.title), ' ', s.title !== s.alttitle ? s.alttitle : ''),
+                m('td', m(Select, { data: s, field: 'role', options: vndbTypes.creditType })),
+                m('td', m(Input, { data: s, field: 'note', maxlength: 250, class: 'lw' })),
+                m('td', m(Button.Del, { onclick: () => data.staff = data.staff.filter(x => x !== s) })),
+            ))),
+            m('tfoot', m('tr', m('td'), m('td[colspan=4]',
+                data.staff.filter(s => s.eid === (e?e.eid:null)).anyDup(s => [s.aid,s.role])
+                ? m('p.invalid', 'List contains duplicate staff with the same role.') : null,
+                m(DS.Button, { ds: ds[e?e.eid:''] }, 'Add staff'),
+            ))),
+        ),
+    )), m('fieldset.form', m('fieldset.full',
+        m('button[type=button]', { onclick: () => {
+            const eid = range(0,500).find(n => !data.editions.find(e => e.eid === n));
+            data.editions.push({ eid, name: '', lang: null, official: true });
+            ds[eid] = newds(eid);
+        }}, 'Add edition'),
+    ))];
+    return {view};
+};
+
+
 widget('VNEdit', initVnode => {
     const data = initVnode.attrs.data;
     const api = new Api('VNEdit');
@@ -209,6 +265,7 @@ widget('VNEdit', initVnode => {
 
     const tabs = [
         [ 'gen', 'General info', geninfo ],
+        [ 'staff', 'Staff', () => [ m('h1', 'Staff'), m(Staff, {data}) ] ],
     ];
 
     const view = () => dupCheck ? m(Form, {api: dupApi, onsubmit},

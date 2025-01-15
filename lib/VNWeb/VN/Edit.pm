@@ -34,7 +34,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     editions   => { sort_keys => 'eid', aoh => {
         eid      => { uint => 1, max => 500 },
         lang     => { default => undef, language => 1 },
-        name     => { sl => 1 },
+        name     => { sl => 1, maxlength => 150 },
         official => { anybool => 1 },
     } },
     staff      => { sort_keys => ['aid','eid','role'], aoh => {
