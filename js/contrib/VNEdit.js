@@ -140,7 +140,7 @@ const Staff = initVnode => {
     data.staff.forEach(s => s._id = ++id);
 
     const newds = eid => new DS(DS.Staff, {
-        onselect: obj => data.staff.push({sid: obj.id, aid: obj.aid, title: obj.title, alttitle: obj.alttitle, eid, role: 'staff', note: '', _id: ++id}),
+        onselect: obj => data.staff.push({sid: obj.sid, aid: obj.id, title: obj.title, alttitle: obj.alttitle, eid, role: 'staff', note: '', _id: ++id}),
     });
     const ds = Object.fromEntries([null].concat(data.editions).map(e => [e?e.eid:'', newds(e?e.eid:null)]));
 
@@ -186,6 +186,54 @@ const Staff = initVnode => {
             ds[eid] = newds(eid);
         }}, 'Add edition'),
     ))];
+    return {view};
+};
+
+
+const Cast = initVnode => {
+    const {data} = initVnode.attrs;
+    let id = 0;
+    data.seiyuu.forEach(s => s._id = ++id);
+    let newcid = {v: data.chars.length > 0 ? data.chars[0].id : null };
+
+    const ds = new DS(DS.Staff, {
+        onselect: obj => data.seiyuu.push({ aid: obj.id, sid: obj.sid, cid: newcid.v, note: '', title: obj.title, alttitle: obj.alttitle, _id: ++id }),
+    });
+    const charOptions = data.chars.map(c => [c.id, c.title + ' ('+c.id+')']);
+    const charIds = Object.fromEntries(data.chars.map(c => [c.id,true]));
+    const view = () => m('fieldset.form',
+        !data.id ? m('p',
+            'Voice actors can be added to this visual novel only after character entries have been created for it. ', m('br'),
+            'To do so, continue to create this entry without cast, then create appropriate character entries, and finally come back to this form to edit the visual novel.',
+        ) : data.chars.length === 0 ? m('p',
+            'This visual novel does yet not have any characters associated with it. First ',
+            m('a[target=_blank]', { href: '/'+data.id+'/addchar' }, 'add the appropriate character entries'),
+            ' and then come back to this form to assign voice actors.',
+        ) : m('table.full.stripe',
+            m('thead', m('tr',
+                m('td', 'Character'),
+                m('td', 'Cast'),
+                m('td', 'Note'),
+                m('td'),
+            )),
+            m('tbody', data.seiyuu.map(s => m('tr', {key:s._id},
+                m('td', m(Select, { data: s, field: 'cid', options:
+                    charOptions.concat(charIds[s.cid] ? [] : [[s.cid, '(deleted or moved character: '+s.cid+')']]) })), // TODO test
+                m('td', m('small', s.sid, ': '), m('a[target=_blank]', {href: '/'+s.sid}, s.title), ' ', s.alttitle && s.title !== s.alttitle ? s.alttitle : null),
+                m('td', m(Input, { data: s, field: 'note', maxlength: 250, class: 'lw' })),
+                m('td', m(Button.Del, { onclick: () => data.seiyuu = data.seiyuu.filter(x => x !== s) })),
+            ))),
+            m('tfoot', m('tr', m('td[colspan=4]',
+                data.seiyuu.anyDup(s => [s.aid,s.cid]) ? m('p.invalid', 'List contains duplicate cast roles') : null,
+                m('br'),
+                m('strong', 'Add cast'),
+                m('br'),
+                m(Select, { data: newcid, field: 'v', options: charOptions }),
+                ' voiced by ',
+                m(DS.Button, { ds }, 'select voice actor'),
+            ))),
+        )
+    );
     return {view};
 };
 
@@ -266,6 +314,7 @@ widget('VNEdit', initVnode => {
     const tabs = [
         [ 'gen', 'General info', geninfo ],
         [ 'staff', 'Staff', () => [ m('h1', 'Staff'), m(Staff, {data}) ] ],
+        [ 'cast', 'Cast', () => [ m('h1', 'Cast'), m(Cast, {data}) ] ],
     ];
 
     const view = () => dupCheck ? m(Form, {api: dupApi, onsubmit},
