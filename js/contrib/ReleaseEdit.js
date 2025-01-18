@@ -443,7 +443,7 @@ const Supersedes = initVnode => {
     });
     const view = () => [ m('fieldset',
         m('label', 'Supersedes', HelpButton('supersedes')),
-        m('table', data.supersedes.map(({rid}) => m('tr',
+        m('table', data.supersedes.map(({rid}) => m('tr', {key: rid},
             m('td', m(Button.Del, { onclick: () => data.supersedes = data.supersedes.filter(x => x.rid !== rid) })),
             m('td', (r => !r ? [
                 m('a[target=_blank]', { href: '/'+rid }, rid),
@@ -478,10 +478,9 @@ const Images = initVnode => {
     const vnimages = () => data.vnimages.filter(i => !data.images.find(x => x.img === i.id));
     const langs = Object.fromEntries(vndbTypes.language);
 
-    const thumbsize = img => img.width > img.height ? { width: 150, height: img.height * (150/img.width) } : { height: 150, width: img.width * (150/img.height) };
     const thumburl = img => imgurl(img.id, img.width <= 256 && img.height <= 400 ? null : 't');
     const Thumb = { view: v => m(IVLink, { img: v.attrs.img },
-        m('img', {...thumbsize(v.attrs.img), src: thumburl(v.attrs.img)})
+        m('img', {...imgsize(v.attrs.img, 150, 150), src: thumburl(v.attrs.img)})
     ) };
 
     // Filter out image types
@@ -514,25 +513,11 @@ const Images = initVnode => {
         });
     };
 
-    const uploadApi = new Api('ImageUpload');
-    let uploadQueue = [];
-    const uploadOne = () => {
-        const form = new FormData();
-        form.append('type', 'cv');
-        form.append('img', uploadQueue.shift());
-        uploadApi.call(form, r => {
-            addImg(r);
-            if (uploadQueue.length > 0) uploadOne();
-        });
-    };
+    const uploadApi = new ImageUploadApi('cv', addImg);
     const uploadSubmit = ev => {
         ev.stopPropagation();
         ev.preventDefault();
-        uploadQueue = [...$('#file').files];
-        if (!uploadQueue.length)
-            uploadApi.error = 'No file selected';
-        else
-            uploadOne();
+        uploadApi.submit($('#file'), 50);
     };
 
     const view = () => !data.official ? [

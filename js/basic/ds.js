@@ -378,12 +378,28 @@ DS.VNs = {
     view: obj => [ m('small', obj.id, ': '), obj.title ],
 };
 
+DS.Anime = ref => ({
+    cache: {'':[]},
+    opts: { placeholder: 'Search anime...' },
+    api: new Api('Anime'),
+    list: (src, str, cb) => src.api.call({ search: str, ref }, res => cb(res.results)),
+    view: obj => [ m('small', 'a', obj.id, ': '), obj.title_romaji ],
+});
+
 DS.Producers = {
     cache: {'':[]},
     opts: { placeholder: 'Search producers...' },
     api: new Api('Producers'),
     list: (src, str, cb) => src.api.call({ search: [str] }, res => cb(res.results)),
     view: obj => [ m('small', obj.id, ': '), obj.name ],
+};
+
+DS.Staff = {
+    cache: {'':[]},
+    opts: { placeholder: 'Search staff...' },
+    api: new Api('Staff'),
+    list: (src, str, cb) => src.api.call({ search: [str] }, res => cb(res.results)),
+    view: obj => [ m('small', obj.sid, ': '), obj.title ],
 };
 
 DS.Chars = {

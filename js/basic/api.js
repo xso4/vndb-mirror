@@ -82,3 +82,51 @@ class Api {
     }
 };
 window.Api = Api;
+
+
+// Image upload API that can queue multiple files.
+class ImageUploadApi {
+    constructor(t, cb) {
+        this.api = new Api('ImageUpload');
+        this.queue = [];
+        this.type = t;
+        this.cb = cb;
+    }
+
+    abort() {
+        this.api.abort();
+        this.queue = [];
+    }
+
+    submit(elem, max) {
+        const queue = [...elem.files];
+        if (!queue.length)
+            this.api.error = 'No file selected';
+        else if (queue.length > max)
+            this.api.error = 'Too many files selected';
+        else {
+            this.queue = queue;
+            this._one();
+        }
+    }
+
+    _one() {
+        const form = new FormData();
+        const obj = this;
+        form.append('type', obj.type);
+        form.append('img', obj.queue.shift());
+        obj.api.call(form, r => {
+            obj.cb(r);
+            if (obj.queue.length > 0) obj._one();
+        });
+    }
+
+    loading() {
+        return this.api.loading();
+    }
+
+    Status() {
+        return this.api.Status();
+    }
+};
+window.ImageUploadApi = ImageUploadApi;

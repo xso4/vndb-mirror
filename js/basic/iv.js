@@ -153,7 +153,6 @@ function resize() {
 function show(ev) {
     var u = this.href;
     var opt = this.getAttribute('data-iv').split(':'); // 0:reso, 1:category, 2:flagging
-    var idx = this.iv_i;
     imgw = Math.floor(opt[0].split('x')[0]);
     imgh = Math.floor(opt[0].split('x')[1]);
 
@@ -161,6 +160,7 @@ function show(ev) {
     cururl = u;
 
     if (opt[1] && this.getAttribute('data-iv-mithril')) ivInit(); // load categories
+    var idx = this.iv_i;
 
     create_div();
     var imgs = ivimg.getElementsByTagName("img")

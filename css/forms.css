@@ -91,12 +91,19 @@ fieldset.form {
     > fieldset:disabled > label { color: var(--grayedout) }
     > legend { margin-left: -130px; margin-bottom: 5px; font-weight: bold }
     > label:not(.check), > fieldset > label:not(.check) { display: block; float: left; margin-left: -130px; width: 130px }
-    table.full { margin-left: -130px }
+    table.full, fieldset.full { margin-left: -130px }
     .xw { width: 100%; max-width: 500px } /* for long inputs */
     .lw { width: 100%; max-width: 300px } /* for slightly longer inputs */
     .mw { width: 100%; max-width: 200px } /* for most inputs */
     .sw { width: 50px }                   /* for shorter inputs, like numbers */
-    td    { padding: 1px 15px 1px 0px; line-height: 1.8 }
+    td {
+        padding: 1px 15px 1px 0px; line-height: 1.8;
+        p { line-height: normal }
+        .xw { width: 500px }
+        .lw { width: 300px }
+        .mw { width: 200px }
+        .sw { width: 50px }
+    }
     table { margin-bottom: 5px }
     p + table { margin-top: 5px }
     a.help {

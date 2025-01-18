@@ -114,7 +114,7 @@ widget('StaffEdit', initVnode => {
                     'Please check this list to avoid creating a duplicate staff entry.',
                 ),
                 m('ul', dupCheck.map(s => m('li',
-                    m('a[target=_blank]', { href: '/'+s.id }, s.title),
+                    m('a[target=_blank]', { href: '/'+s.sid }, s.title),
                     s.alttitle ? m('small', ' (', s.alttitle, ')') : null,
                 ))),
             ),

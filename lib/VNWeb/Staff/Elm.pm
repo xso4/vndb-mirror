@@ -23,7 +23,7 @@ js_api Staff => {
     my @q = grep $_, $data->{search}->@*;
 
     +{ results => @q ? tuwf->dbAlli(
-        'SELECT s.id, s.lang, s.aid, s.title[1+1], s.title[1+1+1+1] as alttitle
+        'SELECT s.id AS sid, s.lang, s.aid AS id, s.title[1+1], s.title[1+1+1+1] as alttitle
            FROM', staff_aliast, 's', VNWeb::Validate::SearchQuery::sql_joina(\@q, 's', 's.id', 's.aid'), '
           WHERE NOT s.hidden
           ORDER BY sc.score DESC, s.sorttitle

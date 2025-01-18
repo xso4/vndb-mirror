@@ -61,9 +61,6 @@ const ports = Object.entries({
             l.classList.toggle('invisible', !((l.getAttribute('data-voted') && !pageVars.voteprivate) || l.getAttribute('data-publabel')))
         }
     },
-
-    // VNEdit
-    ivRefresh: () => () => setTimeout(ivInit, 10),
 });
 
 
