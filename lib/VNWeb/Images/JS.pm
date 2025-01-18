@@ -24,9 +24,7 @@ elm_api Image => undef, { id => { vndbid => [qw/ch cv sf/] } }, sub {
 };
 
 
-TUWF::post qr{/(elm|js)/ImageUpload.json}, sub {
-    my $elm = tuwf->capture(0) eq 'elm';
-
+TUWF::post qr{/js/ImageUpload.json}, sub {
     # Have to require the samesite cookie here as CSRF protection, because this API can be triggered as a regular HTML form post.
     return tuwf->resDenied if !samesite || !(auth->permDbmod || (auth->permEdit && !global_settings->{lockdown_edit}));
 
@@ -39,7 +37,7 @@ TUWF::post qr{/(elm|js)/ImageUpload.json}, sub {
         $imgdata =~ /^....ftyp/s ? 'avif' : # Considers every heif file to be AVIF, not entirely correct but works fine.
         $imgdata =~ /^\xff\x0a/ ? 'jxl' :
         $imgdata =~ /^\x00\x00\x00\x00\x0CJXL / ? 'jxl' : undef;
-    return $elm ? elm_ImgFormat : tuwf->resJSON({_err => 'Unsupported image format'}) if !$fmt;
+    return tuwf->resJSON({_err => 'Unsupported image format'}) if !$fmt;
 
     my $seq = {qw/sf screenshots_seq cv covers_seq ch charimg_seq/}->{$type}||die;
     my $id = tuwf->dbVali('INSERT INTO images', {
@@ -87,13 +85,13 @@ TUWF::post qr{/(elm|js)/ImageUpload.json}, sub {
         # keep original for troubleshooting
         rename $fno, config->{var_path}."/tmp/error-${id}.${fmt}";
         cleanup;
-        return $elm ? elm_ImgFormat : tuwf->resJSON({_err => 'Invalid image'});
+        return tuwf->resJSON({_err => 'Invalid image'});
     }
     my($w,$h) = ($1,$2);
 
     if (-s $fn0 >= TUWF::set('max_post_body')) {
         cleanup;
-        return $elm ? elm_ImgSize : tuwf->resJSON({_err => 'Encoded image too large, try a lower resolution'});
+        return tuwf->resJSON({_err => 'Encoded image too large, try a lower resolution'});
     }
 
     tuwf->dbExeci('UPDATE images SET', { width => $w, height => $h }, 'WHERE id =', \$id);
@@ -103,7 +101,7 @@ TUWF::post qr{/(elm|js)/ImageUpload.json}, sub {
 
     my @l = ({id => $id});
     enrich_image 1, \@l;
-    $elm ? elm_ImageResult \@l : tuwf->resJSON($OUT->analyze->coerce_for_json(@l));
+    tuwf->resJSON($OUT->analyze->coerce_for_json(@l));
 };
 
 1;

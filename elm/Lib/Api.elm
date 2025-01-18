@@ -1,7 +1,6 @@
 module Lib.Api exposing (..)
 
 import Json.Encode as JE
-import File exposing (File)
 import Http
 
 import Gen.Api exposing (..)
@@ -73,25 +72,5 @@ post name body msg =
   Http.post
     { url = "/elm/" ++ name ++ ".json"
     , body = Http.jsonBody body
-    , expect = expectResponse msg
-    }
-
-
-type ImageType
-  = Ch
-  | Cv
-  | Sf
-
-postImage : ImageType -> File -> (Response -> msg) -> Cmd msg
-postImage ty file msg =
-  Http.post
-    { url  = "/elm/ImageUpload.json"
-    , body = Http.multipartBody
-      [ Http.stringPart "type" <| case ty of
-          Cv -> "cv"
-          Sf -> "sf"
-          Ch -> "ch"
-      , Http.filePart "img" file
-      ]
     , expect = expectResponse msg
     }

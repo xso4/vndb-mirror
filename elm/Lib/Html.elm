@@ -26,9 +26,6 @@ onInputValidation msg = custom "input" <|
           targetValue
           (JD.at ["target", "validity", "valid"] JD.bool)
 
-onInvalid : msg -> Attribute msg
-onInvalid msg = on "invalid" (JD.succeed msg)
-
 -- Multi-<br> (ugly but oh, so, convenient)
 br_ : Int -> Html m
 br_ n = if n == 1 then br [] [] else span [] <| List.repeat n <| br [] []
@@ -155,17 +152,6 @@ inputRadio nam val onch = input (
     ]
     ++ (if nam == "" then [] else [ name nam ])
   ) []
-
-
--- Same as an inputText, but formats/parses an integer as Q###
-inputWikidata : String -> Maybe Int -> (Maybe Int -> m) -> List (Attribute m) -> Html m
-inputWikidata nam val onch attr =
-  inputText nam
-            (case val of
-              Nothing -> ""
-              Just v  -> "Q" ++ String.fromInt v)
-            (\v -> onch <| if v == "" then Nothing else String.toInt <| if String.startsWith "Q" v then String.dropLeft 1 v else v)
-            (pattern "^Q?[1-9][0-9]{0,8}$" :: attr)
 
 
 -- Similar to inputCheck and inputRadio with a label, except this is just a link.
