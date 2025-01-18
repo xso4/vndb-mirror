@@ -140,6 +140,7 @@ const Staff = initVnode => {
     data.staff.forEach(s => s._id = ++id);
 
     const newds = eid => new DS(DS.Staff, {
+        keep: true,
         onselect: obj => data.staff.push({sid: obj.sid, aid: obj.id, title: obj.title, alttitle: obj.alttitle, eid, role: 'staff', note: '', _id: ++id}),
     });
     const ds = Object.fromEntries([null].concat(data.editions).map(e => [e?e.eid:'', newds(e?e.eid:null)]));
