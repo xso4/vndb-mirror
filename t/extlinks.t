@@ -13,6 +13,12 @@ my @tests = qw{
 
     wikidata   106518103   https://www.wikidata.org/wiki/Q106518103
     wikidata   106518103   https://wikidata.org/wiki/Special:EntityPage/Q106518103#sitelinks-wikipedia
+
+    tumblr     dead-ame    https://tumblr.com/dead-ame
+    tumblr     dead-ame    https://www.tumblr.com/dead-ame
+    tumblr     dead-ame    https://www.tumblr.com/dead-ame/likes
+    tumblr     dead-ame    https://www.tumblr.com/blog/dead-ame
+    tumblr     dead-ame    https://dead-ame.tumblr.com/
 };
 
 plan tests => @tests/3*2;
