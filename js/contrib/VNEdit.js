@@ -166,7 +166,8 @@ const Staff = initVnode => {
                 m('td', 'Note'),
                 m('td'),
             )),
-            m('tbody', data.staff.filter(s => s.eid === (e?e.eid:null)).map(s => m('tr', {key: s._id},
+            m('tbody', data.staff.filter(s => s.eid === (e?e.eid:null)).map(s => m('tr',
+                {key: s._id, class: data.staff.find(x => x !== s && x.eid === s.eid && x.aid === s.aid && x.role === s.role) ? 'invalid' : null},
                 m('td', m('small', s.sid)),
                 m('td', m('a[target=_blank]', { href: '/'+s.sid }, s.title), ' ', s.title !== s.alttitle ? s.alttitle : ''),
                 m('td', m(Select, { data: s, field: 'role', options: vndbTypes.creditType })),
@@ -217,7 +218,7 @@ const Cast = initVnode => {
                 m('td', 'Note'),
                 m('td'),
             )),
-            m('tbody', data.seiyuu.map(s => m('tr', {key:s._id},
+            m('tbody', data.seiyuu.map(s => m('tr', {key:s._id, class: data.seiyuu.find(x => x !== s && x.aid === s.aid && x.cid === s.cid) ? 'invalid' : null },
                 m('td', m(Select, { data: s, field: 'cid', options:
                     charOptions.concat(charIds[s.cid] ? [] : [[s.cid, '(deleted or moved character: '+s.cid+')']]) })),
                 m('td', m('small', s.sid, ': '), m('a[target=_blank]', {href: '/'+s.sid}, s.title), ' ', s.alttitle && s.title !== s.alttitle ? s.alttitle : null),
