@@ -98,6 +98,7 @@ fieldset.form {
     .sw { width: 50px }                   /* for shorter inputs, like numbers */
     td {
         padding: 1px 15px 1px 0px; line-height: 1.8;
+        p { line-height: normal }
         .xw { width: 500px }
         .lw { width: 300px }
         .mw { width: 200px }

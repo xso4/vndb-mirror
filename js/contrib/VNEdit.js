@@ -218,7 +218,7 @@ const Cast = initVnode => {
             )),
             m('tbody', data.seiyuu.map(s => m('tr', {key:s._id},
                 m('td', m(Select, { data: s, field: 'cid', options:
-                    charOptions.concat(charIds[s.cid] ? [] : [[s.cid, '(deleted or moved character: '+s.cid+')']]) })), // TODO test
+                    charOptions.concat(charIds[s.cid] ? [] : [[s.cid, '(deleted or moved character: '+s.cid+')']]) })),
                 m('td', m('small', s.sid, ': '), m('a[target=_blank]', {href: '/'+s.sid}, s.title), ' ', s.alttitle && s.title !== s.alttitle ? s.alttitle : null),
                 m('td', m(Input, { data: s, field: 'note', maxlength: 250, class: 'lw' })),
                 m('td', m(Button.Del, { onclick: () => data.seiyuu = data.seiyuu.filter(x => x !== s) })),
@@ -233,6 +233,92 @@ const Cast = initVnode => {
                 m(DS.Button, { ds }, 'select voice actor'),
             ))),
         )
+    );
+    return {view};
+};
+
+
+const Screenshots = initVnode => {
+    const {data} = initVnode.attrs;
+    const newds = s => new DS(DS.Releases(data.releases), { onselect: obj => s.rid = obj.id });
+    const ds = Object.fromEntries(data.screenshots.map(s => [s.scr,newds(s)]));
+    let addrel = null;
+    const addds = new DS(DS.Releases(data.releases), { onselect: obj => addrel = obj });
+
+    const uploadApi = new ImageUploadApi('sf', img => data.screenshots.push({ scr: img.id, rid: addrel.id, info: img }));
+    const uploadSubmit = ev => {
+        ev.stopPropagation();
+        ev.preventDefault();
+        uploadApi.submit($('#file'), 10 - data.screenshots.length);
+    };
+
+    const view = () => m('fieldset.form',
+        !data.id ? m('p',
+            'Screenshots can be added to this visual novel only after release entries have been created for it. ', m('br'),
+            'To do so, continue to create this entry without screenshots, then create appropriate release entries, and finally come back to this form to edit the visual novel.',
+        ) : data.releases.length === 0 ? m('p',
+            'This visual novel does yet not have any releases associated with it. First ',
+            m('a[target=_blank]', { href: '/'+data.id+'/add' }, 'add the appropriate release entries'),
+            ' and then come back to this form to upload screenshots.',
+        ) : m('table.full.stripe',
+            m('tbody', data.screenshots.map(s => m('tr', {key: s.scr},
+                m('td[style=text-align:right;width:140px]', m(IVLink, { img: s.info, cat: 'scr' },
+                    m('img', { ...imgsize(s.info, 136, 102), src: imgurl(s.info.id, 't') }),
+                )),
+                m('td',
+                    m('p',
+                        m(Button.Del, { onclick: () => data.screenshots = data.screenshots.filter(x => s !== x) }),
+                        ' ', m('small', s.scr, ' / '),
+                        ((res, rel) => [
+                            rel ? 'image: ' : null, res,
+                            rel ? [ ', release: ', rel ] : null,
+                            rel === res ? ' ✔' : rel ? [ ' ❌',
+                                m('br'),
+                                m('b', 'WARNING: Resolutions do not match, please take screenshots with the correct resolution and make sure to crop them correctly!'),
+                                m('br'),
+                                '(Yes, your screenshots will likely get deleted even if they are off by 1 pixel, we can be anal about this stuff)'
+                            ] : data.screenshots.find(x => x.rid === s.rid && (x.info.width !== s.info.width || x.info.height !== s.info.height)) ? [ ' ❌',
+                                m('br'),
+                                m('b', 'WARNING: Inconsistent image resolutions for the same release, please take screenshots with the correct resolution and make sure to crop them correctly!'),
+                                m('br'),
+                                '(Yes, your screenshots will likely get deleted even if they are off by 1 pixel, we can be anal about this stuff)'
+                            ] : null,
+                        ])(
+                            s.info.width + 'x' + s.info.height,
+                            (r => r && r.reso_x > 0 ? r.reso_x + 'x' + r.reso_y : null)(data.releases.find(r => r.id === s.rid))
+                        ),
+                    ),
+                    m(DS.Button, { ds: ds[s.scr], class: 'xw' }, !s.rid ? m('b.invalid', 'No release selected') : (r =>
+                        r ? m('span', Release(r,1)) : 'Moved or deleted release: '+s.rid
+                    )(data.releases.find(r => r.id == s.rid))),
+                    m(ImageFlag, { img: s.info }),
+                ),
+            ))),
+            m('tfoot', m('tr', m('td'), m('td', m('br'), (free => [
+                uploadApi.loading() ? uploadApi.Status() : free <= 0 ? m('p',
+                    m('strong', 'Enough screenshots'), m('br'),
+                    'The limit of 10 screenshots per visual novel has been reached. ',
+                    'If you want to add a new screenshot, you need to remove one first, but please do not replace screenshots without a very good reason.',
+                ) : m('p',
+                    m('strong', 'Upload screenshots'), m('br'),
+                    free, ' more screenshot', free === 1 ? '' : 's', ' can be added.', m('br'),
+                    m(DS.Button, { ds: addds, class: 'xw' }, addrel ? m('span', Release(addrel,1)) : '-- select release --'),
+                ),
+                !uploadApi.loading() && free > 0 && addrel ? m(Form, { onsubmit: uploadSubmit },
+                    m('input#file[type=file][required][multiple]', { accept: imageAccept, oninput: uploadSubmit }),
+                    uploadApi.Status(),
+                    m('p',
+                        m('br'), m('strong', 'Important reminder'),
+                        m('ul',
+                          m('li', 'Screenshots must be in the native resolution of the game'),
+                          m('li', 'Screenshots must not include window borders and should not have copyright markings'),
+                          m('li', "Don't only upload event CGs"),
+                        ),
+                        'Read the ', m('a[target=_blank][href=/d2#6]', 'full guidelines'), ' for more information.'
+                    ),
+                ) : null,
+            ])(10 - data.screenshots.length)))),
+        ),
     );
     return {view};
 };
@@ -315,6 +401,7 @@ widget('VNEdit', initVnode => {
         [ 'gen', 'General info', geninfo ],
         [ 'staff', 'Staff', () => [ m('h1', 'Staff'), m(Staff, {data}) ] ],
         [ 'cast', 'Cast', () => [ m('h1', 'Cast'), m(Cast, {data}) ] ],
+        [ 'screenshots', 'Screenshots', () => [ m('h1', 'Screenshots'), m(Screenshots, {data}) ] ],
     ];
 
     const view = () => dupCheck ? m(Form, {api: dupApi, onsubmit},

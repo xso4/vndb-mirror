@@ -33,6 +33,15 @@ const spoilLevels = [
 ];
 
 
+const imgsize = (img, w, h) => {
+    if (img.width <= w && img.height <= h)
+        return { width: img.width, height: img.height };
+    if (img.width/img.height > w/h)
+        return { width: w, height: Math.round(img.height * (w/img.width)) };
+    return { height: h, width: Math.round(img.width * (h/img.height)) };
+};
+
+
 // Edit summary & submit button box for DB entry edit forms.
 // Attrs:
 // - data     -> form data containing editsum, hidden & locked
