@@ -399,7 +399,7 @@ DS.Staff = {
     opts: { placeholder: 'Search staff...' },
     api: new Api('Staff'),
     list: (src, str, cb) => src.api.call({ search: [str] }, res => cb(res.results)),
-    view: obj => [ m('small', obj.sid, ': '), obj.title ],
+    view: obj => [ m('small', obj.sid, ': '), obj.title, obj.alttitle && obj.alttitle !== obj.title ? m('small', ' ', obj.alttitle) : null ],
 };
 
 DS.Chars = {
