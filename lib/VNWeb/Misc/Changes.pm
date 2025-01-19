@@ -55,7 +55,9 @@ TUWF::get '/changes' => sub {
         article_ class => 'browse', sub {
             table_ class => 'stripe', sub {
                 tr_ id => $_->[1], sub {
-                    td_ class => 'tc1 nowrap', style => 'width: 110px', sub { rdate_ $_->[0] };
+                    td_ class => 'tc1 nowrap', style => 'width: 110px', sub {
+                        a_ href => "#$_->[1]", sub { rdate_ $_->[0] }
+                    };
                     td_ sub { lit_ $_->[3] };
                 } for changes->@*;
             }
