@@ -202,6 +202,7 @@ class DS {
         const src = this.source;
         const str = str_.trim();
         if (src.init && src._initState !== 2) {
+            if (src._initState === 1) return;
             src._initState = 1;
             src.init(src, () => {
                 src._initState = 2;
