@@ -97,6 +97,8 @@ sub review_ {
 
 TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
     my($id, $sep, $num) = (tuwf->capture('id'), tuwf->capture('sep')||'', tuwf->capture('num'));
+    VNWeb::Discussions::Thread::mark_patrolled($id, $num) if $sep eq '.';
+
     my $w = tuwf->dbRowi(
         'SELECT r.id, r.vid, r.rid, r.length, r.modnote, r.text, r.spoiler, r.locked, COALESCE(c.count,0) AS count, r.c_flagged, r.c_up, r.c_down, uv.vote
               , v.title, rel.title AS rtitle, relv.rtype, rv.vote AS my, COALESCE(rv.overrule,false) AS overrule

@@ -510,6 +510,14 @@ CREATE TABLE notifications (
   ntype    notification_ntype[] NOT NULL
 );
 
+-- posts_patrolled
+CREATE TABLE posts_patrolled (
+  id       vndbid NOT NULL, -- threads.id or reviews.id
+  num      integer NOT NULL,
+  uid      vndbid(u) NOT NULL,
+  PRIMARY KEY(id,num,uid)
+);
+
 -- producers
 CREATE TABLE producers ( -- dbentry_type=p
   id         vndbid(p) NOT NULL PRIMARY KEY DEFAULT vndbid('p', nextval('producers_id_seq')), -- [pub]

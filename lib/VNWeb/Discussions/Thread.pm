@@ -120,6 +120,10 @@ sub posts_ {
     my($t, $posts, $page) = @_;
     my sub url { "/$t->{id}".($_?"/$_":'') }
 
+    enrich patrolled => num => num =>
+        sql('SELECT p.num,', sql_user(), 'FROM posts_patrolled p JOIN users u ON u.id = p.uid WHERE p.id =', \$t->{id}, 'AND p.num IN'), $posts
+        if auth->permDbmod;
+
     paginate_ \&url, $page, [ $t->{count}, 25 ], 't';
     article_ class => 'thread', id => 'threadstart', sub {
         table_ class => 'stripe', sub {
@@ -132,6 +136,12 @@ sub posts_ {
                         br_;
                         txt_ fmtdate $_->{date}, 'full';
                     }
+                    a_ href => sprintf('/%s.%s?%spatrolled=1', $t->{id}, $_->{num}, (grep $_->{user_id} eq auth->uid, $_->{patrolled}->@*) ? 'un' : ''), sub {
+                        txt_ ' ';
+                        $_->{patrolled}->@*
+                            ? span_ class => 'done', title => "Patrolled by ".join(', ', map user_displayname($_), $_->{patrolled}->@*), '✓'
+                            : small_ '#';
+                    } if auth->permDbmod;
                 };
                 td_ class => 'tc2', sub {
                     small_ class => 'edit', sub {
@@ -160,6 +170,15 @@ sub posts_ {
 }
 
 
+# Also used by Reviews::Page.
+sub mark_patrolled($id, $num) {
+    return if !auth->permDbmod;
+    my $obj = { id => $id, num => $num, uid => auth->uid };
+    tuwf->dbExeci('INSERT INTO posts_patrolled', $obj, 'ON CONFLICT (id,num,uid) DO NOTHING') if tuwf->reqGet('patrolled');
+    tuwf->dbExeci('DELETE FROM posts_patrolled WHERE', $obj) if tuwf->reqGet('unpatrolled');
+}
+
+
 sub reply_ {
     my($t, $posts, $page) = @_;
     return if $t->{count} > $page*25;
@@ -180,6 +199,7 @@ my $PATH = qr{/$RE{tid}(?:(?<sep>[\./])$RE{num})?};
 
 TUWF::get $PATH, sub {
     my($id, $sep, $num) = (tuwf->capture('id'), tuwf->capture('sep')||'', tuwf->capture('num'));
+    mark_patrolled $id, $num if $sep eq '.';
 
     my $t = tuwf->dbRowi(
         'SELECT id, title, hidden, locked, private

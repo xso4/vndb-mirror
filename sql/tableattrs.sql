@@ -89,6 +89,7 @@ ALTER TABLE image_votes              ADD CONSTRAINT image_votes_id_fkey         
 ALTER TABLE image_votes              ADD CONSTRAINT image_votes_uid_fkey               FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE SET DEFAULT;
 ALTER TABLE notification_subs        ADD CONSTRAINT notification_subs_uid_fkey         FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE CASCADE;
 ALTER TABLE notifications            ADD CONSTRAINT notifications_uid_fkey             FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE CASCADE;
+ALTER TABLE posts_patrolled          ADD CONSTRAINT posts_patrolled_uid_fkey           FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE CASCADE;
 ALTER TABLE producers_hist           ADD CONSTRAINT producers_chid_id_fkey             FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE producers_extlinks       ADD CONSTRAINT producers_extlinks_id_fkey         FOREIGN KEY (id)        REFERENCES producers     (id);
 ALTER TABLE producers_extlinks       ADD CONSTRAINT producers_extlinks_link_fkey       FOREIGN KEY (link)      REFERENCES extlinks      (id);

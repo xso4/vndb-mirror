@@ -33,6 +33,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON image_votes              TO vndb_site;
 GRANT SELECT, INSERT, UPDATE, DELETE ON login_throttle           TO vndb_site;
 GRANT SELECT, INSERT, UPDATE, DELETE ON notification_subs        TO vndb_site;
 GRANT SELECT, INSERT, UPDATE, DELETE ON notifications            TO vndb_site;
+GRANT SELECT, INSERT,         DELETE ON posts_patrolled          TO vndb_site;
 GRANT SELECT, INSERT, UPDATE         ON producers                TO vndb_site;
 GRANT SELECT                         ON producerst               TO vndb_site;
 GRANT SELECT, INSERT                 ON producers_hist           TO vndb_site;
