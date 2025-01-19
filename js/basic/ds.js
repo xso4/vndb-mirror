@@ -279,6 +279,8 @@ class DS {
 };
 
 
+// WARNING: The button should stay in the DOM while the ds is open.
+// Dynamically adding or removing nodes before the button might cause it to be re-added to the DOM and break ds positioning.
 DS.Button = {view: vnode => m('button.ds[type=button]', {
         class: vnode.attrs.invalid ? 'invalid ' + (vnode.attrs.class||'') : vnode.attrs.class,
         onclick: function(ev) { ev.preventDefault(); vnode.attrs.onclick ? vnode.attrs.onclick(ev) : vnode.attrs.ds && vnode.attrs.ds.open(this, null) },

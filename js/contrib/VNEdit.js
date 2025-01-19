@@ -176,8 +176,8 @@ const Staff = initVnode => {
                 m('td', m(Button.Del, { onclick: () => data.staff = data.staff.filter(x => x !== s) })),
             ))),
             m('tfoot', m('tr', m('td'), m('td[colspan=4]',
-                data.staff.filter(s => s.eid === (e?e.eid:null)).anyDup(s => [s.aid,s.role])
-                ? m('p.invalid', 'List contains duplicate staff with the same role.') : null,
+                [ data.staff.filter(s => s.eid === (e?e.eid:null)).anyDup(s => [s.aid,s.role])
+                ? m('p.invalid', 'List contains duplicate staff with the same role.') : null ],
                 m(DS.Button, { ds: ds[e?e.eid:''] }, 'Add staff'),
                 " Can't find the person you're looking for? ", m('a[href=/s/new][target=_blank]', 'Create a new staff entry'), '.',
             ))),
@@ -227,7 +227,7 @@ const Cast = initVnode => {
                 m('td', m(Button.Del, { onclick: () => data.seiyuu = data.seiyuu.filter(x => x !== s) })),
             ))),
             m('tfoot', m('tr', m('td[colspan=4]',
-                data.seiyuu.anyDup(s => [s.aid,s.cid]) ? m('p.invalid', 'List contains duplicate cast roles') : null,
+                [ data.seiyuu.anyDup(s => [s.aid,s.cid]) ? m('p.invalid', 'List contains duplicate cast roles') : null ],
                 m('br'),
                 m('strong', 'Add cast'),
                 m('br'),
