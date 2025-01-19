@@ -20,6 +20,7 @@ a:hover,
 table tr.odd,
 table.stripe tbody tr:nth-child(odd):not(.nostripe),
 .docs table tbody tr:nth-child(odd) { background: var(--boxbg); }
+tr:target, tr.target { outline: 1px dashed var(--standout) }
 
 
 /* Warning/Notice Box */
@@ -180,7 +181,6 @@ fieldset.search .submit         { padding: 0 1px; }
 .thread td.tc1        { width: 190px; padding: 5px 10px; border-right: 1px solid var(--border); }
 .thread td.tc2        { padding: 10px 20px 10px 10px; }
 .thread tr.deleted td { padding: 1px 10px; }
-.thread tr:target, .thread tr.target { outline: 1px dotted var(--standout) }
 .thread .lastmod      { float: right; font-size: 11px; color: var(--grayedout); margin: 0 -10px -5px 0; }
 .thread .edit         { float: right; color: var(--grayedout); margin: -10px -10px 0 0; visibility: hidden }
 .thread td:hover .edit,

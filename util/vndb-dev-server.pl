@@ -107,6 +107,7 @@ sub checkmod {
 
     $check->('util/vndb.pl');
     $check->("$ENV{VNDB_VAR}/conf.pl");
+    $check->('changes.log');
 
     my $ismod = $newlastmod > $lastmod;
     $lastmod = $newlastmod;

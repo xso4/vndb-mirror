@@ -1,0 +1,9 @@
+# This is for user-visible changes only and powers the list at https://vndb.org/changes
+20250119 Added this changelog.
+20250118 Rewritten VN edit form (t12882.55).
+20250118 Producer/staff edit: Support alternative tumblr link formats (t12882.53).
+20250115 Add email domain typo fix suggestions to sign-up & email change form.
+20250115 Producer/staff edit: Support multiple Xitter links (t950.1802).
+20250114 Hide random quotes from footer for search engines and when visiting from an external site.
+20250114 Producer/staff edit: Support alternative wikidata link format (t950.1799).
+20250111 Producer/staff edit: Support alternative itch.io/profile/<name> link format.

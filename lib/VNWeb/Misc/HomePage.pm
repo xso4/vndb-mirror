@@ -37,7 +37,14 @@ sub screens {
 
 
 sub recent_changes_ {
-    my($lst) = VNWeb::Misc::History::fetch(undef, {m=>1,h=>1,p=>1}, {results=>10});
+    state $log = VNWeb::Misc::Changes::changes->[0];
+    state $logmsg = $log && bb_format $log->[2], inline => 1, maxlength => 150;
+    my $haslog = $log && $log->[0] >= strftime('%Y%m%d', gmtime)-2;
+    my($lst) = VNWeb::Misc::History::fetch(undef, {m=>1,h=>1,p=>1}, {results=>$haslog?9:10});
+
+    p_ class => 'mainopts', sub {
+        a_ href => '/changes', 'Site changes';
+    };
     h1_ sub {
         a_ href => '/hist', 'Recent Changes'; txt_ ' ';
         a_ href => '/feeds/changes.atom', sub {
@@ -55,6 +62,17 @@ sub recent_changes_ {
                 user_ $_;
             }
         } for @$lst;
+        li_ sub {
+            span_ sub {
+                lit_ 'vndb:';
+                a_ href => "/changes#$log->[1]", sub {
+                    rdate_ $log->[0];
+                    lit_ $log->[1] =~ s/^[0-9]+//r;
+                };
+                lit_ ' - ';
+                lit_ $logmsg;
+            };
+        } if $haslog;
     };
 }
 
