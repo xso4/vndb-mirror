@@ -1,5 +1,6 @@
 # This is for user-visible changes only and powers the list at https://vndb.org/changes
-20250119 Added this changelog.
+20250120 Database editing: adjust heading of edit summary input and disallow punctuation-only summaries.
+20250119 Add this changelog.
 20250118 Rewritten VN edit form (t12882.55).
 20250118 Producer/staff edit: Support alternative tumblr link formats (t12882.53).
 20250115 Add email domain typo fix suggestions to sign-up & email change form.

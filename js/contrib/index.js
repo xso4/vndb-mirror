@@ -46,37 +46,43 @@ const imgsize = (img, w, h) => {
 // Attrs:
 // - data     -> form data containing editsum, hidden & locked
 // - api      -> Api object for loading & error status
-// - approval -> null for entries that don't require approval, otherwise a boolean indicating mod status
-//
-// TODO: Better feedback on pointless edit summaries like "-", "..", etc
+// - type     -> vndbid type
 const EditSum = vnode => {
-    let {api,data,approval} = vnode.attrs;
+    let {api,data,type} = vnode.attrs;
     const rad = (l,h,lab) => m('label',
         m('input[type=radio]', {
             checked: l === data.locked && h === data.hidden,
             oninput: () => { data.locked = l; data.hidden = h }
         }), lab
     );
-    if (typeof approval !== 'boolean') approval = null;
-    const mod = approval === null ? pageVars.dbmod : approval;
+    const approval = type === 'g' || type === 'i';
+    const mod = 'authmod' in data ? data.authmod : pageVars.dbmod;
     const view = () => m('article.submit',
         mod ? m('fieldset',
             rad(false, false, ' Normal '),
             rad(true , false, ' Locked '),
             rad(true , true , ' Deleted '),
-            approval === null ? null : rad(false, true, ' Awaiting approval '),
+            approval ? rad(false, true, ' Awaiting approval ') : null,
             data.locked && data.hidden ? m('span',
                 m('br'), 'Note: edit summary of the last edit should indicate the reason for the deletion.', m('br')
             ) : null,
         ) : null,
         m(TextPreview, {
             data, field: 'editsum',
-            attrs: { rows: 4, cols: 50, minlength: 2, maxlength: 5000, required: true },
+            attrs: {
+                rows: 4, cols: 50, minlength: 2, maxlength: 5000, required: true,
+                invalid: /^[!@#$%^&\*\(\)\-_=\+\[\];:'",<.>/\?\\\|]+$/.test(data.editsum) ? "Please type something meaningful!" : null,
+            },
             header: [
-                m('strong', 'Edit summary'),
-                m('b', ' (English please!)'),
-                m('br'),
-                'Summarize the changes you have made, including links to source(s).',
+                data.id ? 'What did you change and why? Which source(s) did you use? Links are always welcome!'
+                : type === 'v' ? [ 'Which source(s) did you use? Does the visual novel match our ', m('a[href=/d2#1][target=_blank]', 'inclusion criteria'), '?' ]
+                : type === 'p' ? 'For which visual novel(s) are you adding this producer entry? Which source(s) did you use?'
+                : type === 's' ? 'For which visual novel(s) are you adding this staff entry? Which source(s) did you use?'
+                : type === 'c' ? 'What source did you use for information about this character?'
+                : type === 'r' ? 'What source did you use for information about this release?'
+                : type === 'g' ? 'Why should this tag be included in the database?'
+                : type === 'i' ? 'Why should this trait be included in the database?'
+                : null,
             ]
         }),
         m('input[type=submit][value=Submit]'),

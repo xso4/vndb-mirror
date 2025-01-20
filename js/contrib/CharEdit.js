@@ -565,7 +565,7 @@ widget('CharEdit', vnode => {
 
     const view = () => m(Form, {api, onsubmit: () => api.call(data)},
         m(FormTabs, {tabs}),
-        m(EditSum, {data,api}),
+        m(EditSum, {data,api,type:'c'}),
     );
     return {view};
 });

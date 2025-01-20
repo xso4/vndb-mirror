@@ -91,7 +91,7 @@ widget('TraitEdit', vnode => {
             properties(),
             parents(),
         ),
-        m(EditSum, {data,api, approval: data.authmod }),
+        m(EditSum, {data,api,type:'i'}),
     );
     return {view};
 });

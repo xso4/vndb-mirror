@@ -437,7 +437,7 @@ widget('VNEdit', initVnode => {
         ),
     ) : m(Form, {api, onsubmit},
         m(FormTabs, {tabs}),
-        m(EditSum, {data,api}),
+        m(EditSum, {data,api,type:'v'}),
     );
     return {view};
 });

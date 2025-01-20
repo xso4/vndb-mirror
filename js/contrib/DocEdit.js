@@ -23,7 +23,7 @@ widget('DocEdit', initVnode => {
                 ]
             })),
         ),
-        m(EditSum, {data,api}),
+        m(EditSum, {data,api,type:'d'}),
     );
     return {view};
 });

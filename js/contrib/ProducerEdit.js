@@ -85,7 +85,7 @@ widget('ProducerEdit', initVnode => {
             ) : null,
         ),
         dupCheck === false ? [
-            m(EditSum, {data,api})
+            m(EditSum, {data,api,type:'p'})
         ] : dupCheck === true ? [m('article.submit',
             m('input[type=submit][value=Continue]'),
             dupApi.Status(),

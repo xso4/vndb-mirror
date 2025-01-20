@@ -111,7 +111,7 @@ widget('TagEdit', vnode => {
             parents(),
             data.id && data.authmod ? danger() : null,
         ),
-        m(EditSum, {data,api, approval: data.authmod }),
+        m(EditSum, {data,api, type: 'g', mod: data.authmod }),
     );
     return {view};
 });

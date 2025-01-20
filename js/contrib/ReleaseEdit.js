@@ -681,7 +681,7 @@ widget('ReleaseEdit', initVnode => {
 
     const view = () => m(Form, {api, onsubmit: () => api.call(data)},
         m(FormTabs, {tabs}),
-        m(EditSum, {data,api}),
+        m(EditSum, {data,api,type:'r'}),
     );
     return {view};
 });
