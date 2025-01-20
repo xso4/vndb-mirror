@@ -1,4 +1,5 @@
 # This is for user-visible changes only and powers the list at https://vndb.org/changes
+20250120 Producer/staff edit: Support alternative Facebook link format (t950.1808).
 20250120 VN edit: Fix error when adding VN relation with default (sequel) type.
 20250120 Database editing: Adjust heading of edit summary input and disallow punctuation-only summaries.
 20250119 Add this changelog.

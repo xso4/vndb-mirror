@@ -19,6 +19,12 @@ my @tests = qw{
     tumblr     dead-ame    https://www.tumblr.com/dead-ame/likes
     tumblr     dead-ame    https://www.tumblr.com/blog/dead-ame
     tumblr     dead-ame    https://dead-ame.tumblr.com/
+
+    facebook   100082798702249  https://www.facebook.com/profile.php?id=100082798702249
+    facebook   100082798702249  https://www.facebook.com/100082798702249
+    facebook   YUKIUSAGIdesuno  https://ja-jp.facebook.com/YUKIUSAGIdesuno
+    facebook   Wikipedia   https://www.facebook.com/Wikipedia/
+    facebook   Wikipedia   https://m.facebook.com/Wikipedia/
 };
 
 plan tests => @tests/3*2;

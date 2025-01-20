@@ -182,7 +182,7 @@ our %LINKS = (
         { ent   => 'sp'
         , label => 'Facebook'
         , fmt   => 'https://www.facebook.com/%s'
-        , regex => qr{(?:www\.)?facebook\.com/([a-zA-Z0-9.-]+)/?(:?\?.*)?},
+        , regex => qr{(?:[^\.]+\.)?facebook\.com/(?:profile\.php\?id=([a-zA-Z0-9.-]+)(?:&.*)?|([a-zA-Z0-9.-]+)/?(?:\?.*)?)},
         },
     fakku =>
         { ent   => 'r'
