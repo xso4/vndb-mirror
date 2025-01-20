@@ -90,7 +90,7 @@ const Titles = initVnode => {
 const Relations = initVnode => {
     const {data} = initVnode.attrs;
     const ds = new DS(DS.VNs, {
-        onselect: obj => data.relations.push({vid: obj.id, relation: 'sequel', official: true, title: obj.title}),
+        onselect: obj => data.relations.push({vid: obj.id, relation: 'seq', official: true, title: obj.title}),
         props: obj =>
             obj.id === data.id ? { selectable: false, append: m('small', ' (this entry)') } :
             data.relations.find(v => v.vid === obj.id) ? { selectable: false, append: m('small', ' (already listed)') } : {},
