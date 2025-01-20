@@ -4,8 +4,20 @@ const hasimage = /^[vrc]/;
 const reasons = [
     [ '-- Select --' ],
     [ 'Spam', /^[^dgiu]/, true ],
-    [ 'Incorrect or missing information', /^[dgi]/, true ],
+    [ 'Typo', /^[dgi]/, true ],
     [ 'Broken link', /^[dgi]/, true ],
+    [ 'Wrong location in the tag tree', /^g/, false, () =>
+        'Please report suggestions about a better tag organization on the forums, so that other people have a chance to chime in as well.',
+    ],
+    [ 'Wrong location in the trait tree', /^i/, false, () =>
+        'Please report suggestions about a better tag organization on the forums, so that other people have a chance to chime in as well.',
+    ],
+    [ 'Confusing or incorrect tag description', /^g/, false, () =>
+        'Please report tag improvement suggestions on the forums, so that other people have a chance to chime in as well.',
+    ],
+    [ 'Confusing or incorrect trait description', /^i/, false, () =>
+        'Please report trait improvement suggestions on the forums, so that other people have a chance to chime in as well.',
+    ],
     [ 'Sexual content involving minors', hasimage, true, () => [
         m('strong', 'DO NOT report:'), m('br'),
         '- Lolicon or shotacon with anime-style art.', m('br'),
@@ -13,7 +25,7 @@ const reasons = [
         m('strong', 'DO report:'), m('br'),
         '- Semi-realistic 3D art, realistic looking AI-generated art or actual photos.',
     ] ],
-    [ 'Links to piracy or illegal content', /^[^u]/, true ],
+    [ 'Links to piracy or illegal content', /^[^udgi]/, true ],
     [ 'Off-topic', /^[tw]/, true ],
     [ 'Unwelcome behavior', /^[tw]/, true ],
     [ 'Unmarked spoilers', /^[^u]/, true, id => (editable.test(id) ? [
