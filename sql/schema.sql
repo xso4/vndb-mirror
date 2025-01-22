@@ -970,7 +970,8 @@ CREATE TABLE staff ( -- dbentry_type=s
   main        integer NOT NULL DEFAULT 0, -- [pub] Primary name for the staff entry
   locked      boolean NOT NULL DEFAULT FALSE,
   hidden      boolean NOT NULL DEFAULT FALSE,
-  description text NOT NULL DEFAULT '' -- [pub]
+  description text NOT NULL DEFAULT '', -- [pub]
+  prod        vndbid(p)
 );
 
 -- staff_hist
@@ -979,7 +980,8 @@ CREATE TABLE staff_hist (
   gender      staff_gender NOT NULL DEFAULT '', -- cf=Gender
   lang        language NOT NULL DEFAULT 'ja', -- cf=Language
   main        integer NOT NULL DEFAULT 0, -- cf=Name  Can't refer to staff_alias.id, because the alias might have been deleted
-  description text NOT NULL DEFAULT '' -- cf=Description
+  description text NOT NULL DEFAULT '', -- cf=Description
+  prod        vndbid(p) -- cf=Producer
 );
 
 -- staff_alias

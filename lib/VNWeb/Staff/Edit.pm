@@ -16,6 +16,8 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     description=> { default => '', maxlength => 5000 },
     gender     => { default => '', enum => \%STAFF_GENDER },
     lang       => { language => 1 },
+    prod       => { default => undef, vndbid => 'p' },
+    prod_title => { _when => 'out', default => undef, type => 'array' },
     extlinks   => { extlinks => 's' },
     hidden     => { anybool => 1 },
     locked     => { anybool => 1 },
@@ -31,6 +33,8 @@ TUWF::get qr{/$RE{srev}/edit} => sub {
 
     my $alias_inuse = 'EXISTS(SELECT 1 FROM vn_staff WHERE aid = sa.aid UNION ALL SELECT 1 FROM vn_seiyuu WHERE aid = sa.aid)';
     enrich_merge aid => sub { "SELECT aid, $alias_inuse AS inuse, false AS wantdel FROM unnest(", sql_array(@$_), '::int[]) AS sa(aid)' }, $e->{alias};
+
+    $e->{prod_title} = tuwf->dbVali('SELECT title FROM', producerst, 'WHERE id =', \$e->{prod}) if $e->{prod};
 
     # If we're reverting to an older revision, we have to make sure all the
     # still referenced aliases are included.
@@ -74,8 +78,13 @@ js_api StaffEdit => $FORM_IN, sub {
         $data->{hidden} = $e->{hidden}||0;
         $data->{locked} = $e->{locked}||0;
     }
-    $data->{l_wp} = $e->{l_wp}||'';
     $data->{description} = bb_subst_links $data->{description};
+
+    if ($data->{prod}) {
+        return "Producer ($data->{prod}) is already linked to another staff entry."
+            if tuwf->dbVali('SELECT 1 FROM staff WHERE NOT hidden AND prod =', \$data->{prod}, $new ? () : ('AND id <>', \$e->{id}));
+        validate_dbid sql('SELECT id FROM producers WHERE NOT hidden AND id IN'), $data->{prod};
+    }
 
     # The form validation only checks for duplicate aid's, but the name+latin should also be unique.
     my %names;

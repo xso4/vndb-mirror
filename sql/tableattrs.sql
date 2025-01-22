@@ -40,6 +40,7 @@ CREATE        INDEX tags_vn_vid            ON tags_vn (vid);
 CREATE        INDEX search_cache_id        ON search_cache (id);
 CREATE        INDEX search_cache_label     ON search_cache USING GIN (label gin_trgm_ops);
 CREATE        INDEX shop_playasia__gtin    ON shop_playasia (gtin);
+CREATE        INDEX staff_prod             ON staff (prod) WHERE prod IS NOT NULL;
 CREATE        INDEX staff_extlinks_site    ON staff_extlinks (c_site, link, id);
 CREATE        INDEX threads_posts_date     ON threads_posts (date);
 CREATE        INDEX threads_posts_ts       ON threads_posts USING gin(bb_tsvector(msg));
@@ -153,7 +154,9 @@ ALTER TABLE rlists                   ADD CONSTRAINT rlists_rid_fkey             
 ALTER TABLE saved_queries            ADD CONSTRAINT saved_queries_uid_fkey             FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE CASCADE;
 ALTER TABLE sessions                 ADD CONSTRAINT sessions_uid_fkey                  FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE CASCADE;
 ALTER TABLE staff                    ADD CONSTRAINT staff_main_fkey                    FOREIGN KEY (main)      REFERENCES staff_alias   (aid) DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE staff                    ADD CONSTRAINT staff_prod_fkey                    FOREIGN KEY (prod)      REFERENCES producers     (id);
 ALTER TABLE staff_hist               ADD CONSTRAINT staff_hist_chid_fkey               FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
+ALTER TABLE staff_hist               ADD CONSTRAINT staff_hist_prod_fkey               FOREIGN KEY (prod)      REFERENCES producers     (id);
 ALTER TABLE staff_alias              ADD CONSTRAINT staff_alias_id_fkey                FOREIGN KEY (id)        REFERENCES staff         (id);
 ALTER TABLE staff_alias_hist         ADD CONSTRAINT staff_alias_chid_fkey              FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE staff_extlinks           ADD CONSTRAINT staff_extlinks_id_fkey             FOREIGN KEY (id)        REFERENCES staff         (id);

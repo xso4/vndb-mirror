@@ -38,15 +38,24 @@ sub info_ {
         join_ ' - ', sub { a_ href => $_->{url2}, $_->{label} }, $p->{vislinks}->@*;
     };
 
+    my $s = tuwf->dbRowi('SELECT id, title FROM', staff_aliast, 'WHERE aid = main AND prod =', \$p->{id});
+    my @rel;
+    push @rel, [ 'Staff entry', [[ $s->{id}, $s ]] ] if $s->{id};
+
+    my %rel;
+    push $rel{$_->{relation}}->@*, $_ for $p->{relations}->@*;
+    push @rel, map
+        [ $PRODUCER_RELATION{$_}{txt}, [ map [ $_->{pid}, $_ ], $rel{$_}->@* ] ],
+        grep $rel{$_}, keys %PRODUCER_RELATION
+        if %rel;
+
     p_ class => 'center', sub {
-        my %rel;
-        push $rel{$_->{relation}}->@*, $_ for $p->{relations}->@*;
         br_;
         join_ \&br_, sub {
-            txt_ $PRODUCER_RELATION{$_}{txt}.': ';
-            join_ ', ', sub { a_ href => "/$_->{pid}", tattr $_ }, $rel{$_}->@*;
-        }, grep $rel{$_}, keys %PRODUCER_RELATION;
-    } if $p->{relations}->@*;
+            txt_ "$_->[0]: ";
+            join_ ', ', sub { a_ href => "/$_->[0]", tattr $_->[1] }, $_->[1]->@*
+        }, @rel;
+    } if @rel;
 
     div_ class => 'description', sub { lit_ bb_format $p->{description} } if length $p->{description};
 }

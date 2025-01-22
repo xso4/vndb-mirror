@@ -7,6 +7,8 @@ use VNWeb::ULists::Lib;
 sub enrich_item {
     my($s) = @_;
 
+    $s->{prod_title} = tuwf->dbVali('SELECT title FROM', producerst, 'WHERE id =', \$s->{prod}) if $s->{prod};
+
     # Add a 'main' flag and title field to each alias
     for ($s->{alias}->@*) {
         $_->{main} = $s->{main} == $_->{aid};
@@ -28,6 +30,9 @@ sub _rev_ {
         } ],
         [ gender => 'Gender',     fmt => \%STAFF_GENDER ],
         [ lang   => 'Language',   fmt => \%LANGUAGE ],
+        [ prod   => 'Producer',   fmt => sub {
+            small_ "$_: "; a_ href => "/$_", tattr $_[0]{prod_title};
+        }],
         [ description => 'Description' ],
         $VNDB::ExtLinks::REVISION
 }
@@ -62,6 +67,13 @@ sub _infotable_ {
                 };
             };
         } if @alias;
+
+        tr_ sub {
+            td_ class => 'key', 'Producer';
+            td_ sub {
+                a_ href => "/$s->{prod}", tattr $s->{prod_title};
+            };
+        } if $s->{prod};
 
         tr_ sub {
             td_ class => 'key', 'Links';

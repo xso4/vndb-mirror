@@ -450,6 +450,7 @@ hash CHFLAGS =>
         Description
         Gender
         Links
+        Producer
     ]],
     d => [qw[Modflags Title Content]],
     g => [qw[

@@ -64,6 +64,10 @@ widget('StaffEdit', initVnode => {
         ]).filter(x => x)),
     );
 
+    const prod = new DS(DS.Producers, { onselect: o => {
+        data.prod = o.id;
+        data.prod_title = [ '', o.name, '', o.altname ];
+    }});
     const lang = new DS(DS.LocLang, {onselect: obj => data.lang = obj.id});
     const fields = () => [
         m('fieldset',
@@ -78,6 +82,18 @@ widget('StaffEdit', initVnode => {
             m('label', { class: data.lang ? null : 'invalid' }, 'Primary language'),
             m(DS.Button, {class: 'mw', ds:lang}, data.lang ? Object.fromEntries(vndbTypes.language)[data.lang] : '-- select --'),
             data.lang ? null : m('p.invalid', 'No language selected.'),
+        ),
+        m('fieldset',
+            m('label', 'Same as', HelpButton('prod')),
+            m(DS.Button, { class: 'lw', ds:prod}, data.prod
+                ? [ m('small', data.prod, ': '), data.prod_title[1] ]
+                : m('em', 'No producer entry')
+            ),
+            data.prod ? m(Button.Del, {onclick: () => data.prod = null}) : null,
+        ),
+        Help('prod',
+            m('p', 'Producer entry for this person, if there is one.'),
+            m('p', 'Only set this if the producer and this staff entry are one and the same, not just when this staff happens to work for the producer.'),
         ),
         m(ExtLinks, {type: 'staff', links: data.extlinks}),
         m('fieldset',
