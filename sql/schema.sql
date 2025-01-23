@@ -971,7 +971,7 @@ CREATE TABLE staff ( -- dbentry_type=s
   locked      boolean NOT NULL DEFAULT FALSE,
   hidden      boolean NOT NULL DEFAULT FALSE,
   description text NOT NULL DEFAULT '', -- [pub]
-  prod        vndbid(p)
+  prod        vndbid(p) -- [pub]
 );
 
 -- staff_hist
