@@ -44,6 +44,7 @@ hash LANGUAGE =>
     it       => { latin => 1, rank => 0, txt => 'Italian' },
     iu       => { latin => 1, rank => 0, txt => 'Inuktitut' },
     ja       => { latin => 0, rank => 4, txt => 'Japanese' },
+    kk       => { latin => 0, rank => 0, txt => 'Kazakh' },
     ko       => { latin => 0, rank => 1, txt => 'Korean' },
     la       => { latin => 1, rank => 0, txt => 'Latin' },
     lv       => { latin => 1, rank => 0, txt => 'Latvian' },
