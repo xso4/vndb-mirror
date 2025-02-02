@@ -18,23 +18,6 @@ const GenInfo = vnode => {
                       obj.main !== null ? { selectable: false } : {},
     });
 
-    const sex = () => [
-        m(Select, { id: 'sex', data, field: 'sex', class: 'mw', options: sexOpts }),
-        m('label.check',
-            ' ',
-            m('input[type=checkbox]', {
-                checked: data.spoil_sex !== null,
-                onclick: ev => data.spoil_sex = ev.target.checked ? data.sex : null,
-            }),
-            ' spoiler'
-        ),
-        data.spoil_sex === null ? null : m('div',
-            '▲ apparent (non-spoiler) sex', m('br'),
-            '▼ actual (spoiler) sex', m('br'),
-            m(Select, { data, field: 'spoil_sex', class: 'mw', options: sexOpts }),
-        )
-    ];
-
     const view = () => [ m('fieldset.form',
         m('fieldset',
             m('label[for=name]', 'Name (original)'),
@@ -87,14 +70,27 @@ const GenInfo = vnode => {
             m(Input, { id: 'age', data, field: 'age', class: 'sw', type: 'number', empty: null, max: 32767 }),
             ' years'
         )
-    ), data.hasgender ? m('fieldset.form',
+    ), m('fieldset.form',
         m('legend', 'Sex & gender identity'),
         m('fieldset',
             'To avoid confusion: ', m('strong', 'Sex'), ' relates to the physical body while ', m('strong', 'Gender identity'), ' relates to the personality.',
         ),
         m('fieldset',
             m('label[for=sex]', 'Sex', HelpButton('sex')),
-            sex(),
+            m(Select, { id: 'sex', data, field: 'sex', class: 'mw', options: sexOpts }),
+            m('label.check',
+                ' ',
+                m('input[type=checkbox]', {
+                    checked: data.spoil_sex !== null,
+                    onclick: ev => data.spoil_sex = ev.target.checked ? data.sex : null,
+                }),
+                ' spoiler'
+            ),
+            data.spoil_sex === null ? null : m('div',
+                '▲ apparent (non-spoiler) sex', m('br'),
+                '▼ actual (spoiler) sex', m('br'),
+                m(Select, { data, field: 'spoil_sex', class: 'mw', options: sexOpts }),
+            )
         ),
         Help('sex',
             m('p', 'The physical sex of the character, i.e. what they have between their legs.'),
@@ -218,12 +214,8 @@ const GenInfo = vnode => {
                 ),
             ),
         ),
-    ) : null, m('fieldset.form',
+    ), m('fieldset.form',
         m('legend', 'Body'),
-        !data.hasgender ? m('fieldset',
-            m('label[for=sex]', 'Sex'),
-            sex(),
-        ) : null,
         m('fieldset',
             m('label[for=sbust]', 'Bust'),
             m(Input, { id: 'sbust', data, field: 's_bust', class: 'sw', type: 'number', max: 32767 }),

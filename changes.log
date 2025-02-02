@@ -1,4 +1,5 @@
 # This is for user-visible changes only and powers the list at https://vndb.org/changes
+20250202 Characters: Allow gender identity (t22752) to be set for all characters.
 20250122 Staff: Add "same as that producer entry" field.
 20250120 Producer/staff edit: Support alternative Facebook link format (t950.1808).
 20250120 VN edit: Fix error when adding VN relation with default (sequel) type.
