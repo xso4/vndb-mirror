@@ -96,7 +96,7 @@ my %tables = (
     producers           => { where => 'NOT x.hidden' },
     producers_extlinks  => { where => 'x.id IN(SELECT id FROM producers WHERE NOT hidden)' },
     producers_relations => { where => 'x.id IN(SELECT id FROM producers WHERE NOT hidden)' },
-    quotes              => { where => 'x.rand IS NOT NULL' },
+    quotes              => { where => 'NOT hidden AND x.vid IN(SELECT id FROM vn WHERE NOT hidden)' },
     releases            => { where => 'NOT x.hidden' },
     releases_extlinks   => { where => 'x.id IN(SELECT id FROM releases WHERE NOT hidden)' },
     releases_images     => { where => 'x.id IN(SELECT id FROM releases WHERE NOT hidden)' },
