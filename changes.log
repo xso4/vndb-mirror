@@ -1,5 +1,6 @@
 # This is for user-visible changes only and powers the list at https://vndb.org/changes
-20250222 Fix search result count to exclude hidden items (t2520.945)
+20250222 VN edit: Add button to move staff entries between editions (t950.1829)
+20250222 Fix search result count to exclude deleted items (t2520.945)
 20250209 Sort media list in alphabetical order (t950.1818)
 20250202 Add Kazakh language.
 20250202 Characters: Allow gender identity (t22752) to be set for all characters.

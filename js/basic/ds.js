@@ -279,6 +279,8 @@ class DS {
     }
 };
 
+DS.close = close;
+
 
 // WARNING: The button should stay in the DOM while the ds is open.
 // Dynamically adding or removing nodes before the button might cause it to be re-added to the DOM and break ds positioning.

@@ -145,6 +145,19 @@ const Staff = initVnode => {
     });
     const ds = Object.fromEntries([null].concat(data.editions).map(e => [e?e.eid:'', newds(e?e.eid:null)]));
 
+    let edsCur = null;
+    const eds = new DS({
+        list: (s,i,cb) => cb(
+            [{id:'', eid:null, lang:null, name:'Original edition'}].concat(
+                data.editions.map(({eid,lang,name}) => ({id:eid, eid, lang, name: name||'Unnamed edition'}))
+            )),
+        view: obj => [ obj.lang ? LangIcon(obj.lang) : null, obj.name ],
+    }, {
+        nosearch: true,
+        onselect: obj => edsCur.eid = obj.eid,
+        props: obj => edsCur.eid === obj.eid ? { append: m('small', ' (selected)') } : {},
+    });
+
     const view = () => [ [null].concat(data.editions).map(e => m('fieldset.form', {key: e?e.eid:''},
         m('legend', !e ? 'Original edition' : e.name === '' ? 'Unnamed edition' : e.name),
         e ? m('fieldset.full',
@@ -173,7 +186,10 @@ const Staff = initVnode => {
                 m('td', m('a[target=_blank]', { href: '/'+s.sid }, s.title), ' ', s.title !== s.alttitle ? s.alttitle : ''),
                 m('td', m(Select, { data: s, field: 'role', options: vndbTypes.creditType })),
                 m('td', m(Input, { data: s, field: 'note', maxlength: 250, class: 'lw' })),
-                m('td', m(Button.Del, { onclick: () => data.staff = data.staff.filter(x => x !== s) })),
+                m('td',
+                    data.editions.length > 0 ?  m(Button.Edit, { onclick: ev => { DS.close(); edsCur = s; eds.open(ev.target, null); } }) : null,
+                    m(Button.Del, { onclick: () => data.staff = data.staff.filter(x => x !== s) })
+                ),
             ))),
             m('tfoot', m('tr', m('td'), m('td[colspan=4]',
                 [ data.staff.filter(s => s.eid === (e?e.eid:null)).anyDup(s => [s.aid,s.role])
