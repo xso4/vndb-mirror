@@ -921,7 +921,7 @@ CREATE TABLE saved_queries (
 CREATE TABLE search_cache (
   id      vndbid NOT NULL,
   subid   integer, -- only for staff_alias.id at the moment
-  prio    smallint NOT NULL, -- 1 for indirect titles, 2 for aliases, 3 for main titles
+  prio    smallint NOT NULL, -- 1 for indirect titles, 2 for aliases, 3 for main titles, 4 for deleted entries
   label   text NOT NULL COLLATE "C"
 ) PARTITION BY RANGE(id);
 

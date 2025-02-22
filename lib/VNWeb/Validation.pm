@@ -410,11 +410,12 @@ package VNWeb::Validate::SearchQuery {
     sub _isvndbid { my $l = $_[0]->words; @$l == 1 && $l->[0] =~ /^[vrpcsgi]$num$/ }
 
     sub where {
-        my($self, $type) = @_;
+        my($self, $type, $nothid) = @_;
         my $lst = $self->words;
         my @keywords = map sql('sc.label LIKE', \('%'.sql_like($_).'%')), @$lst;
         +(
             $type ? "sc.id BETWEEN '${type}1' AND vndbid_max('$type')" : (),
+            $nothid ? 'sc.prio <> 4' : (),
             $self->_isvndbid()
                 ? (sql 'sc.id =', \$lst->[0], 'OR', sql_and(@keywords))
                 : @keywords

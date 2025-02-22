@@ -87,18 +87,19 @@ $$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION update_search(objid vndbid) RETURNS void AS $$
-  WITH excluded(excluded) AS (
-    -- VN, tag & trait search needs to support finding 'hidden' items, but for
-    -- other entry types we can safely exclude those from the search cache.
-    SELECT 1
-     WHERE (vndbid_type(objid) = 'r' AND EXISTS(SELECT 1 FROM releases  WHERE hidden AND id = objid))
-        OR (vndbid_type(objid) = 'c' AND EXISTS(SELECT 1 FROM chars     WHERE hidden AND id = objid))
-        OR (vndbid_type(objid) = 'p' AND EXISTS(SELECT 1 FROM producers WHERE hidden AND id = objid))
-        OR (vndbid_type(objid) = 's' AND EXISTS(SELECT 1 FROM staff     WHERE hidden AND id = objid))
-  ), rawterms(subid, prio, label) AS (
-    SELECT subid, prio, label
-      FROM update_search_terms(objid) x (subid int, prio int, label text)
-     WHERE NOT EXISTS(SELECT 1 FROM excluded)
+  WITH rawterms(subid, prio, label) AS (
+    SELECT subid, CASE WHEN hidden THEN 4 ELSE prio END, label
+      FROM update_search_terms(objid) x (subid int, prio int, label text), (
+        -- VN, tag & trait search needs to support finding 'hidden' items, but for
+        -- other entry types we can safely exclude those from the search cache.
+                  SELECT hidden FROM vn        WHERE vndbid_type(objid) = 'v' AND id = objid
+        UNION ALL SELECT hidden FROM releases  WHERE vndbid_type(objid) = 'r' AND id = objid AND NOT hidden
+        UNION ALL SELECT hidden FROM chars     WHERE vndbid_type(objid) = 'c' AND id = objid AND NOT hidden
+        UNION ALL SELECT hidden FROM producers WHERE vndbid_type(objid) = 'p' AND id = objid AND NOT hidden
+        UNION ALL SELECT hidden FROM staff     WHERE vndbid_type(objid) = 's' AND id = objid AND NOT hidden
+        UNION ALL SELECT hidden FROM tags      WHERE vndbid_type(objid) = 'g' AND id = objid
+        UNION ALL SELECT hidden FROM traits    WHERE vndbid_type(objid) = 'i' AND id = objid
+      )
   ), uniq(subid, prio, label) AS (
     SELECT subid, MAX(prio)::smallint, label
       FROM rawterms
