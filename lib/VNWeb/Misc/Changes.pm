@@ -46,7 +46,7 @@ TUWF::get '/changes' => sub {
                 a_ href => 'https://query.vndb.org/about', 'query interface';
                 txt_ ') are also not listed here.';
                 br_;
-                txt_ 'There is often a lot of code refactoring and performance improvement work going on in the backgound; ';
+                txt_ 'There is often a lot of code refactoring and performance improvement work going on in the background; ';
                 txt_ "such changes are also not listed here because they're not supposed to be visible, ";
                 txt_ 'but sometimes they can unintentionally have user-visible side effects anyway. ';
                 txt_ 'The full list of all code changes can be found at the '; a_ href => config->{source_url}, 'source repository'; txt_ '.';
