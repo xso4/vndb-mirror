@@ -568,7 +568,7 @@ api_get '/ulist_labels', { labels => { aoh => {
 
 
 api_patch qr{/ulist/$RE{vid}}, {
-    vote         => { uint => 1, range => [10,100] },
+    vote         => { default => undef, uint => 1, range => [10,100] },
     notes        => { default => '', maxlength => 2000 },
     started      => { caldate => 1 },
     finished     => { caldate => 1 },
