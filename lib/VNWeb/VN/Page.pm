@@ -1049,7 +1049,7 @@ sub covers_ {
         div_ style => "width: ${w}px", sub {
             my $img = $l->[0]{img};
             my $canvote = auth && grep $_->{itype} eq 'dig' || $_->{itype} eq 'pkgfront', @$l;
-            image_ $img, thumb => 1, extra => !$canvote ? undef : sub {
+            image_ $img, cat => 'cover', thumb => 1, extra => !$canvote ? undef : sub {
                 div_ class => 'vnimagevote', 'data-voting' => join(',', $v->{id}, $img->{id}, $l->[0]{voted}?1:0), '';
             };
             my %t;

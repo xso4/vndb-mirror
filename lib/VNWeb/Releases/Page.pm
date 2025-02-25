@@ -347,7 +347,7 @@ sub _images_ {
                 }
                 txt_ $RELEASE_IMAGE_TYPE{$_->{itype}}{txt};
             };
-            image_ $_->{img}, thumb => 1;
+            image_ $_->{img}, cat => 'cover', thumb => 1;
         } for sort { $RELEASE_IMAGE_TYPE{$a->{itype}}{ord} <=> $RELEASE_IMAGE_TYPE{$b->{itype}}{ord} } $r->{images}->@*;
     };
 }

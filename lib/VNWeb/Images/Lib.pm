@@ -128,6 +128,7 @@ sub image_hidden {
 #   height  -> if different from original image
 #   url     -> link the image to a page (if not hidden by settings)
 #   thumb   -> 0/1, show thumbnail and link to full-size image; conflicts with 'url'
+#   cat     -> iv category
 #   overlay -> 0/1, show the image flagging overlay (default 1)
 #   extra   -> CODE ref, extra stuff to put after the image
 sub image_ {
@@ -154,7 +155,7 @@ sub image_ {
         img_ src => thumburl($img), width => $w, height => $h, $opt{alt} ? (alt => $opt{alt}) : (), undef;
     }
     my sub _content {
-        a_ $opt{thumb} ? imgiv($img) : (href => $opt{url}), \&_img if $opt{url};
+        a_ $opt{thumb} ? imgiv($img, $opt{cat}) : (href => $opt{url}), \&_img if $opt{url};
         _img() if !$opt{url};
 
         if(!exists $opt{overlay}) {
