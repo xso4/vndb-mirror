@@ -158,7 +158,10 @@ sub _validate_extlinks($t) {
 
 
 # returns true if this request originated from the same site, i.e. not an external referer.
-sub samesite { !!tuwf->reqCookie('samesite') }
+sub samesite {
+    my $site = tuwf->reqHeader('sec-fetch-site');
+    $site ? $site eq 'same-site' || $site eq 'same-origin' : !!tuwf->reqCookie('samesite')
+}
 
 # returns true if this request is for an /api/ URL.
 sub is_api { !$main::NOAPI && ($main::ONLYAPI || tuwf->reqPath =~ /^\/api\//) }

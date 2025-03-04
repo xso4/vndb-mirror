@@ -69,7 +69,8 @@ TUWF::hook before => sub {
 
     # Use a 'SameSite=Strict' cookie to determine whether this page was loaded from internal or external.
     # Ought to be more reliable than checking the Referer header, but it's unfortunately a bit uglier.
-    tuwf->resCookie(samesite => 1, httponly => 1, samesite => 'Strict') if !VNWeb::Validation::samesite;
+    tuwf->resCookie(samesite => 1, httponly => 1, samesite => 'Strict')
+        if !VNWeb::Validation::samesite && !tuwf->reqHeader('sec-fetch-site');
 
     tuwf->req->{trace_start} = time if config->{trace_log};
 } if !$ONLYAPI;
