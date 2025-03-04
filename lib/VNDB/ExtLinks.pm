@@ -116,6 +116,12 @@ our %LINKS = (
         , regex => qr{(?:[a-z0-9_-]+\.)?booth\.pm/(?:[a-z-]+\/)?items/$int.*}
         , patt  => 'https://booth.pm/<language>/items/<id>  OR  https://<publisher>.booth.pm/items/<id>'
         },
+    bsky =>
+        { ent   => 'sp'
+        , label => 'Bluesky'
+        , fmt   => 'https://bsky.app/profile/%s'
+        , regex => qr{bsky\.app/profile/([a-z0-9\.-]+)}
+        },
     denpa =>
         { ent   => 'r'
         , label => 'Denpasoft'
