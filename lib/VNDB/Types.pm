@@ -51,6 +51,7 @@ hash LANGUAGE =>
     lt       => { latin => 1, rank => 0, txt => 'Lithuanian' },
     mk       => { latin => 1, rank => 0, txt => 'Macedonian' },
     ms       => { latin => 1, rank => 0, txt => 'Malay' },
+    ne       => { latin => 0, rank => 0, txt => 'Nepali' },
     no       => { latin => 1, rank => 0, txt => 'Norwegian' },
     fa       => { latin => 0, rank => 0, txt => 'Persian' },
     pl       => { latin => 1, rank => 0, txt => 'Polish' },
