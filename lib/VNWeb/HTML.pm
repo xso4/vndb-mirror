@@ -344,7 +344,7 @@ sub _menu_ {
 
 sub _footer_ {
     my($o) = @_;
-    my $q = samesite && tuwf->dbRow('SELECT vid, quote FROM quotes WHERE rand <= (SELECT random()) ORDER BY rand DESC LIMIT 1');
+    my $q = (samesite || auth) && tuwf->dbRow('SELECT vid, quote FROM quotes WHERE rand <= (SELECT random()) ORDER BY rand DESC LIMIT 1');
     span_ sub {
         lit_ '"';
         a_ href => "/$q->{vid}", $q->{quote};

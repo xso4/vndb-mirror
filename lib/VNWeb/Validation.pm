@@ -364,7 +364,7 @@ sub viewget {
         my($view, $token) = (tuwf->reqGet('view')||'') =~ /^([^-]*)-(.+)$/;
 
         # Abort this request and redirect if the token is invalid.
-        if(length($view) && (!samesite || !length($token) || !auth->csrfcheck($token, 'view'))) {
+        if(length($view) && (!length($token) || !auth->csrfcheck($token, 'view'))) {
             my $qs = join '&', map { my $k=$_; my @l=tuwf->reqGets($k); map uri_escape($k).'='.uri_escape($_), @l } grep $_ ne 'view', tuwf->reqGets();
             tuwf->resInit;
             tuwf->resRedirect(tuwf->reqPath().($qs?"?$qs":''), 'temp');
