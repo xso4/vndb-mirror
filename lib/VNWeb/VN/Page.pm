@@ -410,7 +410,7 @@ sub infobox_tags_ {
     my($v) = @_;
     div_ id => 'tagops', sub {
         debug_ $v->{tags};
-        my @ero = !config->{moe} && grep($_->{cat} eq 'ero', $v->{tags}->@*) ? ('ero') : ();
+        my @ero = grep($_->{cat} eq 'ero', $v->{tags}->@*) ? ('ero') : ();
         for ('cont', @ero, 'tech') {
             input_ id => "cat_$_", type => 'checkbox', class => 'hidden',
                 (auth ? auth->pref("tags_$_") : $_ ne 'ero') ? (checked => 'checked') : ();
@@ -585,7 +585,7 @@ sub tabs_ {
             li_ class => ($tab eq 'tags'    ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/tags#tags", name => 'tags', 'tags' };
             li_ class => ($tab eq 'chars'   ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/chars#chars", name => 'chars', "characters ($chars)" } if $chars;
             li_ class => ($tab eq 'reviews' ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/reviews#review", name => 'review', "reviews ($v->{reviews}{total})" } if $v->{reviews}{total};
-            li_ class => ($tab eq 'quotes'  ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/quotes#quotes", name => 'quotes', "quotes ($quotes)" };
+            li_ class => ($tab eq 'quotes'  ? ' tabselected' : ''), sub { a_ href => "/$v->{id}/quotes#quotes", name => 'quotes', "quotes ($quotes)" } if !config->{moe};
         };
         menu_ sub {
             if(auth && canvote $v) {

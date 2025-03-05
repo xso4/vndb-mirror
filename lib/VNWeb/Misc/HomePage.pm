@@ -259,7 +259,7 @@ TUWF::get qr{/}, sub {
     my %meta = (
         'type' => 'website',
         'title' => 'The Visual Novel Database',
-        'description' => 'VNDB.org strives to be a comprehensive database for information about visual novels.',
+        'description' => (config->{moe} ? 'VNDB.moe' : 'VNDB.org').' strives to be a comprehensive database for information about visual novels.',
     );
 
     my($screens, $slowscreens) = screens;
@@ -273,7 +273,10 @@ TUWF::get qr{/}, sub {
             p_ class => 'description', sub {
                 txt_ $meta{description};
                 br_;
-                txt_ q{
+                txt_ config->{moe} ? q{
+                  This is a read-only mirror of VNDB.org with a bunch of filters applied.
+                  Many features are disabled and 18+-only visual novels are not visible here.
+                } : q{
                   This website is built as a wiki, meaning that anyone can freely add
                   and contribute information to the database, allowing us to create the
                   largest, most accurate and most up-to-date visual novel database on the web.

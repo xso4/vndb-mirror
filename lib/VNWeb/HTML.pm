@@ -354,7 +354,7 @@ sub _menu_ {
 
 sub _footer_ {
     my($o) = @_;
-    my $q = (samesite || auth) && tuwf->dbRow('SELECT vid, quote FROM quotes WHERE rand <= (SELECT random()) ORDER BY rand DESC LIMIT 1');
+    my $q = (samesite || auth) && !config->{moe} && tuwf->dbRow('SELECT vid, quote FROM quotes WHERE rand <= (SELECT random()) ORDER BY rand DESC LIMIT 1');
     span_ sub {
         lit_ '"';
         a_ href => "/$q->{vid}", $q->{quote};
@@ -575,7 +575,7 @@ sub framework_ {
             header_ sub {
                 div_ id => 'bgright', ' ';
                 div_ id => 'readonlymode', config->{read_only} eq 1 ? 'The site is in read-only mode, account functionality is currently disabled.' : config->{read_only} if config->{read_only};
-                h1_ sub { a_ href => '/', 'the visual novel database' };
+                h1_ sub { a_ href => '/', config->{moe} ? 'the moe visual novel database' : 'the visual novel database' };
                 _maintabs_ \%o;
             };
             nav_ sub { _menu_ \%o };

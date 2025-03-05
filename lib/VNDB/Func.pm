@@ -157,7 +157,8 @@ sub thumburl {
 
 # imgiv($image_obj, $cat) - returns <a> attributes for an imageviewer link
 sub imgiv {
-    (href => imgurl($_[0]{id}), 'data-iv' => "$_[0]{width}x$_[0]{height}:".($_[1]||'').":$_[0]{sexual}$_[0]{violence}$_[0]{votecount}");
+    my $flag = config->{moe} ? '' : ":$_[0]{sexual}$_[0]{violence}$_[0]{votecount}";
+    (href => imgurl($_[0]{id}), 'data-iv' => "$_[0]{width}x$_[0]{height}:".($_[1]||'').$flag);
 }
 
 # Formats a vote number.

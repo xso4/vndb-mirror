@@ -27,6 +27,7 @@ sub votething_ {
 }
 
 TUWF::get qr{/$RE{vid}/quotes}, sub {
+    not_moe;
     my $v = db_entry tuwf->capture('id');
     return tuwf->resNotFound if !$v->{id} || $v->{entry_hidden};
     VNWeb::VN::Page::enrich_vn($v);

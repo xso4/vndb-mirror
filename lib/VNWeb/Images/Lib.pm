@@ -161,7 +161,7 @@ sub image_ {
         a_ $opt{thumb} ? imgiv($img, $opt{cat}) : (href => $opt{url}), \&_img if $opt{url};
         _img() if !$opt{url};
 
-        if(!exists $opt{overlay}) {
+        if(!config->{moe} && !exists $opt{overlay}) {
             a_ class => 'imghover--overlay', href => "/$img->{id}?view=".viewset(show_nsfw=>1), image_flagging_display $img, $small if auth;
             span_ class => 'imghover--overlay', image_flagging_display $img, $small if !auth;
         }

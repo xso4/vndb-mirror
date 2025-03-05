@@ -223,7 +223,7 @@ TUWF::get qr{/$RE{uid}}, sub {
             div_ class => 'votestats', sub { _votestats_ $u, $own };
         } if grep $_->{votes} > 0, $u->{votes}->@*;
 
-        if($u->{c_changes}) {
+        if($u->{c_changes} && !config->{moe}) {
             nav_ sub {
                 h1_ sub { a_ href => "/$u->{id}/hist", 'Recent changes' };
             };

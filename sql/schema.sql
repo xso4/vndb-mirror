@@ -1691,8 +1691,12 @@ CREATE SCHEMA moe;
 CREATE VIEW moe.tags     AS SELECT * FROM public.tags WHERE NOT hidden AND cat <> 'ero';
 CREATE VIEW moe.traits   AS SELECT * FROM public.traits WHERE NOT hidden AND NOT sexual;
 CREATE VIEW moe.vn       AS SELECT * FROM public.vn WHERE c_moe;
-CREATE VIEW moe.releases AS SELECT * FROM public.releases r WHERE NOT hidden AND minage IS DISTINCT FROM 18 AND EXISTS(SELECT 1 FROM public.releases_vn rv JOIN vn v ON v.id = rv.vid WHERE rv.id = r.id AND v.c_moe);
+CREATE VIEW moe.releases AS SELECT * FROM public.releases r WHERE NOT hidden AND minage IS DISTINCT FROM 18 AND NOT has_ero AND EXISTS(SELECT 1 FROM public.releases_vn rv JOIN vn v ON v.id = rv.vid WHERE rv.id = r.id AND v.c_moe);
 CREATE VIEW moe.chars    AS SELECT * FROM public.chars c WHERE NOT hidden AND EXISTS(SELECT 1 FROM public.chars_vns cv JOIN vn v ON v.id = cv.vid WHERE cv.id = c.id AND v.c_moe);
+
+-- Ideally, but this is slow:
+--CREATE VIEW moe.producers AS SELECT * FROM public.producers p WHERE NOT hidden AND EXISTS(SELECT 1 FROM public.releases_producers rp JOIN moe.releases r ON r.id = rp.id WHERE rp.pid = p.id);
+-- And also for stafff.
 
 -- Need to replicate the '*t' VIEWs because they don't use search_path
 
