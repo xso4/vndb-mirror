@@ -680,6 +680,7 @@ sub enrich_vislinks($type, $enabled, @obj) {
         w 'enwiki';
         w 'jawiki';
         l 'wikidata';
+        l 'bsky';
         l 'twitter';   w 'twitter'            if !$o->{_l}{twitter};
         l 'anidb';     w 'anidb_person'       if !$o->{_l}{anidb};
         l 'pixiv';     w 'pixiv_user'         if !$o->{_l}{pixiv};
@@ -711,6 +712,7 @@ sub enrich_vislinks($type, $enabled, @obj) {
         w 'enwiki';
         w 'jawiki';
         l 'wikidata';
+        l 'bsky';
         l 'twitter';          w 'twitter'            if !$o->{_l}{twitter};
         l 'pixiv';            w 'pixiv_user'         if !$o->{_l}{pixiv};
         l 'mobygames_comp';   w 'mobygames_company'  if !$o->{_l}{mobygames_comp};
