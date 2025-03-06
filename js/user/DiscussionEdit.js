@@ -38,7 +38,7 @@ widget('DiscussionEdit', vnode => {
             ' ', vndbTypes.boardType.find(x => x[0] === b.btype)[1],
             b.iid ? [
                 ' > ', m('small', b.iid, ': '),
-                m('a', {href:'/'+b.iid}, b.title && b.title !== b.iid ? b.title : '(deleted)'),
+                m('a[target=_blank]', {href:'/'+b.iid}, b.title && b.title !== b.iid ? b.title : '(deleted)'),
             ] : null,
         )))),
         data.boards_locked ? null : m(DS.Button, {ds:boardDs}, 'Add board'),
