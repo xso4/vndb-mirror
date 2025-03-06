@@ -435,11 +435,8 @@ sub export_data {
 }
 
 
-sub export_votes {
-    my $dest = shift;
-    require PerlIO::gzip;
-
-    open my $F, '>:gzip:utf8', $dest;
+sub export_votes($dest) {
+    open my $F, '|-', "gzip >$dest";
     $db->do(q{COPY (
         SELECT vndbid_num(uv.vid)||' '||vndbid_num(uv.uid)||' '||uv.vote||' '||to_char(uv.vote_date, 'YYYY-MM-DD')
           FROM ulist_vns uv
@@ -460,7 +457,6 @@ sub export_votes {
 sub export_tags {
     my $dest = shift;
     require JSON::XS;
-    require PerlIO::gzip;
 
     my $lst = $db->selectall_arrayref(q{
         SELECT vndbid_num(id) AS id, name, description, searchable, applicable, c_items AS vns, cat, alias,
@@ -477,15 +473,14 @@ sub export_tags {
       $_->{parents} = [ map $_*1, split /,/, ($_->{parents}||'') ];
     }
 
-    open my $F, '>:gzip:utf8', $dest;
-    print $F JSON::XS->new->canonical->encode($lst);
+    open my $F, '|-', "gzip >$dest";
+    print $F JSON::XS->new->utf8->canonical->encode($lst);
 }
 
 
 sub export_traits {
     my $dest = shift;
     require JSON::XS;
-    require PerlIO::gzip;
 
     my $lst = $db->selectall_arrayref(q{
         SELECT vndbid_num(id) AS id, name, alias AS aliases, description, searchable, applicable, c_items AS chars,
@@ -502,8 +497,8 @@ sub export_traits {
       $_->{parents} = [ map $_*1, split /,/, ($_->{parents}||'') ];
     }
 
-    open my $F, '>:gzip:utf8', $dest;
-    print $F JSON::XS->new->canonical->encode($lst);
+    open my $F, '|-', "gzip >$dest";
+    print $F JSON::XS->new->utf8->canonical->encode($lst);
 }
 
 

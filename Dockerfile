@@ -32,7 +32,6 @@ RUN apk add --no-cache \
         AnyEvent::IRC \
         AnyEvent::Pg \
         Crypt::ScryptKDF \
-        PerlIO::gzip \
         SQL::Interp \
         Text::MultiMarkdown \
         git://g.blicky.net/tuwf.git \

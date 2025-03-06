@@ -11,6 +11,7 @@ use AnyEvent::Socket;
 use AnyEvent::Util;
 use AnyEvent::HTTP;
 use Encode 'decode_utf8', 'encode_utf8';
+use Compress::Zlib;
 use VNDB::Types;
 use VNDB::Config;
 
@@ -103,17 +104,13 @@ sub titles_import {
     return AE::log warn => "Error fetching titles dump: $hdr->{Status} $hdr->{Reason}" if $hdr->{Status} !~ /^2/;
 
     $T{start_insert} = AE::now();
-    if(!open $T{fh}, '<:gzip:utf8', \$body) {
-      AE::log warn => "Error parsing titles dump: $!";
-      return;
-    }
+    $T{data} = [ split /\r?\n/, Compress::Zlib::memGunzip($body) || return AE::log warn => 'Error decoding titles dump' ];
     titles_insert();
   };
 }
 
 sub titles_next {
-  my $F = $T{fh};
-  while(local $_ = <$F>) {
+  while(local $_ = pop $T{data}->@*) {
     chomp;
     next if /^#/;
     my($id,$type,$lang,$title) = split /\|/, $_, 4;

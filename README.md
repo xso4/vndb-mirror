@@ -148,7 +148,6 @@ General:
 - DBD::Pg
 - DBI
 - JSON::XS
-- PerlIO::gzip
 
 util/vndb.pl (the web backend):
 - Algorithm::Diff::XS
