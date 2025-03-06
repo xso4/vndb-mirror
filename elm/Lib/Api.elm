@@ -31,19 +31,12 @@ showResponse res =
     Success                         -> unexp
     Redirect _                      -> unexp
     Invalid                         -> "Invalid form data, please report a bug."
-    Editsum                         -> "Invalid edit summary."
     Unauth                          -> "You do not have the permission to perform this action."
-    Unchanged                       -> "No changes"
-    Content _                       -> unexp
-    ImgFormat                       -> "Unrecognized image format, only JPEG, JPEG XL, PNG and WebP are accepted."
-    ImgSize                         -> "Encoded image too large, try a lower resolution."
     LabelId _                       -> unexp
-    DupNames _                      -> "Name or alias already in the database."
     Releases _                      -> unexp
     Resolutions _                   -> unexp
     Engines _                       -> unexp
     DRM _                           -> unexp
-    BoardResult _                   -> unexp
     TagResult _                     -> unexp
     TraitResult _                   -> unexp
     VNResult _                      -> unexp

@@ -34,19 +34,10 @@ our @EXPORT = qw/
 # These API responses are available in Elm in the `Gen.Api.Response` union type.
 our %apis = (
     Unauth         => [], # Not authorized
-    Unchanged      => [], # No changes
     Success        => [],
     Redirect       => [{}], # Redirect to the given URL
     Invalid        => [], # POST data did not validate the schema
-    Editsum        => [], # Invalid edit summary
-    Content        => [{}], # Rendered HTML content (for markdown/bbcode APIs)
-    ImgFormat      => [], # Unrecognized image format
-    ImgSize        => [], # Image too large
     LabelId        => [{uint => 1}], # Label created
-    DupNames       => [ { aoh => { # Duplicate names/aliases (for tags & traits)
-        id       => { vndbid => ['i','g'] },
-        name     => {},
-    } } ],
     Releases       => [ { aoh => { # Response to 'Release'
         id       => { vndbid => 'r' },
         title    => {},
@@ -69,11 +60,6 @@ our %apis = (
     DRM            => [ { aoh => { # Response to 'DRM'
         name     => {},
         count    => { uint => 1 },
-    } } ],
-    BoardResult    => [ { aoh => { # Response to 'Boards'
-        btype    => { enum => \%BOARD_TYPE },
-        iid      => { default => undef, vndbid => ['p','v','u'] },
-        title    => { default => undef },
     } } ],
     TagResult      => [ { aoh => { # Response to 'Tags'
         id           => { vndbid => 'g' },
@@ -434,7 +420,6 @@ sub write_types {
     $data .= def releaseTypes => 'List (String, String)' => list map tuple(string $_, string $RELEASE_TYPE{$_}), keys %RELEASE_TYPE;
     $data .= def media      => 'List (String, String, Bool)' => list map tuple(string $_, string $MEDIUM{$_}{txt}, $MEDIUM{$_}{qty}?'True':'False'), keys %MEDIUM;
     $data .= def rlistStatus=> 'List (Int, String)' => list map tuple($_, string $RLIST_STATUS{$_}), keys %RLIST_STATUS;
-    $data .= def boardTypes => 'List (String, String)' => list map tuple(string $_, string $BOARD_TYPE{$_}{txt}), keys %BOARD_TYPE;
     $data .= def ratings    => 'List String' => list map string(fmtrating $_), 1..10;
     $data .= def ageRatings => 'List (Int, String)' => list map tuple($_, string $AGE_RATING{$_}{txt}.($AGE_RATING{$_}{ex}?" ($AGE_RATING{$_}{ex})":'')), keys %AGE_RATING;
     $data .= def devStatus  => 'List (Int, String)' => list map tuple($_, string $DEVSTATUS{$_}), keys %DEVSTATUS;
@@ -449,9 +434,7 @@ sub write_types {
     $data .= def vnLengths  => 'List (Int, String)' => list map tuple($_, string $VN_LENGTH{$_}{txt}.($VN_LENGTH{$_}{time}?" ($VN_LENGTH{$_}{time})":'')), keys %VN_LENGTH;
     $data .= def vnRelations=> 'List (String, String)' => list map tuple(string $_, string $VN_RELATION{$_}{txt}), keys %VN_RELATION;
     $data .= def creditTypes=> 'List (String, String)' => list map tuple(string $_, string $CREDIT_TYPE{$_}), keys %CREDIT_TYPE;
-    $data .= def producerRelations=> 'List (String, String)' => list map tuple(string $_, string $PRODUCER_RELATION{$_}{txt}), keys %PRODUCER_RELATION;
     $data .= def producerTypes=> 'List (String, String)' => list map tuple(string $_, string $PRODUCER_TYPE{$_}), keys %PRODUCER_TYPE;
-    $data .= def tagCategories=> 'List (String, String)' => list map tuple(string $_, string $TAG_CATEGORY{$_}), keys %TAG_CATEGORY;
     $data .= def curYear    => Int => (gmtime)[5]+1900;
 
     write_module Types => $data;

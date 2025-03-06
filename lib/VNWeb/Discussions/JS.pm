@@ -1,20 +1,18 @@
-package VNWeb::Discussions::Elm;
+package VNWeb::Discussions::JS;
 
 use VNWeb::Prelude;
 
 # Autocompletion search results for boards
-elm_api Boards => undef, {
-    search => { searchquery => 1 },
-}, sub {
-    return elm_Unauth if !auth->permBoard;
+js_api Boards => {search => { searchquery => 1 }}, sub {
+    return tuwf->resDenied if !auth->permBoard;
     my $q = shift->{search};
     my $qs = sql_like "$q";
 
     my $uscore = sql 'similarity(username, ', \$qs, ')';
     $uscore = sql 'CASE WHEN id =', \$qs, 'THEN 1+1 ELSE', $uscore, 'END' if $qs =~ /^u$RE{num}$/;
 
-    elm_BoardResult tuwf->dbPagei({ results => 10, page => 1 },
-        'SELECT btype, iid, title
+    +{ results => tuwf->dbAlli(
+        'SELECT COALESCE(iid::text, btype::text) AS id, btype, iid, title
            FROM (',
              sql_join('UNION ALL',
                  (map sql('SELECT 10, ', \"$_", '::board_type, NULL::vndbid, NULL'),
@@ -26,8 +24,9 @@ elm_api Boards => undef, {
                  sql('SELECT', $uscore, ', \'u\', id, username FROM users WHERE lower(username) LIKE', \lc "%$qs%",
                     $qs =~ /^u$RE{num}$/ ? ('OR id =', \$qs) : ())
              ), ') x(score, btype, iid, title)
-           ORDER BY score DESC, btype, title'
-    )
+           ORDER BY score DESC, btype, title
+           LIMIT ', \25
+    )}
 };
 
 1;

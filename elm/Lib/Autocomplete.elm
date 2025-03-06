@@ -4,7 +4,6 @@ module Lib.Autocomplete exposing
   , SourceConfig
   , Model
   , Msg
-  , boardSource
   , tagSource
   , traitSource
   , vnSource
@@ -34,9 +33,7 @@ import Browser.Dom as Dom
 import Lib.Html exposing (..)
 import Lib.Util exposing (..)
 import Lib.Api as Api
-import Gen.Types exposing (boardTypes)
 import Gen.Api as GApi
-import Gen.Boards as GB
 import Gen.Tags as GT
 import Gen.Traits as GTR
 import Gen.VN as GV
@@ -77,22 +74,6 @@ type alias SourceConfig m a =
     -- This is used to remember selection across data refreshes and to optimize
     -- HTML generation.
   , key      : a -> String
-  }
-
-
-boardSource : SourceConfig m GApi.ApiBoardResult
-boardSource =
-  { source  = Endpoint (\s -> GB.send { search = s })
-    <| \x -> case x of
-      GApi.BoardResult e -> Just e
-      _ -> Nothing
-  , view    = (\i ->
-    [ text <| Maybe.withDefault "" (lookup i.btype boardTypes)
-    ] ++ case i.title of
-      Just title -> [ small [] [ text " > " ], text title ]
-      _ -> []
-    )
-  , key     = \i -> Maybe.withDefault i.btype i.iid
   }
 
 

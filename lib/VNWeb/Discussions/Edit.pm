@@ -4,32 +4,44 @@ use VNWeb::Prelude;
 use VNWeb::Discussions::Lib;
 
 
-my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
-    tid           => { default => undef, vndbid => 't' }, # Thread ID, only when editing a post
-
-    title         => { default => undef, sl => 1, maxlength => 50 },
-    boards        => { default => undef, sort_keys => [ 'boardtype', 'iid' ], aoh => $VNWeb::Elm::apis{BoardResult}[0]{aoh} },
-    poll          => { default => undef, type => 'hash', keys => {
+my $FORM = form_compile any => {
+    tid    => { default => undef, vndbid => 't' },
+    title  => { sl => 1, maxlength => 50 },
+    msg    => { maxlength => 32768 },
+    boards => { default => undef, sort_keys => [ 'btype', 'iid' ], aoh => {
+        id    => {},
+        btype => {},
+        iid   => { default => undef, vndbid => [qw/u v p/] },
+        title => { default => undef },
+    } },
+    poll   => { default => undef, type => 'hash', keys => {
         question    => { sl => 1, maxlength => 100 },
-        max_options => { uint => 1, min => 1, max => 20 }, #
+        max_options => { uint => 1, min => 1, max => 20 },
         options     => { type => 'array', values => { sl => 1, maxlength => 100 }, minlength => 2, maxlength => 20 },
     } },
 
-    can_mod       => { anybool => 1, _when => 'out' },
-    can_private   => { anybool => 1, _when => 'out' },
+    can_mod       => { anybool => 1 },
+    can_private   => { anybool => 1 },
     locked        => { anybool => 1 }, # When can_mod
     hidden        => { anybool => 1 }, # When can_mod
     boards_locked => { anybool => 1 }, # When can_mod
     private       => { anybool => 1 }, # When can_private
-    nolastmod     => { anybool => 1, _when => 'in' }, # When can_mod
-    delete        => { anybool => 1 }, # When can_mod
-
-    msg           => { maxlength => 32768 },
+    nolastmod     => { anybool => 1 }, # When can_mod
 };
 
 
-elm_api DiscussionsEdit => $FORM_OUT, $FORM_IN, sub {
-    my($data) = @_;
+js_api DiscussionDelete => { id => { vndbid => 't' } }, sub ($data) {
+    return tuwf->resDenied if !auth->permBoardmod;
+    my $uid = tuwf->dbVali('SELECT uid FROM threads_posts WHERE num = 1 AND tid =', \$data->{id});
+    return tuwf->resNotFound if !$uid;
+    auth->audit($uid, 'post delete', "deleted $data->{id}.1");
+    tuwf->dbExeci('DELETE FROM notifications WHERE iid =', \$data->{id});
+    tuwf->dbExeci('DELETE FROM threads WHERE id =', \$data->{id});
+    return +{ _redir => '/t' };
+};
+
+
+js_api DiscussionEdit => $FORM, sub ($data) {
     my $tid = $data->{tid};
 
     my $t = !$tid ? {} : tuwf->dbRowi('
@@ -39,26 +51,18 @@ elm_api DiscussionsEdit => $FORM_OUT, $FORM_IN, sub {
          WHERE t.id =', \$tid,
           'AND', sql_visible_threads());
     return tuwf->resNotFound if $tid && !$t->{id};
-    return elm_Unauth if !can_edit t => $t;
+    return tuwf->resDenied if !can_edit t => $t;
 
-    tuwf->dbExeci(q{DELETE FROM notifications WHERE iid =}, \$tid) if $tid && auth->permBoardmod && ($data->{delete} || $data->{hidden});
-
-    if($tid && $data->{delete} && auth->permBoardmod) {
-        auth->audit($t->{user_id}, 'post delete', "deleted $tid.1");
-        tuwf->dbExeci('DELETE FROM threads WHERE id =', \$tid);
-        return elm_Redirect '/t';
-    }
+    tuwf->dbExeci('DELETE FROM notifications WHERE iid =', \$tid) if $tid && auth->permBoardmod && $data->{hidden};
     auth->audit($t->{user_id}, 'post edit', "edited $tid.1") if $tid && $t->{user_id} ne auth->uid;
 
-
-    die "Invalid title" if !length $data->{title};
-    die "Invalid boards" if !$data->{boards} || grep +(!$BOARD_TYPE{$_->{btype}}{dbitem})^(!$_->{iid}), $data->{boards}->@*;
+    return 'Invalid boards' if !$data->{boards} || grep +(!$BOARD_TYPE{$_->{btype}}{dbitem})^(!$_->{iid}), $data->{boards}->@*;
 
     validate_dbid 'SELECT id FROM vn        WHERE id IN', map $_->{btype} eq 'v' ? $_->{iid} : (), $data->{boards}->@*;
     validate_dbid 'SELECT id FROM producers WHERE id IN', map $_->{btype} eq 'p' ? $_->{iid} : (), $data->{boards}->@*;
     # Do not validate user boards here, it's possible to have threads assigned to deleted users.
 
-    die "Invalid max_options" if $data->{poll} && $data->{poll}{max_options} > $data->{poll}{options}->@*;
+    return 'Invalid max_options' if $data->{poll} && $data->{poll}{max_options} > $data->{poll}{options}->@*;
     my $pollchanged = (!$tid && $data->{poll}) || ($tid && $data->{poll} && (
              $data->{poll}{question} ne ($t->{poll_question}||'')
           || $data->{poll}{max_options} != $t->{poll_max_options}
@@ -102,7 +106,7 @@ elm_api DiscussionsEdit => $FORM_OUT, $FORM_IN, sub {
     tuwf->dbExeci('INSERT INTO threads_posts', $post) if !$data->{tid};
     tuwf->dbExeci('UPDATE threads_posts SET', $post, 'WHERE', { tid => $tid, num => 1 }) if $data->{tid};
 
-    elm_Redirect "/$tid.1";
+    +{ _redir => "/$tid.1" };
 };
 
 
@@ -134,11 +138,12 @@ TUWF::get qr{(?:/t/(?<board>$BOARD_RE)/new|/$RE{tid}\.1/edit)}, sub {
         enrich_boards undef, $t;
     } else {
         $t->{boards} = [ {
+            id    => $board_id ? $board_id->{id} : $board_type,
             btype => $board_type,
             iid   => $board_id ? $board_id->{id} : undef,
             title => $board_id ? $board_id->{title} : undef,
         } ];
-        push $t->{boards}->@*, { btype => 'u', iid => auth->uid, title => [undef,auth->user->{user_name}] }
+        push $t->{boards}->@*, { id => auth->uid, btype => 'u', iid => auth->uid, title => [undef,auth->user->{user_name}] }
             if $board_type eq 'u' && $board_id->{id} ne auth->uid;
     }
     $_->{title} = $_->{title} && $_->{title}[1] for $t->{boards}->@*;
@@ -153,10 +158,9 @@ TUWF::get qr{(?:/t/(?<board>$BOARD_RE)/new|/$RE{tid}\.1/edit)}, sub {
     $t->{private} //= auth->isMod && tuwf->reqGet('priv') ? 1 : 0;
     $t->{locked}  //= 0;
     $t->{boards_locked} //= 0;
-    $t->{delete}  =   0;
 
     framework_ title => $tid ? 'Edit thread' : 'Create new thread', sub {
-        elm_ 'Discussions.Edit' => $FORM_OUT, $t;
+        div_ widget('DiscussionEdit' => $FORM, $t), '';
     };
 };
 

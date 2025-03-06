@@ -37,6 +37,7 @@ sub types {
         creditType=> [ map [$_, $CREDIT_TYPE{$_}], keys %CREDIT_TYPE ],
         devStatus => [ map [1*$_, $DEVSTATUS{$_} ], keys %DEVSTATUS ],
         tagCategory => [ map [$_, $TAG_CATEGORY{$_}], keys %TAG_CATEGORY ],
+        boardType => [ map [$_, $BOARD_TYPE{$_}{txt}], keys %BOARD_TYPE ],
         bloodType => [ map [$_, $BLOOD_TYPE{$_}], keys %BLOOD_TYPE ],
         charSex   => [ map [$_, $CHAR_SEX{$_}], keys %CHAR_SEX ],
         charGender=> [ map [$_, $CHAR_GENDER{$_}], keys %CHAR_GENDER ],

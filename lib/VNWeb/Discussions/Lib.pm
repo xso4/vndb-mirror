@@ -22,7 +22,7 @@ sub sql_visible_threads {
 sub enrich_boards {
     my($filt, @lst) = @_;
     enrich boards => id => tid => sub { sql '
-        SELECT tb.tid, tb.type AS btype, tb.iid, x.title
+        SELECT tb.tid, COALESCE(tb.iid::text, tb.type::text) AS id, tb.type AS btype, tb.iid, x.title
           FROM threads_boards tb, ', item_info('tb.iid', 'NULL'), 'x
          WHERE ', sql_and(sql('tb.tid IN', $_[0]), $filt||()), '
          ORDER BY tb.type, tb.iid

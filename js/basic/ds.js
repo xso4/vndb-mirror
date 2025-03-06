@@ -418,6 +418,16 @@ DS.Chars = {
     ],
 };
 
+DS.Boards = {
+    cache: {'':[{id: 'ge', btype: 'ge'}, {id: 'db', btype: 'db'}]},
+    opts: { placeholder: 'Search boards...' },
+    api: new Api('Boards'),
+    list: (src, str, cb) => src.api.call({ search: str }, res => cb(res.results)),
+    view: obj => [
+        m('small', obj.id, ': '), obj.title || vndbTypes.boardType.find(x => x[0] === obj.btype)[1]
+    ],
+};
+
 DS.Engines = {
     api: new Api('Engines'),
     opts: { width: 250 },

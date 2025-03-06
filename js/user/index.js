@@ -47,6 +47,7 @@ const EmailInput = initVnode => {
 @include UserPassSet.js
 @include UserAdmin.js
 @include DiscussionReply.js
+@include DiscussionEdit.js
 @include PostEdit.js
 @include ReviewComment.js
 @include ReviewEdit.js
