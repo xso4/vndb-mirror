@@ -69,7 +69,7 @@ widget('Tagmod', initvnode => {
             but(t, 'l3', t.vote == 3, 'vote',  3, '+3', 'Vote +3'),
         ),
         t.vote === 0 && t.count === 0 ? m('td[colspan=3]', "<- don't forget to rate") : [
-            m('td.tc_myover buts', avote === 0 ? null :
+            m('td.tc_myover buts', avote === 0 || !data.mod ? null :
                 but(t, 'ov', t.overrule, 'overrule', !('_overrule' in t ? t._overrule : t.overrule), 'Mod overrule (only your vote counts)')
             ),
             m('td.tc_myspoil buts', avote <= 0 ? null : [
