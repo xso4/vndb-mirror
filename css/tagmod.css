@@ -1,0 +1,44 @@
+/*  for contrib/Tagmod.js  */
+
+#tagmod {
+    margin: 10px 0 200px 20px;
+    td                { padding: 1px 5px }
+    tfoot td          { padding-top: 20px }
+    .toggle           { font-weight: normal; text-align: right }
+    .tc_you           { border-right: 1px solid var(--border); border-left: 1px solid var(--border); text-align: center }
+    .tc_others        { border-left: 1px solid var(--border); text-align: center }
+    .tc_tagname       { min-width: 200px; border-right: 1px solid var(--border) }
+    tbody .tc_tagname { padding-left: 15px }
+    .tc_myvote        { padding: 0 0 0 10px; min-width: 90px }
+    .tc_mynote {
+        min-width: 25px;
+        span       { cursor: pointer; opacity: 0.5 }
+        span:hover, span.sel { opacity: 1.0 }
+        svg        { width: 14px; height: 14px }
+    }
+    .tc_msg div       { position: absolute; max-width: 410px; padding: 0 5px 5px 5px; background: var(--blendbg) }
+    .tc_msg input     { width: 400px; }
+    .buts a           { display: block; width: 15px; height: 14px; border: 1px solid var(--border); margin: 0; float: left }
+    .l0               { border: none; background-color: var(--border) }
+    .l1               { border: none; background-color: #cf0 }
+    .l2               { border: none; background-color: #8f0 }
+    .l3               { border: none; background-color: #0f0 }
+    .ld               { border: none; background-color: #f00 }
+    tbody .tc_myover  { padding: 0 }
+    .ov               { border: none; background-color: #f00 }
+    .tc_myspoil       { padding: 0; min-width: 75px }
+    .sn               { border: none; background-color: var(--border) }
+    .s0               { border: none; background-color: #0f0 }
+    .s1               { border: none; background-color: #f80 }
+    .s2               { border: none; background-color: #f40 }
+    .s3               { border: none; background-color: #cf0 }
+    .tc_mylie         { padding: 0; min-width: 55px }
+    .fn               { border: none; background-color: var(--border) }
+    .f0               { border: none; background-color: #0f0 }
+    .f1               { border: none; background-color: #f00 }
+    .tc_allvote       { border-left: 1px solid var(--border); padding: 1px 0 0 30px; }
+    .tc_allvote i     { font-style: normal; font-size: 10px }
+    .tc_allspoil      { text-align: right; padding-right: 5px }
+    .tc_allwho span   { cursor: default }
+    .cat td           { font-weight: bold; padding-top: 10px }
+}

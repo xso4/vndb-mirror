@@ -232,7 +232,7 @@ window.FormTabs = initVnode => {
 //   The length is properly counted in Unicode points rather than UTF-16 digits.
 // - focus         -> Bool, set input focus on create
 // - rows / cols   -> For texarea
-// - onfocus
+// - onfocus / onblur
 //
 // The HTML5 validity API has some annoying limitations and is not always
 // honored, so this component simply re-implements validation and reporting of
@@ -276,7 +276,7 @@ window.Input = () => {
         const invalid = validate(a);
         const attrs = {
             id: a.id, tabindex: a.tabindex, placeholder: a.placeholder,
-            rows: a.rows, cols: a.cols, onfocus: a.onfocus,
+            rows: a.rows, cols: a.cols, onfocus: a.onfocus, onblur: a.onblur,
             class: (a.class||'') + (invalid ? ' invalid' : ''),
             oninput: ev => {
                 let v = ev.target.value;

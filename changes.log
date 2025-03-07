@@ -1,4 +1,5 @@
 # This is for user-visible changes only and powers the list at https://vndb.org/changes
+20250307 Tag vote form rewritten to the new framework, few minor improvements: delete button, tab close confirmation and links open in a new tab.
 20250306 Thread create/edit form rewritten to the new framework; differences should be minor.
 20250304 Producer/staff edit: Support Bluesky links
 20250304 Add Nepali language

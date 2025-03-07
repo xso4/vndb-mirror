@@ -17,9 +17,7 @@ use VNDB::Config;
 use VNDB::Types;
 use VNDB::Func 'fmtrating';
 use VNDB::ExtLinks ();
-use VNDB::Skins;
 use VNWeb::Validation;
-use VNWeb::Auth;
 
 our @EXPORT = qw/
     elm_api elm_empty

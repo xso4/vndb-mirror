@@ -1,11 +1,13 @@
 package VNWeb::VN::Tagmod;
 
 use VNWeb::Prelude;
+use VNWeb::TT::Lib;
 
 
-my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
+my $FORM = form_compile any => {
     id    => { vndbid => 'v' },
-    title => { _when => 'out' },
+    title => { },
+    mod   => { anybool => 1 },
     tags  => { sort_keys => 'id', aoh => {
         id        => { vndbid => 'g' },
         vote      => { int => 1, enum => [ -3..3 ] },
@@ -13,28 +15,28 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
         lie       => { undefbool => 1 },
         overrule  => { anybool => 1 },
         notes     => { default => '', sl => 1, maxlength => 1000 },
-        cat       => { _when => 'out' },
-        name      => { _when => 'out' },
-        rating    => { _when => 'out', num => 1 },
-        count     => { _when => 'out', uint => 1 },
-        spoiler   => { _when => 'out', num => 1 },
-        islie     => { _when => 'out', anybool => 1 },
-        overruled => { _when => 'out', anybool => 1 },
-        othnotes  => { _when => 'out' },
-        hidden    => { _when => 'out', anybool => 1 },
-        locked    => { _when => 'out', anybool => 1 },
-        applicable => { _when => 'out', anybool => 1 },
+        cat       => {},
+        name      => {},
+        rating    => { default => undef, num => 1 },
+        tagscore  => { default => undef },
+        count     => { default => 0, uint => 1 },
+        spoiler   => { default => undef },
+        islie     => { anybool => 1 },
+        overruled => { anybool => 1 },
+        othnotes  => { default => '' },
+        hidden    => { anybool => 1 },
+        locked    => { anybool => 1 },
+        applicable=> { anybool => 1 },
     } },
-    mod   => { _when => 'out', anybool => 1 },
 };
 
 
 sub can_tag { auth->permTagmod || (auth->permTag && !global_settings->{lockdown_edit}) }
 
 
-elm_api Tagmod => $FORM_OUT, $FORM_IN, sub {
-    my($id, $tags) = $_[0]->@{'id', 'tags'};
-    return elm_Unauth if !can_tag;
+js_api Tagmod => $FORM, sub ($data) {
+    my($id, $tags) = $data->@{'id', 'tags'};
+    return tuwf->resDenied if !can_tag;
 
     $tags = [ grep $_->{vote}, @$tags ];
     $_->{overrule} = 0 for auth->permTagmod ? () : @$tags;
@@ -68,7 +70,7 @@ elm_api Tagmod => $FORM_OUT, $FORM_IN, sub {
     tuwf->dbExeci('UPDATE tags_vn tv SET ignore = FALSE WHERE NOT EXISTS(SELECT 1 FROM tags_vn tvi WHERE tvi.tag = tv.tag AND tvi.vid = tv.vid AND NOT tvi.ignore) AND vid =', \$id) if auth->permTagmod;
 
     tuwf->dbExeci(select => sql_func tag_vn_calc => \$id);
-    elm_Success
+    +{ _redir => "/$id/tagmod" }
 };
 
 
@@ -106,12 +108,26 @@ TUWF::get qr{/$RE{vid}/tagmod}, sub {
         $_->{spoil} //= undef;
         $_->{lie} //= undef;
         $_->{notes} //= '';
+        $_->{tagscore} = xml_string sub {
+            tagscore_ $_->{rating};
+            i_ class => $_->{overruled} ? 'grayedout' : undef, " ($_->{count})";
+        };
+        $_->{spoiler} = sprintf '%.2f', $_->{spoiler};
         $_->{overrule} = $_->{vote} && !$_->{ignore} && $_->{overruled};
         $_->{othnotes} = join "\n", map user_displayname($_).': '.$_->{notes}, $_->{othnotes}->@*;
     }
 
     framework_ title => "Edit tags for $v->{title}[1]", dbobj => $v, tab => 'tagmod', sub {
-        elm_ 'Tagmod' => $FORM_OUT, { id => $v->{id}, title => $v->{title}[1], tags => $tags, mod => auth->permTagmod };
+        article_ sub {
+            h1_ "Edit tags for $v->{title}[1]";
+            p_ sub {
+                txt_ 'This is where you can add tags to the visual novel and vote on the existing tags.'; br_;
+                txt_ "Don't forget to also select the appropriate spoiler option for each tag."; br_;
+                txt_ 'For more information, check out the ';
+                a_ href => '/d10', target => '_blank', 'guidelines'; txt_ '.';
+            };
+            div_ widget(Tagmod => $FORM, { id => $v->{id}, title => $v->{title}[1], tags => $tags, mod => auth->permTagmod }), '';
+        };
     };
 };
 
