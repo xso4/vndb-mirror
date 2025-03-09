@@ -23,20 +23,17 @@ sub sql_labelid {
 }
 
 
-our $LABELS = form_compile any => {
-    uid => { vndbid => 'u' },
-    labels => { maxlength => 1500, aoh => {
-        id      => { int => 1 },
-        label   => { sl => 1, maxlength => 50 },
-        private => { anybool => 1 },
-        count   => { uint => 1 },
-        delete  => { default => undef, uint => 1, range => [1, 3] }, # 1=keep vns, 2=delete when no other label, 3=delete all
-    } }
-};
+our $LABELS = tuwf->compile({ maxlength => 1500, aoh => {
+    id      => { int => 1 },
+    label   => { sl => 1, maxlength => 50 },
+    private => { anybool => 1 },
+    count   => { uint => 1 },
+    delete  => { default => undef, uint => 1, range => [1, 3] }, # 1=keep vns, 2=delete when no other label, 3=delete all
+}});
 
-elm_api UListManageLabels => undef, $LABELS, sub {
+js_api UListManageLabels => { uid => { vndbid => 'u' }, labels => $LABELS }, sub {
     my($uid, $labels) = ($_[0]{uid}, $_[0]{labels});
-    return elm_Unauth if !ulists_own $uid;
+    return tuwf->resDenied if !ulists_own $uid;
 
     # Insert new labels
     my @new = grep $_->{id} < 0 && !$_->{delete}, @$labels;
@@ -80,7 +77,7 @@ elm_api UListManageLabels => undef, $LABELS, sub {
     tuwf->dbExeci('DELETE FROM ulist_labels WHERE uid =', \$uid, 'AND id IN', [ map $_->{id}, @delete ]) if @delete;
 
     updcache $uid, $changed ? undef : ();
-    elm_Success
+    +{}
 };
 
 

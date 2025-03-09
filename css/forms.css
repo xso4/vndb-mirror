@@ -208,8 +208,10 @@ span.spinner { width: 1em; height: 1em }
 
 /* .compact input elements are smaller and can be embedded in tables/inline text
  * .stealth input elements pretend to be just regular text, but turn into visibile input elements on mouse-over */
-.compact input.text, .compact select, .compact textarea { margin: -2px -1px; padding: 1px 0 }
-.compact input.submit                { margin: -2px -1px; padding: 1px 3px }
+.compact {
+    input.text, input[type=text], select, textarea { margin: -2px -1px; padding: 1px 0 }
+    input.submit, input[type=submit], button { margin: -2px -1px; padding: 1px 3px }
+}
 .stealth input, .stealth select { font: inherit; background: none; border: 1px solid transparent; -moz-appearance: none; -webkit-appearance: none; appearance: none }
 .stealth input:hover, .stealth input:focus,
 .stealth select:hover, .stealth select:focus { border: 1px solid var(--secborder); background: var(--secbg) }

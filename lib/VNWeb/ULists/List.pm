@@ -289,6 +289,7 @@ sub listing_ {
 }
 
 sub ownlistopts_($u) {
+    div_ class => 'hidden managelabels', widget('UListManageLabels'), '';
     div_ class => 'hidden savedefault', sub {
         strong_ 'Save as default'; br_;
         txt_ 'This will change the default label selection, visible columns and table sorting options for the selected page to the currently applied settings.';
@@ -335,7 +336,7 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
     framework_ title => $title, dbobj => $u, tab => $tab, js => 1,
         $own ? ( pagevars => {
             uid         => $u->{id},
-            labels      => $VNWeb::ULists::Elm::LABELS->analyze->{keys}{labels}->coerce_for_json($labels),
+            labels      => $VNWeb::ULists::Elm::LABELS->analyze->coerce_for_json($labels),
             voteprivate => (map \($_->{private}?1:0), grep $_->{id} == 7, @$labels),
         } ) : (),
     sub {
@@ -355,7 +356,6 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
                         : user_displayname($u).' does not have any visible visual novels in their list.';
                 } else {
                     filters_ $own, $labels, $opt, $opt_labels, \&url;
-                    elm_ 'UList.ManageLabels' if $own;
                     ownlistopts_ $u if $own;
                 }
             };

@@ -78,11 +78,6 @@ const wrap = {
         init(opt);
     },
 
-    'UList.ManageLabels': (init, opt) => {
-        opt.flags = { uid: pageVars.uid, labels: pageVars.labels };
-        init(opt);
-    },
-
     // This module is typically hidden, lazily load it only when the module is visible to speed up page load time.
     'UList.Opt': (init, opt) => {
         const e = $('#collapse_vid'+opt.flags.vid);

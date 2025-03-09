@@ -55,6 +55,7 @@ const EmailInput = initVnode => {
 @include QuoteEdit.js
 @include QuoteVote.js
 @include VNLengthVote.js
+@include ListManageLabels.js
 @include vn-image-vote.js
 
 // @license-end
