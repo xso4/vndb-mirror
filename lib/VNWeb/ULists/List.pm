@@ -8,6 +8,15 @@ use VNWeb::Releases::Lib;
 
 my $TABLEOPTS = VNWeb::VN::List::TABLEOPTS('ulist');
 
+my %SAVED_OPTS = (
+    l   => { onerror => [], type => 'array', scalar => 1, values => { int => 1, range => [-1,1600] } },
+    mul => { anybool => 1 },
+    s   => { onerror => '' }, # TableOpts query string
+    f   => { onerror => '' }, # AdvSearch
+);
+
+my $SAVED_OPTS = form_compile any => \%SAVED_OPTS;
+
 
 sub opt {
     my($u, $labels) = @_;
@@ -32,7 +41,7 @@ sub opt {
             p => { upage => 1 },
             ch=> { onerror => [], type => 'array', scalar => 1, values => { onerror => undef, enum => ['0', 'a'..'z'] } },
             q => { searchquery => 1 },
-            %VNWeb::ULists::Elm::SAVED_OPTS,
+            %SAVED_OPTS,
             # Compat for old URLs
             o => { onerror => undef, enum => ['a', 'd'] },
             c => { onerror => undef, type => 'array', scalar => 1, values => { enum => [qw[ label vote voted added modified started finished rel rating ]] } },
@@ -279,6 +288,29 @@ sub listing_ {
     paginate_ $url, $opt->{p}, [$count, $opt->{s}->results], 'b';
 }
 
+sub ownlistopts_($u) {
+    div_ class => 'hidden savedefault', sub {
+        strong_ 'Save as default'; br_;
+        txt_ 'This will change the default label selection, visible columns and table sorting options for the selected page to the currently applied settings.';
+        txt_ ' The saved view will also apply to users visiting your lists.';
+        br_;
+        txt_ '(If you just changed the label filters, make sure to hit "Update filters" before saving)';
+        br_;
+        label_ sub { input_ form => 'savedefaultfrm', type => 'radio', name => 'field', value => 'votes';  txt_ ' My votes' }; br_;
+        label_ sub { input_ form => 'savedefaultfrm', type => 'radio', name => 'field', value => 'vnlist', checked => 'checked'; txt_ ' My visual novel list' }; br_;
+        label_ sub { input_ form => 'savedefaultfrm', type => 'radio', name => 'field', value => 'wish';   txt_ ' My wishlist' }; br_;
+        input_ form => 'savedefaultfrm', type => 'submit', value => 'Save';
+    };
+    div_ class => 'hidden exportlist', sub {
+        strong_ 'Export your list';
+        br_;
+        txt_ 'This function will export all visual novels and releases in your list, even those marked as private ';
+        txt_ '(there is currently no import function, more export options may be added later).';
+        br_;
+        br_;
+        a_ href => "/$u->{id}/list-export/xml", "Download XML export.";
+    };
+}
 
 TUWF::get qr{/$RE{uid}/ulist}, sub {
     my $u = tuwf->dbRowi('
@@ -308,6 +340,12 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
         } ) : (),
     sub {
         my $empty = !grep $_->{count}, @$labels;
+        form_ method => 'POST', id => 'savedefaultfrm', action => "/u/ulist-savedefault", sub {
+            input_ type => 'hidden', name => 'uid', value => $u->{id};
+            input_ type => 'hidden', name => 'opts', value => JSON::XS->new->encode($SAVED_OPTS->analyze->coerce_for_json(
+                { l => $opt->{l}, mul => $opt->{mul}, s => $opt->{s}->query_encode(), f => $opt->{f}->query_encode() },
+            ));
+        } if !$empty && $own;
         form_ method => 'get', sub {
             article_ sub {
                 h1_ $title;
@@ -318,19 +356,7 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
                 } else {
                     filters_ $own, $labels, $opt, $opt_labels, \&url;
                     elm_ 'UList.ManageLabels' if $own;
-                    elm_ 'UList.SaveDefault', $VNWeb::ULists::Elm::SAVED_OPTS_OUT, {
-                        uid => $u->{id},
-                        opts => { l => $opt->{l}, mul => $opt->{mul}, s => $opt->{s}->query_encode(), f => $opt->{f}->query_encode() },
-                    } if $own;
-                    div_ class => 'hidden exportlist', sub {
-                        strong_ 'Export your list';
-                        br_;
-                        txt_ 'This function will export all visual novels and releases in your list, even those marked as private ';
-                        txt_ '(there is currently no import function, more export options may be added later).';
-                        br_;
-                        br_;
-                        a_ href => "/$u->{id}/list-export/xml", "Download XML export.";
-                    } if $own;
+                    ownlistopts_ $u if $own;
                 }
             };
             listing_ $u->{id}, $own, $opt, $labels, \&url if !$empty;
@@ -338,6 +364,18 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
     };
 };
 
+TUWF::post '/u/ulist-savedefault', sub {
+    my $data = tuwf->validate(post =>
+        uid   => { vndbid => 'u' },
+        opts  => {},
+        field => { enum => [qw/ vnlist votes wish /] },
+    )->data;
+    return tuwf->resDenied if !ulists_own $data->{uid};
+    my $opts = $SAVED_OPTS->validate(JSON::XS->new->decode($data->{opts}))->data;
+    tuwf->dbExeci('UPDATE users_prefs SET ulist_'.$data->{field}, '=', \JSON::XS->new->encode($opts), 'WHERE id =', \$data->{uid});
+    my $tab = $data->{field} eq 'wish' ? 'wishlist' : $data->{field};
+    tuwf->resRedirect("/$data->{uid}/ulist?$tab=1", 'post');
+};
 
 
 # Redirects for old URLs

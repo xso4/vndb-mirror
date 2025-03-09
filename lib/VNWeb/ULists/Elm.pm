@@ -265,27 +265,4 @@ elm_api UListWidget => $WIDGET, { uid => { vndbid => 'u' }, vid => { vndbid => '
     elm_UListWidget ulists_widget_full_data $v, $data->{uid};
 };
 
-
-
-
-our %SAVED_OPTS = (
-    l   => { onerror => [], type => 'array', scalar => 1, values => { int => 1, range => [-1,1600] } },
-    mul => { anybool => 1 },
-    s   => { onerror => '' }, # TableOpts query string
-    f   => { onerror => '' }, # AdvSearch
-);
-
-our($SAVED_OPTS_IN, $SAVED_OPTS_OUT) = form_compile 'in', 'out', {
-    uid   => { vndbid => 'u' },
-    opts  => { type => 'hash', keys => \%SAVED_OPTS },
-    field => { _when => 'in', enum => [qw/ vnlist votes wish /] },
-};
-
-elm_api UListSaveDefault => $SAVED_OPTS_OUT, $SAVED_OPTS_IN, sub {
-    my($data) = @_;
-    return elm_Unauth if !ulists_own $data->{uid};
-    tuwf->dbExeci('UPDATE users_prefs SET ulist_'.$data->{field}, '=', \JSON::XS->new->encode($data->{opts}), 'WHERE id =', \$data->{uid});
-    elm_Success
-};
-
 1;
