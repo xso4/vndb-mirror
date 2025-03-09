@@ -10,7 +10,6 @@ use Multi::Core;
 use AnyEvent::Socket;
 use AnyEvent::Util;
 use AnyEvent::HTTP;
-use Encode 'decode_utf8', 'encode_utf8';
 use Compress::Zlib;
 use VNDB::Types;
 use VNDB::Config;
@@ -44,14 +43,14 @@ my %O = (
   client => 'multi',
   clientver => 1,
   # Misc settings
-  msgdelay => 30,
+  msgdelay => 10,
   timeout => 30,
   timeoutdelay => 0.4, # $delay = $msgdelay ** (1 + $tm*$timeoutdelay)
   maxtimeoutdelay => 2*3600,
-  check_delay => 3600,
+  check_delay => 600,
   resolve_delay => 3*3600,
   titles_delay => 48*3600,
-  cachetime => '3 months',
+  cachetime => '1 month',
 );
 
 
@@ -113,6 +112,7 @@ sub titles_next {
   while(local $_ = pop $T{data}->@*) {
     chomp;
     next if /^#/;
+    utf8::decode($_);
     my($id,$type,$lang,$title) = split /\|/, $_, 4;
     return (0, $id, $title) if $type eq '1';
     return (1, $id, $title) if $type eq '4' && $lang eq 'ja';
@@ -169,7 +169,6 @@ sub resolve {
   };
 }
 
-
 sub check_anime {
   return if $C{aid} || $C{tw};
   pg_cmd 'SELECT id FROM anime
@@ -210,7 +209,7 @@ sub nextcmd {
   # anyway.
   my $cmd = fmtcmd(%cmd);
   AE::log debug => "Sending command: $cmd";
-  $cmd = encode_utf8 $cmd;
+  utf8::encode($cmd);
   my $n = syswrite $C{sock}, $cmd;
   AE::log warn => sprintf "Didn't write command: only sent %d of %d bytes: %s", $n, length($cmd), $! if $n != length($cmd);
 
@@ -237,9 +236,9 @@ sub receivemsg {
   my $n = sysread $C{sock}, $buf, 4096;
   return AE::log warn => "sysread() failed: $!" if $n < 0;
 
-  $buf = decode_utf8 $buf;
+  utf8::decode($buf);
   my $time = AE::now-$C{lm};
-  AE::log debug => sprintf "Received message in %.2fs: %s", $time, $buf;
+  AE::log debug => sprintf "Received message in %.2fs: %s", $time, $buf =~ s/\r?\n/\\n /rg;
 
   my @r = split /\n/, $buf;
   my($tag, $code, $msg) = ($1, $2, $3) if $r[0] =~ /^([0-9]+) ([0-9]+) (.+)$/;
@@ -266,19 +265,17 @@ sub receivemsg {
 
 sub handlemsg {
   my($tag, $code, $msg, @r) = @_;
-  my $f;
+  my($delay, $f) = ($O{msgdelay}, \&nextcmd);
 
   # our session isn't valid, discard it and call nextcmd to get a new one
   if($code == NOT_LOGGED_IN || $code == LOGIN_FIRST || $code == INVALID_SESSION) {
     $C{s} = '';
-    $f = \&nextcmd;
     AE::log info => 'Our session was invalid, logging in again...';
   }
 
   # we received a session ID, call nextcmd again to fetch anime info
   elsif($code == LOGIN_ACCEPTED || $code == LOGIN_ACCEPTED_NEW_VER) {
     $C{s} = $1 if $msg =~ /^\s*([a-zA-Z0-9]{4,8}) /;
-    $f = \&nextcmd;
     AE::log info => 'Successfully logged in to AniDB.';
   }
 
@@ -286,16 +283,16 @@ sub handlemsg {
   elsif($code == NO_SUCH_ANIME) {
     AE::log info => "No anime found with id = $C{aid}";
     pg_cmd 'UPDATE anime SET lastfetch = NOW() WHERE id = $1', [ $C{aid} ];
-    $f = \&check_anime;
+    ($delay, $f) = ($O{check_delay}, \&check_anime);
     $C{aid} = 0;
 
   } else {
     update_anime($r[1]);
-    $f = \&check_anime;
+    ($delay, $f) = ($O{check_delay}, \&check_anime);
     $C{aid} = 0;
   }
 
-  $C{tw} = AE::timer $O{msgdelay}, 0, sub { undef $C{tw}; $f->() };
+  $C{tw} = AE::timer $delay, 0, sub { undef $C{tw}; $f->() };
 }
 
 
