@@ -248,14 +248,9 @@ span.spinner { width: 1em; height: 1em }
 .elm_dd_input.elm_dd_noarrow .elm_dd > a { padding-right: 2px }
 .elm_dd_noarrow .elm_dd > a { padding-right: 0 }
 .elm_dd_noarrow .elm_dd > a > span:last-child { display: none }
-.elm_dd_hover .elm_dd > div { display: none }
-.elm_dd_hover .elm_dd:hover > div { display: block }
 .elm_dd_left .elm_dd > div { float: left }
 .elm_dd_left .elm_dd > div > div { right: 0; top: -20px }
 .elm_dd_rightish .elm_dd > div > div { right: auto; left: -30px }
-.elm_dd_relextlink .elm_dd > a { padding-left: 4px; color: var(--link) }
-.elm_dd_relextlink ul a { text-align: right }
-.elm_dd_relextlink ul span { color: var(--maintext); padding-right: 10px }
 
 
 /***** JS dropdown (ds.js) *****/

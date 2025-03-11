@@ -63,37 +63,28 @@ sub sort_releases {
 }
 
 
-sub release_vislinks_ {
-    my($r, $id) = @_;
+sub release_vislinks_($r) {
     return if !$r->{vislinks}->@*;
+    return if !($r->{patch} || $r->{official} || !grep $_->{mtl}, $r->{titles}->@*);
 
     my $website = (grep $_->{name} eq 'website', $r->{vislinks}->@*)[0];
 
-    if($r->{vislinks}->@* == 1 && $website) {
-        a_ href => $website->{url2}, sub {
-            abbr_ class => 'icon-external', title => 'Official website', '';
-        };
-        return
-    }
+    return a_ href => $website->{url2}, sub {
+        abbr_ class => 'icon-external', title => 'Official website', '';
+    } if $r->{vislinks}->@* == 1 && $website;
 
-    div_ class => 'elm_dd_noarrow elm_dd_hover elm_dd_left elm_dd_relextlink', sub {
-        div_ class => 'elm_dd', sub {
-            a_ href => $website ? $website->{url2} : '#', sub {
-                txt_ scalar $r->{vislinks}->@*;
-                abbr_ class => 'icon-external', title => 'External link', '';
-            };
-            div_ sub {
-                div_ sub {
-                    ul_ sub {
-                        li_ sub {
-                            a_ href => $_->{url2}, sub {
-                                span_ $_->{price} if length $_->{price};
-                                txt_ $_->{label};
-                            }
-                        } for $r->{vislinks}->@*;
-                    }
+    a_ href => $website ? $website->{url2} : '#', sub {
+        txt_ scalar $r->{vislinks}->@*;
+        abbr_ class => 'icon-external', title => 'External link', '';
+    };
+    div_ sub {
+        ul_ sub {
+            li_ sub {
+                a_ href => $_->{url2}, sub {
+                    span_ $_->{price} if length $_->{price};
+                    txt_ $_->{label};
                 }
-            }
+            } for $r->{vislinks}->@*;
         }
     }
 }
@@ -188,9 +179,7 @@ sub release_row_ {
         td_ class => 'tc5 elm_dd_left', sub {
             elm_ 'UList.ReleaseEdit', $VNWeb::ULists::Elm::RLIST_STATUS, { rid => $r->{id}, uid => auth->uid, status => $r->{rlist_status}, empty => '--' } if auth;
         };
-        td_ class => 'tc6', sub {
-            release_vislinks_ $r, "$opt->{id}_$r->{id}" if $r->{patch} || $r->{official} || !grep $_->{mtl}, $r->{titles}->@*;
-        };
+        td_ class => 'tc_links', sub { release_vislinks_ $r };
     }
 }
 

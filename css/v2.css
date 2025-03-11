@@ -219,7 +219,15 @@ fieldset.search .submit         { padding: 0 1px; }
 .releases td.tc_icons  { text-align: right; padding: 0 4px }
 .releases td.tc_prod   { color: var(--grayedout); white-space: nowrap; width: 56px }
 .releases td.tc5       { width: 76px; text-align: right }
-.releases td.tc6       { text-align: right; width: 35px; padding: 0; white-space: nowrap }
+.releases td.tc_links {
+    text-align: right; width: 35px; padding: 0; white-space: nowrap;
+    > div { display: none; position: relative }
+    &:hover > div { display: block }
+    ul { list-style-type: none; border: 1px solid var(--border); background: var(--secbg); position: absolute; top: -18px; right: 30px; z-index: 100 }
+    li a { display: block; padding: 3px 5px; border: 0 }
+    li a:hover { background: var(--boxbg) }
+    li span { color: var(--maintext); padding-right: 10px }
+}
 .releases tr.mtl a,
 .releases tr.mtl td { color: var(--grayedout) }
 .releaseero { cursor: default; color: transparent; opacity: 0.7 }
@@ -227,6 +235,8 @@ fieldset.search .submit         { padding: 0 1px; }
 .releaseero_yes { text-shadow: 0 0 var(--maintext) }
 .releaseero_cen { text-shadow: 0 0 var(--statnok) }
 .releaseero_unc { text-shadow: 0 0 var(--statok) }
+
+
 
 .vnreleases details { margin: 7px 0 3px 0 }
 .vnreleases details[open] summary small { display: none }
