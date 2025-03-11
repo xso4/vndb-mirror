@@ -16,14 +16,6 @@ js_api 'Image', { id => { vndbid => [qw/ch cv sf/] } }, sub {
 };
 
 
-elm_api Image => undef, { id => { vndbid => [qw/ch cv sf/] } }, sub {
-    my($data) = @_;
-    my $l = tuwf->dbAlli('SELECT id FROM images WHERE id =', \$data->{id});
-    enrich_image 0, $l;
-    elm_ImageResult $l;
-};
-
-
 TUWF::post qr{/js/ImageUpload.json}, sub {
     # Have to require the samesite cookie here as CSRF protection, because this API can be triggered as a regular HTML form post.
     return tuwf->resDenied if !samesite || !(auth->permDbmod || (auth->permEdit && !global_settings->{lockdown_edit}));

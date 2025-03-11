@@ -39,10 +39,8 @@ showResponse res =
     DRM _                           -> unexp
     TagResult _                     -> unexp
     TraitResult _                   -> unexp
-    VNResult _                      -> unexp
     ProducerResult _                -> unexp
     StaffResult _                   -> unexp
-    CharResult _                    -> unexp
     AnimeResult _                   -> unexp
     ImageResult _                   -> unexp
     UListWidget _                   -> unexp

@@ -78,11 +78,6 @@ our %apis = (
         group_id     => { default => undef, vndbid => 'i' },
         group_name   => { default => undef },
     } } ],
-    VNResult       => [ { aoh => { # Response to 'VN'
-        id       => { vndbid => 'v' },
-        title    => {},
-        hidden   => { anybool => 1 },
-    } } ],
     ProducerResult => [ { aoh => { # Response to 'Producers'
         id       => { vndbid => 'p' },
         name     => {},
@@ -94,16 +89,6 @@ our %apis = (
         aid      => { id => 1 },
         title    => {},
         alttitle => {},
-    } } ],
-    CharResult     => [ { aoh => { # Response to 'Chars'
-        id       => { vndbid => 'c' },
-        title    => {},
-        alttitle => {},
-        main     => { default => undef, type => 'hash', keys => {
-            id       => { vndbid => 'c' },
-            title    => {},
-            alttitle => {},
-        } }
     } } ],
     AnimeResult => [ { aoh => { # Response to 'Anime'
         id       => { id => 1 },
@@ -222,29 +207,6 @@ sub def_type {
 }
 
 
-# Generate HTML5 validation attribute lists corresponding to a TUWF::Validate schema
-# TODO: Deduplicate some regexes (weburl, email)
-# TODO: Throw these inside a struct for better namespacing?
-sub def_validation {
-    my($name, $obj) = @_;
-    $obj = $obj->{values} if $obj->{values};
-    my $data = '';
-
-    $data .= def_validation($name . to_camel($_), $obj->{keys}{$_}) for $obj->{keys} ? sort keys $obj->{keys}->%* : ();
-
-    my %v = $obj->html5_validation();
-    $data .= def $name, 'List (Html.Attribute msg)', '[ '.join(', ',
-        $v{required}          ? 'A.required True' : (),
-        defined $v{minlength} ? "A.minlength $v{minlength}" : (),
-        defined $v{maxlength} ? "A.maxlength $v{maxlength}" : (),
-        defined $v{min}       ? 'A.min '.string($v{min}) : (),
-        defined $v{max}       ? 'A.max '.string($v{max}) : (),
-        $v{pattern}           ? 'A.pattern '.string($v{pattern}) : ()
-    ).']' if !$obj->{keys};
-    $data;
-}
-
-
 # Generate an Elm JSON encoder taking a corresponding def_type() as input
 sub encoder {
     my($name, $type, $obj) = @_;
@@ -304,8 +266,6 @@ sub write_module {
 #   type alias Recv = { .. }
 #   -- Elm type corresponding to $IN_SCHEMA
 #   type alias Send = { .. }
-#   -- HTML Validation attributes corresponding to fields in `Send`
-#   valFieldName : List Html.Attribute
 #
 #   -- Command to send an API request to the endpoint and receive a response
 #   send : Send -> (Gen.Api.Response -> msg) -> Cmd msg
@@ -338,7 +298,6 @@ sub elm_api {
         $data .= def_type Recv => comp($out)->analyze if $out;
         $data .= def_type Send => $in->analyze;
         $data .= def_type $_ => comp($extra{$_})->analyze for sort keys %extra;
-        $data .= def_validation val => $in->analyze;
         $data .= encoder encode => 'Send', $in->analyze;
         $data .= "send : Send -> (GApi.Response -> msg) -> Cmd msg\n";
         $data .= "send v m = Api.post \"$name\" (encode v) m\n";

@@ -124,7 +124,7 @@ view model txt =
       li [] [
         case model.customSt of
           Api.Normal -> Html.form [ onSubmit CustomSubmit ]
-                        [ inputText "" model.custom Custom ([placeholder "new label", style "width" "150px"] ++ GLA.valLabel) ]
+                        [ inputText "" model.custom Custom [placeholder "new label", style "width" "150px", required True, maxlength 50] ]
           Api.Loading -> span [ class "spinner" ] []
           Api.Error _ -> b [] [ text "error" ] ]
   in

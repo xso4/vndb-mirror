@@ -61,7 +61,7 @@ view model =
     [ tr [ class "nostripe compact" ]
       [ td [] [ text "Notes" ]
       , td [ colspan 2 ]
-        [ textarea ([ id "widget-notes", placeholder "Notes", rows 2, cols 30, onInput UW.Notes, onBlur (UW.NotesSave model.notesRev)] ++ GVN.valNotes) [ text model.notes ] ]
+        [ textarea [ id "widget-notes", placeholder "Notes", rows 2, cols 30, onInput UW.Notes, onBlur (UW.NotesSave model.notesRev), maxlength 2000] [ text model.notes ] ]
       ]
     ] ++ if not model.onlist then [] else
     [ tr [] [ td [] [ text "Start date"  ], td [ colspan 2, class "date" ] [ Html.map UW.Started  (DE.view model.started ) ] ]

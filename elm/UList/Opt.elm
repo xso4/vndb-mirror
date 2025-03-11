@@ -141,7 +141,8 @@ view model =
           [ textarea (
               [ placeholder "Notes", rows 2, cols 80
               , onInput Notes, onBlur (NotesSave model.notesRev)
-              ] ++ GVN.valNotes
+              , maxlength 2000
+              ]
             ) [ text model.notes ]
           , div [ ] <|
             [ div [ class "spinner", classList [("hidden", model.notesState /= Api.Loading)] ] []

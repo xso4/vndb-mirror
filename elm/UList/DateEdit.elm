@@ -79,7 +79,7 @@ view model = div (class "compact" :: if model.visible then [] else [onMouseOver 
     Api.Error _ -> [ b [] [ text "error" ] ] -- Argh
     Api.Normal ->
       [ if model.visible
-        then input ([ type_ "date", class "text", value model.val, onInputValidation Val, onBlur (Save model.debnum), placeholder "yyyy-mm-dd" ] ++ GDE.valDate) []
+        then input [ type_ "date", class "text", value model.val, onInputValidation Val, onBlur (Save model.debnum), placeholder "yyyy-mm-dd" ] []
         else text ""
       , span [] [ text model.val ]
       ]

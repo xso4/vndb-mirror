@@ -6,10 +6,8 @@ module Lib.Autocomplete exposing
   , Msg
   , tagSource
   , traitSource
-  , vnSource
   , producerSource
   , staffSource
-  , charSource
   , animeSource
   , resolutionSource
   , engineSource
@@ -36,10 +34,8 @@ import Lib.Api as Api
 import Gen.Api as GApi
 import Gen.Tags as GT
 import Gen.Traits as GTR
-import Gen.VN as GV
 import Gen.Producers as GP
 import Gen.Staff as GS
-import Gen.Chars as GC
 import Gen.Anime as GA
 import Gen.Resolutions as GR
 import Gen.Engines as GE
@@ -115,19 +111,6 @@ traitSource =
   }
 
 
-vnSource : SourceConfig m GApi.ApiVNResult
-vnSource =
-  { source  = Endpoint (\s -> GV.send { search = [s], hidden = False })
-    <| \x -> case x of
-      GApi.VNResult e -> Just e
-      _ -> Nothing
-  , view    = \i ->
-    [ small [] [ text <| i.id ++ ": " ]
-    , text i.title ]
-  , key     = \i -> i.id
-  }
-
-
 producerSource : SourceConfig m GApi.ApiProducerResult
 producerSource =
   { source  = Endpoint (\s -> GP.send { search = [s] })
@@ -154,23 +137,6 @@ staffSource =
     , if i.alttitle == i.title then text "" else small [] [ text " ", text i.alttitle ]
     ]
   , key     = \i -> String.fromInt i.aid
-  }
-
-
-charSource : SourceConfig m GApi.ApiCharResult
-charSource =
-  { source  = Endpoint (\s -> GC.send { search = s })
-    <| \x -> case x of
-      GApi.CharResult e -> Just e
-      _ -> Nothing
-  , view    = \i ->
-    [ small [] [ text <| i.id ++ ": " ]
-    , text i.title
-    , Maybe.withDefault (text "") <| Maybe.map (\m ->
-        small [] [ text <| " (instance of " ++ m.id ++ ": " ++ m.title ]
-      ) i.main
-    ]
-  , key     = \i -> i.id
   }
 
 

@@ -104,7 +104,8 @@ view model txt =
               , onFocus Focus
               , placeholder "7.5"
               , style "width" "55px"
-              ] ++ GVE.valVote
+              , pattern "(?:^(?:|-|[1-9]|10|[1-9]\\.[0-9]|10\\.0)$)"
+              ]
             ) []
           ] ]
         ] ]

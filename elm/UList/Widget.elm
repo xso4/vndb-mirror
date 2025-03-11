@@ -290,7 +290,7 @@ view model =
         , tr []
           [ td [] [ text "Notes ", span [ class "spinner", classList [("hidden", model.notesState /= Api.Loading)] ] [] ]
           , td [] <|
-            [ textarea ([ rows 2, cols 40, onInput Notes, onBlur (NotesSave model.notesRev)] ++ GVN.valNotes) [ text model.notes ]
+            [ textarea [ rows 2, cols 40, onInput Notes, onBlur (NotesSave model.notesRev), maxlength 2000] [ text model.notes ]
             ] ++ case model.notesState of
                    Api.Error e -> [ br [] [], b [] [ text <| Api.showResponse e ] ]
                    _ -> []
