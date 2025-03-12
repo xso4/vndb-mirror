@@ -35,6 +35,17 @@ window.range = (start, end, skip=1) => {
 };
 
 
+// Queue an image preload
+let preload_urls = {};
+window.imgPreload = url => {
+    if(Object.keys(preload_urls).length > 100) preload_urls = {};
+    if(!preload_urls[url]) {
+        preload_urls[url] = new Image();
+        preload_urls[url].src = url;
+    }
+};
+
+
 // Compare two JS values, for the purpose of sorting.
 // Should only be used to compare values of identical types (or null).
 // Supports arrays, numbers, strings, bools and null.

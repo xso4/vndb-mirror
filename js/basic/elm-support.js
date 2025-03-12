@@ -12,14 +12,7 @@ var preload_urls = {};
 
 const ports = Object.entries({
     // ImageFlagging
-    preload: () => url => {
-        if(Object.keys(preload_urls).length > 100)
-            preload_urls = {};
-        if(!preload_urls[url]) {
-            preload_urls[url] = new Image();
-            preload_urls[url].src = url;
-        }
-    },
+    preload: () => url => imgPreload(url),
 
     // UList.LabelEdit
     ulistLabelChanged: flags => pub => {
