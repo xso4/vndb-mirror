@@ -45,8 +45,7 @@ main = Browser.element
   }
 
 type alias Model =
-  { uid        : String
-  , vid        : String
+  { vid        : String
   , loadState  : Api.State
   , today      : Date.Date
   , title      : Maybe String -- Nothing is used here to indicate that we haven't loaded the full data yet.
@@ -72,8 +71,7 @@ type alias Model =
 
 init : UW.Recv -> Model
 init f =
-  { uid       = f.uid
-  , vid       = f.vid
+  { vid       = f.vid
   , loadState = Api.Normal
   , today     = Date.fromOrdinalDate 2100 1
   , title     = Maybe.map (\full -> full.title) f.full
@@ -82,14 +80,13 @@ init f =
   , del       = False
     -- TODO: LabelEdit and VoteEdit create an internal vid-based ID, so this widget can't be used on VN pages or UList listings. Need to fix that.
   , labels    = LE.init
-    { uid       = f.uid
-    , vid       = f.vid
+    { vid       = f.vid
     , selected  = List.map (\l -> l.id) (Maybe.withDefault [] f.labels)
     , labels    = Maybe.withDefault
                     (List.map (\l -> {id = l.id, label = l.label, private = True}) (Maybe.withDefault [] f.labels))
                     (Maybe.map (\full -> full.labels) f.full)
     }
-  , vote       = VE.init { uid = f.uid, vid = f.vid, vote = Maybe.andThen (\full -> full.vote) f.full }
+  , vote       = VE.init { vid = f.vid, vote = Maybe.andThen (\full -> full.vote) f.full }
   , canvote    = Maybe.map (\full -> full.canvote   ) f.full |> Maybe.withDefault False
   , canreview  = Maybe.map (\full -> full.canreview ) f.full |> Maybe.withDefault False
   , review     = Maybe.andThen (\full -> full.review) f.full
@@ -98,17 +95,16 @@ init f =
   , notesSaved = Maybe.map (\full -> full.notes     ) f.full |> Maybe.withDefault ""
   , notesState = Api.Normal
   , notesVis   = Maybe.map (\full -> full.notes /= "") f.full == Just True
-  , started    = let m = DE.init { uid = f.uid, vid = f.vid, date = Maybe.map (\full -> full.started ) f.full |> Maybe.withDefault "", start = True  } in { m | visible = True }
-  , finished   = let m = DE.init { uid = f.uid, vid = f.vid, date = Maybe.map (\full -> full.finished) f.full |> Maybe.withDefault "", start = False } in { m | visible = True }
-  , rels       = List.map (\st -> RE.init ("widget-" ++ f.vid) { uid = f.uid, rid = st.id, status = Just st.status, empty = "" }) <| Maybe.withDefault [] <| Maybe.map (\full -> full.rlist) f.full
+  , started    = let m = DE.init { vid = f.vid, date = Maybe.map (\full -> full.started ) f.full |> Maybe.withDefault "", start = True  } in { m | visible = True }
+  , finished   = let m = DE.init { vid = f.vid, date = Maybe.map (\full -> full.finished) f.full |> Maybe.withDefault "", start = False } in { m | visible = True }
+  , rels       = List.map (\st -> RE.init ("widget-" ++ f.vid) { rid = st.id, status = Just st.status, empty = "" }) <| Maybe.withDefault [] <| Maybe.map (\full -> full.rlist) f.full
   , relNfo     = Dict.fromList <| List.map (\r -> (r.id, r)) <| Maybe.withDefault [] <| Maybe.map (\full -> full.releases) f.full
   , relOptions = Maybe.withDefault [] <| Maybe.map (\full -> List.map (\r -> (r.id, RDate.showrel r)) full.releases) f.full
   }
 
 reset : Model -> Model
 reset m = init
-  { uid    = m.uid
-  , vid    = m.vid
+  { vid    = m.vid
   , labels = Nothing
   , full   = Maybe.map (\t ->
       { title      = t
@@ -171,7 +167,7 @@ update msg model =
     Today d -> ({ model | today = d }, Cmd.none)
     Open b ->
       if b && model.title == Nothing
-      then ({ model | open = b, loadState = Api.Loading }, UW.send { uid = model.uid, vid = model.vid } Loaded)
+      then ({ model | open = b, loadState = Api.Loading }, UW.send { vid = model.vid } Loaded)
       else ({ model | open = b }, Cmd.none)
 
     Loaded (GApi.UListWidget w) -> let m = init w in ({ m | open = True }, Cmd.none)
@@ -189,7 +185,7 @@ update msg model =
       if rev /= model.notesRev || model.notes == model.notesSaved
       then (model, Cmd.none)
       else ( { model | notesState = Api.Loading }
-           , GVN.send { uid = model.uid, vid = model.vid, notes = model.notes } (NotesSaved rev))
+           , GVN.send { vid = model.vid, notes = model.notes } (NotesSaved rev))
     NotesSaved rev GApi.Success ->
       if model.notesRev /= rev
       then (model, Cmd.none)
@@ -200,7 +196,7 @@ update msg model =
       , if model.notesVis then Cmd.none else Task.attempt (always Noop) (focus "widget-notes"))
 
     Del b -> ({ model | del = b }, Cmd.none)
-    Delete -> ({ model | loadState = Api.Loading }, GDE.send { uid = model.uid, vid = model.vid } Deleted)
+    Delete -> ({ model | loadState = Api.Loading }, GDE.send { vid = model.vid } Deleted)
     Deleted GApi.Success -> (reset model, Cmd.none)
     Deleted e -> ({ model | loadState = Api.Error e }, Cmd.none)
 
@@ -214,7 +210,7 @@ update msg model =
                  else List.map (\r -> if r.rid == rid then rm else r) model.rels
           in ({ model | rels = nr }, Cmd.map (Rel rid) rc)
     RelAdd rid ->
-      ( setOnList { model | rels = model.rels ++ (if rid == "" then [] else [RE.init model.vid { rid = rid, uid = model.uid, status = Just 2, empty = "" }]) }
+      ( setOnList { model | rels = model.rels ++ (if rid == "" then [] else [RE.init model.vid { rid = rid, status = Just 2, empty = "" }]) }
       , Task.perform (always <| Rel rid <| RE.Set (Just 2) True) <| Task.succeed True)
 
 

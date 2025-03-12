@@ -7,19 +7,17 @@ use VNWeb::ULists::Lib;
 # Should be called after any label/vote/private change to the ulist_vns table.
 # (Normally I'd do this with triggers, but that seemed like a more complex and less efficient solution in this case)
 sub updcache {
-    my($uid,$vid) = @_;
-    tuwf->dbExeci(SELECT => sql_func update_users_ulist_private => \$uid, \$vid) if @_ == 2;
-    tuwf->dbExeci(SELECT => sql_func update_users_ulist_stats => \$uid);
+    tuwf->dbExeci(SELECT => sql_func update_users_ulist_private => \auth->uid, \$_[0]) if @_ == 1;
+    tuwf->dbExeci(SELECT => sql_func update_users_ulist_stats => \auth->uid);
 }
 
 
 sub sql_labelid {
-    my($uid) = @_;
     sql '(SELECT min(x.n)
            FROM generate_series(10,
-                  greatest((SELECT max(id)+1 from ulist_labels ul WHERE ul.uid =', \$uid, '), 10)
+                  greatest((SELECT max(id)+1 from ulist_labels ul WHERE ul.uid =', \auth->uid, '), 10)
                 ) x(n)
-          WHERE NOT EXISTS(SELECT 1 FROM ulist_labels ul WHERE ul.uid =', \$uid, 'AND ul.id = x.n))';
+          WHERE NOT EXISTS(SELECT 1 FROM ulist_labels ul WHERE ul.uid =', \auth->uid, 'AND ul.id = x.n))';
 }
 
 
@@ -31,25 +29,25 @@ our $LABELS = tuwf->compile({ maxlength => 1500, aoh => {
     delete  => { default => undef, uint => 1, range => [1, 3] }, # 1=keep vns, 2=delete when no other label, 3=delete all
 }});
 
-js_api UListManageLabels => { uid => { vndbid => 'u' }, labels => $LABELS }, sub {
-    my($uid, $labels) = ($_[0]{uid}, $_[0]{labels});
-    return tuwf->resDenied if !ulists_own $uid;
+js_api UListManageLabels => { labels => $LABELS }, sub {
+    my $labels = $_[0]{labels};
+    return tuwf->resDenied if !auth;
 
     # Insert new labels
     my @new = grep $_->{id} < 0 && !$_->{delete}, @$labels;
-    tuwf->dbExeci('INSERT INTO ulist_labels', { id => sql_labelid($uid), uid => $uid, label => $_->{label}, private => $_->{private} }) for @new;
+    tuwf->dbExeci('INSERT INTO ulist_labels', { id => sql_labelid, uid => auth->uid, label => $_->{label}, private => $_->{private} }) for @new;
 
     # Update private flag
     my $changed = 0;
     $changed += tuwf->dbExeci(
         'UPDATE ulist_labels SET private =', \$_->{private},
-         'WHERE uid =', \$uid, 'AND id =', \$_->{id}, 'AND private <>', \$_->{private}
+         'WHERE uid =', \auth->uid, 'AND id =', \$_->{id}, 'AND private <>', \$_->{private}
     ) for grep $_->{id} > 0 && !$_->{delete}, @$labels;
 
     # Update label
     tuwf->dbExeci(
         'UPDATE ulist_labels SET label =', \$_->{label},
-         'WHERE uid =', \$uid, 'AND id =', \$_->{id}, 'AND label <>', \$_->{label}
+         'WHERE uid =', \auth->uid, 'AND id =', \$_->{id}, 'AND label <>', \$_->{label}
     ) for grep $_->{id} >= 10 && !$_->{delete}, @$labels;
 
     # Delete labels
@@ -66,60 +64,59 @@ js_api UListManageLabels => { uid => { vndbid => 'u' }, labels => $LABELS }, sub
              AND labels <@', sql_array(@delete_lblonly, @delete_empty), '::smallint[]'
         ) : ()
     );
-    tuwf->dbExeci('DELETE FROM ulist_vns uv WHERE uid =', \$uid, 'AND (', sql_or(@where), ')') if @where;
+    tuwf->dbExeci('DELETE FROM ulist_vns uv WHERE uid =', \auth->uid, 'AND (', sql_or(@where), ')') if @where;
 
     $changed += tuwf->dbExeci(
         'UPDATE ulist_vns
             SET labels = array_remove(labels,', \$_->{id}, ')
-          WHERE uid =', \$uid, 'AND labels && ARRAY[', \$_->{id}, '::smallint]'
+          WHERE uid =', \auth->uid, 'AND labels && ARRAY[', \$_->{id}, '::smallint]'
     ) for @delete;
 
-    tuwf->dbExeci('DELETE FROM ulist_labels WHERE uid =', \$uid, 'AND id IN', [ map $_->{id}, @delete ]) if @delete;
+    tuwf->dbExeci('DELETE FROM ulist_labels WHERE uid =', \auth->uid, 'AND id IN', [ map $_->{id}, @delete ]) if @delete;
 
-    updcache $uid, $changed ? undef : ();
+    updcache $changed ? undef : ();
     +{}
 };
 
 
 # Create a new label and add it to a VN
 elm_api UListLabelAdd => undef, {
-    uid   => { vndbid => 'u' },
     vid   => { vndbid => 'v' },
     label => { sl => 1, maxlength => 50 },
 }, sub {
     my($data) = @_;
-    return elm_Unauth if !ulists_own $data->{uid};
+    return elm_Unauth if !auth;
 
     my $id = tuwf->dbVali('
-        WITH x(id) AS (SELECT id FROM ulist_labels WHERE', { uid => $data->{uid}, label => $data->{label} }, '),
+        WITH x(id) AS (SELECT id FROM ulist_labels WHERE', { uid => auth->uid, label => $data->{label} }, '),
              y(id) AS (INSERT INTO ulist_labels (id, uid, label, private) SELECT', sql_join(',',
-                sql_labelid($data->{uid}), \$data->{uid}, \$data->{label},
+                sql_labelid, \auth->uid, \$data->{label},
                 # Let's copy the private flag from the Voted label, seems like a sane default
-                sql('(SELECT private FROM ulist_labels WHERE', {uid => $data->{uid}, id => 7}, ')')
+                sql('(SELECT private FROM ulist_labels WHERE', {uid => auth->uid, id => 7}, ')')
             ), 'WHERE NOT EXISTS(SELECT 1 FROM x) RETURNING id)
         SELECT id FROM x UNION SELECT id FROM y'
     );
     die "Attempt to set vote label" if $id == 7;
 
     tuwf->dbExeci(
-        'INSERT INTO ulist_vns', {uid => $data->{uid}, vid => $data->{vid}, labels => "{$id}"},
+        'INSERT INTO ulist_vns', {uid => auth->uid, vid => $data->{vid}, labels => "{$id}"},
         'ON CONFLICT (uid, vid) DO UPDATE SET labels = array_set(ulist_vns.labels,', \$id, ')'
     );
-    updcache $data->{uid}, $data->{vid};
+    updcache $data->{vid};
     elm_LabelId $id
 };
 
 
 
 our $VNVOTE = form_compile any => {
-    uid  => { vndbid => 'u' },
     vid  => { vndbid => 'v' },
     vote => { vnvote => 1 },
 };
 
 elm_api UListVoteEdit => undef, $VNVOTE, sub {
     my($data) = @_;
-    return elm_Unauth if !ulists_own $data->{uid};
+    return elm_Unauth if !auth;
+    $data->{uid} = auth->uid;
     tuwf->dbExeci(
         'INSERT INTO ulist_vns', { %$data, vote_date => sql $data->{vote} ? 'NOW()' : 'NULL' },
             'ON CONFLICT (uid, vid) DO UPDATE
@@ -128,7 +125,7 @@ elm_api UListVoteEdit => undef, $VNVOTE, sub {
                 vote_date => sql $data->{vote} ? 'CASE WHEN ulist_vns.vote IS NULL THEN NOW() ELSE ulist_vns.vote_date END' : 'NULL'
             }
     );
-    updcache $data->{uid}, $data->{vid};
+    updcache $data->{vid};
     elm_Success
 };
 
@@ -136,7 +133,6 @@ elm_api UListVoteEdit => undef, $VNVOTE, sub {
 
 
 our($VNLABELS_IN, $VNLABELS_OUT) = form_compile 'in', 'out', {
-    uid      => { vndbid => 'u' },
     vid      => { vndbid => 'v' },
     label    => { _when => 'in', id => 1 },
     applied  => { _when => 'in', anybool => 1 },
@@ -146,20 +142,20 @@ our($VNLABELS_IN, $VNLABELS_OUT) = form_compile 'in', 'out', {
 
 elm_api UListLabelEdit => $VNLABELS_OUT, $VNLABELS_IN, sub {
     my($data) = @_;
-    return elm_Unauth if !ulists_own $data->{uid};
+    return elm_Unauth if !auth;
     die "Attempt to set vote label" if $data->{label} == 7;
     die "Attempt to set invalid label" if $data->{applied}
-        && !tuwf->dbVali('SELECT 1 FROM ulist_labels WHERE uid =', \$data->{uid}, 'AND id =', \$data->{label});
+        && !tuwf->dbVali('SELECT 1 FROM ulist_labels WHERE uid =', \auth->uid, 'AND id =', \$data->{label});
 
     tuwf->dbExeci(
         'INSERT INTO ulist_vns', {
-            uid => $data->{uid},
+            uid => auth->uid,
             vid => $data->{vid},
             labels => $data->{applied}?"{$data->{label}}":'{}'
         }, 'ON CONFLICT (uid, vid) DO UPDATE SET lastmod = NOW(),
               labels =', sql_func $data->{applied} ? 'array_set' : 'array_remove', 'ulist_vns.labels', \$data->{label}
     );
-    updcache $data->{uid}, $data->{vid};
+    updcache $data->{vid};
     elm_Success
 };
 
@@ -167,7 +163,6 @@ elm_api UListLabelEdit => $VNLABELS_OUT, $VNLABELS_IN, sub {
 
 
 our $VNDATE = form_compile any => {
-    uid   => { vndbid => 'u' },
     vid   => { vndbid => 'v' },
     date  => { default => '', caldate => 1 },
     start => { anybool => 1 }, # Field selection, started/finished
@@ -175,10 +170,10 @@ our $VNDATE = form_compile any => {
 
 elm_api UListDateEdit => undef, $VNDATE, sub {
     my($data) = @_;
-    return elm_Unauth if !ulists_own $data->{uid};
+    return elm_Unauth if !auth;
     tuwf->dbExeci(
         'UPDATE ulist_vns SET lastmod = NOW(), ', $data->{start} ? 'started' : 'finished', '=', \($data->{date}||undef),
-         'WHERE uid =', \$data->{uid}, 'AND vid =', \$data->{vid}
+         'WHERE uid =', \auth->uid, 'AND vid =', \$data->{vid}
     );
     # Doesn't need `updcache()`
     elm_Success
@@ -189,7 +184,6 @@ elm_api UListDateEdit => undef, $VNDATE, sub {
 
 our $VNOPT = form_compile any => {
     own   => { anybool => 1 },
-    uid   => { vndbid => 'u' },
     vid   => { vndbid => 'v' },
     notes => {},
     rels  => $VNWeb::Elm::apis{Releases}[0],
@@ -199,12 +193,12 @@ our $VNOPT = form_compile any => {
 
 # UListVNNotes module is abused for the UList.Opts flag definition
 elm_api UListVNNotes => $VNOPT, {
-    uid   => { vndbid => 'u' },
     vid   => { vndbid => 'v' },
     notes => { default => '', maxlength => 2000 },
 }, sub {
     my($data) = @_;
-    return elm_Unauth if !ulists_own $data->{uid};
+    return elm_Unauth if !auth;
+    $data->{uid} = auth->uid;
     tuwf->dbExeci(
         'INSERT INTO ulist_vns', \%$data, 'ON CONFLICT (uid, vid) DO UPDATE SET', { %$data, lastmod => sql('NOW()') }
     );
@@ -216,13 +210,13 @@ elm_api UListVNNotes => $VNOPT, {
 
 
 elm_api UListDel => undef, {
-    uid => { vndbid => 'u' },
     vid => { vndbid => 'v' },
 }, sub {
     my($data) = @_;
-    return elm_Unauth if !ulists_own $data->{uid};
+    return elm_Unauth if !auth;
+    $data->{uid} = auth->uid;
     tuwf->dbExeci('DELETE FROM ulist_vns WHERE uid =', \$data->{uid}, 'AND vid =', \$data->{vid});
-    updcache $data->{uid};
+    updcache;
     elm_Success
 };
 
@@ -232,7 +226,6 @@ elm_api UListDel => undef, {
 # Adds the release when not in the list.
 # $RLIST_STATUS is also referenced from VNWeb::Releases::Page.
 our $RLIST_STATUS = form_compile any => {
-    uid => { vndbid => 'u' },
     rid => { vndbid => 'r' },
     status => { default => undef, uint => 1, enum => \%RLIST_STATUS }, # undef meaning delete
     empty => { default => '' }, # An 'out' field
@@ -240,7 +233,8 @@ our $RLIST_STATUS = form_compile any => {
 elm_api UListRStatus => undef, $RLIST_STATUS, sub {
     my($data) = @_;
     delete $data->{empty};
-    return elm_Unauth if !ulists_own $data->{uid};
+    return elm_Unauth if !auth;
+    $data->{uid} = auth->uid;
     if(!defined $data->{status}) {
         tuwf->dbExeci('DELETE FROM rlists WHERE uid =', \$data->{uid}, 'AND rid =', \$data->{rid})
     } else {
@@ -254,12 +248,12 @@ elm_api UListRStatus => undef, $RLIST_STATUS, sub {
 
 our $WIDGET = form_compile out => $VNWeb::Elm::apis{UListWidget}[0]{keys};
 
-elm_api UListWidget => $WIDGET, { uid => { vndbid => 'u' }, vid => { vndbid => 'v' } }, sub {
+elm_api UListWidget => $WIDGET, { vid => { vndbid => 'v' } }, sub {
     my($data) = @_;
-    return elm_Unauth if !ulists_own $data->{uid};
+    return elm_Unauth if !auth;
     my $v = tuwf->dbRowi('SELECT id, title, c_released FROM', vnt, 'v WHERE id =', \$data->{vid});
     return elm_Invalid if !defined $v->{title};
-    elm_UListWidget ulists_widget_full_data $v, $data->{uid};
+    elm_UListWidget ulists_widget_full_data $v;
 };
 
 1;

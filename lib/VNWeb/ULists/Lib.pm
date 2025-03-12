@@ -4,17 +4,18 @@ use VNWeb::Prelude;
 use VNWeb::Releases::Lib 'releases_by_vn';
 use Exporter 'import';
 
-our @EXPORT = qw/ulists_own ulist_filtlabels enrich_ulists_widget ulists_widget_ ulists_widget_full_data/;
+our @EXPORT = qw/ulists_priv ulist_filtlabels enrich_ulists_widget ulists_widget_ ulists_widget_full_data/;
 
-# Do we have "ownership" access to this users' list (i.e. can we edit and see private stuff)?
-sub ulists_own {
+# Can we see private stuff on this user's list?
+# Only used to determine whether we can *view* private stuff on the list, editing is still restricted to the currently logged-in user.
+sub ulists_priv {
     auth->permUsermod || auth->api2Listread(shift)
 }
 
 
 sub ulist_filtlabels {
     my($uid, $count) = @_;
-    my $own = ulists_own $uid;
+    my $own = ulists_priv $uid;
 
     my $l = tuwf->dbAlli(
         'SELECT l.id, l.label, l.private', $count ? ', coalesce(x.count, 0) as count' : (),
@@ -54,7 +55,6 @@ sub enrich_ulists_widget {
 sub ulists_widget_ {
     my($v) = @_;
     elm_ 'UList.Widget', $VNWeb::ULists::Elm::WIDGET, {
-        uid    => auth->uid,
         vid    => $v->{id},
         labels => $v->{on_vnlist} ? $v->{vnlist_labels} : undef,
         full   => undef,
@@ -68,17 +68,16 @@ sub ulists_widget_ {
 
 # Returns the data structure for the elm_UListWidget API response for the given VN.
 sub ulists_widget_full_data {
-    my($v, $uid, $vnpage, $canvote) = @_;
-    my $lst = tuwf->dbRowi('SELECT vid, vote, notes, started, finished, labels FROM ulist_vns WHERE uid =', \$uid, 'AND vid =', \$v->{id});
-    my $review = tuwf->dbVali('SELECT id FROM reviews WHERE uid =', \$uid, 'AND vid =', \$v->{id});
+    my($v, $vnpage, $canvote) = @_;
+    my $lst = tuwf->dbRowi('SELECT vid, vote, notes, started, finished, labels FROM ulist_vns WHERE uid =', \auth->uid, 'AND vid =', \$v->{id});
+    my $review = tuwf->dbVali('SELECT id FROM reviews WHERE uid =', \auth->uid, 'AND vid =', \$v->{id});
     $canvote //= sprintf('%08d', $v->{c_released}||99999999) <= strftime '%Y%m%d', gmtime;
     +{
-        uid    => $uid,
         vid    => $v->{id},
         labels => $lst->{vid} ? [ map +{ id => $_, label => '' }, $lst->{labels}->@* ] : undef,
         full   => {
             title     => $vnpage ? '' : $v->{title}[1],
-            labels    => tuwf->dbAlli('SELECT id, label, private FROM ulist_labels WHERE uid =', \$uid, 'ORDER BY CASE WHEN id < 10 THEN id ELSE 10 END, label'),
+            labels    => tuwf->dbAlli('SELECT id, label, private FROM ulist_labels WHERE uid =', \auth->uid, 'ORDER BY CASE WHEN id < 10 THEN id ELSE 10 END, label'),
             canvote   => $lst->{vote} || $canvote || 0,
             canreview => $review || ($canvote && can_edit(w => {})) || 0,
             vote      => fmtvote($lst->{vote}),
@@ -87,7 +86,7 @@ sub ulists_widget_full_data {
             started   => $lst->{started}||'',
             finished  => $lst->{finished}||'',
             releases  => $vnpage ? [] : releases_by_vn($v->{id}),
-            rlist     => $vnpage ? [] : tuwf->dbAlli('SELECT rid AS id, status FROM rlists WHERE uid =', \$uid, 'AND rid IN(SELECT id FROM releases_vn WHERE vid =', \$v->{id}, ')'),
+            rlist     => $vnpage ? [] : tuwf->dbAlli('SELECT rid AS id, status FROM rlists WHERE uid =', \auth->uid, 'AND rid IN(SELECT id FROM releases_vn WHERE vid =', \$v->{id}, ')'),
         },
     };
 

@@ -113,7 +113,7 @@ sub filters_ {
 
 
 sub vn_ {
-    my($uid, $own, $opt, $n, $v, $labels) = @_;
+    my($own, $priv, $opt, $n, $v, $labels) = @_;
     tr_ class => $n % 2 == 0 ? 'odd' : undef, id => "ulist_tr_$v->{id}", sub {
         my %labels = map +($_,1), $v->{labels}->@*;
 
@@ -125,7 +125,7 @@ sub vn_ {
                 span_ id => 'ulist_relsum_'.$v->{id},
                     class => $total && $obtained == $total ? 'done' : $obtained < $total ? 'todo' : undef,
                     sprintf '%d/%d', $obtained, $total;
-                if($own) {
+                if($priv) {
                     my $public = List::Util::any { $labels{$_->{id}} && !$_->{private} } @$labels;
                     my $publicLabel = List::Util::any { $_->{id} != 7 && $labels{$_->{id}} && !$_->{private} } @$labels;
                     span_ class => !$public ? 'invisible' : undef,
@@ -141,7 +141,7 @@ sub vn_ {
 
         td_ class => 'tc_vote', '+' => $own ? 'compact stealth' : undef, sub {
             txt_ fmtvote $v->{vote} if !$own;
-            elm_ 'UList.VoteEdit' => $VNWeb::ULists::Elm::VNVOTE, { uid => $uid, vid => $v->{id}, vote => fmtvote($v->{vote}) }, sub {
+            elm_ 'UList.VoteEdit' => $VNWeb::ULists::Elm::VNVOTE, { vid => $v->{id}, vote => fmtvote($v->{vote}) }, sub {
                 div_ @_, fmtvote $v->{vote}
             } if $own && ($v->{vote} || sprintf('%08d', $v->{c_released}||0) < strftime '%Y%m%d', gmtime);
         } if $opt->{s}->vis('vote');
@@ -182,14 +182,14 @@ sub vn_ {
 
         td_ class => 'tc_started', sub {
             txt_ $v->{started}||'' if !$own;
-            elm_ 'UList.DateEdit' => $VNWeb::ULists::Elm::VNDATE, { uid => $uid, vid => $v->{id}, date => $v->{started}||'', start => 1 }, sub {
+            elm_ 'UList.DateEdit' => $VNWeb::ULists::Elm::VNDATE, { vid => $v->{id}, date => $v->{started}||'', start => 1 }, sub {
                 div_ @_, $v->{started}||''
             } if $own;
         } if $opt->{s}->vis('started');
 
         td_ class => 'tc_finished', sub {
             txt_ $v->{finished}||'' if !$own;
-            elm_ 'UList.DateEdit' => $VNWeb::ULists::Elm::VNDATE, { uid => $uid, vid => $v->{id}, date => $v->{finished}||'', start => 0 }, sub {
+            elm_ 'UList.DateEdit' => $VNWeb::ULists::Elm::VNDATE, { vid => $v->{id}, date => $v->{finished}||'', start => 0 }, sub {
                 div_ @_, $v->{finished}||''
             } if $own;
         } if $opt->{s}->vis('finished');
@@ -201,7 +201,7 @@ sub vn_ {
     tr_ class => "hidden collapsed_vid$v->{id}", '+' => $n % 2 == 0 ? 'odd' : undef, sub {
         td_ colspan => 7, class => 'tc_opt', sub {
             my $relstatus = [ map $_->{status}, $v->{rels}->@* ];
-            elm_ 'UList.Opt' => $VNWeb::ULists::Elm::VNOPT, { own => $own?1:0, uid => $uid, vid => $v->{id}, notes => $v->{notes}, rels => $v->{rels}, relstatus => $relstatus };
+            elm_ 'UList.Opt' => $VNWeb::ULists::Elm::VNOPT, { own => $own?1:0, vid => $v->{id}, notes => $v->{notes}, rels => $v->{rels}, relstatus => $relstatus };
         };
     };
 }
@@ -209,6 +209,7 @@ sub vn_ {
 
 sub listing_ {
     my($uid, $own, $opt, $labels, $url) = @_;
+    my $priv = ulists_priv $uid;
 
     my @l = grep $_ > 0 && $_ != 7, $opt->{l}->@*;
     my $unlabeled = grep $_ == 0, $opt->{l}->@*;
@@ -224,7 +225,7 @@ sub listing_ {
         sql('uv.uid =', \$uid),
         $opt->{f}->sql_where(),
         $opt->{q}->sql_where('v', 'v.id'),
-        $own ? () : 'NOT uv.c_private AND NOT v.hidden',
+        $priv ? () : 'NOT uv.c_private AND NOT v.hidden',
         @where_vns ? sql_or(@where_vns) : (),
         defined($opt->{ch}) ? sql 'match_firstchar(v.sorttitle, ', \$opt->{ch}, ')' : ();
 
@@ -282,7 +283,7 @@ sub listing_ {
                 td_ class => 'tc_rel',      sub { txt_ 'Release date';sortable_ 'released', $opt, $url } if $opt->{s}->vis('released');
                 td_ class => 'tc_length',   'Length' if $opt->{s}->vis('length');
             }};
-            vn_ $uid, $own, $opt, $_, $lst->[$_], $labels for (0..$#$lst);
+            vn_ $own, $priv, $opt, $_, $lst->[$_], $labels for (0..$#$lst);
         };
     };
     paginate_ $url, $opt->{p}, [$count, $opt->{s}->results], 'b';
@@ -320,7 +321,7 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
          WHERE u.id =', \tuwf->capture('id'));
     return tuwf->resNotFound if !$u->{id};
 
-    my $own = ulists_own $u->{id};
+    my $own = auth && auth->uid eq $u->{id};
     my $labels = ulist_filtlabels $u->{id}, 1;
     $_->{delete} = undef for @$labels;
 
@@ -335,14 +336,12 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
     my $title = $own ? 'My list' : user_displayname($u)."'s list";
     framework_ title => $title, dbobj => $u, tab => $tab, js => 1,
         $own ? ( pagevars => {
-            uid         => $u->{id},
             labels      => $VNWeb::ULists::Elm::LABELS->analyze->coerce_for_json($labels),
             voteprivate => (map \($_->{private}?1:0), grep $_->{id} == 7, @$labels),
         } ) : (),
     sub {
         my $empty = !grep $_->{count}, @$labels;
         form_ method => 'POST', id => 'savedefaultfrm', action => "/u/ulist-savedefault", sub {
-            input_ type => 'hidden', name => 'uid', value => $u->{id};
             input_ type => 'hidden', name => 'opts', value => JSON::XS->new->encode($SAVED_OPTS->analyze->coerce_for_json(
                 { l => $opt->{l}, mul => $opt->{mul}, s => $opt->{s}->query_encode(), f => $opt->{f}->query_encode() },
             ));
@@ -366,15 +365,14 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
 
 TUWF::post '/u/ulist-savedefault', sub {
     my $data = tuwf->validate(post =>
-        uid   => { vndbid => 'u' },
         opts  => {},
         field => { enum => [qw/ vnlist votes wish /] },
     )->data;
-    return tuwf->resDenied if !ulists_own $data->{uid};
+    return tuwf->resDenied if !auth;
     my $opts = $SAVED_OPTS->validate(JSON::XS->new->decode($data->{opts}))->data;
-    tuwf->dbExeci('UPDATE users_prefs SET ulist_'.$data->{field}, '=', \JSON::XS->new->encode($opts), 'WHERE id =', \$data->{uid});
+    tuwf->dbExeci('UPDATE users_prefs SET ulist_'.$data->{field}, '=', \JSON::XS->new->encode($opts), 'WHERE id =', \auth->uid);
     my $tab = $data->{field} eq 'wish' ? 'wishlist' : $data->{field};
-    tuwf->resRedirect("/$data->{uid}/ulist?$tab=1", 'post');
+    tuwf->resRedirect('/'.auth->uid."/ulist?$tab=1", 'post');
 };
 
 

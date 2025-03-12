@@ -63,7 +63,7 @@ update msg model =
       if n /= model.debnum || model.val == model.flags.date || not model.valid
       then (model, Cmd.none)
       else ( { model | state = Api.Loading, debnum = model.debnum+1 }
-           , GDE.send { uid = model.flags.uid, vid = model.flags.vid, start = model.flags.start, date = model.val } Saved )
+           , GDE.send { vid = model.flags.vid, start = model.flags.start, date = model.val } Saved )
 
     Saved GApi.Success ->
       let f  = model.flags

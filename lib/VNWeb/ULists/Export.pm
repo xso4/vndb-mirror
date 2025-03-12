@@ -66,7 +66,7 @@ sub title {
 
 TUWF::get qr{/$RE{uid}/list-export/xml}, sub {
     my $uid = tuwf->capture('id');
-    return tuwf->resDenied if !ulists_own $uid;
+    return tuwf->resDenied if !ulists_priv $uid;
     my $d = data $uid;
     return tuwf->resNotFound if !$d->{user}{id};
 

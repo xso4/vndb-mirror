@@ -27,8 +27,7 @@ main = Browser.element
 port ulistLabelChanged : Bool -> Cmd msg
 
 type alias Model =
-  { uid      : String
-  , vid      : String
+  { vid      : String
   , labels   : List GLE.RecvLabels
   , sel      : Set Int -- Set of label IDs applied on the server
   , tsel     : Set Int -- Set of label IDs applied on the client
@@ -40,8 +39,7 @@ type alias Model =
 
 init : GLE.Recv -> Model
 init f =
-  { uid      = f.uid
-  , vid      = f.vid
+  { vid      = f.vid
   , labels   = List.filter (\l -> l.id > 0) f.labels
   , sel      = Set.fromList f.selected
   , tsel     = Set.fromList f.selected
@@ -74,7 +72,7 @@ update msg model =
         , state  = Dict.insert l Api.Loading model.state
         }
       , Cmd.batch <|
-           GLE.send { uid = model.uid, vid = model.vid, label = l, applied = b } (Saved l b)
+           GLE.send { vid = model.vid, label = l, applied = b } (Saved l b)
            -- Unselect other progress labels (1..4) when setting a progress label
         :: if cascade
            then (List.map (\i -> selfCmd (Toggle i False False)) <| List.filter (\i -> l >= 1 && l <= 4 && i >= 1 && i <= 4 && i /= l) <| Set.toList model.tsel)
@@ -82,7 +80,7 @@ update msg model =
       )
 
     Custom t -> ({ model | custom = t }, Cmd.none)
-    CustomSubmit -> ({ model | customSt = Api.Loading }, GLA.send { uid = model.uid, vid = model.vid, label = model.custom } CustomSaved)
+    CustomSubmit -> ({ model | customSt = Api.Loading }, GLA.send { vid = model.vid, label = model.custom } CustomSaved)
     CustomSaved (GApi.LabelId id) ->
       let new = List.filter (\l -> l.id == id) model.labels |> List.isEmpty
       in ({ model | labels = if new then model.labels ++ [{ id = id, label = model.custom, private = True }] else model.labels

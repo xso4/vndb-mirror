@@ -22,8 +22,7 @@ main = Browser.element
   }
 
 type alias Model =
-  { uid      : String
-  , rid      : String
+  { rid      : String
   , status   : Maybe Int
   , empty    : String
   , state    : Api.State
@@ -32,8 +31,7 @@ type alias Model =
 
 init : String -> GRS.Send -> Model
 init vid f =
-  { uid      = f.uid
-  , rid      = f.rid
+  { rid      = f.rid
   , status   = f.status
   , empty    = f.empty
   , state    = Api.Normal
@@ -52,7 +50,7 @@ update msg model =
     Open b -> ({ model | dd = DD.toggle model.dd b }, Cmd.none)
     Set st _ ->
       ( { model | dd = DD.toggle model.dd False, status = st, state = Api.Loading }
-      , GRS.send { uid = model.uid, rid = model.rid, status = st, empty = "" } Saved )
+      , GRS.send { rid = model.rid, status = st, empty = "" } Saved )
 
     Saved GApi.Success -> ({ model | state = Api.Normal }, Cmd.none)
     Saved e -> ({ model | state = Api.Error e }, Cmd.none)

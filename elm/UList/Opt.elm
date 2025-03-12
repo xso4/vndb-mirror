@@ -55,7 +55,7 @@ init f =
   , notes      = f.notes
   , notesRev   = 0
   , notesState = Api.Normal
-  , rels       = List.map2 (\st nfo -> RE.init f.vid { uid = f.uid, rid = nfo.id, status = Just st, empty = "" }) f.relstatus f.rels
+  , rels       = List.map2 (\st nfo -> RE.init f.vid { rid = nfo.id, status = Just st, empty = "" }) f.relstatus f.rels
   , relNfo     = Dict.fromList <| List.map (\r -> (r.id, r)) f.rels
   , relOptions = Nothing
   , relState   = Api.Normal
@@ -83,7 +83,7 @@ update msg model =
     Del b -> ({ model | del = b }, Cmd.none)
     Delete ->
       ( { model | delState = Api.Loading }
-      , GDE.send { uid = model.flags.uid, vid = model.flags.vid } Deleted)
+      , GDE.send { vid = model.flags.vid } Deleted)
     Deleted GApi.Success -> (model, ulistVNDeleted True)
     Deleted e -> ({ model | delState = Api.Error e }, Cmd.none)
 
@@ -94,7 +94,7 @@ update msg model =
       if rev /= model.notesRev || model.notes == model.flags.notes
       then (model, Cmd.none)
       else ( { model | notesState = Api.Loading }
-           , GVN.send { uid = model.flags.uid, vid = model.flags.vid, notes = model.notes } (NotesSaved rev))
+           , GVN.send { vid = model.flags.vid, notes = model.notes } (NotesSaved rev))
     NotesSaved rev GApi.Success ->
       let f = model.flags
           nf = { f | notes = model.notes }
@@ -128,7 +128,7 @@ update msg model =
         }, Cmd.none)
     RelLoaded e -> ({ model | relState = Api.Error e }, Cmd.none)
     RelAdd rid ->
-      ( { model | rels = model.rels ++ (if rid == "" then [] else [RE.init model.flags.vid { rid = rid, uid = model.flags.uid, status = Just 2, empty = "" }]) }
+      ( { model | rels = model.rels ++ (if rid == "" then [] else [RE.init model.flags.vid { rid = rid, status = Just 2, empty = "" }]) }
       , Task.perform (always <| Rel rid <| RE.Set (Just 2) True) <| Task.succeed True)
 
 

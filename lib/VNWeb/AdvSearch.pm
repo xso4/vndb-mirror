@@ -735,7 +735,7 @@ sub _sql_where_label {
     my($neg, $all, $val) = @_;
     my $uid = $val->[0][0];
     require VNWeb::ULists::Lib;
-    my $own = VNWeb::ULists::Lib::ulists_own($uid);
+    my $own = VNWeb::ULists::Lib::ulists_priv($uid);
     my @lbl = map $_->[1], @$val;
 
     # Unlabeled

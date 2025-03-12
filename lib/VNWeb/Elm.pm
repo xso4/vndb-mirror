@@ -134,7 +134,6 @@ $apis{AdvSearchQuery} = [ { type => 'hash', keys => { # Response to 'AdvSearchLo
         anime        => $apis{AnimeResult}[0],
 } } ];
 $apis{UListWidget} = [ { type => 'hash', keys => { # Initialization for UList.Widget and response to UListWidget
-        uid      => { vndbid => 'u' },
         vid      => { vndbid => 'v' },
         # Only includes selected labels, null if the VN is not on the list at all.
         labels   => { default => undef, aoh => { id => { int => 1 }, label => {default => ''} } },

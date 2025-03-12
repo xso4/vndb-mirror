@@ -551,7 +551,7 @@ sub infobox_ {
                 tr_ class => 'nostripe', sub {
                     td_ colspan => 2, sub {
                         elm_ 'UList.VNPage', $VNWeb::ULists::Elm::WIDGET,
-                        ulists_widget_full_data $v, auth->uid, 1, canvote $v;
+                            ulists_widget_full_data $v, 1, canvote $v;
                     }
                 } if auth;
 

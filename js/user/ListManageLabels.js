@@ -1,7 +1,7 @@
 widget('UListManageLabels', () => {
     let labels = JSON.parse(JSON.stringify(pageVars.labels)).filter(l => l.id > 0);
     const api = new Api('UListManageLabels');
-    const onsubmit = () => api.call({ uid: pageVars.uid, labels: labels }, () => location.reload());
+    const onsubmit = () => api.call({ labels: labels }, () => location.reload());
 
     const lbl = l => m('tr', { key: l.id },
         m('td', l.count || ''),

@@ -74,7 +74,7 @@ update msg model =
         (True, _)  -> (model, Cmd.none)
         (_, False) -> (model, Task.attempt (always Noop) <| Ffi.elemCall "reportValidity" model.fieldId)
         (_, _)     -> ( { model | state = Api.Loading, ovote = model.vote, dd = DD.toggle model.dd False }
-                      , GVE.send { uid = model.flags.uid, vid = model.flags.vid, vote = model.vote } Saved)
+                      , GVE.send { vid = model.flags.vid, vote = model.vote } Saved)
 
     Saved GApi.Success -> ({ model | state = Api.Normal }, ulistVoteChanged (isJust (model.vote)))
     Saved e -> ({ model | state = Api.Error e }, Cmd.none)
