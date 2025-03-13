@@ -20,8 +20,8 @@ import UList.VoteEdit as VE
 import UList.DateEdit as DE
 import UList.Widget as UW
 
-main : Program GUW.Recv UW.Model UW.Msg
-main = Browser.element
+--main : Program GUW.Recv UW.Model UW.Msg
+--main = Browser.element
   { init = \f -> (UW.init f, Date.today |> Task.perform UW.Today)
   , subscriptions = \m -> Sub.batch
     [ Sub.map UW.Label (DD.sub m.labels.dd)

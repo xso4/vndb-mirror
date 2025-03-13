@@ -15,8 +15,8 @@ import Gen.Api as GApi
 import Gen.UListVoteEdit as GVE
 
 
-main : Program GVE.Send Model Msg
-main = Browser.element
+--main : Program GVE.Send Model Msg
+--main = Browser.element
   { init = \f -> (init f, Cmd.none)
   , subscriptions = \model -> DD.sub model.dd
   , view = \m -> view m "-"

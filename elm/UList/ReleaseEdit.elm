@@ -13,8 +13,8 @@ import Gen.Api as GApi
 import Gen.UListRStatus as GRS
 
 
-main : Program GRS.Send Model Msg
-main = Browser.element
+--main : Program GRS.Send Model Msg
+--main = Browser.element
   { init = \f -> (init "" f, Cmd.none)
   , subscriptions = \model -> DD.sub model.dd
   , view = view

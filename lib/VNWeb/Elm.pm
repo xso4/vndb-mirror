@@ -35,7 +35,6 @@ our %apis = (
     Success        => [],
     Redirect       => [{}], # Redirect to the given URL
     Invalid        => [], # POST data did not validate the schema
-    LabelId        => [{uint => 1}], # Label created
     Releases       => [ { aoh => { # Response to 'Release'
         id       => { vndbid => 'r' },
         title    => {},
@@ -132,25 +131,6 @@ $apis{AdvSearchQuery} = [ { type => 'hash', keys => { # Response to 'AdvSearchLo
         tags         => $apis{TagResult}[0],
         traits       => $apis{TraitResult}[0],
         anime        => $apis{AnimeResult}[0],
-} } ];
-$apis{UListWidget} = [ { type => 'hash', keys => { # Initialization for UList.Widget and response to UListWidget
-        vid      => { vndbid => 'v' },
-        # Only includes selected labels, null if the VN is not on the list at all.
-        labels   => { default => undef, aoh => { id => { int => 1 }, label => {default => ''} } },
-        # Can be set to null to lazily load the extra data as needed
-        full     => { default => undef, type => 'hash', keys => {
-            title     => {},
-            labels    => { aoh => { id => { int => 1 }, label => {}, private => { anybool => 1 } } },
-            canvote   => { anybool => 1 },
-            canreview => { anybool => 1 },
-            vote      => { vnvote => 1 },
-            review    => { default => undef, vndbid => 'w' },
-            notes     => { default => '' },
-            started   => { default => '' },
-            finished  => { default => '' },
-            releases  => $apis{Releases}[0],
-            rlist     => { aoh => { id => { vndbid => 'r' }, status => { uint => 1 } } },
-        } },
 } } ];
 
 
@@ -376,7 +356,6 @@ sub write_types {
     $data .= def releaseTypes => 'List (String, String)' => list map tuple(string $_, string $RELEASE_TYPE{$_}), keys %RELEASE_TYPE;
     $data .= def media      => 'List (String, String, Bool)' => list map tuple(string $_, string $MEDIUM{$_}{txt}, $MEDIUM{$_}{qty}?'True':'False'), keys %MEDIUM;
     $data .= def rlistStatus=> 'List (Int, String)' => list map tuple($_, string $RLIST_STATUS{$_}), keys %RLIST_STATUS;
-    $data .= def ratings    => 'List String' => list map string(fmtrating $_), 1..10;
     $data .= def ageRatings => 'List (Int, String)' => list map tuple($_, string $AGE_RATING{$_}{txt}.($AGE_RATING{$_}{ex}?" ($AGE_RATING{$_}{ex})":'')), keys %AGE_RATING;
     $data .= def devStatus  => 'List (Int, String)' => list map tuple($_, string $DEVSTATUS{$_}), keys %DEVSTATUS;
     $data .= def voiced     => 'List (Int, String)' => list map tuple($_, string $VOICED{$_}{txt}), keys %VOICED;

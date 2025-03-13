@@ -13,8 +13,8 @@ import Gen.Api as GApi
 import Gen.UListDateEdit as GDE
 
 
-main : Program GDE.Send Model Msg
-main = Browser.element
+--main : Program GDE.Send Model Msg
+--main = Browser.element
   { init = \f -> (init f, Cmd.none)
   , subscriptions = always Sub.none
   , view = view

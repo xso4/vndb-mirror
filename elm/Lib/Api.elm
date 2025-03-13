@@ -32,7 +32,6 @@ showResponse res =
     Redirect _                      -> unexp
     Invalid                         -> "Invalid form data, please report a bug."
     Unauth                          -> "You do not have the permission to perform this action."
-    LabelId _                       -> unexp
     Releases _                      -> unexp
     Resolutions _                   -> unexp
     Engines _                       -> unexp
@@ -43,7 +42,6 @@ showResponse res =
     StaffResult _                   -> unexp
     AnimeResult _                   -> unexp
     ImageResult _                   -> unexp
-    UListWidget _                   -> unexp
     AdvSearchQuery _                -> unexp
 
 

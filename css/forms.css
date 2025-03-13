@@ -11,7 +11,7 @@ input.text, input.submit, input[type=text], input[type=password], input[type=ema
     margin: 1px;
     &:hover, &:focus { background-color: var(--secbg) }
 }
-input.submit, input[type=submit], input[type=button], button { padding: 1px 5px; cursor: pointer }
+input.submit, input[type=submit], input[type=button], button, select { padding: 1px 5px; cursor: pointer }
 form, fieldset           { border: 0; display: block }
 select[multiple] option  {
     &                    { background: inherit; padding-left: 12px; position: relative }
@@ -256,7 +256,7 @@ span.spinner { width: 1em; height: 1em }
 /***** JS dropdown (ds.js) *****/
 
 #ds {
-    position: absolute; z-index: 2; background: var(--secbg); border: 1px solid var(--secborder);
+    position: absolute; z-index: 100; background: var(--secbg); border: 1px solid var(--secborder);
     > div:first-child {
         display: flex;
         > div:first-child {

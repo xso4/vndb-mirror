@@ -32,8 +32,8 @@ import UList.DateEdit as DE
 import UList.ReleaseEdit as RE
 
 
-main : Program UW.Recv Model Msg
-main = Browser.element
+--main : Program UW.Recv Model Msg
+--main = Browser.element
   { init = \f -> (init f, Date.today |> Task.perform Today)
   , subscriptions = \m -> if not m.open then Sub.none else Sub.batch <|
       [ DD.onClickOutside "ulist-widget-box" (Open False)

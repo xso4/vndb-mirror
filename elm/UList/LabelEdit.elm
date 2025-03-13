@@ -16,8 +16,8 @@ import Gen.UListLabelAdd as GLA
 import Gen.UListLabelEdit as GLE
 
 
-main : Program GLE.Recv Model Msg
-main = Browser.element
+--main : Program GLE.Recv Model Msg
+--main = Browser.element
   { init = \f -> (init f, Cmd.none)
   , subscriptions = \model -> DD.sub model.dd
   , view = \m -> view m "-"

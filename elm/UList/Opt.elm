@@ -20,8 +20,8 @@ import Gen.UListVNNotes as GVN
 import Gen.UListDel as GDE
 import Gen.Release as GR
 
-main : Program GVN.Recv Model Msg
-main = Browser.element
+--main : Program GVN.Recv Model Msg
+--main = Browser.element
   { init = \f -> (init f, Date.today |> Task.perform Today)
   , subscriptions = \model -> List.map (\r -> Sub.map (Rel r.rid) (DD.sub r.dd)) model.rels |> Sub.batch
   , view = view

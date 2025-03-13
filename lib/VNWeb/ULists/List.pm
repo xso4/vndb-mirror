@@ -141,9 +141,9 @@ sub vn_ {
 
         td_ class => 'tc_vote', '+' => $own ? 'compact stealth' : undef, sub {
             txt_ fmtvote $v->{vote} if !$own;
-            elm_ 'UList.VoteEdit' => $VNWeb::ULists::Elm::VNVOTE, { vid => $v->{id}, vote => fmtvote($v->{vote}) }, sub {
-                div_ @_, fmtvote $v->{vote}
-            } if $own && ($v->{vote} || sprintf('%08d', $v->{c_released}||0) < strftime '%Y%m%d', gmtime);
+            #elm_ 'UList.VoteEdit' => $VNWeb::ULists::Elm::VNVOTE, { vid => $v->{id}, vote => fmtvote($v->{vote}) }, sub {
+            #    div_ @_, fmtvote $v->{vote}
+            #} if $own && ($v->{vote} || sprintf('%08d', $v->{c_released}||0) < strftime '%Y%m%d', gmtime);
         } if $opt->{s}->vis('vote');
 
         td_ class => 'tc_rating', sub {
@@ -159,9 +159,9 @@ sub vn_ {
             my @l = grep $labels{$_->{id}} && $_->{id} != 7, @$labels;
             my $txt = @l ? join ', ', map $_->{label}, @l : '-';
             if($own) {
-                elm_ 'UList.LabelEdit' => $VNWeb::ULists::Elm::VNLABELS_OUT, { vid => $v->{id}, selected => [ grep $_ != 7, $v->{labels}->@* ] }, sub {
-                    div_ @_, $txt;
-                };
+                #elm_ 'UList.LabelEdit' => $VNWeb::ULists::Elm::VNLABELS_OUT, { vid => $v->{id}, selected => [ grep $_ != 7, $v->{labels}->@* ] }, sub {
+                #    div_ @_, $txt;
+                #};
             } else {
                 txt_ $txt;
             }
@@ -182,16 +182,16 @@ sub vn_ {
 
         td_ class => 'tc_started', sub {
             txt_ $v->{started}||'' if !$own;
-            elm_ 'UList.DateEdit' => $VNWeb::ULists::Elm::VNDATE, { vid => $v->{id}, date => $v->{started}||'', start => 1 }, sub {
-                div_ @_, $v->{started}||''
-            } if $own;
+            #            elm_ 'UList.DateEdit' => $VNWeb::ULists::Elm::VNDATE, { vid => $v->{id}, date => $v->{started}||'', start => 1 }, sub {
+            #                div_ @_, $v->{started}||''
+            #            } if $own;
         } if $opt->{s}->vis('started');
 
         td_ class => 'tc_finished', sub {
             txt_ $v->{finished}||'' if !$own;
-            elm_ 'UList.DateEdit' => $VNWeb::ULists::Elm::VNDATE, { vid => $v->{id}, date => $v->{finished}||'', start => 0 }, sub {
-                div_ @_, $v->{finished}||''
-            } if $own;
+            #            elm_ 'UList.DateEdit' => $VNWeb::ULists::Elm::VNDATE, { vid => $v->{id}, date => $v->{finished}||'', start => 0 }, sub {
+            #                div_ @_, $v->{finished}||''
+            #            } if $own;
         } if $opt->{s}->vis('finished');
 
         td_ class => 'tc_rel', sub { rdate_ $v->{c_released} } if $opt->{s}->vis('released');
@@ -201,7 +201,7 @@ sub vn_ {
     tr_ class => "hidden collapsed_vid$v->{id}", '+' => $n % 2 == 0 ? 'odd' : undef, sub {
         td_ colspan => 7, class => 'tc_opt', sub {
             my $relstatus = [ map $_->{status}, $v->{rels}->@* ];
-            elm_ 'UList.Opt' => $VNWeb::ULists::Elm::VNOPT, { own => $own?1:0, vid => $v->{id}, notes => $v->{notes}, rels => $v->{rels}, relstatus => $relstatus };
+            #elm_ 'UList.Opt' => $VNWeb::ULists::Elm::VNOPT, { own => $own?1:0, vid => $v->{id}, notes => $v->{notes}, rels => $v->{rels}, relstatus => $relstatus };
         };
     };
 }
@@ -336,7 +336,7 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
     my $title = $own ? 'My list' : user_displayname($u)."'s list";
     framework_ title => $title, dbobj => $u, tab => $tab, js => 1,
         $own ? ( pagevars => {
-            labels      => $VNWeb::ULists::Elm::LABELS->analyze->coerce_for_json($labels),
+            labels => [ map [$_->{id}*1, $_->{label}, $_->{private}?\1:\0, $_->{count}], grep $_->{id}>0, @$labels ],
             voteprivate => (map \($_->{private}?1:0), grep $_->{id} == 7, @$labels),
         } ) : (),
     sub {

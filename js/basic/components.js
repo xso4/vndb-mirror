@@ -384,7 +384,7 @@ window.TextPreview = initVnode => {
 // Release dates are integers with the following format: 0, 1 or yyyymmdd
 // Special values
 //          0 -> unknown
-//          1 -> "today" (only used as filter)
+//          1 -> "today" (only used as filter or ulist input)
 //   99999999 -> TBA
 //   yyyy9999 -> year known, month & day unknown
 //   yyyymm99 -> year & month known, day unknown
@@ -396,6 +396,9 @@ window.TextPreview = initVnode => {
 // - id       -> id of the first select input
 // - today    -> bool, whether "today" should be accepted as an option
 // - unknown  -> bool, whether "unknown" should be accepted as an option
+// - notba    -> bool, whether "TBA" should not be accepted as an option
+// - full     -> bool, whether only full dates should be accepted
+// - maxyear  -> maximum accepted year (default current year + 5)
 //
 // Also provides some handy functions and properties.
 window.RDate = {
@@ -407,11 +410,11 @@ window.RDate = {
     }),
     compact: ({y,m,d}) => y * 10000 + m * 100 + d,
     maxDay: ({y,m}) => new Date(y, m, 0).getDate(),
-    normalize: ({y,m,d}) =>
+    normalize: ({y,m,d}, full) =>
         y ===    0 ? { y: 0, m: 0, d: d?1:0 } :
         y === 9999 ? { y: 9999, m: 99, d: 99 } :
-        m ===    0 || m === 99 ? { y, m: 99, d: 99 } :
-        { y,m, d: d === 0 || d === 99 ? 99 : Math.min(d, RDate.maxDay({y,m})) },
+        m ===    0 || m === 99 ? (full ? { y, m: 1, d: 1 } : { y, m: 99, d: 99 }) :
+        { y,m, d: d === 0 || d === 99 ? (full ? 1 : 99) : Math.min(d, RDate.maxDay({y,m})) },
     months: [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ],
     fmt: ({y,m,d}) =>
         y ===    0 ? (d ? 'Today' : 'Unknown') :
@@ -422,22 +425,22 @@ window.RDate = {
         const v = RDate.expand(vnode.attrs.value);
         const oninput = ev => vnode.attrs.oninput && vnode.attrs.oninput(Math.floor(ev.target.options[ev.target.selectedIndex].value));
         const o = (e,l) => {
-            const value = RDate.compact(RDate.normalize({...v, ...e}));
+            const value = RDate.compact(RDate.normalize({...v, ...e}, vnode.attrs.full));
             return m('option', { value, selected: value === vnode.attrs.value }, l);
         };
         return [
             m('select', {oninput, id: vnode.attrs.id},
-                vnode.attrs.today ? o({y:1}, 'Today') : null,
-                vnode.attrs.unknown ? o({y:0}, 'Unknown') : null,
-                o({y:9999}, 'TBA'),
-                range(new Date().getFullYear()+5, 1980, -1).map(y => o({y},y)),
+                vnode.attrs.today ? o({y:0,m:0,d:1}, 'Today') : null,
+                vnode.attrs.unknown ? o({y:0,m:0,d:0}, 'Unknown') : null,
+                vnode.attrs.notba ? null : o({y:9999}, 'TBA'),
+                range(vnode.attrs.maxyear || new Date().getFullYear()+5, 1980, -1).map(y => o({y},y)),
             ),
             v.y > 0 && v.y < 9999 ? m('select', {oninput},
-                o({m:99}, '- month -'),
+                vnode.attrs.full ? null : o({m:99}, '- month -'),
                 range(1, 12).map(m => o({m}, m + ' (' + RDate.months[m-1] + ')')),
             ) : null,
             v.m > 0 && v.m < 99 ? m('select', {oninput},
-                o({d:99}, '- day -'),
+                vnode.attrs.full ? null : o({d:99}, '- day -'),
                 range(1, RDate.maxDay(v)).map(d => o({d},d)),
             ) : null,
         ];

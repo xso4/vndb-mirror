@@ -66,8 +66,7 @@ const wrap = {
     },
 
     'UList.LabelEdit': (init, opt) => {
-        opt.flags.uid = pageVars.uid;
-        opt.flags.labels = pageVars.labels;
+        opt.flags.labels = pageVars.labels.map(([id,label,p]) => ({id,label,'private':p}));
         init(opt);
     },
 

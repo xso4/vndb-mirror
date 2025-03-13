@@ -13,8 +13,7 @@ sub ulists_priv {
 }
 
 
-sub ulist_filtlabels {
-    my($uid, $count) = @_;
+sub ulist_filtlabels($uid,$count=0) {
     my $own = ulists_priv $uid;
 
     my $l = tuwf->dbAlli(
@@ -40,56 +39,51 @@ sub ulist_filtlabels {
 }
 
 
-# Enrich a list of VNs with data necessary for ulist_widget_.
+# Enrich a list of VNs with basic data necessary for ulist_widget_.
 sub enrich_ulists_widget {
     enrich_merge id => sql('SELECT vid AS id, true AS on_vnlist FROM ulist_vns WHERE uid =', \auth->uid, 'AND vid IN'), @_ if auth;
 
-    enrich vnlist_labels => id => vid => sub { sql '
-        SELECT uv.vid, ul.id, ul.label
+    enrich_flatten vnlist_labels => id => vid => sub { sql '
+        SELECT uv.vid, ul.id
           FROM ulist_vns uv, unnest(uv.labels) l(id), ulist_labels ul
          WHERE ul.uid =', \auth->uid, 'AND uv.uid =', \auth->uid, 'AND ul.id = l.id AND uv.vid IN', $_[0], '
          ORDER BY CASE WHEN ul.id < 10 THEN ul.id ELSE 10 END, ul.label'
     }, @_ if auth;
 }
 
-sub ulists_widget_ {
-    my($v) = @_;
-    elm_ 'UList.Widget', $VNWeb::ULists::Elm::WIDGET, {
+sub ulists_widget_($v) {
+    div_ widget(UListWidget => {
         vid    => $v->{id},
-        labels => $v->{on_vnlist} ? $v->{vnlist_labels} : undef,
-        full   => undef,
-    }, sub {
+        labels => $v->{on_vnlist} ? [ map 1*$_, $v->{vnlist_labels}->@* ] : undef,
+    }), sub {
         my $img = !$v->{on_vnlist} ? 'add' :
-            (reverse sort map "l$_->{id}", grep $_->{id} >= 1 && $_->{id} <= 6, $v->{vnlist_labels}->@*)[0] || 'unknown';
-        abbr_ @_, class => "icon-list-$img ulist-widget-icon", '';
+            (reverse sort map "l$_", grep $_ >= 1 && $_ <= 6, $v->{vnlist_labels}->@*)[0] || 'unknown';
+        abbr_ class => "icon-list-$img ulist-widget-icon", '';
     } if auth && exists $v->{vnlist_labels};
 }
 
 
-# Returns the data structure for the elm_UListWidget API response for the given VN.
-sub ulists_widget_full_data {
-    my($v, $vnpage, $canvote) = @_;
+# Returns the full UListWidget data structure for the given VN.
+sub ulists_widget_full_data($v, $vnpage=0, $canvote=undef) {
     my $lst = tuwf->dbRowi('SELECT vid, vote, notes, started, finished, labels FROM ulist_vns WHERE uid =', \auth->uid, 'AND vid =', \$v->{id});
     my $review = tuwf->dbVali('SELECT id FROM reviews WHERE uid =', \auth->uid, 'AND vid =', \$v->{id});
     $canvote //= sprintf('%08d', $v->{c_released}||99999999) <= strftime '%Y%m%d', gmtime;
     +{
-        vid    => $v->{id},
-        labels => $lst->{vid} ? [ map +{ id => $_, label => '' }, $lst->{labels}->@* ] : undef,
-        full   => {
-            title     => $vnpage ? '' : $v->{title}[1],
-            labels    => tuwf->dbAlli('SELECT id, label, private FROM ulist_labels WHERE uid =', \auth->uid, 'ORDER BY CASE WHEN id < 10 THEN id ELSE 10 END, label'),
-            canvote   => $lst->{vote} || $canvote || 0,
-            canreview => $review || ($canvote && can_edit(w => {})) || 0,
-            vote      => fmtvote($lst->{vote}),
-            review    => $review,
-            notes     => $lst->{notes}||'',
-            started   => $lst->{started}||'',
-            finished  => $lst->{finished}||'',
-            releases  => $vnpage ? [] : releases_by_vn($v->{id}),
-            rlist     => $vnpage ? [] : tuwf->dbAlli('SELECT rid AS id, status FROM rlists WHERE uid =', \auth->uid, 'AND rid IN(SELECT id FROM releases_vn WHERE vid =', \$v->{id}, ')'),
-        },
+        vid       => $v->{id},
+        labels    => $lst->{vid} ? [ map 1*$_, $lst->{labels}->@* ] : undef,
+        canvote   => $lst->{vote} || $canvote || 0 ? \1 : \0,
+        canreview => $review || ($canvote && can_edit(w => {})) || 0 ? \1 : \0,
+        vote      => $lst->{vote} && fmtvote($lst->{vote}),
+        review    => $review,
+        notes     => $lst->{notes}||'',
+        started   => int(($lst->{started}||0) =~ s/-//rg),
+        finished  => int(($lst->{finished}||0) =~ s/-//rg),
+        $vnpage ? () : (
+            title     => $v->{title}[1],
+            releases  => releases_by_vn($v->{id}),
+            rlist     => tuwf->dbAlli('SELECT rid AS id, status FROM rlists WHERE uid =', \auth->uid, 'AND rid IN(SELECT id FROM releases_vn WHERE vid =', \$v->{id}, ')'),
+        ),
     };
-
 }
 
 1;

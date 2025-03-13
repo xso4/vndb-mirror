@@ -754,23 +754,25 @@ div.charsum_list .charsum_bubble {
 .ulist .tc_opt .tco3 { white-space: nowrap; width: 60px; text-align: right; padding-bottom: 0 }
 
 
-/***** ulist-widget (elm/Ulist/Widget) *****/
+/***** ulist-widget (js/user/List.js) *****/
 
 .ulist-widget-icon { cursor: pointer }
 .ulist-widget {
-    z-index: 100; position: fixed; height: 100%; width: 100%; top: 0; right: 0; display: flex; align-items: center; justify-content: center; text-align: left; white-space: normal; background: var(--boxbg); overflow: auto; font-weight: normal;
+    z-index: 99; position: fixed; height: 100%; width: 100%; top: 0; right: 0; display: flex; align-items: center; justify-content: center safe; background: var(--boxbg); padding: 100px 0; overflow: auto;
     > div {
-        background: var(--blendbg); width: 624px; min-height: 324px; border: 2px solid var(--border); padding: 10px;
-        > div.spinner { position: absolute; top: unquote('calc(50% - 8px)'); right: unquote('calc(50% - 8px)'); }
+        background: var(--blendbg); width: 624px; min-height: 324px; border: 2px solid var(--border); padding: 10px; margin: auto;
+        > .spinner { position: absolute; top: unquote('calc(50% - 8px)'); right: unquote('calc(50% - 8px)'); }
     }
+    .status { float: right; height: 26px }
     table { width: 100% }
     table tr { background: none!important }
     table td:first-child { width: 106px }
-    textarea, select { margin: 0 -1px; width: 100% }
-    .date span:not(.spinner) { display: none }
-    .tco1 { white-space: nowrap; width: 100px }
-    .tco2 { white-space: nowrap; width: 100px }
-    .tco3 { width: 60px; text-align: right; padding-bottom: 0 }
+    textarea { width: 100% }
+    .notes { position: relative }
+    .notes .spinner { position: absolute; right: 5px; top: 5px }
+    .labels button { width: 100% }
+    .vote button { width: 80px }
+    .rel select { margin: -1px 0 }
 }
 
 /* Just kill me already */

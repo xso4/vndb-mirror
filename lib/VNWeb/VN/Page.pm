@@ -549,10 +549,9 @@ sub infobox_ {
                 infobox_anime_ $v;
 
                 tr_ class => 'nostripe', sub {
-                    td_ colspan => 2, sub {
-                        elm_ 'UList.VNPage', $VNWeb::ULists::Elm::WIDGET,
-                            ulists_widget_full_data $v, 1, canvote $v;
-                    }
+                    td_ colspan => 2, widget(
+                        UListVNPage => ulists_widget_full_data $v, 1, canvote $v
+                    ), '';
                 } if auth;
 
                 tr_ class => 'nostripe', sub {

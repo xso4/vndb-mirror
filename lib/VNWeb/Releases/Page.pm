@@ -325,7 +325,7 @@ sub _infotable_ {
             td_ sub {
                 div_ class => 'elm_dd_input', style => 'width: 150px', sub {
                     my $d = tuwf->dbVali('SELECT status FROM rlists WHERE', { rid => $r->{id}, uid => auth->uid });
-                    elm_ 'UList.ReleaseEdit', $VNWeb::ULists::Elm::RLIST_STATUS, { rid => $r->{id}, uid => auth->uid, status => $d, empty => 'not on your list' };
+                    #elm_ 'UList.ReleaseEdit', $VNWeb::ULists::Elm::RLIST_STATUS, { rid => $r->{id}, uid => auth->uid, status => $d, empty => 'not on your list' };
                 }
             };
         } if auth;

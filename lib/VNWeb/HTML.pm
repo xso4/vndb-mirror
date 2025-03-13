@@ -581,6 +581,13 @@ sub framework_ {
             # 'dbmod' value is used by various widgets
             tuwf->req->{pagevars}{dbmod} = 1 if tuwf->req->{pagevars}{widget} && auth->permDbmod;
 
+            # Some ulist widgets need the user's labels, let's include them here so the data can be shared across multiple widgets.
+            # (UList::List uses another variant with counts included)
+            # TODO: Also use this for AdvSearch
+            tuwf->req->{pagevars}{labels} ||= [ map +[$_->{id}*1, $_->{label}, $_->{private} ? \1 : \0], tuwf->dbAlli('
+                SELECT id, label, private FROM ulist_labels WHERE uid =', \auth->uid, 'ORDER BY CASE WHEN id < 10 THEN id ELSE 10 END, label'
+            )->@* ] if grep tuwf->req->{pagevars}{widget}{$_}, qw/ UListWidget UListVNPage /;
+
             script_ type => 'application/json', id => 'pagevars', sub {
                 # Escaping rules for a JSON <script> context are kinda weird, but more efficient than regular xml_escape().
                 lit_(JSON::XS->new->canonical->encode(tuwf->req->{pagevars}) =~ s{</}{<\\/}rg =~ s/<!--/<\\u0021--/rg);
