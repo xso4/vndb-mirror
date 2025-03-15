@@ -266,11 +266,17 @@ div.vndetails td.relations input:not(:checked) ~ dl .unofficial { display: none 
 div.vndetails .mylengthvote   { float: right }
 #buynow .ad { float: right }
 div.vndetails td.anime span    { font-size: 10px; padding-right: 4px; }
-.ulistvn     { padding: 5px 0 0 0 }
-.ulistvn > strong { font-size: 14px }
-.ulistvn > span { float: right }
-.ulistvn textarea { width: 100% }
-.ulistvn .date span:not(.spinner) { display: none }
+.ulistvn {
+    padding: 5px 0 0 0;
+    > strong { font-size: 14px }
+    > span { float: right; height: 26px }
+    td:last-child { padding-right: 0 }
+    table { width: 100%; clear: right }
+    .labels button, textarea { width: 100% }
+    .vote button { width: 80px }
+    .notes { position: relative }
+    .notes .spinner { position: absolute; right: 5px; top: 5px }
+}
 
 div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid var(--border); padding: 3px 5% 0 5%; text-align: center; }
 #vntags span                  { white-space: nowrap; margin-left: 15px; }

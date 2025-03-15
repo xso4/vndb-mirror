@@ -21,7 +21,8 @@ const statusRender = obj =>
             obj._del = new Api('UListDel');
             obj._del.call({vid: obj.vid}, () => {
                 delete obj._del;
-                obj.labels = null;
+                delete obj._expand;
+                obj.labels = obj.vote = null;
                 obj.notes = obj.started = obj.finished = '';
                 obj.rlist = [];
                 widgetCur = null;
@@ -147,6 +148,7 @@ const notesRender = obj => {
         delete obj._notesTimer;
         if (obj.notes.length > 2000) return;
         if (!obj._notesApi) obj._notesApi = new Api('UListVNNotes');
+        if (!obj.labels) obj.labels = [];
         obj._notesApi.call({ vid: obj.vid, notes: obj.notes });
         m.redraw();
     };
@@ -201,6 +203,7 @@ const widgetRender = obj => {
             m('h2', obj.title),
             m('table',
                 m('tr', m('td', 'Labels'), m('td.labels', labelRender(obj))),
+                !obj.canvote ? null :
                 m('tr', m('td', 'Vote'), m('td.vote', voteRender(obj), reviewLink(obj))),
                 m('tr', m('td', 'Start date'), m('td', dateRender(obj, 'started'))),
                 m('tr', m('td', 'Finish date'), m('td', dateRender(obj, 'finished'))),
@@ -249,6 +252,33 @@ widget('UListWidget', { view: vnode => m('span.ulist-widget-icon',
 
 
 widget('UListVNPage', initvnode => {
-    const view = () => 'hi';
+    const obj = initvnode.attrs.data;
+    obj._expand = obj.notes !== '';
+    const expandbut = () => m('a[href=#]', { onclick: ev => { ev.preventDefault(); obj._expand = !obj._expand } }, '💬');
+    const wide = {colspan: obj.canvote ? 1 : 2};
+    const view = () => m('div.ulistvn',
+        m('span', statusRender(obj)),
+        m('strong', 'User options'),
+        m('table.compact',
+            m('tr.odd',
+                m('td.key', 'My labels'),
+                m('td.labels', labelRender(obj)),
+                obj.canvote ? null : m('td', expandbut()),
+            ),
+            obj.canvote ? m('tr', m('td', 'My vote'), m('td.vote',
+                voteRender(obj),
+                ' ', expandbut(),
+                reviewLink(obj),
+            )) : null,
+            obj._expand ? [
+                m('tr',
+                    m('td', 'Notes'),
+                    m('td.notes', wide, notesRender(obj)),
+                ),
+                m('tr', m('td', 'Start date'), m('td', wide, dateRender(obj, 'started'))),
+                m('tr', m('td', 'Finish date'), m('td', wide, dateRender(obj, 'finished'))),
+            ] : null,
+        ),
+    );
     return {view};
 });
