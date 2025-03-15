@@ -218,7 +218,17 @@ fieldset.search .submit         { padding: 0 1px; }
 .releases td.tc3       { text-align: right; padding: 0; width: 120px; }
 .releases td.tc_icons  { text-align: right; padding: 0 4px }
 .releases td.tc_prod   { color: var(--grayedout); white-space: nowrap; width: 56px }
-.releases td.tc5       { width: 76px; text-align: right }
+.releases td.tc_rlist  {
+    width: 76px; position: relative; text-align: right;
+    div {
+        width: 100%; cursor: pointer;
+        > span:not(.spinner) { visibility: hidden }
+        &:hover > span { visibility: visible }
+    }
+    ul { list-style-type: none; border: 1px solid var(--border); width: 100px; background: var(--secbg); position: absolute; top: 0; right: 70px; z-index: 100 }
+    li a { display: block; padding: 3px 5px; border: 0 }
+    li a:hover { background: var(--boxbg) }
+}
 .releases td.tc_links {
     text-align: right; width: 35px; padding: 0; white-space: nowrap;
     > div { display: none; position: relative }

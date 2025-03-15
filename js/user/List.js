@@ -176,11 +176,11 @@ const rstatusSave = (r, obj) => {
     });
 };
 
-const rstatusRender = (r, obj) => [
+const rstatusRender = (r, obj, empty) => [
     r._api && r._api.loading() ? (r.status === null ? 'deleting...' : m('span.spinner')) :
     r._api && r._api.error ? m('b', r._api.error) : m(Select, {
         data: r, field: 'status',
-        options: vndbTypes.rlistStatus.map((x,i) => [i,x]).concat([[null, '- remove -']]),
+        options: vndbTypes.rlistStatus.map((x,i) => [i,x]).concat([[null, r.status === null && empty ? empty : '- remove -']]),
         oninput: () => rstatusSave(r, obj),
     }),
 ];
@@ -280,5 +280,52 @@ widget('UListVNPage', initvnode => {
             ] : null,
         ),
     );
+    return {view};
+});
+
+
+widget('UListRelease', { view: vnode => rstatusRender(vnode.attrs.data, null, 'not on your list') });
+
+
+// Connect multiple instances of the same release together
+if (pageVars && pageVars.widget.UListRelDD) {
+    const rids = {};
+    pageVars.widget.UListRelDD.forEach(o => {
+        if (!rids[o[1].id]) rids[o[1].id] = o[1];
+        else o[1] = rids[o[1].id];
+    });
+}
+
+widget('UListRelDD', initvnode => {
+    const r = initvnode.attrs.data;
+    let open;
+    const close = ev => {
+        if (ev && open.contains(ev.target)) return;
+        open = null;
+        document.removeEventListener('click', close);
+        m.redraw();
+    };
+    const save = v => ev => {
+        ev.preventDefault();
+        r.status = v;
+        close();
+        rstatusSave(r);
+    };
+    const view = () => [
+        open ? m('ul',
+            vndbTypes.rlistStatus.map((x,i) => m('li',
+                m('a[href=#]', { onclick: save(i) }, x)
+            )),
+            r.status === null ? null : m('li',
+                m('a[href=#]', { onclick: save(null) }, '- remove -')
+            ),
+        ) : null,
+        m('div', { onclick: function() { if (open) close(); else { open = this; document.addEventListener('click', close) } } },
+            r._api && r._api.loading() ? m('span.spinner') :
+            r._api && r._api.error ? m('b', r._api.error) :
+            r.status === null ? '--' : vndbTypes.rlistStatus[r.status],
+            m('span', ' ▾'),
+        )
+    ];
     return {view};
 });

@@ -52,7 +52,7 @@ sub enrich_ulists_widget {
 }
 
 sub ulists_widget_($v) {
-    div_ widget(UListWidget => {
+    span_ widget(UListWidget => {
         vid    => $v->{id},
         labels => $v->{on_vnlist} ? [ map 1*$_, $v->{vnlist_labels}->@* ] : undef,
     }), sub {
