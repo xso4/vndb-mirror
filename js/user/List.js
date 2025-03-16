@@ -283,7 +283,7 @@ widget('UListVNPage', initvnode => {
     obj._expand = obj.notes !== '';
     const expandbut = () => m('a[href=#]', { onclick: ev => { ev.preventDefault(); obj._expand = !obj._expand } }, '💬');
     const wide = {colspan: obj.canvote ? 1 : 2};
-    const view = () => m('div.ulistvn',
+    const view = () => m('form.invalid-form.ulistvn',
         m('span', statusRender(obj)),
         m('strong', 'User options'),
         m('table.compact',
