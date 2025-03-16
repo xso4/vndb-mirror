@@ -739,14 +739,13 @@ div.charsum_list .charsum_bubble {
 .savedefault { width: 600px; margin: 10px auto }
 .exportlist { width: 600px; margin: 10px auto }
 
-.ulist .tc1 { white-space: nowrap; width: 100px }
-.ulist .tc1 label { cursor: pointer }
-.ulist .tc1 input { display: none }
-.ulist .tc1 label:before { content: '▸ ' }
-.ulist .tc1 input:checked + label:before { content: '▾ ' }
+.ulist .tc_ulist { padding-left: 20px; width: 16px }
+.ulist .tc_ulist + td.tc_title { padding-left: 10px }
+.ulist .tc_title { padding-left: 30px }
 .ulist .tc_title small { margin-left: 10px }
 .ulist .tc_vote { white-space: nowrap; width: 60px; text-align: right; padding-right: 10px }
-.ulist .tc_vote input { width: 55px; text-align: right }
+.ulist .tc_vote button { width: 50px; text-align: right }
+.ulist .tc_labels button { width: 100% }
 .ulist .tc_voted,
 .ulist .tc_added,
 .ulist .tc_modified,
@@ -760,14 +759,6 @@ div.charsum_list .charsum_bubble {
 .ulist .tc_started div       input,       .ulist .tc_finished div       input       { position: absolute; z-index: 900; width: 110px; visibility: hidden }
 .ulist .tc_started div:hover input,       .ulist .tc_finished div:hover input,
 .ulist .tc_started div       input:focus, .ulist .tc_finished div       input:focus { visibility: visible }
-
-.ulist .tc_opt { padding: 0 0 5px 70px }
-.ulist .tc_opt textarea { width: 500px; height: 18px; border: none }
-.ulist .tc_opt textarea:focus { height: 50px; border: 1px solid var(--secborder) }
-.ulist .tc_opt textarea + div { display: inline-block; padding-left: 10px }
-.ulist .tc_opt .tco1 { white-space: nowrap; width: 100px }
-.ulist .tc_opt .tco2 { white-space: nowrap; width: 100px }
-.ulist .tc_opt .tco3 { white-space: nowrap; width: 60px; text-align: right; padding-bottom: 0 }
 
 
 /***** ulist-widget (js/user/List.js) *****/

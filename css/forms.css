@@ -212,9 +212,13 @@ span.spinner { width: 1em; height: 1em }
     input.text, input[type=text], select, textarea { margin: -2px -1px }
     input.submit, input[type=submit], button { margin: -2px -1px }
 }
-.stealth input, .stealth select { font: inherit; background: none; border: 1px solid transparent; -moz-appearance: none; -webkit-appearance: none; appearance: none }
-.stealth input:hover, .stealth input:focus,
-.stealth select:hover, .stealth select:focus { border: 1px solid var(--secborder); background: var(--secbg) }
+.stealth {
+    input, select, button { font: inherit; background: none; border: 1px solid transparent; -moz-appearance: none; -webkit-appearance: none; appearance: none }
+    input:hover, input:focus,
+    select:hover, select:focus { border: 1px solid var(--secborder); background: var(--secbg) }
+    button svg { visibility: hidden }
+    button:hover svg { visibility: visible }
+}
 
 
 

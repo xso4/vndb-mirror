@@ -114,37 +114,13 @@ sub filters_ {
 
 sub vn_ {
     my($own, $priv, $opt, $n, $v, $labels) = @_;
-    tr_ class => $n % 2 == 0 ? 'odd' : undef, id => "ulist_tr_$v->{id}", sub {
-        my %labels = map +($_,1), $v->{labels}->@*;
+    tr_ $own ? (id => "ulist_vid_$v->{id}") : (), sub {
+        td_ class => 'tc_ulist', sub { ulists_widget_ $v } if $own;
+        td_ class => 'tc_voted', $v->{vote_date} ? fmtdate $v->{vote_date}, 'compact' : '-' if $opt->{s}->vis('voted');
 
-        td_ class => 'tc1', sub {
-            input_ type => 'checkbox', class => 'checkhidden', 'x-checkall' => 'collapse_vid', id => 'collapse_vid'.$v->{id}, value => 'collapsed_vid'.$v->{id};
-            label_ for => 'collapse_vid'.$v->{id}, sub {
-                my $obtained = grep $_->{status} == 2, $v->{rels}->@*;
-                my $total = $v->{rels}->@*;
-                span_ id => 'ulist_relsum_'.$v->{id},
-                    class => $total && $obtained == $total ? 'done' : $obtained < $total ? 'todo' : undef,
-                    sprintf '%d/%d', $obtained, $total;
-                if($priv) {
-                    my $public = List::Util::any { $labels{$_->{id}} && !$_->{private} } @$labels;
-                    my $publicLabel = List::Util::any { $_->{id} != 7 && $labels{$_->{id}} && !$_->{private} } @$labels;
-                    span_ class => !$public ? 'invisible' : undef,
-                          id              => 'ulist_public_'.$v->{id},
-                          'data-publabel' => !!$publicLabel,
-                          'data-voted'    => !!$labels{7},
-                          title           => 'This item is public', ' 👁';
-                }
-            };
-        };
-
-        td_ class => 'tc_voted',    $v->{vote_date} ? fmtdate $v->{vote_date}, 'compact' : '-' if $opt->{s}->vis('voted');
-
-        td_ class => 'tc_vote', '+' => $own ? 'compact stealth' : undef, sub {
-            txt_ fmtvote $v->{vote} if !$own;
-            #elm_ 'UList.VoteEdit' => $VNWeb::ULists::Elm::VNVOTE, { vid => $v->{id}, vote => fmtvote($v->{vote}) }, sub {
-            #    div_ @_, fmtvote $v->{vote}
-            #} if $own && ($v->{vote} || sprintf('%08d', $v->{c_released}||0) < strftime '%Y%m%d', gmtime);
-        } if $opt->{s}->vis('vote');
+        td_ class => 'tc_vote', !$own ? () : (
+            '+' => 'compact stealth', widget('UListVote', { vid => $v->{id}, vote => $v->{vote} && fmtvote($v->{vote}) }),
+        ), sub { txt_ fmtvote $v->{vote} } if $opt->{s}->vis('vote');
 
         td_ class => 'tc_rating', sub {
             txt_ sprintf '%.2f', ($v->{c_rating}||0)/100;
@@ -155,16 +131,12 @@ sub vn_ {
             small_ sprintf ' (%d)', $v->{c_votecount} if !$opt->{s}->vis('rating');
         } if $opt->{s}->vis('average');
 
-        td_ class => 'tc_labels', sub {
+        td_ class => 'tc_labels', !$own ? () : (
+            '+' => 'compact stealth', widget(UListLabels => { vid => $v->{id}, labels => $v->{labels} })
+        ), sub {
+            my %labels = map +($_,1), $v->{labels}->@*;
             my @l = grep $labels{$_->{id}} && $_->{id} != 7, @$labels;
-            my $txt = @l ? join ', ', map $_->{label}, @l : '-';
-            if($own) {
-                #elm_ 'UList.LabelEdit' => $VNWeb::ULists::Elm::VNLABELS_OUT, { vid => $v->{id}, selected => [ grep $_ != 7, $v->{labels}->@* ] }, sub {
-                #    div_ @_, $txt;
-                #};
-            } else {
-                txt_ $txt;
-            }
+            txt_ @l ? join ', ', map $_->{label}, @l : '-';
         } if $opt->{s}->vis('label');
 
         td_ class => 'tc_title', sub {
@@ -180,29 +152,16 @@ sub vn_ {
         td_ class => 'tc_added',    fmtdate $v->{added},     'compact' if $opt->{s}->vis('added');
         td_ class => 'tc_modified', fmtdate $v->{lastmod},   'compact' if $opt->{s}->vis('modified');
 
-        td_ class => 'tc_started', sub {
-            txt_ $v->{started}||'' if !$own;
-            #            elm_ 'UList.DateEdit' => $VNWeb::ULists::Elm::VNDATE, { vid => $v->{id}, date => $v->{started}||'', start => 1 }, sub {
-            #                div_ @_, $v->{started}||''
-            #            } if $own;
+        td_ class => 'tc_started', id => $own ? "ulist_started_$v->{id}" : undef, sub {
+            txt_ $v->{started}||'';
         } if $opt->{s}->vis('started');
 
-        td_ class => 'tc_finished', sub {
-            txt_ $v->{finished}||'' if !$own;
-            #            elm_ 'UList.DateEdit' => $VNWeb::ULists::Elm::VNDATE, { vid => $v->{id}, date => $v->{finished}||'', start => 0 }, sub {
-            #                div_ @_, $v->{finished}||''
-            #            } if $own;
+        td_ class => 'tc_finished', id => $own ? "ulist_finished_$v->{id}" : undef, sub {
+            txt_ $v->{finished}||'';
         } if $opt->{s}->vis('finished');
 
         td_ class => 'tc_rel', sub { rdate_ $v->{c_released} } if $opt->{s}->vis('released');
         td_ class => 'tc_length',sub { VNWeb::VN::List::len_($v) } if $opt->{s}->vis('length');
-    };
-
-    tr_ class => "hidden collapsed_vid$v->{id}", '+' => $n % 2 == 0 ? 'odd' : undef, sub {
-        td_ colspan => 7, class => 'tc_opt', sub {
-            my $relstatus = [ map $_->{status}, $v->{rels}->@* ];
-            #elm_ 'UList.Opt' => $VNWeb::ULists::Elm::VNOPT, { own => $own?1:0, vid => $v->{id}, notes => $v->{notes}, rels => $v->{rels}, relstatus => $relstatus };
-        };
     };
 }
 
@@ -255,19 +214,16 @@ sub listing_ {
          ORDER BY r.released, r.sorttitle, r.id'
     }, $lst;
     enrich_release_elm map $_->{rels}, @$lst;
-    VNWeb::VN::List::enrich_listing(auth && auth->uid eq $uid && !$opt->{s}->rows(), $opt, $lst);
+    VNWeb::VN::List::enrich_listing($own, $opt, $lst);
 
-    return VNWeb::VN::List::listing_($opt, $lst, $count, 0, $labels) if !$opt->{s}->rows;
+    return VNWeb::VN::List::listing_($opt, $lst, $count, 0, $labels, $own) if !$opt->{s}->rows;
 
     # TODO: Consolidate the 'rows' listing with VN::List as well
     paginate_ $url, $opt->{p}, [$count, $opt->{s}->results], 't', $opt->{s};
     article_ class => 'browse ulist', sub {
-        table_ sub {
+        table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
-                td_ class => 'tc1', sub {
-                    input_ type => 'checkbox', class => 'checkall', 'x-checkall' => 'collapse_vid', id => 'collapse_vid';
-                    label_ for => 'collapse_vid', sub { txt_ 'Opt' };
-                };
+                td_ class => 'tc_ulist', '' if $own;
                 td_ class => 'tc_voted',    sub { txt_ 'Vote date';   sortable_ 'voted',    $opt, $url } if $opt->{s}->vis('voted');
                 td_ class => 'tc_vote',     sub { txt_ 'Vote';        sortable_ 'vote',     $opt, $url } if $opt->{s}->vis('vote');
                 td_ class => 'tc_pop',      sub { txt_ 'Popularity';  sortable_ 'popularity', $opt, $url } if $opt->{s}->vis('popularity');

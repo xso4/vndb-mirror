@@ -26,7 +26,9 @@ const statusRender = obj =>
                 obj.notes = obj.started = obj.finished = '';
                 obj.rlist = [];
                 widgetCur = null;
-                // TODO: remove VN from page if we're on the user's list
+                // remove from listing if we're on the user's list
+                const e = $('#ulist_vid_'+obj.vid);
+                if (e) e.parentNode.removeChild(e);
             });
         } }, 'Delete from my list'), ' ',
         m('button[type=button]', { onclick: () => delete obj._del }, 'Cancel'),
@@ -36,7 +38,7 @@ const statusRender = obj =>
     ];
 
 
-const labelRender = obj => {
+const labelRender = (obj, empty='- select label -', icons=1) => {
     const set = (id,c) => {
         if (!obj.labels) obj.labels = [];
         // Unset progress labels when setting another one.
@@ -83,9 +85,9 @@ const labelRender = obj => {
 
     let labels = obj.labels ? obj.labels.filter(n => n !== 7) : [];
     return m(DS.Button, { ds: obj._labelAdd ? null : obj._labelDs },
-        !labels.length ? '- select label -' :
+        !labels.length ? empty :
             pageVars.labels.filter(l => labels.includes(l[0]))
-            .map(l => [ l[0] <= 6 ? lblicon(l[0], l[1]) : null, ' ', l[1] ])
+            .map(l => [ icons && l[0] <= 6 ? lblicon(l[0], l[1]) : null, ' ', l[1] ])
             .intersperse(', '),
         obj._labelApi && obj._labelApi.Status(),
         obj._labelAdd && obj._labelAdd.Status()
@@ -93,7 +95,7 @@ const labelRender = obj => {
 };
 
 
-const voteRender = obj => {
+const voteRender = (obj, empty) => {
     const valid = s => /^(-|[1-9]|10|[1-9]\.[0-9]|10\.0)$/.test(s);
     if (!obj._voteDs) obj._voteDs = new DS({
         list: (src, str, cb) => cb(
@@ -119,8 +121,11 @@ const voteRender = obj => {
         },
     });
     return [
-        m(DS.Button, { ds: obj._voteDs }, obj.vote ? obj.vote : '- vote -'),
-        obj._voteApi && obj._voteApi.Status(),
+        m(DS.Button, { ds: obj._voteDs },
+            obj._voteApi && obj._voteApi.loading() ? m('span.spinner')
+            : obj.vote ? obj.vote : empty || '- vote -'
+        ),
+        obj._voteApi && obj._voteApi.error && m('b', obj._voteApi.error),
     ];
 };
 
@@ -134,6 +139,10 @@ const dateRender = (obj,field) => [
             obj['_api'+field].call({ vid: obj.vid, date: v, start: field === 'started' });
             obj[field] = v;
             if (!obj.labels) obj.labels = [];
+
+            // Dates don't have a separate ulist widget (yet?), so update the columns this way
+            const e = $('#ulist_'+field+'_'+obj.vid);
+            if (e) e.innerText = v ? RDate.fmt(RDate.expand(v)) : '-';
         },
     }),
     obj['_api'+field] && obj['_api'+field].Status(),
@@ -151,6 +160,9 @@ const notesRender = obj => {
         if (!obj.labels) obj.labels = [];
         obj._notesApi.call({ vid: obj.vid, notes: obj.notes });
         m.redraw();
+
+        const e = $('#ulist_notes_'+obj.vid);
+        if (e) e.innerText = obj.notes;
     };
     return [
         m(Input, {
@@ -240,6 +252,21 @@ const widgetOpen = obj => {
 };
 
 
+// Connect multiple instances of the same VN together.
+if (pageVars && pageVars.widget) {
+    const vids = {};
+    [ 'UListWidget', 'UListVote', 'UListLabels' ].forEach(w => {
+        pageVars.widget[w] && pageVars.widget[w].forEach(o => {
+            if (!vids[o[1].vid]) vids[o[1].vid] = o[1];
+            else {
+                Object.assign(vids[o[1].vid], o[1]);
+                o[1] = vids[o[1].vid];
+            }
+        });
+    });
+}
+
+
 widget('UListWidget', { view: vnode => m('span.ulist-widget-icon',
     { onclick: () => widgetOpen(vnode.attrs.data), },
     vnode.attrs.data.labels ? lblicon(
@@ -284,11 +311,15 @@ widget('UListVNPage', initvnode => {
 });
 
 
+widget('UListVote', { view: vnode => voteRender(vnode.attrs.data, '-') });
+widget('UListLabels', { view: vnode => labelRender(vnode.attrs.data, '-', 0) });
+
+
 widget('UListRelease', { view: vnode => rstatusRender(vnode.attrs.data, null, 'not on your list') });
 
 
 // Connect multiple instances of the same release together
-if (pageVars && pageVars.widget.UListRelDD) {
+if (pageVars && pageVars.widget && pageVars.widget.UListRelDD) {
     const rids = {};
     pageVars.widget.UListRelDD.forEach(o => {
         if (!rids[o[1].id]) rids[o[1].id] = o[1];

@@ -167,7 +167,7 @@ sub len_ {
 
 # Also used by VNWeb::TT::TagPage
 sub listing_ {
-    my($opt, $list, $count, $tagscore, $labels) = @_;
+    my($opt, $list, $count, $tagscore, $labels, $own) = @_;
 
     my sub url { '?'.query_encode %$opt, @_ }
 
@@ -278,11 +278,11 @@ sub listing_ {
             } if $opt->{s}->vis('modified');
             tr_ sub {
                 td_ 'Started:';
-                td_ $_->{started}||'-';
+                td_ id => $own ? "ulist_started_$_->{id}" : undef, $_->{started}||'-';
             } if $opt->{s}->vis('started');
             tr_ sub {
                 td_ 'Finished:';
-                td_ $_->{finished}||'-';
+                td_ id => $own ? "ulist_finished_$_->{id}" : undef, $_->{finished}||'-';
             } if $opt->{s}->vis('finished');
             tr_ sub {
                 td_ 'Rating:';
@@ -303,7 +303,7 @@ sub listing_ {
 
     article_ class => 'vncards', sub {
         my($w,$h) = (90,120);
-        div_ sub {
+        div_ id => $own ? "ulist_vid_$_->{id}" : undef, sub {
             div_ sub {
                 if($_->{vnimage}) {
                     my($iw,$ih) = imgsize $_->{vnimage}{width}*100, $_->{vnimage}{height}*100, $w, $h;
@@ -321,7 +321,8 @@ sub listing_ {
 
     article_ class => 'vngrid', sub {
         # TODO: landscape images are badly upscaled, should probably generate more suitable thumbnails for this view.
-        div_ !$_->{vnimage} || image_hidden($_->{vnimage}) ? (class => 'noimage') : (style => 'background-image: url("'.thumburl($_->{vnimage}).'")'), sub {
+        div_ id => $own ? "ulist_vid_$_->{id}" : undef,
+                !$_->{vnimage} || image_hidden($_->{vnimage}) ? (class => 'noimage') : (style => 'background-image: url("'.thumburl($_->{vnimage}).'")'), sub {
             ulists_widget_ $_;
             a_ href => "/$_->{id}", title => $_->{title}[3], sub { infoblock_ 0 };
         } for @$list;
