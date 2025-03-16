@@ -1,9 +1,7 @@
 module Lib.Util exposing (..)
 
-import Set
 import Task
 import Process
-import Regex
 import Lib.Ffi as Ffi
 import Gen.Api as GApi
 import Gen.Types as GT
@@ -16,33 +14,6 @@ delidx n l = List.take n l ++ List.drop (n+1) l
 -- Modify an element in a List
 modidx : Int -> (a -> a) -> List a -> List a
 modidx n f = List.indexedMap (\i e -> if i == n then f e else e)
-
-
-isJust : Maybe a -> Bool
-isJust m = case m of
-  Just _ -> True
-  _      -> False
-
-
--- Returns true if the list contains duplicates
-hasDuplicates : List comparable -> Bool
-hasDuplicates l =
-  let
-    step e acc =
-      case acc of
-        Nothing -> Nothing
-        Just m -> if Set.member e m then Nothing else Just (Set.insert e m)
-  in
-    case List.foldr step (Just Set.empty) l of
-      Nothing -> True
-      Just _  -> False
-
-
--- Returns true if list a contains elements also in list b
-contains : List comparable -> List comparable -> Bool
-contains a b =
-  let d = Set.fromList b
-  in List.any (\e -> Set.member e d) a
 
 
 -- Haskell's 'lookup' - find an entry in an association list
@@ -70,20 +41,6 @@ vndbidNum = String.dropLeft 1 >> String.toInt >> Maybe.withDefault 0
 vndbid : Char -> Int -> String
 vndbid c n = String.fromChar c ++ String.fromInt n
 
-
-jap_ : Regex.Regex
-jap_ = Maybe.withDefault Regex.never (Regex.fromString "[\\u3000-\\u9fff\\uff00-\\uff9f]")
-
--- Not even close to comprehensive, just excludes a few scripts commonly found on VNDB.
-nonlatin_ : Regex.Regex
-nonlatin_ = Maybe.withDefault Regex.never (Regex.fromString "[\\u0400-\\u04ff\\u0600-\\u06ff\\u0e00-\\u0e7f\\u1100-\\u11ff\\u1400-\\u167f\\u3040-\\u3099\\u30a1-\\u30fa\\u3100-\\u9fff\\uac00-\\ud7af\\uff66-\\uffdc\\u{20000}-\\u{323af}]")
-
--- This regex can't differentiate between Japanese and Chinese, so has a good chance of returning true for Chinese as well.
-containsJapanese : String -> Bool
-containsJapanese = Regex.contains jap_
-
-containsNonLatin : String -> Bool
-containsNonLatin = Regex.contains nonlatin_
 
 
 -- List of script-languages (i.e. not the generic "Chinese" option), with JA and EN ordered first.
