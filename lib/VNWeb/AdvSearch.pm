@@ -893,9 +893,9 @@ sub elm_ {
         error        => { anybool => 1 },
         query        => $VNWeb::Elm::apis{AdvSearchQuery}[0],
     }});
+    tuwf->req->{js_labels} = 1;
     VNWeb::HTML::elm_ 'AdvSearch.Main', $schema, {
         uid          => auth->uid,
-        labels       => auth ? tuwf->dbAlli('SELECT id, label FROM ulist_labels WHERE uid =', \auth->uid, 'ORDER BY CASE WHEN id < 10 THEN id ELSE 10 END, label') : [],
         defaultSpoil => auth->pref('spoilers')||0,
         saved        => auth ? tuwf->dbAlli('SELECT name, query FROM saved_queries WHERE uid =', \auth->uid, ' AND qtype =', \$self->{type}, 'ORDER BY name') : [],
         error        => $self->{error}?1:0,

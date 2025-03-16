@@ -65,6 +65,11 @@ const wrap = {
         init(opt);
     },
 
+    'AdvSearch.Main': (init, opt) => {
+        opt.flags.labels = pageVars.labels.map(([id,label,p]) => ({id,label}));
+        init(opt);
+    },
+
     'UList.LabelEdit': (init, opt) => {
         opt.flags.labels = pageVars.labels.map(([id,label,p]) => ({id,label,'private':p}));
         init(opt);
