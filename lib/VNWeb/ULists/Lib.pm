@@ -59,6 +59,12 @@ sub ulists_widget_($v) {
         my $img = !$v->{on_vnlist} ? 'add' :
             (reverse sort map "l$_", grep $_ >= 1 && $_ <= 6, $v->{vnlist_labels}->@*)[0] || 'unknown';
         abbr_ class => "icon-list-$img ulist-widget-icon", '';
+        if ($v->{rels}) {
+            my $obtained = grep $_->{status} == 2, $v->{rels}->@*;
+            my $total = $v->{rels}->@*;
+            span_ class => $obtained == $total ? 'done' : $obtained < $total ? 'todo' : undef,
+                $total ? sprintf ' %d/%d', $obtained, $total : '';
+        }
     } if auth && exists $v->{vnlist_labels};
 }
 

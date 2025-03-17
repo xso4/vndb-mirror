@@ -204,16 +204,15 @@ sub listing_ {
           ORDER BY', $opt->{s}->sql_order(), 'NULLS LAST, v.sorttitle'
     );
 
+    # TODO: Only the counts are used, query can be simplified
     enrich rels => id => vid => sub { sql '
-        SELECT rv.vid, r.id, rl.status, rv.rtype
+        SELECT rv.vid, rl.status
           FROM rlists rl
-          JOIN', releasest, 'r ON rl.rid = r.id
+          JOIN releases r ON rl.rid = r.id
           JOIN releases_vn rv ON rv.id = r.id
          WHERE rl.uid =', \$uid, '
-           AND rv.vid IN', $_, '
-         ORDER BY r.released, r.sorttitle, r.id'
+           AND rv.vid IN', $_
     }, $lst;
-    enrich_release_elm map $_->{rels}, @$lst;
     VNWeb::VN::List::enrich_listing($own, $opt, $lst);
 
     return VNWeb::VN::List::listing_($opt, $lst, $count, 0, $labels, $own) if !$opt->{s}->rows;

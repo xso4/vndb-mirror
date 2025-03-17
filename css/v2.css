@@ -739,7 +739,7 @@ div.charsum_list .charsum_bubble {
 .savedefault { width: 600px; margin: 10px auto }
 .exportlist { width: 600px; margin: 10px auto }
 
-.ulist .tc_ulist { padding-left: 20px; width: 16px }
+.ulist .tc_ulist { padding-left: 20px; width: 40px; white-space: nowrap }
 .ulist .tc_ulist + td.tc_title { padding-left: 10px }
 .ulist .tc_title { padding-left: 30px }
 .ulist .tc_title small { margin-left: 10px }
