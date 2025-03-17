@@ -134,6 +134,7 @@ const dateRender = (obj,field) => [
     m(RDate, {
         value: obj[field], today: 1, unknown: 1, full: 1, notba: 1, maxyear: new Date().getFullYear(),
         oninput: v => {
+            if (v === 1) v = RDate.today;
             if (!obj['_api'+field]) obj['_api'+field] = new Api('UListDateEdit');
             // XXX: Debounce / save on blur?
             obj['_api'+field].call({ vid: obj.vid, date: v, start: field === 'started' });
