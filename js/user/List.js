@@ -280,7 +280,7 @@ widget('UListWidget', { view: vnode => m('span.ulist-widget-icon',
 
 widget('UListVNPage', initvnode => {
     const obj = initvnode.attrs.data;
-    obj._expand = obj.notes !== '';
+    obj._expand = obj.notes !== '' || obj.started !== 0 || obj.finished !== 0;
     const expandbut = () => m('a[href=#]', { onclick: ev => { ev.preventDefault(); obj._expand = !obj._expand } }, '💬');
     const wide = {colspan: obj.canvote ? 1 : 2};
     const view = () => m('form.invalid-form.ulistvn',
