@@ -269,23 +269,23 @@ if (pageVars && pageVars.widget) {
 
 
 widget('UListWidget', { view: vnode => [
-    m('span.ulist-widget-icon',
+    m('abbr.ulist-widget-icon',
         { onclick: () => widgetOpen(vnode.attrs.data), },
         vnode.attrs.data.labels ? lblicon(
             Math.max(0, ...vnode.attrs.data.labels.filter(n => n >= 1 && n <= 6)),
             vnode.attrs.data.labels.flatMap(n =>
                 n === 7 ? [] : [ pageVars.labels.find(([id]) => id === n)[1] ]
             ).join(', ')
-        ) : lblicon(-1, 'Add to list')
+        ) : lblicon(-1, 'Add to list'),
+        vnode.attrs.oldContents.length === 1 ? null : (rlist =>
+            rlist ? ((total, obtained) =>
+                total > 0
+                ? m('span', { class: total && obtained === total ? 'done' : obtained < total ? 'todo' : null }, ' ', obtained, '/', total)
+                : null
+            )(rlist.length, rlist.filter(r => r.status === 2).length)
+            : m.trust(vnode.attrs.oldContents[1].outerHTML)
+        )(vnode.attrs.data.rlist)
     ),
-    vnode.attrs.oldContents.length === 1 ? null : (rlist =>
-        rlist ? ((total, obtained) =>
-            total > 0
-            ? m('span', { class: total && obtained === total ? 'done' : obtained < total ? 'todo' : null }, ' ', obtained, '/', total)
-            : null
-        )(rlist.length, rlist.filter(r => r.status === 2).length)
-        : m.trust(vnode.attrs.oldContents[1].outerHTML)
-    )(vnode.attrs.data.rlist)
 ]});
 
 

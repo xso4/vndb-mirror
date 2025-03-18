@@ -783,12 +783,6 @@ div.charsum_list .charsum_bubble {
     .rel select { margin: -1px 0 }
 }
 
-/* Just kill me already */
-[id^=ulist_labeledit] li > a {
-    padding-right: 30px!important;
-    abbr, .spinner { float: right; margin-right: -26px; margin-top: 2px }
-}
-
 
 /***** User notifications *****/
 

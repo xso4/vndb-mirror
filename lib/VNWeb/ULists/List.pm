@@ -214,7 +214,7 @@ sub listing_ {
           JOIN releases_vn rv ON rv.id = r.id
          WHERE rl.uid =', \$uid, '
            AND rv.vid IN', $_
-    }, $lst;
+    }, $lst if $opt->{s}->rows;
     VNWeb::VN::List::enrich_listing($own, $opt, $lst);
 
     return VNWeb::VN::List::listing_($opt, $lst, $count, 0, $labels, $own) if !$opt->{s}->rows;
