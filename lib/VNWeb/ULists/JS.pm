@@ -156,7 +156,9 @@ js_api UListLabelEdit => {
             uid => auth->uid,
             vid => $data->{vid},
             labels => $labels,
-        }, 'ON CONFLICT (uid, vid) DO UPDATE SET lastmod = NOW(), labels =', \$labels
+        }, 'ON CONFLICT (uid, vid) DO UPDATE
+                SET lastmod = NOW()
+                  , labels = CASE WHEN ulist_vns.vote IS NULL THEN', \$labels, 'ELSE array_set(', \$labels, ', 7) END'
     );
     updcache $data->{vid};
     +{}
