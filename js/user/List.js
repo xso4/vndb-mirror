@@ -141,7 +141,7 @@ const dateRender = (obj,field) => [
             obj[field] = v;
             if (!obj.labels) obj.labels = [];
 
-            // Dates don't have a separate ulist widget (yet?), so update the columns this way
+            // Update the date in grid & card view
             const e = $('#ulist_'+field+'_'+obj.vid);
             if (e) e.innerText = v ? RDate.fmt(RDate.expand(v)) : '-';
         },
@@ -256,7 +256,7 @@ const widgetOpen = obj => {
 // Connect multiple instances of the same VN together.
 if (pageVars && pageVars.widget) {
     const vids = {};
-    [ 'UListWidget', 'UListVote', 'UListLabels' ].forEach(w => {
+    [ 'UListWidget', 'UListVote', 'UListLabels', 'UListStartDate', 'UListFinishDate' ].forEach(w => {
         pageVars.widget[w] && pageVars.widget[w].forEach(o => {
             if (!vids[o[1].vid]) vids[o[1].vid] = o[1];
             else {
@@ -324,6 +324,26 @@ widget('UListVNPage', initvnode => {
 
 widget('UListVote', { view: vnode => voteRender(vnode.attrs.data, '-') });
 widget('UListLabels', { view: vnode => labelRender(vnode.attrs.data, '-', 0) });
+
+const dateWidget = field => initvnode => {
+    const data = initvnode.attrs.data;
+    let open;
+    const close = ev => {
+        if (ev && open.contains(ev.target)) return;
+        open = null;
+        document.removeEventListener('click', close);
+        m.redraw();
+    };
+    const view = () => m('div', { onclick: function(ev) { open = this; document.addEventListener('click', close) } },
+        open ? m('div', dateRender(data, field)) : null,
+        data[field] ? RDate.fmt(RDate.expand(data[field])) : '-',
+        ' ', m(Icon.Pencil),
+    );
+    return {view};
+};
+
+widget('UListStartDate', dateWidget('started'));
+widget('UListFinishDate', dateWidget('finished'));
 
 
 widget('UListRelease', { view: vnode => rstatusRender(vnode.attrs.data, null, 'not on your list') });

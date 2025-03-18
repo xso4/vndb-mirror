@@ -152,11 +152,13 @@ sub vn_ {
         td_ class => 'tc_added',    fmtdate $v->{added},     'compact' if $opt->{s}->vis('added');
         td_ class => 'tc_modified', fmtdate $v->{lastmod},   'compact' if $opt->{s}->vis('modified');
 
-        td_ class => 'tc_started', id => $own ? "ulist_started_$v->{id}" : undef, sub {
+        td_ class => 'tc_date', !$own ? () :
+            widget(UListStartDate => { vid => $v->{id}, started => int(($v->{started}||0) =~ s/-//rg) }), sub {
             txt_ $v->{started}||'';
         } if $opt->{s}->vis('started');
 
-        td_ class => 'tc_finished', id => $own ? "ulist_finished_$v->{id}" : undef, sub {
+        td_ class => 'tc_date', !$own ? () :
+            widget(UListFinishDate => { vid => $v->{id}, finished => int(($v->{finished}||0) =~ s/-//rg) }), sub {
             txt_ $v->{finished}||'';
         } if $opt->{s}->vis('finished');
 

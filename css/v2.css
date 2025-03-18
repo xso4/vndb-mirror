@@ -749,16 +749,17 @@ div.charsum_list .charsum_bubble {
 .ulist .tc_voted,
 .ulist .tc_added,
 .ulist .tc_modified,
-.ulist .tc_started,
-.ulist .tc_finished,
+.ulist .tc_date,
 .ulist .tc_rdate  { white-space: nowrap; width: 100px }
 .ulist .tc_rating { white-space: nowrap; width: 80px }
 
-.ulist .tc_started div,                   .ulist .tc_finished div                   { height: 1em; padding-bottom: 4px }
-.ulist .tc_started div span,              .ulist .tc_finished div span              { position: absolute; z-index: 0 }
-.ulist .tc_started div       input,       .ulist .tc_finished div       input       { position: absolute; z-index: 900; width: 110px; visibility: hidden }
-.ulist .tc_started div:hover input,       .ulist .tc_finished div:hover input,
-.ulist .tc_started div       input:focus, .ulist .tc_finished div       input:focus { visibility: visible }
+.ulist .tc_date {
+    position: relative;
+    > div > div { position: absolute; top: -3px; right: 0px; min-width: 100px; background: var(--blendbg); z-index: 100 }
+    > div { display: block; cursor: pointer; width: 100% }
+    > div:hover svg { visibility: visible }
+    svg { visibility: hidden; width: 14px; height: 14px }
+}
 
 
 /***** ulist-widget (js/user/List.js) *****/
