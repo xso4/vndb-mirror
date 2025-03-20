@@ -483,10 +483,10 @@ const Images = initVnode => {
         m('img', {...imgsize(v.attrs.img, 150, 150), src: thumburl(v.attrs.img)})
     ) };
 
-    // Filter out image types
-    // - physical options only available when the release has the appropriate media
+    // Filter out image types: physical options are only available when the
+    // release has the appropriate media and a release date in the past.
     const imgTypes = cur => vndbTypes.releaseImageType.filter(([t]) => cur === t || t == 'dig' || (
-        (data.media.length === 0 || data.media.find(e => e.medium !== 'in') || !t.match(/^pkg/))
+        ((data.released <= RDate.today) && (data.media.length === 0 || data.media.find(e => e.medium !== 'in')) || !t.match(/^pkg/))
     ));
     const addImg = nfo => {
         const vns = nfo.entries.filter(e => e.id.match(/^v/));
@@ -535,7 +535,10 @@ const Images = initVnode => {
                 ),
                 data.media.length === 0 ?  m('p.invalid', 'Please set a medium for this release in the "General info" tab.') : m('div',
                     m(Select, { data: e, field: 'itype', class: 'lw', options: [[null, '-- Type --']].concat(imgTypes(e.itype)) }),
-                    typeof e.itype !== 'string' ? m('p.invalid', 'Type is required.') : !imgTypes(null).find(([x]) => x === e.itype) ? m('p.invalid', 'Invalid type for the release medium.') : null,
+                    typeof e.itype !== 'string'
+                    ? m('p.invalid', 'Type is required.')
+                    : !imgTypes(null).find(([x]) => x === e.itype)
+                    ? m('p.invalid', data.released <= RDate.today ? 'Invalid type for the release medium.' : 'Packaging images are not accepted for unreleased titles') : null,
                     e.itype === 'dig' ? [] : [ m('br'), m('label.check',
                         m('input[type=checkbox]', { checked: e.photo, oninput: ev => e.photo = ev.target.checked }),
                         ' This is a photo.',
