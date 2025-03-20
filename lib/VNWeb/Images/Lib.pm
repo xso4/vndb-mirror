@@ -75,7 +75,7 @@ sub enrich_image {
     for(grep defined $_->{width}, @$l) {
         set_verdict $_;
         for my $v ($_->{votes}->@*) {
-            $v->{user} = xml_string sub { user_ $v }; # Easier than duplicating user_() in Elm
+            $v->{user} = fragment sub { user_ $v }; # Easier than duplicating user_() in Elm
             delete $v->{$_} for grep /^user_/, keys %$v;
         }
         $_->{token} = $canvote || ($canownvote && ($_->{own} || defined $_->{my_sexual})) ? auth->csrftoken(0, "imgvote-$_->{id}") : undef;

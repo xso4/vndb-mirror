@@ -1,7 +1,7 @@
 package VNWeb::Misc::Feeds;
 
 use VNWeb::Prelude;
-use TUWF 'xml', 'tag_';
+use FU::XMLWriter 'xml_', 'tag_';
 
 
 sub datetime { strftime '%Y-%m-%dT%H:%M:%SZ', gmtime shift }
@@ -12,27 +12,29 @@ sub feed {
     my $base = tuwf->reqBaseURI();
 
     tuwf->resHeader('Content-Type', 'application/atom+xml; charset=UTF-8');
-    xml;
-    tag_ feed => xmlns => 'http://www.w3.org/2005/Atom', 'xml:lang' => 'en', 'xml:base' => "$base/", sub {
-        tag_ title => $title;
-        tag_ updated => datetime max grep $_, map +($_->{published}, $_->{updated}), @$data;
-        tag_ id => $base.$path;
-        tag_ link => rel => 'self', type => 'application/atom+xml', href => $base.tuwf->reqPath(), undef;
-        tag_ link => rel => 'alternate', type => 'text/html', href => $base.$path, undef;
+    my $body = xml_ {
+        tag_ feed => xmlns => 'http://www.w3.org/2005/Atom', 'xml:lang' => 'en', 'xml:base' => "$base/", sub {
+            tag_ title => $title;
+            tag_ updated => datetime max grep $_, map +($_->{published}, $_->{updated}), @$data;
+            tag_ id => $base.$path;
+            tag_ link => rel => 'self', type => 'application/atom+xml', href => $base.tuwf->reqPath(), undef;
+            tag_ link => rel => 'alternate', type => 'text/html', href => $base.$path, undef;
 
-        tag_ entry => sub {
-            tag_ id => "$base/$_->{id}";
-            tag_ title => $_->{title};
-            tag_ updated => datetime($_->{updated} || $_->{published});
-            tag_ published => datetime $_->{published} if $_->{published};
-            tag_ author => sub {
-                tag_ name => $_->{user_name};
-                tag_ uri => "$base/$_->{user_id}";
-            } if $_->{user_id};
-            tag_ link => rel => 'alternate', type => 'text/html', href => "$base/$_->{id}", undef;
-            tag_ summary => type => 'html', bb_format $_->{summary}, maxlength => 300 if $_->{summary};
-        } for @$data;
-    }
+            tag_ entry => sub {
+                tag_ id => "$base/$_->{id}";
+                tag_ title => $_->{title};
+                tag_ updated => datetime($_->{updated} || $_->{published});
+                tag_ published => datetime $_->{published} if $_->{published};
+                tag_ author => sub {
+                    tag_ name => $_->{user_name};
+                    tag_ uri => "$base/$_->{user_id}";
+                } if $_->{user_id};
+                tag_ link => rel => 'alternate', type => 'text/html', href => "$base/$_->{id}", undef;
+                tag_ summary => type => 'html', bb_format $_->{summary}, maxlength => 300 if $_->{summary};
+            } for @$data;
+        }
+    };
+    tuwf->resBinary($body, 'auto');
 }
 
 

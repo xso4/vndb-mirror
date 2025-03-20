@@ -10,8 +10,9 @@
 use v5.36;
 use Cwd 'abs_path';
 use JSON::XS;
-use TUWF ':xmlxs', ':html5_';
+use TUWF;
 use Time::HiRes 'time';
+use FU::XMLWriter ':html5_';
 
 $|=1; # Disable buffering on STDOUT, otherwise vndb-dev-server.pl won't pick up our readyness notification.
 
@@ -79,7 +80,7 @@ TUWF::hook before => sub {
 # Provide a default /robots.txt
 TUWF::get '/robots.txt', sub {
     tuwf->resHeader('Content-Type' => 'text/plain');
-    lit_ "User-agent: *\nDisallow: /\n";
+    tuwf->resBinary("User-agent: *\nDisallow: /\n");
 };
 
 

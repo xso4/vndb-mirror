@@ -67,7 +67,7 @@ package VNWeb::TableOpts;
 use v5.36;
 use Carp 'croak';
 use Exporter 'import';
-use TUWF ':html5_';
+use FU::XMLWriter ':html5_';
 use VNWeb::Auth;
 use VNWeb::HTML ();
 use VNWeb::Validation;

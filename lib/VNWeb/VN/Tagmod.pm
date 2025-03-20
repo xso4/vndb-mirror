@@ -108,7 +108,7 @@ TUWF::get qr{/$RE{vid}/tagmod}, sub {
         $_->{spoil} //= undef;
         $_->{lie} //= undef;
         $_->{notes} //= '';
-        $_->{tagscore} = xml_string sub {
+        $_->{tagscore} = fragment sub {
             tagscore_ $_->{rating};
             i_ class => $_->{overruled} ? 'grayedout' : undef, " ($_->{count})";
         };

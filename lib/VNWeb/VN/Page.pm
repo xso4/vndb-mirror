@@ -663,7 +663,7 @@ sub staff_cols_ {
     my @boxes =
         sort { $b->[0] <=> $a->[0] || $a->[1] <=> $b->[1] }
         map [ 2+$roles{$_}->@*, $i++,
-            xml_string sub {
+            fragment sub {
                 li_ class => 'vnstaff_head', $CREDIT_TYPE{$_};
                 li_ sub {
                     a_ href => "/$_->{sid}", tattr $_;

@@ -1,8 +1,8 @@
 package VNWeb::ULists::Export;
 
-use TUWF 'xml', 'tag_';
 use VNWeb::Prelude;
 use VNWeb::ULists::Lib;
+use FU::XMLWriter 'xml_', 'tag_';
 
 # XXX: Reading someone's entire list into memory (multiple times even) is not
 # the most efficient way to implement an export function. Might want to switch
@@ -75,7 +75,7 @@ TUWF::get qr{/$RE{uid}/list-export/xml}, sub {
 
     my %labels = map +($_->{id}, $_), $d->{labels}->@*;
 
-    xml;
+    my $body = xml_ {
     tag_ 'vndb-export' => version => '1.0', date => $d->{'export-date'}, sub {
         lit_ "\n";
         tag_ user => sub {
@@ -123,7 +123,8 @@ TUWF::get qr{/$RE{uid}/list-export/xml}, sub {
                 lit_ "\n";
             } for $d->{'length-votes'}->@*;
         };
-    };
+    }};
+    tuwf->resBinary($body, 'auto');
 };
 
 1;

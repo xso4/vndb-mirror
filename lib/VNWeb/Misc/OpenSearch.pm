@@ -1,22 +1,24 @@
 package VNWeb::Misc::OpenSearch;
 
 use VNWeb::Prelude;
-use TUWF 'xml', 'tag_';
+use FU::XMLWriter 'xml_', 'tag_';
 
 TUWF::get qr{/opensearch\.xml}, sub {
     my $h = tuwf->reqBaseURI;
     tuwf->resHeader('Content-Type' => 'application/opensearchdescription+xml');
-    xml;
-    tag_ 'OpenSearchDescription', xmlns => 'http://a9.com/-/spec/opensearch/1.1/', 'xmlns:moz' => 'http://www.mozilla.org/2006/browser/search/', sub {
-        tag_ 'ShortName', 'VNDB';
-        tag_ 'LongName', 'VNDB.org Visual Vovel Search';
-        tag_ 'Description', 'Search visual novels on VNDB.org';
-        tag_ 'Image', width => 16, height => 16, type => 'image/x-icon', "$h/favicon.ico";
-        tag_ 'Url', type => 'text/html', method => 'get', template => "$h/v?q={searchTerms}", undef;
-        tag_ 'Url', type => 'application/opensearchdescription+xml', rel => 'self', template => "$h/opensearch.xml", undef;
-        tag_ 'Query', role => 'example', searchTerms => 'Tsukihime', undef;
-        tag_ 'moz:SearchForm', "$h/v";
-    }
+    my $body = xml_ {
+        tag_ 'OpenSearchDescription', xmlns => 'http://a9.com/-/spec/opensearch/1.1/', 'xmlns:moz' => 'http://www.mozilla.org/2006/browser/search/', sub {
+            tag_ 'ShortName', 'VNDB';
+            tag_ 'LongName', 'VNDB.org Visual Vovel Search';
+            tag_ 'Description', 'Search visual novels on VNDB.org';
+            tag_ 'Image', width => 16, height => 16, type => 'image/x-icon', "$h/favicon.ico";
+            tag_ 'Url', type => 'text/html', method => 'get', template => "$h/v?q={searchTerms}", undef;
+            tag_ 'Url', type => 'application/opensearchdescription+xml', rel => 'self', template => "$h/opensearch.xml", undef;
+            tag_ 'Query', role => 'example', searchTerms => 'Tsukihime', undef;
+            tag_ 'moz:SearchForm', "$h/v";
+        }
+    };
+    tuwf->resBinary($body, 'auto');
 };
 
 1;

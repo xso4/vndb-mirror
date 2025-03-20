@@ -3,7 +3,8 @@
 #  use v5.36;
 #  use utf8;
 #
-#  use TUWF @html5_tags, 'xml_string', 'xml_escape';
+#  use TUWF;
+#  use FU::XMLWriter @html5_tags, 'fragment';
 #  use Exporter 'import';
 #  use Time::HiRes 'time';
 #  use List::Util 'min', 'max', 'sum';
@@ -57,7 +58,8 @@ sub import {
     die $@ if !eval <<"    EOM;";
     package $c;
 
-    use TUWF \@VNWeb::Prelude::html5_tags, qw/tag_ txt_ lit_ xml_string xml_escape/;
+    use TUWF;
+    use FU::XMLWriter \@VNWeb::Prelude::html5_tags, qw/tag_ txt_ lit_ fragment/;
     use Exporter 'import';
     use Time::HiRes 'time';
     use List::Util 'min', 'max', 'sum';

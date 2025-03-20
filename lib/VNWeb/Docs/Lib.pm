@@ -13,7 +13,7 @@ sub _moderators {
     my $where = sql_or map "perm_$_", @special_perms;
     state $l //= tuwf->dbAlli("SELECT u.id, username, $cols FROM users u JOIN users_shadow us ON us.id = u.id WHERE $where ORDER BY u.id LIMIT 100");
 
-    xml_string sub {
+    fragment sub {
         dl_ sub {
             for my $u (@$l) {
                 dt_ sub { a_ href => "/$u->{id}", $u->{username} };
@@ -32,7 +32,7 @@ sub _skincontrib {
 
     my $u = tuwf->dbAlli('SELECT id, username FROM users WHERE id IN', [keys %users], 'ORDER BY id');
 
-    xml_string sub {
+    fragment sub {
         dl_ sub {
             for my $u (@$u) {
                 dt_ sub { a_ href => "/$u->{id}", $u->{username} };

@@ -59,7 +59,7 @@ sub reviews_($v, $mini) {
                     txt_ '>';
                 };
                 my $html = bb_format bb_subst_links($r->{text}), maxlength => $r->{length} ? 700 : undef;
-                $html .= xml_string sub { txt_ '... '; a_ href => "/$r->{id}#review", ' Read more »' } if $r->{length};
+                $html .= fragment sub { txt_ '... '; a_ href => "/$r->{id}#review", ' Read more »' } if $r->{length};
                 if($r->{spoiler}) {
                     label_ class => 'review_spoil', sub {
                         input_ type => 'checkbox', class => 'hidden', (auth->pref('spoilers')||0) == 2 ? ('checked', 'checked') : (), undef;

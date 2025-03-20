@@ -2,6 +2,7 @@ package VNWeb::Discussions::Search;
 
 use VNWeb::Prelude;
 use VNWeb::Discussions::Lib;
+use FU::XMLWriter 'xml_escape';
 
 my @BOARDS = (keys %BOARD_TYPE, 'w');
 
