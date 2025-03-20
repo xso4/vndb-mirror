@@ -7,7 +7,7 @@ use VNWeb::TT::Lib 'enrich_group';
 sub listing_ {
     my($type, $opt, $list, $count) = @_;
 
-    my sub url { '?'.query_encode %$opt, @_ }
+    my sub url { '?'.query_encode({%$opt, @_}) }
 
     paginate_ \&url, $opt->{p}, [$count, 50], 't';
     article_ class => 'browse taglist', sub {
@@ -76,7 +76,7 @@ TUWF::get qr{/(?<type>[gi])/list}, sub {
             };
             my sub opt_ {
                 my($k,$v,$lbl) = @_;
-                a_ href => '?'.query_encode(%$opt,p=>undef,$k=>$v), defined $opt->{$k} eq defined $v && (!defined $v || $opt->{$k} == $v) ? (class => 'optselected') : (), $lbl;
+                a_ href => '?'.query_encode({%$opt,p=>undef,$k=>$v}), defined $opt->{$k} eq defined $v && (!defined $v || $opt->{$k} == $v) ? (class => 'optselected') : (), $lbl;
             }
             p_ class => 'browseopts', sub {
                 opt_ t => undef, 'All';

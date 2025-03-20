@@ -87,7 +87,7 @@ TUWF::get qr{/g/links}, sub {
     );
     $np = [ $count, 50 ] if $count;
 
-    my sub url { '?'.query_encode %$opt, @_ }
+    my sub url { '?'.query_encode({%$opt, @_}) }
 
     framework_ title => 'Tag link browser', sub {
         article_ sub {

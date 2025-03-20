@@ -7,7 +7,7 @@ use VNWeb::AdvSearch;
 sub listing_ {
     my($opt, $list, $count) = @_;
 
-    my sub url { '?'.query_encode %$opt, @_ }
+    my sub url { '?'.query_encode({%$opt, @_}) }
 
     paginate_ \&url, $opt->{p}, [$count, 150], 't';
     article_ class => 'producerbrowse', sub {

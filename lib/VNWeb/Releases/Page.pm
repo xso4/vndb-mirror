@@ -1,9 +1,9 @@
 package VNWeb::Releases::Page;
 
 use VNWeb::Prelude;
-use TUWF 'uri_escape';
 use VNWeb::Images::Lib;
 use VNWeb::Releases::Lib;
+use FU::Util 'uri_escape';
 
 
 sub enrich_item {
@@ -232,7 +232,7 @@ sub _infotable_ {
         tr_ sub {
             td_ 'Engine';
             td_ sub {
-                a_ href => '/r?f='.tuwf->compile({advsearch => 'r'})->validate(['engine', '=', $r->{engine}])->data->query_encode, $r->{engine};
+                a_ href => '/r?f='.tuwf->compile({advsearch => 'r'})->validate(['engine', '=', $r->{engine}])->data->enc_query, $r->{engine};
             }
         } if length $r->{engine};
 

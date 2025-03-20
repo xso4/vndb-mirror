@@ -191,7 +191,7 @@ TUWF::get qr{/report/list}, sub {
             AND id =', \auth->uid
     );
 
-    my sub url { '?'.query_encode %$opt, @_ }
+    my sub url { '?'.query_encode({%$opt, @_}) }
 
     framework_ title => 'Reports', sub {
         article_ sub {

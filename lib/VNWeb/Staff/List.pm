@@ -7,7 +7,7 @@ use VNWeb::Filters;
 
 sub listing_ {
     my($opt, $list, $count) = @_;
-    my sub url { '?'.query_encode %$opt, @_ }
+    my sub url { '?'.query_encode({%$opt, @_}) }
     paginate_ \&url, $opt->{p}, [$count, 150], 't';
     article_ class => 'staffbrowse', sub {
         h1_ 'Staff list';
@@ -46,7 +46,7 @@ TUWF::get qr{/s(?:/(?<char>all|[a-z0]))?}, sub {
             $f = filter_staff_adv $f;
             tuwf->compile({ advsearch => 's' })->validate(@$f > 1 ? $f : undef)->data;
         };
-        return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode(%$opt, fil => undef, f => $q), 'perm') if $q;
+        return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode({%$opt, fil => undef, f => $q}), 'perm') if $q;
     }
 
     $opt->{f} = advsearch_default 's' if !$opt->{f}{query} && !defined tuwf->reqGet('f');

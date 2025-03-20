@@ -1,7 +1,6 @@
 package VNDB::Func;
 
 use v5.36;
-use TUWF::Misc 'uri_escape';
 use Exporter 'import';
 use POSIX 'strftime', 'floor';
 use Socket 'inet_pton', 'inet_ntop', 'AF_INET', 'AF_INET6';
@@ -24,7 +23,6 @@ our @EXPORT = (qw|
     rdate
     imgpath imgurl thumburl imgiv
     tlang tattr
-    query_encode
     md2html
     is_insecurepass
 |);
@@ -266,17 +264,6 @@ sub tattr {
     (tlang($title->[0],$title->[1]), title => $title->[3], $title->[1])
 }
 
-
-
-# Encode query parameters. Takes a hash or hashref with key/values, supports array values and objects that implement query_encode().
-sub query_encode {
-    my $o = @_ == 1 ? $_[0] : {@_};
-    return join '&', map {
-        my($k, $v) = ($_, $o->{$_});
-        $v = $v->query_encode() if ref $v && ref $v ne 'ARRAY';
-        !defined $v ? () : ref $v ? map "$k=".uri_escape($_), sort @$v : "$k=".uri_escape($v)
-    } sort keys %$o;
-}
 
 
 sub md2html($markdown) {

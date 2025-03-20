@@ -79,7 +79,7 @@ sub chars_ {
             tuwf->compile({ advsearch => 'c' })->validate(@$f > 1 ? $f : undef)->data;
         };
         if ($q) {
-            tuwf->resRedirect(tuwf->reqPath().'?'.query_encode(%$opt, fil => undef, f => $q), 'perm');
+            tuwf->resRedirect(tuwf->reqPath().'?'.query_encode({%$opt, fil => undef, f => $q}), 'perm');
             tuwf->done;
         }
     }

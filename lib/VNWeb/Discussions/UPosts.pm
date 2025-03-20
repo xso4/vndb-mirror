@@ -6,7 +6,7 @@ use VNWeb::Prelude;
 sub listing_ {
     my($count, $list, $page) = @_;
 
-    my sub url { '?'.query_encode @_ }
+    my sub url { '?'.query_encode({@_}) }
 
     paginate_ \&url, $page, [ $count, 50 ], 't';
     article_ class => 'browse uposts', sub {

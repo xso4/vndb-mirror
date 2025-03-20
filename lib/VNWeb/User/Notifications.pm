@@ -173,7 +173,7 @@ TUWF::get qr{/$RE{uid}/notifies}, sub {
         'ORDER BY n.id', $opt->{r} ? 'DESC' : 'ASC'
     );
 
-    my sub url { "/$id/notifies?".query_encode %$opt, @_ }
+    my sub url { "/$id/notifies?".query_encode({%$opt, @_}) }
 
     framework_ title => 'My notifications', js => 1,
     sub {

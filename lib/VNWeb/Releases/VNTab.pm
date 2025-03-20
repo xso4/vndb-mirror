@@ -245,7 +245,7 @@ TUWF::get qr{/$RE{vid}/releases} => sub {
     );
     enrich_release $r;
 
-    my sub url { '?'.query_encode %$opt, @_ }
+    my sub url { '?'.query_encode({%$opt, @_}) }
 
     framework_ title => "Releases for $v->{title}[1]", dbobj => $v, tab => 'releases', sub {
         article_ class => 'releases_compare', sub {

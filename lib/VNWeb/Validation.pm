@@ -1,7 +1,8 @@
 package VNWeb::Validation;
 
 use v5.36;
-use TUWF 'uri_escape';
+use TUWF;
+use FU::Util 'uri_escape';
 use VNDB::Types;
 use VNDB::Config;
 use VNDB::ExtLinks ();
@@ -398,7 +399,7 @@ package VNWeb::Validate::SearchQuery {
     use TUWF;
     use VNWeb::DB;
 
-    sub query_encode { $_[0][0] }
+    sub TO_QUERY { $_[0][0] }
     sub TO_JSON { $_[0][0] }
 
     sub words {

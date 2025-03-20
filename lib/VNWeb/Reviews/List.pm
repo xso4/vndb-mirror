@@ -6,7 +6,7 @@ use VNWeb::Prelude;
 sub tablebox_ {
     my($opt, $lst, $count) = @_;
 
-    my sub url { '?'.query_encode %$opt, @_ }
+    my sub url { '?'.query_encode({%$opt, @_}) }
 
     paginate_ \&url, $opt->{p}, [$count, 50], 't';
     article_ class => 'browse reviewlist', sub {

@@ -31,7 +31,7 @@ TUWF::get qr{/r/engines}, sub {
                 tr_ sub {
                     td_ class => 'tc1', style => 'text-align: right; width: 80px', $_->{cnt};
                     td_ class => 'tc2', sub {
-                        a_ href => '/r?f='.$c->validate([engine => '=', $_->{engine}])->data->query_encode(), $_->{engine};
+                        a_ href => '/r?f='.$c->validate([engine => '=', $_->{engine}])->data->enc_query(), $_->{engine};
                     }
                 } for @$list;
             };

@@ -14,7 +14,7 @@ our $TABLEOPTS = tableopts
 sub listing_ {
     my($opt, $list, $count) = @_;
 
-    my sub url { '?'.query_encode %$opt, @_ }
+    my sub url { '?'.query_encode({%$opt, @_}) }
     paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 't', $opt->{s};
 
     article_ class => 'browse charb', sub {
@@ -101,7 +101,7 @@ TUWF::get qr{/c(?:/(?<char>all|[a-z0]))?}, sub {
             my $f = filter_char_adv filter_parse c => $opt->{fil};
             tuwf->compile({ advsearch => 'c' })->validate(@$f > 1 ? $f : undef)->data;
         };
-        return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode(%$opt, fil => undef, f => $q), 'perm') if $q;
+        return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode({%$opt, fil => undef, f => $q}), 'perm') if $q;
     }
 
     $opt->{f} = advsearch_default 'c' if !$opt->{f}{query} && !defined tuwf->reqGet('f');

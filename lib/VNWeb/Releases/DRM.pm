@@ -1,7 +1,7 @@
 package VNWeb::Releases::DRM;
 
 use VNWeb::Prelude;
-use TUWF 'uri_escape';
+use FU::Util 'uri_escape';
 
 TUWF::get '/r/drm', sub {
     my $opt = tuwf->validate(get =>
@@ -33,13 +33,13 @@ TUWF::get '/r/drm', sub {
             };
             my sub opt_ {
                 my($k,$v,$lbl) = @_;
-                a_ href => '?'.query_encode(%$opt,$k=>$v), defined $opt->{$k} eq defined $v && (!defined $v || $opt->{$k} == $v) ? (class => 'optselected') : (), $lbl;
+                a_ href => '?'.query_encode({%$opt,$k=>$v}), defined $opt->{$k} eq defined $v && (!defined $v || $opt->{$k} == $v) ? (class => 'optselected') : (), $lbl;
             }
             p_ class => 'browseopts', sub {
-                a_ href => '?'.query_encode(%$opt,t=>undef), !defined $opt->{t} ? (class => 'optselected') : (), 'All';
-                a_ href => '?'.query_encode(%$opt,t=>0), defined $opt->{t} && $opt->{t} == 0 ? (class => 'optselected') : (), 'New';
-                a_ href => '?'.query_encode(%$opt,t=>1), defined $opt->{t} && $opt->{t} == 1 ? (class => 'optselected') : (), 'Approved';
-                a_ href => '?'.query_encode(%$opt,t=>2), defined $opt->{t} && $opt->{t} == 2 ? (class => 'optselected') : (), 'Deleted';
+                a_ href => '?'.query_encode({%$opt,t=>undef}), !defined $opt->{t} ? (class => 'optselected') : (), 'All';
+                a_ href => '?'.query_encode({%$opt,t=>0}), defined $opt->{t} && $opt->{t} == 0 ? (class => 'optselected') : (), 'New';
+                a_ href => '?'.query_encode({%$opt,t=>1}), defined $opt->{t} && $opt->{t} == 1 ? (class => 'optselected') : (), 'Approved';
+                a_ href => '?'.query_encode({%$opt,t=>2}), defined $opt->{t} && $opt->{t} == 2 ? (class => 'optselected') : (), 'Deleted';
             };
             my $unused = 0;
             section_ class => 'drmlist', sub {
@@ -47,9 +47,9 @@ TUWF::get '/r/drm', sub {
                 h2_ !$d->{c_ref} && !$unused++ ? (id => 'unused') : (), sub {
                     span_ class => 'strikethrough', $d->{name} if $d->{state} == 2;
                     txt_ $d->{name} if $d->{state} != 2;
-                    a_ href => '/r?f='.tuwf->compile({advsearch => 'r'})->validate(['drm','=',$d->{name}])->data->query_encode, " ($d->{c_ref})";
+                    a_ href => '/r?f='.tuwf->compile({advsearch => 'r'})->validate(['drm','=',$d->{name}])->data->enc_query, " ($d->{c_ref})";
                     b_ ' (new)' if $d->{state} == 0;
-                    a_ href => "/r/drm/edit/$d->{id}?ref=".uri_escape(query_encode(%$opt)), ' edit' if auth->permDbmod;
+                    a_ href => "/r/drm/edit/$d->{id}?ref=".uri_escape(query_encode($opt)), ' edit' if auth->permDbmod;
                 };
                 my @prop = grep $d->{$_}, keys %DRM_PROPERTY;
                 p_ sub {
@@ -66,7 +66,7 @@ TUWF::get '/r/drm', sub {
             } for @$lst;
             p_ class => 'center', sub {
                 txt_ "$missing unused DRM type(s) not shown. ";
-                a_ href => '?'.query_encode(%$opt,u=>1).'#unused', 'Show all';
+                a_ href => '?'.query_encode({%$opt,u=>1}).'#unused', 'Show all';
             } if $missing;
         };
     };

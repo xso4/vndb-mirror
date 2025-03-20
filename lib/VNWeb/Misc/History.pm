@@ -54,7 +54,7 @@ sub tablebox_ {
 
     my($lst, $np) = fetch $id, $filt, \%opt;
 
-    my sub url { '?'.query_encode %$filt, p => $_ }
+    my sub url { '?'.query_encode({%$filt, p => $_}) }
 
     paginate_ \&url, $filt->{p}, $np, 't' unless $opt{nopage};
     article_ class => 'browse history overflow-hack', sub {

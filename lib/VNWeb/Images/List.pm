@@ -181,7 +181,7 @@ TUWF::get qr{/img/list}, sub {
          }->{$opt->{s}}, ', i.id'
     );
 
-    my sub url { '?'.query_encode %$opt, @_ }
+    my sub url { '?'.query_encode({%$opt, @_}) }
 
     my $title = $u ? 'Images flagged by '.user_displayname($u) : 'Image browser';
 

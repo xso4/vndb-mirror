@@ -67,6 +67,7 @@ package VNWeb::TableOpts;
 use v5.36;
 use Carp 'croak';
 use Exporter 'import';
+use TUWF;
 use FU::XMLWriter ':html5_';
 use VNWeb::Auth;
 use VNWeb::HTML ();
@@ -164,7 +165,8 @@ sub fixup {
     $obj
 }
 
-sub query_encode { _enc $_[0][0] }
+sub TO_QUERY { _enc $_[0][0] }
+sub enc_query { _enc $_[0][0] }
 
 sub view  { $views[$_[0][0] & 3] || $views[$_[0][1]{views}[0]] }
 sub rows  { shift->view eq 'rows'  }
@@ -263,7 +265,7 @@ sub widget_ {
         vis     => [ map +{ id => $_->{vis_id}, name => $_->{name} }, grep defined $_->{vis_id}, values $o->{col_order}->@* ],
     }), sub {
         li_ class => 'hidden', sub {
-            input_ type => 'hidden', name => 's', value => $self->query_encode;
+            input_ type => 'hidden', name => 's', value => $self->enc_query;
         };
         li_ sub {
             a_ href => $url->(s => $self->view_param($_)),

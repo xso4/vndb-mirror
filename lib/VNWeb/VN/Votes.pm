@@ -6,7 +6,7 @@ use VNWeb::Prelude;
 sub listing_ {
     my($opt, $count, $lst) = @_;
 
-    my sub url { '?'.query_encode %$opt, @_ }
+    my sub url { '?'.query_encode({%$opt, @_}) }
     paginate_ \&url, $opt->{p}, [ $count, 50 ], 't';
     article_ class => 'browse votelist', sub {
         table_ class => 'stripe', sub {

@@ -110,7 +110,7 @@ sub posts_ {
 
     return noresults_ if !@$posts;
 
-    my sub url { '?'.query_encode %$filt, @_ }
+    my sub url { '?'.query_encode({%$filt, @_}) }
     paginate_ \&url, $filt->{p}, $np, 't';
     article_ class => 'browse postsearch', sub {
         table_ class => 'stripe', sub {
@@ -159,7 +159,7 @@ sub threads_ {
         where    => $where,
         results  => 50,
         page     => $filt->{p},
-        paginate => sub { '?'.query_encode %$filt, @_ };
+        paginate => sub { '?'.query_encode({%$filt, @_}) };
 }
 
 

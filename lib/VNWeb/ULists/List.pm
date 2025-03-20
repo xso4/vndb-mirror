@@ -26,9 +26,9 @@ sub opt {
     my sub load { my $o = $u->{"ulist_$_[0]"}; ($o && eval { JSON::XS->new->decode($o) } or {})->%* };
 
     state $s_default  = tuwf->compile({ tableopts => $TABLEOPTS })->validate(undef)->data;
-    state $s_vnlist   = $s_default->sort_param(title => 'a')->vis_param(qw/label vote added started finished/)->query_encode;
-    state $s_votes    = $s_default->sort_param(voted => 'd')->vis_param(qw/vote voted/)->query_encode;
-    state $s_wishlist = $s_default->sort_param(title => 'a')->vis_param(qw/label added/)->query_encode;
+    state $s_vnlist   = $s_default->sort_param(title => 'a')->vis_param(qw/label vote added started finished/)->enc_query;
+    state $s_votes    = $s_default->sort_param(voted => 'd')->vis_param(qw/vote voted/)->enc_query;
+    state $s_wishlist = $s_default->sort_param(title => 'a')->vis_param(qw/label added/)->enc_query;
     state @all = (mul => 0, p => 1, f => '', q => tuwf->compile({ searchquery => 1 })->validate(undef)->data);
 
     my $opt =
@@ -283,7 +283,7 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
     $_->{delete} = undef for @$labels;
 
     my($opt, $opt_labels) = opt $u, $labels;
-    my sub url { '?'.query_encode %$opt, @_ }
+    my sub url { '?'.query_encode({%$opt, @_}) }
 
     # This page has 3 user tabs: list, wish and votes; Select the appropriate active tab based on label filters.
     my $num_core_labels = grep $_ < 10, keys %$opt_labels;
@@ -300,7 +300,7 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
         my $empty = !grep $_->{count}, @$labels;
         form_ method => 'POST', id => 'savedefaultfrm', action => "/u/ulist-savedefault", sub {
             input_ type => 'hidden', name => 'opts', value => JSON::XS->new->encode($SAVED_OPTS->analyze->coerce_for_json(
-                { l => $opt->{l}, mul => $opt->{mul}, s => $opt->{s}->query_encode(), f => $opt->{f}->query_encode() },
+                { l => $opt->{l}, mul => $opt->{mul}, s => $opt->{s}->enc_query(), f => $opt->{f}->enc_query() },
             ));
         } if !$empty && $own;
         form_ method => 'get', sub {

@@ -10,7 +10,7 @@ elm_api 'AdvSearchSave' => undef, {
     query => {},
 }, sub {
     my($d) = @_;
-    my $q = tuwf->compile({ advsearch => $d->{qtype} })->validate($d->{query})->data->query_encode;
+    my $q = tuwf->compile({ advsearch => $d->{qtype} })->validate($d->{query})->data->enc_query;
     tuwf->dbExeci(
         'INSERT INTO saved_queries', { uid => auth->uid, qtype => $d->{qtype}, name => $d->{name}, query => $q },
         'ON CONFLICT (uid, qtype, name) DO UPDATE SET query =', \$q

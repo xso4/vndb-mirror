@@ -231,7 +231,7 @@ TUWF::get '/v/quotes', sub {
     );
     enrich_merge id => sql('SELECT id, vote FROM quotes_votes WHERE uid =', \auth->uid, 'AND id IN'), $lst if auth;
 
-    my sub url { '?'.query_encode %$opt, @_ }
+    my sub url { '?'.query_encode({%$opt, @_}) }
 
     framework_ title => 'Quotes browser', sub {
         article_ sub {

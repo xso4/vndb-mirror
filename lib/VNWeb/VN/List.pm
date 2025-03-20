@@ -169,7 +169,7 @@ sub len_ {
 sub listing_ {
     my($opt, $list, $count, $tagscore, $labels, $own) = @_;
 
-    my sub url { '?'.query_encode %$opt, @_ }
+    my sub url { '?'.query_encode({%$opt, @_}) }
 
     paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 't', $opt->{s};
 
@@ -381,7 +381,7 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
             );
             tuwf->compile({ advsearch => 'v' })->validate(@q > 1 ? ['and',@q] : @q)->data;
         };
-        return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode(%$opt, fil => undef, rfil => undef, cfil => undef, f => $q), 'perm') if $q;
+        return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode({%$opt, fil => undef, rfil => undef, cfil => undef, f => $q}), 'perm') if $q;
     }
 
     $opt->{f} = advsearch_default 'v' if !$opt->{f}{query} && !defined tuwf->reqGet('f');

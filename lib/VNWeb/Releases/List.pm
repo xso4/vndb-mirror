@@ -8,7 +8,7 @@ use VNWeb::Releases::Lib;
 
 sub listing_ {
     my($opt, $list, $count) = @_;
-    my sub url { '?'.query_encode %$opt, @_ }
+    my sub url { '?'.query_encode({%$opt, @_}) }
     paginate_ \&url, $opt->{p}, [$count, 50], 't';
     article_ class => 'browse', sub {
         table_ class => 'stripe releases', sub {
@@ -46,7 +46,7 @@ TUWF::get qr{/r}, sub {
         my $q = eval {
             tuwf->compile({ advsearch => 'r' })->validate(filter_release_adv filter_parse r => $opt->{fil})->data;
         };
-        return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode(%$opt, fil => undef, f => $q), 'perm') if $q;
+        return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode({%$opt, fil => undef, f => $q}), 'perm') if $q;
     }
 
     $opt->{f} = advsearch_default 'r' if !$opt->{f}{query} && !defined tuwf->reqGet('f');

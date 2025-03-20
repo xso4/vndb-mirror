@@ -920,12 +920,12 @@ sub elm_ {
 }
 
 
-sub query_encode {
-    my($self) = @_;
+sub TO_QUERY($self) {
     return '' if !$self->{query};
-    $self->{query_encode} //= _enc_query $self->compact_json;
-    $self->{query_encode};
+    $self->{enc_query} //= _enc_query $self->compact_json;
 }
+
+*enc_query = \&TO_QUERY;
 
 
 sub extract_searchquery {

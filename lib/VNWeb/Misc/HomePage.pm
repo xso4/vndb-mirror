@@ -206,8 +206,8 @@ sub releases_ {
     my($lst, $filt, $released) = @_;
 
     h1_ sub {
-        a_ href => '/r?f='.$filt->query_encode().';o=a;s=released', 'Upcoming Releases' if !$released;
-        a_ href => '/r?f='.$filt->query_encode().';o=d;s=released', 'Just Released' if $released;
+        a_ href => '/r?f='.$filt->enc_query().';o=a;s=released', 'Upcoming Releases' if !$released;
+        a_ href => '/r?f='.$filt->enc_query().';o=d;s=released', 'Just Released' if $released;
     };
     ul_ sub {
         li_ sub {

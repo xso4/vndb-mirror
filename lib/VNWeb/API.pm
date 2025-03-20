@@ -307,14 +307,14 @@ sub api_query {
             results => $results,
             more => $more?\1:\0,
             $req->{count} ? (count => $count) : (),
-            $req->{compact_filters} ? (compact_filters => $req->{filters}->query_encode) : (),
+            $req->{compact_filters} ? (compact_filters => $req->{filters}->enc_query) : (),
             $req->{normalized_filters} ? (normalized_filters => $req->{filters}->json) : (),
             $req->{time} ? (time => int(1000*(time() - tuwf->req->{throttle_start}))) : (),
         });
         cors;
         count_request(scalar @$results, sprintf '[%s] {%s %s r%dp%d%s%s} %s', fmt_fields($req->{fields}),
             $req->{sort}, lc($order), $req->{results}, $req->{page}, $req->{count}?'c':'', $req->{user}?" $req->{user}":'',
-            $req->{filters}->query_encode()||'-');
+            $req->{filters}->enc_query()||'-');
     };
 }
 

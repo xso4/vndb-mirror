@@ -738,8 +738,8 @@ our $REVISION = [
     extlinks => 'External links',
     fmt => sub {
         my $l = $LINKS{$_->{site}};
-        TUWF::func::txt_($l->{label}.': ');
-        TUWF::func::a_(href => sprintf($l->{fmt}, $_->{value}), $_->{value});
+        FU::XMLWriter::txt_($l->{label}.': ');
+        FU::XMLWriter::a_(href => sprintf($l->{fmt}, $_->{value}), $_->{value});
     },
 ];
 
