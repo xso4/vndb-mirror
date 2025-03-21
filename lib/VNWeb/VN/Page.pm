@@ -671,6 +671,7 @@ sub staff_cols_ {
                 } for sort { $a->{title}[1] cmp $b->{title}[1] } $roles{$_}->@*;
             }
         ], grep $roles{$_}, keys %CREDIT_TYPE;
+    utf8::decode($_->[2]) for @boxes;
 
     # Step 2. Assign boxes to columns for 2 to 4 column layouts,
     # efficiently packing the boxes to use the least vertical space,

@@ -89,7 +89,9 @@ TUWF::get qr{/report/(?<object>[vrpcsdgitwu]$RE{num})(?:\.(?<subid>$RE{num}))?},
                 p_ "Sorry, you can only submit $reportsperday reports per day. If you wish to report more, you can do so by sending an email to ".config->{admin_email}
             }
         } else {
-            div_ widget(Report => $FORM, { elm_empty($FORM)->%*, %$obj, loggedin => !!auth, title => fragment sub { obj_ $obj } }), '';
+            my $title = fragment sub { obj_ $obj };
+            utf8::decode($title);
+            div_ widget(Report => $FORM, { elm_empty($FORM)->%*, %$obj, loggedin => !!auth, title => $title }), '';
         }
     };
 };
