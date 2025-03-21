@@ -5,13 +5,12 @@
 
 use v5.36;
 use autodie;
-use DBI;
-use DBD::Pg;
+use FU::Pg;
 
-my $db = DBI->connect('dbi:Pg:dbname=vndb', 'vndb', undef, { RaiseError => 1 });
+my $db = FU::Pg->connect('dbname=vndb user=vndb');
 
 sub ids($l) { join ',', map "'$_'", @$l }
-sub idq($q) { ids $db->selectcol_arrayref($q) }
+sub idq($q) { ids $db->q($q)->flat }
 
 chdir($ENV{VNDB_VAR}//'var');
 
@@ -37,12 +36,12 @@ my $characters = $large ? 'SELECT id FROM chars' : idq(
    ."UNION "
    ."SELECT DISTINCT h.main FROM chars_vns_hist e JOIN changes c ON c.id = e.chid JOIN chars_hist h ON h.chid = e.chid WHERE e.vid IN($vids) AND h.main IS NOT NULL"
 );
-my $imageids = !$large && $db->selectcol_arrayref("
+my $imageids = !$large && $db->q("
          SELECT image FROM chars_hist           ch JOIN changes c ON c.id = ch.chid WHERE c.itemid IN($characters) AND ch.image IS NOT NULL
    UNION SELECT image FROM vn_hist              vh JOIN changes c ON c.id = vh.chid WHERE c.itemid IN($vids) AND vh.image IS NOT NULL
    UNION SELECT scr   FROM vn_screenshots_hist  vs JOIN changes c ON c.id = vs.chid WHERE c.itemid IN($vids)
    UNION SELECT img   FROM releases_images_hist ri JOIN changes c ON c.id = ri.chid WHERE c.itemid IN($releases)
-");
+")->flat;
 my $images = $large ? 'SELECT id FROM images' : ids($imageids);
 
 
@@ -51,11 +50,7 @@ my $images = $large ? 'SELECT id FROM images' : ids($imageids);
 sub copy($dest, $sql ||= "SELECT * FROM $dest", $specials ||= {}) {
     warn "$dest...\n";
 
-    my @cols = do {
-        my $s = $db->prepare($sql);
-        $s->execute();
-        grep !($specials->{$_} && $specials->{$_} eq 'del'), @{$s->{NAME}}
-    };
+    my @cols = grep !($specials->{$_} && $specials->{$_} eq 'del'), map $_->{name}, $db->q($sql)->columns->@*;
 
     printf "COPY %s (%s) FROM stdin;\n", $dest, join ', ', @cols;
 
@@ -64,9 +59,9 @@ sub copy($dest, $sql ||= "SELECT * FROM $dest", $specials ||= {}) {
         $s eq 'user' ? "CASE WHEN vndbid_num($_) % 10 = 0 THEN NULL ELSE vndbid('u', vndbid_num($_) % 10) END AS $_" : $_;
     } @cols) . " FROM ($sql) AS x";
     #warn $sql;
-    $db->do("COPY ($sql) TO STDOUT");
+    my $c = $db->copy("COPY ($sql) TO STDOUT");
     my $v;
-    print $v while $db->pg_getcopydata($v) >= 0;
+    print $v while ($v = $c->read);
     print "\\.\n\n";
 }
 
@@ -78,8 +73,10 @@ sub copy_entry($tables, $ids) {
     for(@$tables) {
         my $add = '';
         $add = " AND vid IN($vids)" if /^releases_vn/ || /^vn_relations/ || /^chars_vns/;
-        copy $_          => "SELECT *   FROM $_ WHERE id IN($ids) $add";
-        copy "${_}_hist" => "SELECT x.* FROM ${_}_hist x JOIN changes c ON c.id = x.chid WHERE c.itemid IN($ids) $add";
+        my %spec = ();
+        $spec{prod} = 'del' if /^staff(?:_hist)?$/;
+        copy $_          => "SELECT *   FROM $_ WHERE id IN($ids) $add", \%spec;
+        copy "${_}_hist" => "SELECT x.* FROM ${_}_hist x JOIN changes c ON c.id = x.chid WHERE c.itemid IN($ids) $add", \%spec;
     }
 }
 
@@ -97,10 +94,10 @@ sub copy_entry($tables, $ids) {
     print "\\i sql/editfunc.sql\n";
 
     # Copy over all sequence values
-    my @seq = sort @{ $db->selectcol_arrayref(
+    my @seq = sort $db->q(
         "SELECT oid::regclass::text FROM pg_class WHERE relkind = 'S' AND relnamespace = 'public'::regnamespace"
-    ) };
-    printf "SELECT setval('%s', %d);\n", $_, $db->selectrow_array('SELECT nextval(?)', {}, $_) for @seq;
+    )->flat->@*;
+    printf "SELECT setval('%s', %d);\n", $_, $db->q('SELECT nextval($1::text)', $_)->val for @seq;
 
     # A few pre-defined users
     # This password is 'hunter2' with the default salt
@@ -129,8 +126,9 @@ sub copy_entry($tables, $ids) {
     copy 'wikidata';
 
     copy extlinks => "SELECT id, site, c_ref, value FROM extlinks WHERE id IN(
-             SELECT link FROM releases_extlinks_hist re JOIN changes c ON c.id = re.chid WHERE c.itemid IN($releases)
-       UNION SELECT link FROM staff_extlinks_hist    se JOIN changes c ON c.id = se.chid WHERE c.itemid IN($staff)
+             SELECT link FROM releases_extlinks_hist  re JOIN changes c ON c.id = re.chid WHERE c.itemid IN($releases)
+       UNION SELECT link FROM staff_extlinks_hist     se JOIN changes c ON c.id = se.chid WHERE c.itemid IN($staff)
+       UNION SELECT link FROM producers_extlinks_hist pe JOIN changes c ON c.id = pe.chid WHERE c.itemid IN($producers)
     )";
 
     # Image metadata
