@@ -31,7 +31,9 @@ TUWF::get qr{/$RE{uid}\.css}, sub {
     return tuwf->resDenied if !($u->{pubskin_can} && $u->{pubskin_enabled}) && !(auth && auth->uid eq $u->{id});
     tuwf->resHeader('Content-type', 'text/css; charset=UTF8');
     tuwf->resHeader('Cache-Control', 'max-age=31536000'); # invalidation is done by adding a checksum to the URL.
-    lit_ _sanitize_css $u->{customcss};
+    my $body = _sanitize_css $u->{customcss};
+    utf8::encode($body);
+    tuwf->resBinary($body, 'auto');
 };
 
 1;
