@@ -19,7 +19,7 @@ js_api AdvSearchSave => {
 
 
 js_api AdvSearchDel => {
-    name  => { type => 'array', minlength => 1, values => { default => '', length => [1,50] } },
+    name  => { minlength => 1, elems => { default => '', length => [1,50] } },
     qtype => { enum => \%VNWeb::AdvSearch::FIELDS },
 }, sub($d) {
     tuwf->dbExeci('DELETE FROM saved_queries WHERE uid =', \auth->uid, 'AND qtype =', \$d->{qtype}, 'AND name IN', $d->{name});

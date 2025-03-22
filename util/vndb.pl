@@ -1,17 +1,13 @@
 #!/usr/bin/perl
 
 use v5.36;
-use Cwd 'abs_path';
-use JSON::XS;
-use TUWF;
-use Time::HiRes 'time';
+use FU -spawn;
 use FU::XMLWriter ':html5_';
-
-$|=1; # Disable buffering on STDOUT, otherwise vndb-dev-server.pl won't pick up our readyness notification.
+use DBI;
+use Cwd 'abs_path';
 
 # Force the pure-perl AnyEvent backend; More lightweight and we don't need the
-# performance of EV. Fixes an issue with subprocess spawning under TUWF's
-# built-in web server that I haven't been able to track down.
+# performance of EV.
 BEGIN { $ENV{PERL_ANYEVENT_MODEL} = 'Perl'; }
 
 our $ROOT;
@@ -26,82 +22,74 @@ use VNWeb::TitlePrefs ();
 use VNWeb::TimeZone ();
 
 $ENV{TZ} = 'UTC';
-TUWF::set %{ config->{tuwf} };
-TUWF::set import_modules => 0;
-TUWF::set db_login => sub {
-    DBI->connect(config->{tuwf}{db_login}->@*, { PrintError => 0, RaiseError => 1, AutoCommit => 0, pg_enable_utf8 => 1, ReadOnly => 1 })
-} if config->{read_only};
+FU::debug 1 if config->{debug};
+FU::debug_info(config->{fu_debug_path}, config->{var_path}.'/tmp');
+
+FU::Log::set_file(config->{logfile}) if config->{logfile};
+FU::Log::set_fmt(sub($msg) {
+    FU::Log::default_fmt($msg,
+        fu->{auth} ? auth->uid : '-',
+        fu->path && fu->method ? fu->method.' '.fu->path.(fu->query?'?'.fu->query:'') : '[global]',
+    );
+});
 
 
-TUWF::hook before => sub {
+
+# We're still using DBI for now.
+my $DB;
+sub FU::obj::dbh {
+    $DB ||= DBI->connect(config->{tuwf}{db_login}->@*, { PrintError => 0, RaiseError => 1, AutoCommit => 0, pg_enable_utf8 => 1 });
+    fu->{in_txn} = 1;
+    $DB;
+}
+FU::after_request {
+    if (fu->{in_txn}) {
+        my $e = $FU::REQ->{trace_exn};
+        if ($e && !(ref $e eq 'FU::err' && $e->[0] <= 200)) { $DB->rollback; }
+        else { $DB->commit }
+    }
+};
+
+
+
+FU::before_request {
     return if VNWeb::Validation::is_api;
 
     # Serve static files from www/
-    if(tuwf->resFile(config->{var_path}.'/www', tuwf->reqPath)) {
-        tuwf->resHeader('Cache-Control' => 'max-age=86400');
-        tuwf->done;
-    }
+    fu->set_header('cache-control', 'max-age=86400');
+    fu->send_file(config->{var_path}.'/www', fu->path);
 
     # If we're running standalone, serve static/ too.
-    if(tuwf->{_TUWF}{http} && (
-            tuwf->resFile(config->{var_path}.'/static', tuwf->reqPath) ||
-            tuwf->resFile(config->{gen_path}.'/static', tuwf->reqPath) ||
-            tuwf->resFile("$ROOT/static", tuwf->reqPath)
-    )) {
-        tuwf->resHeader('Cache-Control' => 'max-age=31536000');
-        tuwf->done;
+    if(!$FU::REQ->{fcgi}) {
+        fu->send_file(config->{var_path}.'/static', fu->path);
+        fu->send_file(config->{gen_path}.'/static', fu->path);
+        fu->send_file("$ROOT/static", fu->path);
     }
+    fu->reset;
 
     # Load the 'moe' schema if we're in moe mode
-    tuwf->dbExeci('SET search_path TO moe, public') if config->{moe};
+    fu->dbExeci('SET search_path TO moe, public') if config->{moe};
 
     # Use a 'SameSite=Strict' cookie to determine whether this page was loaded from internal or external.
     # Ought to be more reliable than checking the Referer header, but it's unfortunately a bit uglier.
-    tuwf->resCookie(samesite => 1, httponly => 1, samesite => 'Strict')
-        if !VNWeb::Validation::samesite && !tuwf->reqHeader('sec-fetch-site');
-
-    tuwf->req->{trace_start} = time if config->{trace_log};
+    fu->set_cookie(config->{cookie_prefix}.'samesite' => 1, config->{cookie_defaults}->%*, httponly => 1, samesite => 'Strict')
+        if !VNWeb::Validation::samesite && !fu->header('sec-fetch-site');
 } if config->{api} ne 'only';
 
 
 # Provide a default /robots.txt
-TUWF::get '/robots.txt', sub {
-    tuwf->resHeader('Content-Type' => 'text/plain');
-    tuwf->resBinary("User-agent: *\nDisallow: /\n");
+FU::get '/robots.txt', sub {
+    fu->set_header('content-type', 'text/plain');
+    fu->set_body("User-agent: *\nDisallow: /\n");
 };
 
 
-TUWF::set error_400_handler => sub {
+FU::on_error 400 => sub {
     return eval { VNWeb::API::err(400, 'Invalid request (most likely: invalid JSON or non-UTF8 data).') } if VNWeb::Validation::is_api;
-    TUWF::_error_400();
+    fu->_error_page(400, '400 - Bad Request', 'The server was not happy with your offer.');
 };
 
-TUWF::set error_404_handler => sub {
-    return eval { VNWeb::API::err(404, 'Not found.') } if VNWeb::Validation::is_api;
-    tuwf->resStatus(404);
-    VNWeb::HTML::framework_ title => 'Page Not Found', noindex => 1, sub {
-        article_ sub {
-            h1_ 'Page not found';
-            div_ class => 'warning', sub {
-                h2_ 'Oops!';
-                p_ sub {
-                    txt_ 'It seems the page you were looking for does not exist,';
-                    br_;
-                    txt_ 'you may want to try using the menu on your left to find what you are looking for.';
-                };
-            }
-        }
-    }
-};
-
-TUWF::set error_500_handler => sub {
-    return eval { VNWeb::API::err(500, 'Internal server error. Can be temporary, but usually points to a server bug.') } if VNWeb::Validation::is_api;
-    TUWF::_error_500();
-};
-
-
-sub TUWF::Object::resDenied {
-    tuwf->resStatus(403);
+FU::on_error 403 => sub {
     VNWeb::HTML::framework_ title => 'Access Denied', noindex => 1, sub {
         article_ sub {
             h1_ 'Access Denied';
@@ -124,51 +112,36 @@ sub TUWF::Object::resDenied {
             }
         }
     }
-}
+};
 
-
-# Intercept TUWF::any() to figure out which module is processing the request.
-# Used by VNWeb::HTML::framework_ and trace logging.
-{
-    no warnings 'redefine';
-    my $f = \&TUWF::any;
-    *TUWF::any = sub($meth, $path, $sub) {
-        my $i = 0;
-        my $loc = ['',0];
-        while(my($pack, undef, $line, undef, undef, undef, undef, $is_require) = caller($i++)) {
-            last if $is_require;
-            $loc = [$pack,$line];
+FU::on_error 404 => sub {
+    return eval { VNWeb::API::err(404, 'Not found.') } if VNWeb::Validation::is_api;
+    fu->status(404);
+    VNWeb::HTML::framework_ title => 'Page Not Found', noindex => 1, sub {
+        article_ sub {
+            h1_ 'Page not found';
+            div_ class => 'warning', sub {
+                h2_ 'Oops!';
+                p_ sub {
+                    txt_ 'It seems the page you were looking for does not exist,';
+                    br_;
+                    txt_ 'you may want to try using the menu on your left to find what you are looking for.';
+                };
+            }
         }
-        $f->($meth, $path, sub { tuwf->req->{trace_loc} = $loc; $sub->(@_) });
-    };
-}
+    }
+};
+
+FU::on_error 500 => sub {
+    return eval { VNWeb::API::err(500, 'Internal server error. Can be temporary, but usually points to a server bug.') } if VNWeb::Validation::is_api;
+    FU::_err_500;
+};
+
 
 if(config->{api} eq 'only') {
     require VNWeb::API;
 } else {
-    TUWF::load_recursive('VNWeb');
+    require $_ =~ s{^\Q$ROOT\E/lib/}{}r for (glob("$ROOT/lib/VNWeb/*.pm"), glob("$ROOT/lib/VNWeb/*/*.pm"));
 }
 
-TUWF::hook after => sub {
-    return if rand() > config->{trace_log} || !tuwf->req->{trace_start};
-    my $sqlt = List::Util::sum(map $_->[2], tuwf->{_TUWF}{DB}{queries}->@*);
-    my %js = (
-        (map +("$_.js",1), keys tuwf->req->{js}->%*),
-        (map +($_,1), keys tuwf->req->{pagevars}{widget}->%*),
-    );
-    tuwf->dbExeci('INSERT INTO trace_log', {
-        method    => tuwf->reqMethod(),
-        path      => tuwf->reqPath(),
-        query     => tuwf->reqQuery(),
-        module    => tuwf->req->{trace_loc}[0],
-        line      => tuwf->req->{trace_loc}[1],
-        sql_num   => scalar grep($_->[0] ne 'ping/rollback' && $_->[0] ne 'commit', tuwf->{_TUWF}{DB}{queries}->@*),
-        sql_time  => $sqlt,
-        perl_time => time() - tuwf->req->{trace_start},
-        has_txn   => VNWeb::DB::sql('txid_current_if_assigned() IS NOT NULL'),
-        loggedin  => auth?1:0,
-        js        => '{'.join(',', sort keys %js).'}'
-    });
-} if config->{trace_log};
-
-TUWF::run;
+FU::run;

@@ -17,7 +17,7 @@ my $FORM = form_compile any => {
     poll   => { default => undef, type => 'hash', keys => {
         question    => { sl => 1, maxlength => 100 },
         max_options => { uint => 1, min => 1, max => 20 },
-        options     => { type => 'array', values => { sl => 1, maxlength => 100 }, minlength => 2, maxlength => 20 },
+        options     => { elems => { sl => 1, maxlength => 100 }, minlength => 2, maxlength => 20 },
     } },
 
     can_mod       => { anybool => 1 },

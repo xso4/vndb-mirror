@@ -233,7 +233,7 @@ sub vis_param {
 
 my $FORM_OUT = form_compile any => {
     save    => { default => undef },
-    views   => { type => 'array', values => { uint => 1 } },
+    views   => { elems => { uint => 1 } },
     value   => { uint => 1 },
     default => { uint => 1 },
     usaved  => { uint => 1, default => undef },

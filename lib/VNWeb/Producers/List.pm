@@ -29,9 +29,8 @@ TUWF::get qr{/p(?:/(?<char>all|[a-z0]))?}, sub {
         p => { upage => 1 },
         q => { searchquery => 1 },
         f => { advsearch_err => 'p' },
-        ch=> { onerror => [], type => 'array', scalar => 1, values => { onerror => undef, enum => ['0', 'a'..'z'] } },
+        ch=> { onerror => undef, accept_array => 'first', enum => ['0', 'a'..'z'] },
     )->data;
-    $opt->{ch} = $opt->{ch}[0];
 
     # compat with old URLs
     my $oldch = tuwf->capture('char');

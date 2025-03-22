@@ -14,7 +14,7 @@ our @EXPORT = qw/js_api/;
 # It should return a string on error or a hash on success.
 sub js_api {
     my($endpoint, $schema, $fun) = @_;
-    $schema = tuwf->compile({ type => 'hash', keys => $schema }) if ref $schema eq 'HASH';
+    $schema = FU::Validate->compile({ keys => $schema }) if ref $schema eq 'HASH';
 
     TUWF::post qr{/js/\Q$endpoint\E\.json} => sub {
         my $data = tuwf->validate(json => $schema);

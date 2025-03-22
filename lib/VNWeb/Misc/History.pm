@@ -107,13 +107,13 @@ sub filters_ {
 
     state $schema = tuwf->compile({ type => 'hash', keys => {
         # Types
-        t => { type => 'array', scalar => 1, onerror => [map $_->[0], @types], values => { enum => [(map $_->[0], @types), 'a'] } },
+        t => { accept_scalar => 1, onerror => [map $_->[0], @types], elems => { enum => [(map $_->[0], @types), 'a'] } },
         m => { onerror => undef, enum => [ 0, 1 ] }, # Automated edits
         h => { onerror => 0, enum => [ -2..1 ] }, # Item status (the numbers dont make sense)
         e => { onerror => 0, enum => [ -1..1 ] }, # Existing/new items
         r => { onerror => 0, enum => [ 0, 1 ] },  # Include releases
         p => { page => 1 },
-        (map +("cf$_" => { onerror => [], type => 'array', scalar => 1, values => { enum => [0..$#{$CHFLAGS{$_}}] } }), keys %CHFLAGS)
+        (map +("cf$_" => { onerror => [], accept_scalar => 1, elems => { enum => [0..$#{$CHFLAGS{$_}}] } }), keys %CHFLAGS)
     }});
     my $filt = tuwf->validate(get => $schema)->data;
 

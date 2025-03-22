@@ -6,7 +6,7 @@ use AnyEvent::Util;
 
 
 # Fetch info about an image
-my $OUT = tuwf->compile({ type => 'hash', keys => $IMGSCHEMA});
+my $OUT = form_compile $IMGSCHEMA;
 
 js_api 'Image', { id => { vndbid => [qw/ch cv sf/] } }, sub {
     my $r = {id=>$_[0]{id}};

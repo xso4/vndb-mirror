@@ -138,7 +138,7 @@ TUWF::get qr{/img/list}, sub {
     # TODO filters: sexual / violence?
     my $opt = tuwf->validate(get =>
         s  => { onerror => 'date', enum => [qw/ weight sdev vdev date diff/] },
-        t  => { onerror => [], scalar => 1, type => 'array', values => { enum => [qw/ ch cv sf /] } },
+        t  => { onerror => [], accept_scalar => 1, elems => { enum => [qw/ ch cv sf /] } },
         m  => { onerror => 0, range => [0,10] },
         d  => { onerror => 0, range => [0,10000] },
         u  => { onerror => '', vndbid => 'u' },

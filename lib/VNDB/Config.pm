@@ -5,9 +5,9 @@ use Exporter 'import';
 use Cwd 'abs_path';
 our @EXPORT = ('config');
 
-my $ROOT = ($INC{'VNDB/Config.pm'} =~ s{lib/VNDB/Config\.pm$}{}r =~ s{/$}{}r) || '.';
-my $GEN = abs_path($ENV{VNDB_GEN} // "$ROOT/gen");
-my $VAR = abs_path($ENV{VNDB_VAR} // "$ROOT/var");
+our $ROOT = ($INC{'VNDB/Config.pm'} =~ s{lib/VNDB/Config\.pm$}{}r =~ s{/$}{}r) || '.';
+our $GEN = abs_path($ENV{VNDB_GEN} // "$ROOT/gen");
+our $VAR = abs_path($ENV{VNDB_VAR} // "$ROOT/var");
 $ROOT = abs_path $ROOT;
 
 # Default config options
@@ -19,8 +19,10 @@ my $config = {
 
     tuwf => {
         db_login      => [ 'dbi:Pg:dbname=vndb', 'vndb_site', undef ],
-        cookie_prefix => 'vndb_',
     },
+    fu_debug_path     => '/fu-debug',
+    cookie_prefix     => 'vndb_',
+    cookie_defaults   => {},
 
     skin_default      => 'angel',
     moe               => 0, # vndb.moe mode
@@ -70,9 +72,10 @@ sub config {
         $c->{root} = $ROOT;
         $c->{Multi}{Core}{log_level} ||= 'debug';
         $c->{Multi}{Core}{log_dir}   ||= $VAR.'/log';
+
+        $c->{$_} = $c->{tuwf}{$_} for qw/debug logfile cookie_prefix cookie_defaults mail_sendmail/;
         $c
     };
-    $config_merged
 }
 
 1;

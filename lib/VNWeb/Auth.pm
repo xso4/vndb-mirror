@@ -19,7 +19,7 @@
 package VNWeb::Auth;
 
 use v5.36;
-use TUWF;
+use FU;
 use Exporter 'import';
 
 use Carp 'croak';
@@ -36,7 +36,7 @@ use VNWeb::DB;
 our @EXPORT = ('auth');
 
 sub auth {
-    tuwf->req->{auth} ||= do {
+    fu->{auth} ||= do {
         my $auth = __PACKAGE__->new();
         if(config->{read_only} || config->{moe}) {
             # Account functionality disabled in read-only or moe mode.
@@ -44,26 +44,18 @@ sub auth {
         # API requests have two authentication methods:
         # - If the origin equals the site, use the same Cookie auth as the rest of the site (handy for userscripts)
         # - Otherwise, a custom token-based auth, but this hasn't been implemented yet
-        } elsif(VNWeb::Validation::is_api() && (tuwf->reqHeader('Origin')//'_') ne config->{url}) {
+        } elsif(VNWeb::Validation::is_api() && (fu->header('origin')//'_') ne config->{url}) {
             # XXX: User prefs and permissions are not loaded in this case - they're not used.
-            $auth->_load_api2(tuwf->reqHeader('authorization'));
+            $auth->_load_api2(fu->header('authorization'));
 
         } else {
-            my $cookie = tuwf->reqCookie('auth')||'';
+            my $cookie = fu->cookie(config->{cookie_prefix}.'auth' => { accept_array => 'first', onerror => '' });
             my($uid, $token_e) = $cookie =~ /^([a-fA-F0-9]{40})\.?u?(\d+)$/ ? ('u'.$2, sha1_hex pack 'H*', $1) : (0, '');
             $auth->_load_session($uid, $token_e);
         }
         $auth
     };
 }
-
-
-# log user IDs (necessary for determining performance issues, user preferences
-# have a lot of influence in this)
-TUWF::set log_format => sub {
-    my(undef, $uri, $msg) = @_;
-    sprintf "[%s UTC] %s %s: %s\n", strftime('%Y-%m-%d %H:%M:%S', gmtime), $uri, tuwf->req && tuwf->req->{auth} ? auth->uid : '-', $msg;
-};
 
 
 
@@ -122,7 +114,7 @@ sub _preparepass {
 sub _encpass {
     my($self, $uid, $pass) = @_;
 
-    my $args = tuwf->dbVali('SELECT user_getscryptargs(id) FROM users WHERE id =', \$uid);
+    my $args = fu->dbVali('SELECT user_getscryptargs(id) FROM users WHERE id =', \$uid);
     return undef if !$args || length($args) != 14;
 
     my($N, $r, $p, $salt) = unpack 'NCCa8', $args;
@@ -137,15 +129,15 @@ sub _create_session {
 
     my $token = urandom 20;
     my $token_db = sha1_hex $token;
-    return 0 if !tuwf->dbVali('SELECT ',
+    return 0 if !fu->dbVali('SELECT ',
         sql_func(user_login => \$uid, \'web', sql_fromhex($encpass), sql_fromhex $token_db)
     );
 
     if($pretend) {
-        tuwf->dbExeci('SELECT', sql_func user_logout => \$uid, sql_fromhex $token_db);
+        fu->dbExeci('SELECT', sql_func user_logout => \$uid, sql_fromhex $token_db);
         return 1;
     } else {
-        tuwf->resCookie(auth => unpack('H*', $token).'.'.$uid, httponly => 1, expires => time + 31536000);
+        fu->set_cookie(config->{cookie_prefix}.auth => unpack('H*', $token).'.'.$uid, config->{cookie_defaults}->%*, httponly => 1, expires => time + 31536000);
         return $self->_load_session($uid, $token_db) ? 1 : $token_db;
     }
 }
@@ -154,7 +146,7 @@ sub _create_session {
 sub _load_session {
     my($self, $uid, $token_db) = @_;
 
-    my $user = $uid ? tuwf->dbRowi(
+    my $user = $uid ? fu->dbRowi(
         'SELECT ', sql_user(), ',', sql_comma(@pref_columns, map "perm_$_", @perms), '
            FROM users u
            JOIN users_shadow us ON us.id = u.id
@@ -165,7 +157,7 @@ sub _load_session {
     ) : {};
 
     # Drop the cookie if it's not valid
-    tuwf->resCookie(auth => undef) if !$user->{user_id} && tuwf->reqCookie('auth');
+    fu->set_cookie(config->{cookie_prefix}.'auth' => '', 'max-age' => 0) if !$user->{user_id} && fu->cookie(config->{cookie_prefix}.'auth');
 
     $self->{user}  = $user;
     $self->{token} = $token_db;
@@ -198,7 +190,7 @@ sub login {
 sub logout {
     my $self = shift;
     return if !$self->uid;
-    tuwf->dbExeci('SELECT', sql_func user_logout => \$self->uid, sql_fromhex $self->{token});
+    fu->dbExeci('SELECT', sql_func user_logout => \$self->uid, sql_fromhex $self->{token});
     $self->_load_session();
 }
 
@@ -214,7 +206,7 @@ sub wasteTime {
 sub resetpass {
     my(undef, $mail) = @_;
     my $token = unpack 'H*', urandom(20);
-    my $u = tuwf->dbRowi(
+    my $u = fu->dbRowi(
         'SELECT uid, mail FROM', sql_func(user_resetpass => \$mail, sql_fromhex sha1_hex lc $token), 'x(uid, mail)'
     );
     return $u->{uid} ? ($u->{uid}, $u->{mail}, $token) : ();
@@ -224,7 +216,7 @@ sub resetpass {
 # Checks if the password reset token is valid
 sub isvalidtoken {
     my(undef, $uid, $token) = @_;
-    tuwf->dbVali('SELECT', sql_func(user_validate_session => \$uid, sql_fromhex(sha1_hex lc $token), \'pass'), 'IS DISTINCT FROM NULL');
+    fu->dbVali('SELECT', sql_func(user_validate_session => \$uid, sql_fromhex(sha1_hex lc $token), \'pass'), 'IS DISTINCT FROM NULL');
 }
 
 
@@ -240,7 +232,7 @@ sub setpass {
     return 0 if !$code;
 
     my $encpass = $self->_preparepass($newpass);
-    return 0 if !tuwf->dbVali(
+    return 0 if !fu->dbVali(
         select => sql_func user_setpass => \$uid, sql_fromhex($code), sql_fromhex($encpass)
     );
     $self->_create_session($uid, $encpass);
@@ -250,14 +242,14 @@ sub setpass {
 sub setmail_token {
     my($self, $mail) = @_;
     my $token = unpack 'H*', urandom(20);
-    tuwf->dbExeci(select => sql_func user_setmail_token => \$self->uid, sql_fromhex($self->token), sql_fromhex(sha1_hex lc $token), \$mail);
+    fu->dbExeci(select => sql_func user_setmail_token => \$self->uid, sql_fromhex($self->token), sql_fromhex(sha1_hex lc $token), \$mail);
     $token;
 }
 
 
 sub setmail_confirm {
     my(undef, $uid, $token) = @_;
-    tuwf->dbVali(select => sql_func user_setmail_confirm => \$uid, sql_fromhex sha1_hex lc $token);
+    fu->dbVali(select => sql_func user_setmail_confirm => \$uid, sql_fromhex sha1_hex lc $token);
 }
 
 
@@ -272,7 +264,7 @@ sub csrftoken {
     encode_base64url substr sha1(sprintf 'p=%s;k=%s;s=%s;t=%d;',
         $purpose||'',                           # Purpose
         $self->{csrf_key} || 'csrf-token',      # Server secret
-        $self->{token} || norm_ip(tuwf->reqIP), # User secret
+        $self->{token} || norm_ip(fu->ip),      # User secret
         (time/3600)+($hour_offset||0)           # Time limitation
     ), 0, 6
 }
@@ -299,7 +291,7 @@ sub pref {
 # Arguments: $vndbid, $num||[@nums]||<missing>
 sub notiRead {
     my($self, $id, $num) = @_;
-    tuwf->dbExeci('
+    fu->dbExeci('
         UPDATE notifications SET read = NOW() WHERE read IS NULL AND uid =', \$self->uid, 'AND iid =', \$id,
         @_ == 2 ? () : !defined $num ? 'AND num IS NULL' : !ref $num ? sql 'AND num =', \$num : sql 'AND num IN', $num
     ) if $self->uid;
@@ -309,7 +301,7 @@ sub notiRead {
 # Add an entry to the audit log.
 sub audit {
     my($self, $affected_uid, $action, $detail) = @_;
-    tuwf->dbExeci('INSERT INTO audit_log', {
+    fu->dbExeci('INSERT INTO audit_log', {
         by_uid  => $self->uid(),
         by_name => $self->{user}{user_name},
         by_ip   => VNWeb::Validation::ipinfo(),
@@ -356,7 +348,7 @@ sub _load_api2 {
     my $token_enc = $1;
     return VNWeb::API::err(401, 'Invalid token format.') if length($token_enc =~ s/-//rg) != 32 || !length(my $token = _api2_decode $token_enc);
     my $uid = _api2_get_uid $token;
-    my $user = tuwf->dbRowi(
+    my $user = fu->dbRowi(
         'SELECT ', sql_user(), ', x.listread, x.listwrite
            FROM users u, users_shadow us, ', sql_func(user_validate_session => \$uid, sql_fromhex($token), \'api2'), 'x
           WHERE u.id = ', \$uid, 'AND x.uid = u.id AND us.id = u.id AND us.delete_at IS NULL'
@@ -370,7 +362,7 @@ sub _load_api2 {
 sub api2_tokens {
     my($self, $uid) = @_;
 	return [] if !$self;
-	my $r = tuwf->dbAlli("
+	my $r = fu->dbAlli("
         SELECT coalesce(notes, '') AS notes, listread, listwrite, added::date,", sql_tohex('token'), "AS token
              , (CASE WHEN expires = added THEN '' ELSE expires::date::text END) AS lastused
           FROM", sql_func(user_api2_tokens => \$uid, \$self->uid, sql_fromhex($self->{token})), '
@@ -383,7 +375,7 @@ sub api2_set_token {
     my($self, $uid, %o) = @_;
     return if !auth;
     my $token = $o{token} ? _api2_decode($o{token}) : _api2_gen_token($uid);
-    tuwf->dbExeci(select => sql_func user_api2_set_token => \$uid, \$self->uid, sql_fromhex($self->{token}),
+    fu->dbExeci(select => sql_func user_api2_set_token => \$uid, \$self->uid, sql_fromhex($self->{token}),
         sql_fromhex($token), \$o{notes}, \($o{listread}//0), \($o{listwrite}//0));
     _api2_encode($token);
 }
@@ -391,7 +383,7 @@ sub api2_set_token {
 sub api2_del_token {
     my($self, $uid, $token) = @_;
     return if !$self;
-    tuwf->dbExeci(select => sql_func user_api2_del_token => \$uid, \$self->uid, sql_fromhex($self->{token}), sql_fromhex(_api2_decode($token)));
+    fu->dbExeci(select => sql_func user_api2_del_token => \$uid, \$self->uid, sql_fromhex($self->{token}), sql_fromhex(_api2_decode($token)));
 }
 
 

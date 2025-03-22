@@ -4,7 +4,7 @@ use VNWeb::Prelude;
 
 
 js_api VN => {
-    search => { type => 'array', values => { searchquery => 1 } },
+    search => { elems => { searchquery => 1 } },
     hidden => { anybool => 1 },
 }, sub {
     my($data) = @_;

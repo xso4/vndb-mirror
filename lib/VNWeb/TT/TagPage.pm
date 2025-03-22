@@ -69,12 +69,10 @@ sub vns_ {
         p => { upage => 1 },
         f => { advsearch_err => 'v' },
         s => { tableopts => $TABLEOPTS },
-        m => { onerror => [auth->pref('spoilers')||0], type => 'array', scalar => 1, minlength => 1, values => { enum => [0..2] } },
-        l => { onerror => [''], type => 'array', scalar => 1, minlength => 1, values => { anybool => 1 } },
+        m => { onerror => auth->pref('spoilers')||0, accept_array => 'first', enum => [0..2] },
+        l => { accept_array => 'first', anybool => 1 },
         fil => { onerror => '' },
     )->data;
-    $opt->{m} = $opt->{m}[0];
-    $opt->{l} = $opt->{l}[0];
 
     # URL compatibility with old filters
     if(!$opt->{f}->{query} && $opt->{fil}) {

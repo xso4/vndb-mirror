@@ -9,7 +9,7 @@ use VNWeb::Releases::Lib;
 my $TABLEOPTS = VNWeb::VN::List::TABLEOPTS('ulist');
 
 my %SAVED_OPTS = (
-    l   => { onerror => [], type => 'array', scalar => 1, values => { int => 1, range => [-1,1600] } },
+    l   => { onerror => [], accept_scalar => 1, elems => { int => 1, range => [-1,1600] } },
     mul => { anybool => 1 },
     s   => { onerror => '' }, # TableOpts query string
     f   => { onerror => '' }, # AdvSearch
@@ -39,14 +39,13 @@ sub opt {
         # Full options
         tuwf->validate(get =>
             p => { upage => 1 },
-            ch=> { onerror => [], type => 'array', scalar => 1, values => { onerror => undef, enum => ['0', 'a'..'z'] } },
+            ch=> { accept_array => 'first', onerror => undef, enum => ['0', 'a'..'z'] },
             q => { searchquery => 1 },
             %SAVED_OPTS,
             # Compat for old URLs
             o => { onerror => undef, enum => ['a', 'd'] },
-            c => { onerror => undef, type => 'array', scalar => 1, values => { enum => [qw[ label vote voted added modified started finished rel rating ]] } },
+            c => { onerror => undef, accept_scalar => 1, elems => { enum => [qw[ label vote voted added modified started finished rel rating ]] } },
         )->data;
-    $opt->{ch} = $opt->{ch}[0];
 
     $opt->{s} .= "/$opt->{o}" if $opt->{o};
     $opt->{s} = tuwf->compile({ tableopts => $TABLEOPTS })->validate($opt->{s})->data;

@@ -104,7 +104,7 @@ sub count_request {
 
 sub api_get {
     my($path, $schema, $sub) = @_;
-    my $s = tuwf->compile({ type => 'hash', keys => $schema });
+    my $s = FU::Validate->compile({ keys => $schema });
     TUWF::get qr{/api/kana\Q$path}, sub {
         check_throttle;
         my $res = $sub->();
@@ -130,7 +130,7 @@ sub api_del {
 sub api_patch {
     my($path, $req_schema, $sub) = @_;
     $req_schema->{$_}{missing} = 'ignore' for keys $req_schema->%*;
-    my $s = tuwf->compile({ type => 'hash', unknown => 'reject', keys => $req_schema });
+    my $s = FU::Validate->compile({ unknown => 'reject', keys => $req_schema });
     TUWF::patch qr{/api/kana$path}, sub {
         check_throttle;
         my $req = tuwf->validate(json => $s);
@@ -235,18 +235,18 @@ sub api_query {
     $OBJS{$path} = \%opt;
 
     my %sort = ($opt{sort}->@*, $opt{search} ? (searchrank => 'sc.score !o, sc.id, sc.subid') : ());
-    my $req_schema = tuwf->compile({ type => 'hash', unknown => 'reject', keys => {
+    my $req_schema = FU::Validate->compile({ unknown => 'reject', keys => {
         filters  => { advsearch => $opt{filters} },
         fields   => { default => {}, func => sub { parse_fields($opt{fields}, $_[0]) } },
         sort     => { default => $opt{sort}[0], enum => [ keys %sort ] },
-        reverse  => { default => 0, jsonbool => 1 },
+        reverse  => { default => 0, bool => 1 },
         results  => { default => 10, uint => 1, range => [0,100] },
         page     => { default => 1, uint => 1, range => [1,1e6] },
-        count    => { default => 0, jsonbool => 1 },
+        count    => { default => 0, bool => 1 },
         user     => { default => undef, vndbid => 'u' },
-        time     => { default => 0, jsonbool => 1 },
-        compact_filters    => { default => 0, jsonbool => 1 },
-        normalized_filters => { default => 0, jsonbool => 1 },
+        time     => { default => 0, bool => 1 },
+        compact_filters    => { default => 0, bool => 1 },
+        normalized_filters => { default => 0, bool => 1 },
     }});
 
     TUWF::post qr{/api/kana\Q$path}, sub {
@@ -525,7 +525,7 @@ api_get '/authinfo', {}, sub {
 
 api_get '/user', {}, sub {
     my $data = tuwf->validate(get =>
-        q      => { type => 'array', scalar => 1, maxlength => 100, values => {} },
+        q      => { accept_scalar => 1, maxlength => 100, elems => {} },
         fields => { fields => ['lengthvotes', 'lengthvotes_sum'] },
     );
     err 400, 'Invalid argument' if !$data;
@@ -572,9 +572,9 @@ api_patch qr{/ulist/$RE{vid}}, {
     notes        => { default => '', maxlength => 2000 },
     started      => { caldate => 1 },
     finished     => { caldate => 1 },
-    labels       => { default => [], type => 'array', values => { uint => 1, range => [1,1600] } },
-    labels_set   => { default => [], type => 'array', values => { uint => 1, range => [1,1600] } },
-    labels_unset => { default => [], type => 'array', values => { uint => 1, range => [1,1600] } },
+    labels       => { default => [], elems => { uint => 1, range => [1,1600] } },
+    labels_set   => { default => [], elems => { uint => 1, range => [1,1600] } },
+    labels_unset => { default => [], elems => { uint => 1, range => [1,1600] } },
 }, sub {
     my($upd) = @_;
     my $vid = tuwf->capture('id');

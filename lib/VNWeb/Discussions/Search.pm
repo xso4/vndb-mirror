@@ -10,7 +10,7 @@ sub filters_ {
     state $schema = tuwf->compile({ type => 'hash', keys => {
         bq => { default => '' },
         uq => { default => '' },
-        b  => { type => 'array', scalar => 1, onerror => \@BOARDS, values => { enum => \@BOARDS } },
+        b  => { accept_scalar => 1, onerror => \@BOARDS, elems => { enum => \@BOARDS } },
         t  => { anybool => 1 },
         p  => { page => 1 },
     }});

@@ -71,7 +71,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
         img       => { vndbid => 'cv' },
         itype     => { enum => \%RELEASE_IMAGE_TYPE },
         vid       => { vndbid => 'v', default => undef },
-        lang      => { default => [], type => 'array', unique => 1, sort => 'str', values => { enum => \%LANGUAGE } },
+        lang      => { default => [], unique => 1, sort => 'str', elems => { enum => \%LANGUAGE } },
         photo     => { anybool => 1 },
         nfo       => { _when => 'out', type => 'hash', keys => $IMGSCHEMA },
     } },

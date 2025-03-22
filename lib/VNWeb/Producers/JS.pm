@@ -3,7 +3,7 @@ package VNWeb::Producers::JS;
 use VNWeb::Prelude;
 
 js_api Producers => {
-    search => { type => 'array', values => { searchquery => 1 } },
+    search => { elems => { searchquery => 1 } },
 }, sub {
     my($data) = @_;
     my @q = grep $_, $data->{search}->@*;

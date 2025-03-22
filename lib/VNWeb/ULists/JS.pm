@@ -146,7 +146,7 @@ js_api UListDel => { vid => { vndbid => 'v' } }, sub {
 
 js_api UListLabelEdit => {
     vid => { vndbid => 'v' },
-    labels => { type => 'array', values => { uint => 1 } }
+    labels => { elems => { uint => 1 } }
 }, sub($data) {
     return tuwf->resDenied if !auth;
     # BUG: This should probably check whether the label exists, but APIv2 has the same bug. *shrug*

@@ -15,8 +15,8 @@ our $RELSCHEMA = {
     rtype     => {},
     reso_x    => { uint => 1 },
     reso_y    => { uint => 1 },
-    lang      => { type => 'array', values => {} },
-    platforms => { type => 'array', values => {} },
+    lang      => { elems => {} },
+    platforms => { elems => {} },
 };
 
 

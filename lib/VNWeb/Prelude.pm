@@ -3,7 +3,7 @@
 #  use v5.36;
 #  use utf8;
 #
-#  use TUWF;
+#  use FU;
 #  use FU::Util 'query_encode';
 #  use FU::XMLWriter @html5_tags, 'fragment';
 #  use Exporter 'import';
@@ -35,7 +35,7 @@ use feature ':5.36';
 use utf8;
 use VNWeb::Auth;
 use VNWeb::DB;
-use TUWF;
+use FU;
 
 # Only export a subset of ':html5_' functions to avoid bloating symbol tables too much.
 our @html5_tags = qw/
@@ -57,7 +57,7 @@ sub import {
     die $@ if !eval <<"    EOM;";
     package $c;
 
-    use TUWF;
+    use FU;
     use FU::Util 'query_encode';
     use FU::XMLWriter \@VNWeb::Prelude::html5_tags, qw/tag_ txt_ lit_ fragment/;
     use Exporter 'import';
@@ -82,6 +82,7 @@ sub import {
 
     no strict 'refs';
     *{$c.'::dbobj'} = \&dbobj;
+    *{$c.'::tuwf'} = \&fu;
 }
 
 

@@ -65,7 +65,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
 
     editsum    => { editsum => 1 },
     releases   => { _when => 'out', aoh => $RELSCHEMA },
-    reltitles  => { _when => 'out', type => 'array', values => {} },
+    reltitles  => { _when => 'out', elems => {} },
     chars      => { _when => 'out', aoh => {
         id       => { vndbid => 'c' },
         title    => {},

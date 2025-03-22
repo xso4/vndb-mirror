@@ -85,11 +85,10 @@ TUWF::get qr{/c(?:/(?<char>all|[a-z0]))?}, sub {
         q => { searchquery => 1 },
         p => { upage => 1 },
         f => { advsearch_err => 'c' },
-        ch=> { onerror => [], type => 'array', scalar => 1, values => { onerror => undef, enum => ['0', 'a'..'z'] } },
+        ch=> { onerror => undef, accept_array => 'first', enum => ['0', 'a'..'z'] },
         fil=>{ onerror => '' },
         s => { tableopts => $TABLEOPTS },
     )->data;
-    $opt->{ch} = $opt->{ch}[0];
 
     # compat with old URLs
     my $oldch = tuwf->capture('char');

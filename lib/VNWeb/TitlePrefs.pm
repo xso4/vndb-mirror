@@ -1,7 +1,7 @@
 package VNWeb::TitlePrefs;
 
 use v5.36;
-use TUWF;
+use FU;
 use VNDB::Types;
 use VNWeb::Auth;
 use VNWeb::DB;
@@ -78,10 +78,9 @@ sub titleprefs_fmt {
 
 
 # This validation only covers half of the titleprefs, i.e. just the main or alternative title.
-TUWF::set('custom_validations')->{titleprefs} = {
-    type => 'array',
+$FU::Validate::default_validations{titleprefs} = {
     maxlength => 5,
-    values => { type => 'hash', keys => {
+    elems => { keys => {
         lang     => { default => undef, enum => \%LANGUAGE }, # undef referring to the original title language
         latin    => { anybool => 1 },
         official => { undefbool => 1 },
@@ -122,7 +121,7 @@ our $DEFAULT_TITLE_PREFS = [
     [ { lang => undef, latin => '', official => undef } ],
 ];
 
-sub pref { tuwf->req->{titleprefs} //= !is_api() && titleprefs_parse(auth->pref('titles')) }
+sub pref { fu->{titleprefs} //= !is_api() && titleprefs_parse(auth->pref('titles')) }
 
 
 # Returns the preferred title array given an array of (vn|releases)_titles-like
@@ -201,17 +200,17 @@ sub gen_sql {
 }
 
 
-sub vnt :prototype()          { tuwf->req->{titleprefs_v} //= pref ? gen_sql 1, 'vn',       'vn_titles',       'id' : 'vnt'       }
-sub releasest :prototype()    { tuwf->req->{titleprefs_r} //= pref ? gen_sql 0, 'releases', 'releases_titles', 'id' : 'releasest' }
-sub producerst :prototype()   { tuwf->req->{titleprefs_p} //= pref ? sql 'producerst(',   \tuwf->req->{auth}{user}{titles}, ')' : 'producerst' }
-sub charst :prototype()       { tuwf->req->{titleprefs_c} //= pref ? sql 'charst(',       \tuwf->req->{auth}{user}{titles}, ')' : 'charst' }
-sub staff_aliast :prototype() { tuwf->req->{titleprefs_s} //= pref ? sql 'staff_aliast(', \tuwf->req->{auth}{user}{titles}, ')' : 'staff_aliast' }
+sub vnt :prototype()          { fu->{titleprefs_v} //= pref ? gen_sql 1, 'vn',       'vn_titles',       'id' : 'vnt'       }
+sub releasest :prototype()    { fu->{titleprefs_r} //= pref ? gen_sql 0, 'releases', 'releases_titles', 'id' : 'releasest' }
+sub producerst :prototype()   { fu->{titleprefs_p} //= pref ? sql 'producerst(',   \fu->{auth}{user}{titles}, ')' : 'producerst' }
+sub charst :prototype()       { fu->{titleprefs_c} //= pref ? sql 'charst(',       \fu->{auth}{user}{titles}, ')' : 'charst' }
+sub staff_aliast :prototype() { fu->{titleprefs_s} //= pref ? sql 'staff_aliast(', \fu->{auth}{user}{titles}, ')' : 'staff_aliast' }
 
 # (Not currently used)
 #sub vnt_hist { gen_sql 1, 'vn_hist', 'vn_titles_hist', 'chid' }
 #sub releasest_hist { gen_sql 0, 'releases_hist', 'releases_titles_hist', 'chid' }
 
 # Wrapper around SQL's item_info() with the user's preference applied.
-sub item_info { sql 'item_info(', \((tuwf->req->{auth} && tuwf->req->{auth}{user}{titles}) || undef), ',', $_[0], ',', $_[1], ')' }
+sub item_info { sql 'item_info(', \((fu->{auth} && fu->{auth}{user}{titles}) || undef), ',', $_[0], ',', $_[1], ')' }
 
 1;

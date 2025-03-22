@@ -354,7 +354,7 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
         sq=> { searchquery => 1 },
         p => { upage => 1 },
         f => { advsearch_err => 'v' },
-        ch=> { onerror => [], type => 'array', scalar => 1, values => { onerror => undef, enum => ['0', 'a'..'z'] } },
+        ch=> { accept_array => 'first', onerror => undef, enum => ['0', 'a'..'z'] },
         fil  => { onerror => '' },
         rfil => { onerror => '' },
         cfil => { onerror => '' },
@@ -362,7 +362,6 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
     $opt->{q} = $opt->{sq} if !$opt->{q};
     $opt->{s} = tuwf->validate(get => s => { tableopts => $opt->{q} ? $TABLEOPTS_Q : $TABLEOPTS })->data;
     $opt->{s} = $opt->{s}->sort_param(qscore => 'a') if $opt->{q} && tuwf->reqGet('sb');
-    $opt->{ch} = $opt->{ch}[0];
 
     # compat with old URLs
     my $oldch = tuwf->capture('char');
