@@ -3,6 +3,18 @@ const lblicon = (n, l) => m('abbr', {
     title: l
 });
 
+/* Potentially slow and measures with the global body font (which the DS selection thing happens to use as well) */
+const textwidth = s => {
+    let div = document.createElement('div');
+    div.style = 'position: absolute; top: 0; right: 0; visibility: hidden; white-space: nowrap';
+    div.innerText = s;
+    document.body.appendChild(div);
+    const w = div.clientWidth;
+    document.body.removeChild(div);
+    return w;
+};
+
+
 let widgetParent;
 let widgetCur;
 
@@ -38,7 +50,10 @@ const statusRender = obj =>
     ];
 
 
+let maxlabelwidth = null;
+
 const labelRender = (obj, empty='- select label -', icons=1) => {
+    if (maxlabelwidth === null) maxlabelwidth = Math.max(...pageVars.labels.map(l => textwidth(l[1])));
     const set = (id,c) => {
         if (!obj.labels) obj.labels = [];
         // Unset progress labels when setting another one.
@@ -60,7 +75,9 @@ const labelRender = (obj, empty='- select label -', icons=1) => {
             l.id > 0 ? l.lbl : [l.lbl, m('small', ' (new label)')],
         ],
     }, {
-        width: 300, placeholder: 'Add label...',
+        width: maxlabelwidth < 100 ? 150 : maxlabelwidth < 150 ? 200 : maxlabelwidth < 200 ? 250 : maxlabelwidth < 250 ? 300 : 400,
+        maxCols: pageVars.labels.length > 20 ? 3 : pageVars.labels.length > 10 ? 2 : 1,
+        placeholder: 'Add label...',
         checked: l => obj.labels && obj.labels.includes(l.id),
         onselect: (l,c) => {
             // Adding a new label is tricky business, need to prevent further interaction while loading.
