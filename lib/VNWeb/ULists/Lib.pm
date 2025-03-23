@@ -4,7 +4,11 @@ use VNWeb::Prelude;
 use VNWeb::Releases::Lib 'releases_by_vn';
 use Exporter 'import';
 
-our @EXPORT = qw/ulists_priv ulist_filtlabels enrich_ulists_widget ulists_widget_ ulists_widget_full_data/;
+our @EXPORT = qw/
+    ulists_priv ulist_filtlabels
+    enrich_ulists_widget ulists_rlist_counts_ ulists_widget_
+    ulists_widget_full_data
+/;
 
 # Can we see private stuff on this user's list?
 # Only used to determine whether we can *view* private stuff on the list, editing is still restricted to the currently logged-in user.
@@ -51,6 +55,16 @@ sub enrich_ulists_widget {
     }, @_ if auth;
 }
 
+
+sub ulists_rlist_counts_($v) {
+    return if !$v->{rels};
+    my $obtained = grep $_->{status} == 2, $v->{rels}->@*;
+    my $total = $v->{rels}->@*;
+    span_ class => $obtained == $total ? 'done' : $obtained < $total ? 'todo' : undef,
+    $total ? sprintf ' %d/%d', $obtained, $total : '';
+}
+
+
 sub ulists_widget_($v) {
     span_ widget(UListWidget => {
         vid    => $v->{id},
@@ -59,12 +73,7 @@ sub ulists_widget_($v) {
         my $img = !$v->{on_vnlist} ? 'add' :
             (reverse sort map "l$_", grep $_ >= 1 && $_ <= 6, $v->{vnlist_labels}->@*)[0] || 'unknown';
         abbr_ class => "icon-list-$img ulist-widget-icon", '';
-        if ($v->{rels}) {
-            my $obtained = grep $_->{status} == 2, $v->{rels}->@*;
-            my $total = $v->{rels}->@*;
-            span_ class => $obtained == $total ? 'done' : $obtained < $total ? 'todo' : undef,
-                $total ? sprintf ' %d/%d', $obtained, $total : '';
-        }
+        ulists_rlist_counts_ $v;
     } if auth && exists $v->{vnlist_labels};
 }
 

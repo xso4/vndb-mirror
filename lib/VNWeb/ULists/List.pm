@@ -115,7 +115,10 @@ sub filters_ {
 sub vn_ {
     my($own, $priv, $opt, $n, $v, $labels) = @_;
     tr_ $own ? (id => "ulist_vid_$v->{id}") : (), sub {
-        td_ class => 'tc_ulist', sub { ulists_widget_ $v } if $own;
+        td_ class => 'tc_ulist', sub {
+            ulists_rlist_counts_ $v if !$own;
+            ulists_widget_ $v if $own;
+        };
         td_ class => 'tc_voted', $v->{vote_date} ? fmtdate $v->{vote_date}, 'compact' : '-' if $opt->{s}->vis('voted');
 
         td_ class => 'tc_vote', !$own ? () : (
@@ -224,7 +227,7 @@ sub listing_ {
     article_ class => 'browse ulist', sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub {
-                td_ class => 'tc_ulist', '' if $own;
+                td_ class => 'tc_ulist', '';
                 td_ class => 'tc_voted',    sub { txt_ 'Vote date';   sortable_ 'voted',    $opt, $url } if $opt->{s}->vis('voted');
                 td_ class => 'tc_vote',     sub { txt_ 'Vote';        sortable_ 'vote',     $opt, $url } if $opt->{s}->vis('vote');
                 td_ class => 'tc_pop',      sub { txt_ 'Popularity';  sortable_ 'popularity', $opt, $url } if $opt->{s}->vis('popularity');
