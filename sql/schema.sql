@@ -1231,6 +1231,8 @@ CREATE TABLE ulist_labels ( -- User labels assigned to visual novels
   id       smallint NOT NULL, -- [pub] 0 < builtin < 10 <= custom, ids are reused
   private  boolean NOT NULL,
   label    text NOT NULL, -- [pub]
+  -- The constraint on the number of custom labels was added later on, a few people had exceeded it already...
+  CONSTRAINT ulist_labels_id_max CHECK(id < 256 OR uid IN('u87924', 'u177161', 'u179798', 'u240920')),
   PRIMARY KEY(uid, id)
 );
 

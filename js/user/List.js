@@ -68,7 +68,7 @@ const labelRender = (obj, empty='- select label -', icons=1) => {
             pageVars.labels.filter(l => l[0] !== 7 && l[1].toLowerCase().includes(str.toLowerCase()))
             .anySort(([id,lbl]) => str && !lbl.toLowerCase().startsWith(str.toLowerCase()))
             .map(([id,lbl]) => ({id,lbl}))
-            .concat(!str || pageVars.labels.find(l => l[1].toLowerCase() == str.toLowerCase()) ? [] : [{id:-1, lbl: str}])
+            .concat(!str || pageVars.labels.length >= 250 || pageVars.labels.find(l => l[1].toLowerCase() == str.toLowerCase()) ? [] : [{id:-1, lbl: str}])
         ),
         view: l => [
             l.id >= 1 && l.id <= 6 ? lblicon(l.id, l.lbl) : null, ' ',

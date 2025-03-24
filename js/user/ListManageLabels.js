@@ -54,7 +54,7 @@ widget('UListManageLabels', () => {
                     m('p.invalid', 'You have duplicate labels'),
                 )) : null,
                 m('tr', m('td'), m('td[colspan=3]',
-                    labels.length < 500 ? m('button[type=button]', {
+                    labels.length < 250 ? m('button[type=button]', {
                         onclick: () => labels.push({
                             id: Math.min(0, ...labels.map(l => l.id))-1,
                             private: !labels.find(l => !l.private),
