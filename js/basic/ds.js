@@ -27,18 +27,20 @@ const position = () => {
 
     const margin = 5;
 
+    const winwidth = document.documentElement.clientWidth; // Document dimensions excluding scrollbars
+    const winheight = document.documentElement.clientHeight;
     const inst = activeInstance;
     const opener = inst.opener.getBoundingClientRect(); // BUG: this doesn't work if ev.target is inside a positioned element
     const header = obj.children[0].getBoundingClientRect().height;
-    const cols = Math.max(1, Math.min(Math.floor((window.innerWidth - margin*2) / inst.width), inst.maxCols||1));
-    const width = Math.min(window.innerWidth - margin*2, inst.width*cols);
+    const cols = Math.max(1, Math.min(Math.floor((winwidth - margin*2) / inst.width), inst.maxCols||1));
+    const width = Math.min(winwidth - margin*2, inst.width*cols);
     const left = Math.max(margin,
         opener.x + opener.width - width,
-        Math.min(window.innerWidth - width - 2*margin, opener.x),
+        Math.min(winwidth - width - 2*margin, opener.x),
     );
 
     const top = opener.y + opener.height;
-    const height = Math.max(header + 20, Math.min(window.innerHeight - margin*2, window.innerHeight - top - margin));
+    const height = Math.max(header + 20, Math.min(winheight - margin*2, winheight - top - margin));
 
     obj.style.top  = (top  + window.scrollY) + 'px';
     obj.style.left = (left + window.scrollX) + 'px';
