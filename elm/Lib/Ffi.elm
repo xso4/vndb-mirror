@@ -29,7 +29,3 @@ elemCall s = Browser.Dom.focus
 -- just as well?)
 fmtFloat : Float -> Int -> String
 fmtFloat _ _ = ""
-
--- Base URL for static files (e.g. "https://s.vndb.org")
-urlStatic : String
-urlStatic = ""

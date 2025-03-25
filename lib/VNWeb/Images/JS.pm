@@ -6,7 +6,7 @@ use AnyEvent::Util;
 
 
 # Fetch info about an image
-my $OUT = tuwf->compile({ type => 'hash', keys => $VNWeb::Elm::apis{ImageResult}[0]{aoh}});
+my $OUT = tuwf->compile({ type => 'hash', keys => $IMGSCHEMA});
 
 js_api 'Image', { id => { vndbid => [qw/ch cv sf/] } }, sub {
     my $r = {id=>$_[0]{id}};

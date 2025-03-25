@@ -4,25 +4,12 @@ use VNWeb::Prelude;
 use VNWeb::Images::Lib;
 
 
-my $SEND = form_compile any => {
-    images     => $VNWeb::Elm::apis{ImageResult}[0],
-    single     => { anybool => 1 },
-    warn       => { anybool => 1 },
-    mod        => { anybool => 1 },
-    my_votes   => { uint => 1 },
-    pWidth     => { uint => 1 }, # Set by JS
-    pHeight    => { uint => 1 }, # ^
-    nsfw_token => {},
-};
-
-
-sub can_vote { auth->permDbmod || (auth->permImgvote && !global_settings->{lockdown_edit}) }
+sub can_vote { !config->{read_only} && (auth->permDbmod || (auth->permImgvote && !global_settings->{lockdown_edit})) }
 
 
 # Fetch a list of images for the user to vote on.
-elm_api Images => $SEND, { excl_voted => { anybool => 1 } }, sub {
-    my($data) = @_;
-    return elm_Unauth if !can_vote;
+js_api Images => { excl_voted => { anybool => 1 } }, sub($data) {
+    return tuwf->resDenied if !can_vote;
 
     state $stats = tuwf->dbRowi('SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE c_weight > 1) AS referenced FROM images');
 
@@ -42,7 +29,7 @@ elm_api Images => $SEND, { excl_voted => { anybool => 1 } }, sub {
         ? 100 * min 1, (5000 / $stats->{referenced}) * ($stats->{total} / $stats->{referenced})
         : 100;
 
-    # NOTE: Elm assumes that, if it receives less than 30 images, we've reached
+    # NOTE: JS assumes that, if it receives less than 30 images, we've reached
     # the end of the list and will not attempt to load more.
     my $l = tuwf->dbAlli('
         SELECT id
@@ -54,45 +41,7 @@ elm_api Images => $SEND, { excl_voted => { anybool => 1 } }, sub {
     );
     warn sprintf 'Weighted random image sampling query returned %d < 30 rows for %s with a sample fraction of %f', scalar @$l, auth->uid(), $tablesample if @$l < 30;
     enrich_image 1, $l;
-    elm_ImageResult $l;
-};
-
-
-elm_api ImageVote => undef, {
-    votes => { sort_keys => 'id', aoh => {
-        id       => { vndbid => [qw/ch cv sf/] },
-        token    => {},
-        sexual   => { uint => 1, range => [0,2] },
-        violence => { uint => 1, range => [0,2] },
-        overrule => { anybool => 1 },
-    } },
-}, sub {
-    my($data) = @_;
-    return elm_Unauth if !can_vote;
-    return elm_Unauth if !validate_token $data->{votes};
-
-    # Lock the users table early to prevent deadlock with a concurrent DB edit that attempts to update c_changes.
-    tuwf->dbExeci('SELECT c_imgvotes FROM users WHERE id =', \auth->uid, 'FOR UPDATE');
-
-    # Find out if any of these images are being overruled
-    enrich_merge id => sub { sql 'SELECT id, bool_or(ignore) AS overruled FROM image_votes WHERE id IN', $_, 'GROUP BY id' }, $data->{votes};
-    enrich_merge id => sql('SELECT id, NOT ignore AS my_overrule FROM image_votes WHERE uid =', \auth->uid, 'AND id IN'),
-        grep $_->{overruled}, $data->{votes}->@* if auth->permDbmod;
-
-    for($data->{votes}->@*) {
-        $_->{overrule} = 0 if !auth->permDbmod;
-        my $d = {
-            id       => $_->{id},
-            uid      => auth->uid(),
-            sexual   => $_->{sexual},
-            violence => $_->{violence},
-            ignore   => !$_->{overrule} && !$_->{my_overrule} && $_->{overruled} ? 1 : 0,
-        };
-        tuwf->dbExeci('INSERT INTO image_votes', $d, 'ON CONFLICT (id, uid) DO UPDATE SET', $d, ', date = now()');
-        tuwf->dbExeci('UPDATE image_votes SET ignore =', \($_->{overrule}?1:0), 'WHERE uid IS DISTINCT FROM', \auth->uid, 'AND id =', \$_->{id})
-            if !$_->{overrule} != !$_->{my_overrule};
-    }
-    elm_Success
+    +{ results => $l };
 };
 
 
@@ -104,8 +53,7 @@ js_api ImageVote => {
         my_violence => { uint => 1, range => [0,2] },
         my_overrule => { anybool => 1 },
     } },
-}, sub {
-    my($data) = @_;
+}, sub($data) {
     return tuwf->resDenied if !can_vote;
     return tuwf->resDenied if !validate_token $data->{votes};
 
@@ -127,7 +75,7 @@ js_api ImageVote => {
             ignore   => !$_->{my_overrule} && !$_->{old_my_overrule} && $_->{overruled} ? 1 : 0,
         };
         tuwf->dbExeci('INSERT INTO image_votes', $d, 'ON CONFLICT (id, uid) DO UPDATE SET', $d, ', date = now()');
-        tuwf->dbExeci('UPDATE image_votes SET ignore =', \($_->{overrule}?1:0), 'WHERE uid IS DISTINCT FROM', \auth->uid, 'AND id =', \$_->{id})
+        tuwf->dbExeci('UPDATE image_votes SET ignore =', \($_->{my_overrule}?1:0), 'WHERE uid IS DISTINCT FROM', \auth->uid, 'AND id =', \$_->{id})
             if !$_->{my_overrule} != !$_->{old_my_overrule};
     }
 
@@ -136,13 +84,23 @@ js_api ImageVote => {
 };
 
 
+my $SEND = form_compile any => {
+    images     => { aoh => $IMGSCHEMA },
+    single     => { anybool => 1 },
+    warn       => { anybool => 1 },
+    mod        => { anybool => 1 },
+    my_votes   => { uint => 1 },
+    nsfw_token => {},
+};
+
+
 sub imgflag_ {
-    elm_ 'ImageFlagging', $SEND, {
+    article_ widget(ImageFlagging => $SEND, {
         my_votes   => auth ? tuwf->dbVali('SELECT c_imgvotes FROM users WHERE id =', \auth->uid) : 0,
         nsfw_token => viewset(show_nsfw => 1),
         mod        => auth->permDbmod()||0,
         @_
-    };
+    }), '';
 }
 
 

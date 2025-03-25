@@ -41,7 +41,6 @@ showResponse res =
     ProducerResult _                -> unexp
     StaffResult _                   -> unexp
     AnimeResult _                   -> unexp
-    ImageResult _                   -> unexp
     AdvSearchQuery _                -> unexp
 
 

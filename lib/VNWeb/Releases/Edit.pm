@@ -1,7 +1,7 @@
 package VNWeb::Releases::Edit;
 
 use VNWeb::Prelude;
-use VNWeb::Images::Lib 'enrich_image';
+use VNWeb::Images::Lib 'enrich_image', '$IMGSCHEMA';
 use VNWeb::Releases::Lib;
 
 
@@ -73,10 +73,10 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
         vid       => { vndbid => 'v', default => undef },
         lang      => { default => [], type => 'array', unique => 1, sort => 'str', values => { enum => \%LANGUAGE } },
         photo     => { anybool => 1 },
-        nfo       => { _when => 'out', type => 'hash', keys => $VNWeb::Elm::apis{ImageResult}[0]{aoh} },
+        nfo       => { _when => 'out', type => 'hash', keys => $IMGSCHEMA },
     } },
     supersedes => { sort_keys => 'rid', aoh => { rid => { vndbid => 'r' } } },
-    vnimages   => { _when => 'out', $VNWeb::Elm::apis{ImageResult}[0]->%* },
+    vnimages   => { _when => 'out', aoh => $IMGSCHEMA },
     vnreleases => { _when => 'out', $VNWeb::Elm::apis{Releases}[0]->%* },
     hidden     => { anybool => 1 },
     locked     => { anybool => 1 },

@@ -94,33 +94,6 @@ our %apis = (
         title    => {},
         original => { default => '' },
     } } ],
-    ImageResult => [ { aoh => { # Response to 'Images'
-        id              => { vndbid => ['ch','cv','sf'] },
-        token           => { default => undef },
-        width           => { uint => 1 },
-        height          => { uint => 1 },
-        votecount       => { uint => 1 },
-        sexual          => { uint => 1, range => [0,2] },
-        sexual_avg      => { num => 1, default => undef },
-        sexual_stddev   => { num => 1, default => undef },
-        violence        => { uint => 1, range => [0,2] },
-        violence_avg    => { num => 1, default => undef },
-        violence_stddev => { num => 1, default => undef },
-        my_sexual       => { uint => 1, default => undef },
-        my_violence     => { uint => 1, default => undef },
-        my_overrule     => { anybool => 1 },
-        entries         => { aoh => {
-            id       => {},
-            title    => {},
-        } },
-        votes           => { unique => 0, aoh => {
-            user     => {},
-            uid      => { vndbid => 'u', default => undef },
-            sexual   => { uint => 1 },
-            violence => { uint => 1 },
-            ignore   => { anybool => 1 },
-        } },
-    } } ],
 );
 # (These references to other API results cause redundant Elm code - can be deduplicated)
 $apis{AdvSearchQuery} = [ { type => 'hash', keys => { # Response to 'AdvSearchLoad'

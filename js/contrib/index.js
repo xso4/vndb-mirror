@@ -232,6 +232,7 @@ const ImageFlag = initVnode => {
 @include CharEdit.js
 @include TagEdit.js
 @include TraitEdit.js
+@include ImageFlagging.js
 @include Report.js
 
 // @license-end

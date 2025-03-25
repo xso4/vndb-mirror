@@ -1,7 +1,7 @@
 package VNWeb::Chars::Edit;
 
 use VNWeb::Prelude;
-use VNWeb::Images::Lib 'enrich_image';
+use VNWeb::Images::Lib 'enrich_image', '$IMGSCHEMA';
 use VNWeb::Releases::Lib;
 
 
@@ -29,7 +29,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     main_ref   => { _when => 'out', anybool => 1 },
     main_name  => { _when => 'out', default => '' },
     image      => { default => undef, vndbid => 'ch' },
-    image_info => { _when => 'out', default => undef, type => 'hash', keys => $VNWeb::Elm::apis{ImageResult}[0]{aoh} },
+    image_info => { _when => 'out', default => undef, type => 'hash', keys => $IMGSCHEMA },
     traits     => { sort_keys => 'id', aoh => {
         tid     => { vndbid => 'i' },
         spoil   => { uint => 1, range => [0,2] },

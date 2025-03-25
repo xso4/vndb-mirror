@@ -3,7 +3,37 @@ package VNWeb::Images::Lib;
 use VNWeb::Prelude;
 use Exporter 'import';
 
-our @EXPORT = qw/enrich_image validate_token image_flagging_display image_hidden image_ enrich_image_obj/;
+our @EXPORT = qw/$IMGSCHEMA enrich_image validate_token image_flagging_display image_hidden image_ enrich_image_obj/;
+
+
+# Schema for image flagging data.
+our $IMGSCHEMA = {
+    id              => { vndbid => ['ch','cv','sf'] },
+    token           => { default => undef },
+    width           => { uint => 1 },
+    height          => { uint => 1 },
+    votecount       => { uint => 1 },
+    sexual          => { uint => 1, range => [0,2] },
+    sexual_avg      => { num => 1, default => undef },
+    sexual_stddev   => { num => 1, default => undef },
+    violence        => { uint => 1, range => [0,2] },
+    violence_avg    => { num => 1, default => undef },
+    violence_stddev => { num => 1, default => undef },
+    my_sexual       => { uint => 1, default => undef },
+    my_violence     => { uint => 1, default => undef },
+    my_overrule     => { anybool => 1 },
+    entries         => { aoh => {
+        id       => {},
+        title    => {},
+    } },
+    votes           => { unique => 0, aoh => {
+        user     => {},
+        uid      => { vndbid => 'u', default => undef },
+        sexual   => { uint => 1 },
+        violence => { uint => 1 },
+        ignore   => { anybool => 1 },
+    } },
+};
 
 
 my @SEX = qw/Safe Suggestive Explicit/;
@@ -18,8 +48,7 @@ sub set_verdict {
 }
 
 
-# Enrich images so that they match the format expected by the 'ImageResult' Elm
-# API response.
+# Enrich images so that they match the above $IMGSCHEMA format.
 #
 # Also adds signed tokens to the image list - indicating that the current user
 # is permitted to vote on these images. These tokens ensure that non-moderators
@@ -28,8 +57,8 @@ sub set_verdict {
 # influence the rating of a single image.
 sub enrich_image {
     my($canvote, $l) = @_;
-    $canvote ||= auth->permDbmod;
-    my $canownvote = auth->permImgvote && !global_settings->{lockdown_edit};
+    $canvote ||= !config->{read_only} && auth->permDbmod;
+    my $canownvote = !config->{read_only} && auth->permImgvote && !global_settings->{lockdown_edit};
 
     enrich_merge id => sub { sql '
       SELECT i.id, i.width, i.height, i.c_votecount AS votecount
@@ -76,7 +105,7 @@ sub enrich_image {
     for(grep defined $_->{width}, @$l) {
         set_verdict $_;
         for my $v ($_->{votes}->@*) {
-            $v->{user} = fragment sub { user_ $v }; # Easier than duplicating user_() in Elm
+            $v->{user} = fragment sub { user_ $v }; # Easier than duplicating user_() in JS
             utf8::decode($v->{user});
             delete $v->{$_} for grep /^user_/, keys %$v;
         }
