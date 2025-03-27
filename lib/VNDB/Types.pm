@@ -34,6 +34,7 @@ hash LANGUAGE =>
     eo       => { latin => 1, rank => 0, txt => 'Esperanto' },
     fi       => { latin => 1, rank => 0, txt => 'Finnish' },
     fr       => { latin => 1, rank => 1, txt => 'French' },
+    gl       => { latin => 1, rank => 0, txt => 'Galician' },
     de       => { latin => 1, rank => 1, txt => 'German' },
     el       => { latin => 0, rank => 0, txt => 'Greek' },
     he       => { latin => 0, rank => 0, txt => 'Hebrew' },
