@@ -12,7 +12,7 @@ widget('DiscussionEdit', vnode => {
     const title = () => [
         m('fieldset',
             m('label[for=title]', 'Thread title'),
-            m(Input, { class: 'xw', id: 'title', data, field: 'title', maxlength: 50 }),
+            m(Input, { class: 'xw', id: 'title', data, field: 'title', required: true, maxlength: 50 }),
         ),
         data.can_mod ? check('locked', 'Locked') : null,
         data.can_mod ? check('hidden', 'Hidden') : null,
