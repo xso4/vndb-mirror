@@ -115,10 +115,11 @@ const labelRender = (obj, empty='- select label -', icons=1) => {
 const voteRender = (obj, empty) => {
     const valid = s => /^(-|[1-9]|10|[1-9]\.[0-9]|10\.0)$/.test(s);
     if (!obj._voteDs) obj._voteDs = new DS({
-        list: (src, str, cb) => cb(
-            (str ? [{id:str.replace(/\.$/, '')}] : range(1,10).reverse().map(i => ({id:i})))
-            .concat(str === '-' || !obj.vote ? [] : [{id:'-'}])
-        ),
+        list: (src, str, cb) => {
+            obj._voteDs.selId = null; /* Do not remember selection when changing input */
+            cb((str ? [{id:str.replace(/\.$/, '')}] : range(1,10).reverse().map(i => ({id:i})))
+                .concat(str === '-' || !obj.vote ? [] : [{id:'-'}]))
+        },
         view: ({id}) =>
             id === '-' ? m('em', 'Remove vote') :
             /^(10|[1-9])$/.test(id) ? id + ' (' + vndbTypes.ratings[id-1] + ')' :
