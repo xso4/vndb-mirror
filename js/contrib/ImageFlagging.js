@@ -1,8 +1,13 @@
 widget('ImageFlagging', initvnode => {
     const data = initvnode.attrs.data;
+    data.images.forEach(i => i._voted = i.my_sexual !== null);
     let img_idx = data.single ? 0 : data.images.length;
 
+    const sex = ['Safe', 'Suggestive', 'Explicit'];
+    const vio = ['Tame', 'Violent', 'Brutal'];
+
     let fullscreen = false;
+    let overlay = 0;
     let show_votes = data.single ? data.images[0].id : '';
     let excl_voted = true;
     let load_done = false;
@@ -37,7 +42,8 @@ widget('ImageFlagging', initvnode => {
         else if (!saveQueue[i.id]) {
             data.my_votes++;
             saveQueue[i.id] = i;
-            if (!data.single) load(img_idx++);
+            if (!data.single && !i._voted) load(img_idx++);
+            i._voted = true;
         }
         if (!saveTimer) saveTimer = setTimeout(saveCall, data.single ? 500 : 5000);
     };
@@ -50,15 +56,16 @@ widget('ImageFlagging', initvnode => {
             case 'ArrowLeft': if (img_idx > 0) img_idx--; break;
             case 'ArrowRight': if (!data.single) load(img_idx++); break;
             case 'v': fullscreen = !fullscreen; break;
-            case 'Escape': fullscreen = false; break;
+            case 'Escape': case 'q': fullscreen = false; break;
+            case 'o': if (++overlay > 1) overlay = 0; break;
             case '1': i.my_sexual = 0; i.my_violence = 0; save(i); break;
-            case '2': i.my_sexual = 0; i.my_violence = 1; save(i); break;
-            case '3': i.my_sexual = 0; i.my_violence = 2; save(i); break;
-            case '4': i.my_sexual = 1; i.my_violence = 0; save(i); break;
+            case '2': i.my_sexual = 1; i.my_violence = 0; save(i); break;
+            case '3': i.my_sexual = 2; i.my_violence = 0; save(i); break;
+            case '4': i.my_sexual = 0; i.my_violence = 1; save(i); break;
             case '5': i.my_sexual = 1; i.my_violence = 1; save(i); break;
-            case '6': i.my_sexual = 1; i.my_violence = 2; save(i); break;
-            case '7': i.my_sexual = 2; i.my_violence = 0; save(i); break;
-            case '8': i.my_sexual = 2; i.my_violence = 1; save(i); break;
+            case '6': i.my_sexual = 2; i.my_violence = 1; save(i); break;
+            case '7': i.my_sexual = 0; i.my_violence = 2; save(i); break;
+            case '8': i.my_sexual = 1; i.my_violence = 2; save(i); break;
             case '9': i.my_sexual = 2; i.my_violence = 2; save(i); break;
             case 's': i.my_sexual = 0; save(i); break;
             case 'd': i.my_sexual = 1; save(i); break;
@@ -90,6 +97,19 @@ widget('ImageFlagging', initvnode => {
         + ' σ '
         + dev.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFactionDigits: 2 });
 
+    const imgstats = i => [
+        i.votes.length, i.votes.length === 1 ? ' vote' : ' votes',
+        m('small', ' / '), ['safe', 'suggestive', 'explicit'][i.sexual], ': ', stat(i.sexual_avg, i.sexual_stddev),
+        m('small', ' / '), ['tame', 'violent', 'brutal'][i.violence], ': ', stat(i.violence_avg, i.violence_stddev),
+    ];
+
+    const savestate = () => m('span',
+        saveApi.error ? m('b', 'Save failed: ', saveApi.error) : [
+            m('span.spinner', { class: saveApi.loading() ? null : 'invisible' }),
+            Object.keys(saveQueue).length > 0 ? m('small', 'Unsaved votes: ', Object.keys(saveQueue).length) : null,
+        ],
+    );
+
     const img = i => [
         m('div',
             m('button[type=button]', {class: img_idx === 0 ? 'invisible' : null, onclick: () => img_idx = Math.max(0, img_idx-1) }, '««'),
@@ -108,12 +128,7 @@ widget('ImageFlagging', initvnode => {
             ),
         ),
         m('div',
-            m('span',
-                saveApi.error ? m('b', 'Save failed: ', saveApi.error) : [
-                    m('span.spinner', { class: saveApi.loading() ? null : 'invisible' }),
-                    Object.keys(saveQueue).length > 0 ? m('small', 'Unsaved votes: ', Object.keys(saveQueue).length) : null,
-                ],
-            ),
+            savestate(),
             m('span',
                 m('a[target=_blank]', { href: '/'+i.id }, i.id),
                 m('small', ' / '),
@@ -187,20 +202,25 @@ widget('ImageFlagging', initvnode => {
                 i.votes.length, i.votes.length === 1 ? ' vote' : ' votes', ', ',
                 m('a[href=#]', { onclick: ev => { ev.preventDefault(); show_votes = i.id; } }, 'show »'),
             ) : [
-                m('p.center',
-                    i.votes.length, i.votes.length === 1 ? ' vote' : ' votes',
-                    m('small', ' / '), ['safe', 'suggestive', 'explicit'][i.sexual], ': ', stat(i.sexual_avg, i.sexual_stddev),
-                    m('small', ' / '), ['tame', 'violent', 'brutal'][i.violence], ': ', stat(i.sexual_avg, i.sexual_stddev),
-                ),
+                m('p.center', imgstats(i)),
                 m('table', i.votes.map((v,n) => m('tr', {key: i.id+'-'+n, class: v.ignore ? 'ignored' : null},
                     m('td', m.trust(v.user)),
-                    m('td', ['Safe', 'Suggestive', 'Explicit'][v.sexual]),
-                    m('td', ['Tame', 'Violent', 'Brutal'][v.violence]),
+                    m('td', sex[v.sexual]),
+                    m('td', vio[v.violence]),
                     m('td', v.uid ? m('a[target=_blank]', { href: '/img/list?view='+data.nsfw_token+'&u='+v.uid }, 'votes') : null),
                 ))),
             ],
         ),
-        fullscreen ? m('div.fullscreen', { style: 'background-image: url('+imgurl(i.id)+')', onclick: () => fullscreen = false }) : null
+        fullscreen ? m('div.fullscreen', { style: 'background-image: url('+imgurl(i.id)+')', onclick: () => fullscreen = false },
+            overlay > 0 || saveApi.error || Object.keys(saveQueue).length > 30 ? savestate() : null,
+            overlay > 0 ? m('span',
+                (i.my_sexual !== null || i.my_violence !== null) ? [
+                    i.my_sexual === null ? '-' : sex[i.my_sexual], m('small', ' / '),
+                    i.my_violence === null ? '-' : vio[i.my_violence], m('br')
+                ] : null,
+                imgstats(i),
+            ) : null,
+        ) : null
     ];
 
     const view = () => [
