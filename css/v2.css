@@ -1033,7 +1033,7 @@ div#iv_view {
 .imageflag > div:nth-child(1) { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2px }
 .imageflag > div:nth-child(1) span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0px 20px }
 .imageflag > div:nth-child(2) { border: 1px solid var(--border); padding: 5px; background: #000 }
-.imageflag > div:nth-child(2) a { border: none; display: block; display: flex; display: flex; justify-content: center; align-items: center; height: 500px; height: unquote('clamp(300px, 80vh, calc(100vh - 300px))') }
+.imageflag > div:nth-child(2) a { border: none; display: block; display: flex; display: flex; justify-content: center; align-items: center; height: 500px; height: unquote('clamp(300px, calc(100vh - clamp(200px, calc(100vh - 500px), 350px)), 700px)') }
 .imageflag > div:nth-child(2) img { max-width: 100%; max-height: 100% }
 .imageflag > div:nth-child(3) { display: flex; justify-content: space-between; }
 .imageflag > div:nth-child(4) { display: flex; margin-bottom: 5px }
