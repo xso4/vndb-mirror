@@ -59,6 +59,7 @@ CREATE UNIQUE INDEX changes_itemrev        ON changes (itemid, rev);
 CREATE UNIQUE INDEX chars_vns_pkey         ON chars_vns (id, vid, rid) NULLS NOT DISTINCT;
 CREATE UNIQUE INDEX chars_vns_hist_pkey    ON chars_vns_hist (chid, vid, rid) NULLS NOT DISTINCT;
 CREATE UNIQUE INDEX ulist_labels_uid_label ON ulist_labels (uid, label);
+ ALTER TABLE ulist_labels ADD CONSTRAINT ulist_labels_uid_label UNIQUE USING INDEX ulist_labels_uid_label DEFERRABLE INITIALLY DEFERRED;
 CREATE        INDEX ulist_vns_voted        ON ulist_vns (vid, vote_date) WHERE vote IS NOT NULL; -- For VN recent votes & vote graph. INCLUDE(vote) speeds up vote graph even more
 CREATE UNIQUE INDEX users_username_key     ON users (lower(username));
 CREATE        INDEX users_ign_votes        ON users (id) WHERE ign_votes;
