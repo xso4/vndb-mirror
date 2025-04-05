@@ -15,7 +15,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     locked  => { anybool => 1 },
 
     mod     => { _when => 'out', anybool => 1 },
-    releases => { _when => 'out', $VNWeb::Elm::apis{Releases}[0]->%* },
+    releases => { _when => 'out', aoh => $RELSCHEMA },
 };
 
 

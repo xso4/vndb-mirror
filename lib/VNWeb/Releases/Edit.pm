@@ -77,7 +77,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     } },
     supersedes => { sort_keys => 'rid', aoh => { rid => { vndbid => 'r' } } },
     vnimages   => { _when => 'out', aoh => $IMGSCHEMA },
-    vnreleases => { _when => 'out', $VNWeb::Elm::apis{Releases}[0]->%* },
+    vnreleases => { _when => 'out', aoh => $RELSCHEMA },
     hidden     => { anybool => 1 },
     locked     => { anybool => 1 },
     editsum    => { editsum => 1 },

@@ -3,29 +3,40 @@ package VNWeb::Releases::Lib;
 use VNWeb::Prelude;
 use Exporter 'import';
 
-our @EXPORT = qw/enrich_release_elm releases_by_vn enrich_release sort_releases release_row_/;
+our @EXPORT = qw/$RELSCHEMA releases_by_vn enrich_release sort_releases release_row_/;
 
 
-# Enrich a list of releases so that it's suitable as 'Releases' Elm response.
-# Given objects must have 'id' and 'rtype' fields (appropriate for the VN in context).
-sub enrich_release_elm {
-    enrich_merge id => sql('SELECT id, title[1+1] AS title, title[1+1+1+1] AS alttitle, released, reso_x, reso_y FROM', releasest, 'r WHERE id IN'), @_;
-    enrich_flatten lang => id => id => sub { sql('SELECT id, lang FROM releases_titles WHERE id IN', $_, 'ORDER BY lang') }, @_;
-    enrich_flatten platforms => id => id => sub { sql('SELECT id, platform FROM releases_platforms WHERE id IN', $_, 'ORDER BY platform') }, @_;
-}
+# Common schema to pass around basic release info
+our $RELSCHEMA = {
+    id        => { vndbid => 'r' },
+    title     => {},
+    alttitle  => { default => '' },
+    released  => { uint => 1 },
+    rtype     => {},
+    reso_x    => { uint => 1 },
+    reso_y    => { uint => 1 },
+    lang      => { type => 'array', values => {} },
+    platforms => { type => 'array', values => {} },
+};
 
-# Return the list of releases associated with a VN in the format suitable as 'Releases' Elm response.
+
+# Return the list of releases associated with a VN in the format described by $RELSCHEMA.
 sub releases_by_vn($id, %opt) {
     my $l = tuwf->dbAlli('
-        SELECT r.id, MIN(rv.rtype) AS rtype
+        SELECT r.id, x.rtype, r.title[1+1] AS title, r.title[1+1+1+1] AS alttitle, r.released, r.reso_x, r.reso_y
           FROM ', releasest, 'r
-          JOIN releases_vn rv ON rv.id = r.id
-         WHERE NOT r.hidden AND rv.vid IN', ref $id ? $id : [$id],
-               $opt{charlink} ? "AND r.official AND rv.rtype <> 'trial'" : (), '
-         GROUP BY r.id
-         ORDER BY min(r.released), min(r.sorttitle), r.id
+          JOIN (
+            SELECT id, MIN(rtype)
+              FROM releases_vn
+             WHERE vid IN', ref $id ? $id : [$id],
+                   $opt{charlink} ? "AND rtype <> 'trial'" : (), '
+             GROUP BY id
+           ) x(id,rtype) ON x.id = r.id
+         WHERE NOT r.hidden', $opt{charlink} ? "AND r.official" : (), '
+         ORDER BY r.released, r.sorttitle, r.id
     ');
-    enrich_release_elm $l;
+    enrich_flatten lang => id => id => sub { sql('SELECT id, lang FROM releases_titles WHERE id IN', $_, 'ORDER BY lang') }, $l;
+    enrich_flatten platforms => id => id => sub { sql('SELECT id, platform FROM releases_platforms WHERE id IN', $_, 'ORDER BY platform') }, $l;
     $l
 }
 

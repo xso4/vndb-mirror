@@ -25,11 +25,6 @@ css/
 :   CSS files. The files in *css/skins/* are processed with *sassc* and bunbled
     into a single minified CSS file for each skin.
 
-elm/
-:   Front-end code written in [Elm](https://elm-lang.org/). These files are
-    compiled and bundled into a single minified *elm.js* file. Elm is on the
-    way out, though, and this code is slowly rewritten into plain Javascript.
-
 icons/
 :   SVG & PNG icons that are merged into a *icons.svg* and *icons.png* sprite
     file. See *icons/README.md* for more details.
@@ -134,7 +129,6 @@ Global requirements:
 - A standard C build system (GNU make, gcc/clang, etc)
 - PostgreSQL 17+ (including development files)
 - Perl 5.36+
-- Elm 0.19.1
 - Graphviz
 - libvips
 - sassc

@@ -136,7 +136,7 @@ sub listing_($id, $opt, $count, $list, $url) {
 }
 
 
-# Redirect so that elm/Subscribe.elm can link to this page without knowing our uid.
+# Redirect so that the 'Subscribe' widget can link to this page without knowing our uid.
 TUWF::get qr{/u/notifies}, sub { auth ? tuwf->resRedirect('/'.auth->uid.'/notifies', 'temp') : tuwf->resNotFound };
 
 

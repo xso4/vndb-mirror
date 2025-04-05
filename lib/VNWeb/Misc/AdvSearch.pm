@@ -4,28 +4,26 @@ use VNWeb::Prelude;
 use VNWeb::AdvSearch;
 
 
-elm_api 'AdvSearchSave' => undef, {
+js_api AdvSearchSave => {
     name  => { default => '', length => [1,50] },
     qtype => { enum => \%VNWeb::AdvSearch::FIELDS },
     query => {},
-}, sub {
-    my($d) = @_;
+}, sub($d) {
     my $q = tuwf->compile({ advsearch => $d->{qtype} })->validate($d->{query})->data->enc_query;
     tuwf->dbExeci(
         'INSERT INTO saved_queries', { uid => auth->uid, qtype => $d->{qtype}, name => $d->{name}, query => $q },
         'ON CONFLICT (uid, qtype, name) DO UPDATE SET query =', \$q
     );
-    elm_Success
+    +{}
 };
 
 
-elm_api 'AdvSearchDel' => undef, {
+js_api AdvSearchDel => {
     name  => { type => 'array', minlength => 1, values => { default => '', length => [1,50] } },
     qtype => { enum => \%VNWeb::AdvSearch::FIELDS },
-}, sub {
-    my($d) = @_;
+}, sub($d) {
     tuwf->dbExeci('DELETE FROM saved_queries WHERE uid =', \auth->uid, 'AND qtype =', \$d->{qtype}, 'AND name IN', $d->{name});
-    elm_Success
+    +{}
 };
 
 1;

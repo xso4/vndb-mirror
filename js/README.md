@@ -53,11 +53,9 @@ Specific features to avoid:
 ## Widgets
 
 ...is the name I chose for components that can be instantiated from the Perl
-backend by adding a `widget($name, $data)` attribute to a HTML tag. They're
-similar to "modules" in Elm.
-
-A widget is a mithril.js component that can be registered anywhere in JS with
-the following line:
+backend by adding a `widget($name, $data)` attribute to a HTML tag. A widget is
+a mithril.js component that can be registered anywhere in JS with the following
+line:
 
 ```js
 widget('Name', vnode => {

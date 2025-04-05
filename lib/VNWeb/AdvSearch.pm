@@ -886,22 +886,22 @@ sub elm_ {
     my($self, $count, $time) = @_;
 
     # TODO: labels can be lazily loaded to reduce page weight
-    state $schema ||= tuwf->compile({ type => 'hash', keys => {
-        uid          => { vndbid => 'u', default => undef },
-        labels       => { aoh => { id => { uint => 1 }, label => {} } },
-        defaultSpoil => { uint => 1 },
-        saved        => { aoh => { name => {}, query => {} } },
-        error        => { anybool => 1 },
-        query        => $VNWeb::Elm::apis{AdvSearchQuery}[0],
-    }});
-    tuwf->req->{js_labels} = 1;
-    VNWeb::HTML::elm_ 'AdvSearch.Main', $schema, {
-        uid          => auth->uid,
-        defaultSpoil => auth->pref('spoilers')||0,
-        saved        => auth ? tuwf->dbAlli('SELECT name, query FROM saved_queries WHERE uid =', \auth->uid, ' AND qtype =', \$self->{type}, 'ORDER BY name') : [],
-        error        => $self->{error}?1:0,
-        query        => $self->elm_search_query(),
-    };
+    #tuwf->req->{js_labels} = 1;
+    #state $schema ||= tuwf->compile({ type => 'hash', keys => {
+    #    uid          => { vndbid => 'u', default => undef },
+    #    labels       => { aoh => { id => { uint => 1 }, label => {} } },
+    #    defaultSpoil => { uint => 1 },
+    #    saved        => { aoh => { name => {}, query => {} } },
+    #    error        => { anybool => 1 },
+    #    query        => $VNWeb::Elm::apis{AdvSearchQuery}[0],
+    #}});
+    #VNWeb::HTML::elm_ 'AdvSearch.Main', $schema, {
+    #    uid          => auth->uid,
+    #    defaultSpoil => auth->pref('spoilers')||0,
+    #    saved        => auth ? tuwf->dbAlli('SELECT name, query FROM saved_queries WHERE uid =', \auth->uid, ' AND qtype =', \$self->{type}, 'ORDER BY name') : [],
+    #    error        => $self->{error}?1:0,
+    #    query        => $self->elm_search_query(),
+    #};
 
     if (@_ > 1) {
         p_ class => 'center', sub {

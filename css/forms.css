@@ -64,26 +64,6 @@ input[type=range] {
 }
 
 
-/* Old table-based form layout, used in Elm */
-
-td.label, td.label label { width: 130px; }
-td.label label           { display: block; }
-td.field label           { margin: 0 5px 0 5px; }
-table.formtable          { margin: 0 20px 20px 20px; }
-table.formtable td       { padding: 0; }
-table.formtable tr.newfield > td { padding-top: 5px; }
-table.formtable tr.newpart td { padding-top: 20px; font-weight: bold; }
-table.formtable td table td { padding: 1px 15px 1px 0px }
-table.formtable td table    { margin-bottom: 5px }
-table.formtable input.text, table.formtable select { width: 200px; }
-
-table.formimage > tr > td:nth-child(1) { width: 300px; height: 300px; text-align: center }
-table.formimage > tr > td:nth-child(1) img { max-width: 290px; max-height: 500px }
-table.formimage h2 { margin: 0 }
-
-
-
-/* New fielset-based form layout, used in JS */
 
 fieldset.form {
     margin-left: 140px; margin-bottom: 20px;
@@ -219,42 +199,6 @@ span.spinner { width: 1em; height: 1em }
     button svg { visibility: hidden }
     button:hover svg { visibility: visible }
 }
-
-
-
-
-/* Elm dropdowns (also in perl: VNWeb::Releases::Lib) */
-
-.elm_dd > a { color: var(--maintext); display: block; border: none; padding-right: 15px; position: relative }
-.elm_dd > a > span:last-child { position: absolute; right: 5px; top: 0; width: 16px; text-align: right; display: block }
-.elm_dd > a > span:last-child .arrow { visibility: hidden }
-.elm_dd > a .nowrap { display: block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.elm_dd > a:hover > span:last-child > .arrow,
-.elm_dd > a:focus > span:last-child > .arrow { visibility: visible }
-.elm_dd > div { position: relative; float: right; width: 0; height: 0 }
-.elm_dd > div > div { position: absolute; right: -10px; top: 0; border: 1px solid var(--border); background-color: var(--secbg); z-index: 1000; margin: 0; padding: 0; max-width: 400px }
-.elm_dd.search > div { float: left }
-.elm_dd.search > div > div { right: auto; left: 0; top: 23px }
-.elm_dd ul { width: 100%; list-style-type: none; margin: 0; padding: 0 }
-.elm_dd ul li { white-space: nowrap }
-.elm_dd ul li a { display: block; border: 0; padding: 3px 5px 3px 3px }
-.elm_dd ul li a.active,
-.elm_dd ul li a:hover  { background: var(--boxbg) }
-.elm_dd ul li p { white-space: normal; padding: 3px 5px 3px 3px }
-.elm_dd ul li.separator { margin-bottom: 22px }
-
-.elm_votedd .elm_dd ul li { text-align: left }
-.elm_dd_input  .elm_dd > a,
-.elm_dd_button .elm_dd > a { background-color: var(--boxbg); color: var(--maintext); border: 1px solid var(--secborder); font: 14px "Tahoma", "Arial", sans-serif; padding: 1px 15px 1px 5px; margin: -1px }
-.elm_dd_input  .elm_dd > a { padding: 1px 15px 1px 2px }
-.elm_dd_input  .elm_dd > a:hover,
-.elm_dd_button .elm_dd > a:hover { background-color: var(--secbg) }
-.elm_dd_input.elm_dd_noarrow .elm_dd > a { padding-right: 2px }
-.elm_dd_noarrow .elm_dd > a { padding-right: 0 }
-.elm_dd_noarrow .elm_dd > a > span:last-child { display: none }
-.elm_dd_left .elm_dd > div { float: left }
-.elm_dd_left .elm_dd > div > div { right: 0; top: -20px }
-.elm_dd_rightish .elm_dd > div > div { right: auto; left: -30px }
 
 
 /***** JS dropdown (ds.js) *****/

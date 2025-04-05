@@ -31,6 +31,7 @@ window.onerror = function(ev, source, lineno, colno, error) {
 @include api.js
 @include components.js
 @include ds.js
+@include iv.js
 
 // A bunch of old fashioned DOM manipulation features.
 @include checkall.js
@@ -42,12 +43,7 @@ window.onerror = function(ev, source, lineno, colno, error) {
 @include ulist-labelfilters.js
 @include histoptions.js
 
-@include elm-support.js
-
 // Widgets
 @include TableOpts.js
-
-// Image viewer; after loading Elm modules to ensure it sees the screenshots in VNEdit.
-@include iv.js
 
 // @license-end

@@ -21,7 +21,6 @@
 #  use VNWeb::DB;
 #  use VNWeb::Validation;
 #  use VNWeb::JS;
-#  use VNWeb::Elm;
 #  use VNWeb::TableOpts;
 #  use VNWeb::TitlePrefs;
 #
@@ -34,7 +33,6 @@ use strict;
 use warnings;
 use feature ':5.36';
 use utf8;
-use VNWeb::Elm;
 use VNWeb::Auth;
 use VNWeb::DB;
 use TUWF;
@@ -77,7 +75,6 @@ sub import {
     use VNWeb::DB;
     use VNWeb::Validation;
     use VNWeb::JS;
-    use VNWeb::Elm;
     use VNWeb::TableOpts;
     use VNWeb::TitlePrefs;
     1;

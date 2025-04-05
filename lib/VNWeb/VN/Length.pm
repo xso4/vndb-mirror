@@ -199,7 +199,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     }},
     title    => { _when => 'out' },
     maycount => { _when => 'out', anybool => 1 },
-    releases => { _when => 'out', $VNWeb::Elm::apis{Releases}[0]->%* },
+    releases => { _when => 'out', aoh => $RELSCHEMA },
 };
 
 

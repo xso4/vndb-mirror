@@ -26,7 +26,7 @@ our @EXPORT_OK = qw/
 /;
 
 
-# Parse a string representation of the 'titleprefs' SQL type for use in Perl & Elm.
+# Parse a string representation of the 'titleprefs' SQL type.
 # (Could also use Postgres row_to_json() to simplify this a bit, but it wouldn't save much)
 sub titleprefs_parse {
     return undef if !defined $_[0];

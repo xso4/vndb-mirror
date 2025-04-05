@@ -4,8 +4,6 @@
 #   vndb.pl           # Run from the CLI to get a webserver, or spawn from CGI/FastCGI
 #   vndb.pl noapi     # Same, but disable /api/ calls
 #   vndb.pl onlyapi   # Same, but disable everything but /api/ calls
-#
-#   vndb.pl elmgen    # Generate Elm files and quit
 
 use v5.36;
 use Cwd 'abs_path';
@@ -43,10 +41,6 @@ TUWF::set import_modules => 0;
 TUWF::set db_login => sub {
     DBI->connect(config->{tuwf}{db_login}->@*, { PrintError => 0, RaiseError => 1, AutoCommit => 0, pg_enable_utf8 => 1, ReadOnly => 1 })
 } if config->{read_only};
-
-# Signal to VNWeb::Elm whether it should generate the Elm files.
-# Should be done before loading any more modules.
-tuwf->{elmgen} = $ARGV[0] && $ARGV[0] eq 'elmgen';
 
 
 TUWF::hook before => sub {
@@ -171,7 +165,6 @@ TUWF::hook after => sub {
     my %js = (
         (map +("$_.js",1), keys tuwf->req->{js}->%*),
         (map +($_,1), keys tuwf->req->{pagevars}{widget}->%*),
-        (map +($_->[0], 1), tuwf->req->{pagevars}{elm}->@*)
     );
     tuwf->dbExeci('INSERT INTO trace_log', {
         method    => tuwf->reqMethod(),
@@ -188,4 +181,4 @@ TUWF::hook after => sub {
     });
 } if config->{trace_log};
 
-TUWF::run if !tuwf->{elmgen};
+TUWF::run;

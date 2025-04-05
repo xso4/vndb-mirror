@@ -52,7 +52,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     editsum    => { editsum => 1 },
     vnstate    => { _when => 'out', aoh => {
         id      => { vndbid => 'v' },
-        rels    => $VNWeb::Elm::apis{Releases}[0],
+        rels    => { aoh => $RELSCHEMA },
         prods   => { aoh => { id => { vndbid => 'p' }, title => {} } },
         title   => {},
     } },

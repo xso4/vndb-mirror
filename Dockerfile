@@ -35,6 +35,4 @@ RUN apk add --no-cache \
         SQL::Interp \
         Text::MultiMarkdown \
         git://g.blicky.net/tuwf.git \
-        git://g.blicky.net/fu.git \
-    && curl -sL https://github.com/elm/compiler/releases/download/0.19.1/binary-for-linux-64-bit.gz | zcat >/usr/bin/elm \
-    && chmod 755 /usr/bin/elm
+        git://g.blicky.net/fu.git

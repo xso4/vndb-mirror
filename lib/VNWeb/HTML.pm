@@ -31,7 +31,7 @@ our @EXPORT = qw/
     vnlength_
     spoil_
     charsex_
-    elm_ widget
+    widget
     framework_
     revision_patrolled_ revision_
     paginate_
@@ -155,18 +155,6 @@ sub charsex_($sex, $gender) {
             defined $sex ? "Sex: $CHAR_SEX{$sex}" : (),
             defined $gender ? "Gender: $CHAR_GENDER{$gender}" : ()
         ), '';
-}
-
-
-# Instantiate an Elm module.
-# $schema can be set to the string 'raw' to encode the JSON directly, without a normalizing through a schema.
-sub elm_ {
-    my($mod, $schema, $data, $placeholder) = @_;
-    die "Elm data without a schema" if defined $data && !defined $schema;
-    tuwf->req->{js}{elm} = 1;
-    push tuwf->req->{pagevars}{elm}->@*, [ $mod, $data ? ($schema eq 'raw' ? $data : $schema->analyze->coerce_for_json($data, unknown => 'remove')) : () ];
-    my @arg = (id => sprintf 'elm%d', $#{ tuwf->req->{pagevars}{elm} });
-    $placeholder ? $placeholder->(@arg) : div_ @arg, '';
 }
 
 
@@ -549,7 +537,7 @@ sub _hidden_msg_ {
 #   title      => $title
 #   index      => 1/0, default 0
 #   feeds      => 1/0
-#   js         => 1/0, set to 1 to ensure 'basic.js' is included on the page even if no elm_() modules or JS widgets are loaded.
+#   js         => 1/0, set to 1 to ensure 'basic.js' is included on the page even if no JS widgets are loaded.
 #   search     => $query
 #   og         => { opengraph metadata }
 #   dbobj      => Database entry object (used for the main tabs & hidden message)
@@ -585,7 +573,7 @@ sub framework_ {
             };
 
             # 'basic' bundle is always included if there's any JS at all
-            tuwf->req->{js}{basic} = 1 if tuwf->req->{js}{elm} || tuwf->req->{pagevars}{widget} || $o{js};
+            tuwf->req->{js}{basic} = 1 if tuwf->req->{pagevars}{widget} || $o{js};
             # 'dbmod' value is used by various widgets
             tuwf->req->{pagevars}{dbmod} = 1 if tuwf->req->{pagevars}{widget} && auth->permDbmod;
 
@@ -600,7 +588,7 @@ sub framework_ {
                 lit_(JSON::XS->new->canonical->encode(tuwf->req->{pagevars}) =~ s{</}{<\\/}rg =~ s/<!--/<\\u0021--/rg);
             } if keys tuwf->req->{pagevars}->%*;
 
-            script_ defer => 'defer', src => _staticurl("$_.js"), '' for grep tuwf->req->{js}{$_}, qw/elm basic user contrib graph/;
+            script_ defer => 'defer', src => _staticurl("$_.js"), '' for grep tuwf->req->{js}{$_}, qw/basic user contrib graph/;
         }
     };
     tuwf->resBinary($html, 'auto');
