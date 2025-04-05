@@ -89,7 +89,7 @@ sub filters_ {
                 for (undef, 'a'..'z', 0);
         };
         input_ type => 'hidden', name => 'ch', value => $opt->{ch}//'';
-        $opt->{f}->elm_;
+        $opt->{f}->widget_;
         p_ class => 'linkradio', sub {
             join_ sub { em_ ' / ' }, \&lblfilt_, grep $_->{id} < 10, @$labels;
             span_ class => 'hidden', sub {

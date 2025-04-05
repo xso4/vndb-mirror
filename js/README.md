@@ -44,11 +44,11 @@ Specific features to avoid:
 
 - `basic`: Primary bundle for functionality and library code common to popular
   pages on the site. The goal is to keep this below 20kB minified+gzipped.
+- `search`: The advanced search filter selection thing.
 - `user`: Bundle for functionality that is commonly used by users with an
   account.
 - `contrib`: Bundle for edit forms and other database contributions.
 - `graph`: D3.js-based graphs.
-- `search`: *TODO*, the advanced search filter selection thing.
 
 ## Widgets
 

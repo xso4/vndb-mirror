@@ -205,16 +205,19 @@ span.spinner { width: 1em; height: 1em }
 
 #ds {
     position: absolute; z-index: 100; background: var(--secbg); border: 1px solid var(--secborder);
-    > div:first-child {
-        display: flex;
-        > div:first-child {
-            flex: 1; position: relative;
-            input { width: 100%; outline: none; border-top: none; border-right: none; border-left: none; margin: 0; padding: 2px }
-            span { position: absolute; top: 4px; right: 5px }
-            svg { width: 14px; height: 14px }
+    > div:first-child { /* header (fixed height) */
+        > div.search { /* search input */
+            display: flex;
+            > div:first-child {
+                flex: 1; position: relative;
+                input { width: 100%; outline: none; border-right: none; border-left: none; margin: 0; padding: 2px }
+                span { position: absolute; top: 4px; right: 5px }
+                svg { width: 14px; height: 14px }
+            }
         }
+        > div:first-child.search > div:first-child > input { border-top: none } /* when the search input is the first item */
     }
-    > div:last-child {
+    > div:last-child { /* results (variable height) */
         overflow-x: hidden; overflow-y: scroll; width: 100%; position: relative;
         > ul {
             margin: 0; list-style-type: none; width: 100%; height: 100%;

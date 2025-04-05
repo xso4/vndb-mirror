@@ -96,6 +96,8 @@ const close = ev => {
 //     Adds a "check all" button.
 // - uncheckall()
 //     Adds an "uncheck all" button.
+// - header()
+//     Render HTML before the search input.
 //
 // To use a DS object as a selection dropdown:
 //   m(DS.Button, {ds}, ...)
@@ -255,19 +257,22 @@ class DS {
                 onsubmit: ev => { ev.preventDefault(); this.select() },
                 onupdate: position,
                 oncreate: position,
-            }, m('div', this.nosearch || this.autocomplete ? [] : [
-                m('div',
-                    m('input[type=text]', {
-                        oncreate: this.focus, onupdate: this.focus,
-                        value: this.input,
-                        oninput: ev => this.setInput(ev.target.value),
-                        placeholder: this.placeholder,
-                    }),
-                    m('span', {class: this.loading() ? 'spinner' : ''}, this.loading() ? null : m(Icon.Search)),
+            }, m('div',
+                this.header ? this.header() : null,
+                this.nosearch || this.autocomplete ? null : m('div.search',
+                    m('div',
+                        m('input[type=text]', {
+                            oncreate: this.focus, onupdate: this.focus,
+                            value: this.input,
+                            oninput: ev => this.setInput(ev.target.value),
+                            placeholder: this.placeholder,
+                        }),
+                        m('span', {class: this.loading() ? 'spinner' : ''}, this.loading() ? null : m(Icon.Search)),
+                    ),
+                    this.checkall   ? m('div', m(Button.CheckAll,   { onclick: this.checkall   })) : null,
+                    this.uncheckall ? m('div', m(Button.UncheckAll, { onclick: this.uncheckall })) : null,
                 ),
-                this.checkall   ? m('div', m(Button.CheckAll,   { onclick: this.checkall   })) : null,
-                this.uncheckall ? m('div', m(Button.UncheckAll, { onclick: this.uncheckall })) : null,
-            ]),
+            ),
             this.source.api && this.source.api.error
             ? m('b', this.source.api.error)
             : this.autocomplete && this.loading() ? m('span.spinner')

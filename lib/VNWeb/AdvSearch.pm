@@ -6,11 +6,12 @@ package VNWeb::AdvSearch;
 # my $q = tuwf->validate(get => f => { advsearch => 'v' })->data;
 #
 # $q->sql_where;  # Returns an SQL condition for use in a where clause.
-# $q->elm_;       # Instantiate an Elm widget
+# $q->widget_;    # Instantiate a HTML widget.
 
 
 use v5.36;
-use B;
+use experimental 'builtin';
+use builtin 'created_as_number';
 use POSIX 'strftime';
 use List::Util 'max';
 use TUWF;
@@ -255,7 +256,7 @@ sub _enc_query {
     my sub r { _enc_int($q->[0])._enc_int($ops{$q->[1]} + 8*$_[0]) }
     return r(5)._enc_int($q->[2][0])._enc_int($q->[2][1]) if _is_tuple $q->[2];
     return r(1)._enc_query($q->[2]) if ref $q->[2];
-    if(!(B::svref_2object(\$q->[2])->FLAGS & B::SVp_POK)) {
+    if(created_as_number($q->[2])) {
         my $s = _enc_int $q->[2];
         return r(0).$s if defined $s;
     }
@@ -652,7 +653,7 @@ sub _validate_adv {
 TUWF::set('custom_validations')->{advsearch} = sub { my($t) = @_; +{ type => 'any', default => bless({type=>$t}, __PACKAGE__), func => sub { _validate_adv $t, @_ } } };
 
 # 'advsearch_err' validation; Same as the 'advsearch' validation except it never throws an error.
-# If the validation failed, this will log a warning and return an empty query that will cause elm_() to display a warning message.
+# If the validation failed, this returns an empty query that will cause widget_() to display a warning message.
 TUWF::set('custom_validations')->{advsearch_err} = sub {
     my ($t) = @_;
     +{ type => 'any', default => bless({type=>$t}, __PACKAGE__), func => sub {
@@ -853,55 +854,41 @@ sub _extract_ids {
 }
 
 
-# Returns a JSON object suitable for the AdvSearchQuery API response.
-sub elm_search_query {
-    my($self) = @_;
-
-    my(%o,%ids);
-    _extract_ids($self->{type}, $self->{query}, \%ids) if $self->{query};
-
-    $o{producers} = [ map +{id => $_}, grep /^p/, keys %ids ];
-    enrich_merge id => sql('SELECT id, title[1+1] AS name, title[1+1+1+1] AS altname FROM', VNWeb::TitlePrefs::producerst(), 'p WHERE id IN'), $o{producers};
-
-    $o{staff} = [ map +{id => $_}, grep /^s/, keys %ids ];
-    enrich_merge id => sql('SELECT id, lang, aid, title[1+1], title[1+1+1+1] AS alttitle FROM', VNWeb::TitlePrefs::staff_aliast(), 's WHERE aid = main AND id IN'), $o{staff};
-
-    $o{tags} = [ map +{id => $_}, grep /^g/, keys %ids ];
-    enrich_merge id => 'SELECT id, name, searchable, applicable, hidden, locked FROM tags WHERE id IN', $o{tags};
-
-    $o{traits} = [ map +{id => $_}, grep /^i/, keys %ids ];
-    enrich_merge id => 'SELECT t.id, t.name, t.searchable, t.applicable, t.defaultspoil, t.hidden, t.locked, g.id AS group_id, g.name AS group_name
-                          FROM traits t LEFT JOIN traits g ON g.id = t.gid WHERE t.id IN', $o{traits};
-
-    $o{anime} = [ map +{id => $_=~s/^anime//rg}, grep /^anime/, keys %ids ];
-    enrich_merge id => 'SELECT id, title_romaji AS title, title_kanji AS original FROM anime WHERE id IN', $o{anime};
-
-    $o{qtype}  = $self->{type};
-    $o{query}  = $self->compact_json;
-    \%o
-}
-
-
-sub elm_ {
+sub widget_ {
     my($self, $count, $time) = @_;
 
     # TODO: labels can be lazily loaded to reduce page weight
-    #tuwf->req->{js_labels} = 1;
-    #state $schema ||= tuwf->compile({ type => 'hash', keys => {
-    #    uid          => { vndbid => 'u', default => undef },
-    #    labels       => { aoh => { id => { uint => 1 }, label => {} } },
-    #    defaultSpoil => { uint => 1 },
-    #    saved        => { aoh => { name => {}, query => {} } },
-    #    error        => { anybool => 1 },
-    #    query        => $VNWeb::Elm::apis{AdvSearchQuery}[0],
-    #}});
-    #VNWeb::HTML::elm_ 'AdvSearch.Main', $schema, {
-    #    uid          => auth->uid,
-    #    defaultSpoil => auth->pref('spoilers')||0,
-    #    saved        => auth ? tuwf->dbAlli('SELECT name, query FROM saved_queries WHERE uid =', \auth->uid, ' AND qtype =', \$self->{type}, 'ORDER BY name') : [],
-    #    error        => $self->{error}?1:0,
-    #    query        => $self->elm_search_query(),
-    #};
+    tuwf->req->{js_labels} = 1;
+
+    my %ids;
+    _extract_ids($self->{type}, $self->{query}, \%ids) if $self->{query};
+
+    my %o = (
+        spoilers  => auth->pref('spoilers')||0,
+                     # TODO: Can also be lazily loaded.
+        saved     => auth ? tuwf->dbAlli('SELECT name, query FROM saved_queries WHERE uid =', \auth->uid, ' AND qtype =', \$self->{type}, 'ORDER BY name') : [],
+        qtype     => $self->{type},
+        query     => $self->compact_json(),
+        producers => [ map +{id => $_}, grep /^p/, keys %ids ],
+        staff     => [ map +{id => $_}, grep /^s/, keys %ids ],
+        tags      => [ map +{id => $_}, grep /^g/, keys %ids ],
+        traits    => [ map +{id => $_}, grep /^i/, keys %ids ],
+        anime     => [ map +{id => $_=~s/^anime//rg}, grep /^anime/, keys %ids ],
+    );
+
+    enrich_merge id => sql('SELECT id, title[1+1] AS name, title[1+1+1+1] AS altname FROM', VNWeb::TitlePrefs::producerst(), 'p WHERE id IN'), $o{producers};
+    enrich_merge id => sql('SELECT id, lang, aid, title[1+1], title[1+1+1+1] AS alttitle FROM', VNWeb::TitlePrefs::staff_aliast(), 's WHERE aid = main AND id IN'), $o{staff};
+    enrich_merge id => 'SELECT id, name, searchable, applicable, hidden, locked FROM tags WHERE id IN', $o{tags};
+    enrich_merge id => 'SELECT t.id, t.name, t.searchable, t.applicable, t.defaultspoil, t.hidden, t.locked, g.id AS group_id, g.name AS group_name
+                          FROM traits t LEFT JOIN traits g ON g.id = t.gid WHERE t.id IN', $o{traits};
+    enrich_merge id => 'SELECT id, title_romaji AS title, title_kanji AS original FROM anime WHERE id IN', $o{anime};
+
+    div_ class => 'xsearch', VNWeb::HTML::widget(AdvSearch => \%o), '';
+
+    p_ class => 'center standout',
+        'Error parsing search query. The URL was probably corrupted in some way. '
+        .'Please report a bug if you opened this page from VNDB (as opposed to getting here from an external site).'
+        if $self->{error};
 
     if (@_ > 1) {
         p_ class => 'center', sub {

@@ -19,6 +19,8 @@ window.Icon = {
     Ban:          icon('<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>'),
     CheckSquare:  icon('<polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'),
     ChevronDown:  icon('<polyline points="6 9 12 15 18 9">'),
+    CornerDownRight: icon('<polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/>'),
+    CornerUpLeft: icon('<polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/>'),
     Copy:         icon('<rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>'),
     Eye:          icon('<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle>'),
     FolderHeart:  icon('<path d="M11 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v1.5"/><path d="M13.9 17.45c-1.2-1.2-1.14-2.8-.2-3.73a2.43 2.43 0 0 1 3.44 0l.36.34.34-.34a2.43 2.43 0 0 1 3.45-.01v0c.95.95 1 2.53-.2 3.74L17.5 21Z"/>'),
@@ -43,15 +45,17 @@ const but = (icon, title) => ({view: vnode => m('button[type=button].icon', { ti
     }, m(icon)
 )});
 window.Button = {
-    Edit:       but(Icon.Pencil,       'Edit'),
-    Del:        but(Icon.Trash2,       'Delete item'),
+    Branch:     but(Icon.CornerDownRight, 'Move to new branch'),
     Cancel:     but(Icon.Ban,          'Cancel'),
-    Up:         but(Icon.ArrowBigUp,   'Move up'),
-    Down:       but(Icon.ArrowBigDown, 'Move down'),
-    Copy:       but(Icon.Copy,         'Copy'),
     CheckAll:   but(Icon.CheckSquare,  'Check all'),
-    UncheckAll: but(Icon.MinusSquare,  'Uncheck all'),
+    Copy:       but(Icon.Copy,         'Copy'),
+    Del:        but(Icon.Trash2,       'Delete item'),
+    Down:       but(Icon.ArrowBigDown, 'Move down'),
+    Edit:       but(Icon.Pencil,       'Edit'),
     Save:       but(Icon.Save,         'Save'),
+    Unbranch:   but(Icon.CornerUpLeft,  'Move to parent branch'),
+    UncheckAll: but(Icon.MinusSquare,  'Uncheck all'),
+    Up:         but(Icon.ArrowBigUp,   'Move up'),
 };
 
 const helpState = {};

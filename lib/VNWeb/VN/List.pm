@@ -433,7 +433,7 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
                         for (undef, 'a'..'z', 0);
                 };
                 input_ type => 'hidden', name => 'ch', value => $opt->{ch}//'';
-                $opt->{f}->elm_($count, $time);
+                $opt->{f}->widget_($count, $time);
             };
             article_ sub {
                 h1_ 'Did you mean to search for...';

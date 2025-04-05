@@ -988,6 +988,15 @@ div#iv_view {
 
 /* The classes are called 'xsearch' instead of 'advsearch' because the latter triggers some ad blockers. :( */
 
+.xsearch .not, #ds .not { text-decoration: line-through double var(--standout) }
+.xsearch_opts {
+    display: flex; justify-content: space-between; align-items: center; background-color: var(--blendbg);
+    > div { white-space: nowrap }
+    > strong { flex: 1; text-align: center }
+}
+
+/* Old */
+
 .xsearch { max-width: 850px; margin: 0 auto; display: flex; flex-direction: row; justify-content: center }
 .xsearch .advrow > tr > td { padding: 0 2px 0 0 }
 .xsearch .advrow > tr > td:first-child { text-align: right; white-space: nowrap; }

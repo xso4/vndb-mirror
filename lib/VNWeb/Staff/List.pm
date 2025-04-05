@@ -84,7 +84,7 @@ TUWF::get qr{/s(?:/(?<char>all|[a-z0]))?}, sub {
                 };
                 input_ type => 'hidden', name => 'ch', value => $opt->{ch}//'';
                 input_ type => 'hidden', name => 'n', value => $opt->{n}//0;
-                $opt->{f}->elm_($count, $time);
+                $opt->{f}->widget_($count, $time);
             };
         };
         listing_ $opt, $list, $count if $count;
