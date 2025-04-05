@@ -1164,6 +1164,11 @@ sex
     (non-spoiler) sex and the character's real (spoiler) sex. Possible values
     are `null`, `"m"`, `"f"`, `"b"` (meaning "both") or `"n"` (sexless).
 
+gender
+:   Possibly null, otherwise an array of two strings indicating the character's
+    non-spoiler gender and the character's actual (spoiler) gender. Possible
+    values are `null`, `"m"`, `"f"`, `"o"` (non-binary) or `"a"` (ambiguous).
+
 vns
 :   Array of objects, visual novels this character appears in. The same visual
     novel may be listed multiple times with a different release; the spoiler
@@ -1793,6 +1798,10 @@ need perfect uniform random selection anyway.
 
 # Change Log
 
+**2025-04-05**
+
+- Add `gender` field to [POST /character](#post-character).
+
 **2025-01-11**
 
 - Add `gender` and `gender_spoil` filters to [POST /character](#post-character).
@@ -1808,6 +1817,10 @@ need perfect uniform random selection anyway.
 **2024-09-09**
 
 - Add `images` field to [POST /release](#post-release).
+
+**2024-07-06**
+
+- Add `"n"` (sexless) as possible value for the `sex` field of [POST /character](#post-character).
 
 **2024-06-05**
 

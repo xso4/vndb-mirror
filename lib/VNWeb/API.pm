@@ -947,6 +947,10 @@ api_query '/character',
         age      => { select => 'c.age' },
         birthday => { select => 'c.birthday', proc => sub { $_[0] = $_[0] ? [ int $_[0]/100, $_[0]%100 ] : undef } },
         sex      => { select => "NULLIF(ARRAY[NULLIF(c.sex, ''), NULLIF(COALESCE(c.spoil_sex, c.sex), '')]::text[], '{NULL,NULL}') AS sex" },
+        gender   => { select => "NULLIF(ARRAY[
+                COALESCE(NULLIF(c.gender::text, ''), CASE WHEN c.sex IN('m','f') THEN c.sex::text ELSE NULL END),
+                NULLIF(COALESCE(c.spoil_gender::text, c.gender::text, CASE WHEN COALESCE(c.spoil_sex, c.sex) IN('m','f') THEN COALESCE(c.spoil_sex, c.sex)::text ELSE NULL END), '')
+            ]::text[], '{NULL,NULL}') AS gender" },
         vns      => {
             enrich => sub { sql 'SELECT cv.id AS cid, v.id', $_[0], 'FROM chars_vns cv JOIN vnt v ON v.id = cv.vid', $_[1], 'WHERE NOT v.hidden AND cv.id IN', $_[2] },
             key => 'id', col => 'cid', num => 3,
