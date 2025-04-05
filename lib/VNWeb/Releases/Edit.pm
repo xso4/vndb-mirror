@@ -179,8 +179,7 @@ js_api ReleaseEdit => $FORM_IN, sub {
     }
 
     if($data->{patch}) {
-        $data->{doujin} = $data->{voiced} = $data->{ani_story} = $data->{ani_ero} = 0;
-        $data->{reso_x} = $data->{reso_y} = 0;
+        $data->{doujin} = $data->{ani_story} = $data->{ani_ero} = 0;
         $data->{ani_story_sp} = $data->{ani_story_cg} = $data->{ani_cutscene} = $data->{ani_ero_sp} = $data->{ani_ero_cg} = $data->{ani_face} = $data->{ani_bg} = undef;
     }
     if(!$data->{has_ero}) {

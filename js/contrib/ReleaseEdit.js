@@ -216,7 +216,7 @@ const Format = initVnode => {
             m('label[for=engine]', 'Engine'),
             m(DS.Input, { id: 'engine', class: 'mw', maxlength: 50, ds: engines, data, field: 'engine', onfocus: ev => ev.target.select() }),
         ),
-        data.patch ? null : m('fieldset',
+        m('fieldset',
             m('label[for=resolution]', 'Resolution'),
             m(DS.Input, {
                 id: 'resolution', class: 'mw', data: resolution, field: 'v', ds: resolutions,
@@ -226,7 +226,7 @@ const Format = initVnode => {
                 invalid: resoParse(resolution.v) ? null : 'Invalid resolution, expected format is "{width}x{height}".',
             }),
         ),
-        data.patch ? null : m('fieldset',
+        m('fieldset',
             m('label[for=voiced]', 'Voiced'),
             m(Select, { id: 'voiced', class: 'mw', data, field: 'voiced', options: vndbTypes.voiced.map((l,i)=>[i,l]) }),
         ),
