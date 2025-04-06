@@ -57,11 +57,12 @@ sub enrich_ulists_widget {
 
 
 sub ulists_rlist_counts_($v) {
-    return if !$v->{rels};
-    my $obtained = grep $_->{status} == 2, $v->{rels}->@*;
-    my $total = $v->{rels}->@*;
-    span_ class => $obtained == $total ? 'done' : $obtained < $total ? 'todo' : undef,
-    $total ? sprintf ' %d/%d', $obtained, $total : '';
+    return if !$v->{rlist};
+    my $total = sum $v->{rlist}->@*;
+    span_ class => $v->{rlist}[2] == $total ? 'done' : $v->{rlist}[2] < $total ? 'todo' : undef,
+          (map +('+', "rlist_$_"), grep $v->{rlist}[$_], 0..$#{$v->{rlist}}),
+          title => join(', ', map "$RLIST_STATUS{$_} ($v->{rlist}[$_])", grep $v->{rlist}[$_], 0..$#{$v->{rlist}}),
+    $total ? sprintf ' %d/%d', $v->{rlist}[2], $total : '';
 }
 
 

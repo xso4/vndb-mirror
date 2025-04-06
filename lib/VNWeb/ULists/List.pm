@@ -209,14 +209,19 @@ sub listing_ {
           ORDER BY', $opt->{s}->sql_order(), 'NULLS LAST, v.sorttitle'
     );
 
-    # TODO: Only the counts are used, query can be simplified
-    enrich rels => id => vid => sub { sql '
-        SELECT rv.vid, rl.status
+    enrich_merge id => sub { sql '
+        SELECT rv.vid AS id, ARRAY[
+                  COUNT(*) FILTER(WHERE rl.status = 0),
+                  COUNT(*) FILTER(WHERE rl.status = 1),
+                  COUNT(*) FILTER(WHERE rl.status = 2),
+                  COUNT(*) FILTER(WHERE rl.status = 3),
+                  COUNT(*) FILTER(WHERE rl.status = 4)
+               ] rlist
           FROM rlists rl
-          JOIN releases r ON rl.rid = r.id
-          JOIN releases_vn rv ON rv.id = r.id
+          JOIN releases_vn rv ON rv.id = rl.rid
          WHERE rl.uid =', \$uid, '
-           AND rv.vid IN', $_
+           AND rv.vid IN', $_, '
+         GROUP BY rv.vid'
     }, $lst if $opt->{s}->rows;
     VNWeb::VN::List::enrich_listing($own, $opt, $lst);
 

@@ -296,11 +296,15 @@ widget('UListWidget', { view: vnode => [
             ).join(', ')
         ) : lblicon(-1, 'Add to list'),
         vnode.attrs.oldContents.length === 1 ? null : (rlist =>
-            rlist ? ((total, obtained) =>
+            rlist ? ((total, st) =>
                 total > 0
-                ? m('span', { class: total && obtained === total ? 'done' : obtained < total ? 'todo' : null }, ' ', obtained, '/', total)
+                ? m('span', {
+                    class: (total && st[2] === total ? ['done'] : st[2] < total ? ['todo'] : [])
+                           .concat(st.flatMap((s,i) => s === 0 ? [] : ['rlist_'+i])).join(' '),
+                    title: st.flatMap((s,i) => s === 0 ? [] : [vndbTypes.rlistStatus[i]+' ('+s+')']).join(', '),
+                  }, ' ', st[2], '/', total)
                 : null
-            )(rlist.length, rlist.filter(r => r.status === 2).length)
+            )(rlist.length, rlist.reduce((a,r) => { a[r.status]++; return a }, [0,0,0,0,0]))
             : m.trust(vnode.attrs.oldContents[1].outerHTML)
         )(vnode.attrs.data.rlist)
     ),
