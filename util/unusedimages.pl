@@ -6,19 +6,15 @@
 # Use with care!
 
 use v5.36;
-use DBI;
+use FU::Pg;
 use File::Find;
 
 $ENV{VNDB_VAR} //= 'var';
 
-my $db = DBI->connect('dbi:Pg:dbname=vndb', 'vndb', undef, { RaiseError => 1 });
+my $db = FU::Pg->connect('dbname=vndb user=vndb');
 
-my $count = 0;
 my $dirmatch = '/(cv|ch|sf|st)(?:\.orig|\.t)?/';
 my $fnmatch = $dirmatch.'[0-9][0-9]/([1-9][0-9]{0,6})\.(?:jpg|webp|png|avif|jxl)?';
-
-my(%scr, %cv, %ch);
-my %dir = (cv => \%cv, ch => \%ch, sf => \%scr, st => \%scr);
 
 
 sub cleandb {
@@ -28,7 +24,7 @@ sub cleandb {
     # The 30 (100, in the case of screenshots) most recently uploaded images of
     # each type are also kept because there's a good chance they will get
     # referenced from somewhere, soon.
-    my $cnt = $db->do(q{
+    my $cnt = $db->exec(q{
       DELETE FROM images WHERE id IN(
         SELECT id FROM images
          WHERE id NOT IN(SELECT id FROM images WHERE id ^= 'ch' ORDER BY id DESC LIMIT  30)
@@ -75,44 +71,28 @@ sub cleandb {
 }
 
 
-sub addimagessql {
-    my $st = $db->prepare('SELECT ~id, #id FROM images');
-    $st->execute();
-    $count = 0;
-    while((my $num = $st->fetch())) {
-        $dir{$num->[0]}{$num->[1]} = 1;
-        $count++;
-    }
-    print "# Items in `images'... $count\n";
-};
-
-
 sub findunused {
-    my $size = 0;
-    $count = 0;
-    my $left = 0;
+    my $imgs = $db->q('SELECT id FROM images')->kvv;
+    printf "# Items in `images'... %d\n", scalar keys %$imgs;
+    my($size, $count, $left) = (0,0,0);
     find {
         no_chdir => 1,
         wanted => sub {
-            return if -d "$File::Find::name";
+            return if -d;
             if($File::Find::name !~ /($fnmatch)$/) {
                 print "# Unknown file: $File::Find::name\n" if $File::Find::name =~ /$dirmatch/;
-                return;
-            }
-            if(!$dir{$2}{$3}) {
-                my $s = (-s $File::Find::name) / 1024;
-                $size += $s;
+            } elsif(!$imgs->{$2.$3}) {
+                $size += -s;
                 $count++;
-                printf "rm '%s' # %d KiB, https://s.vndb.org%s\n", $File::Find::name, $s, $1
+                printf "rm '%s' # %d KiB, https://s.vndb.org%s\n", $File::Find::name, (-s)/1024, $1;
             } else {
                 $left++;
             }
         }
     }, "$ENV{VNDB_VAR}/static";
-    printf "# Deleted %d files, left %d files, saved %d KiB\n", $count, $left, $size;
+    printf "# Deleted %d files, left %d files, saved %d KiB\n", $count, $left, $size/1024;
 }
 
 
 cleandb;
-addimagessql;
 findunused;
