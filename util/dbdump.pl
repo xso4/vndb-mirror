@@ -29,8 +29,8 @@ _
 
 use v5.36;
 use autodie;
-use DBI;
-use DBD::Pg;
+use FU::Pg;
+use FU::Util 'json_format';
 use File::Copy 'cp';
 use File::Find 'find';
 use File::Path 'rmtree';
@@ -152,43 +152,34 @@ my $schema = VNDB::Schema::schema;
 my $types = VNDB::Schema::types;
 my $references = VNDB::Schema::references;
 
-my $db = DBI->connect('dbi:Pg:dbname=vndb', 'vndb', undef, { RaiseError => 1, AutoCommit => 0 });
-$db->do('SET TIME ZONE +0');
+my $db = FU::Pg->connect('dbname=vndb user=vndb');
+$db->exec('SET TIME ZONE +0');
 
 
-sub consistent_snapshot {
-    my($func) = @_;
-    my($standby) = $db->selectrow_array('SELECT pg_is_in_recovery()');
-    if($standby) {
-        $db->do('SELECT pg_wal_replay_pause()');
-    } else {
-        $db->rollback;
-        $db->do('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE');
-    }
+sub consistent_snapshot($func) {
+    my $standby = $db->q('SELECT pg_is_in_recovery()')->val;
+    $db->exec($standby ? 'SELECT pg_wal_replay_pause()' : 'BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE');
     eval { $func->() };
     warn $@ if length $@;
-    $db->do('SELECT pg_wal_replay_resume()') if $standby;
+    $db->exec('SELECT pg_wal_replay_resume()') if $standby;
 }
 
 
-sub table_order {
-    my $s = $schema->{$_[0]};
-    my $c = $tables{$_[0]};
+sub table_order($tbl) {
+    my $s = $schema->{$tbl};
+    my $c = $tables{$tbl};
     my $o = $s->{primary} ? join ', ', map "x.$_", $s->{primary}->@* : $c ? $c->{order} : '';
     $o ? "ORDER BY $o" : '';
 }
 
 
-sub export_timestamp {
-    my $dest = shift;
+sub export_timestamp($dest) {
     open my $F, '>', $dest;
-    printf $F "%s\n", $db->selectrow_array('SELECT date_trunc(\'second\', NOW())');
+    printf $F "%s\n", $db->q('SELECT date_trunc(\'second\', NOW())')->text->val;
 }
 
 
-sub export_table {
-    my($dest, $table) = @_;
-
+sub export_table($dest, $table) {
     my $schema = $schema->{$table->{name}};
     my @cols = grep $_->{pub}, @{$schema->{cols}};
     die "No columns to export for table '$table->{name}'\n" if !@cols;;
@@ -220,13 +211,13 @@ sub export_table {
     };
 
     my $start = time;
-    $db->do(qq{COPY ($sql) TO STDOUT});
+    my $cp = $db->copy(qq{COPY ($sql) TO STDOUT});
     open my $F, '>:utf8', $fn;
     my $v;
-    print $F $v while($db->pg_getcopydata($v) >= 0);
+    print $F $v while($v = $cp->read);
     close $F;
 
-    #printf "# Dumped %s in %.3fs\n", $table->{name}, time-$start;
+    printf "# Dumped %s in %.3fs\n", $table->{name}, time-$start;
 
     open $F, '>', "$fn.header";
     print $F join "\t", map $_->{name}, @cols;
@@ -254,8 +245,7 @@ sub export_schema($plain, $dest) {
 }
 
 
-sub export_import_script {
-    my $dest = shift;
+sub export_import_script($dest) {
     open my $F, '>', $dest;
     print $F <<~'_';
     -- This script will create the necessary tables and import all data into an
@@ -313,19 +303,17 @@ sub export_import_script {
     my $L = \%VNDB::ExtLinks::LINKS;
     for my $table (@tables) {
         my $schema = $schema->{$table->{name}};
-        print $F "COMMENT ON TABLE $table->{name} IS ".$db->quote($schema->{comment}).";\n" if $schema->{comment};
+        print $F "COMMENT ON TABLE $table->{name} IS ".$db->escape_literal($schema->{comment}).";\n" if $schema->{comment};
         my $l = ($schema->{dbentry_type} && $L->{$schema->{dbentry_type}}) || {};
         for (grep $_->{pub}, $schema->{cols}->@*) {
             $_->{comment} = "$l->{$_->{name}}{label}, $l->{$_->{name}}{fmt} $_->{comment}" if $l->{$_->{name}} && $l->{$_->{name}}{fmt};
-            print $F "COMMENT ON COLUMN $table->{name}.$_->{name} IS ".$db->quote($_->{comment}).";\n" if $_->{comment};
+            print $F "COMMENT ON COLUMN $table->{name}.$_->{name} IS ".$db->escape_literal($_->{comment}).";\n" if $_->{comment};
         }
     }
 }
 
 
-sub export_db {
-    my $dest = shift;
-
+sub export_db($dest) {
     my @static = qw{
         LICENSE-CC0.txt
         LICENSE-CC-BY-NC-SA.txt
@@ -353,17 +341,14 @@ sub export_db {
 
 
 # Copy file while retaining access/modification times
-sub cp_p {
-    my($from, $to) = @_;
+sub cp_p($from, $to) {
     cp $from, $to;
     utime @{ [stat($from)] }[8,9], $to;
 }
 
 
 # XXX: This does not include images that are linked from descriptions; May want to borrow from util/unusedimages.pl to find those.
-sub export_img {
-    my $dest = shift;
-
+sub export_img($dest) {
     my(%scr, %cv);
     my %dir = (ch => {}, cv => \%cv, 'cv.t' => \%cv, sf => \%scr, 'sf.t' => \%scr);
 
@@ -376,11 +361,10 @@ sub export_img {
     cp_p "util/dump/README-img.txt", "$dest/README.txt";
     export_timestamp "$dest/TIMESTAMP";
 
-    $dir{sf}{$_->[0]} = 1 for $db->selectall_array("SELECT vndbid_num(scr) FROM vn_screenshots x WHERE $tables{vn_screenshots}{where}");
-    $dir{cv}{$_->[0]} = 1 for $db->selectall_array("SELECT vndbid_num(image) FROM vn x WHERE image IS NOT NULL AND $tables{vn}{where}");
-    $dir{cv}{$_->[0]} = 1 for $db->selectall_array("SELECT vndbid_num(img) FROM releases_images x WHERE $tables{releases_images}{where}");
-    $dir{ch}{$_->[0]} = 1 for $db->selectall_array("SELECT vndbid_num(image) FROM chars x WHERE image IS NOT NULL AND $tables{chars}{where}");
-    $db->rollback;
+    $dir{sf}{$_} = 1 for $db->q("SELECT vndbid_num(scr) FROM vn_screenshots x WHERE $tables{vn_screenshots}{where}")->flat->@*;
+    $dir{cv}{$_} = 1 for $db->q("SELECT vndbid_num(image) FROM vn x WHERE image IS NOT NULL AND $tables{vn}{where}")->flat->@*;
+    $dir{cv}{$_} = 1 for $db->q("SELECT vndbid_num(img) FROM releases_images x WHERE $tables{releases_images}{where}")->flat->@*;
+    $dir{ch}{$_} = 1 for $db->q("SELECT vndbid_num(image) FROM chars x WHERE image IS NOT NULL AND $tables{chars}{where}")->flat->@*;
     undef $db;
 
     find {
@@ -403,8 +387,7 @@ sub export_img {
 }
 
 
-sub export_data {
-    my $dest = shift;
+sub export_data($dest) {
     my $F = *STDOUT;
     open $F, '>', $dest if $dest ne '-';
     binmode($F, ":utf8");
@@ -413,17 +396,17 @@ sub export_data {
     print "\\i sql/util.sql\n";
     print "\\i sql/schema.sql\n";
     # Would be nice if VNDB::Schema could list sequences, too.
-    my @seq = sort @{ $db->selectcol_arrayref(
+    my @seq = sort $db->q(
         "SELECT oid::regclass::text FROM pg_class WHERE relkind = 'S' AND relnamespace = 'public'::regnamespace"
-    ) };
-    printf "SELECT setval('%s', %d);\n", $_, $db->selectrow_array("SELECT last_value FROM \"$_\"", {}) for @seq;
+    )->flat->@*;
+    printf "SELECT setval('%s', %d);\n", $_, $db->q('SELECT last_value FROM'.$db->escape_identifier($_))->val for @seq;
     for my $t (sort { $a->{name} cmp $b->{name} } values %$schema) {
         my $cols = join ',', map $_->{name}, grep $_->{decl} !~ /\sGENERATED\s/, $t->{cols}->@*;
         my $order = table_order $t->{name};
         print "\nCOPY $t->{name} ($cols) FROM STDIN;\n";
-        $db->do("COPY (SELECT $cols FROM $t->{name} x $order) TO STDOUT");
+        my $cp = $db->copy("COPY (SELECT $cols FROM $t->{name} x $order) TO STDOUT");
         my $v;
-        print $v while($db->pg_getcopydata($v) >= 0);
+        print $v while($v = $cp->read);
         print "\\.\n";
     }
     print "\\i sql/func.sql\n";
@@ -437,7 +420,7 @@ sub export_data {
 
 sub export_votes($dest) {
     open my $F, '|-', "gzip >$dest";
-    $db->do(q{COPY (
+    my $cp = $db->copy(q{COPY (
         SELECT vndbid_num(uv.vid)||' '||vndbid_num(uv.uid)||' '||uv.vote||' '||to_char(uv.vote_date, 'YYYY-MM-DD')
           FROM ulist_vns uv
           JOIN users u ON u.id = uv.uid
@@ -450,55 +433,33 @@ sub export_votes($dest) {
        ) TO STDOUT
     });
     my $v;
-    print $F $v while($db->pg_getcopydata($v) >= 0);
+    print $F $v while($v = $cp->read);
 }
 
 
-sub export_tags {
-    my $dest = shift;
-    require JSON::XS;
-
-    my $lst = $db->selectall_arrayref(q{
-        SELECT vndbid_num(id) AS id, name, description, searchable, applicable, c_items AS vns, cat, alias,
-          (SELECT string_agg(vndbid_num(parent)::text, ',' ORDER BY main desc, parent) FROM tags_parents tp WHERE tp.id = t.id) AS parents
+sub export_tags($dest) {
+    my $lst = $db->q(q{
+        SELECT vndbid_num(id) AS id, name, description, c_items AS vns, cat
+             , string_to_array(alias, E'\n') AS aliases
+             , NOT searchable AS meta, searchable, applicable
+             , ARRAY(SELECT vndbid_num(parent) FROM tags_parents tp WHERE tp.id = t.id ORDER BY main DESC, parent) AS parents
         FROM tags t WHERE NOT hidden ORDER BY id
-    }, { Slice => {} });
-    for(@$lst) {
-      $_->{id} *= 1;
-      $_->{meta} = !$_->{searchable} ? JSON::XS::true() : JSON::XS::false(); # For backwards compat
-      $_->{searchable} = $_->{searchable} ? JSON::XS::true() : JSON::XS::false();
-      $_->{applicable} = $_->{applicable} ? JSON::XS::true() : JSON::XS::false();
-      $_->{vns} *= 1;
-      $_->{aliases} = [ split /\n/, delete $_->{alias} ];
-      $_->{parents} = [ map $_*1, split /,/, ($_->{parents}||'') ];
-    }
-
+    })->allh;
     open my $F, '|-', "gzip >$dest";
-    print $F JSON::XS->new->utf8->canonical->encode($lst);
+    print $F json_format($lst, canonical => 1, utf8 => 1);
 }
 
 
-sub export_traits {
-    my $dest = shift;
-    require JSON::XS;
-
-    my $lst = $db->selectall_arrayref(q{
-        SELECT vndbid_num(id) AS id, name, alias AS aliases, description, searchable, applicable, c_items AS chars,
-               (SELECT string_agg(vndbid_num(parent)::text, ',' ORDER BY main desc, parent) FROM traits_parents tp WHERE tp.id = t.id) AS parents
+sub export_traits($dest) {
+    my $lst = $db->q(q{
+        SELECT vndbid_num(id) AS id, name, description, c_items AS chars
+             , string_to_array(alias, E'\n') AS aliases
+             , NOT searchable AS meta, searchable, applicable
+             , ARRAY(SELECT vndbid_num(parent) FROM traits_parents tp WHERE tp.id = t.id ORDER BY main desc, parent) AS parents
         FROM traits t WHERE NOT hidden ORDER BY id
-    }, { Slice => {} });
-    for(@$lst) {
-      $_->{id} *= 1;
-      $_->{meta} = $_->{searchable} ? JSON::XS::true() : JSON::XS::false(); # For backwards compat
-      $_->{searchable} = $_->{searchable} ? JSON::XS::true() : JSON::XS::false();
-      $_->{applicable} = $_->{applicable} ? JSON::XS::true() : JSON::XS::false();
-      $_->{chars} *= 1;
-      $_->{aliases} = [ split /\r?\n/, ($_->{aliases}||'') ];
-      $_->{parents} = [ map $_*1, split /,/, ($_->{parents}||'') ];
-    }
-
+    })->allh;
     open my $F, '|-', "gzip >$dest";
-    print $F JSON::XS->new->utf8->canonical->encode($lst);
+    print $F json_format($lst, canonical => 1, utf8 => 1);
 }
 
 
