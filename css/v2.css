@@ -988,16 +988,22 @@ div#iv_view {
 
 /* The classes are called 'xsearch' instead of 'advsearch' because the latter triggers some ad blockers. :( */
 
-.xsearch .not, #ds .not { text-decoration: line-through double var(--standout) }
+.op_neg { text-decoration: line-through double var(--standout) }
 .xsearch_opts {
     display: flex; justify-content: space-between; align-items: center; background-color: var(--blendbg);
     > div { white-space: nowrap }
     > strong { flex: 1; text-align: center }
 }
+.xsearch {
+    max-width: 850px; margin: 0 auto; display: flex; flex-direction: row; justify-content: center;
+    .field {
+        width: 150px;
+        > span { display: block; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+    }
+}
 
 /* Old */
 
-.xsearch { max-width: 850px; margin: 0 auto; display: flex; flex-direction: row; justify-content: center }
 .xsearch .advrow > tr > td { padding: 0 2px 0 0 }
 .xsearch .advrow > tr > td:first-child { text-align: right; white-space: nowrap; }
 .xsearch .advrow > tr > td:first-child > div { width: auto }
@@ -1025,7 +1031,7 @@ div#iv_view {
 .xsearch .advheader .opts > * { margin: 0; white-space: nowrap }
 .xsearch .advheader .opselect > * { display: inline-block; font-size: 18px; padding: 0 5px }
 
-.xsearch svg { width: 15px; height: 15px; margin: 2px 0 -2px 0 }
+/*.xsearch svg { width: 15px; height: 15px; margin: 2px 0 -2px 0 }*/
 
 
 

@@ -20,7 +20,8 @@ select[multiple] option  {
 optgroup option          { padding-left: 10px }
 button                   { text-align: left }
 button svg               { height: 14px; width: 14px; margin-top: 1px; margin-bottom: -1px }
-button.ds svg            { float: right; margin-top: 3px; margin-right: -2px; margin-left: -5px }
+button.ds                { padding-right: 20px; position: relative }
+button.ds svg            { position: absolute; top: 3px; right: 1px }
 input.obscured           { color: transparent; text-shadow: 0 0 8px var(--maintext); }
 input[type=number]       { -moz-appearance:textfield }
 input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0 }
@@ -235,4 +236,5 @@ span.spinner { width: 1em; height: 1em }
             }
         }
     }
+    p { padding: 5px } /* Used in xsearch headers */
 }

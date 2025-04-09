@@ -109,7 +109,7 @@ class DS {
         this.width = 400;
         this.input = '';
         this.source = source;
-        if (source.opts) Object.assign(this, source.opts);
+        if (source && source.opts) Object.assign(this, source.opts);
         if (opts) Object.assign(this, opts);
         this.open = this.open.bind(this);
         this.list = [];
@@ -197,12 +197,13 @@ class DS {
     abort() {
         clearTimeout(this.loadingTimer);
         this.loadingStr = this.loadingTimer = null;
-        if (this.source.api) this.source.api.abort();
+        if (this.source && this.source.api) this.source.api.abort();
     }
 
     setInput(str_, skipTimer) {
         this.input = str_;
         if (activeInstance !== this) return;
+        if (!this.source) return;
         const src = this.source;
         const str = str_.trim();
         if (src.init && src._initState !== 2) {
@@ -233,7 +234,7 @@ class DS {
     }
 
     loading() {
-        return this.loadingTimer || (this.source.api && this.source.api.loading());
+        return this.loadingTimer || (this.source && this.source.api && this.source.api.loading());
     }
 
     view() {
@@ -259,7 +260,7 @@ class DS {
                 oncreate: position,
             }, m('div',
                 this.header ? this.header() : null,
-                this.nosearch || this.autocomplete ? null : m('div.search',
+                !this.source || this.nosearch || this.autocomplete ? null : m('div.search',
                     m('div',
                         m('input[type=text]', {
                             oncreate: this.focus, onupdate: this.focus,
@@ -273,8 +274,8 @@ class DS {
                     this.uncheckall ? m('div', m(Button.UncheckAll, { onclick: this.uncheckall })) : null,
                 ),
             ),
-            this.source.api && this.source.api.error
-            ? m('b', this.source.api.error)
+            !this.source ? null
+            : this.source.api && this.source.api.error ? m('b', this.source.api.error)
             : this.autocomplete && this.loading() ? m('span.spinner')
             : !this.loading() && this.input.trim() !== '' && this.list.length == 0
             ? m('em', 'No results')
@@ -294,7 +295,7 @@ DS.close = close;
 DS.Button = {view: vnode => m('button.ds[type=button]', {
         class: vnode.attrs.invalid ? 'invalid ' + (vnode.attrs.class||'') : vnode.attrs.class,
         onclick: function(ev) { ev.preventDefault(); vnode.attrs.onclick ? vnode.attrs.onclick(ev) : vnode.attrs.ds && vnode.attrs.ds.open(this, null) },
-    }, vnode.children, m('span.invisible', 'X'), m(Icon.ChevronDown)
+    }, vnode.children, m(Icon.ChevronDown)
 )};
 
 
