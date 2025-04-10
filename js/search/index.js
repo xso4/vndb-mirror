@@ -8,12 +8,30 @@ const AND = 0;
 const OR = 1;
 
 
+// Field definition members:
+//   label         (optional, unlisted when missing)
+//   title         (optional, same as label when missing)
+//   init          () => instance     (optional, unlisted when missing)
+//   fromquery     query => instance
+//   toquery       instance => query
+//   opstyle       supported operators, 'set', 'eq' or 'ord'
+//   ds            instance => new DS(..)
+//   button        instance => html
+//   ptype/qtype   parent type and query type, only used for nestfields
+
+// Field instance members:
+//   ds            DS Instance
+//   def           Reference to the field definition
+//   parent        Parent field (always a nestfield)
+//   ...           Additional field-specific members
+
+
 // For sharing configuration & database object info between fields.
 let globalData;
 
 
 // A "set" field can hold a set of values that are AND or OR'ed together.
-// Internally represented as an object with members:
+// Uses the following field instance members:
 //   values:  Set of active values
 //   op:      opList.id
 
@@ -26,7 +44,7 @@ const setToQuery = id => set => {
 
 const setFromQuery = id => q =>
     q[0] === id ? { values: new Set([q[2]]), op: q[1] === '!=' ? 2 : 0 } :
-    (q[0] <= 1) && q.slice(1).every(x => x[0] === id && x[1] === q[1][1]) ? {
+    (q[0] <= 1) && q.length > 1 && q.slice(1).every(x => x[0] === id && x[1] === q[1][1]) ? {
         values: new Set(q.slice(1).map(x => x[2])),
         op: q[0] === OR ? (q[1][1] === '=' ? 0 : 3) : (q[1][1] === '=' ? 1 : 2),
     } : null;
@@ -51,47 +69,56 @@ const opDs = new DS({
     view: o => [m('strong', opFmt(o.id)), ': ', o.lbl],
 }, {
     nosearch: true, keep: true,
-    header: () => fieldHeader(opDs._inst, 1)(),
+    header: () => fieldHeader(opDs._inst, 1),
     onselect: o => {
         opDs._inst.op = o.id;
-        opDs._inst._ds.open(opDs.opener);
+        opDs._inst.ds.open(opDs.opener);
     },
 });
 
-const fieldHeader = (inst, tab=0) => () => m('div.xsearch_opts',
+
+
+const fieldHeader = (inst, tab=0) => m('div.xsearch_opts',
     m('div',
-        inst._def.opstyle === 'set' ? m('button[type=button]', { onclick: () => {
-            if (tab === 1) inst._ds.open(opDs.opener);
+        inst.def.opstyle === 'set' ? m('button[type=button]', { onclick: () => {
+            if (tab === 1) inst.ds.open(opDs.opener);
             else {
                 opDs.width = $('#ds').offsetWidth;
                 opDs._inst = inst;
-                opDs.open(inst._ds.opener);
+                opDs.open(inst.ds.opener);
             }
         }}, opFmt(inst.op)) : null,
         //m('button', 'SPL'), // Spoiler, for tags & traits
     ),
-    m('strong', { onclick: () => { if (tab !== 0) inst._ds.open(inst._ds.opener) } }, inst._def.title),
+    m('strong', { onclick: () => { if (tab !== 0) inst.ds.open(inst.ds.opener) } }, inst.def.title),
     m('div',
-        m(Button.Unbranch),
-        m(Button.Branch),
-        m(Button.Del),
+        inst.parent.parent && inst.parent.parent.parent && inst.parent.def.ptype === inst.parent.def.qtype ? m(Button.Unbranch, { onclick: () => {
+            DS.close();
+            const idx = inst.parent.parent.childs.findIndex(n => n === inst.parent);
+            if (inst.parent.childs.length === 1) inst.parent.parent.childs[idx] = inst;
+            else {
+                inst.parent.parent.childs.splice(idx, 0, inst);
+                inst.parent.childs = inst.parent.childs.filter(n => n !== inst);
+            }
+        }}) : null,
+        m(Button.Branch, { onclick: () => {
+            DS.close();
+            const newpar = instantiateField(fieldList[inst.parent.def.qtype].find(d => d.qtype && d.qtype === d.ptype), null);
+            newpar.op = inst.parent.op === 0 ? 1 : 0;
+            newpar.childs = [inst];
+            inst.parent.childs.forEach((v,i,l) => { if (v === inst) l[i] = newpar });
+        }}),
+        inst.parent.parent ? m(Button.Del, { onclick: () => {
+            DS.close();
+            inst.parent.childs = inst.parent.childs.filter(n => n !== inst);
+        }}) : null,
     ),
 );
 
 
-// Field definition:
-//   label   (optional, unlisted when missing)
-//   title   (optional, same as label when missing)
-//   init: () => instance     (optional, unlisted when missing)
-//   fromquery: query => instance
-//   toquery: instance => query
-//   opstyle:   Supported operators, 'set', 'eq' or 'ord'
-//   ds: instance => new DS(..)
-//   button: instance => html
-
 const unknownField = {
     title: 'Unrecognized filter',
-    button: () => 'Unrecognized filter',
+    button: () => m('small', 'Unrecognized'),
     ds: inst => new DS(null, {
         width: 300,
         header: () => m('p',
@@ -103,9 +130,32 @@ const unknownField = {
     toquery: ({q}) => q,
 };
 
+// TODO: Actually support different-type subfields
+const nestField = (ptype, qtype=ptype) => ({
+    ptype, qtype,
+    label: 'And/Or',
+    init: () => ({op:0, childs: []}),
+    fromquery: q => {
+        if (q[0] > 1) return null;
+        const lst = q.slice(1).map(n => fromQuery(qtype, n));
+        if (ptype === qtype && lst.length > 0 && !lst.find(n => n.def !== unknownField)) return null; // If all childs are unknown, consider this whole query as a single unknown.
+        return {op: q[0], childs: lst};
+    },
+    toquery: inst => {
+        const lst = [...inst.childs.map(n => n.def.toquery(n)).filter(n => n !== null)];
+        return lst.length === 0 ? null : lst.length === 1 ? lst[0] : [inst.op, ...lst];
+    },
+    ds: inst => new DS({
+            list: (src, str, cb) => cb([{id:0},{id:1}]),
+            view: o => [m('strong', o.id?'Or':'And'), ': ', o.id?'At least one filter must match':'All filters must match'],
+        }, { keep: false, nosearch: true, width: 300, onselect: o => inst.op = o.id }
+    ),
+});
+
 const fieldList = {
 v: [
     unknownField,
+    nestField('v'),
     {
         label: 'Language',
         title: 'Language the visual novel is available in',
@@ -125,28 +175,59 @@ v: [
 ],
 r: [
     unknownField,
+    nestField('r'),
 ],
 c: [
     unknownField,
+    nestField('c'),
 ],
 s: [
     unknownField,
+    nestField('s'),
 ],
 p: [
     unknownField,
+    nestField('p'),
 ]};
 
 
+const instantiateField = (def, q) => {
+    if (!('title' in def)) def.title = def.label;
+
+    const inst = q ? def.fromquery(q) : def.init();
+    if (!inst) return null;
+    inst.def = def;
+    inst.ds = def.ds(inst);
+    if (!('keep' in inst.ds)) inst.ds.keep = true;
+    const hd = inst.ds.header;
+    inst.ds.header = () => [ fieldHeader(inst), hd ? hd() : null ];
+    return inst;
+};
+
+
+const renderField = (inst, par) => {
+    inst.parent = par;
+    if (!inst.def.qtype) return m(DS.Button, { ds: inst.ds, class: 'field' }, m('span', inst.def.button(inst)));
+
+    const pre = m(DS.Button, { ds: inst.ds }, inst.op ? 'Or' : 'And');
+    const plus = m('button', '+'); // TODO
+    return inst.childs.find(n => n.def.qtype) ? m('table',
+        inst.childs.map((f,i) => m('tr',
+            m('td', i === 0 ? pre : null),
+            m('td.lines', { class: i === 0 ? 'start' : 'mid' }, m('div'), m('span')),
+            m('td', renderField(f, inst)),
+        )),
+        m('tr', m('td'), m('td.lines.end', m('div'), m('span')), m('td', plus))
+    ) : m('table', m('tr',
+        m('td', pre, m('small', ' → ')),
+        m('td', inst.childs.map(f => renderField(f, inst)), plus),
+    ));
+};
+
 const fromQuery = (qtype, q) => {
     for(const f of fieldList[qtype].slice().reverse()) {
-        const inst = f.fromquery(q);
+        const inst = instantiateField(f, q);
         if (!inst) continue;
-        if (!('title' in f)) f.title = f.label;
-        inst._def = f;
-        inst._ds = f.ds(inst);
-        inst._ds.keep = true;
-        const hd = inst._ds.header;
-        inst._ds.header = hd ? () => [ fieldHeader(inst)(), hd() ] : fieldHeader(inst);
         return inst;
     }
 };
@@ -172,6 +253,7 @@ const encodeQuery = (() => {
     const estr = s => String(s).replaceAll(/./g, c => esc.has(c) ? '_'+alpha[esc.get(c)] : c);
 
     const equery = q => {
+        if (q === null) return '';
         if (q[0] <= 1) return alpha[q[0]] + eint(q.length-1) + q.slice(1).map(encodeQuery).join('');
         const r = t => eint(q[0]) + eint(ops.get(q[1]) + 8*t);
         if (typeof q[2] === 'object' && q[2].length === 2 && /^[0-9]+$/.match(q[2][1])) return r(5) + eint(q[2][0]) + eint(q[2][1]);
@@ -187,17 +269,28 @@ const encodeQuery = (() => {
 })();
 
 
+
 widget('AdvSearch', initvnode => {
     const data = initvnode.attrs.data;
     // We currently only ever have a single instance of this widget on a page,
     // so can keep this simple.
     globalData = data;
 
-    const root = data.query && fromQuery(data.qtype, data.query);
+    let root = fromQuery(data.qtype, data.query || [0]);
+    // Root must be an And/Or field, otherwise there's no UI to add/remove fields.
+    if (!root.def.qtype || root.def.qtype !== root.def.ptype) {
+        const n = instantiateField(fieldList[data.qtype].find(d => d.qtype && d.qtype === d.ptype), null);
+        n.childs = [root];
+        root = n;
+    }
+    // The actual root field is wrapped inside a fake "or" node that is never
+    // rendered, so that the branching buttons always have a parent field to
+    // work with.
+    root = { op: 1, parent: null, childs: [root], def: { qtype: data.qtype, ptype: data.qtype } };
 
-    const view = () => !root ? null : m('div.xsearch',
-        m('input[type=hidden][id=f][name=f]', { value: encodeQuery(root._def.toquery(root)) }),
-        m(DS.Button, {ds:root._ds, title: root._def.title, class: 'field' }, m('span', root._def.button(root)))
+    const view = () => m('div.xsearch',
+        m('input[type=hidden][id=f][name=f]', { value: encodeQuery(root.childs[0].def.toquery(root.childs[0])) }),
+        renderField(root.childs[0], root),
     );
     return {view};
 });

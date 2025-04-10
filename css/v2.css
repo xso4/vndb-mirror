@@ -996,42 +996,25 @@ div#iv_view {
 }
 .xsearch {
     max-width: 850px; margin: 0 auto; display: flex; flex-direction: row; justify-content: center;
+    button { margin: 4px; vertical-align: middle }
     .field {
         width: 150px;
         > span { display: block; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
     }
+    td { padding: 0 2px 0 0 }
+    tr > td:first-child { text-align: right; white-space: nowrap }
+
+    /* Line drawing. This is awful */
+    .lines {
+        position: relative; width: 15px; padding: 0;
+        div { border-left: 1px solid var(--border); width: 15px; position: absolute; left: 5px; top: 0; bottom: 0 }
+        &.start { top: 13px }
+        &.start div { border-top: 1px solid var(--border) }
+        &.start span { display: block; position: absolute; left: -5px; top: 0; width: 15px; border-top: 1px solid var(--border); height: 1px }
+        &.end div { bottom: 13px; border-bottom: 1px solid var(--border) }
+        &.mid span { display: block; position: absolute; left: 5px; top: 13px; width: 15px; border-top: 1px solid var(--border); height: 1px }
+    }
 }
-
-/* Old */
-
-.xsearch .advrow > tr > td { padding: 0 2px 0 0 }
-.xsearch .advrow > tr > td:first-child { text-align: right; white-space: nowrap; }
-.xsearch .advrow > tr > td:first-child > div { width: auto }
-.xsearch .advnest > tr > td { padding: 0 2px 0 0 }
-.xsearch .advnest > tr > td:first-child { text-align: right; white-space: nowrap; }
-.xsearch .advnest > tr > td:first-child > div { width: auto }
-.xsearch .advnest > tr > td:first-child > b { display: block; margin: 6px 3px 0 0 }
-
-/* Line drawing. This is awful */
-.xsearch .advnest > tr > td:nth-child(2) { position: relative; width: 15px; padding: 0 }
-.xsearch .advnest > tr > td:nth-child(2) div { border-left: 1px solid var(--border); width: 15px; position: absolute; left: 5px; top: 0; bottom: 0 }
-.xsearch .advnest > tr > td:nth-child(2).start { top: 13px }
-.xsearch .advnest > tr > td:nth-child(2).start div { border-top: 1px solid var(--border) }
-.xsearch .advnest > tr > td:nth-child(2).start span { display: block; position: absolute; left: -5px; top: 0; width: 15px; border-top: 1px solid var(--border); height: 1px }
-.xsearch .advnest > tr > td:nth-child(2).end div { bottom: 13px; border-bottom: 1px solid var(--border) }
-.xsearch .advnest > tr > td:nth-child(2).mid span { display: block; position: absolute; left: 5px; top: 13px; width: 15px; border-top: 1px solid var(--border); height: 1px }
-
-.xsearch .elm_dd_input { display: inline-block; margin: 5px 4px; width: 150px; vertical-align: middle }
-.xsearch .elm_dd_input.short { width: auto }
-.xsearch .advbut { width: 100%; background-color: var(--blendbg); text-align: right; white-space: nowrap }
-.xsearch .advbut > * { display: inline-block; height: 20px; padding: 3px 5px 0 2px; cursor: pointer; border-bottom: none; font-size: 16px }
-.xsearch .advheader { background-color: var(--blendbg); padding: 3px; width: 100%; margin-bottom: 2px }
-.xsearch .advheader > h3 { text-align: center; font-weight: bold; font-size: inherit; margin-bottom: 3px }
-.xsearch .advheader .opts { display: flex; justify-content: space-between; align-items: flex-end; min-width: 170px }
-.xsearch .advheader .opts > * { margin: 0; white-space: nowrap }
-.xsearch .advheader .opselect > * { display: inline-block; font-size: 18px; padding: 0 5px }
-
-/*.xsearch svg { width: 15px; height: 15px; margin: 2px 0 -2px 0 }*/
 
 
 
