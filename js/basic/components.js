@@ -220,7 +220,7 @@ window.FormTabs = initVnode => {
 // - placeholder
 // - type
 //     'email', 'password', 'username', 'weburl'
-//     'number'      -> Only digits allowed
+//     'number'      -> Only digits allowed (positive integer, max 2^53-1)
 //     'textarea'    -> <textarea>
 //     otherwise     -> regular text input field
 // - invalid       -> Custom HTML validation message
@@ -253,6 +253,7 @@ window.Input = () => {
         if (a.type === 'password') { a.minlength = 4; a.maxlength = 500; }
         if (a.minlength && [...v].length < a.minlength) return 'Please use at least '+a.minlength+' characters.';
         if (a.maxlength && [...v].length > a.maxlength) return 'Please use at most '+a.maxlength+' characters.';
+        if (a.type === 'number' && !Number.isSafeInteger(Math.floor(v))) return 'Invalid number';
         if (a.type === 'username') {
             if (/^[a-zA-Z][0-9]+$/.test(v)) return 'Username must not look like a VNDB identifier (single alphabetic character followed only by digits).';
             const dup = {};
@@ -281,7 +282,10 @@ window.Input = () => {
             oninput: ev => {
                 let v = ev.target.value;
                 if (!v.trim().length) v = empty(a)
-                else if (a.type === 'number') v = Math.floor(v.replace(/[^0-9]+/g, '')||0);
+                else if (a.type === 'number') {
+                    v = v.replace(/[^0-9]+/g, '')||0;
+                    if (Number.isSafeInteger(Math.floor(v))) v = Math.floor(v);
+                }
                 a.data[a.field] = v;
                 a.oninput && a.oninput(v);
             },
