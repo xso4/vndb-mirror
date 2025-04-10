@@ -173,11 +173,18 @@ js_api UListLabelAdd => {
     return tuwf->resDenied if !auth;
 
     my $row = tuwf->dbRowi('
-        INSERT INTO ulist_labels (id, uid, label, private) SELECT', sql_join(',',
-            sql_labelid, \auth->uid, \$data->{label},
-            # Let's copy the private flag from the Voted label, seems like a sane default
-            sql('(SELECT private FROM ulist_labels WHERE', {uid => auth->uid, id => 7}, ')')
-        ), 'ON CONFLICT (uid, label) DO UPDATE SET private=excluded.private RETURNING id, private'
+        WITH l(id, private) AS (
+          SELECT id, private FROM ulist_labels WHERE uid =', \auth->uid, 'AND label =', \$data->{label}, '
+        ), ins(id, private) AS (
+          INSERT INTO ulist_labels (id, uid, label, private)
+          SELECT ', sql_join(',',
+                   sql_labelid, \auth->uid, \$data->{label},
+                   # Let's copy the private flag from the Voted label, seems like a sane default
+                   sql('(SELECT private FROM ulist_labels WHERE', {uid => auth->uid, id => 7}, ')'),
+                 ), '
+           WHERE NOT EXISTS(SELECT 1 FROM l)
+          RETURNING id, private
+        ) SELECT * FROM l UNION SELECT * FROM ins'
     );
 
     tuwf->dbExeci(
