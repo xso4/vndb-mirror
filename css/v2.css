@@ -994,6 +994,7 @@ div#iv_view {
     > div { white-space: nowrap }
     > strong { flex: 1; text-align: center }
 }
+.xsearch_nest { background-color: var(--blendbg); padding: 0 5px 2px 5px; }
 .xsearch {
     max-width: 850px; margin: 0 auto; display: flex; flex-direction: row; justify-content: center;
     button { margin: 4px; vertical-align: middle }

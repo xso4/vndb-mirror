@@ -11,8 +11,7 @@ const OR = 1;
 // Field definition members:
 //   label         (optional, unlisted when missing)
 //   title         (optional, same as label when missing)
-//   init          () => instance     (optional, unlisted when missing)
-//   fromquery     query => instance
+//   init          query => instance  (query=null to init an empty field)
 //   toquery       instance => query
 //   opstyle       supported operators, 'set', 'eq' or 'ord'
 //   ds            instance => new DS(..)
@@ -34,21 +33,37 @@ let globalData;
 // Uses the following field instance members:
 //   values:  Set of active values
 //   op:      opList.id
+const setField = (id, opstyle, source) => ({
+    opstyle,
+    ds: inst => new DS(source, {
+        checked: o => inst.values.has(o.id),
+        onselect: (o,c) => c ? inst.values.add(o.id) : inst.values.delete(o.id),
+        uncheckall: () => inst.values.clear(),
+    }),
+    init: q =>
+        !q ? { values: new Set(), op: 0 } :
+        q[0] === id ? { values: new Set([q[2]]), op: q[1] === '!=' ? 2 : 0 } :
+        (q[0] <= 1) && q.length > 1 && q.slice(1).every(x => x[0] === id && x[1] === q[1][1]) ? {
+            values: new Set(q.slice(1).map(x => x[2])),
+            op: q[0] === OR ? (q[1][1] === '=' ? 0 : 3) : (q[1][1] === '=' ? 1 : 2),
+        } : null,
+    toquery: inst => {
+        const lst = [ ...inst.values.keys().map(v => [id, inst.op & 2 ? '!=' : '=', v]) ];
+        return lst.length === 0 ? null
+             : lst.length === 1 ? lst[0]
+             : [ inst.op === 0 || inst.op === 3 ? OR : AND, ...lst ];
+    }
+});
 
-const setToQuery = id => set => {
-    const lst = [ ...set.values.keys().map(v => [id, set.op & 2 ? '!=' : '=', v]) ];
-    return lst.length === 0 ? null
-         : lst.length === 1 ? lst[0]
-         : [ set.op === 0 || set.op === 3 ? OR : AND, ...lst ];
-};
-
-const setFromQuery = id => q =>
-    q[0] === id ? { values: new Set([q[2]]), op: q[1] === '!=' ? 2 : 0 } :
-    (q[0] <= 1) && q.length > 1 && q.slice(1).every(x => x[0] === id && x[1] === q[1][1]) ? {
-        values: new Set(q.slice(1).map(x => x[2])),
-        op: q[0] === OR ? (q[1][1] === '=' ? 0 : 3) : (q[1][1] === '=' ? 1 : 2),
-    } : null;
-
+const langField = (id, opstyle, source, label, title, prefix='') => ({
+    label, title,
+    ...setField(id, opstyle, source),
+    button: inst => inst.values.size === 0 ? m('small', label) : [
+        prefix,
+        opFmt(inst.op, inst.values.size === 1), ' ',
+        vndbTypes.language.anySort(([,,,rank]) => 99-rank).map(([v,l]) => inst.values.has(v) ? [ LangIcon(v), inst.values.size === 1 ? l : null ] : null)
+    ],
+});
 
 
 const opList = [
@@ -63,9 +78,8 @@ const opFmt = (i,single=false) =>
     m('span', { class: opList[i].neg ? 'op_neg' : null }, opList[i].sym);
 
 
-// TODO: Support other operation lists
 const opDs = new DS({
-    list: (src, str, cb) => cb(opList),
+    list: (src, str, cb) => cb(opList.filter(o => opDs._inst.def.opstyle === 'set' || o.sym === 'OR')),
     view: o => [m('strong', opFmt(o.id)), ': ', o.lbl],
 }, {
     nosearch: true, keep: true,
@@ -80,7 +94,7 @@ const opDs = new DS({
 
 const fieldHeader = (inst, tab=0) => m('div.xsearch_opts',
     m('div',
-        inst.def.opstyle === 'set' ? m('button[type=button]', { onclick: () => {
+        inst.def.opstyle ? m('button[type=button]', { onclick: () => {
             if (tab === 1) inst.ds.open(opDs.opener);
             else {
                 opDs.width = $('#ds').offsetWidth;
@@ -103,7 +117,7 @@ const fieldHeader = (inst, tab=0) => m('div.xsearch_opts',
         }}) : null,
         m(Button.Branch, { onclick: () => {
             DS.close();
-            const newpar = instantiateField(fieldList[inst.parent.def.qtype].find(d => d.qtype && d.qtype === d.ptype), null);
+            const newpar = instantiateField(andorField[inst.parent.def.qtype], null);
             newpar.op = inst.parent.op === 0 ? 1 : 0;
             newpar.childs = [inst];
             inst.parent.childs.forEach((v,i,l) => { if (v === inst) l[i] = newpar });
@@ -126,75 +140,157 @@ const unknownField = {
             m('br'), m('br'), m('small', 'Raw query: ', JSON.stringify(inst.q)),
         ),
     }),
-    fromquery: q => ({q}),
+    init: q => ({q}),
     toquery: ({q}) => q,
 };
 
-// TODO: Actually support different-type subfields
-const nestField = (ptype, qtype=ptype) => ({
-    ptype, qtype,
-    label: 'And/Or',
-    init: () => ({op:0, childs: []}),
-    fromquery: q => {
-        if (q[0] > 1) return null;
-        const lst = q.slice(1).map(n => fromQuery(qtype, n));
-        if (ptype === qtype && lst.length > 0 && !lst.find(n => n.def !== unknownField)) return null; // If all childs are unknown, consider this whole query as a single unknown.
-        return {op: q[0], childs: lst};
-    },
-    toquery: inst => {
-        const lst = [...inst.childs.map(n => n.def.toquery(n)).filter(n => n !== null)];
-        return lst.length === 0 ? null : lst.length === 1 ? lst[0] : [inst.op, ...lst];
-    },
-    ds: inst => new DS({
-            list: (src, str, cb) => cb([{id:0},{id:1}]),
-            view: o => [m('strong', o.id?'Or':'And'), ': ', o.id?'At least one filter must match':'All filters must match'],
-        }, { keep: false, nosearch: true, width: 300, onselect: o => inst.op = o.id }
-    ),
-});
+const nestField = (ptype, qtype=ptype, id, label='And/Or', button, yes, no) => {
+    const andor = inst => new DS({
+        list: (src, str, cb) => cb([{id:0},{id:1}]),
+        view: o => [m('strong', o.id?'Or':'And'), ': ', o.id?'At least one filter must match':'All filters must match'],
+    }, {
+        keep: false, nosearch: true, width: 300,
+        onselect: o => inst.op = o.id
+    });
+    const init = q => {
+        const inst = {op:0, eq:'=', childs: []};
+        if (id) inst.andords = andor(inst);
+        if (!q) return inst;
 
-const fieldList = {
-v: [
-    unknownField,
-    nestField('v'),
+        if (id) {
+            if (q[0] !== id) return null;
+            inst.eq = q[1];
+            q = [0,q[2]];
+        }
+        if (q[0] > 1) return null;
+        inst.op = q[0];
+        inst.childs = q.slice(1).map(n => fromQuery(qtype, n));
+        // If all childs are unknown, consider this whole query as a single unknown.
+        if (!id && inst.childs.length > 0 && !inst.childs.find(n => n.def !== unknownField)) return null;
+        // Merge nested and/or
+        while (id && inst.childs.length === 1 && inst.childs[0].def.qtype && inst.childs[0].def.qtype === inst.childs[0].def.ptype) {
+            inst.op = inst.childs[0].op;
+            inst.childs = inst.childs[0].childs;
+        }
+        return inst;
+    };
+    const toquery = inst => {
+        const lst = [...inst.childs.map(n => n.def.toquery(n)).filter(n => n !== null)];
+        if (lst.length === 0) return null;
+        const q = lst.length === 1 ? lst[0] : [inst.op, ...lst];
+        return id ? [id,inst.eq,q] : q;
+    };
+    // The "main" ds is the one with the field header. For same-type nests,
+    // that is the And/Or selection button, for different-type nests, that's
+    // the 'not' button.
+    const ds = !id ? andor : inst => new DS({
+        list: (src, str, cb) => cb([{id:'='},{id:'!='}]),
+        view: o => o.id === '=' ? yes : no,
+    }, {
+        keep: false, nosearch: true,
+        onselect: o => inst.eq = o.id,
+    });
+    return {ptype, qtype, label, init, toquery, button, ds};
+};
+
+
+const fieldAdd = {};
+const fieldList = {};
+const fieldSubnest = {};
+const andorField = {};
+
+const regType = (t, name, fields) => {
+    andorField[t] = nestField(t);
+    fieldList[t] = [unknownField, andorField[t], ...fields];
+    fieldSubnest[t] = Object.fromEntries(fields.filter(d => d.qtype && d.qtype !== d.ptype).map(d => [d.qtype,d]));
+    fieldSubnest[t][''] = name;
+
+    fieldAdd[t] = (() => {
+        const ds = new DS({
+            list: (src, str, cb) => cb(fieldList[ds._types.at(-1)].filter(d => {
+                if (!d.label) return false;
+                if (!d.qtype || d.qtype === d.ptype) return true;
+                if (ds._types.includes(d.qtype) && ds._types.at(-1) !== d.qtype) return false;
+                for (let inst = ds._inst; inst; inst = inst.parent) if (inst.def.qtype !== inst.def.ptype && inst.def.ptype === d.qtype) return false;
+                return true;
+            }).map((d,i) => ({id:i,d}))),
+            view: o => [ o.d.label, o.d.qtype !== o.d.ptype ? ' »' : null ],
+        }, {
+            width: 150, maxCols: 2, nosearch: true, keep: true,
+            header: () => [
+                m('div.xsearch_opts', m('strong', 'Add field'), ds._types),
+                ds._types.length === 1 ? null : m('div.xsearch_nest', ds._types.map((qt,i) => {
+                    const lbl = i ? fieldSubnest[ds._types[i-1]][qt].button : fieldSubnest[qt][''];
+                    return i === ds._types.length - 1 ? m('strong', lbl)
+                        : m('a[href=#]', { onclick: ev => { ev.preventDefault(); ds._types.splice(i+1); ds.setInput('') } }, lbl)
+                }).intersperse(' » ')),
+            ],
+            onselect: o => {
+                if (o.d.qtype !== o.d.ptype) {
+                    ds._types.push(o.d.qtype);
+                } else {
+                    DS.close();
+                    let f = instantiateField(o.d);
+                    for (let i=ds._types.length-2; i>=0; i--) {
+                        const pt = ds._types[i];
+                        const qt = ds._types[i+1];
+                        const n = instantiateField(fieldSubnest[pt][qt], null);
+                        if (!f.def.qtype || f.def.qtype !== f.def.ptype) n.childs = [f];
+                        f = n;
+                    }
+                    ds._inst.childs.push(f);
+                }
+            },
+        });
+        return ds;
+    })();
+};
+
+regType('v', 'VN', [
+    nestField('v', 'r', 50, 'Release', 'Rel', 'Has a release that matches these filters', 'Does not have a release that matches these filters'),
+    nestField('v', 's', 52, 'Staff', 'Staff', 'Has staff that matches these filters', 'Does not have staff that matches these filters'),
+    nestField('v', 'c', 51, 'Character', 'Char', 'Has a character that matches these filters', 'Does not have a character that matches these filters'),
+    nestField('v', 'p', 55, 'Developer', 'Dev', 'Has a developer that matches these filters', 'Does not have a developer that matches these filters'),
+    langField(2, 'set', DS.ScriptLang, 'Language', 'Language the visual novel is available in', 'L '),
+    langField(3, 'eq',  DS.ScriptLang, 'Original language', 'Language the visual novel is originally written in', 'O '),
+]);
+
+regType('r', 'Release', [
+    nestField('r', 'v', 53, 'Visual Novel', 'VN', 'Linked to a visual novel that matches these filters', 'Not linked to a visual novel that matches these filters'),
+    nestField('r', 'p', 55, 'Producer', 'Prod', 'Has a producer that matches these filters', 'Does not have a producer that matches these filters'),
+    langField(2, 'set', DS.ScriptLang, 'Language', 'Language the release is available in'),
+]),
+
+regType('c', 'Char', [
+    nestField('c', 's', 52, 'Voice Actor', 'VA', 'Has a voice actor that matches these filters', 'Does not have a voice actor that matches these filters'),
+    nestField('c', 'v', 53, 'Visual Novel', 'VN', 'Linked to a visual novel that matches these filters', 'Not linked to a visual novel that matches these filters'),
     {
-        label: 'Language',
-        title: 'Language the visual novel is available in',
-        ds: inst => new DS(DS.ScriptLang, {
-            checked: o => inst.values.has(o.id),
-            onselect: (o,c) => c ? inst.values.add(o.id) : inst.values.delete(o.id),
-            uncheckall: () => inst.values.clear(),
+        label: 'Role',
+        ...setField(2, 'eq', {
+            list: (src, str, cb) => cb(vndbTypes.charRole.map(([id,lbl]) => ({id,lbl}))),
+            view: o => o.lbl,
+            opts: { width: 250, nosearch: true },
         }),
-        fromquery: setFromQuery(2),
-        toquery: setToQuery(2),
-        opstyle: 'set',
-        button: inst => inst.values.size === 0 ? m('small', 'Language') : [
-            opFmt(inst.op, inst.values.size === 1), ' ',
-            vndbTypes.language.anySort(([,,,rank]) => 99-rank).map(([v,l]) => inst.values.has(v) ? [ LangIcon(v), inst.values.size === 1 ? l : null ] : null)
+        button: inst => inst.values.size === 0 ? m('small', 'Role') : [
+            opFmt(inst.op, true), ' ',
+            inst.values.size === 1 ? vndbTypes.charRole.find(r => r[0] === inst.values.keys().next().value)[1] : 'Role ('+inst.values.size+')',
         ],
-    }
-],
-r: [
-    unknownField,
-    nestField('r'),
-],
-c: [
-    unknownField,
-    nestField('c'),
-],
-s: [
-    unknownField,
-    nestField('s'),
-],
-p: [
-    unknownField,
-    nestField('p'),
-]};
+    },
+]);
+
+regType('s', 'Staff', [
+    langField(2, 'eq', DS.LocLang, 'Language', 'Primary language of the staff'),
+]);
+
+regType('p', 'Producer', [
+    langField(2, 'eq', DS.LocLang, 'Language', 'Primary language of the producer'),
+]);
 
 
 const instantiateField = (def, q) => {
     if (!('title' in def)) def.title = def.label;
 
-    const inst = q ? def.fromquery(q) : def.init();
+    const inst = def.init(q);
     if (!inst) return null;
     inst.def = def;
     inst.ds = def.ds(inst);
@@ -209,8 +305,18 @@ const renderField = (inst, par) => {
     inst.parent = par;
     if (!inst.def.qtype) return m(DS.Button, { ds: inst.ds, class: 'field' }, m('span', inst.def.button(inst)));
 
-    const pre = m(DS.Button, { ds: inst.ds }, inst.op ? 'Or' : 'And');
-    const plus = m('button', '+'); // TODO
+    const pre = [
+        inst.andords ? m(DS.Button, { ds: inst.ds }, opFmt(inst.eq === '=' ? 0 : 2, true), ' ', inst.def.button) : null,
+        !inst.andords || inst.childs.length > 1 ? m(DS.Button, { ds: inst.andords || inst.ds }, inst.op ? 'Or' : 'And') : null,
+    ];
+    const plus = m('button[type=button]', { onclick: function() {
+        DS.close(); // So that we can open the dropdown while it is active on another button.
+        const ds = fieldAdd[inst.def.qtype];
+        ds._inst = inst;
+        ds._types = [inst.def.qtype];
+        ds.open(this, null);
+    }}, '+');
+
     return inst.childs.find(n => n.def.qtype) ? m('table',
         inst.childs.map((f,i) => m('tr',
             m('td', i === 0 ? pre : null),
@@ -279,7 +385,7 @@ widget('AdvSearch', initvnode => {
     let root = fromQuery(data.qtype, data.query || [0]);
     // Root must be an And/Or field, otherwise there's no UI to add/remove fields.
     if (!root.def.qtype || root.def.qtype !== root.def.ptype) {
-        const n = instantiateField(fieldList[data.qtype].find(d => d.qtype && d.qtype === d.ptype), null);
+        const n = instantiateField(andorField[data.qtype], null);
         n.childs = [root];
         root = n;
     }
