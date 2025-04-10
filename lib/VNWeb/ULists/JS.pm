@@ -177,7 +177,7 @@ js_api UListLabelAdd => {
             sql_labelid, \auth->uid, \$data->{label},
             # Let's copy the private flag from the Voted label, seems like a sane default
             sql('(SELECT private FROM ulist_labels WHERE', {uid => auth->uid, id => 7}, ')')
-        ), 'RETURNING id, private'
+        ), 'ON CONFLICT (uid, label) DO UPDATE SET private=excluded.private RETURNING id, private'
     );
 
     tuwf->dbExeci(
