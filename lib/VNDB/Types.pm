@@ -99,6 +99,7 @@ hash PLATFORM =>
     msx => 'MSX',
     nds => 'Nintendo DS',
     swi => 'Nintendo Switch',
+    sw2 => 'Nintendo Switch 2',
     wii => 'Nintendo Wii',
     wiu => 'Nintendo Wii U',
     n3d => 'Nintendo 3DS',
