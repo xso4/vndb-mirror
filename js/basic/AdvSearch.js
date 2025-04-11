@@ -1,6 +1,9 @@
 const AND = 0;
 const OR = 1;
 
+// For sharing configuration & database object info between fields.
+let globalData;
+
 
 // Field definition members:
 //   label         (optional, unlisted when missing)
@@ -16,11 +19,20 @@ const OR = 1;
 //   ds            DS Instance
 //   def           Reference to the field definition
 //   parent        Parent field (always a nestfield)
+//   focus         Set when the field has just been added
 //   ...           Additional field-specific members
 
 
-// For sharing configuration & database object info between fields.
-let globalData;
+const boolField = (id, label, yes, no) => ({
+    label,
+    init: q => !q ? {op:'='} : q[0] === id ? {op:q[1]} : null,
+    toquery: inst => [id,inst.op,1],
+    ds: inst => new DS({
+        list: (src, str, cb) => cb([{id:'='},{id:'!='}]),
+        view: o => o.id === '=' ? yes : no,
+    }, { nosearch: true, width: 200, onselect: o => inst.op = o.id }),
+    button: inst => inst.op === '=' ? yes : no,
+});
 
 
 // A "set" field can hold a set of values that are AND or OR'ed together.
@@ -42,11 +54,25 @@ const setField = (id, opstyle, source) => ({
             op: q[0] === OR ? (q[1][1] === '=' ? 0 : 3) : (q[1][1] === '=' ? 1 : 2),
         } : null,
     toquery: inst => {
-        const lst = [ ...inst.values.keys().map(v => [id, inst.op & 2 ? '!=' : '=', v]) ];
+        const lst = [...inst.values.keys()].map(v => [id, inst.op & 2 ? '!=' : '=', v]);
         return lst.length === 0 ? null
              : lst.length === 1 ? lst[0]
              : [ inst.op === 0 || inst.op === 3 ? OR : AND, ...lst ];
     }
+});
+
+// Set field with for a list of [id,label,butlabel=label] options
+const simpleSetField = (id, opstyle, list, label, title) => ({
+    label, title,
+    ...setField(id, opstyle, {
+        list: (src, str, cb) => cb(list.map(([id,lbl]) => ({id,lbl}))),
+        view: o => o.lbl,
+        opts: { width: 300, nosearch: true }
+    }),
+    button: inst => inst.values.size === 0 ? m('small', label) : [
+        opFmt(inst.op, true), ' ',
+        inst.values.size === 1 ? (v => v[2]||v[1])(list.find(r => r[0] === inst.values.keys().next().value)) : label + ' ('+inst.values.size+')',
+    ],
 });
 
 const langField = (id, opstyle, source, label, title, prefix='') => ({
@@ -58,6 +84,31 @@ const langField = (id, opstyle, source, label, title, prefix='') => ({
         vndbTypes.language.anySort(([,,,rank]) => 99-rank).map(([v,l]) => inst.values.has(v) ? [ LangIcon(v), inst.values.size === 1 ? l : null ] : null)
     ],
 });
+
+const platformField = { // Works for both VNs and releases
+    label: 'Platform',
+    title: 'Platform availability',
+    ...setField(4, 'set', DS.Platforms),
+    button: inst => inst.values.size === 0 ? m('small', 'Platform') : [
+        opFmt(inst.op, inst.values.size === 1), ' ',
+        vndbTypes.platform.map(([v,l]) => inst.values.has(v) ? [ PlatIcon(v), inst.values.size === 1 ? l : null ] : null)
+    ],
+};
+
+const unknownField = {
+    title: 'Unrecognized filter',
+    button: () => m('small', 'Unrecognized'),
+    ds: inst => new DS(null, {
+        width: 300,
+        header: () => m('p',
+            "This interface does not support editing filters of this type, but the filter is still applied to the listing below.",
+            m('br'), m('br'), m('small', 'Raw query: ', JSON.stringify(inst.q)),
+        ),
+    }),
+    init: q => ({q}),
+    toquery: ({q}) => q,
+};
+
 
 
 const opList = [
@@ -71,7 +122,6 @@ const opFmt = (i,single=false) =>
     single ? (opList[i].neg ? m('b', '≠') : null) :
     m('span', { class: opList[i].neg ? 'op_neg' : null }, opList[i].sym);
 
-
 const opDs = new DS({
     list: (src, str, cb) => cb(opList.filter(o => opDs._inst.def.opstyle === 'set' || o.sym === 'OR')),
     view: o => [m('strong', opFmt(o.id)), ': ', o.lbl],
@@ -83,8 +133,6 @@ const opDs = new DS({
         opDs._inst.ds.open(opDs.opener);
     },
 });
-
-
 
 const fieldHeader = (inst, tab=0) => m('div.xsearch_opts',
     m('div',
@@ -123,20 +171,6 @@ const fieldHeader = (inst, tab=0) => m('div.xsearch_opts',
     ),
 );
 
-
-const unknownField = {
-    title: 'Unrecognized filter',
-    button: () => m('small', 'Unrecognized'),
-    ds: inst => new DS(null, {
-        width: 300,
-        header: () => m('p',
-            "This interface does not support editing filters of this type, but the filter is still applied to the listing below.",
-            m('br'), m('br'), m('small', 'Raw query: ', JSON.stringify(inst.q)),
-        ),
-    }),
-    init: q => ({q}),
-    toquery: ({q}) => q,
-};
 
 const nestField = (ptype, qtype=ptype, id, label='And/Or', button, yes, no) => {
     const andor = inst => new DS({
@@ -212,7 +246,7 @@ const regType = (t, name, fields) => {
         }, {
             width: 150, maxCols: 2, nosearch: true, keep: true,
             header: () => [
-                m('div.xsearch_opts', m('strong', 'Add field'), ds._types),
+                m('div.xsearch_opts', m('strong', 'Add field')),
                 ds._types.length === 1 ? null : m('div.xsearch_nest', ds._types.map((qt,i) => {
                     const lbl = i ? fieldSubnest[ds._types[i-1]][qt].button : fieldSubnest[qt][''];
                     return i === ds._types.length - 1 ? m('strong', lbl)
@@ -225,6 +259,7 @@ const regType = (t, name, fields) => {
                 } else {
                     DS.close();
                     let f = instantiateField(o.d);
+                    f.focus = true;
                     for (let i=ds._types.length-2; i>=0; i--) {
                         const pt = ds._types[i];
                         const qt = ds._types[i+1];
@@ -247,37 +282,58 @@ regType('v', 'VN', [
     nestField('v', 'p', 55, 'Developer', 'Dev', 'Has a developer that matches these filters', 'Does not have a developer that matches these filters'),
     langField(2, 'set', DS.ScriptLang, 'Language', 'Language the visual novel is available in', 'L '),
     langField(3, 'eq',  DS.ScriptLang, 'Original language', 'Language the visual novel is originally written in', 'O '),
+    platformField,
+    // TODO: tags, my labels, my list
+    simpleSetField(5, 'eq', vndbTypes.vnLength, 'Length', 'Length (estimated play time)'),
+    simpleSetField(66, 'eq', vndbTypes.devStatus, 'Dev status', 'Development status'),
+    // TODO: rating, votenum, anime
+    boolField(61, 'Has description', 'Has description',    'No description'),
+    boolField(62, 'Has anime',       'Has anime relation', 'No anime relation'),
+    boolField(63, 'Has screenshot',  'Has screenshot(s)',  'No screenshot(s)'),
+    boolField(64, 'Has review',      'Has review(s)',      'No review(s)'),
 ]);
 
 regType('r', 'Release', [
     nestField('r', 'v', 53, 'Visual Novel', 'VN', 'Linked to a visual novel that matches these filters', 'Not linked to a visual novel that matches these filters'),
     nestField('r', 'p', 55, 'Producer', 'Prod', 'Has a producer that matches these filters', 'Does not have a producer that matches these filters'),
     langField(2, 'set', DS.ScriptLang, 'Language', 'Language the release is available in'),
+    platformField,
+    simpleSetField(16, 'eq', vndbTypes.releaseType, 'Type'),
+    boolField(61, 'Patch',         'Patch to another release', 'Standalone release'),
+    boolField(62, 'Freeware',      'Freeware',                 'Non-free'),
+    boolField(66, 'Erotic scenes', 'Has erotic scenes',        'No erotic scenes'),
+    boolField(64, 'Uncensored',    'Uncensored (no mosaic)',   'Censored (or no erotic content to censor)'),
+    boolField(65, 'Official',      'Official',                 'Unofficial'),
+    // TODO: release date, resolution, age rating
+    simpleSetField(11, 'set', [['', 'Unknown', 'Medium: Unknown']].concat(vndbTypes.medium.map(m => [m[0],m[1]])), 'Medium'),
+    simpleSetField(12, 'eq', vndbTypes.voiced.map((v,i) => [i,v]), 'Voiced'),
+    simpleSetField(13, 'eq', vndbTypes.animated.map((v,i) => [i,v,'Ero: '+v]), 'Ero animation'),
+    simpleSetField(14, 'eq', vndbTypes.animated.map((v,i) => [i,v,'Story: '+v]), 'Story animation'),
+    // TODO: engine, DRM, extlinks, my list
 ]),
 
 regType('c', 'Char', [
     nestField('c', 's', 52, 'Voice Actor', 'VA', 'Has a voice actor that matches these filters', 'Does not have a voice actor that matches these filters'),
     nestField('c', 'v', 53, 'Visual Novel', 'VN', 'Linked to a visual novel that matches these filters', 'Not linked to a visual novel that matches these filters'),
-    {
-        label: 'Role',
-        ...setField(2, 'eq', {
-            list: (src, str, cb) => cb(vndbTypes.charRole.map(([id,lbl]) => ({id,lbl}))),
-            view: o => o.lbl,
-            opts: { width: 250, nosearch: true },
-        }),
-        button: inst => inst.values.size === 0 ? m('small', 'Role') : [
-            opFmt(inst.op, true), ' ',
-            inst.values.size === 1 ? vndbTypes.charRole.find(r => r[0] === inst.values.keys().next().value)[1] : 'Role ('+inst.values.size+')',
-        ],
-    },
+    simpleSetField(2, 'eq', vndbTypes.charRole, 'Role'),
+    // TODO: age, birthday, sex, gender, traits
+    simpleSetField(3, 'eq', vndbTypes.bloodType.map(([k,v]) => [k,v,'Blood type: '+v]), 'Blood type'),
+    // TODO: height, weight, bust, waist, hips, cup
 ]);
 
 regType('s', 'Staff', [
+    // TODO: name
     langField(2, 'eq', DS.LocLang, 'Language', 'Primary language of the staff'),
+    simpleSetField(4, 'eq', [['','Unknown','Gender: unknown'],['m','Male'],['f','Female']], 'Gender'),
+    simpleSetField(5, 'set', [['seiyuu', 'Voice actor']].concat(vndbTypes.creditType), 'Role'),
+    // TODO: extlinks
 ]);
 
 regType('p', 'Producer', [
+    // TODO: name
     langField(2, 'eq', DS.LocLang, 'Language', 'Primary language of the producer'),
+    simpleSetField(4, 'eq', vndbTypes.producerType, 'Type'),
+    // TODO: extlinks
 ]);
 
 
@@ -297,7 +353,10 @@ const instantiateField = (def, q) => {
 
 const renderField = (inst, par) => {
     inst.parent = par;
-    if (!inst.def.qtype) return m(DS.Button, { ds: inst.ds, class: 'field' }, m('span', inst.def.button(inst)));
+    if (!inst.def.qtype) return m(DS.Button, {
+            ds: inst.ds, class: 'field',
+            oncreate: v => { if (inst.focus) { delete inst.focus; inst.ds.open(v.dom) } },
+        }, m('span', inst.def.button(inst)));
 
     const pre = [
         inst.andords ? m(DS.Button, { ds: inst.ds }, opFmt(inst.eq === '=' ? 0 : 2, true), ' ', inst.def.button) : null,
@@ -388,6 +447,8 @@ widget('AdvSearch', initvnode => {
     // work with.
     root = { op: 1, parent: null, childs: [root], def: { qtype: data.qtype, ptype: data.qtype } };
 
+    // TODO: Instantiate default fields when query is empty
+    // TODO: Save/load
     const view = () => m('div.xsearch',
         m('input[type=hidden][id=f][name=f]', { value: encodeQuery(root.childs[0].def.toquery(root.childs[0])) }),
         renderField(root.childs[0], root),

@@ -294,6 +294,7 @@ DS.close = close;
 // Dynamically adding or removing nodes before the button might cause it to be re-added to the DOM and break ds positioning.
 DS.Button = {view: vnode => m('button.ds[type=button]', {
         class: vnode.attrs.invalid ? 'invalid ' + (vnode.attrs.class||'') : vnode.attrs.class,
+        oncreate: vnode.attrs.oncreate,
         onclick: function(ev) { ev.preventDefault(); vnode.attrs.onclick ? vnode.attrs.onclick(ev) : vnode.attrs.ds && vnode.attrs.ds.open(this, null) },
     }, vnode.children, m(Icon.ChevronDown)
 )};

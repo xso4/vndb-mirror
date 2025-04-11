@@ -29,6 +29,7 @@ sub types {
         voiced   => [ map [$VOICED{$_}{txt}], keys %VOICED ],
         ageRating =>[ map [1*$_, $AGE_RATING{$_}{txt}.($AGE_RATING{$_}{ex}?" ($AGE_RATING{$_}{ex})":'')], keys %AGE_RATING ],
         ratings  => [ map fmtrating($_), 1..10 ],
+        animated => [ map $ANIMATED{$_}{txt}, keys %ANIMATED ],
         releaseType => [ map [$_, $RELEASE_TYPE{$_}], keys %RELEASE_TYPE ],
         releaseImageType => [ map [$_, $RELEASE_IMAGE_TYPE{$_}{txt}], keys %RELEASE_IMAGE_TYPE ],
         rlistStatus => [ values %RLIST_STATUS ],
