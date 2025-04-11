@@ -423,7 +423,7 @@ window.RDate = {
     fmt: ({y,m,d}) =>
         y ===    0 ? (d ? 'Today' : 'Unknown') :
         y === 9999 ? 'TBA' :
-        String(y) + (m === 0 ? '' : '-'+String(m).padStart(2,0) + (d === 0 ? '' : '-'+String(d).padStart(2,0))),
+        String(y) + (m === 99 ? '' : '-'+String(m).padStart(2,0) + (d === 99 ? '' : '-'+String(d).padStart(2,0))),
     Fmt: v => (s => v > RDate.today ? m('b.future', s) : s)(RDate.fmt(RDate.expand(v))),
     view: vnode => {
         const v = RDate.expand(vnode.attrs.value);
