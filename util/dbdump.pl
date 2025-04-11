@@ -217,7 +217,7 @@ sub export_table($dest, $table) {
     print $F $v while($v = $cp->read);
     close $F;
 
-    printf "# Dumped %s in %.3fs\n", $table->{name}, time-$start;
+    #printf "# Dumped %s in %.3fs\n", $table->{name}, time-$start;
 
     open $F, '>', "$fn.header";
     print $F join "\t", map $_->{name}, @cols;
