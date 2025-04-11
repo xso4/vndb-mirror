@@ -43,8 +43,7 @@ Specific features to avoid:
 ## Bundles
 
 - `basic`: Primary bundle for functionality and library code common to popular
-  pages on the site. The goal is to keep this below 20kB minified+gzipped.
-- `search`: The advanced search filter selection thing.
+  pages on the site.
 - `user`: Bundle for functionality that is commonly used by users with an
   account.
 - `contrib`: Bundle for edit forms and other database contributions.

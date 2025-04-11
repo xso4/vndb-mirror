@@ -588,7 +588,7 @@ sub framework_ {
                 lit_(JSON::XS->new->canonical->encode(tuwf->req->{pagevars}) =~ s{</}{<\\/}rg =~ s/<!--/<\\u0021--/rg);
             } if keys tuwf->req->{pagevars}->%*;
 
-            script_ defer => 'defer', src => _staticurl("$_.js"), '' for grep tuwf->req->{js}{$_}, qw/basic search user contrib graph/;
+            script_ defer => 'defer', src => _staticurl("$_.js"), '' for grep tuwf->req->{js}{$_}, qw/basic user contrib graph/;
         }
     };
     tuwf->resBinary($html, 'auto');
