@@ -95,6 +95,42 @@ const platformField = { // Works for both VNs and releases
     ],
 };
 
+// defval=[op,value], list=[[id,label],..]
+const rangeOp = new Map([['=', '='], ['!=','≠'], ['<=','≤'], ['<','<'],['>=','≥'],['>','>']]);
+const rangeField = (id, label, defval, unknown, list) => ({
+    label,
+    init: q => !q ? { op: defval[0], val: defval[1] } : q[0] === id ? { op: q[1], val: q[2] } : null,
+    toquery: inst => [id,inst.op,inst.val],
+    ds: inst => new DS(null, { width: 300, header: () => m('div.xsearch_range',
+        m('div',
+            m('div', [...rangeOp.entries()].map((op,i) =>
+                inst.val === '' && i > 1 ? null
+                : inst.op === op[0] ? m('strong', op[1])
+                : m('a[href=#]', { onclick: ev => { ev.preventDefault(); inst.op = op[0] } }, op[1])
+            )),
+            unknown ? m('label',
+                m('input[type=checkbox]', { checked: inst.val === '', onclick: ev => {
+                    inst.val = ev.target.checked ? '' : defval[1];
+                    if (inst.val === '' && inst.op !== '=' && inst.op !== '!=') inst.op = '=';
+                    if (inst.val !== '') inst.op = defval[0];
+                }}),
+                ' unknown'
+            ) : null,
+        ),
+        inst.val === '' ? m('p', label, ' is ', inst.op === '=' ? 'unknown/unset.' : 'known/set.') : m('div',
+            m('small', list[0][1]),
+            m('strong', list.find(v => v[0] === inst.val)[1]),
+            m('small', list[list.length-1][1]),
+        ),
+        inst.val === '' ? null : m('input[type=range][min=0]', {
+            max: list.length-1,
+            value: list.findIndex(v => v[0] === inst.val),
+            oninput: ev => inst.val = list[ev.target.value][0]
+        }),
+    )}),
+    button: inst => [ label, ' ', rangeOp.get(inst.op), ' ', inst.val === '' ? 'Unknown' : list.find(v => v[0] === inst.val)[1] ],
+});
+
 const unknownField = {
     title: 'Unrecognized filter',
     button: () => m('small', 'Unrecognized'),
@@ -286,7 +322,9 @@ regType('v', 'VN', [
     // TODO: tags, my labels, my list
     simpleSetField(5, 'eq', vndbTypes.vnLength, 'Length', 'Length (estimated play time)'),
     simpleSetField(66, 'eq', vndbTypes.devStatus, 'Dev status', 'Development status'),
-    // TODO: rating, votenum, anime
+    rangeField(10, 'Rating', ['>=', 40], false, range(10, 100).map(v => [v,v/10])),
+    rangeField(11, '# Votes', ['>=', 10], false, [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000 ].map(v => [v,v])),
+    // TODO: anime
     boolField(61, 'Has description', 'Has description',    'No description'),
     boolField(62, 'Has anime',       'Has anime relation', 'No anime relation'),
     boolField(63, 'Has screenshot',  'Has screenshot(s)',  'No screenshot(s)'),
@@ -304,7 +342,8 @@ regType('r', 'Release', [
     boolField(66, 'Erotic scenes', 'Has erotic scenes',        'No erotic scenes'),
     boolField(64, 'Uncensored',    'Uncensored (no mosaic)',   'Censored (or no erotic content to censor)'),
     boolField(65, 'Official',      'Official',                 'Unofficial'),
-    // TODO: release date, resolution, age rating
+    // TODO: release date, resolution
+    rangeField(10, 'Age rating', [ '<', 13 ], true, vndbTypes.ageRating),
     simpleSetField(11, 'set', [['', 'Unknown', 'Medium: Unknown']].concat(vndbTypes.medium.map(m => [m[0],m[1]])), 'Medium'),
     simpleSetField(12, 'eq', vndbTypes.voiced.map((v,i) => [i,v]), 'Voiced'),
     simpleSetField(13, 'eq', vndbTypes.animated.map((v,i) => [i,v,'Ero: '+v]), 'Ero animation'),
@@ -316,9 +355,15 @@ regType('c', 'Char', [
     nestField('c', 's', 52, 'Voice Actor', 'VA', 'Has a voice actor that matches these filters', 'Does not have a voice actor that matches these filters'),
     nestField('c', 'v', 53, 'Visual Novel', 'VN', 'Linked to a visual novel that matches these filters', 'Not linked to a visual novel that matches these filters'),
     simpleSetField(2, 'eq', vndbTypes.charRole, 'Role'),
-    // TODO: age, birthday, sex, gender, traits
+    rangeField(12, 'Age', ['>=', 17], true, range(0, 121).map(v => [v,v === 1 ? '1 year' : v+' years'])),
+    // TODO: birthday, sex, gender, traits
     simpleSetField(3, 'eq', vndbTypes.bloodType.map(([k,v]) => [k,v,'Blood type: '+v]), 'Blood type'),
-    // TODO: height, weight, bust, waist, hips, cup
+    rangeField(6, 'Height', ['>=',150], true, range(1, 300).map(v => [v,v+'cm'])),
+    rangeField(7, 'Weight', ['>=',60], true, range(0, 400).map(v => [v,v+'kg'])),
+    rangeField(8, 'Bust', ['>=',40], true, range(20,120).map(v => [v,v+'cm'])),
+    rangeField(9, 'Waist', ['>=',40], true, range(20,120).map(v => [v,v+'cm'])),
+    rangeField(10, 'Hips', ['>=',40], true, range(20,120).map(v => [v,v+'cm'])),
+    rangeField(11, 'Cup size', ['>=','B'], true, vndbTypes.cupSize.slice(1)),
 ]);
 
 regType('s', 'Staff', [
