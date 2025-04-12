@@ -85,6 +85,22 @@ const langField = (id, opstyle, source, label, title, prefix='') => ({
     ],
 });
 
+const extlinksField = (id, type) => ({
+    label: 'External links',
+    ...setField(id, 'set', {
+        list: (src, str, cb) => cb(vndbTypes
+            .extLinks.map(([id,ent,lbl]) => ({id,ent,lbl}))
+            .filter(o => o.ent.toLowerCase().includes(type))),
+        view: o => o.lbl,
+        opts: { width: 210, nosearch: true, maxCols: 2 }
+    }),
+    button: inst => inst.values.size === 0 ? m('small', 'External links') : [
+        opFmt(inst.op, true), ' ',
+        inst.values.size === 1 ? vndbTypes.extLinks.find(([id]) => id === inst.values.keys().next().value)[2]
+                               : 'Links ('+inst.values.size+')'
+    ],
+});
+
 const platformField = { // Works for both VNs and releases
     label: 'Platform',
     title: 'Platform availability',
@@ -348,7 +364,9 @@ regType('r', 'Release', [
     simpleSetField(12, 'eq', vndbTypes.voiced.map((v,i) => [i,v]), 'Voiced'),
     simpleSetField(13, 'eq', vndbTypes.animated.map((v,i) => [i,v,'Ero: '+v]), 'Ero animation'),
     simpleSetField(14, 'eq', vndbTypes.animated.map((v,i) => [i,v,'Story: '+v]), 'Story animation'),
-    // TODO: engine, DRM, extlinks, my list
+    // TODO: engine, DRM
+    extlinksField(19, 'r'),
+    // my list
 ]),
 
 regType('c', 'Char', [
@@ -371,14 +389,14 @@ regType('s', 'Staff', [
     langField(2, 'eq', DS.LocLang, 'Language', 'Primary language of the staff'),
     simpleSetField(4, 'eq', [['','Unknown','Gender: unknown'],['m','Male'],['f','Female']], 'Gender'),
     simpleSetField(5, 'set', [['seiyuu', 'Voice actor']].concat(vndbTypes.creditType), 'Role'),
-    // TODO: extlinks
+    extlinksField(6, 's'),
 ]);
 
 regType('p', 'Producer', [
     // TODO: name
     langField(2, 'eq', DS.LocLang, 'Language', 'Primary language of the producer'),
     simpleSetField(4, 'eq', vndbTypes.producerType, 'Type'),
-    // TODO: extlinks
+    extlinksField(5, 'p'),
 ]);
 
 

@@ -7,10 +7,12 @@ use TUWF::Validate::Interop;
 use JSON::XS;
 use VNWeb::Validation ();
 use VNWeb::TimeZone;
-use VNDB::ExtLinks ();
+use VNDB::ExtLinks '%LINKS';
 use VNDB::Skins;
 use VNDB::Types;
 use VNDB::Func 'fmtrating';
+
+my @LINKS = grep $LINKS{$_}{regex}, sort keys %LINKS;
 
 my $js = JSON::XS->new->pretty->canonical;
 
@@ -47,6 +49,7 @@ sub types {
         charGender=> [ map [$_, $CHAR_GENDER{$_}], keys %CHAR_GENDER ],
         charRole  => [ map [$_, $CHAR_ROLE{$_}{txt}], keys %CHAR_ROLE ],
         cupSize   => [ map [$_, $CUP_SIZE{$_}], keys %CUP_SIZE ],
+        extLinks  => [ map [$_, $LINKS{$_}{ent}, $LINKS{$_}{label}], @LINKS ],
     }).";\n";
 }
 
@@ -59,22 +62,11 @@ sub vskins {
 }
 
 sub extlinks {
-    sub t($t) {
-        my $L = \%VNDB::ExtLinks::LINKS;
-        [ map +{
-            site    => $_,
-            label   => $L->{$_}{label},
-            fmt     => $L->{$_}{fmt},
-            patt    => [ split /(<[^>]+>)/, $L->{$_}{patt} || ($L->{$_}{fmt} =~ s/%s/<code>/rg =~ s/%[0-9]*d/<number>/rg) ],
-            $L->{$_}{regex} ? (regex => TUWF::Validate::Interop::_re_compat($L->{$_}{full_regex})) : (),
-            $L->{$_}{ent} =~ /\U$t/ ? (multi => 1) : (),
-        }, grep $L->{$_}{ent} =~ /$t/i, sort keys %$L ]
-    }
-    print 'window.extLinks = '.$js->encode({
-        release  => t('r'),
-        producer => t('p'),
-        staff    => t('s'),
-    }).";\n";
+    print 'window.extLinksExt = '.$js->encode([ map [
+        $_->{fmt},
+        [ split /(<[^>]+>)/, $_->{patt} || ($_->{fmt} =~ s/%s/<code>/rg =~ s/%[0-9]*d/<number>/rg) ],
+        TUWF::Validate::Interop::_re_compat($_->{full_regex}),
+    ], map $LINKS{$_}, @LINKS ])."\n";
 }
 
 if ($ARGV[0] eq 'types') { validations; types; }

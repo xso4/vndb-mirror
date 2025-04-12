@@ -96,9 +96,15 @@ const EditSum = vnode => {
 
 const ExtLinks = initVnode => {
     const links = initVnode.attrs.links;
-    const extlinks = extLinks[initVnode.attrs.type];
+    const extlinks = vndbTypes.extLinks.flatMap(
+        ([site,ent,label],i) => ent.toLowerCase().includes(initVnode.attrs.type) ? [{
+            site, label,
+            multi: ent.includes(initVnode.attrs.type.toUpperCase()),
+            fmt: extLinksExt[i][0],
+            patt: extLinksExt[i][1],
+            regex: extLinksExt[i][2],
+        }] : []);
     const extlinksMap = Object.fromEntries(extlinks.map(x => [x.site,x]));
-    const hasWeb = extlinks.find(l => l.site === 'website');
     const split = (fmt,v) => fmt.split(/(%[0-9]*[sd])/)
         .map((p,i) => i !== 1 ? p : String(v).padStart(p.match(/%(?:0([0-9]+))?/)[1]||0, '0'));
 
@@ -114,7 +120,7 @@ const ExtLinks = initVnode => {
     };
     const set = (o,v) => {
         if (v !== null) o.str = v;
-        o.lnk = extlinks.find(l => l.regex && new RegExp(l.regex).test(o.str));
+        o.lnk = extlinks.find(l => new RegExp(l.regex).test(o.str));
         o.val = o.lnk && o.str.match(new RegExp(o.lnk.regex)).filter(x => x !== undefined)[1];
         o.dup = o.lnk && links.find(l => l.site === o.lnk.site && l.value === o.val);
         if (o.lnk && !o.dup && (o.lnk.multi || !links.find(l => l.site === o.lnk.site))) add(o);
@@ -126,7 +132,7 @@ const ExtLinks = initVnode => {
             m('p', m('input[type=button][value=Update]', { onclick: () => add(o) }), m('span.invalid', ' URL recognized as: ', o.lnk.label)),
             m('p.invalid', 'Did you mean to update the URL?'),
         ] : null;
-    const Website = () => hasWeb ? m('fieldset',
+    const Website = () => extlinksMap.website ? m('fieldset',
         m('label[for=website]', 'Website'),
         m(Input, { id: 'website', class: 'xw', type: 'weburl', data: web, field: 'str', oninput: v => {
             const l = links.find(l => l.site === 'website');
@@ -139,7 +145,7 @@ const ExtLinks = initVnode => {
 
     const view = () => [ Website(), m('fieldset',
         m('label[for=extlinks]', 'External links', HelpButton('extlinks')),
-        m('table', links.filter(l => extlinksMap[l.site] && extlinksMap[l.site].regex).map(l => m('tr', {key: l.site+'-'+l.value},
+        m('table', links.filter(l => extlinksMap[l.site]).map(l => m('tr', {key: l.site+'-'+l.value},
             m('td', m(Button.Del, {onclick: () => { links.splice(links.indexOf(l), 1); set(inp,null)}})),
             m('td', m('a[target=_blank]', { href: split(extlinksMap[l.site].fmt, l.value).join('') }, extlinksMap[l.site].label)),
             m('td', split(extlinksMap[l.site].fmt, l.value).map((p,i) => m(i === 1 ? 'span' : 'small', p))),
@@ -150,7 +156,7 @@ const ExtLinks = initVnode => {
         ),
         Help('extlinks',
             m('p', 'Links to external websites. The following sites and URL formats are supported:'),
-            m('dl', extlinks.filter(l => extlinksMap[l.site] && extlinksMap[l.site].regex).flatMap(e => [
+            m('dl', extlinks.filter(l => extlinksMap[l.site]).flatMap(e => [
                 m('dt', e.label),
                 m('dd', e.patt.map((p,i) => m(i % 2 ? 'strong' : 'span', p))),
             ])),

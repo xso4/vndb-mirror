@@ -159,7 +159,7 @@ ${GEN}/d3.js:
 	$T FETCH
 	$Q curl -s 'https://d3js.org/d3.v7.min.js' -o $@
 
-${GEN}/types.js: util/jsgen.pl lib/VNDB/Types.pm lib/VNWeb/Validation.pm
+${GEN}/types.js: util/jsgen.pl lib/VNDB/Types.pm lib/VNDB/ExtLinks.pm lib/VNWeb/Validation.pm
 	util/jsgen.pl types >$@
 
 ${GEN}/user.js: util/jsgen.pl lib/VNWeb/TimeZone.pm

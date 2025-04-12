@@ -95,7 +95,7 @@ widget('StaffEdit', initVnode => {
             m('p', 'Producer entry for this person, if there is one.'),
             m('p', 'Only set this if the producer and this staff entry are one and the same, not just when this staff happens to work for the producer.'),
         ),
-        m(ExtLinks, {type: 'staff', links: data.extlinks}),
+        m(ExtLinks, {type: 's', links: data.extlinks}),
         m('fieldset',
             m('label[for=description]', 'Notes / Biography'),
             m(TextPreview, {

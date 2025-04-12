@@ -6,6 +6,7 @@ use VNDB::Schema;
 use Exporter 'import';
 
 our @EXPORT = ('enrich_vislinks');
+our @EXPORT_OK = ('%LINKS');
 
 
 # column name in wikidata table => \%info
@@ -483,7 +484,7 @@ our %LINKS = (
         , regex => qr{(?:www\.)?wikidata\.org/wiki/(?:Special:EntityPage/)?Q$int}
         },
     wp => # Deprecated, replaced with wikidata
-        { ent => 'rsp'
+        { ent => 'sp'
         , label => 'Wikipedia'
         , fmt => 'https://en.wikipedia.org/wiki/%s'
         },

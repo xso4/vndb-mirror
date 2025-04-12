@@ -659,7 +659,7 @@ widget('ReleaseEdit', initVnode => {
                 m('label[for=catalog]', 'Catalog number'),
                 m(Input, { id: 'catalog', class: 'mw', maxlength: 50, data, field: 'catalog' }),
             ),
-            m(ExtLinks, {type: 'release', links: data.extlinks}),
+            m(ExtLinks, {type: 'r', links: data.extlinks}),
         ),
         m('fieldset.form',
             m('legend', 'Database relations'),

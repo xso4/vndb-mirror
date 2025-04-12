@@ -30,7 +30,7 @@ widget('ProducerEdit', initVnode => {
                 attrs: { id: 'description', rows: 6, maxlength: 5000 },
             }),
         ),
-        m(ExtLinks, {type: 'producer', links: data.extlinks}),
+        m(ExtLinks, {type: 'p', links: data.extlinks}),
     ];
 
     const prod = new DS(DS.Producers, {
