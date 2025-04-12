@@ -49,8 +49,7 @@ $ENV{VNDB_VAR} //= 'var';
 # without any modification. Only for users that have at least one private label
 # are the labels filtered.
 my $sql_ulist_vns_cols = q{
-    uid, vid, date_trunc('day',added) AS added, date_trunc('day',lastmod) AS lastmod
-  , date_trunc('day',vote_date), started, finished, vote, notes
+    uid, vid, added::date, lastmod::date, vote_date::date, started, finished, vote, notes
 };
 my $sql_ulist_vns = qq{
   SELECT * FROM (
@@ -200,7 +199,7 @@ sub export_table($dest, $table) {
                 "CASE WHEN $t.username IS NULL THEN NULL ELSE $t.id END"
             }
             # Truncate all timestamptz columns to a day, to avoid leaking privacy-sensitive info.
-            : $_->{type} eq 'timestamptz' ? "date_trunc('day', x.$_->{name})"
+            : $_->{type} eq 'timestamptz' ? "x.$_->{name}::date"
             : qq{x.$_->{name}}
         } @cols;
 
@@ -237,6 +236,7 @@ sub export_schema($plain, $dest) {
             "  $_->{decl}"
                 =~ s/ serial/ integer/ir
                 =~ s/ +(?:check|constraint|default) +.*//ir
+                =~ s/ timestamptz/ date/ir
                 =~ s/(vndbid(?:\([^\)]+\))?)/$plain ? 'text' : $1/er,
             grep $_->{pub}, @{$schema->{cols}};
         print $F ",\n  PRIMARY KEY(".join(', ', map "$_", @primary).")" if @primary;
