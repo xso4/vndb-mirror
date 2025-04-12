@@ -428,6 +428,19 @@ CREATE TABLE email_optout (
   PRIMARY KEY (mail)
 );
 
+-- entry_meta
+-- This table is empty and unused in the production database, it mainly serves
+-- to aggregate some useful information from the 'changes' table for the public
+-- database dumps. Contents are generated with a custom query in dbdump.pl.
+CREATE TABLE entry_meta (
+  id          vndbid PRIMARY KEY, -- [pub]
+  created     date NOT NULL, -- [pub]
+  lastmod     date NOT NULL, -- [pub] Last modification date
+  revision    smallint NOT NULL, -- [pub] Latest revision number
+  num_edits   smallint NOT NULL, -- [pub] Number of non-bot edits
+  num_users   smallint NOT NULL  -- [pub] Number of users who have edited this entry
+);
+
 -- extlinks
 CREATE TABLE extlinks (
   id         serial PRIMARY KEY, -- [pub]

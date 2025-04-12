@@ -89,6 +89,11 @@ my %tables = (
                                 .' AND (x.rid IS NULL OR x.rid IN(SELECT id FROM releases WHERE NOT hidden))'
                            , order => 'x.id, x.vid, x.rid' },
     docs                => { where => 'NOT x.hidden' },
+    entry_meta          => { sql => "SELECT itemid, min(added)::date AS created, max(added)::date AS lastmod, max(rev) AS revision
+                                          , count(*) filter (where requester <> 'u1') AS num_edits
+                                          , count(distinct requester) filter (where requester <> 'u1') AS num_users
+                                       FROM (SELECT itemid, added, rev, requester, first_value(ihid) OVER (PARTITION BY itemid ORDER BY rev DESC) AS hidden FROM changes) x
+                                      WHERE NOT hidden GROUP BY itemid ORDER BY itemid" },
     extlinks            => { where => 'x.c_ref' },
     images              => { where => "x.c_weight > 0" }, # Only images with a positive weight are referenced.
     image_votes         => { where => "x.id IN(SELECT id FROM images WHERE c_weight > 0)", order => 'x.uid, x.id' },
