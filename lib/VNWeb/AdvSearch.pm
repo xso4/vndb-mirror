@@ -881,7 +881,8 @@ sub widget_ {
     enrich_merge id => 'SELECT id, name, searchable, applicable, hidden, locked FROM tags WHERE id IN', $o{tags};
     enrich_merge id => 'SELECT t.id, t.name, t.searchable, t.applicable, t.defaultspoil, t.hidden, t.locked, g.id AS group_id, g.name AS group_name
                           FROM traits t LEFT JOIN traits g ON g.id = t.gid WHERE t.id IN', $o{traits};
-    enrich_merge id => 'SELECT id, title_romaji AS title, title_kanji AS original FROM anime WHERE id IN', $o{anime};
+    enrich_merge id => 'SELECT id, title_romaji, title_kanji FROM anime WHERE id IN', $o{anime};
+    $_->{id} *= 1 for $o{anime}->@*;
 
     div_ class => 'xsearch', VNWeb::HTML::widget(AdvSearch => \%o), '';
 

@@ -11,7 +11,7 @@ let globalData;
 //   init          query => instance  (query=null to init an empty field)
 //   toquery       instance => query
 //   opstyle       supported operators, 'set', 'eq' or 'ord'
-//   spoilstyle    enable spoiler setting selector (value stored in inst.ops[1])
+//   spoilstyle    enable spoiler setting selector, 'bool', 'lie'
 //   ds            instance => new DS(..)
 //   button        instance => html
 //   ptype/qtype   parent type and query type, only used for nestfields
@@ -43,30 +43,29 @@ const boolField = (id, label, yes, no) => ({
 //
 // For non-trivial fields:
 //   id: used for the default toquery and fromquery, unused when those are set.
-//   fromq: q => null or [key,op,opt,val]
-//     'opt' is stored in inst.opt and must evaluate to the same value for all values (uses anyCmp)
+//   fromq: q => null or {key,op,val,spoil,direct}
 //   toq: (key,op,val,inst) => q
-const setField = (id, opstyle, source, fromq, toq, defaultopt) => {
-    if (!fromq) fromq = q => q[0] === id ? [q[2],q[1]] : null;
+const setField = (id, opstyle, source, fromq, toq, defop=0) => {
+    if (!fromq) fromq = q => q[0] === id ? {key:q[2], op:q[1]} : null;
     if (!toq) toq = (key,op,val,inst) => [id,op,key];
 
     const init = q => {
-        if (!q) return { values: new Map(), op: 0, opt: defaultopt };
-        const v = fromq(q);
-        if (v) return { values: new Map([[v[0],v[3]]]), op: v[1] === '=' ? 0 : 2, opt: v[2] };
-        if (q[0] > 1 || q.length < 2) return null;
+        if (!q) return { values: new Map(), op: defop, spoil: globalData.spoilers, direct: false };
+        const lst = q[0] > 1 ? [q] : q.slice(1);
+        if (lst.length === 0) return null;
         const inst = { values: new Map() };
-        for (const x of q.slice(1)) {
+        for (const x of lst) {
             const v = fromq(x);
             if (!v) return null;
-            inst.values.set(v[0], v[3]);
-
-            if (!('opt' in inst)) inst.opt = v[2];
-            else if (anyCmp(inst.opt, v[2])) return null;
-
-            const op = q[0] === OR ? (v[1] === '=' ? 0 : 3) : (v[1] === '=' ? 1 : 2);
-            if (!('op' in inst)) inst.op = op;
-            else if (inst.op !== op) return null;
+            inst.values.set(v.key, 'val' in v ? v.val : true);
+            v.op = q[0] > 1 ? defop+(v.op === '=' ? 0 : 2)
+                 : q[0] === OR ? (v.op === '=' ? 0 : 3) : (v.op === '=' ? 1 : 2);
+            ['op', 'spoil', 'direct'].forEach(f => {
+                if (f in v) {
+                    if (!(f in inst)) inst[f] = v[f];
+                    else if (inst[f] !== v[f]) return null;
+                }
+            });
         }
         return inst;
     };
@@ -86,19 +85,21 @@ const setField = (id, opstyle, source, fromq, toq, defaultopt) => {
     return {opstyle,ds,init,toquery};
 };
 
-// Set field with for a list of [id,label,butlabel=label] options
-const simpleSetField = (id, opstyle, list, label, title) => ({
-    label, title,
+
+// Set field for a list of [id,label,butlabel=label] options
+const simpleSetField = (id, opstyle, list, label, title, spoilstyle, fromq, toq) => ({
+    label, title, spoilstyle,
     ...setField(id, opstyle, {
         list: (src, str, cb) => cb(list.map(([id,lbl]) => ({id,lbl}))),
         view: o => o.lbl,
         opts: { width: 300, nosearch: true }
-    }),
+    }, fromq, toq),
     button: inst => inst.values.size === 0 ? m('small', label) : [
         opFmt(inst.op, true), ' ',
         inst.values.size === 1 ? (v => v[2]||v[1])(list.find(r => r[0] === inst.values.keys().next().value)) : label + ' ('+inst.values.size+')',
     ],
 });
+
 
 const langField = (id, opstyle, source, label, title, prefix='') => ({
     label, title,
@@ -109,6 +110,7 @@ const langField = (id, opstyle, source, label, title, prefix='') => ({
         vndbTypes.language.anySort(([,,,rank]) => 99-rank).map(([v,l]) => inst.values.has(v) ? [ LangIcon(v), inst.values.size === 1 ? l : null ] : null)
     ],
 });
+
 
 const extlinksField = (id, type) => ({
     label: 'External links',
@@ -126,6 +128,7 @@ const extlinksField = (id, type) => ({
     ],
 });
 
+
 const platformField = { // Works for both VNs and releases
     label: 'Platform',
     title: 'Platform availability',
@@ -136,57 +139,89 @@ const platformField = { // Works for both VNs and releases
     ],
 };
 
-// TODO: should default to AND
+
+// A special case of setField where values need to be searched for.
+const searchField = (opstyle, source, label, cache, fmtlst, fmtbut, fromq, toq, defop=0, direct, levels) => {
+    const inf = id => globalData[cache].find(x => x.id === id);
+    const field = setField(null, opstyle, null, fromq, toq, defop);
+    field.label = label;
+    field.ds = inst => new DS(source, {
+        onselect: o => {
+            if (!inf(o.id)) globalData[cache].push(o);
+            inst.values.set(o.id, 0);
+        },
+        width: 400,
+        header: () => [
+            direct ? m('div.xsearch_opts', m('span'), m('label',
+                m('input[type=checkbox]', { checked: !inst.direct, onclick: ev => inst.direct = !ev.target.checked }),
+                ' ', direct
+            )) : null,
+            m('ul.xsearch_list', [...inst.values.entries()].map(([key,val]) => m('li', {key},
+                m(Button.Del, { onclick: () => inst.values.delete(key) }),
+                levels ? m(Select, { value: val, oninput: v => inst.values.set(key,v), options: levels }) : null,
+                ' ', fmtlst(inf(key)),
+            ))),
+        ],
+    });
+    field.button = inst => inst.values.size === 0 ? m('small', label) : [
+        opFmt(inst.op, true), ' ',
+        inst.values.size === 1 ? fmtbut(inf(inst.values.keys().next().value))
+                               : label+' ('+inst.values.size+')'
+    ];
+    return field;
+};
+
 const tagField = (() => {
-    // inst.opt: [ direct, spoil ]
-    // key: tag vndbid
-    // value: minlevel*5 (0 - 15)
     const fromq = q => {
         if (q[0] !== 8 && q[0] !== 14) return null;
         const [tag,v] = typeof q[2] === 'number' ? [q[2],0] : q[2];
         const spoil = (v % 3) + ((v % 3) === 2 && v > 16*3 ? 1 : 0);
         const minlevel = Math.floor((v / 3) % 16);
-        return [ 'g'+tag, q[1], [ q[0] === 14, spoil ], minlevel ];
+        return {key: 'g'+tag, op: q[1], val: minlevel, spoil, direct: q[0] === 14};
     };
     const toq = (key,op,val,inst) => {
         const tag = Math.floor(String(key).replace(/^g/, ''));
-        return [ inst.opt[0] ? 14 : 8, op, inst.opt[1] === 0 && val === 0 ? tag
-            : [tag, (inst.opt[1] >= 3 ? 2+16*3 : inst.opt[1]) + val*3] ];
+        return [ inst.direct ? 14 : 8, op, inst.spoil === 0 && val === 0 ? tag
+            : [tag, (inst.spoil >= 3 ? 2+16*3 : inst.spoil) + val*3] ];
     };
+    const fmtlst = o => [m('small', o.id, ':'), m('a[target=_blank]', { href: '/'+o.id }, o.name)];
+    const fmtbut = o => [m('small', o.id, ':'), o.name];
     const levels = [
         [ 0,'any' ],[ 1,'0.2+'],[ 2,'0.4+'],[ 3,'0.6+'],[ 4,'0.8+'],
         [ 5,'1.0+'],[ 6,'1.2+'],[ 7,'1.4+'],[ 8,'1.6+'],[ 9,'1.8+'],
         [10,'2.0+'],[11,'2.2+'],[12,'2.4+'],[13,'2.6+'],[14,'2.8+'],[15,'3.0']
     ];
-    const taginf = id => globalData.tags.find(x => x.id === id);
-    const field = setField(null, 'set', null, fromq, toq, [false,0]); // TODO: Honor defaultspoil
-    field.label = 'Tags';
-    field.spoilstyle = 1;
-    field.ds = inst => new DS(DS.Tags, {
-        onselect: o => {
-            if (!taginf(o.id)) globalData.tags.push(o);
-            inst.values.set(o.id, 0);
-        },
-        width: 400,
-        header: () => [
-            m('div.xsearch_opts', m('span'), m('label',
-                m('input[type=checkbox]', { checked: !inst.opt[0], onclick: ev => inst.opt[0] = !ev.target.checked }),
-                ' also match child tags'
-            )),
-            m('ul.xsearch_list', [...inst.values.entries()].map(([key,val]) => m('li', {key},
-                m(Button.Del, { onclick: () => inst.values.delete(key) }),
-                m(Select, { value: val, oninput: v => inst.values.set(key,v), options: levels }),
-                ' ', m('small', key, ':'), m('a[target=_blank]', { href: '/'+key }, taginf(key).name),
-            ))),
-        ],
-    });
-    field.button = inst => inst.values.size === 0 ? m('small', 'Tags') : [
-        opFmt(inst.op, true), ' ',
-        inst.values.size === 1 ? (t => [m('small', t.id, ':'), t.name])(taginf(inst.values.keys().next().value))
-                               : 'Tags ('+inst.values.size+')'
-    ];
+    const field = searchField('set', DS.Tags, 'Tags', 'tags', fmtlst, fmtbut, fromq, toq, 1, 'also match child tags', levels);
+    field.spoilstyle = 'lie';
     return field;
 })();
+
+
+const traitField = (() => {
+    const fromq = q => {
+        if (q[0] !== 13 && q[0] !== 15) return null;
+        const [trait,v] = typeof q[2] === 'number' ? [q[2],0] : q[2];
+        return {key: 'i'+trait, op: q[1], spoil: v>2?3:v, direct: q[0] === 15};
+    };
+    const toq = (key,op,val,inst) => {
+        const trait = Math.floor(String(key).replace(/^i/, ''));
+        return [ inst.direct ? 15 : 13, op, inst.spoil === 0 ? trait : [trait, inst.spoil] ];
+    };
+    const fmtlst = o => [m('small', o.id, ': ', o.group_name ? [o.group_name, ' / '] : null), m('a[target=_blank]', { href: '/'+o.id }, o.name)];
+    const fmtbut = o => [m('small', o.id, ':'), o.name];
+    const field = searchField('set', DS.Traits, 'Traits', 'traits', fmtlst, fmtbut, fromq, toq, 1, 'also match child traits');
+    field.spoilstyle = 'lie';
+    return field;
+})();
+
+
+const animeField = (() => {
+    const fromq = q => q[0] === 13 ? {op:q[1],key:q[2]} : null;
+    const toq = (key,op) => [13,op,key];
+    const fmt = o => [ m('small', 'a', o.id, ':'), o.title_romaji ];
+    return searchField('set', DS.Anime(1), 'Anime', 'anime', fmt, fmt, fromq, toq);
+})();
+
 
 // defval=[op,value], list=[[id,label],..]
 const rangeOp = new Map([['=', '='], ['!=','≠'], ['<=','≤'], ['<','<'],['>=','≥'],['>','>']]);
@@ -223,6 +258,7 @@ const rangeField = (id, label, defval, unknown, list) => ({
     )}),
     button: inst => [ label, ' ', rangeOp.get(inst.op), ' ', inst.val === '' ? 'Unknown' : list.find(v => v[0] === inst.val)[1] ],
 });
+
 
 const unknownField = {
     title: 'Unrecognized filter',
@@ -263,21 +299,22 @@ const opDs = new DS({
     },
 });
 
+
 const spoilList = [
-    {id: 0, icon: () => [m('small','SPL')  ], lbl: 'No spoilers'},
-    {id: 1, icon: () => ['SPL'             ], lbl: 'Minor spoilers'},
-    {id: 2, icon: () => [m('b', 'SPL')     ], lbl: 'Major spoilers'},
-    {id: 3, icon: () => [m('b', 'SPL'),'-l'], lbl: 'Major spoilers (exclude lies)'},
+    {id: 0, icon: () => [m('small','SPL')  ], bool: true,  lie: true, lbl: 'Exclude spoilers'},
+    {id: 1, icon: () => ['SPL'             ], bool: false, lie: true, lbl: 'Minor spoilers'},
+    {id: 2, icon: () => [m('b', 'SPL')     ], bool: true,  lie: true, lbl: 'Major spoilers'},
+    {id: 3, icon: () => [m('b', 'SPL'),'-l'], bool: false, lie: true, lbl: 'Major spoilers (exclude lies)'},
 ];
 
 const spoilDs = new DS({
-    list: (src, str, cb) => cb(spoilList),
+    list: (src, str, cb) => cb(spoilList.filter(o => o[spoilDs._inst.def.spoilstyle])),
     view: o => [ o.icon(), ': ', o.lbl ],
 }, {
     nosearch: true, keep: true,
     header: () => fieldHeader(spoilDs._inst, 2),
     onselect: o => {
-        spoilDs._inst.opt[1] = o.id;
+        spoilDs._inst.spoil = o.id;
         spoilDs._inst.ds.open(spoilDs.opener);
     },
 });
@@ -300,7 +337,7 @@ const fieldHeader = (inst, tab=0) => m('div.xsearch_opts',
                 spoilDs._inst = inst;
                 spoilDs.open(inst.ds.opener);
             }
-        }}, spoilList.find(x => x.id === inst.opt[1]).icon()) : null,
+        }}, spoilList.find(x => x.id === inst.spoil).icon()) : null,
     ),
     m('strong', { onclick: () => { if (tab !== 0) inst.ds.open(inst.ds.opener) } }, inst.def.title),
     m('div',
@@ -445,7 +482,7 @@ regType('v', 'VN', [
     simpleSetField(66, 'eq', vndbTypes.devStatus, 'Dev status', 'Development status'),
     rangeField(10, 'Rating', ['>=', 40], false, range(10, 100).map(v => [v,v/10])),
     rangeField(11, '# Votes', ['>=', 10], false, [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000 ].map(v => [v,v])),
-    // TODO: anime
+    animeField,
     boolField(61, 'Has description', 'Has description',    'No description'),
     boolField(62, 'Has anime',       'Has anime relation', 'No anime relation'),
     boolField(63, 'Has screenshot',  'Has screenshot(s)',  'No screenshot(s)'),
@@ -471,7 +508,7 @@ regType('r', 'Release', [
     simpleSetField(14, 'eq', vndbTypes.animated.map((v,i) => [i,v,'Story: '+v]), 'Story animation'),
     // TODO: engine, DRM
     extlinksField(19, 'r'),
-    // my list
+    // TODO: my list
 ]),
 
 regType('c', 'Char', [
@@ -479,7 +516,18 @@ regType('c', 'Char', [
     nestField('c', 'v', 53, 'Visual Novel', 'VN', 'Linked to a visual novel that matches these filters', 'Not linked to a visual novel that matches these filters'),
     simpleSetField(2, 'eq', vndbTypes.charRole, 'Role'),
     rangeField(12, 'Age', ['>=', 17], true, range(0, 121).map(v => [v,v === 1 ? '1 year' : v+' years'])),
-    // TODO: birthday, sex, gender, traits
+    // TODO: birthday
+    simpleSetField(null, 'eq', vndbTypes.charSex.map(([k,v]) => [k,v,k===''?'Sex: '+v:v]),
+        'Sex', null, 'bool',
+        q => q[0] === 4 || q[0] === 5 ? {key:q[2], op:q[1], spoil: q[0]===4?0:2} : null,
+        (key,op,val,inst) => [inst.spoil ? 5 : 4, op, key]
+    ),
+    simpleSetField(null, 'eq', vndbTypes.charGender.map(([k,v]) => [k,v,k===''?'Gender: '+v:v]),
+        'Gender', null, 'bool',
+        q => q[0] === 16 || q[0] === 17 ? {key:q[2], op:q[1], spoil: q[0]===16?0:2} : null,
+        (key,op,val,inst) => [inst.spoil ? 17 : 16, op, key]
+    ),
+    traitField,
     simpleSetField(3, 'eq', vndbTypes.bloodType.map(([k,v]) => [k,v,'Blood type: '+v]), 'Blood type'),
     rangeField(6, 'Height', ['>=',150], true, range(1, 300).map(v => [v,v+'cm'])),
     rangeField(7, 'Weight', ['>=',60], true, range(0, 400).map(v => [v,v+'kg'])),
@@ -506,7 +554,7 @@ regType('p', 'Producer', [
 
 
 const instantiateField = (def, q) => {
-    if (!('title' in def)) def.title = def.label;
+    if (!def.title) def.title = def.label;
 
     const inst = def.init(q);
     if (!inst) return null;
