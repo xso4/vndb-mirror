@@ -52,7 +52,7 @@ window.imgPreload = url => {
 // Whitespace surrounding strings is ignored.
 // Recurses into arrays.
 // Null always sorts last.
-const anyCmp = (a, b) => {
+window.anyCmp = (a, b) => {
     if (typeof a === 'string') a = a.trim();
     if (typeof b === 'string') b = b.trim();
     if (a === b) return 0;

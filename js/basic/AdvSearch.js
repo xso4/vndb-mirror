@@ -11,6 +11,7 @@ let globalData;
 //   init          query => instance  (query=null to init an empty field)
 //   toquery       instance => query
 //   opstyle       supported operators, 'set', 'eq' or 'ord'
+//   spoilstyle    enable spoiler setting selector (value stored in inst.ops[1])
 //   ds            instance => new DS(..)
 //   button        instance => html
 //   ptype/qtype   parent type and query type, only used for nestfields
@@ -35,31 +36,55 @@ const boolField = (id, label, yes, no) => ({
 });
 
 
-// A "set" field can hold a set of values that are AND or OR'ed together.
+// A "set" field can hold a set (or map) of values that are AND or OR'ed together.
 // Uses the following field instance members:
 //   values:  Set of active values
 //   op:      opList.id
-const setField = (id, opstyle, source) => ({
-    opstyle,
-    ds: inst => new DS(source, {
-        checked: o => inst.values.has(o.id),
-        onselect: (o,c) => c ? inst.values.add(o.id) : inst.values.delete(o.id),
-        uncheckall: () => inst.values.clear(),
-    }),
-    init: q =>
-        !q ? { values: new Set(), op: 0 } :
-        q[0] === id ? { values: new Set([q[2]]), op: q[1] === '!=' ? 2 : 0 } :
-        (q[0] <= 1) && q.length > 1 && q.slice(1).every(x => x[0] === id && x[1] === q[1][1]) ? {
-            values: new Set(q.slice(1).map(x => x[2])),
-            op: q[0] === OR ? (q[1][1] === '=' ? 0 : 3) : (q[1][1] === '=' ? 1 : 2),
-        } : null,
-    toquery: inst => {
-        const lst = [...inst.values.keys()].map(v => [id, inst.op & 2 ? '!=' : '=', v]);
+//
+// For non-trivial fields:
+//   id: used for the default toquery and fromquery, unused when those are set.
+//   fromq: q => null or [key,op,opt,val]
+//     'opt' is stored in inst.opt and must evaluate to the same value for all values (uses anyCmp)
+//   toq: (key,op,val,inst) => q
+const setField = (id, opstyle, source, fromq, toq, defaultopt) => {
+    if (!fromq) fromq = q => q[0] === id ? [q[2],q[1]] : null;
+    if (!toq) toq = (key,op,val,inst) => [id,op,key];
+
+    const init = q => {
+        if (!q) return { values: new Map(), op: 0, opt: defaultopt };
+        const v = fromq(q);
+        if (v) return { values: new Map([[v[0],v[3]]]), op: v[1] === '=' ? 0 : 2, opt: v[2] };
+        if (q[0] > 1 || q.length < 2) return null;
+        const inst = { values: new Map() };
+        for (const x of q.slice(1)) {
+            const v = fromq(x);
+            if (!v) return null;
+            inst.values.set(v[0], v[3]);
+
+            if (!('opt' in inst)) inst.opt = v[2];
+            else if (anyCmp(inst.opt, v[2])) return null;
+
+            const op = q[0] === OR ? (v[1] === '=' ? 0 : 3) : (v[1] === '=' ? 1 : 2);
+            if (!('op' in inst)) inst.op = op;
+            else if (inst.op !== op) return null;
+        }
+        return inst;
+    };
+
+    const toquery = inst => {
+        const lst = [...inst.values.entries()].map(([k,v]) => toq(k, inst.op & 2 ? '!=' : '=', v, inst));
         return lst.length === 0 ? null
              : lst.length === 1 ? lst[0]
              : [ inst.op === 0 || inst.op === 3 ? OR : AND, ...lst ];
-    }
-});
+    };
+
+    const ds = inst => new DS(source, {
+        checked: o => inst.values.has(o.id),
+        onselect: (o,c) => c ? inst.values.set(o.id,true) : inst.values.delete(o.id),
+        uncheckall: () => inst.values.clear(),
+    });
+    return {opstyle,ds,init,toquery};
+};
 
 // Set field with for a list of [id,label,butlabel=label] options
 const simpleSetField = (id, opstyle, list, label, title) => ({
@@ -110,6 +135,58 @@ const platformField = { // Works for both VNs and releases
         vndbTypes.platform.map(([v,l]) => inst.values.has(v) ? [ PlatIcon(v), inst.values.size === 1 ? l : null ] : null)
     ],
 };
+
+// TODO: should default to AND
+const tagField = (() => {
+    // inst.opt: [ direct, spoil ]
+    // key: tag vndbid
+    // value: minlevel*5 (0 - 15)
+    const fromq = q => {
+        if (q[0] !== 8 && q[0] !== 14) return null;
+        const [tag,v] = typeof q[2] === 'number' ? [q[2],0] : q[2];
+        const spoil = (v % 3) + ((v % 3) === 2 && v > 16*3 ? 1 : 0);
+        const minlevel = Math.floor((v / 3) % 16);
+        return [ 'g'+tag, q[1], [ q[0] === 14, spoil ], minlevel ];
+    };
+    const toq = (key,op,val,inst) => {
+        const tag = Math.floor(String(key).replace(/^g/, ''));
+        return [ inst.opt[0] ? 14 : 8, op, inst.opt[1] === 0 && val === 0 ? tag
+            : [tag, (inst.opt[1] >= 3 ? 2+16*3 : inst.opt[1]) + val*3] ];
+    };
+    const levels = [
+        [ 0,'any' ],[ 1,'0.2+'],[ 2,'0.4+'],[ 3,'0.6+'],[ 4,'0.8+'],
+        [ 5,'1.0+'],[ 6,'1.2+'],[ 7,'1.4+'],[ 8,'1.6+'],[ 9,'1.8+'],
+        [10,'2.0+'],[11,'2.2+'],[12,'2.4+'],[13,'2.6+'],[14,'2.8+'],[15,'3.0']
+    ];
+    const taginf = id => globalData.tags.find(x => x.id === id);
+    const field = setField(null, 'set', null, fromq, toq, [false,0]); // TODO: Honor defaultspoil
+    field.label = 'Tags';
+    field.spoilstyle = 1;
+    field.ds = inst => new DS(DS.Tags, {
+        onselect: o => {
+            if (!taginf(o.id)) globalData.tags.push(o);
+            inst.values.set(o.id, 0);
+        },
+        width: 400,
+        header: () => [
+            m('div.xsearch_opts', m('span'), m('label',
+                m('input[type=checkbox]', { checked: !inst.opt[0], onclick: ev => inst.opt[0] = !ev.target.checked }),
+                ' also match child tags'
+            )),
+            m('ul.xsearch_list', [...inst.values.entries()].map(([key,val]) => m('li', {key},
+                m(Button.Del, { onclick: () => inst.values.delete(key) }),
+                m(Select, { value: val, oninput: v => inst.values.set(key,v), options: levels }),
+                ' ', m('small', key, ':'), m('a[target=_blank]', { href: '/'+key }, taginf(key).name),
+            ))),
+        ],
+    });
+    field.button = inst => inst.values.size === 0 ? m('small', 'Tags') : [
+        opFmt(inst.op, true), ' ',
+        inst.values.size === 1 ? (t => [m('small', t.id, ':'), t.name])(taginf(inst.values.keys().next().value))
+                               : 'Tags ('+inst.values.size+')'
+    ];
+    return field;
+})();
 
 // defval=[op,value], list=[[id,label],..]
 const rangeOp = new Map([['=', '='], ['!=','≠'], ['<=','≤'], ['<','<'],['>=','≥'],['>','>']]);
@@ -186,6 +263,26 @@ const opDs = new DS({
     },
 });
 
+const spoilList = [
+    {id: 0, icon: () => [m('small','SPL')  ], lbl: 'No spoilers'},
+    {id: 1, icon: () => ['SPL'             ], lbl: 'Minor spoilers'},
+    {id: 2, icon: () => [m('b', 'SPL')     ], lbl: 'Major spoilers'},
+    {id: 3, icon: () => [m('b', 'SPL'),'-l'], lbl: 'Major spoilers (exclude lies)'},
+];
+
+const spoilDs = new DS({
+    list: (src, str, cb) => cb(spoilList),
+    view: o => [ o.icon(), ': ', o.lbl ],
+}, {
+    nosearch: true, keep: true,
+    header: () => fieldHeader(spoilDs._inst, 2),
+    onselect: o => {
+        spoilDs._inst.opt[1] = o.id;
+        spoilDs._inst.ds.open(spoilDs.opener);
+    },
+});
+
+
 const fieldHeader = (inst, tab=0) => m('div.xsearch_opts',
     m('div',
         inst.def.opstyle ? m('button[type=button]', { onclick: () => {
@@ -196,7 +293,14 @@ const fieldHeader = (inst, tab=0) => m('div.xsearch_opts',
                 opDs.open(inst.ds.opener);
             }
         }}, opFmt(inst.op)) : null,
-        //m('button', 'SPL'), // Spoiler, for tags & traits
+        inst.def.spoilstyle ? m('button[type=button]', { onclick: () => {
+            if (tab === 2) inst.ds.open(spoilDs.opener);
+            else {
+                spoilDs.width = $('#ds').offsetWidth;
+                spoilDs._inst = inst;
+                spoilDs.open(inst.ds.opener);
+            }
+        }}, spoilList.find(x => x.id === inst.opt[1]).icon()) : null,
     ),
     m('strong', { onclick: () => { if (tab !== 0) inst.ds.open(inst.ds.opener) } }, inst.def.title),
     m('div',
@@ -335,7 +439,8 @@ regType('v', 'VN', [
     langField(2, 'set', DS.ScriptLang, 'Language', 'Language the visual novel is available in', 'L '),
     langField(3, 'eq',  DS.ScriptLang, 'Original language', 'Language the visual novel is originally written in', 'O '),
     platformField,
-    // TODO: tags, my labels, my list
+    tagField,
+    // TODO: my labels, my list
     simpleSetField(5, 'eq', vndbTypes.vnLength, 'Length', 'Length (estimated play time)'),
     simpleSetField(66, 'eq', vndbTypes.devStatus, 'Dev status', 'Development status'),
     rangeField(10, 'Rating', ['>=', 40], false, range(10, 100).map(v => [v,v/10])),
@@ -478,7 +583,7 @@ const encodeQuery = (() => {
         if (q === null) return '';
         if (q[0] <= 1) return alpha[q[0]] + eint(q.length-1) + q.slice(1).map(encodeQuery).join('');
         const r = t => eint(q[0]) + eint(ops.get(q[1]) + 8*t);
-        if (typeof q[2] === 'object' && q[2].length === 2 && /^[0-9]+$/.match(q[2][1])) return r(5) + eint(q[2][0]) + eint(q[2][1]);
+        if (typeof q[2] === 'object' && q[2].length === 2 && String(q[2][1]).match(/^[0-9]+$/)) return r(5) + eint(q[2][0]) + eint(q[2][1]);
         if (typeof q[2] === 'object') return r(1) + equery(q[2]);
         const i = eint(q[2]);
         if (i !== null) return r(0) + i;

@@ -1003,6 +1003,10 @@ div#iv_view {
     > div:nth-child(2) { display: flex; justify-content: space-between }
     > input { width: 100% }
 }
+.xsearch_list {
+    width: 100%; list-style-type: none; margin: 0;
+    li { white-space: nowrap; display: block; width: 100%; overflow: hidden; text-overflow: ellipsis }
+}
 .xsearch {
     max-width: 850px; margin: 0 auto; display: flex; flex-direction: row; justify-content: center;
     button { margin: 4px; vertical-align: middle }
