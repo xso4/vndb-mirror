@@ -867,6 +867,7 @@ sub widget_ {
         spoilers  => auth->pref('spoilers')||0,
                      # TODO: Can also be lazily loaded.
         saved     => auth ? tuwf->dbAlli('SELECT name, query FROM saved_queries WHERE uid =', \auth->uid, ' AND qtype =', \$self->{type}, 'ORDER BY name') : [],
+        uid       => auth->uid,
         qtype     => $self->{type},
         query     => $self->compact_json(),
         producers => [ map +{id => $_}, grep /^p/, keys %ids ],
@@ -876,12 +877,11 @@ sub widget_ {
         anime     => [ map +{id => $_=~s/^anime//rg}, grep /^anime/, keys %ids ],
     );
 
-    enrich_merge id => sql('SELECT id, title[1+1] AS name, title[1+1+1+1] AS altname FROM', VNWeb::TitlePrefs::producerst(), 'p WHERE id IN'), $o{producers};
-    enrich_merge id => sql('SELECT id, lang, aid, title[1+1], title[1+1+1+1] AS alttitle FROM', VNWeb::TitlePrefs::staff_aliast(), 's WHERE aid = main AND id IN'), $o{staff};
-    enrich_merge id => 'SELECT id, name, searchable, applicable, hidden, locked FROM tags WHERE id IN', $o{tags};
-    enrich_merge id => 'SELECT t.id, t.name, t.searchable, t.applicable, t.defaultspoil, t.hidden, t.locked, g.id AS group_id, g.name AS group_name
-                          FROM traits t LEFT JOIN traits g ON g.id = t.gid WHERE t.id IN', $o{traits};
-    enrich_merge id => 'SELECT id, title_romaji, title_kanji FROM anime WHERE id IN', $o{anime};
+    enrich_merge id => sql('SELECT id, title[1+1] AS name FROM', VNWeb::TitlePrefs::producerst(), 'p WHERE id IN'), $o{producers};
+    enrich_merge id => sql('SELECT id, id AS sid, title[1+1] FROM', VNWeb::TitlePrefs::staff_aliast(), 's WHERE aid = main AND id IN'), $o{staff};
+    enrich_merge id => 'SELECT id, name FROM tags WHERE id IN', $o{tags};
+    enrich_merge id => 'SELECT t.id, t.name, g.name AS group_name FROM traits t LEFT JOIN traits g ON g.id = t.gid WHERE t.id IN', $o{traits};
+    enrich_merge id => 'SELECT id, title_romaji FROM anime WHERE id IN', $o{anime};
     $_->{id} *= 1 for $o{anime}->@*;
 
     div_ class => 'xsearch', VNWeb::HTML::widget(AdvSearch => \%o), '';

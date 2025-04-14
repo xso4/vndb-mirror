@@ -2,6 +2,11 @@ const langs = Object.fromEntries(vndbTypes.language);
 const plats = Object.fromEntries(vndbTypes.platform);
 window.LangIcon = id => m('abbr', { class: 'icon-lang-'+id, title: langs[id] });
 window.PlatIcon = id => m('abbr', { class: 'icon-plat-'+id, title: plats[id] });
+window.labelIcon = (n, l) => m('abbr', {
+    class: 'icon-list-'+(n === -1 ? 'add' : n >= 1 && n <= 6 ? 'l'+n : 'unknown'),
+    title: l
+});
+
 
 
 // SVG icons from: https://lucide.dev/

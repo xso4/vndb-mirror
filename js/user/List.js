@@ -1,20 +1,3 @@
-const lblicon = (n, l) => m('abbr', {
-    class: 'icon-list-'+(n === -1 ? 'add' : n >= 1 && n <= 6 ? 'l'+n : 'unknown'),
-    title: l
-});
-
-/* Potentially slow and measures with the global body font (which the DS selection thing happens to use as well) */
-const textwidth = s => {
-    let div = document.createElement('div');
-    div.style = 'position: absolute; top: 0; right: 0; visibility: hidden; white-space: nowrap';
-    div.innerText = s;
-    document.body.appendChild(div);
-    const w = div.clientWidth;
-    document.body.removeChild(div);
-    return w;
-};
-
-
 let widgetParent;
 let widgetCur;
 
@@ -50,10 +33,7 @@ const statusRender = obj =>
     ];
 
 
-let maxlabelwidth = null;
-
 const labelRender = (obj, empty='- select label -', icons=1) => {
-    if (maxlabelwidth === null) maxlabelwidth = Math.max(...pageVars.labels.map(l => textwidth(l[1])));
     const set = (id,c) => {
         if (!obj.labels) obj.labels = [];
         // Unset progress labels when setting another one.
@@ -63,48 +43,44 @@ const labelRender = (obj, empty='- select label -', icons=1) => {
         else obj.labels = obj.labels.filter(n => n !== id)
     };
 
-    if (!obj._labelDs) obj._labelDs = new DS({
-        list: (src, str, cb) => cb(
-            pageVars.labels.filter(l => l[0] !== 7 && l[1].toLowerCase().includes(str.toLowerCase()))
-            .anySort(([id,lbl]) => str && !lbl.toLowerCase().startsWith(str.toLowerCase()))
-            .map(([id,lbl]) => ({id,lbl}))
-            .concat(!str || pageVars.labels.length >= 250 || pageVars.labels.find(l => l[1].toLowerCase() == str.toLowerCase()) ? [] : [{id:-1, lbl: str}])
-        ),
-        view: l => [
-            l.id >= 1 && l.id <= 6 ? lblicon(l.id, l.lbl) : null, ' ',
-            l.id > 0 ? l.lbl : [l.lbl, m('small', ' (new label)')],
-        ],
-    }, {
-        width: maxlabelwidth < 100 ? 150 : maxlabelwidth < 150 ? 200 : maxlabelwidth < 200 ? 250 : maxlabelwidth < 250 ? 300 : 400,
-        maxCols: pageVars.labels.length > 20 ? 3 : pageVars.labels.length > 10 ? 2 : 1,
-        placeholder: 'Add label...',
-        checked: l => obj.labels && obj.labels.includes(l.id),
-        onselect: (l,c) => {
-            // Adding a new label is tricky business, need to prevent further interaction while loading.
-            if (l.id < 0) {
-                obj._labelAdd = new Api('UListLabelAdd');
-                obj._labelAdd.call({vid: obj.vid, label: l.lbl}, res => {
-                    if (!pageVars.labels.find(([id]) => id === res.id))
-                        pageVars.labels.push([res.id,l.lbl,res.priv]);
-                    set(res.id, true);
-                    obj._labelAdd = null;
-                });
-                obj._labelDs.setInput('');
-                DS.close();
-                return;
-            }
+    if (!obj._labelDs) {
+        const src = DS.Labels(pageVars.labels.filter(l => l[0] !== 7));
+        obj._labelDs = new DS({...src,
+            list: (x, str, cb) => src.list(x, str, lst => {
+                if (str && pageVars.labels.length < 250 && !lst.find(o => o.lbl.toLowerCase() === str.toLowerCase())) lst.push({id:-1, lbl: str});
+                cb(lst);
+            }),
+            view: obj => [ src.view(obj), obj.id < 0 ? m('small', ' (new label)') : null ],
+        }, {
+            placeholder: 'Add label...',
+            checked: l => obj.labels && obj.labels.includes(l.id),
+            onselect: (l,c) => {
+                // Adding a new label is tricky business, need to prevent further interaction while loading.
+                if (l.id < 0) {
+                    obj._labelAdd = new Api('UListLabelAdd');
+                    obj._labelAdd.call({vid: obj.vid, label: l.lbl}, res => {
+                        if (!pageVars.labels.find(([id]) => id === res.id))
+                            pageVars.labels.push([res.id,l.lbl,res.priv]);
+                        set(res.id, true);
+                        obj._labelAdd = null;
+                    });
+                    obj._labelDs.setInput('');
+                    DS.close();
+                    return;
+                }
 
-            set(l.id, c);
-            if (!obj._labelApi) obj._labelApi = new Api('UListLabelEdit');
-            obj._labelApi.call({vid: obj.vid, labels: obj.labels});
-        },
-    });
+                set(l.id, c);
+                if (!obj._labelApi) obj._labelApi = new Api('UListLabelEdit');
+                obj._labelApi.call({vid: obj.vid, labels: obj.labels});
+            },
+        });
+    }
 
     let labels = obj.labels ? obj.labels.filter(n => n !== 7) : [];
     return m(DS.Button, { ds: obj._labelAdd ? null : obj._labelDs },
         !labels.length ? empty :
             pageVars.labels.filter(l => labels.includes(l[0]))
-            .map(l => [ icons && l[0] <= 6 ? lblicon(l[0], l[1]) : null, ' ', l[1] ])
+            .map(l => [ icons && l[0] <= 6 ? labelIcon(l[0], l[1]) : null, ' ', l[1] ])
             .intersperse(', '),
         obj._labelApi && obj._labelApi.Status(),
         obj._labelAdd && obj._labelAdd.Status()
@@ -289,12 +265,12 @@ if (pageVars && pageVars.widget) {
 widget('UListWidget', { view: vnode => [
     m('abbr.ulist-widget-icon',
         { onclick: () => widgetOpen(vnode.attrs.data), },
-        vnode.attrs.data.labels ? lblicon(
+        vnode.attrs.data.labels ? labelIcon(
             Math.max(0, ...vnode.attrs.data.labels.filter(n => n >= 1 && n <= 6)),
             vnode.attrs.data.labels.flatMap(n =>
                 n === 7 ? [] : [ pageVars.labels.find(([id]) => id === n)[1] ]
             ).join(', ')
-        ) : lblicon(-1, 'Add to list'),
+        ) : labelIcon(-1, 'Add to list'),
         vnode.attrs.oldContents.length === 1 ? null : (rlist =>
             rlist ? ((total, st) =>
                 total > 0

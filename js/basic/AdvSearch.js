@@ -14,6 +14,8 @@ let globalData;
 //   spoilstyle    enable spoiler setting selector, 'bool', 'lie'
 //   ds            instance => new DS(..)
 //   button        instance => html
+//   nestonly      set for fields that don't make much sense as top-level filter
+//   loggedin      requires the user to be logged in
 //   ptype/qtype   parent type and query type, only used for nestfields
 
 // Field instance members:
@@ -140,15 +142,31 @@ const platformField = { // Works for both VNs and releases
 };
 
 
+const labelField = {
+    label: 'My Labels',
+    loggedin: true,
+    // Assumption: backend always normalizes to [uid,label]
+    ...setField(12, 'set', DS.Labels(pageVars.labels||[]),
+        q => q[0] === 12 && typeof q[2] === 'object' && q[2][0] === Math.floor(globalData.uid.replace(/^u/, '')) ? {key:q[2][1], op:q[1]} : null
+    ),
+    button: inst => inst.values.size === 0 ? m('small', 'My Labels') : [
+        opFmt(inst.op, true), ' ',
+        inst.values.size === 1 ? pageVars.labels.find(([id]) => id === inst.values.keys().next().value)[1]
+                               : 'My Labels ('+inst.values.size+')'
+    ],
+};
+
+
 // A special case of setField where values need to be searched for.
 const searchField = (opstyle, source, label, cache, fmtlst, fmtbut, fromq, toq, defop=0, direct, levels) => {
-    const inf = id => globalData[cache].find(x => x.id === id);
+    const objid = source === DS.Staff ? 'sid' : 'id';
+    const inf = id => cache ? globalData[cache].find(x => id === x[objid]) : id;
     const field = setField(null, opstyle, null, fromq, toq, defop);
     field.label = label;
     field.ds = inst => new DS(source, {
         onselect: o => {
-            if (!inf(o.id)) globalData[cache].push(o);
-            inst.values.set(o.id, 0);
+            if (cache && !inf(o[objid])) globalData[cache].push(o);
+            inst.values.set(o[objid], 0);
         },
         width: 400,
         header: () => [
@@ -220,6 +238,48 @@ const animeField = (() => {
     const toq = (key,op) => [13,op,key];
     const fmt = o => [ m('small', 'a', o.id, ':'), o.title_romaji ];
     return searchField('set', DS.Anime(1), 'Anime', 'anime', fmt, fmt, fromq, toq);
+})();
+
+
+const drmField = (() => {
+    const fromq = q => q[0] === 20 ? {op:q[1],key:q[2]} : null;
+    const toq = (key,op) => [20,op,key];
+    const fmt = o => o;
+    return searchField('set', DS.DRM, 'DRM', null, fmt, fmt, fromq, toq);
+})();
+
+
+const engineField = (() => {
+    const fromq = q => q[0] === 15 ? {op:q[1],key:q[2]} : null;
+    const toq = (key,op) => [15,op,key];
+    const fmt = o => o || 'Engine: unknown';
+    const source = DS.New(DS.Engines,
+        str => str ? null : {id:''},
+        o => m('em', 'Unknown / not set')
+    );
+    return searchField('eq', source, 'Engine', null, fmt, fmt, fromq, toq);
+})();
+
+
+const staffField = (() => {
+    const fromq = q => q[0] === 3 ? {op:q[1],key:'s'+q[2]} : null;
+    const toq = (key,op) => [3,op,Math.floor(String(key).replace(/^s/, ''))];
+    const fmtlst = o => [m('small', o.sid, ':'), m('a[target=_blank]', { href: '/'+o.sid }, o.title)];
+    const fmtbut = o => [ m('small', o.sid, ':'), o.title ];
+    const field = searchField('eq', DS.Staff, 'Name', 'staff', fmtlst, fmtbut, fromq, toq);
+    field.nestonly = true;
+    return field;
+})();
+
+
+const producerField = (() => {
+    const fromq = q => q[0] === 3 ? {op:q[1],key:'p'+q[2]} : null;
+    const toq = (key,op) => [3,op,Math.floor(String(key).replace(/^p/, ''))];
+    const fmtlst = o => [m('small', o.id, ':'), m('a[target=_blank]', { href: '/'+o.id }, o.name)];
+    const fmtbut = o => [ m('small', o.id, ':'), o.name ];
+    const field = searchField('eq', DS.Producers, 'Name', 'producers', fmtlst, fmtbut, fromq, toq);
+    field.nestonly = true;
+    return field;
 })();
 
 
@@ -430,6 +490,8 @@ const regType = (t, name, fields) => {
         const ds = new DS({
             list: (src, str, cb) => cb(fieldList[ds._types.at(-1)].filter(d => {
                 if (!d.label) return false;
+                if (d.nestonly && ds._types.length === 1) return false;
+                if (d.loggedin && !globalData.uid) return false;
                 if (!d.qtype || d.qtype === d.ptype) return true;
                 if (ds._types.includes(d.qtype) && ds._types.at(-1) !== d.qtype) return false;
                 for (let inst = ds._inst; inst; inst = inst.parent) if (inst.def.qtype !== inst.def.ptype && inst.def.ptype === d.qtype) return false;
@@ -477,7 +539,8 @@ regType('v', 'VN', [
     langField(3, 'eq',  DS.ScriptLang, 'Original language', 'Language the visual novel is originally written in', 'O '),
     platformField,
     tagField,
-    // TODO: my labels, my list
+    labelField,
+    { ...boolField(65, 'My List', 'On my list', 'Not on my list'), loggedin: true },
     simpleSetField(5, 'eq', vndbTypes.vnLength, 'Length', 'Length (estimated play time)'),
     simpleSetField(66, 'eq', vndbTypes.devStatus, 'Dev status', 'Development status'),
     rangeField(10, 'Rating', ['>=', 40], false, range(10, 100).map(v => [v,v/10])),
@@ -506,9 +569,10 @@ regType('r', 'Release', [
     simpleSetField(12, 'eq', vndbTypes.voiced.map((v,i) => [i,v]), 'Voiced'),
     simpleSetField(13, 'eq', vndbTypes.animated.map((v,i) => [i,v,'Ero: '+v]), 'Ero animation'),
     simpleSetField(14, 'eq', vndbTypes.animated.map((v,i) => [i,v,'Story: '+v]), 'Story animation'),
-    // TODO: engine, DRM
+    engineField,
+    drmField,
     extlinksField(19, 'r'),
-    // TODO: my list
+    { ...simpleSetField(18, 'eq', vndbTypes.rlistStatus.map((v,i) => [i,v,i===0?'List: unknown':v]), 'My List'), loggedin: true },
 ]),
 
 regType('c', 'Char', [
@@ -538,7 +602,7 @@ regType('c', 'Char', [
 ]);
 
 regType('s', 'Staff', [
-    // TODO: name
+    staffField,
     langField(2, 'eq', DS.LocLang, 'Language', 'Primary language of the staff'),
     simpleSetField(4, 'eq', [['','Unknown','Gender: unknown'],['m','Male'],['f','Female']], 'Gender'),
     simpleSetField(5, 'set', [['seiyuu', 'Voice actor']].concat(vndbTypes.creditType), 'Role'),
@@ -546,7 +610,7 @@ regType('s', 'Staff', [
 ]);
 
 regType('p', 'Producer', [
-    // TODO: name
+    producerField,
     langField(2, 'eq', DS.LocLang, 'Language', 'Primary language of the producer'),
     simpleSetField(4, 'eq', vndbTypes.producerType, 'Type'),
     extlinksField(5, 'p'),
@@ -556,6 +620,7 @@ regType('p', 'Producer', [
 const instantiateField = (def, q) => {
     if (!def.title) def.title = def.label;
 
+    if (def.loggedin && !globalData.uid) return null;
     const inst = def.init(q);
     if (!inst) return null;
     inst.def = def;

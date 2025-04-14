@@ -495,6 +495,33 @@ DS.Releases = lst => ({
 });
 
 
+DS.Labels = lst => {
+    /* Potentially slow */
+    const textwidth = s => {
+        let div = document.createElement('div');
+        div.style = 'position: absolute; top: 0; right: 0; visibility: hidden; white-space: nowrap';
+        div.innerText = s;
+        document.body.appendChild(div);
+        const w = div.clientWidth;
+        document.body.removeChild(div);
+        return w;
+    };
+    const maxwidth = Math.max(...lst.map(l => textwidth(l[1])));
+    return {
+        list: (src, str, cb) => cb(
+            lst.filter(l => l[1].toLowerCase().includes(str.toLowerCase()))
+            .anySort(([id,lbl]) => str && !lbl.toLowerCase().startsWith(str.toLowerCase()))
+            .map(([id,lbl]) => ({id,lbl}))
+        ),
+        view: l => [ l.id >= 1 && l.id <= 6 ? labelIcon(l.id, l.lbl) : null, ' ', l.lbl ],
+        opts: {
+            width: maxwidth < 100 ? 150 : maxwidth < 150 ? 200 : maxwidth < 200 ? 250 : maxwidth < 250 ? 300 : 400,
+            maxCols: lst.length > 20 ? 3 : lst.length > 10 ? 2 : 1,
+        }
+    };
+};
+
+
 // Wrap a source to add a "Create new entry" option.
 // Args:
 // - source
