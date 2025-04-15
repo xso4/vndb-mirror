@@ -320,6 +320,66 @@ const rangeField = (id, label, defval, unknown, list) => ({
 });
 
 
+const rdateField = (() => { // works for VNs and releases
+    const onlyeq = d => d === 99999999 || d === 0;
+    const id = 7;
+    const init = q => {
+        if (!q) return {op:'<', fuzzy:true, date: 1};
+        if (q[0] === id) {
+            const e = RDate.expand(q[2]);
+            return {op:q[1], date: q[2], fuzzy: e.y === 0 || e.y === 9999 || e.d !== 99 || q[1] === '>' || q[1] === '<='};
+        }
+        // Fuzzy range match (only recognizes filters created by 'toquery' below)
+        if (q[0] > 1 || q.length !== 3 || q[1][0] !== id || q[2][0] !== id) return null;
+        const op = q[0] === AND && q[1][1] === '>=' && q[2][1] === '<=' ? '=' :
+                   q[0] === OR  && q[1][1] === '<'  && q[2][1] === '>'  ? '!=' : null;
+        const se = RDate.expand(q[1][2]);
+        const ee = RDate.expand(q[2][2]);
+        return op && se.y === ee.y && (ee.m < 99 || se.m === 1) && se.d === 1 && ee.d === 99 ? {op,date:q[2][2],fuzzy:true} : null;
+    };
+    const toquery = inst => {
+        const e = RDate.expand(inst.date);
+        if (!inst.fuzzy || e.y === 0 || e.y === 9999 || e.d !== 99)
+            return [id, inst.op, inst.date];
+        // Inexact inst.date represents the END of the month/year, for fuzzy matching we also need the start.
+        const start = RDate.compact({y:e.y, m: e.m === 99 ? 1 : e.m, d:1});
+               // Fuzzy (in)equality turns into a date range
+        return inst.op === '='  ? [AND, [id,'>=',start],[id,'<=',inst.date]] :
+               inst.op === '!=' ? [OR,  [id,'<', start],[id,'>', inst.date]] :
+               // Fuzzy >= and < just need the date adjusted to the correct boundary
+               inst.op === '>=' ? [id,'>=',start] :
+               inst.op === '<'  ? [id,'<', start] : [id,inst.op,inst.date];
+    };
+    const ds = inst => new DS(null, { header: () => m('div.xsearch_range',
+        m('div',
+            m('div', [...rangeOp.entries()].map((op,i) =>
+                onlyeq(inst.date) && i > 1 ? null
+                : inst.op === op[0] ? m('strong', op[1])
+                : m('a[href=#]', { onclick: ev => { ev.preventDefault(); inst.op = op[0] } }, op[1])
+            )),
+        ),
+        m(RDate, { value: inst.date, unknown: true, today: true, oninput: v => {
+            if (onlyeq(v) && inst.op !== '=' && inst.op !== '!=') inst.op = '=';
+            inst.date = v;
+        }}),
+        onlyeq(inst.date) || RDate.expand(inst.date).d !== 99 ? null : m('p',
+            m('label',
+                m('input[type=checkbox]', { checked: inst.fuzzy, oninput: ev => inst.fuzzy = ev.target.checked }),
+                ' Fuzzy matching'
+            ),
+            m('br'),
+            m('small',
+                'Without fuzzy matching, partial dates always match ', m('em', 'after'), ' the last date of the chosen time period, ',
+                'e.g. "< 2010-10" also matches anything released in that month while "= 2010-10" only matches releases for which we don\'t know the exact date.',
+                ' Fuzzy match adjusts the query to do what you mean.'
+            ),
+        ),
+    )});
+    const button = inst => [ rangeOp.get(inst.op), ' ', RDate.fmt(RDate.expand(inst.date)) ];
+    return {label: 'Release date', init, toquery, ds, button};
+})();
+
+
 const unknownField = {
     title: 'Unrecognized filter',
     button: () => m('small', 'Unrecognized'),
@@ -543,6 +603,7 @@ regType('v', 'VN', [
     { ...boolField(65, 'My List', 'On my list', 'Not on my list'), loggedin: true },
     simpleSetField(5, 'eq', vndbTypes.vnLength, 'Length', 'Length (estimated play time)'),
     simpleSetField(66, 'eq', vndbTypes.devStatus, 'Dev status', 'Development status'),
+    rdateField,
     rangeField(10, 'Rating', ['>=', 40], false, range(10, 100).map(v => [v,v/10])),
     rangeField(11, '# Votes', ['>=', 10], false, [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000 ].map(v => [v,v])),
     animeField,
@@ -563,7 +624,8 @@ regType('r', 'Release', [
     boolField(66, 'Erotic scenes', 'Has erotic scenes',        'No erotic scenes'),
     boolField(64, 'Uncensored',    'Uncensored (no mosaic)',   'Censored (or no erotic content to censor)'),
     boolField(65, 'Official',      'Official',                 'Unofficial'),
-    // TODO: release date, resolution
+    rdateField,
+    // TODO: resolution
     rangeField(10, 'Age rating', [ '<', 13 ], true, vndbTypes.ageRating),
     simpleSetField(11, 'set', [['', 'Unknown', 'Medium: Unknown']].concat(vndbTypes.medium.map(m => [m[0],m[1]])), 'Medium'),
     simpleSetField(12, 'eq', vndbTypes.voiced.map((v,i) => [i,v]), 'Voiced'),
