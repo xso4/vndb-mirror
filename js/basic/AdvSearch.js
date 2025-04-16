@@ -517,7 +517,7 @@ const fieldHeader = (inst, tab=0) => m('div.xsearch_opts',
         }}) : null,
         m(Button.Branch, { onclick: () => {
             DS.close();
-            const newpar = instantiateField(andorField[inst.parent.def.qtype], null);
+            const newpar = instantiateField(types[inst.parent.def.qtype].andor, null);
             newpar.op = inst.parent.op === 0 ? 1 : 0;
             newpar.childs = [inst];
             inst.parent.childs.forEach((v,i,l) => { if (v === inst) l[i] = newpar });
@@ -580,20 +580,17 @@ const nestField = (ptype, qtype=ptype, id, label='And/Or', button, yes, no) => {
 };
 
 
-const fieldAdd = {};
-const fieldList = {};
-const fieldSubnest = {};
-const andorField = {};
+const types = {}; // v: { name, deffields, fields, add, andor, $x: subnestfield }
 
-const regType = (t, name, fields) => {
-    andorField[t] = nestField(t);
-    fieldList[t] = [unknownField, andorField[t], ...fields];
-    fieldSubnest[t] = Object.fromEntries(fields.filter(d => d.qtype && d.qtype !== d.ptype).map(d => [d.qtype,d]));
-    fieldSubnest[t][''] = name;
-
-    fieldAdd[t] = (() => {
+const regType = (t, name, deffields, fields) => {
+    types[t] = Object.fromEntries(fields.filter(d => d.qtype && d.qtype !== d.ptype).map(d => [d.qtype,d]));
+    types[t].name = name;
+    types[t].deffields = deffields;
+    types[t].andor = nestField(t);
+    types[t].fields = [unknownField, types[t].andor, ...fields];
+    types[t].add = (() => {
         const ds = new DS({
-            list: (src, str, cb) => cb(fieldList[ds._types.at(-1)].filter(d => {
+            list: (src, str, cb) => cb(types[ds._types.at(-1)].fields.filter(d => {
                 if (!d.label) return false;
                 if (d.nestonly && ds._types.length === 1) return false;
                 if (d.loggedin && !globalData.uid) return false;
@@ -608,7 +605,7 @@ const regType = (t, name, fields) => {
             header: () => [
                 m('div.xsearch_opts', m('strong', 'Add field')),
                 ds._types.length === 1 ? null : m('div.xsearch_nest', ds._types.map((qt,i) => {
-                    const lbl = i ? fieldSubnest[ds._types[i-1]][qt].button : fieldSubnest[qt][''];
+                    const lbl = i ? types[ds._types[i-1]][qt].button : types[qt][''];
                     return i === ds._types.length - 1 ? m('strong', lbl)
                         : m('a[href=#]', { onclick: ev => { ev.preventDefault(); ds._types.splice(i+1); ds.setInput('') } }, lbl)
                 }).intersperse(' » ')),
@@ -623,7 +620,7 @@ const regType = (t, name, fields) => {
                     for (let i=ds._types.length-2; i>=0; i--) {
                         const pt = ds._types[i];
                         const qt = ds._types[i+1];
-                        const n = instantiateField(fieldSubnest[pt][qt], null);
+                        const n = instantiateField(types[pt][qt], null);
                         if (!f.def.qtype || f.def.qtype !== f.def.ptype) n.childs = [f];
                         f = n;
                     }
@@ -635,7 +632,7 @@ const regType = (t, name, fields) => {
     })();
 };
 
-regType('v', 'VN', [
+regType('v', 'VN', [ 'Language', 'Original language', 'Platform', 'Tags' ], [
     nestField('v', 'r', 50, 'Release', 'Rel', 'Has a release that matches these filters', 'Does not have a release that matches these filters'),
     nestField('v', 's', 52, 'Staff', 'Staff', 'Has staff that matches these filters', 'Does not have staff that matches these filters'),
     nestField('v', 'c', 51, 'Character', 'Char', 'Has a character that matches these filters', 'Does not have a character that matches these filters'),
@@ -658,7 +655,7 @@ regType('v', 'VN', [
     boolField(64, 'Has review',      'Has review(s)',      'No review(s)'),
 ]);
 
-regType('r', 'Release', [
+regType('r', 'Release', [ 'Language', 'Platform', 'Type' ], [
     nestField('r', 'v', 53, 'Visual Novel', 'VN', 'Linked to a visual novel that matches these filters', 'Not linked to a visual novel that matches these filters'),
     nestField('r', 'p', 55, 'Producer', 'Prod', 'Has a producer that matches these filters', 'Does not have a producer that matches these filters'),
     langField(2, 'set', DS.ScriptLang, 'Language', 'Language the release is available in'),
@@ -682,7 +679,7 @@ regType('r', 'Release', [
     { ...simpleSetField(18, 'eq', vndbTypes.rlistStatus.map((v,i) => [i,v,i===0?'List: unknown':v]), 'My List'), loggedin: true },
 ]),
 
-regType('c', 'Char', [
+regType('c', 'Char', [ 'Role', 'Sex', 'Traits' ], [
     nestField('c', 's', 52, 'Voice Actor', 'VA', 'Has a voice actor that matches these filters', 'Does not have a voice actor that matches these filters'),
     nestField('c', 'v', 53, 'Visual Novel', 'VN', 'Linked to a visual novel that matches these filters', 'Not linked to a visual novel that matches these filters'),
     simpleSetField(2, 'eq', vndbTypes.charRole, 'Role'),
@@ -708,7 +705,7 @@ regType('c', 'Char', [
     rangeField(11, 'Cup size', ['>=','B'], true, vndbTypes.cupSize.slice(1)),
 ]);
 
-regType('s', 'Staff', [
+regType('s', 'Staff', [ 'Language', 'Gender', 'Role' ], [
     staffField,
     langField(2, 'eq', DS.LocLang, 'Language', 'Primary language of the staff'),
     simpleSetField(4, 'eq', [['','Unknown','Gender: unknown'],['m','Male'],['f','Female']], 'Gender'),
@@ -716,7 +713,7 @@ regType('s', 'Staff', [
     extlinksField(6, 's'),
 ]);
 
-regType('p', 'Producer', [
+regType('p', 'Producer', [ 'Language', 'Type' ], [
     producerField,
     langField(2, 'eq', DS.LocLang, 'Language', 'Primary language of the producer'),
     simpleSetField(4, 'eq', vndbTypes.producerType, 'Type'),
@@ -752,7 +749,7 @@ const renderField = (inst, par) => {
     ];
     const plus = m('button[type=button]', { onclick: function() {
         DS.close(); // So that we can open the dropdown while it is active on another button.
-        const ds = fieldAdd[inst.def.qtype];
+        const ds = types[inst.def.qtype].add;
         ds._inst = inst;
         ds._types = [inst.def.qtype];
         ds.open(this, null);
@@ -772,7 +769,7 @@ const renderField = (inst, par) => {
 };
 
 const fromQuery = (qtype, q) => {
-    for(const f of fieldList[qtype].slice().reverse()) {
+    for(const f of types[qtype].fields.slice().reverse()) {
         const inst = instantiateField(f, q);
         if (!inst) continue;
         return inst;
@@ -816,6 +813,26 @@ const encodeQuery = (() => {
 })();
 
 
+const normalizeRoot = (t, root) => {
+    // Root must be an And/Or field, otherwise there's no UI to add/remove fields.
+    if (!root.def.qtype || root.def.qtype !== root.def.ptype) {
+        const n = instantiateField(types[t].andor, null);
+        n.childs = [root];
+        root = n;
+    }
+
+    // Instantiate some default fields when applicable
+    const rootFields = new Map();
+    for (const f of root.childs) {
+        if (!types[t].deffields.includes(f.def.label)) return root;
+        if (rootFields.has(f.def.label)) return root;
+        rootFields.set(f.def.label, f);
+    }
+    root.childs = types[t].deffields.map(n => rootFields.has(n)
+        ? rootFields.get(n)
+        : instantiateField(types[t].fields.find(x => x.label === n), null));
+    return root;
+};
 
 widget('AdvSearch', initvnode => {
     const data = initvnode.attrs.data;
@@ -823,19 +840,13 @@ widget('AdvSearch', initvnode => {
     // so can keep this simple.
     globalData = data;
 
-    let root = fromQuery(data.qtype, data.query || [0]);
-    // Root must be an And/Or field, otherwise there's no UI to add/remove fields.
-    if (!root.def.qtype || root.def.qtype !== root.def.ptype) {
-        const n = instantiateField(andorField[data.qtype], null);
-        n.childs = [root];
-        root = n;
-    }
+    let root = normalizeRoot(data.qtype, fromQuery(data.qtype, data.query || [0]));
+
     // The actual root field is wrapped inside a fake "or" node that is never
     // rendered, so that the branching buttons always have a parent field to
     // work with.
     root = { op: 1, parent: null, childs: [root], def: { qtype: data.qtype, ptype: data.qtype } };
 
-    // TODO: Instantiate default fields when query is empty
     // TODO: Save/load
     const view = () => m('div.xsearch',
         m('input[type=hidden][id=f][name=f]', { value: encodeQuery(root.childs[0].def.toquery(root.childs[0])) }),
