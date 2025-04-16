@@ -995,7 +995,7 @@ div#iv_view {
     > strong { flex: 1; text-align: center }
 }
 .xsearch_nest { background-color: var(--blendbg); padding: 0 5px 2px 5px; }
-.xsearch_range {
+.xsearch_range { /* Also abused for a few other fields */
     > div:first-child {
         background-color: var(--blendbg); padding: 0 5px 2px 5px; display: flex; justify-content: space-between; align-items: center;
         > div * { font-size: 140%; padding: 0 4px }

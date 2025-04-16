@@ -46,6 +46,19 @@ window.imgPreload = url => {
 };
 
 
+// Image resolution string handling
+window.resoParse = str => {
+    const v = str.toLowerCase().replace(/\*/g, 'x').replace(/×/g, 'x').replace(/[-\s]+/g, '');
+    if (v === '' || v === 'unknown') return [0,0];
+    if (v === 'nonstandard') return [0,1];
+    const a = /^([0-9]+)x([0-9]+)$/.exec(v);
+    if (!a) return null;
+    const r = [Math.floor(a[1]), Math.floor(a[2])];
+    return r[0] > 0 && r[0] <= 32767 && r[1] > 0 && r[1] <= 32767 ? r : null;
+};
+window.resoFmt = (x,y) => x ? x+'x'+y : y ? 'Non-standard' : '';
+
+
 // Compare two JS values, for the purpose of sorting.
 // Should only be used to compare values of identical types (or null).
 // Supports arrays, numbers, strings, bools and null.

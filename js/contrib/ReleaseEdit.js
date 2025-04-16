@@ -164,17 +164,6 @@ const Format = initVnode => {
         obj => m('em', obj.id ? 'Add new engine: ' + obj.id : 'Empty / unknown'),
     ), { more: true });
 
-    const resoParse = str => {
-        const v = str.toLowerCase().replace(/\*/g, 'x').replace(/×/g, 'x').replace(/[-\s]+/g, '');
-        if (v === '' || v === 'unknown') return [0,0];
-        if (v === 'nonstandard') return [0,1];
-        const a = /^([0-9]+)x([0-9]+)$/.exec(v);
-        if (!a) return null;
-        const r = [Math.floor(a[1]), Math.floor(a[2])];
-        return r[0] > 0 && r[0] <= 32767 && r[1] > 0 && r[1] <= 32767 ? r : null;
-    };
-    const resoFmt = (x,y) => x ? x+'x'+y : y ? 'Non-standard' : '';
-
     const resolutions = new DS(DS.New(DS.Resolutions,
         str => { const r = resoParse(str); return r ? {id:resoFmt(...r)} : null },
         obj => m('em', obj.id ? 'Custom resolution: ' + resoFmt(...resoParse(obj.id)) : 'Empty / unknown'),

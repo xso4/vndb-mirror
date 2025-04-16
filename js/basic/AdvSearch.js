@@ -283,19 +283,23 @@ const producerField = (() => {
 })();
 
 
-// defval=[op,value], list=[[id,label],..]
+
 const rangeOp = new Map([['=', '='], ['!=','≠'], ['<=','≤'], ['<','<'],['>=','≥'],['>','>']]);
+const rangeOpSel = (inst, onlyeq) => m('div', [...rangeOp.entries()].map((op,i) =>
+    onlyeq && i > 1 ? null
+    : inst.op === op[0] ? m('strong', op[1])
+    : m('a[href=#]', { onclick: ev => { ev.preventDefault(); inst.op = op[0] } }, op[1])
+));
+
+
+// defval=[op,value], list=[[id,label],..]
 const rangeField = (id, label, defval, unknown, list) => ({
     label,
     init: q => !q ? { op: defval[0], val: defval[1] } : q[0] === id ? { op: q[1], val: q[2] } : null,
     toquery: inst => [id,inst.op,inst.val],
     ds: inst => new DS(null, { width: 300, header: () => m('div.xsearch_range',
         m('div',
-            m('div', [...rangeOp.entries()].map((op,i) =>
-                inst.val === '' && i > 1 ? null
-                : inst.op === op[0] ? m('strong', op[1])
-                : m('a[href=#]', { onclick: ev => { ev.preventDefault(); inst.op = op[0] } }, op[1])
-            )),
+            rangeOpSel(inst, inst.val === ''),
             unknown ? m('label',
                 m('input[type=checkbox]', { checked: inst.val === '', onclick: ev => {
                     inst.val = ev.target.checked ? '' : defval[1];
@@ -351,13 +355,7 @@ const rdateField = (() => { // works for VNs and releases
                inst.op === '<'  ? [id,'<', start] : [id,inst.op,inst.date];
     };
     const ds = inst => new DS(null, { header: () => m('div.xsearch_range',
-        m('div',
-            m('div', [...rangeOp.entries()].map((op,i) =>
-                onlyeq(inst.date) && i > 1 ? null
-                : inst.op === op[0] ? m('strong', op[1])
-                : m('a[href=#]', { onclick: ev => { ev.preventDefault(); inst.op = op[0] } }, op[1])
-            )),
-        ),
+        m('div', rangeOpSel(inst, onlyeq(inst.date))),
         m(RDate, { value: inst.date, unknown: true, today: true, oninput: v => {
             if (onlyeq(v) && inst.op !== '=' && inst.op !== '!=') inst.op = '=';
             inst.date = v;
@@ -377,6 +375,53 @@ const rdateField = (() => { // works for VNs and releases
     )});
     const button = inst => [ rangeOp.get(inst.op), ' ', RDate.fmt(RDate.expand(inst.date)) ];
     return {label: 'Release date', init, toquery, ds, button};
+})();
+
+
+const resolutionField = (() => {
+    const init = q => !q ? {op:'=', aspect: false, x: 0, y: 0} :
+        q[0] === 8 ? {op:q[1], aspect: false, x: q[2][0], y: q[2][1] } :
+        q[0] === 9 ? {op:q[1], aspect: true, x: q[2][0], y: q[2][1] } : null;
+    const toquery = inst => [inst.aspect?9:8, inst.op, [inst.x,inst.y]];
+    const source = DS.New(DS.Resolutions,
+        str => resoParse(str) ? {id:str} : null,
+        o => m('em', o.id ? o.id : 'Unknown'),
+    );
+    const ds = inst => new DS(source, {
+        width: 300,
+        header: () => m('div.xsearch_range', m('div',
+            rangeOpSel(inst, inst.x === 0),
+            inst.op === '=' || inst.op === '!=' ? null : m('label',
+                m('input[type=checkbox]', { checked: inst.aspect, oninput: ev => inst.aspect = ev.target.checked }),
+                ' match aspect ratio'
+            ),
+        )),
+        onselect: o => {
+            const r = resoParse(o.id)||[0,0];
+            inst.x = r[0];
+            inst.y = r[1];
+            inst.ds.setInput(o.id);
+        },
+    });
+    const button = inst => [ rangeOp.get(inst.op), ' ', resoFmt(inst.x, inst.y) || 'Unknown resolution' ];
+    return {label: 'Resolution', init, toquery, ds, button};
+})();
+
+
+const birthdayField = (() => {
+    const init = q => !q ? {op:'=', month:0, day: 0} : q[0] === 14 ? {op:q[1], month: q[2][0], day: q[2][1]} : null;
+    const toquery = inst => [14,inst.op,[inst.month,inst.month === 0 ? 0 : inst.day]];
+    const ds = inst => new DS(null, { width: 200, header: () => m('div.xsearch_range',
+        m('div', rangeOpSel(inst, true)),
+        m(Select, { data: inst, field: 'month', options: [[0,'Unknown']].concat(RDate.months.map((v,i) => [i+1,i+1+' ('+v+')'])) }),
+        inst.month === 0 ? null : m(Select, { data: inst, field: 'day', options: range(0,31).map(v => [v, v === 0 ? '- day -' : v]) }),
+    )});
+    const button = inst => [
+        opFmt(inst.op === '=' ? 0 : 2,true), ' ',
+        inst.month === 0 ? 'Birthday unknown' : RDate.months[inst.month-1],
+        ' ', inst.day === 0 ? null : inst.day
+    ];
+    return {label: 'Birthday', init, toquery, ds, button};
 })();
 
 
@@ -625,7 +670,7 @@ regType('r', 'Release', [
     boolField(64, 'Uncensored',    'Uncensored (no mosaic)',   'Censored (or no erotic content to censor)'),
     boolField(65, 'Official',      'Official',                 'Unofficial'),
     rdateField,
-    // TODO: resolution
+    resolutionField,
     rangeField(10, 'Age rating', [ '<', 13 ], true, vndbTypes.ageRating),
     simpleSetField(11, 'set', [['', 'Unknown', 'Medium: Unknown']].concat(vndbTypes.medium.map(m => [m[0],m[1]])), 'Medium'),
     simpleSetField(12, 'eq', vndbTypes.voiced.map((v,i) => [i,v]), 'Voiced'),
@@ -642,7 +687,7 @@ regType('c', 'Char', [
     nestField('c', 'v', 53, 'Visual Novel', 'VN', 'Linked to a visual novel that matches these filters', 'Not linked to a visual novel that matches these filters'),
     simpleSetField(2, 'eq', vndbTypes.charRole, 'Role'),
     rangeField(12, 'Age', ['>=', 17], true, range(0, 121).map(v => [v,v === 1 ? '1 year' : v+' years'])),
-    // TODO: birthday
+    birthdayField,
     simpleSetField(null, 'eq', vndbTypes.charSex.map(([k,v]) => [k,v,k===''?'Sex: '+v:v]),
         'Sex', null, 'bool',
         q => q[0] === 4 || q[0] === 5 ? {key:q[2], op:q[1], spoil: q[0]===4?0:2} : null,
