@@ -866,7 +866,7 @@ sub widget_ {
     my %o = (
         spoilers  => auth->pref('spoilers')||0,
                      # TODO: Can also be lazily loaded.
-        saved     => auth ? tuwf->dbAlli('SELECT name, query FROM saved_queries WHERE uid =', \auth->uid, ' AND qtype =', \$self->{type}, 'ORDER BY name') : [],
+        saved     => auth ? tuwf->dbAlli('SELECT name AS id, query FROM saved_queries WHERE uid =', \auth->uid, ' AND qtype =', \$self->{type}, 'ORDER BY name') : [],
         uid       => auth->uid,
         qtype     => $self->{type},
         query     => $self->compact_json(),

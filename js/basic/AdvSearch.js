@@ -834,6 +834,7 @@ const normalizeRoot = (t, root) => {
     return root;
 };
 
+
 widget('AdvSearch', initvnode => {
     const data = initvnode.attrs.data;
     // We currently only ever have a single instance of this widget on a page,
@@ -847,9 +848,112 @@ widget('AdvSearch', initvnode => {
     // work with.
     root = { op: 1, parent: null, childs: [root], def: { qtype: data.qtype, ptype: data.qtype } };
 
-    // TODO: Save/load
+    const encode = () => encodeQuery(root.childs[0].def.toquery(root.childs[0]));
+    const initial = encode();
+
+    let saveLoad = null;
+    const dsHeader = () => m('div.xsearch_range', m('div',
+        [['Save', dsSave], ['Load', dsLoad], ['Delete', dsDel], ['Default', dsDefault]].map(([lbl,ds]) =>
+         ds === saveLoad ? m('strong', lbl) : m('a[href=#]', { onclick: ev => { ev.preventDefault(); const o = saveLoad.opener; saveLoad = ds; ds.open(o) } }, lbl)
+    )));
+    const savedSrc = { list: (src, str, cb) => {
+        const lst = data.saved.filter(o => o.id && o.id.toLowerCase().includes(str.toLowerCase()));
+        cb((str && !lst.find(o => o.id === str) ? [{id:str,n:1}] : []).concat(lst));
+        dsSave.selId = null;
+    }, view: o => [ o.id, o.n ? m('small', ' (new filter)') : null ] };
+
+    const dsLoad = new DS(savedSrc, {
+        width: 300, nosearch: true,
+        header: () => [
+            dsHeader(),
+            data.saved.length === 0 ? m('p', m('em', 'No saved filters.')) :
+            encode() !== initial ? m('p', m('em', 'Unsaved changes to your current filters will be lost when loading a saved filter.')) : null,
+        ],
+        onselect: o => { if (o.id) { $('#f').value = o.query; $('#f').form.submit(); } },
+    });
+
+    // God, this UI is awkward.
+    const saveApi = new Api('AdvSearchSave');
+    const saveV = {v:''};
+    const dsSave = new DS(savedSrc, { nosearch: false, keep: true, width: 300,
+        header: () => [
+            dsHeader(),
+            encode() === '' ? m('p', m('em', 'Nothing to save.')) : m('div.xsearch_opts',
+                m('div', saveApi.Status()),
+                m('button[type=button]', {
+                    class: saveApi.loading() || !dsSave.input ? 'invisible' : null,
+                    onclick: () => saveApi.call({name: dsSave.input, qtype: data.qtype, query: encode()}, () => {
+                        DS.close();
+                    }),
+                }, 'Save'),
+            ),
+        ],
+        onselect: o => dsSave.setInput(o.id),
+    });
+
+    const todel = new Set();
+    const delApi = new Api('AdvSearchDel');
+    const dsDel = new DS(savedSrc, {
+        width: 300, nosearch: true,
+        header: () => [
+            dsHeader(),
+            delApi.loading() || delApi.error ? delApi.Status() : m('div.xsearch_opts',
+                todel.size, ' filter', todel.size === 1 ? null : 's', ' selected.',
+                m('button[type=button]', {
+                    class: todel.size > 0 ? null : 'invisible',
+                    onclick: () => {
+                        if (todel.size === 0) return;
+                        delApi.call({qtype: data.qtype, name: [...todel.keys()]});
+                        data.saved = data.saved.filter(o => !todel.has(o.id));
+                        todel.clear();
+                        dsDel.setInput('');
+                    }
+                }, 'Delete selected'),
+            ),
+        ],
+        checked: o => todel.has(o.id),
+        onselect: (o,c) => c ? todel.add(o.id) : todel.delete(o.id),
+    });
+
+    let defquery = data.saved.find(o => !o.id);
+    if (defquery) defquery = defquery.query;
+    const dsDefault = new DS(null, { width: 300, header: () => [
+        dsHeader(),
+        m('p', data.qtype === 'v' ? [
+                'You can set a default filter that is automatically applied to most listings on the site,',
+                ' including the "Random visual novel" button, lists on the homepage, tag pages, etc.',
+                ' This feature is mainly useful to filter out tags, languages or platforms that you are not interested in seeing.',
+           ] : data.qtype === 'r' ? [
+                'You can set a default filter that is automatically applied to this release browser and the listings on the homepage.',
+                ' This feature is mainly useful to filter out tags, languages or platforms that you are not interested in seeing.',
+           ] : 'You can set a default filter that is automatically applied when you open this listing.'
+        ),
+        m('p.center',
+            delApi.Status(), saveApi.Status(), m('br'),
+            defquery ? [
+                m('button[type=button]',
+                    { onclick: () => { $('#f').value = defquery; $('#f').form.submit(); } },
+                    'Load my default filters'
+                ),
+                m('br'), m('br'),
+                m('button[type=button]',
+                    { onclick: () => delApi.call({qtype: data.qtype, name: ['']}, () => defquery = null) },
+                    'Reset my default filters'
+                )
+            ] : m('p', "You don't have a default filter set."),
+            encode() === '' ? null : m('button[type=button]',
+                { onclick: () => saveApi.call({qtype: data.qtype, name: '', query: encode()}, () => defquery = encode()) },
+                'Save current filters as default',
+            ),
+        ),
+    ]});
+
     const view = () => m('div.xsearch',
-        m('input[type=hidden][id=f][name=f]', { value: encodeQuery(root.childs[0].def.toquery(root.childs[0])) }),
+        data.uid ? m('button[type=button]', { onclick: function() {
+            if (!saveLoad) saveLoad = data.saved.length > 0 && encode() === initial ? dsLoad : dsSave;
+            saveLoad.open(this)
+        } }, m(Icon.Save)) : null,
+        m('input[type=hidden][id=f][name=f]', { value: encode() }),
         renderField(root.childs[0], root),
     );
     return {view};

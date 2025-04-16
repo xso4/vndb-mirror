@@ -133,11 +133,12 @@ class DS {
         const obj = this.list.find(e => e.id === this.selId);
         if (!obj) return;
         if (this.checked || this.keep) this.focus = v => { this.focus = null; v.dom.focus() };
+        this.input_override = false; // honor setInput() in onselect()
         if (this.autocomplete) this.autocomplete(this.source.stringify ? this.source.stringify(obj) : obj.id);
         else if (this.onselect) this.onselect(obj, !this.checked || !this.checked(obj));
         if (!this.checked) {
             if (!this.keep) close();
-            this.setInput('');
+            if (!this.input_override) this.setInput('');
             this.selId = null;
         }
     }
@@ -202,6 +203,7 @@ class DS {
 
     setInput(str_, skipTimer) {
         this.input = str_;
+        this.input_override = true;
         if (activeInstance !== this) return;
         if (!this.source) return;
         const src = this.source;
