@@ -12,7 +12,7 @@ use VNDB::Skins;
 use VNDB::Types;
 use VNDB::Func 'fmtrating';
 
-my @LINKS = grep $LINKS{$_}{regex}, sort keys %LINKS;
+my @LINKS = grep $_ eq 'website' || $LINKS{$_}{regex}, sort keys %LINKS;
 
 my $js = JSON::XS->new->pretty->canonical;
 
