@@ -88,10 +88,7 @@ const Status = initVnode => {
                 'A patch is not a standalone release, but instead requires another release in order to be used. ',
                 'It may be helpful to indicate which releases this patch applies to in the notes.'
             ),
-            m('p',
-                '*) The following release fields are unavailable for patch releases: Engine, Resolution, Voiced and Animation. ',
-                'These fields are automatically reset on form submission when the patch flag is set.'
-            ),
+            m('p', '*) The animation section is unavailable when the patch flag is set, any existing data is reset on form submission.'),
         ),
         m('fieldset', m('label.check',
             m('input[type=checkbox]', { checked: data.freeware, oninput: ev => data.freeware = ev.target.checked }),
