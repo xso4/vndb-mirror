@@ -82,7 +82,7 @@ our @EXPORT = qw/advsearch_default/;
 #   normalized JSON form and the compact encoded form. Conversion between
 #   normalized JSON and compact JSON form requires knowledge about all fields
 #   and their accepted values, while conversion between compact JSON form and
-#   compact encoded form can be done mechanically. This is the reason why Elm
+#   compact encoded form can be done mechanically. This is the reason why JS
 #   works with the compact JSON form.
 #
 #   Same example:
@@ -406,7 +406,7 @@ f r => 55 => 'producer', 'p', '=' => sub { sql 'r.id IN(SELECT rp.id FROM releas
 # Deprecated.
 f r =>  6 => 'developer_id',{ vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE developer AND pid =', \$_, ')' }; # Does not have a new equivalent
 f r => 17 => 'producer_id', { vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE pid =', \$_, ')' };
-f r => 63 => 'doujin',      { uint => 1, range => [1,1] }, '=' => sub { 'r.doujin' }; # Not recognized by Elm anymore.
+f r => 63 => 'doujin',      { uint => 1, range => [1,1] }, '=' => sub { 'r.doujin' };
 
 
 
@@ -673,7 +673,7 @@ TUWF::set('custom_validations')->{advsearch_err} = sub {
 # currently simplify a query like "(a < 10) and (a < 9)" into "a < 9".
 #
 # The returned query is suitable for generating SQL and comparison of different
-# queries, but should not be given to the Elm UI as it changes the way fields
+# queries, but should not be given to the JS UI as it changes the way fields
 # are merged.
 sub _canon {
     my($t, $q) = @_;
