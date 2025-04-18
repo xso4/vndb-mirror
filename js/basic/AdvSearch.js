@@ -605,7 +605,7 @@ const regType = (t, name, deffields, fields) => {
             header: () => [
                 m('div.xsearch_opts', m('strong', 'Add field')),
                 ds._types.length === 1 ? null : m('div.xsearch_nest', ds._types.map((qt,i) => {
-                    const lbl = i ? types[ds._types[i-1]][qt].button : types[qt][''];
+                    const lbl = i ? types[ds._types[i-1]][qt].button : types[qt].name;
                     return i === ds._types.length - 1 ? m('strong', lbl)
                         : m('a[href=#]', { onclick: ev => { ev.preventDefault(); ds._types.splice(i+1); ds.setInput('') } }, lbl)
                 }).intersperse(' » ')),
