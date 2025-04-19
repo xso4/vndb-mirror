@@ -1,10 +1,5 @@
 #!/usr/bin/perl
 
-# Usage:
-#   vndb.pl           # Run from the CLI to get a webserver, or spawn from CGI/FastCGI
-#   vndb.pl noapi     # Same, but disable /api/ calls
-#   vndb.pl onlyapi   # Same, but disable everything but /api/ calls
-
 use v5.36;
 use Cwd 'abs_path';
 use JSON::XS;
@@ -19,13 +14,8 @@ $|=1; # Disable buffering on STDOUT, otherwise vndb-dev-server.pl won't pick up 
 # built-in web server that I haven't been able to track down.
 BEGIN { $ENV{PERL_ANYEVENT_MODEL} = 'Perl'; }
 
-
-our($ROOT, $NOAPI, $ONLYAPI);
-BEGIN {
-    ($ROOT = abs_path $0) =~ s{/util/vndb\.pl$}{};
-    ($NOAPI) = grep $_ eq 'noapi', @ARGV;
-    ($ONLYAPI) = grep $_ eq 'onlyapi', @ARGV;
-}
+our $ROOT;
+BEGIN { ($ROOT = abs_path $0) =~ s{/util/vndb\.pl$}{} }
 
 use lib $ROOT.'/lib';
 use VNDB::Config;
@@ -71,7 +61,7 @@ TUWF::hook before => sub {
         if !VNWeb::Validation::samesite && !tuwf->reqHeader('sec-fetch-site');
 
     tuwf->req->{trace_start} = time if config->{trace_log};
-} if !$ONLYAPI;
+} if config->{api} ne 'only';
 
 
 # Provide a default /robots.txt
@@ -153,7 +143,7 @@ sub TUWF::Object::resDenied {
     };
 }
 
-if($ONLYAPI) {
+if(config->{api} eq 'only') {
     require VNWeb::API;
 } else {
     TUWF::load_recursive('VNWeb');

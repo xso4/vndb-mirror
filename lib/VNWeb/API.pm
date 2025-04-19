@@ -14,7 +14,7 @@ use VNWeb::Validation;
 use VNWeb::AdvSearch;
 use VNWeb::ULists::Lib 'ulist_filtlabels';
 
-return 1 if $main::NOAPI;
+return 1 if !config->{api};
 
 
 TUWF::get qr{/api/(nyan|kana)}, sub {

@@ -185,7 +185,7 @@ sub samesite {
 }
 
 # returns true if this request is for an /api/ URL.
-sub is_api { !$main::NOAPI && ($main::ONLYAPI || tuwf->reqPath =~ /^\/api\//) }
+sub is_api { config->{api} eq 'only' || (config->{api} && tuwf->reqPath =~ /^\/api\//) }
 
 # Test uniqueness of a username in the database. Usernames with similar
 # homographs are considered duplicate.
