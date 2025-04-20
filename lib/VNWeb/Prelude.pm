@@ -93,12 +93,12 @@ sub dbobj {
 
     return undef if !$id;
     if($id =~ /^u/) {
-        my $o = tuwf->dbRowi('SELECT id, username IS NULL AS entry_hidden,', sql_user(), 'FROM users u WHERE id =', \$id);
+        my $o = fu->dbRowi('SELECT id, username IS NULL AS entry_hidden,', sql_user(), 'FROM users u WHERE id =', \$id);
         $o->{title} = [(undef, VNWeb::HTML::user_displayname $o)x2];
         return $o;
     }
 
-    tuwf->dbRowi('SELECT', \$id, 'AS id, title, hidden AS entry_hidden, locked AS entry_locked FROM', VNWeb::TitlePrefs::item_info(\$id, 'NULL'), ' x');
+    fu->dbRowi('SELECT', \$id, 'AS id, title, hidden AS entry_hidden, locked AS entry_locked FROM', VNWeb::TitlePrefs::item_info(\$id, 'NULL'), ' x');
 }
 
 1;

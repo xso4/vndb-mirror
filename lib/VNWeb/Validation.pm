@@ -403,6 +403,7 @@ sub viewset {
 
 # Object returned by the 'searchquery' validation, has some handy methods for generating SQL.
 package VNWeb::Validate::SearchQuery {
+    use FU;
     use VNWeb::DB;
 
     sub TO_QUERY { $_[0][0] }

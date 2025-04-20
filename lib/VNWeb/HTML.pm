@@ -311,7 +311,7 @@ sub _menu_ {
     article_ sub {
         h2_ 'User menu';
         div_ sub {
-            my $ref = uri_escape(fu->query('ref', { onerror => '' }) || fu->path.'?'.fu->query);
+            my $ref = uri_escape(fu->query('ref', { onerror => '' }) || fu->path.'?'.(fu->query||''));
             a_ href => "/u/login?ref=$ref", 'Login'; br_;
             a_ href => '/u/register', 'Register'; br_;
         }

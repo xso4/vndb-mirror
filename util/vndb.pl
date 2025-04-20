@@ -85,7 +85,7 @@ FU::get '/robots.txt', sub {
 
 
 FU::on_error 400 => sub {
-    return eval { VNWeb::API::err(400, 'Invalid request (most likely: invalid JSON or non-UTF8 data).') } if VNWeb::Validation::is_api;
+    VNWeb::API::err(400, 'Invalid request (most likely: invalid JSON or non-UTF8 data).') if VNWeb::Validation::is_api;
     fu->_error_page(400, '400 - Bad Request', 'The server was not happy with your offer.');
 };
 
@@ -115,7 +115,7 @@ FU::on_error 403 => sub {
 };
 
 FU::on_error 404 => sub {
-    return eval { VNWeb::API::err(404, 'Not found.') } if VNWeb::Validation::is_api;
+    VNWeb::API::err(404, 'Not found.') if VNWeb::Validation::is_api;
     fu->status(404);
     VNWeb::HTML::framework_ title => 'Page Not Found', noindex => 1, sub {
         article_ sub {
@@ -133,7 +133,7 @@ FU::on_error 404 => sub {
 };
 
 FU::on_error 500 => sub {
-    return eval { VNWeb::API::err(500, 'Internal server error. Can be temporary, but usually points to a server bug.') } if VNWeb::Validation::is_api;
+    VNWeb::API::err(500, 'Internal server error. Can be temporary, but usually points to a server bug.') if VNWeb::Validation::is_api;
     FU::_err_500;
 };
 
