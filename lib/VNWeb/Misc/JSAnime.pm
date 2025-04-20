@@ -6,7 +6,7 @@ js_api Anime => { search => {}, ref => { anybool => 1 } }, sub($d,@) {
     my $q = $d->{search};
     my $qs = sql_like $q;
 
-    +{ results => tuwf->dbAlli(
+    +{ results => fu->dbAlli(
         'SELECT a.id, a.title_romaji, a.title_kanji
            FROM (',
 			sql_join('UNION ALL',

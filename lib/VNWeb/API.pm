@@ -127,14 +127,15 @@ sub api_patch($path, $req_schema, $sub) {
     my $s = FU::Validate->compile({ unknown => 'reject', keys => $req_schema });
     FU::patch qr{/api/kana$path}, sub(@a) {
         check_throttle;
-        my $req = eval { fu->json({ type => 'any' }) } || err 400, 'Invalid request body.';
-        $req = eval { $s->validate($req) };
+        my $req = eval { fu->json($s) };
         if (!$req) {
             my $err = $@;
-            warn +($err->errors)[0]."\n";
-            err 400, $err->{keys} ? "Unknown member '$err->{keys}[0]'." : 'Missing request body.' if !$err->{errors};
-            $err = $err->{errors}[0]//{};
-            err 400, "Invalid '$err->{key}' member." if $err->{key};
+            if ($err isa 'FU::Validate::err') {
+                warn +($err->errors)[0]."\n";
+                err 400, $err->{keys} ? "Unknown member '$err->{keys}[0]'." : 'Invalid request body.' if !$err->{errors};
+                $err = $err->{errors}[0]//{};
+                err 400, "Invalid '$err->{key}' member." if $err->{key};
+            }
             err 400, 'Invalid request body.';
         }
 
@@ -233,6 +234,7 @@ sub api_query($path, %opt) {
 
     FU::post "/api/kana$path", sub {
         check_throttle;
+
         my $req = fu->json({ type => 'hash' }) || err 400, 'Invalid query.';
         fu->{advsearch_uid} = $req->{user};
         $req = eval { $req_schema->validate($req) };

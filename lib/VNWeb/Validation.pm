@@ -16,7 +16,6 @@ use Exporter 'import';
 our @EXPORT = qw/
     %RE
     samesite
-    elm_empty
     is_api
     not_moe
     is_unique_username
@@ -30,31 +29,35 @@ our @EXPORT = qw/
 
 # Regular expressions for use in path registration
 my $num = qr{[1-9][0-9]{0,6}}; # Allow up to 10 mil, SQL vndbid type can't handle more than 2^26-1 (~ 67 mil).
-my $rev = qr{(?:\.(?<rev>$num))};
+my $rev = qr{(?:\.($num))};
 our %RE = (
-    num  => qr{(?<num>$num)},
-    uid  => qr{(?<id>u$num)},
-    vid  => qr{(?<id>v$num)},
-    rid  => qr{(?<id>r$num)},
-    sid  => qr{(?<id>s$num)},
-    cid  => qr{(?<id>c$num)},
-    pid  => qr{(?<id>p$num)},
-    iid  => qr{(?<id>i$num)},
-    did  => qr{(?<id>d$num)},
-    tid  => qr{(?<id>t$num)},
-    gid  => qr{(?<id>g$num)},
-    wid  => qr{(?<id>w$num)},
-    qid  => qr{(?<id>q$num)},
-    imgid=> qr{(?<id>(?:ch|cv|sf)$num)},
-    vrev => qr{(?<id>v$num)$rev?},
-    rrev => qr{(?<id>r$num)$rev?},
-    prev => qr{(?<id>p$num)$rev?},
-    srev => qr{(?<id>s$num)$rev?},
-    crev => qr{(?<id>c$num)$rev?},
-    drev => qr{(?<id>d$num)$rev?},
-    grev => qr{(?<id>g$num)$rev?},
-    irev => qr{(?<id>i$num)$rev?},
-    postid => qr{(?<id>t$num)\.(?<num>$num)},
+    # Doesn't capture
+    num  => $num,
+    # Gives a single capture
+    uid  => qr{(u$num)},
+    vid  => qr{(v$num)},
+    rid  => qr{(r$num)},
+    sid  => qr{(s$num)},
+    cid  => qr{(c$num)},
+    pid  => qr{(p$num)},
+    iid  => qr{(i$num)},
+    did  => qr{(d$num)},
+    tid  => qr{(t$num)},
+    gid  => qr{(g$num)},
+    wid  => qr{(w$num)},
+    qid  => qr{(q$num)},
+    imgid=> qr{((?:ch|cv|sf)$num)},
+    # Gives one or two captures
+    vrev => qr{(v$num)$rev?},
+    rrev => qr{(r$num)$rev?},
+    prev => qr{(p$num)$rev?},
+    srev => qr{(s$num)$rev?},
+    crev => qr{(c$num)$rev?},
+    drev => qr{(d$num)$rev?},
+    grev => qr{(g$num)$rev?},
+    irev => qr{(i$num)$rev?},
+    # Gives two captures
+    postid => qr{(t$num)\.($num)},
 );
 
 
@@ -161,12 +164,8 @@ sub _validate_extlinks($t) {
 }
 
 
-# XXX: Legacy function
-sub elm_empty { $_[0]->empty }
-
-
 # Aborts this requests and throws a 404 when configured in moe mode.
-sub not_moe { fu->not_found if config->{moe} }
+sub not_moe { fu->notfound if config->{moe} }
 
 
 # returns true if this request originated from the same site, i.e. not an external referer.

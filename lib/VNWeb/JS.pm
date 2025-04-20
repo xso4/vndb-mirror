@@ -1,7 +1,7 @@
 package VNWeb::JS;
 
 use v5.36;
-use TUWF;
+use FU;
 use VNDB::Config;
 use VNWeb::Validation ();
 use Exporter 'import';
@@ -16,28 +16,28 @@ sub js_api {
     my($endpoint, $schema, $fun) = @_;
     $schema = FU::Validate->compile({ keys => $schema }) if ref $schema eq 'HASH';
 
-    TUWF::post qr{/js/\Q$endpoint\E\.json} => sub {
-        my $data = tuwf->validate(json => $schema);
+    FU::post "/js/$endpoint.json" => sub {
+        my $data = eval { fu->json($schema) };
         if(!$data) {
-            my $err = $data->err;
-            warn "JSON validation failed\ninput: " . JSON::XS->new->allow_nonref->pretty->canonical->encode(tuwf->reqJSON) . "\nerror: " . JSON::XS->new->encode($err) . "\n";
-            $err = $err->{errors}[0]//{};
-            return tuwf->resJSON({_err => 'Form validation failed'.($err->{key} ? " ($err->{key})." : '.')});
+            my $err = $@;
+            my $key = $err isa 'FU::Validate::err' && ($err->{errors}[0]//{})->{key};
+            warn "JSON validation failed\ninput: " . fu->json . "\nerror: $err\n";
+            fu->send_json({_err => 'Form validation failed'.($key ? " ($key)." : '.')});
         }
-        my $res = $fun->($data->data);
-        tuwf->resJSON(ref $res ? $res : {_err => $res});
+        my $res = $fun->($data);
+        fu->send_json(ref $res ? $res : {_err => $res});
     };
 }
 
 
 # Log errors from JS.
-TUWF::post qr{/js-error}, sub {
-    my($ev, $source, $lineno, $colno, $stack) = map tuwf->reqPost($_)//'-', qw/ev source lineno colno stack/;
+FU::post '/js-error', sub {
+    my($ev, $source, $lineno, $colno, $stack) = map fu->formdata($_, {onerror=>'-'}), qw/ev source lineno colno stack/;
     my $msg = sprintf
           "\nMessage:  %s"
          ."\nSource:   %s %s:%s\n", $ev, $source, $lineno, $colno;
-    $msg .= "Referer:  ".tuwf->reqHeader('referer')."\n" if tuwf->reqHeader('referer');
-    $msg .= "Browser:  ".tuwf->reqHeader('user-agent')."\n" if tuwf->reqHeader('user-agent');
+    $msg .= "Referer:  ".fu->header('referer')."\n" if fu->header('referer');
+    $msg .= "Browser:  ".fu->header('user-agent')."\n" if fu->header('user-agent');
     $msg .= ($stack =~ s/[\r\n]+$//r)."\n" if $stack ne '-' && $stack ne 'undefined' && $stack ne 'null';
     warn $msg;
 };

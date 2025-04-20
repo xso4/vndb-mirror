@@ -3,44 +3,40 @@ package VNWeb::Misc::Redirects;
 use VNWeb::Prelude;
 use VNWeb::AdvSearch;
 
+sub query { length fu->query ? '?'.fu->query : '' }
 
 # VNDB URLs don't have a trailing /, redirect if we get one.
-TUWF::get qr{(/.+?)/+}, sub { tuwf->resRedirect(tuwf->capture(1).tuwf->reqQuery(), 'perm') };
+FU::get qr{(/.+?)/+}, sub($p) { fu->redirect(perm => $p.query) };
 
 # These two are ancient.
-TUWF::get qr{/notes}, sub { tuwf->resRedirect('/d8', 'perm') };
-TUWF::get qr{/faq},   sub { tuwf->resRedirect('/d6', 'perm') };
+FU::get '/notes', sub { fu->redirect(perm => '/d8') };
+FU::get '/faq',   sub { fu->redirect(perm => '/d6') };
 
-TUWF::get qr{/v/search}, sub { tuwf->resRedirect('/v'.tuwf->reqQuery(), 'perm') };
+FU::get '/v/search', sub { fu->redirect(perm => '/v'.query) };
 
-TUWF::get qr{/experimental/v}, sub { tuwf->resRedirect('/v'.tuwf->reqQuery(), 'perm') };
-TUWF::get qr{/experimental/r}, sub { tuwf->resRedirect('/r'.tuwf->reqQuery(), 'perm') };
+FU::get qr{/$RE{uid}/tags},  sub($id) { fu->redirect(perm => "/g/links?u=$id") };
 
-TUWF::get qr{/u/list(/[a-z0]|/all)?}, sub { tuwf->resRedirect('/u'.(tuwf->capture(1)//'/all'), 'perm') };
+FU::get qr{/$RE{vid}/staff}, sub($id) { fu->redirect(perm => "/$id#staff") };
+FU::get qr{/$RE{vid}/stats}, sub($id) { fu->redirect(perm => "/$id#stats") };
+FU::get qr{/$RE{vid}/scr},   sub($id) { fu->redirect(perm => "/$id#screenshots") };
+FU::get qr{/img/$RE{imgid}}, sub($id) { fu->redirect(perm => "/$id".query) };
 
-TUWF::get qr{/$RE{uid}/tags},  sub { tuwf->resRedirect('/g/links?u='.tuwf->capture('id'), 'perm') };
-
-TUWF::get qr{/$RE{vid}/staff}, sub { tuwf->resRedirect(sprintf '/%s#staff',       tuwf->capture('id')) };
-TUWF::get qr{/$RE{vid}/stats}, sub { tuwf->resRedirect(sprintf '/%s#stats',       tuwf->capture('id')) };
-TUWF::get qr{/$RE{vid}/scr},   sub { tuwf->resRedirect(sprintf '/%s#screenshots', tuwf->capture('id')) };
-TUWF::get qr{/img/$RE{imgid}}, sub { tuwf->resRedirect('/'.tuwf->capture(1).tuwf->reqQuery(), 'perm') };
-
-TUWF::get qr{/u/tokens}, sub { tuwf->resRedirect(auth ? '/'.auth->uid.'/edit#api' : '/u/login?ref=/u/tokens', 'temp') };
+FU::get qr{/u/tokens}, sub { fu->redirect(temp => auth ? '/'.auth->uid.'/edit#api' : '/u/login?ref=/u/tokens') };
 
 
-TUWF::get qr{/v/rand}, sub {
-    state $stats  ||= tuwf->dbRowi('SELECT COUNT(*) AS total, COUNT(*) FILTER(WHERE NOT hidden) AS subset FROM vn');
+FU::get qr{/v/rand}, sub {
+    state $stats  ||= fu->dbRowi('SELECT COUNT(*) AS total, COUNT(*) FILTER(WHERE NOT hidden) AS subset FROM vn');
     state $sample ||= 100*min 1, (1000 / $stats->{subset}) * ($stats->{total} / $stats->{subset});
 
     my $filt = advsearch_default 'v';
-    my $vn = tuwf->dbVali('
+    my $vn = fu->dbVali('
         SELECT id
           FROM vn v', $filt->{query} || config->{moe} ? '' : ('TABLESAMPLE SYSTEM (', \$sample, ')'), '
          WHERE NOT hidden AND', $filt->sql_where(), '
          ORDER BY random() LIMIT 1'
     );
-    return tuwf->resNotFound if !$vn;
-    tuwf->resRedirect("/$vn", 'temp');
+    fu->notfound if !$vn;
+    fu->redirect(temp => "/$vn");
 };
 
 1;

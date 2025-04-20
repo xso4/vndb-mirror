@@ -935,7 +935,7 @@ sub advsearch_default {
     my($t) = @_;
     if(auth) {
         my $def = fu->dbVali('SELECT query FROM saved_queries WHERE qtype =', \$t, 'AND name = \'\' AND uid =', \auth->uid);
-        return FU::Validate->compile({ advsearch => $t })->validate($def)->data if $def;
+        return FU::Validate->compile({ advsearch => $t })->validate($def) if $def;
     }
     bless {type=>$t}, __PACKAGE__;
 }

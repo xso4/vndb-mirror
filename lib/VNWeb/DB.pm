@@ -7,6 +7,7 @@ use Carp 'confess';
 use Exporter 'import';
 use VNDB::Schema;
 use VNDB::Config;
+use experimental 'builtin'; # for is_bool
 
 our @EXPORT = qw/
     sql
@@ -19,9 +20,11 @@ our @EXPORT = qw/
 
 
 # TUWF db* methods, should migrate to directly using fu->q() instead.
-#
 sub _sqlhelper($type, $sql, @params) {
     my $r;
+    # DBD::Pg doesn't support Perl's false as bind param
+    # https://github.com/bucardo/dbdpg/issues/125
+    for (@params) { $_ ||= 0 if builtin::is_bool($_) }
     confess $@ if !eval {
         my $q = fu->dbh->prepare($sql);
         $q->execute(@params);
