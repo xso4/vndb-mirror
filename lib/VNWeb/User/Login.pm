@@ -3,11 +3,11 @@ package VNWeb::User::Login;
 use VNWeb::Prelude;
 
 
-TUWF::get '/u/login' => sub {
+FU::get '/u/login' => sub {
     not_moe;
-    return tuwf->resRedirect('/', 'temp') if auth || config->{read_only};
+    fu->redirect(temp => '/') if auth || config->{read_only};
 
-    my $ref = tuwf->reqGet('ref');
+    my $ref = fu->query(ref => {onerror => ''});
     $ref = '/' if !$ref || $ref !~ /^\//;
 
     framework_ title => 'Login', sub {
@@ -22,8 +22,8 @@ js_api UserLogin => {
 }, sub {
     my $data = shift;
 
-    my $ip = norm_ip tuwf->reqIP;
-    my $tm = tuwf->dbVali(
+    my $ip = norm_ip fu->ip;
+    my $tm = fu->dbVali(
         'SELECT', sql_totime('greatest(timeout, now())'), 'FROM login_throttle WHERE ip =', \$ip
     ) || time;
     return +{ _err => 'Too many failed login attempts, please use the password reset form or try again later.' }
@@ -32,7 +32,7 @@ js_api UserLogin => {
     my $ismail = $data->{username} =~ /@/;
     my $mailmsg = 'Invalid username or password.';
 
-    my $u = tuwf->dbRowi('SELECT id, user_getscryptargs(id) x FROM users WHERE',
+    my $u = fu->dbRowi('SELECT id, user_getscryptargs(id) x FROM users WHERE',
         $ismail ? sql('id IN(SELECT uid FROM user_emailtoid(', \$data->{username}, '))')
                 : sql('lower(username) = lower(', \$data->{username}, ')')
     );
@@ -54,7 +54,7 @@ js_api UserLogin => {
             ip      => \$ip,
             timeout => sql_fromtime $tm + config->{login_throttle}[0]
         };
-        tuwf->dbExeci('INSERT INTO login_throttle', $upd, 'ON CONFLICT (ip) DO UPDATE SET', $upd);
+        fu->dbExeci('INSERT INTO login_throttle', $upd, 'ON CONFLICT (ip) DO UPDATE SET', $upd);
         return +{ _err => $ismail ? $mailmsg : 'Incorrect password.' }
 
     # Insecure password
@@ -86,10 +86,10 @@ js_api UserChangePass => {
 };
 
 
-TUWF::post qr{/$RE{uid}/logout}, sub {
-    return tuwf->resNotFound if !auth || auth->uid ne tuwf->capture('id') || (tuwf->reqPost('csrf')||'') ne auth->csrftoken;
+FU::post qr{/$RE{uid}/logout}, sub($uid) {
+    fu->notfound if !auth || auth->uid ne $uid || fu->formdata('csrf', { onerror => '' }) ne auth->csrftoken;
     auth->logout;
-    tuwf->resRedirect('/', 'post');
+    fu->redirect(tempget => '/');
 };
 
 1;

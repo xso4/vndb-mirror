@@ -160,7 +160,7 @@ sub charsex_($sex, $gender) {
 # Instantiate a JS widget.
 # Used as attribute to a html tag, which will then be used as parent node for the widget.
 # $schema is optional, if present it is used to normalize the data.
-sub widget($name, $schema, $data) {
+sub widget($name, $schema, $data=undef) {
     $data = $data ? $schema->coerce($data, unknown => 'remove') : $schema;
     fu->{widget_id} //= 0;
     fu->{js}{ VNWeb::JS::widgets()->{$name} // die "No bundle found for widget '$name'" } = 1;

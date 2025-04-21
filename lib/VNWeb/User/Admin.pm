@@ -17,20 +17,20 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
 };
 
 sub _userinfo {
-    if(!auth->isMod) { tuwf->resDenied; tuwf->done; }
-    my $u = tuwf->dbRowi('
+    fu->denied if !auth->isMod;
+    my $u = fu->dbRowi('
         SELECT u.id, username, ign_votes, ', sql_comma(map "perm_$_", auth->listPerms), '
           FROM users u
           LEFT JOIN users_shadow us ON us.id = u.id
          WHERE u.id =', \$_[0]
     );
-    if(!$u->{id}) { tuwf->resNotFound; tuwf->done; }
+    fu->notfound if !$u->{id};
     $u
 }
 
 
-TUWF::get qr{/$RE{uid}/admin}, sub {
-    my $u = _userinfo tuwf->capture('id');
+FU::get qr{/$RE{uid}/admin}, sub($id) {
+    my $u = _userinfo $id;
 
     $u->{editor_dbmod}    = auth->permDbmod;
     $u->{editor_usermod}  = auth->permUsermod;
@@ -57,7 +57,7 @@ js_api UserAdmin => $FORM_IN, sub {
             auth->permTagmod   ? qw/perm_tag/ : (),
         ),
     );
-    tuwf->dbExeci('UPDATE users SET', { map +($_, $data->{$_}), @set }, 'WHERE id =', \$u->{id});
+    fu->dbExeci('UPDATE users SET', { map +($_, $data->{$_}), @set }, 'WHERE id =', \$u->{id});
 
     my $new = _userinfo $u->{id};
     my @diff = grep $u->{$_} ne $new->{$_}, @set;

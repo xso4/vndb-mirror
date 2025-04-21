@@ -400,6 +400,23 @@ sub viewset {
 }
 
 
+sub sendmail($body, %hs) {
+    croak 'No To: specified!' if !$hs{To};
+    croak 'No Subject: specified!' if !$hs{Subject};
+    $hs{'Content-Type'} ||= "text/plain; charset='UTF-8'";
+    $hs{From} ||= (config->{mail_from} || croak 'No From: specified!');
+
+    croak "Invalid email header '$_'" for grep /[\r\n]/, %hs;
+    my $mail = join('', map "$_: $hs{$_}\n", sort keys %hs)."\n$body";
+
+    return warn "The following mail would have been sent:\n$mail\n" if config->{mail_sendmail} eq 'log';
+
+    open my $mailer, '|-:utf8', config->{mail_sendmail}, '-t', '-f', $hs{From} or croak "Error opening sendail ($!)";
+    print $mailer $mail;
+    croak "Error running sendmail ($!)" if !close $mailer;
+}
+
+
 # Object returned by the 'searchquery' validation, has some handy methods for generating SQL.
 package VNWeb::Validate::SearchQuery {
     use FU;

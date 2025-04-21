@@ -4,15 +4,15 @@ use VNWeb::Prelude;
 
 
 sub _getmail {
-    tuwf->dbVali(select => sql_func user_getmail => \auth->uid, \auth->uid, sql_fromhex auth->token);
+    fu->dbVali(select => sql_func user_getmail => \auth->uid, \auth->uid, sql_fromhex auth->token);
 }
 
 sub set_delete {
-    return 0 if tuwf->reqMethod ne 'POST';
-    my $pwd = tuwf->validate(post => password => { password => 1, onerror => undef })->data // return 1;
+    return 0 if fu->method ne 'POST';
+    my $pwd = fu->formdata(password => { password => 1, onerror => undef }) // return 1;
     return 1 if !VNWeb::Auth->new->login(auth->uid, $pwd, 1);
 
-    tuwf->dbExeci(select => sql_func user_setdelete => \auth->uid, sql_fromhex(auth->token), \1);
+    fu->dbExeci(select => sql_func user_setdelete => \auth->uid, sql_fromhex(auth->token), \1);
     auth->audit(auth->uid, 'mark for deletion');
 
     my $path = '/'.auth->uid.'/del/'.auth->token;
@@ -25,21 +25,18 @@ sub set_delete {
        ."\n%s"
        ."\n"
        ."\nvndb.org",
-       auth->user->{user_name}, tuwf->reqBaseURI().$path;
+       auth->user->{user_name}, config->{url}.$path;
 
-    tuwf->mail($body,
+    VNWeb::Validation::sendmail($body,
         To => _getmail(),
-        From => 'VNDB <noreply@vndb.org>',
         Subject => 'Account deletion for '.auth->user->{user_name},
     );
-    tuwf->resRedirect($path, 'post');
-    tuwf->done;
+    fu->redirect(tempget => $path);
 }
 
 
-TUWF::any ['get','post'], qr{/$RE{uid}/del}, sub {
-    my $uid = auth->uid;
-    return tuwf->resNotFound if !auth || tuwf->capture('id') ne auth->uid;
+sub delpage($uid) {
+    fu->notfound if !auth || $uid ne auth->uid;
 
     my $invalid = set_delete;
 
@@ -55,7 +52,7 @@ TUWF::any ['get','post'], qr{/$RE{uid}/del}, sub {
                 txt_ '.';
             };
 
-            my $vns = tuwf->dbVali('SELECT COUNT(*) FROM ulist_vns WHERE uid =', \$uid);
+            my $vns = fu->dbVali('SELECT COUNT(*) FROM ulist_vns WHERE uid =', \$uid);
             if ($vns) {
                 h2_ 'Visual novel list';
                 p_ sub {
@@ -69,7 +66,7 @@ TUWF::any ['get','post'], qr{/$RE{uid}/del}, sub {
                 };
             }
 
-            my $posts = tuwf->dbVali('SELECT
+            my $posts = fu->dbVali('SELECT
                 (SELECT COUNT(*)
                 FROM threads_posts tp
                 WHERE hidden IS NULL AND uid =', \$uid, '
@@ -89,7 +86,7 @@ TUWF::any ['get','post'], qr{/$RE{uid}/del}, sub {
                 p_ 'Please send an email to '.config->{admin_email}.' if these contain sensitive information that you wish to have deleted.';
             }
 
-            my $edits = tuwf->dbVali('SELECT COUNT(*) FROM changes WHERE requester =', \$uid);
+            my $edits = fu->dbVali('SELECT COUNT(*) FROM changes WHERE requester =', \$uid);
             if ($edits) {
                 h2_ 'Database edits';
                 p_ sub {
@@ -103,7 +100,7 @@ TUWF::any ['get','post'], qr{/$RE{uid}/del}, sub {
                 p_ 'Please send an email to '.config->{admin_email}.' if these contain sensitive information that you wish to have deleted.';
             }
 
-            my $reviews = tuwf->dbVali('SELECT COUNT(*) FROM reviews WHERE uid =', \$uid);
+            my $reviews = fu->dbVali('SELECT COUNT(*) FROM reviews WHERE uid =', \$uid);
             if ($reviews) {
                 h2_ 'Reviews';
                 p_ sub {
@@ -117,10 +114,10 @@ TUWF::any ['get','post'], qr{/$RE{uid}/del}, sub {
                 p_ "If you don't want this, make sure to delete the reviews by going through the edit form.";
             }
 
-            my $lengthvotes = tuwf->dbVali('SELECT COUNT(*) FROM vn_length_votes WHERE NOT private AND uid =', \$uid);
-            my $imgvotes = tuwf->dbVali('SELECT COUNT(*) FROM image_votes WHERE uid =', \$uid);
-            my $tags = tuwf->dbVali('SELECT COUNT(*) FROM tags_vn WHERE uid =', \$uid);
-            my $quotes => tuwf->dbVali('SELECT COUNT(*) FROM quotes WHERE addedby =', \$uid);
+            my $lengthvotes = fu->dbVali('SELECT COUNT(*) FROM vn_length_votes WHERE NOT private AND uid =', \$uid);
+            my $imgvotes = fu->dbVali('SELECT COUNT(*) FROM image_votes WHERE uid =', \$uid);
+            my $tags = fu->dbVali('SELECT COUNT(*) FROM tags_vn WHERE uid =', \$uid);
+            my $quotes => fu->dbVali('SELECT COUNT(*) FROM quotes WHERE addedby =', \$uid);
             if ($lengthvotes || $imgvotes || $tags || $quotes) {
                 h2_ 'Misc. database contributions';
                 p_ 'Your database contributions will remain after your account has been deleted, these include:';
@@ -149,14 +146,15 @@ TUWF::any ['get','post'], qr{/$RE{uid}/del}, sub {
             };
         };
     };
-};
+}
+FU::get qr{/$RE{uid}/del}, \&delpage;
+FU::post qr{/$RE{uid}/del}, \&delpage;
 
 
-TUWF::any ['post','get'], qr{/$RE{uid}/del/([a-fA-F0-9]{40})}, sub {
-    my($uid, $token) = tuwf->captures(1,2);
-    return tuwf->resRedirect('/', 'temp') if auth && auth->uid ne $uid;
+sub delstatus($uid, $token) {
+    fu->redirect(temp => '/') if auth && auth->uid ne $uid;
 
-    my $u = tuwf->dbRowi('
+    my $u = fu->dbRowi('
       SELECT ', sql_totime('us.delete_at'), 'delete_at, ', sql_user(), '
            , ', sql_func(user_validate_session => 'u.id', sql_fromhex($token), \'web'), 'IS DISTINCT FROM NULL AS valid
         FROM users u
@@ -165,15 +163,15 @@ TUWF::any ['post','get'], qr{/$RE{uid}/del/([a-fA-F0-9]{40})}, sub {
     );
 
     my $cancelled;
-    if (tuwf->reqMethod eq 'POST' && $u->{valid} && $u->{delete_at}) {
+    if (fu->method eq 'POST' && $u->{valid} && $u->{delete_at}) {
         # TODO: Ideally this should just auto-login and redirect, but doing so
         # with the current session token is a bad idea and I'm too lazy to code
         # a session token renewal thing.
         # TODO: This should really invalidate all existing session tokens,
         # given that we could also have reached this page with a fresh token on
         # login.
-        tuwf->dbExeci(select => sql_func user_setdelete => \$uid, sql_fromhex($token), \0);
-        tuwf->dbExeci(select => sql_func user_logout => \$uid, sql_fromhex $token);
+        fu->dbExeci(select => sql_func user_setdelete => \$uid, sql_fromhex($token), \0);
+        fu->dbExeci(select => sql_func user_logout => \$uid, sql_fromhex $token);
         auth->audit($uid, 'cancel deletion');
         $cancelled = 1;
     }
@@ -209,6 +207,8 @@ TUWF::any ['post','get'], qr{/$RE{uid}/del/([a-fA-F0-9]{40})}, sub {
             };
         };
     };
-};
+}
+FU::get qr{/$RE{uid}/del/([a-fA-F0-9]{40})}, \&delstatus;
+FU::post qr{/$RE{uid}/del/([a-fA-F0-9]{40})}, \&delstatus;
 
 1;
