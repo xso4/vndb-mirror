@@ -34,12 +34,12 @@ sub listing_ {
 }
 
 
-TUWF::get qr{/$RE{uid}/posts}, sub {
+FU::get qr{/$RE{uid}/posts}, sub($uid) {
     not_moe;
-    my $u = tuwf->dbRowi('SELECT id, ', sql_user(), 'FROM users u WHERE id =', \tuwf->capture('id'));
-    return tuwf->resNotFound if !$u->{id} || (!$u->{user_name} && !auth->isMod);
+    my $u = fu->dbRowi('SELECT id, ', sql_user(), 'FROM users u WHERE id =', \$uid);
+    fu->notfound if !$u->{id} || (!$u->{user_name} && !auth->isMod);
 
-    my $page = tuwf->validate(get => p => { upage => 1 })->data;
+    my $page = fu->query(p => { upage => 1 });
 
     my $sql = sql '(
         SELECT tp.tid, tp.num, tp.msg, t.title, tp.date, t.hidden OR tp.hidden IS NOT NULL
@@ -54,8 +54,8 @@ TUWF::get qr{/$RE{uid}/posts}, sub {
          WHERE rp.uid =', \$u->{id}, auth->permBoardmod ? () : 'AND rp.hidden IS NULL', '
        ) p(id,num,msg,title,date,hidden)';
 
-    my $count = tuwf->dbVali('SELECT count(*) FROM', $sql);
-    my $list = $count && tuwf->dbPagei({ results => 50, page => $page },
+    my $count = fu->dbVali('SELECT count(*) FROM', $sql);
+    my $list = $count && fu->dbPagei({ results => 50, page => $page },
         'SELECT id, num, substring(msg from 1 for 1000) as msg, title, ', sql_totime('date'), 'as date, hidden
            FROM ', $sql, 'ORDER BY date DESC'
     );

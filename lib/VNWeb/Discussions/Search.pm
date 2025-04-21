@@ -7,19 +7,18 @@ use FU::XMLWriter 'xml_escape';
 my @BOARDS = (keys %BOARD_TYPE, 'w');
 
 sub filters_ {
-    state $schema = tuwf->compile({ type => 'hash', keys => {
-        bq => { default => '' },
-        uq => { default => '' },
+    my $filt = fu->query(
+        bq => { onerror => '' },
+        uq => { onerror => '' },
         b  => { accept_scalar => 1, onerror => \@BOARDS, elems => { enum => \@BOARDS } },
         t  => { anybool => 1 },
         p  => { page => 1 },
-    }});
-    my $filt = tuwf->validate(get => $schema)->data;
+    );
     my %boards = map +($_,1), $filt->{b}->@*;
 
-    my $u = $filt->{uq} && tuwf->dbVali('SELECT id FROM users WHERE', $filt->{uq} =~ /^u$RE{num}$/ ? 'id = ' : 'lower(username) =', \lc $filt->{uq});
+    my $u = $filt->{uq} && fu->dbVali('SELECT id FROM users WHERE', $filt->{uq} =~ /^u$RE{num}$/ ? 'id = ' : 'lower(username) =', \lc $filt->{uq});
 
-    form_ method => 'get', action => tuwf->reqPath(), sub {
+    form_ method => 'get', action => fu->path, sub {
         boardtypes_;
         table_ class => 'boardsearchoptions', sub { tr_ sub {
                 td_ sub {
@@ -32,11 +31,12 @@ sub filters_ {
                     br_;
                     input_ type => 'text', class => 'text', name => 'uq', style => 'width: 150px', placeholder => 'Username or id', value => $filt->{uq};
                     b_ 'User not found.' if $filt->{uq} && !$u;
-
-                    p_ class => 'linkradio', sub {
-                        input_ type => 'checkbox', name => 't', id => 't', value => 1, $filt->{t} ? (checked => 'checked') : ();
-                        label_ for => 't', 'Only search thread titles';
+                    br_;
+                    label_ sub {
+                        input_ type => 'checkbox', name => 't', value => 1, $filt->{t} ? (checked => 'checked') : ();
+                        txt_ ' Only search thread titles';
                     };
+                    br_;
 
                     input_ type => 'submit', class => 'submit', value => 'Search';
                     debug_ $filt;
@@ -61,7 +61,7 @@ sub posts_ {
 
     # Use websearch_to_tsquery() to convert the query string into a tsquery.
     # Also match against an empty string to see if the query doesn't consist of only negative matches.
-    my $ts = tuwf->dbVali('
+    my $ts = fu->dbVali('
         WITH q(q) AS (SELECT websearch_to_tsquery(', \$filt->{bq}, '))
         SELECT CASE WHEN numnode(q) = 0 OR q @@ \'\' THEN NULL ELSE q END FROM q');
     return noresults_ if !$ts;
@@ -75,7 +75,7 @@ sub posts_ {
     # means we can re-use them for highlighting without worrying that they
     # conflict with the message contents.
 
-    my($posts, $np) = tuwf->dbPagei({ results => 20, page => $filt->{p} }, q{
+    my($posts, $np) = fu->dbPagei({ results => 20, page => $filt->{p} }, q{
         SELECT m.id, m.num, m.title
              , }, sql_user(), q{
              , }, sql_totime('m.date'), q{as date
@@ -163,7 +163,7 @@ sub threads_ {
 }
 
 
-TUWF::get qr{/t/search}, sub {
+FU::get '/t/search', sub {
     not_moe;
     framework_ title => 'Search the discussion board',
     sub {

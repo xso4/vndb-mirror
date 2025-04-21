@@ -41,23 +41,23 @@ sub tablebox_ {
 }
 
 
-TUWF::get qr{/w}, sub {
-    my $opt = tuwf->validate(get =>
+FU::get '/w', sub {
+    my $opt = fu->query(
         p => { page => 1 },
         s => { onerror => 'id', enum => [qw[id lastpost rating]] },
         o => { onerror => 'd',  enum => [qw[a d]] },
         u => { onerror => 0, vndbid => 'u' },
-    )->data;
+    );
     $opt->{s} = 'id' if $opt->{s} eq 'rating' && !auth->isMod;
 
-    my $u = $opt->{u} && tuwf->dbRowi('SELECT id, ', sql_user(), 'FROM users u WHERE id =', \$opt->{u});
-    return tuwf->resNotFound if $u && (!$u->{id} || (!$u->{user_name} && !auth->isMod));
+    my $u = $opt->{u} && fu->dbRowi('SELECT id, ', sql_user(), 'FROM users u WHERE id =', \$opt->{u});
+    fu->notfound if $u && (!$u->{id} || (!$u->{user_name} && !auth->isMod));
 
     my $where = sql_and
         $u ? sql 'w.uid =', \$u->{id} : (),
         auth->isMod ? () : 'NOT w.c_flagged';
-    my $count = tuwf->dbVali('SELECT COUNT(*) FROM reviews w WHERE', $where);
-    my $lst = tuwf->dbPagei({results => 50, page => $opt->{p}}, '
+    my $count = fu->dbVali('SELECT COUNT(*) FROM reviews w WHERE', $where);
+    my $lst = fu->dbPagei({results => 50, page => $opt->{p}}, '
         SELECT w.id, w.vid, w.length, w.c_up, w.c_down, w.c_flagged, w.c_count, w.c_lastnum, v.title, uv.vote
              , ', sql_user(), ',', sql_totime('w.date'), 'as date
              , ', sql_user('wpu','lu_'), ',', sql_totime('wp.date'), 'as ldate

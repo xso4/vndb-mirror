@@ -12,13 +12,13 @@ my $COMMENT = form_compile any => {
 
 js_api ReviewComment => $COMMENT, sub {
     my($data) = @_;
-    my $w = tuwf->dbRowi('SELECT id, locked FROM reviews WHERE id =', \$data->{id});
-    return tuwf->resNotFound if !$w->{id};
-    return tuwf->resDenied if !can_edit t => $w;
+    my $w = fu->dbRowi('SELECT id, locked FROM reviews WHERE id =', \$data->{id});
+    fu->notfound if !$w->{id};
+    fu->denied if !can_edit t => $w;
 
     my $num = sql 'COALESCE((SELECT MAX(num)+1 FROM reviews_posts WHERE id =', \$data->{id}, '),1)';
     my $msg = bb_subst_links $data->{msg};
-    $num = tuwf->dbVali('INSERT INTO reviews_posts', { id => $w->{id}, num => $num, uid => auth->uid, msg => $msg }, 'RETURNING num');
+    $num = fu->dbVali('INSERT INTO reviews_posts', { id => $w->{id}, num => $num, uid => auth->uid, msg => $msg }, 'RETURNING num');
     +{ _redir => "/$w->{id}.$num#last" };
 };
 
@@ -95,11 +95,10 @@ sub review_ {
 }
 
 
-TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
-    my($id, $sep, $num) = (tuwf->capture('id'), tuwf->capture('sep')||'', tuwf->capture('num'));
+FU::get qr{/$RE{wid}(?:([\./])($RE{num}))?}, sub($id, $sep='', $num=0) {
     VNWeb::Discussions::Thread::mark_patrolled($id, $num) if $sep eq '.';
 
-    my $w = tuwf->dbRowi(
+    my $w = fu->dbRowi(
         'SELECT r.id, r.vid, r.rid, r.length, r.modnote, r.text, r.spoiler, r.locked, COALESCE(c.count,0) AS count, r.c_flagged, r.c_up, r.c_down, uv.vote
               , v.title, rel.title AS rtitle, relv.rtype, rv.vote AS my, COALESCE(rv.overrule,false) AS overrule
               , ', sql_user(), ',', sql_totime('r.date'), 'AS date,', sql_totime('r.lastmod'), 'AS lastmod
@@ -110,19 +109,19 @@ TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
            LEFT JOIN users u ON u.id = r.uid
            LEFT JOIN ulist_vns uv ON uv.uid = r.uid AND uv.vid = r.vid
            LEFT JOIN (SELECT id, COUNT(*) FROM reviews_posts GROUP BY id) AS c(id,count) ON c.id = r.id
-           LEFT JOIN reviews_votes rv ON rv.id = r.id AND', auth ? ('rv.uid =', \auth->uid) : ('rv.ip =', \norm_ip tuwf->reqIP), '
+           LEFT JOIN reviews_votes rv ON rv.id = r.id AND', auth ? ('rv.uid =', \auth->uid) : ('rv.ip =', \norm_ip fu->ip), '
           WHERE r.id =', \$id
     );
-    return tuwf->resNotFound if !$w->{id};
+    fu->notfound if !$w->{id};
 
     enrich_flatten lang => rid => id => sub { sql 'SELECT id, lang FROM releases_titles WHERE id IN', $_, 'ORDER BY id, lang' }, $w;
     enrich_flatten platforms => rid => id => sub { sql 'SELECT id, platform FROM releases_platforms WHERE id IN', $_, 'ORDER BY id, platform' }, $w;
 
     my $page = $sep eq '/' ? $num||1 : $sep ne '.' ? 1
-        : ceil((tuwf->dbVali('SELECT COUNT(*) FROM reviews_posts WHERE num <=', \$num, 'AND id =', \$id)||9999)/25);
+        : ceil((fu->dbVali('SELECT COUNT(*) FROM reviews_posts WHERE num <=', \$num, 'AND id =', \$id)||9999)/25);
     $num = 0 if $sep ne '.';
 
-    my $posts = tuwf->dbPagei({ results => 25, page => $page },
+    my $posts = fu->dbPagei({ results => 25, page => $page },
         'SELECT rp.id, rp.num, rp.hidden, rp.msg',
              ',', sql_user(),
              ',', sql_totime('rp.date'), ' as date',
@@ -132,12 +131,12 @@ TUWF::get qr{/$RE{wid}(?:(?<sep>[\./])$RE{num})?}, sub {
           WHERE rp.id =', \$id, '
           ORDER BY rp.num'
     );
-    return tuwf->resNotFound if $num && !grep $_->{num} == $num, @$posts;
+    fu->notfound if $num && !grep $_->{num} == $num, @$posts;
 
     auth->notiRead($id, undef);
     auth->notiRead($id, [ map $_->{num}, $posts->@* ]) if @$posts;
 
-    my $newreview = auth && $w->{user_id} && auth->uid eq $w->{user_id} && tuwf->reqGet('submit');
+    my $newreview = auth && $w->{user_id} && auth->uid eq $w->{user_id} && fu->query('submit');
 
     my $title = "Review of $w->{title}[1]";
     framework_ title => $title, index => 1, dbobj => $w,

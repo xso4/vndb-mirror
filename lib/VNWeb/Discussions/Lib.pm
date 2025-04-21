@@ -39,15 +39,13 @@ sub enrich_boards {
 #   sort     => SQL (default: tl.date DESC)
 #
 # Returns 1 if something was displayed, 0 if no threads matched the where clause.
-sub threadlist_ {
-    my %opt = @_;
-
+sub threadlist_(%opt) {
     my $where = sql_and sql_visible_threads(), $opt{where}||();
 
-    my $count = $opt{paginate} && tuwf->dbVali('SELECT count(*) FROM threads t WHERE', $where);
+    my $count = $opt{paginate} && fu->dbVali('SELECT count(*) FROM threads t WHERE', $where);
     return 0 if $opt{paginate} && !$count;
 
-    my $lst = tuwf->dbPagei(\%opt, q{
+    my $lst = fu->dbPagei(\%opt, q{
         SELECT t.id, t.title, t.c_count, t.c_lastnum, t.locked, t.private, t.hidden, t.poll_question IS NOT NULL AS haspoll
              , }, sql_user('tfu', 'firstpost_'), ',', sql_totime('tf.date'), q{ as firstpost_date
              , }, sql_user('tlu', 'lastpost_'),  ',', sql_totime('tl.date'), q{ as lastpost_date

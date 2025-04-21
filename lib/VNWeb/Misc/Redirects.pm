@@ -21,10 +21,10 @@ FU::get qr{/$RE{vid}/stats}, sub($id) { fu->redirect(perm => "/$id#stats") };
 FU::get qr{/$RE{vid}/scr},   sub($id) { fu->redirect(perm => "/$id#screenshots") };
 FU::get qr{/img/$RE{imgid}}, sub($id) { fu->redirect(perm => "/$id".query) };
 
-FU::get qr{/u/tokens}, sub { fu->redirect(temp => auth ? '/'.auth->uid.'/edit#api' : '/u/login?ref=/u/tokens') };
+FU::get '/u/tokens', sub { fu->redirect(temp => auth ? '/'.auth->uid.'/edit#api' : '/u/login?ref=/u/tokens') };
 
 
-FU::get qr{/v/rand}, sub {
+FU::get '/v/rand', sub {
     state $stats  ||= fu->dbRowi('SELECT COUNT(*) AS total, COUNT(*) FILTER(WHERE NOT hidden) AS subset FROM vn');
     state $sample ||= 100*min 1, (1000 / $stats->{subset}) * ($stats->{total} / $stats->{subset});
 

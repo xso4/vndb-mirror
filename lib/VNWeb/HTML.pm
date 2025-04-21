@@ -562,7 +562,7 @@ sub framework_ {
 
             script_ type => 'application/json', id => 'pagevars', sub {
                 # Escaping rules for a JSON <script> context are kinda weird, but more efficient than regular xml_escape().
-                lit_(JSON::XS->new->canonical->encode(fu->{pagevars}) =~ s{</}{<\\/}rg =~ s/<!--/<\\u0021--/rg);
+                lit_(json_format(fu->{pagevars}, html_safe => 1));
             } if keys fu->{pagevars}->%*;
 
             script_ defer => 'defer', src => _staticurl("$_.js"), '' for grep fu->{js}{$_}, qw/basic user contrib graph/;

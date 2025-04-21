@@ -63,7 +63,7 @@ our %RE = (
 
 for my ($k,$v) (
     id          => { uint => 1, max => (1<<26)-1 },
-    undefbool   => { _scalartype => 3, type => 'any', default => undef, func => sub { $_[0] = !!$_[0]; 1 } },
+    undefbool   => { _scalartype => 3, type => 'any', default => sub { defined $_[0] ? !!$_[0] : undef }, func => sub { $_[0] = !!$_[0]; 1 } },
     # 'vndbid' SQL type, accepts an arrayref with accepted prefixes.
     # If only one prefix is supported, it will also take integers and normalizes them into the formatted form.
     vndbid      => sub {
@@ -263,7 +263,7 @@ sub validate_dbid {
     my($sql, @ids) = @_;
     return if !@ids;
     $sql = ref $sql eq 'CODE' ? do { local $_ = \@ids; sql $sql->(\@ids) } : sql $sql, \@ids;
-    my %dbids = map +((values %$_)[0],1), fu->dbAlli($sql)>@*;
+    my %dbids = map +((values %$_)[0],1), fu->dbAlli($sql)->@*;
     my @missing = grep !$dbids{$_}, @ids;
     return if !@missing;
     # If this is a js_api, return a more helpful error message

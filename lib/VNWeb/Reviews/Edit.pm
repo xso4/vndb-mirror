@@ -19,7 +19,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
 };
 
 
-sub throttled { tuwf->dbVali('SELECT COUNT(*) FROM reviews WHERE uid =', \auth->uid, 'AND date > date_trunc(\'day\', NOW())') >= 5 }
+sub throttled { fu->dbVali('SELECT COUNT(*) FROM reviews WHERE uid =', \auth->uid, 'AND date > date_trunc(\'day\', NOW())') >= 5 }
 
 sub releases {
     my($vid) = @_;
@@ -28,13 +28,13 @@ sub releases {
 }
 
 
-TUWF::get qr{/$RE{vid}/addreview}, sub {
-    my $v = tuwf->dbRowi('SELECT id, title[1+1] FROM', vnt, 'v WHERE NOT hidden AND id =', \tuwf->capture('id'));
-    return tuwf->resNotFound if !$v->{id};
+FU::get qr{/$RE{vid}/addreview}, sub($vid) {
+    my $v = fu->dbRowi('SELECT id, title[1+1] FROM', vnt, 'v WHERE NOT hidden AND id =', \$vid);
+    fu->notfound if !$v->{id};
 
-    my $id = tuwf->dbVali('SELECT id FROM reviews WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
-    return tuwf->resRedirect("/$id/edit", 'temp') if $id;
-    return tuwf->resDenied if !can_edit w => {};
+    my $id = fu->dbVali('SELECT id FROM reviews WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
+    fu->redirect('temp' => "/$id/edit") if $id;
+    fu->renied if !can_edit w => {};
 
     framework_ title => "Write review for $v->{title}", sub {
         if(throttled) {
@@ -43,7 +43,7 @@ TUWF::get qr{/$RE{vid}/addreview}, sub {
                 p_ 'You can only submit 5 reviews per day. Check back later!';
             };
         } else {
-            div_ widget(ReviewEdit => $FORM_OUT, { elm_empty($FORM_OUT)->%*,
+            div_ widget(ReviewEdit => $FORM_OUT, { $FORM_OUT->empty->%*,
                 vid => $v->{id}, vntitle => $v->{title}, releases => releases($v->{id}), mod => auth->permBoardmod()
             }), '';
         }
@@ -51,13 +51,13 @@ TUWF::get qr{/$RE{vid}/addreview}, sub {
 };
 
 
-TUWF::get qr{/$RE{wid}/edit}, sub {
-    my $e = tuwf->dbRowi(
+FU::get qr{/$RE{wid}/edit}, sub($wid) {
+    my $e = fu->dbRowi(
         'SELECT r.id, r.uid AS user_id, r.vid, r.rid, r.modnote, r.text, r.spoiler, r.locked, v.title[1+1] AS vntitle
-          FROM reviews r JOIN', vnt, 'v ON v.id = r.vid WHERE r.id =', \tuwf->capture('id')
+          FROM reviews r JOIN', vnt, 'v ON v.id = r.vid WHERE r.id =', \$wid
     );
-    return tuwf->resNotFound if !$e->{id};
-    return tuwf->resDenied if !can_edit w => $e;
+    fu->notfound if !$e->{id};
+    fu->denied if !can_edit w => $e;
 
     $e->{releases} = releases $e->{vid};
     $e->{mod} = auth->permBoardmod;
@@ -71,9 +71,9 @@ TUWF::get qr{/$RE{wid}/edit}, sub {
 js_api ReviewEdit => $FORM_IN, sub ($data) {
     my $id = delete $data->{id};
 
-    my $review = $id ? tuwf->dbRowi('SELECT id, locked, modnote, text, uid AS user_id FROM reviews WHERE id =', \$id) : {};
-    return tuwf->resNotFound if $id && !$review->{id};
-    return tuwf->resDenied if !can_edit w => $review;
+    my $review = $id ? fu->dbRowi('SELECT id, locked, modnote, text, uid AS user_id FROM reviews WHERE id =', \$id) : {};
+    fu->notfound if $id && !$review->{id};
+    fu->denied if !can_edit w => $review;
 
     if(!auth->permBoardmod) {
         $data->{locked} = $review->{locked}||0;
@@ -85,15 +85,15 @@ js_api ReviewEdit => $FORM_IN, sub ($data) {
 
     if($id) {
         $data->{lastmod} = sql 'NOW()' if $review->{text} ne $data->{text};
-        tuwf->dbExeci('UPDATE reviews SET', $data, 'WHERE id =', \$id) if $id;
+        fu->dbExeci('UPDATE reviews SET', $data, 'WHERE id =', \$id) if $id;
         auth->audit($review->{user_id}, 'review edit', "edited $review->{id}") if auth->uid ne $review->{user_id};
 
     } else {
         return 'You have already submitted a review for this visual novel.'
-            if tuwf->dbVali('SELECT 1 FROM reviews WHERE vid =', \$data->{vid}, 'AND uid =', \auth->uid);
+            if fu->dbVali('SELECT 1 FROM reviews WHERE vid =', \$data->{vid}, 'AND uid =', \auth->uid);
         return 'You may only submit 5 reviews per day.' if throttled;
         $data->{uid} = auth->uid;
-        $id = tuwf->dbVali('INSERT INTO reviews', $data, 'RETURNING id');
+        $id = fu->dbVali('INSERT INTO reviews', $data, 'RETURNING id');
     }
 
     +{ _redir => "/$id".($data->{uid}?'?submit=1':'') };
@@ -101,12 +101,12 @@ js_api ReviewEdit => $FORM_IN, sub ($data) {
 
 
 js_api ReviewDelete => { id => { vndbid => 'w' } }, sub ($data) {
-    my $review = tuwf->dbRowi('SELECT id, vid, uid AS user_id FROM reviews WHERE id =', \$data->{id});
-    return tuwf->resNotFound if !$review->{id};
-    return tuwf->resDenied if !can_edit w => $review;
+    my $review = fu->dbRowi('SELECT id, vid, uid AS user_id FROM reviews WHERE id =', \$data->{id});
+    fu->notfound if !$review->{id};
+    fu->denied if !can_edit w => $review;
     auth->audit($review->{user_id}, 'review delete', "deleted $review->{id}");
-    tuwf->dbExeci('DELETE FROM notifications WHERE iid =', \$data->{id});
-    tuwf->dbExeci('DELETE FROM reviews WHERE id =', \$data->{id});
+    fu->dbExeci('DELETE FROM notifications WHERE iid =', \$data->{id});
+    fu->dbExeci('DELETE FROM reviews WHERE id =', \$data->{id});
     +{ _redir => "/$review->{vid}" }
 };
 

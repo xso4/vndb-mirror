@@ -4,7 +4,7 @@ use VNWeb::Prelude;
 use VNWeb::Discussions::Lib;
 
 
-my $FORM = form_compile any => {
+my $FORM = form_compile {
     tid    => { default => undef, vndbid => 't' },
     title  => { sl => 1, maxlength => 50 },
     msg    => { maxlength => 32768 },
@@ -31,12 +31,12 @@ my $FORM = form_compile any => {
 
 
 js_api DiscussionDelete => { id => { vndbid => 't' } }, sub ($data) {
-    return tuwf->resDenied if !auth->permBoardmod;
-    my $uid = tuwf->dbVali('SELECT uid FROM threads_posts WHERE num = 1 AND tid =', \$data->{id});
-    return tuwf->resNotFound if !$uid;
+    fu->denied if !auth->permBoardmod;
+    my $uid = fu->dbVali('SELECT uid FROM threads_posts WHERE num = 1 AND tid =', \$data->{id});
+    fu->notfound if !$uid;
     auth->audit($uid, 'post delete', "deleted $data->{id}.1");
-    tuwf->dbExeci('DELETE FROM notifications WHERE iid =', \$data->{id});
-    tuwf->dbExeci('DELETE FROM threads WHERE id =', \$data->{id});
+    fu->dbExeci('DELETE FROM notifications WHERE iid =', \$data->{id});
+    fu->dbExeci('DELETE FROM threads WHERE id =', \$data->{id});
     return +{ _redir => '/t' };
 };
 
@@ -44,16 +44,16 @@ js_api DiscussionDelete => { id => { vndbid => 't' } }, sub ($data) {
 js_api DiscussionEdit => $FORM, sub ($data) {
     my $tid = $data->{tid};
 
-    my $t = !$tid ? {} : tuwf->dbRowi('
+    my $t = !$tid ? {} : fu->dbRowi('
         SELECT t.id, t.poll_question, t.poll_max_options, t.boards_locked, t.hidden, tp.num, tp.uid AS user_id,', sql_totime('tp.date'), 'AS date
           FROM threads t
           JOIN threads_posts tp ON tp.tid = t.id AND tp.num = 1
          WHERE t.id =', \$tid,
           'AND', sql_visible_threads());
-    return tuwf->resNotFound if $tid && !$t->{id};
-    return tuwf->resDenied if !can_edit t => $t;
+    fu->notfound if $tid && !$t->{id};
+    fu->denied if !can_edit t => $t;
 
-    tuwf->dbExeci('DELETE FROM notifications WHERE iid =', \$tid) if $tid && auth->permBoardmod && $data->{hidden};
+    fu->dbExeci('DELETE FROM notifications WHERE iid =', \$tid) if $tid && auth->permBoardmod && $data->{hidden};
     auth->audit($t->{user_id}, 'post edit', "edited $tid.1") if $tid && $t->{user_id} ne auth->uid;
 
     return 'Invalid boards' if !$data->{boards} || grep +(!$BOARD_TYPE{$_->{btype}}{dbitem})^(!$_->{iid}), $data->{boards}->@*;
@@ -67,7 +67,7 @@ js_api DiscussionEdit => $FORM, sub ($data) {
              $data->{poll}{question} ne ($t->{poll_question}||'')
           || $data->{poll}{max_options} != $t->{poll_max_options}
           || join("\n", $data->{poll}{options}->@*) ne
-             join("\n", map $_->{option}, tuwf->dbAlli('SELECT option FROM threads_poll_options WHERE tid =', \$tid, 'ORDER BY id')->@*)
+             join("\n", map $_->{option}, fu->dbAlli('SELECT option FROM threads_poll_options WHERE tid =', \$tid, 'ORDER BY id')->@*)
     ));
 
     my $thread = {
@@ -83,17 +83,17 @@ js_api DiscussionEdit => $FORM, sub ($data) {
             private => $data->{private}
         ) : (),
     };
-    tuwf->dbExeci('UPDATE threads SET', $thread, 'WHERE id =', \$tid) if $tid;
-    $tid = tuwf->dbVali('INSERT INTO threads', $thread, 'RETURNING id') if !$tid;
+    fu->dbExeci('UPDATE threads SET', $thread, 'WHERE id =', \$tid) if $tid;
+    $tid = fu->dbVali('INSERT INTO threads', $thread, 'RETURNING id') if !$tid;
 
     if(auth->permBoardmod || !$t->{boards_locked}) {
-        tuwf->dbExeci('DELETE FROM threads_boards WHERE tid =', \$tid);
-        tuwf->dbExeci('INSERT INTO threads_boards', { tid => $tid, type => $_->{btype}, iid => $_->{iid} }) for $data->{boards}->@*;
+        fu->dbExeci('DELETE FROM threads_boards WHERE tid =', \$tid);
+        fu->dbExeci('INSERT INTO threads_boards', { tid => $tid, type => $_->{btype}, iid => $_->{iid} }) for $data->{boards}->@*;
     }
 
     if($pollchanged) {
-        tuwf->dbExeci('DELETE FROM threads_poll_options WHERE tid =', \$tid);
-        tuwf->dbExeci('INSERT INTO threads_poll_options', { tid => $tid, option => $_ }) for $data->{poll}{options}->@*;
+        fu->dbExeci('DELETE FROM threads_poll_options WHERE tid =', \$tid);
+        fu->dbExeci('INSERT INTO threads_poll_options', { tid => $tid, option => $_ }) for $data->{poll}{options}->@*;
     }
 
     my $post = {
@@ -103,33 +103,32 @@ js_api DiscussionEdit => $FORM, sub ($data) {
         $data->{tid} ? () : (uid => auth->uid),
         !$data->{tid} || (auth->permBoardmod && $data->{nolastmod}) ? () : (edited => sql 'NOW()')
     };
-    tuwf->dbExeci('INSERT INTO threads_posts', $post) if !$data->{tid};
-    tuwf->dbExeci('UPDATE threads_posts SET', $post, 'WHERE', { tid => $tid, num => 1 }) if $data->{tid};
+    fu->dbExeci('INSERT INTO threads_posts', $post) if !$data->{tid};
+    fu->dbExeci('UPDATE threads_posts SET', $post, 'WHERE', { tid => $tid, num => 1 }) if $data->{tid};
 
     +{ _redir => "/$tid.1" };
 };
 
 
-TUWF::get qr{(?:/t/(?<board>$BOARD_RE)/new|/$RE{tid}\.1/edit)}, sub {
-    my $board_id = tuwf->capture('board')||'';
+FU::get qr{(?:/t/($BOARD_RE)/new|/$RE{tid}/edit)}, sub($board_id,$tid=undef) {
+    $board_id //= '';
     my($board_type) = $board_id =~ /^([^0-9]+)/;
     $board_id = $board_id =~ /[0-9]$/ ? dbobj $board_id : undef;
-    my $tid = tuwf->capture('id');
 
-    return tuwf->resNotFound if $board_id && !$board_id->{id};
+    fu->notfound if $board_id && !$board_id->{id};
 
     $board_type = 'ge' if $board_type && $board_type eq 'an' && !auth->permBoardmod;
 
-    my $t = !$tid ? {} : tuwf->dbRowi('
+    my $t = !$tid ? {} : fu->dbRowi('
         SELECT t.id, tp.tid, t.title, t.locked, t.boards_locked, t.private, t.hidden, t.poll_question, t.poll_max_options, tp.msg, tp.uid AS user_id,', sql_totime('tp.date'), 'AS date
           FROM threads t
           JOIN threads_posts tp ON tp.tid = t.id AND tp.num = 1
          WHERE t.id =', \$tid,
           'AND', sql_visible_threads());
-    return tuwf->resNotFound if $tid && !$t->{id};
-    return tuwf->resDenied if !can_edit t => $t;
+    fu->notfound if $tid && !$t->{id};
+    fu->denied if !can_edit t => $t;
 
-    $t->{poll}{options} = $t->{poll_question} && [ map $_->{option}, tuwf->dbAlli('SELECT option FROM threads_poll_options WHERE tid =', \$t->{id}, 'ORDER BY id')->@* ];
+    $t->{poll}{options} = $t->{poll_question} && [ map $_->{option}, fu->dbAlli('SELECT option FROM threads_poll_options WHERE tid =', \$t->{id}, 'ORDER BY id')->@* ];
     $t->{poll}{question} = delete $t->{poll_question};
     $t->{poll}{max_options} = delete $t->{poll_max_options};
     $t->{poll} = undef if !$t->{poll}{question};
@@ -153,9 +152,9 @@ TUWF::get qr{(?:/t/(?<board>$BOARD_RE)/new|/$RE{tid}\.1/edit)}, sub {
 
     $t->{hidden}  //= 0;
     $t->{msg}     //= '';
-    $t->{title}   //= tuwf->reqGet('title');
+    $t->{title}   //= fu->query(title => { onerror => ''});
     $t->{tid}     //= undef;
-    $t->{private} //= auth->isMod && tuwf->reqGet('priv') ? 1 : 0;
+    $t->{private} //= auth->isMod && fu->query(priv => { anybool => 1 }),
     $t->{locked}  //= 0;
     $t->{boards_locked} //= 0;
 

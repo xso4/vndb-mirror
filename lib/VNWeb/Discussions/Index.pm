@@ -4,7 +4,7 @@ use VNWeb::Prelude;
 use VNWeb::Discussions::Lib;
 
 
-TUWF::get qr{/t}, sub {
+FU::get '/t', sub {
     not_moe;
     framework_ title => 'Discussion board index', sub {
         form_ method => 'get', action => '/t/search', sub {

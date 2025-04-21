@@ -4,14 +4,14 @@ use VNWeb::Prelude;
 
 # Autocompletion search results for boards
 js_api Boards => {search => { searchquery => 1 }}, sub {
-    return tuwf->resDenied if !auth->permBoard;
+    fu->denied if !auth->permBoard;
     my $q = shift->{search};
     my $qs = sql_like "$q";
 
     my $uscore = sql 'similarity(username, ', \$qs, ')';
     $uscore = sql 'CASE WHEN id =', \$qs, 'THEN 1+1 ELSE', $uscore, 'END' if $qs =~ /^u$RE{num}$/;
 
-    +{ results => tuwf->dbAlli(
+    +{ results => fu->dbAlli(
         'SELECT COALESCE(iid::text, btype::text) AS id, btype, iid, title
            FROM (',
              sql_join('UNION ALL',
