@@ -1,31 +1,37 @@
 #!/usr/bin/perl
 
 use v5.36;
-use FU -spawn;
-use FU::XMLWriter ':html5_';
-use DBI;
+
 use Cwd 'abs_path';
-
-# Force the pure-perl AnyEvent backend; More lightweight and we don't need the
-# performance of EV.
-BEGIN { $ENV{PERL_ANYEVENT_MODEL} = 'Perl'; }
-
 our $ROOT;
-BEGIN { ($ROOT = abs_path $0) =~ s{/util/vndb\.pl$}{} }
-
+BEGIN {
+    $ROOT = abs_path($0) =~ s{/util/vndb\.pl$}{}r;
+    $ENV{TZ} = 'UTC';
+    # Force the pure-perl AnyEvent backend; More lightweight and we don't need the
+    # performance of EV.
+    $ENV{PERL_ANYEVENT_MODEL} = 'Perl';
+}
 use lib $ROOT.'/lib';
 use VNDB::Config;
+use FU::Log;
+
+# Set debug & log config before importing FU, so the supervisor uses the right config
+BEGIN {
+    $ENV{FU_DEBUG} = 1 if config->{debug};
+    FU::Log::set_file(config->{logfile}) if config->{logfile};
+}
+
+use FU -spawn, -procname => config->{moe} ? 'vndb-moe' : config->{api} eq 'only' ? 'vndb-api' : !config->{api} ? 'vndb-web' : 'vndb';
+use FU::XMLWriter ':html5_';
+use DBI;
 use VNWeb::Auth;
 use VNWeb::HTML ();
 use VNWeb::Validation ();
 use VNWeb::TitlePrefs ();
 use VNWeb::TimeZone ();
 
-$ENV{TZ} = 'UTC';
-FU::debug 1 if config->{debug};
 FU::debug_info(config->{fu_debug_path}, config->{var_path}.'/tmp');
 
-FU::Log::set_file(config->{logfile}) if config->{logfile};
 FU::Log::set_fmt(sub($msg) {
     FU::Log::default_fmt($msg,
         fu->{auth} ? auth->uid : '-',
@@ -39,7 +45,7 @@ FU::Log::set_fmt(sub($msg) {
 my $DB;
 sub FU::obj::dbh {
     $DB ||= DBI->connect(config->{tuwf}{db_login}->@*, { PrintError => 0, RaiseError => 1, AutoCommit => 0, pg_enable_utf8 => 1 });
-    fu->{in_txn} = 1;
+    $DB->rollback if !fu->{in_txn}++;
     $DB;
 }
 FU::after_request {
