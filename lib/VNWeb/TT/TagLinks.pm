@@ -4,9 +4,7 @@ use VNWeb::Prelude;
 use VNWeb::TT::Lib;
 
 
-sub listing_ {
-    my($opt, $lst, $np, $url) = @_;
-
+sub listing_($opt, $lst, $np, $url) {
     paginate_ $url, $opt->{p}, $np, 't';
     article_ class => 'browse taglinks', sub {
         table_ class => 'stripe', sub {
@@ -54,29 +52,29 @@ sub listing_ {
 }
 
 
-TUWF::get qr{/g/links}, sub {
+FU::get '/g/links', sub {
     not_moe;
-    my $opt = tuwf->validate(get =>
+    my $opt = fu->query(
         o => { onerror => 'd', enum => ['a', 'd'] },
         s => { onerror => 'date', enum => [qw|date tag|] },
         v => { onerror => undef, vndbid => 'v' },
         u => { onerror => undef, vndbid => 'u' },
         t => { onerror => undef, vndbid => 'g' },
-    )->data;
+    );
     # Allow full browsing when a filter is enabled, but limit the page count if not.
     my $filt = defined $opt->{u} || defined $opt->{t} || defined $opt->{v};
-    $opt->{p} = tuwf->validate(get => p => $filt ? { upage => 1 } : { page => 1 })->data;
+    $opt->{p} = fu->query(p => $filt ? { upage => 1 } : { page => 1 });
 
-    my $u = $opt->{u} && tuwf->dbRowi('SELECT id,', sql_user(), 'FROM users u WHERE id =', \$opt->{u});
-    return tuwf->resNotFound if $opt->{u} && (!$u->{id} || (!defined $u->{user_name} && !auth->isMod));
+    my $u = $opt->{u} && fu->dbRowi('SELECT id,', sql_user(), 'FROM users u WHERE id =', \$opt->{u});
+    fu->notfound if $opt->{u} && (!$u->{id} || (!defined $u->{user_name} && !auth->isMod));
 
     my $where = sql_and
         defined $opt->{v} ? sql('tv.vid =', \$opt->{v}) : (),
         defined $opt->{u} ? sql('tv.uid =', \$opt->{u}) : (),
         defined $opt->{t} ? sql('tv.tag =', \$opt->{t}) : ();
 
-    my $count = $filt && tuwf->dbVali('SELECT COUNT(*) FROM tags_vn tv WHERE', $where);
-    my($lst, $np) = tuwf->dbPagei({ page => $opt->{p}, results => 50 }, '
+    my $count = $filt && fu->dbVali('SELECT COUNT(*) FROM tags_vn tv WHERE', $where);
+    my($lst, $np) = fu->dbPagei({ page => $opt->{p}, results => 50 }, '
         SELECT tv.vid, tv.uid, tv.tag, tv.vote, tv.spoiler, tv.lie,', sql_totime('tv.date'), 'as date
              , tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) AS ignore, tv.notes, v.title, ', sql_user(), ', t.name
           FROM tags_vn tv
@@ -104,12 +102,12 @@ TUWF::get qr{/g/links}, sub {
                     li_ sub {
                         txt_ '['; a_ href => url(t=>undef, p=>undef), 'remove'; txt_ '] ';
                         txt_ 'Tag:'; txt_ ' ';
-                        a_ href => "/$opt->{t}", tuwf->dbVali('SELECT name FROM tags WHERE id=', \$opt->{t})||'Unknown tag';
+                        a_ href => "/$opt->{t}", fu->dbVali('SELECT name FROM tags WHERE id=', \$opt->{t})||'Unknown tag';
                     } if defined $opt->{t};
                     li_ sub {
                         txt_ '['; a_ href => url(v=>undef, p=>undef), 'remove'; txt_ '] ';
                         txt_ 'Visual novel'; txt_ ' ';
-                        my $v = tuwf->dbRowi('SELECT title FROM', vnt, 'v WHERE id=', \$opt->{v});
+                        my $v = fu->dbRowi('SELECT title FROM', vnt, 'v WHERE id=', \$opt->{v});
                         a_ href => "/$opt->{v}", $v->{title} ? tattr $v : ('Unknown VN');
                     } if defined $opt->{v};
                 }

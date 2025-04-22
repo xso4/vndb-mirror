@@ -7,8 +7,7 @@ use VNWeb::Images::Lib;
 use VNWeb::TT::Lib 'tree_', 'parents_';
 
 
-sub rev_ {
-    my($t) = @_;
+sub rev_($t) {
     revision_ $t, sub {},
         [ name         => 'Name'           ],
         [ alias        => 'Aliases'        ],
@@ -22,9 +21,7 @@ sub rev_ {
 }
 
 
-sub infobox_ {
-    my($t) = @_;
-
+sub infobox_($t) {
     itemmsg_ $t;
     h1_ "Trait: $t->{name}";
     debug_ $t;
@@ -54,17 +51,15 @@ sub infobox_ {
 }
 
 
-sub chars_ {
-    my($t) = @_;
-
-    my $opt = tuwf->validate(get =>
+sub chars_($t) {
+    my $opt = fu->query(
         p => { upage => 1 },
         f => { advsearch_err => 'c' },
         m => { onerror => auth->pref('spoilers')||0, accept_array => 'first', enum => [0..2] },
-        l => { accept_array => 'first', anybool => 1 },
+        l => { accept_array => 'first', default => false, func => sub { $_[0] = !!$_[0]; 1 } },
         fil => { onerror => '' },
         s => { tableopts => $VNWeb::Chars::List::TABLEOPTS },
-    )->data;
+    );
 
     # URL compatibility with old filters
     if(!$opt->{f}->{query} && $opt->{fil}) {
@@ -74,15 +69,12 @@ sub chars_ {
             $f->{trait_inc} = [ grep "i$_" ne $t->{id}, $f->{trait_inc}->@* ] if $f->{trait_inc};
             delete $f->{trait_inc} if $f->{trait_inc} && !$f->{trait_inc}->@*;
             $f = filter_char_adv $f;
-            tuwf->compile({ advsearch => 'c' })->validate(@$f > 1 ? $f : undef)->data;
+            FU::Validate->compile({ advsearch => 'c' })->validate(@$f > 1 ? $f : undef);
         };
-        if ($q) {
-            tuwf->resRedirect(tuwf->reqPath().'?'.query_encode({%$opt, fil => undef, f => $q}), 'perm');
-            tuwf->done;
-        }
+        fu->redirect(perm => fu->path.'?'.query_encode({%$opt, fil => undef, f => $q}));
     }
 
-    $opt->{f} = advsearch_default 'c' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
+    $opt->{f} = advsearch_default 'c' if !$opt->{f}{query} && !defined fu->query('f');
 
     my $where = sql_and
         'NOT c.hidden',
@@ -94,8 +86,8 @@ sub chars_ {
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = tuwf->dbVali('SELECT count(*) FROM chars c JOIN traits_chars tc ON tc.cid = c.id WHERE', $where);
-        $list = $count ? tuwf->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
+        $count = fu->dbVali('SELECT count(*) FROM chars c JOIN traits_chars tc ON tc.cid = c.id WHERE', $where);
+        $list = $count ? fu->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
             SELECT c.id, c.title, c.sex, c.gender, c.image
               FROM', charst, 'c
               JOIN traits_chars tc ON tc.cid = c.id
@@ -121,19 +113,19 @@ sub chars_ {
                 button_ type => 'submit', name => 'l', value => 1,  $opt->{l} ? (class => 'optselected') : (), 'Exclude lies';
             };
             input_ type => 'hidden', name => 'm', value => $opt->{m};
+            input_ type => 'hidden', name => 'l', value => $opt->{l};
             $opt->{f}->widget_($count, $time);
         };
-        VNWeb::Chars::List::listing_ $opt, $list, $count, 1 if $count;
+        VNWeb::Chars::List::listing_ $opt, $list, $count if $count;
     };
 }
 
 
-TUWF::get qr{/$RE{irev}}, sub {
-    my $t = db_entry tuwf->captures('id', 'rev');
-    return tuwf->resNotFound if !$t->{id};
+FU::get qr{/$RE{irev}}, sub($id, $rev=0) {
+    my $t = db_entry $id, $rev or fu->notfound;
 
-    framework_ index => !$t->{hidden}, title => "Trait: $t->{name}", dbobj => $t, hiddenmsg => 1, sub {
-        rev_ $t if tuwf->capture('rev');
+    framework_ index => !$rev, title => "Trait: $t->{name}", dbobj => $t, hiddenmsg => 1, sub {
+        rev_ $t if $rev;
         article_ sub { infobox_ $t; };
         tree_ i => $t->{id};
         chars_ $t if $t->{searchable} && !$t->{hidden};

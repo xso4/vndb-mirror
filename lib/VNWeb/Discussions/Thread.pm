@@ -13,7 +13,7 @@ my $REPLY = form_compile {
 
 js_api DiscussionReply => $REPLY, sub {
     my($data) = @_;
-    my $t = tuwf->dbRowi('SELECT id, locked FROM threads t WHERE id =', \$data->{tid}, 'AND', sql_visible_threads());
+    my $t = fu->dbRowi('SELECT id, locked FROM threads t WHERE id =', \$data->{tid}, 'AND', sql_visible_threads());
     fu->notfound if !$t->{id};
     fu->denied if !can_edit t => $t;
 

@@ -8,8 +8,7 @@ use VNWeb::VN::Lib;
 use VNWeb::TT::Lib 'tree_', 'parents_';
 
 
-sub rev_ {
-    my($t) = @_;
+sub rev_($t) {
     revision_ $t, sub{},
         [ name         => 'Name'           ],
         [ alias        => 'Aliases'        ],
@@ -22,9 +21,7 @@ sub rev_ {
 }
 
 
-sub infobox_ {
-    my($t) = @_;
-
+sub infobox_($t) {
     itemmsg_ $t;
     h1_ "Tag: $t->{name}";
     debug_ $t;
@@ -62,17 +59,15 @@ sub infobox_ {
 my $TABLEOPTS = VNWeb::VN::List::TABLEOPTS('tags');
 
 
-sub vns_ {
-    my($t) = @_;
-
-    my $opt = tuwf->validate(get =>
+sub vns_($t) {
+    my $opt = fu->query(
         p => { upage => 1 },
         f => { advsearch_err => 'v' },
         s => { tableopts => $TABLEOPTS },
         m => { onerror => auth->pref('spoilers')||0, accept_array => 'first', enum => [0..2] },
-        l => { accept_array => 'first', anybool => 1 },
+        l => { accept_array => 'first', default => false, func => sub { $_[0] = !!$_[0]; 1 } },
         fil => { onerror => '' },
-    )->data;
+    );
 
     # URL compatibility with old filters
     if(!$opt->{f}->{query} && $opt->{fil}) {
@@ -82,15 +77,12 @@ sub vns_ {
             $f->{tag_inc} = [ grep "g$_" ne $t->{id}, $f->{tag_inc}->@* ] if $f->{tag_inc};
             delete $f->{tag_inc} if $f->{tag_inc} && !$f->{tag_inc}->@*;
             $f = filter_vn_adv $f;
-            tuwf->compile({ advsearch => 'v' })->validate(@$f > 1 ? $f : undef)->data;
+            FU::Validate->compile({ advsearch => 'v' })->validate(@$f > 1 ? $f : undef);
         };
-        if ($q) {
-            tuwf->resRedirect(tuwf->reqPath().'?'.query_encode({%$opt, fil => undef, f => $q}), 'perm');
-            tuwf->done;
-        }
+        fu->redirect(perm => fu->path.'?'.query_encode({%$opt, fil => undef, f => $q})) if $q;
     }
 
-    $opt->{f} = advsearch_default 'v' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
+    $opt->{f} = advsearch_default 'v' if !$opt->{f}{query} && !defined fu->query('f');
 
     my $where = sql_and
         'NOT v.hidden',
@@ -102,8 +94,8 @@ sub vns_ {
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = tuwf->dbVali('SELECT count(*) FROM vn v JOIN tags_vn_inherit tvi ON tvi.vid = v.id WHERE', $where);
-        $list = $count ? tuwf->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
+        $count = fu->dbVali('SELECT count(*) FROM vn v JOIN tags_vn_inherit tvi ON tvi.vid = v.id WHERE', $where);
+        $list = $count ? fu->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
             SELECT tvi.rating AS tagscore, v.id, v.title, v.c_released, v.c_votecount, v.c_rating, v.c_average
                  , ', sql_vnimage, ', v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang',
                    $opt->{s}->vis('length') ? ', v.length, v.c_length, v.c_lengthnum' : (), '
@@ -141,12 +133,11 @@ sub vns_ {
 }
 
 
-TUWF::get qr{/$RE{grev}}, sub {
-    my $t = db_entry tuwf->captures('id', 'rev');
-    return tuwf->resNotFound if !$t->{id};
+FU::get qr{/$RE{grev}}, sub($id, $rev=0) {
+    my $t = db_entry $id, $rev or fu->notfound;
 
-    framework_ index => !tuwf->capture('rev'), title => "Tag: $t->{name}", dbobj => $t, hiddenmsg => 1, sub {
-        rev_ $t if tuwf->capture('rev');
+    framework_ index => !$rev, title => "Tag: $t->{name}", dbobj => $t, hiddenmsg => 1, sub {
+        rev_ $t if $rev;
         article_ sub { infobox_ $t; };
         tree_ g => $t->{id};
         vns_ $t if $t->{searchable} && !$t->{hidden};

@@ -23,6 +23,7 @@ BEGIN {
 
 use FU -spawn, -procname => config->{moe} ? 'vndb-moe' : config->{api} eq 'only' ? 'vndb-api' : !config->{api} ? 'vndb-web' : 'vndb';
 use FU::XMLWriter ':html5_';
+use TUWF ();
 use DBI;
 use VNWeb::Auth;
 use VNWeb::HTML ();

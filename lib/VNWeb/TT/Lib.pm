@@ -21,10 +21,9 @@ sub enrich_group {
 }
 
 
-sub tree_ {
-    my($type, $id) = @_;
+sub tree_($type, $id=undef) {
     my $table = $type eq 'g' ? 'tags' : 'traits';
-    my $top = tuwf->dbAlli(
+    my $top = fu->dbAlli(
         "SELECT id, name, c_items FROM $table t
           WHERE NOT hidden
             AND", $id ? sql "id IN(SELECT id FROM ${table}_parents WHERE parent = ", \$id, ')'
@@ -68,12 +67,10 @@ sub tree_ {
 
 
 # Breadcrumbs-style listing of parent tags/traits
-sub parents_ {
-    my($type, $t) = @_;
-
+sub parents_($type, $t) {
     my %t;
     my $table = $type eq 'g' ? 'tags' : 'traits';
-    push $t{$_->{child}}->@*, $_ for tuwf->dbAlli("
+    push $t{$_->{child}}->@*, $_ for fu->dbAlli("
         WITH RECURSIVE p(id,child,name,main) AS (
             SELECT t.id, tp.id, t.name, tp.main FROM ${table}_parents tp JOIN $table t ON t.id = tp.parent WHERE tp.id =", \$t->{id}, "
             UNION

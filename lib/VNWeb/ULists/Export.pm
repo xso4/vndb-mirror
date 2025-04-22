@@ -19,17 +19,17 @@ sub data {
     # should the export take user title preferences into account instead? Or
     # export all known titles?
     my $d = {
-        'export-date' => tuwf->dbVali(select => tz('NOW()', 'now')),
-        user   => tuwf->dbRowi('SELECT id, username as name FROM users WHERE id =', \$uid),
-        labels => tuwf->dbAlli('SELECT id, label, private FROM ulist_labels WHERE uid =', \$uid, 'ORDER BY id'),
-        vns    => tuwf->dbAlli('
+        'export-date' => fu->dbVali(select => tz('NOW()', 'now')),
+        user   => fu->dbRowi('SELECT id, username as name FROM users WHERE id =', \$uid),
+        labels => fu->dbAlli('SELECT id, label, private FROM ulist_labels WHERE uid =', \$uid, 'ORDER BY id'),
+        vns    => fu->dbAlli('
             SELECT v.id, v.title, uv.vote, uv.started, uv.finished, uv.notes, uv.c_private, uv.labels,',
                    sql_comma(tz('uv.added', 'added'), tz('uv.lastmod', 'lastmod'), tz('uv.vote_date', 'vote_date')), '
               FROM ulist_vns uv
               JOIN vnt v ON v.id = uv.vid
              WHERE uv.uid =', \$uid, '
              ORDER BY v.sorttitle'),
-        'length-votes' => tuwf->dbAlli('
+        'length-votes' => fu->dbAlli('
             SELECT v.id, v.title, l.length, l.speed, l.private, l.notes, l.rid::text[] AS releases, ', tz('l.date', 'date'), '
               FROM vn_length_votes l
               JOIN vnt v ON v.id = l.vid
@@ -64,18 +64,16 @@ sub title {
 }
 
 
-TUWF::get qr{/$RE{uid}/list-export/xml}, sub {
-    my $uid = tuwf->capture('id');
-    return tuwf->resDenied if !ulists_priv $uid;
+FU::get qr{/$RE{uid}/list-export/xml}, sub($uid) {
+    fu->denied if !ulists_priv $uid;
     my $d = data $uid;
-    return tuwf->resNotFound if !$d->{user}{id};
-
-    tuwf->resHeader('Content-Disposition', sprintf 'attachment; filename="%s"', filename $d, 'xml');
-    tuwf->resHeader('Content-Type', 'application/xml; charset=UTF-8');
+    fu->notfound if !$d->{user}{id};
 
     my %labels = map +($_->{id}, $_), $d->{labels}->@*;
 
-    my $body = xml_ {
+    fu->set_header('content-disposition', sprintf 'attachment; filename="%s"', filename $d, 'xml');
+    fu->set_header('content-type', 'application/xml');
+    fu->set_body(xml_ {
     tag_ 'vndb-export' => version => '1.0', date => $d->{'export-date'}, sub {
         lit_ "\n";
         tag_ user => sub {
@@ -123,8 +121,7 @@ TUWF::get qr{/$RE{uid}/list-export/xml}, sub {
                 lit_ "\n";
             } for $d->{'length-votes'}->@*;
         };
-    }};
-    tuwf->resBinary($body, 'auto');
+    }});
 };
 
 1;

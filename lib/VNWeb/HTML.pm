@@ -209,7 +209,7 @@ sub _head_ {
         link_ rel => 'alternate', type => 'application/atom+xml', href => "/feeds/changes.atom",       title => 'Recent Changes';
         link_ rel => 'alternate', type => 'application/atom+xml', href => "/feeds/posts.atom",         title => 'Recent Posts';
     }
-    meta_ name => 'robots', content => 'noindex' if config->{moe} || !$o->{index} || fu->query('view');
+    meta_ name => 'robots', content => 'noindex' if config->{moe} || !$o->{index} || ($o->{dbobj} && $o->{dbobj}{entry_hidden}) || fu->query('view');
 
     # Opengraph metadata
     if($o->{og}) {
@@ -776,7 +776,7 @@ sub _revision_cmp_ {
 #   fmt     => 'bool'||\%HASH||sub {$_}  - Formatting function for individual values.
 #                 If not given, the field is rendered as plain text and changes are highlighted with a diff.
 #                 \%HASH -> Look the field up in the hash table (values should be string or {txt=>string}.
-#                 sub($value) {$_} -> Custom formatting function, should output TUWF::XML data HTML.
+#                 sub($value) {$_} -> Custom formatting function, should call FU::XMLWriter functions.
 #   txt     => sub{$_} - Text formatting function for individual values.
 #                 Alternative to 'fmt' above; the returned value is treated as a text field with diffing support.
 #   join    => sub{}  - HTML to join multi-value fields, defaults to \&br_.

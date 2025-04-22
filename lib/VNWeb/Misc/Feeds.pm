@@ -17,7 +17,7 @@ sub feed {
             tag_ title => $title;
             tag_ updated => datetime max grep $_, map +($_->{published}, $_->{updated}), @$data;
             tag_ id => $base.$path;
-            tag_ link => rel => 'self', type => 'application/atom+xml', href => $base.tuwf->path, undef;
+            tag_ link => rel => 'self', type => 'application/atom+xml', href => $base.fu->path, undef;
             tag_ link => rel => 'alternate', type => 'text/html', href => $base.$path, undef;
 
             tag_ entry => sub {
