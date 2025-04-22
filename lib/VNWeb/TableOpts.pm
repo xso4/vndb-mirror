@@ -42,7 +42,7 @@ package VNWeb::TableOpts;
 #           vis_default => 1,   # If this column should be visible by default
 #       };
 #
-#   my $opts = tuwf->validate(get => s => { tableopts => $config })->data;
+#   my $opts = fu->query(s => { tableopts => $config });
 #
 #   my $sql = sql('.... ORDER BY', $opts->sql_order);
 #
@@ -67,7 +67,7 @@ package VNWeb::TableOpts;
 use v5.36;
 use Carp 'croak';
 use Exporter 'import';
-use TUWF;
+use FU;
 use FU::XMLWriter ':html5_';
 use VNWeb::Auth;
 use VNWeb::HTML ();
@@ -129,9 +129,8 @@ sub tableopts {
 # parameter, so we can accept two formats:
 # - "s=$compat_sort_column/$order"
 # - "s=$compat_sort_column&o=$order"
-# In the latter case, the validation will use reqGet() to get the 'o'
-# parameter.
-TUWF::set('custom_validations')->{tableopts} = sub {
+# In the latter case, the validation will get the 'o' parameter from FU.
+$FU::Validate::default_validations{tableopts} = sub {
     my($t) = @_;
     +{ onerror => sub {
         my $d = $t->{pref} && auth->pref($t->{pref});
@@ -144,7 +143,7 @@ TUWF::set('custom_validations')->{tableopts} = sub {
         if($col && defined $col->{sort_id}) {
             $obj->[0] = $t->{default};
             $obj->set_sort_col_id($col->{sort_id});
-            $ord //= tuwf->reqGet('o');
+            $ord //= fu->query('o');
             $obj->set_order($ord && $ord eq 'd' ? 1 : 0);
         } else {
             $obj->[0] = _dec($_[0]) // return 0;
@@ -246,8 +245,8 @@ js_api TableOptsSave => {
     value => { default => undef, uint => 1 }
 }, sub {
     my($f) = @_;
-    return tuwf->resDenied if !auth;
-    tuwf->dbExeci('UPDATE users_prefs SET', { $f->{save} => $f->{value} }, 'WHERE id =', \auth->uid);
+    fu->denied if !auth;
+    fu->dbExeci('UPDATE users_prefs SET', { $f->{save} => $f->{value} }, 'WHERE id =', \auth->uid);
     {}
 };
 

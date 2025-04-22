@@ -54,13 +54,13 @@ FU::get qr{/$RE{srev}/edit} => sub($id, $rev=0) {
 };
 
 
-TUWF::get qr{/s/new}, sub {
+FU::get '/s/new', sub {
     fu->denied if !can_edit s => undef;
     framework_ title => 'Add staff member',
     sub {
         editmsg_ s => undef, 'Add staff member';
         div_ widget(StaffEdit => $FORM_OUT, {
-            elm_empty($FORM_OUT)->%*,
+            $FORM_OUT->empty->%*,
             alias => [ { aid => -1, name => '', latin => undef, inuse => 0, wantdel => 0 } ],
             main => -1
         }), '';

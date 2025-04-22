@@ -133,10 +133,10 @@ sub opts_ {
 }
 
 
-TUWF::get qr{/img/list}, sub {
+FU::get '/img/list', sub {
     not_moe;
     # TODO filters: sexual / violence?
-    my $opt = tuwf->validate(get =>
+    my $opt = fu->query(
         s  => { onerror => 'date', enum => [qw/ weight sdev vdev date diff/] },
         t  => { onerror => [], accept_scalar => 1, elems => { enum => [qw/ ch cv sf /] } },
         m  => { onerror => 0, range => [0,10] },
@@ -146,7 +146,7 @@ TUWF::get qr{/img/list}, sub {
         my => { anybool => 1 },
         up => { anybool => 1 },
         p  => { page => 1 },
-    )->data;
+    );
 
     $opt->{u2} ||= auth->uid || '';
     $opt->{s} = 'weight' if !$opt->{u} && ($opt->{s} eq 'date' || $opt->{s} eq 'diff');
@@ -154,8 +154,8 @@ TUWF::get qr{/img/list}, sub {
     $opt->{t} = [] if $opt->{t}->@* == 3;
     $opt->{d} = 0 if !$opt->{u};
 
-    my $u = $opt->{u} && tuwf->dbRowi('SELECT id, ', sql_user(), 'FROM users u WHERE id =', \$opt->{u});
-    return tuwf->resNotFound if $opt->{u} && (!$u->{id} || (!defined $u->{user_name} && !auth->isMod));
+    my $u = $opt->{u} && fu->dbRowi('SELECT id, ', sql_user(), 'FROM users u WHERE id =', \$opt->{u});
+    fu->notfound if $opt->{u} && (!$u->{id} || (!defined $u->{user_name} && !auth->isMod));
 
     my $where = sql_and
         $opt->{t}->@* ? sql_or(map sql('i.id BETWEEN vndbid(',\"$_",',1) AND vndbid_max(',\"$_",')'), $opt->{t}->@*) : (),
@@ -163,7 +163,7 @@ TUWF::get qr{/img/list}, sub {
         $opt->{d} ? sql('iu.date > NOW()-', \"$opt->{d} days", '::interval') : (),
         $opt->{up} && $opt->{u} ? sql('i.uploader =', \$opt->{u}) : ();
 
-    my($lst, $np) = tuwf->dbPagei({ results => 100, page => $opt->{p} }, '
+    my($lst, $np) = fu->dbPagei({ results => 100, page => $opt->{p} }, '
         SELECT i.id, i.width, i.height, i.c_votecount, i.c_weight
              , i.c_sexual_avg::real/100 AS sexual_avg, i.c_sexual_stddev::real/100 AS sexual_stddev
              , i.c_violence_avg::real/100 AS violence_avg, i.c_violence_stddev::real/100 AS violence_stddev

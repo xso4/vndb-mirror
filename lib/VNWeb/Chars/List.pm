@@ -11,9 +11,7 @@ our $TABLEOPTS = tableopts
 
 
 # Also used by VNWeb::TT::TraitPage
-sub listing_ {
-    my($opt, $list, $count) = @_;
-
+sub listing_($opt, $list, $count) {
     my sub url { '?'.query_encode({%$opt, @_}) }
     paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 't', $opt->{s};
 
@@ -80,30 +78,29 @@ sub enrich_listing {
 }
 
 
-TUWF::get qr{/c(?:/(?<char>all|[a-z0]))?}, sub {
-    my $opt = tuwf->validate(get =>
+FU::get qr{/c(?:/(?<char>all|[a-z0]))?}, sub($char=undef) {
+    my $opt = fu->query(
         q => { searchquery => 1 },
         p => { upage => 1 },
         f => { advsearch_err => 'c' },
         ch=> { onerror => undef, accept_array => 'first', enum => ['0', 'a'..'z'] },
         fil=>{ onerror => '' },
         s => { tableopts => $TABLEOPTS },
-    )->data;
+    );
 
     # compat with old URLs
-    my $oldch = tuwf->capture('char');
-    $opt->{ch} //= $oldch if defined $oldch && $oldch ne 'all';
+    $opt->{ch} //= $char if defined $char && $char ne 'all';
 
     # URL compatibility with old filters
     if(!$opt->{f}->{query} && $opt->{fil}) {
         my $q = eval {
             my $f = filter_char_adv filter_parse c => $opt->{fil};
-            tuwf->compile({ advsearch => 'c' })->validate(@$f > 1 ? $f : undef)->data;
+            FU::Validate->compile({ advsearch => 'c' })->validate(@$f > 1 ? $f : undef);
         };
-        return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode({%$opt, fil => undef, f => $q}), 'perm') if $q;
+        fu->redirect(perm => fu->path.'?'.query_encode({%$opt, fil => undef, f => $q})) if $q;
     }
 
-    $opt->{f} = advsearch_default 'c' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
+    $opt->{f} = advsearch_default 'c' if !$opt->{f}{query} && !defined fu->query('f');
 
     my $where = sql_and
         'NOT c.hidden', $opt->{f}->sql_where(),
@@ -112,8 +109,8 @@ TUWF::get qr{/c(?:/(?<char>all|[a-z0]))?}, sub {
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = tuwf->dbVali('SELECT count(*) FROM', charst, 'c WHERE', sql_and $where, $opt->{q}->sql_where('c', 'c.id'));
-        $list = $count ? tuwf->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
+        $count = fu->dbVali('SELECT count(*) FROM', charst, 'c WHERE', sql_and $where, $opt->{q}->sql_where('c', 'c.id'));
+        $list = $count ? fu->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
             SELECT c.id, c.title, c.sex, c.gender, c.image
               FROM', charst, 'c', $opt->{q}->sql_join('c', 'c.id'), '
              WHERE', $where, '

@@ -59,13 +59,13 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
 };
 
 
-TUWF::get qr{/$RE{crev}/(?<action>edit|copy)} => sub {
-    my $e = db_entry tuwf->captures('id', 'rev') or return tuwf->resNotFound;
-    my $copy = tuwf->capture('action') eq 'copy';
-    return tuwf->resDenied if !can_edit c => $copy ? {} : $e;
+FU::get qr{/$RE{crev}/(edit|copy)} => sub($id, $rev, $action) {
+    my $e = db_entry $id, $rev or fu->notfound;
+    my $copy = $action eq 'copy';
+    fu->denied if !can_edit c => $copy ? {} : $e;
 
-    $e->{main_name} = $e->{main} ? tuwf->dbVali('SELECT title[1+1] FROM', charst, 'c WHERE id =', \$e->{main}) : '';
-    $e->{main_ref} = tuwf->dbVali('SELECT 1 FROM chars WHERE main =', \$e->{id})||0;
+    $e->{main_name} = $e->{main} ? fu->dbVali('SELECT title[1+1] FROM', charst, 'c WHERE id =', \$e->{main}) : '';
+    $e->{main_ref} = fu->dbVali('SELECT 1 FROM chars WHERE main =', \$e->{id})||0;
 
     enrich_merge tid => sql(
         'SELECT t.id AS tid, t.name, t.hidden, t.locked, t.applicable, g.name AS group, g.gorder AS order, false AS new
@@ -93,7 +93,7 @@ TUWF::get qr{/$RE{crev}/(?<action>edit|copy)} => sub {
     $e->{editsum} = $copy ? "Copied from $e->{id}.$e->{chrev}" : $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
 
     my $title = ($copy ? 'Copy ' : 'Edit ').dbobj($e->{id})->{title}[1];
-    framework_ title => $title, dbobj => $e, tab => tuwf->capture('action'),
+    framework_ title => $title, dbobj => $e, tab => $action,
     sub {
         editmsg_ c => $e, $title, $copy;
         div_ widget(CharEdit => $FORM_OUT, $copy ? {%$e, id=>undef} : $e), '';
@@ -101,12 +101,12 @@ TUWF::get qr{/$RE{crev}/(?<action>edit|copy)} => sub {
 };
 
 
-TUWF::get qr{/$RE{vid}/addchar}, sub {
-    return tuwf->resDenied if !can_edit c => undef;
-    my $v = tuwf->dbRowi('SELECT id, title[1+1] AS title FROM', vnt, 'v WHERE NOT hidden AND id =', \tuwf->capture('id'));
-    return tuwf->resNotFound if !$v->{id};
+FU::get qr{/$RE{vid}/addchar}, sub($vid) {
+    fu->denied if !can_edit c => undef;
+    my $v = fu->dbRowi('SELECT id, title[1+1] AS title FROM', vnt, 'v WHERE NOT hidden AND id =', \$vid);
+    fu->notfound if !$v->{id};
 
-    my $e = elm_empty($FORM_OUT);
+    my $e = $FORM_OUT->empty;
     $e->{vns} = [{ vid => $v->{id}, rid => undef, spoil => 0, role => 'primary' }];
     $e->{vnstate} = [{
         id => $v->{id},
@@ -125,8 +125,8 @@ TUWF::get qr{/$RE{vid}/addchar}, sub {
 
 js_api CharEdit => $FORM_IN, sub ($data,@) {
     my $new = !$data->{id};
-    my $e = $new ? {} : db_entry $data->{id} or return tuwf->resNotFound;
-    return tuwf->resDenied if !can_edit c => $e;
+    my $e = $new ? {} : db_entry $data->{id} or fu->notfound;
+    fu->denied if !can_edit c => $e;
 
     if(!auth->permDbmod) {
         $data->{hidden} = $e->{hidden}||0;
@@ -142,9 +142,9 @@ js_api CharEdit => $FORM_IN, sub ($data,@) {
 
     $data->{main} = undef if $data->{hidden};
     die "Attempt to set main to self" if $data->{main} && $e->{id} && $data->{main} eq $e->{id};
-    die "Attempt to set main while this character is already referenced." if $data->{main} && tuwf->dbVali('SELECT 1 AS ref FROM chars WHERE main =', \$e->{id});
+    die "Attempt to set main while this character is already referenced." if $data->{main} && fu->dbVali('SELECT 1 AS ref FROM chars WHERE main =', \$e->{id});
     # It's possible that the referenced character has been deleted since it was added as main, so don't die() on this one, just unset main.
-    $data->{main} = undef if $data->{main} && !tuwf->dbVali('SELECT 1 FROM chars WHERE NOT hidden AND main IS NULL AND id =', \$data->{main});
+    $data->{main} = undef if $data->{main} && !fu->dbVali('SELECT 1 FROM chars WHERE NOT hidden AND main IS NULL AND id =', \$data->{main});
     $data->{main_spoil} = 0 if !$data->{main};
 
     validate_dbid 'SELECT id FROM images WHERE id IN', $data->{image} if $data->{image};
@@ -156,7 +156,7 @@ js_api CharEdit => $FORM_IN, sub ($data,@) {
 
     validate_dbid 'SELECT id FROM vn WHERE id IN', map $_->{vid}, $data->{vns}->@*;
     for($data->{vns}->@*) {
-        return "Invalid release for $_->{vid}: $_->{rid}\n" if defined $_->{rid} && !tuwf->dbVali('
+        return "Invalid release for $_->{vid}: $_->{rid}\n" if defined $_->{rid} && !fu->dbVali('
             SELECT 1
               FROM releases r
               JOIN releases_vn rv ON rv.id = r.id
