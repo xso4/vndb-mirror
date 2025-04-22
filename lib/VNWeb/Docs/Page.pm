@@ -36,19 +36,19 @@ sub _rev_ {
 }
 
 
-TUWF::get qr{/$RE{drev}} => sub {
-    my $d = db_entry tuwf->captures('id', 'rev');
-    return tuwf->resNotFound if !$d;
+FU::get qr{/$RE{drev}} => sub($id,$rev=0) {
+    my $d = db_entry $id, $rev;
+    fu->notfound if !$d;
     not_moe if $d->{id} !~ /^(d6|d7)$/;
 
-    framework_ title => $d->{title}, index => !tuwf->capture('rev'), dbobj => $d, hiddenmsg => 1,
+    framework_ title => $d->{title}, index => !$rev, dbobj => $d, hiddenmsg => 1,
     sub {
-        _rev_ $d if tuwf->capture('rev');
+        _rev_ $d if $rev;
         article_ sub {
             itemmsg_ $d;
             h1_ $d->{title};
             div_ class => 'docs', sub {
-                _index_ if  !config->{moe};
+                _index_ if !config->{moe};
                 lit_ enrich_html($d->{html} || md2html $d->{content});
                 clearfloat_;
             };

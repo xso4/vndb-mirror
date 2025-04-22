@@ -38,7 +38,7 @@ sub info_ {
         join_ ' - ', sub { a_ href => $_->{url2}, $_->{label} }, $p->{vislinks}->@*;
     };
 
-    my $s = tuwf->dbRowi('SELECT id, title FROM', staff_aliast, 'WHERE aid = main AND prod =', \$p->{id});
+    my $s = fu->dbRowi('SELECT id, title FROM', staff_aliast, 'WHERE aid = main AND prod =', \$p->{id});
     my @rel;
     push @rel, [ 'Staff entry', [[ $s->{id}, $s ]] ] if $s->{id};
 
@@ -61,10 +61,8 @@ sub info_ {
 }
 
 
-sub rel_ {
-    my($p) = @_;
-
-    my $r = tuwf->dbAlli('
+sub rel_($p) {
+    my $r = fu->dbAlli('
         SELECT r.id, r.patch, r.released, rp.publisher, rp.developer
           FROM releases r
           JOIN releases_producers rp ON rp.id = r.id
@@ -111,9 +109,8 @@ sub rel_ {
 }
 
 
-sub vns_ {
-    my($p) = @_;
-    my $v = tuwf->dbAlli(q{
+sub vns_($p) {
+    my $v = fu->dbAlli(q{
         SELECT v.id, v.title, rels.developer, rels.publisher, rels.released
           FROM}, vnt, q{v
           JOIN (
@@ -147,23 +144,21 @@ sub vns_ {
 }
 
 
-TUWF::get qr{/$RE{prev}(?:/(?<tab>vn|rel))?}, sub {
-    my $p = db_entry tuwf->captures('id', 'rev');
-    return tuwf->resNotFound if !$p;
+FU::get qr{/$RE{prev}(?:/(vn|rel))?}, sub($id, $rev=0, $tab='') {
+    my $p = db_entry $id, $rev;
+    fu->notfound if !$p;
     enrich_vislinks p => 0, $p;
 
-    my $tab = tuwf->capture('tab')
-        || (auth && (tuwf->dbVali('SELECT prodrelexpand FROM users_prefs WHERE id=', \auth->uid) ? 'rel' : 'vn'))
-        || 'rel';
+    $tab ||= (auth && (fu->dbVali('SELECT prodrelexpand FROM users_prefs WHERE id=', \auth->uid) ? 'rel' : 'vn')) || 'rel';
 
     my $title = titleprefs_swap @{$p}{qw/ lang name latin /};
-    framework_ title => $title->[1], index => !tuwf->capture('rev'), dbobj => $p, hiddenmsg => 1,
+    framework_ title => $title->[1], index => !$rev, dbobj => $p, hiddenmsg => 1,
     og => {
         title       => $title->[1],
         description => bb_format($p->{description}, text => 1),
     },
     sub {
-        rev_ $p if tuwf->capture('rev');
+        rev_ $p if $rev;
         article_ sub {
             itemmsg_ $p;
             h1_ tlang(@{$title}[0,1]), $title->[1];

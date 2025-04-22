@@ -11,7 +11,7 @@ my @special_perms = qw/boardmod dbmod usermod tagmod/;
 sub _moderators {
     my $cols = sql_comma map "perm_$_", @special_perms;
     my $where = sql_or map "perm_$_", @special_perms;
-    state $l //= tuwf->dbAlli("SELECT u.id, username, $cols FROM users u JOIN users_shadow us ON us.id = u.id WHERE $where ORDER BY u.id LIMIT 100");
+    state $l //= fu->dbAlli("SELECT u.id, username, $cols FROM users u JOIN users_shadow us ON us.id = u.id WHERE $where ORDER BY u.id LIMIT 100");
 
     fragment sub {
         dl_ sub {
@@ -30,7 +30,7 @@ sub _skincontrib {
     push $users{ skins->{$_}{userid} }->@*, [ $_, skins->{$_}{name} ]
         for sort { skins->{$a}{name} cmp skins->{$b}{name} } keys skins->%*;
 
-    my $u = tuwf->dbAlli('SELECT id, username FROM users WHERE id IN', [keys %users], 'ORDER BY id');
+    my $u = fu->dbAlli('SELECT id, username FROM users WHERE id IN', [keys %users], 'ORDER BY id');
 
     fragment sub {
         dl_ sub {

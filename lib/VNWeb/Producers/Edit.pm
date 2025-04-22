@@ -23,9 +23,9 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
 };
 
 
-TUWF::get qr{/$RE{prev}/edit} => sub {
-    my $e = db_entry tuwf->captures('id', 'rev') or return tuwf->resNotFound;
-    return tuwf->resDenied if !can_edit p => $e;
+FU::get qr{/$RE{prev}/edit} => sub($id, $rev=0) {
+    my $e = db_entry $id, $rev or fu->notfound;
+    fu->denied if !can_edit p => $e;
 
     $e->{editsum} = $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
     $_->{name} = $_->{title}[1] for $e->{relations}->@*;
@@ -39,13 +39,13 @@ TUWF::get qr{/$RE{prev}/edit} => sub {
 };
 
 
-TUWF::get qr{/p/add}, sub {
-    return tuwf->resDenied if !can_edit p => undef;
+FU::get '/p/add', sub {
+    fu->denied if !can_edit p => undef;
 
     framework_ title => 'Add producer',
     sub {
         editmsg_ p => undef, 'Add producer';
-        div_ widget(ProducerEdit => $FORM_OUT, elm_empty $FORM_OUT), '';
+        div_ widget(ProducerEdit => $FORM_OUT, $FORM_OUT->empty), '';
     };
 };
 
@@ -53,8 +53,8 @@ TUWF::get qr{/p/add}, sub {
 js_api ProducerEdit => $FORM_IN, sub {
     my $data = shift;
     my $new = !$data->{id};
-    my $e = $new ? { id => 0 } : db_entry $data->{id} or return tuwf->resNotFound;
-    return tuwf->resDenied if !can_edit p => $e;
+    my $e = $new ? { id => 0 } : db_entry $data->{id} or fu->notfound;
+    fu->denied if !can_edit p => $e;
 
     if(!auth->permDbmod) {
         $data->{hidden} = $e->{hidden}||0;

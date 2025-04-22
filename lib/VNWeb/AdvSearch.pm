@@ -616,7 +616,7 @@ sub _validate($t, $q) {
     return { msg => 'Unknown field', field => $q->[0] } if !$f;
     return { msg => 'Invalid operator', field => $q->[0], op => $q->[1] } if !defined $ops{$q->[1]} || (!$f->{$q->[1]} && !$f->{sql});
     return _validate($f->{value}, $q->[2]) if !ref $f->{value};
-    $q->[2] = eval { $f->{value}->validate($q->[2]) } ||
+    eval { $q->[2] = $f->{value}->validate($q->[2]); 1 } ||
         return { msg => 'Invalid value', field => $q->[0], value => $q->[2], error => $@ };
     1
 }
@@ -624,7 +624,7 @@ sub _validate($t, $q) {
 
 sub _validate_adv {
     my $t = shift;
-    return { msg => 'Invalid JSON', error => $@ =~ s{[\s\r\n]* at /[^ ]+ line.*$}{}smr } if !ref $_[0] && $_[0] =~ /^\[/ && !eval { $_[0] = JSON::XS->new->decode($_[0]); 1 };
+    return { msg => 'Invalid JSON', error => $@ =~ s{[\s\r\n]* at /[^ ]+ line.*$}{}smr } if !ref $_[0] && $_[0] =~ /^\[/ && !eval { $_[0] = FU::Util::json_parse($_[0]); 1 };
     if(!ref $_[0]) {
         my($v,$i) = ($_[0],0);
         return { msg => 'Invalid compact encoded form', character_index => $i } if !($_[0] = _dec_query($v, \$i));
@@ -635,7 +635,7 @@ sub _validate_adv {
         return 1;
     }
     my $v = _validate($t, $_[0]);
-    $_[0] = bless { type => $t, query => $_[0] }, __PACKAGE__ if $v;
+    $_[0] = bless { type => $t, query => $_[0] }, __PACKAGE__ if $v && !ref $v;
     $v
 }
 

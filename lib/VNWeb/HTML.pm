@@ -3,7 +3,6 @@ package VNWeb::HTML;
 use v5.36;
 use utf8;
 use Algorithm::Diff::XS 'sdiff', 'compact_diff';
-use JSON::XS;
 use FU;
 use FU::Util 'uri_escape', 'json_format';
 use FU::XMLWriter ':html5_', 'xml_escape';
@@ -699,8 +698,7 @@ sub _revision_diff_ {
     @old = map $opt{txt}->(), @old if $opt{txt};
     @new = map $opt{txt}->(), @new if $opt{txt};
 
-    my $JS = JSON::XS->new->utf8->canonical->allow_nonref;
-    my $l = sdiff \@old, \@new, sub { _stringify_scalars_rec($_[0]); $JS->encode($_[0]) };
+    my $l = sdiff \@old, \@new, sub { _stringify_scalars_rec($_[0]); json_format($_[0], canonical => 1, utf8 => 1) };
     return if !grep $_->[0] ne 'u', @$l;
 
     # Now check if we should do a textual diff on the changed items.

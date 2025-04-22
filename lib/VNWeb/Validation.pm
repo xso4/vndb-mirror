@@ -369,7 +369,7 @@ sub can_edit {
 # particular user for several hours.
 sub viewget {
     fu->{view} ||= do {
-        my($view, $token) = (fu->reqGet('view')||'') =~ /^([^-]*)-(.+)$/;
+        my($view, $token) = fu->query('view', { onerror => '' }) =~ /^([^-]*)-(.+)$/;
 
         # Abort this request and redirect if the token is invalid.
         if(length($view) && (!length($token) || !auth->csrfcheck($token, 'view'))) {

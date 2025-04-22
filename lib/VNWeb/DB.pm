@@ -63,7 +63,7 @@ sub interp_warn {
     confess $@ if !eval { @r = sql_interp @_ };
     # 0 and 1 aren't interesting, "SELECT 1" is a common pattern and so is "x > 0".
     # '{7}' is commonly used in ulist filtering and r18/api2 are a valid database identifiers.
-    confess "Possible SQL injection in '$r[0]'" if fu->debug && ($r[0] =~ s/(?:r18|\{7\}|api2)//rg) =~ /[2-9]/;
+    warn "Possible SQL injection in '$r[0]'" if fu->debug && ($r[0] =~ s/(?:r18|\{7\}|api2)//rg) =~ /[2-9]/;
     return @r;
 }
 

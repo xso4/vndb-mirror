@@ -4,20 +4,20 @@ use VNWeb::Prelude;
 use VNWeb::Graph;
 
 
-TUWF::get qr{/$RE{pid}/rg}, sub {
-    my $num = tuwf->validate(get => num => { uint => 1, onerror => 15 })->data;
-    my $p = dbobj tuwf->capture(1);
+FU::get qr{/$RE{pid}/rg}, sub($pid) {
+    my $num = fu->query(num => { uint => 1, onerror => 15 });
+    my $p = dbobj $pid;
 
     # Big list of { id0, id1, relation } hashes.
     # Each relation is included twice, with id0 and id1 reversed.
-    my $rel = tuwf->dbAlli(q{
+    my $rel = fu->dbAlli(q{
         WITH RECURSIVE rel(id0, id1, relation) AS (
             SELECT id, pid, relation FROM producers_relations WHERE id =}, \$p->{id}, q{
             UNION
             SELECT id, pid, pr.relation FROM producers_relations pr JOIN rel r ON pr.id = r.id1
         ) SELECT * FROM rel ORDER BY id0
     });
-    return tuwf->resNotFound if !@$rel;
+    fu->notfound if !@$rel;
 
     # Fetch the nodes
     my $nodes = gen_nodes $p->{id}, $rel, $num;

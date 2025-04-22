@@ -8,7 +8,7 @@ js_api Staff => {
     my($data) = @_;
     my @q = grep $_, $data->{search}->@*;
 
-    +{ results => @q ? tuwf->dbAlli(
+    +{ results => @q ? fu->dbAlli(
         'SELECT s.id AS sid, s.lang, s.aid AS id, s.title[1+1], s.title[1+1+1+1] as alttitle
            FROM', staff_aliast, 's', VNWeb::Validate::SearchQuery::sql_joina(\@q, 's', 's.id', 's.aid'), '
           WHERE NOT s.hidden

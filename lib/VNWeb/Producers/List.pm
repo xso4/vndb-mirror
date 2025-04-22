@@ -4,9 +4,7 @@ use VNWeb::Prelude;
 use VNWeb::AdvSearch;
 
 
-sub listing_ {
-    my($opt, $list, $count) = @_;
-
+sub listing_($opt, $list, $count) {
     my sub url { '?'.query_encode({%$opt, @_}) }
 
     paginate_ \&url, $opt->{p}, [$count, 150], 't';
@@ -23,20 +21,18 @@ sub listing_ {
 }
 
 
-TUWF::get qr{/p(?:/(?<char>all|[a-z0]))?}, sub {
-    my $char = tuwf->capture('char');
-    my $opt = tuwf->validate(get =>
+FU::get qr{/p(?:/(all|[a-z0]))?}, sub($char=undef) {
+    my $opt = fu->query(
         p => { upage => 1 },
         q => { searchquery => 1 },
         f => { advsearch_err => 'p' },
         ch=> { onerror => undef, accept_array => 'first', enum => ['0', 'a'..'z'] },
-    )->data;
+    );
 
     # compat with old URLs
-    my $oldch = tuwf->capture('char');
-    $opt->{ch} //= $oldch if defined $oldch && $oldch ne 'all';
+    $opt->{ch} //= $char if defined $char && $char ne 'all';
 
-    $opt->{f} = advsearch_default 'p' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
+    $opt->{f} = advsearch_default 'p' if !$opt->{f}{query} && !defined fu->query('f');
 
     my $where = sql_and 'NOT p.hidden', $opt->{f}->sql_where(),
         defined($opt->{ch}) ? sql 'match_firstchar(p.sorttitle, ', \$opt->{ch}, ')' : ();
@@ -44,8 +40,8 @@ TUWF::get qr{/p(?:/(?<char>all|[a-z0]))?}, sub {
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = tuwf->dbVali('SELECT COUNT(*) FROM', producerst, 'p WHERE', sql_and $where, $opt->{q}->sql_where('p', 'p.id'));
-        $list = $count ? tuwf->dbPagei({ results => 150, page => $opt->{p} },
+        $count = fu->dbVali('SELECT COUNT(*) FROM', producerst, 'p WHERE', sql_and $where, $opt->{q}->sql_where('p', 'p.id'));
+        $list = $count ? fu->dbPagei({ results => 150, page => $opt->{p} },
             'SELECT p.id, p.title, p.lang
                FROM', producerst, 'p', $opt->{q}->sql_join('p', 'p.id'), '
               WHERE', $where, '

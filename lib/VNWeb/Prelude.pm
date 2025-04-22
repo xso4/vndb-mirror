@@ -2,6 +2,7 @@
 #
 #  use v5.36;
 #  use utf8;
+#  use builtin 'true', 'false';
 #
 #  use FU;
 #  use FU::Util 'query_encode';
@@ -53,6 +54,7 @@ sub import {
     warnings->import;
     feature->import(':5.36');
     utf8->import;
+    builtin->import('true', 'false');
 
     die $@ if !eval <<"    EOM;";
     package $c;
