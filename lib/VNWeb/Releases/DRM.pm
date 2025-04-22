@@ -3,24 +3,24 @@ package VNWeb::Releases::DRM;
 use VNWeb::Prelude;
 use FU::Util 'uri_escape';
 
-TUWF::get '/r/drm', sub {
-    my $opt = tuwf->validate(get =>
+FU::get '/r/drm', sub {
+    my $opt = fu->query(
         n => { onerror => '' },
         s => { onerror => '' },
         t => { onerror => undef, enum => [0,1,2] },
         u => { anybool => 1 },
-    )->data;
+    );
     my $where = sql_and
         $opt->{s} ? sql 'name ILIKE', \('%'.sql_like($opt->{s}).'%') : (),
         defined $opt->{t} ? sql 'state =', \$opt->{t} : ();
 
-    my $lst = tuwf->dbAlli('
+    my $lst = fu->dbAlli('
         SELECT id, state, name, description, c_ref, ', sql_comma(keys %DRM_PROPERTY), '
           FROM drm
          WHERE', $where, $opt->{u} ? () : 'AND c_ref > 0',
         'ORDER BY c_ref DESC
     ');
-    my $missing = $opt->{u} ? 0 : tuwf->dbVali('SELECT COUNT(*) FROM drm WHERE', $where, 'AND c_ref = 0');
+    my $missing = $opt->{u} ? 0 : fu->dbVali('SELECT COUNT(*) FROM drm WHERE', $where, 'AND c_ref = 0');
 
     framework_ title => 'List of DRM implementations', sub {
         article_ sub {
@@ -47,7 +47,7 @@ TUWF::get '/r/drm', sub {
                 h2_ !$d->{c_ref} && !$unused++ ? (id => 'unused') : (), sub {
                     span_ class => 'strikethrough', $d->{name} if $d->{state} == 2;
                     txt_ $d->{name} if $d->{state} != 2;
-                    a_ href => '/r?f='.tuwf->compile({advsearch => 'r'})->validate(['drm','=',$d->{name}])->data->enc_query, " ($d->{c_ref})";
+                    a_ href => '/r?f='.FU::Validate->compile({advsearch => 'r'})->validate(['drm','=',$d->{name}])->enc_query, " ($d->{c_ref})";
                     b_ ' (new)' if $d->{state} == 0;
                     a_ href => "/r/drm/edit/$d->{id}?ref=".uri_escape(query_encode($opt)), ' edit' if auth->permDbmod;
                 };
@@ -84,33 +84,32 @@ my $FORM = form_compile any => {
 
 
 sub info_ {
-    tuwf->dbRowi('
+    fu->dbRowi('
         SELECT id, state, name, description,', sql_comma(keys %DRM_PROPERTY), '
           FROM drm WHERE id =', \shift
     );
 }
 
-TUWF::get qr{/r/drm/edit/(0|$RE{num})}, sub {
-    return tuwf->resDenied if !auth->permDbmod;
-    my $d = info_ tuwf->capture(1);
-    return tuwf->resNotFound if !defined $d->{id};
-    $d->{ref} = tuwf->reqGet('ref');
+FU::get qr{/r/drm/edit/(0|$RE{num})}, sub($id) {
+    fu->denied if !auth->permDbmod;
+    my $d = info_ $id;
+    fu->notfound if !defined $d->{id};
+    $d->{ref} = fu->query(ref => { onerror => '' });
     framework_ title => "Edit DRM: $d->{name}", sub {
         div_ widget(DRMEdit => $FORM, $d), '';
     };
 };
 
-js_api DRMEdit => $FORM, sub {
-    my $data = shift;
-    return tuwf->resDenied if !auth->permDbmod;
+js_api DRMEdit => $FORM, sub($data) {
+    fu->denied if !auth->permDbmod;
     my $d = info_ delete $data->{id};
-    return tuwf->resNotFound if !defined $d->{id};
+    fu->notfound if !defined $d->{id};
     my $ref = delete $data->{ref};
 
     return +{ _er => 'Duplicate DRM name' }
-        if tuwf->dbVali('SELECT 1 FROM drm WHERE id <>', \$d->{id}, 'AND name =', \$d->{name});
+        if fu->dbVali('SELECT 1 FROM drm WHERE id <>', \$d->{id}, 'AND name =', \$d->{name});
 
-    tuwf->dbExeci('UPDATE drm SET', $data, 'WHERE id =', \$d->{id});
+    fu->dbExeci('UPDATE drm SET', $data, 'WHERE id =', \$d->{id});
 
     my @diff = grep $d->{$_} ne $data->{$_}, qw/state name description/, keys %DRM_PROPERTY;
     auth->audit(undef, 'drm edit', join '; ', map "$_: $d->{$_} -> $data->{$_}", @diff) if @diff;

@@ -4,8 +4,8 @@ use VNWeb::Prelude;
 use VNWeb::AdvSearch;
 
 
-TUWF::get qr{/r/engines}, sub {
-    my $list = tuwf->dbAlli('
+FU::get '/r/engines', sub {
+    my $list = fu->dbAlli('
         SELECT engine, count(*) AS cnt
           FROM releases
          WHERE NOT hidden AND engine <> \'\'
@@ -27,11 +27,11 @@ TUWF::get qr{/r/engines}, sub {
         };
         article_ class => 'browse', sub {
             table_ class => 'stripe', sub {
-                my $c = tuwf->compile({advsearch => 'r'});
+                my $c = FU::Validate->compile({advsearch => 'r'});
                 tr_ sub {
                     td_ class => 'tc1', style => 'text-align: right; width: 80px', $_->{cnt};
                     td_ class => 'tc2', sub {
-                        a_ href => '/r?f='.$c->validate([engine => '=', $_->{engine}])->data->enc_query(), $_->{engine};
+                        a_ href => '/r?f='.$c->validate([engine => '=', $_->{engine}])->enc_query(), $_->{engine};
                     }
                 } for @$list;
             };
