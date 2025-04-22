@@ -145,7 +145,7 @@ const ExtLinks = initVnode => {
 
     const view = () => [ Website(), m('fieldset',
         m('label[for=extlinks]', 'External links', HelpButton('extlinks')),
-        m('table', links.filter(l => extlinksMap[l.site]).map(l => m('tr', {key: l.site+'-'+l.value},
+        m('table', links.filter(l => extlinksMap[l.site] && extlinksMap[l.site].regex).map(l => m('tr', {key: l.site+'-'+l.value},
             m('td', m(Button.Del, {onclick: () => { links.splice(links.indexOf(l), 1); set(inp,null)}})),
             m('td', m('a[target=_blank]', { href: split(extlinksMap[l.site].fmt, l.value).join('') }, extlinksMap[l.site].label)),
             m('td', split(extlinksMap[l.site].fmt, l.value).map((p,i) => m(i === 1 ? 'span' : 'small', p))),
@@ -156,7 +156,7 @@ const ExtLinks = initVnode => {
         ),
         Help('extlinks',
             m('p', 'Links to external websites. The following sites and URL formats are supported:'),
-            m('dl', extlinks.filter(l => extlinksMap[l.site]).flatMap(e => [
+            m('dl', extlinks.filter(l => extlinksMap[l.site] && extlinksMap[l.site].regex).flatMap(e => [
                 m('dt', e.label),
                 m('dd', e.patt.map((p,i) => m(i % 2 ? 'strong' : 'span', p))),
             ])),
