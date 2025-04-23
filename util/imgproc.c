@@ -182,6 +182,10 @@ int main(int argc, char **argv) {
     int r = 0;
     while ((r = read(0, input_buffer + input_len, MAX_INPUT_SIZE - input_len)) > 0)
         input_len += r;
+    if (input_len >= MAX_INPUT_SIZE) {
+        fprintf(stderr, "Input too large.\n");
+        exit(1);
+    }
     if (r < 0) {
         perror("reading input");
         exit(1);
