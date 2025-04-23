@@ -3,6 +3,7 @@ package VNWeb::API;
 use v5.36;
 use FU;
 use Time::HiRes 'time', 'alarm';
+use POSIX 'strftime';
 use List::Util 'min';
 use VNDB::Config;
 use VNDB::Func;
@@ -74,9 +75,13 @@ sub check_throttle {
 }
 
 sub logreq {
-    warn sprintf qq{%4dms %s [%s] "%s" "%s"\n},
+    return if !config->{api_logfile};
+    open my $F, '>>:utf8', config->{api_logfile} or return warn "Error opening API log file: $!\n";
+    printf $F qq{%sZ %s %s %s %s %4dms %s "%s" "%s"\n},
+        strftime('%Y-%m-%d %H:%M:%S', gmtime), fu->ip, auth->uid||'-',
+        fu->method, fu->path =~ s{^/api/kana}{}r,
         fu->{throttle_start} ? (time - fu->{throttle_start})*1000 : 0,
-        $_[0], fu->ip,
+        $_[0],
         fu->header('origin')||'-',
         fu->header('user-agent')||'';
 }
@@ -117,7 +122,7 @@ sub api_del($path, $sub) {
         my $del = $sub->(@a);
         fu->status(204);
         cors;
-        count_request($del?1:0, 'DELETE');
+        count_request($del?1:0, '-');
     };
 }
 
@@ -142,7 +147,7 @@ sub api_patch($path, $req_schema, $sub) {
         $sub->(@a, $req);
         fu->status(204);
         cors;
-        count_request(1, 'PATCH');
+        count_request(1, '-');
     };
 }
 

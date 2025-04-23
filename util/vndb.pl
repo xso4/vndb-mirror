@@ -32,6 +32,7 @@ use VNWeb::TimeZone ();
 
 FU::debug_info(config->{fu_debug_path}, config->{var_path}.'/tmp');
 
+FU::log_slow_reqs(config->{log_slow_pages}) if config->{log_slow_pages};
 FU::Log::set_fmt(sub($msg) {
     FU::Log::default_fmt($msg,
         fu->{auth} ? auth->uid : '-',

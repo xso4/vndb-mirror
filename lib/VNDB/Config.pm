@@ -27,6 +27,10 @@ my $config = {
     mail_from         => 'VNDB <noreply@vndb.org>',
     mail_sendmail     => 'log',
 
+    logfile           => "$VAR/log/fu.log",
+    api_logfile       => "$VAR/log/api.log",
+    log_slow_pages    => 0,
+
     skin_default      => 'angel',
     moe               => 0, # vndb.moe mode
     api               => 1, # true/false to enable/disable the API, 'only' to disable everything else.
@@ -76,7 +80,8 @@ sub config {
         $c->{Multi}{Core}{log_level} ||= 'debug';
         $c->{Multi}{Core}{log_dir}   ||= $VAR.'/log';
 
-        $c->{$_} = $c->{tuwf}{$_} for grep exists($c->{tuwf}{$_}), qw/debug logfile cookie_prefix cookie_defaults mail_sendmail mail_from/;
+        $c->{$_} = $c->{tuwf}{$_} for grep exists($c->{tuwf}{$_}),
+            qw/debug logfile log_slow_pages cookie_prefix cookie_defaults mail_sendmail mail_from/;
         $c
     };
 }
