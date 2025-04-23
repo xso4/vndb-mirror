@@ -528,7 +528,7 @@ sub framework_ {
     fu->{pagevars} = { fu->{pagevars} ? fu->{pagevars}->%* : (), $o{pagevars}->%* } if $o{pagevars};
     $o{unread_noti} = auth && fu->dbVali('SELECT count(*) FROM notifications WHERE uid =', \auth->uid, 'AND read IS NULL');
 
-    fu->set_body(html_ lang => 'en', sub {
+    my $html = html_ lang => 'en', sub {
         lit_ "\n<!--\n"
             ."  This HTML is an unreadable auto-generated mess, sorry for that.\n"
             ."  The full source code of this site can be found at ".config->{source_url}."\n"
@@ -566,7 +566,12 @@ sub framework_ {
 
             script_ defer => 'defer', src => _staticurl("$_.js"), '' for grep fu->{js}{$_}, qw/basic user contrib graph/;
         }
-    });
+    };
+    if (config->{moe}) {
+        $html =~ s{https://(?:s|s2|t)\.vndb\.org/}{https://s.vndb.moe/}g;
+        $html =~ s{https://vndb\.org/}{https://vndb.moe/}g;
+    }
+    fu->set_body($html);
 }
 
 
