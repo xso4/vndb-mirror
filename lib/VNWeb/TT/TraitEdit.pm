@@ -40,7 +40,7 @@ FU::get qr{/$RE{irev}/edit}, sub($id, $rev=0) {
 
 
 FU::get qr{/(?:$RE{iid}/add|i/new)}, sub($id=undef) {
-    my $i = $id && tuwf->dbRowi('SELECT i.id AS parent, i.name, g.name AS "group", i.sexual FROM traits i LEFT JOIN traits g ON g.id = i.gid WHERE i.id =', \$id);
+    my $i = $id && fu->dbRowi('SELECT i.id AS parent, i.name, g.name AS "group", i.sexual FROM traits i LEFT JOIN traits g ON g.id = i.gid WHERE i.id =', \$id);
     fu->denied if !can_edit i => {};
     fu->notfound if $id && !$i->{parent};
 

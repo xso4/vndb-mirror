@@ -84,7 +84,6 @@ sub import {
 
     no strict 'refs';
     *{$c.'::dbobj'} = \&dbobj;
-    *{$c.'::tuwf'} = \&fu;
 }
 
 

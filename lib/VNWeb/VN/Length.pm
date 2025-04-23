@@ -6,8 +6,7 @@ use VNWeb::Releases::Lib;
 # Also used from VN::Page
 sub can_vote { auth->permDbmod || (auth->permLengthvote && !global_settings->{lockdown_edit}) }
 
-sub opts {
-    my($mode) = @_;
+sub opts($mode) {
     tableopts
         date     => { name => 'Date',   sort_id => 0, sort_sql => 'l.date', sort_default => 'desc' },
         length   => { name => 'Time',   sort_id => 1, sort_sql => 'l.length' },
@@ -20,9 +19,7 @@ sub opts {
 my %TABLEOPTS = map +($_, opts $_), '', 'v', 'u';
 
 
-sub listing_ {
-    my($opt, $url, $count, $list, $mode) = @_;
-
+sub listing_($opt, $url, $count, $list, $mode) {
     paginate_ $url, $opt->{p}, [$count, $opt->{s}->results], 't';
     article_ class => 'browse lengthlist', sub {
         table_ class => 'stripe', sub {
@@ -71,9 +68,8 @@ sub listing_ {
 }
 
 
-sub stats_ {
-    my($o) = @_;
-    my $stats = tuwf->dbAlli('
+sub stats_($o) {
+    my $stats = fu->dbAlli('
         SELECT speed, count(*) as count, avg(l.length) as avg
              , stddev_pop(l.length::real)::int as stddev
              , percentile_cont(', \0.5, ') WITHIN GROUP (ORDER BY l.length) AS median
@@ -103,17 +99,17 @@ sub stats_ {
 }
 
 
-TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
-    my $thing = tuwf->capture('thing');
+FU::get qr{/(?:$RE{vid}/|$RE{uid}/)?lengthvotes}, sub($vid=undef, $uid=undef) {
+    my $thing = $vid || $uid;
     my $o = $thing && dbobj $thing;
-    return tuwf->resNotFound if $thing && (!$o->{id} || ($o->{entry_hidden} && !auth->isMod));
-    my $mode = !$thing ? '' : $o->{id} =~ /^v/ ? 'v' : 'u';
+    fu->notfound if $thing && (!$o->{id} || ($o->{entry_hidden} && !auth->isMod));
+    my $mode = $vid ? 'v' : $uid ? 'u' : '';
 
-    my $opt = tuwf->validate(get =>
+    my $opt = fu->query(
         ign => { default => undef, enum => [0,1] },
         p   => { page => 1 },
         s   => { tableopts => $TABLEOPTS{$mode} },
-    )->data;
+    );
 
     my sub url { '?'.query_encode({%$opt, @_}) }
 
@@ -121,9 +117,9 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
         $mode ? sql($mode eq 'v' ? 'l.vid =' : 'l.uid =', \$o->{id}) : (),
         $mode eq 'u' && auth && $o->{id} eq auth->uid ? () : 'NOT l.private',
         defined $opt->{ign} ? sql('l.speed IS', $opt->{ign} ? 'NULL' : 'NOT NULL') : ();
-    my $count = tuwf->dbVali('SELECT COUNT(*) FROM vn_length_votes l WHERE', $where);
+    my $count = fu->dbVali('SELECT COUNT(*) FROM vn_length_votes l WHERE', $where);
 
-    my $lst = tuwf->dbPagei({results => $opt->{s}->results, page => $opt->{p}},
+    my $lst = fu->dbPagei({results => $opt->{s}->results, page => $opt->{p}},
       'SELECT l.id, l.uid, l.vid, l.length, l.speed, l.notes, l.private, l.rid::text[] AS rel, '
             , sql_totime('l.date'), 'AS date, u.perm_lengthvote IS NOT DISTINCT FROM false AS ignore',
               $mode ne 'u' ? (', ', sql_user()) : (),
@@ -153,7 +149,7 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
         return if !@$lst;
         if(auth->permDbmod) {
             form_ method => 'post', action => '/lengthvotes-edit', sub {
-                input_ type => 'hidden', class => 'hidden', name => 'url', value => tuwf->reqPath.tuwf->reqQuery, undef;
+                input_ type => 'hidden', class => 'hidden', name => 'url', value => fu->path.'?'.(fu->query||''), undef;
                 listing_ $opt, \&url, $count, $lst, $mode;
             };
         } else {
@@ -163,16 +159,17 @@ TUWF::get qr{/(?:(?<thing>$RE{vid}|$RE{uid})/)?lengthvotes}, sub {
 };
 
 
-TUWF::post '/lengthvotes-edit', sub {
-    return tuwf->resDenied if !auth->permDbmod || !samesite;
+FU::post '/lengthvotes-edit', sub {
+    fu->denied if !auth->permDbmod || !samesite;
+
+    my $data = fu->formdata({ type => 'hash' });
 
     my @actions;
-    for my $k (tuwf->reqPosts) {
-        next if $k !~ /^lv$RE{num}$/;
-        my $id = $+{num};
-        my $act = tuwf->reqPost($k);
-        next if !$act;
-        my $r = tuwf->dbRowi('
+    for my ($k, $act) (%$data) {
+        next if $k !~ /^lv($RE{num})$/;
+        next if !$act || ref $act;
+        my $id = $1;
+        my $r = fu->dbRowi('
             UPDATE vn_length_votes SET',
                $act eq 'sn' ? 'speed = NULL' :
                $act eq 's0' ? 'speed = 0' :
@@ -183,7 +180,7 @@ TUWF::post '/lengthvotes-edit', sub {
         push @actions, "$r->{vid}-".($r->{uid}//'anon')."-$act";
     }
     auth->audit(undef, 'lengthvote edit', join ', ', sort @actions) if @actions;
-    tuwf->resRedirect(tuwf->reqPost('url'), 'post');
+    fu->redirect(tempget => $data->{url});
 };
 
 
@@ -203,12 +200,12 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
 };
 
 
-TUWF::get qr{/$RE{vid}/lengthvote}, sub {
-    my $v = tuwf->dbRowi('SELECT id, title[1+1], devstatus FROM', vnt, 'v WHERE NOT hidden AND id =', \tuwf->capture('id'));
-    return tuwf->resNotFound if !$v->{id};
-    return tuwf->resDenied if !can_vote;
+FU::get qr{/$RE{vid}/lengthvote}, sub($id) {
+    my $v = fu->dbRowi('SELECT id, title[1+1], devstatus FROM', vnt, 'v WHERE NOT hidden AND id =', \$id);
+    fu->notfound if !$v->{id};
+    fu->denied if !can_vote;
 
-    my $my = tuwf->dbRowi('SELECT rid::text[] AS rid, length, speed, private, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
+    my $my = fu->dbRowi('SELECT rid::text[] AS rid, length, speed, private, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
 
     my $today = strftime '%Y%m%d', gmtime;
     my $rels = [ grep $_->{released} <= $today, releases_by_vn($v->{id})->@* ];
@@ -239,7 +236,7 @@ TUWF::get qr{/$RE{vid}/lengthvote}, sub {
 
 
 js_api VNLengthVote => $FORM_IN, sub ($data) {
-    return tuwf->resDenied if !can_vote;
+    fu->denied if !can_vote;
     my %where = ( uid => auth->uid, vid => $data->{vid} );
 
     if ($data->{vote}) {
@@ -248,12 +245,12 @@ js_api VNLengthVote => $FORM_IN, sub ($data) {
             rid => sql sql_array($data->{vote}{rid}->@*), '::vndbid[]'
         );
         $fields{speed} = undef if $fields{private};
-        tuwf->dbExeci(
+        fu->dbExeci(
             'INSERT INTO vn_length_votes', { %where, %fields },
             'ON CONFLICT (uid, vid) DO UPDATE SET', \%fields
         );
     } else {
-        tuwf->dbExeci('DELETE FROM vn_length_votes WHERE', \%where);
+        fu->dbExeci('DELETE FROM vn_length_votes WHERE', \%where);
     }
     +{};
 };

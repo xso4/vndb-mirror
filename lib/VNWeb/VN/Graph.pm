@@ -5,27 +5,26 @@ use VNWeb::Graph;
 use VNWeb::VN::Lib;
 
 
-TUWF::get qr{/$RE{vid}/rg}, sub {
+FU::get qr{/$RE{vid}/rg}, sub($id) {
     not_moe;
-    my $id = tuwf->capture(1);
-    my $num = tuwf->validate(get => num => { uint => 1, onerror => 15 })->data;
-    my $unoff = tuwf->validate(get => unoff => { default => 1, anybool => 1 })->data;
+    my $num = fu->query(num => { uint => 1, onerror => 15 });
+    my $unoff = fu->query(unoff => { default => 1, anybool => 1 });
     my $v = dbobj $id;
 
-    my $has = tuwf->dbRowi('SELECT bool_or(official) AS official, bool_or(not official) AS unofficial FROM vn_relations WHERE id =', \$id, 'GROUP BY id');
+    my $has = fu->dbRowi('SELECT bool_or(official) AS official, bool_or(not official) AS unofficial FROM vn_relations WHERE id =', \$id, 'GROUP BY id');
     $unoff = 1 if !$has->{official};
 
     # Big list of { id0, id1, relation } hashes.
     # Each relation is included twice, with id0 and id1 reversed.
     my $where = $unoff ? '1=1' : 'vr.official';
-    my $rel = tuwf->dbAlli(q{
+    my $rel = fu->dbAlli(q{
         WITH RECURSIVE rel(id0, id1, relation, official) AS (
             SELECT id, vid, relation, official FROM vn_relations vr WHERE id =}, \$id, 'AND', $where, q{
             UNION
             SELECT id, vid, vr.relation, vr.official FROM vn_relations vr JOIN rel r ON vr.id = r.id1 WHERE}, $where, q{
         ) SELECT * FROM rel ORDER BY id0
     });
-    return tuwf->resNotFound if !@$rel;
+    fu->notfound if !@$rel;
 
     # Fetch the nodes
     my $nodes = gen_nodes $id, $rel, $num;
@@ -94,19 +93,19 @@ TUWF::get qr{/$RE{vid}/rg}, sub {
 };
 
 
-TUWF::get qr{/$RE{vid}/rgi}, sub {
-    my $v = dbobj tuwf->capture(1);
+FU::get qr{/$RE{vid}/rgi}, sub($id) {
+    my $v = dbobj $id;
 
     # Big list of { id0, id1, relation, official } hashes.
     # Each relation is included twice, with id0 and id1 reversed.
-    my $rel = tuwf->dbAlli(q{
+    my $rel = fu->dbAlli(q{
         WITH RECURSIVE rel(id0, id1, relation, official) AS (
             SELECT id, vid, relation, official FROM vn_relations vr WHERE id =}, \$v->{id}, q{
             UNION
             SELECT id, vid, vr.relation, vr.official FROM vn_relations vr JOIN rel r ON vr.id = r.id1
         ) SELECT * FROM rel ORDER BY id0
     });
-    return tuwf->resNotFound if !@$rel;
+    fu->notfound if !@$rel;
 
     # Get rid of duplicate relations and convert to a more efficient array-based format.
     # For directional relations, keep the one that is preferred ("pref"), for unidirectional relations, keep the one with the lowest id0.

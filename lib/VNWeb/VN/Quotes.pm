@@ -11,14 +11,12 @@ sub editable {
     auth->permDbmod || deletable @_;
 }
 
-sub submittable {
-    my($vid) = @_;
-    auth->permDbmod || (auth->permEdit && tuwf->dbVali(q{SELECT COUNT(*) FROM quotes WHERE added > NOW() - '1 day'::interval AND addedby =}, \auth->uid) < 5);
+sub submittable($vid) {
+    auth->permDbmod || (auth->permEdit && fu->dbVali(q{SELECT COUNT(*) FROM quotes WHERE added > NOW() - '1 day'::interval AND addedby =}, \auth->uid) < 5);
 }
 
 # Also used by Chars::Page
-sub votething_ {
-    my($q) = @_;
+sub votething_($q) {
     if (auth) {
         span_ class => 'quote-score', widget(QuoteVote => [@{$q}{qw/id score vote/}, $_->{hidden} ? \1 : \0, editable($q) ? \1 : \0]), '';
     } else {
@@ -26,13 +24,13 @@ sub votething_ {
     }
 }
 
-TUWF::get qr{/$RE{vid}/quotes}, sub {
+FU::get qr{/$RE{vid}/quotes}, sub($id) {
     not_moe;
-    my $v = db_entry tuwf->capture('id');
-    return tuwf->resNotFound if !$v->{id} || $v->{entry_hidden};
+    my $v = db_entry $id;
+    fu->notfound if !$v->{id} || $v->{entry_hidden};
     VNWeb::VN::Page::enrich_vn($v);
 
-    my $lst = tuwf->dbAlli('
+    my $lst = fu->dbAlli('
         SELECT q.id, q.score, q.quote,', sql_totime('q.added'), 'AS added, q.addedby, q.cid, c.title, v.spoil
           FROM quotes q
           LEFT JOIN', charst, 'c ON c.id = q.cid
@@ -95,8 +93,7 @@ TUWF::get qr{/$RE{vid}/quotes}, sub {
 };
 
 
-sub listing_ {
-    my($lst, $count, $opt, $url) = @_;
+sub listing_($lst, $count, $opt, $url) {
     paginate_ $url, $opt->{p}, [$count, 50], 't';
     article_ class => 'browse quotes', sub {
         table_ class => 'stripe', sub {
@@ -124,9 +121,7 @@ sub listing_ {
     paginate_ $url, $opt->{p}, [$count, 50], 'b';
 }
 
-sub opts_ {
-    my($opt) = @_;
-
+sub opts_($opt) {
     my sub obj_ {
         my($key, $label) = @_;
         my $v = $opt->{$key} // return;
@@ -141,8 +136,7 @@ sub opts_ {
         };
     }
 
-    my sub opt_ {
-        my($key, $val, $label) = @_;
+    my sub opt_($key, $val, $label) {
         label_ sub {
             lit_ ' ';
             input_ type => 'radio', name => $key, value => $val//'',
@@ -189,20 +183,20 @@ sub opts_ {
     };
 }
 
-TUWF::get '/v/quotes', sub {
-    return tuwf->resDenied if !auth;
-    my $opt = tuwf->validate(get =>
+FU::get '/v/quotes', sub {
+    fu->denied if !auth;
+    my $opt = fu->query(
         v  => { default => undef, vndbid => 'v' },
         u  => { default => undef, vndbid => 'u' },
-        h  => { undefbool => 1 },
-        c  => { undefbool => 1 },
+        h  => { default => undef, enum => [0,1] },
+        c  => { default => undef, enum => [0,1] },
         s  => { default => 'added', enum => [qw/added lastmod top bottom/] },
         p  => { upage => 1 },
-    )->data;
+    );
     $opt->{h} = 0 if !auth->permDbmod;
 
-    my $u = $opt->{u} && tuwf->dbRowi('SELECT id,', sql_user(), 'FROM users u WHERE id =', \$opt->{u});
-    return tuwf->resNotFound if $opt->{u} && (!$u->{id} || (!defined $u->{user_name} && !auth->isMod));
+    my $u = $opt->{u} && fu->dbRowi('SELECT id,', sql_user(), 'FROM users u WHERE id =', \$opt->{u});
+    fu->notfound if $opt->{u} && (!$u->{id} || (!defined $u->{user_name} && !auth->isMod));
 
     my $where = sql_and
         $opt->{v} ? sql('q.vid =', \$opt->{v}) : (),
@@ -210,8 +204,8 @@ TUWF::get '/v/quotes', sub {
         defined $opt->{h} ? sql($opt->{h} ? '' : 'NOT', 'q.hidden') : (),
         defined $opt->{c} ? sql('q.cid', $opt->{c} ? 'IS NOT NULL' : 'IS NULL') : ();
 
-    my $count = tuwf->dbVali('SELECT COUNT(*) FROM quotes q WHERE', $where);
-    my $lst = !$count ? [] : tuwf->dbPagei({ results => 50, page => $opt->{p} }, '
+    my $count = fu->dbVali('SELECT COUNT(*) FROM quotes q WHERE', $where);
+    my $lst = !$count ? [] : fu->dbPagei({ results => 50, page => $opt->{p} }, '
         SELECT q.id, q.hidden, q.score, q.quote, q.addedby, q.vid, q.cid
              , v.title, c.title AS char,', sql_user(), '
              , ', sql_totime('q.added'), 'added
@@ -260,23 +254,21 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     delete   => { anybool => 1 },
 };
 
-TUWF::get qr{/(?:$RE{vid}/addquote|editquote/$RE{qid})}, sub {
-    my($vid, $qid) = tuwf->captures(1, 2);
-
-    my $q = $qid && tuwf->dbRowi('
+FU::get qr{/(?:$RE{vid}/addquote|editquote/$RE{qid})}, sub($vid, $qid=undef) {
+    my $q = $qid && fu->dbRowi('
         SELECT q.id, q.vid, q.hidden, q.quote,', sql_totime('q.added'), 'added, q.addedby, q.cid, c.title
           FROM quotes q
           LEFT JOIN', charst, 'c ON c.id = q.cid
          WHERE q.id = ', \$qid
     );
-    return tuwf->resNotFound if $qid && !$q->{id};
+    fu->notfound if $qid && !$q->{id};
     $vid ||= $q->{vid};
 
     my $v = $vid && dbobj $vid;
-    return tuwf->resNotFound if $vid && (!$v->{id} || $v->{entry_hidden});
-    return tuwf->resDenied if $qid ? !editable $q : !submittable $vid;
+    fu->notfound if $vid && (!$v->{id} || $v->{entry_hidden});
+    fu->denied if $qid ? !editable $q : !submittable $vid;
 
-    my $log = $qid && tuwf->dbAlli('
+    my $log = $qid && fu->dbAlli('
         SELECT ', sql_totime('q.date'), 'date, q.action,', sql_user(), '
           FROM quotes_log q
           LEFT JOIN users u ON u.id = q.uid
@@ -284,7 +276,7 @@ TUWF::get qr{/(?:$RE{vid}/addquote|editquote/$RE{qid})}, sub {
          ORDER BY q.date DESC
     ');
 
-    my $chars = tuwf->dbAlli('
+    my $chars = fu->dbAlli('
         SELECT id, title[1+1] AS title, title[1+1+1+1] AS alttitle
           FROM ', charst, '
          WHERE NOT hidden AND id IN(SELECT id FROM chars_vns WHERE vid =', \$v->{id}, ')
@@ -309,7 +301,7 @@ TUWF::get qr{/(?:$RE{vid}/addquote|editquote/$RE{qid})}, sub {
             div_ widget(QuoteEdit => $FORM_OUT, { $qid ? (
                 id => $q->{id}, hidden => $q->{hidden}, quote => $q->{quote},
                 cid => $q->{cid}, title => $q->{title}[1], alttitle => $q->{title}[3],
-            ) : elm_empty($FORM_OUT)->%*, chars => $chars, vid => $vid, delete => deletable($q) }), '';
+            ) : $FORM_OUT->empty->%*, chars => $chars, vid => $vid, delete => deletable($q) }), '';
         };
         if ($log && @$log) {
             nav_ sub {
@@ -335,14 +327,12 @@ TUWF::get qr{/(?:$RE{vid}/addquote|editquote/$RE{qid})}, sub {
     };
 };
 
-js_api QuoteEdit => $FORM_IN, sub {
-    my($data) = @_;
-
+js_api QuoteEdit => $FORM_IN, sub($data) {
     my $v = dbobj $data->{vid};
-    return tuwf->resNotFound if !$v->{id} || $v->{entry_hidden};
+    fu->notfound if !$v->{id} || $v->{entry_hidden};
 
-    my $q = $data->{id} && tuwf->dbRowi('SELECT id, hidden, quote,', sql_totime('added'), 'added, addedby, cid FROM quotes WHERE id = ', \$data->{id});
-    return tuwf->resDenied if $data->{id} && (!$q->{id} || !editable $q);
+    my $q = $data->{id} && fu->dbRowi('SELECT id, hidden, quote,', sql_totime('added'), 'added, addedby, cid FROM quotes WHERE id = ', \$data->{id});
+    fu->denied if $data->{id} && (!$q->{id} || !editable $q);
 
     if ($data->{id}) {
         my %set = (
@@ -350,8 +340,8 @@ js_api QuoteEdit => $FORM_IN, sub {
             $data->{quote} ne $q->{quote} ? (quote => $data->{quote}) : (),
             ($data->{cid}//'') ne ($q->{cid}//'') ? (cid => $data->{cid}) : (),
         );
-        tuwf->dbExeci('UPDATE quotes SET', \%set, 'WHERE id =', \$data->{id}) if keys %set;
-        tuwf->dbExeci('INSERT INTO quotes_log', {
+        fu->dbExeci('UPDATE quotes SET', \%set, 'WHERE id =', \$data->{id}) if keys %set;
+        fu->dbExeci('INSERT INTO quotes_log', {
             id => $data->{id}, uid => auth->uid,
             action => join '; ',
                 exists $set{hidden} ? "State: ".($q->{hidden}?"Deleted":"New")." -> ".($data->{hidden}?"Deleted":"New") : (),
@@ -363,33 +353,32 @@ js_api QuoteEdit => $FORM_IN, sub {
         return 'You have already submitted 5 quotes today, try again tomorrow.' if !submittable($data->{vid});
         my sub norm { sql 'lower(regexp_replace(', $_[0], q{, '[\s",.]+', '', 'g'))} }
         return 'This quote has already been submitted.'
-            if tuwf->dbVali('SELECT 1 FROM quotes WHERE vid =', \$data->{vid}, 'AND', norm(\$data->{quote}), '=', norm('quote'));
+            if fu->dbVali('SELECT 1 FROM quotes WHERE vid =', \$data->{vid}, 'AND', norm(\$data->{quote}), '=', norm('quote'));
 
-        my $id = tuwf->dbVali('INSERT INTO quotes', {
+        my $id = fu->dbVali('INSERT INTO quotes', {
             vid     => $v->{id},
             cid     => $data->{cid},
             addedby => auth->uid,
             quote   => $data->{quote},
             auth->permDbmod ? (hidden => $data->{hidden}) : (),
         }, 'RETURNING id');
-        tuwf->dbExeci('INSERT INTO quotes_votes', {id => $id, uid => auth->uid, vote => 1});
-        tuwf->dbExeci('INSERT INTO quotes_log', {id => $id, uid => auth->uid, action => 'Submitted'});
+        fu->dbExeci('INSERT INTO quotes_votes', {id => $id, uid => auth->uid, vote => 1});
+        fu->dbExeci('INSERT INTO quotes_log', {id => $id, uid => auth->uid, action => 'Submitted'});
     }
     +{}
 };
 
-js_api QuoteDel => { id => { vndbid => 'q' } }, sub {
-    my $q = tuwf->dbRowi('SELECT id, hidden,', sql_totime('added'), 'added, addedby FROM quotes WHERE id = ', \$_[0]{id});
-    return tuwf->resDenied if !$q->{id} || !deletable $q;
-    tuwf->dbExeci('DELETE FROM quotes WHERE id =', \$q->{id});
+js_api QuoteDel => { id => { vndbid => 'q' } }, sub($data) {
+    my $q = fu->dbRowi('SELECT id, hidden,', sql_totime('added'), 'added, addedby FROM quotes WHERE id = ', \$data->{id});
+    fu->denied if !$q->{id} || !deletable $q;
+    fu->dbExeci('DELETE FROM quotes WHERE id =', \$q->{id});
     +{}
 };
 
-js_api QuoteVote => { id => { vndbid => 'q' }, vote => { default => undef, enum => [-1,1] } }, sub {
-    my($data) = @_;
-    tuwf->dbExeci('DELETE FROM quotes_votes WHERE', { uid => auth->uid, id => $data->{id} }) if !$data->{vote};
+js_api QuoteVote => { id => { vndbid => 'q' }, vote => { default => undef, enum => [-1,1] } }, sub($data) {
+    fu->dbExeci('DELETE FROM quotes_votes WHERE', { uid => auth->uid, id => $data->{id} }) if !$data->{vote};
     $data->{uid} = auth->uid;
-    tuwf->dbExeci('INSERT INTO quotes_votes', $data, 'ON CONFLICT (id, uid) DO UPDATE SET vote =', \$data->{vote}) if $data->{vote};
+    fu->dbExeci('INSERT INTO quotes_votes', $data, 'ON CONFLICT (id, uid) DO UPDATE SET vote =', \$data->{vote}) if $data->{vote};
     +{}
 };
 

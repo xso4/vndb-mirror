@@ -34,7 +34,7 @@ FU::get qr{/$RE{vid}/addreview}, sub($vid) {
 
     my $id = fu->dbVali('SELECT id FROM reviews WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
     fu->redirect('temp' => "/$id/edit") if $id;
-    fu->renied if !can_edit w => {};
+    fu->denied if !can_edit w => {};
 
     framework_ title => "Write review for $v->{title}", sub {
         if(throttled) {

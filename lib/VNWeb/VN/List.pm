@@ -14,11 +14,11 @@ use VNWeb::TT::Lib 'tagscore_';
 # - the VN listing on tags ('tags')
 # - a user's VN list ('ulist')
 # The latter has different numeric identifiers, a sad historical artifact. :(
-sub TABLEOPTS {
-    my $tags = $_[0] eq 'tags';
-    my $vns = $_[0] eq 'vns';
-    my $vn = $vns || $_[0] eq 'vn';
-    my $ulist = $_[0] eq 'ulist';
+sub TABLEOPTS($type) {
+    my $tags = $type eq 'tags';
+    my $vns = $type eq 'vns';
+    my $vn = $vns || $type eq 'vn';
+    my $ulist = $type eq 'ulist';
     die if !$tags && !$vn && !$ulist;
 
     # Old popularity column:
@@ -155,8 +155,7 @@ sub TABLEOPTS {
 my $TABLEOPTS = TABLEOPTS 'vn';
 my $TABLEOPTS_Q = TABLEOPTS 'vns';
 
-sub len_ {
-    my($v) = @_;
+sub len_($v) {
     if ($v->{c_lengthnum}) {
         vnlength_ $v->{c_length};
         small_ " ($v->{c_lengthnum})";
@@ -165,10 +164,8 @@ sub len_ {
     }
 }
 
-# Also used by VNWeb::TT::TagPage
-sub listing_ {
-    my($opt, $list, $count, $tagscore, $labels, $own) = @_;
-
+# Also used by VNWeb::TT::TagPage and VNWeb::ULists::List
+sub listing_($opt, $list, $count, $tagscore=undef, $labels=undef, $own=undef) {
     my sub url { '?'.query_encode({%$opt, @_}) }
 
     paginate_ \&url, $opt->{p}, [$count, $opt->{s}->results], 't', $opt->{s};
@@ -334,9 +331,7 @@ sub listing_ {
 
 # Enrich some extra fields fields needed for listing_()
 # Also used by TT::TagPage and UList::List
-sub enrich_listing {
-    my($widget, $opt, @lst) = @_;
-
+sub enrich_listing($widget, $opt, @lst) {
     enrich developers => id => vid => sub { sql
         'SELECT v.id AS vid, p.id, p.title
            FROM vn v, unnest(v.c_developers) vp(id),', producerst, 'p
@@ -348,8 +343,8 @@ sub enrich_listing {
 }
 
 
-TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
-    my $opt = tuwf->validate(get =>
+FU::get qr{/v(?:/(all|[a-z0]))?}, sub($char=undef) {
+    my $opt = fu->query(
         q => { searchquery => 1 },
         sq=> { searchquery => 1 },
         p => { upage => 1 },
@@ -358,14 +353,13 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
         fil  => { onerror => '' },
         rfil => { onerror => '' },
         cfil => { onerror => '' },
-    )->data;
+    );
     $opt->{q} = $opt->{sq} if !$opt->{q};
-    $opt->{s} = tuwf->validate(get => s => { tableopts => $opt->{q} ? $TABLEOPTS_Q : $TABLEOPTS })->data;
-    $opt->{s} = $opt->{s}->sort_param(qscore => 'a') if $opt->{q} && tuwf->reqGet('sb');
+    $opt->{s} = fu->query(s => { tableopts => $opt->{q} ? $TABLEOPTS_Q : $TABLEOPTS });
+    $opt->{s} = $opt->{s}->sort_param(qscore => 'a') if $opt->{q} && fu->query('sb');
 
     # compat with old URLs
-    my $oldch = tuwf->capture('char');
-    $opt->{ch} //= $oldch if defined $oldch && $oldch ne 'all';
+    $opt->{ch} //= $char if defined $char && $char ne 'all';
 
     # URL compatibility with old filters
     if(!$opt->{f}->{query} && ($opt->{fil} || $opt->{rfil} || $opt->{cfil})) {
@@ -378,12 +372,12 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
                 $rfil && @$rfil > 1 ? [ 'release', '=', $rfil ] : (),
                 $cfil && @$cfil > 1 ? [ 'character', '=', $cfil ] : (),
             );
-            tuwf->compile({ advsearch => 'v' })->validate(@q > 1 ? ['and',@q] : @q)->data;
+            FU::Validate->compile({ advsearch => 'v' })->validate(@q > 1 ? ['and',@q] : @q);
         };
-        return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode({%$opt, fil => undef, rfil => undef, cfil => undef, f => $q}), 'perm') if $q;
+        fu->redirect(perm => fu->path.'?'.query_encode({%$opt, fil => undef, rfil => undef, cfil => undef, f => $q})) if $q;
     }
 
-    $opt->{f} = advsearch_default 'v' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
+    $opt->{f} = advsearch_default 'v' if !$opt->{f}{query} && !defined fu->query('f');
 
     my $where = sql_and
         'NOT v.hidden', $opt->{f}->sql_where(),
@@ -392,8 +386,8 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = tuwf->dbVali('SELECT count(*) FROM', vnt, 'v WHERE', sql_and $where, $opt->{q}->sql_where('v', 'v.id'));
-        $list = $count ? tuwf->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
+        $count = fu->dbVali('SELECT count(*) FROM', vnt, 'v WHERE', sql_and $where, $opt->{q}->sql_where('v', 'v.id'));
+        $list = $count ? fu->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
             SELECT v.id, v.title, v.c_released, v.c_votecount, v.c_rating, v.c_average
                  , ', sql_vnimage, ', v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang',
                    $opt->{s}->vis('length') ? ', v.length, v.c_length, v.c_lengthnum' : (), '
@@ -404,7 +398,7 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
     } || (($count, $list) = (undef, []));
 
     my $fullq = join '', $opt->{q}->words->@*;
-    my $other = length $fullq && $opt->{s}->sorted('qscore') && $opt->{p} == 1 ? tuwf->dbAlli("
+    my $other = length $fullq && $opt->{s}->sorted('qscore') && $opt->{p} == 1 ? fu->dbAlli("
         SELECT x.id, i.title
           FROM (
             SELECT DISTINCT id
@@ -417,7 +411,7 @@ TUWF::get qr{/v(?:/(?<char>all|[a-z0]))?}, sub {
          ORDER BY vndbid_type(x.id) DESC, i.title[1+1]
     ') : [];
 
-    return tuwf->resRedirect("/$list->[0]{id}", 'temp') if $count && $count == 1 && $opt->{p} == 1 && $opt->{q} && !defined $opt->{ch} && !@$other;
+    fu->redirect(temp => "/$list->[0]{id}") if $count && $count == 1 && $opt->{p} == 1 && $opt->{q} && !defined $opt->{ch} && !@$other;
 
     enrich_listing(1, $opt, $list);
     $time = time - $time;

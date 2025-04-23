@@ -44,7 +44,7 @@ FU::get qr{/$RE{grev}/edit}, sub($id, $rev=0) {
 
 
 FU::get qr{/(?:$RE{gid}/add|g/new)}, sub($id=undef) {
-    my $g = $id && tuwf->dbRowi('SELECT id, name, cat FROM tags WHERE NOT hidden AND id =', \$id);
+    my $g = $id && fu->dbRowi('SELECT id, name, cat FROM tags WHERE NOT hidden AND id =', \$id);
     fu->denied if !can_edit g => {};
     fu->notfound if $id && !$g->{id};
 

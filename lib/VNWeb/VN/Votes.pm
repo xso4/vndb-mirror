@@ -3,9 +3,7 @@ package VNWeb::VN::Votes;
 use VNWeb::Prelude;
 
 
-sub listing_ {
-    my($opt, $count, $lst) = @_;
-
+sub listing_($opt, $count, $lst) {
     my sub url { '?'.query_encode({%$opt, @_}) }
     paginate_ \&url, $opt->{p}, [ $count, 50 ], 't';
     article_ class => 'browse votelist', sub {
@@ -29,15 +27,15 @@ sub listing_ {
 }
 
 
-TUWF::get qr{/$RE{vid}/votes}, sub {
-    my $v = dbobj tuwf->capture('id');
-    return tuwf->resNotFound if !$v->{id} || $v->{entry_hidden};
+FU::get qr{/$RE{vid}/votes}, sub($id) {
+    my $v = dbobj $id;
+    fu->notfound if !$v->{id} || $v->{entry_hidden};
 
-    my $opt = tuwf->validate(get =>
+    my $opt = fu->query(
         p => { page => 1 },
         o => { onerror => 'd', enum => ['a','d'] },
         s => { onerror => 'date', enum => ['date', 'title', 'vote' ] }
-    )->data;
+    );
 
     my $fromwhere = sql
         'FROM ulist_vns uv
@@ -45,9 +43,9 @@ TUWF::get qr{/$RE{vid}/votes}, sub {
         WHERE uv.vid =', \$v->{id}, 'AND uv.vote IS NOT NULL
           AND NOT EXISTS(SELECT 1 FROM users u WHERE u.id = uv.uid AND u.ign_votes)';
 
-    my $count = tuwf->dbVali('SELECT COUNT(*)', $fromwhere);
+    my $count = fu->dbVali('SELECT COUNT(*)', $fromwhere);
 
-    my $lst = tuwf->dbPagei({results => 50, page => $opt->{p}},
+    my $lst = fu->dbPagei({results => 50, page => $opt->{p}},
       'SELECT uv.vote, uv.c_private, ', sql_totime('uv.vote_date'), 'as date, ', sql_user(),
            $fromwhere, 'ORDER BY', sprintf
             { date => 'uv.vote_date %s, uv.vote', vote => 'uv.vote %s, uv.vote_date', title => "(CASE WHEN uv.c_private THEN NULL ELSE u.username END) %s, uv.vote_date" }->{$opt->{s}},

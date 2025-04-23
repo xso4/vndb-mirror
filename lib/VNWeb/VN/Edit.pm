@@ -74,9 +74,9 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
 };
 
 
-TUWF::get qr{/$RE{vrev}/edit} => sub {
-    my $e = db_entry tuwf->captures('id', 'rev') or return tuwf->resNotFound;
-    return tuwf->resDenied if !can_edit v => $e;
+FU::get qr{/$RE{vrev}/edit} => sub($id, $rev=0) {
+    my $e = db_entry $id, $rev or fu->notfound;
+    fu->denied if !can_edit v => $e;
 
     $e->{editsum} = $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
 
@@ -92,7 +92,7 @@ TUWF::get qr{/$RE{vrev}/edit} => sub {
     $e->{seiyuu} = [ grep $_->{sid}, $e->{seiyuu}->@* ];
 
     $e->{releases} = releases_by_vn $e->{id};
-    $e->{reltitles} = [ map $_->{x}, tuwf->dbAlli('
+    $e->{reltitles} = [ map $_->{x}, fu->dbAlli('
         SELECT DISTINCT lower(i.title) AS x
           FROM releases r
           JOIN releases_vn rv ON rv.id = r.id
@@ -101,7 +101,7 @@ TUWF::get qr{/$RE{vrev}/edit} => sub {
          WHERE NOT r.hidden AND rv.vid =', \$e->{id}
     )->@* ];
 
-    $e->{chars} = tuwf->dbAlli('
+    $e->{chars} = fu->dbAlli('
         SELECT id, title[1+1], title[1+1+1+1] AS alttitle FROM', charst, '
          WHERE NOT hidden AND id IN(SELECT id FROM chars_vns WHERE vid =', \$e->{id},')
          ORDER BY sorttitle, id'
@@ -116,22 +116,21 @@ TUWF::get qr{/$RE{vrev}/edit} => sub {
 };
 
 
-TUWF::get qr{/v/add}, sub {
-    return tuwf->resDenied if !can_edit v => undef;
+FU::get '/v/add', sub {
+    fu->denied if !can_edit v => undef;
 
     framework_ title => 'Add visual novel',
     sub {
         editmsg_ v => undef, 'Add visual novel';
-        div_ widget(VNEdit => $FORM_OUT, elm_empty($FORM_OUT)), '';
+        div_ widget(VNEdit => $FORM_OUT, $FORM_OUT->empty), '';
     };
 };
 
 
-js_api VNEdit => $FORM_IN, sub {
-    my $data = shift;
+js_api VNEdit => $FORM_IN, sub($data) {
     my $new = !$data->{id};
-    my $e = $new ? { id => 0 } : db_entry $data->{id} or return tuwf->resNotFound;
-    return tuwf->resDenied if !can_edit v => $e;
+    my $e = $new ? { id => 0 } : db_entry $data->{id} or fu->notfound;
+    fu->denied if !can_edit v => $e;
 
     if(!auth->permDbmod) {
         $data->{hidden} = $e->{hidden}||0;
