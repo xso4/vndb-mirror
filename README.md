@@ -44,8 +44,7 @@ lib/
         tools in *util/*.
 
     VNWeb/
-    :   The VNDB website backend, this code makes heavy use of
-        [TUWF](https://dev.yorhel.nl/tuwf).
+    :   The VNDB website backend.
 
 sql/
 :   PostgreSQL script files to initialize a fresh database schema with all
@@ -141,20 +140,18 @@ General:
 - Crypt::URandom
 - DBD::Pg
 - DBI
-- JSON::XS
 
 util/vndb.pl (the web backend):
 - Algorithm::Diff::XS
 - FU
 - SQL::Interp
 - Text::MultiMarkdown
-- TUWF
-- HTTP::Server::Simple
 
 util/multi.pl (application server, optional):
 - AnyEvent::HTTP
 - AnyEvent::IRC
 - AnyEvent::Pg
+- JSON::XS
 
 
 ## Manual setup

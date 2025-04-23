@@ -10,7 +10,7 @@ use Multi::Core;
 use AnyEvent::IRC::Client;
 use AnyEvent::IRC::Util 'prefix_nick';
 use VNDB::Config;
-use TUWF::Misc 'uri_escape';
+use FU::Util 'uri_escape';
 use POSIX 'strftime';
 use Encode 'decode_utf8', 'encode_utf8';
 

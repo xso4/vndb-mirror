@@ -1,7 +1,7 @@
 FROM alpine:3.21
 MAINTAINER Yorhel <contact@vndb.org>
 
-ENV VNDB_DOCKER_VERSION=17
+ENV VNDB_DOCKER_VERSION=18
 ENV VNDB_GEN=/vndb/docker/gen
 ENV VNDB_VAR=/vndb/docker/var
 CMD /vndb/util/docker-init.sh
@@ -19,7 +19,6 @@ RUN apk add --no-cache \
         perl-crypt-urandom \
         perl-dbd-pg \
         perl-dev \
-        perl-http-server-simple \
         perl-json-xs \
         perl-module-build \
         postgresql17 \
@@ -34,5 +33,4 @@ RUN apk add --no-cache \
         Crypt::ScryptKDF \
         SQL::Interp \
         Text::MultiMarkdown \
-        git://g.blicky.net/tuwf.git \
         git://g.blicky.net/fu.git
