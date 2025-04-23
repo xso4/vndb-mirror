@@ -20,6 +20,8 @@ my $config = {
     tuwf => {
         db_login      => [ 'dbi:Pg:dbname=vndb', 'vndb_site', undef ],
     },
+    statement_timeout => 10,
+
     fu_debug_path     => '/fu-debug',
     cookie_prefix     => 'vndb_',
     cookie_defaults   => {},

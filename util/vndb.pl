@@ -45,7 +45,12 @@ FU::Log::set_fmt(sub($msg) {
 # We're still using DBI for now.
 my $DB;
 sub FU::obj::dbh {
-    $DB ||= DBI->connect(config->{tuwf}{db_login}->@*, { PrintError => 0, RaiseError => 1, AutoCommit => 0, pg_enable_utf8 => 1 });
+    if (!$DB) {
+        $DB = DBI->connect(config->{tuwf}{db_login}->@*, { PrintError => 0, RaiseError => 1, AutoCommit => 0, pg_enable_utf8 => 1 });
+        $DB->do(sprintf 'SET statement_timeout = %d', config->{statement_timeout}*1000) if config->{statement_timeout};
+        $DB->do('SET search_path TO moe, public') if config->{moe};
+        $DB->commit;
+    }
     $DB->rollback if !fu->{in_txn}++;
     $DB;
 }
@@ -73,9 +78,6 @@ FU::before_request {
         fu->send_file("$ROOT/static", fu->path);
     }
     fu->reset;
-
-    # Load the 'moe' schema if we're in moe mode
-    fu->dbExeci('SET search_path TO moe, public') if config->{moe};
 
     # Use a 'SameSite=Strict' cookie to determine whether this page was loaded from internal or external.
     # Ought to be more reliable than checking the Referer header, but it's unfortunately a bit uglier.
