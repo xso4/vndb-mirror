@@ -77,7 +77,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
         group   => { default => undef },
     } },
 
-    api2            => { maxlength => 64, aoh => {
+    api2            => { maxlength => 64, sort_keys => 'token', aoh => {
         token     => {},
         added     => {},
         lastused  => { default => '' },

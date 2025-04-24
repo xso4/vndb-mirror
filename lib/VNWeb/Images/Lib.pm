@@ -26,7 +26,7 @@ our $IMGSCHEMA = {
         id       => {},
         title    => {},
     } },
-    votes           => { unique => 0, aoh => {
+    votes           => { aoh => {
         user     => {},
         uid      => { vndbid => 'u', default => undef },
         sexual   => { uint => 1 },

@@ -84,7 +84,7 @@ js_api ImageVote => {
 };
 
 
-my $SEND = form_compile any => {
+my $SEND = form_compile {
     images     => { aoh => $IMGSCHEMA },
     single     => { anybool => 1 },
     warn       => { anybool => 1 },

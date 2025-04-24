@@ -91,10 +91,12 @@ for my ($k,$v) (
     undefarray  => sub { +{ default => undef, accept_scalar => 1, elems => $_[0] } },
     # Accepts a user-entered vote string (or '-' or empty) and converts that into a DB vote number (or undef) - opposite of fmtvote()
     vnvote      => { default => undef, regex => qr/^(?:|-|[1-9]|10|[1-9]\.[0-9]|10\.0)$/, func => sub { $_[0] = $_[0] eq '-' ? undef : 10*$_[0]; 1 } },
-    # Sort an array by the listed hash keys, using string comparison on each key
+    # Array-of-hashes
+    aoh         => sub { +{ elems => { keys => $_[0] } } },
+    # Used with 'aoh', sort by the given hash keys and ensure uniqueness
     sort_keys   => sub {
-        my @keys = ref $_[0] eq 'ARRAY' ? @{$_[0]} : $_[0];
-        +{ type => 'array', sort => sub {
+        my @keys = ref $_[0] ? $_[0]->@* : $_[0];
+        +{ unique => 1, sort => sub {
             for(@keys) {
                 my $c = defined($_[0]{$_}) cmp defined($_[1]{$_}) || (defined($_[0]{$_}) && $_[0]{$_} cmp $_[1]{$_});
                 return $c if $c;
@@ -102,8 +104,6 @@ for my ($k,$v) (
             0
         } }
     },
-    # Sorted and unique array-of-hashes (default order is sort_keys on the sorted keys...)
-    aoh         => sub { +{ unique => 1, sort_keys => [sort keys %{$_[0]}], elems => { keys => $_[0] } } },
     # Fields query parameter for the API, supports multiple values or comma-delimited list, returns a hash.
     fields      => sub {
         my %keys = map +($_,1), ref $_[0] eq 'ARRAY' ? @{$_[0]} : $_[0];

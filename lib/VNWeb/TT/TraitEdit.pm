@@ -11,7 +11,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     searchable   => { anybool => 1, default => 1 },
     applicable   => { anybool => 1, default => 1 },
     defaultspoil => { uint => 1, range => [0,2] },
-    parents      => { aoh => {
+    parents      => { sort_keys => 'parent', aoh => {
         parent      => { vndbid => 'i' },
         main        => { anybool => 1 },
         name        => { _when => 'out' },
