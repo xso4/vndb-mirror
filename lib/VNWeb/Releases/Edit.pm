@@ -67,7 +67,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
         publisher => { anybool => 1 },
         name      => { _when => 'out' },
     } },
-    images     => { sort_keys => 'itype', aoh => {
+    images     => { sort_keys => 'img', aoh => {
         img       => { vndbid => 'cv' },
         itype     => { enum => \%RELEASE_IMAGE_TYPE },
         vid       => { vndbid => 'v', default => undef },
