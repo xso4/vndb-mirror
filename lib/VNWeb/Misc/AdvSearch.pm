@@ -9,7 +9,7 @@ js_api AdvSearchSave => {
     qtype => { enum => \%VNWeb::AdvSearch::FIELDS },
     query => {},
 }, sub($d) {
-    my $q = fu->compile({ advsearch => $d->{qtype} })->validate($d->{query})->enc_query;
+    my $q = FU::Validate->compile({ advsearch => $d->{qtype} })->validate($d->{query})->enc_query;
     fu->dbExeci(
         'INSERT INTO saved_queries', { uid => auth->uid, qtype => $d->{qtype}, name => $d->{name}, query => $q },
         'ON CONFLICT (uid, qtype, name) DO UPDATE SET query =', \$q
