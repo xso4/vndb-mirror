@@ -4,9 +4,7 @@ use VNWeb::Prelude;
 use VNWeb::TT::Lib 'enrich_group';
 
 
-sub listing_ {
-    my($type, $opt, $list, $count) = @_;
-
+sub listing_($type, $opt, $list, $count) {
     my sub url { '?'.query_encode({%$opt, @_}) }
 
     paginate_ \&url, $opt->{p}, [$count, 50], 't';
@@ -35,9 +33,8 @@ sub listing_ {
 }
 
 
-TUWF::get qr{/(?<type>[gi])/list}, sub {
-    my $type = tuwf->capture('type');
-    my $opt = tuwf->validate(get =>
+sub listpage($type) {
+    my $opt = fu->query(
         s => { onerror => 'qscore', enum => ['qscore', 'added', 'name', 'vns', 'items'] },
         o => { onerror => 'a', enum => ['a', 'd'] },
         p => { upage => 1 },
@@ -45,7 +42,7 @@ TUWF::get qr{/(?<type>[gi])/list}, sub {
         a => { undefbool => 1 },
         b => { undefbool => 1 },
         q => { searchquery => 1 },
-    )->data;
+    );
     $opt->{s} = 'items' if $opt->{s} eq 'vns';
     $opt->{s} = 'name' if $opt->{s} eq 'qscore' && !$opt->{q};
     $opt->{t} = undef if $opt->{t} && $opt->{t} == -1; # for legacy URLs
@@ -58,8 +55,8 @@ TUWF::get qr{/(?<type>[gi])/list}, sub {
         defined $opt->{b} ? sql 'searchable =', \$opt->{b} : ();
 
     my $table = $type eq 'g' ? 'tags' : 'traits';
-    my $count = tuwf->dbVali("SELECT COUNT(*) FROM $table t WHERE", sql_and $where, $opt->{q}->sql_where($type, 't.id'));
-    my $list = tuwf->dbPagei({ results => 50, page => $opt->{p} },'
+    my $count = fu->dbVali("SELECT COUNT(*) FROM $table t WHERE", sql_and $where, $opt->{q}->sql_where($type, 't.id'));
+    my $list = fu->dbPagei({ results => 50, page => $opt->{p} },'
         SELECT t.id, name, hidden, locked, searchable, applicable, c_items,', sql_totime('added'), "as added
           FROM $table t", $opt->{q}->sql_join($type, 't.id'), '
          WHERE ', $where, '
@@ -98,5 +95,7 @@ TUWF::get qr{/(?<type>[gi])/list}, sub {
         listing_ $type, $opt, $list, $count if $count;
     };
 };
+FU::get '/g/list', sub { listpage 'g' };
+FU::get '/i/list', sub { listpage 'i' };
 
 1;

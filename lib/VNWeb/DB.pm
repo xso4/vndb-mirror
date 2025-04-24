@@ -1,12 +1,13 @@
 package VNWeb::DB;
 
 use v5.36;
-use TUWF;
+use FU;
 use SQL::Interp ':all';
-use Carp 'carp';
+use Carp 'confess';
 use Exporter 'import';
 use VNDB::Schema;
 use VNDB::Config;
+use experimental 'builtin'; # for is_bool
 
 our @EXPORT = qw/
     sql
@@ -18,6 +19,39 @@ our @EXPORT = qw/
 
 
 
+# TUWF db* methods, should migrate to directly using fu->q() instead.
+sub _sqlhelper($type, $sql, @params) {
+    my $r;
+    # DBD::Pg doesn't support Perl's false as bind param
+    # https://github.com/bucardo/dbdpg/issues/125
+    for (@params) { $_ ||= 0 if builtin::is_bool($_) }
+    confess $@ if !eval {
+        my $q = fu->dbh->prepare($sql);
+        $q->execute(@params);
+        $r = $type == 1 ? ($q->fetchrow_array)[0] :
+             $type == 2 ? $q->fetchrow_hashref :
+             $type == 3 ? $q->fetchall_arrayref({}) : $q->rows;
+        1;
+    };
+    $r = 0  if $type == 0 && (!$r || $r == 0);
+    $r = {} if $type == 2 && (!$r || ref($r) ne 'HASH');
+    $r = [] if $type == 3 && (!$r || ref($r) ne 'ARRAY');
+    return $r;
+}
+
+sub FU::obj::dbExec { shift; _sqlhelper(0, @_) }
+sub FU::obj::dbVal  { shift; _sqlhelper(1, @_) }
+sub FU::obj::dbRow  { shift; _sqlhelper(2, @_) }
+sub FU::obj::dbAll  { shift; _sqlhelper(3, @_) }
+sub FU::obj::dbPage($s, $o, $q, @a) {
+    my $r = $s->dbAll($q.' LIMIT ? OFFSET ?', @a, $o->{results}+(wantarray?1:0), $o->{results}*($o->{page}-1));
+    return $r if !wantarray;
+    return ($r, 0) if $#$r != $o->{results};
+    pop @$r;
+    return ($r, 1);
+}
+
+
 # Test for potential SQL injection and warn about it. This will cause some
 # false positives.
 # The heuristic is pretty simple: Just check if there's an integer in the SQL
@@ -25,24 +59,22 @@ our @EXPORT = qw/
 # since that will generate a syntax error if the string is not properly escaped
 # (and who'd put effort into escaping strings when placeholders are easier?).
 sub interp_warn {
-    my @r = sql_interp @_;
+    my @r;
+    confess $@ if !eval { @r = sql_interp @_ };
     # 0 and 1 aren't interesting, "SELECT 1" is a common pattern and so is "x > 0".
     # '{7}' is commonly used in ulist filtering and r18/api2 are a valid database identifiers.
-    carp "Possible SQL injection in '$r[0]'" if tuwf->debug && ($r[0] =~ s/(?:r18|\{7\}|api2)//rg) =~ /[2-9]/;
+    warn "Possible SQL injection in '$r[0]'" if fu->debug && ($r[0] =~ s/(?:r18|\{7\}|api2)//rg) =~ /[2-9]/;
     return @r;
 }
 
-
 # SQL::Interp wrappers around TUWF's db* methods.  These do not work with
-# sql_type(). Proper integration should probably be added directly to TUWF.
-sub TUWF::Object::dbExeci { shift->dbExec(interp_warn @_) }
-sub TUWF::Object::dbVali  { shift->dbVal (interp_warn @_) }
-sub TUWF::Object::dbRowi  { shift->dbRow (interp_warn @_) }
-sub TUWF::Object::dbAlli  { shift->dbAll (interp_warn @_) }
-sub TUWF::Object::dbPagei { shift->dbPage(shift, interp_warn @_) }
+# sql_type(). Should migrate to FU::Pg instead.
+sub FU::obj::dbExeci { shift; _sqlhelper(0, interp_warn @_) }
+sub FU::obj::dbVali  { shift; _sqlhelper(1, interp_warn @_) }
+sub FU::obj::dbRowi  { shift; _sqlhelper(2, interp_warn @_) }
+sub FU::obj::dbAlli  { shift; _sqlhelper(3, interp_warn @_) }
+sub FU::obj::dbPagei { shift->dbPage(shift, interp_warn @_) }
 
-# Ugly workaround to ensure that db* method failures are reported at the actual caller.
-$Carp::Internal{ (__PACKAGE__) }++;
 
 
 
@@ -109,7 +141,7 @@ sub sql_user {
        "$tbl.support_enabled as ${prefix}support_enabled",
        "$tbl.uniname_can     as ${prefix}uniname_can",
        "$tbl.uniname         as ${prefix}uniname",
-       tuwf->req->{auth} && VNWeb::Auth::auth()->isMod ? (
+       fu->{auth} && VNWeb::Auth::auth()->isMod ? (
            "$tbl.perm_board      as ${prefix}perm_board",
            "$tbl.perm_edit       as ${prefix}perm_edit"
        ) : (),
@@ -118,7 +150,7 @@ sub sql_user {
 
 # Returns a (potentially cached) version of the global_settings table.
 sub global_settings {
-    tuwf->req->{global_settings} //= tuwf->dbRowi('SELECT * FROM global_settings');
+    fu->{global_settings} //= fu->dbRowi('SELECT * FROM global_settings');
 }
 
 
@@ -175,7 +207,7 @@ sub _enrich {
 
     # Fetch the data
     $sql = ref $sql eq 'CODE' ? do { local $_ = [keys %ids]; sql $sql->($_) } : sql $sql, [keys %ids];
-    my $data = tuwf->dbAlli($sql);
+    my $data = fu->dbAlli($sql);
 
     # And merge
     $merge->($data, \@array);
@@ -229,16 +261,16 @@ sub enrich_obj {
 # Returns false and logs a warning on timeout.
 sub db_maytimeout :prototype(&) {
     my($f) = @_;
-    tuwf->dbh->pg_savepoint('maytimeout');
+    fu->dbh->pg_savepoint('maytimeout');
     my $r = eval { $f->(); 1 };
 
     if(!$r && $@ =~ /canceling statement due to statement timeout/) {
-        tuwf->dbh->pg_rollback_to('maytimeout');
+        fu->dbh->pg_rollback_to('maytimeout');
         warn "Query timed out\n";
         return 0;
     }
-    carp $@ if !$r;
-    tuwf->dbh->pg_release('maytimeout');
+    confess $@ if !$r;
+    fu->dbh->pg_release('maytimeout');
     1;
 }
 
@@ -328,7 +360,7 @@ sub db_entry {
     my $t = $entry_types->{ substr $id, 0, 1 }||die;
 
     return undef if config->{moe} && $rev;
-    my $entry = tuwf->dbRowi('
+    my $entry = fu->dbRowi('
         WITH maxrev (iid, maxrev) AS (SELECT itemid, MAX(rev) FROM changes WHERE itemid =', \$id, 'GROUP BY itemid)
            , lastrev (entry_hidden, entry_locked) AS (SELECT ihid, ilock FROM maxrev, changes WHERE itemid = iid AND rev = maxrev)
         SELECT itemid AS id, id AS chid, rev AS chrev, ihid AS hidden, ilock AS locked, maxrev, entry_hidden, entry_locked
@@ -345,7 +377,7 @@ sub db_entry {
                                             : sql $_[0], 'x', $join, 'WHERE x.chid =', \$entry->{chid}
     }
 
-    my $toplvl = tuwf->dbRowi(
+    my $toplvl = fu->dbRowi(
         SELECT => sql_comma(map $_->{name}, grep $_->{name} ne 'chid', $t->{base}{cols}->@*),
         FROM   => data_table $t->{base}{name}, ''
     );
@@ -354,7 +386,7 @@ sub db_entry {
 
     while(my($name, $tbl) = each $t->{tables}->%*) {
         my $enrich = $enrich{ $tbl->{name} =~ s/_hist$//r } || [];
-        $entry->{$name} = tuwf->dbAlli(
+        $entry->{$name} = fu->dbAlli(
             SELECT => sql_comma(
                 (map 'x.'.$_->{name}.($_->{type} eq 'language[]' ? '::text[]' : ''), grep $_->{name} ne 'chid', $tbl->{cols}->@*),
                 $enrich->[0] || (),
@@ -381,8 +413,8 @@ sub db_edit {
     $id ||= undef;
     my $t = $entry_types->{$type}||die;
 
-    tuwf->dbExeci("SELECT edit_${type}_init(", \$id, ', (SELECT MAX(rev) FROM changes WHERE itemid = ', \$id, '))');
-    tuwf->dbExeci('UPDATE edit_revision SET', {
+    fu->dbExeci("SELECT edit_${type}_init(", \$id, ', (SELECT MAX(rev) FROM changes WHERE itemid = ', \$id, '))');
+    fu->dbExeci('UPDATE edit_revision SET', {
         requester => $uid // scalar VNWeb::Auth::auth()->uid(),
         comments  => $data->{editsum},
         ihid      => $data->{hidden},
@@ -398,7 +430,7 @@ sub db_edit {
 
     {
         my $base = $t->{base}{name} =~ s/_hist$//r;
-        tuwf->dbExeci("UPDATE edit_${base} SET ", sql_comma(
+        fu->dbExeci("UPDATE edit_${base} SET ", sql_comma(
             map sql($_->{name}, ' = ', val $data->{$_->{name}}, $_),
                 grep $_->{name} ne 'chid' && exists $data->{$_->{name}}, $t->{base}{cols}->@*
         ));
@@ -413,11 +445,11 @@ sub db_edit {
             sql '(', sql_comma(map val($d->{$_->{name}}, $_), @cols), ')'
         } $data->{$name}->@*;
 
-        tuwf->dbExeci("DELETE FROM edit_${base}");
-        tuwf->dbExeci("INSERT INTO edit_${base} (", @colnames, ') VALUES ', sql_comma @rows) if @rows;
+        fu->dbExeci("DELETE FROM edit_${base}");
+        fu->dbExeci("INSERT INTO edit_${base} (", @colnames, ') VALUES ', sql_comma @rows) if @rows;
     }
 
-    tuwf->dbRow("SELECT * FROM edit_${type}_commit()");
+    fu->dbRow("SELECT * FROM edit_${type}_commit()");
 }
 
 1;

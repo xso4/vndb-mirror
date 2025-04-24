@@ -2,9 +2,8 @@
 
 use v5.36;
 use lib 'lib';
-use TUWF;
-use TUWF::Validate::Interop;
-use JSON::XS;
+use FU::Validate;
+use FU::Util 'json_format';
 use VNWeb::Validation ();
 use VNWeb::TimeZone;
 use VNDB::ExtLinks '%LINKS';
@@ -14,17 +13,26 @@ use VNDB::Func 'fmtrating';
 
 my @LINKS = grep $_ eq 'website' || $LINKS{$_}{regex}, sort keys %LINKS;
 
-my $js = JSON::XS->new->pretty->canonical;
+
+# Attempts to convert a stringified Perl regex into something that is compatible with JS.
+# - @ should not be escaped
+# - (?^: is a perl alias for (?d-imnsx:
+# - Javascript doesn't officially support embedded modifiers in the first place, so these are removed
+# Regexes compiled with any of /imsx will not work properly.
+sub re_compat($re) { $re =~ s/\\@/@/gr =~ s{\(\?\^?[alupimnsx]*(?:-[imnsx]+)?(?=[:\)])}{(?}gr; }
+
+sub tojson($obj) { json_format $obj, pretty => 1, canonical => 1 }
+
 
 sub validations {
-    print 'window.formVals = '.$js->encode({
-        map +($_, { tuwf->compile({ $_ => 1 })->analyze->html5_validation() }->{pattern}),
-        qw/ email weburl /
+    print 'window.formVals = '.tojson({
+        email => re_compat($FU::Validate::re_email),
+        weburl => re_compat($FU::Validate::re_weburl),
     }).";\n";
 }
 
 sub types {
-    print 'window.vndbTypes = '.$js->encode({
+    print 'window.vndbTypes = '.tojson({
         language => [ map [$_, $LANGUAGE{$_}{txt}, $LANGUAGE{$_}{latin}?\1:\0, $LANGUAGE{$_}{rank}], keys %LANGUAGE ],
         platform => [ map [$_, $PLATFORM{$_} ], keys %PLATFORM ],
         medium   => [ map [$_, $MEDIUM{$_}{txt}, $MEDIUM{$_}{qty}?\1:\0 ], keys %MEDIUM ],
@@ -54,18 +62,18 @@ sub types {
 }
 
 sub zones {
-    print 'window.timeZones = '.$js->encode(\@ZONES).";\n";
+    print 'window.timeZones = '.tojson(\@ZONES).";\n";
 }
 
 sub vskins {
-    print 'window.vndbSkins = '.$js->encode([ map [$_, skins->{$_}{name}], sort { skins->{$a}{name} cmp skins->{$b}{name} } keys skins->%*]).";\n";
+    print 'window.vndbSkins = '.tojson([ map [$_, skins->{$_}{name}], sort { skins->{$a}{name} cmp skins->{$b}{name} } keys skins->%*]).";\n";
 }
 
 sub extlinks {
-    print 'window.extLinksExt = '.$js->encode([ map [
+    print 'window.extLinksExt = '.tojson([ map [
         $_->{fmt},
         [ split /(<[^>]+>)/, $_->{patt} || ($_->{fmt} =~ s/%s/<code>/rg =~ s/%[0-9]*d/<number>/rg) ],
-        TUWF::Validate::Interop::_re_compat($_->{full_regex}),
+        $_->{regex} ? re_compat($_->{full_regex}) : undef,
     ], map $LINKS{$_}, @LINKS ])."\n";
 }
 

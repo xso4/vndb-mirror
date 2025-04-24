@@ -7,12 +7,12 @@ use VNWeb::Discussions::Lib 'enrich_boards';
 
 sub screens {
     state $where  ||= sql 'i.c_weight > 0 and vndbid_type(i.id) =', \'sf', 'and i.c_sexual_avg <', \40, 'and i.c_violence_avg <', \40;
-    state $stats  ||= tuwf->dbRowi('SELECT count(*) as total, count(*) filter(where', $where, ') as subset from images i');
+    state $stats  ||= fu->dbRowi('SELECT count(*) as total, count(*) filter(where', $where, ') as subset from images i');
     state $sample ||= 100*min 1, (200 / (1+$stats->{subset})) * ($stats->{total} / (1+$stats->{subset}));
 
     my $filt = advsearch_default 'v';
     my $start = time;
-    my $lst = $filt->{query} ? tuwf->dbAlli(
+    my $lst = $filt->{query} ? fu->dbAlli(
         # Assumption: If we randomly select 30 matching VNs, there'll be at least 4 VNs with qualified screenshots
         # (As of Sep 2020, over half of the VNs in the database have screenshots, so that assumption usually works)
         'SELECT * FROM (
@@ -23,7 +23,7 @@ sub screens {
              WHERE ', $where, '
              ORDER BY v.id
         ) x ORDER BY random() LIMIT', \4
-    ) : tuwf->dbAlli('
+    ) : fu->dbAlli('
         SELECT i.id, i.width, i.height, v.id AS vid, v.title
           FROM (SELECT id, width, height FROM images i TABLESAMPLE SYSTEM (', \$sample, ') WHERE', $where, ' ORDER BY random() LIMIT', \4, ') i(id)
           JOIN vn_screenshots vs ON vs.scr = i.id
@@ -78,7 +78,7 @@ sub recent_changes_ {
 
 
 sub recent_db_posts_ {
-    my $an = tuwf->dbAlli('
+    my $an = fu->dbAlli('
         SELECT t.id, t.title,', sql_totime('tp.date'), 'AS date
           FROM threads t
           JOIN threads_boards tb ON tb.tid = t.id AND tb.type = \'an\'
@@ -87,7 +87,7 @@ sub recent_db_posts_ {
          ORDER BY tb.tid DESC
          LIMIT 1+1'
     );
-    my $lst = tuwf->dbAlli('
+    my $lst = fu->dbAlli('
         SELECT t.id, t.title, tp.num,', sql_totime('tp.date'), 'AS date, ', sql_user(), '
           FROM threads t
           JOIN threads_posts tp ON tp.tid = t.id AND tp.num = t.c_lastnum
@@ -126,7 +126,7 @@ sub recent_db_posts_ {
 
 
 sub recent_vn_posts_ {
-    my $lst = tuwf->dbAlli('
+    my $lst = fu->dbAlli('
         WITH tposts (id,title,num,date,uid) AS (
             SELECT t.id, ARRAY[NULL, t.title], tp.num, tp.date, tp.uid
               FROM threads t
@@ -188,7 +188,7 @@ sub releases {
     $filt->{query} = [ 'and', [ released => $released ? '<=' : '>', 1 ], $filt->{query} || () ];
 
     my $start = time;
-    my $lst = tuwf->dbAlli('
+    my $lst = fu->dbAlli('
         SELECT id, title, released
           FROM', releasest, 'r
          WHERE NOT hidden AND ', $filt->sql_where(), '
@@ -228,7 +228,7 @@ sub releases_ {
 
 
 sub reviews_ {
-    my $lst = tuwf->dbAlli('
+    my $lst = fu->dbAlli('
         SELECT w.id, v.title, w.length, ', sql_user(), ',', sql_totime('w.date'), 'AS date
           FROM reviews w
           JOIN', vnt, 'v ON v.id = w.vid
@@ -255,7 +255,7 @@ sub reviews_ {
 }
 
 
-TUWF::get qr{/}, sub {
+FU::get '/', sub {
     my %meta = (
         'type' => 'website',
         'title' => 'The Visual Novel Database',

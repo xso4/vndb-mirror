@@ -5,8 +5,7 @@ use VNWeb::AdvSearch;
 use VNWeb::Filters;
 
 
-sub listing_ {
-    my($opt, $list, $count) = @_;
+sub listing_($opt, $list, $count) {
     my sub url { '?'.query_encode({%$opt, @_}) }
     paginate_ \&url, $opt->{p}, [$count, 150], 't';
     article_ class => 'staffbrowse', sub {
@@ -22,21 +21,18 @@ sub listing_ {
 }
 
 
-TUWF::get qr{/s(?:/(?<char>all|[a-z0]))?}, sub {
-    my $opt = tuwf->validate(get =>
+FU::get qr{/s(?:/(?<char>all|[a-z0]))?}, sub($char=undef) {
+    my $opt = fu->query(
         q => { searchquery => 1 },
         p => { upage => 1 },
         f => { advsearch_err => 's' },
-        n => { onerror => [], type => 'array', scalar => 1, values => { anybool => 1 } },
-        ch=> { onerror => [], type => 'array', scalar => 1, values => { onerror => undef, enum => ['0', 'a'..'z'] } },
+        n => { accept_array => 'first', default => false, func => sub { $_[0] = !!$_[0]; 1 } },
+        ch=> { accept_array => 'first', onerror => undef, enum => ['0', 'a'..'z'] },
         fil => { onerror => '' },
-    )->data;
-    $opt->{ch} = $opt->{ch}[0];
-    $opt->{n} = $opt->{n}[0];
+    );
 
     # compat with old URLs
-    my $oldch = tuwf->capture('char');
-    $opt->{ch} //= $oldch if defined $oldch && $oldch ne 'all';
+    $opt->{ch} //= $char if defined $char && $char ne 'all';
 
     # URL compatibility with old filters
     if(!$opt->{f}->{query} && $opt->{fil}) {
@@ -44,12 +40,12 @@ TUWF::get qr{/s(?:/(?<char>all|[a-z0]))?}, sub {
             my $f = filter_parse s => $opt->{fil};
             $opt->{n} = $f->{truename} if defined $f->{truename};
             $f = filter_staff_adv $f;
-            tuwf->compile({ advsearch => 's' })->validate(@$f > 1 ? $f : undef)->data;
+            FU::Validate->compile({ advsearch => 's' })->validate(@$f > 1 ? $f : undef);
         };
-        return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode({%$opt, fil => undef, f => $q}), 'perm') if $q;
+        return fu->redirect(perm => fu->path.'?'.query_encode({%$opt, fil => undef, f => $q})) if $q;
     }
 
-    $opt->{f} = advsearch_default 's' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
+    $opt->{f} = advsearch_default 's' if !$opt->{f}{query} && !defined fu->query('f');
 
     my $where = sql_and
         $opt->{n} ? 's.main = s.aid' : (),
@@ -59,8 +55,8 @@ TUWF::get qr{/s(?:/(?<char>all|[a-z0]))?}, sub {
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = tuwf->dbVali('SELECT count(*) FROM', staff_aliast, 's WHERE', sql_and $where, $opt->{q}->sql_where('s', 's.id', 's.aid'));
-        $list = $count ? tuwf->dbPagei({results => 150, page => $opt->{p}}, '
+        $count = fu->dbVali('SELECT count(*) FROM', staff_aliast, 's WHERE', sql_and $where, $opt->{q}->sql_where('s', 's.id', 's.aid'));
+        $list = $count ? fu->dbPagei({results => 150, page => $opt->{p}}, '
             SELECT s.id, s.title, s.lang
               FROM', staff_aliast, 's', $opt->{q}->sql_join('s', 's.id', 's.aid'), '
              WHERE', $where,

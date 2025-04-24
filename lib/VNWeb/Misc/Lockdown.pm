@@ -2,8 +2,8 @@ package VNWeb::Misc::Lockdown;
 
 use VNWeb::Prelude;
 
-TUWF::get '/lockdown', sub {
-    return tuwf->resDenied if !auth->isMod;
+FU::get '/lockdown', sub {
+    return fu->denied if !auth->isMod;
 
     sub chk_ {
         my($name, $lbl) = @_;
@@ -39,16 +39,16 @@ TUWF::get '/lockdown', sub {
 };
 
 
-TUWF::post '/lockdown', sub {
-    return auth->resDenied if !auth->isMod || !samesite;
-    my $frm = tuwf->validate(post =>
+FU::post '/lockdown', sub {
+    return auth->denied if !auth->isMod || !samesite;
+    my $frm = fu->formdata(
         lockdown_registration => { anybool => 1 },
         lockdown_edit         => { anybool => 1 },
         lockdown_board        => { anybool => 1 },
-    )->data;
-    tuwf->dbExeci('UPDATE global_settings SET', $frm);
-    auth->audit(0, 'lockdown', JSON::XS->new->encode($frm));
-    tuwf->resRedirect('/lockdown', 'post');
+    );
+    fu->dbExeci('UPDATE global_settings SET', $frm);
+    auth->audit(0, 'lockdown', FU::Util::json_format($frm));
+    fu->redirect(tempget => '/lockdown');
 };
 
 1;

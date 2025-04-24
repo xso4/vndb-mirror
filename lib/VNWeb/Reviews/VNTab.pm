@@ -5,9 +5,7 @@ use VNWeb::Reviews::Lib;
 
 
 sub reviews_($v, $mini) {
-    my $length = tuwf->validate(get =>
-        l => { onerror => $mini ? 0 : undef, enum => [0,1,2] },
-    )->data;
+    my $length = fu->query(l => { onerror => $mini ? 0 : undef, enum => [0,1,2] });
 
     article_ sub {
         h1_ 'Reviews';
@@ -19,14 +17,14 @@ sub reviews_($v, $mini) {
         };
     };
 
-    my $lst = tuwf->dbAlli(
+    my $lst = fu->dbAlli(
         'SELECT r.id, r.rid, r.modnote, r.text, r.length, r.spoiler, r.c_count, r.c_up, r.c_down, uv.vote
               , rv.vote AS my, COALESCE(rv.overrule,false) AS overrule
             , ', sql_totime('r.date'), 'AS date, ', sql_user(), '
            FROM reviews r
            LEFT JOIN users u ON r.uid = u.id
            LEFT JOIN ulist_vns uv ON uv.uid = r.uid AND uv.vid = r.vid
-           LEFT JOIN reviews_votes rv ON rv.id = r.id AND', auth ? ('rv.uid =', \auth->uid) : ('rv.ip =', \norm_ip tuwf->reqIP), '
+           LEFT JOIN reviews_votes rv ON rv.id = r.id AND', auth ? ('rv.uid =', \auth->uid) : ('rv.ip =', \norm_ip fu->ip), '
           WhERE NOT r.c_flagged AND r.vid =', \$v->{id},
                 defined $length ? ('AND r.length =', \$length) : (), '
           ORDER BY r.c_up-r.c_down DESC'
@@ -83,10 +81,10 @@ sub reviews_($v, $mini) {
 }
 
 
-TUWF::get qr{/$RE{vid}/(?<mini>mini|full)?reviews}, sub {
-    my $mini = !tuwf->capture('mini') ? undef : tuwf->capture('mini') eq 'mini' ? 1 : 0;
-    my $v = db_entry tuwf->capture('id');
-    return tuwf->resNotFound if !$v;
+FU::get qr{/$RE{vid}/(mini|full)?reviews}, sub($id, $mini='') {
+    $mini = !$mini ? undef : $mini eq 'mini';
+    my $v = db_entry $id;
+    fu->notfound if !$v;
     VNWeb::VN::Page::enrich_vn($v);
 
     framework_ title => "Reviews for $v->{title}[1]", index => 1, dbobj => $v, hiddenmsg => 1,

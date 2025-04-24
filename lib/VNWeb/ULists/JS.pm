@@ -7,8 +7,8 @@ use VNWeb::ULists::Lib;
 # Should be called after any label/vote/private change to the ulist_vns table.
 # (Normally I'd do this with triggers, but that seemed like a more complex and less efficient solution in this case)
 sub updcache {
-    tuwf->dbExeci(SELECT => sql_func update_users_ulist_private => \auth->uid, \$_[0]) if @_ == 1;
-    tuwf->dbExeci(SELECT => sql_func update_users_ulist_stats => \auth->uid);
+    fu->dbExeci(SELECT => sql_func update_users_ulist_private => \auth->uid, \$_[0]) if @_ == 1;
+    fu->dbExeci(SELECT => sql_func update_users_ulist_stats => \auth->uid);
 }
 
 
@@ -30,21 +30,21 @@ js_api UListManageLabels => {
     }}
 }, sub {
     my $labels = $_[0]{labels};
-    return tuwf->resDenied if !auth;
+    fu->denied if !auth;
 
     # Insert new labels
     my @new = grep $_->{id} < 0 && !$_->{delete}, @$labels;
-    tuwf->dbExeci('INSERT INTO ulist_labels', { id => sql_labelid, uid => auth->uid, label => $_->{label}, private => $_->{private} }) for @new;
+    fu->dbExeci('INSERT INTO ulist_labels', { id => sql_labelid, uid => auth->uid, label => $_->{label}, private => $_->{private} }) for @new;
 
     # Update private flag
     my $changed = 0;
-    $changed += tuwf->dbExeci(
+    $changed += fu->dbExeci(
         'UPDATE ulist_labels SET private =', \$_->{private},
          'WHERE uid =', \auth->uid, 'AND id =', \$_->{id}, 'AND private <>', \$_->{private}
     ) for grep $_->{id} > 0 && !$_->{delete}, @$labels;
 
     # Update label
-    tuwf->dbExeci(
+    fu->dbExeci(
         'UPDATE ulist_labels SET label =', \$_->{label},
          'WHERE uid =', \auth->uid, 'AND id =', \$_->{id}, 'AND label <>', \$_->{label}
     ) for grep $_->{id} >= 10 && !$_->{delete}, @$labels;
@@ -63,15 +63,15 @@ js_api UListManageLabels => {
              AND labels <@', sql_array(@delete_lblonly, @delete_empty), '::smallint[]'
         ) : ()
     );
-    tuwf->dbExeci('DELETE FROM ulist_vns uv WHERE uid =', \auth->uid, 'AND (', sql_or(@where), ')') if @where;
+    fu->dbExeci('DELETE FROM ulist_vns uv WHERE uid =', \auth->uid, 'AND (', sql_or(@where), ')') if @where;
 
-    $changed += tuwf->dbExeci(
+    $changed += fu->dbExeci(
         'UPDATE ulist_vns
             SET labels = array_remove(labels,', \$_->{id}, ')
           WHERE uid =', \auth->uid, 'AND labels && ARRAY[', \$_->{id}, '::smallint]'
     ) for @delete;
 
-    tuwf->dbExeci('DELETE FROM ulist_labels WHERE uid =', \auth->uid, 'AND id IN', [ map $_->{id}, @delete ]) if @delete;
+    fu->dbExeci('DELETE FROM ulist_labels WHERE uid =', \auth->uid, 'AND id IN', [ map $_->{id}, @delete ]) if @delete;
 
     updcache $changed ? undef : ();
     +{}
@@ -83,8 +83,8 @@ js_api UListVoteEdit => {
     vid  => { vndbid => 'v' },
     vote => { vnvote => 1 },
 }, sub($data) {
-    return tuwf->resDenied if !auth;
-    tuwf->dbExeci(
+    fu->denied if !auth;
+    fu->dbExeci(
         'INSERT INTO ulist_vns', { %$data, uid => auth->uid, vote_date => sql $data->{vote} ? 'NOW()' : 'NULL' },
             'ON CONFLICT (uid, vid) DO UPDATE
             SET', { %$data,
@@ -103,12 +103,12 @@ js_api UListDateEdit => {
     date  => { fuzzyrdate => 1 },
     start => { anybool => 1 }, # Field selection, started/finished
 }, sub($data) {
-    return tuwf->resDenied if !auth;
+    fu->denied if !auth;
     my %set = (
         $data->{start} ? 'started' : 'finished',
         !$data->{date} ? undef : $data->{date} == 1 ? 'today' : $data->{date} =~ s/(....)(..)(..)/$1-$2-$3/r =~ s/-99/-01/r
     );
-    tuwf->dbExeci(
+    fu->dbExeci(
         'INSERT INTO ulist_vns', { %set, vid => $data->{vid}, uid => auth->uid },
             'ON CONFLICT (uid, vid) DO UPDATE
             SET', { %set, lastmod => sql('NOW()') }
@@ -123,9 +123,9 @@ js_api UListVNNotes => {
     vid   => { vndbid => 'v' },
     notes => { default => '', maxlength => 2000 },
 }, sub($data) {
-    return tuwf->resDenied if !auth;
+    fu->denied if !auth;
     $data->{uid} = auth->uid;
-    tuwf->dbExeci(
+    fu->dbExeci(
         'INSERT INTO ulist_vns', \%$data, 'ON CONFLICT (uid, vid) DO UPDATE SET', { %$data, lastmod => sql('NOW()') }
     );
     # Doesn't need `updcache()`
@@ -136,8 +136,8 @@ js_api UListVNNotes => {
 
 js_api UListDel => { vid => { vndbid => 'v' } }, sub {
     my $vid = $_[0]{vid};
-    return tuwf->resDenied if !auth;
-    tuwf->dbExeci('DELETE FROM ulist_vns WHERE uid =', \auth->uid, 'AND vid =', \$vid);
+    fu->denied if !auth;
+    fu->dbExeci('DELETE FROM ulist_vns WHERE uid =', \auth->uid, 'AND vid =', \$vid);
     updcache;
     +{}
 };
@@ -146,12 +146,12 @@ js_api UListDel => { vid => { vndbid => 'v' } }, sub {
 
 js_api UListLabelEdit => {
     vid => { vndbid => 'v' },
-    labels => { type => 'array', values => { uint => 1 } }
+    labels => { elems => { uint => 1 } }
 }, sub($data) {
-    return tuwf->resDenied if !auth;
+    fu->denied if !auth;
     # BUG: This should probably check whether the label exists, but APIv2 has the same bug. *shrug*
     my $labels = '{'.join(',', sort { $a <=> $b } grep $_ != 7, $data->{labels}->@*).'}';
-    tuwf->dbExeci(
+    fu->dbExeci(
         'INSERT INTO ulist_vns', {
             uid => auth->uid,
             vid => $data->{vid},
@@ -170,9 +170,9 @@ js_api UListLabelAdd => {
     vid   => { vndbid => 'v' },
     label => { sl => 1, maxlength => 50 },
 }, sub($data) {
-    return tuwf->resDenied if !auth;
+    fu->denied if !auth;
 
-    my $row = tuwf->dbRowi('
+    my $row = fu->dbRowi('
         WITH l(id, private) AS (
           SELECT id, private FROM ulist_labels WHERE uid =', \auth->uid, 'AND label =', \$data->{label}, '
         ), ins(id, private) AS (
@@ -187,7 +187,7 @@ js_api UListLabelAdd => {
         ) SELECT * FROM l UNION SELECT * FROM ins'
     );
 
-    tuwf->dbExeci(
+    fu->dbExeci(
         'INSERT INTO ulist_vns', {uid => auth->uid, vid => $data->{vid}, labels => "{$row->{id}}"},
         'ON CONFLICT (uid, vid) DO UPDATE SET labels = array_set(ulist_vns.labels,', \$row->{id}, ')'
     );
@@ -201,12 +201,12 @@ js_api UListRStatus => {
     rid => { vndbid => 'r' },
     status => { default => undef, uint => 1, enum => \%RLIST_STATUS }, # undef meaning delete
 }, sub($data) {
-    return tuwf->resDenied if !auth;
+    fu->denied if !auth;
     $data->{uid} = auth->uid;
     if(!defined $data->{status}) {
-        tuwf->dbExeci('DELETE FROM rlists WHERE uid =', \$data->{uid}, 'AND rid =', \$data->{rid})
+        fu->dbExeci('DELETE FROM rlists WHERE uid =', \$data->{uid}, 'AND rid =', \$data->{rid})
     } else {
-        tuwf->dbExeci('INSERT INTO rlists', $data, 'ON CONFLICT (uid, rid) DO UPDATE SET status =', \$data->{status})
+        fu->dbExeci('INSERT INTO rlists', $data, 'ON CONFLICT (uid, rid) DO UPDATE SET status =', \$data->{status})
     }
     # Doesn't need `updcache()`
     +{}
@@ -215,9 +215,9 @@ js_api UListRStatus => {
 
 
 js_api UListWidget => { vid => { vndbid => 'v' } }, sub($data) {
-    return tuwf->resDenied if !auth;
-    my $v = tuwf->dbRowi('SELECT id, title, c_released FROM', vnt, 'v WHERE id =', \$data->{vid});
-    return tuwf->resNotFound if !defined $v->{title};
+    fu->denied if !auth;
+    my $v = fu->dbRowi('SELECT id, title, c_released FROM', vnt, 'v WHERE id =', \$data->{vid});
+    fu->notfound if !defined $v->{title};
     +{ results => ulists_widget_full_data $v };
 };
 

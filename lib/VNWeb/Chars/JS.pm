@@ -5,7 +5,7 @@ use VNWeb::Prelude;
 js_api Chars => { search => { searchquery => 1 } }, sub {
     my $q = shift->{search};
 
-    my $l = $q ? tuwf->dbPagei({ results => 15, page => 1 },
+    my $l = $q ? fu->dbPagei({ results => 15, page => 1 },
         'SELECT c.id, c.title[1+1] AS title, c.title[1+1+1+1] AS alttitle, c.main, cm.title[1+1] AS main_title, cm.title[1+1+1+1] AS main_alttitle
            FROM', charst, 'c', $q->sql_join('c', 'c.id'), '
            LEFT JOIN', charst, 'cm ON cm.id = c.main

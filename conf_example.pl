@@ -1,3 +1,5 @@
+# This file is a Perl script that should return a hashref with config options.
+# The full list of available options can be found in lib/VNDB/Config.pm.
 {
     # Canonical URL of this site
     url          => 'http://localhost:3000',
@@ -10,17 +12,15 @@
     scrypt_salt => '<another unique string>',
 
     # Use the more secure imgproc
-    #imgproc_path      => "$main::ROOT/imgproc/imgproc-custom",
+    #imgproc_path      => "$ROOT/imgproc/imgproc-custom",
 
-    # TUWF configuration options, see the TUWF::set() documentation for options.
     tuwf => {
         db_login        => [ 'dbi:Pg:dbname=vndb', 'vndb_site', 'vndb_site' ],
-        log_queries     => 0,
-        debug           => 1,
-        cookie_defaults => { domain => 'localhost', path => '/' },
-        mail_sendmail   => 'log',
-        #fastcgi_max_requests => 1000 + int(rand(1000)),
     },
+    debug           => 1,
+    cookie_prefix   => 'vndb_',
+    cookie_defaults => { domain => 'localhost', path => '/' },
+    mail_sendmail   => 'log',
 
     # Options for Multi, the background server.
     Multi => {

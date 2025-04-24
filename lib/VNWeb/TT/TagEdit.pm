@@ -29,10 +29,9 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
 };
 
 
-TUWF::get qr{/$RE{grev}/edit}, sub {
-    my $g = db_entry tuwf->captures('id','rev');
-    return tuwf->resNotFound if !$g->{id};
-    return tuwf->resDenied if !can_edit g => $g;
+FU::get qr{/$RE{grev}/edit}, sub($id, $rev=0) {
+    my $g = db_entry $id, $rev or fu->notfound;
+    fu->denied if !can_edit g => $g;
 
     $g->{authmod} = auth->permTagmod;
     $g->{editsum} = $g->{chrev} == $g->{maxrev} ? '' : "Reverted to revision $g->{id}.$g->{chrev}";
@@ -44,13 +43,12 @@ TUWF::get qr{/$RE{grev}/edit}, sub {
 };
 
 
-TUWF::get qr{/(?:$RE{gid}/add|g/new)}, sub {
-    my $id = tuwf->capture('id');
-    my $g = tuwf->dbRowi('SELECT id, name, cat FROM tags WHERE NOT hidden AND id =', \$id);
-    return tuwf->resDenied if !can_edit g => {};
-    return tuwf->resNotFound if $id && !$g->{id};
+FU::get qr{/(?:$RE{gid}/add|g/new)}, sub($id=undef) {
+    my $g = $id && fu->dbRowi('SELECT id, name, cat FROM tags WHERE NOT hidden AND id =', \$id);
+    fu->denied if !can_edit g => {};
+    fu->notfound if $id && !$g->{id};
 
-    my $e = elm_empty($FORM_OUT);
+    my $e = $FORM_OUT->empty;
     $e->{authmod} = auth->permTagmod;
     if($id) {
         $e->{parents} = [{ parent => $g->{id}, main => 1, name => $g->{name} }];
@@ -76,12 +74,11 @@ TUWF::get qr{/(?:$RE{gid}/add|g/new)}, sub {
 };
 
 
-js_api TagEdit => $FORM_IN, sub {
-    my($data) = @_;
+js_api TagEdit => $FORM_IN, sub($data) {
     my $new = !$data->{id};
-    my $e = $new ? {} : db_entry $data->{id} or return tuwf->resNotFound;
-    return tuwf->resNotFound if !$new && !$e->{id};
-    return tuwf->resDenied if !can_edit g => $e;
+    my $e = $new ? {} : db_entry $data->{id} or fu->notfound;
+    fu->notfound if !$new && !$e->{id};
+    fu->denied if !can_edit g => $e;
 
     if(!auth->permTagmod) {
         $data->{hidden} = $e->{hidden}//1;
@@ -89,7 +86,7 @@ js_api TagEdit => $FORM_IN, sub {
     }
 
     my $re = '[\t\s]*\n[\t\s]*';
-    my $dups = tuwf->dbAlli('
+    my $dups = fu->dbAlli('
         SELECT id, name
           FROM (SELECT id, name FROM tags UNION SELECT id, s FROM tags, regexp_split_to_table(alias, ', \$re, ') a(s) WHERE s <> \'\') n(id,name)
          WHERE ', sql_and(
@@ -111,7 +108,7 @@ js_api TagEdit => $FORM_IN, sub {
 
     my $changed = 0;
     if(!$new && auth->permTagmod && $data->{wipevotes}) {
-        my $num = tuwf->dbExeci('DELETE FROM tags_vn WHERE tag =', \$e->{id});
+        my $num = fu->dbExeci('DELETE FROM tags_vn WHERE tag =', \$e->{id});
         auth->audit(undef, 'tag wipe', "Wiped $num votes on $e->{id}");
         $changed++;
     }
@@ -121,13 +118,13 @@ js_api TagEdit => $FORM_IN, sub {
         # Bugs:
         # - Arbitrarily takes one vote if there are duplicates, should ideally try to merge them instead.
         # - The 'ignore' flag will be inconsistent if set and the same VN has been voted on for multiple tags.
-        my $mov = tuwf->dbExeci('
+        my $mov = fu->dbExeci('
             INSERT INTO tags_vn (tag,vid,uid,vote,spoiler,date,ignore,notes)
                  SELECT ', \$e->{id}, ',vid,uid,vote,spoiler,date,ignore,notes
                    FROM tags_vn WHERE tag IN', \@merge, '
                      ON CONFLICT (tag,vid,uid) DO NOTHING'
         );
-        my $del = tuwf->dbExeci('DELETE FROM tags_vn tv WHERE tag IN', \@merge);
+        my $del = fu->dbExeci('DELETE FROM tags_vn tv WHERE tag IN', \@merge);
         my $lst = join ',', @merge;
         auth->audit(undef, 'tag merge', "Moved $mov/$del votes from $lst to $e->{id}");
         $changed++;

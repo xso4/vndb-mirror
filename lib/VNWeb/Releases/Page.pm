@@ -232,7 +232,7 @@ sub _infotable_ {
         tr_ sub {
             td_ 'Engine';
             td_ sub {
-                a_ href => '/r?f='.tuwf->compile({advsearch => 'r'})->validate(['engine', '=', $r->{engine}])->data->enc_query, $r->{engine};
+                a_ href => '/r?f='.FU::Validate->compile({advsearch => 'r'})->validate(['engine', '=', $r->{engine}])->enc_query, $r->{engine};
             }
         } if length $r->{engine};
 
@@ -293,7 +293,7 @@ sub _infotable_ {
             }
         } if @sup;
 
-        my $sed = tuwf->dbAlli('
+        my $sed = fu->dbAlli('
             SELECT r.id AS rid, r.title, r.released
               FROM', releasest, 'r
               JOIN releases_supersedes rs ON rs.id = r.id
@@ -321,7 +321,7 @@ sub _infotable_ {
         } if $r->{vislinks}->@*;
 
         tr_ sub {
-            my $d = tuwf->dbVali('SELECT status FROM rlists WHERE', { rid => $r->{id}, uid => auth->uid });
+            my $d = fu->dbVali('SELECT status FROM rlists WHERE', { rid => $r->{id}, uid => auth->uid });
             td_ 'User options';
             td_ class => 'compact', widget(UListRelease => { id => $r->{id}, status => $d }), '';
         } if auth;
@@ -349,20 +349,19 @@ sub _images_ {
 }
 
 
-TUWF::get qr{/$RE{rrev}} => sub {
-    my $r = db_entry tuwf->captures('id','rev');
-    return tuwf->resNotFound if !$r;
+FU::get qr{/$RE{rrev}} => sub($id, $rev=0) {
+    my $r = db_entry $id, $rev or fu->notfound;
 
     $r->{title} = titleprefs_obj $r->{olang}, $r->{titles};
     enrich_item $r;
     enrich_vislinks r => 0, $r;
 
-    framework_ title => $r->{title}[1], index => !tuwf->capture('rev'), dbobj => $r, hiddenmsg => 1, js => 1,
+    framework_ title => $r->{title}[1], index => !$rev, dbobj => $r, hiddenmsg => 1, js => 1,
         og => {
             description => bb_format $r->{notes}, text => 1
         },
     sub {
-        _rev_ $r if tuwf->capture('rev');
+        _rev_ $r if $rev;
         article_ class => 'release', sub {
             itemmsg_ $r;
             h1_ tlang($r->{title}[0], $r->{title}[1]), $r->{title}[1];

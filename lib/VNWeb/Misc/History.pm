@@ -32,7 +32,7 @@ sub fetch {
              '(c.c_chflags & ', \sum(map 1<<$_, $filt->{"cf$_"}->@*), '> 0
                 OR c.itemid NOT BETWEEN vndbid(', \"$_", ', 1) AND vndbid_max(', \"$_", '))' : (), keys %CHFLAGS);
 
-    my $lst = tuwf->dbAlli('
+    my $lst = fu->dbAlli('
         SELECT c.id, c.itemid, c.comments, c.rev,', sql_totime('c.added'), 'AS added,', sql_user(), ', x.title, u.perm_dbmod AS rev_dbmod
           FROM (SELECT * FROM changes c WHERE', $where, ' ORDER BY c.id DESC LIMIT', \($num+1), 'OFFSET', \($num*($filt->{p}-1)), ') c
           JOIN item_info(NULL, c.itemid, c.rev) x ON true
@@ -105,17 +105,17 @@ sub filters_ {
         [ d => 'Docs' ],
     );
 
-    state $schema = tuwf->compile({ type => 'hash', keys => {
+    state $schema = form_compile {
         # Types
-        t => { type => 'array', scalar => 1, onerror => [map $_->[0], @types], values => { enum => [(map $_->[0], @types), 'a'] } },
+        t => { onerror => [map $_->[0], @types], accept_scalar => 1, elems => { enum => [(map $_->[0], @types), 'a'] } },
         m => { onerror => undef, enum => [ 0, 1 ] }, # Automated edits
         h => { onerror => 0, enum => [ -2..1 ] }, # Item status (the numbers dont make sense)
         e => { onerror => 0, enum => [ -1..1 ] }, # Existing/new items
         r => { onerror => 0, enum => [ 0, 1 ] },  # Include releases
         p => { page => 1 },
-        (map +("cf$_" => { onerror => [], type => 'array', scalar => 1, values => { enum => [0..$#{$CHFLAGS{$_}}] } }), keys %CHFLAGS)
-    }});
-    my $filt = tuwf->validate(get => $schema)->data;
+        (map +("cf$_" => { onerror => [], accept_scalar => 1, elems => { enum => [0..$#{$CHFLAGS{$_}}] } }), keys %CHFLAGS)
+    };
+    my $filt = fu->query($schema);
 
     $filt->{m} //= $type ? 0 : 1; # Exclude automated edits by default on the main 'recent changes' view.
 
@@ -135,7 +135,7 @@ sub filters_ {
         label_ for => "form_${key}{$val}", $label;
     };
 
-    form_ method => 'get', action => tuwf->reqPath(), sub {
+    form_ method => 'get', action => fu->path, sub {
         table_ class => 'histoptions', sub { tr_ sub {
             td_ sub {
                 select_ multiple => 1, size => scalar @types, name => 't', id => 'histoptions-t', sub {
@@ -148,7 +148,7 @@ sub filters_ {
                 my $v = sum 0, map 1<<$_, $filt->{"cf$k"}->@*;
                 my @lst = sort { $a->[1] cmp $b->[1] } map [$_, $CHFLAGS{$k}[$_]], 0..$#{$CHFLAGS{$k}};
                 if ($type eq $k) {
-                    my $available = tuwf->dbVali('SELECT bit_or(c_chflags) FROM changes WHERE itemid =', \$id)||~0;
+                    my $available = fu->dbVali('SELECT bit_or(c_chflags) FROM changes WHERE itemid =', \$id)||~0;
                     @lst = grep $available & (1<<$_->[0]), @lst;
                 }
                 select_ multiple => 1, size => min(scalar @lst, scalar @types), name => "cf$k", sub {
@@ -184,13 +184,12 @@ sub filters_ {
 }
 
 
-TUWF::get qr{/(?:([upvrcsdgi][1-9][0-9]{0,6})/)?hist} => sub {
+FU::get qr{/(?:([upvrcsdgi][1-9][0-9]{0,6})/)?hist} => sub($id='') {
     not_moe;
-    my $id = tuwf->capture(1)||'';
     my $obj = dbobj $id;
 
-    return tuwf->resNotFound if $id && !$obj->{id};
-    return tuwf->resNotFound if $id =~ /^u/ && $obj->{entry_hidden} && !auth->isMod;
+    fu->notfound if $id && !$obj->{id};
+    fu->notfound if $id =~ /^u/ && $obj->{entry_hidden} && !auth->isMod;
 
     my $title = $id ? "Edit history of $obj->{title}[1]" : 'Recent changes';
     framework_ title => $title, dbobj => $obj, tab => 'hist', js => !!($id =~ /^(u|$)/),

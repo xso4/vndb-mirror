@@ -1,8 +1,9 @@
 package VNWeb::API;
 
 use v5.36;
-use TUWF;
+use FU;
 use Time::HiRes 'time', 'alarm';
+use POSIX 'strftime';
 use List::Util 'min';
 use VNDB::Config;
 use VNDB::Func;
@@ -17,38 +18,38 @@ use VNWeb::ULists::Lib 'ulist_filtlabels';
 return 1 if !config->{api};
 
 
-TUWF::get qr{/api/(nyan|kana)}, sub {
+sub docpage($ver) {
     state %data;
-    my $ver = tuwf->capture(1);
     $data{$ver} ||= do {
         open my $F, '<', config->{gen_path}.'/api-'.$ver.'.html' or die $!;
         local $/=undef;
-        my $url = config->{api_endpoint}||tuwf->reqURI;
+        my $url = config->{api_endpoint} || config->{url}.fu->path;
         <$F> =~ s/%endpoint%/$url/rg;
     };
-    tuwf->resHeader('Content-Type' => "text/html; charset=UTF-8");
-    tuwf->resBinary($data{$ver}, 'auto');
+    fu->set_body($data{$ver});
 };
+FU::get '/api/nyan' => sub { docpage 'nyan' };
+FU::get '/api/kana' => sub { docpage 'kana' };
 
 
 sub cors {
-    return if !tuwf->reqHeader('Origin');
-    if(tuwf->reqHeader('Cookie') || tuwf->reqHeader('Authorization')) {
-        tuwf->resHeader('Access-Control-Allow-Origin', tuwf->reqHeader('Origin'));
-        tuwf->resHeader('Access-Control-Allow-Credentials', 'true');
+    return if !fu->header('origin');
+    if(fu->header('cookie') || fu->header('authorization')) {
+        fu->set_header('access-control-allow-origin', fu->header('origin'));
+        fu->set_header('access-control-allow-credentials', 'true');
     } else {
-        tuwf->resHeader('Access-Control-Allow-Origin', '*');
+        fu->set_header('access-control-allow-origin', '*');
     }
 }
 
 
-TUWF::options qr{/api/kana.*}, sub {
-    tuwf->resStatus(204);
-    tuwf->resHeader('Access-Control-Allow-Origin', tuwf->reqHeader('origin'));
-    tuwf->resHeader('Access-Control-Allow-Credentials', 'true');
-    tuwf->resHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-    tuwf->resHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    tuwf->resHeader('Access-Control-Max-Age', 86400);
+FU::options qr{/api/kana.*}, sub {
+    fu->status(204);
+    fu->set_header('access-control-allow-origin', fu->header('origin'));
+    fu->set_header('access-control-allow-credentials', 'true');
+    fu->set_header('access-control-allow-methods', 'POST, GET, OPTIONS');
+    fu->set_header('access-control-allow-headers', 'Content-Type, Authorization');
+    fu->set_header('access-control-max-age', 86400);
 };
 
 
@@ -61,103 +62,92 @@ my %throttle; # IP -> SQL time
 
 sub add_throttle {
     my $now = time;
-    my $time = $now - (tuwf->req->{throttle_start}||$now);
-    my $norm = norm_ip tuwf->reqIP();
+    my $time = $now - (fu->{throttle_start}||$now);
+    my $norm = norm_ip fu->ip;
     $throttle{$norm} = $now if !$throttle{$norm} || $throttle{$norm} < $now;
     $throttle{$norm} += $time * config->{api_throttle}[0];
 }
 
 sub check_throttle {
-    tuwf->req->{throttle_start} = time;
+    fu->{throttle_start} = time;
     err(429, 'Throttled on query execution time.')
-        if ($throttle{ norm_ip tuwf->reqIP }||0) >= time + (config->{api_throttle}[0] * config->{api_throttle}[1]);
+        if ($throttle{ norm_ip fu->ip }||0) >= time + (config->{api_throttle}[0] * config->{api_throttle}[1]);
 }
 
 sub logreq {
-    tuwf->log(sprintf '%4dms %s [%s] "%s" "%s"',
-        tuwf->req->{throttle_start} ? (time - tuwf->req->{throttle_start})*1000 : 0,
+    return if !config->{api_logfile};
+    open my $F, '>>:utf8', config->{api_logfile} or return warn "Error opening API log file: $!\n";
+    printf $F qq{%sZ %s %s %s %s %4dms %s "%s" "%s"\n},
+        strftime('%Y-%m-%d %H:%M:%S', gmtime), fu->ip, auth->uid||'-',
+        fu->method, fu->path =~ s{^/api/kana}{}r,
+        fu->{throttle_start} ? (time - fu->{throttle_start})*1000 : 0,
         $_[0],
-        tuwf->reqIP(),
-        tuwf->reqHeader('origin')||'-',
-        tuwf->reqHeader('user-agent')||'');
+        fu->header('origin')||'-',
+        fu->header('user-agent')||'';
 }
 
-sub err {
-    my($status, $msg) = @_;
+sub err($status, $msg) {
     add_throttle;
-    tuwf->resStatus($status);
-    tuwf->resHeader('Content-type', 'text');
-    tuwf->resHeader('WWW-Authenticate', 'Token') if $status == 401;
+    fu->status($status);
+    fu->set_header('content-type', 'text');
+    fu->set_header('www-authenticate', 'Token') if $status == 401;
     cors;
-    print { tuwf->resFd } $msg, "\n";
+    utf8::encode($msg);
+    fu->set_body("$msg\n");
     logreq "$status $msg";
-    tuwf->done;
+    fu->done;
 }
 
-sub count_request {
-    my($rows, $call) = @_;
-    close tuwf->resFd;
+sub count_request($rows, $call) {
     add_throttle;
-    logreq sprintf "%3dr%6db %s", $rows, length(tuwf->{_TUWF}{Res}{content}), $call;
+    logreq sprintf "%3dr%6db %s", $rows, length($FU::REQ->{resbody}), $call;
 }
 
 
-sub api_get {
-    my($path, $schema, $sub) = @_;
-    my $s = tuwf->compile({ type => 'hash', keys => $schema });
-    TUWF::get qr{/api/kana\Q$path}, sub {
+sub api_get($path, $schema, $sub) {
+    my $s = FU::Validate->compile({ keys => $schema });
+    FU::get "/api/kana$path", sub {
         check_throttle;
         my $res = $sub->();
-        tuwf->resJSON($s->analyze->coerce_for_json($res, unknown => 'pass'));
         cors;
+        eval { fu->send_json($s->coerce($res, unknown => 'pass')) };
         count_request(1, '-');
     };
 }
 
 
-sub api_del {
-    my($path, $sub) = @_;
-    TUWF::del qr{/api/kana$path}, sub {
+sub api_del($path, $sub) {
+    FU::delete qr{/api/kana$path}, sub(@a) {
         check_throttle;
-        my $del = $sub->();
-        tuwf->resStatus(204);
+        my $del = $sub->(@a);
+        fu->status(204);
         cors;
-        count_request($del?1:0, 'DELETE');
+        count_request($del?1:0, '-');
     };
 }
 
 
-sub api_patch {
-    my($path, $req_schema, $sub) = @_;
+sub api_patch($path, $req_schema, $sub) {
     $req_schema->{$_}{missing} = 'ignore' for keys $req_schema->%*;
-    my $s = tuwf->compile({ type => 'hash', unknown => 'reject', keys => $req_schema });
-    TUWF::patch qr{/api/kana$path}, sub {
+    my $s = FU::Validate->compile({ unknown => 'reject', keys => $req_schema });
+    FU::patch qr{/api/kana$path}, sub(@a) {
         check_throttle;
-        my $req = tuwf->validate(json => $s);
-        if(!$req) {
-            eval { $req->data }; warn $@;
-            my $err = $req->err;
-            if(!$err->{errors}) {
-                err 400, 'Missing request body.' if !$err->{keys};
-                err 400, "Unknown member '$err->{keys}[0]'." if $err->{keys};
+        my $req = eval { fu->json($s) };
+        if (!$req) {
+            my $err = $@;
+            if ($err isa 'FU::Validate::err') {
+                warn +($err->errors)[0]."\n";
+                err 400, $err->{keys} ? "Unknown member '$err->{keys}[0]'." : 'Invalid request body.' if !$err->{errors};
+                $err = $err->{errors}[0]//{};
+                err 400, "Invalid '$err->{key}' member." if $err->{key};
             }
-            $err = $err->{errors}[0]//{};
-            err 400, "Invalid '$err->{key}' member." if $err->{key};
             err 400, 'Invalid request body.';
-        };
-        $req = $req->data;
+        }
 
-        # TUWF::Validate always creates a field, even if it was missing in the
-        # original body, but we want to differentiate between non-existent
-        # fields and empty ones, so we'll check with the raw body and delete
-        # the missing ones.
-        my $raw_input = tuwf->reqJSON();
-        delete $req->{$_} for grep !exists $raw_input->{$_}, keys $req->%*;
-
-        $sub->($req);
-        tuwf->resStatus(204);
+        $sub->(@a, $req);
+        fu->status(204);
         cors;
-        count_request(1, 'PATCH');
+        count_request(1, '-');
     };
 }
 
@@ -229,45 +219,40 @@ sub api_patch {
 #   proc     => sub {} # Subroutine to do processing on the final value.
 #   num      => 1,     # Estimate of the number of objects that will be returned.
 my %OBJS;
-sub api_query {
-    my($path, %opt) = @_;
-
+sub api_query($path, %opt) {
     $OBJS{$path} = \%opt;
 
     my %sort = ($opt{sort}->@*, $opt{search} ? (searchrank => 'sc.score !o, sc.id, sc.subid') : ());
-    my $req_schema = tuwf->compile({ type => 'hash', unknown => 'reject', keys => {
+    my $req_schema = FU::Validate->compile({ unknown => 'reject', keys => {
         filters  => { advsearch => $opt{filters} },
         fields   => { default => {}, func => sub { parse_fields($opt{fields}, $_[0]) } },
         sort     => { default => $opt{sort}[0], enum => [ keys %sort ] },
-        reverse  => { default => 0, jsonbool => 1 },
+        reverse  => { default => 0, bool => 1 },
         results  => { default => 10, uint => 1, range => [0,100] },
         page     => { default => 1, uint => 1, range => [1,1e6] },
-        count    => { default => 0, jsonbool => 1 },
-        user     => { default => undef, vndbid => 'u' },
-        time     => { default => 0, jsonbool => 1 },
-        compact_filters    => { default => 0, jsonbool => 1 },
-        normalized_filters => { default => 0, jsonbool => 1 },
+        count    => { default => 0, bool => 1 },
+        user     => { default => sub { auth->uid }, vndbid => 'u' },
+        time     => { default => 0, bool => 1 },
+        compact_filters    => { default => 0, bool => 1 },
+        normalized_filters => { default => 0, bool => 1 },
     }});
 
-    TUWF::post qr{/api/kana\Q$path}, sub {
+    FU::post "/api/kana$path", sub {
         check_throttle;
-        tuwf->req->{advsearch_uid} = eval { tuwf->reqJSON->{user} };
-        my $req = tuwf->validate(json => $req_schema);
+
+        my $req = fu->json({ type => 'hash' }) || err 400, 'Invalid query.';
+        fu->{advsearch_uid} = $req->{user};
+        $req = eval { $req_schema->validate($req) };
         if(!$req) {
-            eval { $req->data }; warn $@;
-            my $err = $req->err;
-            if(!$err->{errors}) {
-                err 400, 'Missing request body.' if !$err->{keys};
-                err 400, "Unknown member '$err->{keys}[0]'." if $err->{keys};
-            }
+            my $err = $@;
+            warn +($err->errors)[0]."\n";
+            err 400, $err->{keys} ? "Unknown member '$err->{keys}[0]'." : 'Missing request body.' if !$err->{errors};
             $err = $err->{errors}[0]//{};
             err 400, "Invalid '$err->{field}' filter: $err->{msg}." if $err->{key} eq 'filters' && $err->{msg} && $err->{field};
             err 400, "Invalid '$err->{key}' member: $err->{msg}" if $err->{key} && $err->{msg};
             err 400, "Invalid '$err->{key}' member." if $err->{key};
             err 400, 'Invalid query.';
         };
-        $req = $req->data;
-        $req->{user} //= auth->uid;
 
         my $numfields = count_fields($opt{fields}, $req->{fields}, $req->{results});
         err 400, sprintf 'Too much data selected (estimated %.0f fields)', $numfields if $numfields > 100_000;
@@ -289,10 +274,10 @@ sub api_query {
             local $SIG{ALRM} = sub { die "Timeout\n"; };
             alarm 3;
             ($results, $more) = $req->{results} == 0 ? ([], 0) :
-                tuwf->dbPagei($req, $opt{sql}->($select, $joins, $filt->sql_where(), $req), 'ORDER BY', $sort);
+                fu->dbPagei($req, $opt{sql}->($select, $joins, $filt->sql_where(), $req), 'ORDER BY', $sort);
             $count = $req->{count} && (
                 !$more && $req->{results} && @$results <= $req->{results} ? ($req->{results}*($req->{page}-1))+@$results :
-                tuwf->dbVali('SELECT count(*) FROM (', $opt{sql}->('', '', $req->{filters}->sql_where), ') x')
+                fu->dbVali('SELECT count(*) FROM (', $opt{sql}->('', '', $req->{filters}->sql_where), ') x')
             );
             proc_results($opt{fields}, $req->{fields}, $req, $results);
             alarm 0;
@@ -303,15 +288,15 @@ sub api_query {
             die $@;
         };
 
-        tuwf->resJSON({
+        cors;
+        eval { fu->send_json({
             results => $results,
             more => $more?\1:\0,
             $req->{count} ? (count => $count) : (),
             $req->{compact_filters} ? (compact_filters => $req->{filters}->enc_query) : (),
             $req->{normalized_filters} ? (normalized_filters => $req->{filters}->json) : (),
-            $req->{time} ? (time => int(1000*(time() - tuwf->req->{throttle_start}))) : (),
-        });
-        cors;
+            $req->{time} ? (time => int(1000*(time() - fu->{throttle_start}))) : (),
+        }) };
         count_request(scalar @$results, sprintf '[%s] {%s %s r%dp%d%s%s} %s', fmt_fields($req->{fields}),
             $req->{sort}, lc($order), $req->{results}, $req->{page}, $req->{count}?'c':'', $req->{user}?" $req->{user}":'',
             $req->{filters}->enc_query()||'-');
@@ -424,7 +409,7 @@ sub proc_results {
             # DB::enrich() logic has been duplicated here to allow for
             # efficient handling of nested proc_results() and `atmostone`.
             my %ids = map defined($_->{$d->{key}}) ? ($_->{$d->{key}},[]) : (), @$results;
-            my $rows = keys %ids ? tuwf->dbAlli($d->{enrich}->($select, $join, [keys %ids], $req)) : [];
+            my $rows = keys %ids ? fu->dbAlli($d->{enrich}->($select, $join, [keys %ids], $req)) : [];
             proc_results($d->{fields}, $enabled->{$f}, $req, $rows);
             push $ids{ delete $_->{$d->{col}} }->@*, $_ for @$rows;
             if($d->{atmostone}) {
@@ -443,7 +428,7 @@ sub proc_results {
             $select .= ",$d->{subid} AS $subidname";
             # This is enrich_obj()
             my %ids = map defined($_->{$f}) ? ($_->{$f},undef) : (), @$results;
-            my $rows = keys %ids ? tuwf->dbAlli(
+            my $rows = keys %ids ? fu->dbAlli(
                 $OBJS{$d->{object}}{sql}->($select, $join, sql($d->{subid}, 'IN', [keys %ids]), $req)
             ) : [];
             proc_results($d->{fields}, $enabled->{$f}, $req, $rows);
@@ -506,7 +491,7 @@ api_get '/schema', {}, sub {
 my @STATS = qw{traits producers tags chars staff vn releases};
 api_get '/stats', { map +($_, { uint => 1 }), @STATS }, sub {
     +{ map +($_->{section}, $_->{count}),
-        tuwf->dbAlli('SELECT * FROM stats_cache WHERE section IN', \@STATS)->@* };
+        fu->dbAlli('SELECT * FROM stats_cache WHERE section IN', \@STATS)->@* };
 };
 
 
@@ -524,14 +509,13 @@ api_get '/authinfo', {}, sub {
 
 
 api_get '/user', {}, sub {
-    my $data = tuwf->validate(get =>
-        q      => { type => 'array', scalar => 1, maxlength => 100, values => {} },
+    my $data = eval { fu->query(
+        q      => { accept_scalar => 1, maxlength => 100, elems => {} },
         fields => { fields => ['lengthvotes', 'lengthvotes_sum'] },
-    );
-    err 400, 'Invalid argument' if !$data;
-    my ($q, $f) = @{ $data->data }{qw{ q fields }};
+    ) } || err 400, 'Invalid argument';
+    my ($q, $f) = @{$data}{qw{ q fields }};
     my $regex = '^u[1-9][0-9]{0,6}$';
-    +{ map +(delete $_->{q}, $_->{id} ? $_ : undef), tuwf->dbAlli('
+    +{ map +(delete $_->{q}, $_->{id} ? $_ : undef), fu->dbAlli('
         WITH u AS (
             SELECT x.q, u.id, u.username
               FROM unnest(', sql_array(@$q), ') x(q)
@@ -557,12 +541,10 @@ api_get '/ulist_labels', { labels => { aoh => {
     private => { anybool => 1 },
     label   => {},
 }}}, sub {
-    my $data = tuwf->validate(get =>
+    my $data = eval { fu->query(
         user   => { vndbid => 'u', default => auth->uid||\'required' },
         fields => { default => undef, enum => ['count'] },
-    );
-    err 400, 'Invalid argument' if !$data;
-    $data = $data->data;
+    ) } || err 400, 'Invalid argument';
     +{ labels => ulist_filtlabels $data->{user}, $data->{fields} };
 };
 
@@ -572,14 +554,12 @@ api_patch qr{/ulist/$RE{vid}}, {
     notes        => { default => '', maxlength => 2000 },
     started      => { caldate => 1 },
     finished     => { caldate => 1 },
-    labels       => { default => [], type => 'array', values => { uint => 1, range => [1,1600] } },
-    labels_set   => { default => [], type => 'array', values => { uint => 1, range => [1,1600] } },
-    labels_unset => { default => [], type => 'array', values => { uint => 1, range => [1,1600] } },
-}, sub {
-    my($upd) = @_;
-    my $vid = tuwf->capture('id');
+    labels       => { default => [], elems => { uint => 1, range => [1,1600] } },
+    labels_set   => { default => [], elems => { uint => 1, range => [1,1600] } },
+    labels_unset => { default => [], elems => { uint => 1, range => [1,1600] } },
+}, sub($vid, $upd) {
     err 401, 'Unauthorized' if !auth->api2Listwrite;
-    err 404, 'Visual novel not found' if !tuwf->dbExeci('SELECT 1 FROM vn WHERE NOT hidden AND id =', \$vid);
+    err 404, 'Visual novel not found' if !fu->dbExeci('SELECT 1 FROM vn WHERE NOT hidden AND id =', \$vid);
 
     my $newlabels = sql "'{}'::smallint[]";
     if($upd->{labels} || $upd->{labels_set} || $upd->{labels_unset}) {
@@ -605,7 +585,7 @@ api_patch qr{/ulist/$RE{vid}}, {
     $upd->{vote_date} = sql $upd->{vote} ? 'CASE WHEN ulist_vns.vote IS NULL THEN NOW() ELSE ulist_vns.vote_date END' : 'NULL'
         if exists $upd->{vote};
 
-    my $done = tuwf->dbExeci(
+    my $done = fu->dbExeci(
         'INSERT INTO ulist_vns', { %$upd,
             labels => $newlabels,
             vote_date => sql($upd->{vote} ? 'NOW()' : 'NULL'),
@@ -615,36 +595,34 @@ api_patch qr{/ulist/$RE{vid}}, {
         'ON CONFLICT (uid, vid) DO', keys %$upd ? ('UPDATE SET', $upd) : 'NOTHING'
     );
     if($done > 0) {
-        tuwf->dbExeci(SELECT => sql_func update_users_ulist_private => \auth->uid, \$vid);
-        tuwf->dbExeci(SELECT => sql_func update_users_ulist_stats => \auth->uid);
+        fu->dbExeci(SELECT => sql_func update_users_ulist_private => \auth->uid, \$vid);
+        fu->dbExeci(SELECT => sql_func update_users_ulist_stats => \auth->uid);
     }
 };
 
 
 api_patch qr{/rlist/$RE{rid}}, {
     status  => { uint => 1, default => 0, enum => \%RLIST_STATUS },
-}, sub {
-    my($upd) = @_;
-    my $rid = tuwf->capture('id');
+}, sub($rid, $upd) {
     err 401, 'Unauthorized' if !auth->api2Listwrite;
-    err 404, 'Release not found' if !tuwf->dbExeci('SELECT 1 FROM releases WHERE NOT hidden AND id =', \$rid);
-    tuwf->dbExeci(
+    err 404, 'Release not found' if !fu->dbExeci('SELECT 1 FROM releases WHERE NOT hidden AND id =', \$rid);
+    fu->dbExeci(
         'INSERT INTO rlists', { %$upd, uid => auth->uid, rid => $rid },
         'ON CONFLICT (uid, rid) DO', keys %$upd ? ('UPDATE SET', $upd) : 'NOTHING'
     );
 };
 
 
-api_del qr{/ulist/$RE{vid}}, sub {
+api_del qr{/ulist/$RE{vid}}, sub($id) {
     err 401, 'Unauthorized' if !auth->api2Listwrite;
-    tuwf->dbExeci('DELETE FROM ulist_vns WHERE uid =', \auth->uid, 'AND vid =', \tuwf->capture('id'));
-    tuwf->dbExeci(SELECT => sql_func update_users_ulist_stats => \auth->uid);
+    fu->dbExeci('DELETE FROM ulist_vns WHERE uid =', \auth->uid, 'AND vid =', \$id);
+    fu->dbExeci(SELECT => sql_func update_users_ulist_stats => \auth->uid);
 };
 
 
-api_del qr{/rlist/$RE{rid}}, sub {
+api_del qr{/rlist/$RE{rid}}, sub($id) {
     err 401, 'Unauthorized' if !auth->api2Listwrite;
-    tuwf->dbExeci('DELETE FROM rlists WHERE uid =', \auth->uid, 'AND rid =', \tuwf->capture('id'));
+    fu->dbExeci('DELETE FROM rlists WHERE uid =', \auth->uid, 'AND rid =', \$id);
 };
 
 

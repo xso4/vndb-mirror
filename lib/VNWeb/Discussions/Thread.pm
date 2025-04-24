@@ -5,7 +5,7 @@ use VNWeb::Discussions::Lib;
 
 
 
-my $REPLY = form_compile any => {
+my $REPLY = form_compile {
     tid => { vndbid => 't' },
     old => { anybool => 1 },
     msg => { maxlength => 32768 }
@@ -13,13 +13,13 @@ my $REPLY = form_compile any => {
 
 js_api DiscussionReply => $REPLY, sub {
     my($data) = @_;
-    my $t = tuwf->dbRowi('SELECT id, locked FROM threads t WHERE id =', \$data->{tid}, 'AND', sql_visible_threads());
-    return tuwf->resNotFound if !$t->{id};
-    return tuwf->resDenied if !can_edit t => $t;
+    my $t = fu->dbRowi('SELECT id, locked FROM threads t WHERE id =', \$data->{tid}, 'AND', sql_visible_threads());
+    fu->notfound if !$t->{id};
+    fu->denied if !can_edit t => $t;
 
     my $num = sql '(SELECT MAX(num)+1 FROM threads_posts WHERE tid =', \$data->{tid}, ')';
     my $msg = bb_subst_links $data->{msg};
-    $num = tuwf->dbVali('INSERT INTO threads_posts', { tid => $t->{id}, num => $num, uid => auth->uid, msg => $msg }, 'RETURNING num');
+    $num = fu->dbVali('INSERT INTO threads_posts', { tid => $t->{id}, num => $num, uid => auth->uid, msg => $msg }, 'RETURNING num');
     +{ _redir => "/$t->{id}.$num#last" };
 };
 
@@ -59,7 +59,7 @@ sub metabox_ {
 
 
 sub poll_ ($t) {
-    my $options = tuwf->dbAlli(
+    my $options = fu->dbAlli(
         'SELECT tpo.id, tpo.option, count(u.id) as votes, tpm.optid IS NOT NULL as my
            FROM threads_poll_options tpo
            LEFT JOIN threads_poll_votes tpv ON tpv.optid = tpo.id
@@ -69,14 +69,14 @@ sub poll_ ($t) {
           GROUP BY tpo.id, tpo.option, tpm.optid
           ORDER BY tpo.id'
     );
-    my $num_votes = tuwf->dbVali(
+    my $num_votes = fu->dbVali(
         'SELECT COUNT(DISTINCT tpv.uid)
           FROM threads_poll_votes tpv
           JOIN threads_poll_options tpo ON tpo.id = tpv.optid
           JOIN users u ON tpv.uid = u.id
          WHERE NOT u.ign_votes AND tpo.tid =', \$t->{id}
     );
-    my $preview = $num_votes && (tuwf->reqGet('pollview') || !auth || grep $_->{my}, @$options);
+    my $preview = $num_votes && (fu->query(pollview => { anybool => 1 }) || !auth || grep $_->{my}, @$options);
     my $max_votes = max map $_->{votes}, @$options;
 
     article_ sub {
@@ -147,7 +147,7 @@ sub posts_ {
                     small_ class => 'edit', sub {
                         txt_ '< ';
                         if(can_edit t => $_) {
-                            a_ href => "/$t->{id}.$_->{num}/edit", 'edit';
+                            a_ href => "/$t->{id}".($t->{id} =~ /^w/ || $_->{num} > 1 ? ".$_->{num}" : '').'/edit', 'edit';
                             txt_ ' - ';
                         }
                         a_ href => "/report/$t->{id}.$_->{num}", 'report';
@@ -174,8 +174,8 @@ sub posts_ {
 sub mark_patrolled($id, $num) {
     return if !auth->permDbmod;
     my $obj = { id => $id, num => $num, uid => auth->uid };
-    tuwf->dbExeci('INSERT INTO posts_patrolled', $obj, 'ON CONFLICT (id,num,uid) DO NOTHING') if tuwf->reqGet('patrolled');
-    tuwf->dbExeci('DELETE FROM posts_patrolled WHERE', $obj) if tuwf->reqGet('unpatrolled');
+    fu->dbExeci('INSERT INTO posts_patrolled', $obj, 'ON CONFLICT (id,num,uid) DO NOTHING') if fu->query('patrolled');
+    fu->dbExeci('DELETE FROM posts_patrolled WHERE', $obj) if fu->query('unpatrolled');
 }
 
 
@@ -195,29 +195,28 @@ sub reply_ {
 }
 
 
-my $PATH = qr{/$RE{tid}(?:(?<sep>[\./])$RE{num})?};
+my $PATH = qr{/$RE{tid}(?:([\./])($RE{num}))?};
 
-TUWF::get $PATH, sub {
+FU::get $PATH, sub($id, $sep='', $num=0) {
     not_moe;
-    my($id, $sep, $num) = (tuwf->capture('id'), tuwf->capture('sep')||'', tuwf->capture('num'));
     mark_patrolled $id, $num if $sep eq '.';
 
-    my $t = tuwf->dbRowi(
+    my $t = fu->dbRowi(
         'SELECT id, title, hidden, locked, private
               , poll_question, poll_max_options
               , (SELECT COUNT(*) FROM threads_posts WHERE tid = id) AS count
            FROM threads t
           WHERE', sql_visible_threads(), 'AND id =', \$id
     );
-    return tuwf->resNotFound if !$t->{id};
+    fu->notfound if !$t->{id};
 
     enrich_boards '', $t;
 
     my $page = $sep eq '/' ? $num||1 : $sep ne '.' ? 1
-        : ceil((tuwf->dbVali('SELECT COUNT(*) FROM threads_posts WHERE num <=', \$num, 'AND tid =', \$id)||9999)/25);
+        : ceil((fu->dbVali('SELECT COUNT(*) FROM threads_posts WHERE num <=', \$num, 'AND tid =', \$id)||9999)/25);
     $num = 0 if $sep ne '.';
 
-    my $posts = tuwf->dbPagei({ results => 25, page => $page },
+    my $posts = fu->dbPagei({ results => 25, page => $page },
         'SELECT tp.tid as id, tp.num, tp.hidden, tp.msg',
              ',', sql_user(),
              ',', sql_totime('tp.date'), ' as date',
@@ -227,7 +226,7 @@ TUWF::get $PATH, sub {
           WHERE tp.tid =', \$id, '
           ORDER BY tp.num'
     );
-    return tuwf->resNotFound if !@$posts || ($num && !grep $_->{num} == $num, @$posts);
+    fu->notfound if !@$posts || ($num && !grep $_->{num} == $num, @$posts);
 
     auth->notiRead($id, [ map $_->{num}, $posts->@* ]) if @$posts;
 
@@ -240,21 +239,20 @@ TUWF::get $PATH, sub {
 };
 
 
-TUWF::post $PATH, sub {
-    my $id = tuwf->capture('id');
-    return tuwf->resDenied if !auth || !auth->csrfcheck(tuwf->reqPost('csrf')||'', "poll-$id");
+FU::post $PATH, sub($id, @) {
+    fu->denied if !auth || !auth->csrfcheck(fu->formdata(csrf => { onerror => '' }), "poll-$id");
 
-    my $t = tuwf->dbRowi('SELECT poll_question, poll_max_options FROM threads t WHERE id =', \$id, 'AND', sql_visible_threads());
-    return tuwf->resNotFound if !$t->{poll_question};
+    my $t = fu->dbRowi('SELECT poll_question, poll_max_options FROM threads t WHERE id =', \$id, 'AND', sql_visible_threads());
+    fu->notfound if !$t->{poll_question};
 
-    my %opt = map +($_->{id},1), tuwf->dbAlli('SELECT id FROM threads_poll_options WHERE tid =', \$id)->@*;
-    my %vote = map +($_,1), grep $opt{$_}, tuwf->reqPosts('opt');
+    my %opt = map +($_->{id},1), fu->dbAlli('SELECT id FROM threads_poll_options WHERE tid =', \$id)->@*;
+    my %vote = map +($_,1), grep $opt{$_}, fu->formdata(opt => { accept_scalar => 1, elems => { uint => 1 } })->@*;
     my $i = 0;
     my @vote = grep $i++ < $t->{poll_max_options}, sort keys %vote;
 
-    tuwf->dbExeci('DELETE FROM threads_poll_votes WHERE optid IN', [ keys %opt ], 'AND uid =', \auth->uid);
-    tuwf->dbExeci('INSERT INTO threads_poll_votes', { uid => auth->uid, optid => $_ }) for @vote;
-    tuwf->resRedirect(tuwf->reqPath, 'post');
+    fu->dbExeci('DELETE FROM threads_poll_votes WHERE optid IN', [ keys %opt ], 'AND uid =', \auth->uid);
+    fu->dbExeci('INSERT INTO threads_poll_votes', { uid => auth->uid, optid => $_ }) for @vote;
+    fu->redirect(tempget => fu->path);
 };
 
 1;

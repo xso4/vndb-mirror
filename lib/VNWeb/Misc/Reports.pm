@@ -9,9 +9,8 @@ my $STATUSRE = '(?:'.join('|', @STATUS).')';
 
 
 # Returns the object associated with the vndbid.num; Returns false if the object can't be reported.
-sub obj {
-    my($id, $num) = @_;
-    my $o = tuwf->dbRowi('SELECT x.*, ', sql_user(), 'FROM', item_info(\$id, \$num), 'x LEFT JOIN users u ON u.id = x.uid');
+sub obj($id, $num=undef) {
+    my $o = fu->dbRowi('SELECT x.*, ', sql_user(), 'FROM', item_info(\$id, \$num), 'x LEFT JOIN users u ON u.id = x.uid');
     $o->{object} = $id;
     $o->{objectnum} = $num;
     $o->{title} //= [undef,$o->{object},undef,$o->{object}];
@@ -47,11 +46,11 @@ sub obj_ {
 
 
 sub is_throttled {
-    tuwf->dbVali('SELECT COUNT(*) FROM reports WHERE date > NOW()-\'1 day\'::interval AND', auth ? ('uid =', \auth->uid) : ('(ip).ip =', \tuwf->reqIP)) >= $reportsperday
+    fu->dbVali('SELECT COUNT(*) FROM reports WHERE date > NOW()-\'1 day\'::interval AND', auth ? ('uid =', \auth->uid) : ('(ip).ip =', \fu->ip)) >= $reportsperday
 }
 
 
-my $FORM = form_compile any => {
+my $FORM = form_compile {
     object   => {},
     objectnum=> { default => undef, uint => 1 },
     title    => {},
@@ -60,13 +59,12 @@ my $FORM = form_compile any => {
     loggedin => { anybool => 1 },
 };
 
-js_api Report => $FORM, sub {
-    return tuwf->resDenied if is_throttled;
-    my($data) = @_;
+js_api Report => $FORM, sub($data) {
+    fu->denied if is_throttled;
     my $obj = obj $data->{object}, $data->{objectnum};
-    return 'Invalid object' if !$data;
+    return 'Invalid object' if !$obj;
 
-    tuwf->dbExeci('INSERT INTO reports', {
+    fu->dbExeci('INSERT INTO reports', {
         uid      => auth->uid,
         ip       => auth ? undef : ipinfo(),
         object   => $data->{object},
@@ -78,9 +76,9 @@ js_api Report => $FORM, sub {
 };
 
 
-TUWF::get qr{/report/(?<object>[vrpcsdgitwu]$RE{num})(?:\.(?<subid>$RE{num}))?}, sub {
-    my $obj = obj tuwf->captures('object', 'subid');
-    return tuwf->resNotFound if !$obj || config->{read_only};
+FU::get qr{/report/([vrpcsdgitwu]$RE{num})(?:\.($RE{num}))?}, sub($id,$num=undef) {
+    my $obj = obj $id, $num;
+    fu->notfound if !$obj || config->{read_only};
 
     framework_ title => 'Submit report', sub {
         if(is_throttled) {
@@ -91,7 +89,7 @@ TUWF::get qr{/report/(?<object>[vrpcsdgitwu]$RE{num})(?:\.(?<subid>$RE{num}))?},
         } else {
             my $title = fragment sub { obj_ $obj };
             utf8::decode($title);
-            div_ widget(Report => $FORM, { elm_empty($FORM)->%*, %$obj, loggedin => !!auth, title => $title }), '';
+            div_ widget(Report => $FORM, { $FORM->empty->%*, %$obj, loggedin => !!auth, title => $title }), '';
         }
     };
 };
@@ -153,23 +151,23 @@ sub report_ {
 }
 
 
-TUWF::get qr{/report/list}, sub {
-    return tuwf->resDenied if !auth->isMod;
+FU::get '/report/list', sub {
+    fu->denied if !auth->isMod;
 
-    my $opt = tuwf->validate(get =>
+    my $opt = fu->query(
         p      => { upage => 1 },
-        s      => { enum => ['id','lastmod'], default => 'id' },
-        status => { enum => \@STATUS, default => undef },
-        id     => { id => 1, default => undef },
-    )->data;
+        s      => { default => 'id', enum => ['id','lastmod'] },
+        status => { default => undef, enum => \@STATUS},
+        id     => { default => undef, id => 1 },
+    );
 
     my $where = sql_and
         $opt->{id} ? sql 'r.id =', \$opt->{id} : (),
         $opt->{status} ? sql 'r.status =', \$opt->{status} : (),
         $opt->{s} eq 'lastmod' ? 'r.lastmod IS NOT NULL' : ();
 
-    my $cnt = tuwf->dbVali('SELECT count(*) FROM reports r WHERE', $where);
-    my $lst = tuwf->dbPagei({results => 25, page => $opt->{p}},
+    my $cnt = fu->dbVali('SELECT count(*) FROM reports r WHERE', $where);
+    my $lst = fu->dbPagei({results => 25, page => $opt->{p}},
        'SELECT r.id,', sql_totime('r.date'), 'as date, r.uid, ur.username, fmtip(r.ip) as ip, r.reason, r.status, r.message, r.log
              , r.object, r.objectnum, x.title, x.uid as by_uid,', sql_user('uo'), '
           FROM reports r
@@ -187,7 +185,7 @@ TUWF::get qr{/report/list}, sub {
          ORDER BY l.date'
     }, $lst;
 
-    tuwf->dbExeci(
+    fu->dbExeci(
         'UPDATE users_prefs SET last_reports = NOW()
           WHERE (last_reports IS NULL OR EXISTS(SELECT 1 FROM reports WHERE lastmod > last_reports OR date > last_reports))
             AND id =', \auth->uid
@@ -246,28 +244,28 @@ TUWF::get qr{/report/list}, sub {
 };
 
 
-TUWF::post qr{/report/edit}, sub {
-    return tuwf->resDenied if !auth->isMod;
-    my $frm = tuwf->validate(post =>
+FU::post '/report/edit', sub {
+    fu->denied if !auth->isMod;
+    my $frm = fu->formdata(
         id      => { id => 1 },
         url     => { regex => qr{^/report/list} },
         status  => { enum => \@STATUS, default => undef },
         comment => { default => '' },
-    )->data;
-    my $r = tuwf->dbRowi('SELECT id, status FROM reports WHERE id =', \$frm->{id});
-    return tuwf->resNotFound if !$r->{id};
+    );
+    my $r = fu->dbRowi('SELECT id, status FROM reports WHERE id =', \$frm->{id});
+    fu->notfound if !$r->{id};
 
     if(($frm->{status} && $r->{status} ne $frm->{status}) || length $frm->{comment}) {
-        tuwf->dbExeci('UPDATE reports SET', {
+        fu->dbExeci('UPDATE reports SET', {
             lastmod => sql('NOW()'),
             $frm->{status} ? (status => $frm->{status}) : (),
         }, 'WHERE id =', \$r->{id});
-        tuwf->dbExeci('INSERT INTO reports_log', {
+        fu->dbExeci('INSERT INTO reports_log', {
             id => $r->{id}, uid => auth->uid,
             status => $frm->{status}//$r->{status}, message => $frm->{comment}
         });
     }
-    tuwf->resRedirect($frm->{url}, 'post');
+    fu->redirect(tempget => $frm->{url});
 };
 
 1;

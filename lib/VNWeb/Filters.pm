@@ -4,7 +4,7 @@ package VNWeb::Filters;
 # the new AdvSearch system. It only exists for compatibility with old URLs.
 
 use v5.36;
-use TUWF;
+use FU;
 use VNDB::Types;
 use VNWeb::Auth;
 use VNWeb::Validation;
@@ -13,7 +13,7 @@ use Exporter 'import';
 our @EXPORT = qw/filter_parse filter_vn_adv filter_release_adv filter_char_adv filter_staff_adv/;
 
 
-my $VN = form_compile any => {
+my $VN = form_compile {
     date_before => { default => undef, uint => 1, range => [0, 99999999] }, # don't use 'rdate' validation here, the search form allows invalid dates
     date_after  => { default => undef, uint => 1, range => [0, 99999999] }, # ^
     released    => { undefbool => 1 },
@@ -36,7 +36,7 @@ my $VN = form_compile any => {
     ul_onlist   => { undefbool => 1 },
 };
 
-my $RELEASE = form_compile any => {
+my $RELEASE = form_compile {
     type        => { default => undef, enum => \%RELEASE_TYPE },
     patch       => { undefbool => 1 },
     freeware    => { undefbool => 1 },
@@ -59,7 +59,7 @@ my $RELEASE = form_compile any => {
     engine      => { default => undef },
 };
 
-my $CHAR = form_compile any => {
+my $CHAR = form_compile {
     gender      => { undefarray => { enum => [qw/unknown m f b/] } },
     bloodt      => { undefarray => { enum => \%BLOOD_TYPE } },
     bust_min    => { default => undef, uint => 1, range => [ 0, 32767 ] },
@@ -82,7 +82,7 @@ my $CHAR = form_compile any => {
     role        => { undefarray => { enum => \%CHAR_ROLE } },
 };
 
-my $STAFF = form_compile any => {
+my $STAFF = form_compile {
     gender      => { undefarray => { enum => [qw[unknown m f]] } },
     role        => { undefarray => { enum => [ 'seiyuu', keys %CREDIT_TYPE ] } },
     truename    => { undefbool => 1 },
@@ -90,24 +90,17 @@ my $STAFF = form_compile any => {
 };
 
 
-
 # Compatibility with old VN filters. Modifies the filter in-place and returns the number of changes made.
-sub filter_vn_compat {
-    my($fil) = @_; #XXX: This function is called from old VNDB:: code and the filter data may not have been normalized as per the schema.
-    my $mod = 0;
-
+sub filter_vn_compat($fil) {
     # older tag specification (by name rather than ID)
     for ('taginc', 'tagexc') {
         my $l = delete $fil->{$_};
         next if !$l;
         $l = [ map lc($_), ref $l ? @$l : $l ];
-        $fil->{ s/^tag/tag_/rg } ||= [ map $_->{id}, tuwf->dbAlli(
+        $fil->{ s/^tag/tag_/rg } ||= [ map $_->{id}, fu->dbAlli(
            'SELECT DISTINCT id FROM tags WHERE searchable AND lower(name) IN', $l
         )->@* ];
-        $mod++;
     }
-
-    $mod;
 }
 
 
@@ -115,19 +108,15 @@ sub filter_vn_compat {
 # New resolutions have been added to this array in the past, so some older filters may reference the wrong resolution.
 my @OLDRES = (qw/unknown nonstandard 640x480 800x600 1024x768 1280x960 1600x1200 640x400 960x600 1024x576 1024x600 1024x640 1280x720 1280x800 1366x768 1600x900 1920x1080/);
 
-sub filter_release_compat {
-    my($fil) = @_;
-    my $mod = 0;
-    $fil->{resolution} &&= [ map /^(?:0|[1-9][0-9]*)$/ && $_ <= $#OLDRES ? do { $mod++; $OLDRES[$_] } : $_, $fil->{resolution}->@* ];
-    $mod;
+sub filter_release_compat($fil) {
+    $fil->{resolution} &&= [ map /^(?:0|[1-9][0-9]*)$/ && $_ <= $#OLDRES ? $OLDRES[$_] : $_, $fil->{resolution}->@* ];
 }
 
 
 
 my @fil_escape = split //, '_ !"#$%&\'()*+,-./:;<=>?@[\]^`{}~';
 
-sub _fil_parse {
-    my $str = shift;
+sub _fil_parse($str) {
     my %r;
     for (split /\./, $str) {
         next if !/^([a-z0-9_]+)-([a-zA-Z0-9_~\x81-\x{ffffff}]+)$/;
@@ -145,9 +134,9 @@ sub filter_parse {
     my($type, $str) = @_;
     return {} if !$str;
     my $s = {v => $VN, r => $RELEASE, c => $CHAR, s => $STAFF}->{$type};
-    my $data = ref $str ? $str : $str =~ /^{/ ? JSON::XS->new->decode($str) : _fil_parse $str;
+    my $data = ref $str ? $str : $str =~ /^{/ ? FU::Util::json_parse($str) : _fil_parse $str;
     die "Invalid filter data: $str\n" if !$data;
-    my $f = $s->validate($data)->data;
+    my $f = $s->validate($data);
     filter_vn_compat $f if $type eq 'v';
     filter_release_compat $f if $type eq 'r';
     $f

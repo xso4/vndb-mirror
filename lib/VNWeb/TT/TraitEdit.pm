@@ -26,10 +26,9 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
 };
 
 
-TUWF::get qr{/$RE{irev}/edit}, sub {
-    my $e = db_entry tuwf->captures('id','rev');
-    return tuwf->resNotFound if !$e->{id};
-    return tuwf->resDenied if !can_edit i => $e;
+FU::get qr{/$RE{irev}/edit}, sub($id, $rev=0) {
+    my $e = db_entry $id, $rev or fu->notfound;
+    fu->denied if !can_edit i => $e;
 
     $e->{authmod} = auth->permTagmod;
     $e->{editsum} = $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
@@ -40,13 +39,12 @@ TUWF::get qr{/$RE{irev}/edit}, sub {
 };
 
 
-TUWF::get qr{/(?:$RE{iid}/add|i/new)}, sub {
-    my $id = tuwf->capture('id');
-    my $i = tuwf->dbRowi('SELECT i.id AS parent, i.name, g.name AS "group", i.sexual FROM traits i LEFT JOIN traits g ON g.id = i.gid WHERE i.id =', \$id);
-    return tuwf->resDenied if !can_edit i => {};
-    return tuwf->resNotFound if $id && !$i->{parent};
+FU::get qr{/(?:$RE{iid}/add|i/new)}, sub($id=undef) {
+    my $i = $id && fu->dbRowi('SELECT i.id AS parent, i.name, g.name AS "group", i.sexual FROM traits i LEFT JOIN traits g ON g.id = i.gid WHERE i.id =', \$id);
+    fu->denied if !can_edit i => {};
+    fu->notfound if $id && !$i->{parent};
 
-    my $e = elm_empty($FORM_OUT);
+    my $e = $FORM_OUT->empty;
     $e->{authmod} = auth->permTagmod;
     if($id) {
         $i->{main} = 1;
@@ -72,12 +70,11 @@ TUWF::get qr{/(?:$RE{iid}/add|i/new)}, sub {
 };
 
 
-js_api TraitEdit => $FORM_IN, sub {
-    my($data) = @_;
+js_api TraitEdit => $FORM_IN, sub($data) {
     my $new = !$data->{id};
-    my $e = $new ? {} : db_entry $data->{id} or return tuwf->resNotFound;
-    return tuwf->resNotFound if !$new && !$e->{id};
-    return tuwf->resDenied if !can_edit i => $e;
+    my $e = $new ? {} : db_entry $data->{id} or fu->notfound;
+    fu->notfound if !$new && !$e->{id};
+    fu->denied if !can_edit i => $e;
 
     if(!auth->permTagmod) {
         $data->{hidden} = $e->{hidden}//1;
@@ -94,13 +91,13 @@ js_api TraitEdit => $FORM_IN, sub {
     }, @parents;
     die "No or multiple primary parents" if $data->{parents}->@* && 1 != grep $_->{main}, $data->{parents}->@*;
 
-    my $group = tuwf->dbVali('SELECT coalesce(gid,id) FROM traits WHERE id =', \[grep $_->{main}, $data->{parents}->@*]->[0]{parent});
+    my $group = fu->dbVali('SELECT coalesce(gid,id) FROM traits WHERE id =', \[grep $_->{main}, $data->{parents}->@*]->[0]{parent});
 
     $data->{description} = bb_subst_links($data->{description});
 
     # (Ideally this checks all groups that this trait applies in, but that's more annoying to implement)
     my $re = '[\t\s]*\n[\t\s]*';
-    my $dups = tuwf->dbAlli('
+    my $dups = fu->dbAlli('
         SELECT n.id, n.name
           FROM (SELECT id, name FROM traits UNION ALL SELECT id, s FROM traits, regexp_split_to_table(alias, ', \$re, ') a(s) WHERE s <> \'\') n(id,name)
           JOIN traits t ON n.id = t.id
@@ -114,8 +111,8 @@ js_api TraitEdit => $FORM_IN, sub {
 
     my $ch = db_edit i => $e->{id}, $data;
     return 'No changes.' if !$ch->{nitemid};
-    tuwf->dbExeci('UPDATE traits SET gid = null WHERE id =', \$ch->{nitemid}) if !$group;
-    tuwf->dbExeci('
+    fu->dbExeci('UPDATE traits SET gid = null WHERE id =', \$ch->{nitemid}) if !$group;
+    fu->dbExeci('
         WITH RECURSIVE childs (id) AS (
             SELECT ', \$ch->{nitemid}, '::vndbid UNION ALL SELECT tp.id FROM childs JOIN traits_parents tp ON tp.parent = childs.id AND tp.main
         ) UPDATE traits SET gid =', \$group, 'WHERE id IN(SELECT id FROM childs) AND gid IS DISTINCT FROM', \$group

@@ -4,10 +4,8 @@ use VNWeb::Prelude;
 use VNWeb::ULists::Lib;
 
 
-sub enrich_item {
-    my($s) = @_;
-
-    $s->{prod_title} = tuwf->dbVali('SELECT title FROM', producerst, 'WHERE id =', \$s->{prod}) if $s->{prod};
+sub enrich_item($s) {
+    $s->{prod_title} = fu->dbVali('SELECT title FROM', producerst, 'WHERE id =', \$s->{prod}) if $s->{prod};
 
     # Add a 'main' flag and title field to each alias
     for ($s->{alias}->@*) {
@@ -17,8 +15,7 @@ sub enrich_item {
 }
 
 
-sub _rev_ {
-    my($s) = @_;
+sub _rev_($s) {
     my %aid;
     revision_ $s, \&enrich_item,
         [ alias  => 'Names', fmt => sub {
@@ -38,8 +35,7 @@ sub _rev_ {
 }
 
 
-sub _infotable_ {
-    my($main, $s) = @_;
+sub _infotable_($main, $s) {
     table_ class => 'stripe', sub {
         thead_ sub { tr_ sub {
             td_ colspan => 2, sub {
@@ -85,11 +81,10 @@ sub _infotable_ {
 }
 
 
-sub _roles_ {
-    my($s) = @_;
+sub _roles_($s) {
     my %alias = map +($_->{aid}, $_), $s->{alias}->@*;
 
-    my $roles = tuwf->dbAlli('
+    my $roles = fu->dbAlli('
         SELECT v.id, vs.aid, vs.role, vs.note, ve.name, ve.official, ve.lang, v.c_released, v.title
           FROM vn_staff vs
           JOIN', vnt, 'v ON v.id = vs.id
@@ -135,11 +130,10 @@ sub _roles_ {
 }
 
 
-sub _cast_ {
-    my($s) = @_;
+sub _cast_($s) {
     my %alias = map +($_->{aid}, $_), $s->{alias}->@*;
 
-    my $cast = [ grep defined $_->{spoil}, tuwf->dbAlli('
+    my $cast = [ grep defined $_->{spoil}, fu->dbAlli('
         SELECT vs.aid, v.id, v.c_released, v.title, c.id AS cid, c.title AS c_title, vs.note,
                (SELECT MIN(cv.spoil) FROM chars_vns cv WHERE cv.id = c.id AND cv.vid = v.id) AS spoil
           FROM vn_seiyuu vs
@@ -194,20 +188,19 @@ sub _cast_ {
 }
 
 
-TUWF::get qr{/$RE{srev}} => sub {
-    my $s = db_entry tuwf->captures('id', 'rev');
-    return tuwf->resNotFound if !$s;
+FU::get qr{/$RE{srev}} => sub($id, $rev=0) {
+    my $s = db_entry $id, $rev or fu->notfound;
 
     enrich_item $s;
     enrich_vislinks s => 0, $s;
     my($main) = grep $_->{aid} == $s->{main}, $s->{alias}->@*;
 
-    framework_ title => $main->{title}[1], index => !tuwf->capture('rev'), dbobj => $s, hiddenmsg => 1,
+    framework_ title => $main->{title}[1], index => !$rev, dbobj => $s, hiddenmsg => 1,
         og => {
             description => bb_format $s->{description}, text => 1
         },
     sub {
-        _rev_ $s if tuwf->capture('rev');
+        _rev_ $s if $rev;
         article_ class => 'staffpage', sub {
             itemmsg_ $s;
             h1_ tlang(@{$main->{title}}[0,1]), $main->{title}[1];

@@ -20,7 +20,7 @@ sub ulists_priv {
 sub ulist_filtlabels($uid,$count=0) {
     my $own = ulists_priv $uid;
 
-    my $l = tuwf->dbAlli(
+    my $l = fu->dbAlli(
         'SELECT l.id, l.label, l.private', $count ? ', coalesce(x.count, 0) as count' : (),
           'FROM ulist_labels l',
            $count ? ('LEFT JOIN (
@@ -36,7 +36,7 @@ sub ulist_filtlabels($uid,$count=0) {
     # Virtual 'No label' label, only ever has private VNs.
     push @$l, {
         id => 0, label => 'No label', private => 1,
-        $count ? (count => tuwf->dbVali("SELECT count(*) FROM ulist_vns WHERE labels IN('{}','{7}') AND uid =", \$uid)) : (),
+        $count ? (count => fu->dbVali("SELECT count(*) FROM ulist_vns WHERE labels IN('{}','{7}') AND uid =", \$uid)) : (),
     } if $own;
 
     $l
@@ -81,8 +81,8 @@ sub ulists_widget_($v) {
 
 # Returns the full UListWidget data structure for the given VN.
 sub ulists_widget_full_data($v, $vnpage=0, $canvote=undef) {
-    my $lst = tuwf->dbRowi('SELECT vid, vote, notes, started, finished, labels FROM ulist_vns WHERE uid =', \auth->uid, 'AND vid =', \$v->{id});
-    my $review = tuwf->dbVali('SELECT id FROM reviews WHERE uid =', \auth->uid, 'AND vid =', \$v->{id});
+    my $lst = fu->dbRowi('SELECT vid, vote, notes, started, finished, labels FROM ulist_vns WHERE uid =', \auth->uid, 'AND vid =', \$v->{id});
+    my $review = fu->dbVali('SELECT id FROM reviews WHERE uid =', \auth->uid, 'AND vid =', \$v->{id});
     $canvote //= sprintf('%08d', $v->{c_released}||99999999) <= strftime '%Y%m%d', gmtime;
     +{
         vid       => $v->{id},
@@ -97,7 +97,7 @@ sub ulists_widget_full_data($v, $vnpage=0, $canvote=undef) {
         $vnpage ? () : (
             title     => $v->{title}[1],
             releases  => releases_by_vn($v->{id}),
-            rlist     => tuwf->dbAlli('SELECT rid AS id, status FROM rlists WHERE uid =', \auth->uid, 'AND rid IN(SELECT id FROM releases_vn WHERE vid =', \$v->{id}, ')'),
+            rlist     => fu->dbAlli('SELECT rid AS id, status FROM rlists WHERE uid =', \auth->uid, 'AND rid IN(SELECT id FROM releases_vn WHERE vid =', \$v->{id}, ')'),
         ),
     };
 }

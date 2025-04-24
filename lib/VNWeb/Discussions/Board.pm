@@ -4,17 +4,16 @@ use VNWeb::Prelude;
 use VNWeb::Discussions::Lib;
 
 
-TUWF::get qr{/t/(all|$BOARD_RE)}, sub {
+FU::get qr{/t/(all|$BOARD_RE)}, sub($id) {
     not_moe;
-    my $id = tuwf->capture(1);
     my($type) = $id =~ /^([^0-9]+)/;
     $id = undef if $id !~ /[0-9]$/;
 
-    my $page = tuwf->validate(get => p => { upage => 1 })->data;
+    my $page = fu->query(p => { upage => 1 });
 
     my $obj = $id ? dbobj $id : undef;
-    return tuwf->resNotFound if $id && !$obj->{id};
-    return tuwf->resNotFound if $id && $id =~ /^u/ && $obj->{entry_hidden} && !auth->isMod;
+    fu->notfound if $id && !$obj->{id};
+    fu->notfound if $id && $id =~ /^u/ && $obj->{entry_hidden} && !auth->isMod;
 
     my $title = $obj ? "Related discussions for $obj->{title}[1]" : $type eq 'all' ? 'All boards' : $BOARD_TYPE{$type}{txt};
     my $createurl = '/t/'.($id || ($type eq 'db' ? 'db' : 'ge')).'/new';

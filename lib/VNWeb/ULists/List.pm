@@ -9,7 +9,7 @@ use VNWeb::Releases::Lib;
 my $TABLEOPTS = VNWeb::VN::List::TABLEOPTS('ulist');
 
 my %SAVED_OPTS = (
-    l   => { onerror => [], type => 'array', scalar => 1, values => { int => 1, range => [-1,1600] } },
+    l   => { onerror => [], accept_scalar => 1, elems => { int => 1, range => [-1,1600] } },
     mul => { anybool => 1 },
     s   => { onerror => '' }, # TableOpts query string
     f   => { onerror => '' }, # AdvSearch
@@ -23,38 +23,37 @@ sub opt {
 
     # Note that saved defaults may still use the old query format, which is
     #   { s => $sort_column, o => $order, c => [$visible_columns] }
-    my sub load { my $o = $u->{"ulist_$_[0]"}; ($o && eval { JSON::XS->new->decode($o) } or {})->%* };
+    my sub load { my $o = $u->{"ulist_$_[0]"}; ($o && eval { FU::Util::json_parse($o) } or {})->%* };
 
-    state $s_default  = tuwf->compile({ tableopts => $TABLEOPTS })->validate(undef)->data;
+    state $s_default  = FU::Validate->compile({ tableopts => $TABLEOPTS })->validate(undef);
     state $s_vnlist   = $s_default->sort_param(title => 'a')->vis_param(qw/label vote added started finished/)->enc_query;
     state $s_votes    = $s_default->sort_param(voted => 'd')->vis_param(qw/vote voted/)->enc_query;
     state $s_wishlist = $s_default->sort_param(title => 'a')->vis_param(qw/label added/)->enc_query;
-    state @all = (mul => 0, p => 1, f => '', q => tuwf->compile({ searchquery => 1 })->validate(undef)->data);
+    state @all = (mul => 0, p => 1, f => '', q => FU::Validate->compile({ searchquery => 1 })->validate(undef));
 
     my $opt =
         # Presets
-        tuwf->reqGet('vnlist')   ? { @all, l => [1,2,3,4,7,0], s => $s_vnlist,   load 'vnlist' } :
-        tuwf->reqGet('votes')    ? { @all, l => [7],           s => $s_votes,    load 'votes'  } :
-        tuwf->reqGet('wishlist') ? { @all, l => [5],           s => $s_wishlist, load 'wish'   } :
+        fu->query('vnlist')   ? { @all, l => [1,2,3,4,7,0], s => $s_vnlist,   load 'vnlist' } :
+        fu->query('votes')    ? { @all, l => [7],           s => $s_votes,    load 'votes'  } :
+        fu->query('wishlist') ? { @all, l => [5],           s => $s_wishlist, load 'wish'   } :
         # Full options
-        tuwf->validate(get =>
+        fu->query(
             p => { upage => 1 },
-            ch=> { onerror => [], type => 'array', scalar => 1, values => { onerror => undef, enum => ['0', 'a'..'z'] } },
+            ch=> { accept_array => 'first', onerror => undef, enum => ['0', 'a'..'z'] },
             q => { searchquery => 1 },
             %SAVED_OPTS,
             # Compat for old URLs
             o => { onerror => undef, enum => ['a', 'd'] },
-            c => { onerror => undef, type => 'array', scalar => 1, values => { enum => [qw[ label vote voted added modified started finished rel rating ]] } },
-        )->data;
-    $opt->{ch} = $opt->{ch}[0];
+            c => { onerror => undef, accept_scalar => 1, elems => { enum => [qw[ label vote voted added modified started finished rel rating ]] } },
+        );
 
     $opt->{s} .= "/$opt->{o}" if $opt->{o};
-    $opt->{s} = tuwf->compile({ tableopts => $TABLEOPTS })->validate($opt->{s})->data;
+    $opt->{s} = FU::Validate->compile({ tableopts => $TABLEOPTS })->validate($opt->{s});
     $opt->{s} = $opt->{s}->vis_param(map $_ eq 'rel' ? 'released' : $_, $opt->{c}->@*) if $opt->{c};
     delete $opt->{o};
     delete $opt->{c};
 
-    $opt->{f} = tuwf->compile({ advsearch_err => 'v' })->validate($opt->{f})->data;
+    $opt->{f} = FU::Validate->compile({ advsearch_err => 'v' })->validate($opt->{f});
 
     # $labels only includes labels we are allowed to see, getting rid of any
     # labels in 'l' that aren't in $labels ensures we only filter on visible
@@ -193,9 +192,9 @@ sub listing_ {
         @where_vns ? sql_or(@where_vns) : (),
         defined($opt->{ch}) ? sql 'match_firstchar(v.sorttitle, ', \$opt->{ch}, ')' : ();
 
-    my $count = tuwf->dbVali('SELECT count(*) FROM ulist_vns uv JOIN', vnt, 'v ON v.id = uv.vid WHERE', $where);
+    my $count = fu->dbVali('SELECT count(*) FROM ulist_vns uv JOIN', vnt, 'v ON v.id = uv.vid WHERE', $where);
 
-    my $lst = tuwf->dbPagei({ page => $opt->{p}, results => $opt->{s}->results },
+    my $lst = fu->dbPagei({ page => $opt->{p}, results => $opt->{s}->results },
         'SELECT v.id, v.title, uv.vote, uv.notes, uv.labels, uv.started, uv.finished
               , v.c_released, v.c_average, v.c_rating, v.c_votecount, v.c_released
               , ', sql_vnimage, ', v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang
@@ -255,7 +254,7 @@ sub listing_ {
 }
 
 sub ownlistopts_($u) {
-    div_ class => 'hidden managelabels', widget('UListManageLabels'), '';
+    div_ class => 'hidden managelabels', widget('UListManageLabels', {}), '';
     div_ class => 'hidden savedefault', sub {
         strong_ 'Save as default'; br_;
         txt_ 'This will change the default label selection, visible columns and table sorting options for the selected page to the currently applied settings.';
@@ -279,12 +278,12 @@ sub ownlistopts_($u) {
     };
 }
 
-TUWF::get qr{/$RE{uid}/ulist}, sub {
-    my $u = tuwf->dbRowi('
+FU::get qr{/$RE{uid}/ulist}, sub($uid) {
+    my $u = fu->dbRowi('
         SELECT u.id,', sql_user(), ', ulist_votes, ulist_vnlist, ulist_wish
           FROM users u JOIN users_prefs up ON up.id = u.id
-         WHERE u.id =', \tuwf->capture('id'));
-    return tuwf->resNotFound if !$u->{id};
+         WHERE u.id =', \$uid);
+    fu->notfound if !$u->{id};
 
     my $own = auth && auth->uid eq $u->{id};
     my $labels = ulist_filtlabels $u->{id}, 1;
@@ -307,7 +306,7 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
     sub {
         my $empty = !grep $_->{count}, @$labels;
         form_ method => 'POST', id => 'savedefaultfrm', action => "/u/ulist-savedefault", sub {
-            input_ type => 'hidden', name => 'opts', value => JSON::XS->new->encode($SAVED_OPTS->analyze->coerce_for_json(
+            input_ type => 'hidden', name => 'opts', value => FU::Util::json_format($SAVED_OPTS->coerce(
                 { l => $opt->{l}, mul => $opt->{mul}, s => $opt->{s}->enc_query(), f => $opt->{f}->enc_query() },
             ));
         } if !$empty && $own;
@@ -328,23 +327,23 @@ TUWF::get qr{/$RE{uid}/ulist}, sub {
     };
 };
 
-TUWF::post '/u/ulist-savedefault', sub {
-    my $data = tuwf->validate(post =>
+FU::post '/u/ulist-savedefault', sub {
+    my $data = fu->formdata(
         opts  => {},
         field => { enum => [qw/ vnlist votes wish /] },
-    )->data;
-    return tuwf->resDenied if !auth;
-    my $opts = $SAVED_OPTS->validate(JSON::XS->new->decode($data->{opts}))->data;
-    tuwf->dbExeci('UPDATE users_prefs SET ulist_'.$data->{field}, '=', \JSON::XS->new->encode($opts), 'WHERE id =', \auth->uid);
+    );
+    fu->denied if !auth;
+    my $opts = $SAVED_OPTS->validate(FU::Util::json_parse($data->{opts}));
+    fu->dbExeci('UPDATE users_prefs SET ulist_'.$data->{field}, '=', \FU::Util::json_format($opts), 'WHERE id =', \auth->uid);
     my $tab = $data->{field} eq 'wish' ? 'wishlist' : $data->{field};
-    tuwf->resRedirect('/'.auth->uid."/ulist?$tab=1", 'post');
+    fu->redirect(tempget => '/'.auth->uid."/ulist?$tab=1");
 };
 
 
 # Redirects for old URLs
-TUWF::get qr{/$RE{uid}/votes}, sub { tuwf->resRedirect("/".tuwf->capture('id').'/ulist?votes=1', 'perm') };
-TUWF::get qr{/$RE{uid}/list},  sub { tuwf->resRedirect("/".tuwf->capture('id').'/ulist?vnlist=1', 'perm') };
-TUWF::get qr{/$RE{uid}/wish},  sub { tuwf->resRedirect("/".tuwf->capture('id').'/ulist?wishlist=1', 'perm') };
+FU::get qr{/$RE{uid}/votes}, sub($uid) { fu->redirect(perm => "/$uid/ulist?votes=1") };
+FU::get qr{/$RE{uid}/list},  sub($uid) { fu->redirect(perm => "/$uid/ulist?vnlist=1") };
+FU::get qr{/$RE{uid}/wish},  sub($uid) { fu->redirect(perm => "/$uid/ulist?wishlist=1") };
 
 
 1;

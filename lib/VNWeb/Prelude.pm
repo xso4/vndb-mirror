@@ -2,8 +2,9 @@
 #
 #  use v5.36;
 #  use utf8;
+#  use builtin 'true', 'false';
 #
-#  use TUWF;
+#  use FU;
 #  use FU::Util 'query_encode';
 #  use FU::XMLWriter @html5_tags, 'fragment';
 #  use Exporter 'import';
@@ -35,7 +36,7 @@ use feature ':5.36';
 use utf8;
 use VNWeb::Auth;
 use VNWeb::DB;
-use TUWF;
+use FU;
 
 # Only export a subset of ':html5_' functions to avoid bloating symbol tables too much.
 our @html5_tags = qw/
@@ -53,11 +54,12 @@ sub import {
     warnings->import;
     feature->import(':5.36');
     utf8->import;
+    builtin->import('true', 'false');
 
     die $@ if !eval <<"    EOM;";
     package $c;
 
-    use TUWF;
+    use FU;
     use FU::Util 'query_encode';
     use FU::XMLWriter \@VNWeb::Prelude::html5_tags, qw/tag_ txt_ lit_ fragment/;
     use Exporter 'import';
@@ -92,12 +94,16 @@ sub dbobj {
 
     return undef if !$id;
     if($id =~ /^u/) {
-        my $o = tuwf->dbRowi('SELECT id, username IS NULL AS entry_hidden,', sql_user(), 'FROM users u WHERE id =', \$id);
-        $o->{title} = [(undef, VNWeb::HTML::user_displayname $o)x2];
+        my $o = fu->dbRowi('SELECT id, username IS NULL AS entry_hidden,', sql_user(), 'FROM users u WHERE id =', \$id);
+        $o->{title} = [(undef, VNWeb::HTML::user_displayname $o)x2] if $o->{id};
         return $o;
     }
 
-    tuwf->dbRowi('SELECT', \$id, 'AS id, title, hidden AS entry_hidden, locked AS entry_locked FROM', VNWeb::TitlePrefs::item_info(\$id, 'NULL'), ' x');
+    fu->dbRowi('
+        SELECT', \$id, 'AS id, title, hidden AS entry_hidden, locked AS entry_locked
+          FROM', VNWeb::TitlePrefs::item_info(\$id, 'NULL'), ' x
+         WHERE title IS DISTINCT FROM NULL
+    ');
 }
 
 1;

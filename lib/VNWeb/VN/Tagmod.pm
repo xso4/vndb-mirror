@@ -4,7 +4,7 @@ use VNWeb::Prelude;
 use VNWeb::TT::Lib;
 
 
-my $FORM = form_compile any => {
+my $FORM = form_compile {
     id    => { vndbid => 'v' },
     title => { },
     mod   => { anybool => 1 },
@@ -34,9 +34,9 @@ my $FORM = form_compile any => {
 sub can_tag { auth->permTagmod || (auth->permTag && !global_settings->{lockdown_edit}) }
 
 
-js_api Tagmod => $FORM, sub ($data) {
+js_api Tagmod => $FORM, sub($data) {
     my($id, $tags) = $data->@{'id', 'tags'};
-    return tuwf->resDenied if !can_tag;
+    fu->denied if !can_tag;
 
     $tags = [ grep $_->{vote}, @$tags ];
     $_->{overrule} = 0 for auth->permTagmod ? () : @$tags;
@@ -54,32 +54,32 @@ js_api Tagmod => $FORM, sub ($data) {
     enrich_merge id => sub { sql 'SELECT tag AS id, bool_or(ignore) as overruled FROM tags_vn WHERE vid =', \$id, 'AND tag IN', $_, 'GROUP BY tag' }, $tags;
 
     # Delete tag votes not in $tags
-    tuwf->dbExeci('DELETE FROM tags_vn WHERE uid =', \auth->uid, 'AND vid =', \$id, @$tags ? ('AND tag NOT IN', [ map $_->{id}, @$tags ]) : ());
+    fu->dbExeci('DELETE FROM tags_vn WHERE uid =', \auth->uid, 'AND vid =', \$id, @$tags ? ('AND tag NOT IN', [ map $_->{id}, @$tags ]) : ());
 
     # Add & update tags
     for(@$tags) {
         my $row = { uid => auth->uid, vid => $id, tag => $_->{id}, vote => $_->{vote}, notes => $_->{notes}
                   , spoiler => $_->{spoil}, lie => $_->{lie}, ignore => ($_->{overruled} && !$_->{overrule})?1:0
                   };
-        tuwf->dbExeci('INSERT INTO tags_vn', $row, 'ON CONFLICT (uid, tag, vid) DO UPDATE SET', $row);
-        tuwf->dbExeci('UPDATE tags_vn SET ignore = TRUE WHERE uid IS DISTINCT FROM (', \auth->uid, ') AND vid =', \$id, 'AND tag =', \$_->{id}) if $_->{overrule};
+        fu->dbExeci('INSERT INTO tags_vn', $row, 'ON CONFLICT (uid, tag, vid) DO UPDATE SET', $row);
+        fu->dbExeci('UPDATE tags_vn SET ignore = TRUE WHERE uid IS DISTINCT FROM (', \auth->uid, ') AND vid =', \$id, 'AND tag =', \$_->{id}) if $_->{overrule};
     }
 
     # Make sure to reset the ignore flag when a moderator removes an overruled vote.
     # (i.e. look for tags where *all* votes are on ignore)
-    tuwf->dbExeci('UPDATE tags_vn tv SET ignore = FALSE WHERE NOT EXISTS(SELECT 1 FROM tags_vn tvi WHERE tvi.tag = tv.tag AND tvi.vid = tv.vid AND NOT tvi.ignore) AND vid =', \$id) if auth->permTagmod;
+    fu->dbExeci('UPDATE tags_vn tv SET ignore = FALSE WHERE NOT EXISTS(SELECT 1 FROM tags_vn tvi WHERE tvi.tag = tv.tag AND tvi.vid = tv.vid AND NOT tvi.ignore) AND vid =', \$id) if auth->permTagmod;
 
-    tuwf->dbExeci(select => sql_func tag_vn_calc => \$id);
+    fu->dbExeci(select => sql_func tag_vn_calc => \$id);
     +{ _redir => "/$id/tagmod" }
 };
 
 
-TUWF::get qr{/$RE{vid}/tagmod}, sub {
-    my $v = dbobj tuwf->capture('id');
-    return tuwf->resNotFound if !$v->{id} || (!auth->permDbmod && $v->{entry_hidden});
-    return tuwf->resDenied if !can_tag;
+FU::get qr{/$RE{vid}/tagmod}, sub($id) {
+    my $v = dbobj $id;
+    fu->notfound if !$v->{id} || (!auth->permDbmod && $v->{entry_hidden});
+    fu->denied if !can_tag;
 
-    my $tags = tuwf->dbAlli('
+    my $tags = fu->dbAlli('
         SELECT t.id, t.name, t.cat, t.hidden, t.locked, t.applicable
              , tv.count, tv.overruled
              , coalesce(td.rating, 0) AS rating, coalesce(td.spoiler, t.defaultspoil) AS spoiler, coalesce(td.islie, false) AS islie

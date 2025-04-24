@@ -220,23 +220,22 @@ sub listing_ {
 }
 
 
-TUWF::get qr{/$RE{vid}/releases} => sub {
-    my $v = dbobj tuwf->capture('id');
-    return tuwf->resNotFound if !$v->{id};
+FU::get qr{/$RE{vid}/releases} => sub($id) {
+    my $v = dbobj $id or fu->notfound;
 
-    my $opt = tuwf->validate(get =>
+    my $opt = fu->query(
         cw   => { anybool => 1 },
         o    => { onerror => 'a', enum => [0,1,'d','a'] },
         s    => { onerror => 'released', enum => [ map $_->{sort_field}, grep $_->{sort_field}, @rel_cols ]},
         os   => { onerror => 'all',      enum => [ 'all', keys %PLATFORM ] },
         lang => { onerror => 'all',      enum => [ 'all', keys %LANGUAGE ] },
         map +($_->{id}, { anybool => 1, default => $_->{default} }), grep $_->{button_string}, @rel_cols
-    )->data;
+    );
     # Compat with old URLs
     $opt->{o} = 'a' if $opt->{o} eq 0;
     $opt->{o} = 'd' if $opt->{o} eq 1;
 
-    my $r = tuwf->dbAlli('
+    my $r = fu->dbAlli('
         SELECT r.id, rv.rtype, r.patch, r.released, r.gtin
           FROM', releasest, 'r
           JOIN releases_vn rv ON rv.id = r.id

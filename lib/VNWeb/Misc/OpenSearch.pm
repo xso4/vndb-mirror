@@ -3,10 +3,9 @@ package VNWeb::Misc::OpenSearch;
 use VNWeb::Prelude;
 use FU::XMLWriter 'xml_', 'tag_';
 
-TUWF::get qr{/opensearch\.xml}, sub {
-    my $h = tuwf->reqBaseURI;
-    tuwf->resHeader('Content-Type' => 'application/opensearchdescription+xml');
-    my $body = xml_ {
+FU::get '/opensearch.xml', sub {
+    my $h = config->{url};
+    state $xml = xml_ {
         tag_ 'OpenSearchDescription', xmlns => 'http://a9.com/-/spec/opensearch/1.1/', 'xmlns:moz' => 'http://www.mozilla.org/2006/browser/search/', sub {
             tag_ 'ShortName', 'VNDB';
             tag_ 'LongName', 'VNDB.org Visual Vovel Search';
@@ -18,7 +17,8 @@ TUWF::get qr{/opensearch\.xml}, sub {
             tag_ 'moz:SearchForm', "$h/v";
         }
     };
-    tuwf->resBinary($body, 'auto');
+    fu->set_header('content-type' => 'application/opensearchdescription+xml');
+    fu->set_body($xml);
 };
 
 1;

@@ -71,7 +71,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
         img       => { vndbid => 'cv' },
         itype     => { enum => \%RELEASE_IMAGE_TYPE },
         vid       => { vndbid => 'v', default => undef },
-        lang      => { default => [], type => 'array', unique => 1, sort => 'str', values => { enum => \%LANGUAGE } },
+        lang      => { default => [], unique => 1, sort => 'str', elems => { enum => \%LANGUAGE } },
         photo     => { anybool => 1 },
         nfo       => { _when => 'out', type => 'hash', keys => $IMGSCHEMA },
     } },
@@ -84,9 +84,8 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
 };
 
 
-sub vnimages {
-    my($rid, @vid) = @_;
-    my $l = tuwf->dbAlli('
+sub vnimages($rid, @vid) {
+    my $l = fu->dbAlli('
       SELECT image AS id FROM vn WHERE image IS NOT NULL AND id IN', \@vid, '
        UNION
       SELECT ri.img AS id FROM releases_images ri JOIN releases_vn rv ON rv.id = ri.id
@@ -97,17 +96,17 @@ sub vnimages {
     $l;
 }
 
-TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
-    my $e = db_entry tuwf->captures('id', 'rev') or return tuwf->resNotFound;
-    my $copy = tuwf->capture('action') eq 'copy';
-    return tuwf->resDenied if !can_edit r => $copy ? {} : $e;
+FU::get qr{/$RE{rrev}/(edit|copy)} => sub($id, $rev, $action) {
+    my $e = db_entry $id, $rev or fu->notfound;
+    my $copy = $action eq 'copy';
+    fu->denied if !can_edit r => $copy ? {} : $e;
 
     my @empty_fields = (qw/gtin catalog images ani_ero ani_story supersedes extlinks/);
-    $e->@{@empty_fields} = elm_empty($FORM_OUT)->@{@empty_fields} if $copy;
+    $e->@{@empty_fields} = $FORM_OUT->empty->@{@empty_fields} if $copy;
 
     $e->{editsum} = $copy ? "Copied from $e->{id}.$e->{chrev}" : $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
 
-    $e->{vntitles} = $e->{vn}->@* == 1 ? tuwf->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$e->{vn}[0]{vid}) : [];
+    $e->{vntitles} = $e->{vn}->@* == 1 ? fu->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$e->{vn}[0]{vid}) : [];
 
     enrich_image 0, [map { $_->{lang} //= []; $_->{nfo}{id} = $_->{img}; $_->{nfo} } $e->{images}->@*];
     $e->{vnimages} = vnimages $e->{id}, map $_->{vid}, $e->{vn}->@*;
@@ -117,7 +116,7 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
     $_->{name} = $_->{title}[1] for $e->{producers}->@*;
 
     my $title = ($copy ? 'Copy ' : 'Edit ').titleprefs_obj($e->{olang}, $e->{titles})->[1];
-    framework_ title => $title, dbobj => $e, tab => tuwf->capture('action'),
+    framework_ title => $title, dbobj => $e, tab => $action,
     sub {
         editmsg_ r => $e, $title, $copy;
         div_ widget(ReleaseEdit => $FORM_OUT, $copy ? {%$e, id=>undef} : $e), '';
@@ -125,18 +124,18 @@ TUWF::get qr{/$RE{rrev}/(?<action>edit|copy)} => sub {
 };
 
 
-TUWF::get qr{/$RE{vid}/add}, sub {
-    return tuwf->resDenied if !can_edit r => undef;
-    my $v = tuwf->dbRowi('SELECT id, title FROM', vnt, 'v WHERE NOT hidden AND v.id =', \tuwf->capture('id'));
-    return tuwf->resNotFound if !$v->{id};
+FU::get qr{/$RE{vid}/add}, sub($vid) {
+    fu->denied if !can_edit r => undef;
+    my $v = fu->dbRowi('SELECT id, title FROM', vnt, 'v WHERE NOT hidden AND v.id =', \$vid);
+    fu->notfound if !$v->{id};
 
-    my $delrel = tuwf->dbAlli('SELECT r.id, r.title FROM', releasest, 'r JOIN releases_vn rv ON rv.id = r.id WHERE r.hidden AND rv.vid =', \$v->{id}, 'ORDER BY id');
+    my $delrel = fu->dbAlli('SELECT r.id, r.title FROM', releasest, 'r JOIN releases_vn rv ON rv.id = r.id WHERE r.hidden AND rv.vid =', \$v->{id}, 'ORDER BY id');
     enrich_flatten languages => id => id => 'SELECT id, lang FROM releases_titles WHERE id IN', $delrel;
 
     my $e = {
-        elm_empty($FORM_OUT)->%*,
+        $FORM_OUT->empty->%*,
         vn         => [{vid => $v->{id}, title => $v->{title}[1], rtype => 'complete'}],
-        vntitles   => tuwf->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$v->{id}),
+        vntitles   => fu->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$v->{id}),
         vnimages   => vnimages(undef, $v->{id}),
         vnreleases => releases_by_vn($v->{id}),
         official   => 1,
@@ -170,8 +169,8 @@ TUWF::get qr{/$RE{vid}/add}, sub {
 js_api ReleaseEdit => $FORM_IN, sub {
     my $data = shift;
     my $new = !$data->{id};
-    my $e = $new ? { id => 0 } : db_entry $data->{id} or return tuwf->resNotFound;
-    return tuwf->resDenied if !can_edit r => $e;
+    my $e = $new ? { id => 0 } : db_entry $data->{id} or fu->notfound;
+    fu->denied if !can_edit r => $e;
 
     if(!auth->permDbmod) {
         $data->{hidden} = $e->{hidden}||0;
@@ -210,7 +209,7 @@ js_api ReleaseEdit => $FORM_IN, sub {
     enrich_merge name => sql('SELECT name, id AS drm FROM drm WHERE name IN'), $data->{drm};
     for my $d ($data->{drm}->@*) {
         $d->{notes} = bb_subst_links $d->{notes};
-        $d->{drm} = tuwf->dbVali('INSERT INTO drm', {map +($_,$d->{$_}), 'name', 'description', keys %DRM_PROPERTY}, 'RETURNING id')
+        $d->{drm} = fu->dbVali('INSERT INTO drm', {map +($_,$d->{$_}), 'name', 'description', keys %DRM_PROPERTY}, 'RETURNING id')
             if !defined $d->{drm};
     }
 

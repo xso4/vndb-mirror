@@ -1,8 +1,8 @@
 package VNWeb::Validation;
 
 use v5.36;
-use TUWF;
-use FU::Util 'uri_escape';
+use FU;
+use FU::Util 'uri_escape', 'query_encode';
 use VNDB::Types;
 use VNDB::Config;
 use VNDB::ExtLinks ();
@@ -16,7 +16,6 @@ use Exporter 'import';
 our @EXPORT = qw/
     %RE
     samesite
-    elm_empty
     is_api
     not_moe
     is_unique_username
@@ -30,43 +29,48 @@ our @EXPORT = qw/
 
 # Regular expressions for use in path registration
 my $num = qr{[1-9][0-9]{0,6}}; # Allow up to 10 mil, SQL vndbid type can't handle more than 2^26-1 (~ 67 mil).
-my $rev = qr{(?:\.(?<rev>$num))};
+my $rev = qr{(?:\.($num))};
 our %RE = (
-    num  => qr{(?<num>$num)},
-    uid  => qr{(?<id>u$num)},
-    vid  => qr{(?<id>v$num)},
-    rid  => qr{(?<id>r$num)},
-    sid  => qr{(?<id>s$num)},
-    cid  => qr{(?<id>c$num)},
-    pid  => qr{(?<id>p$num)},
-    iid  => qr{(?<id>i$num)},
-    did  => qr{(?<id>d$num)},
-    tid  => qr{(?<id>t$num)},
-    gid  => qr{(?<id>g$num)},
-    wid  => qr{(?<id>w$num)},
-    qid  => qr{(?<id>q$num)},
-    imgid=> qr{(?<id>(?:ch|cv|sf)$num)},
-    vrev => qr{(?<id>v$num)$rev?},
-    rrev => qr{(?<id>r$num)$rev?},
-    prev => qr{(?<id>p$num)$rev?},
-    srev => qr{(?<id>s$num)$rev?},
-    crev => qr{(?<id>c$num)$rev?},
-    drev => qr{(?<id>d$num)$rev?},
-    grev => qr{(?<id>g$num)$rev?},
-    irev => qr{(?<id>i$num)$rev?},
-    postid => qr{(?<id>t$num)\.(?<num>$num)},
+    # Doesn't capture
+    num  => $num,
+    # Gives a single capture
+    uid  => qr{(u$num)},
+    vid  => qr{(v$num)},
+    rid  => qr{(r$num)},
+    sid  => qr{(s$num)},
+    cid  => qr{(c$num)},
+    pid  => qr{(p$num)},
+    iid  => qr{(i$num)},
+    did  => qr{(d$num)},
+    tid  => qr{(t$num)},
+    gid  => qr{(g$num)},
+    wid  => qr{(w$num)},
+    qid  => qr{(q$num)},
+    imgid=> qr{((?:ch|cv|sf)$num)},
+    # Gives one or two captures
+    vrev => qr{(v$num)$rev?},
+    rrev => qr{(r$num)$rev?},
+    prev => qr{(p$num)$rev?},
+    srev => qr{(s$num)$rev?},
+    crev => qr{(c$num)$rev?},
+    drev => qr{(d$num)$rev?},
+    grev => qr{(g$num)$rev?},
+    irev => qr{(i$num)$rev?},
+    # Gives two captures
+    postid => qr{(t$num)\.($num)},
 );
 
 
-TUWF::set custom_validations => {
+for my ($k,$v) (
     id          => { uint => 1, max => (1<<26)-1 },
+    undefbool   => { _scalartype => 3, type => 'any', default => sub { defined $_[0] ? !!$_[0] : undef }, func => sub { $_[0] = !!$_[0]; 1 } },
     # 'vndbid' SQL type, accepts an arrayref with accepted prefixes.
     # If only one prefix is supported, it will also take integers and normalizes them into the formatted form.
     vndbid      => sub {
         my $multi = ref $_[0];
         my $types = $multi ? join '|', $_[0]->@* : $_[0];
         my $re = qr/^(?:$types)[1-9][0-9]{0,6}$/;
-        +{ _analyze_regex => $re, func => sub { $_[0] = "${types}$_[0]" if !$multi && $_[0] =~ /^[1-9][0-9]{0,6}$/; return $_[0] =~ $re } }
+        +{ func => sub { $_[0] = "${types}$_[0]" if !$multi && $_[0] =~ /^[1-9][0-9]{0,6}$/; return $_[0] =~ $re } }
     },
     sl          => { regex => qr/^[^\t\r\n]+$/ }, # "Single line", also excludes tabs because they're weird.
     editsum     => { length => [ 2, 5000 ] },
@@ -84,7 +88,7 @@ TUWF::set custom_validations => {
     # TODO: Should also validate whether the day exists, currently "2022-11-31" is accepted, but that's a bug.
     caldate     => { regex => qr/^(?:19[7-9][0-9]|20[0-9][0-9])-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])$/ },
     # An array that may be either missing (returns undef), a single scalar (returns single-element array) or a proper array
-    undefarray  => sub { +{ default => undef, type => 'array', scalar => 1, values => $_[0] } },
+    undefarray  => sub { +{ default => undef, accept_scalar => 1, elems => $_[0] } },
     # Accepts a user-entered vote string (or '-' or empty) and converts that into a DB vote number (or undef) - opposite of fmtvote()
     vnvote      => { default => undef, regex => qr/^(?:|-|[1-9]|10|[1-9]\.[0-9]|10\.0)$/, func => sub { $_[0] = $_[0] eq '-' ? undef : 10*$_[0]; 1 } },
     # Sort an array by the listed hash keys, using string comparison on each key
@@ -99,18 +103,19 @@ TUWF::set custom_validations => {
         } }
     },
     # Sorted and unique array-of-hashes (default order is sort_keys on the sorted keys...)
-    aoh         => sub { +{ type => 'array', unique => 1, sort_keys => [sort keys %{$_[0]}], values => { type => 'hash', keys => $_[0] } } },
+    aoh         => sub { +{ unique => 1, sort_keys => [sort keys %{$_[0]}], elems => { keys => $_[0] } } },
     # Fields query parameter for the API, supports multiple values or comma-delimited list, returns a hash.
     fields      => sub {
         my %keys = map +($_,1), ref $_[0] eq 'ARRAY' ? @{$_[0]} : $_[0];
-        +{ default => {}, type => 'array', values => {}, scalar => 1, func => sub {
+        +{ default => {}, elems => {}, accept_scalar => 1, func => sub {
             my @l = map split(/\s*,\s*/,$_), @{$_[0]};
             return 0 if grep !$keys{$_}, @l;
             $_[0] = { map +($_,1), @l };
             1;
         } }
     },
-};
+) { $FU::Validate::default_validations{$k} = $v }
+
 
 sub _validate_rdate {
     return 0 if $_[0] ne 0 && $_[0] !~ /^([0-9]{4})([0-9]{2})([0-9]{2})$/;
@@ -144,10 +149,9 @@ sub _validate_fuzzyrdate {
 sub _validate_extlinks($t) {
     my $L = \%VNDB::ExtLinks::LINKS;
     my %sites = map +($_, $L->{$_}), grep $L->{$_}{ent} =~ /$t/i, keys %$L;
-    +{ default => [], type => 'array', unique => sub {
+    +{ default => [], unique => sub {
         $sites{$_[0]{site}}{ent} =~ /\U$t/ ? "$_[0]{site}$_[0]{value}" : $_[0]{site}
-    }, values => {
-        type => 'hash',
+    }, elems => {
         keys => { site => { enum => \%sites }, value => { maxlength => 512 } },
         func => sub {
             my $re = $sites{$_[0]{site}}{full_regex};
@@ -160,32 +164,18 @@ sub _validate_extlinks($t) {
 }
 
 
-# XXX: Legacy function, should be intergated into the schema module.
-sub elm_empty {
-    my($schema) = @_;
-    $schema = $schema->analyze if ref $schema eq 'TUWF::Validate';
-    return ref $schema->{default} eq 'CODE' ? $schema->{default}->(undef) : $schema->{default} if exists $schema->{default};
-    return undef if !$schema->{required};
-    return [] if $schema->{type} eq 'array';
-    return '' if $schema->{type} eq 'bool' || $schema->{type} eq 'scalar';
-    return 0  if $schema->{type} eq 'num'  || $schema->{type} eq 'int';
-    return +{ map +($_, elm_empty($schema->{keys}{$_})), $schema->{keys} ? keys $schema->{keys}->%* : () } if $schema->{type} eq 'hash';
-    die "Unable to initialize required value of type '$schema->{type}' without a default";
-}
-
-
 # Aborts this requests and throws a 404 when configured in moe mode.
-sub not_moe { if(config->{moe}) { tuwf->resNotFound; tuwf->done; } }
+sub not_moe { fu->notfound if config->{moe} }
 
 
 # returns true if this request originated from the same site, i.e. not an external referer.
 sub samesite {
-    my $site = tuwf->reqHeader('sec-fetch-site');
-    $site ? $site eq 'same-site' || $site eq 'same-origin' : !!tuwf->reqCookie('samesite')
+    my $site = fu->header('sec-fetch-site');
+    $site ? $site eq 'same-site' || $site eq 'same-origin' : !!fu->cookie('samesite')
 }
 
 # returns true if this request is for an /api/ URL.
-sub is_api { config->{api} eq 'only' || (config->{api} && tuwf->reqPath =~ /^\/api\//) }
+sub is_api { config->{api} eq 'only' || (config->{api} && fu->path =~ /^\/api\//) }
 
 # Test uniqueness of a username in the database. Usernames with similar
 # homographs are considered duplicate.
@@ -198,14 +188,14 @@ sub is_unique_username {
         # lowercase, normalize 'i1l' and '0o'
         sql "regexp_replace(regexp_replace(lower(", $_[0], "), '[1l]', 'i', 'g'), '0', 'o', 'g')";
     };
-    !tuwf->dbVali('SELECT 1 FROM users WHERE', norm('username'), '=', norm(\$name),
+    !fu->dbVali('SELECT 1 FROM users WHERE', norm('username'), '=', norm(\$name),
         $excludeid ? ('AND id <>', \$excludeid) : ());
 }
 
 
 # Lookup IP and return an 'ipinfo' DB string.
 sub ipinfo {
-    my $ip = shift || tuwf->reqIP;
+    my $ip = shift || fu->ip;
     state $db = config->{location_db} && do {
         require Location;
         Location::init(config->{location_db});
@@ -256,7 +246,7 @@ sub _stripwhen {
 #
 sub form_compile {
     my $schema = pop;
-    my @l = map tuwf->compile({ type => 'hash', keys => _stripwhen $_, $schema }), @_;
+    my @l = map FU::Validate->compile({ keys => _stripwhen $_, $schema }), @_ ? @_ : ('any');
     wantarray ? @l : $l[0];
 }
 
@@ -273,15 +263,12 @@ sub validate_dbid {
     my($sql, @ids) = @_;
     return if !@ids;
     $sql = ref $sql eq 'CODE' ? do { local $_ = \@ids; sql $sql->(\@ids) } : sql $sql, \@ids;
-    my %dbids = map +((values %$_)[0],1), @{ tuwf->dbAlli($sql) };
+    my %dbids = map +((values %$_)[0],1), fu->dbAlli($sql)->@*;
     my @missing = grep !$dbids{$_}, @ids;
     return if !@missing;
     # If this is a js_api, return a more helpful error message
-    if (tuwf->reqPath =~ /^\/js\//) {
-        tuwf->resJSON({_err => "Invalid reference to ".join(', ', @missing)});
-        tuwf->done;
-    }
-    croak "Invalid database IDs: ".join(',', @missing);
+    fu->send_json({_err => "Invalid reference to ".join ', ', @missing}) if fu->path =~ /^\/js\//;
+    croak "Invalid database IDs: ".join ',', @missing;
 }
 
 
@@ -325,7 +312,7 @@ sub can_edit {
         return 0 if !auth->permBoard || (global_settings->{lockdown_board} && !auth->isMod);
         if(!$entry->{id}) {
             # Allow at most 5 new threads per day per user.
-            return auth && tuwf->dbVali('SELECT count(*) < ', \5, 'FROM threads_posts WHERE num = 1 AND date > NOW()-\'1 day\'::interval AND uid =', \auth->uid);
+            return auth && fu->dbVali('SELECT count(*) < ', \5, 'FROM threads_posts WHERE num = 1 AND date > NOW()-\'1 day\'::interval AND uid =', \auth->uid);
         } elsif(!$entry->{num}) {
             die "Can't do authorization test when 'locked' field isn't present" if !exists $entry->{locked};
             return !$entry->{locked};
@@ -350,7 +337,7 @@ sub can_edit {
         die if !exists $entry->{entry_hidden} || !exists $entry->{entry_locked};
         # Let users edit their own tags/traits while it's still pending approval.
         return auth && $entry->{entry_hidden} && !$entry->{entry_locked}
-            && tuwf->dbVali('SELECT 1 FROM changes WHERE itemid =', \$entry->{id}, 'AND rev = 1 AND requester =', \auth->uid);
+            && fu->dbVali('SELECT 1 FROM changes WHERE itemid =', \$entry->{id}, 'AND rev = 1 AND requester =', \auth->uid);
     }
 
     die "Can't do authorization test when entry_hidden/entry_locked fields aren't present"
@@ -381,15 +368,15 @@ sub can_edit {
 # token leaks, it's possible to generate links to any sensitive page for that
 # particular user for several hours.
 sub viewget {
-    tuwf->req->{view} ||= do {
-        my($view, $token) = (tuwf->reqGet('view')||'') =~ /^([^-]*)-(.+)$/;
+    fu->{view} ||= do {
+        my($view, $token) = fu->query('view', { onerror => '' }) =~ /^([^-]*)-(.+)$/;
 
         # Abort this request and redirect if the token is invalid.
         if(length($view) && (!length($token) || !auth->csrfcheck($token, 'view'))) {
-            my $qs = join '&', map { my $k=$_; my @l=tuwf->reqGets($k); map uri_escape($k).'='.uri_escape($_), @l } grep $_ ne 'view', tuwf->reqGets();
-            tuwf->resInit;
-            tuwf->resRedirect(tuwf->reqPath().($qs?"?$qs":''), 'temp');
-            tuwf->done;
+            my $qs = fu->query({type => 'hash'});
+            delete $qs->{view};
+            $qs = query_encode $qs;
+            fu->redirect(temp => fu->path.($qs?"?$qs":''));
         }
 
         my($sp, $ts, $ns) = ($view||'') =~ /^([0-2])?([sS]?)([nN]?)$/;
@@ -398,8 +385,7 @@ sub viewget {
             traits_sexual => !$ts ? auth->pref('traits_sexual') : $ts eq 's',
             show_nsfw     => !$ns ? (auth->pref('max_sexual')||0)==2 && (auth->pref('max_violence')||0)>0 : $ns eq 'n',
         }
-    };
-    tuwf->req->{view}
+    }
 }
 
 
@@ -414,9 +400,26 @@ sub viewset {
 }
 
 
+sub sendmail($body, %hs) {
+    croak 'No To: specified!' if !$hs{To};
+    croak 'No Subject: specified!' if !$hs{Subject};
+    $hs{'Content-Type'} ||= "text/plain; charset='UTF-8'";
+    $hs{From} ||= (config->{mail_from} || croak 'No From: specified!');
+
+    croak "Invalid email header '$_'" for grep /[\r\n]/, %hs;
+    my $mail = join('', map "$_: $hs{$_}\n", sort keys %hs)."\n$body";
+
+    return warn "The following mail would have been sent:\n$mail\n" if config->{mail_sendmail} eq 'log';
+
+    open my $mailer, '|-:utf8', config->{mail_sendmail}, '-t', '-f', $hs{From} or croak "Error opening sendail ($!)";
+    print $mailer $mail;
+    croak "Error running sendmail ($!)" if !close $mailer;
+}
+
+
 # Object returned by the 'searchquery' validation, has some handy methods for generating SQL.
 package VNWeb::Validate::SearchQuery {
-    use TUWF;
+    use FU;
     use VNWeb::DB;
 
     sub TO_QUERY { $_[0][0] }
@@ -424,7 +427,7 @@ package VNWeb::Validate::SearchQuery {
 
     sub words {
         $_[0][1] //= length $_[0][0]
-            ? [ map s/%//rg, tuwf->dbVali('SELECT search_query(', \$_[0][0], ')')->@* ]
+            ? [ map s/%//rg, fu->dbVali('SELECT search_query(', \$_[0][0], ')')->@* ]
             : []
     }
 

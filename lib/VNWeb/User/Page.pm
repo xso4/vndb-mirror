@@ -19,7 +19,7 @@ sub _info_table_ {
         };
     } if $u->{user_uniname_can} && $u->{user_uniname};
     tr_ sub {
-        my $old = tuwf->dbAlli('SELECT date::date, old FROM users_username_hist WHERE id =', \$u->{id},
+        my $old = fu->dbAlli('SELECT date::date, old FROM users_username_hist WHERE id =', \$u->{id},
             auth->permUsermod ? () : 'AND date > NOW()-\'1 month\'::interval', 'ORDER BY date DESC');
         td_ class => 'key', 'Username';
         td_ sub {
@@ -28,7 +28,7 @@ sub _info_table_ {
             user_maybebanned_ $u;
             txt_ ' ('; a_ href => "/$u->{id}", $u->{id};
             txt_ ')';
-            b_ ' Scheduled for deletion' if auth->isMod && tuwf->dbVali('SELECT delete_at FROM users_shadow WHERE id =', \$u->{id});
+            b_ ' Scheduled for deletion' if auth->isMod && fu->dbVali('SELECT delete_at FROM users_shadow WHERE id =', \$u->{id});
             debug_ $u;
             sup if !($u->{user_uniname_can} && $u->{user_uniname});
             for(@$old) {
@@ -56,7 +56,7 @@ sub _info_table_ {
             a_ href => "/$u->{id}/ulist?votes=1", 'Browse votes »';
         }
     };
-    my $lengthvotes = tuwf->dbRowi('SELECT count(*) AS count, sum(length) AS sum, bool_or(not private) as haspub FROM vn_length_votes WHERE uid =', \$u->{id});
+    my $lengthvotes = fu->dbRowi('SELECT count(*) AS count, sum(length) AS sum, bool_or(not private) as haspub FROM vn_length_votes WHERE uid =', \$u->{id});
     tr_ sub {
         td_ 'Play times';
         td_ sub {
@@ -66,14 +66,14 @@ sub _info_table_ {
         };
     } if $lengthvotes->{count};
     tr_ sub {
-        my $vns = tuwf->dbVali(
+        my $vns = fu->dbVali(
             'SELECT COUNT(vid) FROM ulist_vns
               WHERE NOT (labels && ARRAY[', \5, ',', \6, ']::smallint[]) AND uid =', \$u->{id}, $own ? () : 'AND NOT c_private'
         )||0;
         my $privrel = $own ? '1=1' : 'EXISTS(
             SELECT 1 FROM releases_vn rv JOIN ulist_vns uv ON uv.vid = rv.vid WHERE uv.uid = r.uid AND rv.id = r.rid AND NOT uv.c_private
         )';
-        my $rel = tuwf->dbVali('SELECT COUNT(*) FROM rlists r WHERE', $privrel, 'AND r.uid =', \$u->{id})||0;
+        my $rel = fu->dbVali('SELECT COUNT(*) FROM rlists r WHERE', $privrel, 'AND r.uid =', \$u->{id})||0;
         td_ 'List stats';
         td_ !$vns && !$rel ? '-' : sub {
             txt_ sprintf '%d release%s of %d visual novel%s. ',
@@ -83,7 +83,7 @@ sub _info_table_ {
         };
     };
     tr_ sub {
-        my $cnt = tuwf->dbVali('SELECT COUNT(*) FROM reviews WHERE uid =', \$u->{id});
+        my $cnt = fu->dbVali('SELECT COUNT(*) FROM reviews WHERE uid =', \$u->{id});
         td_ 'Reviews';
         td_ !$cnt ? '-' : sub {
             txt_ sprintf '%d review%s. ', $cnt, $cnt == 1 ? '' : 's';
@@ -91,7 +91,7 @@ sub _info_table_ {
         };
     };
     tr_ sub {
-        my $stats = tuwf->dbRowi('SELECT COUNT(DISTINCT tag) AS tags, COUNT(DISTINCT vid) AS vns FROM tags_vn WHERE uid =', \$u->{id});
+        my $stats = fu->dbRowi('SELECT COUNT(DISTINCT tag) AS tags, COUNT(DISTINCT vid) AS vns FROM tags_vn WHERE uid =', \$u->{id});
         td_ 'Tags';
         td_ !$u->{c_tags} ? '-' : !$stats->{tags} ? '-' : sub {
             txt_ sprintf '%d vote%s on %d distinct tag%s and %d visual novel%s. ',
@@ -109,12 +109,12 @@ sub _info_table_ {
         };
     } if $u->{c_imgvotes};
     tr_ sub {
-        my $stats = tuwf->dbRowi('
+        my $stats = fu->dbRowi('
             SELECT COUNT(*) AS posts, COUNT(*) FILTER (WHERE num = 1) AS threads
               FROM threads_posts tp
              WHERE hidden IS NULL AND uid =', \$u->{id}, '
                AND EXISTS(SELECT 1 FROM threads t WHERE t.id = tp.tid AND NOT t.hidden AND NOT t.private)');
-        $stats->{posts} += tuwf->dbVali('SELECT COUNT(*) FROM reviews_posts WHERE hidden IS NULL AND uid =', \$u->{id});
+        $stats->{posts} += fu->dbVali('SELECT COUNT(*) FROM reviews_posts WHERE hidden IS NULL AND uid =', \$u->{id});
         td_ 'Forum stats';
         td_ !$stats->{posts} ? '-' : sub {
             txt_ sprintf '%d post%s, %d new thread%s. ',
@@ -123,7 +123,7 @@ sub _info_table_ {
             a_ href => "/$u->{id}/posts", 'Browse posts »';
         };
     };
-    my $quotes = tuwf->dbVali('SELECT COUNT(*) FROM quotes WHERE addedby =', \$u->{id}, auth->permDbmod ? () : 'AND NOT hidden');
+    my $quotes = fu->dbVali('SELECT COUNT(*) FROM quotes WHERE addedby =', \$u->{id}, auth->permDbmod ? () : 'AND NOT hidden');
     tr_ sub {
         td_ 'Quotes';
         td_ sub {
@@ -132,7 +132,7 @@ sub _info_table_ {
         };
     } if $quotes;
 
-    my $traits = tuwf->dbAlli('SELECT u.tid, t.name, g.id as "group", g.name AS groupname FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id =', \$u->{id}, 'ORDER BY g.gorder, t.name');
+    my $traits = fu->dbAlli('SELECT u.tid, t.name, g.id as "group", g.name AS groupname FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id =', \$u->{id}, 'ORDER BY g.gorder, t.name');
     my @groups;
     for (@$traits) {
         push @groups, $_ if !@groups || $groups[$#groups]{group} ne $_->{group};
@@ -166,7 +166,7 @@ sub _votestats_ {
         } for (reverse 1..10);
     };
 
-    my $recent = tuwf->dbAlli('
+    my $recent = fu->dbAlli('
         SELECT v.id, v.title, uv.vote,', sql_totime('uv.vote_date'), 'AS date
           FROM ulist_vns uv
           JOIN', vnt, 'v ON v.id = uv.vid
@@ -191,19 +191,19 @@ sub _votestats_ {
 }
 
 
-TUWF::get qr{/$RE{uid}}, sub {
-    my $u = tuwf->dbRowi(q{
+FU::get qr{/$RE{uid}}, sub($uid) {
+    my $u = fu->dbRowi(q{
         SELECT id, c_changes, c_votes, c_tags, c_imgvotes
              ,}, sql_totime('registered'), q{ AS registered
              ,}, sql_user(), q{
           FROM users u
-         WHERE id =}, \tuwf->capture('id')
+         WHERE id =}, \$uid
     );
-    return tuwf->resNotFound if !$u->{id} || (!$u->{user_name} && !auth->isMod);
+    fu->notfound if !$u->{id} || (!$u->{user_name} && !auth->isMod);
 
     my $own = (auth && auth->uid eq $u->{id}) || auth->permUsermod;
 
-    $u->{votes} = tuwf->dbAlli('
+    $u->{votes} = fu->dbAlli('
         SELECT (uv.vote::numeric/10)::int AS idx, COUNT(uv.vote) as votes, SUM(uv.vote) AS total
           FROM ulist_vns uv
          WHERE uv.vote IS NOT NULL AND uv.uid =', \$u->{id}, $own ? () : 'AND NOT uv.c_private', '

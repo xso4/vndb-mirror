@@ -28,7 +28,7 @@ sub enrich_vnimage {
 # List of official producers for this VN, used by Chars::Edit to determine if
 # the a character can be linked to relevant VNs.
 sub charproducers($vid) {
-    tuwf->dbAlli('
+    fu->dbAlli('
         SELECT DISTINCT ON (p.id) p.id, p.title[1+1]
           FROM releases_vn rv
           JOIN releases r ON r.id = rv.id

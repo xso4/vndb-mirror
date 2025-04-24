@@ -44,8 +44,7 @@ lib/
         tools in *util/*.
 
     VNWeb/
-    :   The VNDB website backend, this code makes heavy use of
-        [TUWF](https://dev.yorhel.nl/tuwf).
+    :   The VNDB website backend.
 
 sql/
 :   PostgreSQL script files to initialize a fresh database schema with all
@@ -128,7 +127,7 @@ Global requirements:
 - Linux, or an OS that resembles Linux. Chances are VNDB won't run on Windows.
 - A standard C build system (GNU make, gcc/clang, etc)
 - PostgreSQL 17+ (including development files)
-- Perl 5.36+
+- Perl 5.36+ (untested, might need 5.40+ instead)
 - Graphviz
 - libvips
 - sassc
@@ -141,20 +140,18 @@ General:
 - Crypt::URandom
 - DBD::Pg
 - DBI
-- JSON::XS
 
 util/vndb.pl (the web backend):
 - Algorithm::Diff::XS
 - FU
 - SQL::Interp
 - Text::MultiMarkdown
-- TUWF
-- HTTP::Server::Simple
 
 util/multi.pl (application server, optional):
 - AnyEvent::HTTP
 - AnyEvent::IRC
 - AnyEvent::Pg
+- JSON::XS
 
 
 ## Manual setup

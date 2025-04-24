@@ -3,9 +3,7 @@ package VNWeb::User::List;
 use VNWeb::Prelude;
 
 
-sub listing_ {
-    my($opt, $list, $count) = @_;
-
+sub listing_($opt, $list, $count) {
     my sub url { '?'.query_encode({%$opt, @_}) }
 
     paginate_ \&url, $opt->{p}, [$count, 50], 't';
@@ -56,15 +54,13 @@ sub listing_ {
 }
 
 
-TUWF::get qr{/u/(?<char>[0a-z]|all)}, sub {
-    my $char = tuwf->capture('char');
-
-    my $opt = tuwf->validate(get =>
+FU::get qr{/u/([0a-z]|all)}, sub($char) {
+    my $opt = fu->query(
         p => { upage => 1 },
         s => { onerror => 'registered', enum => [qw[username registered vns votes wish changes tags images]] },
         o => { onerror => 'd',          enum => [qw[a d]] },
         q => { onerror => '' },
-    )->data;
+    );
 
     my @where = (
         'username IS NOT NULL',
@@ -77,7 +73,7 @@ TUWF::get qr{/u/(?<char>[0a-z]|all)}, sub {
         ) : ()
     );
 
-    my $list = tuwf->dbPagei({ results => 50, page => $opt->{p} },
+    my $list = fu->dbPagei({ results => 50, page => $opt->{p} },
         'SELECT', sql_user(), ',', sql_totime('registered'), 'as registered, c_vns, c_votes, c_wish, c_changes, c_tags, c_imgvotes
            FROM users u
           WHERE', sql_and(@where),
@@ -92,8 +88,8 @@ TUWF::get qr{/u/(?<char>[0a-z]|all)}, sub {
                   images     => 'c_imgvotes',
                 }->{$opt->{s}}, $opt->{o} eq 'd' ? 'DESC' : 'ASC'
     );
-    state $totalusers = tuwf->dbVal('SELECT count(*) FROM users');
-    my $count = @where ? tuwf->dbVali('SELECT count(*) FROM users WHERE', sql_and @where) : $totalusers;
+    state $totalusers = fu->dbVal('SELECT count(*) FROM users');
+    my $count = @where ? fu->dbVali('SELECT count(*) FROM users WHERE', sql_and @where) : $totalusers;
 
     framework_ title => 'Browse users', sub {
         article_ sub {
@@ -109,7 +105,7 @@ TUWF::get qr{/u/(?<char>[0a-z]|all)}, sub {
                     for ('all', 'a'..'z', 0);
             };
             b_ 'The given email address is on the opt-out list.'
-              if auth->permUsermod && $opt->{q} && $opt->{q} =~ /@/ && tuwf->dbVali('SELECT email_optout_check(', \$opt->{q}, ')');
+              if auth->permUsermod && $opt->{q} && $opt->{q} =~ /@/ && fu->dbVali('SELECT email_optout_check(', \$opt->{q}, ')');
         };
         listing_ $opt, $list, $count if $count;
     };

@@ -10,8 +10,7 @@ use VNDB::Func 'fmtrating';
 
 # Enrich everything necessary to at least render infobox_() and tabs_().
 # Also used by Chars::VNTab, Reviews::VNTab and VN::Quotes
-sub enrich_vn {
-    my($v, $revonly) = @_;
+sub enrich_vn($v, $revonly=0) {
     $v->{title} = titleprefs_obj $v->{olang}, $v->{titles};
     enrich_merge id => sql('SELECT id, c_votecount, c_length, c_lengthnum, c_image, c_imgfirst, c_imglast,', sql_vnimage, 'FROM vn WHERE id IN'), $v;
     enrich_vislinks v => 0, $v;
@@ -25,7 +24,7 @@ sub enrich_vn {
 
     # This fetches rather more information than necessary for infobox_(), but it'll have to do.
     # (And we'll need it for the releases tab anyway)
-    $v->{releases} = tuwf->dbAlli('
+    $v->{releases} = fu->dbAlli('
         SELECT r.id, rv.rtype, r.patch, r.released, r.c_bundle
           FROM releases r
           JOIN releases_vn rv ON rv.id = r.id
@@ -33,7 +32,7 @@ sub enrich_vn {
     );
     enrich_vislinks r => 0, $v->{releases};
 
-    $v->{reviews} = tuwf->dbRowi('
+    $v->{reviews} = fu->dbRowi('
         SELECT COUNT(*) FILTER(WHERE length = 0) AS short
              , COUNT(*) FILTER(WHERE length = 1) AS medium
              , COUNT(*) FILTER(WHERE length = 1+1) AS long
@@ -41,7 +40,7 @@ sub enrich_vn {
           FROM reviews
          WHERE NOT c_flagged AND vid =', \$v->{id}
     );
-    $v->{relimgs} = tuwf->dbRowi("
+    $v->{relimgs} = fu->dbRowi("
         SELECT COUNT(DISTINCT img) FILTER(WHERE ri.itype IN('dig', 'pkgfront')) AS covers
              , COUNT(DISTINCT img) AS total
           FROM releases r
@@ -50,13 +49,13 @@ sub enrich_vn {
          WHERE NOT r.hidden AND rv.vid =", \$v->{id}, '
            AND (ri.vid IS NULL OR ri.vid =', \$v->{id}, ')'
     );
-    $v->{tags} = !prefs()->{has_tagprefs} ? tuwf->dbAlli('
+    $v->{tags} = !prefs()->{has_tagprefs} ? fu->dbAlli('
         SELECT t.id, t.name, t.cat, tv.rating, tv.count, tv.spoiler, tv.lie
           FROM tags t
           JOIN tags_vn_direct tv ON t.id = tv.tag
          WHERE tv.vid =', \$v->{id}, '
          ORDER BY rating DESC, t.name'
-    ) : tuwf->dbAlli(
+    ) : fu->dbAlli(
         # Monster of a query, but tag overrides are a bit complicated:
         # - We need to find the shortest path from a tag applied to the VN to a
         #   parent in users_prefs_tags, and use those preferences. That's what
@@ -94,15 +93,13 @@ sub enrich_vn {
 
 
 # Enrich everything necessary for rev_() (includes enrich_vn())
-sub enrich_item {
-    my($v, $full) = @_;
+sub enrich_item($v, $full=0, $rev=0) {
     enrich_vn $v, !$full;
-    enrich_image_obj image => $v if tuwf->capture('rev');
+    enrich_image_obj image => $v if $rev;
 }
 
 
-sub og {
-    my($v) = @_;
+sub og($v) {
     +{
         description => bb_format($v->{description}, text => 1),
         image => $v->{vnimage} && !$v->{vnimage}{sexual} && !$v->{vnimage}{violence} ? imgurl($v->{vnimage}{id}) :
@@ -117,8 +114,8 @@ sub prefs {
         staffed_langs => \%LANGUAGE, staffed_olang => 1, staffed_unoff => 0,
         has_tagprefs => 0,
     };
-    tuwf->req->{vnpage_prefs} //= auth ? do {
-        my $v = tuwf->dbRowi('
+    fu->{vnpage_prefs} //= auth ? do {
+        my $v = fu->dbRowi('
             SELECT vnrel_langs::text[], vnrel_olang, vnrel_mtl
                  , staffed_langs::text[], staffed_olang, staffed_unoff
                  , EXISTS(SELECT 1 FROM users_prefs_tags WHERE id =', \auth->uid, ') AS has_tagprefs
@@ -133,8 +130,7 @@ sub prefs {
 
 
 # The voting and review options are hidden if nothing has been released yet.
-sub canvote {
-    my($v) = @_;
+sub canvote($v) {
     $v->{_canvote} //= do {
         my $minreleased = min grep $_, map $_->{released}, $v->{releases}->@*;
         $minreleased && $minreleased <= strftime('%Y%m%d', gmtime)
@@ -142,9 +138,8 @@ sub canvote {
 }
 
 
-sub rev_ {
-    my($v) = @_;
-    revision_ $v, \&enrich_item,
+sub rev_($v) {
+    revision_ $v, sub($e) { enrich_item $e, 0, 1 },
         [ titles      => 'Title(s)',      txt => sub {
             "[$_->{lang}] $_->{title}".($_->{latin} ? " / $_->{latin}" : '').($_->{official} ? '' : ' (unofficial)')
         }],
@@ -202,8 +197,7 @@ sub rev_ {
 }
 
 
-sub infobox_relations_ {
-    my($v) = @_;
+sub infobox_relations_($v) {
     return if !$v->{relations}->@*;
 
     my %rel;
@@ -234,15 +228,13 @@ sub infobox_relations_ {
 }
 
 
-sub infobox_length_ {
-    my($v) = @_;
-
+sub infobox_length_($v) {
     tr_ sub {
         td_ 'Play time';
         td_ sub {
             if (VNWeb::VN::Length::can_vote()) {
                 my $today = strftime '%Y%m%d', gmtime;
-                my $my = tuwf->dbVali('SELECT length FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
+                my $my = fu->dbVali('SELECT length FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
                 a_ class => 'mylengthvote', href => "/$v->{id}/lengthvote", sub {
                     if ($my) {
                         lit_ 'Mine: ';
@@ -262,7 +254,7 @@ sub infobox_length_ {
                 txt_ ')';
             # No cached number so no counted votes; fall back to old 'length' field and display number of uncounted votes
             } else {
-                my $uncounted = tuwf->dbVali('SELECT count(*) FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND NOT private');
+                my $uncounted = fu->dbVali('SELECT count(*) FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND NOT private');
                 txt_ $VN_LENGTH{$v->{length}}{txt};
                 if ($v->{length} || $uncounted) {
                     lit_ ' (';
@@ -277,10 +269,8 @@ sub infobox_length_ {
 }
 
 
-sub infobox_producers_ {
-    my($v) = @_;
-
-    my $p = tuwf->dbAlli('
+sub infobox_producers_($v) {
+    my $p = fu->dbAlli('
         SELECT p.id, p.title, p.sorttitle, rl.lang, bool_or(rp.developer) as developer, bool_or(rp.publisher) as publisher, min(rv.rtype) as rtype, bool_or(r.official) as official
           FROM releases_vn rv
           JOIN releases r ON r.id = rv.id
@@ -340,9 +330,7 @@ sub infobox_producers_ {
 }
 
 
-sub infobox_affiliates_ {
-    my($v) = @_;
-
+sub infobox_affiliates_($v) {
     # If the same shop link has been added to multiple releases, use the 'first' matching type in this list.
     my @type = ('bundle', '', 'partial', 'trial', 'patch');
 
@@ -376,8 +364,7 @@ sub infobox_affiliates_ {
 }
 
 
-sub infobox_anime_ {
-    my($v) = @_;
+sub infobox_anime_($v) {
     return if !$v->{anime}->@*;
     tr_ sub {
         td_ 'Related anime';
@@ -406,8 +393,7 @@ sub infobox_anime_ {
 }
 
 
-sub infobox_tags_ {
-    my($v) = @_;
+sub infobox_tags_($v) {
     div_ id => 'tagops', sub {
         debug_ $v->{tags};
         my @ero = grep($_->{cat} eq 'ero', $v->{tags}->@*) ? ('ero') : ();
@@ -453,12 +439,9 @@ sub infobox_tags_ {
 }
 
 
-# Also used by Chars::VNTab & Reviews::VNTab
-sub infobox_ {
-    my($v, $notags) = @_;
-
-    sub tlang_ {
-        my($t) = @_;
+# Also used by Chars::VNTab, Reviews::VNTab & VN::Quotes
+sub infobox_($v, $notags=0) {
+    sub tlang_($t) {
         tr_ class => 'title', '+' => $t->{official} ? undef : 'grayedout', sub {
             td_ sub {
                 abbr_ class => "icon-lang-$t->{lang}", title => $LANGUAGE{$t->{lang}}{txt}, '';
@@ -572,12 +555,10 @@ sub infobox_ {
 
 
 # Also used by Chars::VNTab, Reviews::VNTab and VN::Quotes
-sub tabs_ {
-    my($v, $tab) = @_;
-    my $chars = tuwf->dbVali('SELECT COUNT(DISTINCT c.id) FROM chars c JOIN chars_vns cv ON cv.id = c.id WHERE NOT c.hidden AND cv.vid =', \$v->{id});
-    my $quotes = tuwf->dbVali('SELECT COUNT(*) FROM quotes WHERE NOT hidden AND vid =', \$v->{id});
+sub tabs_($v, $tab='') {
+    my $chars = fu->dbVali('SELECT COUNT(DISTINCT c.id) FROM chars c JOIN chars_vns cv ON cv.id = c.id WHERE NOT c.hidden AND cv.vid =', \$v->{id});
+    my $quotes = fu->dbVali('SELECT COUNT(*) FROM quotes WHERE NOT hidden AND vid =', \$v->{id});
 
-    $tab ||= '';
     nav_ sub {
         menu_ sub {
             li_ class => ($tab eq ''        ? ' tabselected' : ''), sub { a_ href => "/$v->{id}#main", name => 'main', 'main' };
@@ -589,7 +570,7 @@ sub tabs_ {
         };
         menu_ sub {
             if(auth && canvote $v) {
-                my $id = tuwf->dbVali('SELECT id FROM reviews WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
+                my $id = fu->dbVali('SELECT id FROM reviews WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
                 li_ sub { a_ href => "/$v->{id}/addreview", 'add review' } if !$id && can_edit w => {};
                 li_ sub { a_ href => "/$id/edit", 'edit review' } if $id;
             }
@@ -602,9 +583,7 @@ sub tabs_ {
 }
 
 
-sub releases_ {
-    my($v) = @_;
-
+sub releases_($v) {
     enrich_release $v->{releases};
     $v->{releases} = sort_releases $v->{releases};
 
@@ -647,9 +626,7 @@ sub releases_ {
 }
 
 
-sub staff_cols_ {
-    my($lst) = @_;
-
+sub staff_cols_($lst) {
     # XXX: The staff listing is included in the page 3 times, for 3 different
     # layouts. A better approach to get the same layout is to add the boxes to
     # the HTML once with classes indicating the box position (e.g.
@@ -734,11 +711,9 @@ sub staff_ {
 }
 
 
-sub charsum_ {
-    my($v) = @_;
-
+sub charsum_($v) {
     my $spoil = viewget->{spoilers};
-    my $c = tuwf->dbAlli('
+    my $c = fu->dbAlli('
         SELECT c.id, c.title, c.sex, c.gender, v.role
           FROM', charst, 'c
           JOIN (SELECT id, MIN(role) FROM chars_vns WHERE role <> \'appears\' AND spoil <=', \$spoil, 'AND vid =', \$v->{id}, 'GROUP BY id) v(id,role) ON c.id = v.id
@@ -782,10 +757,8 @@ sub charsum_ {
 }
 
 
-sub stats_ {
-    my($v) = @_;
-
-    my $stats = tuwf->dbAlli('
+sub stats_($v) {
+    my $stats = fu->dbAlli('
         SELECT (uv.vote::numeric/10)::int AS idx, COUNT(uv.vote) as votes, SUM(uv.vote) AS total
           FROM ulist_vns uv
          WHERE uv.vote IS NOT NULL
@@ -797,7 +770,7 @@ sub stats_ {
     my $max = max map $_->{votes}, @$stats;
     my $num = sum map $_->{votes}, @$stats;
 
-    my $recent = @$stats && tuwf->dbAlli('
+    my $recent = @$stats && fu->dbAlli('
          SELECT uv.vote, uv.c_private,', sql_totime('uv.vote_date'), 'as date, ', sql_user(), '
            FROM ulist_vns uv
            JOIN users u ON u.id = uv.uid
@@ -807,7 +780,7 @@ sub stats_ {
           LIMIT', \($v->{reviews}{total} ? 7 : 8)
     );
 
-    my $rank = $v->{c_votecount} && tuwf->dbRowi('SELECT c_average, c_rating, c_pop_rank, c_rat_rank FROM vn v WHERE id =', \$v->{id});
+    my $rank = $v->{c_votecount} && fu->dbRowi('SELECT c_average, c_rating, c_pop_rank, c_rat_rank FROM vn v WHERE id =', \$v->{id});
 
     my sub votestats_ {
         table_ class => 'votegraph', sub {
@@ -865,8 +838,7 @@ sub stats_ {
 }
 
 
-sub screenshots_ {
-    my($v) = @_;
+sub screenshots_($v) {
     my $s = $v->{screenshots};
     $s = [ grep !$_->{scr}{sexual} && !$_->{scr}{violence}, @$s ] if config->{moe};
     return if !@$s;
@@ -929,8 +901,7 @@ sub screenshots_ {
 }
 
 
-sub tags_ {
-    my($v) = @_;
+sub tags_($v) {
     if(!$v->{tags}->@*) {
         article_ sub {
             h1_ 'Tags';
@@ -940,7 +911,7 @@ sub tags_ {
     }
 
     my %tags = map +($_->{id},$_), $v->{tags}->@*;
-    my $parents = tuwf->dbAlli("
+    my $parents = fu->dbAlli("
         WITH RECURSIVE parents (tag, child) AS (
           SELECT tag::vndbid, NULL::vndbid FROM (VALUES", sql_join(',', map sql('(',\$_,')'), keys %tags), ") AS x(tag)
           UNION
@@ -1013,12 +984,10 @@ sub tags_ {
 }
 
 
-sub covers_ {
-    my($v) = @_;
+sub covers_($v) {
+    my $all = !!fu->query('a');
 
-    my $all = tuwf->reqParam('a');
-
-    my $lst = tuwf->dbAlli('
+    my $lst = fu->dbAlli('
         SELECT ri.img, ri.itype, ri.lang::text[], ri.photo, r.id, r.released, r.title, r.patch
              , r.c_bundle AND ri.vid IS NULL AS bundle, rv.rtype, viv.img IS NOT NULL AS voted
           FROM releases_images ri
@@ -1119,17 +1088,15 @@ sub covers_ {
 }
 
 
-TUWF::get qr{/$RE{vrev}}, sub {
-    my $v = db_entry tuwf->captures('id', 'rev');
-    return tuwf->resNotFound if !$v;
+FU::get qr{/$RE{vrev}}, sub($id, $rev=0) {
+    my $v = db_entry $id, $rev or fu->notfound;
+    enrich_item $v, 1, $rev;
 
-    enrich_item $v, 1;
-
-    framework_ title => $v->{title}[1], index => !tuwf->capture('rev'), dbobj => $v, hiddenmsg => 1, js => 1, og => og($v),
+    framework_ title => $v->{title}[1], index => !$rev, dbobj => $v, hiddenmsg => 1, js => 1, og => og($v),
     sub {
-        rev_ $v if tuwf->capture('rev');
+        rev_ $v if $rev;
         infobox_ $v;
-        tabs_ $v, 0;
+        tabs_ $v;
         releases_ $v;
         staff_ $v;
         charsum_ $v;
@@ -1139,10 +1106,8 @@ TUWF::get qr{/$RE{vrev}}, sub {
 };
 
 
-TUWF::get qr{/$RE{vid}/tags}, sub {
-    my $v = db_entry tuwf->capture('id');
-    return tuwf->resNotFound if !$v;
-
+FU::get qr{/$RE{vid}/tags}, sub($id) {
+    my $v = db_entry $id or fu->notfound;
     enrich_vn $v;
 
     framework_ title => $v->{title}[1], index => 1, dbobj => $v, hiddenmsg => 1,
@@ -1154,10 +1119,8 @@ TUWF::get qr{/$RE{vid}/tags}, sub {
 };
 
 
-TUWF::get qr{/$RE{vid}/cv}, sub {
-    my $v = db_entry tuwf->capture('id');
-    return tuwf->resNotFound if !$v;
-
+FU::get qr{/$RE{vid}/cv}, sub($id) {
+    my $v = db_entry $id or fu->notfound;
     enrich_vn $v;
 
     framework_ title => $v->{title}[1], index => 1, dbobj => $v, hiddenmsg => 1,

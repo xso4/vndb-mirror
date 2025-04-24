@@ -17,10 +17,8 @@ my %ntypes = (
 );
 
 
-sub settings_ {
-    my $id = shift;
-
-    my $u = tuwf->dbRowi('SELECT notify_dbedit, notify_post, notify_comment, notify_announce FROM users WHERE id =', \$id);
+sub settings_($id) {
+    my $u = fu->dbRowi('SELECT notify_dbedit, notify_post, notify_comment, notify_announce FROM users WHERE id =', \$id);
 
     h1_ 'Settings';
     form_ action => "/$id/notify_options", method => 'POST', sub {
@@ -137,20 +135,19 @@ sub listing_($id, $opt, $count, $list, $url) {
 
 
 # Redirect so that the 'Subscribe' widget can link to this page without knowing our uid.
-TUWF::get qr{/u/notifies}, sub { auth ? tuwf->resRedirect('/'.auth->uid.'/notifies', 'temp') : tuwf->resNotFound };
+FU::get '/u/notifies', sub { auth ? fu->redirect(temp => '/'.auth->uid.'/notifies') : fu->notfound };
 
 
-TUWF::get qr{/$RE{uid}/notifies}, sub {
-    my $id = tuwf->capture('id');
-    return tuwf->resNotFound if !auth || $id ne auth->uid;
+FU::get qr{/$RE{uid}/notifies}, sub($id) {
+    fu->notfound if !auth || $id ne auth->uid;
 
-    my $opt = tuwf->validate(get =>
+    my $opt = fu->query(
         p => { page => 1 },
         r => { anybool => 1 },
         n => { default => undef, enum => \%ntypes },
-    )->data;
+    );
 
-    my $stats = tuwf->dbAlli('
+    my $stats = fu->dbAlli('
         SELECT x.ntype, count(*) filter (where n.read IS NULL) AS unread, count(*) AS all
           FROM notifications n, unnest(n.ntype) x(ntype)
          WHERE n.uid = ', \$id, '
@@ -159,7 +156,7 @@ TUWF::get qr{/$RE{uid}/notifies}, sub {
 
     my($count) = map $_->{ $opt->{r} ? 'all' : 'unread'}, grep +($_->{ntype}||'') eq ($opt->{n}||''), @$stats;
     $count ||= 0;
-    my $list = $count && tuwf->dbPagei({ results => 25, page => $opt->{p} },
+    my $list = $count && fu->dbPagei({ results => 25, page => $opt->{p} },
        'SELECT n.id, n.ntype::text[] AS ntype, n.iid, n.num, t.title, ', sql_user(), '
              , ', sql_totime('n.date'), ' as date
              , ', sql_totime('n.read'), ' as read
@@ -188,69 +185,57 @@ TUWF::get qr{/$RE{uid}/notifies}, sub {
 };
 
 
-TUWF::post qr{/$RE{uid}/notify_options}, sub {
-    my $id = tuwf->capture('id');
-    return tuwf->resNotFound if !auth || $id ne auth->uid;
+FU::post qr{/$RE{uid}/notify_options}, sub($id) {
+    fu->notfound if !auth || $id ne auth->uid;
 
-    my $frm = tuwf->validate(post =>
+    my $frm = fu->formdata(
         csrf     => {},
         dbedit   => { anybool => 1 },
         announce => { anybool => 1 },
         post     => { anybool => 1 },
         comment  => { anybool => 1 },
-    )->data;
-    return tuwf->resNotFound if !auth->csrfcheck($frm->{csrf});
+    );
+    fu->notfound if !auth->csrfcheck($frm->{csrf});
 
-    tuwf->dbExeci('UPDATE users SET', {
+    fu->dbExeci('UPDATE users SET', {
         notify_dbedit   => $frm->{dbedit},
         notify_announce => $frm->{announce},
         notify_post     => $frm->{post},
         notify_comment  => $frm->{comment},
     }, 'WHERE id =', \$id);
-    tuwf->resRedirect("/$id/notifies", 'post');
+    fu->redirect(tempget => "/$id/notifies");
 };
 
 
-TUWF::post qr{/$RE{uid}/notify_update}, sub {
-    my $id = tuwf->capture('id');
-    return tuwf->resNotFound if !auth || $id ne auth->uid;
+FU::post qr{/$RE{uid}/notify_update}, sub($id) {
+    fu->notfound if !auth || $id ne auth->uid;
 
-    my $frm = tuwf->validate(post =>
+    my $frm = fu->formdata(
         url       => { regex => qr{^/$id/notifies} },
-        notifysel => { default => [], type => 'array', scalar => 1, values => { id => 1 } },
+        notifysel => { default => [], accept_scalar => 1, elems => { id => 1 } },
         markread  => { anybool => 1 },
         remove    => { anybool => 1 },
-    )->data;
+    );
 
     if($frm->{notifysel}->@*) {
         my $where = sql 'uid =', \$id, ' AND id IN', $frm->{notifysel};
-        tuwf->dbExeci('DELETE FROM notifications WHERE', $where) if $frm->{remove};
-        tuwf->dbExeci('UPDATE notifications SET read = NOW() WHERE', $where) if $frm->{markread};
+        fu->dbExeci('DELETE FROM notifications WHERE', $where) if $frm->{remove};
+        fu->dbExeci('UPDATE notifications SET read = NOW() WHERE', $where) if $frm->{markread};
     }
-    tuwf->resRedirect($frm->{url}, 'post');
-};
-
-
-# XXX: Not currently used anymore, just visiting the destination pages will mark the relevant notifications as read
-# (but that's subject to change in the future, so let's keep this around)
-TUWF::get qr{/$RE{uid}/notify/$RE{num}/(?<lid>[a-z0-9\.]+)}, sub {
-    my $id = tuwf->capture('id');
-    return tuwf->resNotFound if !auth || $id ne auth->uid;
-    tuwf->dbExeci('UPDATE notifications SET read = NOW() WHERE read IS NULL AND uid =', \$id, ' AND id =', \tuwf->capture('num'));
-    tuwf->resRedirect('/'.tuwf->capture('lid'), 'temp');
+    fu->redirect(tempget => $frm->{url});
 };
 
 
 
 # It's a bit annoying to add auth->notiRead() to each revision page, so do that in bulk with a simple hook.
-TUWF::hook before => sub {
-    auth->notiRead($+{vndbid}, $+{rev}) if auth && tuwf->reqPath() =~ qr{^/(?<vndbid>[vrpcsdgi]$RE{num})\.(?<rev>$RE{num})$};
+FU::before_request {
+    auth->notiRead($+{vndbid}, $+{rev}) if auth && fu->path =~ qr{^/(?<vndbid>[vrpcsdgi]$RE{num})\.(?<rev>$RE{num})$};
 };
 
 
 
 
-our $SUB = form_compile any => {
+our $SUB = form_compile {
     id        => { vndbid => [qw|t w v r p c s d i g|] },
     subnum    => { undefbool => 1 },
     subreview => { anybool => 1 },
@@ -265,9 +250,9 @@ js_api Subscribe => $SUB, sub {
 
     my %where = (iid => delete $data->{id}, uid => auth->uid);
     if(!defined $data->{subnum} && !$data->{subreview} && !$data->{subapply}) {
-        tuwf->dbExeci('DELETE FROM notification_subs WHERE', \%where);
+        fu->dbExeci('DELETE FROM notification_subs WHERE', \%where);
     } else {
-        tuwf->dbExeci('INSERT INTO notification_subs', {%where, %$data}, 'ON CONFLICT (iid,uid) DO UPDATE SET', $data);
+        fu->dbExeci('INSERT INTO notification_subs', {%where, %$data}, 'ON CONFLICT (iid,uid) DO UPDATE SET', $data);
     }
     {};
 };

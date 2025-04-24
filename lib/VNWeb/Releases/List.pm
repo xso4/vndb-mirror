@@ -29,27 +29,27 @@ sub listing_ {
 }
 
 
-TUWF::get qr{/r}, sub {
-    my $opt = tuwf->validate(get =>
+FU::get '/r', sub {
+    my $opt = fu->query(
         q => { searchquery => 1 },
         p => { upage => 1 },
         f => { advsearch_err => 'r' },
         s => { onerror => 'qscore', enum => [qw/qscore released minage title/] },
         o => { onerror => 'a', enum => ['a','d'] },
         fil => { onerror => '' },
-    )->data;
-    $opt->{s} = 'qscore' if $opt->{q} && tuwf->reqGet('sb');
+    );
+    $opt->{s} = 'qscore' if $opt->{q} && fu->query('sb');
     $opt->{s} = 'title' if $opt->{s} eq 'qscore' && !$opt->{q};
 
     # URL compatibility with old filters
     if(!$opt->{f}->{query} && $opt->{fil}) {
         my $q = eval {
-            tuwf->compile({ advsearch => 'r' })->validate(filter_release_adv filter_parse r => $opt->{fil})->data;
+            FU::Validate->compile({ advsearch => 'r' })->validate(filter_release_adv filter_parse r => $opt->{fil});
         };
-        return tuwf->resRedirect(tuwf->reqPath().'?'.query_encode({%$opt, fil => undef, f => $q}), 'perm') if $q;
+        fu->redirect(perm => fu->path.'?'.query_encode({%$opt, fil => undef, f => $q})) if $q;
     }
 
-    $opt->{f} = advsearch_default 'r' if !$opt->{f}{query} && !defined tuwf->reqGet('f');
+    $opt->{f} = advsearch_default 'r' if !$opt->{f}{query} && !defined fu->query('f');
 
     my $where = sql_and
         'NOT r.hidden',
@@ -59,8 +59,8 @@ TUWF::get qr{/r}, sub {
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = tuwf->dbVali('SELECT count(*) FROM releases r WHERE', sql_and $where, $opt->{q}->sql_where('r', 'r.id'));
-        $list = $count ? tuwf->dbPagei({results => 50, page => $opt->{p}}, '
+        $count = fu->dbVali('SELECT count(*) FROM releases r WHERE', sql_and $where, $opt->{q}->sql_where('r', 'r.id'));
+        $list = $count ? fu->dbPagei({results => 50, page => $opt->{p}}, '
             SELECT r.id, r.patch, r.released
               FROM', releasest, 'r', $opt->{q}->sql_join('r', 'r.id'), '
              WHERE', $where, '

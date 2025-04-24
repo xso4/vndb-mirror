@@ -32,7 +32,7 @@ sub changes {
     }
 }
 
-TUWF::get '/changes' => sub {
+FU::get '/changes' => sub {
     framework_ title => 'VNDB Changelog', sub {
         article_ sub {
             h1_ 'VNDB Changelog';

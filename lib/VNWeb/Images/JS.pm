@@ -6,33 +6,41 @@ use AnyEvent::Util;
 
 
 # Fetch info about an image
-my $OUT = tuwf->compile({ type => 'hash', keys => $IMGSCHEMA});
+my $OUT = form_compile $IMGSCHEMA;
 
 js_api 'Image', { id => { vndbid => [qw/ch cv sf/] } }, sub {
     my $r = {id=>$_[0]{id}};
     enrich_image 0, [$r];
-    return tuwf->resNotFound if !$r->{width};
-    $OUT->analyze->coerce_for_json($r);
+    fu->notfound if !$r->{width};
+    $OUT->coerce($r);
 };
 
 
-TUWF::post qr{/js/ImageUpload.json}, sub {
+FU::post '/js/ImageUpload.json', sub {
     # Have to require the samesite cookie here as CSRF protection, because this API can be triggered as a regular HTML form post.
-    return tuwf->resDenied if !samesite || !(auth->permDbmod || (auth->permEdit && !global_settings->{lockdown_edit}));
+    fu->denied if !samesite || !(auth->permDbmod || (auth->permEdit && !global_settings->{lockdown_edit}));
 
-    my $type = tuwf->validate(post => type => { enum => [qw/cv ch sf/] })->data;
-    my $imgdata = tuwf->reqUploadRaw('img');
+    my $body = fu->multipart;
+    my($type) = grep $_->name eq 'type', @$body;
+    fu->notfound if !$type;
+    $type = $type->value;
+    fu->notfound if $type !~ /^(cv|ch|sf)$/;
+
+    my($imgdata) = grep $_->name eq 'img', @$body;
+    fu->notfound if !$imgdata;
+
+    my $header = $imgdata->substr(0, 16);
     my $fmt =
-        $imgdata =~ /^\xff\xd8/ ? 'jpg' :
-        $imgdata =~ /^\x89\x50/ ? 'png' :
-        $imgdata =~ /^RIFF....WEBP/s ? 'webp' :
-        $imgdata =~ /^....ftyp/s ? 'avif' : # Considers every heif file to be AVIF, not entirely correct but works fine.
-        $imgdata =~ /^\xff\x0a/ ? 'jxl' :
-        $imgdata =~ /^\x00\x00\x00\x00\x0CJXL / ? 'jxl' : undef;
-    return tuwf->resJSON({_err => 'Unsupported image format'}) if !$fmt;
+        $header =~ /^\xff\xd8/ ? 'jpg' :
+        $header =~ /^\x89\x50/ ? 'png' :
+        $header =~ /^RIFF....WEBP/s ? 'webp' :
+        $header =~ /^....ftyp/s ? 'avif' : # Considers every heif file to be AVIF, not entirely correct but works fine.
+        $header =~ /^\xff\x0a/ ? 'jxl' :
+        $header =~ /^\x00\x00\x00\x00\x0CJXL / ? 'jxl' :
+        fu->send_json({_err => 'Unsupported image format'});
 
-    my $seq = {qw/sf screenshots_seq cv covers_seq ch charimg_seq/}->{$type}||die;
-    my $id = tuwf->dbVali('INSERT INTO images', {
+    my $seq = {qw/sf screenshots_seq cv covers_seq ch charimg_seq/}->{$type};
+    my $id = fu->dbVali('INSERT INTO images', {
         id       => sql_func(vndbid => \$type, sql(sql_func(nextval => \$seq), '::int')),
         uploader => \auth->uid,
         width    => 0,
@@ -42,11 +50,7 @@ TUWF::post qr{/js/ImageUpload.json}, sub {
     my $fno = imgpath($id, 'orig', $fmt);
     my $fn0 = imgpath($id);
     my $fn1 = imgpath($id, 't');
-
-    {
-        open my $F, '>', $fno or die $!;
-        print $F $imgdata;
-    }
+    $imgdata->save($fno);
 
     my $rc = run_cmd(
          [
@@ -55,9 +59,7 @@ TUWF::post qr{/js/ImageUpload.json}, sub {
              $type eq 'cv' ? (size => jpeg => 1 => fit => config->{cv_size}->@*, jpeg => 3) :
              $type eq 'sf' ? (size => jpeg => 1 => fit => config->{scr_size}->@*, jpeg => 3) : die
          ],
-         '<',  \$imgdata,
-         '>',  $fn0,
-         '2>', \my $err,
+         '<', $fno, '>', $fn0, '2>', \my $err,
          $type eq 'sf' || $type eq 'cv' ? ('3>', $fn1) : (),
          close_all => 1,
          on_prepare => sub { %ENV = () },
@@ -68,7 +70,7 @@ TUWF::post qr{/js/ImageUpload.json}, sub {
         unlink $fno;
         unlink $fn0;
         unlink $fn1;
-        tuwf->dbRollBack;
+        fu->dbh->rollback;
     }
 
     if($rc || !-s $fn0 || $err !~ /^([0-9]+)x([0-9]+)$/) {
@@ -77,23 +79,23 @@ TUWF::post qr{/js/ImageUpload.json}, sub {
         # keep original for troubleshooting
         rename $fno, config->{var_path}."/tmp/error-${id}.${fmt}";
         cleanup;
-        return tuwf->resJSON({_err => 'Invalid image'});
+        fu->send_json({_err => 'Invalid image'});
     }
     my($w,$h) = ($1,$2);
 
-    if (-s $fn0 >= TUWF::set('max_post_body')) {
+    if (-s $fn0 >= 10*1024*1024) {
         cleanup;
-        return tuwf->resJSON({_err => 'Encoded image too large, try a lower resolution'});
+        fu->send_json({_err => 'Encoded image too large, try a lower resolution'});
     }
 
-    tuwf->dbExeci('UPDATE images SET', { width => $w, height => $h }, 'WHERE id =', \$id);
+    fu->dbExeci('UPDATE images SET', { width => $w, height => $h }, 'WHERE id =', \$id);
     chmod 0666, $fno;
     chmod 0666, $fn0;
     chmod 0666, $fn1;
 
     my @l = ({id => $id});
     enrich_image 1, \@l;
-    tuwf->resJSON($OUT->analyze->coerce_for_json(@l));
+    fu->send_json($OUT->coerce(@l));
 };
 
 1;

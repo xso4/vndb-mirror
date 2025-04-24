@@ -15,9 +15,9 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
 };
 
 
-TUWF::get qr{/$RE{drev}/edit} => sub {
-    my $d = db_entry tuwf->captures('id', 'rev') or return tuwf->resNotFound;
-    return tuwf->resDenied if !can_edit d => $d;
+FU::get qr{/$RE{drev}/edit} => sub($id,$rev=0) {
+    my $d = db_entry $id, $rev or fu->notfound;
+    fu->denied if !can_edit d => $d;
 
     $d->{editsum} = $d->{chrev} == $d->{maxrev} ? '' : "Reverted to revision $d->{id}.$d->{chrev}";
 
@@ -30,9 +30,9 @@ TUWF::get qr{/$RE{drev}/edit} => sub {
 
 js_api DocEdit => $FORM_IN, sub {
     my $data = shift;
-    my $doc = db_entry $data->{id} or return tuwf->resNotFound;
+    my $doc = db_entry $data->{id} or fu->notfound;
 
-    return tuwf->resDenied if !can_edit d => $doc;
+    fu->denied if !can_edit d => $doc;
     $data->{html} = md2html $data->{content};
 
     my $c = db_edit d => $doc->{id}, $data;
@@ -44,7 +44,7 @@ js_api DocEdit => $FORM_IN, sub {
 js_api Markdown => {
     content => { default => '' }
 }, sub {
-    return tuwf->resDenied if !auth->permDbmod;
+    fu->denied if !auth->permDbmod;
     +{ html => enrich_html md2html shift->{content} };
 };
 

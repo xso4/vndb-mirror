@@ -3,15 +3,13 @@ package VNWeb::HTML;
 use v5.36;
 use utf8;
 use Algorithm::Diff::XS 'sdiff', 'compact_diff';
-use JSON::XS;
-use TUWF;
-use FU::Util 'uri_escape';
+use FU;
+use FU::Util 'uri_escape', 'json_format';
 use FU::XMLWriter ':html5_', 'xml_escape';
 use Exporter 'import';
 use POSIX 'ceil', 'floor', 'strftime';
 use Carp 'croak';
 use Digest::SHA;
-use JSON::XS;
 use VNDB::Config;
 use VNDB::BBCode;
 use VNDB::Skins;
@@ -58,9 +56,9 @@ sub platform_ {
 
 # Throw any data structure on the page for inspection.
 sub debug_ {
-    return if !tuwf->debug;
+    return if !fu->debug;
     # This provides a nice JSON browser in FF, not sure how other browsers render it.
-    my $data = uri_escape(JSON::XS->new->canonical->allow_nonref->encode($_[0]));
+    my $data = uri_escape(json_format($_[0], canonical => 1));
     a_ style => 'margin: 0 5px', title => 'Debug', href => 'data:application/json,'.$data, ' ⚙ ';
 }
 
@@ -161,13 +159,12 @@ sub charsex_($sex, $gender) {
 # Instantiate a JS widget.
 # Used as attribute to a html tag, which will then be used as parent node for the widget.
 # $schema is optional, if present it is used to normalize the data.
-sub widget {
-    my($name, $schema, $data) = @_;
-    $data = $data ? $schema->analyze->coerce_for_json($data, unknown => 'remove') : $schema;
-    tuwf->req->{widget_id} //= 0;
-    tuwf->req->{js}{ VNWeb::JS::widgets()->{$name} // die "No bundle found for widget '$name'" } = 1;
-    my $id = ++tuwf->req->{widget_id};
-    push tuwf->req->{pagevars}{widget}{$name}->@*, [ $id, $data ];
+sub widget($name, $schema, $data=undef) {
+    $data = $data ? $schema->coerce($data, unknown => 'remove') : $schema;
+    fu->{widget_id} //= 0;
+    fu->{js}{ VNWeb::JS::widgets()->{$name} // die "No bundle found for widget '$name'" } = 1;
+    my $id = ++fu->{widget_id};
+    push fu->{pagevars}{widget}{$name}->@*, [ $id, $data ];
     (id => sprintf 'widget%d', $id)
 }
 
@@ -191,35 +188,35 @@ sub _head_ {
     my $o = shift;
 
     my $fancy = !(auth->pref('nodistract_can') && auth->pref('nodistract_nofancy'));
-    my $pubskin = $fancy && $o->{dbobj} && $o->{dbobj}{id} =~ /^u/ ? tuwf->dbRowi(
+    my $pubskin = $fancy && $o->{dbobj} && $o->{dbobj}{id} =~ /^u/ ? fu->dbRowi(
         'SELECT u.id, customcss_csum, skin FROM users u JOIN users_prefs up ON up.id = u.id WHERE pubskin_can AND pubskin_enabled AND u.id =', \$o->{dbobj}{id}
     ) : {};
-    my $skin = tuwf->reqGet('skin') || $pubskin->{skin} || auth->pref('skin') || '';
+    my $skin = fu->query(skin => { onerror => '' }) || $pubskin->{skin} || auth->pref('skin') || '';
     $skin = config->{skin_default} if !skins->{$skin};
     my $customcss = $pubskin->{customcss_csum} ? [ $pubskin->{id}, $pubskin->{customcss_csum} ] :
                   auth->pref('customcss_csum') ? [ auth->uid, auth->pref('customcss_csum') ] : undef;
 
     meta_ charset => 'utf-8';
     title_ $o->{title}.' | vndb';
-    base_ href => tuwf->reqURI();
+    base_ href => config->{url}.fu->path;
     link_ rel => 'shortcut icon', href => '/favicon.ico', type => 'image/x-icon';
     link_ rel => 'stylesheet', href => _staticurl("$skin.css"), type => 'text/css', media => 'all';
-    link_ rel => 'search', type => 'application/opensearchdescription+xml', title => 'VNDB Visual Novel Search', href => tuwf->reqBaseURI().'/opensearch.xml';
+    link_ rel => 'search', type => 'application/opensearchdescription+xml', title => 'VNDB Visual Novel Search', href => config->{url}.'/opensearch.xml';
     link_ rel => 'stylesheet', href => sprintf '/%s.css?%x', $customcss->[0], $customcss->[1] if $customcss;
-    meta_ name => 'viewport', content => 'width=device-width, initial-scale=1.0, user-scalable=yes' if tuwf->reqGet('mobile-test');
+    meta_ name => 'viewport', content => 'width=device-width, initial-scale=1.0, user-scalable=yes' if fu->query('mobile-test');
     if($o->{feeds}) {
         link_ rel => 'alternate', type => 'application/atom+xml', href => "/feeds/announcements.atom", title => 'Site Announcements';
         link_ rel => 'alternate', type => 'application/atom+xml', href => "/feeds/changes.atom",       title => 'Recent Changes';
         link_ rel => 'alternate', type => 'application/atom+xml', href => "/feeds/posts.atom",         title => 'Recent Posts';
     }
-    meta_ name => 'robots', content => 'noindex' if config->{moe} || !$o->{index} || tuwf->reqGet('view');
+    meta_ name => 'robots', content => 'noindex' if config->{moe} || !$o->{index} || ($o->{dbobj} && $o->{dbobj}{entry_hidden}) || fu->query('view');
 
     # Opengraph metadata
     if($o->{og}) {
         $o->{og}{site_name} ||= 'The Visual Novel Database';
         $o->{og}{type}      ||= 'object';
         $o->{og}{image}     ||= config->{placeholder_img};
-        $o->{og}{url}       ||= tuwf->reqURI;
+        $o->{og}{url}       ||= config->{url}.fu->path;
         $o->{og}{title}     ||= $o->{title};
         meta_ property => "og:$_", content => ($o->{og}{$_} =~ s/\n/ /gr) for sort keys $o->{og}->%*;
     }
@@ -290,7 +287,7 @@ sub _menu_ {
                 a_ href => '/s/new', 'Add Staff'; br_;
             }
             if(auth->isMod) {
-                my $stats = tuwf->dbRowi("SELECT
+                my $stats = fu->dbRowi("SELECT
                     (SELECT count(*) FROM reports WHERE status = 'new') as new,
                     (SELECT count(*) FROM reports WHERE status = 'new' AND date > (SELECT last_reports FROM users_prefs WHERE id =", \auth->uid, ")) AS unseen,
                     (SELECT count(*) FROM reports WHERE lastmod > (SELECT last_reports FROM users_prefs WHERE id =", \auth->uid, ")) AS upd
@@ -313,7 +310,7 @@ sub _menu_ {
     article_ sub {
         h2_ 'User menu';
         div_ sub {
-            my $ref = uri_escape(tuwf->reqGet('ref') || tuwf->reqPath().tuwf->reqQuery());
+            my $ref = uri_escape(fu->query('ref', { onerror => '' }) || fu->path.'?'.(fu->query||''));
             a_ href => "/u/login?ref=$ref", 'Login'; br_;
             a_ href => '/u/register', 'Register'; br_;
         }
@@ -323,7 +320,7 @@ sub _menu_ {
         h2_ 'Database Statistics';
         div_ sub {
             dl_ sub {
-                my %stats = map +($_->{section}, $_->{count}), tuwf->dbAll('SELECT * FROM stats_cache')->@*;
+                my %stats = map +($_->{section}, $_->{count}), fu->dbAll('SELECT * FROM stats_cache')->@*;
                 dt_ 'Visual Novels'; dd_ $stats{vn};
                 dt_ sub { small_ '> '; lit_ 'Tags' };
                                      dd_ $stats{tags};
@@ -342,7 +339,7 @@ sub _menu_ {
 
 sub _footer_ {
     my($o) = @_;
-    my $q = (samesite || auth) && !config->{moe} && tuwf->dbRow('SELECT vid, quote FROM quotes WHERE rand <= (SELECT random()) ORDER BY rand DESC LIMIT 1');
+    my $q = (samesite || auth) && !config->{moe} && fu->dbRow('SELECT vid, quote FROM quotes WHERE rand <= (SELECT random()) ORDER BY rand DESC LIMIT 1');
     span_ sub {
         lit_ '"';
         a_ href => "/$q->{vid}", $q->{quote};
@@ -360,30 +357,9 @@ sub _footer_ {
     a_ href => '/ads.txt', 'advertising';
     lit_ ' | ';
     a_ href => sprintf('mailto:%s', config->{admin_email}), config->{admin_email};
-
-    if(tuwf->debug) {
+    if(fu->debug) {
         lit_ ' | ';
-        debug_ tuwf->req->{pagevars};
-        br_;
-        tuwf->dbCommit; # Hack to measure the commit time
-
-        my(@sql_r, @sql_i) = ();
-        for (tuwf->{_TUWF}{DB}{queries}->@*) {
-            my($sql, $params, $time) = @$_;
-            my @params = sort { $a =~ /^[0-9]+$/ && $b =~ /^[0-9]+$/ ? $a <=> $b : $a cmp $b } keys %$params;
-            my $prefix = sprintf "  [%6.2fms] ", $time*1000;
-            push @sql_r, sprintf "%s%s | %s", $prefix, $sql, join ', ', map "$_:".DBI::neat($params->{$_}), @params;
-            my $i=1;
-            push @sql_i, $prefix.($sql =~ s/\?/tuwf->dbh->quote($params->{$i++})/egr);
-        }
-        my $sql_r = join "\n", @sql_r;
-        my $sql_i = join "\n", @sql_i;
-        my $modules = join "\n", sort keys %INC;
-        details_ sub {
-            summary_ 'debug info';
-            pre_ style => 'text-align: left; color: black; background: white',
-                "SQL (with placeholders):\n$sql_r\n\nSQL (interpolated, possibly buggy):\n$sql_i\n\nMODULES:\n$modules";
-        };
+        a_ target => '_blank', href => config->{fu_debug_path}.'?'.$FU::REQ->{trace_id}, 'debug';
     }
 }
 
@@ -393,20 +369,20 @@ sub _maintabs_subscribe_ {
     return if !auth || $id !~ /^[twvrpcsdig]/;
 
     my $noti =
-        $id =~ /^t/ ? tuwf->dbVali('SELECT SUM(x) FROM (
+        $id =~ /^t/ ? fu->dbVali('SELECT SUM(x) FROM (
                  SELECT 1 FROM threads_posts tp, users u WHERE u.id =', \auth->uid, 'AND tp.uid =', \auth->uid, 'AND tp.tid =', \$id, ' AND u.notify_post
            UNION SELECT 1+1 FROM threads_boards tb WHERE tb.tid =', \$id, 'AND tb.type = \'u\' AND tb.iid =', \auth->uid, '
            ) x(x)')
 
-      : $id =~ /^w/ ? (auth->pref('notify_post') || auth->pref('notify_comment')) && tuwf->dbVali('SELECT SUM(x) FROM (
+      : $id =~ /^w/ ? (auth->pref('notify_post') || auth->pref('notify_comment')) && fu->dbVali('SELECT SUM(x) FROM (
                  SELECT 1 FROM reviews_posts wp, users u WHERE u.id =', \auth->uid, 'AND wp.uid =', \auth->uid, 'AND wp.id =', \$id, 'AND u.notify_post
            UNION SELECT 1+1 FROM reviews w, users u WHERE u.id =', \auth->uid, 'AND w.uid =', \auth->uid, 'AND w.id =', \$id, 'AND u.notify_comment
            ) x(x)')
 
-      : $id =~ /^[vrpcsdgi]/ && auth->pref('notify_dbedit') && tuwf->dbVali('
+      : $id =~ /^[vrpcsdgi]/ && auth->pref('notify_dbedit') && fu->dbVali('
            SELECT 1 FROM changes WHERE itemid =', \$id, 'AND requester =', \auth->uid);
 
-    my $sub = tuwf->dbRowi('SELECT subnum, subreview, subapply FROM notification_subs WHERE uid =', \auth->uid, 'AND iid =', \$id);
+    my $sub = fu->dbRowi('SELECT subnum, subreview, subapply FROM notification_subs WHERE uid =', \auth->uid, 'AND iid =', \$id);
 
     li_ widget(Subscribe => $VNWeb::User::Notifications::SUB, {
         id        => $id,
@@ -443,7 +419,7 @@ sub _maintabs_ {
             t '' => "/$id", $id if $o && $t ne 't';
 
             t rg => "/$id/rg", 'relations'
-                if $t =~ /[vp]/ && !config->{moe} && tuwf->dbVali('SELECT 1 FROM', $t eq 'v' ? 'vn_relations' : 'producers_relations', 'WHERE id =', \$o->{id}, 'LIMIT 1');
+                if $t =~ /[vp]/ && !config->{moe} && fu->dbVali('SELECT 1 FROM', $t eq 'v' ? 'vn_relations' : 'producers_relations', 'WHERE id =', \$o->{id}, 'LIMIT 1');
 
             t releases => "/$id/releases", 'releases' if $t eq 'v';
             t edit => "/$id/edit", 'edit' if $o && $t ne 't' && can_edit $t, $o;
@@ -460,7 +436,7 @@ sub _maintabs_ {
             } if $t eq 'u';
 
             if($t =~ /[uvp]/ && !config->{moe}) {
-                my $cnt = tuwf->dbVali(q{
+                my $cnt = fu->dbVali(q{
                     SELECT COUNT(*)
                     FROM threads_boards tb
                     JOIN threads t ON t.id = tb.tid
@@ -506,7 +482,7 @@ sub _hidden_msg_ {
     }
 
     # Deleted.
-    my $msg = tuwf->dbRowi(
+    my $msg = fu->dbRowi(
         'SELECT comments, rev
            FROM changes
           WHERE itemid =', \$o->{dbobj}{id},
@@ -549,8 +525,8 @@ sub _hidden_msg_ {
 sub framework_ {
     my $cont = pop;
     my %o = @_;
-    tuwf->req->{pagevars} = { tuwf->req->{pagevars} ? tuwf->req->{pagevars}->%* : (), $o{pagevars}->%* } if $o{pagevars};
-    $o{unread_noti} = auth && tuwf->dbVali('SELECT count(*) FROM notifications WHERE uid =', \auth->uid, 'AND read IS NULL');
+    fu->{pagevars} = { fu->{pagevars} ? fu->{pagevars}->%* : (), $o{pagevars}->%* } if $o{pagevars};
+    $o{unread_noti} = auth && fu->dbVali('SELECT count(*) FROM notifications WHERE uid =', \auth->uid, 'AND read IS NULL');
 
     my $html = html_ lang => 'en', sub {
         lit_ "\n<!--\n"
@@ -573,25 +549,29 @@ sub framework_ {
             };
 
             # 'basic' bundle is always included if there's any JS at all
-            tuwf->req->{js}{basic} = 1 if tuwf->req->{pagevars}{widget} || $o{js};
+            fu->{js}{basic} = 1 if fu->{pagevars}{widget} || $o{js};
             # 'dbmod' value is used by various widgets
-            tuwf->req->{pagevars}{dbmod} = 1 if tuwf->req->{pagevars}{widget} && auth->permDbmod;
+            fu->{pagevars}{dbmod} = 1 if fu->{pagevars}{widget} && auth->permDbmod;
 
             # Some ulist widgets need the user's labels, let's include them here so the data can be shared across multiple widgets.
             # (UList::List uses another variant with counts included)
-            tuwf->req->{pagevars}{labels} ||= [ map +[$_->{id}*1, $_->{label}, $_->{private} ? \1 : \0], tuwf->dbAlli('
+            fu->{pagevars}{labels} ||= [ map +[$_->{id}*1, $_->{label}, $_->{private} ? \1 : \0], fu->dbAlli('
                 SELECT id, label, private FROM ulist_labels WHERE uid =', \auth->uid, 'ORDER BY CASE WHEN id < 10 THEN id ELSE 10 END, label'
-            )->@* ] if auth && (tuwf->req->{js_labels} || grep tuwf->req->{pagevars}{widget}{$_}, qw/ UListWidget UListVNPage /);
+            )->@* ] if auth && (fu->{js_labels} || grep fu->{pagevars}{widget}{$_}, qw/ UListWidget UListVNPage /);
 
             script_ type => 'application/json', id => 'pagevars', sub {
                 # Escaping rules for a JSON <script> context are kinda weird, but more efficient than regular xml_escape().
-                lit_(JSON::XS->new->canonical->encode(tuwf->req->{pagevars}) =~ s{</}{<\\/}rg =~ s/<!--/<\\u0021--/rg);
-            } if keys tuwf->req->{pagevars}->%*;
+                lit_(json_format(fu->{pagevars}, html_safe => 1));
+            } if keys fu->{pagevars}->%*;
 
-            script_ defer => 'defer', src => _staticurl("$_.js"), '' for grep tuwf->req->{js}{$_}, qw/basic user contrib graph/;
+            script_ defer => 'defer', src => _staticurl("$_.js"), '' for grep fu->{js}{$_}, qw/basic user contrib graph/;
         }
     };
-    tuwf->resBinary($html, 'auto');
+    if (config->{moe}) {
+        $html =~ s{https://(?:s|s2|t)\.vndb\.org/}{https://s.vndb.moe/}g;
+        $html =~ s{https://vndb\.org/}{https://vndb.moe/}g;
+    }
+    fu->set_body($html);
 }
 
 
@@ -723,8 +703,7 @@ sub _revision_diff_ {
     @old = map $opt{txt}->(), @old if $opt{txt};
     @new = map $opt{txt}->(), @new if $opt{txt};
 
-    my $JS = JSON::XS->new->utf8->canonical->allow_nonref;
-    my $l = sdiff \@old, \@new, sub { _stringify_scalars_rec($_[0]); $JS->encode($_[0]) };
+    my $l = sdiff \@old, \@new, sub { _stringify_scalars_rec($_[0]); json_format($_[0], canonical => 1, utf8 => 1) };
     return if !grep $_->[0] ne 'u', @$l;
 
     # Now check if we should do a textual diff on the changed items.
@@ -802,7 +781,7 @@ sub _revision_cmp_ {
 #   fmt     => 'bool'||\%HASH||sub {$_}  - Formatting function for individual values.
 #                 If not given, the field is rendered as plain text and changes are highlighted with a diff.
 #                 \%HASH -> Look the field up in the hash table (values should be string or {txt=>string}.
-#                 sub($value) {$_} -> Custom formatting function, should output TUWF::XML data HTML.
+#                 sub($value) {$_} -> Custom formatting function, should call FU::XMLWriter functions.
 #   txt     => sub{$_} - Text formatting function for individual values.
 #                 Alternative to 'fmt' above; the returned value is treated as a text field with diffing support.
 #   join    => sub{}  - HTML to join multi-value fields, defaults to \&br_.
@@ -815,12 +794,12 @@ sub revision_ {
     $enrich->($old) if $old;
 
     if(auth->permDbmod) {
-        my $f = tuwf->validate(get =>
-            patrolled   => { default => 0, uint => 1 },
-            unpatrolled => { default => 0, uint => 1 },
-        )->data;
-        tuwf->dbExeci('INSERT INTO changes_patrolled', {id => $f->{patrolled}, uid => auth->uid}, 'ON CONFLICT (id,uid) DO NOTHING') if $f->{patrolled};
-        tuwf->dbExeci('DELETE FROM changes_patrolled WHERE', {id => $f->{unpatrolled}, uid => auth->uid}) if $f->{unpatrolled};
+        my $f = fu->query(
+            patrolled   => { onerror => 0, uint => 1 },
+            unpatrolled => { onerror => 0, uint => 1 },
+        );
+        fu->dbExeci('INSERT INTO changes_patrolled', {id => $f->{patrolled}, uid => auth->uid}, 'ON CONFLICT (id,uid) DO NOTHING') if $f->{patrolled};
+        fu->dbExeci('DELETE FROM changes_patrolled WHERE', {id => $f->{unpatrolled}, uid => auth->uid}) if $f->{unpatrolled};
     }
 
     enrich_merge chid => sql(
@@ -922,13 +901,13 @@ sub sortable_ {
 
 sub searchbox_ {
       my($sel, $q) = @_;
-      tuwf->req->{js}{basic} = 1;
+      fu->{js}{basic} = 1;
 
       # Only fetch counts for queries that can use the trigram index
       # (This length requirement is not ideal for Kanji, but pg_trgm doesn't
       # discriminate between scripts)
       my %counts = $q && (grep length($_)>=3, $q->words->@*) ?
-          map +($_->{type}, $_->{cnt}), tuwf->dbAlli('
+          map +($_->{type}, $_->{cnt}), fu->dbAlli('
               SELECT vndbid_type(id) AS type, count(*) AS cnt
                 FROM (
                   SELECT DISTINCT id

@@ -178,10 +178,10 @@ sub image_ {
     my $hide_on_click = $sex || $vio || !$img->{votecount} || (auth->pref('max_sexual')||0) < 0;
     my $small = $w*$h < 20000;
 
-    tuwf->{req}{imghover_id} //= 0;
-    my $id = tuwf->{req}{imghover_id}++;
+    fu->{imghover_id} //= 0;
+    my $id = fu->{imghover_id}++;
 
-    tuwf->req->{js}{basic} = 1 if $opt{thumb};
+    fu->{js}{basic} = 1 if $opt{thumb};
 
     my sub _img {
         img_ src => thumburl($img), width => $w, height => $h, $opt{alt} ? (alt => $opt{alt}) : (), undef;

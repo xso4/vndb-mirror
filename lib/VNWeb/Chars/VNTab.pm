@@ -2,8 +2,7 @@ package VNWeb::Chars::VNTab;
 
 use VNWeb::Prelude;
 
-sub chars_ {
-    my($v) = @_;
+sub chars_($v) {
     my $view = viewget;
     my $chars = VNWeb::Chars::Page::fetch_chars($v->{id}, sql('id IN(SELECT id FROM chars_vns WHERE vid =', \$v->{id}, ')'));
     return if !@$chars;
@@ -51,10 +50,8 @@ sub chars_ {
 }
 
 
-TUWF::get qr{/$RE{vid}/chars}, sub {
-    my $v = db_entry tuwf->capture('id');
-    return tuwf->resNotFound if !$v;
-
+FU::get qr{/$RE{vid}/chars}, sub($id) {
+    my $v = db_entry $id or fu->notfound;
     VNWeb::VN::Page::enrich_vn($v);
 
     framework_ title => $v->{title}[1], index => 1, dbobj => $v, hiddenmsg => 1,

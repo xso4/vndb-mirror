@@ -9,8 +9,8 @@ js_api AdvSearchSave => {
     qtype => { enum => \%VNWeb::AdvSearch::FIELDS },
     query => {},
 }, sub($d) {
-    my $q = tuwf->compile({ advsearch => $d->{qtype} })->validate($d->{query})->data->enc_query;
-    tuwf->dbExeci(
+    my $q = fu->compile({ advsearch => $d->{qtype} })->validate($d->{query})->enc_query;
+    fu->dbExeci(
         'INSERT INTO saved_queries', { uid => auth->uid, qtype => $d->{qtype}, name => $d->{name}, query => $q },
         'ON CONFLICT (uid, qtype, name) DO UPDATE SET query =', \$q
     );
@@ -19,10 +19,10 @@ js_api AdvSearchSave => {
 
 
 js_api AdvSearchDel => {
-    name  => { type => 'array', minlength => 1, values => { default => '', length => [1,50] } },
+    name  => { minlength => 1, elems => { default => '', length => [1,50] } },
     qtype => { enum => \%VNWeb::AdvSearch::FIELDS },
 }, sub($d) {
-    tuwf->dbExeci('DELETE FROM saved_queries WHERE uid =', \auth->uid, 'AND qtype =', \$d->{qtype}, 'AND name IN', $d->{name});
+    fu->dbExeci('DELETE FROM saved_queries WHERE uid =', \auth->uid, 'AND qtype =', \$d->{qtype}, 'AND name IN', $d->{name});
     +{}
 };
 

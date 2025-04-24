@@ -15,14 +15,14 @@ our $RELSCHEMA = {
     rtype     => {},
     reso_x    => { uint => 1 },
     reso_y    => { uint => 1 },
-    lang      => { type => 'array', values => {} },
-    platforms => { type => 'array', values => {} },
+    lang      => { elems => {} },
+    platforms => { elems => {} },
 };
 
 
 # Return the list of releases associated with a VN in the format described by $RELSCHEMA.
 sub releases_by_vn($id, %opt) {
-    my $l = tuwf->dbAlli('
+    my $l = fu->dbAlli('
         SELECT r.id, x.rtype, r.title[1+1] AS title, r.title[1+1+1+1] AS alttitle, r.released, r.reso_x, r.reso_y
           FROM ', releasest, 'r
           JOIN (

@@ -4,8 +4,7 @@ use VNWeb::Prelude;
 use VNWeb::Images::Lib qw/image_ enrich_image_obj/;
 
 
-sub enrich_seiyuu {
-    my($vid, @chars) = @_;
+sub enrich_seiyuu($vid, @chars) {
     enrich seiyuu => id => cid => sub { sql '
         SELECT DISTINCT vs.cid, sa.id, sa.title, sa.sorttitle, vs.note
           FROM vn_seiyuu vs
@@ -29,9 +28,7 @@ sub sql_trait_overrides {
     )';
 }
 
-sub enrich_item {
-    my($c) = @_;
-
+sub enrich_item($c) {
     enrich_image_obj image => $c;
 
     # Even with trait overrides, we'll want to see the raw data in revision diffs,
@@ -47,7 +44,7 @@ sub enrich_item {
 
     $c->{traits} = [ sort { $a->{order} <=> $b->{order} || $a->{groupname} cmp $b->{groupname} || $a->{name} cmp $b->{name} } grep length $_->{name}, $c->{traits}->@* ];
 
-    $c->{quotes} = tuwf->dbAlli('
+    $c->{quotes} = fu->dbAlli('
         SELECT q.vid, q.id, q.score, q.quote,', sql_totime('q.added'), 'AS added, q.addedby
           FROM quotes q
          WHERE NOT q.hidden AND vid IN', [map $_->{vid}, $c->{vns}->@*], 'AND q.cid =', \$c->{id}, '
@@ -61,9 +58,8 @@ sub enrich_item {
 
 # Fetch multiple character entries with a format suitable for chartable_()
 # Also used by Chars::VNTab.
-sub fetch_chars {
-    my($vid, $where) = @_;
-    my $l = tuwf->dbAlli('
+sub fetch_chars($vid, $where) {
+    my $l = fu->dbAlli('
         SELECT id, title, alias, description, sex, spoil_sex, gender, spoil_gender, birthday
              , s_bust, s_waist, s_hip, height, weight, bloodt, cup_size, age, image
           FROM', charst, 'c WHERE NOT hidden AND (', $where, ')
@@ -96,8 +92,7 @@ sub fetch_chars {
 }
 
 
-sub _rev_ {
-    my($c) = @_;
+sub _rev_($c) {
     revision_ $c, \&enrich_item,
         [ name       => 'Name'           ],
         [ latin      => 'Name (latin)'   ],
@@ -117,7 +112,7 @@ sub _rev_ {
         [ cup_size   => 'Cup size',      fmt => \%CUP_SIZE ],
         [ age        => 'Age',           ],
         [ main       => 'Instance of',   empty => 0, fmt => sub {
-            my $c = tuwf->dbRowi('SELECT id, title FROM', charst, 'c WHERE id =', \$_);
+            my $c = fu->dbRowi('SELECT id, title FROM', charst, 'c WHERE id =', \$_);
             a_ href => "/$c->{id}", title => $c->{title}[1], $c->{id}
         } ],
         [ main_spoil => 'Spoiler',       fmt => sub { txt_ fmtspoil $_ } ],
@@ -141,8 +136,7 @@ sub _rev_ {
 
 
 # Also used by Chars::VNTab
-sub chartable_ {
-    my($c, $link, $sep, $vn) = @_;
+sub chartable_($c, $link=undef, $sep=undef, $vn=undef) {
     my $view = viewget;
 
     my @visvns = grep $_->{spoil} <= $view->{spoilers}, $c->{vns}->@*;
@@ -279,15 +273,14 @@ sub chartable_ {
 }
 
 
-TUWF::get qr{/$RE{crev}} => sub {
-    my $c = db_entry tuwf->captures('id','rev');
-    return tuwf->resNotFound if !$c;
+FU::get qr{/$RE{crev}} => sub($id, $rev=0) {
+    my $c = db_entry $id, $rev or fu->notfound;
 
     enrich_item $c;
     enrich_seiyuu undef, $c;
     my $view = viewget;
 
-    my $inst_maxspoil = tuwf->dbVali('SELECT MAX(main_spoil) FROM chars WHERE NOT hidden AND main IN', [ $c->{id}, $c->{main}||() ]);
+    my $inst_maxspoil = fu->dbVali('SELECT MAX(main_spoil) FROM chars WHERE NOT hidden AND main IN', [ $c->{id}, $c->{main}||() ]);
 
     my $inst = !defined($inst_maxspoil) || ($c->{main} && $c->{main_spoil} > $view->{spoilers}) ? []
         : fetch_chars undef, sql
@@ -306,14 +299,14 @@ TUWF::get qr{/$RE{crev}} => sub {
     # Only display the sexual traits toggle when there are sexual traits within the current spoiler level.
     my $has_sex = grep !$_->{hidden} && $_->{sexual} && ($_->{override}//$_->{spoil}) <= $view->{spoilers}, map $_->{traits}->@*, $c, @$inst;
 
-    $c->{title} = titleprefs_swap tuwf->dbVali('SELECT c_lang FROM chars WHERE id =', \$c->{id}), @{$c}{qw/ name latin /};
-    framework_ title => $c->{title}[1], index => !tuwf->capture('rev'), dbobj => $c, hiddenmsg => 1,
+    $c->{title} = titleprefs_swap fu->dbVali('SELECT c_lang FROM chars WHERE id =', \$c->{id}), @{$c}{qw/ name latin /};
+    framework_ title => $c->{title}[1], index => !$rev, dbobj => $c, hiddenmsg => 1,
         og => {
             description => bb_format($c->{description}, text => 1),
             image => $c->{image} && $c->{image}{votecount} && !$c->{image}{sexual} && !$c->{image}{violence} ? imgurl($c->{image}{id}) : undef,
         },
     sub {
-        _rev_ $c if tuwf->capture('rev');
+        _rev_ $c if $rev;
         article_ sub {
             itemmsg_ $c;
             h1_ tlang(@{$c->{title}}[0,1]), $c->{title}[1];

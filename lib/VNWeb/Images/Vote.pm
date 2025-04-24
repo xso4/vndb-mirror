@@ -9,9 +9,9 @@ sub can_vote { !config->{read_only} && (auth->permDbmod || (auth->permImgvote &&
 
 # Fetch a list of images for the user to vote on.
 js_api Images => { excl_voted => { anybool => 1 } }, sub($data) {
-    return tuwf->resDenied if !can_vote;
+    fu->denied if !can_vote;
 
-    state $stats = tuwf->dbRowi('SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE c_weight > 1) AS referenced FROM images');
+    state $stats = fu->dbRowi('SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE c_weight > 1) AS referenced FROM images');
 
     # Performing a proper weighted sampling on the entire images table is way
     # too slow, so we do a TABLESAMPLE to first randomly select a number of
@@ -25,13 +25,13 @@ js_api Images => { excl_voted => { anybool => 1 } }, sub($data) {
     # applicable images in that case is slow, but at least there aren't many
     # rows for the final ORDER BY.
     my $tablesample =
-        !$data->{excl_voted} || tuwf->dbVali('SELECT c_imgvotes FROM users WHERE id =', \auth->uid) < $stats->{referenced}*0.99
+        !$data->{excl_voted} || fu->dbVali('SELECT c_imgvotes FROM users WHERE id =', \auth->uid) < $stats->{referenced}*0.99
         ? 100 * min 1, (5000 / $stats->{referenced}) * ($stats->{total} / $stats->{referenced})
         : 100;
 
     # NOTE: JS assumes that, if it receives less than 30 images, we've reached
     # the end of the list and will not attempt to load more.
-    my $l = tuwf->dbAlli('
+    my $l = fu->dbAlli('
         SELECT id
           FROM images TABLESAMPLE SYSTEM (', \$tablesample, ')
          WHERE c_weight > 1',
@@ -54,11 +54,11 @@ js_api ImageVote => {
         my_overrule => { anybool => 1 },
     } },
 }, sub($data) {
-    return tuwf->resDenied if !can_vote;
-    return tuwf->resDenied if !validate_token $data->{votes};
+    fu->denied if !can_vote;
+    fu->denied if !validate_token $data->{votes};
 
     # Lock the users table early to prevent deadlock with a concurrent DB edit that attempts to update c_changes.
-    tuwf->dbExeci('SELECT c_imgvotes FROM users WHERE id =', \auth->uid, 'FOR UPDATE');
+    fu->dbExeci('SELECT c_imgvotes FROM users WHERE id =', \auth->uid, 'FOR UPDATE');
 
     # Find out if any of these images are being overruled
     enrich_merge id => sub { sql 'SELECT id, bool_or(ignore) AS overruled FROM image_votes WHERE id IN', $_, 'GROUP BY id' }, $data->{votes};
@@ -74,8 +74,8 @@ js_api ImageVote => {
             violence => $_->{my_violence},
             ignore   => !$_->{my_overrule} && !$_->{old_my_overrule} && $_->{overruled} ? 1 : 0,
         };
-        tuwf->dbExeci('INSERT INTO image_votes', $d, 'ON CONFLICT (id, uid) DO UPDATE SET', $d, ', date = now()');
-        tuwf->dbExeci('UPDATE image_votes SET ignore =', \($_->{my_overrule}?1:0), 'WHERE uid IS DISTINCT FROM', \auth->uid, 'AND id =', \$_->{id})
+        fu->dbExeci('INSERT INTO image_votes', $d, 'ON CONFLICT (id, uid) DO UPDATE SET', $d, ', date = now()');
+        fu->dbExeci('UPDATE image_votes SET ignore =', \($_->{my_overrule}?1:0), 'WHERE uid IS DISTINCT FROM', \auth->uid, 'AND id =', \$_->{id})
             if !$_->{my_overrule} != !$_->{old_my_overrule};
     }
 
@@ -96,7 +96,7 @@ my $SEND = form_compile any => {
 
 sub imgflag_ {
     article_ widget(ImageFlagging => $SEND, {
-        my_votes   => auth ? tuwf->dbVali('SELECT c_imgvotes FROM users WHERE id =', \auth->uid) : 0,
+        my_votes   => auth ? fu->dbVali('SELECT c_imgvotes FROM users WHERE id =', \auth->uid) : 0,
         nsfw_token => viewset(show_nsfw => 1),
         mod        => auth->permDbmod()||0,
         @_
@@ -104,10 +104,10 @@ sub imgflag_ {
 }
 
 
-TUWF::get qr{/img/vote}, sub {
-    return tuwf->resDenied if !can_vote;
+FU::get '/img/vote', sub {
+    fu->denied if !can_vote;
 
-    my $recent = tuwf->dbAlli('SELECT id FROM image_votes WHERE uid =', \auth->uid, 'ORDER BY date DESC LIMIT', \30);
+    my $recent = fu->dbAlli('SELECT id FROM image_votes WHERE uid =', \auth->uid, 'ORDER BY date DESC LIMIT', \30);
     enrich_image 1, $recent;
 
     framework_ title => 'Image flagging', sub {
@@ -116,13 +116,12 @@ TUWF::get qr{/img/vote}, sub {
 };
 
 
-TUWF::get qr{/$RE{imgid}}, sub {
+FU::get qr{/$RE{imgid}}, sub($id) {
     not_moe;
-    my $id = tuwf->capture('id');
 
     my $l = [{ id => $id }];
     enrich_image 0, $l;
-    return tuwf->resNotFound if !defined $l->[0]{width};
+    fu->denied if !defined $l->[0]{width};
 
     framework_ title => "Image flagging for $id", sub {
         imgflag_ images => $l, single => 1, warn => !viewget->{show_nsfw};

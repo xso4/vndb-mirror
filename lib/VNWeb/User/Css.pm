@@ -21,19 +21,19 @@ sub _sanitize_css {
 }
 
 
-TUWF::get qr{/$RE{uid}\.css}, sub {
-    my $u = tuwf->dbRowi('
+FU::get qr{/$RE{uid}\.css}, sub($uid) {
+    my $u = fu->dbRowi('
         SELECT u.id, pubskin_can, pubskin_enabled, customcss
           FROM users u
           JOIN users_prefs up ON up.id = u.id
-         WHERE u.id =', \tuwf->capture('id'));
-    return tuwf->resNotFound if !$u->{id};
-    return tuwf->resDenied if !($u->{pubskin_can} && $u->{pubskin_enabled}) && !(auth && auth->uid eq $u->{id});
-    tuwf->resHeader('Content-type', 'text/css; charset=UTF8');
-    tuwf->resHeader('Cache-Control', 'max-age=31536000'); # invalidation is done by adding a checksum to the URL.
+         WHERE u.id =', \$uid);
+    fu->notfound if !$u->{id};
+    fu->denied if !($u->{pubskin_can} && $u->{pubskin_enabled}) && !(auth && auth->uid eq $u->{id});
+    fu->set_header('content-type', 'text/css');
+    fu->set_header('cache-control', 'max-age=31536000'); # invalidation is done by adding a checksum to the URL.
     my $body = _sanitize_css $u->{customcss};
     utf8::encode($body);
-    tuwf->resBinary($body, 'auto');
+    fu->set_body($body);
 };
 
 1;

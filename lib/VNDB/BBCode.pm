@@ -285,7 +285,7 @@ sub bb_format {
 }
 
 
-# Turn (most) 'dblink's into [url=..] links. This function relies on TUWF to do
+# Turn (most) 'dblink's into [url=..] links. This function relies on FU to do
 # the database querying, so can't be used from Multi.
 # Doesn't handle:
 # - d+, t+, r+ and u+ links
@@ -303,7 +303,7 @@ sub bb_subst_links {
   return $msg unless %lookup;
 
   my $first = 0;
-  my %links = map +($_->{id}, $_->{title}), $TUWF::OBJ->dbAlli(
+  my %links = map +($_->{id}, $_->{title}), FU::fu->dbAlli(
     'SELECT id, title[1+1] FROM (VALUES', (map +($first++ ? ',(' : '(', \"$_", '::vndbid)'), sort keys %lookup), ') n(id), item_info(NULL, n.id, NULL)'
   )->@*;
   return $msg unless %links;

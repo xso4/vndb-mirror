@@ -3,7 +3,7 @@ package VNWeb::AdvSearch;
 # This module comes with query definitions and helper functions to handle
 # advanced search queries. Usage is as follows:
 #
-# my $q = tuwf->validate(get => f => { advsearch => 'v' })->data;
+# my $q = fu->query(f => { advsearch => 'v' });
 #
 # $q->sql_where;  # Returns an SQL condition for use in a where clause.
 # $q->widget_;    # Instantiate a HTML widget.
@@ -14,7 +14,7 @@ use experimental 'builtin';
 use builtin 'created_as_number';
 use POSIX 'strftime';
 use List::Util 'max';
-use TUWF;
+use FU;
 use FU::XMLWriter ':html5_';
 use VNWeb::Auth;
 use VNWeb::DB;
@@ -274,7 +274,7 @@ sub _enc_query {
 #   $name      -> $Field name, must be stable and unique for the $type.
 #   $num       -> Numeric identifier for compact encoding, must be >= 2 and same requirements as $name.
 #                 Fields that don't occur often should use numbers above 50, for better encoding of common fields.
-#   $value     -> TUWF::Validate schema for value validation, or $query_type to accept a nested query.
+#   $value     -> FU::Validate schema for value validation, or $query_type to accept a nested query.
 #   %options:
 #       $op      -> Operator definitions and sql() generation functions.
 #       sql      -> sql() generation function that is called for all operators.
@@ -295,14 +295,14 @@ sub f {
     my($t, $num, $n, $v, @opts) = @_;
     my %f = (
         num   => $num,
-        value => ref $v eq 'HASH' ? tuwf->compile($v) : $v,
+        value => ref $v eq 'HASH' ? FU::Validate->compile($v) : $v,
         @opts,
     );
     $f{'='}  = sub { $f{sql_list}->(0,0,[$_]) } if !$f{'='}  && $f{sql_list};
     $f{'!='} = sub { $f{sql_list}->(1,0,[$_]) } if !$f{'!='} && $f{sql_list};
     $f{'!='} = sub { sql 'NOT (', $f{'='}->(@_), ')' } if $f{'='} && !$f{'!='};
     $f{vndbid} = ref $v eq 'HASH' && $v->{vndbid} && !ref $v->{vndbid} && $v->{vndbid};
-    $f{int} = ref $f{value} && ($v->{fuzzyrdate} || $f{value}->analyze->{type} eq 'int' || $f{value}->analyze->{type} eq 'bool');
+    $f{int} = ref $f{value} && ($v->{fuzzyrdate} || $f{value}{_scalartype});
     $FIELDS{$t}{$n} = \%f;
     die "Duplicate number $num for $t\n" if $NUMFIELDS{$t}{$num};
     $NUMFIELDS{$t}{$num} = $n;
@@ -375,9 +375,9 @@ f r =>  4 => 'platform', { default => undef, enum => \%PLATFORM },
     };
 
 f r =>  7 => 'released', { fuzzyrdate => 1 }, sql => sub { sql 'r.released', $_[0], \($_ == 1 ? strftime('%Y%m%d', gmtime) : $_) };
-f r =>  8 => 'resolution',        { type => 'array', length => 2, values => { uint => 1, max => 32767 } },
+f r =>  8 => 'resolution',        { length => 2, elems => { uint => 1, max => 32767 } },
     sql => sub { sql 'r.reso_x', $_[0], \$_->[0], 'AND r.reso_y', $_[0], \$_->[1], $_->[0] ? 'AND r.reso_x > 0' : () };
-f r =>  9 => 'resolution_aspect', { type => 'array', length => 2, values => { uint => 1, max => 32767 } },
+f r =>  9 => 'resolution_aspect', { length => 2, elems => { uint => 1, max => 32767 } },
     sql => sub { sql 'r.reso_x', $_[0], \$_->[0], 'AND r.reso_y', $_[0], \$_->[1], 'AND r.reso_x*100000/GREATEST(1, r.reso_y) =', \(int ($_->[0]*100000/max(1,$_->[1]))), $_->[0] ? 'AND r.reso_x > 0' : () };
 f r => 10 => 'minage',   { default => undef, uint => 1, enum => \%AGE_RATING },
     sql => sub { defined $_ ? sql 'r.minage', $_[0], \$_ : $_[0] eq '=' ? 'r.minage IS NULL' : 'r.minage IS NOT NULL' };
@@ -439,7 +439,7 @@ f c => 12 => 'age',        { default => undef, uint => 1, max => 32767 },
     sql => sub { !defined $_ ? sql('c.age IS', $_[0] eq '=' ? '' : 'NOT', 'NULL') : sql 'c.age', $_[0], \$_ };
 f c => 13 => 'trait',      { type => 'any', func => \&_validate_trait }, compact => \&_compact_trait, sql_list => _sql_where_trait('traits_chars', 'cid');
 f c => 15 => 'dtrait',     { type => 'any', func => \&_validate_trait }, compact => \&_compact_trait, sql_list => _sql_where_trait('chars_traits', 'id');
-f c => 14 => 'birthday',   { default => [0,0], type => 'array', length => 2, values => { uint => 1, max => 31 } },
+f c => 14 => 'birthday',   { default => [0,0], length => 2, elems => { uint => 1, max => 31 } },
     '=' => sub { $_->[1] ? sql 'c.birthday =', \($_->[0]*100 + $_->[1]) : sql 'c.birthday BETWEEN', \($_->[0]*100), 'AND', \($_->[0]*100 + 99) };
 
 # XXX: When this field is nested inside a VN query, it may match seiyuu linked to other VNs.
@@ -543,9 +543,7 @@ sub _extlink_filter($type, $tbl) {
 # Normalizes to the latter two.
 sub _validate_tag {
     $_[0] = [$_[0],0,0] if ref $_[0] ne 'ARRAY'; # just a tag id
-    my $v = tuwf->compile({ vndbid => 'g' })->validate($_[0][0]);
-    return 0 if $v->err;
-    $_[0][0] = $v->data;
+    $_[0][0] = eval { FU::Validate->compile({ vndbid => 'g' })->validate($_[0][0]) } || return 0;
     if($_[0]->@* == 2) { # compact form
         return 0 if !defined $_[0][1] || ref $_[0][1] || $_[0][1] !~ /^[0-9]+$/;
         ($_[0][1],$_[0][2],$_[0][3]) = ($_[0][1]%3, int($_[0][1]%(3*16)/3)/5, int($_[0][1]/3/16) == 1 ? 1 : 0);
@@ -575,9 +573,7 @@ sub _compact_trait { my $id = ($_->[0] =~ s/^i//r)*1; $_->[1] == 0 && !$_->[2] ?
 # Normalizes to the latter two.
 sub _validate_trait {
     $_[0] = [$_[0],0] if ref $_[0] ne 'ARRAY'; # just a trait id
-    my $v = tuwf->compile({ vndbid => 'i' })->validate($_[0][0]);
-    return 0 if $v->err;
-    $_[0][0] = $v->data;
+    $_[0][0] = eval { FU::Validate->compile({ vndbid => 'i' })->validate($_[0][0]) } || return 0;
     return 0 if !defined $_[0][1] || ref $_[0][1] || $_[0][1] !~ /^[0-9]+$/;
     ($_[0][1], $_[0][2]) = ($_[0][1]%3, int($_[0][1]/3) == 1 ? 1 : 0) if $_[0]->@* == 2;
     return 0 if $_[0]->@* != 3;
@@ -592,16 +588,13 @@ sub _validate_trait {
 
 # Accepts either $label or [$uid, $label]. Normalizes to the latter. $label=0 is used for 'Unlabeled'.
 sub _validate_label {
-    $_[0] = [tuwf->req->{advsearch_uid}||auth->uid(), $_[0]] if ref $_[0] ne 'ARRAY';
-    my $v = tuwf->compile({ vndbid => 'u' })->validate($_[0][0]);
-    return 0 if $v->err;
-    $_[0][0] = $v->data;
+    $_[0] = [fu->{advsearch_uid}||auth->uid, $_[0]] if ref $_[0] ne 'ARRAY';
+    $_[0][0] = eval { FU::Validate->compile({ vndbid => 'u' })->validate($_[0][0]) } || return 0;
     $_[0]->@* == 2 && defined $_[0][1] && !ref $_[0][1] && $_[0][1] =~ /^(?:0|[1-9][0-9]{0,5})$/
 }
 
 
-sub _validate {
-    my($t, $q) = @_;
+sub _validate($t, $q) {
     return { msg => 'Invalid query' } if ref $q ne 'ARRAY' || @$q < 2 || !defined $q->[0] || ref $q->[0];
 
     $q->[0] = $q->[0] == 0 ? 'and' : $q->[0] == 1 ? 'or'
@@ -623,16 +616,15 @@ sub _validate {
     return { msg => 'Unknown field', field => $q->[0] } if !$f;
     return { msg => 'Invalid operator', field => $q->[0], op => $q->[1] } if !defined $ops{$q->[1]} || (!$f->{$q->[1]} && !$f->{sql});
     return _validate($f->{value}, $q->[2]) if !ref $f->{value};
-    my $r = $f->{value}->validate($q->[2]);
-    return { msg => 'Invalid value', field => $q->[0], value => $q->[2], error => $r->err } if $r->err;
-    $q->[2] = $r->data;
+    eval { $q->[2] = $f->{value}->validate($q->[2]); 1 } ||
+        return { msg => 'Invalid value', field => $q->[0], value => $q->[2], error => $@ };
     1
 }
 
 
 sub _validate_adv {
     my $t = shift;
-    return { msg => 'Invalid JSON', error => $@ =~ s{[\s\r\n]* at /[^ ]+ line.*$}{}smr } if !ref $_[0] && $_[0] =~ /^\[/ && !eval { $_[0] = JSON::XS->new->decode($_[0]); 1 };
+    return { msg => 'Invalid JSON', error => $@ =~ s{[\s\r\n]* at /[^ ]+ line.*$}{}smr } if !ref $_[0] && $_[0] =~ /^\[/ && !eval { $_[0] = FU::Util::json_parse($_[0]); 1 };
     if(!ref $_[0]) {
         my($v,$i) = ($_[0],0);
         return { msg => 'Invalid compact encoded form', character_index => $i } if !($_[0] = _dec_query($v, \$i));
@@ -642,22 +634,23 @@ sub _validate_adv {
         $_[0] = bless {type=>$t}, __PACKAGE__;
         return 1;
     }
-    my $v = _validate($t, @_);
-    $_[0] = bless { type => $t, query => $_[0] }, __PACKAGE__ if $v;
+    my $v = _validate($t, $_[0]);
+    $_[0] = bless { type => $t, query => $_[0] }, __PACKAGE__ if $v && !ref $v;
     $v
 }
 
 
 
 # 'advsearch' validation, accepts either a compact encoded string, JSON string or an already decoded array.
-TUWF::set('custom_validations')->{advsearch} = sub { my($t) = @_; +{ type => 'any', default => bless({type=>$t}, __PACKAGE__), func => sub { _validate_adv $t, @_ } } };
+$FU::Validate::default_validations{advsearch} = sub($t) {
+    +{ type => 'any', default => bless({type=>$t}, __PACKAGE__), func => sub { _validate_adv $t, $_[0] } }
+};
 
 # 'advsearch_err' validation; Same as the 'advsearch' validation except it never throws an error.
 # If the validation failed, this returns an empty query that will cause widget_() to display a warning message.
-TUWF::set('custom_validations')->{advsearch_err} = sub {
-    my ($t) = @_;
+$FU::Validate::default_validations{advsearch_err} = sub($t) {
     +{ type => 'any', default => bless({type=>$t}, __PACKAGE__), func => sub {
-        my $r = _validate_adv $t, @_;
+        my $r = _validate_adv $t, $_[0];
         $_[0] = bless {type=>$t,error=>1}, __PACKAGE__ if !$r || ref $r eq 'HASH';
         1
     } }
@@ -748,8 +741,8 @@ sub _sql_where_label {
 
     if(!$own) {
         # Label 7 can always be queried, do a lookup for the rest.
-        tuwf->req->{lblvis}{$uid} ||= { 7, 1, map +($_->{id},1), tuwf->dbAlli('SELECT id FROM ulist_labels WHERE NOT private AND uid =', \$uid)->@* };
-        my $vis = tuwf->req->{lblvis}{$uid};
+        fu->{lblvis}{$uid} ||= { 7, 1, map +($_->{id},1), fu->dbAlli('SELECT id FROM ulist_labels WHERE NOT private AND uid =', \$uid)->@* };
+        my $vis = fu->{lblvis}{$uid};
         return $neg ? '1=1' : '1=0' if $all && grep !$vis->{$_}, @lbl; # AND query but one label is private -> no match
         @lbl = grep $vis->{$_}, @lbl;
         return $neg ? '1=1' : '1=0' if !@lbl; # All requested labels are private -> no match
@@ -858,7 +851,7 @@ sub widget_ {
     my($self, $count, $time) = @_;
 
     # TODO: labels can be lazily loaded to reduce page weight
-    tuwf->req->{js_labels} = 1;
+    fu->{js_labels} = 1;
 
     my %ids;
     _extract_ids($self->{type}, $self->{query}, \%ids) if $self->{query};
@@ -866,7 +859,7 @@ sub widget_ {
     my %o = (
         spoilers  => auth->pref('spoilers')||0,
                      # TODO: Can also be lazily loaded.
-        saved     => auth ? tuwf->dbAlli('SELECT name AS id, query FROM saved_queries WHERE uid =', \auth->uid, ' AND qtype =', \$self->{type}, 'ORDER BY name') : [],
+        saved     => auth ? fu->dbAlli('SELECT name AS id, query FROM saved_queries WHERE uid =', \auth->uid, ' AND qtype =', \$self->{type}, 'ORDER BY name') : [],
         uid       => auth->uid,
         qtype     => $self->{type},
         query     => $self->compact_json(),
@@ -941,8 +934,8 @@ sub extract_searchquery {
 sub advsearch_default {
     my($t) = @_;
     if(auth) {
-        my $def = tuwf->dbVali('SELECT query FROM saved_queries WHERE qtype =', \$t, 'AND name = \'\' AND uid =', \auth->uid);
-        return tuwf->compile({ advsearch => $t })->validate($def)->data if $def;
+        my $def = fu->dbVali('SELECT query FROM saved_queries WHERE qtype =', \$t, 'AND name = \'\' AND uid =', \auth->uid);
+        return FU::Validate->compile({ advsearch => $t })->validate($def) if $def;
     }
     bless {type=>$t}, __PACKAGE__;
 }

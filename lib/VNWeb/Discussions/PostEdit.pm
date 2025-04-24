@@ -18,9 +18,8 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
 };
 
 
-sub _info {
-    my($id,$num) = @_;
-    tuwf->dbRowi('
+sub _info($id, $num) {
+    fu->dbRowi('
         SELECT t.id, tp.num, tp.hidden, tp.msg, tp.uid AS user_id,', sql_totime('tp.date'), 'AS date
           FROM threads t
           JOIN threads_posts tp ON tp.tid = t.id AND tp.num =', \$num, '
@@ -37,15 +36,15 @@ js_api PostEdit => $FORM_IN, sub ($data) {
     my $num = $data->{num};
 
     my $t = _info $id, $num;
-    return tuwf->resNotFound if !$t->{id};
-    return tuwf->resDenied if !can_edit t => $t;
+    fu->notfound if !$t->{id};
+    fu->denied if !can_edit t => $t;
 
-    tuwf->dbExeci(q{DELETE FROM notifications WHERE iid =}, \$id, 'AND num =', \$num) if auth->permBoardmod && ($data->{delete} || defined $data->{hidden});
+    fu->dbExeci(q{DELETE FROM notifications WHERE iid =}, \$id, 'AND num =', \$num) if auth->permBoardmod && ($data->{delete} || defined $data->{hidden});
 
     if($data->{delete} && auth->permBoardmod) {
         auth->audit($t->{user_id}, 'post delete', "deleted $id.$num");
-        tuwf->dbExeci('DELETE FROM threads_posts WHERE tid =', \$id, 'AND num =', \$num);
-        tuwf->dbExeci('DELETE FROM reviews_posts WHERE  id =', \$id, 'AND num =', \$num);
+        fu->dbExeci('DELETE FROM threads_posts WHERE tid =', \$id, 'AND num =', \$num);
+        fu->dbExeci('DELETE FROM reviews_posts WHERE  id =', \$id, 'AND num =', \$num);
         return +{ _redir => "/$id" };
     }
     auth->audit($t->{user_id}, 'post edit', "edited $id.$num") if $t->{user_id} ne auth->uid;
@@ -57,21 +56,21 @@ js_api PostEdit => $FORM_IN, sub ($data) {
         auth->permBoardmod ? (hidden => $data->{hidden}) : (),
         (auth->permBoardmod && $data->{nolastmod}) ? () : (edited => sql 'NOW()')
     };
-    tuwf->dbExeci('UPDATE threads_posts SET', $post, 'WHERE', { tid => $id, num => $num }) if $id =~ /^t/;
+    fu->dbExeci('UPDATE threads_posts SET', $post, 'WHERE', { tid => $id, num => $num }) if $id =~ /^t/;
     $post->{id} = delete $post->{tid};
-    tuwf->dbExeci('UPDATE reviews_posts SET', $post, 'WHERE', {  id => $id, num => $num }) if $id =~ /^w/;
+    fu->dbExeci('UPDATE reviews_posts SET', $post, 'WHERE', {  id => $id, num => $num }) if $id =~ /^w/;
 
     +{ _redir => "/$id.$num" };
 };
 
 
-TUWF::get qr{/(?:$RE{tid}|$RE{wid})\.$RE{num}/edit}, sub {
-    my($id, $num) = (tuwf->capture('id'), tuwf->capture('num'));
-    tuwf->pass if $id =~ /^t/ && $num == 1; # t#.1 goes to Discussions::Edit.
+FU::get qr{/(?:$RE{tid}|$RE{wid})\.($RE{num})/edit}, sub($tid, $wid, $num) {
+    fu->redirect(temp => "/$tid/edit") if $tid && $num == 1;
+    my $id = $tid || $wid;
 
     my $t = _info $id, $num;
-    return tuwf->resNotFound if $id && !$t->{id};
-    return tuwf->resDenied if !can_edit t => $t;
+    fu->notfound if $id && !$t->{id};
+    fu->denied if !can_edit t => $t;
 
     $t->{can_mod} = auth->permBoardmod;
     framework_ title => 'Edit post', sub {
