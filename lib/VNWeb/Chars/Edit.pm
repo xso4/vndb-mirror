@@ -30,7 +30,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     main_name  => { _when => 'out', default => '' },
     image      => { default => undef, vndbid => 'ch' },
     image_info => { _when => 'out', default => undef, type => 'hash', keys => $IMGSCHEMA },
-    traits     => { sort_keys => 'id', aoh => {
+    traits     => { sort_keys => 'tid', aoh => {
         tid     => { vndbid => 'i' },
         spoil   => { uint => 1, range => [0,2] },
         lie     => { anybool => 1 },
