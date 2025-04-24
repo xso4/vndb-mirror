@@ -78,7 +78,7 @@ sub logreq {
     return if !config->{api_logfile};
     open my $F, '>>:utf8', config->{api_logfile} or return warn "Error opening API log file: $!\n";
     printf $F qq{%sZ %s %s %s %s %4dms %s "%s" "%s"\n},
-        strftime('%Y-%m-%d %H:%M:%S', gmtime), fu->ip, auth->uid||'-',
+        strftime('%Y-%m-%d %H:%M:%S', gmtime), fu->ip, (fu->{auth} && auth->uid)||'-',
         fu->method, fu->path =~ s{^/api/kana}{}r,
         fu->{throttle_start} ? (time - fu->{throttle_start})*1000 : 0,
         $_[0],
