@@ -16,6 +16,7 @@ window.onerror = function(ev, source, lineno, colno, error) {
         var h = new XMLHttpRequest();
         var e = encodeURIComponent;
         h.open('POST', '/js-error?2', true);
+        h.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
         h.send('ev='+e(ev)+'&source='+e(source)+'&lineno='+e(lineno)+'&colno='+e(colno)+'&stack='+e(error.stack));
         window.onerror = null; // One error per page is enough
     }

@@ -41,6 +41,14 @@ FU::Log::set_fmt(sub($msg) {
 });
 
 
+FU::monitor_path 'changes.log', map config->{gen_path}.'/'.$_, qw/static api-kana.html api-nyan.html abc/;
+FU::monitor_check {
+    my $out = `make -j4 2>&1` =~ s/make: Nothing to be done for 'all'\.//r =~ s/^\s*//r =~ s/\s*$//r;
+    print "$out\n" if $out;
+    0;
+};
+
+
 
 # We're still using DBI for now.
 my $DB;

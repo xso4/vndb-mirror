@@ -33,12 +33,11 @@ sub js_api {
 # Log errors from JS.
 FU::post '/js-error', sub {
     my($ev, $source, $lineno, $colno, $stack) = map fu->formdata($_, {onerror=>'-'}), qw/ev source lineno colno stack/;
-    my $msg = sprintf
-          "\nMessage:  %s"
-         ."\nSource:   %s %s:%s\n", $ev, $source, $lineno, $colno;
+    my $msg = sprintf "Source:   %s %s:%s\n", $source, $lineno, $colno;
     $msg .= "Referer:  ".fu->header('referer')."\n" if fu->header('referer');
     $msg .= "Browser:  ".fu->header('user-agent')."\n" if fu->header('user-agent');
-    $msg .= ($stack =~ s/[\r\n]+$//r)."\n" if $stack ne '-' && $stack ne 'undefined' && $stack ne 'null';
+    $msg .= "Error:    $ev\n";
+    $msg .= '  '.($stack =~ s/[\r\n]+$//r =~ s/\n/\n  /rg)."\n" if $stack ne '-' && $stack ne 'undefined' && $stack ne 'null';
     warn $msg;
 };
 
