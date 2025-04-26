@@ -26,6 +26,7 @@ sub _moderators {
 
 
 sub _skincontrib {
+    state $stats = { map +($_->{skin}, $_->{cnt}), fu->dbAll('SELECT skin, COUNT(*) cnt FROM users_prefs GROUP BY skin')->@* };
     my %users;
     push $users{ skins->{$_}{userid} }->@*, [ $_, skins->{$_}{name} ]
         for sort { skins->{$a}{name} cmp skins->{$b}{name} } keys skins->%*;
@@ -37,7 +38,10 @@ sub _skincontrib {
             for my $u (@$u) {
                 dt_ sub { a_ href => "/$u->{id}", $u->{username} };
                 dd_ sub {
-                    join_ ', ', sub { a_ href => "?skin=$_->[0]", $_->[1] }, $users{$u->{id}}->@*
+                    join_ ', ', sub {
+                        a_ href => "?skin=$_->[0]", $_->[1];
+                        small_ " $stats->{$_->[0]}" if $stats->{$_->[0]};
+                    }, $users{$u->{id}}->@*
                 }
             }
         }
@@ -48,8 +52,8 @@ sub _skincontrib {
 sub enrich_html {
     my $html = shift;
 
-    $html =~ s{^:MODERATORS:}{_moderators}me;
-    $html =~ s{^:SKINCONTRIB:}{_skincontrib}me;
+    $html =~ s{(^|<p>):MODERATORS:(</p>)?}{_moderators}me;
+    $html =~ s{(^|<p>):SKINCONTRIB:(</p>)?}{_skincontrib}me;
 
     $html
 }
