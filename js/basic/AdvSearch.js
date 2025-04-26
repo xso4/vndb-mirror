@@ -17,6 +17,7 @@ let globalData;
 //   nestonly      set for fields that don't make much sense as top-level filter
 //   loggedin      requires the user to be logged in
 //   ptype/qtype   parent type and query type, only used for nestfields
+//   group         only set for special grouping fields, these are never instantiated directly
 
 // Field instance members:
 //   ds            DS Instance
@@ -590,28 +591,35 @@ const regType = (t, name, deffields, fields) => {
     types[t].fields = [unknownField, types[t].andor, ...fields];
     types[t].add = (() => {
         const ds = new DS({
-            list: (src, str, cb) => cb(types[ds._types.at(-1)].fields.filter(d => {
-                if (!d.label) return false;
-                if (d.nestonly && ds._types.length === 1) return false;
-                if (d.loggedin && !globalData.uid) return false;
-                if (!d.qtype || d.qtype === d.ptype) return true;
-                if (ds._types.includes(d.qtype) && ds._types.at(-1) !== d.qtype) return false;
-                for (let inst = ds._inst; inst; inst = inst.parent) if (inst.def.qtype !== inst.def.ptype && inst.def.ptype === d.qtype) return false;
-                return true;
-            }).map((d,i) => ({id:i,d}))),
-            view: o => [ o.d.label, o.d.qtype !== o.d.ptype ? ' »' : null ],
+            list: (src, str, cb) => {
+                const tail = ds._types.at(-1);
+                const fields = typeof tail === 'object' ? tail.fields : types[tail].fields;
+                cb(fields.filter(d => {
+                    if (d.group) return true;
+                    if (!d.label) return false;
+                    if (d.nestonly && ds._types.length === 1) return false;
+                    if (d.loggedin && !globalData.uid) return false;
+                    if (!d.qtype || d.qtype === d.ptype) return true;
+                    if (ds._types.includes(d.qtype) && ds._types.at(-1) !== d.qtype) return false;
+                    for (let inst = ds._inst; inst; inst = inst.parent) if (inst.def.qtype !== inst.def.ptype && inst.def.ptype === d.qtype) return false;
+                    return true;
+                }).map((d,i) => ({id:i,d})));
+            },
+            view: o => [ o.d.group || o.d.label, o.d.group || o.d.qtype !== o.d.ptype ? ' »' : null ],
         }, {
             width: 150, maxCols: 2, nosearch: true, keep: true,
             header: () => [
                 m('div.xsearch_opts', m('strong', 'Add field')),
                 ds._types.length === 1 ? null : m('div.xsearch_nest', ds._types.map((qt,i) => {
-                    const lbl = i ? types[ds._types[i-1]][qt].button : types[qt].name;
+                    const lbl = !i ? types[qt].name : typeof qt === 'object' ? qt.group : types[ds._types[i-1]] ? types[ds._types[i-1]][qt].button : types[qt].name;
                     return i === ds._types.length - 1 ? m('strong', lbl)
                         : m('a[href=#]', { onclick: ev => { ev.preventDefault(); ds._types.splice(i+1); ds.setInput('') } }, lbl)
                 }).intersperse(' » ')),
             ],
             onselect: o => {
-                if (o.d.qtype !== o.d.ptype) {
+                if (o.d.group) {
+                    ds._types.push(o.d);
+                } else if (o.d.qtype !== o.d.ptype) {
                     ds._types.push(o.d.qtype);
                 } else {
                     DS.close();
@@ -620,6 +628,7 @@ const regType = (t, name, deffields, fields) => {
                     for (let i=ds._types.length-2; i>=0; i--) {
                         const pt = ds._types[i];
                         const qt = ds._types[i+1];
+                        if (typeof qt === 'object') continue;
                         const n = instantiateField(types[pt][qt], null);
                         if (!f.def.qtype || f.def.qtype !== f.def.ptype) n.childs = [f];
                         f = n;
@@ -655,6 +664,10 @@ regType('v', 'VN', [ 'Language', 'Original language', 'Platform', 'Tags' ], [
     boolField(64, 'Has review',      'Has review(s)',      'No review(s)'),
 ]);
 
+const aniFlags = (prefix,cut) => [['', 'Unknown']].concat(cut ? [] : [['no', 'Not animated']]).concat(
+        [['na', 'Not applicable'], ['hand', 'Hand drawn'], ['vect', 'Vectorial'], ['3d', '3D'], ['live', 'Live action']]
+    ).map(([id,lbl]) => [id,lbl,prefix+lbl]);
+
 regType('r', 'Release', [ 'Language', 'Platform', 'Type' ], [
     nestField('r', 'v', 53, 'Visual Novel', 'VN', 'Linked to a visual novel that matches these filters', 'Not linked to a visual novel that matches these filters'),
     nestField('r', 'p', 55, 'Producer', 'Prod', 'Has a producer that matches these filters', 'Does not have a producer that matches these filters'),
@@ -671,8 +684,17 @@ regType('r', 'Release', [ 'Language', 'Platform', 'Type' ], [
     rangeField(10, 'Age rating', [ '<', 13 ], true, vndbTypes.ageRating),
     simpleSetField(11, 'set', [['', 'Unknown', 'Medium: Unknown']].concat(vndbTypes.medium.map(m => [m[0],m[1]])), 'Medium'),
     simpleSetField(12, 'eq', vndbTypes.voiced.map((v,i) => [i,v]), 'Voiced'),
-    simpleSetField(13, 'eq', vndbTypes.animated.map((v,i) => [i,v,'Ero: '+v]), 'Ero animation'),
-    simpleSetField(14, 'eq', vndbTypes.animated.map((v,i) => [i,v,'Story: '+v]), 'Story animation'),
+    { group: 'Animation', fields: [
+        simpleSetField(14, 'eq', vndbTypes.animated.map((v,i) => [i,v,'Story: '+v]), 'Story (general)', 'Story animation'),
+        simpleSetField(70, 'eq', aniFlags('S sprites: '), 'Story: sprites', 'Story Sprite Animation'),
+        simpleSetField(71, 'eq', aniFlags('S CG: '), 'Story: CGs', 'Story CG Animation'),
+        simpleSetField(72, 'eq', aniFlags('Cutscene: ', 1), 'Cutscenes', 'Cutscene Animation'),
+        simpleSetField(75, 'eq', [['', 'Unknown', 'Backgr effects: unknown'], [0, 'No background effects'], [1, 'Animated background effects']], 'Background effects'),
+        simpleSetField(13, 'eq', vndbTypes.animated.map((v,i) => [i,v,'Ero: '+v]), 'Ero (general)', 'Ero animation'),
+        simpleSetField(73, 'eq', aniFlags('E sprites: '), 'Ero: sprites', 'Ero Sprite Animation'),
+        simpleSetField(74, 'eq', aniFlags('E CG: '), 'Ero: CGs', 'Ero CG Animation'),
+        simpleSetField(76, 'eq', [['', 'Unknown', 'Facial ani: unknown'], [0, 'No facial animation'], [1, 'Lip movement and/or eye blink']], 'Facial animation'),
+    ]},
     engineField,
     drmField,
     extlinksField(19, 'r'),
@@ -770,9 +792,15 @@ const renderField = (inst, par) => {
 
 const fromQuery = (qtype, q) => {
     for(const f of types[qtype].fields.slice().reverse()) {
-        const inst = instantiateField(f, q);
-        if (!inst) continue;
-        return inst;
+        if (f.group) {
+            for (const sf of f.fields) {
+                const inst = instantiateField(sf, q);
+                if (inst) return inst;
+            }
+        } else {
+            const inst = instantiateField(f, q);
+            if (inst) return inst;
+        }
     }
 };
 

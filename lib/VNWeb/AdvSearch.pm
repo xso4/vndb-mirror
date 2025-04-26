@@ -386,6 +386,24 @@ f r => 11 => 'medium',   { default => undef, enum => \%MEDIUM },
 f r => 12 => 'voiced',   { default => 0, uint => 1, enum => \%VOICED }, '=' => sub { sql 'r.voiced =', \$_ };
 f r => 13 => 'animation_ero',   { uint => 1, enum => \%ANIMATED }, '=' => sub { sql 'NOT r.patch AND r.ani_ero =', \$_ };
 f r => 14 => 'animation_story', { uint => 1, enum => \%ANIMATED }, '=' => sub { sql 'NOT r.patch AND r.ani_story =', \$_ };
+
+my %ANIFLAGS = (
+    ''     => 'IS NULL',
+    'no'   => '= 0',
+    'na'   => '= 1',
+    'hand' => '& 4 > 0',
+    'vect' => '& 8 > 0',
+    '3d'   => '& 16 > 0',
+    'live' => '& 32 > 0',
+);
+f r => 70 => 'ani_story_sp',  { default => undef, enum => \%ANIFLAGS }, '=' => sub { 'NOT r.patch AND r.ani_story_sp', $ANIFLAGS{ $_ // '' } };
+f r => 71 => 'ani_story_cg',  { default => undef, enum => \%ANIFLAGS }, '=' => sub { 'NOT r.patch AND r.ani_story_cg', $ANIFLAGS{ $_ // '' } };
+f r => 72 => 'ani_cutscene',  { default => undef, enum => [qw/na hand vect 3d live/] }, '=' => sub { 'NOT r.patch AND r.ani_cutscene', $ANIFLAGS{ $_ // '' } };
+f r => 73 => 'ani_ero_sp',    { default => undef, enum => \%ANIFLAGS }, '=' => sub { 'NOT r.patch AND r.ani_ero_sp', $ANIFLAGS{ $_ // '' } };
+f r => 74 => 'ani_ero_cg',    { default => undef, enum => \%ANIFLAGS }, '=' => sub { 'NOT r.patch AND r.ani_ero_cg', $ANIFLAGS{ $_ // '' } };
+f r => 75 => 'ani_bg',        { default => undef, uint => 1, enum => [0,1] }, '=' => sub { 'NOT r.patch AND r.ani_bg', $_ ? () : defined $_ ? '= false' : 'is null' };
+f r => 76 => 'ani_face',      { default => undef, uint => 1, enum => [0,1] }, '=' => sub { 'NOT r.patch AND r.ani_face', $_ ? () : defined $_ ? '= false' : 'is null' };
+
 f r => 15 => 'engine',   { default => '' }, '=' => sub { sql 'r.engine =', \$_ };
 f r => 16 => 'rtype',    { enum => \%RELEASE_TYPE }, '=' => sub { $#TYPE && $TYPE[$#TYPE-1] eq 'v' ? sql 'rv.rtype =', \$_ : sql 'r.id IN(SELECT id FROM releases_vn WHERE rtype =', \$_, ')' };
 f r => 18 => 'rlist',    { uint => 1, enum => \%RLIST_STATUS }, sql_list => sub {
