@@ -337,7 +337,8 @@ sub _api2_gen_token {
 
 # Extract UID from hex-encoded token
 sub _api2_get_uid {
-    'u'.unpack 'N', pack('H*', $_[0]) =~ s/^..(.)....(.)....(.)....(.)..$/$1$2$3$4/sr;
+    my $n = unpack 'N', pack('H*', $_[0]) =~ s/^..(.)....(.)....(.)....(.)..$/$1$2$3$4/sr;
+    $n >= 1 && $n < 10_000_000 && "u$n"
 }
 
 
@@ -347,7 +348,7 @@ sub _load_api2 {
     return VNWeb::API::err(401, 'Invalid Authorization header format.') if $header !~ /^(?i:Token) +([-$api2_alpha]+)$/;
     my $token_enc = $1;
     return VNWeb::API::err(401, 'Invalid token format.') if length($token_enc =~ s/-//rg) != 32 || !length(my $token = _api2_decode $token_enc);
-    my $uid = _api2_get_uid $token;
+    my $uid = _api2_get_uid $token or return VNWeb::API::err(401, 'Invalid token.');
     my $user = fu->dbRowi(
         'SELECT ', sql_user(), ', x.listread, x.listwrite
            FROM users u, users_shadow us, ', sql_func(user_validate_session => \$uid, sql_fromhex($token), \'api2'), 'x
