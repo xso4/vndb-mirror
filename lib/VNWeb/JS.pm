@@ -20,8 +20,8 @@ sub js_api {
         my $data = eval { fu->json($schema) };
         if(!$data) {
             my $err = $@;
+            fu->log_verbose("JSON validation failed: $err");
             my $key = $err isa 'FU::Validate::err' && ($err->{errors}[0]//{})->{key};
-            warn "JSON validation failed\ninput: " . fu->json . "\nerror: $err\n";
             fu->send_json({_err => 'Form validation failed'.($key ? " ($key)." : '.')});
         }
         my $res = $fun->($data);

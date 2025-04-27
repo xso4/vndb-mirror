@@ -70,7 +70,7 @@ for my ($k,$v) (
         my $multi = ref $_[0];
         my $types = $multi ? join '|', $_[0]->@* : $_[0];
         my $re = qr/^(?:$types)[1-9][0-9]{0,6}$/;
-        +{ func => sub { $_[0] = "${types}$_[0]" if !$multi && $_[0] =~ /^[1-9][0-9]{0,6}$/; return $_[0] =~ $re } }
+        +{ func => sub { $_[0] = "${types}$_[0]" if !$multi && $_[0] =~ /^[1-9][0-9]{0,6}$/; return $_[0] =~ $re || { types => $types, got => $_[0] } } }
     },
     sl          => { regex => qr/^[^\t\r\n]+$/ }, # "Single line", also excludes tabs because they're weird.
     editsum     => { length => [ 2, 5000 ] },
@@ -115,6 +115,8 @@ for my ($k,$v) (
         } }
     },
 ) { $FU::Validate::default_validations{$k} = $v }
+
+$FU::Validate::error_format{vndbid} = sub($e) { "Invalid vndbid($e->{types}): $e->{got}" };
 
 
 sub _validate_rdate {

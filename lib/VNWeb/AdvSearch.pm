@@ -674,6 +674,10 @@ $FU::Validate::default_validations{advsearch_err} = sub($t) {
     } }
 };
 
+$FU::Validate::error_format{advsearch} = sub($e) {
+    ($e->{field} ? "advsearch field '$e->{field}': " : 'advsearch: ').$e->{msg}.(ref $e->{error} ? ': '.(FU::Validate::err::errors($e->{error}))[0] : '')
+};
+
 
 # "Canonicalize"/simplify a query (in Normalized JSON form):
 # - Merges nested and/or's where possible
