@@ -88,7 +88,7 @@ FU::get qr{/$RE{vid}/tagmod}, sub($id) {
           LEFT JOIN (
             SELECT tv.tag
                  , COALESCE(AVG(tv.vote) filter (where tv.vote > 0), 1+1+1) * SUM(sign(tv.vote)) / COUNT(tv.vote) AS rating
-                 , AVG(tv.spoiler) AS spoiler
+                 , AVG(tv.spoiler)::float AS spoiler
                  , count(lie) filter(where lie) > 0 AND count(lie) filter (where lie) >= count(lie) filter(where not lie) AS islie
               FROM tags_vn tv
               JOIN tags t ON t.id = tv.tag

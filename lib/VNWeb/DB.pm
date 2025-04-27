@@ -22,21 +22,12 @@ our @EXPORT = qw/
 # TUWF db* methods, should migrate to directly using fu->q() instead.
 sub _sqlhelper($type, $sql, @params) {
     my $r;
-    # DBD::Pg doesn't support Perl's false as bind param
-    # https://github.com/bucardo/dbdpg/issues/125
     for (@params) { $_ ||= 0 if builtin::is_bool($_) }
-    confess $@ if !eval {
-        my $q = fu->dbh->prepare($sql);
-        $q->execute(@params);
-        $r = $type == 1 ? ($q->fetchrow_array)[0] :
-             $type == 2 ? $q->fetchrow_hashref :
-             $type == 3 ? $q->fetchall_arrayref({}) : $q->rows;
-        1;
-    };
-    $r = 0  if $type == 0 && (!$r || $r == 0);
-    $r = {} if $type == 2 && (!$r || ref($r) ne 'HASH');
-    $r = [] if $type == 3 && (!$r || ref($r) ne 'ARRAY');
-    return $r;
+    my $n = 0;
+    my $st = fu->sql($sql =~ s/\?/'$'.++$n/egr, @params)->cache(0)->text_params;
+    return $type == 1 ? $st->flat->[0] : # $st->val throws if the query returns multiple rows/columns
+           $type == 2 ? ($st->rowh || {}) :
+           $type == 3 ? $st->allh : $st->exec;
 }
 
 sub FU::obj::dbExec { shift; _sqlhelper(0, @_) }
@@ -63,7 +54,7 @@ sub interp_warn {
     confess $@ if !eval { @r = sql_interp @_ };
     # 0 and 1 aren't interesting, "SELECT 1" is a common pattern and so is "x > 0".
     # '{7}' is commonly used in ulist filtering and r18/api2 are a valid database identifiers.
-    warn "Possible SQL injection in '$r[0]'" if fu->debug && ($r[0] =~ s/(?:r18|\{7\}|api2)//rg) =~ /[2-9]/;
+    #warn "Possible SQL injection in '$r[0]'" if fu->debug && ($r[0] =~ s/(?:r18|\{7\}|api2)//rg) =~ /[2-9]/;
     return @r;
 }
 
@@ -120,7 +111,7 @@ sub sql_fromtime :prototype($) {
 
 # Convert a Postgres timestamp into a Perl time value
 sub sql_totime :prototype($) {
-    sql "extract('epoch' from ", $_[0], ')';
+    sql "extract('epoch' from ", $_[0], ')::float8';
 }
 
 # Escape a string to be used as a literal match in a LIKE pattern.
@@ -259,18 +250,17 @@ sub enrich_obj {
 
 # Run the given subroutine inside a savepoint and capture an SQL timeout.
 # Returns false and logs a warning on timeout.
-sub db_maytimeout :prototype(&) {
-    my($f) = @_;
-    fu->dbh->pg_savepoint('maytimeout');
+sub db_maytimeout :prototype(&) ($f) {
+    fu->db->exec('SAVEPOINT maytimeout');
     my $r = eval { $f->(); 1 };
 
     if(!$r && $@ =~ /canceling statement due to statement timeout/) {
-        fu->dbh->pg_rollback_to('maytimeout');
+        fu->db->exec('ROLLBACK TO SAVEPOINT maytimeout');
         warn "Query timed out\n";
         return 0;
     }
     confess $@ if !$r;
-    fu->dbh->pg_release('maytimeout');
+    fu->db->exec('RELEASE SAVEPOINT maytimeout');
     1;
 }
 

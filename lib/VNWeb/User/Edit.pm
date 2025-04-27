@@ -101,7 +101,7 @@ FU::get qr{/$RE{uid}/edit}, sub($uid) {
     my $u = fu->dbRowi(
         'SELECT u.id, username, max_sexual, max_violence, traits_sexual, tags_all, tags_cont, tags_ero, tags_tech, prodrelexpand
               , vnrel_langs::text[], vnrel_olang, vnrel_mtl, vnimage, staffed_langs::text[], staffed_olang, staffed_unoff
-              , spoilers, skin, customcss, customcss_csum, timezone, titles
+              , spoilers, skin, customcss, customcss_csum, timezone, titles::text
               , nodistract_can, support_can, uniname_can, pubskin_can
               , nodistract_noads, nodistract_nofancy, support_enabled, uniname, pubskin_enabled
            FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \$uid

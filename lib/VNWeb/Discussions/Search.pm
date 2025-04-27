@@ -63,7 +63,7 @@ sub posts_ {
     # Also match against an empty string to see if the query doesn't consist of only negative matches.
     my $ts = fu->dbVali('
         WITH q(q) AS (SELECT websearch_to_tsquery(', \$filt->{bq}, '))
-        SELECT CASE WHEN numnode(q) = 0 OR q @@ \'\' THEN NULL ELSE q END FROM q');
+        SELECT CASE WHEN numnode(q) = 0 OR q @@ \'\' THEN NULL ELSE q::text END FROM q');
     return noresults_ if !$ts;
 
     my $reviews = grep $_ eq 'w', $filt->{b}->@*;

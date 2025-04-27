@@ -70,7 +70,7 @@ sub listing_($opt, $url, $count, $list, $mode) {
 
 sub stats_($o) {
     my $stats = fu->dbAlli('
-        SELECT speed, count(*) as count, avg(l.length) as avg
+        SELECT speed, count(*) as count, avg(l.length)::smallint as avg
              , stddev_pop(l.length::real)::int as stddev
              , percentile_cont(', \0.5, ') WITHIN GROUP (ORDER BY l.length) AS median
           FROM vn_length_votes l

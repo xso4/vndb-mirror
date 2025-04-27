@@ -23,7 +23,7 @@ BEGIN {
 
 use FU -spawn, -procname => config->{moe} ? 'vndb-moe' : config->{api} eq 'only' ? 'vndb-api' : !config->{api} ? 'vndb-web' : 'vndb';
 use FU::XMLWriter ':html5_';
-use DBI;
+use FU::Pg;
 use VNWeb::Auth;
 use VNWeb::HTML ();
 use VNWeb::Validation ();
@@ -49,25 +49,12 @@ FU::monitor_check {
 };
 
 
-
-# We're still using DBI for now.
-my $DB;
-sub FU::obj::dbh {
-    if (!$DB) {
-        $DB = DBI->connect(config->{tuwf}{db_login}->@*, { PrintError => 0, RaiseError => 1, AutoCommit => 0, pg_enable_utf8 => 1 });
-        $DB->do(sprintf 'SET statement_timeout = %d', config->{statement_timeout}*1000) if config->{statement_timeout};
-        $DB->do('SET search_path TO moe, public') if config->{moe};
-        $DB->commit;
-    }
-    $DB->rollback if !fu->{in_txn}++;
-    $DB;
-}
-FU::after_request {
-    if (fu->{in_txn}) {
-        my $e = $FU::REQ->{trace_exn};
-        if ($e && !(ref $e eq 'FU::err' && $e->[0] <= 200)) { $DB->rollback; }
-        else { $DB->commit }
-    }
+FU::init_db sub {
+    my $db = FU::Pg->connect(config->{db_site}//'');
+    $db->set_type(date => '$date_str');
+    $db->exec(sprintf 'SET statement_timeout = %d', config->{statement_timeout}*1000) if config->{statement_timeout};
+    $db->exec('SET search_path TO moe, public') if config->{moe};
+    $db;
 };
 
 

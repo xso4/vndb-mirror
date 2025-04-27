@@ -17,9 +17,7 @@ my $config = {
 
     url               => 'http://localhost:3000',
 
-    tuwf => {
-        db_login      => [ 'dbi:Pg:dbname=vndb', 'vndb_site', undef ],
-    },
+    db_site           => 'dbname=vndb user=vndb_site',
     statement_timeout => 10,
 
     fu_debug_path     => '/fu-debug',

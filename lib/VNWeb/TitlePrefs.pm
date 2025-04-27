@@ -41,7 +41,7 @@ sub titleprefs_parse {
         $O,$O,$O,$O,     # 19..22 -> t1_official .. t4_official
         $O,$O,$O,$O      # 23..26 -> a1_official .. a4_official
     \)$/x;
-    die $_[0] if $_[0] !~ $RE;
+    die "Invalid titleprefs: $_[0]" if $_[0] !~ $RE;
     sub b :prototype($) { !$_[0] ? undef : $_[0] eq 't' }
     sub l :prototype($) { !$_[0] ? undef : $_[0] }
     [

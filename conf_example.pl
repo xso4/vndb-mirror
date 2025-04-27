@@ -14,9 +14,7 @@
     # Use the more secure imgproc
     #imgproc_path      => "$ROOT/imgproc/imgproc-custom",
 
-    tuwf => {
-        db_login        => [ 'dbi:Pg:dbname=vndb', 'vndb_site', 'vndb_site' ],
-    },
+    db_site         => 'dbname=vndb user=vndb_site password=xyz',
     debug           => 1,
     cookie_prefix   => 'vndb_',
     cookie_defaults => { domain => 'localhost', path => '/' },
