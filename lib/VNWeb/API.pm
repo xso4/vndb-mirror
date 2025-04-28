@@ -239,6 +239,7 @@ sub api_query($path, %opt) {
 
     FU::post "/api/kana$path", sub {
         check_throttle;
+        auth; # Verify token early, to prevent throwing an auth exception in validate()
 
         my $req = fu->json({ type => 'hash' }) || err 400, 'Invalid query.';
         fu->{advsearch_uid} = $req->{user};
