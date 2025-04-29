@@ -376,6 +376,7 @@ js_api QuoteDel => { id => { vndbid => 'q' } }, sub($data) {
 };
 
 js_api QuoteVote => { id => { vndbid => 'q' }, vote => { default => undef, enum => [-1,1] } }, sub($data) {
+    fu->denied if !auth;
     fu->dbExeci('DELETE FROM quotes_votes WHERE', { uid => auth->uid, id => $data->{id} }) if !$data->{vote};
     $data->{uid} = auth->uid;
     fu->dbExeci('INSERT INTO quotes_votes', $data, 'ON CONFLICT (id, uid) DO UPDATE SET vote =', \$data->{vote}) if $data->{vote};

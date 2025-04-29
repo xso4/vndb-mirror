@@ -9,6 +9,7 @@ js_api AdvSearchSave => {
     qtype => { enum => \%VNWeb::AdvSearch::FIELDS },
     query => {},
 }, sub($d) {
+    fu->denied if !auth;
     my $q = FU::Validate->compile({ advsearch => $d->{qtype} })->validate($d->{query})->enc_query;
     fu->dbExeci(
         'INSERT INTO saved_queries', { uid => auth->uid, qtype => $d->{qtype}, name => $d->{name}, query => $q },
@@ -22,6 +23,7 @@ js_api AdvSearchDel => {
     name  => { minlength => 1, elems => { default => '', length => [1,50] } },
     qtype => { enum => \%VNWeb::AdvSearch::FIELDS },
 }, sub($d) {
+    fu->denied if !auth;
     fu->dbExeci('DELETE FROM saved_queries WHERE uid =', \auth->uid, 'AND qtype =', \$d->{qtype}, 'AND name IN', $d->{name});
     +{}
 };
