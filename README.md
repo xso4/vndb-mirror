@@ -138,12 +138,10 @@ General:
 - AnyEvent
 - Crypt::ScryptKDF
 - Crypt::URandom
-- DBD::Pg
-- DBI
+- FU
 
 util/vndb.pl (the web backend):
 - Algorithm::Diff::XS
-- FU
 - SQL::Interp
 - Text::MultiMarkdown
 

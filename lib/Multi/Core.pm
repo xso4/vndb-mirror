@@ -10,7 +10,6 @@ use AnyEvent;
 use AnyEvent::Log;
 use AnyEvent::Pg::Pool;
 use Pg::PQ ':pgres';
-use DBI;
 use Fcntl 'LOCK_EX', 'LOCK_NB';
 use Exporter 'import';
 use VNDB::Config;
