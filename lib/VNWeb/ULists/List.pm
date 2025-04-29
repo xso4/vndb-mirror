@@ -23,7 +23,7 @@ sub opt {
 
     # Note that saved defaults may still use the old query format, which is
     #   { s => $sort_column, o => $order, c => [$visible_columns] }
-    my sub load { my $o = $u->{"ulist_$_[0]"}; ($o && eval { FU::Util::json_parse($o) } or {})->%* };
+    my sub load { my $o = $u->{"ulist_$_[0]"}; ($o || {})->%* };
 
     state $s_default  = FU::Validate->compile({ tableopts => $TABLEOPTS })->validate(undef);
     state $s_vnlist   = $s_default->sort_param(title => 'a')->vis_param(qw/label vote added started finished/)->enc_query;
