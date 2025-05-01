@@ -504,7 +504,7 @@ $_->{full_regex} = qr{^(?:https?://)?$_->{regex}(?:\#.*)?$} for grep $_->{regex}
 # For VN entries, which have visible links but no proper extlinks table yet.
 sub enrich_vislinks_old($type, $enabled, @obj) {
     my @w_ids = grep $_, map $_->{l_wikidata}, @obj;
-    my $w = @w_ids ? { map +($_->{id}, $_), FU::fu->dbAlli('SELECT * FROM wikidata WHERE id IN', \@w_ids)->@* } : {};
+    my $w = @w_ids ? FU::fu->SQL('SELECT id, * FROM wikidata WHERE id', FU::SQL::IN(\@w_ids))->kvh : {};
 
     for my $obj (@obj) {
         my @links;
@@ -592,21 +592,21 @@ sub enrich_vislinks($type, $enabled, @obj) {
 
     # Fetch extlinks for objects that do not already have an 'extlinks' field
     my @ids_ne = grep !$ids{$_}{extlinks}, @ids;
-    for my $s (@ids_ne ? FU::fu->dbAlli('
+    for my $s (@ids_ne ? FU::fu->SQL('
         SELECT e.id, l.site, l.value, l.data, l.price
-          FROM', {qw/r releases_extlinks  s staff_extlinks  p producers_extlinks/}->{$type}, 'e
+          FROM', FU::SQL::RAW({qw/r releases_extlinks  s staff_extlinks  p producers_extlinks/}->{$type}), 'e
           JOIN extlinks l ON l.id = e.link
-         WHERE e.id IN', \@ids_ne
-    )->@* : ()) {
+         WHERE e.id', FU::SQL::IN(\@ids_ne)
+    )->allh->@* : ()) {
         push $ids{$s->{id}}{_l}{$s->{site}}->@*, $s;
         push @w_ids, $s->{value} if $s->{site} eq 'wikidata';
     }
 
-    my $w = @w_ids ? { map +($_->{id}, $_), FU::fu->dbAlli('SELECT * FROM wikidata WHERE id IN', \@w_ids)->@* } : {};
+    my $w = @w_ids ? FU::fu->SQL('SELECT id, * FROM wikidata WHERE id', FU::SQL::IN(\@w_ids))->kvh : {};
 
-    push $ids{$_->{id}}{_l}{_playasia}->@*, $_ for ($type eq 'r' ? FU::fu->dbAlli(
-        "SELECT r.id, s.price, s.url FROM releases r JOIN shop_playasia s ON s.gtin = r.gtin WHERE s.price <> '' AND r.id IN", \@ids
-    )->@* : ());
+    push $ids{$_->{id}}{_l}{_playasia}->@*, $_ for ($type eq 'r' ? FU::fu->SQL(
+        "SELECT r.id, s.price, s.url FROM releases r JOIN shop_playasia s ON s.gtin = r.gtin WHERE s.price <> '' AND r.id", FU::SQL::IN(\@ids)
+    )->allh->@* : ());
 
     my $o;
     my sub c($name, $label, $id, $url, $url2=undef, $price=undef) {
@@ -756,13 +756,13 @@ sub normalize($old, $new) {
     my %link2id = map +("$_->{site} $_->{value}", $_->{id}), $old->{extlinks}->@*;
 
     # Don't use INSERT .. ON CONFLICT here, that will increment the sequence even when the link already exists.
-    $_->{link} = $link2id{"$_->{site} $_->{value}"} || FU::fu->dbVali('
+    $_->{link} = $link2id{"$_->{site} $_->{value}"} || FU::fu->SQL('
         WITH e(id) AS (
-            SELECT id FROM extlinks WHERE site =', \$_->{site}, 'AND value =', \$_->{value}, '
+            SELECT id FROM extlinks WHERE site =', $_->{site}, 'AND value =', $_->{value}, '
         ), i(id) AS (
-            INSERT INTO extlinks (site, value) SELECT', \$_->{site}, ',', \$_->{value}, 'WHERE NOT EXISTS(SELECT 1 FROM e) RETURNING id
+            INSERT INTO extlinks (site, value) SELECT', $_->{site}, ',', $_->{value}, 'WHERE NOT EXISTS(SELECT 1 FROM e) RETURNING id
         ) SELECT id FROM e UNION SELECT id FROM i
-    ') for $new->{extlinks}->@*;
+    ')->val for $new->{extlinks}->@*;
 
     push $new->{extlinks}->@*, grep !($_->{site} eq 'website' || $LINKS{$_->{site}}{regex}), $old->{extlinks}->@*;
 }

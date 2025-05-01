@@ -2,6 +2,7 @@ package VNWeb::DB;
 
 use v5.36;
 use FU;
+use FU::SQL;
 use SQL::Interp ':all';
 use Carp 'confess';
 use Exporter 'import';
@@ -13,6 +14,7 @@ our @EXPORT = qw/
     sql
     global_settings
     sql_join sql_comma sql_and sql_or sql_array sql_func sql_fromhex sql_tohex sql_fromtime sql_totime sql_like sql_user
+    USER
     enrich enrich_merge enrich_flatten enrich_obj
     db_maytimeout db_entry db_edit
 /;
@@ -138,10 +140,11 @@ sub sql_user {
        ) : (),
 }
 
+sub USER { RAW sql_user(@_) }
 
 # Returns a (potentially cached) version of the global_settings table.
 sub global_settings {
-    fu->{global_settings} //= fu->dbRowi('SELECT * FROM global_settings');
+    fu->{global_settings} //= fu->sql('SELECT * FROM global_settings')->rowh;
 }
 
 

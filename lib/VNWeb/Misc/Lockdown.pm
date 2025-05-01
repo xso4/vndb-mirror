@@ -46,7 +46,7 @@ FU::post '/lockdown', sub {
         lockdown_edit         => { anybool => 1 },
         lockdown_board        => { anybool => 1 },
     );
-    fu->dbExeci('UPDATE global_settings SET', $frm);
+    fu->SQL('UPDATE global_settings', SET $frm)->cache(0)->exec;
     auth->audit(0, 'lockdown', FU::Util::json_format($frm));
     fu->redirect(tempget => '/lockdown');
 };

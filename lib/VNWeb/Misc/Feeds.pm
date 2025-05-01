@@ -38,9 +38,9 @@ sub feed {
 
 
 FU::get '/feeds/announcements.atom', sub {
-    feed '/t/an', 'VNDB Site Announcements', fu->dbAlli('
+    feed '/t/an', 'VNDB Site Announcements', fu->SQL('
       SELECT t.id, t.title, tp.msg AS summary
-           , ', sql_totime('tp.date'), 'AS published,', sql_totime('tp.edited'), 'AS updated,', sql_user(), '
+           , tp.date AS published, tp.edited AS updated, ', USER, '
         FROM threads t
         JOIN threads_posts tp ON tp.tid = t.id AND tp.num = 1
         JOIN threads_boards tb ON tb.tid = t.id AND tb.type = \'an\'
@@ -48,7 +48,7 @@ FU::get '/feeds/announcements.atom', sub {
        WHERE NOT t.hidden AND NOT t.private
        ORDER BY tb.tid DESC
        LIMIT 10'
-    );
+    )->allh;
 };
 
 
@@ -67,16 +67,16 @@ FU::get '/feeds/changes.atom', sub {
 
 FU::get '/feeds/posts.atom', sub {
     not_moe;
-    feed '/t', 'VNDB Recent Posts', fu->dbAlli('
-      SELECT t.id||\'.\'||tp.num AS id, t.title||\' (#\'||tp.num||\')\' AS title, tp.msg AS summary
-           , ', sql_totime('tp.date'), 'AS published,', sql_totime('tp.edited'), 'AS updated,', sql_user(), '
+    feed '/t', 'VNDB Recent Posts', fu->SQL("
+      SELECT t.id||'.'||tp.num AS id, t.title||' (#'||tp.num||')' AS title, tp.msg AS summary
+           , tp.date AS published, tp.edited AS updated, ", USER, '
         FROM threads_posts tp
         JOIN threads t ON t.id = tp.tid
         LEFT JOIN users u ON u.id = tp.uid
        WHERE tp.hidden IS NULL AND NOT t.hidden AND NOT t.private
        ORDER BY tp.date DESC
-       LIMIT ', \25
-    );
+       LIMIT 25'
+    )->allh;
 };
 
 

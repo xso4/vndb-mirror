@@ -302,18 +302,15 @@ sub bb_subst_links {
   };
   return $msg unless %lookup;
 
-  my $first = 0;
-  my %links = map +($_->{id}, $_->{title}), FU::fu->dbAlli(
-    'SELECT id, title[1+1] FROM (VALUES', (map +($first++ ? ',(' : '(', \"$_", '::vndbid)'), sort keys %lookup), ') n(id), item_info(NULL, n.id, NULL)'
-  )->@*;
-  return $msg unless %links;
+  my $links = FU::fu->sql('SELECT id, title[2] FROM unnest($1::vndbid[]) n(id), item_info(NULL, n.id, NULL)', [keys %lookup])->kvv;
+  return $msg unless %$links;
 
   # Now substitute
   my $result = '';
   parse $msg, sub {
     my($code, $tag) = @_;
-    $result .= $tag eq 'dblink' && $links{$code}
-      ? sprintf '[url=/%s]%s[/url]', $code, $links{$code}
+    $result .= $tag eq 'dblink' && $links->{$code}
+      ? sprintf '[url=/%s]%s[/url]', $code, $links->{$code}
       : $code;
     1;
   };

@@ -6,8 +6,8 @@ use VNWeb::Discussions::Lib 'enrich_boards';
 
 
 sub screens {
-    state $where  ||= sql 'i.c_weight > 0 and vndbid_type(i.id) =', \'sf', 'and i.c_sexual_avg <', \40, 'and i.c_violence_avg <', \40;
-    state $stats  ||= fu->dbRowi('SELECT count(*) as total, count(*) filter(where', $where, ') as subset from images i');
+    state $where  = "i.c_weight > 0 AND vndbid_type(i.id) = 'sf' AND i.c_sexual_avg < 40 AND i.c_violence_avg < 40";
+    state $stats  = fu->sql("SELECT count(*) as total, count(*) filter(where $where) as subset from images i")->cache(0)->rowh;
     state $sample ||= 100*min 1, (200 / (1+$stats->{subset})) * ($stats->{total} / (1+$stats->{subset}));
 
     my $filt = advsearch_default 'v';
@@ -78,25 +78,25 @@ sub recent_changes_ {
 
 
 sub recent_db_posts_ {
-    my $an = fu->dbAlli('
-        SELECT t.id, t.title,', sql_totime('tp.date'), 'AS date
+    my $an = fu->sql("
+        SELECT t.id, t.title
           FROM threads t
-          JOIN threads_boards tb ON tb.tid = t.id AND tb.type = \'an\'
+          JOIN threads_boards tb ON tb.tid = t.id AND tb.type = 'an'
           JOIN threads_posts tp ON tp.tid = t.id AND tp.num = 1
-         WHERE NOT t.hidden AND NOT t.private AND tp.date >', sql_fromtime(time-30*24*3600), '
+         WHERE NOT t.hidden AND NOT t.private AND tp.date > NOW() - interval '30 days'
          ORDER BY tb.tid DESC
-         LIMIT 1+1'
-    );
-    my $lst = fu->dbAlli('
-        SELECT t.id, t.title, tp.num,', sql_totime('tp.date'), 'AS date, ', sql_user(), '
+         LIMIT 2"
+    )->allh;
+    my $lst = fu->SQL('
+        SELECT t.id, t.title, tp.num, tp.date, ', USER, '
           FROM threads t
           JOIN threads_posts tp ON tp.tid = t.id AND tp.num = t.c_lastnum
           LEFT JOIN users u ON tp.uid = u.id
          WHERE EXISTS(SELECT 1 FROM threads_boards tb WHERE tb.tid = t.id AND tb.type IN(\'db\',\'an\'))
            AND NOT t.hidden AND NOT t.private
          ORDER BY tp.date DESC
-         LIMIT', \(10-@$an)
-    );
+         LIMIT', 10-@$an
+    )->allh;
     enrich_boards undef, $lst;
     p_ class => 'mainopts', sub {
         a_ href => '/t/an', 'Announcements';

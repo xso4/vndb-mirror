@@ -188,9 +188,9 @@ sub _head_ {
     my $o = shift;
 
     my $fancy = !(auth->pref('nodistract_can') && auth->pref('nodistract_nofancy'));
-    my $pubskin = $fancy && $o->{dbobj} && $o->{dbobj}{id} =~ /^u/ ? fu->dbRowi(
-        'SELECT u.id, customcss_csum, skin FROM users u JOIN users_prefs up ON up.id = u.id WHERE pubskin_can AND pubskin_enabled AND u.id =', \$o->{dbobj}{id}
-    ) : {};
+    my $pubskin = ($fancy && $o->{dbobj} && $o->{dbobj}{id} =~ /^u/ && fu->SQL(
+        'SELECT u.id, customcss_csum, skin FROM users u JOIN users_prefs up ON up.id = u.id WHERE pubskin_can AND pubskin_enabled AND u.id =', $o->{dbobj}{id}
+    )->rowh) || {};
     my $skin = fu->query(skin => { onerror => '' }) || $pubskin->{skin} || auth->pref('skin') || '';
     $skin = config->{skin_default} if !skins->{$skin};
     my $customcss = $pubskin->{customcss_csum} ? [ $pubskin->{id}, $pubskin->{customcss_csum} ] :
@@ -287,11 +287,11 @@ sub _menu_ {
                 a_ href => '/s/new', 'Add Staff'; br_;
             }
             if(auth->isMod) {
-                my $stats = fu->dbRowi("SELECT
+                my $stats = fu->SQL("SELECT
                     (SELECT count(*) FROM reports WHERE status = 'new') as new,
-                    (SELECT count(*) FROM reports WHERE status = 'new' AND date > (SELECT last_reports FROM users_prefs WHERE id =", \auth->uid, ")) AS unseen,
-                    (SELECT count(*) FROM reports WHERE lastmod > (SELECT last_reports FROM users_prefs WHERE id =", \auth->uid, ")) AS upd
-                ");
+                    (SELECT count(*) FROM reports WHERE status = 'new' AND date > (SELECT last_reports FROM users_prefs WHERE id =", auth->uid, ")) AS unseen,
+                    (SELECT count(*) FROM reports WHERE lastmod > (SELECT last_reports FROM users_prefs WHERE id =", auth->uid, ")) AS upd
+                ")->rowh;
                 a_ $stats->{unseen} ? (class => 'standout') : (), href => '/report/list?status=new', sprintf 'Reports %d/%d', $stats->{unseen}, $stats->{new};
                 small_ ' | ';
                 a_ href => '/report/list?s=lastmod', sprintf '%d upd', $stats->{upd};
@@ -320,16 +320,16 @@ sub _menu_ {
         h2_ 'Database Statistics';
         div_ sub {
             dl_ sub {
-                my %stats = map +($_->{section}, $_->{count}), fu->dbAll('SELECT * FROM stats_cache')->@*;
-                dt_ 'Visual Novels'; dd_ $stats{vn};
+                my $stats = fu->sql('SELECT section, count FROM stats_cache')->kvv;
+                dt_ 'Visual Novels'; dd_ $stats->{vn};
                 dt_ sub { small_ '> '; lit_ 'Tags' };
-                                     dd_ $stats{tags};
-                dt_ 'Releases';      dd_ $stats{releases};
-                dt_ 'Producers';     dd_ $stats{producers};
-                dt_ 'Staff';         dd_ $stats{staff};
-                dt_ 'Characters';    dd_ $stats{chars};
+                                     dd_ $stats->{tags};
+                dt_ 'Releases';      dd_ $stats->{releases};
+                dt_ 'Producers';     dd_ $stats->{producers};
+                dt_ 'Staff';         dd_ $stats->{staff};
+                dt_ 'Characters';    dd_ $stats->{chars};
                 dt_ sub { small_ '> '; lit_ 'Traits' };
-                                     dd_ $stats{traits};
+                                     dd_ $stats->{traits};
             };
             clearfloat_;
         }
@@ -339,7 +339,7 @@ sub _menu_ {
 
 sub _footer_ {
     my($o) = @_;
-    my $q = (samesite || auth) && !config->{moe} && fu->dbRow('SELECT vid, quote FROM quotes WHERE rand <= (SELECT random()) ORDER BY rand DESC LIMIT 1');
+    my $q = (samesite || auth) && !config->{moe} && fu->sql('SELECT vid, quote FROM quotes WHERE rand <= (SELECT random()) ORDER BY rand DESC LIMIT 1')->rowh;
     span_ sub {
         lit_ '"';
         a_ href => "/$q->{vid}", $q->{quote};
@@ -369,20 +369,20 @@ sub _maintabs_subscribe_ {
     return if !auth || $id !~ /^[twvrpcsdig]/;
 
     my $noti =
-        $id =~ /^t/ ? fu->dbVali('SELECT SUM(x) FROM (
-                 SELECT 1 FROM threads_posts tp, users u WHERE u.id =', \auth->uid, 'AND tp.uid =', \auth->uid, 'AND tp.tid =', \$id, ' AND u.notify_post
-           UNION SELECT 1+1 FROM threads_boards tb WHERE tb.tid =', \$id, 'AND tb.type = \'u\' AND tb.iid =', \auth->uid, '
-           ) x(x)')
+        $id =~ /^t/ ? fu->sql('SELECT SUM(x) FROM (
+                 SELECT 1 FROM threads_posts tp, users u WHERE u.id = $1 AND tp.uid = $1 AND tp.tid = $2 AND u.notify_post
+           UNION SELECT 1+1 FROM threads_boards tb WHERE tb.tid = $2 AND tb.type = \'u\' AND tb.iid = $1
+           ) x(x)', auth->uid, $id)->val
 
-      : $id =~ /^w/ ? (auth->pref('notify_post') || auth->pref('notify_comment')) && fu->dbVali('SELECT SUM(x) FROM (
-                 SELECT 1 FROM reviews_posts wp, users u WHERE u.id =', \auth->uid, 'AND wp.uid =', \auth->uid, 'AND wp.id =', \$id, 'AND u.notify_post
-           UNION SELECT 1+1 FROM reviews w, users u WHERE u.id =', \auth->uid, 'AND w.uid =', \auth->uid, 'AND w.id =', \$id, 'AND u.notify_comment
-           ) x(x)')
+      : $id =~ /^w/ ? (auth->pref('notify_post') || auth->pref('notify_comment')) && fu->sql('SELECT SUM(x) FROM (
+                 SELECT 1 FROM reviews_posts wp, users u WHERE u.id = $1 AND wp.uid = $1 AND wp.id = $2 AND u.notify_post
+           UNION SELECT 1+1 FROM reviews w, users u WHERE u.id = $1 AND w.uid = $1 AND w.id = $2 AND u.notify_comment
+           ) x(x)', auth->uid, $id)->val
 
-      : $id =~ /^[vrpcsdgi]/ && auth->pref('notify_dbedit') && fu->dbVali('
-           SELECT 1 FROM changes WHERE itemid =', \$id, 'AND requester =', \auth->uid);
+      : $id =~ /^[vrpcsdgi]/ && auth->pref('notify_dbedit') && fu->SQL('
+           SELECT 1 FROM changes WHERE itemid =', $id, 'AND requester =', auth->uid, 'LIMIT 1')->val;
 
-    my $sub = fu->dbRowi('SELECT subnum, subreview, subapply FROM notification_subs WHERE uid =', \auth->uid, 'AND iid =', \$id);
+    my $sub = fu->SQL('SELECT subnum, subreview, subapply FROM notification_subs WHERE uid =', auth->uid, 'AND iid =', $id)->rowh || {};
 
     li_ widget(Subscribe => $VNWeb::User::Notifications::SUB, {
         id        => $id,
@@ -419,7 +419,7 @@ sub _maintabs_ {
             t '' => "/$id", $id if $o && $t ne 't';
 
             t rg => "/$id/rg", 'relations'
-                if $t =~ /[vp]/ && !config->{moe} && fu->dbVali('SELECT 1 FROM', $t eq 'v' ? 'vn_relations' : 'producers_relations', 'WHERE id =', \$o->{id}, 'LIMIT 1');
+                if $t =~ /[vp]/ && !config->{moe} && fu->SQL('SELECT 1 FROM', $t eq 'v' ? 'vn_relations' : 'producers_relations', 'WHERE id =', $o->{id}, 'LIMIT 1')->val;
 
             t releases => "/$id/releases", 'releases' if $t eq 'v';
             t edit => "/$id/edit", 'edit' if $o && $t ne 't' && can_edit $t, $o;
@@ -482,12 +482,12 @@ sub _hidden_msg_ {
     }
 
     # Deleted.
-    my $msg = fu->dbRowi(
+    my $msg = fu->SQL(
         'SELECT comments, rev
            FROM changes
-          WHERE itemid =', \$o->{dbobj}{id},
+          WHERE itemid =', $o->{dbobj}{id},
          'ORDER BY id DESC LIMIT 1'
-    );
+    )->rowh;
     article_ sub {
         h1_ $o->{title};
         div_ class => 'warning', sub {
@@ -526,7 +526,7 @@ sub framework_ {
     my $cont = pop;
     my %o = @_;
     fu->{pagevars} = { fu->{pagevars} ? fu->{pagevars}->%* : (), $o{pagevars}->%* } if $o{pagevars};
-    $o{unread_noti} = auth && fu->dbVali('SELECT count(*) FROM notifications WHERE uid =', \auth->uid, 'AND read IS NULL');
+    $o{unread_noti} = auth && fu->SQL('SELECT count(*) FROM notifications WHERE uid =', auth->uid, 'AND read IS NULL')->val;
 
     my $html = html_ lang => 'en', sub {
         lit_ "\n<!--\n"
@@ -555,9 +555,9 @@ sub framework_ {
 
             # Some ulist widgets need the user's labels, let's include them here so the data can be shared across multiple widgets.
             # (UList::List uses another variant with counts included)
-            fu->{pagevars}{labels} ||= [ map +[$_->{id}*1, $_->{label}, $_->{private} ? \1 : \0], fu->dbAlli('
-                SELECT id, label, private FROM ulist_labels WHERE uid =', \auth->uid, 'ORDER BY CASE WHEN id < 10 THEN id ELSE 10 END, label'
-            )->@* ] if auth && (fu->{js_labels} || grep fu->{pagevars}{widget}{$_}, qw/ UListWidget UListVNPage /);
+            fu->{pagevars}{labels} ||= fu->SQL('
+                SELECT id, label, private FROM ulist_labels WHERE uid =', auth->uid, 'ORDER BY CASE WHEN id < 10 THEN id ELSE 10 END, label'
+            )->alla if auth && (fu->{js_labels} || grep fu->{pagevars}{widget}{$_}, qw/ UListWidget UListVNPage /);
 
             script_ type => 'application/json', id => 'pagevars', sub {
                 # Escaping rules for a JSON <script> context are kinda weird, but more efficient than regular xml_escape().

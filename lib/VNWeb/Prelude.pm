@@ -7,6 +7,7 @@
 #  use FU;
 #  use FU::Util 'query_encode';
 #  use FU::XMLWriter @html5_tags, 'fragment';
+#  use FU::SQL;
 #  use Exporter 'import';
 #  use Time::HiRes 'time';
 #  use List::Util 'min', 'max', 'sum';
@@ -62,6 +63,7 @@ sub import {
     use FU;
     use FU::Util 'query_encode';
     use FU::XMLWriter \@VNWeb::Prelude::html5_tags, qw/tag_ txt_ lit_ fragment/;
+    use FU::SQL;
     use Exporter 'import';
     use Time::HiRes 'time';
     use List::Util 'min', 'max', 'sum';

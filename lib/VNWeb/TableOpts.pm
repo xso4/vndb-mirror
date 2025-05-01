@@ -69,6 +69,7 @@ use Carp 'croak';
 use Exporter 'import';
 use FU;
 use FU::XMLWriter ':html5_';
+use FU::SQL;
 use VNWeb::Auth;
 use VNWeb::HTML ();
 use VNWeb::Validation;
@@ -246,7 +247,7 @@ js_api TableOptsSave => {
 }, sub {
     my($f) = @_;
     fu->denied if !auth;
-    fu->dbExeci('UPDATE users_prefs SET', { $f->{save} => $f->{value} }, 'WHERE id =', \auth->uid);
+    fu->SQL('UPDATE users_prefs', SET({ $f->{save} => $f->{value} }), 'WHERE id =', auth->uid)->exec;
     {}
 };
 

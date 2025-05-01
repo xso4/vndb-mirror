@@ -3,6 +3,7 @@ package VNWeb::Validation;
 use v5.36;
 use FU;
 use FU::Util 'uri_escape', 'query_encode';
+use FU::SQL;
 use VNDB::Types;
 use VNDB::Config;
 use VNDB::ExtLinks ();
@@ -188,10 +189,12 @@ sub is_unique_username {
     my($name, $excludeid) = @_;
     my sub norm {
         # lowercase, normalize 'i1l' and '0o'
-        sql "regexp_replace(regexp_replace(lower(", $_[0], "), '[1l]', 'i', 'g'), '0', 'o', 'g')";
+        SQL "regexp_replace(regexp_replace(lower(", $_[0], "), '[1l]', 'i', 'g'), '0', 'o', 'g')"
     };
-    !fu->dbVali('SELECT 1 FROM users WHERE', norm('username'), '=', norm(\$name),
-        $excludeid ? ('AND id <>', \$excludeid) : ());
+    !fu->SQL('SELECT 1 FROM users WHERE', norm('username'), '=', norm($name),
+        $excludeid ? ('AND id <>', $excludeid) : (),
+        'LIMIT 1'
+    )->val;
 }
 
 
@@ -314,7 +317,7 @@ sub can_edit {
         return 0 if !auth->permBoard || (global_settings->{lockdown_board} && !auth->isMod);
         if(!$entry->{id}) {
             # Allow at most 5 new threads per day per user.
-            return auth && fu->dbVali('SELECT count(*) < ', \5, 'FROM threads_posts WHERE num = 1 AND date > NOW()-\'1 day\'::interval AND uid =', \auth->uid);
+            return auth && fu->sql("SELECT count(*) < 5 FROM threads_posts WHERE num = 1 AND date > NOW()-'1 day'::interval AND uid = \$1", auth->uid)->val;
         } elsif(!$entry->{num}) {
             die "Can't do authorization test when 'locked' field isn't present" if !exists $entry->{locked};
             return !$entry->{locked};
@@ -339,7 +342,7 @@ sub can_edit {
         die if !exists $entry->{entry_hidden} || !exists $entry->{entry_locked};
         # Let users edit their own tags/traits while it's still pending approval.
         return auth && $entry->{entry_hidden} && !$entry->{entry_locked}
-            && fu->dbVali('SELECT 1 FROM changes WHERE itemid =', \$entry->{id}, 'AND rev = 1 AND requester =', \auth->uid);
+            && fu->SQL('SELECT 1 FROM changes WHERE itemid =', $entry->{id}, 'AND rev = 1 AND requester =', auth->uid, 'LIMIT 1')->val;
     }
 
     die "Can't do authorization test when entry_hidden/entry_locked fields aren't present"
@@ -429,7 +432,7 @@ package VNWeb::Validate::SearchQuery {
 
     sub words {
         $_[0][1] //= length $_[0][0]
-            ? [ map s/%//rg, fu->dbVali('SELECT search_query(', \$_[0][0], ')')->@* ]
+            ? [ map s/%//rg, fu->sql('SELECT search_query($1)', $_[0][0])->val->@* ]
             : []
     }
 

@@ -63,6 +63,8 @@ FU::before_request {
     return if VNWeb::Validation::is_api;
 
     # Serve static files from www/
+    my $id = $FU::REQ->{trace_id};
+    delete $FU::REQ->{trace_id};
     fu->set_header('cache-control', 'max-age=86400');
     fu->send_file(config->{var_path}.'/www', fu->path);
 
@@ -73,6 +75,7 @@ FU::before_request {
         fu->send_file("$ROOT/static", fu->path);
     }
     fu->reset;
+    $FU::REQ->{trace_id} = $id;
 
     # Use a 'SameSite=Strict' cookie to determine whether this page was loaded from internal or external.
     # Ought to be more reliable than checking the Referer header, but it's unfortunately a bit uglier.
