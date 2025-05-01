@@ -181,25 +181,42 @@ js_api UserEdit => $FORM_IN, sub($data) {
 
     my $oldmail = _getmail $data->{id};
     if ($oldmail ne $data->{email}) {
-        return +{ code => 'email_taken', _err => 'E-Mail address already in use by another account' }
-            if fu->dbVali('SELECT 1 FROM user_emailtoid(', \$data->{email}, ') x(id) WHERE id <>', \$data->{id});
-        auth->audit($data->{id}, 'email change', "old=$oldmail; new=$data->{email}");
-        if($data->{id} ne auth->uid) {
+        my $other = fu->dbVali('SELECT u.username FROM users u, user_emailtoid(', \$data->{email}, ') x(id) WHERE u.id = x.id AND x.id <>', \$data->{id});
+        if (VNWeb::User::Register::throttle()) {
+            return 'You may only change your email address once a day.';
+        } elsif (length $other) {
+            VNWeb::Validation::sendmail(
+                "Hello $other,"
+                ."\n"
+                ."\nAnother user on VNDB.org has attempted to change their email address to yours."
+                ."\nThis is a reminder that you already have an account with this address: $other."
+                ."\n"
+                ."\nIf you have no idea why you're getting this mail, get in touch with contact\@vndb.org."
+                ."\n"
+                ."\nvndb.org",
+                To => $data->{email},
+                Subject => "E-mail change attempt",
+            );
+            auth->audit($data->{id}, 'email change attempt to other user', "new=$data->{email}");
+            $ret = {email=>1};
+        } elsif (fu->dbVali('SELECT email_optout_check(', \$data->{email}, ')')) {
+            auth->audit($data->{id}, 'email change attempt to blacklist', "new=$data->{email}");
+            return 'Registration disabled for the given email address';
+        } elsif ($data->{id} ne auth->uid) {
+            auth->audit($data->{id}, 'email change', "old=$oldmail; new=$data->{email}");
             fu->dbExeci(select => sql_func user_admin_setmail => \$data->{id}, \auth->uid, sql_fromhex(auth->token), \$data->{email});
             $set{email_confirmed} = 1;
         } else {
+            auth->audit($data->{id}, 'email change request', "old=$oldmail; new=$data->{email}");
             my $token = auth->setmail_token($data->{email});
-            my $body = sprintf
-                "Hello %s,"
-                ."\n\n"
-                ."To confirm that you want to change the email address associated with your VNDB.org account from %s to %s, click the link below:"
-                ."\n\n"
-                ."%s"
-                ."\n\n"
-                ."vndb.org",
-                $u->{username}, $oldmail, $data->{email}, config->{url}."/$data->{id}/setmail/$token";
-
-            VNWeb::Validation::sendmail($body,
+            VNWeb::Validation::sendmail(
+                "Hello $u->{username},"
+                ."\n"
+                ."\nTo confirm that you want to change the email address associated with your VNDB.org account from $oldmail to $data->{email}, click the link below:"
+                ."\n"
+                ."\n".config->{url}."/$data->{id}/setmail/$token"
+                ."\n"
+                ."\nvndb.org",
                 To => $data->{email},
                 Subject => "Confirm e-mail change for $u->{username}",
             );
@@ -247,6 +264,7 @@ js_api UserEdit => $FORM_IN, sub($data) {
 FU::get qr{/$RE{uid}/setmail/([a-f0-9]{40})}, sub($uid, $token) {
     my $success = auth->setmail_confirm($uid, $token);
     my $title = $success ? 'E-mail confirmed' : 'Error confirming email';
+    auth->audit($uid, 'email change confirmed') if $success;
     framework_ title => $title, sub {
         article_ sub {
             h1_ $title;

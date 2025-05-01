@@ -38,7 +38,7 @@ const Username = () => {
     )};
 };
 
-let email_edit = false, email_old = '', email_taken = {};
+let email_edit = false, email_old = '';
 const Email = () => {
     return {view: v => m('fieldset.form',
         m('legend', {key:1}, 'E-Mail'),
@@ -47,10 +47,7 @@ const Email = () => {
             m('input[type=button][value=Edit]', { onclick: () => { email_old = v.attrs.data.email; email_edit = true } }),
         ) : m('fieldset', {key:3},
             m('label[for=email]', 'New email'),
-            m(EmailInput, {
-                id: 'email', class: 'mw', data: v.attrs.data, required: true, field: 'email', focus: true,
-                invalid: email_taken[v.attrs.data.email] ? 'Email already used by another account.' : null,
-            }),
+            m(EmailInput, { id: 'email', class: 'mw', data: v.attrs.data, required: true, field: 'email', focus: true }),
             m('input[type=button][value=Cancel]', { onclick: () => { v.attrs.data.email = email_old; email_edit = false } }),
             m('p', 'A verification mail will be send to your new address.'),
         ),
@@ -534,7 +531,6 @@ widget('UserEdit', initVnode => {
         err => {
             const c = err && err.code;
             if (c === 'username_taken') username_taken[data.username] = 1;
-            if (c === 'email_taken') email_taken[data.email] = 1;
             if (c === 'opass') password_invalid = 1;
             if (c === 'npass') password_leaked[data.password.new] = 1;
             if (c === 'uniname') uniname_taken[data.uniname] = 1;

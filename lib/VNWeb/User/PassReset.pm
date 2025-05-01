@@ -25,6 +25,9 @@ js_api UserPassReset => {
     my $upd = {ip => $ip, timeout => sql_fromtime $tm + config->{reset_throttle}[0]};
     fu->dbExeci('INSERT INTO reset_throttle', $upd, 'ON CONFLICT (ip) DO UPDATE SET', $upd);
 
+    # Do nothing if the email is blacklisted
+    return +{} if fu->dbVali('SELECT email_optout_check(', \$data->{email}, ')');
+
     my($id, $mail, $token) = auth->resetpass($data->{email});
     my $name = $id ? fu->dbVali('SELECT username FROM users WHERE id =', \$id) : $data->{email};
     my $body = $id ? sprintf

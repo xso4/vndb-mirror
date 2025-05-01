@@ -19,6 +19,16 @@ FU::get '/u/register', sub {
 };
 
 
+# Registration throttle is also used for email address changes in User::Edit.
+sub throttle {
+    my $ip = fu->ip;
+    return 1 if fu->dbVali('SELECT 1 FROM registration_throttle WHERE timeout > NOW() AND ip =', \norm_ip($ip));
+    my %throttle = (timeout => sql("NOW()+'1 day'::interval"), ip => norm_ip($ip));
+    fu->dbExeci('INSERT INTO registration_throttle', \%throttle, 'ON CONFLICT (ip) DO UPDATE SET', \%throttle);
+    return 0;
+}
+
+
 js_api UserRegister => {
     username => { username => 1 },
     email    => { email => 1 },
@@ -29,14 +39,10 @@ js_api UserRegister => {
     return +{ err => 'username' } if !is_unique_username $data->{username};
 
     # Throttle before checking for duplicate email, wouldn't want to be sending too many emails.
-    my $ip = fu->ip;
-    return 'You can only register one account from the same IP within 24 hours.'
-        if fu->dbVali('SELECT 1 FROM registration_throttle WHERE timeout > NOW() AND ip =', \norm_ip($ip));
-    my %throttle = (timeout => sql("NOW()+'1 day'::interval"), ip => norm_ip($ip));
-    fu->dbExeci('INSERT INTO registration_throttle', \%throttle, 'ON CONFLICT (ip) DO UPDATE SET', \%throttle);
+    return 'You can only register one account from the same IP within 24 hours.' if throttle;
 
-    # Check for opt-out. Returning 'ok' here sucks balls, but otherwise we'd be vulnerable to email enumeration.
-    return +{ ok => 1 } if fu->dbVali('SELECT email_optout_check(', \$data->{email}, ')');
+    return 'Registration disabled for the given email address.'
+        if fu->dbVali('SELECT email_optout_check(', \$data->{email}, ')');
 
     # Check for duplicate email
     my $dupe = fu->dbVali('SELECT u.username FROM users u, user_emailtoid(', \$data->{email}, ') x(id) WHERE x.id = u.id');
