@@ -1798,6 +1798,10 @@ need perfect uniform random selection anyway.
 
 # Change Log
 
+**2025-05-02**
+
+- Limit maximum number of filter predicates in a single request to 1000.
+
 **2025-04-05**
 
 - Add `gender` field to [POST /character](#post-character).

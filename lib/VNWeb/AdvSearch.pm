@@ -612,8 +612,9 @@ sub _validate_label {
 }
 
 
-sub _validate($t, $q) {
+sub _validate($t, $q, $count) {
     return { msg => 'Invalid query' } if ref $q ne 'ARRAY' || @$q < 2 || !defined $q->[0] || ref $q->[0];
+    return { msg => 'Too many predicates' } if $$count++ > 1000;
 
     $q->[0] = $q->[0] == 0 ? 'and' : $q->[0] == 1 ? 'or'
             : $NUMFIELDS{$t}{$q->[0]} // return { msg => 'Unknown field', field => $q->[0] }
@@ -622,7 +623,7 @@ sub _validate($t, $q) {
     # combinator
     if($q->[0] eq 'and' || $q->[0] eq 'or') {
         for(@$q[1..$#$q]) {
-            my $r = _validate($t, $_);
+            my $r = _validate($t, $_, $count);
             return $r if !$r || ref $r;
         }
         return 1;
@@ -633,7 +634,7 @@ sub _validate($t, $q) {
     my $f = $FIELDS{$t}{$q->[0]};
     return { msg => 'Unknown field', field => $q->[0] } if !$f;
     return { msg => 'Invalid operator', field => $q->[0], op => $q->[1] } if !defined $ops{$q->[1]} || (!$f->{$q->[1]} && !$f->{sql});
-    return _validate($f->{value}, $q->[2]) if !ref $f->{value};
+    return _validate($f->{value}, $q->[2], $count) if !ref $f->{value};
     eval { $q->[2] = $f->{value}->validate($q->[2]); 1 } ||
         return { msg => 'Invalid value', field => $q->[0], value => $q->[2], error => $@ };
     1
@@ -652,7 +653,8 @@ sub _validate_adv {
         $_[0] = bless {type=>$t}, __PACKAGE__;
         return 1;
     }
-    my $v = _validate($t, $_[0]);
+    my $count = 0;
+    my $v = _validate($t, $_[0], \$count);
     $_[0] = bless { type => $t, query => $_[0] }, __PACKAGE__ if $v && !ref $v;
     $v
 }
