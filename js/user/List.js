@@ -50,13 +50,14 @@ const labelRender = (obj, empty='- select label -', icons=1) => {
                 if (str && pageVars.labels.length < 250 && !lst.find(o => o.lbl.toLowerCase() === str.toLowerCase())) lst.push({id:-1, lbl: str});
                 cb(lst);
             }),
-            view: obj => [ src.view(obj), obj.id < 0 ? m('small', ' (new label)') : null ],
+            view: obj => [ src.view(obj), obj.id < 0 ? m('small', [...obj.lbl].length >= 50 ? ' (too long)' : ' (new label)') : null ],
         }, {
             placeholder: 'Add label...',
             checked: l => obj.labels && obj.labels.includes(l.id),
             onselect: (l,c) => {
                 // Adding a new label is tricky business, need to prevent further interaction while loading.
                 if (l.id < 0) {
+                    if ([...l.lbl].length >= 50) return;
                     obj._labelAdd = new Api('UListLabelAdd');
                     obj._labelAdd.call({vid: obj.vid, label: l.lbl}, res => {
                         if (!pageVars.labels.find(([id]) => id === res.id))
