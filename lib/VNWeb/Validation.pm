@@ -199,6 +199,7 @@ sub is_unique_username {
 
 
 # Lookup IP and return an 'ipinfo' DB string.
+# TODO: Return a hashref
 sub ipinfo {
     my $ip = shift || fu->ip;
     state $db = config->{location_db} && do {

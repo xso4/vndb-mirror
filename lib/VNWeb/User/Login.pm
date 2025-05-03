@@ -23,26 +23,26 @@ js_api UserLogin => {
     my $data = shift;
 
     my $ip = norm_ip fu->ip;
-    my $tm = fu->dbVali(
-        'SELECT', sql_totime('greatest(timeout, now())'), 'FROM login_throttle WHERE ip =', \$ip
-    ) || time;
+    my $tm = fu->sql('SELECT greatest(timeout, now()) FROM login_throttle WHERE ip = $1', $ip)->val || time;
     return +{ _err => 'Too many failed login attempts, please use the password reset form or try again later.' }
         if $tm-time() > config->{login_throttle}[1];
 
     my $ismail = $data->{username} =~ /@/;
     my $mailmsg = 'Invalid username or password.';
 
-    my $u = fu->dbRowi('SELECT id, user_getscryptargs(id) x FROM users WHERE',
-        $ismail ? sql('id IN(SELECT uid FROM user_emailtoid(', \$data->{username}, '))')
-                : sql('lower(username) = lower(', \$data->{username}, ')')
-    );
+    my $u = fu->sql(
+        'SELECT id, user_getscryptargs(id) x FROM users WHERE '.($ismail
+            ? 'id IN(SELECT uid FROM user_emailtoid($1))'
+            : 'lower(username) = lower($1)'
+        ), $data->{username}
+    )->rowh;
     # When logging in with an email, make sure we don't disclose whether or not an account with that email exists.
-    if ($ismail && !$u->{id}) {
+    if ($ismail && !$u) {
         auth->wasteTime; # make timing attacks a bit harder (not 100% perfect, DB lookups & different scrypt args can still influence timing)
-        return +{ _err => $mailmsg };
+        return $mailmsg;
     }
-    return +{ _err => 'No user with that name.' } if !$u->{id};
-    return +{ _err => 'Account disabled, please use the password reset form to re-activate your account.' } if !$u->{x};
+    return 'No user with that name.' if !$u;
+    return 'Account disabled, please use the password reset form to re-activate your account.' if !$u->{x};
 
     my $insecure = is_insecurepass $data->{password};
     my $ret = auth->login($u->{id}, $data->{password}, $insecure);
@@ -51,19 +51,19 @@ js_api UserLogin => {
     if (!$ret) {
         auth->audit($u->{id}, 'bad password', 'failed login attempt');
         my $upd = {
-            ip      => \$ip,
-            timeout => sql_fromtime $tm + config->{login_throttle}[0]
+            ip      => $ip,
+            timeout => $tm + config->{login_throttle}[0]
         };
-        fu->dbExeci('INSERT INTO login_throttle', $upd, 'ON CONFLICT (ip) DO UPDATE SET', $upd);
-        return +{ _err => $ismail ? $mailmsg : 'Incorrect password.' }
+        fu->SQL('INSERT INTO login_throttle', VALUES($upd), 'ON CONFLICT (ip) DO UPDATE', SET($upd))->exec;
+        return $ismail ? $mailmsg : 'Incorrect password.';
 
     # Insecure password
     } elsif ($insecure) {
         return +{ insecurepass => 1, uid => $u->{id} };
 
     # Account marked for deletion
-    } elsif (40 == length $ret) {
-        return +{ _redir => "/$u->{id}/del/$ret" };
+    } elsif (20 == length $ret) {
+        return +{ _redir => "/$u->{id}/del/".bin2hex($ret) };
 
     # Successful login
     } elsif ($ret) {

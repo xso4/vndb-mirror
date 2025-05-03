@@ -4,7 +4,7 @@ use VNWeb::Prelude;
 
 
 sub _getmail {
-    fu->dbVali(select => sql_func user_getmail => \auth->uid, \auth->uid, sql_fromhex auth->token);
+    fu->sql('SELECT user_getmail($1, $1, $2)', auth->uid, auth->token)->val;
 }
 
 sub set_delete {
@@ -12,22 +12,19 @@ sub set_delete {
     my $pwd = fu->formdata(password => { password => 1, onerror => undef }) // return 1;
     return 1 if !VNWeb::Auth->new->login(auth->uid, $pwd, 1);
 
-    fu->dbExeci(select => sql_func user_setdelete => \auth->uid, sql_fromhex(auth->token), \1);
+    fu->sql('SELECT user_setdelete($1, $2, true)', auth->uid, auth->token)->exec;
     auth->audit(auth->uid, 'mark for deletion');
 
-    my $path = '/'.auth->uid.'/del/'.auth->token;
-    my $body = sprintf
-        "Hello %s,"
+    my $path = '/'.auth->uid.'/del/'.bin2hex auth->token;
+    VNWeb::Validation::sendmail(
+        "Hello ".auth->user->{user_name}.","
        ."\n"
        ."\nAs per your request, your account is scheduled for deletion in approximately 7 days."
        ."\nTo view the status of your request or to cancel the deletion, visit the link below before the timer expires:"
        ."\n"
-       ."\n%s"
+       ."\n".config->{url}.$path
        ."\n"
        ."\nvndb.org",
-       auth->user->{user_name}, config->{url}.$path;
-
-    VNWeb::Validation::sendmail($body,
         To => _getmail(),
         Subject => 'Account deletion for '.auth->user->{user_name},
     );
@@ -52,7 +49,7 @@ sub delpage($uid) {
                 txt_ '.';
             };
 
-            my $vns = fu->dbVali('SELECT COUNT(*) FROM ulist_vns WHERE uid =', \$uid);
+            my $vns = fu->sql('SELECT COUNT(*) FROM ulist_vns WHERE uid = $1', $uid)->val;
             if ($vns) {
                 h2_ 'Visual novel list';
                 p_ sub {
@@ -66,13 +63,13 @@ sub delpage($uid) {
                 };
             }
 
-            my $posts = fu->dbVali('SELECT
+            my $posts = fu->sql('SELECT
                 (SELECT COUNT(*)
-                FROM threads_posts tp
-                WHERE hidden IS NULL AND uid =', \$uid, '
-                AND EXISTS(SELECT 1 FROM threads t WHERE t.id = tp.tid AND NOT t.hidden)
+                   FROM threads_posts tp
+                  WHERE hidden IS NULL AND uid = $1
+                    AND EXISTS(SELECT 1 FROM threads t WHERE t.id = tp.tid AND NOT t.hidden)
                 ) +
-                (SELECT COUNT(*) FROM reviews_posts WHERE hidden IS NULL AND uid =', \$uid, ')');
+                (SELECT COUNT(*) FROM reviews_posts WHERE hidden IS NULL AND uid = $1)', $uid)->val;
             if ($posts) {
                 h2_ 'Forum posts';
                 p_ sub {
@@ -86,7 +83,7 @@ sub delpage($uid) {
                 p_ 'Please send an email to '.config->{admin_email}.' if these contain sensitive information that you wish to have deleted.';
             }
 
-            my $edits = fu->dbVali('SELECT COUNT(*) FROM changes WHERE requester =', \$uid);
+            my $edits = fu->sql('SELECT COUNT(*) FROM changes WHERE requester = $1', $uid)->val;
             if ($edits) {
                 h2_ 'Database edits';
                 p_ sub {
@@ -100,7 +97,7 @@ sub delpage($uid) {
                 p_ 'Please send an email to '.config->{admin_email}.' if these contain sensitive information that you wish to have deleted.';
             }
 
-            my $reviews = fu->dbVali('SELECT COUNT(*) FROM reviews WHERE uid =', \$uid);
+            my $reviews = fu->sql('SELECT COUNT(*) FROM reviews WHERE uid = $1', $uid)->val;
             if ($reviews) {
                 h2_ 'Reviews';
                 p_ sub {
@@ -114,10 +111,10 @@ sub delpage($uid) {
                 p_ "If you don't want this, make sure to delete the reviews by going through the edit form.";
             }
 
-            my $lengthvotes = fu->dbVali('SELECT COUNT(*) FROM vn_length_votes WHERE NOT private AND uid =', \$uid);
-            my $imgvotes = fu->dbVali('SELECT COUNT(*) FROM image_votes WHERE uid =', \$uid);
-            my $tags = fu->dbVali('SELECT COUNT(*) FROM tags_vn WHERE uid =', \$uid);
-            my $quotes => fu->dbVali('SELECT COUNT(*) FROM quotes WHERE addedby =', \$uid);
+            my $lengthvotes = fu->sql('SELECT COUNT(*) FROM vn_length_votes WHERE NOT private AND uid = $1', $uid)->val;
+            my $imgvotes = fu->sql('SELECT COUNT(*) FROM image_votes WHERE uid = $1', $uid)->val;
+            my $tags = fu->sql('SELECT COUNT(*) FROM tags_vn WHERE uid = $1', $uid)->val;
+            my $quotes => fu->sql('SELECT COUNT(*) FROM quotes WHERE addedby = $1', $uid)->val;
             if ($lengthvotes || $imgvotes || $tags || $quotes) {
                 h2_ 'Misc. database contributions';
                 p_ 'Your database contributions will remain after your account has been deleted, these include:';
@@ -154,24 +151,24 @@ FU::post qr{/$RE{uid}/del}, \&delpage;
 sub delstatus($uid, $token) {
     fu->redirect(temp => '/') if auth && auth->uid ne $uid;
 
-    my $u = fu->dbRowi('
-      SELECT ', sql_totime('us.delete_at'), 'delete_at, ', sql_user(), '
-           , ', sql_func(user_validate_session => 'u.id', sql_fromhex($token), \'web'), 'IS DISTINCT FROM NULL AS valid
+    my $u = fu->SQL('
+      SELECT us.delete_at, ', USER, '
+           , user_validate_session(u.id,', hex2bin($token), ", 'web') IS DISTINCT FROM NULL AS valid
         FROM users u
         JOIN users_shadow us ON us.id = u.id
-       WHERE u.id =', \$uid
-    );
+       WHERE u.id =", $uid
+    )->rowh;
 
     my $cancelled;
-    if (fu->method eq 'POST' && $u->{valid} && $u->{delete_at}) {
+    if (fu->method eq 'POST' && $u && $u->{valid} && $u->{delete_at}) {
         # TODO: Ideally this should just auto-login and redirect, but doing so
         # with the current session token is a bad idea and I'm too lazy to code
         # a session token renewal thing.
         # TODO: This should really invalidate all existing session tokens,
         # given that we could also have reached this page with a fresh token on
         # login.
-        fu->dbExeci(select => sql_func user_setdelete => \$uid, sql_fromhex($token), \0);
-        fu->dbExeci(select => sql_func user_logout => \$uid, sql_fromhex $token);
+        fu->sql('SELECT user_setdelete($1, $2, false)', $uid, hex2bin $token)->exec;
+        fu->sql('SELECT user_logout($1, $2)', $uid, hex2bin $token)->exec;
         auth->audit($uid, 'cancel deletion');
         $cancelled = 1;
     }
@@ -184,7 +181,7 @@ sub delstatus($uid, $token) {
                 a_ href => '/u/login', 'login to your account again';
                 txt_ '.';
             };
-        } : !defined $u->{user_name} ? sub {
+        } : !$u ? sub {
             h1_ 'No such user';
             p_ 'No user found with that ID, perhaps the account has been deleted already.';
         } : !$u->{valid} ? sub {

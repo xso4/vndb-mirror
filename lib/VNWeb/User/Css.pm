@@ -22,11 +22,12 @@ sub _sanitize_css {
 
 
 FU::get qr{/$RE{uid}\.css}, sub($uid) {
-    my $u = fu->dbRowi('
+    my $u = fu->sql('
         SELECT u.id, pubskin_can, pubskin_enabled, customcss
           FROM users u
           JOIN users_prefs up ON up.id = u.id
-         WHERE u.id =', \$uid);
+         WHERE u.id = $1', $uid
+    )->rowh;
     fu->notfound if !$u->{id};
     fu->denied if !($u->{pubskin_can} && $u->{pubskin_enabled}) && !(auth && auth->uid eq $u->{id});
     fu->set_header('content-type', 'text/css');

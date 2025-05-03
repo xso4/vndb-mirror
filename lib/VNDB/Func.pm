@@ -12,6 +12,7 @@ use VNDB::BBCode;
 our @EXPORT = (qw|
     bb_format
     in
+    hex2bin bin2hex
     idcmp
     shorten
     resolution
@@ -38,6 +39,11 @@ sub in($q, @a) {
     $_ eq $q && return 1 for map ref $_ eq 'ARRAY' ? @$_ : ($_), @a;
     0
 }
+
+
+# Because I can never remember when to use 'pack' or 'unpack'
+sub hex2bin($hex) { pack 'H*', $hex }
+sub bin2hex($bin) { unpack 'H*', $bin }
 
 
 # Compare two vndbids, using proper numeric order

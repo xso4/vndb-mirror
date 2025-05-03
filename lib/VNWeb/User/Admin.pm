@@ -16,16 +16,22 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     map +("perm_$_" => { anybool => 1 }), VNWeb::Auth::listPerms
 };
 
-sub _userinfo {
+sub _cols {
+    auth->permUsermod ? ('ign_votes', map "perm_$_", grep $_ ne 'usermod', auth->listPerms) : (
+        auth->permBoardmod ? qw/perm_board perm_review/ : (),
+        auth->permDbmod    ? qw/perm_edit perm_imgvote perm_lengthvote/ : (),
+        auth->permTagmod   ? qw/perm_tag/ : (),
+    );
+}
+
+sub _userinfo($id) {
     fu->denied if !auth->isMod;
-    my $u = fu->dbRowi('
-        SELECT u.id, username, ign_votes, ', sql_comma(map "perm_$_", auth->listPerms), '
+    fu->sql('
+        SELECT u.id, username, '.join(',', _cols).'
           FROM users u
           LEFT JOIN users_shadow us ON us.id = u.id
-         WHERE u.id =', \$_[0]
-    );
-    fu->notfound if !$u->{id};
-    $u
+         WHERE u.id = $1', $id
+    )->rowh or fu->notfound;
 }
 
 
@@ -48,19 +54,10 @@ js_api UserAdmin => $FORM_IN, sub {
     my($data) = @_;
     my $u = _userinfo $data->{id};
 
-    my @set = (
-        auth->permUsermod
-        ? ('ign_votes', map "perm_$_", grep $_ ne 'usermod', auth->listPerms)
-        : (
-            auth->permBoardmod ? qw/perm_board perm_review/ : (),
-            auth->permDbmod    ? qw/perm_edit perm_imgvote perm_lengthvote/ : (),
-            auth->permTagmod   ? qw/perm_tag/ : (),
-        ),
-    );
-    fu->dbExeci('UPDATE users SET', { map +($_, $data->{$_}), @set }, 'WHERE id =', \$u->{id});
+    fu->SQL('UPDATE users', SET({ map +($_, $data->{$_}), _cols }), 'WHERE id =', $u->{id})->exec;
 
     my $new = _userinfo $u->{id};
-    my @diff = grep $u->{$_} ne $new->{$_}, @set;
+    my @diff = grep $u->{$_} ne $new->{$_}, _cols;
     auth->audit($data->{id}, 'user admin', join '; ', map "$_: $u->{$_} -> $new->{$_}", @diff) if @diff;
     +{ ok => 1 }
 };

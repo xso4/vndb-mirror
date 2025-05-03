@@ -505,8 +505,4 @@ our @ZONES = qw{
 };
 our %ZONES = map +($_,1), @ZONES;
 
-FU::before_request {
-    $ENV{TZ} = !is_api() && auth->pref('timezone') || 'UTC';
-} if config->{api} ne 'only';
-
 1;

@@ -17,30 +17,27 @@ js_api UserPassReset => {
 
     # Throttle exists to prevent email sending abuse
     my $ip = norm_ip fu->ip;
-    my $tm = fu->dbVali(
-        'SELECT', sql_totime('greatest(timeout, now())'), 'FROM reset_throttle WHERE ip =', \$ip
-    ) || time;
+    my $tm = fu->sql('SELECT greatest(timeout, now()) FROM reset_throttle WHERE ip = $1', $ip)->val || time;
     return 'Too many password reset attempts, try again later.' if $tm-time() > config->{reset_throttle}[1];
 
-    my $upd = {ip => $ip, timeout => sql_fromtime $tm + config->{reset_throttle}[0]};
-    fu->dbExeci('INSERT INTO reset_throttle', $upd, 'ON CONFLICT (ip) DO UPDATE SET', $upd);
+    my $upd = {ip => $ip, timeout => $tm + config->{reset_throttle}[0]};
+    fu->SQL('INSERT INTO reset_throttle', VALUES($upd), 'ON CONFLICT (ip) DO UPDATE', SET $upd)->exec;
 
     # Do nothing if the email is blacklisted
-    return +{} if fu->dbVali('SELECT email_optout_check(', \$data->{email}, ')');
+    return +{} if fu->sql('SELECT email_optout_check($1)', $data->{email})->val;
 
     my($id, $mail, $token) = auth->resetpass($data->{email});
-    my $name = $id ? fu->dbVali('SELECT username FROM users WHERE id =', \$id) : $data->{email};
-    my $body = $id ? sprintf
-         "Hello %s,"
+    my $name = $id ? fu->sql('SELECT username FROM users WHERE id = $1', $id)->val : $data->{email};
+    my $body = $id ?
+         "Hello $name,"
         ."\n"
         ."\nYou can set a new password for your VNDB.org account by following the link below:"
         ."\n"
-        ."\n%s"
+        ."\n".config->{url}."/$id/setpass/".bin2hex($token)
         ."\n"
         ."\nNow don't forget your password again! :-)"
         ."\n"
-        ."\nvndb.org",
-        $name, config->{url}."/$id/setpass/$token"
+        ."\nvndb.org"
     :   "Hello,"
        ."\n"
        ."\nSomeone has requested a password reset for the VNDB account associated with this email address."

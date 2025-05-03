@@ -90,36 +90,36 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
 
 
 sub _getmail($uid) {
-    fu->dbVali(select => sql_func user_getmail => \$uid, \auth->uid, sql_fromhex auth->token);
+    fu->sql('SELECT user_getmail($1, $2, $3)', $uid, auth->uid, auth->token)->val;
 }
 
 sub _namethrottled($uid) {
-    !auth->permUsermod && fu->dbVali('SELECT 1 FROM users_username_hist WHERE id =', \$uid, 'AND date > NOW()-\'1 day\'::interval')
+    !auth->permUsermod && fu->sql(q{SELECT 1 FROM users_username_hist WHERE id = $1 AND date > NOW()-'1 day'::interval}, $uid)->val;
 }
 
 FU::get qr{/$RE{uid}/edit}, sub($uid) {
-    my $u = fu->dbRowi(
+    my $u = fu->sql(
         'SELECT u.id, username, max_sexual, max_violence, traits_sexual, tags_all, tags_cont, tags_ero, tags_tech, prodrelexpand
               , vnrel_langs::text[], vnrel_olang, vnrel_mtl, vnimage, staffed_langs::text[], staffed_olang, staffed_unoff
               , spoilers, skin, customcss, customcss_csum, timezone, titles::text
               , nodistract_can, support_can, uniname_can, pubskin_can
               , nodistract_noads, nodistract_nofancy, support_enabled, uniname, pubskin_enabled
-           FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \$uid
-    );
-    fu->notfound if !$u->{id} || !can_edit u => $u;
+           FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id = $1', $uid
+    )->rowh;
+    fu->notfound if !$u || !can_edit u => $u;
 
     $u->{editor_usermod}     = $u->{id} ne auth->uid;
     $u->{username_throttled} = _namethrottled $u->{id};
     $u->{email}              = _getmail $u->{id};
     $u->{password}           = undef;
 
-    $u->{traits} = fu->dbAlli('SELECT u.tid, t.name, g.name AS "group" FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id =', \$u->{id}, 'ORDER BY g.gorder, t.name');
+    $u->{traits} = fu->sql('SELECT u.tid, t.name, g.name AS "group" FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id = $1 ORDER BY g.gorder, t.name', $u->{id})->allh;
     $u->{timezone} ||= 'UTC';
     @{$u}{'titles','alttitles'} = @{ titleprefs_parse($u->{titles}) // $DEFAULT_TITLE_PREFS };
     $u->{skin} ||= config->{skin_default};
 
-    $u->{tagprefs} = fu->dbAlli('SELECT u.tid, u.spoil, u.color, u.childs, t.name FROM users_prefs_tags u JOIN tags t ON t.id = u.tid WHERE u.id =', \$u->{id}, 'ORDER BY t.name');
-    $u->{traitprefs} = fu->dbAlli('SELECT u.tid, u.spoil, u.color, u.childs, t.name, g.name as "group" FROM users_prefs_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id =', \$u->{id}, 'ORDER BY g.gorder, t.name');
+    $u->{tagprefs} = fu->sql('SELECT u.tid, u.spoil, u.color, u.childs, t.name FROM users_prefs_tags u JOIN tags t ON t.id = u.tid WHERE u.id = $1 ORDER BY t.name', $u->{id})->allh;
+    $u->{traitprefs} = fu->sql('SELECT u.tid, u.spoil, u.color, u.childs, t.name, g.name as "group" FROM users_prefs_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id = $1 ORDER BY g.gorder, t.name', $u->{id})->allh;
 
     $u->{api2} = auth->api2_tokens($u->{id});
 
@@ -135,23 +135,20 @@ FU::get qr{/$RE{uid}/edit}, sub($uid) {
 
 
 js_api UserEdit => $FORM_IN, sub($data) {
-    my $u = fu->dbRowi('SELECT id, username FROM users WHERE id =', \$data->{id});
-    fu->notfound if !$u->{id};
+    my $u = fu->sql('SELECT id, username FROM users WHERE id = $1', $data->{id})->rowh;
+    fu->notfound if !$u;
     fu->denied if !can_edit u => $u;
 
     my(%set, %setp);
 
     $data->{uniname} = '' if $data->{uniname} eq $u->{username};
     return +{ code => 'uniname', _err => 'Display name already taken.' }
-        if $data->{uniname} && fu->dbVali('SELECT 1 FROM users WHERE id <>', \$data->{id}, 'AND lower(username) =', \lc($data->{uniname}));
+        if $data->{uniname} && !is_unique_username $data->{uniname}, $data->{id};
 
     $data->{skin} = '' if $data->{skin} eq config->{skin_default};
     $data->{timezone} = '' if $data->{timezone} eq 'UTC';
     $data->{titles} = titleprefs_fmt [ $data->{titles}, delete $data->{alttitles} ];
-    $data->{titles} = undef if $data->{titles} eq titleprefs_fmt $DEFAULT_TITLE_PREFS;
-
-    $data->{vnrel_langs}    = !$data->{vnrel_langs} || $data->{vnrel_langs}->@* == keys %LANGUAGE ? undef : '{'.join(',',$data->{vnrel_langs}->@*).'}';
-    $data->{staffed_langs}  = !$data->{staffed_langs} || $data->{staffed_langs}->@* == keys %LANGUAGE ? undef : '{'.join(',',$data->{staffed_langs}->@*).'}';
+    $data->{titles} = $data->{titles} eq titleprefs_fmt($DEFAULT_TITLE_PREFS) ? undef : SQL($data->{titles}, '::text::titleprefs');
 
     $set{$_} = $data->{$_} for qw/nodistract_noads nodistract_nofancy support_enabled uniname pubskin_enabled/;
     $setp{$_} = $data->{$_} for qw/
@@ -166,7 +163,7 @@ js_api UserEdit => $FORM_IN, sub($data) {
         return +{ code => 'username_taken', _err => 'Username already taken.' } if !is_unique_username $data->{username}, $data->{id};
         $set{username} = $data->{username};
         auth->audit($data->{id}, 'username change', "old=$u->{username}; new=$data->{username}");
-        fu->dbExeci('INSERT INTO users_username_hist', { id => $data->{id}, old => $u->{username}, new => $data->{username} });
+        fu->SQL('INSERT INTO users_username_hist', VALUES { id => $data->{id}, old => $u->{username}, new => $data->{username} })->exec;
     }
 
     if($data->{password}) {
@@ -181,8 +178,8 @@ js_api UserEdit => $FORM_IN, sub($data) {
 
     my $oldmail = _getmail $data->{id};
     if ($oldmail ne $data->{email}) {
-        my $other = fu->dbVali('SELECT u.username FROM users u, user_emailtoid(', \$data->{email}, ') x(id) WHERE u.id = x.id AND x.id <>', \$data->{id});
-        if (VNWeb::User::Register::throttle()) {
+        my $other = fu->sql('SELECT u.username FROM users u, user_emailtoid($1) x(id) WHERE u.id = x.id AND x.id <> $2', $data->{email}, $data->{id})->val;
+        if (!auth->permUsermod && VNWeb::User::Register::throttle()) {
             return 'You may only change your email address once a day.';
         } elsif (length $other) {
             VNWeb::Validation::sendmail(
@@ -199,16 +196,16 @@ js_api UserEdit => $FORM_IN, sub($data) {
             );
             auth->audit($data->{id}, 'email change attempt to other user', "new=$data->{email}");
             $ret = {email=>1};
-        } elsif (fu->dbVali('SELECT email_optout_check(', \$data->{email}, ')')) {
+        } elsif (fu->sql('SELECT email_optout_check($1)', $data->{email})->val) {
             auth->audit($data->{id}, 'email change attempt to blacklist', "new=$data->{email}");
             return 'Registration disabled for the given email address';
         } elsif ($data->{id} ne auth->uid) {
             auth->audit($data->{id}, 'email change', "old=$oldmail; new=$data->{email}");
-            fu->dbExeci(select => sql_func user_admin_setmail => \$data->{id}, \auth->uid, sql_fromhex(auth->token), \$data->{email});
+            fu->sql('SELECT user_admin_setmail($1, $2, $3, $4)', $data->{id}, auth->uid, auth->token, $data->{email})->exec;
             $set{email_confirmed} = 1;
         } else {
             auth->audit($data->{id}, 'email change request', "old=$oldmail; new=$data->{email}");
-            my $token = auth->setmail_token($data->{email});
+            my $token = bin2hex auth->setmail_token($data->{email});
             VNWeb::Validation::sendmail(
                 "Hello $u->{username},"
                 ."\n"
@@ -224,14 +221,14 @@ js_api UserEdit => $FORM_IN, sub($data) {
         }
     }
 
-    fu->dbExeci('DELETE FROM users_traits WHERE id =', \$data->{id});
-    fu->dbExeci('INSERT INTO users_traits', { id => $data->{id}, tid => $_->{tid} }) for $data->{traits}->@*;
+    fu->SQL('DELETE FROM users_traits WHERE id =', $data->{id})->exec;
+    fu->SQL('INSERT INTO users_traits', VALUES { id => $data->{id}, tid => $_->{tid} })->exec for $data->{traits}->@*;
 
-    fu->dbExeci('DELETE FROM users_prefs_tags WHERE id =', \$data->{id});
-    fu->dbExeci('INSERT INTO users_prefs_tags', { id => $data->{id}, %{$_}{qw|tid spoil color childs|} }) for $data->{tagprefs}->@*;
+    fu->SQL('DELETE FROM users_prefs_tags WHERE id =', $data->{id})->exec;
+    fu->SQL('INSERT INTO users_prefs_tags', VALUES { id => $data->{id}, %{$_}{qw|tid spoil color childs|} })->exec for $data->{tagprefs}->@*;
 
-    fu->dbExeci('DELETE FROM users_prefs_traits WHERE id =', \$data->{id});
-    fu->dbExeci('INSERT INTO users_prefs_traits', { id => $data->{id}, %{$_}{qw|tid spoil color childs|} }) for $data->{traitprefs}->@*;
+    fu->SQL('DELETE FROM users_prefs_traits WHERE id =', $data->{id})->exec;
+    fu->SQL('INSERT INTO users_prefs_traits', VALUES { id => $data->{id}, %{$_}{qw|tid spoil color childs|} })->exec for $data->{traitprefs}->@*;
 
     my %tokens = map +($_->{token},$_), $data->{api2}->@*;
     for (auth->api2_tokens($data->{id})->@*) {
@@ -246,13 +243,15 @@ js_api UserEdit => $FORM_IN, sub($data) {
         }
     }
 
-    my $old = fu->dbRowi('SELECT', sql_comma(keys %set, keys %setp), 'FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \$data->{id});
-    fu->dbExeci('UPDATE users SET', \%set, 'WHERE id =', \$data->{id}) if keys %set;
-    fu->dbExeci('UPDATE users_prefs SET', \%setp, 'WHERE id =', \$data->{id}) if keys %setp;
-    my $new = fu->dbRowi('SELECT', sql_comma(keys %set, keys %setp), 'FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id =', \$data->{id});
+    my $audit = auth->uid ne $data->{id};
 
-    if (auth->uid ne $data->{id}) {
-        $_ = FU::Util::json_format($_) for values %$old, %$new;
+    my $old = $audit && fu->sql('SELECT '.join(',', keys %set, keys %setp).' FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id = $1', $data->{id})->rowh;
+    fu->SQL('UPDATE users', SET(\%set), 'WHERE id =', $data->{id})->exec if keys %set;
+    fu->SQL('UPDATE users_prefs', SET(\%setp), 'WHERE id =', $data->{id})->exec if keys %setp;
+    my $new = $audit && fu->sql('SELECT '.join(',', keys %set, keys %setp).' FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id = $1', $data->{id})->rowh;
+
+    if ($audit) {
+        $_ = FU::Util::json_format($_, canonical => 1) for values %$old, %$new;
         my @diff = grep $old->{$_} ne $new->{$_}, keys %set, keys %setp;
         auth->audit($data->{id}, 'user edit', join '; ', map "$_: $old->{$_} -> $new->{$_}", @diff) if @diff;
     }
@@ -262,7 +261,7 @@ js_api UserEdit => $FORM_IN, sub($data) {
 
 
 FU::get qr{/$RE{uid}/setmail/([a-f0-9]{40})}, sub($uid, $token) {
-    my $success = auth->setmail_confirm($uid, $token);
+    my $success = auth->setmail_confirm($uid, hex2bin $token);
     my $title = $success ? 'E-mail confirmed' : 'Error confirming email';
     auth->audit($uid, 'email change confirmed') if $success;
     framework_ title => $title, sub {

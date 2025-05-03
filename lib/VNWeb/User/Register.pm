@@ -21,10 +21,11 @@ FU::get '/u/register', sub {
 
 # Registration throttle is also used for email address changes in User::Edit.
 sub throttle {
-    my $ip = fu->ip;
-    return 1 if fu->dbVali('SELECT 1 FROM registration_throttle WHERE timeout > NOW() AND ip =', \norm_ip($ip));
-    my %throttle = (timeout => sql("NOW()+'1 day'::interval"), ip => norm_ip($ip));
-    fu->dbExeci('INSERT INTO registration_throttle', \%throttle, 'ON CONFLICT (ip) DO UPDATE SET', \%throttle);
+    my $ip = norm_ip fu->ip;
+    my $tm = fu->sql('SELECT greatest(timeout, now()) FROM registration_throttle WHERE ip = $1', $ip)->val || time;
+    return 1 if $tm-time() > 24*3600;
+    my $upd = { ip => $ip, timeout => $tm + 24*3600 };
+    fu->SQL('INSERT INTO registration_throttle', VALUES($upd), 'ON CONFLICT (ip) DO UPDATE', SET $upd)->exec;
     return 0;
 }
 
@@ -32,8 +33,7 @@ sub throttle {
 js_api UserRegister => {
     username => { username => 1 },
     email    => { email => 1 },
-}, sub {
-    my $data = shift;
+}, sub($data) {
     return 'Registration disabled.' if global_settings->{lockdown_registration};
 
     return +{ err => 'username' } if !is_unique_username $data->{username};
@@ -42,10 +42,10 @@ js_api UserRegister => {
     return 'You can only register one account from the same IP within 24 hours.' if throttle;
 
     return 'Registration disabled for the given email address.'
-        if fu->dbVali('SELECT email_optout_check(', \$data->{email}, ')');
+        if fu->sql('SELECT email_optout_check($1)', $data->{email})->val;
 
     # Check for duplicate email
-    my $dupe = fu->dbVali('SELECT u.username FROM users u, user_emailtoid(', \$data->{email}, ') x(id) WHERE x.id = u.id');
+    my $dupe = fu->sql('SELECT u.username FROM users u, user_emailtoid($1) x(id) WHERE x.id = u.id', $data->{email})->val;
     if (defined $dupe) {
         VNWeb::Validation::sendmail(
              "Hello $data->{username},"
@@ -65,25 +65,21 @@ js_api UserRegister => {
         return +{ ok => 1 };
     }
 
-    my $id = fu->dbVali('INSERT INTO users', {username => $data->{username}}, 'RETURNING id');
-    fu->dbExeci('INSERT INTO users_prefs', {id => $id});
-    fu->dbExeci('INSERT INTO users_shadow', {id => $id, ip => ipinfo(), mail => $data->{email}});
+    my $id = fu->sql('INSERT INTO users (username) VALUES ($1) RETURNING id', $data->{username})->val;
+    fu->sql('INSERT INTO users_prefs (id) VALUES ($1)', $id)->exec;
+    fu->sql('INSERT INTO users_shadow (id, ip, mail) VALUES ($1, $2::text::ipinfo, $3)', $id, ipinfo, $data->{email})->exec;
 
     my(undef, undef, $token) = auth->resetpass($data->{email});
-
-    my $body = sprintf
-         "Hello %s,"
-        ."\n\n"
-        ."Someone has registered an account on VNDB.org with your email address. To confirm your registration, follow the link below."
-        ."\n\n"
-        ."%s"
-        ."\n\n"
-        ."If you don't remember creating an account on VNDB.org recently, please ignore this e-mail."
-        ."\n\n"
-        ."vndb.org",
-        $data->{username}, config->{url}."/$id/setpass/$token";
-
-    VNWeb::Validation::sendmail($body,
+    VNWeb::Validation::sendmail(
+         "Hello $data->{username},"
+        ."\n"
+        ."\nSomeone has registered an account on VNDB.org with your email address. To confirm your registration, follow the link below."
+        ."\n"
+        ."\n".config->{url}."/$id/setpass/".bin2hex($token)
+        ."\n"
+        ."\nIf you don't remember creating an account on VNDB.org recently, please ignore this e-mail."
+        ."\n"
+        ."\nvndb.org",
         To => $data->{email},
         Subject => "Confirm registration for $data->{username}",
     );

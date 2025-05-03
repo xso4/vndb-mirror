@@ -54,6 +54,7 @@ FU::init_db sub {
     $db->set_type(date => '$date_str');
     $db->exec(sprintf 'SET statement_timeout = %d', config->{statement_timeout}*1000) if config->{statement_timeout};
     $db->exec('SET search_path TO moe, public') if config->{moe};
+    $db->exec('SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY') if config->{read_only};
     $db;
 };
 
@@ -76,6 +77,9 @@ FU::before_request {
     }
     fu->reset;
     $FU::REQ->{trace_id} = $id;
+
+    # Load TZ from user preference
+    $ENV{TZ} = auth->pref('timezone') || 'UTC';
 
     # Use a 'SameSite=Strict' cookie to determine whether this page was loaded from internal or external.
     # Ought to be more reliable than checking the Referer header, but it's unfortunately a bit uglier.
