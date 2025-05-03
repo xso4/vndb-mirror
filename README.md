@@ -217,30 +217,18 @@ util/multi.pl
 
 ## Production Deployment
 
-The above instructions are suitable for a development environment. For a
-production environment, you'll really want to use FastCGI instead of the shitty
-built-in web server. Make sure you have the `FCGI` Perl module installed, then
-point a FastCGI-capable web server to *util/vndb.pl*.  Apache (with
-`mod_fcgid`) and Lighttpd can be used for this, but my current setup is based
-on nginx.  Since nginx does not come with a FastCGI process manager, I use
-[spawn-fcgi](https://git.lighttpd.net/lighttpd/spawn-fcgi) in combination with
-[multiwatch](https://git.lighttpd.net/lighttpd/multiwatch):
-
-```sh
-spawn-fcgi -s /tmp/vndb-fastcgi.sock -u vndb -g vndb -- \
-    /usr/bin/multiwatch -f 6 -r 10000 -s TERM /path/to/vndb/util/vndb.pl
-```
-
-There is a slow memory "leak" in the Perl backend, so you'll want to reload the
-vndb.pl processes once in a while. One way to do that is by setting
-`fastcgi_max_requests` in *var/conf.pl*, but it is also safe to reload the
-processes by running a `pkill vndb.pl` at any time.
-
 For optimized static assets, run `make prod` as part of your deployment
 procedure. This has some additional dependencies, see the Makefile for details.
 
-With the above taken care of, the nginx configuration for a single-domain setup
-looks something like this:
+For a production environment, you'll really want to use FastCGI instead of the
+shitty built-in web server. Start the backend as follows:
+
+```
+util/vndb.pl --fcgi=unix:/tmp/vndb-fastcgi.sock --proc=4 --max-reqs=5000:10000
+```
+
+Then point a FastCGI-capable web server to the configured socket. When using
+nginx, the configuration for a single-domain setup can look something like:
 
 ```nginx
 server {
@@ -255,11 +243,8 @@ server {
 
   location @fcgi {
     expires off;
+    client_max_body_size 10M;
     include /etc/nginx/fastcgi_params;
-    # The following can be used to trick TUWF into thinking we're running on
-    # HTTPS, useful if this nginx instance is behind a reverse proxy that does
-    # the HTTPS termination.
-    #fastcgi_param HTTPS 1;
     fastcgi_pass unix:/tmp/vndb-fastcgi.sock;
   }
 }
