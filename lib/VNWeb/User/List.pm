@@ -69,7 +69,7 @@ FU::get qr{/u/([0a-z]|all)}, sub($char) {
         $opt->{q} ? sql_or(
             auth->permUsermod && $opt->{q} =~ /@/ ? sql('id IN(SELECT uid FROM user_emailtoid(', \$opt->{q}, '))') : (),
             $opt->{q} =~ /^u?($RE{num})$/ ? sql 'id =', \"u$1" : (),
-            $opt->{q} =~ /@/ ? () : sql('username ILIKE', \('%'.sql_like($opt->{q}).'%')),
+            $opt->{q} =~ /@/ ? () : length $opt->{q} > 12 ? () : sql('username ILIKE', \('%'.sql_like($opt->{q}).'%')),
         ) : ()
     );
 
