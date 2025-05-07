@@ -501,6 +501,12 @@ our %LINKS = (
         , label => 'Official website'
         , fmt   => '%s'
         },
+    weibo =>
+        { ent   => 'sp'
+        , label => 'Weibo'
+        , fmt   => 'https://weibo.com/u/%d'
+        , regex => qr{(?:www\.)?weibo\.com/u/$int}
+        },
     wikidata =>
         { ent   => 'sp'
         , label => 'Wikidata'
@@ -718,6 +724,7 @@ sub enrich_vislinks($type, $enabled, @obj) {
         l 'mobygames_comp';
         l 'bgmtv';
         l 'bilibili';
+        l 'weibo';
         l 'imdb';
         l 'vndb';
         l 'egs_creator';
@@ -754,6 +761,7 @@ sub enrich_vislinks($type, $enabled, @obj) {
         l 'substar';
         l 'boosty';
         l 'bilibili';
+        l 'weibo';
         l 'youtube';
         l 'instagram';
         l 'facebook';

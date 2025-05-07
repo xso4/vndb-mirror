@@ -166,6 +166,7 @@ CREATE TYPE extlink_site AS ENUM (
     'vk',
     'vndb',
     'website',
+    'weibo',
     'wikidata',
     'wp',
     'youtube'

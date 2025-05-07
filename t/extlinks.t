@@ -34,6 +34,8 @@ my @tests = qw{
 
     afdian  WoofWoofStudio  https://www.afdian.com/a/WoofWoofStudio
     afdian  WoofWoofStudio  https://www.afdian.com/@WoofWoofStudio?ok
+
+    weibo   6589791262      https://www.weibo.com/u/6589791262
 };
 
 plan tests => @tests/3*2;
