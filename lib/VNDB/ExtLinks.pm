@@ -74,6 +74,12 @@ my $int = qr/0*([1-9][0-9]*)/;
 #             (Only set for links that should be autodetected in the edit form)
 #   patt      Human-readable URL pattern that corresponds to 'fmt' and 'regex'; Automatically derived from 'fmt' if not set.
 our %LINKS = (
+    afdian =>
+        { ent   => 'sp'
+        , label => 'Afdian'
+        , fmt   => 'https://afdian.com/a/%s'
+        , regex => qr{(?:www\.)?afdian\.com/(?:a/|@)([a-zA-Z0-9]+)(?:[?/].*)?}
+        },
     anidb =>
         { ent   => 's'
         , label => 'AniDB'
@@ -103,6 +109,12 @@ our %LINKS = (
         , label => 'Bangumi'
         , fmt   => 'https://bgm.tv/person/%d'
         , regex => qr{(?:www\.)?(?:bgm|bangumi)\.tv/person/$int(?:[?/].*)?}
+        },
+    bilibili =>
+        { ent   => 'sp'
+        , label => 'Bilibili'
+        , fmt   => 'https://space.bilibili.com/%d'
+        , regex => qr{space.bilibili.com/$int(?:[\?/].*)?}
         },
     boosty =>
         { ent   => 'sp'
@@ -324,13 +336,13 @@ our %LINKS = (
         , regex => qr{(?:www\.)?mangagamer\.com/.*product_code=$int.*}
         },
     mobygames =>
-        { ent   => 's'
+        { ent   => 'sp'
         , label => 'MobyGames'
         , fmt   => 'https://www.mobygames.com/person/%d'
         , regex => qr{(?:www\.)?mobygames\.com/person/$int(?:[?/].*)?}
         },
     mobygames_comp =>
-        { ent   => 'p'
+        { ent   => 'sp'
         , label => 'MobyGames'
         , fmt   => 'https://www.mobygames.com/company/%d'
         , regex => qr{(?:www\.)?mobygames\.com/company/$int(?:[?/].*)?}
@@ -426,6 +438,12 @@ our %LINKS = (
         , fmt2  => 'https://store.steampowered.com/app/%d/?utm_source=vndb'
         , regex => qr{(?:www\.)?(?:store\.steampowered\.com/app/$int(?:/.*)?|steamcommunity\.com/(?:app|games)/$int(?:/.*)?|steamdb\.info/app/$int(?:/.*)?)}
         },
+    steam_curator =>
+        { ent   => 'sp'
+        , label => 'Steam Curator'
+        , fmt   => 'https://store.steampowered.com/curator/%d'
+        , regex => qr{store\.steampowered\.com/curator/$int(?:/.*)?}
+        },
     substar =>
         { ent   => 'rsp'
         , label => 'SubscribeStar'
@@ -459,6 +477,12 @@ our %LINKS = (
         , label => 'VGMdb'
         , fmt   => 'https://vgmdb.net/artist/%d'
         , regex => qr{vgmdb\.net/artist/$int}
+        },
+    vgmdb_org =>
+        { ent   => 's'
+        , label => 'VGMdb org'
+        , fmt   => 'https://vgmdb.net/org/%d'
+        , regex => qr{vgmdb\.net/org/$int}
         },
     vk =>
         { ent   => 'sp'
@@ -687,14 +711,18 @@ sub enrich_vislinks($type, $enabled, @obj) {
         l 'pixiv';     w 'pixiv_user'         if !$o->{_l}{pixiv};
         l 'mbrainz';   w 'musicbrainz_artist' if !$o->{_l}{mbrainz};
         l 'vgmdb';     w 'vgmdb_artist'       if !$o->{_l}{vgmdb};
+        l 'vgmdb_org';
         l 'discogs';   w 'discogs_artist'     if !$o->{_l}{discogs};
         l 'scloud';    w 'soundcloud'         if !$o->{_l}{scloud};
         l 'mobygames';
+        l 'mobygames_comp';
         l 'bgmtv';
+        l 'bilibili';
         l 'imdb';
         l 'vndb';
         l 'egs_creator';
         l 'anison';
+        l 'afdian';
         l 'patreon';
         l 'substar';
         l 'kofi';
@@ -706,6 +734,7 @@ sub enrich_vislinks($type, $enabled, @obj) {
         l 'tumblr';
         l 'vk';
         l 'itch_dev';
+        l 'steam_curator';
     }
 
     for ($type eq 'p' ? @obj : ()) {$o=$_;
@@ -717,16 +746,20 @@ sub enrich_vislinks($type, $enabled, @obj) {
         l 'twitter';          w 'twitter'            if !$o->{_l}{twitter};
         l 'pixiv';            w 'pixiv_user'         if !$o->{_l}{pixiv};
         l 'mobygames_comp';   w 'mobygames_company'  if !$o->{_l}{mobygames_comp};
+        l 'mobygames';
         l 'gamefaqs_comp';    w 'gamefaqs_company'   if !$o->{_l}{gamefaqs_comp};
         l 'scloud';           w 'soundcloud'         if !$o->{_l}{scloud};
+        l 'afdian';
         l 'patreon';
         l 'substar';
         l 'boosty';
+        l 'bilibili';
         l 'youtube';
         l 'instagram';
         l 'facebook';
         l 'vk';
         l 'itch_dev';
+        l 'steam_curator';
         c 'vnstat', 'VNStat', $o->{id} =~ s/^.//r, sprintf 'https://vnstat.net/developer/%d', $o->{id} =~ s/^.//r;
     }
 

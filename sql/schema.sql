@@ -98,11 +98,13 @@ CREATE TYPE release_image_type AS ENUM ('pkgfront', 'pkgback', 'pkgcontent', 'pk
 
 -- keys of %VNDB::Extlinks::LINKS
 CREATE TYPE extlink_site AS ENUM (
+    'afdian',
     'anidb',
     'animateg',
     'anison',
     'appstore',
     'bgmtv',
+    'bilibili',
     'boosty',
     'booth',
     'bsky',
@@ -154,11 +156,13 @@ CREATE TYPE extlink_site AS ENUM (
     'playstation_na',
     'scloud',
     'steam',
+    'steam_curator',
     'substar',
     'toranoana',
     'tumblr',
     'twitter',
     'vgmdb',
+    'vgmdb_org',
     'vk',
     'vndb',
     'website',

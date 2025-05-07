@@ -25,6 +25,15 @@ my @tests = qw{
     facebook   YUKIUSAGIdesuno  https://ja-jp.facebook.com/YUKIUSAGIdesuno
     facebook   Wikipedia   https://www.facebook.com/Wikipedia/
     facebook   Wikipedia   https://m.facebook.com/Wikipedia/
+
+    vgmdb_org  1844  https://vgmdb.net/org/1844
+
+    steam_curator  44693948  https://store.steampowered.com/curator/44693948
+
+    bilibili  3546811889354850  https://space.bilibili.com/3546811889354850
+
+    afdian  WoofWoofStudio  https://www.afdian.com/a/WoofWoofStudio
+    afdian  WoofWoofStudio  https://www.afdian.com/@WoofWoofStudio?ok
 };
 
 plan tests => @tests/3*2;
