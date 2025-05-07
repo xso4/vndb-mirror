@@ -78,7 +78,7 @@ our %LINKS = (
         { ent   => 'sp'
         , label => 'Afdian'
         , fmt   => 'https://afdian.com/a/%s'
-        , regex => qr{(?:www\.)?afdian\.com/(?:a/|@)([a-zA-Z0-9]+)(?:[?/].*)?}
+        , regex => qr{(?:www\.)?afdian\.com/(?:a/|@)([a-zA-Z0-9_]+)(?:[?/].*)?}
         },
     anidb =>
         { ent   => 's'

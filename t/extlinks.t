@@ -34,6 +34,7 @@ my @tests = qw{
 
     afdian  WoofWoofStudio  https://www.afdian.com/a/WoofWoofStudio
     afdian  WoofWoofStudio  https://www.afdian.com/@WoofWoofStudio?ok
+    afdian  WX_club         https://afdian.com/a/WX_club
 
     weibo   6589791262      https://www.weibo.com/u/6589791262
 
