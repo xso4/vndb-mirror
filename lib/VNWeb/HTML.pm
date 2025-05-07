@@ -620,7 +620,7 @@ sub _revision_header_ {
 
 sub _revision_fmtval_ {
     my($opt, $val, $obj) = @_;
-    return em_ '[empty]' if !defined $val || ($opt->{fmt} ne 'bool' && (exists $opt->{empty} ? ($val//'__UNDEF__') eq ($opt->{empty}//'__UNDEF__') : !length $val));
+    return em_ '[empty]' if !defined $val || (($opt->{fmt}||'') ne 'bool' && (exists $opt->{empty} ? ($val//'__UNDEF__') eq ($opt->{empty}//'__UNDEF__') : !length $val));
     return lit_ html_escape $val if !$opt->{fmt};
     if(ref $opt->{fmt} eq 'HASH') {
         my $h = $opt->{fmt}{$val};
