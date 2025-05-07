@@ -250,6 +250,83 @@ sub enrich_obj {
 }
 
 
+# fu->enrich(%opt, $sql, $list):
+#
+#   $list:
+#       Array of hashes to enrich.
+#   $sql:
+#       String or FU::Sql object to which an appropriate IN() clause is appended.
+#       Or: Subroutine ref returning a string or FU::Sql object containing IN($_).
+#       The SQL statement must return the 'key' back as first column.
+#   $opt{key}:
+#       Hash key to take from objects in $list, defaults to 'id'.
+#
+# Action:
+#
+#   $opt{merge}:
+#       When set, the (non-key) columns returned by $sql are merged into the
+#       objects in $list. $sql must not return more than 1 row per id. Columns
+#       for missing rows are set to undef.
+#
+#   $opt{set}:
+#       Set the given field to the value of the second column in $sql.
+#
+#   $opt{aoh}:
+#       Write an array of hashes to the specified field.
+#
+#   $opt{aov}:
+#       Write an array of values.
+#
+# (TODO:)
+#   $opt{hash}:  Write single hash  (enrich_obj)
+sub FU::obj::enrich {
+    my $lst = pop;
+    my $sql = pop;
+    my %opt = @_[1..$#_];
+    my $key = $opt{key} || 'id';
+
+    return if !@$lst;
+    local $_ = [ map $_->{$key}, @$lst ];
+    my $st = fu->SQL(ref $sql eq 'CODE' ? $sql->() : (ref $sql ? $sql : RAW($sql), IN $_));
+
+    if ($opt{merge}) {
+        my $r = $st->kva;
+        my @col = map $_->{name}, $st->columns->@*;
+        shift @col;
+        for (@$lst) {
+            my $o = $r->{$_->{$key}};
+            @{$_}{@col} = $o ? @$o : map undef, 0..$#col;
+        }
+
+    } elsif ($opt{set}) {
+        my $field = $opt{set};
+        my $r = $st->kvv;
+        $_->{$field} = $r->{$_->{$key}} for @$lst;
+
+    # XXX: These do not support duplicate keys in $lst
+    } elsif ($opt{aoh}) {
+        my $field = $opt{aoh};
+        my %objs = map { $_->{$field} = []; +($_->{$key}, $_) } @$lst;
+        my $r = $st->alla;  # an $st->kvaoh() would be useful here
+        my @col = map $_->{name}, $st->columns->@*;
+        shift @col;
+        for my $row (@$r) {
+            push $objs{$row->[0]}{$field}->@*, { map +($col[$_], $row->[$_+1]), 0..$#col };
+        }
+
+    } elsif ($opt{aov}) {
+        my $field = $opt{aov};
+        my %objs = map { $_->{$field} = []; +($_->{$key}, $_) } @$lst;
+        for my ($k,$v) ($st->flat->@*) {
+            push $objs{$k}{$field}->@*, $v;
+        }
+
+    } else {
+        confess 'Unknown enrich action';
+    }
+}
+
+
 
 # Run the given subroutine inside a savepoint and capture an SQL timeout.
 # Returns false and logs a warning on timeout.

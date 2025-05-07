@@ -4,6 +4,7 @@ use v5.36;
 use utf8;
 use Algorithm::Diff::XS 'sdiff', 'compact_diff';
 use FU;
+use FU::SQL;
 use FU::Util 'uri_escape', 'json_format';
 use FU::XMLWriter ':html5_', 'xml_escape';
 use Exporter 'import';
@@ -798,20 +799,19 @@ sub revision_ {
             patrolled   => { onerror => 0, uint => 1 },
             unpatrolled => { onerror => 0, uint => 1 },
         );
-        fu->dbExeci('INSERT INTO changes_patrolled', {id => $f->{patrolled}, uid => auth->uid}, 'ON CONFLICT (id,uid) DO NOTHING') if $f->{patrolled};
-        fu->dbExeci('DELETE FROM changes_patrolled WHERE', {id => $f->{unpatrolled}, uid => auth->uid}) if $f->{unpatrolled};
+        fu->sql('INSERT INTO changes_patrolled (id, uid) VALUES ($1, $2) ON CONFLICT (id,uid) DO NOTHING', $f->{patrolled}, auth->uid)->exec if $f->{patrolled};
+        fu->sql('DELETE FROM changes_patrolled WHERE id = $1 AND uid = $2', $f->{unpatrolled}, auth->uid)->exec if $f->{unpatrolled};
     }
 
-    enrich_merge chid => sql(
-        'SELECT c.id AS chid, c.comments as rev_comments,', sql_totime('c.added'), 'as rev_added, ', sql_user('u', 'rev_user_'), ', u.perm_dbmod AS rev_dbmod
+    fu->enrich(key => 'chid', merge => 1, SQL(
+        'SELECT c.id, c.comments as rev_comments, c.added rev_added, ', USER('u', 'rev_user_'), ', u.perm_dbmod AS rev_dbmod
            FROM changes c LEFT JOIN users u ON u.id = c.requester
-          WHERE c.id IN'),
-        $new, $old||();
+          WHERE c.id'), [$new, $old||()]);
 
-    enrich rev_patrolled => chid => id =>
-        sql('SELECT c.id,', sql_user(), 'FROM changes_patrolled c JOIN users u ON u.id = c.uid WHERE c.id IN'),
-        $new, $old||()
-        if auth->permDbmod;
+    fu->enrich(key => 'chid', aoh => 'rev_patrolled', SQL(
+        'SELECT c.id,', USER(),
+          'FROM changes_patrolled c JOIN users u ON u.id = c.uid
+          WHERE c.id'), [$new, $old||()]) if auth->permDbmod;
 
     article_ class => 'revision', sub {
         h1_ "Revision $new->{chrev}";

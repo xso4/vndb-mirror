@@ -35,8 +35,8 @@ sub releases_by_vn($id, %opt) {
          WHERE NOT r.hidden', $opt{charlink} ? "AND r.official" : (), '
          ORDER BY r.released, r.sorttitle, r.id
     ');
-    enrich_flatten lang => id => id => sub { sql('SELECT id, lang FROM releases_titles WHERE id IN', $_, 'ORDER BY lang') }, $l;
-    enrich_flatten platforms => id => id => sub { sql('SELECT id, platform FROM releases_platforms WHERE id IN', $_, 'ORDER BY platform') }, $l;
+    fu->enrich(aov => 'lang', sub { SQL 'SELECT id, lang FROM releases_titles WHERE id', IN($_), 'ORDER BY id, lang' }, $l);
+    fu->enrich(aov => 'platforms', sub { SQL 'SELECT id, platform FROM releases_platforms WHERE id', IN($_), 'ORDER BY id, platform' }, $l);
     $l
 }
 
@@ -44,18 +44,17 @@ sub releases_by_vn($id, %opt) {
 # Enrich a list of releases so that it's suitable for release_row_().
 # Does not call enrich_vislinks(), which is also needed for release_row_().
 # Assumption: Each release already has id, patch, released.
-sub enrich_release {
-    my($r) = @_;
+sub enrich_release($r) {
     enrich_merge id => sql(
         'SELECT id, title, olang, notes, minage, official, freeware, has_ero, reso_x, reso_y, voiced, uncensored
               , ani_story, ani_ero, ani_story_sp, ani_story_cg, ani_cutscene, ani_ero_sp, ani_ero_cg, ani_face, ani_bg
           FROM', releasest, 'r WHERE id IN'), $r;
-    enrich_merge id => sub { sql 'SELECT id, MAX(rtype) AS rtype FROM releases_vn WHERE id IN', $_, 'GROUP BY id' }, grep !$_->{rtype}, ref $r ? @$r : $r;
-    enrich_merge id => sql('SELECT rid as id, status as rlist_status FROM rlists WHERE uid =', \auth->uid, 'AND rid IN'), $r if auth;
-    enrich_flatten platforms => id => id => sub { sql 'SELECT id, platform FROM releases_platforms WHERE id IN', $_, 'ORDER BY id, platform' }, $r;
-    enrich titles => id => id => sub { 'SELECT id, lang, mtl, title, latin FROM releases_titles WHERE id IN', $_, 'ORDER BY id, mtl, lang' }, $r;
-    enrich media => id => id => sub { 'SELECT id, medium, qty FROM releases_media WHERE id IN', $_, 'ORDER BY id, medium' }, $r;
-    enrich drm => id => id => sub { 'SELECT r.id, r.drm, r.notes, d.name,', sql_comma(keys %DRM_PROPERTY), 'FROM releases_drm r JOIN drm d ON d.id = r.drm WHERE r.id IN', $_, 'ORDER BY r.id, r.drm' }, $r;
+    fu->enrich(set => 'rtype', sub { SQL 'SELECT id, MAX(rtype) FROM releases_vn WHERE id', IN $_, 'GROUP BY id' }, [ grep !exists $_->{rtype}, @$r ]);
+    fu->enrich(set => 'rlist_status', SQL('SELECT rid, status FROM rlists WHERE uid =', auth->uid, 'AND rid'), $r) if auth;
+    fu->enrich(aov => 'platforms', sub { SQL 'SELECT id, platform FROM releases_platforms WHERE id', IN $_, 'ORDER BY id, platform' }, $r);
+    fu->enrich(aoh => 'titles', sub { SQL 'SELECT id, lang, mtl, title, latin FROM releases_titles WHERE id', IN $_, 'ORDER BY id, mtl, lang' }, $r);
+    fu->enrich(aoh => 'media', sub { SQL 'SELECT id, medium, qty FROM releases_media WHERE id', IN $_, 'ORDER BY id, medium' }, $r);
+    fu->enrich(aoh => 'drm', sub { SQL 'SELECT r.id, r.drm, r.notes, d.name,', RAW(join ',', keys %DRM_PROPERTY), 'FROM releases_drm r JOIN drm d ON d.id = r.drm WHERE r.id', IN $_, 'ORDER BY r.id, r.drm' }, $r);
 }
 
 

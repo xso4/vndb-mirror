@@ -196,8 +196,8 @@ sub releases {
          ORDER BY released', $released ? 'DESC' : '', ', id LIMIT 10'
     );
     my $end = time;
-    enrich_flatten plat => id => id => 'SELECT id, platform FROM releases_platforms WHERE id IN', $lst;
-    enrich_flatten lang => id => id => 'SELECT id, lang     FROM releases_titles    WHERE id IN', $lst;
+    fu->enrich(aov => 'plat', 'SELECT id, platform FROM releases_platforms WHERE id', $lst);
+    fu->enrich(aov => 'lang', 'SELECT id, lang     FROM releases_titles    WHERE id', $lst);
     ($lst, $filt, $has_saved && $end-$start > 0.3)
 }
 
