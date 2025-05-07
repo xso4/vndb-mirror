@@ -120,6 +120,7 @@ CREATE TYPE extlink_site AS ENUM (
     'erotrail',
     'facebook',
     'fakku',
+    'fanbox',
     'freegame',
     'freem',
     'gamefaqs_comp',

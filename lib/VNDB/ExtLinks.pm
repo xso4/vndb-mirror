@@ -209,6 +209,12 @@ our %LINKS = (
         , fmt   => 'https://www.fakku.net/games/%s'
         , regex => qr{(?:www\.)?fakku\.(?:net|com)/games/([^/]+)(?:[/\?].*)?}
         },
+    fanbox =>
+        { ent   => 'sp'
+        , label => 'Fanbox'
+        , fmt   => 'https://%s.fanbox.cc/'
+        , regex => qr{([a-z0-9]+)\.fanbox\.cc/.*}
+        },
     freegame =>
         { ent   => 'r'
         , label => 'Freegame Mugen'
@@ -738,6 +744,7 @@ sub enrich_vislinks($type, $enabled, @obj) {
         l 'instagram';
         l 'deviantar';
         l 'facebook';
+        l 'fanbox';
         l 'tumblr';
         l 'vk';
         l 'itch_dev';
@@ -765,6 +772,7 @@ sub enrich_vislinks($type, $enabled, @obj) {
         l 'youtube';
         l 'instagram';
         l 'facebook';
+        l 'fanbox';
         l 'vk';
         l 'itch_dev';
         l 'steam_curator';
