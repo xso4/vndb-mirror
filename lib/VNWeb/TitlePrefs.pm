@@ -3,6 +3,7 @@ package VNWeb::TitlePrefs;
 use v5.36;
 use builtin qw/true false/;
 use FU;
+use FU::SQL;
 use VNDB::Types;
 use VNWeb::Auth;
 use VNWeb::DB;
@@ -17,6 +18,11 @@ our @EXPORT = qw/
     producerst
     charst
     staff_aliast
+    VNT
+    RELEASEST
+    PRODUCERST
+    CHARST
+    STAFF_ALIAST
     item_info
 /;
 
@@ -182,11 +188,17 @@ sub txt_pref {
     /).')'
 }
 
-sub vnt :prototype()          { fu->{titleprefs_v} //= gen_sql(1, 'vn',       'vn_titles',       'id') || 'vnt'       }
-sub releasest :prototype()    { fu->{titleprefs_r} //= gen_sql(0, 'releases', 'releases_titles', 'id') || 'releasest' }
-sub producerst :prototype()   { fu->{titleprefs_p} //= pref ? sql 'producerst(',   \txt_pref, ')' : 'producerst' }
-sub charst :prototype()       { fu->{titleprefs_c} //= pref ? sql 'charst(',       \txt_pref, ')' : 'charst' }
-sub staff_aliast :prototype() { fu->{titleprefs_s} //= pref ? sql 'staff_aliast(', \txt_pref, ')' : 'staff_aliast' }
+sub vnt :prototype()          { fu->{titleprefsold_v} //= gen_sql(1, 'vn',       'vn_titles',       'id') || 'vnt'       }
+sub releasest :prototype()    { fu->{titleprefsold_r} //= gen_sql(0, 'releases', 'releases_titles', 'id') || 'releasest' }
+sub producerst :prototype()   { fu->{titleprefsold_p} //= pref ? sql 'producerst(',   \txt_pref, ')' : 'producerst' }
+sub charst :prototype()       { fu->{titleprefsold_c} //= pref ? sql 'charst(',       \txt_pref, ')' : 'charst' }
+sub staff_aliast :prototype() { fu->{titleprefsold_s} //= pref ? sql 'staff_aliast(', \txt_pref, ')' : 'staff_aliast' }
+
+sub VNT :prototype()          { fu->{titleprefs_v} //= RAW(gen_sql(1, 'vn',       'vn_titles',       'id') || 'vnt')       }
+sub RELEASEST :prototype()    { fu->{titleprefs_r} //= RAW(gen_sql(0, 'releases', 'releases_titles', 'id') || 'releasest') }
+sub PRODUCERST :prototype()   { fu->{titleprefs_p} //= pref ? SQL 'producerst(',   pref, ')' : RAW 'producerst' }
+sub CHARST :prototype()       { fu->{titleprefs_c} //= pref ? SQL 'charst(',       pref, ')' : RAW 'charst' }
+sub STAFF_ALIAST :prototype() { fu->{titleprefs_s} //= pref ? SQL 'staff_aliast(', pref, ')' : RAW 'staff_aliast' }
 
 # (Not currently used)
 #sub vnt_hist { gen_sql 1, 'vn_hist', 'vn_titles_hist', 'chid' }

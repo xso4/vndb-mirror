@@ -13,7 +13,7 @@ use experimental 'builtin'; # for is_bool
 our @EXPORT = qw/
     sql
     global_settings
-    sql_join sql_comma sql_and sql_or sql_array sql_func sql_fromhex sql_tohex sql_fromtime sql_totime sql_like sql_user
+    sql_join sql_comma sql_and sql_or sql_array sql_func sql_fromtime sql_totime sql_like sql_user
     USER
     enrich enrich_merge enrich_flatten enrich_obj
     db_maytimeout db_entry db_edit
@@ -94,16 +94,6 @@ sub sql_array { 'ARRAY[', sql_comma(map \$_, @_), ']' }
 sub sql_func {
     my($funcname, @args) = @_;
     sql $funcname, '(', sql_comma(@args), ')';
-}
-
-# Convert a Perl hex value into Postgres bytea
-sub sql_fromhex :prototype($) {
-    sql_func decode => \$_[0], "'hex'";
-}
-
-# Convert a Postgres bytea into a Perl hex value
-sub sql_tohex :prototype($) {
-    sql_func encode => $_[0], "'hex'";
 }
 
 # Convert a Perl time value (UNIX timestamp) into a Postgres timestamp
@@ -380,42 +370,42 @@ my $entry_types = do {
 # Automatically enrich selected tables, arg is: [ $select, $joins, $orderby ]
 # (Enriching the main entry's table is not yet supported, just data tables for now)
 my %enrich = (
-    releases_extlinks   => [ 'l.site, l.value, l.data, l.price', 'JOIN extlinks l ON l.id = x.link', 'l.site, l.value' ],
-    producers_extlinks  => [ 'l.site, l.value, l.data, l.price', 'JOIN extlinks l ON l.id = x.link', 'l.site, l.value' ],
-    staff_extlinks      => [ 'l.site, l.value, l.data, l.price', 'JOIN extlinks l ON l.id = x.link', 'l.site, l.value' ],
+    releases_extlinks   => [ 'l.site, l.value, l.data, l.price', RAW('JOIN extlinks l ON l.id = x.link'), 'l.site, l.value' ],
+    producers_extlinks  => [ 'l.site, l.value, l.data, l.price', RAW('JOIN extlinks l ON l.id = x.link'), 'l.site, l.value' ],
+    staff_extlinks      => [ 'l.site, l.value, l.data, l.price', RAW('JOIN extlinks l ON l.id = x.link'), 'l.site, l.value' ],
 
     chars_vns           => [
         'v.title, r.title AS rtitle',
-        sub { sql 'JOIN', VNWeb::TitlePrefs::vnt(), 'v ON v.id = x.vid LEFT JOIN', VNWeb::TitlePrefs::releasest(), 'r ON r.id = x.rid' },
+        sub { SQL 'JOIN', VNWeb::TitlePrefs::VNT(), 'v ON v.id = x.vid LEFT JOIN', VNWeb::TitlePrefs::RELEASEST(), 'r ON r.id = x.rid' },
         'v.c_released, v.sorttitle, r.released, x.vid, x.rid' ],
 
     staff_alias         => [ undef, undef, 'x.aid' ],
 
-    releases_producers  => [ 'p.title', sub { sql('JOIN', VNWeb::TitlePrefs::producerst(), 'p ON p.id = x.pid') }, 'p.sorttitle, x.pid' ],
-    releases_vn         => [ 'v.title', sub { sql('JOIN', VNWeb::TitlePrefs::vnt(), 'v ON v.id = x.vid') }, 'v.sorttitle, x.vid' ],
-    releases_supersedes => [ 'r.title, r.released, r.hidden', sub { sql('JOIN', VNWeb::TitlePrefs::releasest(), 'r ON r.id = x.rid') }, 'r.released, x.rid' ],
-    releases_drm        => [ 'd.name, '.join(',', keys %VNDB::Types::DRM_PROPERTY), 'JOIN drm d ON d.id = x.drm', 'x.drm <> 0, d.name' ],
+    releases_producers  => [ 'p.title', sub { SQL 'JOIN', VNWeb::TitlePrefs::PRODUCERST(), 'p ON p.id = x.pid' }, 'p.sorttitle, x.pid' ],
+    releases_vn         => [ 'v.title', sub { SQL 'JOIN', VNWeb::TitlePrefs::VNT(), 'v ON v.id = x.vid' }, 'v.sorttitle, x.vid' ],
+    releases_supersedes => [ 'r.title, r.released, r.hidden', sub { SQL 'JOIN', VNWeb::TitlePrefs::RELEASEST(), 'r ON r.id = x.rid' }, 'r.released, x.rid' ],
+    releases_drm        => [ 'd.name, '.join(',', keys %VNDB::Types::DRM_PROPERTY), RAW('JOIN drm d ON d.id = x.drm'), 'x.drm <> 0, d.name' ],
     releases_media      => [ undef, undef, 'x.medium, x.qty' ],
     releases_titles     => [ undef, undef, 'x.lang' ],
     releases_images     => [ undef, undef, 'x.itype, x.lang, x.vid, x.img' ],
     releases_platforms  => [ undef, undef, 'x.platform' ],
 
-    vn_anime            => [ 'a.title_romaji, a.title_kanji, a.year, a.type, a.ann_id, a.lastfetch', 'JOIN anime a ON a.id = x.aid', 'a.year, a.title_romaji, x.aid' ],
-    vn_staff            => [ 's.id AS sid, s.title', sub { sql 'LEFT JOIN', VNWeb::TitlePrefs::staff_aliast(), 's ON s.aid = x.aid' }, 'x.eid NULLS FIRST, s.sorttitle, x.aid, x.role' ],
+    vn_anime            => [ 'a.title_romaji, a.title_kanji, a.year, a.type, a.ann_id, a.lastfetch', RAW('JOIN anime a ON a.id = x.aid'), 'a.year, a.title_romaji, x.aid' ],
+    vn_staff            => [ 's.id AS sid, s.title', sub { SQL 'LEFT JOIN', VNWeb::TitlePrefs::STAFF_ALIAST(), 's ON s.aid = x.aid' }, 'x.eid NULLS FIRST, s.sorttitle, x.aid, x.role' ],
     vn_seiyuu           => [
         's.id AS sid, s.title, c.title AS char_title',
-        sub { sql 'LEFT JOIN', VNWeb::TitlePrefs::staff_aliast(), 's ON s.aid = x.aid JOIN', VNWeb::TitlePrefs::charst(), 'c ON c.id = x.cid' },
+        sub { SQL 'LEFT JOIN', VNWeb::TitlePrefs::STAFF_ALIAST(), 's ON s.aid = x.aid JOIN', VNWeb::TitlePrefs::CHARST(), 'c ON c.id = x.cid' },
         'x.aid, x.cid, x.note' ],
     vn_screenshots      => [ undef, undef, 'x.scr' ],
     vn_titles           => [ undef, undef, 'NOT x.official, x.lang' ],
     vn_editions         => [ undef, undef, 'x.lang NULLS FIRST, NOT x.official, x.name' ],
-    vn_relations        => [ 'v.title, v.c_released', sub { sql 'JOIN', VNWeb::TitlePrefs::vnt(), 'v ON v.id = x.vid' }, 'NOT x.official, v.c_released, v.sorttitle, x.vid' ],
+    vn_relations        => [ 'v.title, v.c_released', sub { SQL 'JOIN', VNWeb::TitlePrefs::VNT(), 'v ON v.id = x.vid' }, 'NOT x.official, v.c_released, v.sorttitle, x.vid' ],
 
-    producers_relations => [ 'p.title', sub { sql('JOIN', VNWeb::TitlePrefs::producerst(), 'p ON p.id = x.pid') }, 'p.sorttitle, x.pid' ],
+    producers_relations => [ 'p.title', sub { SQL 'JOIN', VNWeb::TitlePrefs::PRODUCERST(), 'p ON p.id = x.pid' }, 'p.sorttitle, x.pid' ],
 
-    tags_parents        => [ 't.name', 'JOIN tags t ON t.id = x.parent', 't.name, x.parent' ],
+    tags_parents        => [ 't.name', RAW('JOIN tags t ON t.id = x.parent'), 't.name, x.parent' ],
 
-    traits_parents      => [ 't.name, g.name AS group', 'JOIN traits t ON t.id = x.parent LEFT JOIN traits g ON g.id = t.gid', 't.name, x.parent' ],
+    traits_parents      => [ 't.name, g.name AS group', RAW('JOIN traits t ON t.id = x.parent LEFT JOIN traits g ON g.id = t.gid'), 't.name, x.parent' ],
 );
 
 
@@ -424,46 +414,43 @@ my %enrich = (
 #
 #   id, chid, chrev, maxrev, hidden, locked, entry_hidden, entry_locked
 #
-# (Ordering of arrays is unspecified)
-sub db_entry {
-    my($id, $rev) = @_;
-    my $t = $entry_types->{ substr $id, 0, 1 }||die;
+# (Ordering of arrays can be specified in %enrich above)
+sub db_entry($id, $rev=0) {
+    my $t = $entry_types->{ substr $id, 0, 1 }||confess;
 
     return undef if config->{moe} && $rev;
-    my $entry = fu->dbRowi('
-        WITH maxrev (iid, maxrev) AS (SELECT itemid, MAX(rev) FROM changes WHERE itemid =', \$id, 'GROUP BY itemid)
+    my $entry = fu->SQL('
+        WITH maxrev (iid, maxrev) AS (SELECT itemid, MAX(rev) FROM changes WHERE itemid =', $id, 'GROUP BY itemid)
            , lastrev (entry_hidden, entry_locked) AS (SELECT ihid, ilock FROM maxrev, changes WHERE itemid = iid AND rev = maxrev)
         SELECT itemid AS id, id AS chid, rev AS chrev, ihid AS hidden, ilock AS locked, maxrev, entry_hidden, entry_locked
           FROM changes, maxrev, lastrev
-         WHERE itemid = iid AND rev = ', $rev ? \$rev : 'maxrev'
-    );
-    return undef if !$entry->{id};
+         WHERE itemid = iid AND rev = ', $rev || 'maxrev'
+    )->rowh or return undef;
 
     # Fetch data from the main entry tables if rev == maxrev, from the _hist
     # tables otherwise. This should improve caching a bit.
-    my sub data_table {
-        my $join = ref $_[1] ? $_[1]->() : $_[1] || '';
-        $entry->{chrev} == $entry->{maxrev} ? sql $_[0] =~ s/_hist$//r, 'x', $join, 'WHERE x.id =', \$id
-                                            : sql $_[0], 'x', $join, 'WHERE x.chid =', \$entry->{chid}
+    my sub data_table($tbl, @join) {
+        ref $_ eq 'CODE' && ($_ = $_->()) for @join;
+        $entry->{chrev} == $entry->{maxrev} ? SQL RAW($tbl =~ s/_hist$//r), 'x', @join, 'WHERE x.id =', $id
+                                            : SQL RAW($tbl), 'x', @join, 'WHERE x.chid =', $entry->{chid}
     }
 
-    my $toplvl = fu->dbRowi(
-        SELECT => sql_comma(map $_->{name}, grep $_->{name} ne 'chid', $t->{base}{cols}->@*),
-        FROM   => data_table $t->{base}{name}, ''
-    );
-    return undef if !keys %$toplvl;
+    my $toplvl = fu->SQL(
+        SELECT => RAW(join ', ', map $_->{name}, grep $_->{name} ne 'chid', $t->{base}{cols}->@*),
+        FROM   => data_table $t->{base}{name}
+    )->rowh or return undef;
     %$entry = (%$entry, %$toplvl);
 
     while(my($name, $tbl) = each $t->{tables}->%*) {
         my $enrich = $enrich{ $tbl->{name} =~ s/_hist$//r } || [];
-        $entry->{$name} = fu->dbAlli(
-            SELECT => sql_comma(
-                (map 'x.'.$_->{name}.($_->{type} eq 'language[]' ? '::text[]' : ''), grep $_->{name} ne 'chid', $tbl->{cols}->@*),
+        $entry->{$name} = fu->SQL(
+            SELECT => RAW(join ', ',
+                (map "x.$_->{name}", grep $_->{name} ne 'chid', $tbl->{cols}->@*),
                 $enrich->[0] || (),
             ),
-            FROM   => data_table($tbl->{name}, $enrich->[1]),
-            $enrich->[2] ? ('ORDER BY', $enrich->[2]) : (),
-        );
+            FROM   => data_table($tbl->{name}, $enrich->[1] || ()),
+            $enrich->[2] ? ('ORDER BY', RAW $enrich->[2]) : (),
+        )->allh;
     }
     $entry
 }
@@ -478,48 +465,36 @@ sub db_entry {
 # the following additional keys in the top-level hash:
 #
 #   hidden, locked, editsum
-sub db_edit {
-    my($type, $id, $data, $uid) = @_;
+sub db_edit($type, $id, $data, $uid=undef) {
     $id ||= undef;
     my $t = $entry_types->{$type}||die;
 
-    fu->dbExeci("SELECT edit_${type}_init(", \$id, ', (SELECT MAX(rev) FROM changes WHERE itemid = ', \$id, '))');
-    fu->dbExeci('UPDATE edit_revision SET', {
+    fu->sql("SELECT edit_${type}_init(\$1, (SELECT MAX(rev) FROM changes WHERE itemid = \$1))", $id)->exec;
+    fu->SQL('UPDATE edit_revision', SET {
         requester => $uid // scalar VNWeb::Auth::auth()->uid(),
         comments  => $data->{editsum},
         ihid      => $data->{hidden},
         ilock     => $data->{locked},
-    });
-
-    # Array columns need special care; SQL::Interp and DBD::Pg don't like them
-    # as single bind params and Postgres can't infer their type.
-    my sub val {
-        my($v, $col) = @_;
-        ref $v ? sql(sql_array(@$v), '::'.$col->{type}) : \$v
-    }
+    })->exec;
 
     {
         my $base = $t->{base}{name} =~ s/_hist$//r;
-        fu->dbExeci("UPDATE edit_${base} SET ", sql_comma(
-            map sql($_->{name}, ' = ', val $data->{$_->{name}}, $_),
-                grep $_->{name} ne 'chid' && exists $data->{$_->{name}}, $t->{base}{cols}->@*
-        ));
+        fu->SQL(RAW("UPDATE edit_${base}"), SET {
+            map +($_->{name}, $data->{$_->{name}}), grep $_->{name} ne 'chid' && exists $data->{$_->{name}}, $t->{base}{cols}->@*
+        })->exec;
     }
 
-    while(my($name, $tbl) = each $t->{tables}->%*) {
+    for my ($name, $tbl) ($t->{tables}->%*) {
         my $base = $tbl->{name} =~ s/_hist$//r;
-        my @cols = grep $_->{name} ne 'chid', $tbl->{cols}->@*;
-        my @colnames = sql_comma(map $_->{name}, @cols);
-        my @rows = map {
-            my $d = $_;
-            sql '(', sql_comma(map val($d->{$_->{name}}, $_), @cols), ')'
-        } $data->{$name}->@*;
-
-        fu->dbExeci("DELETE FROM edit_${base}");
-        fu->dbExeci("INSERT INTO edit_${base} (", @colnames, ') VALUES ', sql_comma @rows) if @rows;
+        fu->sql("DELETE FROM edit_${base}")->exec;
+        for my $r ($data->{$name}->@*) {
+            fu->SQL(RAW("INSERT INTO edit_${base}"), VALUES {
+                map +($_->{name}, $r->{$_->{name}}), grep $_->{name} ne 'chid' && exists $r->{$_->{name}}, $tbl->{cols}->@*
+            })->exec;
+        }
     }
 
-    fu->dbRow("SELECT * FROM edit_${type}_commit()");
+    fu->sql("SELECT * FROM edit_${type}_commit()")->rowh;
 }
 
 1;
