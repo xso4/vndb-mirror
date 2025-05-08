@@ -85,7 +85,7 @@ for my $perm (@perms) {
 # Pref(erences) are like permissions, we load these columns eagerly so they can
 # be accessed through auth->pref().
 my @pref_columns = qw/
-    timezone skin customcss_csum titles::text
+    timezone skin customcss_csum titles
     notify_dbedit notify_post notify_comment
     vnimage tags_all tags_cont tags_ero tags_tech
     spoilers traits_sexual max_sexual max_violence

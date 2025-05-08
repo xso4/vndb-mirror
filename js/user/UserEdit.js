@@ -170,44 +170,54 @@ const Traits = initVnode => {
 
 
 const Titles = initVnode => {
-    const lst = initVnode.attrs.lst;
+    const {data,t} = initVnode.attrs;
     const langs = Object.fromEntries(vndbTypes.language);
     const nonlatin = Object.fromEntries(vndbTypes.language.filter(l => !l[2]).map(l => [l[0],true]).concat([['',true]]));
+    const rd = (i, n) => data.titles[t+i+'_'+n];
+    const wr = (i, n, v) => data.titles[t+i+'_'+n] = v;
+    const swap = (a, b) => {
+        const al = [rd(a,'lang'), rd(a,'latin'), rd(a,'official')];
+        wr(a, 'lang',     rd(b, 'lang'));
+        wr(a, 'latin',    rd(b, 'latin'));
+        wr(a, 'official', rd(b, 'official'));
+        wr(b, 'lang',     al[0]);
+        wr(b, 'latin',    al[1]);
+        wr(b, 'official', al[2]);
+    };
     const ds = new DS(DS.Lang, { onselect: obj => {
-        const o = lst.pop();
-        lst.push({lang: obj.id, latin: false, official: true });
-        lst.push(o);
+        for (let i=1; i<=4; i++) if (!rd(i, 'lang')) {
+            wr(i, 'lang', obj.id);
+            wr(i, 'latin', false);
+            wr(i, 'official', true);
+            break;
+        }
     }});
-    return {view: () => m('table.stripe',
-        m('tbody', lst.map((t,n) => m('tr',
-            m('td', '#'+(n+1)),
-            m('td', t.lang ? [LangIcon(t.lang), langs[t.lang]] : ['Original language']),
-            m('td', nonlatin[t.lang || ''] ? m('label',
-                m('input[type=checkbox]', { checked: t.latin, oninput: ev => t.latin = ev.target.checked }),
+    return {view: () => { let n = 1; return m('table.stripe',
+        m('tbody', [1,2,3,4,'o'].map(i => i !== 'o' && !rd(i, 'lang') ? null : m('tr',
+            m('td', '#'+(n++)),
+            m('td', i === 'o' ? 'Original language' : [LangIcon(rd(i, 'lang')), langs[rd(i, 'lang')]]),
+            m('td', i === 'o' || nonlatin[rd(i, 'lang')] ? m('label',
+                m('input[type=checkbox]', { checked: rd(i, 'latin'), oninput: ev => wr(i, 'latin', ev.target.checked) }),
                 ' romanized'
             ) : null),
-            m('td', t.lang ? m(Select, { class: 'mw', data: t, field: 'official', options: [
+            m('td', i === 'o' ? null : m(Select, { class: 'mw', data: data.titles, field: t+i+'_official', options: [
                 [ null,  'Original only' ],
                 [ true,  'Official only' ],
                 [ false, 'Any' ],
-            ]}) : null),
+            ]})),
             m('td',
-                m(Button.Up, {visible: t.lang && n > 0, onclick: () => {
-                    lst[n] = lst[n-1];
-                    lst[n-1] = t;
+                m(Button.Up, {visible: i !== 'o' && i > 1, onclick: () => swap(i, i-1)}),
+                m(Button.Down, {visible: i !== 'o' && rd(i+1, 'lang'), onclick: () => swap(i, i+1)}),
+                m(Button.Del, {visible: i !== 'o', onclick: () => {
+                    wr(i, 'lang', null);
+                    for (i++; i<=4; i++) swap(i, i-1);
                 }}),
-                m(Button.Down, {visible: n < lst.length-2, onclick: () => {
-                    lst[n] = lst[n+1];
-                    lst[n+1] = t;
-                }}),
-                m(Button.Del, {visible: !!t.lang, onclick: () => lst.splice(n,1)}),
             ),
         ))),
         m('tfoot', m('tr', m('td[colspan=5]',
-            lst.length >= 5 ? null
-            : m(DS.Button, {ds}, 'Add language'),
+            rd(4, 'lang') ? null : m(DS.Button, {ds}, 'Add language'),
         )))
-    )};
+    )}};
 };
 
 const display = data => {
@@ -313,12 +323,12 @@ const display = data => {
             ),
             m('fieldset',
                 m('label', 'Title'),
-                m(Titles, {lst: data.titles}),
+                m(Titles, {data, t: 't'}),
             ),
             m('fieldset',
                 m('label', 'Alternative title'),
                 m('p', 'The alternative title is used as tooltip for links or displayed next to the main title.'),
-                m(Titles, {lst: data.alttitles}),
+                m(Titles, {data, t: 'a'}),
             )
         ),
         m('fieldset.form',

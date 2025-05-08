@@ -1,6 +1,7 @@
 package VNWeb::TitlePrefs;
 
 use v5.36;
+use builtin qw/true false/;
 use FU;
 use VNDB::Types;
 use VNWeb::Auth;
@@ -20,126 +21,74 @@ our @EXPORT = qw/
 /;
 
 our @EXPORT_OK = qw/
-    titleprefs_parse
-    titleprefs_fmt
     $DEFAULT_TITLE_PREFS
+    titleprefs_is_default
 /;
 
 
-# Parse a string representation of the 'titleprefs' SQL type.
-# (Could also use Postgres row_to_json() to simplify this a bit, but it wouldn't save much)
-sub titleprefs_parse {
-    return undef if !defined $_[0];
-    state $L = qr/([^,]*)/;
-    state $B = qr/([tf])/;
-    state $O = qr/([tf]?)/;
-    state $RE = qr/^\(
-        $L,$L,$L,$L,     #  1.. 4 -> t1_lang .. t4_lang
-        $L,$L,$L,$L,     #  5.. 8 -> a1_lang .. a4_lang
-        $B,$B,$B,$B,$B,  #  9..13 -> t1_latin .. to_latin
-        $B,$B,$B,$B,$B,  # 14..18 -> a1_latin .. ao_latin
-        $O,$O,$O,$O,     # 19..22 -> t1_official .. t4_official
-        $O,$O,$O,$O      # 23..26 -> a1_official .. a4_official
-    \)$/x;
-    die "Invalid titleprefs: $_[0]" if $_[0] !~ $RE;
-    sub b :prototype($) { !$_[0] ? undef : $_[0] eq 't' }
-    sub l :prototype($) { !$_[0] ? undef : $_[0] }
-    [
-        [ $1 ? { lang => l $1, latin => b $9,  official => b $19 } : ()
-        , $2 ? { lang => l $2, latin => b $10, official => b $20 } : ()
-        , $3 ? { lang => l $3, latin => b $11, official => b $21 } : ()
-        , $4 ? { lang => l $4, latin => b $12, official => b $22 } : ()
-        ,      { lang => undef,latin => b $13, official => undef } ],
-        [ $5 ? { lang => l $5, latin => b $14, official => b $23 } : ()
-        , $6 ? { lang => l $6, latin => b $15, official => b $24 } : ()
-        , $7 ? { lang => l $7, latin => b $16, official => b $25 } : ()
-        , $8 ? { lang => l $8, latin => b $17, official => b $26 } : ()
-        ,      { lang => undef,latin => b $18, official => undef } ],
-    ]
-}
-
-
-sub titleprefs_fmt {
-    my($p) = @_;
-    return undef if !defined $p;
-    my sub val { my $v = $p->[$_[0]][$_[1]]; $v && $v->{lang} ? $v->{$_[2]} : undef }
-    my sub l { val(@_, 'lang') || '' }
-    my sub b { my $v = val @_, 'latin'; $v ? 't' : 'f' }
-    my sub o { my $v = val @_, 'official'; !defined $v ? '' : $v ? 't' : 'f' }
-    '('.join(',',
-        l(0,0), l(0,1), l(0,2), l(0,3),
-        l(1,0), l(1,1), l(1,2), l(1,3),
-        b(0,0), b(0,1), b(0,2), b(0,3), $p->[0][$#{$p->[0]}]{latin} ? 't' : 'f',
-        b(1,0), b(1,1), b(1,2), b(1,3), $p->[1][$#{$p->[1]}]{latin} ? 't' : 'f',
-        o(0,0), o(0,1), o(0,2), o(0,3),
-        o(1,0), o(1,1), o(1,2), o(1,3)
-    ).')'
-}
-
-
-# This validation only covers half of the titleprefs, i.e. just the main or alternative title.
+# Corresponds to the SQL 'titleprefs' type.
 $FU::Validate::default_validations{titleprefs} = {
-    maxlength => 5,
-    elems => { keys => {
-        lang     => { default => undef, enum => \%LANGUAGE }, # undef referring to the original title language
-        latin    => { anybool => 1 },
-        official => { undefbool => 1 },
-    }},
+    keys => {
+        to_latin => { anybool => 1 },
+        ao_latin => { anybool => 1 },
+        map +(
+            "${_}_lang"     => { default => undef, enum => \%LANGUAGE },
+            "${_}_latin"    => { anybool => 1 },
+            "${_}_official" => { undefbool => 1 },
+        ), 't1'..'t4', 'a1'..'a4'
+    },
     func => sub {
-        # Last one must be olang if n==5.
-        return 0 if $_[0]->@* == 5 && $_[0][4]{lang};
-        # undef lang is only allowed as sentinel
-        return 0 if $_[0]->@* >= 2 && grep !$_[0][$_]{lang}, 0..($_[0]->@*-2);
-        # ensure we have an undef lang
-        push $_[0]->@*, { lang => undef, latin => '', official => undef } if !grep !$_->{lang}, $_[0]->@*;
+        my $p = $_[0];
+        for my $t ('t', 'a') {
+            my @l = grep $_->[0], map [@{$p}{ "$t${_}_lang", "$t${_}_latin", "$t${_}_official" }], 1..4;
 
-        # Remove duplicate languages that will never be matched.
-        my %l;
-        $_[0] = [ grep {
-            my $prio = !defined $_->{official} ? 3 : $_->{official} ? 2 : 1;
-            my $dupe = $_->{lang} && $l{$_->{lang}} && $l{$_->{lang}} <= $prio;
-            $l{$_->{lang}} = $prio if $_->{lang} && !$dupe;
-            !$dupe
-        } $_[0]->@* ];
+            # Remove duplicate languages that will never match
+            my %l;
+            @l = grep {
+                my $prio = !defined $_->[2] ? 3 : $_->[2] ? 2 : 1;
+                ($l{$_->[0]}||9) <= $prio ? 0 : ($l{$_->[0]} = $prio)
+            } @l;
 
-        # (XXX: we can also merge adjacent duplicates at this stage)
+            # Expand 'Chinese' to the scripts if we have enough free slots.
+            # (this is a hack and should ideally be handled in the title selection
+            # algorithm, but that selection code has multiple implementations and
+            # is already subject to potential performance issues, so I'd rather
+            # keep it simple)
+            @l = map $_->[0] eq 'zh' ? ($_, ['zh-Hant', $_->[1], $_->[2]], ['zh-Hans', $_->[1], $_->[2]]) : ($_), @l
+                if @l <= 2 && !grep $_->[0] =~ /^zh-/, @l;
 
-        # Expand 'Chinese' to the scripts if we have enough free slots.
-        # (this is a hack and should ideally be handled in the title selection
-        # algorithm, but that selection code has multiple implementations and
-        # is already subject to potential performance issues, so I'd rather
-        # keep it simple)
-        $_[0] = [ map $_->{lang} && $_->{lang} eq 'zh' ? ($_, {%$_,lang=>'zh-Hant'}, {%$_,lang=>'zh-Hans'}) : ($_), $_[0]->@* ]
-            if $_[0]->@* <= 3 && !grep $_->{lang} && $_->{lang} =~ /^zh-/, $_[0]->@*;
+            @{$p}{ "$t${_}_lang", "$t${_}_latin", "$t${_}_official" } = $_ <= @l ? $l[$_-1]->@* : (undef, false, undef) for (1..4);
+        }
         1;
     },
 };
 
 
-our $DEFAULT_TITLE_PREFS = [
-    [ { lang => undef, latin => 1, official => undef } ],
-    [ { lang => undef, latin => '', official => undef } ],
-];
+our $DEFAULT_TITLE_PREFS = { FU::Validate->compile({titleprefs => 1})->empty->%*, to_latin => true };
 
-sub pref { fu->{titleprefs} //= !is_api() && titleprefs_parse(auth->pref('titles')) }
+sub titleprefs_is_default($p) { $p->{to_latin} && !$p->{ao_latin} && !$p->{t1_lang} && !$p->{a1_lang} }
+
+sub pref { !is_api() && auth->pref('titles') }
 
 
 # Returns the preferred title array given an array of (vn|releases)_titles-like
 # objects. Same functionality as the SQL view, except implemented in perl.
-sub titleprefs_obj {
-    my($olang, $titles) = @_;
-    my $p = pref || $DEFAULT_TITLE_PREFS;
-    my %l = map +($_->{lang},$_), $titles->@*;
+sub titleprefs_obj($olang, $titles) {
+    my $p = pref;
+    my %l = map +($_->{lang},$_), @$titles;
 
-    my @title = ('','','','');
-    for my $t (0,1) {
-        for ($p->[$t]->@*) {
-            my $o = $l{$_->{lang} // $olang} or next;
-            next if !defined $_->{official} && $o->{lang} ne $olang;
-            next if $_->{official} && defined $o->{official} && !$o->{official};
+    my @title = (
+        $olang, (!$p || $p->{to_latin}) && length $l{$olang}{latin} ? $l{$olang}{latin} : $l{$olang}{title},
+        $olang, ( $p && $p->{ao_latin}) && length $l{$olang}{latin} ? $l{$olang}{latin} : $l{$olang}{title},
+    );
+    for my $t ($p ? ('t','a') : ()) {
+        for (1..4) {
+            my $o = $l{ $p->{"$t${_}_lang"}||'' } or next;
+            next if !defined $p->{"$t${_}_official"} && $o->{lang} ne $olang;
+            next if $p->{"$t${_}_official"} && exists $o->{official} && !$o->{official};
             next if !defined $o->{title};
-            $title[$t*2] = $o->{lang};
-            $title[$t*2+1] = $_->{latin} && length $o->{latin} ? $o->{latin} : $o->{title};
+            $title[$t eq 't' ? 0 : 2] = $o->{lang};
+            $title[$t eq 't' ? 1 : 3] = $p->{"$t${_}_latin"} && length $o->{latin} ? $o->{latin} : $o->{title};
             last;
         }
     }
@@ -149,15 +98,17 @@ sub titleprefs_obj {
 
 # Returns the preferred title array given a language, latin title and original title.
 # For DB entries that only have (title, latin) fields.
-sub titleprefs_swap {
-    my($olang, $title, $latin) = @_;
-    my $p = pref || $DEFAULT_TITLE_PREFS;
+sub titleprefs_swap($olang, $title, $latin) {
+    my $p = pref;
 
-    my @title = ($olang,'',$olang,'');
-    for my $t (0,1) {
-        for ($p->[$t]->@*) {
-            next if $_->{lang} && $_->{lang} ne $olang;
-            $title[$t*2+1] = $_->{latin} ? $latin//$title : $title;
+    my @title = (
+        $olang, (!$p || $p->{to_latin}) && length $latin ? $latin : $title,
+        $olang, ( $p && $p->{ao_latin}) && length $latin ? $latin : $title,
+    );
+    for my $t ($p ? ('t','a') : ()) {
+        for (1..4) {
+            next if ($p->{"$t${_}_lang"}||'') ne $olang;
+            $title[$t eq 't' ? 1 : 3] = $p->{"$t${_}_latin"} && length $latin ? $latin : $title;
             last;
         }
     }
@@ -165,52 +116,83 @@ sub titleprefs_swap {
 }
 
 
-sub gen_sql {
-    my($has_official, $tbl_main, $tbl_titles, $join_col) = @_;
-    my $p = pref || $DEFAULT_TITLE_PREFS;
+sub gen_sql($has_official, $tbl_main, $tbl_titles, $join_col) {
+    my $p = pref;
+    return undef if !$p || titleprefs_is_default $p;
 
-    my sub id { (!defined $_[0]{official}?'r':!$has_official?'x':$_[0]{official}?'o':'u').($_[0]{lang}//'') }
-
-    my %joins = map +(id($_),1), $p->[0]->@*, $p->[1]->@*;
-    my $var = 'a';
-    $joins{$_} = 'x_'.$var++ for sort keys %joins;
-    my @joins = map sql(
-        "LEFT JOIN $tbl_titles $joins{$_} ON", sql_and
-            "$joins{$_}.$join_col = x.$join_col",
-            $_ =~ /^r/ ? "$joins{$_}.lang = x.olang" : (),
-            length($_) > 1 ? sql("$joins{$_}.lang =", \(''.substr($_,1))) : (),
-            $has_official && $_ =~ /^o./ ? "$joins{$_}.official" : (),
-    ), sort keys %joins;
-
-    my sub titlearray {
-        my($o) = @_;
-        'ARRAY['.($o->{lang}?"'$o->{lang}'":'null').', COALESCE('.($o->{latin} ? $joins{ id($o) }.'.latin, ' : '').$joins{ id($o) }.'.title)]';
+    my sub id($t,$i) {
+        !$i ? 'xo' : sprintf 'x%s_%s',
+            !defined $p->{"$t${i}_official"} ? 'r' : $has_official && $p->{"$t${i}_official"} ? 'o' : 'u',
+            lc $p->{"$t${i}_lang"} =~ s/-//rg
     }
-    my sub titlesel {
-        my $orig = pop;
-        return titlearray($orig) if !@_;
-        'CASE '.join(' ', map 'WHEN '.$joins{ id($_) }.'.title IS NOT NULL THEN '.titlearray($_), @_).' ELSE '.titlearray($orig).' END';
-    }
-    my $title = titlesel($p->[0]->@*).'||'.titlesel($p->[1]->@*);
-    my $sorttitle = 'COALESCE('.join(',',
-        map +($joins{ id($_) }.'.latin', $joins{ id($_) }.'.title'), $p->[0]->@*
-    ).')';
 
-    sql "(SELECT x.*, $title AS title, $sorttitle AS sorttitle FROM $tbl_main x", @joins, ')';
+    my $sql = '(SELECT x.*, ';
+
+    for my $t ('t', 'a') {
+        $sql .= '||' if $t eq 'a';
+        my $orig = 'ARRAY[xo.lang::text,' . ($p->{"${t}o_latin"} ? 'COALESCE(xo.latin, xo.title)' : 'xo.title') . ']';
+        if (!$p->{"${t}1_lang"}) {
+            $sql .= $orig;
+            next;
+        }
+        $sql .= 'CASE';
+        for (1..4) {
+            last if !$p->{"$t${_}_lang"};
+            my $id = id $t, $_;
+            $sql .= " WHEN $id.title IS NOT NULL THEN ARRAY['".$p->{"$t${_}_lang"}."'," . ($p->{"$t${_}_latin"} ? "COALESCE($id.latin, $id.title)" : "$id.title") . ']';
+        }
+        $sql .= " ELSE $orig END";
+    }
+    $sql .= " title, COALESCE(";
+
+    for (1..4) {
+        last if !$p->{"t${_}_lang"};
+        my $id = id 't', $_;
+        $sql .= "$id.latin, $id.title, ";
+    }
+
+    $sql .= "xo.latin, xo.title) sorttitle FROM $tbl_main x JOIN $tbl_titles xo ON xo.$join_col = x.$join_col AND xo.lang = x.olang";
+
+    my %joins;
+    for my $t ('t', 'a') {
+        for (1..4) {
+            last if !$p->{"$t${_}_lang"};
+            my $id = id $t, $_;
+            next if $joins{$id}++;
+            $sql .= " LEFT JOIN $tbl_titles $id ON $id.$join_col = x.$join_col AND $id.lang = '".$p->{"$t${_}_lang"}."'"
+                .(!defined $p->{"$t${_}_official"} ? " AND $id.lang = x.olang" : $has_official && $p->{"$t${_}_official"} ? " AND $id.official" : '');
+        }
+    }
+
+    $sql .= ')';
+    $sql;
 }
 
+# Temporary hash-to-postgres-text conversion, so they work with the old text-param methods.
+sub txt_pref {
+    my $p = pref;
+    return undef if !$p || titleprefs_is_default $p;
+    '('.join(',', map !defined $p->{$_} ? '' : !$p->{$_} ? 'f' : $p->{$_} eq '1' ? 't' : $p->{$_}, qw/
+        t1_lang t2_lang t3_lang t4_lang
+        a1_lang a2_lang a3_lang a4_lang
+        t1_latin t2_latin t3_latin t4_latin to_latin
+        a1_latin a2_latin a3_latin a4_latin ao_latin
+        t1_official t2_official t3_official t4_official
+        a1_official a2_official a3_official a4_official
+    /).')'
+}
 
-sub vnt :prototype()          { fu->{titleprefs_v} //= pref ? gen_sql 1, 'vn',       'vn_titles',       'id' : 'vnt'       }
-sub releasest :prototype()    { fu->{titleprefs_r} //= pref ? gen_sql 0, 'releases', 'releases_titles', 'id' : 'releasest' }
-sub producerst :prototype()   { fu->{titleprefs_p} //= pref ? sql 'producerst(',   \fu->{auth}{user}{titles}, ')' : 'producerst' }
-sub charst :prototype()       { fu->{titleprefs_c} //= pref ? sql 'charst(',       \fu->{auth}{user}{titles}, ')' : 'charst' }
-sub staff_aliast :prototype() { fu->{titleprefs_s} //= pref ? sql 'staff_aliast(', \fu->{auth}{user}{titles}, ')' : 'staff_aliast' }
+sub vnt :prototype()          { fu->{titleprefs_v} //= gen_sql(1, 'vn',       'vn_titles',       'id') || 'vnt'       }
+sub releasest :prototype()    { fu->{titleprefs_r} //= gen_sql(0, 'releases', 'releases_titles', 'id') || 'releasest' }
+sub producerst :prototype()   { fu->{titleprefs_p} //= pref ? sql 'producerst(',   \txt_pref, ')' : 'producerst' }
+sub charst :prototype()       { fu->{titleprefs_c} //= pref ? sql 'charst(',       \txt_pref, ')' : 'charst' }
+sub staff_aliast :prototype() { fu->{titleprefs_s} //= pref ? sql 'staff_aliast(', \txt_pref, ')' : 'staff_aliast' }
 
 # (Not currently used)
 #sub vnt_hist { gen_sql 1, 'vn_hist', 'vn_titles_hist', 'chid' }
 #sub releasest_hist { gen_sql 0, 'releases_hist', 'releases_titles_hist', 'chid' }
 
 # Wrapper around SQL's item_info() with the user's preference applied.
-sub item_info { sql 'item_info(', \((fu->{auth} && fu->{auth}{user}{titles}) || undef), ',', $_[0], ',', $_[1], ')' }
+sub item_info { sql 'item_info(', \txt_pref, ',', $_[0], ',', $_[1], ')' }
 
 1;

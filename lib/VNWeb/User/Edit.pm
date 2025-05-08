@@ -42,7 +42,6 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     max_violence    => { uint => 1, range => [ 0, 2 ] },
     spoilers        => { uint => 1, range => [ 0, 2 ] },
     titles          => { titleprefs => 1 },
-    alttitles       => { titleprefs => 1 },
     tags_all        => { anybool => 1 },
     tags_cont       => { anybool => 1 },
     tags_ero        => { anybool => 1 },
@@ -100,8 +99,8 @@ sub _namethrottled($uid) {
 FU::get qr{/$RE{uid}/edit}, sub($uid) {
     my $u = fu->sql(
         'SELECT u.id, username, max_sexual, max_violence, traits_sexual, tags_all, tags_cont, tags_ero, tags_tech, prodrelexpand
-              , vnrel_langs::text[], vnrel_olang, vnrel_mtl, vnimage, staffed_langs::text[], staffed_olang, staffed_unoff
-              , spoilers, skin, customcss, customcss_csum, timezone, titles::text
+              , vnrel_langs, vnrel_olang, vnrel_mtl, vnimage, staffed_langs, staffed_olang, staffed_unoff
+              , spoilers, skin, customcss, customcss_csum, timezone, titles
               , nodistract_can, support_can, uniname_can, pubskin_can
               , nodistract_noads, nodistract_nofancy, support_enabled, uniname, pubskin_enabled
            FROM users u JOIN users_prefs up ON up.id = u.id WHERE u.id = $1', $uid
@@ -115,7 +114,7 @@ FU::get qr{/$RE{uid}/edit}, sub($uid) {
 
     $u->{traits} = fu->sql('SELECT u.tid, t.name, g.name AS "group" FROM users_traits u JOIN traits t ON t.id = u.tid LEFT JOIN traits g ON g.id = t.gid WHERE u.id = $1 ORDER BY g.gorder, t.name', $u->{id})->allh;
     $u->{timezone} ||= 'UTC';
-    @{$u}{'titles','alttitles'} = @{ titleprefs_parse($u->{titles}) // $DEFAULT_TITLE_PREFS };
+    $u->{titles} ||= $DEFAULT_TITLE_PREFS;
     $u->{skin} ||= config->{skin_default};
 
     $u->{tagprefs} = fu->sql('SELECT u.tid, u.spoil, u.color, u.childs, t.name FROM users_prefs_tags u JOIN tags t ON t.id = u.tid WHERE u.id = $1 ORDER BY t.name', $u->{id})->allh;
@@ -147,8 +146,7 @@ js_api UserEdit => $FORM_IN, sub($data) {
 
     $data->{skin} = '' if $data->{skin} eq config->{skin_default};
     $data->{timezone} = '' if $data->{timezone} eq 'UTC';
-    $data->{titles} = titleprefs_fmt [ $data->{titles}, delete $data->{alttitles} ];
-    $data->{titles} = $data->{titles} eq titleprefs_fmt($DEFAULT_TITLE_PREFS) ? undef : SQL($data->{titles}, '::text::titleprefs');
+    $data->{titles} = undef if titleprefs_is_default $data->{titles};
 
     $set{$_} = $data->{$_} for qw/nodistract_noads nodistract_nofancy support_enabled uniname pubskin_enabled/;
     $setp{$_} = $data->{$_} for qw/
