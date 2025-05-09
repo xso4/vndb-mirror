@@ -246,7 +246,7 @@ FU::post $PATH, sub($id, @) {
     fu->notfound if !$t->{poll_question};
 
     my %opt = map +($_->{id},1), fu->dbAlli('SELECT id FROM threads_poll_options WHERE tid =', \$id)->@*;
-    my %vote = map +($_,1), grep $opt{$_}, fu->formdata(opt => { accept_scalar => 1, elems => { uint => 1 } })->@*;
+    my %vote = map +($_,1), grep $opt{$_}, fu->formdata(opt => { default => [], accept_scalar => 1, elems => { uint => 1 } })->@*;
     my $i = 0;
     my @vote = grep $i++ < $t->{poll_max_options}, sort keys %vote;
 
