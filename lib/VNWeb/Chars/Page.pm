@@ -188,11 +188,11 @@ sub chartable_($c, $link=undef, $sep=undef, $vn=undef) {
 
             my @groups;
             for(grep !$_->{hidden} && ($_->{override}//$_->{spoil}) <= $view->{spoilers} && (!$_->{sexual} || $view->{traits_sexual}), $c->{traits}->@*) {
-                push @groups, $_ if !@groups || $groups[$#groups]{group} ne $_->{group};
-                push $groups[$#groups]{traits}->@*, $_;
+                push @groups, [] if !@groups || $groups[$#groups][0]{group} ne $_->{group};
+                push $groups[$#groups]->@*, $_;
             }
-            tr_ class => "trait_group_$_->{group}", sub {
-                td_ class => 'key', sub { a_ href => "/$_->{group}", $_->{groupname} };
+            tr_ class => "trait_group_$_->[0]{group}", sub {
+                td_ class => 'key', sub { a_ href => "/$_->[0]{group}", $_->[0]{groupname} };
                 td_ sub { join_ ', ', sub {
                     a_ href => "/$_->{tid}",
                         class => $_->{color} && $_->{color} =~ /standout|grayedout/ ? $_->{color} : undef,
@@ -200,7 +200,7 @@ sub chartable_($c, $link=undef, $sep=undef, $vn=undef) {
                         style => ($_->{color}//'') =~ /^#/ ? "color: $_->{color}" : undef,
                         $_->{name};
                     spoil_ $_->{spoil};
-                }, $_->{traits}->@* };
+                }, @$_ };
             } for @groups;
 
             tr_ sub {
