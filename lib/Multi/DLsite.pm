@@ -33,7 +33,8 @@ sub data {
 
   my $price =
     $body =~ m{<div class="work_buy_content"><span class="price">([0-9,]+)<i>円</i></span></div>} ? sprintf('JP¥ %d', $1 =~ s/,//gr) :
-    $body =~ m{<i class="work_jpy">([0-9,]+) JPY</i></span>} ? sprintf('JP¥ %d', $1 =~ s/,//gr) : '';
+    $body =~ m{<i class="work_jpy">([0-9,]+) JPY</i></span>} ? sprintf('JP¥ %d', $1 =~ s/,//gr) :
+    $body =~ m{"price_with_tax":([0-9]+)} ? sprintf('JP¥ %d', $1) : ''; # <- still included on the page for geo-blocked products
 
   $shop = $body =~ /,"category":"([^"]+)"/ ? $1 : '';
 
