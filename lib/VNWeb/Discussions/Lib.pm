@@ -3,30 +3,28 @@ package VNWeb::Discussions::Lib;
 use VNWeb::Prelude;
 use Exporter 'import';
 
-our @EXPORT = qw/$BOARD_RE sql_visible_threads enrich_boards threadlist_ boardsearch_ boardtypes_/;
+our @EXPORT = qw/$BOARD_RE VISIBLE_THREADS enrich_boards threadlist_ boardsearch_ boardtypes_/;
 
 
 our $BOARD_RE = join '|', map $_.($BOARD_TYPE{$_}{dbitem}?'(?:[1-9][0-9]{0,5})?':''), keys %BOARD_TYPE;
 
 
 # Returns a WHERE condition to filter threads that the current user is allowed to see.
-sub sql_visible_threads {
-    return '1=1' if auth && auth->uid eq 'u2'; # Yorhel sees everything
-    sql_and
-        auth->permBoardmod ? () : ('NOT t.hidden'),
-        sql('NOT t.private OR EXISTS(SELECT 1 FROM threads_boards WHERE tid = t.id AND type = \'u\' AND iid =', \auth->uid, ')');
+sub VISIBLE_THREADS {
+    return RAW 'true' if auth && auth->uid eq 'u2'; # Yorhel sees everything
+    AND auth->permBoardmod ? () : ('NOT t.hidden'),
+        SQL("NOT t.private OR EXISTS(SELECT 1 FROM threads_boards WHERE tid = t.id AND type = 'u' AND iid =", auth->uid, ')');
 }
 
 
 # Adds a 'boards' array to threads.
-sub enrich_boards {
-    my($filt, @lst) = @_;
-    enrich boards => id => tid => sub { sql '
+sub enrich_boards($filt, $lst) {
+    fu->enrich(aoh => boards => sub { SQL '
         SELECT tb.tid, COALESCE(tb.iid::text, tb.type::text) AS id, tb.type AS btype, tb.iid, x.title
-          FROM threads_boards tb, ', item_info('tb.iid', 'NULL'), 'x
-         WHERE ', sql_and(sql('tb.tid IN', $_[0]), $filt||()), '
+          FROM threads_boards tb, ', ITEM_INFO('tb.iid', 'NULL'), 'x
+         WHERE ', AND(SQL('tb.tid', IN $_), $filt||()), '
          ORDER BY tb.type, tb.iid
-    '}, @lst;
+    '}, $lst);
 }
 
 
@@ -40,23 +38,24 @@ sub enrich_boards {
 #
 # Returns 1 if something was displayed, 0 if no threads matched the where clause.
 sub threadlist_(%opt) {
-    my $where = sql_and sql_visible_threads(), $opt{where}||();
+    my $where = AND VISIBLE_THREADS, $opt{where}||();
 
-    my $count = $opt{paginate} && fu->dbVali('SELECT count(*) FROM threads t WHERE', $where);
+    my $count = $opt{paginate} && fu->SQL('SELECT count(*) FROM threads t WHERE', $where)->val;
     return 0 if $opt{paginate} && !$count;
 
-    my $lst = fu->dbPagei(\%opt, q{
+    my $lst = fu->SQL('
         SELECT t.id, t.title, t.c_count, t.c_lastnum, t.locked, t.private, t.hidden, t.poll_question IS NOT NULL AS haspoll
-             , }, sql_user('tfu', 'firstpost_'), ',', sql_totime('tf.date'), q{ as firstpost_date
-             , }, sql_user('tlu', 'lastpost_'),  ',', sql_totime('tl.date'), q{ as lastpost_date
+             , ', USER('tfu', 'firstpost_'), ', tf.date as firstpost_date
+             , ', USER('tlu', 'lastpost_'),  ', tl.date as lastpost_date
           FROM threads t
           JOIN threads_posts tf ON tf.tid = t.id AND tf.num = 1
           JOIN threads_posts tl ON tl.tid = t.id AND tl.num = t.c_lastnum
           LEFT JOIN users tfu ON tfu.id = tf.uid
           LEFT JOIN users tlu ON tlu.id = tl.uid
-         WHERE }, $where, q{
-         ORDER BY}, $opt{sort}||'tl.date DESC'
-    );
+         WHERE ', $where, '
+         ORDER BY', RAW($opt{sort}||'tl.date DESC'), '
+         LIMIT', $opt{results}, OFFSET => $opt{results}*($opt{page}-1)
+    )->allh;
     return 0 if !@$lst;
 
     enrich_boards $opt{boards}, $lst;

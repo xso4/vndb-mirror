@@ -36,29 +36,31 @@ sub listing_ {
 
 FU::get qr{/$RE{uid}/posts}, sub($uid) {
     not_moe;
-    my $u = fu->dbRowi('SELECT id, ', sql_user(), 'FROM users u WHERE id =', \$uid);
-    fu->notfound if !$u->{id} || (!$u->{user_name} && !auth->isMod);
+    my $u = fu->SQL('SELECT id, ', USER, 'FROM users u WHERE id =', $uid)->rowh;
+    fu->notfound if !$u || (!$u->{user_name} && !auth->isMod);
 
     my $page = fu->query(p => { upage => 1 });
 
-    my $sql = sql '(
+    my $sql = SQL '(
         SELECT tp.tid, tp.num, tp.msg, t.title, tp.date, t.hidden OR tp.hidden IS NOT NULL
           FROM threads_posts tp
           JOIN threads t ON t.id = tp.tid
-         WHERE tp.uid =', \$u->{id}, 'AND NOT t.private', auth->permBoardmod ? () : 'AND NOT t.hidden AND tp.hidden IS NULL', '
+         WHERE tp.uid =', $u->{id}, 'AND NOT t.private', auth->permBoardmod ? () : 'AND NOT t.hidden AND tp.hidden IS NULL', '
        UNION ALL
         SELECT rp.id, rp.num, rp.msg, v.title[1+1], rp.date, rp.hidden IS NOT NULL
           FROM reviews_posts rp
           JOIN reviews r ON r.id = rp.id
-          JOIN', vnt, 'v ON v.id = r.vid
-         WHERE rp.uid =', \$u->{id}, auth->permBoardmod ? () : 'AND rp.hidden IS NULL', '
+          JOIN', VNT, 'v ON v.id = r.vid
+         WHERE rp.uid =', $u->{id}, auth->permBoardmod ? () : 'AND rp.hidden IS NULL', '
        ) p(id,num,msg,title,date,hidden)';
 
-    my $count = fu->dbVali('SELECT count(*) FROM', $sql);
-    my $list = $count && fu->dbPagei({ results => 50, page => $page },
-        'SELECT id, num, substring(msg from 1 for 1000) as msg, title, ', sql_totime('date'), 'as date, hidden
-           FROM ', $sql, 'ORDER BY date DESC'
-    );
+    my $count = fu->SQL('SELECT count(*) FROM', $sql)->val;
+    my $list = $count && fu->SQL(
+        'SELECT id, num, substring(msg from 1 for 1000) as msg, title, date, hidden
+           FROM ', $sql, '
+          ORDER BY date DESC
+          LIMIT 50 OFFSET', 50*($page+1)
+    )->allh;
 
     my $own = auth && $u->{id} eq auth->uid;
     my $title = $own ? 'My posts' : 'Posts by '.user_displayname $u;

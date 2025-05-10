@@ -5,6 +5,7 @@ package VNWeb::Filters;
 
 use v5.36;
 use FU;
+use FU::SQL;
 use VNDB::Types;
 use VNWeb::Auth;
 use VNWeb::Validation;
@@ -97,9 +98,7 @@ sub filter_vn_compat($fil) {
         my $l = delete $fil->{$_};
         next if !$l;
         $l = [ map lc($_), ref $l ? @$l : $l ];
-        $fil->{ s/^tag/tag_/rg } ||= [ map $_->{id}, fu->dbAlli(
-           'SELECT DISTINCT id FROM tags WHERE searchable AND lower(name) IN', $l
-        )->@* ];
+        $fil->{ s/^tag/tag_/rg } ||= fu->SQL('SELECT DISTINCT id FROM tags WHERE searchable AND lower(name)', IN $l)->flat;
     }
 }
 

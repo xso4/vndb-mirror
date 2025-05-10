@@ -437,11 +437,12 @@ sub _maintabs_ {
             } if $t eq 'u';
 
             if($t =~ /[uvp]/ && !config->{moe}) {
-                my $cnt = fu->dbVali(q{
+                my $cnt = fu->SQL(q{
                     SELECT COUNT(*)
-                    FROM threads_boards tb
-                    JOIN threads t ON t.id = tb.tid
-                    WHERE tb.type =}, \$t, 'AND tb.iid =', \$o->{id}, ' AND', VNWeb::Discussions::Lib::sql_visible_threads());
+                      FROM threads_boards tb
+                      JOIN threads t ON t.id = tb.tid
+                     WHERE tb.type =}, $t, 'AND tb.iid =', $o->{id}, 'AND', VNWeb::Discussions::Lib::VISIBLE_THREADS()
+                )->val;
                 t disc => "/t/$id", "discussions ($cnt)";
             };
 

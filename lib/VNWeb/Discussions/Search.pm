@@ -16,7 +16,7 @@ sub filters_ {
     );
     my %boards = map +($_,1), $filt->{b}->@*;
 
-    my $u = $filt->{uq} && fu->dbVali('SELECT id FROM users WHERE', $filt->{uq} =~ /^u$RE{num}$/ ? 'id = ' : 'lower(username) =', \lc $filt->{uq});
+    my $u = $filt->{uq} && fu->SQL('SELECT id FROM users WHERE', $filt->{uq} =~ /^u$RE{num}$/ ? 'id = ' : 'lower(username) =', lc $filt->{uq})->val;
 
     form_ method => 'get', action => fu->path, sub {
         boardtypes_;
@@ -56,14 +56,13 @@ sub noresults_ {
 }
 
 
-sub posts_ {
-    my($filt, $u) = @_;
-
+sub posts_($filt, $u) {
     # Use websearch_to_tsquery() to convert the query string into a tsquery.
     # Also match against an empty string to see if the query doesn't consist of only negative matches.
-    my $ts = fu->dbVali('
-        WITH q(q) AS (SELECT websearch_to_tsquery(', \$filt->{bq}, '))
-        SELECT CASE WHEN numnode(q) = 0 OR q @@ \'\' THEN NULL ELSE q::text END FROM q');
+    my $ts = fu->sql(q{
+        WITH q(q) AS (SELECT websearch_to_tsquery($1))
+        SELECT CASE WHEN numnode(q) = 0 OR q @@ '' THEN NULL ELSE q::text END FROM q
+    }, $filt->{bq})->val;
     return noresults_ if !$ts;
 
     my $reviews = grep $_ eq 'w', $filt->{b}->@*;
@@ -75,38 +74,39 @@ sub posts_ {
     # means we can re-use them for highlighting without worrying that they
     # conflict with the message contents.
 
-    my($posts, $np) = fu->dbPagei({ results => 20, page => $filt->{p} }, q{
-        SELECT m.id, m.num, m.title
-             , }, sql_user(), q{
-             , }, sql_totime('m.date'), q{as date
-             , ts_headline('english', strip_bb_tags(strip_spoilers(m.msg)),}, \$ts, ',',
-                 \'MaxFragments=2,MinWords=15,MaxWords=40,StartSel=[raw],StopSel=[/raw],FragmentDelimiter=[code]',
-               ') as headline
-          FROM (', sql_join('UNION',
+    $ts = SQL($ts, '::text::tsquery');
+    my $posts = fu->SQL('
+        SELECT m.id, m.num, m.title,', USER, ", m.date
+             , ts_headline('english', strip_bb_tags(strip_spoilers(m.msg)),", $ts, ",
+                 'MaxFragments=2,MinWords=15,MaxWords=40,StartSel=[raw],StopSel=[/raw],FragmentDelimiter=[code]'
+               ) as headline
+          FROM (", INTERSPERSE('UNION',
              @tboards ?
-                sql('SELECT tp.tid, tp.num, t.title, tp.uid, tp.date, tp.msg
+                SQL('SELECT tp.tid, tp.num, t.title, tp.uid, tp.date, tp.msg
                        FROM threads_posts tp
                        JOIN threads t ON t.id = tp.tid
                       WHERE NOT t.hidden AND NOT t.private AND tp.hidden IS NULL
-                        AND bb_tsvector(tp.msg) @@', \$ts,
-                            $u ? ('AND tp.uid =', \$u) : (),
-                            @tboards < keys %BOARD_TYPE ? ('AND t.id IN(SELECT tid FROM threads_boards WHERE type IN', \@tboards, ')') : ()
+                        AND bb_tsvector(tp.msg) @@', $ts,
+                            $u ? ('AND tp.uid =', $u) : (),
+                            @tboards < keys %BOARD_TYPE ? ('AND t.id IN(SELECT tid FROM threads_boards WHERE type', IN \@tboards, ')') : ()
              ) : (), $reviews ? (
-                 sql('SELECT w.id, 0, v.title[1+1], w.uid, w.date, w.text
+                 SQL('SELECT w.id, 0, v.title[1+1], w.uid, w.date, w.text
                         FROM reviews w
-                        JOIN', vnt, 'v ON v.id = w.vid
-                       WHERE NOT w.c_flagged AND bb_tsvector(w.text) @@', \$ts,
-                             $u ? ('AND w.uid =', \$u) : ()),
-                 sql('SELECT wp.id, wp.num, v.title[1+1], wp.uid, wp.date, wp.msg
+                        JOIN', VNT, 'v ON v.id = w.vid
+                       WHERE NOT w.c_flagged AND bb_tsvector(w.text) @@', $ts,
+                             $u ? ('AND w.uid =', $u) : ()),
+                 SQL('SELECT wp.id, wp.num, v.title[1+1], wp.uid, wp.date, wp.msg
                         FROM reviews_posts wp
                         JOIN reviews w ON w.id = wp.id
-                        JOIN', vnt, 'v ON v.id = w.vid
-                       WHERE NOT w.c_flagged AND wp.hidden IS NULL AND bb_tsvector(wp.msg) @@', \$ts,
-                             $u ? ('AND wp.uid =', \$u) : ()),
+                        JOIN', VNT, 'v ON v.id = w.vid
+                       WHERE NOT w.c_flagged AND wp.hidden IS NULL AND bb_tsvector(wp.msg) @@', $ts,
+                             $u ? ('AND wp.uid =', $u) : ()),
              ) : ()), ') m (id, num, title, uid, date, msg)
           LEFT JOIN users u ON u.id = m.uid
-         ORDER BY m.date DESC'
-    );
+         ORDER BY m.date DESC
+         LIMIT 20 OFFSET', 20*($filt->{p}-1)+1
+    )->allh;
+    my $np = @$posts > 20 && !!pop @$posts;
 
     return noresults_ if !@$posts;
 
@@ -144,16 +144,14 @@ sub posts_ {
 }
 
 
-sub threads_ {
-    my($filt, $u) = @_;
-
+sub threads_($filt, $u) {
     my @boards = grep $_ ne 'w', $filt->{b}->@*; # Can't search reviews by title
     return noresults_ if !@boards;
 
-    my $where = sql_and
-        @boards < keys %BOARD_TYPE ? sql('t.id IN(SELECT tid FROM threads_boards WHERE type IN', \@boards, ')') : (),
-        $u ? sql('EXISTS(SELECT 1 FROM threads_posts tp WHERE tp.tid = t.id AND tp.num = 1 AND tp.uid =', \$u, ')') : (),
-        map sql('t.title ilike', \('%'.sql_like($_).'%')), grep length($_) > 0, split /[ ,._-]/, $filt->{bq};
+    my $where = AND
+        @boards < keys %BOARD_TYPE ? SQL('t.id IN(SELECT tid FROM threads_boards WHERE type', IN \@boards, ')') : (),
+        $u ? SQL('EXISTS(SELECT 1 FROM threads_posts tp WHERE tp.tid = t.id AND tp.num = 1 AND tp.uid =', $u, ')') : (),
+        map SQL('t.title ilike', '%'.sql_like($_).'%'), grep length($_) > 0, split /[ ,._-]/, $filt->{bq};
 
     noresults_ if !threadlist_
         where    => $where,

@@ -32,11 +32,10 @@ my $FORM = form_compile {
 
 js_api DiscussionDelete => { id => { vndbid => 't' } }, sub ($data) {
     fu->denied if !auth->permBoardmod;
-    my $uid = fu->dbVali('SELECT uid FROM threads_posts WHERE num = 1 AND tid =', \$data->{id});
-    fu->notfound if !$uid;
+    my $uid = fu->sql('SELECT uid FROM threads_posts WHERE num = 1 AND tid = $1', $data->{id})->val or fu->notfound;
     auth->audit($uid, 'post delete', "deleted $data->{id}.1");
-    fu->dbExeci('DELETE FROM notifications WHERE iid =', \$data->{id});
-    fu->dbExeci('DELETE FROM threads WHERE id =', \$data->{id});
+    fu->sql('DELETE FROM notifications WHERE iid = $1', $data->{id})->exec;
+    fu->sql('DELETE FROM threads WHERE id = $1', $data->{id})->exec;
     return +{ _redir => '/t' };
 };
 
@@ -44,16 +43,16 @@ js_api DiscussionDelete => { id => { vndbid => 't' } }, sub ($data) {
 js_api DiscussionEdit => $FORM, sub ($data) {
     my $tid = $data->{tid};
 
-    my $t = !$tid ? {} : fu->dbRowi('
-        SELECT t.id, t.poll_question, t.poll_max_options, t.boards_locked, t.hidden, tp.num, tp.uid AS user_id,', sql_totime('tp.date'), 'AS date
+    my $t = !$tid ? {} : fu->SQL('
+        SELECT t.id, t.poll_question, t.poll_max_options, t.boards_locked, t.hidden, tp.num, tp.uid AS user_id, tp.date
           FROM threads t
           JOIN threads_posts tp ON tp.tid = t.id AND tp.num = 1
-         WHERE t.id =', \$tid,
-          'AND', sql_visible_threads());
+         WHERE t.id =', $tid, 'AND', VISIBLE_THREADS
+    )->rowh;
     fu->notfound if $tid && !$t->{id};
     fu->denied if !can_edit t => $t;
 
-    fu->dbExeci('DELETE FROM notifications WHERE iid =', \$tid) if $tid && auth->permBoardmod && $data->{hidden};
+    fu->sql('DELETE FROM notifications WHERE iid = $1', $tid)->exec if $tid && auth->permBoardmod && $data->{hidden};
     auth->audit($t->{user_id}, 'post edit', "edited $tid.1") if $tid && $t->{user_id} ne auth->uid;
 
     return 'Invalid boards' if !$data->{boards} || grep +(!$BOARD_TYPE{$_->{btype}}{dbitem})^(!$_->{iid}), $data->{boards}->@*;
@@ -67,7 +66,7 @@ js_api DiscussionEdit => $FORM, sub ($data) {
              $data->{poll}{question} ne ($t->{poll_question}||'')
           || $data->{poll}{max_options} != $t->{poll_max_options}
           || join("\n", $data->{poll}{options}->@*) ne
-             join("\n", map $_->{option}, fu->dbAlli('SELECT option FROM threads_poll_options WHERE tid =', \$tid, 'ORDER BY id')->@*)
+             join("\n", fu->SQL('SELECT option FROM threads_poll_options WHERE tid =', $tid, 'ORDER BY id')->flat->@*)
     ));
 
     my $thread = {
@@ -83,17 +82,17 @@ js_api DiscussionEdit => $FORM, sub ($data) {
             private => $data->{private}
         ) : (),
     };
-    fu->dbExeci('UPDATE threads SET', $thread, 'WHERE id =', \$tid) if $tid;
-    $tid = fu->dbVali('INSERT INTO threads', $thread, 'RETURNING id') if !$tid;
+    fu->SQL('UPDATE threads', SET($thread), 'WHERE id =', $tid)->exec if $tid;
+    $tid = fu->SQL('INSERT INTO threads', VALUES($thread), 'RETURNING id')->val if !$tid;
 
     if(auth->permBoardmod || !$t->{boards_locked}) {
-        fu->dbExeci('DELETE FROM threads_boards WHERE tid =', \$tid);
-        fu->dbExeci('INSERT INTO threads_boards', { tid => $tid, type => $_->{btype}, iid => $_->{iid} }) for $data->{boards}->@*;
+        fu->SQL('DELETE FROM threads_boards WHERE tid =', $tid)->exec;
+        fu->SQL('INSERT INTO threads_boards', VALUES { tid => $tid, type => $_->{btype}, iid => $_->{iid} })->exec for $data->{boards}->@*;
     }
 
     if($pollchanged) {
-        fu->dbExeci('DELETE FROM threads_poll_options WHERE tid =', \$tid);
-        fu->dbExeci('INSERT INTO threads_poll_options', { tid => $tid, option => $_ }) for $data->{poll}{options}->@*;
+        fu->SQL('DELETE FROM threads_poll_options WHERE tid =', $tid)->exec;
+        fu->SQL('INSERT INTO threads_poll_options', VALUES { tid => $tid, option => $_ })->exec for $data->{poll}{options}->@*;
     }
 
     my $post = {
@@ -101,10 +100,10 @@ js_api DiscussionEdit => $FORM, sub ($data) {
         num => 1,
         msg => bb_subst_links($data->{msg}),
         $data->{tid} ? () : (uid => auth->uid),
-        !$data->{tid} || (auth->permBoardmod && $data->{nolastmod}) ? () : (edited => sql 'NOW()')
+        !$data->{tid} || (auth->permBoardmod && $data->{nolastmod}) ? () : (edited => SQL 'NOW()')
     };
-    fu->dbExeci('INSERT INTO threads_posts', $post) if !$data->{tid};
-    fu->dbExeci('UPDATE threads_posts SET', $post, 'WHERE', { tid => $tid, num => 1 }) if $data->{tid};
+    fu->SQL('INSERT INTO threads_posts', VALUES $post)->exec if !$data->{tid};
+    fu->SQL('UPDATE threads_posts', SET($post), WHERE { tid => $tid, num => 1 })->exec if $data->{tid};
 
     +{ _redir => "/$tid.1" };
 };
@@ -119,22 +118,22 @@ FU::get qr{(?:/t/($BOARD_RE)/new|/$RE{tid}/edit)}, sub($board_id,$tid=undef) {
 
     $board_type = 'ge' if $board_type && $board_type eq 'an' && !auth->permBoardmod;
 
-    my $t = !$tid ? {} : fu->dbRowi('
-        SELECT t.id, tp.tid, t.title, t.locked, t.boards_locked, t.private, t.hidden, t.poll_question, t.poll_max_options, tp.msg, tp.uid AS user_id,', sql_totime('tp.date'), 'AS date
+    my $t = !$tid ? {} : fu->SQL('
+        SELECT t.id, tp.tid, t.title, t.locked, t.boards_locked, t.private, t.hidden, t.poll_question, t.poll_max_options, tp.msg, tp.uid AS user_id, tp.date
           FROM threads t
           JOIN threads_posts tp ON tp.tid = t.id AND tp.num = 1
-         WHERE t.id =', \$tid,
-          'AND', sql_visible_threads());
+         WHERE t.id =', $tid, 'AND', VISIBLE_THREADS
+    )->rowh;
     fu->notfound if $tid && !$t->{id};
     fu->denied if !can_edit t => $t;
 
-    $t->{poll}{options} = $t->{poll_question} && [ map $_->{option}, fu->dbAlli('SELECT option FROM threads_poll_options WHERE tid =', \$t->{id}, 'ORDER BY id')->@* ];
+    $t->{poll}{options} = $t->{poll_question} && fu->SQL('SELECT option FROM threads_poll_options WHERE tid =', $t->{id}, 'ORDER BY id')->flat;
     $t->{poll}{question} = delete $t->{poll_question};
     $t->{poll}{max_options} = delete $t->{poll_max_options};
     $t->{poll} = undef if !$t->{poll}{question};
 
     if($tid) {
-        enrich_boards undef, $t;
+        enrich_boards undef, [$t];
     } else {
         $t->{boards} = [ {
             id    => $board_id ? $board_id->{id} : $board_type,

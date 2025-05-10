@@ -91,21 +91,19 @@ sub import {
 
 # Returns very generic information on a DB entry object.
 # Suitable for passing to HTML::framework_'s dbobj argument.
-sub dbobj {
-    my($id) = @_;
-
+sub dbobj($id) {
     return undef if !$id;
     if($id =~ /^u/) {
-        my $o = fu->dbRowi('SELECT id, username IS NULL AS entry_hidden,', sql_user(), 'FROM users u WHERE id =', \$id);
-        $o->{title} = [(undef, VNWeb::HTML::user_displayname $o)x2] if $o->{id};
+        my $o = fu->SQL('SELECT id, username IS NULL AS entry_hidden,', USER, 'FROM users u WHERE id =', $id)->rowh;
+        $o->{title} = [(undef, VNWeb::HTML::user_displayname $o)x2] if $o;
         return $o;
     }
 
-    fu->dbRowi('
-        SELECT', \$id, 'AS id, title, hidden AS entry_hidden, locked AS entry_locked
-          FROM', VNWeb::TitlePrefs::item_info(\$id, 'NULL'), ' x
+    fu->SQL('
+        SELECT', $id, 'AS id, title, hidden AS entry_hidden, locked AS entry_locked
+          FROM', VNWeb::TitlePrefs::ITEM_INFO($id, 'NULL'), ' x
          WHERE title IS DISTINCT FROM NULL
-    ');
+    ')->rowh;
 }
 
 1;

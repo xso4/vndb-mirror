@@ -30,8 +30,8 @@ FU::get qr{/t/(all|$BOARD_RE)}, sub($id) {
         };
 
         threadlist_
-            where    => $type ne 'all' && sql('t.id IN(SELECT tid FROM threads_boards WHERE type =', \$type, $id ? ('AND iid =', \$id) : (), ')'),
-            boards   => $type ne 'all' && sql('NOT (tb.type =', \$type, 'AND tb.iid IS NOT DISTINCT FROM', \$id, ')'),
+            where    => $type ne 'all' && SQL('t.id IN(SELECT tid FROM threads_boards WHERE type =', $type, $id ? ('AND iid =', $id) : (), ')'),
+            boards   => $type ne 'all' && SQL('NOT (tb.type =', $type, 'AND tb.iid IS NOT DISTINCT FROM', $id, ')'),
             results  => 50,
             sort     => $type eq 'an' ? 't.id DESC' : undef,
             page     => $page,
