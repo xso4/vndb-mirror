@@ -198,23 +198,27 @@ sub is_unique_username {
 }
 
 
-# Lookup IP and return an 'ipinfo' DB string.
-# TODO: Return a hashref
+# Lookup IP and return a hash corresponding to the 'ipinfo' SQL type.
 sub ipinfo {
     my $ip = shift || fu->ip;
     state $db = config->{location_db} && do {
         require Location;
         Location::init(config->{location_db});
     };
-    sub esc { ($_[0]//'') =~ s/([,()\\'"])/\\$1/rg }
-    return sprintf "(%s,,,,,,,)", esc $ip if !$db;
+    return { ip => $ip } if !$db;
 
-    my sub f { Location::lookup_network_has_flag($db, $ip, "LOC_NETWORK_FLAG_$_[0]") ? 't' : 'f' }
-    my $asn = Location::lookup_asn($db, $ip)||'';
-    sprintf "(%s,%s,%s,%s,%s,%s,%s,%s)", esc($ip),
-        esc(Location::lookup_country_code($db,$ip)),
-        $asn, $asn ? esc(Location::get_as_name($db,$asn)) : '',
-        f('ANONYMOUS_PROXY'), f('SATELLITE_PROVIDER'), f('ANYCAST'), f('DROP');
+    my sub f { !!Location::lookup_network_has_flag($db, $ip, "LOC_NETWORK_FLAG_$_[0]") }
+    my $asn = Location::lookup_asn($db, $ip);
+    return {
+        ip      => $ip,
+        country => Location::lookup_country_code($db,$ip),
+        asn     => $asn,
+        as_name => $asn && Location::get_as_name($db, $asn),
+        anonymous_proxy    => f('ANONYMOUS_PROXY'),
+        sattelite_provider => f('SATELLITE_PROVIDER'),
+        anycast => f('ANYCAST'),
+        drop    => f('DROP')
+    };
 }
 
 

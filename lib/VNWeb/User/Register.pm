@@ -67,7 +67,7 @@ js_api UserRegister => {
 
     my $id = fu->sql('INSERT INTO users (username) VALUES ($1) RETURNING id', $data->{username})->val;
     fu->sql('INSERT INTO users_prefs (id) VALUES ($1)', $id)->exec;
-    fu->sql('INSERT INTO users_shadow (id, ip, mail) VALUES ($1, $2::text::ipinfo, $3)', $id, ipinfo, $data->{email})->exec;
+    fu->sql('INSERT INTO users_shadow (id, ip, mail) VALUES ($1, $2, $3)', $id, ipinfo, $data->{email})->exec;
 
     my(undef, undef, $token) = auth->resetpass($data->{email});
     VNWeb::Validation::sendmail(

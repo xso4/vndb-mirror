@@ -8,41 +8,39 @@ sub fetch {
     my($id, $filt, $opt) = @_;
     my $num = $opt->{results}||50;
 
-    my $where = sql_and
+    my $where = AND
          !$id ? ()
-         : $id =~ /^u/ ? sql 'c.requester =', \$id
-         : $id =~ /^v/ && $filt->{r} ? sql 'c.itemid =', \$id, 'OR c.id IN(SELECT chid FROM releases_vn_hist WHERE vid =', \$id, ')' # This may need an index on releases_vn_hist.vid
-         : sql('c.itemid =', \$id),
+         : $id =~ /^u/ ? SQL 'c.requester =', $id
+         : $id =~ /^v/ && $filt->{r} ? SQL 'c.itemid =', $id, 'OR c.id IN(SELECT chid FROM releases_vn_hist WHERE vid =', $id, ')' # This may need an index on releases_vn_hist.vid
+         : SQL('c.itemid =', $id),
 
-         $filt->{t} && $filt->{t}->@* ? sql_or map sql('c.itemid BETWEEN vndbid(', \"$_", ',1) AND vndbid_max(', \"$_", ')'), $filt->{t}->@* : (),
-         $filt->{m} ? sql 'c.requester IS DISTINCT FROM \'u1\'' : (),
+         $filt->{t} && $filt->{t}->@* ? OR map SQL('c.itemid ^=', $_), $filt->{t}->@* : (),
+         $filt->{m} ? SQL "c.requester IS DISTINCT FROM 'u1'" : (),
 
-         $filt->{e} && $filt->{e} == 1 ? sql 'c.rev <> 1' : (),
-         $filt->{e} && $filt->{e} ==-1 ? sql 'c.rev = 1' : (),
+         $filt->{e} && $filt->{e} == 1 ? SQL 'c.rev <> 1' : (),
+         $filt->{e} && $filt->{e} ==-1 ? SQL 'c.rev = 1' : (),
 
          # -2 = awaiting mod, -1 = deleted, 0 = all, 1 = approved
-         $filt->{h} ? sql
+         $filt->{h} ? SQL
             'EXISTS(SELECT 1 FROM changes c_i
                 WHERE c_i.itemid = c.itemid AND',
                     $filt->{h} == -2 ? 'c_i.ihid AND NOT c_i.ilock' :
                     $filt->{h} == -1 ? 'c_i.ihid AND c_i.ilock' : 'NOT c_i.ihid', '
                   AND c_i.rev = (SELECT MAX(c_ii.rev) FROM changes c_ii WHERE c_ii.itemid = c.itemid))' : (),
 
-         (map $filt->{"cf$_"} && $filt->{"cf$_"}->@* > 0 ? sql
-             '(c.c_chflags & ', \sum(map 1<<$_, $filt->{"cf$_"}->@*), '> 0
-                OR c.itemid NOT BETWEEN vndbid(', \"$_", ', 1) AND vndbid_max(', \"$_", '))' : (), keys %CHFLAGS);
+         (map $filt->{"cf$_"} && $filt->{"cf$_"}->@* > 0 ? SQL
+             '(c.c_chflags & ', sum(map 1<<$_, $filt->{"cf$_"}->@*), '> 0 OR NOT (c.itemid ^=', $_, '))' : (), keys %CHFLAGS);
 
-    my $lst = fu->dbAlli('
-        SELECT c.id, c.itemid, c.comments, c.rev,', sql_totime('c.added'), 'AS added,', sql_user(), ', x.title, u.perm_dbmod AS rev_dbmod
-          FROM (SELECT * FROM changes c WHERE', $where, ' ORDER BY c.id DESC LIMIT', \($num+1), 'OFFSET', \($num*($filt->{p}-1)), ') c
+    my $lst = fu->SQL('
+        SELECT c.id, c.itemid, c.comments, c.rev, c.added,', USER, ', x.title, u.perm_dbmod AS rev_dbmod
+          FROM (SELECT * FROM changes c WHERE', $where, ' ORDER BY c.id DESC LIMIT', $num+1, 'OFFSET', $num*($filt->{p}-1), ') c
           JOIN item_info(NULL, c.itemid, c.rev) x ON true
           LEFT JOIN users u ON c.requester = u.id
          ORDER BY c.id DESC'
-    );
-    enrich rev_patrolled => id => id =>
-        sql('SELECT c.id,', sql_user(), 'FROM changes_patrolled c JOIN users u ON u.id = c.uid WHERE c.id IN'), $lst
-        if auth->permDbmod;
+    )->allh;
     my $np = @$lst > $num ? pop(@$lst)&&1 : 0;
+    fu->enrich(aoh => rev_patrolled => SQL('SELECT c.id,', USER, 'FROM changes_patrolled c JOIN users u ON u.id = c.uid WHERE c.id'), $lst)
+        if auth->permDbmod;
     ($lst, $np)
 }
 
@@ -148,7 +146,7 @@ sub filters_ {
                 my $v = sum 0, map 1<<$_, $filt->{"cf$k"}->@*;
                 my @lst = sort { $a->[1] cmp $b->[1] } map [$_, $CHFLAGS{$k}[$_]], 0..$#{$CHFLAGS{$k}};
                 if ($type eq $k) {
-                    my $available = fu->dbVali('SELECT bit_or(c_chflags) FROM changes WHERE itemid =', \$id)||~0;
+                    my $available = fu->sql('SELECT bit_or(c_chflags) FROM changes WHERE itemid = $1', $id)->val||~0;
                     @lst = grep $available & (1<<$_->[0]), @lst;
                 }
                 select_ multiple => 1, size => min(scalar @lst, scalar @types), name => "cf$k", sub {

@@ -10,7 +10,7 @@ my $STATUSRE = '(?:'.join('|', @STATUS).')';
 
 # Returns the object associated with the vndbid.num; Returns false if the object can't be reported.
 sub obj($id, $num=undef) {
-    my $o = fu->dbRowi('SELECT x.*, ', sql_user(), 'FROM', item_info(\$id, \$num), 'x LEFT JOIN users u ON u.id = x.uid');
+    my $o = fu->SQL('SELECT x.*, ', USER, 'FROM', ITEM_INFO($id, $num), 'x LEFT JOIN users u ON u.id = x.uid')->rowh;
     $o->{object} = $id;
     $o->{objectnum} = $num;
     $o->{title} //= [undef,$o->{object},undef,$o->{object}];
@@ -46,7 +46,7 @@ sub obj_ {
 
 
 sub is_throttled {
-    fu->dbVali('SELECT COUNT(*) FROM reports WHERE date > NOW()-\'1 day\'::interval AND', auth ? ('uid =', \auth->uid) : ('(ip).ip =', \fu->ip)) >= $reportsperday
+    fu->SQL("SELECT COUNT(*) FROM reports WHERE date > NOW()-'1 day'::interval AND", auth ? ('uid =', auth->uid) : ('(ip).ip =', fu->ip))->val >= $reportsperday
 }
 
 
@@ -64,14 +64,14 @@ js_api Report => $FORM, sub($data) {
     my $obj = obj $data->{object}, $data->{objectnum};
     return 'Invalid object' if !$obj;
 
-    fu->dbExeci('INSERT INTO reports', {
+    fu->SQL('INSERT INTO reports', VALUES {
         uid      => auth->uid,
         ip       => auth ? undef : ipinfo(),
         object   => $data->{object},
         objectnum=> $data->{objectnum},
         reason   => $data->{reason},
         message  => $data->{message},
-    });
+    })->exec;
     +{}
 };
 
@@ -161,35 +161,36 @@ FU::get '/report/list', sub {
         id     => { default => undef, id => 1 },
     );
 
-    my $where = sql_and
-        $opt->{id} ? sql 'r.id =', \$opt->{id} : (),
-        $opt->{status} ? sql 'r.status =', \$opt->{status} : (),
+    my $where = AND
+        $opt->{id} ? SQL 'r.id =', $opt->{id} : (),
+        $opt->{status} ? SQL 'r.status =', $opt->{status} : (),
         $opt->{s} eq 'lastmod' ? 'r.lastmod IS NOT NULL' : ();
 
-    my $cnt = fu->dbVali('SELECT count(*) FROM reports r WHERE', $where);
-    my $lst = fu->dbPagei({results => 25, page => $opt->{p}},
-       'SELECT r.id,', sql_totime('r.date'), 'as date, r.uid, ur.username, fmtip(r.ip) as ip, r.reason, r.status, r.message, r.log
-             , r.object, r.objectnum, x.title, x.uid as by_uid,', sql_user('uo'), '
+    my $cnt = fu->SQL('SELECT count(*) FROM reports r WHERE', $where)->val;
+    my $lst = fu->SQL(
+       'SELECT r.id, r.date, r.uid, ur.username, fmtip(r.ip) as ip, r.reason, r.status, r.message, r.log
+             , r.object, r.objectnum, x.title, x.uid as by_uid,', USER('uo'), '
           FROM reports r
-          LEFT JOIN', item_info('r.object', 'r.objectnum'), 'x ON true
+          LEFT JOIN', ITEM_INFO('r.object', 'r.objectnum'), 'x ON true
           LEFT JOIN users ur ON ur.id = r.uid
           LEFT JOIN users uo ON uo.id = x.uid
          WHERE', $where, '
-         ORDER BY', {id => 'r.id DESC', lastmod => 'r.lastmod DESC'}->{$opt->{s}}
-    );
-    enrich elog => id => id => sub { sql '
-        SELECT l.id, l.status, l.message, ', sql_totime('l.date'), 'date,', sql_user(), '
+         ORDER BY', RAW({id => 'r.id DESC', lastmod => 'r.lastmod DESC'}->{$opt->{s}}),
+         LIMIT => 25, OFFSET => 25*($opt->{p}-1),
+    )->allh;
+    fu->enrich(aoh => elog => sub { SQL '
+        SELECT l.id, l.status, l.message, l.date, ', USER, '
           FROM reports_log l
           LEFT JOIN users u ON u.id = l.uid
-         WHERE l.id IN', $_[0], '
+         WHERE l.id', IN $_, '
          ORDER BY l.date'
-    }, $lst;
+    }, $lst);
 
-    fu->dbExeci(
+    fu->sql(
         'UPDATE users_prefs SET last_reports = NOW()
           WHERE (last_reports IS NULL OR EXISTS(SELECT 1 FROM reports WHERE lastmod > last_reports OR date > last_reports))
-            AND id =', \auth->uid
-    );
+            AND id = $1', auth->uid
+    )->exec;
 
     my sub url { '?'.query_encode({%$opt, @_}) }
 
@@ -252,18 +253,15 @@ FU::post '/report/edit', sub {
         status  => { enum => \@STATUS, default => undef },
         comment => { default => '' },
     );
-    my $r = fu->dbRowi('SELECT id, status FROM reports WHERE id =', \$frm->{id});
-    fu->notfound if !$r->{id};
+    my $oldstatus = fu->sql('SELECT status FROM reports WHERE id = $1', $frm->{id})->val;
+    fu->notfound if !$oldstatus;
 
-    if(($frm->{status} && $r->{status} ne $frm->{status}) || length $frm->{comment}) {
-        fu->dbExeci('UPDATE reports SET', {
-            lastmod => sql('NOW()'),
-            $frm->{status} ? (status => $frm->{status}) : (),
-        }, 'WHERE id =', \$r->{id});
-        fu->dbExeci('INSERT INTO reports_log', {
-            id => $r->{id}, uid => auth->uid,
-            status => $frm->{status}//$r->{status}, message => $frm->{comment}
-        });
+    if(($frm->{status} && $oldstatus ne $frm->{status}) || length $frm->{comment}) {
+        fu->SQL('UPDATE reports SET lastmod = NOW()', $frm->{status} ? (', status =', $frm->{status}) : (), 'WHERE id =', $frm->{id})->exec;
+        fu->SQL('INSERT INTO reports_log', VALUES {
+            id => $frm->{id}, uid => auth->uid,
+            status => $frm->{status}//$oldstatus, message => $frm->{comment}
+        })->exec;
     }
     fu->redirect(tempget => $frm->{url});
 };

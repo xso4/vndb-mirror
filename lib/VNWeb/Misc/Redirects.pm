@@ -25,7 +25,7 @@ FU::get '/u/tokens', sub { fu->redirect(temp => auth ? '/'.auth->uid.'/edit#api'
 
 
 FU::get '/v/rand', sub {
-    state $stats  ||= fu->dbRowi('SELECT COUNT(*) AS total, COUNT(*) FILTER(WHERE NOT hidden) AS subset FROM vn');
+    state $stats  ||= fu->sql('SELECT COUNT(*) AS total, COUNT(*) FILTER(WHERE NOT hidden) AS subset FROM vn')->cache(0)->rowh;
     state $sample ||= 100*min 1, (1000 / $stats->{subset}) * ($stats->{total} / $stats->{subset});
 
     my $filt = advsearch_default 'v';

@@ -26,6 +26,7 @@ CREATE        INDEX reports_log_id         ON reports_log (id);
 CREATE UNIQUE INDEX reviews_vid_uid        ON reviews (vid,uid);
 CREATE        INDEX reviews_uid            ON reviews (uid);
 CREATE        INDEX reviews_ts             ON reviews USING gin(bb_tsvector(text));
+CREATE        INDEX reviews_posts_date     ON reviews_posts (date);
 CREATE        INDEX reviews_posts_uid      ON reviews_posts (uid);
 CREATE        INDEX reviews_posts_ts       ON reviews_posts USING gin(bb_tsvector(msg));
 CREATE UNIQUE INDEX reviews_votes_id_uid   ON reviews_votes (id,uid);

@@ -287,7 +287,7 @@ sub audit($self, $affected_uid, $action, $detail='') {
     fu->SQL('INSERT INTO audit_log', VALUES {
         by_uid  => $self->uid,
         by_name => $self->{user}{user_name},
-        by_ip   => SQL(VNWeb::Validation::ipinfo(), '::text::ipinfo'),
+        by_ip   => VNWeb::Validation::ipinfo(),
         affected_uid  => $affected_uid||undef,
         affected_name => $affected_uid ? SQL('(SELECT username FROM users WHERE id =', $affected_uid, ')') : undef,
         action => $action,

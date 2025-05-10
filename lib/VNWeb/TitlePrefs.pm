@@ -23,6 +23,7 @@ our @EXPORT = qw/
     PRODUCERST
     CHARST
     STAFF_ALIAST
+    ITEM_INFO
     item_info
 /;
 
@@ -199,6 +200,7 @@ sub RELEASEST :prototype()    { fu->{titleprefs_r} //= RAW(gen_sql(0, 'releases'
 sub PRODUCERST :prototype()   { fu->{titleprefs_p} //= pref ? SQL 'producerst(',   pref, ')' : RAW 'producerst' }
 sub CHARST :prototype()       { fu->{titleprefs_c} //= pref ? SQL 'charst(',       pref, ')' : RAW 'charst' }
 sub STAFF_ALIAST :prototype() { fu->{titleprefs_s} //= pref ? SQL 'staff_aliast(', pref, ')' : RAW 'staff_aliast' }
+sub ITEM_INFO                 { SQL 'item_info(', pref, ',', $_[0], ',', $_[1], ')' }
 
 # (Not currently used)
 #sub vnt_hist { gen_sql 1, 'vn_hist', 'vn_titles_hist', 'chid' }
