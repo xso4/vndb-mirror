@@ -104,7 +104,7 @@ sub posts_($filt, $u) {
              ) : ()), ') m (id, num, title, uid, date, msg)
           LEFT JOIN users u ON u.id = m.uid
          ORDER BY m.date DESC
-         LIMIT 20 OFFSET', 20*($filt->{p}-1)+1
+         LIMIT 21 OFFSET', 20*($filt->{p}-1)
     )->allh;
     my $np = @$posts > 20 && !!pop @$posts;
 
