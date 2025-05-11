@@ -59,7 +59,7 @@ FU::get qr{/$RE{uid}/posts}, sub($uid) {
         'SELECT id, num, substring(msg from 1 for 1000) as msg, title, date, hidden
            FROM ', $sql, '
           ORDER BY date DESC
-          LIMIT 50 OFFSET', 50*($page+1)
+          LIMIT 50 OFFSET', 50*($page-1)
     )->allh;
 
     my $own = auth && $u->{id} eq auth->uid;
