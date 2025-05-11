@@ -204,8 +204,6 @@ sub resetpass($self, $mail) {
 # Checks if the password reset token is valid
 sub isvalidtoken($self, $uid, $token) {
     fu->sql(q{SELECT user_validate_session($1, $2, 'pass') IS DISTINCT FROM NULL}, $uid, sha1 $token)->val
-        # Older code stored the sha1 of the *hex* token; this fallback can be removed after 2025-05-11.
-        || fu->sql(q{SELECT user_validate_session($1, $2, 'pass') IS DISTINCT FROM NULL}, $uid, sha1 lc bin2hex $token)->val
 }
 
 
@@ -219,9 +217,7 @@ sub setpass($self, $uid, $token, $oldpass, $newpass) {
     return 0 if !$code;
 
     my $encpass = $self->_preparepass($newpass);
-    return 0 if !(fu->sql('SELECT user_setpass($1, $2, $3)', $uid, $code, $encpass)->val
-        # Older code stored the sha1 of the *hex* token; this fallback can be removed after 2025-05-11.
-        || ($token && fu->sql('SELECT user_setpass($1, $2, $3)', $uid, sha1(lc bin2hex $token), $encpass)->val));
+    return 0 if !fu->sql('SELECT user_setpass($1, $2, $3)', $uid, $code, $encpass)->val;
     $self->_create_session($uid, $encpass);
 }
 
@@ -235,8 +231,6 @@ sub setmail_token($self, $mail) {
 
 sub setmail_confirm($self, $uid, $token) {
     fu->sql('SELECT user_setmail_confirm($1, $2)', $uid, sha1($token))->val
-        # Older code stored the sha1 of the *hex* token; this fallback can be removed after 2025-05-11.
-        || fu->sql('SELECT user_setmail_confirm($1, $2)', $uid, sha1(lc bin2hex $token))->val;
 }
 
 
