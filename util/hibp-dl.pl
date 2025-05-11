@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 # This script downloads a full copy of the Have I Been Pwned SHA1 database
 # using their range API.

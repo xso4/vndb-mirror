@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 # This script generates the devdump.tar.gz
 # See https://vndb.org/d8#3 for info.

@@ -8,7 +8,7 @@ mkdir -p "$VNDB_VAR/static"
 [ -e "$VNDB_VAR/conf.pl" ] || cp conf_example.pl "$VNDB_VAR/conf.pl"
 
 # Symlink for compatibility with old URLs
-ln -sfT "$(realpath $VNDB_GEN/static)" "$VNDB_VAR/static/g"
+[ -e "$VNDB_VAR/static/g" ] || ln -s "$(realpath $VNDB_GEN/static)" "$VNDB_VAR/static/g"
 
 cd "$VNDB_VAR"
 mkdir -p tmp log
@@ -18,4 +18,4 @@ for d in ch ch.orig cv cv.orig cv.t sf sf.orig sf.t; do
         mkdir -p static/$d/$i
     done
 done
-ln -sfT sf.t static/st
+[ -e static/st ] || ln -s sf.t static/st

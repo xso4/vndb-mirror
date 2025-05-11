@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 # This script finds all unused and unreferenced images in var/static/ and
 # outputs a shell script to remove them.

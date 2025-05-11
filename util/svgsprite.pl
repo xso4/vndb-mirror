@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 # I had planned to use fragment identifiers as described in
 # https://css-tricks.com/svg-fragment-identifiers-work/

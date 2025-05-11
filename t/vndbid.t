@@ -1,5 +1,3 @@
-#!/usr/bin/perl
-
 # This test requires an initialized database.
 
 use v5.36;

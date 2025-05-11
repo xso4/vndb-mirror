@@ -126,7 +126,7 @@ Global requirements:
 
 - Linux, or an OS that resembles Linux. Chances are VNDB won't run on Windows.
 - A standard C build system (GNU make, gcc/clang, etc)
-- PostgreSQL 17+ (including development files)
+- PostgreSQL 17+ (including -dev and -contrib packages, if your distro has them)
 - Perl 5.36+ (untested, might need 5.40+ instead)
 - Graphviz
 - libvips
@@ -157,7 +157,7 @@ util/multi.pl (application server, optional):
 - Make sure all the required dependencies (see above) are installed. Hint: See
   the Docker file for Alpine Linux commands, other distributions will be similar.
   For non-root setup, check out cpanminus & local::lib.
-- Run the build system:
+- Run the build system (replace with `gmake` on FreeBSD):
 
 ```
 make -j8

@@ -1,5 +1,3 @@
-#!/usr/bin/perl
-
 # This is a test & benchmark script for VNDB::BBCode.
 # Run with VNDB_BENCHMARK=1 to do some benchmarking.
 

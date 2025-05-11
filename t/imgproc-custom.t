@@ -1,5 +1,3 @@
-#!/usr/bin/perl
-
 # This script requires an imagemagick compiled with all image formats supported by imgproc-custom.
 # Run with VNDB_SLOW_TESTS=1 for a more thourough test.
 

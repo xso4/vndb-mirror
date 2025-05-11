@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 
 # This script is used to verify the consistency of the item tables (e.g. 'vn')
 # with the latest revision in the corresponding history tables (e.g. 'vn_hist').
