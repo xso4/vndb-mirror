@@ -224,7 +224,7 @@ const traitField = (() => {
     };
     const toq = (key,op,val,inst) => {
         const trait = Math.floor(String(key).replace(/^i/, ''));
-        return [ inst.direct ? 15 : 13, op, inst.spoil === 0 ? trait : [trait, inst.spoil] ];
+        return [ inst.direct ? 15 : 13, op, inst.spoil === 0 ? trait : [trait, inst.spoil === 3 ? 5 : inst.spoil] ];
     };
     const fmtlst = o => [m('small', o.id, ': ', o.group_name ? [o.group_name, ' / '] : null), m('a[target=_blank]', { href: '/'+o.id }, o.name)];
     const fmtbut = o => [m('small', o.id, ':'), o.name];

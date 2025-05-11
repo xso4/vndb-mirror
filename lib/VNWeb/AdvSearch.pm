@@ -597,6 +597,7 @@ sub _validate_trait {
     return 0 if $_[0]->@* != 3;
     return 0 if $_[0][1] > 2;
     return 0 if !defined $_[0][2] || ref $_[0][2] || $_[0][2] !~ /^[01]$/;
+    $_[0][1] = 2 if $_[0][1] == 0 && $_[0][2]; # Workaround for an older UI bug that incorrectly set "No spoilers, exclude lies" instead of "Max spoilers, exclude lies"
     $_[0][1] *= 1;
     $_[0][2] *= 1;
     pop $_[0]->@* if $_[0]->@* == 3 && !$_[0][2];
