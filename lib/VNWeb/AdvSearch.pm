@@ -487,6 +487,7 @@ f s =>  5 => 'role',      { enum => [ 'seiyuu', keys %CREDIT_TYPE ] },
         }
     };
 f s =>  6 => 'extlink',   _extlink_filter('s', 'staff_extlinks');
+f s =>  7 => 'type',      { enum => \%STAFF_TYPE }, '=' => sub { sql 's.stype =', \$_ };
 f s => 61 => 'ismain',    { uint => 1, range => [1,1] }, '=' => sub { 's.aid = s.main' };
 f s => 80 => 'search',    { searchquery => 1 }, '=' => sub { $_->sql_where('s', 's.id', 's.aid') };
 f s => 81 => 'aid',       { id => 1 }, '=' => sub { sql 's.aid =', \$_ };

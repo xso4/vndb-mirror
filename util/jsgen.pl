@@ -53,6 +53,7 @@ sub types {
         tagCategory => [ map [$_, $TAG_CATEGORY{$_}], keys %TAG_CATEGORY ],
         boardType => [ map [$_, $BOARD_TYPE{$_}{txt}], keys %BOARD_TYPE ],
         bloodType => [ map [$_, $BLOOD_TYPE{$_}], keys %BLOOD_TYPE ],
+        staffType => [ map [$_, $STAFF_TYPE{$_}], keys %STAFF_TYPE ],
         charSex   => [ map [$_, $CHAR_SEX{$_}], keys %CHAR_SEX ],
         charGender=> [ map [$_, $CHAR_GENDER{$_}], keys %CHAR_GENDER ],
         charRole  => [ map [$_, $CHAR_ROLE{$_}{txt}], keys %CHAR_ROLE ],

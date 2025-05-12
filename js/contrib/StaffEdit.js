@@ -71,6 +71,20 @@ widget('StaffEdit', initVnode => {
     const lang = new DS(DS.LocLang, {onselect: obj => data.lang = obj.id});
     const fields = () => [
         m('fieldset',
+            m('label[for=stype]', 'Type', HelpButton('stype')),
+            m(Select, { id: 'stype', class: 'mw', data, field: 'stype', options: vndbTypes.staffType }),
+        ),
+        Help('stype', m('dl',
+            m('dt', 'Person'),
+            m('dd', 'This staff entry represents an individual person'),
+            m('dt', 'Group'),
+            m('dd', 'An (informal) group of people'),
+            m('dt', 'Company'),
+            m('dd', 'A registered company'),
+            m('dt', 'Repository'),
+            m('dd', 'A website or resource that offers reusable game assets'),
+        )),
+        data.stype !== 'person' ? null : m('fieldset',
             m('label[for=gender]', 'Gender'),
             m(Select, { id: 'gender', class: 'mw', data, field: 'gender', options: [
                 [ '',  'Unknown or N/A' ],

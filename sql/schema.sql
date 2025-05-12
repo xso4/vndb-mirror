@@ -94,6 +94,7 @@ CREATE TYPE tag_category      AS ENUM('cont', 'ero', 'tech');
 CREATE TYPE vn_relation       AS ENUM ('seq', 'preq', 'set', 'alt', 'char', 'side', 'par', 'ser', 'fan', 'orig');
 CREATE TYPE session_type      AS ENUM ('web', 'pass', 'mail', 'api', 'api2');
 CREATE TYPE staff_gender      AS ENUM ('', 'm', 'f');
+CREATE TYPE staff_type        AS ENUM ('person', 'group', 'company', 'repo');
 CREATE TYPE release_image_type AS ENUM ('pkgfront', 'pkgback', 'pkgcontent', 'pkgside', 'pkgmed', 'dig');
 
 -- keys of %VNDB::Extlinks::LINKS
@@ -991,7 +992,8 @@ CREATE TABLE staff ( -- dbentry_type=s
   locked      boolean NOT NULL DEFAULT FALSE,
   hidden      boolean NOT NULL DEFAULT FALSE,
   description text NOT NULL DEFAULT '', -- [pub]
-  prod        vndbid(p) -- [pub]
+  prod        vndbid(p), -- [pub]
+  stype       staff_type NOT NULL DEFAULT 'person'
 );
 
 -- staff_hist
@@ -1001,7 +1003,8 @@ CREATE TABLE staff_hist (
   lang        language NOT NULL DEFAULT 'ja', -- cf=Language
   main        integer NOT NULL DEFAULT 0, -- cf=Name  Can't refer to staff_alias.id, because the alias might have been deleted
   description text NOT NULL DEFAULT '', -- cf=Description
-  prod        vndbid(p) -- cf=Producer
+  prod        vndbid(p), -- cf=Producer
+  stype       staff_type NOT NULL DEFAULT 'person' -- cf=Type
 );
 
 -- staff_alias

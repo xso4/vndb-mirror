@@ -727,9 +727,10 @@ regType('c', 'Char', [ 'Role', 'Sex', 'Traits' ], [
     rangeField(11, 'Cup size', ['>=','B'], true, vndbTypes.cupSize.slice(1)),
 ]);
 
-regType('s', 'Staff', [ 'Language', 'Gender', 'Role' ], [
+regType('s', 'Staff', [ 'Language', 'Type', 'Gender', 'Role' ], [
     staffField,
     langField(2, 'eq', DS.LocLang, 'Language', 'Primary language of the staff'),
+    simpleSetField(7, 'eq', vndbTypes.staffType, 'Type', 'Staff type'),
     simpleSetField(4, 'eq', [['','Unknown','Gender: unknown'],['m','Male'],['f','Female']], 'Gender'),
     simpleSetField(5, 'set', [['seiyuu', 'Voice actor']].concat(vndbTypes.creditType), 'Role'),
     extlinksField(6, 's'),

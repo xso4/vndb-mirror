@@ -330,6 +330,15 @@ hash STAFF_GENDER =>
 
 
 
+# SQL: ENUM staff_type
+hash STAFF_TYPE =>
+    person  => 'Person',
+    group   => 'Group',
+    company => 'Company',
+    repo    => 'Repository';
+
+
+
 # SQL: ENUM char_sex
 hash CHAR_SEX =>
     '' => 'Unknown',
@@ -455,6 +464,7 @@ hash CHFLAGS =>
         Gender
         Links
         Producer
+        Type
     ]],
     d => [qw[Modflags Title Content]],
     g => [qw[

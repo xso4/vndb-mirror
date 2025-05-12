@@ -25,6 +25,7 @@ sub _rev_($s) {
             txt_ " ($_->{latin})" if $_->{latin};
             small_ ' (primary)' if $_->{main};
         } ],
+        [ stype  => 'Type',       fmt => \%STAFF_TYPE ],
         [ gender => 'Gender',     fmt => \%STAFF_GENDER ],
         [ lang   => 'Language',   fmt => \%LANGUAGE ],
         [ prod   => 'Producer',   fmt => sub {
@@ -45,6 +46,11 @@ sub _infotable_($main, $s) {
                 abbr_ class => "icon-char-$s->{gender} charsex-w", title => $STAFF_GENDER{$s->{gender}}, '' if $s->{gender};
             }
         } };
+
+        tr_ sub {
+            td_ class => 'key', 'Type';
+            td_ $STAFF_TYPE{$s->{stype}};
+        };
 
         tr_ sub {
             td_ class => 'key', 'Language';

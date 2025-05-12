@@ -14,6 +14,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
         wantdel   => { anybool => 1, _when => 'out' },
     } },
     description=> { default => '', maxlength => 5000 },
+    stype      => { default => 'person', enum => \%STAFF_TYPE },
     gender     => { default => '', enum => \%STAFF_GENDER },
     lang       => { language => 1 },
     prod       => { default => undef, vndbid => 'p' },
@@ -78,6 +79,7 @@ js_api StaffEdit => $FORM_IN, sub {
         $data->{hidden} = $e->{hidden}||0;
         $data->{locked} = $e->{locked}||0;
     }
+    $data->{gender} = '' if $data->{stype} ne 'person';
     $data->{description} = bb_subst_links $data->{description};
 
     if ($data->{prod}) {
