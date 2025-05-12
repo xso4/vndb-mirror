@@ -149,6 +149,33 @@ FU::on_error 500 => sub {
 };
 
 
+FU::after_request {
+    my $r = $FU::REQ;
+    my $han = $r->{trace_han} && ( grep $_->[0] =~ /^VNWeb::/ && $_->[0] ne 'VNWeb::JS', $r->{trace_han}[1]->@* )[0];
+    my $nfo = {
+        size       => length($r->{resbody})||0, # Before compression
+        sql_total  => $r->{trace_nsql}||0,
+        sql_prep   => $r->{trace_nsqlprep}||0,
+        sql_direct => $r->{trace_nsqldirect}||0,
+        sql_ptime  => $r->{trace_sqlprep}||0,
+        sql_etime  => $r->{trace_sqlexec}||0, # XXX: Excludes COMMIT time
+        time       => Time::HiRes::clock_gettime(Time::HiRes::CLOCK_MONOTONIC()) - $r->{trace_start},
+        status     => $r->{status},
+        line       => $han && $han->[2],
+        has_txn    => FU::SQL::SQL('txid_current_if_assigned() IS NOT NULL'),
+        loggedin   => !!fu->{auth},
+        method     => fu->method,
+        path       => fu->path,
+        query      => fu->query||'',
+        module     => $han && $han->[0],
+        filters    => fu->{trace_filters} && [sort keys fu->{trace_filters}->%*],
+        widgets    => fu->{pagevars} && fu->{pagevars}{widget} && [sort keys fu->{pagevars}{widget}->%*],
+        bundles    => fu->{js} && [sort keys fu->{js}->%*],
+    };
+    fu->SQL('INSERT INTO trace_log', FU::SQL::VALUES($nfo))->exec;
+} if config->{trace_log};
+
+
 if(config->{api} eq 'only') {
     require VNWeb::API;
 } else {

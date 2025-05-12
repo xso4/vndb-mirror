@@ -814,6 +814,7 @@ sub _sql_where {
         return sql '(', ($q->[0] eq 'and' ? sql_and @l : sql_or @l), ')';
     }
 
+    fu->{trace_filters}{"$t.$q->[0]"} = 1;
     my $f = $FIELDS{$t}{$q->[0]};
     my $func = $f->{$q->[1]} || $f->{sql};
     local $_ = ref $f->{value} ? $q->[2] : do {

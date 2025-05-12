@@ -1174,18 +1174,25 @@ CREATE TABLE threads_boards (
 
 -- trace_log
 CREATE TABLE trace_log (
-  date      timestamptz NOT NULL DEFAULT NOW(),
-  line      integer,
-  sql_num   integer,
-  sql_time  real,
-  perl_time real,
-  has_txn   boolean,
-  loggedin  boolean,
-  method    text NOT NULL,
-  path      text NOT NULL,
-  query     text NOT NULL DEFAULT '',
-  module    text,
-  js        text[]
+  date        timestamptz NOT NULL DEFAULT NOW(),
+  size        integer NOT NULL,
+  sql_total   integer NOT NULL,
+  sql_prep    integer NOT NULL,
+  sql_direct  integer NOT NULL,
+  sql_ptime   real NOT NULL,
+  sql_etime   real NOT NULL,
+  time        real NOT NULL,
+  status      smallint NOT NULL,
+  line        smallint,
+  has_txn     boolean NOT NULL,
+  loggedin    boolean NOT NULL,
+  method      text NOT NULL,
+  path        text NOT NULL,
+  query       text NOT NULL DEFAULT '',
+  module      text,
+  filters     text[],
+  widgets     text[],
+  bundles     text[]
 );
 
 -- traits
