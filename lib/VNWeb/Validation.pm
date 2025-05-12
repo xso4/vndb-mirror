@@ -421,7 +421,7 @@ sub sendmail($body, %hs) {
 
     return warn "The following mail would have been sent:\n$mail\n" if config->{mail_sendmail} eq 'log';
 
-    open my $mailer, '|-:utf8', config->{mail_sendmail}, '-t', '-f', $hs{From} or croak "Error opening sendail ($!)";
+    open my $mailer, '|-:utf8', config->{mail_sendmail}, '-t', '-f', $hs{From} or croak "Error opening sendmail ($!)";
     print $mailer $mail;
     croak "Error running sendmail ($!)" if !close $mailer;
 }
