@@ -10,17 +10,17 @@ FU::get '/r/drm', sub {
         t => { onerror => undef, enum => [0,1,2] },
         u => { anybool => 1 },
     );
-    my $where = sql_and
-        $opt->{s} ? sql 'name ILIKE', \('%'.sql_like($opt->{s}).'%') : (),
-        defined $opt->{t} ? sql 'state =', \$opt->{t} : ();
+    my $where = AND
+        $opt->{s} ? SQL 'name ILIKE', '%'.sql_like($opt->{s}).'%' : (),
+        defined $opt->{t} ? SQL 'state =', $opt->{t} : ();
 
-    my $lst = fu->dbAlli('
-        SELECT id, state, name, description, c_ref, ', sql_comma(keys %DRM_PROPERTY), '
+    my $lst = fu->SQL('
+        SELECT id, state, name, description, c_ref, ', RAW(join ', ', keys %DRM_PROPERTY), '
           FROM drm
          WHERE', $where, $opt->{u} ? () : 'AND c_ref > 0',
         'ORDER BY c_ref DESC
-    ');
-    my $missing = $opt->{u} ? 0 : fu->dbVali('SELECT COUNT(*) FROM drm WHERE', $where, 'AND c_ref = 0');
+    ')->allh;
+    my $missing = $opt->{u} ? 0 : fu->SQL('SELECT COUNT(*) FROM drm WHERE', $where, 'AND c_ref = 0')->val;
 
     framework_ title => 'List of DRM implementations', sub {
         article_ sub {
@@ -83,16 +83,16 @@ my $FORM = form_compile any => {
 };
 
 
-sub info_ {
-    fu->dbRowi('
-        SELECT id, state, name, description,', sql_comma(keys %DRM_PROPERTY), '
-          FROM drm WHERE id =', \shift
-    );
+sub info($id) {
+    fu->SQL('
+        SELECT id, state, name, description,', RAW(join(', ', keys %DRM_PROPERTY)), '
+          FROM drm WHERE id =', $id
+    )->rowh;
 }
 
 FU::get qr{/r/drm/edit/(0|$RE{num})}, sub($id) {
     fu->denied if !auth->permDbmod;
-    my $d = info_ $id;
+    my $d = info $id;
     fu->notfound if !defined $d->{id};
     $d->{ref} = fu->query(ref => { onerror => '' });
     framework_ title => "Edit DRM: $d->{name}", sub {
@@ -102,14 +102,13 @@ FU::get qr{/r/drm/edit/(0|$RE{num})}, sub($id) {
 
 js_api DRMEdit => $FORM, sub($data) {
     fu->denied if !auth->permDbmod;
-    my $d = info_ delete $data->{id};
+    my $d = info delete $data->{id};
     fu->notfound if !defined $d->{id};
     my $ref = delete $data->{ref};
 
-    return +{ _er => 'Duplicate DRM name' }
-        if fu->dbVali('SELECT 1 FROM drm WHERE id <>', \$d->{id}, 'AND name =', \$d->{name});
+    return 'Duplicate DRM name' if fu->SQL('SELECT 1 FROM drm WHERE id <>', $d->{id}, 'AND name =', $d->{name})->val;
 
-    fu->dbExeci('UPDATE drm SET', $data, 'WHERE id =', \$d->{id});
+    fu->SQL('UPDATE drm', SET($data), 'WHERE id =', $d->{id})->exec;
 
     my @diff = grep $d->{$_} ne $data->{$_}, qw/state name description/, keys %DRM_PROPERTY;
     auth->audit(undef, 'drm edit', join '; ', map "$_: $d->{$_} -> $data->{$_}", @diff) if @diff;

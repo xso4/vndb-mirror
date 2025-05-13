@@ -38,7 +38,7 @@ sub info_ {
         join_ ' - ', sub { a_ href => $_->{url2}, $_->{label} }, $p->{vislinks}->@*;
     };
 
-    my $s = fu->dbRowi('SELECT id, title FROM', staff_aliast, 'WHERE aid = main AND prod =', \$p->{id});
+    my $s = fu->SQL('SELECT id, title FROM', STAFF_ALIAST, 'WHERE aid = main AND prod =', $p->{id})->rowh;
     my @rel;
     push @rel, [ 'Staff entry', [[ $s->{id}, $s ]] ] if $s->{id};
 
@@ -62,23 +62,23 @@ sub info_ {
 
 
 sub rel_($p) {
-    my $r = fu->dbAlli('
+    my $r = fu->SQL('
         SELECT r.id, r.patch, r.released, rp.publisher, rp.developer
           FROM releases r
           JOIN releases_producers rp ON rp.id = r.id
-         WHERE rp.pid =', \$p->{id}, ' AND NOT r.hidden
+         WHERE rp.pid =', $p->{id}, ' AND NOT r.hidden
          ORDER BY r.released
-    ');
+    ')->allh;
     $_->{rtype} = 1 for @$r; # prevent enrich_release() from fetching rtypes
     enrich_vislinks r => 0, $r;
     enrich_release $r;
-    enrich vn => id => rid => sub { sql '
-        SELECT rv.id as rid, rv.rtype, v.id, v.title
-          FROM', vnt, 'v
+    fu->enrich(aoh => 'vn', sub { SQL '
+        SELECT rv.id, rv.rtype, v.id, v.title
+          FROM', VNT, 'v
           JOIN releases_vn rv ON rv.vid = v.id
-         WHERE NOT v.hidden AND rv.id IN', $_, '
+         WHERE NOT v.hidden AND rv.id', IN $_, '
          ORDER BY v.title
-    '}, $r;
+    '}, $r);
 
     my(%vn, @vn);
     for my $rel (@$r) {
@@ -110,21 +110,21 @@ sub rel_($p) {
 
 
 sub vns_($p) {
-    my $v = fu->dbAlli(q{
+    my $v = fu->SQL('
         SELECT v.id, v.title, rels.developer, rels.publisher, rels.released
-          FROM}, vnt, q{v
+          FROM', VNT, q{v
           JOIN (
                SELECT rv.vid, bool_or(rp.developer), bool_or(rp.publisher)
                     , COALESCE(MIN(r.released) FILTER(WHERE rv.rtype <> 'trial'), MIN(r.released))
                  FROM releases_vn rv
                  JOIN releases r ON r.id = rv.id
                  JOIN releases_producers rp ON rp.id = rv.id
-                WHERE NOT r.hidden AND rp.pid =}, \$p->{id}, '
+                WHERE NOT r.hidden AND rp.pid =}, $p->{id}, '
                 GROUP BY rv.vid
                ) rels(vid, developer, publisher, released) ON rels.vid = v.id
          WHERE NOT v.hidden
          ORDER BY rels.released, v.sorttitle
-    ');
+    ')->allh;
 
     h1_ 'Visual Novels';
     debug_ $v;
@@ -149,7 +149,7 @@ FU::get qr{/$RE{prev}(?:/(vn|rel))?}, sub($id, $rev=0, $tab='') {
     fu->notfound if !$p;
     enrich_vislinks p => 0, $p;
 
-    $tab ||= (auth && (fu->dbVali('SELECT prodrelexpand FROM users_prefs WHERE id=', \auth->uid) ? 'rel' : 'vn')) || 'rel';
+    $tab ||= (auth && (fu->sql('SELECT prodrelexpand FROM users_prefs WHERE id = $1', auth->uid)->val ? 'rel' : 'vn')) || 'rel';
 
     my $title = titleprefs_swap @{$p}{qw/ lang name latin /};
     framework_ title => $title->[1], index => !$rev, dbobj => $p, hiddenmsg => 1,

@@ -85,13 +85,14 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
 
 
 sub vnimages($rid, @vid) {
-    my $l = fu->dbAlli('
-      SELECT image AS id FROM vn WHERE image IS NOT NULL AND id IN', \@vid, '
+    my $l = fu->SQL('
+      SELECT image AS id FROM vn WHERE image IS NOT NULL AND id', IN \@vid, '
        UNION
-      SELECT ri.img AS id FROM releases_images ri JOIN releases_vn rv ON rv.id = ri.id
-       WHERE (ri.vid IS NULL OR ri.vid = rv.vid)
-         AND rv.vid IN', \@vid,
-             $rid ? sql('AND ri.id <>', \$rid) : ());
+      SELECT ri.img AS id
+        FROM releases_images ri JOIN releases_vn rv ON rv.id = ri.id JOIN releases r ON r.id = ri.id
+       WHERE NOT r.hidden AND (ri.vid IS NULL OR ri.vid = rv.vid) AND rv.vid', IN \@vid,
+             $rid ? SQL('AND ri.id <>', $rid) : ()
+    )->allh;
     enrich_image 0, $l;
     $l;
 }
@@ -106,7 +107,7 @@ FU::get qr{/$RE{rrev}/(edit|copy)} => sub($id, $rev, $action) {
 
     $e->{editsum} = $copy ? "Copied from $e->{id}.$e->{chrev}" : $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
 
-    $e->{vntitles} = $e->{vn}->@* == 1 ? fu->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$e->{vn}[0]{vid}) : [];
+    $e->{vntitles} = $e->{vn}->@* == 1 ? fu->sql('SELECT lang, title, latin FROM vn_titles WHERE id = $1', $e->{vn}[0]{vid})->allh : [];
 
     enrich_image 0, [map { $_->{lang} //= []; $_->{nfo}{id} = $_->{img}; $_->{nfo} } $e->{images}->@*];
     $e->{vnimages} = vnimages $e->{id}, map $_->{vid}, $e->{vn}->@*;
@@ -126,16 +127,15 @@ FU::get qr{/$RE{rrev}/(edit|copy)} => sub($id, $rev, $action) {
 
 FU::get qr{/$RE{vid}/add}, sub($vid) {
     fu->denied if !can_edit r => undef;
-    my $v = fu->dbRowi('SELECT id, title FROM', vnt, 'v WHERE NOT hidden AND v.id =', \$vid);
-    fu->notfound if !$v->{id};
+    my $v = fu->SQL('SELECT id, title FROM', VNT, 'v WHERE NOT hidden AND v.id =', $vid)->rowh or fu->notfound;
 
-    my $delrel = fu->dbAlli('SELECT r.id, r.title FROM', releasest, 'r JOIN releases_vn rv ON rv.id = r.id WHERE r.hidden AND rv.vid =', \$v->{id}, 'ORDER BY id');
-    enrich_flatten languages => id => id => 'SELECT id, lang FROM releases_titles WHERE id IN', $delrel;
+    my $delrel = fu->SQL('SELECT r.id, r.title FROM', RELEASEST, 'r JOIN releases_vn rv ON rv.id = r.id WHERE r.hidden AND rv.vid =', $v->{id}, 'ORDER BY id')->allh;
+    fu->enrich(aov => 'languages', 'SELECT id, lang FROM releases_titles WHERE id', $delrel);
 
     my $e = {
         $FORM_OUT->empty->%*,
         vn         => [{vid => $v->{id}, title => $v->{title}[1], rtype => 'complete'}],
-        vntitles   => fu->dbAlli('SELECT lang, title, latin FROM vn_titles WHERE id =', \$v->{id}),
+        vntitles   => fu->sql('SELECT lang, title, latin FROM vn_titles WHERE id = $1', $v->{id})->allh,
         vnimages   => vnimages(undef, $v->{id}),
         vnreleases => releases_by_vn($v->{id}),
         official   => 1,
@@ -206,10 +206,10 @@ js_api ReleaseEdit => $FORM_IN, sub {
     }
 
     # We need the DRM identifiers to actually save the new form.
-    enrich_merge name => sql('SELECT name, id AS drm FROM drm WHERE name IN'), $data->{drm};
+    fu->enrich(merge => 1, key => 'name', 'SELECT name, id AS drm FROM drm WHERE name', $data->{drm});
     for my $d ($data->{drm}->@*) {
         $d->{notes} = bb_subst_links $d->{notes};
-        $d->{drm} = fu->dbVali('INSERT INTO drm', {map +($_,$d->{$_}), 'name', 'description', keys %DRM_PROPERTY}, 'RETURNING id')
+        $d->{drm} = fu->SQL('INSERT INTO drm', VALUES({map +($_,$d->{$_}), 'name', 'description', keys %DRM_PROPERTY}), 'RETURNING id')->val
             if !defined $d->{drm};
     }
 

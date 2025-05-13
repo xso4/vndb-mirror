@@ -10,18 +10,18 @@ FU::get qr{/$RE{pid}/rg}, sub($pid) {
 
     # Big list of { id0, id1, relation } hashes.
     # Each relation is included twice, with id0 and id1 reversed.
-    my $rel = fu->dbAlli(q{
+    my $rel = fu->SQL('
         WITH RECURSIVE rel(id0, id1, relation) AS (
-            SELECT id, pid, relation FROM producers_relations WHERE id =}, \$p->{id}, q{
+            SELECT id, pid, relation FROM producers_relations WHERE id =', $p->{id}, '
             UNION
             SELECT id, pid, pr.relation FROM producers_relations pr JOIN rel r ON pr.id = r.id1
         ) SELECT * FROM rel ORDER BY id0
-    });
+    ')->allh;
     fu->notfound if !@$rel;
 
     # Fetch the nodes
     my $nodes = gen_nodes $p->{id}, $rel, $num;
-    enrich_merge id => sql('SELECT id, title[1+1] AS name, lang, type FROM', producerst, 'p WHERE id IN'), values %$nodes;
+    fu->enrich(merge => 1, SQL('SELECT id, title[1+1] AS name, lang, type FROM', PRODUCERST, 'p WHERE id'), [values %$nodes]);
 
     my $total_nodes = keys { map +($_->{id0},1), @$rel }->%*;
     my $visible_nodes = keys %$nodes;

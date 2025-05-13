@@ -6,10 +6,8 @@ use VNWeb::Releases::Lib;
 use FU::Util 'uri_escape';
 
 
-sub enrich_item {
-    my($r) = @_;
-
-    enrich lang => rid => id => sub { sql('SELECT id, lang, mtl FROM releases_titles WHERE id IN', $_, 'ORDER BY lang') }, $r->{supersedes};
+sub enrich_item($r,@) {
+    fu->enrich(aoh => 'lang', key => 'rid', sub { SQL('SELECT id, lang, mtl FROM releases_titles WHERE id', IN $_, 'ORDER BY lang') }, $r->{supersedes});
     enrich_image_obj img => $r->{images};
 
     $r->{titles}    = [ sort { ($b->{lang} eq $r->{olang}) cmp ($a->{lang} eq $r->{olang}) || ($a->{mtl}?1:0) <=> ($b->{mtl}?1:0) || $a->{lang} cmp $b->{lang} } $r->{titles}->@* ];
@@ -293,14 +291,14 @@ sub _infotable_ {
             }
         } if @sup;
 
-        my $sed = fu->dbAlli('
+        my $sed = fu->SQL('
             SELECT r.id AS rid, r.title, r.released
-              FROM', releasest, 'r
+              FROM', RELEASEST, 'r
               JOIN releases_supersedes rs ON rs.id = r.id
-             WHERE NOT r.hidden AND rs.rid =', \$r->{id}, '
+             WHERE NOT r.hidden AND rs.rid =', $r->{id}, '
              ORDER BY r.released, r.sorttitle
-        ');
-        enrich lang => rid => id => sub { sql('SELECT id, lang, mtl FROM releases_titles WHERE id IN', $_, 'ORDER BY lang') }, $sed;
+        ')->allh;
+        fu->enrich(aoh => 'lang', key => 'rid', sub { SQL('SELECT id, lang, mtl FROM releases_titles WHERE id', IN $_, 'ORDER BY lang') }, $sed);
 
         tr_ sub {
             td_ 'Superseded by';
@@ -321,7 +319,7 @@ sub _infotable_ {
         } if $r->{vislinks}->@*;
 
         tr_ sub {
-            my $d = fu->dbVali('SELECT status FROM rlists WHERE', { rid => $r->{id}, uid => auth->uid });
+            my $d = fu->SQL('SELECT status FROM rlists', WHERE { rid => $r->{id}, uid => auth->uid })->val;
             td_ 'User options';
             td_ class => 'compact', widget(UListRelease => { id => $r->{id}, status => $d }), '';
         } if auth;

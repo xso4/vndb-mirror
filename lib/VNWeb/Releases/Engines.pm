@@ -5,13 +5,13 @@ use VNWeb::AdvSearch;
 
 
 FU::get '/r/engines', sub {
-    my $list = fu->dbAlli('
+    my $list = fu->sql("
         SELECT engine, count(*) AS cnt
           FROM releases
-         WHERE NOT hidden AND engine <> \'\'
+         WHERE NOT hidden AND engine <> ''
          GROUP BY engine
-         ORDER BY count(*) DESC'
-    );
+         ORDER BY count(*) DESC
+    ")->allh;
 
     framework_ title => 'Engine list', sub {
         article_ sub {

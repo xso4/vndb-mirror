@@ -22,19 +22,19 @@ our $RELSCHEMA = {
 
 # Return the list of releases associated with a VN in the format described by $RELSCHEMA.
 sub releases_by_vn($id, %opt) {
-    my $l = fu->dbAlli('
+    my $l = fu->SQL('
         SELECT r.id, x.rtype, r.title[1+1] AS title, r.title[1+1+1+1] AS alttitle, r.released, r.reso_x, r.reso_y
-          FROM ', releasest, 'r
+          FROM ', RELEASEST, 'r
           JOIN (
             SELECT id, MIN(rtype)
               FROM releases_vn
-             WHERE vid IN', ref $id ? $id : [$id],
+             WHERE vid', IN(ref $id ? $id : [$id]),
                    $opt{charlink} ? "AND rtype <> 'trial'" : (), '
              GROUP BY id
            ) x(id,rtype) ON x.id = r.id
          WHERE NOT r.hidden', $opt{charlink} ? "AND r.official" : (), '
          ORDER BY r.released, r.sorttitle, r.id
-    ');
+    ')->allh;
     fu->enrich(aov => 'lang', sub { SQL 'SELECT id, lang FROM releases_titles WHERE id', IN($_), 'ORDER BY id, lang' }, $l);
     fu->enrich(aov => 'platforms', sub { SQL 'SELECT id, platform FROM releases_platforms WHERE id', IN($_), 'ORDER BY id, platform' }, $l);
     $l
@@ -45,10 +45,10 @@ sub releases_by_vn($id, %opt) {
 # Does not call enrich_vislinks(), which is also needed for release_row_().
 # Assumption: Each release already has id, patch, released.
 sub enrich_release($r) {
-    enrich_merge id => sql(
+    fu->enrich(merge => 1, SQL(
         'SELECT id, title, olang, notes, minage, official, freeware, has_ero, reso_x, reso_y, voiced, uncensored
               , ani_story, ani_ero, ani_story_sp, ani_story_cg, ani_cutscene, ani_ero_sp, ani_ero_cg, ani_face, ani_bg
-          FROM', releasest, 'r WHERE id IN'), $r;
+          FROM', RELEASEST, 'r WHERE id'), $r);
     fu->enrich(set => 'rtype', sub { SQL 'SELECT id, MAX(rtype) FROM releases_vn WHERE id', IN $_, 'GROUP BY id' }, [ grep !exists $_->{rtype}, @$r ]);
     fu->enrich(set => 'rlist_status', SQL('SELECT rid, status FROM rlists WHERE uid =', auth->uid, 'AND rid'), $r) if auth;
     fu->enrich(aov => 'platforms', sub { SQL 'SELECT id, platform FROM releases_platforms WHERE id', IN $_, 'ORDER BY id, platform' }, $r);
