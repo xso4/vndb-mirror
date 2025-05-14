@@ -78,6 +78,11 @@ FU::before_request {
     fu->reset;
     $FU::REQ->{trace_id} = $id;
 
+    # Old URLs sometimes used ';' instead of '&' to separate query paramaters.
+    # FU doesn't support this anymore, but we can work around it.
+    # Actual ';' in param values tends to get encoded as %3B, so this shouldn't break anything.
+    $FU::REQ->{qs} =~ s/;/&/g if length $FU::REQ->{qs};
+
     # Load TZ from user preference
     $ENV{TZ} = auth->pref('timezone') || 'UTC';
 
