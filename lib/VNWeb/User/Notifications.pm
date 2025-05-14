@@ -18,7 +18,7 @@ my %ntypes = (
 
 
 sub settings_($id) {
-    my $u = fu->dbRowi('SELECT notify_dbedit, notify_post, notify_comment, notify_announce FROM users WHERE id =', \$id);
+    my $u = fu->sql('SELECT notify_dbedit, notify_post, notify_comment, notify_announce FROM users WHERE id = $1', $id)->rowh;
 
     h1_ 'Settings';
     form_ action => "/$id/notify_options", method => 'POST', sub {
@@ -147,28 +147,28 @@ FU::get qr{/$RE{uid}/notifies}, sub($id) {
         n => { default => undef, enum => \%ntypes },
     );
 
-    my $stats = fu->dbAlli('
+    my $stats = fu->sql('
         SELECT x.ntype, count(*) filter (where n.read IS NULL) AS unread, count(*) AS all
           FROM notifications n, unnest(n.ntype) x(ntype)
-         WHERE n.uid = ', \$id, '
+         WHERE n.uid = $1
          GROUP BY GROUPING SETS ((), (x.ntype))
-         ORDER BY count(*) DESC');
+         ORDER BY count(*) DESC', $id
+    )->allh;
 
     my($count) = map $_->{ $opt->{r} ? 'all' : 'unread'}, grep +($_->{ntype}||'') eq ($opt->{n}||''), @$stats;
     $count ||= 0;
-    my $list = $count && fu->dbPagei({ results => 25, page => $opt->{p} },
-       'SELECT n.id, n.ntype::text[] AS ntype, n.iid, n.num, t.title, ', sql_user(), '
-             , ', sql_totime('n.date'), ' as date
-             , ', sql_totime('n.read'), ' as read
-          FROM notifications n,', item_info('n.iid', 'n.num'), 't
+    my $list = $count && fu->SQL(
+       'SELECT n.id, n.ntype, n.iid, n.num, n.date, n.read, t.title, ', USER, '
+          FROM notifications n,', ITEM_INFO('n.iid', 'n.num'), 't
           LEFT JOIN users u ON u.id = t.uid
-         WHERE ', sql_and(
-             sql('n.uid =', \$id),
+         WHERE ', AND(
+             SQL('n.uid =', $id),
              $opt->{r} ? () : 'n.read IS NULL',
-             $opt->{n} ? sql('n.ntype && ARRAY[', \$opt->{n}, '::notification_ntype]') : (),
+             $opt->{n} ? SQL('n.ntype && ARRAY[', $opt->{n}, '::notification_ntype]') : (),
          ),
-        'ORDER BY n.id', $opt->{r} ? 'DESC' : 'ASC'
-    );
+        'ORDER BY n.id', $opt->{r} ? 'DESC' : 'ASC',
+        'LIMIT 25 OFFSET', 25*($opt->{p}-1)
+    )->allh;
 
     my sub url { "/$id/notifies?".query_encode({%$opt, @_}) }
 
@@ -197,12 +197,12 @@ FU::post qr{/$RE{uid}/notify_options}, sub($id) {
     );
     fu->notfound if !auth->csrfcheck($frm->{csrf});
 
-    fu->dbExeci('UPDATE users SET', {
+    fu->SQL('UPDATE users', SET({
         notify_dbedit   => $frm->{dbedit},
         notify_announce => $frm->{announce},
         notify_post     => $frm->{post},
         notify_comment  => $frm->{comment},
-    }, 'WHERE id =', \$id);
+    }), 'WHERE id =', $id)->exec;
     fu->redirect(tempget => "/$id/notifies");
 };
 
@@ -218,9 +218,9 @@ FU::post qr{/$RE{uid}/notify_update}, sub($id) {
     );
 
     if($frm->{notifysel}->@*) {
-        my $where = sql 'uid =', \$id, ' AND id IN', $frm->{notifysel};
-        fu->dbExeci('DELETE FROM notifications WHERE', $where) if $frm->{remove};
-        fu->dbExeci('UPDATE notifications SET read = NOW() WHERE', $where) if $frm->{markread};
+        my $where = SQL 'uid =', $id, ' AND id', IN $frm->{notifysel};
+        fu->SQL('DELETE FROM notifications WHERE', $where)->exec if $frm->{remove};
+        fu->SQL('UPDATE notifications SET read = NOW() WHERE', $where)->exec if $frm->{markread};
     }
     fu->redirect(tempget => $frm->{url});
 };
@@ -243,16 +243,15 @@ our $SUB = form_compile {
     noti      => { uint => 1, default => undef }, # used by the widget, ignored in the backend
 };
 
-js_api Subscribe => $SUB, sub {
-    my($data) = @_;
+js_api Subscribe => $SUB, sub($data) {
     $data->{subreview} = 0 if $data->{id} !~ /^v/;
     delete $data->{noti};
 
     my %where = (iid => delete $data->{id}, uid => auth->uid);
     if(!defined $data->{subnum} && !$data->{subreview} && !$data->{subapply}) {
-        fu->dbExeci('DELETE FROM notification_subs WHERE', \%where);
+        fu->SQL('DELETE FROM notification_subs', WHERE \%where)->exec;
     } else {
-        fu->dbExeci('INSERT INTO notification_subs', {%where, %$data}, 'ON CONFLICT (iid,uid) DO UPDATE SET', $data);
+        fu->SQL('INSERT INTO notification_subs', VALUES({%where, %$data}), 'ON CONFLICT (iid,uid) DO UPDATE', SET $data)->exec;
     }
     {};
 };

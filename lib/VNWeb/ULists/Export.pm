@@ -9,44 +9,42 @@ use FU::XMLWriter 'xml_', 'tag_';
 # to an async background process for this to reduce the footprint of web
 # workers.
 
-sub data {
-    my($uid) = @_;
-
+sub data($uid) {
     # We'd like ISO7601/RFC3339 timestamps in UTC with accuracy to the second.
-    my sub tz { sql 'to_char(', $_[0], ' at time zone \'utc\',', \'YYYY-MM-DD"T"HH24:MM:SS"Z"', ') as', $_[1] }
+    my sub TZ($col,$name) { RAW qq{to_char($col at time zone 'utc', 'YYYY-MM-DD"T"HH24:MM:SS"Z"') as $name} }
 
     # XXX: This keeps the old "title"/"original" fields for compatibility, but
     # should the export take user title preferences into account instead? Or
     # export all known titles?
     my $d = {
-        'export-date' => fu->dbVali(select => tz('NOW()', 'now')),
-        user   => fu->dbRowi('SELECT id, username as name FROM users WHERE id =', \$uid),
-        labels => fu->dbAlli('SELECT id, label, private FROM ulist_labels WHERE uid =', \$uid, 'ORDER BY id'),
-        vns    => fu->dbAlli('
+        'export-date' => fu->SQL(select => TZ('NOW()', 'now'))->val,
+        user   => fu->sql('SELECT id, username as name FROM users WHERE id = $1', $uid)->rowh,
+        labels => fu->sql('SELECT id, label, private FROM ulist_labels WHERE uid = $1 ORDER BY id', $uid)->allh,
+        vns    => fu->SQL('
             SELECT v.id, v.title, uv.vote, uv.started, uv.finished, uv.notes, uv.c_private, uv.labels,',
-                   sql_comma(tz('uv.added', 'added'), tz('uv.lastmod', 'lastmod'), tz('uv.vote_date', 'vote_date')), '
+                   COMMA(TZ('uv.added', 'added'), TZ('uv.lastmod', 'lastmod'), TZ('uv.vote_date', 'vote_date')), '
               FROM ulist_vns uv
               JOIN vnt v ON v.id = uv.vid
-             WHERE uv.uid =', \$uid, '
-             ORDER BY v.sorttitle'),
-        'length-votes' => fu->dbAlli('
-            SELECT v.id, v.title, l.length, l.speed, l.private, l.notes, l.rid::text[] AS releases, ', tz('l.date', 'date'), '
+             WHERE uv.uid =', $uid, '
+             ORDER BY v.sorttitle')->allh,
+        'length-votes' => fu->SQL('
+            SELECT v.id, v.title, l.length, l.speed, l.private, l.notes, l.rid AS releases, ', TZ('l.date', 'date'), '
               FROM vn_length_votes l
               JOIN vnt v ON v.id = l.vid
-             WHERE l.uid =', \$uid, '
-             ORDER BY v.sorttitle'),
+             WHERE l.uid =', $uid, '
+             ORDER BY v.sorttitle')->allh,
     };
-    enrich releases => id => vid => sub { sql '
-        SELECT rv.vid, r.id, r.title, r.released, rl.status, ', tz('rl.added', 'added'), '
+    fu->enrich(aoh => 'releases', sub { SQL '
+        SELECT rv.vid, r.id, r.title, r.released, rl.status, ', TZ('rl.added', 'added'), '
           FROM rlists rl
           JOIN releasest r ON r.id = rl.rid
           JOIN releases_vn rv ON rv.id = rl.rid
-         WHERE rl.uid =', \$uid, '
+         WHERE rl.uid =', $uid, '
          ORDER BY r.released, r.id'
-    }, $d->{vns};
-    enrich_merge id => sub { sql '
-        SELECT id, title, released FROM releasest WHERE id IN', $_, 'ORDER BY released, id'
-    }, map +($_->{releases} = [map +{id=>$_}, $_->{releases}->@*]), $d->{'length-votes'}->@*;
+    }, $d->{vns});
+    fu->enrich(merge => 1, sub { SQL '
+        SELECT id, title, released FROM releasest WHERE id', IN $_, 'ORDER BY released, id'
+    }, [map +($_->{releases} = [map +{id=>$_}, $_->{releases}->@*])->@*, $d->{'length-votes'}->@*]);
     $d
 }
 

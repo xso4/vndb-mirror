@@ -62,22 +62,22 @@ FU::get qr{/u/([0a-z]|all)}, sub($char) {
         q => { onerror => '' },
     );
 
-    my @where = (
+    my $where = AND
         'username IS NOT NULL',
         auth->permUsermod ? () : 'email_confirmed',
-        $char eq 'all' ? () : sql('match_firstchar(username, ', \$char, ')'),
-        $opt->{q} ? sql_or(
-            auth->permUsermod && $opt->{q} =~ /@/ ? sql('id IN(SELECT uid FROM user_emailtoid(', \$opt->{q}, '))') : (),
-            $opt->{q} =~ /^u?($RE{num})$/ ? sql 'id =', \"u$1" : (),
-            $opt->{q} =~ /@/ ? () : length $opt->{q} > 12 ? () : sql('username ILIKE', \('%'.sql_like($opt->{q}).'%')),
-        ) : ()
-    );
+        $char eq 'all' ? () : SQL('match_firstchar(username, ', $char, ')'),
+        $opt->{q} ? OR(
+            auth->permUsermod && $opt->{q} =~ /@/ ? SQL('id IN(SELECT uid FROM user_emailtoid(', $opt->{q}, '))') : (),
+            $opt->{q} =~ /^u?($RE{num})$/ ? SQL 'id =', "u$1" : (),
+            $opt->{q} =~ /@/ ? () : length $opt->{q} > 12 ? () : SQL('username ILIKE', '%'.sql_like($opt->{q}).'%'),
+        ) : ();
 
-    my $list = fu->dbPagei({ results => 50, page => $opt->{p} },
-        'SELECT', sql_user(), ',', sql_totime('registered'), 'as registered, c_vns, c_votes, c_wish, c_changes, c_tags, c_imgvotes
+    my $count = fu->SQL('SELECT count(*) FROM users WHERE', $where)->val;
+    my $list = fu->SQL(
+        'SELECT', USER, ', registered, c_vns, c_votes, c_wish, c_changes, c_tags, c_imgvotes
            FROM users u
-          WHERE', sql_and(@where),
-         'ORDER BY', {
+          WHERE', $where,
+         'ORDER BY', RAW({
                   username   => 'lower(username)',
                   registered => 'id',
                   vns        => 'c_vns',
@@ -86,10 +86,9 @@ FU::get qr{/u/([0a-z]|all)}, sub($char) {
                   changes    => 'c_changes',
                   tags       => 'c_tags',
                   images     => 'c_imgvotes',
-                }->{$opt->{s}}, $opt->{o} eq 'd' ? 'DESC' : 'ASC'
-    );
-    state $totalusers = fu->dbVal('SELECT count(*) FROM users');
-    my $count = @where ? fu->dbVali('SELECT count(*) FROM users WHERE', sql_and @where) : $totalusers;
+                }->{$opt->{s}}), $opt->{o} eq 'd' ? 'DESC' : 'ASC',
+         'LIMIT 50 OFFSET', 50*($opt->{p}-1)
+    )->allh;
 
     framework_ title => 'Browse users', sub {
         article_ sub {
@@ -105,7 +104,7 @@ FU::get qr{/u/([0a-z]|all)}, sub($char) {
                     for ('all', 'a'..'z', 0);
             };
             b_ 'The given email address is on the opt-out list.'
-              if auth->permUsermod && $opt->{q} && $opt->{q} =~ /@/ && fu->dbVali('SELECT email_optout_check(', \$opt->{q}, ')');
+              if auth->permUsermod && $opt->{q} && $opt->{q} =~ /@/ && fu->sql('SELECT email_optout_check($1)', $opt->{q})->val;
         };
         listing_ $opt, $list, $count if $count;
     };
