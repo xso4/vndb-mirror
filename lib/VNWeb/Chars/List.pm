@@ -84,7 +84,7 @@ FU::get qr{/c(?:/(?<char>all|[a-z0]))?}, sub($char=undef) {
         p => { upage => 1 },
         f => { advsearch_err => 'c' },
         ch=> { onerror => undef, accept_array => 'first', enum => ['0', 'a'..'z'] },
-        fil=>{ onerror => '' },
+        fil=>{ onerror => undef },
         s => { tableopts => $TABLEOPTS },
     );
 

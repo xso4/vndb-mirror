@@ -350,9 +350,9 @@ FU::get qr{/v(?:/(all|[a-z0]))?}, sub($char=undef) {
         p => { upage => 1 },
         f => { advsearch_err => 'v' },
         ch=> { accept_array => 'first', onerror => undef, enum => ['0', 'a'..'z'] },
-        fil  => { onerror => '' },
-        rfil => { onerror => '' },
-        cfil => { onerror => '' },
+        fil  => { onerror => undef },
+        rfil => { onerror => undef },
+        cfil => { onerror => undef },
     );
     $opt->{q} = $opt->{sq} if !$opt->{q};
     $opt->{s} = fu->query(s => { tableopts => $opt->{q} ? $TABLEOPTS_Q : $TABLEOPTS });

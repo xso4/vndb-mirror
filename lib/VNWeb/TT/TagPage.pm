@@ -66,7 +66,7 @@ sub vns_($t) {
         s => { tableopts => $TABLEOPTS },
         m => { onerror => auth->pref('spoilers')||0, accept_array => 'first', enum => [0..2] },
         l => { accept_array => 'first', default => false, func => sub { $_[0] = !!$_[0]; 1 } },
-        fil => { onerror => '' },
+        fil => { onerror => undef },
     );
 
     # URL compatibility with old filters

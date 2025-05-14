@@ -28,7 +28,7 @@ FU::get qr{/s(?:/(?<char>all|[a-z0]))?}, sub($char=undef) {
         f => { advsearch_err => 's' },
         n => { accept_array => 'first', default => false, func => sub { $_[0] = !!$_[0]; 1 } },
         ch=> { accept_array => 'first', onerror => undef, enum => ['0', 'a'..'z'] },
-        fil => { onerror => '' },
+        fil => { onerror => undef },
     );
 
     # compat with old URLs

@@ -36,7 +36,7 @@ FU::get '/r', sub {
         f => { advsearch_err => 'r' },
         s => { onerror => 'qscore', enum => [qw/qscore released minage title/] },
         o => { onerror => 'a', enum => ['a','d'] },
-        fil => { onerror => '' },
+        fil => { onerror => undef },
     );
     $opt->{s} = 'qscore' if $opt->{q} && fu->query('sb');
     $opt->{s} = 'title' if $opt->{s} eq 'qscore' && !$opt->{q};
