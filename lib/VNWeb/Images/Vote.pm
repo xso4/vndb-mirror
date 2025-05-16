@@ -11,35 +11,22 @@ sub can_vote { !config->{read_only} && (auth->permDbmod || (auth->permImgvote &&
 js_api Images => { excl_voted => { anybool => 1 } }, sub($data) {
     fu->denied if !can_vote;
 
-    state $stats = fu->dbRowi('SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE c_weight > 1) AS referenced FROM images');
-
-    # Performing a proper weighted sampling on the entire images table is way
-    # too slow, so we do a TABLESAMPLE to first randomly select a number of
-    # rows and then get a weighted sampling from that. The TABLESAMPLE fraction
-    # is adjusted so that we get approximately 5000 rows to work with. This is
-    # hopefully enough to get a good (weighted) sample and should have a good
-    # chance at selecting images even when the user has voted on 90%.
-    #
-    # TABLESAMPLE is not used if there are only few images to select from, i.e.
-    # when the user has already voted on 99% of all images. Finding all
-    # applicable images in that case is slow, but at least there aren't many
-    # rows for the final ORDER BY.
-    my $tablesample =
-        !$data->{excl_voted} || fu->dbVali('SELECT c_imgvotes FROM users WHERE id =', \auth->uid) < $stats->{referenced}*0.99
-        ? 100 * min 1, (5000 / $stats->{referenced}) * ($stats->{total} / $stats->{referenced})
-        : 100;
-
+    # This query isn't super fast. Earlier implementations used TABLESAMPLE to
+    # pre-select ~5000 candidates if the user has fewer votes than 90% of
+    # eligible images, but that's not very effective anymore now that the
+    # majority of images are not eligible (c_weight <= 1). That optimization
+    # can be brought back by separating out eligible images into a separate
+    # table and keeping track of the fraction of those the user has voted on.
+    my $l = fu->SQL('
+        SELECT id
+          FROM images
+         WHERE c_weight > 1',
+            $data->{excl_voted} ? ('AND', auth->uid, '<> ALL(c_uids)') : (), '
+         ORDER BY random() ^ (1.0/c_weight) DESC
+         LIMIT 30'
+    )->allh;
     # NOTE: JS assumes that, if it receives less than 30 images, we've reached
     # the end of the list and will not attempt to load more.
-    my $l = fu->dbAlli('
-        SELECT id
-          FROM images TABLESAMPLE SYSTEM (', \$tablesample, ')
-         WHERE c_weight > 1',
-            $data->{excl_voted} ? ('AND NOT (c_uids && ARRAY[', \auth->uid, '::vndbid])') : (), '
-         ORDER BY random() ^ (1.0/c_weight) DESC
-         LIMIT', \30
-    );
-    warn sprintf 'Weighted random image sampling query returned %d < 30 rows for %s with a sample fraction of %f', scalar @$l, auth->uid(), $tablesample if @$l < 30;
     enrich_image 1, $l;
     +{ results => $l };
 };
@@ -58,12 +45,13 @@ js_api ImageVote => {
     fu->denied if !validate_token $data->{votes};
 
     # Lock the users table early to prevent deadlock with a concurrent DB edit that attempts to update c_changes.
-    fu->dbExeci('SELECT c_imgvotes FROM users WHERE id =', \auth->uid, 'FOR UPDATE');
+    fu->sql('SELECT c_imgvotes FROM users WHERE id = $1 FOR UPDATE', auth->uid)->exec;
 
     # Find out if any of these images are being overruled
-    enrich_merge id => sub { sql 'SELECT id, bool_or(ignore) AS overruled FROM image_votes WHERE id IN', $_, 'GROUP BY id' }, $data->{votes};
-    enrich_merge id => sql('SELECT id, NOT ignore AS old_my_overrule FROM image_votes WHERE uid =', \auth->uid, 'AND id IN'),
-        grep $_->{overruled}, $data->{votes}->@* if auth->permDbmod;
+    fu->enrich(set => 'overruled', sub { SQL 'SELECT id, bool_or(ignore) FROM image_votes WHERE id', IN $_, 'GROUP BY id' }, $data->{votes});
+    fu->enrich(set => 'old_my_overrule', SQL('SELECT id, NOT ignore FROM image_votes WHERE uid =', auth->uid, 'AND id'),
+        [ grep $_->{overruled}, $data->{votes}->@* ]
+    ) if auth->permDbmod;
 
     for($data->{votes}->@*) {
         $_->{my_overrule} = 0 if !auth->permDbmod;
@@ -74,8 +62,8 @@ js_api ImageVote => {
             violence => $_->{my_violence},
             ignore   => !$_->{my_overrule} && !$_->{old_my_overrule} && $_->{overruled} ? 1 : 0,
         };
-        fu->dbExeci('INSERT INTO image_votes', $d, 'ON CONFLICT (id, uid) DO UPDATE SET', $d, ', date = now()');
-        fu->dbExeci('UPDATE image_votes SET ignore =', \($_->{my_overrule}?1:0), 'WHERE uid IS DISTINCT FROM', \auth->uid, 'AND id =', \$_->{id})
+        fu->SQL('INSERT INTO image_votes', VALUES($d), 'ON CONFLICT (id, uid) DO UPDATE', SET($d), ', date = now()')->exec;
+        fu->SQL('UPDATE image_votes SET ignore =', $_->{my_overrule}, 'WHERE uid IS DISTINCT FROM', auth->uid, 'AND id =', $_->{id})->exec
             if !$_->{my_overrule} != !$_->{old_my_overrule};
     }
 
@@ -96,7 +84,7 @@ my $SEND = form_compile {
 
 sub imgflag_ {
     article_ widget(ImageFlagging => $SEND, {
-        my_votes   => auth ? fu->dbVali('SELECT c_imgvotes FROM users WHERE id =', \auth->uid) : 0,
+        my_votes   => auth ? fu->sql('SELECT c_imgvotes FROM users WHERE id = $1', auth->uid)->val : 0,
         nsfw_token => viewset(show_nsfw => 1),
         mod        => auth->permDbmod()||0,
         @_
@@ -107,7 +95,7 @@ sub imgflag_ {
 FU::get '/img/vote', sub {
     fu->denied if !can_vote;
 
-    my $recent = fu->dbAlli('SELECT id FROM image_votes WHERE uid =', \auth->uid, 'ORDER BY date DESC LIMIT', \30);
+    my $recent = fu->sql('SELECT id FROM image_votes WHERE uid = $1 ORDER BY date DESC LIMIT 30', auth->uid)->allh;
     enrich_image 1, $recent;
 
     framework_ title => 'Image flagging', sub {

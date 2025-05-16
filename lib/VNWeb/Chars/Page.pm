@@ -29,7 +29,7 @@ sub sql_trait_overrides {
 }
 
 sub enrich_item($c) {
-    enrich_image_obj image => $c;
+    enrich_image_obj image => [$c];
 
     # Even with trait overrides, we'll want to see the raw data in revision diffs,
     # so fetch the raw spoil as a separate column and do filtering/processing later.

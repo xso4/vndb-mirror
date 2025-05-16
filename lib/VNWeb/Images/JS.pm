@@ -40,12 +40,12 @@ FU::post '/js/ImageUpload.json', sub {
         fu->send_json({_err => 'Unsupported image format'});
 
     my $seq = {qw/sf screenshots_seq cv covers_seq ch charimg_seq/}->{$type};
-    my $id = fu->dbVali('INSERT INTO images', {
-        id       => sql_func(vndbid => \$type, sql(sql_func(nextval => \$seq), '::int')),
-        uploader => \auth->uid,
+    my $id = fu->SQL('INSERT INTO images', VALUES({
+        id       => RAW('vndbid('.fu->db_conn->escape_literal($type).', nextval('.fu->db_conn->escape_literal($seq).'))'),
+        uploader => auth->uid,
         width    => 0,
         height   => 0
-    }, 'RETURNING id');
+    }), 'RETURNING id')->val;
 
     my $fno = imgpath($id, 'orig', $fmt);
     my $fn0 = imgpath($id);
@@ -70,7 +70,7 @@ FU::post '/js/ImageUpload.json', sub {
         unlink $fno;
         unlink $fn0;
         unlink $fn1;
-        fu->dbh->rollback;
+        fu->db->rollback;
     }
 
     if($rc || !-s $fn0 || $err !~ /^([0-9]+)x([0-9]+)$/) {
@@ -88,7 +88,7 @@ FU::post '/js/ImageUpload.json', sub {
         fu->send_json({_err => 'Encoded image too large, try a lower resolution'});
     }
 
-    fu->dbExeci('UPDATE images SET', { width => $w, height => $h }, 'WHERE id =', \$id);
+    fu->SQL('UPDATE images', SET({ width => $w, height => $h }), 'WHERE id =', $id)->exec;
     chmod 0666, $fno;
     chmod 0666, $fn0;
     chmod 0666, $fn1;

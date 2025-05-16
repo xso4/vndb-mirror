@@ -14,7 +14,7 @@ sub enrich_vn($v, $revonly=0) {
     $v->{title} = titleprefs_obj $v->{olang}, $v->{titles};
     enrich_merge id => sql('SELECT id, c_votecount, c_length, c_lengthnum, c_image, c_imgfirst, c_imglast,', sql_vnimage, 'FROM vn WHERE id IN'), $v;
     enrich_vislinks v => 0, $v;
-    enrich_vnimage $v;
+    enrich_vnimage [$v];
     enrich_image_obj scr => $v->{screenshots};
 
     $v->{relations} = [ grep length $_->{title}, $v->{relations}->@* ];
@@ -95,7 +95,7 @@ sub enrich_vn($v, $revonly=0) {
 # Enrich everything necessary for rev_() (includes enrich_vn())
 sub enrich_item($v, $full=0, $rev=0) {
     enrich_vn $v, !$full;
-    enrich_image_obj image => $v if $rev;
+    enrich_image_obj image => [$v] if $rev;
 }
 
 

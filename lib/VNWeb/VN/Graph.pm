@@ -120,7 +120,7 @@ FU::get qr{/$RE{vid}/rgi}, sub($id) {
         SELECT id, title[1+1] AS title, title[1+1+1+1] AS alttitle, c_released AS released,', sql_vnimage, ', c_languages::text[] AS languages
           FROM', vnt, "v WHERE id IN"
     ), values %nodes;
-    enrich_vnimage values %nodes;
+    enrich_vnimage [values %nodes];
 
     # compress image info a bit
     for (values %nodes) {

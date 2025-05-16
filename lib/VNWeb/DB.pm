@@ -261,22 +261,22 @@ sub enrich_obj {
 #   $opt{set}:
 #       Set the given field to the value of the second column in $sql.
 #
+#   $opt{seth}:
+#       Set the given field to the row hash.
+#
 #   $opt{aoh}:
 #       Write an array of hashes to the specified field.
 #
 #   $opt{aov}:
 #       Write an array of values.
-#
-# (TODO:)
-#   $opt{hash}:  Write single hash  (enrich_obj)
 sub FU::obj::enrich {
     my $lst = pop;
     my $sql = pop;
     my %opt = @_[1..$#_];
     my $key = $opt{key} || 'id';
 
-    return if !@$lst;
-    local $_ = [ map $_->{$key}, @$lst ];
+    local $_ = [ map $_->{$key}//(), @$lst ];
+    return if !@$_;
     my $st = fu->SQL(ref $sql eq 'CODE' ? $sql->() : (ref $sql ? $sql : RAW($sql), IN $_));
 
     if ($opt{merge}) {
@@ -292,6 +292,11 @@ sub FU::obj::enrich {
         my $field = $opt{set};
         my $r = $st->kvv;
         $_->{$field} = $r->{$_->{$key}} for @$lst;
+
+    } elsif ($opt{seth}) {
+        my $field = $opt{seth};
+        my $r = $st->kvh;
+        $_->{$field} = $r->{$_->{$key}} for (grep defined $_->{$key}, @$lst);
 
     # XXX: These do not support duplicate keys in $lst
     } elsif ($opt{aoh}) {

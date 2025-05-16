@@ -154,33 +154,35 @@ FU::get '/img/list', sub {
     $opt->{t} = [] if $opt->{t}->@* == 3;
     $opt->{d} = 0 if !$opt->{u};
 
-    my $u = $opt->{u} && fu->dbRowi('SELECT id, ', sql_user(), 'FROM users u WHERE id =', \$opt->{u});
-    fu->notfound if $opt->{u} && (!$u->{id} || (!defined $u->{user_name} && !auth->isMod));
+    my $u = $opt->{u} && fu->SQL('SELECT id, ', USER, 'FROM users u WHERE id =', $opt->{u})->rowh;
+    fu->notfound if $opt->{u} && (!$u || (!defined $u->{user_name} && !auth->isMod));
 
-    my $where = sql_and
-        $opt->{t}->@* ? sql_or(map sql('i.id BETWEEN vndbid(',\"$_",',1) AND vndbid_max(',\"$_",')'), $opt->{t}->@*) : (),
-        $opt->{m} ? sql('i.c_votecount >=', \$opt->{m}) : (),
-        $opt->{d} ? sql('iu.date > NOW()-', \"$opt->{d} days", '::interval') : (),
-        $opt->{up} && $opt->{u} ? sql('i.uploader =', \$opt->{u}) : ();
+    my $where = AND
+        $opt->{t}->@* ? OR(map SQL('i.id ^=', $_), $opt->{t}->@*) : (),
+        $opt->{m} ? SQL('i.c_votecount >=', $opt->{m}) : (),
+        $opt->{d} ? SQL('iu.date > NOW() - (', $opt->{d}, " * interval '1 day')") : (),
+        $opt->{up} && $opt->{u} ? SQL('i.uploader =', $opt->{u}) : ();
 
-    my($lst, $np) = fu->dbPagei({ results => 100, page => $opt->{p} }, '
+    my $lst = fu->SQL('
         SELECT i.id, i.width, i.height, i.c_votecount, i.c_weight
              , i.c_sexual_avg::real/100 AS sexual_avg, i.c_sexual_stddev::real/100 AS sexual_stddev
              , i.c_violence_avg::real/100 AS violence_avg, i.c_violence_stddev::real/100 AS violence_stddev
              , iv.sexual as my_sexual, iv.violence as my_violence',
           $opt->{u} ? ', iu.sexual as user_sexual, iu.violence as user_violence' : (), '
           FROM images i',
-          $opt->{u} ? ('JOIN image_votes iu ON iu.uid =', \$opt->{u}, ' AND iu.id = i.id') : (),
-          $opt->{my} ? () : 'LEFT', 'JOIN image_votes iv ON iv.uid =', \($opt->{u2}||undef), ' AND iv.id = i.id
+          $opt->{u} ? ('JOIN image_votes iu ON iu.uid =', $opt->{u}, ' AND iu.id = i.id') : (),
+          $opt->{my} ? () : 'LEFT', 'JOIN image_votes iv ON iv.uid =', $opt->{u2}||undef, ' AND iv.id = i.id
          WHERE', $where, '
-         ORDER BY', {
+         ORDER BY', RAW({
              weight => 'i.c_weight DESC',
              sdev   => 'i.c_sexual_stddev DESC NULLS LAST',
              vdev   => 'i.c_violence_stddev DESC NULLS LAST',
              date   => 'iu.date DESC',
              diff   => 'abs(iu.sexual*100-i.c_sexual_avg) + abs(iu.violence*100-i.c_violence_avg) DESC',
-         }->{$opt->{s}}, ', i.id'
-    );
+         }->{$opt->{s}}), ', i.id', '
+         LIMIT 101 OFFSET', 100*($opt->{p}-1)
+    )->allh;
+    my $np = @$lst > 100 && !!pop @$lst;
 
     my sub url { '?'.query_encode({%$opt, @_}) }
 

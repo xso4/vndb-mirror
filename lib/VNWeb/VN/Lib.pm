@@ -15,13 +15,15 @@ sub sql_vnimage :prototype() {
 
 # Replaces the 'vnimage' field with an image object.
 # Fetches the user's vn_image_vote instead of the VN-provided image when the user has voted.
-sub enrich_vnimage {
-    enrich_merge id => sub { sql 
-        'SELECT vid AS id, img AS vnimage
-           FROM vn_image_votes
-          WHERE c_main AND uid =', \auth->uid, 'AND vid in', $_[0]
-    }, @_ if auth;
-    enrich_image_obj vnimage => @_;
+sub enrich_vnimage($l) {
+    if (auth) {
+        my $custom = fu->SQL(
+            'SELECT vid, img FROM vn_image_votes
+              WHERE c_main AND uid =', auth->uid, 'AND vid', IN [ map $_->{id}, @$l ]
+        )->kvv;
+        $_->{vnimage} = $custom->{$_->{id}} for grep $custom->{$_->{id}}, @$l;
+    }
+    enrich_image_obj vnimage => $l;
 }
 
 
