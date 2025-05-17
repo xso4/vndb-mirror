@@ -63,12 +63,12 @@ const setField = (id, opstyle, source, fromq, toq, defop=0) => {
             inst.values.set(v.key, 'val' in v ? v.val : true);
             v.op = q[0] > 1 ? defop+(v.op === '=' ? 0 : 2)
                  : q[0] === OR ? (v.op === '=' ? 0 : 3) : (v.op === '=' ? 1 : 2);
-            ['op', 'spoil', 'direct'].forEach(f => {
+            for (const f of ['op', 'spoil', 'direct']) {
                 if (f in v) {
                     if (!(f in inst)) inst[f] = v[f];
                     else if (inst[f] !== v[f]) return null;
                 }
-            });
+            }
         }
         return inst;
     };
