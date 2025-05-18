@@ -26,6 +26,9 @@ const EmailInput = initVnode => {
         .replace(/^gaa?[nm][uio][il]{1,3}\.com$/, 'gmail.com')
         .replace(/^g[nm][uio]a[il]{1,3}\.com$/, 'gmail.com')
         .replace(/^[nm]ga[uio][il]{1,3}\.com$/, 'gmail.com')
+        .replace(/^gimel\.com$/, 'gmail.com')
+        .replace(/^gemail\.com$/, 'gmail.com')
+        .replace(/^hotmai\.([a-z.]+)$/, 'hotmail.$1')
         .replace(/^yhoo\.com$/, 'yahoo.com');
     const setfixed = v => v.attrs.data[v.attrs.field] = v.attrs.data[v.attrs.field].replace(domain(v), fixdomain(v));
     return {view: v => [
