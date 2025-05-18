@@ -120,7 +120,7 @@ const ExtLinks = initVnode => {
     };
     const set = (o,v) => {
         if (v !== null) o.str = v;
-        o.lnk = extlinks.find(l => new RegExp(l.regex).test(o.str));
+        o.lnk = extlinks.find(l => l.regex && new RegExp(l.regex).test(o.str));
         o.val = o.lnk && o.str.match(new RegExp(o.lnk.regex)).filter(x => x !== undefined)[1];
         o.dup = o.lnk && links.find(l => l.site === o.lnk.site && l.value === o.val);
         if (o.lnk && !o.dup && (o.lnk.multi || !links.find(l => l.site === o.lnk.site))) add(o);

@@ -19,7 +19,7 @@ my @LINKS = grep $_ eq 'website' || $LINKS{$_}{regex}, sort keys %LINKS;
 # - (?^: is a perl alias for (?d-imnsx:
 # - Javascript doesn't officially support embedded modifiers in the first place, so these are removed
 # Regexes compiled with any of /imsx will not work properly.
-sub re_compat($re) { $re =~ s/\\@/@/gr =~ s{\(\?\^?[alupimnsx]*(?:-[imnsx]+)?(?=[:\)])}{(?}gr; }
+sub re_compat($re) { $re =~ s/\\@/@/gr =~ s{\(\?\^?[alupimnsx]*(?:-[imnsx]+)?(?=[:\)])}{(?}gr =~ s/^\(\?:(.+)\)$/$1/r; }
 
 sub tojson($obj) { json_format $obj, pretty => 1, canonical => 1 }
 
