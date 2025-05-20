@@ -21,6 +21,27 @@ sub sql_labelid {
 }
 
 
+# Add a new label if none exist with that name yet. Returns (id,private)
+# Does not update the private flag if the label already exists.
+sub addlabel($label, $private=undef) {
+    my $row = fu->dbRowi('
+        WITH l(id, private) AS (
+          SELECT id, private FROM ulist_labels WHERE uid =', \auth->uid, 'AND label =', \$label, '
+        ), ins(id, private) AS (
+          INSERT INTO ulist_labels (id, uid, label, private)
+          SELECT ', sql_join(',',
+                   sql_labelid, \auth->uid, \$label,
+                   # Let's copy the private flag from the Voted label, seems like a sane default
+                   defined $private ? \$private : sql('(SELECT private FROM ulist_labels WHERE', {uid => auth->uid, id => 7}, ')'),
+                 ), '
+           WHERE NOT EXISTS(SELECT 1 FROM l)
+          RETURNING id, private
+        ) SELECT * FROM l UNION SELECT * FROM ins'
+    );
+    ($row->{id}, $row->{private})
+}
+
+
 js_api UListManageLabels => {
     labels => { maxlength => 1500, aoh => {
         id      => { int => 1 },
@@ -31,23 +52,7 @@ js_api UListManageLabels => {
 }, sub {
     my $labels = $_[0]{labels};
     fu->denied if !auth;
-
-    # Insert new labels
-    my @new = grep $_->{id} < 0 && !$_->{delete}, @$labels;
-    fu->dbExeci('INSERT INTO ulist_labels', { id => sql_labelid, uid => auth->uid, label => $_->{label}, private => $_->{private} }) for @new;
-
-    # Update private flag
     my $changed = 0;
-    $changed += fu->dbExeci(
-        'UPDATE ulist_labels SET private =', \$_->{private},
-         'WHERE uid =', \auth->uid, 'AND id =', \$_->{id}, 'AND private <>', \$_->{private}
-    ) for grep $_->{id} > 0 && !$_->{delete}, @$labels;
-
-    # Update label
-    fu->dbExeci(
-        'UPDATE ulist_labels SET label =', \$_->{label},
-         'WHERE uid =', \auth->uid, 'AND id =', \$_->{id}, 'AND label <>', \$_->{label}
-    ) for grep $_->{id} >= 10 && !$_->{delete}, @$labels;
 
     # Delete labels
     my @delete = grep $_->{id} >= 10 && $_->{delete}, @$labels;
@@ -72,6 +77,21 @@ js_api UListManageLabels => {
     ) for @delete;
 
     fu->dbExeci('DELETE FROM ulist_labels WHERE uid =', \auth->uid, 'AND id IN', [ map $_->{id}, @delete ]) if @delete;
+
+    # Update label
+    fu->dbExeci(
+        'UPDATE ulist_labels SET label =', \$_->{label},
+         'WHERE uid =', \auth->uid, 'AND id =', \$_->{id}, 'AND label <>', \$_->{label}
+    ) for grep $_->{id} >= 10 && !$_->{delete}, @$labels;
+
+    # Insert new labels
+    ($_->{id}) = addlabel($_->{label}, $_->{private}) for grep $_->{id} < 0 && !$_->{delete}, @$labels;
+
+    # Update private flag
+    $changed += fu->dbExeci(
+        'UPDATE ulist_labels SET private =', \$_->{private},
+         'WHERE uid =', \auth->uid, 'AND id =', \$_->{id}, 'AND private <>', \$_->{private}
+    ) for grep !$_->{delete}, @$labels;
 
     updcache $changed ? undef : ();
     +{}
@@ -172,27 +192,13 @@ js_api UListLabelAdd => {
 }, sub($data) {
     fu->denied if !auth;
 
-    my $row = fu->dbRowi('
-        WITH l(id, private) AS (
-          SELECT id, private FROM ulist_labels WHERE uid =', \auth->uid, 'AND label =', \$data->{label}, '
-        ), ins(id, private) AS (
-          INSERT INTO ulist_labels (id, uid, label, private)
-          SELECT ', sql_join(',',
-                   sql_labelid, \auth->uid, \$data->{label},
-                   # Let's copy the private flag from the Voted label, seems like a sane default
-                   sql('(SELECT private FROM ulist_labels WHERE', {uid => auth->uid, id => 7}, ')'),
-                 ), '
-           WHERE NOT EXISTS(SELECT 1 FROM l)
-          RETURNING id, private
-        ) SELECT * FROM l UNION SELECT * FROM ins'
-    );
-
+    my($id, $private) = addlabel($data->{label});
     fu->dbExeci(
-        'INSERT INTO ulist_vns', {uid => auth->uid, vid => $data->{vid}, labels => "{$row->{id}}"},
-        'ON CONFLICT (uid, vid) DO UPDATE SET labels = array_set(ulist_vns.labels,', \$row->{id}, ')'
+        'INSERT INTO ulist_vns', {uid => auth->uid, vid => $data->{vid}, labels => "{$id}"},
+        'ON CONFLICT (uid, vid) DO UPDATE SET labels = array_set(ulist_vns.labels,', \$id, ')'
     );
     updcache $data->{vid};
-    +{ id => $row->{id}*1, priv => $row->{priv}?\1:\0 }
+    +{ id => $id*1, priv => $private?\1:\0 }
 };
 
 
