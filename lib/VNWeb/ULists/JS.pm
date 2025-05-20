@@ -155,10 +155,10 @@ js_api UListLabelEdit => {
     labels => { elems => { uint => 1 } }
 }, sub($data) {
     fu->denied if !auth;
-    fu->SQL('
+    fu->SQL("
         WITH l(l) AS (
-          SELECT array_agg(id ORDER BY id) FROM ulist_labels
-           WHERE uid =', auth->uid, 'AND id <> 7 AND id', IN($data->{labels}), '
+          SELECT coalesce(array_agg(id ORDER BY id), '{}') FROM ulist_labels
+           WHERE uid =", auth->uid, 'AND id <> 7 AND id', IN($data->{labels}), '
         ) INSERT INTO ulist_vns (uid, vid, labels)
           VALUES (', auth->uid, ',', $data->{vid}, ', (SELECT l FROM l))
           ON CONFLICT (uid, vid) DO UPDATE
