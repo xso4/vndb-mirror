@@ -268,9 +268,10 @@ widget('UListWidget', { view: vnode => [
         { onclick: () => widgetOpen(vnode.attrs.data), },
         vnode.attrs.data.labels ? labelIcon(
             Math.max(0, ...vnode.attrs.data.labels.filter(n => n >= 1 && n <= 6)),
-            vnode.attrs.data.labels.flatMap(n =>
-                n === 7 ? [] : [ pageVars.labels.find(([id]) => id === n)[1] ]
-            ).join(', ')
+            vnode.attrs.data.labels.flatMap(n => {
+                const l = pageVars.labels.find(([id]) => id === n);
+                return n === 7 || !l ? [] : [ l[1] ];
+            }).join(', ')
         ) : labelIcon(-1, 'Add to list'),
         vnode.attrs.oldContents.length === 1 ? null : (rlist =>
             rlist ? ((total, st) =>
