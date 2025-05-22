@@ -20,23 +20,23 @@ sub ulists_priv {
 sub ulist_filtlabels($uid,$count=0) {
     my $own = ulists_priv $uid;
 
-    my $l = fu->dbAlli(
+    my $l = fu->SQL(
         'SELECT l.id, l.label, l.private', $count ? ', coalesce(x.count, 0) as count' : (),
           'FROM ulist_labels l',
            $count ? ('LEFT JOIN (
               SELECT x.id, COUNT(*)
                 FROM ulist_vns uv, unnest(uv.labels) x(id)
-               WHERE uid =', \$uid, $own ? () : 'AND NOT uv.c_private', '
+               WHERE uid =', $uid, $own ? () : 'AND NOT uv.c_private', '
                GROUP BY x.id
             ) x(id, count) ON x.id = l.id') : (), '
-          WHERE l.uid =', \$uid, $own ? () : 'AND (NOT l.private OR l.id = 10-1-1-1)', # XXX: 'Voted' (7) is always visibible
+          WHERE l.uid =', $uid, $own ? () : 'AND (NOT l.private OR l.id = 7)', # XXX: 'Voted' (7) is always visibible
          'ORDER BY CASE WHEN l.id < 10 THEN l.id ELSE 10 END, l.label'
-    );
+    )->allh;
 
     # Virtual 'No label' label, only ever has private VNs.
     push @$l, {
         id => 0, label => 'No label', private => 1,
-        $count ? (count => fu->dbVali("SELECT count(*) FROM ulist_vns WHERE labels IN('{}','{7}') AND uid =", \$uid)) : (),
+        $count ? (count => fu->SQL("SELECT count(*) FROM ulist_vns WHERE labels IN('{}','{7}') AND uid =", $uid)->val) : (),
     } if $own;
 
     $l
@@ -44,15 +44,14 @@ sub ulist_filtlabels($uid,$count=0) {
 
 
 # Enrich a list of VNs with basic data necessary for ulist_widget_.
-sub enrich_ulists_widget {
-    enrich_merge id => sql('SELECT vid AS id, true AS on_vnlist FROM ulist_vns WHERE uid =', \auth->uid, 'AND vid IN'), @_ if auth;
-
-    enrich_flatten vnlist_labels => id => vid => sub { sql '
+sub enrich_ulists_widget($l) {
+    fu->enrich(set => 'on_vnlist', SQL('SELECT vid, true FROM ulist_vns WHERE uid =', auth->uid, 'AND vid'), $l) if auth;
+    fu->enrich(aov => 'vnlist_labels', sub { SQL '
         SELECT uv.vid, ul.id
           FROM ulist_vns uv, unnest(uv.labels) l(id), ulist_labels ul
-         WHERE ul.uid =', \auth->uid, 'AND uv.uid =', \auth->uid, 'AND ul.id = l.id AND uv.vid IN', $_[0], '
+         WHERE ul.uid =', auth->uid, 'AND uv.uid =', auth->uid, 'AND ul.id = l.id AND uv.vid', IN($_), '
          ORDER BY CASE WHEN ul.id < 10 THEN ul.id ELSE 10 END, ul.label'
-    }, @_ if auth;
+    }, $l) if auth;
 }
 
 
@@ -81,8 +80,8 @@ sub ulists_widget_($v) {
 
 # Returns the full UListWidget data structure for the given VN.
 sub ulists_widget_full_data($v, $vnpage=0, $canvote=undef) {
-    my $lst = fu->dbRowi('SELECT vid, vote, notes, started, finished, labels FROM ulist_vns WHERE uid =', \auth->uid, 'AND vid =', \$v->{id});
-    my $review = fu->dbVali('SELECT id FROM reviews WHERE uid =', \auth->uid, 'AND vid =', \$v->{id});
+    my $lst = fu->SQL('SELECT vid, vote, notes, started, finished, labels FROM ulist_vns WHERE uid =', auth->uid, 'AND vid =', $v->{id})->rowh;
+    my $review = fu->SQL('SELECT id FROM reviews WHERE uid =', auth->uid, 'AND vid =', $v->{id})->val;
     $canvote //= sprintf('%08d', $v->{c_released}||99999999) <= strftime '%Y%m%d', gmtime;
     +{
         vid       => $v->{id},
@@ -97,7 +96,7 @@ sub ulists_widget_full_data($v, $vnpage=0, $canvote=undef) {
         $vnpage ? () : (
             title     => $v->{title}[1],
             releases  => releases_by_vn($v->{id}),
-            rlist     => fu->dbAlli('SELECT rid AS id, status FROM rlists WHERE uid =', \auth->uid, 'AND rid IN(SELECT id FROM releases_vn WHERE vid =', \$v->{id}, ')'),
+            rlist     => fu->SQL('SELECT rid AS id, status FROM rlists WHERE uid =', auth->uid, 'AND rid IN(SELECT id FROM releases_vn WHERE vid =', $v->{id}, ')')->allh,
         ),
     };
 }

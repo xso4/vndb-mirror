@@ -15,6 +15,7 @@ use builtin 'created_as_number';
 use POSIX 'strftime';
 use List::Util 'max';
 use FU;
+use FU::SQL;
 use FU::XMLWriter ':html5_';
 use VNWeb::Auth;
 use VNWeb::DB;
@@ -766,8 +767,11 @@ sub _sql_where_label {
     }
 
     if(!$own) {
-        # Label 7 can always be queried, do a lookup for the rest.
-        fu->{lblvis}{$uid} ||= { 7, 1, map +($_->{id},1), fu->dbAlli('SELECT id FROM ulist_labels WHERE NOT private AND uid =', \$uid)->@* };
+        fu->{lblvis}{$uid} ||= do {
+            my $kv = fu->sql('SELECT id FROM ulist_labels WHERE NOT private AND uid = $1', $uid)->kvv;
+            $kv->{7} = 1; # Label 7 can always be queried
+            $kv;
+        };
         my $vis = fu->{lblvis}{$uid};
         return $neg ? '1=1' : '1=0' if $all && grep !$vis->{$_}, @lbl; # AND query but one label is private -> no match
         @lbl = grep $vis->{$_}, @lbl;
@@ -886,7 +890,7 @@ sub widget_ {
     my %o = (
         spoilers  => auth->pref('spoilers')||0,
                      # TODO: Can also be lazily loaded.
-        saved     => auth ? fu->dbAlli('SELECT name AS id, query FROM saved_queries WHERE uid =', \auth->uid, ' AND qtype =', \$self->{type}, 'ORDER BY name') : [],
+        saved     => auth ? fu->SQL('SELECT name AS id, query FROM saved_queries WHERE uid =', auth->uid, ' AND qtype =', $self->{type}, 'ORDER BY name')->allh : [],
         uid       => auth->uid,
         qtype     => $self->{type},
         query     => $self->compact_json(),
@@ -894,15 +898,14 @@ sub widget_ {
         staff     => [ map +{id => $_}, grep /^s/, keys %ids ],
         tags      => [ map +{id => $_}, grep /^g/, keys %ids ],
         traits    => [ map +{id => $_}, grep /^i/, keys %ids ],
-        anime     => [ map +{id => $_=~s/^anime//rg}, grep /^anime/, keys %ids ],
+        anime     => [ map +{id => int($_=~s/^anime//rg)}, grep /^anime/, keys %ids ],
     );
 
-    enrich_merge id => sql('SELECT id, title[1+1] AS name FROM', VNWeb::TitlePrefs::producerst(), 'p WHERE id IN'), $o{producers};
-    enrich_merge id => sql('SELECT id, id AS sid, title[1+1] FROM', VNWeb::TitlePrefs::staff_aliast(), 's WHERE aid = main AND id IN'), $o{staff};
-    enrich_merge id => 'SELECT id, name FROM tags WHERE id IN', $o{tags};
-    enrich_merge id => 'SELECT t.id, t.name, g.name AS group_name FROM traits t LEFT JOIN traits g ON g.id = t.gid WHERE t.id IN', $o{traits};
-    enrich_merge id => 'SELECT id, title_romaji FROM anime WHERE id IN', $o{anime};
-    $_->{id} *= 1 for $o{anime}->@*;
+    fu->enrich(set => 'name', SQL('SELECT id, title[1+1] FROM', VNWeb::TitlePrefs::PRODUCERST(), 'p WHERE id'), $o{producers});
+    fu->enrich(merge => 1,    SQL('SELECT id, id AS sid, title[1+1] FROM', VNWeb::TitlePrefs::STAFF_ALIAST(), 's WHERE aid = main AND id'), $o{staff});
+    fu->enrich(set => 'name', 'SELECT id, name FROM tags WHERE id', $o{tags});
+    fu->enrich(merge => 1,    'SELECT t.id, t.name, g.name AS group_name FROM traits t LEFT JOIN traits g ON g.id = t.gid WHERE t.id', $o{traits});
+    fu->enrich(set => 'title_romaji', 'SELECT id, title_romaji FROM anime WHERE id', $o{anime});
 
     div_ class => 'xsearch', VNWeb::HTML::widget(AdvSearch => \%o), '';
 
@@ -961,7 +964,7 @@ sub extract_searchquery {
 sub advsearch_default {
     my($t) = @_;
     if(auth) {
-        my $def = fu->dbVali('SELECT query FROM saved_queries WHERE qtype =', \$t, 'AND name = \'\' AND uid =', \auth->uid);
+        my $def = fu->SQL('SELECT query FROM saved_queries WHERE qtype =', $t, "AND name = '' AND uid =", auth->uid)->val;
         return FU::Validate->compile({ advsearch => $t })->validate($def) if $def;
     }
     bless {type=>$t}, __PACKAGE__;

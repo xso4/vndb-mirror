@@ -4,7 +4,7 @@ use VNWeb::Prelude;
 
 sub chars_($v) {
     my $view = viewget;
-    my $chars = VNWeb::Chars::Page::fetch_chars($v->{id}, sql('id IN(SELECT id FROM chars_vns WHERE vid =', \$v->{id}, ')'));
+    my $chars = VNWeb::Chars::Page::fetch_chars($v->{id}, SQL('id IN(SELECT id FROM chars_vns WHERE vid =', $v->{id}, ')'));
     return if !@$chars;
 
     my $max_spoil = max(

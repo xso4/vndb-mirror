@@ -64,14 +64,15 @@ FU::get qr{/$RE{crev}/(edit|copy)} => sub($id, $rev, $action) {
     my $copy = $action eq 'copy';
     fu->denied if !can_edit c => $copy ? {} : $e;
 
-    $e->{main_name} = $e->{main} ? fu->dbVali('SELECT title[1+1] FROM', charst, 'c WHERE id =', \$e->{main}) : '';
-    $e->{main_ref} = fu->dbVali('SELECT 1 FROM chars WHERE main =', \$e->{id})||0;
+    $e->{main_name} = $e->{main} ? fu->SQL('SELECT title[2] FROM', CHARST, 'c WHERE id =', $e->{main})->val : '';
+    $e->{main_ref} = !!fu->SQL('SELECT 1 FROM chars WHERE main =', $e->{id}, 'LIMIT 1')->val;
 
-    enrich_merge tid => sql(
+    fu->enrich(merge => 1, key => 'tid', SQL(
         'SELECT t.id AS tid, t.name, t.hidden, t.locked, t.applicable, g.name AS group, g.gorder AS order, false AS new
            FROM traits t
            LEFT JOIN traits g ON g.id = t.gid
-          WHERE', $copy ? 'NOT t.hidden AND t.applicable AND' : (), 't.id IN'), $e->{traits};
+          WHERE', $copy ? 'NOT t.hidden AND t.applicable AND' : (), 't.id'
+    ), $e->{traits});
     $e->{traits} = [ sort { ($a->{order}//99) <=> ($b->{order}//99) || $a->{name} cmp $b->{name} } grep !$copy || $_->{applicable}, $e->{traits}->@* ];
 
     my %vns;
@@ -80,7 +81,7 @@ FU::get qr{/$RE{crev}/(edit|copy)} => sub($id, $rev, $action) {
         rels => releases_by_vn($_->{vid}, charlink => 1),
         prods => VNWeb::VN::Lib::charproducers($_->{vid}),
     } : (), $e->{vns}->@* ];
-    enrich_merge id => sql('SELECT id, title[1+1] FROM', vnt, 'v WHERE id IN'), $e->{vnstate};
+    fu->enrich(set => 'title', SQL('SELECT id, title[2] FROM', VNT, 'WHERE id'), $e->{vnstate});
 
     if($e->{image}) {
         $e->{image_info} = { id => $e->{image} };
@@ -103,16 +104,16 @@ FU::get qr{/$RE{crev}/(edit|copy)} => sub($id, $rev, $action) {
 
 FU::get qr{/$RE{vid}/addchar}, sub($vid) {
     fu->denied if !can_edit c => undef;
-    my $v = fu->dbRowi('SELECT id, title[1+1] AS title FROM', vnt, 'v WHERE NOT hidden AND id =', \$vid);
-    fu->notfound if !$v->{id};
+    my $title = fu->SQL('SELECT title[2] FROM', VNT, 'WHERE NOT hidden AND id =', $vid)->val;
+    fu->notfound if !length $title;
 
     my $e = $FORM_OUT->empty;
-    $e->{vns} = [{ vid => $v->{id}, rid => undef, spoil => 0, role => 'primary' }];
+    $e->{vns} = [{ vid => $vid, rid => undef, spoil => 0, role => 'primary' }];
     $e->{vnstate} = [{
-        id => $v->{id},
-        title => $v->{title},
-        rels => releases_by_vn($v->{id}, charlink => 1),
-        prods => VNWeb::VN::Lib::charproducers($v->{id}),
+        id => $vid,
+        title => $title,
+        rels => releases_by_vn($vid, charlink => 1),
+        prods => VNWeb::VN::Lib::charproducers($vid),
     }];
 
     framework_ title => 'Add character',
@@ -142,9 +143,9 @@ js_api CharEdit => $FORM_IN, sub ($data,@) {
 
     $data->{main} = undef if $data->{hidden};
     die "Attempt to set main to self" if $data->{main} && $e->{id} && $data->{main} eq $e->{id};
-    die "Attempt to set main while this character is already referenced." if $data->{main} && fu->dbVali('SELECT 1 AS ref FROM chars WHERE main =', \$e->{id});
+    die "Attempt to set main while this character is already referenced." if $data->{main} && fu->SQL('SELECT 1 FROM chars WHERE main =', $e->{id}, 'LIMIT 1')->val;
     # It's possible that the referenced character has been deleted since it was added as main, so don't die() on this one, just unset main.
-    $data->{main} = undef if $data->{main} && !fu->dbVali('SELECT 1 FROM chars WHERE NOT hidden AND main IS NULL AND id =', \$data->{main});
+    $data->{main} = undef if $data->{main} && !fu->SQL('SELECT 1 FROM chars WHERE NOT hidden AND main IS NULL AND id =', $data->{main})->val;
     $data->{main_spoil} = 0 if !$data->{main};
 
     validate_dbid 'SELECT id FROM images WHERE id IN', $data->{image} if $data->{image};
@@ -156,13 +157,14 @@ js_api CharEdit => $FORM_IN, sub ($data,@) {
 
     validate_dbid 'SELECT id FROM vn WHERE id IN', map $_->{vid}, $data->{vns}->@*;
     for($data->{vns}->@*) {
-        return "Invalid release for $_->{vid}: $_->{rid}\n" if defined $_->{rid} && !fu->dbVali('
+        return "Invalid release for $_->{vid}: $_->{rid}\n" if defined $_->{rid} && !fu->SQL('
             SELECT 1
               FROM releases r
               JOIN releases_vn rv ON rv.id = r.id
-             WHERE rv.id =', \$_->{rid}, 'AND rv.vid =', \$_->{vid}, "
-               AND NOT r.hidden AND r.official AND rv.rtype <> 'trial'"
-         );
+             WHERE rv.id =', $_->{rid}, 'AND rv.vid =', $_->{vid}, "
+               AND NOT r.hidden AND r.official AND rv.rtype <> 'trial'
+             LIMIT 1"
+        )->val;
     }
 
     my $ch = db_edit c => $e->{id}, $data;

@@ -2,6 +2,7 @@ package VNWeb::API;
 
 use v5.36;
 use FU;
+use FU::SQL;
 use Time::HiRes 'time', 'alarm';
 use POSIX 'strftime';
 use List::Util 'min';
@@ -491,8 +492,7 @@ api_get '/schema', {}, sub {
 
 my @STATS = qw{traits producers tags chars staff vn releases};
 api_get '/stats', { map +($_, { uint => 1 }), @STATS }, sub {
-    +{ map +($_->{section}, $_->{count}),
-        fu->dbAlli('SELECT * FROM stats_cache WHERE section IN', \@STATS)->@* };
+    fu->SQL('SELECT section, count FROM stats_cache WHERE section', IN \@STATS)->kvv;
 };
 
 
@@ -516,11 +516,11 @@ api_get '/user', {}, sub {
     ) } || err 400, 'Invalid argument';
     my ($q, $f) = @{$data}{qw{ q fields }};
     my $regex = '^u[1-9][0-9]{0,6}$';
-    +{ map +(delete $_->{q}, $_->{id} ? $_ : undef), fu->dbAlli('
+    my $r = fu->SQL('
         WITH u AS (
             SELECT x.q, u.id, u.username
-              FROM unnest(', sql_array(@$q), ') x(q)
-              LEFT JOIN users u ON u.id = CASE WHEN x.q ~', \$regex, 'THEN x.q::vndbid ELSE NULL END
+              FROM unnest(', $q, '::text[]) x(q)
+              LEFT JOIN users u ON u.id = CASE WHEN x.q ~', $regex, 'THEN x.q::vndbid ELSE NULL END
                                 OR LOWER(u.username) = LOWER(x.q)
         ) SELECT u.*',
                  $f->{lengthvotes} ? ', coalesce(l.count,0) AS lengthvotes' : (),
@@ -533,7 +533,9 @@ api_get '/user', {}, sub {
                  GROUP BY uid
              ) l ON l.uid = u.id'
           ) : (),
-    )->@* }
+    )->kvh;
+    $_ = undef for grep !$_->{id}, values %$r;
+    $r
 };
 
 
@@ -560,9 +562,9 @@ api_patch qr{/ulist/$RE{vid}}, {
     labels_unset => { default => [], elems => { uint => 1, range => [1,1600] } },
 }, sub($vid, $upd) {
     err 401, 'Unauthorized' if !auth->api2Listwrite;
-    err 404, 'Visual novel not found' if !fu->dbExeci('SELECT 1 FROM vn WHERE NOT hidden AND id =', \$vid);
+    err 404, 'Visual novel not found' if !fu->sql('SELECT 1 FROM vn WHERE NOT hidden AND id = $1', $vid)->val;
 
-    my $newlabels = sql "'{}'::smallint[]";
+    my $newlabels = [];
     if($upd->{labels} || $upd->{labels_set} || $upd->{labels_unset}) {
         my @all = $upd->{labels} ? $upd->{labels}->@* : ();
         my @set = $upd->{labels_set} ? $upd->{labels_set}->@* : ();
@@ -571,33 +573,32 @@ api_patch qr{/ulist/$RE{vid}}, {
         delete $labels{$_} for @unset;
         err 400, 'Label id 7 cannot be used here' if $labels{7} || grep $_ == 7, @unset;
 
-        $upd->{labels} = $upd->{labels} ? sql(sql_array(sort { $a <=> $b } keys %labels),'::smallint[]') : do {
-            my $l = 'ulist_vns.labels';
-            $l = sql 'array_set(', $l, ',', \(0+$_), ')' for @set;
-            $l = sql 'array_remove(', $l, ',', \(0+$_), ')' for @unset;
+        $newlabels = [ sort { $a <=> $b } keys %labels ];
+        $upd->{labels} = $upd->{labels} ? $newlabels : do {
+            my $l = RAW 'ulist_vns.labels';
+            $l = SQL 'array_set(', $l, ',', $_, ')' for @set;
+            $l = SQL 'array_remove(', $l, ',', $_, ')' for @unset;
             $l
         };
-
         delete $upd->{labels_set};
         delete $upd->{labels_unset};
-        $newlabels = sql(sql_array(sort { $a <=> $b } keys %labels),'::smallint[]');
     }
-    $upd->{lastmod} = sql 'NOW()';
-    $upd->{vote_date} = sql $upd->{vote} ? 'CASE WHEN ulist_vns.vote IS NULL THEN NOW() ELSE ulist_vns.vote_date END' : 'NULL'
+    $upd->{lastmod} = SQL 'NOW()';
+    $upd->{vote_date} = RAW($upd->{vote} ? 'COALESCE(ulist_vns.vote_date, NOW())' : 'NULL')
         if exists $upd->{vote};
 
-    my $done = fu->dbExeci(
-        'INSERT INTO ulist_vns', { %$upd,
+    my $done = fu->SQL(
+        'INSERT INTO ulist_vns', VALUES({ %$upd,
             labels => $newlabels,
-            vote_date => sql($upd->{vote} ? 'NOW()' : 'NULL'),
+            vote_date => RAW($upd->{vote} ? 'NOW()' : 'NULL'),
             uid => auth->uid,
             vid => $vid
-        },
-        'ON CONFLICT (uid, vid) DO', keys %$upd ? ('UPDATE SET', $upd) : 'NOTHING'
-    );
+        }),
+        'ON CONFLICT (uid, vid) DO', keys %$upd ? ('UPDATE', SET $upd) : 'NOTHING'
+    )->exec;
     if($done > 0) {
-        fu->dbExeci(SELECT => sql_func update_users_ulist_private => \auth->uid, \$vid);
-        fu->dbExeci(SELECT => sql_func update_users_ulist_stats => \auth->uid);
+        fu->sql('SELECT update_users_ulist_private($1, $2)', auth->uid, $vid)->exec;
+        fu->sql('SELECT update_users_ulist_stats($1)', auth->uid)->exec;
     }
 };
 
@@ -606,24 +607,24 @@ api_patch qr{/rlist/$RE{rid}}, {
     status  => { uint => 1, default => 0, enum => \%RLIST_STATUS },
 }, sub($rid, $upd) {
     err 401, 'Unauthorized' if !auth->api2Listwrite;
-    err 404, 'Release not found' if !fu->dbExeci('SELECT 1 FROM releases WHERE NOT hidden AND id =', \$rid);
-    fu->dbExeci(
-        'INSERT INTO rlists', { %$upd, uid => auth->uid, rid => $rid },
-        'ON CONFLICT (uid, rid) DO', keys %$upd ? ('UPDATE SET', $upd) : 'NOTHING'
-    );
+    err 404, 'Release not found' if !fu->sql('SELECT 1 FROM releases WHERE NOT hidden AND id = $1', $rid)->val;
+    fu->SQL(
+        'INSERT INTO rlists', VALUES({ %$upd, uid => auth->uid, rid => $rid }),
+        'ON CONFLICT (uid, rid) DO', keys %$upd ? ('UPDATE', SET $upd) : 'NOTHING'
+    )->exec;
 };
 
 
 api_del qr{/ulist/$RE{vid}}, sub($id) {
     err 401, 'Unauthorized' if !auth->api2Listwrite;
-    fu->dbExeci('DELETE FROM ulist_vns WHERE uid =', \auth->uid, 'AND vid =', \$id);
-    fu->dbExeci(SELECT => sql_func update_users_ulist_stats => \auth->uid);
+    fu->sql('DELETE FROM ulist_vns WHERE uid = $1 AND vid = $2', auth->uid, $id)->exec;
+    fu->sql('SELECT update_users_ulist_stats($1)', auth->uid)->exec;
 };
 
 
 api_del qr{/rlist/$RE{rid}}, sub($id) {
     err 401, 'Unauthorized' if !auth->api2Listwrite;
-    fu->dbExeci('DELETE FROM rlists WHERE uid =', \auth->uid, 'AND rid =', \$id);
+    fu->sql('DELETE FROM rlists WHERE uid = $1 AND rid = $2', auth->uid, $id)->exec;
 };
 
 

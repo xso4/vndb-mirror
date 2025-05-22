@@ -284,19 +284,19 @@ sub FU::obj::enrich {
         my @col = map $_->{name}, $st->columns->@*;
         shift @col;
         for (@$lst) {
-            my $o = $r->{$_->{$key}};
+            my $o = $r->{ my $x = $_->{$key} };
             @{$_}{@col} = $o ? @$o : map undef, 0..$#col;
         }
 
     } elsif ($opt{set}) {
         my $field = $opt{set};
         my $r = $st->kvv;
-        $_->{$field} = $r->{$_->{$key}} for @$lst;
+        $_->{$field} = $r->{ my $x = $_->{$key} } for @$lst;
 
     } elsif ($opt{seth}) {
         my $field = $opt{seth};
         my $r = $st->kvh;
-        $_->{$field} = $r->{$_->{$key}} for (grep defined $_->{$key}, @$lst);
+        $_->{$field} = $r->{ my $x = $_->{$key} } for (grep defined $_->{$key}, @$lst);
 
     # XXX: These do not support duplicate keys in $lst
     } elsif ($opt{aoh}) {

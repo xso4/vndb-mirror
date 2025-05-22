@@ -4,21 +4,21 @@ use VNWeb::Prelude;
 use VNWeb::Images::Lib qw/image_ enrich_image_obj/;
 
 
-sub enrich_seiyuu($vid, @chars) {
-    enrich seiyuu => id => cid => sub { sql '
+sub enrich_seiyuu($vid, $l) {
+    fu->enrich(aoh => 'seiyuu', sub { SQL '
         SELECT DISTINCT vs.cid, sa.id, sa.title, sa.sorttitle, vs.note
           FROM vn_seiyuu vs
           ', $vid ? () : ('JOIN vn v ON v.id = vs.id'), '
-          JOIN', staff_aliast, 'sa ON sa.aid = vs.aid
-         WHERE ', $vid ? ('vs.id =', \$vid) : ('NOT v.hidden'), 'AND vs.cid IN', $_, '
+          JOIN', STAFF_ALIAST, 'sa ON sa.aid = vs.aid
+         WHERE ', $vid ? ('vs.id =', $vid) : ('NOT v.hidden'), 'AND vs.cid', IN $_, '
          ORDER BY sa.sorttitle'
-    }, @chars;
+    }, $l);
 }
 
 sub sql_trait_overrides {
-    sql '(
+    SQL '(
         WITH RECURSIVE trait_overrides (tid, spoil, color, childs, lvl) AS (
-          SELECT tid, spoil, color, childs, 0 FROM users_prefs_traits WHERE id =', \auth->uid, '
+          SELECT tid, spoil, color, childs, 0 FROM users_prefs_traits WHERE id =', auth->uid, '
            UNION ALL
           SELECT tp.id, x.spoil, x.color, true, lvl+1
             FROM trait_overrides x
@@ -33,24 +33,24 @@ sub enrich_item($c) {
 
     # Even with trait overrides, we'll want to see the raw data in revision diffs,
     # so fetch the raw spoil as a separate column and do filtering/processing later.
-    enrich_merge tid => sub { sql '
-      SELECT t.id AS tid, t.name, t.hidden, t.locked, t.applicable, t.sexual, x.spoil AS override, x.color
-           , coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.gorder,0) AS order
-        FROM traits t
-        LEFT JOIN traits g ON t.gid = g.id
-        LEFT JOIN', sql_trait_overrides(), 'x ON x.tid = t.id
-       WHERE t.id IN', $_
-    }, $c->{traits};
+    fu->enrich(merge => 1, key => 'tid', sub { SQL '
+        SELECT t.id, t.name, t.hidden, t.locked, t.applicable, t.sexual, x.spoil AS override, x.color
+             , coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.gorder,0) AS order
+          FROM traits t
+          LEFT JOIN traits g ON t.gid = g.id
+          LEFT JOIN', sql_trait_overrides(), 'x ON x.tid = t.id
+         WHERE t.id', IN $_
+    }, $c->{traits});
 
     $c->{traits} = [ sort { $a->{order} <=> $b->{order} || $a->{groupname} cmp $b->{groupname} || $a->{name} cmp $b->{name} } grep length $_->{name}, $c->{traits}->@* ];
 
-    $c->{quotes} = fu->dbAlli('
-        SELECT q.vid, q.id, q.score, q.quote,', sql_totime('q.added'), 'AS added, q.addedby
+    $c->{quotes} = fu->SQL('
+        SELECT q.vid, q.id, q.score, q.quote, q.added, q.addedby
           FROM quotes q
-         WHERE NOT q.hidden AND vid IN', [map $_->{vid}, $c->{vns}->@*], 'AND q.cid =', \$c->{id}, '
+         WHERE NOT q.hidden AND vid', IN [map $_->{vid}, $c->{vns}->@*], 'AND q.cid =', $c->{id}, '
          ORDER BY q.score DESC, q.quote
-    ');
-    enrich_merge id => sql('SELECT id, vote FROM quotes_votes WHERE uid =', \auth->uid, 'AND id IN'), $c->{quotes} if auth;
+    ')->allh;
+    fu->enrich(set => 'vote', SQL('SELECT id, vote FROM quotes_votes WHERE uid =', auth->uid, 'AND id'), $c->{quotes}) if auth;
 
     $c->{vns} = [ grep length $_->{title}, $c->{vns}->@* ];
 }
@@ -59,32 +59,32 @@ sub enrich_item($c) {
 # Fetch multiple character entries with a format suitable for chartable_()
 # Also used by Chars::VNTab.
 sub fetch_chars($vid, $where) {
-    my $l = fu->dbAlli('
+    my $l = fu->SQL('
         SELECT id, title, alias, description, sex, spoil_sex, gender, spoil_gender, birthday
              , s_bust, s_waist, s_hip, height, weight, bloodt, cup_size, age, image
-          FROM', charst, 'c WHERE NOT hidden AND (', $where, ')
+          FROM', CHARST, 'c WHERE NOT hidden AND (', $where, ')
          ORDER BY sorttitle
-    ');
+    ')->allh;
 
-    enrich vns => id => id => sub { sql '
+    fu->enrich(aoh => 'vns', sub { SQL '
         SELECT cv.id, cv.vid, cv.rid, cv.spoil, cv.role, v.title, r.title AS rtitle
           FROM chars_vns cv
-          JOIN', vnt, 'v ON v.id = cv.vid
-          LEFT JOIN', releasest, 'r ON r.id = cv.rid
-         WHERE cv.id IN', $_, $vid ? ('AND cv.vid =', \$vid) : (), '
+          JOIN', VNT, 'v ON v.id = cv.vid
+          LEFT JOIN', RELEASEST, 'r ON r.id = cv.rid
+         WHERE cv.id', IN $_, $vid ? ('AND cv.vid =', $vid) : (), '
          ORDER BY v.c_released, r.released, v.sorttitle, cv.vid, cv.rid NULLS LAST'
-    }, $l;
+    }, $l);
 
-    enrich traits => id => id => sub { sql '
+    fu->enrich(aoh => 'traits', sub { SQL '
         SELECT ct.id, ct.tid, ct.spoil, x.spoil AS override, x.color, ct.lie, t.name, t.hidden, t.locked, t.sexual
              , coalesce(g.id, t.id) AS group, coalesce(g.name, t.name) AS groupname, coalesce(g.gorder,0) AS order
           FROM chars_traits ct
           JOIN traits t ON t.id = ct.tid
           LEFT JOIN traits g ON t.gid = g.id
           LEFT JOIN', sql_trait_overrides(), 'x ON x.tid = ct.tid
-         WHERE x.spoil IS DISTINCT FROM 1+1+1 AND ct.id IN', $_, '
+         WHERE x.spoil IS DISTINCT FROM 1+1+1 AND ct.id', IN $_, '
          ORDER BY g.gorder NULLS FIRST, coalesce(g.name, t.name), t.name'
-    }, $l;
+    }, $l);
 
     enrich_seiyuu $vid, $l;
     enrich_image_obj image => $l;
@@ -112,8 +112,8 @@ sub _rev_($c) {
         [ cup_size   => 'Cup size',      fmt => \%CUP_SIZE ],
         [ age        => 'Age',           ],
         [ main       => 'Instance of',   empty => 0, fmt => sub {
-            my $c = fu->dbRowi('SELECT id, title FROM', charst, 'c WHERE id =', \$_);
-            a_ href => "/$c->{id}", title => $c->{title}[1], $c->{id}
+            my $c = fu->SQL('SELECT title FROM', CHARST, ' WHERE id =', $_)->val;
+            small_ "$_: "; a_ href => "/$_", tattr $c;
         } ],
         [ main_spoil => 'Spoiler',       fmt => sub { txt_ fmtspoil $_ } ],
         [ image      => 'Image',         fmt => sub { image_ $_ } ],
@@ -277,17 +277,17 @@ FU::get qr{/$RE{crev}} => sub($id, $rev=0) {
     my $c = db_entry $id, $rev or fu->notfound;
 
     enrich_item $c;
-    enrich_seiyuu undef, $c;
+    enrich_seiyuu undef, [$c];
     my $view = viewget;
 
-    my $inst_maxspoil = fu->dbVali('SELECT MAX(main_spoil) FROM chars WHERE NOT hidden AND main IN', [ $c->{id}, $c->{main}||() ]);
+    my $inst_maxspoil = fu->SQL('SELECT MAX(main_spoil) FROM chars WHERE NOT hidden AND main', IN [ $c->{id}, $c->{main}||() ])->val;
 
     my $inst = !defined($inst_maxspoil) || ($c->{main} && $c->{main_spoil} > $view->{spoilers}) ? []
-        : fetch_chars undef, sql
+        : fetch_chars undef, SQL
             # If this entry doesn't have a 'main', look for other entries with a 'main' referencing this entry
-            !$c->{main} ? ('main =', \$c->{id}, 'AND main_spoil <=', \$view->{spoilers}) :
+            !$c->{main} ? ('main =', $c->{id}, 'AND main_spoil <=', $view->{spoilers}) :
             # Otherwise, look for other entries with the same 'main', and also fetch the 'main' entry itself
-            ('(id <>', \$c->{id}, 'AND main =', \$c->{main}, 'AND main_spoil <=', \$view->{spoilers}, ') OR id =', \$c->{main});
+            ('(id <>', $c->{id}, 'AND main =', $c->{main}, 'AND main_spoil <=', $view->{spoilers}, ') OR id =', $c->{main});
 
     my $max_spoil = max(
         $inst_maxspoil||0,
@@ -299,7 +299,7 @@ FU::get qr{/$RE{crev}} => sub($id, $rev=0) {
     # Only display the sexual traits toggle when there are sexual traits within the current spoiler level.
     my $has_sex = grep !$_->{hidden} && $_->{sexual} && ($_->{override}//$_->{spoil}) <= $view->{spoilers}, map $_->{traits}->@*, $c, @$inst;
 
-    $c->{title} = titleprefs_swap fu->dbVali('SELECT c_lang FROM chars WHERE id =', \$c->{id}), @{$c}{qw/ name latin /};
+    $c->{title} = titleprefs_swap fu->SQL('SELECT c_lang FROM chars WHERE id =', $c->{id})->val, @{$c}{qw/ name latin /};
     framework_ title => $c->{title}[1], index => !$rev, dbobj => $c, hiddenmsg => 1,
         og => {
             description => bb_format($c->{description}, text => 1),

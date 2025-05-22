@@ -279,11 +279,11 @@ sub ownlistopts_($u) {
 }
 
 FU::get qr{/$RE{uid}/ulist}, sub($uid) {
-    my $u = fu->dbRowi('
-        SELECT u.id,', sql_user(), ', ulist_votes, ulist_vnlist, ulist_wish
+    my $u = fu->SQL('
+        SELECT u.id,', USER, ', ulist_votes, ulist_vnlist, ulist_wish
           FROM users u JOIN users_prefs up ON up.id = u.id
-         WHERE u.id =', \$uid);
-    fu->notfound if !$u->{id};
+         WHERE u.id =', $uid
+    )->rowh or fu->notfound;
 
     my $own = auth && auth->uid eq $u->{id};
     my $labels = ulist_filtlabels $u->{id}, 1;
@@ -334,7 +334,7 @@ FU::post '/u/ulist-savedefault', sub {
     );
     fu->denied if !auth;
     my $opts = $SAVED_OPTS->validate(FU::Util::json_parse($data->{opts}));
-    fu->dbExeci('UPDATE users_prefs SET ulist_'.$data->{field}, '=', \FU::Util::json_format($opts), 'WHERE id =', \auth->uid);
+    fu->SQL('UPDATE users_prefs', SET({"ulist_$data->{field}", $opts}), 'WHERE id =', auth->uid)->exec;
     my $tab = $data->{field} eq 'wish' ? 'wishlist' : $data->{field};
     fu->redirect(tempget => '/'.auth->uid."/ulist?$tab=1");
 };
