@@ -177,6 +177,7 @@ js_api ReleaseEdit => $FORM_IN, sub {
         $data->{locked} = $e->{locked}||0;
     }
 
+    $data->{gtin} &&= int $data->{gtin};
     if($data->{patch}) {
         $data->{doujin} = $data->{ani_story} = $data->{ani_ero} = 0;
         $data->{ani_story_sp} = $data->{ani_story_cg} = $data->{ani_cutscene} = $data->{ani_ero_sp} = $data->{ani_ero_cg} = $data->{ani_face} = $data->{ani_bg} = undef;
