@@ -298,23 +298,23 @@ sub FU::obj::enrich {
         my $r = $st->kvh;
         $_->{$field} = $r->{ my $x = $_->{$key} } for (grep defined $_->{$key}, @$lst);
 
-    # XXX: These do not support duplicate keys in $lst
     } elsif ($opt{aoh}) {
         my $field = $opt{aoh};
-        my %objs = map { $_->{$field} = []; +($_->{$key}, $_) } @$lst;
-        my $r = $st->alla;  # an $st->kvaoh() would be useful here
         my @col = map $_->{name}, $st->columns->@*;
         shift @col;
-        for my $row (@$r) {
-            push $objs{$row->[0]}{$field}->@*, { map +($col[$_], $row->[$_+1]), 0..$#col };
+        my %r;
+        for my $row ($st->alla->@*) { # an $st->kvaoh() would be useful here
+            push $r{$row->[0]}->@*, { map +($col[$_], $row->[$_+1]), 0..$#col };
         }
+        $_->{$field} = $r{ my $x = $_->{$key} } || [] for @$lst;
 
     } elsif ($opt{aov}) {
         my $field = $opt{aov};
-        my %objs = map { $_->{$field} = []; +($_->{$key}, $_) } @$lst;
+        my %r;
         for my ($k,$v) ($st->flat->@*) {
-            push $objs{$k}{$field}->@*, $v;
+            push $r{$k}->@*, $v;
         }
+        $_->{$field} = $r{ my $x = $_->{$key} } || [] for @$lst;
 
     } else {
         confess 'Unknown enrich action';
