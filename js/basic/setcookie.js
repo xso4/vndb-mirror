@@ -5,7 +5,7 @@
  * Used by VNWeb::Validation::viewget / viewset().
  */
 $$('a[data-setcookie]').forEach(a => a.onclick = () => {
-    document.cookie = a.getAttribute('data-setcookie')+'; max-age=60';
+    document.cookie = a.getAttribute('data-setcookie')+'; path=/; max-age=60';
     // Make sure we do a reload if the location is the same as current page; browsers tend to not do that if the href has a hash.
     if (a.pathname === location.pathname && a.search === location.search) {
         location.reload();

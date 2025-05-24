@@ -46,13 +46,13 @@ sub graph_ {
 sub listing_ {
     my($lst, $np, $opt, $url) = @_;
 
-    my $view = viewset(show_nsfw => 1);
+    # TODO: Pagination needs viewset()
     paginate_ $url, $opt->{p}, $np, 't';
     article_ class => 'imagebrowse', sub {
         div_ class => 'imagecard', sub {
-            a_ href => "/$_->{id}?view=$view", style => 'background-image: url('.thumburl($_).')', '';
+            a_ viewset("/$_->{id}", show_nsfw => 1), style => 'background-image: url('.thumburl($_).')', '';
             div_ sub {
-                a_ href => "/$_->{id}?view=$view", $_->{id};
+                a_ viewset("/$_->{id}", show_nsfw => 1), $_->{id};
                 txt_ sprintf ' / %d', $_->{c_votecount},;
                 small_ sprintf ' / w%d', $_->{c_weight};
                 br_;
@@ -75,9 +75,9 @@ sub opts_ {
     };
 
     form_ sub {
+        # TODO: This form needs a viewset() as well. Meh.
         input_ type => 'hidden', class => 'hidden', name => 'u', value => $opt->{u} if $opt->{u};
         input_ type => 'hidden', class => 'hidden', name => 'u2', value => $opt->{u2} if $opt->{u2} ne (auth->uid||'');
-        input_ type => 'hidden', class => 'hidden', name => 'view', value => viewset(show_nsfw => viewget('show_nsfw'));
         table_ style => 'margin: auto', sub {
             tr_ sub {
                 td_ 'User:';
@@ -184,7 +184,7 @@ FU::get '/img/list', sub {
     )->allh;
     my $np = @$lst > 100 && !!pop @$lst;
 
-    my sub url { '?'.query_encode({%$opt, @_}) }
+    my sub url { fu->path.'?'.query_encode({%$opt, @_}) }
 
     my $title = $u ? 'Images flagged by '.user_displayname($u) : 'Image browser';
 
@@ -200,7 +200,7 @@ FU::get '/img/list', sub {
                 h2_ 'NSFW Warning';
                 p_ sub {
                     txt_ 'This listing contains images that may contain sexual content or violence. ';
-                    a_ href => url(view => viewset show_nsfw => 1), 'I understand, show me.';
+                    a_ viewset(url(), show_nsfw => 1), 'I understand, show me.';
                     br_;
                     txt_ '(This warning can be disabled in your profile)';
                 };

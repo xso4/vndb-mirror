@@ -374,7 +374,7 @@ sub can_edit {
 sub viewget {
     fu->{view} ||= do {
         my $view = fu->cookie(config->{cookie_prefix}.'view', { onerror => '' });
-        fu->set_cookie(config->{cookie_prefix}.'view', '', 'max-age' => 0) if length $view;
+        fu->set_cookie(config->{cookie_prefix}.'view', '', path => '/', 'max-age' => 0) if length $view;
         my($sp, $ts, $ns, $path) = $view =~ /^([0-2])?([sS]?)([nN]?)-(.+)$/;
         ($sp, $ts, $ns) = () if !$path || FU::Util::uri_unescape($path) ne fu->path;
         {
