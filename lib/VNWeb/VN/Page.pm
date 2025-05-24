@@ -969,9 +969,9 @@ sub tags_($v) {
         my $max_spoil = max map $_->{lie}?2:$_->{spoiler}, values %tags;
         p_ class => 'mainopts', sub {
             if($max_spoil) {
-                a_ class => $view->{spoilers} == 0 ? 'checked' : undef, href => '?view='.viewset(spoilers=>0).'#tags', 'Hide spoilers';
-                a_ class => $view->{spoilers} == 1 ? 'checked' : undef, href => '?view='.viewset(spoilers=>1).'#tags', 'Show minor spoilers';
-                a_ class => $view->{spoilers} == 2 ? 'standout': undef, href => '?view='.viewset(spoilers=>2).'#tags', 'Spoil me!' if $max_spoil == 2;
+                a_ class => $view->{spoilers} == 0 ? 'checked' : undef, viewset(fu->path.'#tags', spoilers=>0), 'Hide spoilers';
+                a_ class => $view->{spoilers} == 1 ? 'checked' : undef, viewset(fu->path.'#tags', spoilers=>1), 'Show minor spoilers';
+                a_ class => $view->{spoilers} == 2 ? 'standout': undef, viewset(fu->path.'#tags', spoilers=>2), 'Spoil me!' if $max_spoil == 2;
             }
         } if $max_spoil;
 

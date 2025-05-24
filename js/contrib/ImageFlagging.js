@@ -207,7 +207,7 @@ widget('ImageFlagging', initvnode => {
                     m('td', m.trust(v.user)),
                     m('td', sex[v.sexual]),
                     m('td', vio[v.violence]),
-                    m('td', v.uid ? m('a[target=_blank]', { href: '/img/list?view='+data.nsfw_token+'&u='+v.uid }, 'votes') : null),
+                    m('td', v.uid ? m('a[target=_blank]', { href: '/img/list?u='+v.uid }, 'votes') : null),
                 ))),
             ],
         ),

@@ -357,11 +357,11 @@ sub can_edit {
 }
 
 
-# Some user preferences can be overruled with a ?view= query parameter,
+# Some user preferences can be overruled with a 'view' cookie.
 # viewget() can be used to fetch these parameters, viewset() to generate a
-# query parameter with certain preferences overruled.
+# 'data-viewset' attribute with certain preferences overruled.
 #
-# The query parameter has the following format:
+# The cookie has the following format:
 #   view=1   -> spoilers=1, traits_sexual=<default>
 #   view=2s  -> spoilers=2, traits_sexual=1
 #   view=2S  -> spoilers=2, traits_sexual=0
@@ -371,25 +371,12 @@ sub can_edit {
 #   s/S -> 1/0 traits_sexual
 #   n/N -> 1/0 show_nsfw
 # Missing flags will use default.
-#
-# The parameter also contains a CSRF token to prevent direct links to pages
-# with sensitive content. The token is domain-separated from the form CSRF
-# tokens, but is otherwise generic for all pages and options, so if someone's
-# token leaks, it's possible to generate links to any sensitive page for that
-# particular user for several hours.
 sub viewget {
     fu->{view} ||= do {
-        my($view, $token) = fu->query('view', { onerror => '' }) =~ /^([^-]*)-(.+)$/;
-
-        # Abort this request and redirect if the token is invalid.
-        if(length($view) && (!length($token) || !auth->csrfcheck($token, 'view'))) {
-            my $qs = fu->query({type => 'hash'});
-            delete $qs->{view};
-            $qs = query_encode $qs;
-            fu->redirect(temp => fu->path.($qs?"?$qs":''));
-        }
-
-        my($sp, $ts, $ns) = ($view||'') =~ /^([0-2])?([sS]?)([nN]?)$/;
+        my $view = fu->cookie(config->{cookie_prefix}.'view', { onerror => '' });
+        fu->set_cookie(config->{cookie_prefix}.'view', '', 'max-age' => 0) if length $view;
+        my($sp, $ts, $ns, $path) = $view =~ /^([0-2])?([sS]?)([nN]?)-(.+)$/;
+        ($sp, $ts, $ns) = () if !$path || FU::Util::uri_unescape($path) ne fu->path;
         {
             spoilers      => $sp // auth->pref('spoilers') || 0,
             traits_sexual => !$ts ? auth->pref('traits_sexual') : $ts eq 's',
@@ -399,14 +386,15 @@ sub viewget {
 }
 
 
-# Creates a new 'view=' string with the given parameters. All other fields remain at their default.
-sub viewset {
-    my %s = @_;
-    join '',
+# Returns a list of <a> HTML attributes in order to link to the given $path with
+# some view settings overridden.
+sub viewset($path, %s) {
+    fu->{js}{basic} = 1;
+    (href => $path, 'data-setcookie' => config->{cookie_prefix}.'view='.join '',
         $s{spoilers}//'',
         !defined $s{traits_sexual} ? '' : $s{traits_sexual} ? 's' : 'S',
         !defined $s{show_nsfw}     ? '' : $s{show_nsfw}     ? 'n' : 'N',
-        '-'.auth->csrftoken(0, 'view');
+        '-'.FU::Util::uri_escape($path =~ s/[\?#].*//r));
 }
 
 

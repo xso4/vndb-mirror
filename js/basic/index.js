@@ -40,6 +40,7 @@ window.onerror = function(ev, source, lineno, colno, error) {
 @include mainbox-summarize.js
 @include searchtabs.js
 @include sethash.js
+@include setcookie.js
 @include ulist-actiontabs.js
 @include ulist-labelfilters.js
 @include histoptions.js

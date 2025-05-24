@@ -159,9 +159,9 @@ sub _cast_($s) {
     nav_ sub {
         h1_ sprintf 'Voiced characters (%d)', scalar @$cast;
         menu_ sub {
-            li_ class => $spoilers == 0 ? 'tabselected' : undef, sub { a_ href => '?view='.viewset(spoilers => 0), 'hide spoilers' };
-            li_ class => $spoilers == 1 ? 'tabselected' : undef, sub { a_ href => '?view='.viewset(spoilers => 1), 'minor spoilers' };
-            li_ class => $spoilers == 2 ? 'tabselected' : undef, sub { a_ href => '?view='.viewset(spoilers => 2), 'spoil me!' } if $max_spoil == 2;
+            li_ class => $spoilers == 0 ? 'tabselected' : undef, sub { a_ viewset(fu->path, spoilers => 0), 'hide spoilers' };
+            li_ class => $spoilers == 1 ? 'tabselected' : undef, sub { a_ viewset(fu->path, spoilers => 1), 'minor spoilers' };
+            li_ class => $spoilers == 2 ? 'tabselected' : undef, sub { a_ viewset(fu->path, spoilers => 2), 'spoil me!' } if $max_spoil == 2;
         } if $max_spoil;
     };
     article_ class => "browse staffroles", sub {

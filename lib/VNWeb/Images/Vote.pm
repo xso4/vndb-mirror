@@ -78,14 +78,12 @@ my $SEND = form_compile {
     warn       => { anybool => 1 },
     mod        => { anybool => 1 },
     my_votes   => { uint => 1 },
-    nsfw_token => {},
 };
 
 
 sub imgflag_ {
     article_ widget(ImageFlagging => $SEND, {
         my_votes   => auth ? fu->sql('SELECT c_imgvotes FROM users WHERE id = $1', auth->uid)->val : 0,
-        nsfw_token => viewset(show_nsfw => 1),
         mod        => auth->permDbmod()||0,
         @_
     }), '';

@@ -60,9 +60,9 @@ FU::get qr{/$RE{vid}/quotes}, sub($id) {
         article_ sub {
             p_ class => 'mainopts', sub {
                 if ($max_spoil) {
-                    a_ class => $view->{spoilers} == 0 ? 'checked' : undef, href => '?view='.viewset(spoilers=>0).'#quotes', 'Hide spoilers';
-                    a_ class => $view->{spoilers} == 1 ? 'checked' : undef, href => '?view='.viewset(spoilers=>1).'#quotes', 'Show minor spoilers';
-                    a_ class => $view->{spoilers} == 2 ? 'standout': undef, href => '?view='.viewset(spoilers=>2).'#quotes', 'Spoil me!' if $max_spoil == 2;
+                    a_ class => $view->{spoilers} == 0 ? 'checked' : undef, viewset(fu->path.'#quotes', spoilers=>0), 'Hide spoilers';
+                    a_ class => $view->{spoilers} == 1 ? 'checked' : undef, viewset(fu->path.'#quotes', spoilers=>1), 'Show minor spoilers';
+                    a_ class => $view->{spoilers} == 2 ? 'standout': undef, viewset(fu->path.'#quotes', spoilers=>2), 'Spoil me!' if $max_spoil == 2;
                     small_ ' | ';
                 }
                 if (auth->permDbmod) {

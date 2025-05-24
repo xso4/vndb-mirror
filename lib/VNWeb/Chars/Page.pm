@@ -313,12 +313,12 @@ FU::get qr{/$RE{crev}} => sub($id, $rev=0) {
             h2_ class => 'alttitle', tlang(@{$c->{title}}[2,3]), $c->{title}[3] if $c->{title}[3] && $c->{title}[3] ne $c->{title}[1];
             p_ class => 'chardetailopts', sub {
                 if($max_spoil) {
-                    a_ class => $view->{spoilers} == 0 ? 'checked' : undef, href => '?view='.viewset(spoilers=>0, traits_sexual => $view->{traits_sexual}), 'Hide spoilers';
-                    a_ class => $view->{spoilers} == 1 ? 'checked' : undef, href => '?view='.viewset(spoilers=>1, traits_sexual => $view->{traits_sexual}), 'Show minor spoilers';
-                    a_ class => $view->{spoilers} == 2 ? 'standout': undef, href => '?view='.viewset(spoilers=>2, traits_sexual => $view->{traits_sexual}), 'Spoil me!' if $max_spoil == 2;
+                    a_ class => $view->{spoilers} == 0 ? 'checked' : undef, viewset(fu->path, spoilers=>0, traits_sexual => $view->{traits_sexual}), 'Hide spoilers';
+                    a_ class => $view->{spoilers} == 1 ? 'checked' : undef, viewset(fu->path, spoilers=>1, traits_sexual => $view->{traits_sexual}), 'Show minor spoilers';
+                    a_ class => $view->{spoilers} == 2 ? 'standout': undef, viewset(fu->path, spoilers=>2, traits_sexual => $view->{traits_sexual}), 'Spoil me!' if $max_spoil == 2;
                 }
                 small_ ' | ' if $has_sex && $max_spoil;
-                a_ class => $view->{traits_sexual} ? 'checked' : undef, href => '?view='.viewset(spoilers => $view->{spoilers}, traits_sexual=>!$view->{traits_sexual}), 'Show sexual traits' if $has_sex;
+                a_ class => $view->{traits_sexual} ? 'checked' : undef, viewset(fu->path, spoilers => $view->{spoilers}, traits_sexual=>!$view->{traits_sexual}), 'Show sexual traits' if $has_sex;
             };
             chartable_ $c;
         };

@@ -22,12 +22,12 @@ sub chars_($v) {
         p_ class => 'mainopts', sub {
             debug_ $chars;
             if($max_spoil) {
-                a_ class => $view->{spoilers} == 0 ? 'checked' : undef, href => '?view='.viewset(spoilers=>0,traits_sexual=>$view->{traits_sexual}).'#chars', 'Hide spoilers';
-                a_ class => $view->{spoilers} == 1 ? 'checked' : undef, href => '?view='.viewset(spoilers=>1,traits_sexual=>$view->{traits_sexual}).'#chars', 'Show minor spoilers';
-                a_ class => $view->{spoilers} == 2 ? 'standout': undef, href => '?view='.viewset(spoilers=>2,traits_sexual=>$view->{traits_sexual}).'#chars', 'Spoil me!' if $max_spoil == 2;
+                a_ class => $view->{spoilers} == 0 ? 'checked' : undef, viewset(fu->path.'#chars', spoilers=>0,traits_sexual=>$view->{traits_sexual}), 'Hide spoilers';
+                a_ class => $view->{spoilers} == 1 ? 'checked' : undef, viewset(fu->path.'#chars', spoilers=>1,traits_sexual=>$view->{traits_sexual}), 'Show minor spoilers';
+                a_ class => $view->{spoilers} == 2 ? 'standout': undef, viewset(fu->path.'#chars', spoilers=>2,traits_sexual=>$view->{traits_sexual}), 'Spoil me!' if $max_spoil == 2;
             }
             small_ ' | ' if $has_sex && $max_spoil;
-            a_ class => $view->{traits_sexual} ? 'checked' : undef, href => '?view='.viewset(spoilers=>$view->{spoilers},traits_sexual=>!$view->{traits_sexual}).'#chars', 'Show sexual traits' if $has_sex;
+            a_ class => $view->{traits_sexual} ? 'checked' : undef, viewset(fu->path.'#chars', spoilers=>$view->{spoilers},traits_sexual=>!$view->{traits_sexual}), 'Show sexual traits' if $has_sex;
         };
     }
 

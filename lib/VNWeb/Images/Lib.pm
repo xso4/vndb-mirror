@@ -186,7 +186,7 @@ sub image_($img, %opt) {
         _img() if !$opt{url};
 
         if(!config->{moe} && !exists $opt{overlay}) {
-            a_ class => 'imghover--overlay', href => "/$img->{id}?view=".viewset(show_nsfw=>1), image_flagging_display $img, $small if auth;
+            a_ class => 'imghover--overlay', viewset("/$img->{id}", show_nsfw=>1), image_flagging_display $img, $small if auth;
             span_ class => 'imghover--overlay', image_flagging_display $img, $small if !auth;
         }
         $opt{extra} && $opt{extra}->();
