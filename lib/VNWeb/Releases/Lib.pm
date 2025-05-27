@@ -31,8 +31,11 @@ sub releases_by_vn($id, %opt) {
              WHERE vid', IN(ref $id ? $id : [$id]),
                    $opt{charlink} ? "AND rtype <> 'trial'" : (), '
              GROUP BY id
-           ) x(id,rtype) ON x.id = r.id
-         WHERE NOT r.hidden', $opt{charlink} ? "AND r.official" : (), '
+           ) x(id,rtype) ON x.id = r.id',
+         WHERE(
+             'NOT r.hidden',
+             $opt{charlink} ? 'r.official' : (),
+             $opt{released} ? "r.released <= TO_CHAR('today'::timestamp, 'YYYYMMDD')::integer" : ()), '
          ORDER BY r.released, r.sorttitle, r.id
     ')->allh;
     fu->enrich(aov => 'lang', sub { SQL 'SELECT id, lang FROM releases_titles WHERE id', IN($_), 'ORDER BY id, lang' }, $l);

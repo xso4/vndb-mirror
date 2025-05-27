@@ -235,13 +235,13 @@ FU::get qr{/$RE{vid}/releases} => sub($id) {
     $opt->{o} = 'a' if $opt->{o} eq 0;
     $opt->{o} = 'd' if $opt->{o} eq 1;
 
-    my $r = fu->dbAlli('
+    my $r = fu->SQL('
         SELECT r.id, rv.rtype, r.patch, r.released, r.gtin
-          FROM', releasest, 'r
+          FROM', RELEASEST, 'r
           JOIN releases_vn rv ON rv.id = r.id
-         WHERE NOT hidden AND rv.vid =', \$v->{id}, '
-         ORDER BY', sprintf(+(grep $opt->{s} eq ($_->{sort_field}//''), @rel_cols)[0]{sort_sql}, $opt->{o} eq 'a' ? 'ASC' : 'DESC')
-    );
+         WHERE NOT hidden AND rv.vid =', $v->{id}, '
+         ORDER BY', RAW sprintf(+(grep $opt->{s} eq ($_->{sort_field}//''), @rel_cols)[0]{sort_sql}, $opt->{o} eq 'a' ? 'ASC' : 'DESC')
+    )->allh;
     enrich_release $r;
 
     my sub url { '?'.query_encode({%$opt, @_}) }

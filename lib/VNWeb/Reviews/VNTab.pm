@@ -17,18 +17,17 @@ sub reviews_($v, $mini) {
         };
     };
 
-    my $lst = fu->dbAlli(
-        'SELECT r.id, r.rid, r.modnote, r.text, r.length, r.spoiler, r.c_count, r.c_up, r.c_down, uv.vote
-              , rv.vote AS my, COALESCE(rv.overrule,false) AS overrule
-            , ', sql_totime('r.date'), 'AS date, ', sql_user(), '
+    my $lst = fu->SQL(
+        'SELECT r.id, r.rid, r.modnote, r.text, r.length, r.spoiler, r.date, r.c_count, r.c_up, r.c_down, uv.vote
+              , rv.vote AS my, COALESCE(rv.overrule,false) AS overrule, ', USER, '
            FROM reviews r
            LEFT JOIN users u ON r.uid = u.id
            LEFT JOIN ulist_vns uv ON uv.uid = r.uid AND uv.vid = r.vid
-           LEFT JOIN reviews_votes rv ON rv.id = r.id AND', auth ? ('rv.uid =', \auth->uid) : ('rv.ip =', \norm_ip fu->ip), '
-          WhERE NOT r.c_flagged AND r.vid =', \$v->{id},
-                defined $length ? ('AND r.length =', \$length) : (), '
+           LEFT JOIN reviews_votes rv ON rv.id = r.id AND', auth ? ('rv.uid =', auth->uid) : ('rv.ip =', norm_ip fu->ip), '
+          WhERE NOT r.c_flagged AND r.vid =', $v->{id},
+                defined $length ? ('AND r.length =', $length) : (), '
           ORDER BY r.c_up-r.c_down DESC'
-    );
+    )->allh;
     return if !@$lst;
 
     div_ class => 'reviews', sub {
@@ -83,8 +82,7 @@ sub reviews_($v, $mini) {
 
 FU::get qr{/$RE{vid}/(mini|full)?reviews}, sub($id, $mini='') {
     $mini = !$mini ? undef : $mini eq 'mini';
-    my $v = db_entry $id;
-    fu->notfound if !$v;
+    my $v = db_entry $id or fu->notfound;
     VNWeb::VN::Page::enrich_vn($v);
 
     framework_ title => "Reviews for $v->{title}[1]", index => 1, dbobj => $v, hiddenmsg => 1,

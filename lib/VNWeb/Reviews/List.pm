@@ -50,26 +50,27 @@ FU::get '/w', sub {
     );
     $opt->{s} = 'id' if $opt->{s} eq 'rating' && !auth->isMod;
 
-    my $u = $opt->{u} && fu->dbRowi('SELECT id, ', sql_user(), 'FROM users u WHERE id =', \$opt->{u});
-    fu->notfound if $u && (!$u->{id} || (!$u->{user_name} && !auth->isMod));
+    my $u = $opt->{u} && fu->SQL('SELECT id, ', USER, 'FROM users u WHERE id =', $opt->{u})->rowh;
+    fu->notfound if $opt->{u} && (!$u || (!$u->{user_name} && !auth->isMod));
 
-    my $where = sql_and
-        $u ? sql 'w.uid =', \$u->{id} : (),
+    my $where = AND
+        $u ? SQL 'w.uid =', $u->{id} : (),
         auth->isMod ? () : 'NOT w.c_flagged';
-    my $count = fu->dbVali('SELECT COUNT(*) FROM reviews w WHERE', $where);
-    my $lst = fu->dbPagei({results => 50, page => $opt->{p}}, '
-        SELECT w.id, w.vid, w.length, w.c_up, w.c_down, w.c_flagged, w.c_count, w.c_lastnum, v.title, uv.vote
-             , ', sql_user(), ',', sql_totime('w.date'), 'as date
-             , ', sql_user('wpu','lu_'), ',', sql_totime('wp.date'), 'as ldate
+    my $count = fu->SQL('SELECT COUNT(*) FROM reviews w WHERE', $where)->val;
+    my $lst = fu->SQL('
+        SELECT w.id, w.vid, w.length, w.c_up, w.c_down, w.c_flagged, w.c_count, w.c_lastnum
+             , v.title, uv.vote, ', USER, ', w.date
+             , ', USER('wpu','lu_'), ', wp.date as ldate
           FROM reviews w
-          JOIN', vnt, 'v ON v.id = w.vid
+          JOIN', VNT, 'v ON v.id = w.vid
           LEFT JOIN users u ON u.id = w.uid
           LEFT JOIN reviews_posts wp ON w.id = wp.id AND w.c_lastnum = wp.num
           LEFT JOIN users wpu ON wpu.id = wp.uid
           LEFT JOIN ulist_vns uv ON uv.uid = w.uid AND uv.vid = w.vid
          WHERE', $where, '
-         ORDER BY', {id => 'w.id', lastpost => 'wp.date', rating => 'w.c_up-w.c_down'}->{$opt->{s}}, {a=>'ASC',d=>'DESC'}->{$opt->{o}}, 'NULLS LAST'
-    );
+         ORDER BY', RAW({id => 'w.id', lastpost => 'wp.date', rating => 'w.c_up-w.c_down'}->{$opt->{s}}), $opt->{o} eq 'a' ? 'ASC' : 'DESC', 'NULLS LAST
+         LIMIT 50 OFFSET', 50*($opt->{p}-1)
+    )->allh;
 
     my $title = $u ? 'Reviews by '.user_displayname($u) : 'Browse reviews';
     framework_ title => $title, $u ? (dbobj => $u, tab => 'reviews') : (), sub {

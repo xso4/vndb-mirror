@@ -10,15 +10,13 @@ my $COMMENT = form_compile any => {
     msg => { maxlength => 32768 }
 };
 
-js_api ReviewComment => $COMMENT, sub {
-    my($data) = @_;
-    my $w = fu->dbRowi('SELECT id, locked FROM reviews WHERE id =', \$data->{id});
-    fu->notfound if !$w->{id};
+js_api ReviewComment => $COMMENT, sub($data) {
+    my $w = fu->sql('SELECT id, locked FROM reviews WHERE id = $1', $data->{id})->rowh or fu->notfound;
     fu->denied if !can_edit t => $w;
 
-    my $num = sql 'COALESCE((SELECT MAX(num)+1 FROM reviews_posts WHERE id =', \$data->{id}, '),1)';
+    my $num = SQL 'COALESCE((SELECT MAX(num)+1 FROM reviews_posts WHERE id =', $data->{id}, '),1)';
     my $msg = bb_subst_links $data->{msg};
-    $num = fu->dbVali('INSERT INTO reviews_posts', { id => $w->{id}, num => $num, uid => auth->uid, msg => $msg }, 'RETURNING num');
+    $num = fu->SQL('INSERT INTO reviews_posts', VALUES({ id => $w->{id}, num => $num, uid => auth->uid, msg => $msg }), 'RETURNING num')->val;
     +{ _redir => "/$w->{id}.$num#last" };
 };
 
@@ -98,39 +96,35 @@ sub review_ {
 FU::get qr{/$RE{wid}(?:([\./])($RE{num}))?}, sub($id, $sep='', $num=0) {
     VNWeb::Discussions::Thread::mark_patrolled($id, $num) if $sep eq '.';
 
-    my $w = fu->dbRowi(
+    my $w = fu->SQL(
         'SELECT r.id, r.vid, r.rid, r.length, r.modnote, r.text, r.spoiler, r.locked, COALESCE(c.count,0) AS count, r.c_flagged, r.c_up, r.c_down, uv.vote
-              , v.title, rel.title AS rtitle, relv.rtype, rv.vote AS my, COALESCE(rv.overrule,false) AS overrule
-              , ', sql_user(), ',', sql_totime('r.date'), 'AS date,', sql_totime('r.lastmod'), 'AS lastmod
+              , v.title, rel.title AS rtitle, relv.rtype, rv.vote AS my, COALESCE(rv.overrule,false) AS overrule, ', USER, ', r.date, r.lastmod
            FROM reviews r
-           JOIN', vnt, 'v ON v.id = r.vid
-           LEFT JOIN', releasest, 'rel ON rel.id = r.rid
+           JOIN', VNT, 'v ON v.id = r.vid
+           LEFT JOIN', RELEASEST, 'rel ON rel.id = r.rid
            LEFT JOIN releases_vn relv ON relv.id = r.rid AND relv.vid = r.vid
            LEFT JOIN users u ON u.id = r.uid
            LEFT JOIN ulist_vns uv ON uv.uid = r.uid AND uv.vid = r.vid
            LEFT JOIN (SELECT id, COUNT(*) FROM reviews_posts GROUP BY id) AS c(id,count) ON c.id = r.id
-           LEFT JOIN reviews_votes rv ON rv.id = r.id AND', auth ? ('rv.uid =', \auth->uid) : ('rv.ip =', \norm_ip fu->ip), '
-          WHERE r.id =', \$id
-    );
-    fu->notfound if !$w->{id};
+           LEFT JOIN reviews_votes rv ON rv.id = r.id AND', auth ? ('rv.uid =', auth->uid) : ('rv.ip =', norm_ip fu->ip), '
+          WHERE r.id =', $id
+    )->rowh or fu->notfound;
 
-    enrich_flatten lang => rid => id => sub { sql 'SELECT id, lang FROM releases_titles WHERE id IN', $_, 'ORDER BY id, lang' }, $w;
-    enrich_flatten platforms => rid => id => sub { sql 'SELECT id, platform FROM releases_platforms WHERE id IN', $_, 'ORDER BY id, platform' }, $w;
+    $w->{lang} = fu->sql('SELECT lang FROM releases_titles WHERE id = $1 ORDER BY lang', $w->{rid})->flat;
+    $w->{platforms} = fu->sql('SELECT platform FROM releases_platforms WHERE id = $1 ORDER BY platform', $w->{rid})->flat;
 
     my $page = $sep eq '/' ? $num||1 : $sep ne '.' ? 1
-        : ceil((fu->dbVali('SELECT COUNT(*) FROM reviews_posts WHERE num <=', \$num, 'AND id =', \$id)||9999)/25);
+        : ceil((fu->SQL('SELECT COUNT(*) FROM reviews_posts WHERE num <=', $num, 'AND id =', $id)->val||9999)/25);
     $num = 0 if $sep ne '.';
 
-    my $posts = fu->dbPagei({ results => 25, page => $page },
-        'SELECT rp.id, rp.num, rp.hidden, rp.msg',
-             ',', sql_user(),
-             ',', sql_totime('rp.date'), ' as date',
-             ',', sql_totime('rp.edited'), ' as edited
+    my $posts = fu->SQL(
+        'SELECT rp.id, rp.num, rp.hidden, rp.msg, rp.date, rp.edited, ', USER, '
            FROM reviews_posts rp
            LEFT JOIN users u ON rp.uid = u.id
-          WHERE rp.id =', \$id, '
-          ORDER BY rp.num'
-    );
+          WHERE rp.id =', $id, '
+          ORDER BY rp.num
+          LIMIT 25 OFFSET', 25*($page-1)
+    )->allh;
     fu->notfound if $num && !grep $_->{num} == $num, @$posts;
 
     auth->notiRead($id, undef);
