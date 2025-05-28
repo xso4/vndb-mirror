@@ -75,7 +75,11 @@ widget('ReviewEdit', initVnode => {
                             maxlength: 100000,
                             rows: 30,
                         },
-                        header: m('a[href=/d9#4][target=_blank]', 'BBCode formatting supported'),
+                        header: [
+                            m('a[href=/d9#4][target=_blank]', 'BBCode formatting supported'),
+                            ' - ',
+                            m('b', 'Review must be in English!'),
+                        ],
                         footer: m('div[style=text-align:right]', (l => [
                             l, ' / ',
                             l < 200 ? m('b.invalid', 'too short') : l <= 800 ? 'short' : l <= 2500 ? 'medium' : l <= 100000 ? 'long' : m('b.invalid', 'too long')
