@@ -65,26 +65,27 @@ FU::get '/g/links', sub {
     my $filt = defined $opt->{u} || defined $opt->{t} || defined $opt->{v};
     $opt->{p} = fu->query(p => $filt ? { upage => 1 } : { page => 1 });
 
-    my $u = $opt->{u} && fu->dbRowi('SELECT id,', sql_user(), 'FROM users u WHERE id =', \$opt->{u});
+    my $u = $opt->{u} && fu->SQL('SELECT id,', USER, 'FROM users u WHERE id =', $opt->{u})->rowh;
     fu->notfound if $opt->{u} && (!$u->{id} || (!defined $u->{user_name} && !auth->isMod));
 
-    my $where = sql_and
-        defined $opt->{v} ? sql('tv.vid =', \$opt->{v}) : (),
-        defined $opt->{u} ? sql('tv.uid =', \$opt->{u}) : (),
-        defined $opt->{t} ? sql('tv.tag =', \$opt->{t}) : ();
+    my $where = AND
+        defined $opt->{v} ? SQL 'tv.vid =', $opt->{v} : (),
+        defined $opt->{u} ? SQL 'tv.uid =', $opt->{u} : (),
+        defined $opt->{t} ? SQL 'tv.tag =', $opt->{t} : ();
 
-    my $count = $filt && fu->dbVali('SELECT COUNT(*) FROM tags_vn tv WHERE', $where);
-    my($lst, $np) = fu->dbPagei({ page => $opt->{p}, results => 50 }, '
-        SELECT tv.vid, tv.uid, tv.tag, tv.vote, tv.spoiler, tv.lie,', sql_totime('tv.date'), 'as date
-             , tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) AS ignore, tv.notes, v.title, ', sql_user(), ', t.name
+    my $count = $filt && fu->SQL('SELECT COUNT(*) FROM tags_vn tv WHERE', $where)->val;
+    my $lst = fu->SQL('
+        SELECT tv.vid, tv.uid, tv.tag, tv.vote, tv.spoiler, tv.lie, tv.date
+             , tv.ignore OR (u.id IS NOT NULL AND NOT u.perm_tag) AS ignore, tv.notes, v.title, ', USER, ', t.name
           FROM tags_vn tv
-          JOIN', vnt, 'v ON v.id = tv.vid
+          JOIN', VNT, 'v ON v.id = tv.vid
           LEFT JOIN users u ON u.id = tv.uid
           JOIN tags t ON t.id = tv.tag
          WHERE', $where, '
-         ORDER BY', sprintf { date => 'tv.date %s, tv.vid, tv.tag', tag => 't.name %s, tv.vid, tv.uid' }->{$opt->{s}}, { a => 'ASC', d => 'DESC' }->{$opt->{o}}
-    );
-    $np = [ $count, 50 ] if $count;
+         ORDER BY', RAW(sprintf { date => 'tv.date %s, tv.vid, tv.tag', tag => 't.name %s, tv.vid, tv.uid' }->{$opt->{s}}, { a => 'ASC', d => 'DESC' }->{$opt->{o}}), '
+         LIMIT', $filt ? 50 : 51, 'OFFSET', 50*($opt->{p}-1)
+    )->allh;
+    my $np = $filt ? [ $count, 50 ] : @$lst > 50 && !!pop @$lst;
 
     my sub url { '?'.query_encode({%$opt, @_}) }
 
@@ -101,14 +102,14 @@ FU::get '/g/links', sub {
                     } if defined $opt->{u};
                     li_ sub {
                         txt_ '['; a_ href => url(t=>undef, p=>undef), 'remove'; txt_ '] ';
-                        txt_ 'Tag:'; txt_ ' ';
-                        a_ href => "/$opt->{t}", fu->dbVali('SELECT name FROM tags WHERE id=', \$opt->{t})||'Unknown tag';
+                        txt_ 'Tag: ';
+                        a_ href => "/$opt->{t}", fu->sql('SELECT name FROM tags WHERE id= $1', $opt->{t})->val||'Unknown tag';
                     } if defined $opt->{t};
                     li_ sub {
                         txt_ '['; a_ href => url(v=>undef, p=>undef), 'remove'; txt_ '] ';
-                        txt_ 'Visual novel'; txt_ ' ';
-                        my $v = fu->dbRowi('SELECT title FROM', vnt, 'v WHERE id=', \$opt->{v});
-                        a_ href => "/$opt->{v}", $v->{title} ? tattr $v : ('Unknown VN');
+                        txt_ 'Visual novel: ';
+                        my $v = fu->SQL('SELECT title FROM', VNT, 'v WHERE id=', $opt->{v})->val;
+                        a_ href => "/$opt->{v}", $v ? tattr $v : ('Unknown VN');
                     } if defined $opt->{v};
                 }
             }

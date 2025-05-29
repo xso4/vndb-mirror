@@ -32,17 +32,17 @@ FU::get qr{/$RE{srev}/edit} => sub($id, $rev=0) {
 
     $e->{editsum} = $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
 
-    my $alias_inuse = 'EXISTS(SELECT 1 FROM vn_staff WHERE aid = sa.aid UNION ALL SELECT 1 FROM vn_seiyuu WHERE aid = sa.aid)';
-    enrich_merge aid => sub { "SELECT aid, $alias_inuse AS inuse, false AS wantdel FROM unnest(", sql_array(@$_), '::int[]) AS sa(aid)' }, $e->{alias};
+    my $alias_inuse = RAW 'EXISTS(SELECT 1 FROM vn_staff WHERE aid = sa.aid UNION ALL SELECT 1 FROM vn_seiyuu WHERE aid = sa.aid)';
+    fu->enrich(merge => 1, key => 'aid', sub { SQL 'SELECT aid, ', $alias_inuse, 'AS inuse, false AS wantdel FROM unnest(', $_, '::int[]) AS sa(aid)' }, $e->{alias});
 
-    $e->{prod_title} = fu->dbVali('SELECT title FROM', producerst, 'WHERE id =', \$e->{prod}) if $e->{prod};
+    $e->{prod_title} = fu->SQL('SELECT title FROM', PRODUCERST, 'WHERE id =', $e->{prod})->val if $e->{prod};
 
     # If we're reverting to an older revision, we have to make sure all the
     # still referenced aliases are included.
-    push $e->{alias}->@*, fu->dbAlli(
-        "SELECT aid, name, latin, true AS inuse, true AS wantdel
-           FROM staff_alias sa WHERE $alias_inuse AND sa.id =", \$e->{id}, 'AND sa.aid NOT IN', [ map $_->{aid}, $e->{alias}->@* ]
-    )->@* if $e->{chrev} != $e->{maxrev};
+    push $e->{alias}->@*, fu->SQL(
+        'SELECT aid, name, latin, true AS inuse, true AS wantdel
+           FROM staff_alias sa WHERE', $alias_inuse, 'AND sa.id =', $e->{id}, 'AND sa.aid NOT', IN [ map $_->{aid}, $e->{alias}->@* ]
+    )->allh->@* if $e->{chrev} != $e->{maxrev};
 
     $e->{alias} = [ sort { ($a->{latin}//$a->{name}) cmp ($b->{latin}//$b->{name}) } $e->{alias}->@* ];
 
@@ -84,7 +84,7 @@ js_api StaffEdit => $FORM_IN, sub {
 
     if ($data->{prod}) {
         return "Producer ($data->{prod}) is already linked to another staff entry."
-            if fu->dbVali('SELECT 1 FROM staff WHERE NOT hidden AND prod =', \$data->{prod}, $new ? () : ('AND id <>', \$e->{id}));
+            if fu->SQL('SELECT 1 FROM staff WHERE NOT hidden AND prod =', $data->{prod}, $new ? () : ('AND id <>', $e->{id}), 'LIMIT 1')->val;
         validate_dbid sql('SELECT id FROM producers WHERE NOT hidden AND id IN'), $data->{prod};
     }
 
@@ -100,7 +100,7 @@ js_api StaffEdit => $FORM_IN, sub {
 
     # For negative alias IDs: Assign a new ID.
     for my $alias (grep $_->{aid} < 0, $data->{alias}->@*) {
-        my $new = fu->dbVali(select => sql_func nextval => \'staff_alias_aid_seq');
+        my $new = fu->sql("SELECT nextval('staff_alias_aid_seq')")->val;
         $data->{main} = $new if $alias->{aid} == $data->{main};
         $alias->{aid} = $new;
     }

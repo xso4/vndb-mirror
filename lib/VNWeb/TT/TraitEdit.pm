@@ -40,7 +40,7 @@ FU::get qr{/$RE{irev}/edit}, sub($id, $rev=0) {
 
 
 FU::get qr{/(?:$RE{iid}/add|i/new)}, sub($id=undef) {
-    my $i = $id && fu->dbRowi('SELECT i.id AS parent, i.name, g.name AS "group", i.sexual FROM traits i LEFT JOIN traits g ON g.id = i.gid WHERE i.id =', \$id);
+    my $i = $id && fu->SQL('SELECT i.id AS parent, i.name, g.name AS "group", i.sexual FROM traits i LEFT JOIN traits g ON g.id = i.gid WHERE i.id =', $id)->rowh;
     fu->denied if !can_edit i => {};
     fu->notfound if $id && !$i->{parent};
 
@@ -91,32 +91,32 @@ js_api TraitEdit => $FORM_IN, sub($data) {
     }, @parents;
     die "No or multiple primary parents" if $data->{parents}->@* && 1 != grep $_->{main}, $data->{parents}->@*;
 
-    my $group = fu->dbVali('SELECT coalesce(gid,id) FROM traits WHERE id =', \[grep $_->{main}, $data->{parents}->@*]->[0]{parent});
+    my $group = fu->SQL('SELECT coalesce(gid,id) FROM traits WHERE id =', [grep $_->{main}, $data->{parents}->@*]->[0]{parent})->val;
 
     $data->{description} = bb_subst_links($data->{description});
 
     # (Ideally this checks all groups that this trait applies in, but that's more annoying to implement)
     my $re = '[\t\s]*\n[\t\s]*';
-    my $dups = fu->dbAlli('
+    my $dups = fu->SQL('
         SELECT n.id, n.name
-          FROM (SELECT id, name FROM traits UNION ALL SELECT id, s FROM traits, regexp_split_to_table(alias, ', \$re, ') a(s) WHERE s <> \'\') n(id,name)
+          FROM (SELECT id, name FROM traits UNION ALL SELECT id, s FROM traits, regexp_split_to_table(alias, ', $re, ') a(s) WHERE s <> \'\') n(id,name)
           JOIN traits t ON n.id = t.id
-         WHERE ', sql_and(
-             $new ? () : sql('n.id <>', \$e->{id}),
-             sql('t.gid IS NOT DISTINCT FROM', \$group),
-             sql 'lower(n.name) IN', [ map lc($_), $data->{name}, grep length($_), split /$re/, $data->{alias} ]
+         WHERE ', AND(
+             $new ? () : SQL('n.id <>', $e->{id}),
+             SQL('t.gid IS NOT DISTINCT FROM', $group),
+             SQL 'lower(n.name)', IN [ map lc($_), $data->{name}, grep length($_), split /$re/, $data->{alias} ]
          )
-    );
+    )->allh;
     return +{ dups => $dups } if @$dups;
 
     my $ch = db_edit i => $e->{id}, $data;
     return 'No changes.' if !$ch->{nitemid};
-    fu->dbExeci('UPDATE traits SET gid = null WHERE id =', \$ch->{nitemid}) if !$group;
-    fu->dbExeci('
+    fu->SQL('UPDATE traits SET gid = null WHERE id =', $ch->{nitemid})->exec if !$group;
+    fu->SQL('
         WITH RECURSIVE childs (id) AS (
-            SELECT ', \$ch->{nitemid}, '::vndbid UNION ALL SELECT tp.id FROM childs JOIN traits_parents tp ON tp.parent = childs.id AND tp.main
-        ) UPDATE traits SET gid =', \$group, 'WHERE id IN(SELECT id FROM childs) AND gid IS DISTINCT FROM', \$group
-    ) if $group;
+            SELECT ', $ch->{nitemid}, '::vndbid UNION ALL SELECT tp.id FROM childs JOIN traits_parents tp ON tp.parent = childs.id AND tp.main
+        ) UPDATE traits SET gid =', $group, 'WHERE id IN(SELECT id FROM childs) AND gid IS DISTINCT FROM', $group
+    )->exec if $group;
     return +{ _redir => "/$ch->{nitemid}.$ch->{nrev}" };
 };
 

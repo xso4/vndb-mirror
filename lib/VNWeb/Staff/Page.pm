@@ -5,7 +5,7 @@ use VNWeb::ULists::Lib;
 
 
 sub enrich_item($s) {
-    $s->{prod_title} = fu->dbVali('SELECT title FROM', producerst, 'WHERE id =', \$s->{prod}) if $s->{prod};
+    $s->{prod_title} = fu->SQL('SELECT title FROM', PRODUCERST, 'WHERE id =', $s->{prod})->val if $s->{prod};
 
     # Add a 'main' flag and title field to each alias
     for ($s->{alias}->@*) {
@@ -90,15 +90,15 @@ sub _infotable_($main, $s) {
 sub _roles_($s) {
     my %alias = map +($_->{aid}, $_), $s->{alias}->@*;
 
-    my $roles = fu->dbAlli('
+    my $roles = fu->SQL('
         SELECT v.id, vs.aid, vs.role, vs.note, ve.name, ve.official, ve.lang, v.c_released, v.title
           FROM vn_staff vs
-          JOIN', vnt, 'v ON v.id = vs.id
+          JOIN', VNT, 'v ON v.id = vs.id
           LEFT JOIN vn_editions ve ON ve.id = vs.id AND ve.eid = vs.eid
-         WHERE vs.aid IN', [ keys %alias ], '
+         WHERE vs.aid', IN [ keys %alias ], '
            AND NOT v.hidden
          ORDER BY v.c_released ASC, v.sorttitle ASC, ve.lang NULLS FIRST, ve.name NULLS FIRST, vs.role ASC
-    ');
+    ')->allh;
     return if !@$roles;
     enrich_ulists_widget $roles;
 
@@ -139,17 +139,17 @@ sub _roles_($s) {
 sub _cast_($s) {
     my %alias = map +($_->{aid}, $_), $s->{alias}->@*;
 
-    my $cast = [ grep defined $_->{spoil}, fu->dbAlli('
+    my $cast = [ grep defined $_->{spoil}, fu->SQL('
         SELECT vs.aid, v.id, v.c_released, v.title, c.id AS cid, c.title AS c_title, vs.note,
                (SELECT MIN(cv.spoil) FROM chars_vns cv WHERE cv.id = c.id AND cv.vid = v.id) AS spoil
           FROM vn_seiyuu vs
-          JOIN', vnt, 'v ON v.id = vs.id
-          JOIN', charst, 'c ON c.id = vs.cid
-         WHERE vs.aid IN', [ keys %alias ], '
+          JOIN', VNT, 'v ON v.id = vs.id
+          JOIN', CHARST, 'c ON c.id = vs.cid
+         WHERE vs.aid', IN [ keys %alias ], '
            AND NOT v.hidden
            AND NOT c.hidden
          ORDER BY v.c_released ASC, v.sorttitle ASC
-    ')->@* ];
+    ')->allh->@* ];
     return if !@$cast;
     enrich_ulists_widget $cast;
 

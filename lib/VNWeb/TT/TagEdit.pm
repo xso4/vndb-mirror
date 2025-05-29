@@ -44,7 +44,7 @@ FU::get qr{/$RE{grev}/edit}, sub($id, $rev=0) {
 
 
 FU::get qr{/(?:$RE{gid}/add|g/new)}, sub($id=undef) {
-    my $g = $id && fu->dbRowi('SELECT id, name, cat FROM tags WHERE NOT hidden AND id =', \$id);
+    my $g = $id && fu->sql('SELECT id, name, cat FROM tags WHERE NOT hidden AND id = $1', $id)->rowh;
     fu->denied if !can_edit g => {};
     fu->notfound if $id && !$g->{id};
 
@@ -86,14 +86,14 @@ js_api TagEdit => $FORM_IN, sub($data) {
     }
 
     my $re = '[\t\s]*\n[\t\s]*';
-    my $dups = fu->dbAlli('
+    my $dups = fu->SQL('
         SELECT id, name
-          FROM (SELECT id, name FROM tags UNION SELECT id, s FROM tags, regexp_split_to_table(alias, ', \$re, ') a(s) WHERE s <> \'\') n(id,name)
-         WHERE ', sql_and(
-             $new ? () : sql('id <>', \$data->{id}),
-             sql 'lower(name) IN', [ map lc($_), $data->{name}, grep length($_), split /$re/, $data->{alias} ]
+          FROM (SELECT id, name FROM tags UNION SELECT id, s FROM tags, regexp_split_to_table(alias, ', $re, ') a(s) WHERE s <> \'\') n(id,name)
+         WHERE ', AND(
+             $new ? () : SQL('id <>', $data->{id}),
+             SQL 'lower(name)', IN [ map lc($_), $data->{name}, grep length($_), split /$re/, $data->{alias} ]
          )
-    );
+    )->allh;
     return +{ dups => $dups } if @$dups;
 
     # Make sure parent IDs exists and are not a child tag of the current tag (i.e. don't allow cycles)
@@ -108,7 +108,7 @@ js_api TagEdit => $FORM_IN, sub($data) {
 
     my $changed = 0;
     if(!$new && auth->permTagmod && $data->{wipevotes}) {
-        my $num = fu->dbExeci('DELETE FROM tags_vn WHERE tag =', \$e->{id});
+        my $num = fu->sql('DELETE FROM tags_vn WHERE tag = $1', $e->{id})->exec;
         auth->audit(undef, 'tag wipe', "Wiped $num votes on $e->{id}");
         $changed++;
     }
@@ -118,13 +118,13 @@ js_api TagEdit => $FORM_IN, sub($data) {
         # Bugs:
         # - Arbitrarily takes one vote if there are duplicates, should ideally try to merge them instead.
         # - The 'ignore' flag will be inconsistent if set and the same VN has been voted on for multiple tags.
-        my $mov = fu->dbExeci('
+        my $mov = fu->SQL('
             INSERT INTO tags_vn (tag,vid,uid,vote,spoiler,date,ignore,notes)
-                 SELECT ', \$e->{id}, ',vid,uid,vote,spoiler,date,ignore,notes
-                   FROM tags_vn WHERE tag IN', \@merge, '
+                 SELECT ', $e->{id}, ',vid,uid,vote,spoiler,date,ignore,notes
+                   FROM tags_vn WHERE tag', IN \@merge, '
                      ON CONFLICT (tag,vid,uid) DO NOTHING'
-        );
-        my $del = fu->dbExeci('DELETE FROM tags_vn tv WHERE tag IN', \@merge);
+        )->exec;
+        my $del = fu->SQL('DELETE FROM tags_vn tv WHERE tag', IN \@merge)->exec;
         my $lst = join ',', @merge;
         auth->audit(undef, 'tag merge', "Moved $mov/$del votes from $lst to $e->{id}");
         $changed++;

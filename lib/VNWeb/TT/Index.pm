@@ -5,7 +5,7 @@ use VNWeb::TT::Lib 'enrich_group', 'tree_';
 
 
 sub recent_($type) {
-    my $lst = fu->dbAlli('SELECT id, name, ', sql_totime('added'), 'AS added FROM', $type eq 'g' ? 'tags' : 'traits', 'WHERE NOT hidden ORDER BY id DESC LIMIT 10');
+    my $lst = fu->SQL('SELECT id, name, added FROM', $type eq 'g' ? 'tags' : 'traits', 'WHERE NOT hidden ORDER BY id DESC LIMIT 10')->allh;
     enrich_group $type, $lst;
     p_ class => 'mainopts', sub {
         a_ href => "/$type/list", 'Browse all '.($type eq 'g' ? 'tags' : 'traits');
@@ -23,7 +23,7 @@ sub recent_($type) {
 
 
 sub popular_($type) {
-    my $lst = fu->dbAlli('SELECT id, name, c_items FROM', $type eq 'g' ? 'tags' : 'traits', 'WHERE NOT hidden AND c_items > 0 AND applicable ORDER BY c_items DESC LIMIT 10');
+    my $lst = fu->SQL('SELECT id, name, c_items FROM', $type eq 'g' ? 'tags' : 'traits', 'WHERE NOT hidden AND c_items > 0 AND applicable ORDER BY c_items DESC LIMIT 10')->allh;
     enrich_group $type, $lst;
     p_ class => 'mainopts', sub {
         a_ href => '/g/links', 'Recently tagged';
@@ -40,7 +40,7 @@ sub popular_($type) {
 
 
 sub moderation_($type) {
-    my $lst = fu->dbAlli('SELECT id, name, ', sql_totime('added'), 'AS added FROM', $type eq 'g' ? 'tags' : 'traits', 'WHERE hidden AND NOT locked ORDER BY added DESC LIMIT 10');
+    my $lst = fu->SQL('SELECT id, name, added FROM', $type eq 'g' ? 'tags' : 'traits', 'WHERE hidden AND NOT locked ORDER BY added DESC LIMIT 10')->allh;
     enrich_group $type, $lst;
     h1_ 'Awaiting moderation';
     ul_ sub {
