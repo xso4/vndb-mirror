@@ -41,7 +41,7 @@ FU::get qr{/$RE{srev}/edit} => sub($id, $rev=0) {
     # still referenced aliases are included.
     push $e->{alias}->@*, fu->SQL(
         'SELECT aid, name, latin, true AS inuse, true AS wantdel
-           FROM staff_alias sa WHERE', $alias_inuse, 'AND sa.id =', $e->{id}, 'AND sa.aid NOT', IN [ map $_->{aid}, $e->{alias}->@* ]
+           FROM staff_alias sa WHERE', $alias_inuse, 'AND sa.id =', $e->{id}, 'AND NOT sa.aid', IN [ map $_->{aid}, $e->{alias}->@* ]
     )->allh->@* if $e->{chrev} != $e->{maxrev};
 
     $e->{alias} = [ sort { ($a->{latin}//$a->{name}) cmp ($b->{latin}//$b->{name}) } $e->{alias}->@* ];
