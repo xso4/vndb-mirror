@@ -8,8 +8,8 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     alias        => { maxlength => 1024, default => '' },
     cat          => { enum => \%TAG_CATEGORY, default => 'cont' },
     description  => { maxlength => 10240 },
-    searchable   => { anybool => 1, default => 1 },
-    applicable   => { anybool => 1, default => 1 },
+    searchable   => { anybool => 1 },
+    applicable   => { anybool => 1 },
     defaultspoil => { uint => 1, range => [0,2] },
     parents      => { sort_keys => 'parent', aoh => {
         parent      => { vndbid => 'g' },
@@ -50,6 +50,7 @@ FU::get qr{/(?:$RE{gid}/add|g/new)}, sub($id=undef) {
 
     my $e = $FORM_OUT->empty;
     $e->{authmod} = auth->permTagmod;
+    $e->{applicable} = $e->{searchable} = 1;
     if($id) {
         $e->{parents} = [{ parent => $g->{id}, main => 1, name => $g->{name} }];
         $e->{cat} = $g->{cat};
