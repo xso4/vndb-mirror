@@ -1389,6 +1389,9 @@ searchable
 applicable
 :   Bool.
 
+sexual
+:   Bool.
+
 group\_id
 :   vndbid
 
@@ -1797,6 +1800,10 @@ bias in its selection due to the presence of id gaps, but you most likely don't
 need perfect uniform random selection anyway.
 
 # Change Log
+
+**2025-06-02**
+
+- Add `sexual` field to [POST /trait](#post-trait).
 
 **2025-05-02**
 

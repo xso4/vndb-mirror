@@ -459,7 +459,7 @@ sub export_traits($dest) {
     my $lst = $db->q(q{
         SELECT vndbid_num(id) AS id, name, description, c_items AS chars
              , string_to_array(alias, E'\n') AS aliases
-             , NOT searchable AS meta, searchable, applicable
+             , NOT searchable AS meta, searchable, applicable, sexual
              , ARRAY(SELECT vndbid_num(parent) FROM traits_parents tp WHERE tp.id = t.id ORDER BY main desc, parent) AS parents
         FROM traits t WHERE NOT hidden ORDER BY id
     })->allh;
