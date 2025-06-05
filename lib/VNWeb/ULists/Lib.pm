@@ -82,11 +82,15 @@ sub ulists_widget_($v) {
 sub ulists_widget_full_data($v, $vnpage=0, $canvote=undef) {
     my $lst = fu->SQL('SELECT vid, vote, notes, started, finished, labels FROM ulist_vns WHERE uid =', auth->uid, 'AND vid =', $v->{id})->rowh;
     my $review = fu->SQL('SELECT id FROM reviews WHERE uid =', auth->uid, 'AND vid =', $v->{id})->val;
-    $canvote //= sprintf('%08d', $v->{c_released}||99999999) <= strftime '%Y%m%d', gmtime;
+    my $rel = !$vnpage && releases_by_vn $v->{id};
+    my $today = strftime '%Y%m%d', gmtime;
+    $canvote //= grep $_->{released} && $_->{released} <= $today, @$rel if $rel;
+    # More strict but faster fallback
+    $canvote //= sprintf('%08d', $v->{c_released}||99999999) <= $today;
     +{
         vid       => $v->{id},
         labels    => $lst->{vid} ? [ map 1*$_, $lst->{labels}->@* ] : undef,
-        canvote   => $lst->{vote} || $canvote || 0 ? \1 : \0,
+        canvote   => $lst->{vote} || $canvote ? \1 : \0,
         canreview => $review || ($canvote && can_edit(w => {})) || 0 ? \1 : \0,
         vote      => $lst->{vote} && fmtvote($lst->{vote}),
         review    => $review,
@@ -95,7 +99,7 @@ sub ulists_widget_full_data($v, $vnpage=0, $canvote=undef) {
         finished  => int(($lst->{finished}||0) =~ s/-//rg),
         $vnpage ? () : (
             title     => $v->{title}[1],
-            releases  => releases_by_vn($v->{id}),
+            releases  => $rel,
             rlist     => fu->SQL('SELECT rid AS id, status FROM rlists WHERE uid =', auth->uid, 'AND rid IN(SELECT id FROM releases_vn WHERE vid =', $v->{id}, ')')->allh,
         ),
     };

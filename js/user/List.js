@@ -322,7 +322,7 @@ widget('UListVNPage', initvnode => {
 });
 
 
-widget('UListVote', { view: vnode => voteRender(vnode.attrs.data, '-') });
+widget('UListVote', { view: vnode => vnode.attrs.data.canvote ? voteRender(vnode.attrs.data, '-') : null });
 widget('UListLabels', { view: vnode => labelRender(vnode.attrs.data, '-', 0) });
 
 const dateWidget = field => initvnode => {

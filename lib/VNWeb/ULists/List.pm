@@ -121,7 +121,11 @@ sub vn_ {
         td_ class => 'tc_voted', $v->{vote_date} ? fmtdate $v->{vote_date}, 'compact' : '-' if $opt->{s}->vis('voted');
 
         td_ class => 'tc_vote', !$own ? () : (
-            '+' => 'compact stealth', widget('UListVote', { vid => $v->{id}, vote => $v->{vote} && fmtvote($v->{vote}) }),
+            '+' => 'compact stealth', widget('UListVote', {
+                canvote => !!($v->{vote} || sprintf('%08d', $v->{c_released}||99999999) <= strftime '%Y%m%d', gmtime),
+                vid     => $v->{id},
+                vote    => $v->{vote} && fmtvote($v->{vote})
+            }),
         ), sub { txt_ fmtvote $v->{vote} } if $opt->{s}->vis('vote');
 
         td_ class => 'tc_rating', sub {
