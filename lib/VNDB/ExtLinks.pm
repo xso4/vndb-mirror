@@ -467,7 +467,7 @@ our %LINKS = (
         , patt  => 'https://ec.toranoana.<shop or jp>/<shop>/item/<number>/'
         },
     tumblr =>
-        { ent   => 's'
+        { ent   => 'sp'
         , label => 'Tumblr'
         , fmt   => 'https://%s.tumblr.com/'
         , regex => qr{(?:(?:www\.)?tumblr\.com/(?:blog\/)?([a-z0-9-]+)|([a-z0-9-]+)\.tumblr\.com)(?:/.*)?}
@@ -773,6 +773,7 @@ sub enrich_vislinks($type, $enabled, @obj) {
         l 'instagram';
         l 'facebook';
         l 'fanbox';
+        l 'tumblr';
         l 'vk';
         l 'itch_dev';
         l 'steam_curator';
