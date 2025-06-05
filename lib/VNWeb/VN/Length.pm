@@ -44,8 +44,12 @@ sub listing_($opt, $url, $count, $list, $mode) {
                 td_ class => 'tc3'.($_->{ignore}?' grayedout':''), sub { vnlength_ $_->{length} };
                 td_ class => 'tc4'.($_->{ignore}?' grayedout':''), ['Slow','Normal','Fast','-']->[$_->{speed}//3];
                 td_ class => 'tc5', sub {
-                    my %l = map +($_,1), map $_->{lang}->@*, $_->{rel}->@*;
-                    abbr_ class => "icon-lang-$_", title => $LANGUAGE{$_}{txt}, '' for sort keys %l;
+                    if ($_->{lang}) {
+                        abbr_ class => "icon-lang-$_", title => $LANGUAGE{$_}{txt}, '' for sort $_->{lang}->@*;
+                    } else {
+                        my %l = map +($_,1), map $_->{lang}->@*, $_->{rel}->@*;
+                        abbr_ class => "icon-lang-$_", title => $LANGUAGE{$_}{txt}, '' for sort keys %l;
+                    }
                     join_ ',', sub { a_ href => "/$_->{id}", $_->{id} }, sort { idcmp $a->{id}, $b->{id} } $_->{rel}->@*;
                 };
                 td_ class => 'tc6'.($_->{ignore}?' grayedout':''), sub {
@@ -113,25 +117,26 @@ FU::get qr{/(?:$RE{vid}/|$RE{uid}/)?lengthvotes}, sub($vid=undef, $uid=undef) {
 
     my sub url { '?'.query_encode({%$opt, @_}) }
 
-    my $where = sql_and
-        $mode ? sql($mode eq 'v' ? 'l.vid =' : 'l.uid =', \$o->{id}) : (),
+    my $where = AND
+        $mode ? SQL($mode eq 'v' ? 'l.vid =' : 'l.uid =', $o->{id}) : (),
         $mode eq 'u' && auth && $o->{id} eq auth->uid ? () : 'NOT l.private',
-        defined $opt->{ign} ? sql('l.speed IS', $opt->{ign} ? 'NULL' : 'NOT NULL') : ();
-    my $count = fu->dbVali('SELECT COUNT(*) FROM vn_length_votes l WHERE', $where);
+        defined $opt->{ign} ? SQL('l.speed IS', $opt->{ign} ? 'NULL' : 'NOT NULL') : ();
+    my $count = fu->SQL('SELECT COUNT(*) FROM vn_length_votes l', WHERE $where)->val;
 
-    my $lst = fu->dbPagei({results => $opt->{s}->results, page => $opt->{p}},
-      'SELECT l.id, l.uid, l.vid, l.length, l.speed, l.notes, l.private, l.rid::text[] AS rel, '
-            , sql_totime('l.date'), 'AS date, u.perm_lengthvote IS NOT DISTINCT FROM false AS ignore',
-              $mode ne 'u' ? (', ', sql_user()) : (),
+    my $lst = fu->SQL(
+      'SELECT l.id, l.uid, l.vid, l.length, l.speed, l.notes, l.private, l.rid AS rel, l.lang, l.date
+            , u.perm_lengthvote IS NOT DISTINCT FROM false AS ignore',
+              $mode ne 'u' ? (', ', USER) : (),
               $mode ne 'v' ? ', v.title' : (), '
          FROM vn_length_votes l
          LEFT JOIN users u ON u.id = l.uid',
-         $mode ne 'v' ? ('JOIN', vnt, 'v ON v.id = l.vid') : (),
-       'WHERE', $where,
-       'ORDER BY', $opt->{s}->sql_order(),
-    );
+         $mode ne 'v' ? ('JOIN', VNT, 'v ON v.id = l.vid') : (),
+        WHERE($where),
+       'ORDER BY', $opt->{s}->ORDER,
+       'LIMIT', $opt->{s}->results, 'OFFSET', $opt->{s}->results*($opt->{p}-1),
+    )->allh;
     $_->{rel} = [ map +{ id => $_ }, $_->{rel}->@* ] for @$lst;
-    enrich_flatten lang => id => id => 'SELECT id, lang FROM releases_titles WHERE id IN', map $_->{rel}, @$lst;
+    fu->enrich(aov => 'lang', 'SELECT id, lang FROM releases_titles WHERE id', [ map $_->{rel}->@*, @$lst ]);
 
     my $title = 'Length votes'.($mode ? ($mode eq 'v' ? ' for ' : ' by ').$o->{title}[1] : '');
     framework_ title => $title, dbobj => $o, sub {
@@ -189,6 +194,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     vid      => { vndbid => 'v' },
     vote     => { type => 'hash', default => undef, keys => {
         rid      => { minlength => 1, elems => { vndbid => 'r' } },
+        lang     => { minlength => 1, elems => { enum => \%LANGUAGE } },
         length   => { uint => 1, range => [1,26159] }, # 435h59m, largest round-ish number where the 'fast' speed adjustment doesn't overflow a smallint
         speed    => { default => undef, uint => 1, enum => [0,1,2] },
         private  => { anybool => 1 },
@@ -200,24 +206,26 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
 };
 
 
-FU::get qr{/$RE{vid}/lengthvote}, sub($id) {
-    my $v = fu->dbRowi('SELECT id, title[1+1], devstatus FROM', vnt, 'v WHERE NOT hidden AND id =', \$id);
-    fu->notfound if !$v->{id};
-    fu->denied if !can_vote;
-
-    my $my = fu->dbRowi('SELECT rid::text[] AS rid, length, speed, private, notes FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
-
-    my $today = strftime '%Y%m%d', gmtime;
-    my $rels = [ grep $_->{released} <= $today, releases_by_vn($v->{id})->@* ];
+sub available_releases($v) {
+    my $rels = releases_by_vn $v->{id}, released => 1;
     my $hasnontrial = grep $_->{rtype} ne 'trial', @$rels;
     # Voting on trials is only allowed if development has been cancelled and there's no other release.
-    $rels = [ grep $_->{rtype} ne 'trial' || ($v->{devstatus} == 2 && !$hasnontrial), @$rels ];
+    [ grep $_->{rtype} ne 'trial' || ($v->{devstatus} == 2 && !$hasnontrial), @$rels ];
+}
+
+
+FU::get qr{/$RE{vid}/lengthvote}, sub($id) {
+    my $v = fu->SQL('SELECT id, title[2], devstatus FROM', VNT, 'v WHERE NOT hidden AND id =', $id)->rowh || fu->notfound;
+    fu->denied if !can_vote;
+
+    my $my = fu->SQL('SELECT rid, lang, length, speed, private, notes FROM vn_length_votes WHERE vid =', $v->{id}, 'AND uid =', auth->uid)->rowh;
+    my $rels = available_releases $v;
 
     framework_ title => "Edit play time for $v->{title}", sub {
-        if (@$rels || $my->{rid}) {
+        if (@$rels || $my) {
             div_ widget('VNLengthVote', $FORM_OUT, {
                 vid      => $v->{id},
-                vote     => $my->{rid} ? $my : undef,
+                vote     => $my,
                 title    => $v->{title},
                 maycount => $v->{devstatus} != 1,
                 releases => $rels,
@@ -239,19 +247,29 @@ js_api VNLengthVote => $FORM_IN, sub ($data) {
     fu->denied if !can_vote;
     my %where = ( uid => auth->uid, vid => $data->{vid} );
 
-    if ($data->{vote}) {
-        my %fields = (
-            $data->{vote}->%*,
-            rid => sql sql_array($data->{vote}{rid}->@*), '::vndbid[]'
-        );
-        $fields{speed} = undef if $fields{private};
-        fu->dbExeci(
-            'INSERT INTO vn_length_votes', { %where, %fields },
-            'ON CONFLICT (uid, vid) DO UPDATE SET', \%fields
-        );
-    } else {
-        fu->dbExeci('DELETE FROM vn_length_votes WHERE', \%where);
+    if (!$data->{vote}) {
+        fu->SQL('DELETE FROM vn_length_votes', WHERE \%where)->exec;
+        return {};
     }
+
+    my $v = fu->SQL('SELECT id, devstatus FROM', VNT, 'v WHERE NOT hidden AND id =', $data->{vid})->rowh || fu->notfound;
+    my $rels = available_releases $v;
+    my %rels = map +($_->{id},$_), @$rels;
+
+    my %fields = $data->{vote}->%*;
+    $fields{rid} = [ grep $rels{$_}, $fields{rid}->@* ];
+    return 'No valid releases selected' if !$fields{rid}->@*;
+
+    my %langs = map +($_,1), map $rels{$_}{lang}->@*, $fields{rid}->@*;
+    $fields{lang} = [ grep $langs{$_}, $fields{lang}->@* ];
+    return 'No valid language selected' if !$fields{lang}->@*;
+
+    $fields{speed} = undef if $fields{private};
+
+    fu->SQL(
+        'INSERT INTO vn_length_votes', VALUES({ %where, %fields }),
+        'ON CONFLICT (uid, vid) DO UPDATE', SET \%fields
+    )->exec;
     +{};
 };
 

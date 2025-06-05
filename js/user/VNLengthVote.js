@@ -10,10 +10,22 @@ widget('VNLengthVote', initVnode => {
         notes: '',
     };
 
+    const langs = Object.fromEntries(vndbTypes.language);
+    const availableLangs = () => new Set(data.releases.flatMap(r => vote.rid.includes(r.id) ? r.lang : []));
+    const setlang = () => {
+        const l = availableLangs();
+        if (l.size === 1) vote.lang = [availableLangs().values().next().value];
+        if (!vote.lang) vote.lang = [];
+        vote.lang = vote.lang.filter(v => l.has(v));
+    };
+    setlang();
+
     const relDs = data.releases.length === 1 && vote.rid.length === 1 && vote.rid[0] === data.releases[0].id ? null : new DS(DS.Releases(data.releases), {
+        keep: false,
         onselect: (obj,c) => {
             if (c && !vote.rid.includes(obj.id)) vote.rid.push(obj.id);
             else vote.rid = vote.rid.filter(x => x !== obj.id);
+            setlang();
         },
         checked: obj => vote.rid.includes(obj.id),
     });
@@ -40,12 +52,23 @@ widget('VNLengthVote', initVnode => {
                     m('label[for=rel]', 'Release(s)'),
                     vote.rid.length === 0 ? m('div', 'Which release did you play?') : null,
                     vote.rid.map(id => (r => m('div', {key: id},
-                        relDs ? m(Button.Del, { onclick: () => vote.rid = vote.rid.filter(x => x !== id) }) : null,
+                        relDs ? m(Button.Del, { onclick: () => setlang(vote.rid = vote.rid.filter(x => x !== id)) }) : null,
                         ' ',
                         r ? Release(r,1) : 'Moved or deleted release: '+id
                     ))(data.releases.find(r => r.id == id))),
                     relDs ? m(DS.Button, { ds: relDs, id: 'rel' }, 'Select release') : null,
                     vote.rid.length === 0 ? m('p.invalid', 'Please select a release') : null,
+                ),
+                vote.rid.length === 0 ? null : m('fieldset',
+                    m('label', 'Language(s)'),
+                    availableLangs().size === 1 ? [LangIcon(vote.lang[0]), langs[vote.lang[0]]] :
+                        [...availableLangs().values()].map(l => m('label.check',
+                            m('input[type=checkbox]', { checked: vote.lang.includes(l), onclick: ev => {
+                                if (ev.target.checked) vote.lang.push(l);
+                                else vote.lang = vote.lang.filter(x => x !== l);
+                            }}), ' ', LangIcon(l), langs[l]
+                        )).intersperse(m('small', ' / ')),
+                    vote.lang.length === 0 ? m('p.invalid', 'No language selected.') : null,
                 ),
             ), m('fieldset.form',
                 m('fieldset',

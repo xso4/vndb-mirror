@@ -1606,7 +1606,8 @@ CREATE TABLE vn_length_votes (
   speed      smallint, -- [pub] NULL=uncounted/ignored, 0=slow, 1=normal, 2=fast
   private    boolean NOT NULL,
   rid        vndbid[] NOT NULL, -- [pub]
-  notes      text NOT NULL DEFAULT '' -- [pub]
+  notes      text NOT NULL DEFAULT '', -- [pub]
+  lang       language[] -- [pub] NULL for votes before 2025-06-05, inferred from the release language(s) in that case
 );
 
 -- vn_image_votes

@@ -111,6 +111,7 @@ class DS {
         this.source = source;
         if (source && source.opts) Object.assign(this, source.opts);
         if (opts) Object.assign(this, opts);
+        if (!('keep' in this)) this.keep = this.checked;
         this.open = this.open.bind(this);
         this.list = [];
     }
@@ -132,12 +133,12 @@ class DS {
     select() {
         const obj = this.list.find(e => e.id === this.selId);
         if (!obj) return;
-        if (this.checked || this.keep) this.focus = v => { this.focus = null; v.dom.focus() };
+        if (this.keep) this.focus = v => { this.focus = null; v.dom.focus() };
         this.input_override = false; // honor setInput() in onselect()
         if (this.autocomplete) this.autocomplete(this.source.stringify ? this.source.stringify(obj) : obj.id);
         else if (this.onselect) this.onselect(obj, !this.checked || !this.checked(obj));
+        if (!this.keep) close();
         if (!this.checked) {
-            if (!this.keep) close();
             if (!this.input_override) this.setInput('');
             this.selId = null;
         }
@@ -176,7 +177,7 @@ class DS {
         } else if (ev.key == 'Tab') {
             const f = this.list.find(e => e.id === this.selId);
             ev.shiftKey || !f ? close() : this.select();
-            if (this.keep || this.checked) close(); // Tab always closes, even on multiselection boxes
+            if (this.keep) close(); // Tab always closes, even on multiselection boxes
             if (!this.autocomplete) ev.preventDefault();
         }
     }

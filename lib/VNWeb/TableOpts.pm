@@ -217,6 +217,8 @@ sub sql_order {
     $sql =~ /[?!]o/ ? ($sql =~ s/\?o/$order/rg =~ s/!o/$opposite_order/rg) : "$sql $order";
 }
 
+sub ORDER { RAW $_[0]->sql_order }
+
 
 # Returns whether the given column key is visible.
 sub vis { my $c = $_[0][1]{columns}{$_[1]}; $c && defined $c->{vis_id} && ($_[0][0] & (1 << (12+$c->{vis_id}))) }
