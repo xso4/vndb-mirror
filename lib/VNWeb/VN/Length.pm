@@ -73,15 +73,15 @@ sub listing_($opt, $url, $count, $list, $mode) {
 
 
 sub stats_($o) {
-    my $stats = fu->dbAlli('
+    my $stats = fu->SQL('
         SELECT speed, count(*) as count, avg(l.length)::smallint as avg
              , stddev_pop(l.length::real)::int as stddev
-             , percentile_cont(', \0.5, ') WITHIN GROUP (ORDER BY l.length) AS median
+             , percentile_cont(0.5) WITHIN GROUP (ORDER BY l.length) AS median
           FROM vn_length_votes l
           LEFT JOIN users u ON u.id = l.uid
-         WHERE u.perm_lengthvote IS DISTINCT FROM false AND l.speed IS NOT NULL AND NOT l.private AND l.vid =', \$o->{id}, '
+         WHERE u.perm_lengthvote IS DISTINCT FROM false AND l.speed IS NOT NULL AND NOT l.private AND l.vid =', $o->{id}, '
          GROUP BY GROUPING SETS ((speed),()) ORDER BY speed'
-    );
+    )->allh;
     return if !$stats->[0]{count};
 
     table_ style => 'margin: 0 auto', sub {
@@ -173,16 +173,15 @@ FU::post '/lengthvotes-edit', sub {
     for my ($k, $act) (%$data) {
         next if $k !~ /^lv($RE{num})$/;
         next if !$act || ref $act;
-        my $id = $1;
-        my $r = fu->dbRowi('
+        my($vid, $uid) = fu->SQL('
             UPDATE vn_length_votes SET',
                $act eq 'sn' ? 'speed = NULL' :
                $act eq 's0' ? 'speed = 0' :
                $act eq 's1' ? 'speed = 1' :
-               $act eq 's2' ? ('speed =', \2) : die,
-           'WHERE id =', \$id, 'RETURNING vid, uid'
-        );
-        push @actions, "$r->{vid}-".($r->{uid}//'anon')."-$act";
+               $act eq 's2' ? 'speed = 2' : die,
+           'WHERE id =', $1, 'RETURNING vid, uid'
+        )->rowl;
+        push @actions, "$vid-".($uid//'anon')."-$act";
     }
     auth->audit(undef, 'lengthvote edit', join ', ', sort @actions) if @actions;
     fu->redirect(tempget => $data->{url});

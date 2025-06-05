@@ -37,20 +37,21 @@ FU::get qr{/$RE{vid}/votes}, sub($id) {
         s => { onerror => 'date', enum => ['date', 'title', 'vote' ] }
     );
 
-    my $fromwhere = sql
+    my $fromwhere = SQL
         'FROM ulist_vns uv
          JOIN users u ON u.id = uv.uid
-        WHERE uv.vid =', \$v->{id}, 'AND uv.vote IS NOT NULL
+        WHERE uv.vid =', $v->{id}, 'AND uv.vote IS NOT NULL
           AND NOT EXISTS(SELECT 1 FROM users u WHERE u.id = uv.uid AND u.ign_votes)';
 
-    my $count = fu->dbVali('SELECT COUNT(*)', $fromwhere);
+    my $count = fu->SQL('SELECT COUNT(*)', $fromwhere)->val;
 
-    my $lst = fu->dbPagei({results => 50, page => $opt->{p}},
-      'SELECT uv.vote, uv.c_private, ', sql_totime('uv.vote_date'), 'as date, ', sql_user(),
-           $fromwhere, 'ORDER BY', sprintf
+    my $lst = fu->SQL(
+      'SELECT uv.vote, uv.c_private, uv.vote_date as date, ', USER,
+           $fromwhere, 'ORDER BY', RAW(sprintf
             { date => 'uv.vote_date %s, uv.vote', vote => 'uv.vote %s, uv.vote_date', title => "(CASE WHEN uv.c_private THEN NULL ELSE u.username END) %s, uv.vote_date" }->{$opt->{s}},
-            { a => 'ASC', d => 'DESC' }->{$opt->{o}}
-    );
+            { a => 'ASC', d => 'DESC' }->{$opt->{o}}),
+       'LIMIT 50 OFFSET', 50*($opt->{p}-1)
+    )->allh;
 
     framework_ title => "Votes for $v->{title}[1]", dbobj => $v, sub {
         article_ sub {

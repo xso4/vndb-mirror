@@ -92,20 +92,20 @@ FU::get qr{/$RE{vrev}/edit} => sub($id, $rev=0) {
     $e->{seiyuu} = [ grep $_->{sid}, $e->{seiyuu}->@* ];
 
     $e->{releases} = releases_by_vn $e->{id};
-    $e->{reltitles} = [ map $_->{x}, fu->dbAlli('
-        SELECT DISTINCT lower(i.title) AS x
+    $e->{reltitles} = fu->SQL('
+        SELECT DISTINCT lower(i.title)
           FROM releases r
           JOIN releases_vn rv ON rv.id = r.id
           JOIN releases_titles rt ON rt.id = r.id
           JOIN unnest(ARRAY[rt.title,rt.latin]) i(title) ON i.title IS NOT NULL
-         WHERE NOT r.hidden AND rv.vid =', \$e->{id}
-    )->@* ];
+         WHERE NOT r.hidden AND rv.vid =', $e->{id}
+    )->flat;
 
-    $e->{chars} = fu->dbAlli('
-        SELECT id, title[1+1], title[1+1+1+1] AS alttitle FROM', charst, '
-         WHERE NOT hidden AND id IN(SELECT id FROM chars_vns WHERE vid =', \$e->{id},')
+    $e->{chars} = fu->SQL('
+        SELECT id, title[2], title[4] AS alttitle FROM', CHARST, '
+         WHERE NOT hidden AND id IN(SELECT id FROM chars_vns WHERE vid =', $e->{id},')
          ORDER BY sorttitle, id'
-    );
+    )->allh;
 
     my $title = titleprefs_obj $e->{olang}, $e->{titles};
     framework_ title => "Edit $title->[1]", dbobj => $e, tab => 'edit',

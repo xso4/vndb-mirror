@@ -43,33 +43,33 @@ js_api Tagmod => $FORM, sub($data) {
 
     # Weed out invalid/deleted/non-applicable tags.
     # Voting on non-applicable tags is still allowed if there are existing votes for this tag on this VN.
-    enrich_merge id => sql('
-        SELECT tag AS id, 1 as exists FROM tags_vn WHERE vid =', \$id, '
+    fu->enrich(set => 'exists', SQL('
+        SELECT tag FROM tags_vn WHERE vid =', $id, '
         UNION
-        SELECT id, 1 as exists FROM tags WHERE NOT (hidden AND locked) AND applicable AND id IN'
-    ), $tags;
+        SELECT id FROM tags WHERE NOT (hidden AND locked) AND applicable AND id'
+    ), $tags);
     $tags = [ grep $_->{exists}, @$tags ];
 
     # Find out if any of these tags are being overruled
-    enrich_merge id => sub { sql 'SELECT tag AS id, bool_or(ignore) as overruled FROM tags_vn WHERE vid =', \$id, 'AND tag IN', $_, 'GROUP BY tag' }, $tags;
+    fu->enrich(set => 'overruled', sub { SQL 'SELECT tag, bool_or(ignore) FROM tags_vn WHERE vid =', $id, 'AND tag', IN $_, 'GROUP BY tag' }, $tags);
 
     # Delete tag votes not in $tags
-    fu->dbExeci('DELETE FROM tags_vn WHERE uid =', \auth->uid, 'AND vid =', \$id, @$tags ? ('AND tag NOT IN', [ map $_->{id}, @$tags ]) : ());
+    fu->SQL('DELETE FROM tags_vn WHERE uid =', auth->uid, 'AND vid =', $id, @$tags ? ('AND NOT tag', IN [ map $_->{id}, @$tags ]) : ())->exec;
 
     # Add & update tags
     for(@$tags) {
         my $row = { uid => auth->uid, vid => $id, tag => $_->{id}, vote => $_->{vote}, notes => $_->{notes}
                   , spoiler => $_->{spoil}, lie => $_->{lie}, ignore => ($_->{overruled} && !$_->{overrule})?1:0
                   };
-        fu->dbExeci('INSERT INTO tags_vn', $row, 'ON CONFLICT (uid, tag, vid) DO UPDATE SET', $row);
-        fu->dbExeci('UPDATE tags_vn SET ignore = TRUE WHERE uid IS DISTINCT FROM (', \auth->uid, ') AND vid =', \$id, 'AND tag =', \$_->{id}) if $_->{overrule};
+        fu->SQL('INSERT INTO tags_vn', VALUES($row), 'ON CONFLICT (uid, tag, vid) DO UPDATE', SET $row)->exec;
+        fu->SQL('UPDATE tags_vn SET ignore = TRUE WHERE uid IS DISTINCT FROM', auth->uid, 'AND vid =', $id, 'AND tag =', $_->{id})->exec if $_->{overrule};
     }
 
     # Make sure to reset the ignore flag when a moderator removes an overruled vote.
     # (i.e. look for tags where *all* votes are on ignore)
-    fu->dbExeci('UPDATE tags_vn tv SET ignore = FALSE WHERE NOT EXISTS(SELECT 1 FROM tags_vn tvi WHERE tvi.tag = tv.tag AND tvi.vid = tv.vid AND NOT tvi.ignore) AND vid =', \$id) if auth->permTagmod;
+    fu->SQL('UPDATE tags_vn tv SET ignore = FALSE WHERE NOT EXISTS(SELECT 1 FROM tags_vn tvi WHERE tvi.tag = tv.tag AND tvi.vid = tv.vid AND NOT tvi.ignore) AND vid =', $id)->exec if auth->permTagmod;
 
-    fu->dbExeci(select => sql_func tag_vn_calc => \$id);
+    fu->sql('SELECT tag_vn_calc($1)', $id)->exec;
     +{ _redir => "/$id/tagmod" }
 };
 
@@ -79,11 +79,11 @@ FU::get qr{/$RE{vid}/tagmod}, sub($id) {
     fu->notfound if !$v->{id} || (!auth->permDbmod && $v->{entry_hidden});
     fu->denied if !can_tag;
 
-    my $tags = fu->dbAlli('
+    my $tags = fu->SQL('
         SELECT t.id, t.name, t.cat, t.hidden, t.locked, t.applicable
              , tv.count, tv.overruled
              , coalesce(td.rating, 0) AS rating, coalesce(td.spoiler, t.defaultspoil) AS spoiler, coalesce(td.islie, false) AS islie
-          FROM (SELECT tag, count(*) AS count, bool_or(ignore) as overruled FROM tags_vn WHERE vid =', \$v->{id}, ' GROUP BY tag) tv
+          FROM (SELECT tag, count(*) AS count, bool_or(ignore) as overruled FROM tags_vn WHERE vid =', $v->{id}, ' GROUP BY tag) tv
           JOIN tags t ON t.id = tv.tag
           LEFT JOIN (
             SELECT tv.tag
@@ -93,15 +93,15 @@ FU::get qr{/$RE{vid}/tagmod}, sub($id) {
               FROM tags_vn tv
               JOIN tags t ON t.id = tv.tag
               LEFT JOIN users u ON u.id = tv.uid
-             WHERE NOT tv.ignore AND (u.id IS NULL OR u.perm_tag) AND tv.vid =', \$v->{id}, '
+             WHERE NOT tv.ignore AND (u.id IS NULL OR u.perm_tag) AND tv.vid =', $v->{id}, '
              GROUP BY tv.tag
           ) td ON td.tag = tv.tag
          ORDER BY t.name'
-    );
-    enrich_merge id => sub { sql 'SELECT tag AS id, vote, spoiler AS spoil, lie, ignore, notes FROM tags_vn WHERE', { uid => auth->uid, vid => $v->{id} } }, $tags;
-    enrich othnotes => id => tag => sub {
-        sql('SELECT tv.tag, ', sql_user(), ', tv.notes FROM tags_vn tv JOIN users u ON u.id = tv.uid WHERE tv.notes <> \'\' AND uid IS DISTINCT FROM (', \auth->uid, ') AND vid=', \$v->{id})
-    }, $tags;
+    )->allh;
+    fu->enrich(merge => 1, sub { SQL 'SELECT tag, vote, spoiler AS spoil, lie, ignore, notes FROM tags_vn', WHERE { uid => auth->uid, vid => $v->{id} } }, $tags);
+    fu->enrich(aoh => 'othnotes', sub {
+        SQL('SELECT tv.tag, ', USER, ', tv.notes FROM tags_vn tv JOIN users u ON u.id = tv.uid WHERE tv.notes <> \'\' AND uid IS DISTINCT FROM', auth->uid, 'AND vid=', $v->{id})
+    }, $tags);
 
     for(@$tags) {
         $_->{vote} //= 0;

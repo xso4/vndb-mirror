@@ -2,8 +2,7 @@ package VNWeb::VN::Quotes;
 
 use VNWeb::Prelude;
 
-sub deletable {
-    my($q) = @_;
+sub deletable($q) {
     !$q->{hidden} && $q->{addedby} && auth && $q->{addedby} eq auth->uid && auth->permEdit && $q->{added} > time()-5*24*3600;
 }
 
@@ -12,7 +11,7 @@ sub editable {
 }
 
 sub submittable($vid) {
-    auth->permDbmod || (auth->permEdit && fu->dbVali(q{SELECT COUNT(*) FROM quotes WHERE added > NOW() - '1 day'::interval AND addedby =}, \auth->uid) < 5);
+    auth->permDbmod || (auth->permEdit && fu->SQL("SELECT COUNT(*) FROM quotes WHERE added > NOW() - '1 day'::interval AND addedby =", auth->uid)->val < 5);
 }
 
 # Also used by Chars::Page
@@ -30,16 +29,16 @@ FU::get qr{/$RE{vid}/quotes}, sub($id) {
     fu->notfound if !$v->{id} || $v->{entry_hidden};
     VNWeb::VN::Page::enrich_vn($v);
 
-    my $lst = fu->dbAlli('
-        SELECT q.id, q.score, q.quote,', sql_totime('q.added'), 'AS added, q.addedby, q.cid, c.title, v.spoil
+    my $lst = fu->SQL('
+        SELECT q.id, q.score, q.quote, q.added, q.addedby, q.cid, c.title, v.spoil
           FROM quotes q
-          LEFT JOIN', charst, 'c ON c.id = q.cid
-          LEFT JOIN (SELECT id, MIN(spoil) FROM chars_vns WHERE vid =', \$v->{id}, 'GROUP BY id) v(id,spoil) ON c.id = v.id
+          LEFT JOIN', CHARST, 'c ON c.id = q.cid
+          LEFT JOIN (SELECT id, MIN(spoil) FROM chars_vns WHERE vid =', $v->{id}, 'GROUP BY id) v(id,spoil) ON c.id = v.id
          WHERE NOT q.hidden
-           AND vid =', \$v->{id}, '
+           AND vid =', $v->{id}, '
          ORDER BY q.score DESC, q.quote
-    ');
-    enrich_merge id => sql('SELECT id, vote FROM quotes_votes WHERE uid =', \auth->uid, 'AND id IN'), $lst if auth;
+    ')->allh;
+    fu->enrich(set => 'vote', SQL('SELECT id, vote FROM quotes_votes WHERE uid =', auth->uid, 'AND id'), $lst) if auth;
 
     my $view = viewget;
     my $max_spoil = max 0, grep $_, map $_->{spoil}, @$lst;
@@ -195,36 +194,36 @@ FU::get '/v/quotes', sub {
     );
     $opt->{h} = 0 if !auth->permDbmod;
 
-    my $u = $opt->{u} && fu->dbRowi('SELECT id,', sql_user(), 'FROM users u WHERE id =', \$opt->{u});
-    fu->notfound if $opt->{u} && (!$u->{id} || (!defined $u->{user_name} && !auth->isMod));
+    my $u = $opt->{u} && fu->SQL('SELECT id,', USER, 'FROM users u WHERE id =', $opt->{u})->rowh;
+    fu->notfound if $opt->{u} && (!$u || (!defined $u->{user_name} && !auth->isMod));
 
-    my $where = sql_and
-        $opt->{v} ? sql('q.vid =', \$opt->{v}) : (),
-        $opt->{u} ? sql('q.addedby =', \$opt->{u}) : (),
-        defined $opt->{h} ? sql($opt->{h} ? '' : 'NOT', 'q.hidden') : (),
-        defined $opt->{c} ? sql('q.cid', $opt->{c} ? 'IS NOT NULL' : 'IS NULL') : ();
+    my $where = AND
+        $opt->{v} ? SQL('q.vid =', $opt->{v}) : (),
+        $opt->{u} ? SQL('q.addedby =', $opt->{u}) : (),
+        defined $opt->{h} ? SQL($opt->{h} ? '' : 'NOT', 'q.hidden') : (),
+        defined $opt->{c} ? SQL('q.cid', $opt->{c} ? 'IS NOT NULL' : 'IS NULL') : ();
 
-    my $count = fu->dbVali('SELECT COUNT(*) FROM quotes q WHERE', $where);
-    my $lst = !$count ? [] : fu->dbPagei({ results => 50, page => $opt->{p} }, '
-        SELECT q.id, q.hidden, q.score, q.quote, q.addedby, q.vid, q.cid
-             , v.title, c.title AS char,', sql_user(), '
-             , ', sql_totime('q.added'), 'added
+    my $count = fu->SQL('SELECT COUNT(*) FROM quotes q WHERE', $where)->val;
+    my $lst = !$count ? [] : fu->SQL('
+        SELECT q.id, q.hidden, q.score, q.quote, q.added, q.addedby, q.vid, q.cid
+             , v.title, c.title AS char,', USER(), '
           FROM quotes q
-          JOIN', vnt, 'v ON v.id = q.vid
-          LEFT JOIN', charst, 'c ON c.id = q.cid
+          JOIN', VNT, 'v ON v.id = q.vid
+          LEFT JOIN', CHARST, 'c ON c.id = q.cid
           LEFT JOIN users u ON u.id = q.addedby
           ', $opt->{s} eq 'lastmod' ? 'LEFT JOIN (
             SELECT id, MAX(date) FROM quotes_log GROUP BY id
           ) l (id, latest) ON l.id = q.id' : (), '
          WHERE', $where, '
-         ORDER BY ', {
+         ORDER BY ', RAW {
              added   => 'q.id DESC',
              lastmod => 'l.latest DESC, q.id DESC',
              top     => 'q.score DESC, q.id',
              bottom  => 'q.score, q.id',
-         }->{$opt->{s}}
-    );
-    enrich_merge id => sql('SELECT id, vote FROM quotes_votes WHERE uid =', \auth->uid, 'AND id IN'), $lst if auth;
+         }->{$opt->{s}}, '
+         LIMIT 50 OFFSET', 50*($opt->{p}-1)
+    )->allh;
+    fu->enrich(set => 'vote', SQL('SELECT id, vote FROM quotes_votes WHERE uid =', auth->uid, 'AND id'), $lst) if auth;
 
     my sub url { '?'.query_encode({%$opt, @_}) }
 
@@ -255,33 +254,33 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
 };
 
 FU::get qr{/(?:$RE{vid}/addquote|editquote/$RE{qid})}, sub($vid, $qid=undef) {
-    my $q = $qid && fu->dbRowi('
-        SELECT q.id, q.vid, q.hidden, q.quote,', sql_totime('q.added'), 'added, q.addedby, q.cid, c.title
+    my $q = $qid && fu->SQL('
+        SELECT q.id, q.vid, q.hidden, q.quote, q.added, q.addedby, q.cid, c.title
           FROM quotes q
-          LEFT JOIN', charst, 'c ON c.id = q.cid
-         WHERE q.id = ', \$qid
-    );
-    fu->notfound if $qid && !$q->{id};
+          LEFT JOIN', CHARST, 'c ON c.id = q.cid
+         WHERE q.id = ', $qid
+    )->rowh;
+    fu->notfound if $qid && !$q;
     $vid ||= $q->{vid};
 
     my $v = $vid && dbobj $vid;
     fu->notfound if $vid && (!$v->{id} || $v->{entry_hidden});
     fu->denied if $qid ? !editable $q : !submittable $vid;
 
-    my $log = $qid && fu->dbAlli('
-        SELECT ', sql_totime('q.date'), 'date, q.action,', sql_user(), '
+    my $log = $qid && fu->SQL('
+        SELECT q.date, q.action,', USER, '
           FROM quotes_log q
           LEFT JOIN users u ON u.id = q.uid
-         WHERE q.id = ', \$qid, '
+         WHERE q.id = ', $qid, '
          ORDER BY q.date DESC
-    ');
+    ')->allh;
 
-    my $chars = fu->dbAlli('
-        SELECT id, title[1+1] AS title, title[1+1+1+1] AS alttitle
-          FROM ', charst, '
-         WHERE NOT hidden AND id IN(SELECT id FROM chars_vns WHERE vid =', \$v->{id}, ')
+    my $chars = fu->SQL('
+        SELECT id, title[2], title[4] AS alttitle
+          FROM ', CHARST, '
+         WHERE NOT hidden AND id IN(SELECT id FROM chars_vns WHERE vid =', $v->{id}, ')
          ORDER BY sorttitle, id
-    ');
+    ')->allh;
 
     my $title = ($qid ? 'Edit' : 'Add')." quote for $v->{title}[1]";
     framework_ title => $title, dbobj => $v, sub {
@@ -331,8 +330,8 @@ js_api QuoteEdit => $FORM_IN, sub($data) {
     my $v = dbobj $data->{vid};
     fu->notfound if !$v->{id} || $v->{entry_hidden};
 
-    my $q = $data->{id} && fu->dbRowi('SELECT id, hidden, quote,', sql_totime('added'), 'added, addedby, cid FROM quotes WHERE id = ', \$data->{id});
-    fu->denied if $data->{id} && (!$q->{id} || !editable $q);
+    my $q = $data->{id} && fu->SQL('SELECT id, hidden, quote, added, addedby, cid FROM quotes WHERE id = ', $data->{id})->rowh;
+    fu->denied if $data->{id} && (!$q || !editable $q);
 
     if ($data->{id}) {
         my %set = (
@@ -340,46 +339,46 @@ js_api QuoteEdit => $FORM_IN, sub($data) {
             $data->{quote} ne $q->{quote} ? (quote => $data->{quote}) : (),
             ($data->{cid}//'') ne ($q->{cid}//'') ? (cid => $data->{cid}) : (),
         );
-        fu->dbExeci('UPDATE quotes SET', \%set, 'WHERE id =', \$data->{id}) if keys %set;
-        fu->dbExeci('INSERT INTO quotes_log', {
+        fu->SQL('UPDATE quotes', SET(\%set), 'WHERE id =', $data->{id})->exec if keys %set;
+        fu->SQL('INSERT INTO quotes_log', VALUES {
             id => $data->{id}, uid => auth->uid,
             action => join '; ',
                 exists $set{hidden} ? "State: ".($q->{hidden}?"Deleted":"New")." -> ".($data->{hidden}?"Deleted":"New") : (),
                 exists $set{cid} ? "Character: ".($q->{cid}||'empty')." -> ".($data->{cid}||'empty') : (),
                 exists $set{quote} ? "Quote: \"[i][raw]$q->{quote} [/raw][/i]\" -> \"[i][raw]$data->{quote} [/raw][/i]\"" : (),
-        }) if keys %set;
+        })->exec if keys %set;
 
     } else {
         return 'You have already submitted 5 quotes today, try again tomorrow.' if !submittable($data->{vid});
-        my sub norm { sql 'lower(regexp_replace(', $_[0], q{, '[\s",.]+', '', 'g'))} }
+        my sub norm { SQL 'lower(regexp_replace(', $_[0], q{, '[\s",.]+', '', 'g'))} }
         return 'This quote has already been submitted.'
-            if fu->dbVali('SELECT 1 FROM quotes WHERE vid =', \$data->{vid}, 'AND', norm(\$data->{quote}), '=', norm('quote'));
+            if fu->SQL('SELECT 1 FROM quotes WHERE vid =', $data->{vid}, 'AND', norm($data->{quote}), '=', norm('quote'))->val;
 
-        my $id = fu->dbVali('INSERT INTO quotes', {
+        my $id = fu->SQL('INSERT INTO quotes', VALUES({
             vid     => $v->{id},
             cid     => $data->{cid},
             addedby => auth->uid,
             quote   => $data->{quote},
             auth->permDbmod ? (hidden => $data->{hidden}) : (),
-        }, 'RETURNING id');
-        fu->dbExeci('INSERT INTO quotes_votes', {id => $id, uid => auth->uid, vote => 1});
-        fu->dbExeci('INSERT INTO quotes_log', {id => $id, uid => auth->uid, action => 'Submitted'});
+        }), 'RETURNING id')->val;
+        fu->SQL('INSERT INTO quotes_votes', VALUES {id => $id, uid => auth->uid, vote => 1})->exec;
+        fu->SQL('INSERT INTO quotes_log', VALUES {id => $id, uid => auth->uid, action => 'Submitted'})->exec;
     }
     +{}
 };
 
 js_api QuoteDel => { id => { vndbid => 'q' } }, sub($data) {
-    my $q = fu->dbRowi('SELECT id, hidden,', sql_totime('added'), 'added, addedby FROM quotes WHERE id = ', \$data->{id});
-    fu->denied if !$q->{id} || !deletable $q;
-    fu->dbExeci('DELETE FROM quotes WHERE id =', \$q->{id});
+    my $q = fu->SQL('SELECT id, hidden, added, addedby FROM quotes WHERE id = ', $data->{id})->rowh;
+    fu->denied if !$q || !deletable $q;
+    fu->SQL('DELETE FROM quotes WHERE id =', $q->{id})->exec;
     +{}
 };
 
 js_api QuoteVote => { id => { vndbid => 'q' }, vote => { default => undef, enum => [-1,1] } }, sub($data) {
     fu->denied if !auth;
-    fu->dbExeci('DELETE FROM quotes_votes WHERE', { uid => auth->uid, id => $data->{id} }) if !$data->{vote};
+    fu->SQL('DELETE FROM quotes_votes', WHERE { uid => auth->uid, id => $data->{id} })->exec if !$data->{vote};
     $data->{uid} = auth->uid;
-    fu->dbExeci('INSERT INTO quotes_votes', $data, 'ON CONFLICT (id, uid) DO UPDATE SET vote =', \$data->{vote}) if $data->{vote};
+    fu->SQL('INSERT INTO quotes_votes', VALUES($data), 'ON CONFLICT (id, uid) DO UPDATE SET vote =', $data->{vote})->exec if $data->{vote};
     +{}
 };
 

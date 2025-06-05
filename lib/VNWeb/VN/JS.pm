@@ -28,10 +28,10 @@ js_api VNImageVote => {
     fu->denied if !auth;
 
     my $d = { vid => $data->{vid}, img => $data->{img}, uid => auth->uid };
-    fu->dbExeci('INSERT INTO vn_image_votes', $d, 'ON CONFLICT (vid, uid, img) DO UPDATE SET date = NOW()') if $data->{vote};
-    fu->dbExeci('DELETE FROM vn_image_votes WHERE', $d) if !$data->{vote};
-    fu->dbExeci(select => sql_func update_vncache => \$d->{vid});
-    fu->dbExeci(select => sql_func update_vn_image_votes => \$d->{vid}, \$d->{uid});
+    fu->SQL('INSERT INTO vn_image_votes', VALUES($d), 'ON CONFLICT (vid, uid, img) DO UPDATE SET date = NOW()')->exec if $data->{vote};
+    fu->SQL('DELETE FROM vn_image_votes', WHERE $d)->exec if !$data->{vote};
+    fu->sql('SELECT update_vncache($1)', $d->{vid})->exec;
+    fu->sql('SELECT update_vn_image_votes($1, $2)', $d->{vid}, $d->{uid})->exec;
     +{}
 };
 

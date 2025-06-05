@@ -11,24 +11,24 @@ FU::get qr{/$RE{vid}/rg}, sub($id) {
     my $unoff = fu->query(unoff => { default => 1, anybool => 1 });
     my $v = dbobj $id;
 
-    my $has = fu->dbRowi('SELECT bool_or(official) AS official, bool_or(not official) AS unofficial FROM vn_relations WHERE id =', \$id, 'GROUP BY id');
+    my $has = fu->SQL('SELECT bool_or(official) AS official, bool_or(not official) AS unofficial FROM vn_relations WHERE id =', $id, 'GROUP BY id')->rowh;
     $unoff = 1 if !$has->{official};
 
     # Big list of { id0, id1, relation } hashes.
     # Each relation is included twice, with id0 and id1 reversed.
-    my $where = $unoff ? '1=1' : 'vr.official';
-    my $rel = fu->dbAlli(q{
+    my $where = RAW $unoff ? '1=1' : 'vr.official';
+    my $rel = fu->SQL(q{
         WITH RECURSIVE rel(id0, id1, relation, official) AS (
-            SELECT id, vid, relation, official FROM vn_relations vr WHERE id =}, \$id, 'AND', $where, q{
+            SELECT id, vid, relation, official FROM vn_relations vr WHERE id =}, $id, 'AND', $where, q{
             UNION
             SELECT id, vid, vr.relation, vr.official FROM vn_relations vr JOIN rel r ON vr.id = r.id1 WHERE}, $where, q{
         ) SELECT * FROM rel ORDER BY id0
-    });
+    })->allh;
     fu->notfound if !@$rel;
 
     # Fetch the nodes
     my $nodes = gen_nodes $id, $rel, $num;
-    enrich_merge id => sql("SELECT id, title[1+1] AS title, c_released, array_to_string(c_languages, '/') AS lang FROM", vnt, "v WHERE id IN"), values %$nodes;
+    fu->enrich(merge => 1, SQL("SELECT id, title[2], c_released, array_to_string(c_languages, '/') AS lang FROM", VNT, "v WHERE id"), [values %$nodes]);
 
     my $total_nodes = keys { map +($_->{id0},1), @$rel }->%*;
     my $visible_nodes = keys %$nodes;
@@ -98,13 +98,13 @@ FU::get qr{/$RE{vid}/rgi}, sub($id) {
 
     # Big list of { id0, id1, relation, official } hashes.
     # Each relation is included twice, with id0 and id1 reversed.
-    my $rel = fu->dbAlli(q{
+    my $rel = fu->SQL(q{
         WITH RECURSIVE rel(id0, id1, relation, official) AS (
-            SELECT id, vid, relation, official FROM vn_relations vr WHERE id =}, \$v->{id}, q{
+            SELECT id, vid, relation, official FROM vn_relations vr WHERE id =}, $v->{id}, q{
             UNION
             SELECT id, vid, vr.relation, vr.official FROM vn_relations vr JOIN rel r ON vr.id = r.id1
         ) SELECT * FROM rel ORDER BY id0
-    });
+    })->allh;
     fu->notfound if !@$rel;
 
     # Get rid of duplicate relations and convert to a more efficient array-based format.
@@ -116,10 +116,10 @@ FU::get qr{/$RE{vid}/rgi}, sub($id) {
 
     # Fetch the nodes
     my %nodes = map +($_, {id => $_}), map @{$_}[0,1], @$rel;
-    enrich_merge id => sql('
-        SELECT id, title[1+1] AS title, title[1+1+1+1] AS alttitle, c_released AS released,', sql_vnimage, ', c_languages::text[] AS languages
-          FROM', vnt, "v WHERE id IN"
-    ), values %nodes;
+    fu->enrich(merge => 1, SQL('
+        SELECT id, title[2], title[4] AS alttitle, c_released AS released,', VNIMAGE, ', c_languages AS languages
+          FROM', VNT, 'v WHERE id'
+    ), [values %nodes]);
     enrich_vnimage [values %nodes];
 
     # compress image info a bit

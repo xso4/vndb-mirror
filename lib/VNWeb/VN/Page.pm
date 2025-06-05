@@ -12,7 +12,7 @@ use VNDB::Func 'fmtrating';
 # Also used by Chars::VNTab, Reviews::VNTab and VN::Quotes
 sub enrich_vn($v, $revonly=0) {
     $v->{title} = titleprefs_obj $v->{olang}, $v->{titles};
-    enrich_merge id => sql('SELECT id, c_votecount, c_length, c_lengthnum, c_image, c_imgfirst, c_imglast,', sql_vnimage, 'FROM vn WHERE id IN'), $v;
+    fu->enrich(merge => 1, SQL('SELECT id, c_votecount, c_length, c_lengthnum, c_image, c_imgfirst, c_imglast,', VNIMAGE, 'FROM vn WHERE id'), [$v]);
     enrich_vislinks v => 0, $v;
     enrich_vnimage [$v];
     enrich_image_obj scr => $v->{screenshots};
@@ -24,38 +24,41 @@ sub enrich_vn($v, $revonly=0) {
 
     # This fetches rather more information than necessary for infobox_(), but it'll have to do.
     # (And we'll need it for the releases tab anyway)
-    $v->{releases} = fu->dbAlli('
+    $v->{releases} = fu->SQL('
         SELECT r.id, rv.rtype, r.patch, r.released, r.c_bundle
           FROM releases r
           JOIN releases_vn rv ON rv.id = r.id
-         WHERE NOT r.hidden AND rv.vid =', \$v->{id}
-    );
+         WHERE NOT r.hidden AND rv.vid =', $v->{id}
+    )->allh;
     enrich_vislinks r => 0, $v->{releases};
 
-    $v->{reviews} = fu->dbRowi('
+    # short/medium/long are only used for Reviews::VNTab, but might as well get them here.
+    $v->{reviews} = fu->SQL('
         SELECT COUNT(*) FILTER(WHERE length = 0) AS short
              , COUNT(*) FILTER(WHERE length = 1) AS medium
              , COUNT(*) FILTER(WHERE length = 1+1) AS long
              , COUNT(*) AS total
           FROM reviews
-         WHERE NOT c_flagged AND vid =', \$v->{id}
-    );
-    $v->{relimgs} = fu->dbRowi("
+         WHERE NOT c_flagged AND vid =', $v->{id}
+    )->rowh;
+
+    $v->{relimgs} = fu->SQL("
         SELECT COUNT(DISTINCT img) FILTER(WHERE ri.itype IN('dig', 'pkgfront')) AS covers
              , COUNT(DISTINCT img) AS total
           FROM releases r
           JOIN releases_vn rv ON rv.id = r.id
           JOIN releases_images ri ON ri.id = r.id
-         WHERE NOT r.hidden AND rv.vid =", \$v->{id}, '
-           AND (ri.vid IS NULL OR ri.vid =', \$v->{id}, ')'
-    );
-    $v->{tags} = !prefs()->{has_tagprefs} ? fu->dbAlli('
+         WHERE NOT r.hidden AND rv.vid =", $v->{id}, '
+           AND (ri.vid IS NULL OR ri.vid =', $v->{id}, ')'
+    )->rowh;
+
+    $v->{tags} = !prefs()->{has_tagprefs} ? fu->SQL('
         SELECT t.id, t.name, t.cat, tv.rating, tv.count, tv.spoiler, tv.lie
           FROM tags t
           JOIN tags_vn_direct tv ON t.id = tv.tag
-         WHERE tv.vid =', \$v->{id}, '
+         WHERE tv.vid =', $v->{id}, '
          ORDER BY rating DESC, t.name'
-    ) : fu->dbAlli(
+    )->allh : fu->SQL(
         # Monster of a query, but tag overrides are a bit complicated:
         # - We need to find the shortest path from a tag applied to the VN to a
         #   parent in users_prefs_tags, and use those preferences. That's what
@@ -65,7 +68,7 @@ sub enrich_vn($v, $revonly=0) {
         #   and inject their parent if said parent hasn't been directly applied.
         #   That's what tag_indirect does.
        'WITH RECURSIVE tag_overrides (tid, spoil, color, childs, lvl) AS (
-          SELECT tid, spoil, color, childs, 0 FROM users_prefs_tags WHERE id =', \auth->uid, '
+          SELECT tid, spoil, color, childs, 0 FROM users_prefs_tags WHERE id =', auth->uid, '
            UNION ALL
           SELECT tp.id, x.spoil, x.color, true, lvl+1
             FROM tag_overrides x
@@ -77,18 +80,18 @@ sub enrich_vn($v, $revonly=0) {
           SELECT t.tag, t.rating, t.count, t.spoiler, t.lie, x.spoil, x.color
             FROM tags_vn_direct t
             LEFT JOIN tag_overrides_grouped x ON x.tid = t.tag
-           WHERE t.vid =', \$v->{id}, 'AND x.spoil IS DISTINCT FROM 1+1+1
+           WHERE t.vid =', $v->{id}, 'AND x.spoil IS DISTINCT FROM 1+1+1
         ), tag_indirect (tid, rating, count, spoiler, lie, override, color) AS (
           SELECT t.tag, t.rating, 0::smallint, t.spoiler, t.lie, x.spoil, x.color
             FROM tags_vn_inherit t
             JOIN users_prefs_tags x ON x.tid = t.tag
-           WHERE t.vid =', \$v->{id}, 'AND x.id =', \auth->uid, 'AND NOT x.childs AND x.spoil = 0
+           WHERE t.vid =', $v->{id}, 'AND x.id =', auth->uid, 'AND NOT x.childs AND x.spoil = 0
              AND NOT EXISTS(SELECT 1 FROM tag_direct d WHERE d.tid = t.tag)
         ) SELECT t.id, t.name, t.cat, d.rating, d.count, d.spoiler, d.lie, d.override, d.color
             FROM tags t
             JOIN (SELECT * FROM tag_direct UNION ALL SELECT * FROM tag_indirect) d ON d.tid = t.id
            ORDER BY d.rating DESC, t.name'
-    );
+    )->allh;
 }
 
 
@@ -115,13 +118,13 @@ sub prefs {
         has_tagprefs => 0,
     };
     fu->{vnpage_prefs} //= auth ? do {
-        my $v = fu->dbRowi('
-            SELECT vnrel_langs::text[], vnrel_olang, vnrel_mtl
-                 , staffed_langs::text[], staffed_olang, staffed_unoff
-                 , EXISTS(SELECT 1 FROM users_prefs_tags WHERE id =', \auth->uid, ') AS has_tagprefs
+        my $v = fu->SQL('
+            SELECT vnrel_langs, vnrel_olang, vnrel_mtl
+                 , staffed_langs, staffed_olang, staffed_unoff
+                 , EXISTS(SELECT 1 FROM users_prefs_tags WHERE id =', auth->uid, ') AS has_tagprefs
               FROM users_prefs
-             WHERE id =', \auth->uid
-        );
+             WHERE id =', auth->uid
+        )->rowh;
         $v->{vnrel_langs} = $v->{vnrel_langs} ? { map +($_,1), $v->{vnrel_langs}->@* } : \%LANGUAGE;
         $v->{staffed_langs} = $v->{staffed_langs} ? { map +($_,1), $v->{staffed_langs}->@* } : \%LANGUAGE;
         $v
@@ -234,7 +237,7 @@ sub infobox_length_($v) {
         td_ sub {
             if (VNWeb::VN::Length::can_vote()) {
                 my $today = strftime '%Y%m%d', gmtime;
-                my $my = fu->dbVali('SELECT length FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
+                my $my = fu->SQL('SELECT length FROM vn_length_votes WHERE vid =', $v->{id}, 'AND uid =', auth->uid)->val;
                 a_ class => 'mylengthvote', href => "/$v->{id}/lengthvote", sub {
                     if ($my) {
                         lit_ 'Mine: ';
@@ -254,7 +257,7 @@ sub infobox_length_($v) {
                 txt_ ')';
             # No cached number so no counted votes; fall back to old 'length' field and display number of uncounted votes
             } else {
-                my $uncounted = fu->dbVali('SELECT count(*) FROM vn_length_votes WHERE vid =', \$v->{id}, 'AND NOT private');
+                my $uncounted = fu->SQL('SELECT count(*) FROM vn_length_votes WHERE vid =', $v->{id}, 'AND NOT private')->val;
                 txt_ $VN_LENGTH{$v->{length}}{txt};
                 if ($v->{length} || $uncounted) {
                     lit_ ' (';
@@ -270,17 +273,17 @@ sub infobox_length_($v) {
 
 
 sub infobox_producers_($v) {
-    my $p = fu->dbAlli('
+    my $p = fu->SQL('
         SELECT p.id, p.title, p.sorttitle, rl.lang, bool_or(rp.developer) as developer, bool_or(rp.publisher) as publisher, min(rv.rtype) as rtype, bool_or(r.official) as official
           FROM releases_vn rv
           JOIN releases r ON r.id = rv.id
           JOIN releases_titles rl ON rl.id = rv.id
           JOIN releases_producers rp ON rp.id = rv.id
-          JOIN', producerst, 'p ON p.id = rp.pid
-         WHERE NOT r.hidden AND (r.official OR NOT rl.mtl) AND rv.vid =', \$v->{id}, '
+          JOIN', PRODUCERST, 'p ON p.id = rp.pid
+         WHERE NOT r.hidden AND (r.official OR NOT rl.mtl) AND rv.vid =', $v->{id}, '
          GROUP BY p.id, p.title, p.sorttitle, rl.lang
          ORDER BY NOT bool_or(r.official), MIN(r.released), p.sorttitle
-    ');
+    ')->allh;
     return if !@$p;
 
     my $hasfull = grep $_->{rtype} eq 'complete', @$p;
@@ -556,8 +559,8 @@ sub infobox_($v, $notags=0) {
 
 # Also used by Chars::VNTab, Reviews::VNTab and VN::Quotes
 sub tabs_($v, $tab='') {
-    my $chars = fu->dbVali('SELECT COUNT(DISTINCT c.id) FROM chars c JOIN chars_vns cv ON cv.id = c.id WHERE NOT c.hidden AND cv.vid =', \$v->{id});
-    my $quotes = fu->dbVali('SELECT COUNT(*) FROM quotes WHERE NOT hidden AND vid =', \$v->{id});
+    my $chars = fu->SQL('SELECT COUNT(DISTINCT c.id) FROM chars c JOIN chars_vns cv ON cv.id = c.id WHERE NOT c.hidden AND cv.vid =', $v->{id})->val;
+    my $quotes = fu->SQL('SELECT COUNT(*) FROM quotes WHERE NOT hidden AND vid =', $v->{id})->val;
 
     nav_ sub {
         menu_ sub {
@@ -713,21 +716,21 @@ sub staff_ {
 
 sub charsum_($v) {
     my $spoil = viewget->{spoilers};
-    my $c = fu->dbAlli('
+    my $c = fu->SQL('
         SELECT c.id, c.title, c.sex, c.gender, v.role
-          FROM', charst, 'c
-          JOIN (SELECT id, MIN(role) FROM chars_vns WHERE role <> \'appears\' AND spoil <=', \$spoil, 'AND vid =', \$v->{id}, 'GROUP BY id) v(id,role) ON c.id = v.id
+          FROM', CHARST, 'c
+          JOIN (SELECT id, MIN(role) FROM chars_vns WHERE role <> \'appears\' AND spoil <=', $spoil, 'AND vid =', $v->{id}, 'GROUP BY id) v(id,role) ON c.id = v.id
          WHERE NOT c.hidden
          ORDER BY v.role, c.name, c.id'
-    );
+    )->allh;
     return if !@$c;
-    enrich seiyuu => id => cid => sub { sql('
+    fu->enrich(aoh => 'seiyuu', sub { SQL('
         SELECT vs.cid, sa.id, sa.title, vs.note
           FROM vn_seiyuu vs
-          JOIN', staff_aliast, 'sa ON sa.aid = vs.aid
-         WHERE vs.id =', \$v->{id}, 'AND vs.cid IN', $_, '
+          JOIN', STAFF_ALIAST, 'sa ON sa.aid = vs.aid
+         WHERE vs.id =', $v->{id}, 'AND vs.cid', IN $_, '
          ORDER BY sa.sorttitle'
-    ) }, $c;
+    ) }, $c);
 
     article_ 'data-mainbox-summarize' => 210, sub {
         p_ class => 'mainopts', sub {
@@ -758,29 +761,29 @@ sub charsum_($v) {
 
 
 sub stats_($v) {
-    my $stats = fu->dbAlli('
+    my $stats = fu->SQL('
         SELECT (uv.vote::numeric/10)::int AS idx, COUNT(uv.vote) as votes, SUM(uv.vote) AS total
           FROM ulist_vns uv
          WHERE uv.vote IS NOT NULL
            AND NOT EXISTS(SELECT 1 FROM users u WHERE u.id = uv.uid AND u.ign_votes)
-           AND uv.vid =', \$v->{id}, '
+           AND uv.vid =', $v->{id}, '
          GROUP BY (uv.vote::numeric/10)::int'
-    );
+    )->allh;
     my $sum = sum map $_->{total}, @$stats;
     my $max = max map $_->{votes}, @$stats;
     my $num = sum map $_->{votes}, @$stats;
 
-    my $recent = @$stats && fu->dbAlli('
-         SELECT uv.vote, uv.c_private,', sql_totime('uv.vote_date'), 'as date, ', sql_user(), '
+    my $recent = @$stats && fu->SQL('
+         SELECT uv.vote, uv.c_private, uv.vote_date as date, ', USER, '
            FROM ulist_vns uv
            JOIN users u ON u.id = uv.uid
-          WHERE uv.vid =', \$v->{id}, 'AND uv.vote IS NOT NULL
+          WHERE uv.vid =', $v->{id}, 'AND uv.vote IS NOT NULL
             AND NOT EXISTS(SELECT 1 FROM users u WHERE u.id = uv.uid AND u.ign_votes)
           ORDER BY uv.vote_date DESC
-          LIMIT', \($v->{reviews}{total} ? 7 : 8)
-    );
+          LIMIT', $v->{reviews}{total} ? 7 : 8
+    )->allh;
 
-    my $rank = $v->{c_votecount} && fu->dbRowi('SELECT c_average, c_rating, c_pop_rank, c_rat_rank FROM vn v WHERE id =', \$v->{id});
+    my $rank = $v->{c_votecount} && fu->SQL('SELECT c_average, c_rating, c_pop_rank, c_rat_rank FROM vn v WHERE id =', $v->{id})->rowh;
 
     my sub votestats_ {
         table_ class => 'votegraph', sub {
@@ -911,20 +914,20 @@ sub tags_($v) {
     }
 
     my %tags = map +($_->{id},$_), $v->{tags}->@*;
-    my $parents = fu->dbAlli("
+    my $parents = fu->SQL('
         WITH RECURSIVE parents (tag, child) AS (
-          SELECT tag::vndbid, NULL::vndbid FROM (VALUES", sql_join(',', map sql('(',\$_,')'), keys %tags), ") AS x(tag)
+          SELECT tag::vndbid, NULL::vndbid FROM unnest(', [ keys %tags ], '::vndbid[]) x(tag)
           UNION
           SELECT tp.parent, tp.id FROM tags_parents tp, parents a WHERE a.tag = tp.id AND tp.main
-        ) SELECT * FROM parents WHERE child IS NOT NULL"
-    );
+        ) SELECT * FROM parents WHERE child IS NOT NULL'
+    )->allh;
 
     for(@$parents) {
         $tags{$_->{tag}} ||= { id => $_->{tag} };
         push $tags{$_->{tag}}{childs}->@*, $_->{child};
         $tags{$_->{child}}{notroot} = 1;
     }
-    enrich_merge id => 'SELECT id, name, cat FROM tags WHERE id IN', grep !$_->{name}, values %tags;
+    fu->enrich(merge => 1, 'SELECT id, name, cat FROM tags WHERE id', [ grep !$_->{name}, values %tags ]);
     my @roots = sort { $a->{name} cmp $b->{name} } grep !$_->{notroot}, values %tags;
 
     # Calculate rating and spoiler for parent tags.
@@ -987,32 +990,32 @@ sub tags_($v) {
 sub covers_($v) {
     my $all = !!fu->query('a');
 
-    my $lst = fu->dbAlli('
+    my $lst = fu->SQL('
         SELECT ri.img, ri.itype, ri.lang::text[], ri.photo, r.id, r.released, r.title, r.patch
              , r.c_bundle AND ri.vid IS NULL AS bundle, rv.rtype, viv.img IS NOT NULL AS voted
           FROM releases_images ri
-          JOIN', releasest, 'r ON r.id = ri.id
+          JOIN', RELEASEST, 'r ON r.id = ri.id
           JOIN releases_vn rv ON rv.id = ri.id
-          LEFT JOIN vn_image_votes viv ON viv.vid =', \$v->{id}, 'AND viv.uid =', \auth->uid, 'AND viv.img = ri.img
-         WHERE NOT r.hidden AND rv.vid =', \$v->{id}, '
-           AND (ri.vid IS NULL OR ri.vid =', \$v->{id}, ')',
+          LEFT JOIN vn_image_votes viv ON viv.vid =', $v->{id}, 'AND viv.uid =', auth->uid, 'AND viv.img = ri.img
+         WHERE NOT r.hidden AND rv.vid =', $v->{id}, '
+           AND (ri.vid IS NULL OR ri.vid =', $v->{id}, ')',
                $all ? () : "AND ri.itype IN('dig', 'pkgfront')", '
          ORDER BY r.released
-    ');
+    ')->allh;
     enrich_image_obj img => $lst;
-    enrich rlang => id => id => sub { sql('SELECT id, lang, mtl FROM releases_titles WHERE id IN', $_, 'ORDER BY lang') }, $lst;
-    enrich_flatten platforms => id => id => sub { sql('SELECT id, platform FROM releases_platforms WHERE id IN', $_, 'ORDER BY platform') }, $lst;
+    fu->enrich(aoh => 'rlang', sub { SQL 'SELECT id, lang, mtl FROM releases_titles WHERE id', IN $_, 'ORDER BY lang' }, $lst);
+    fu->enrich(aov => 'platforms', sub { SQL 'SELECT id, platform FROM releases_platforms WHERE id', IN $_, 'ORDER BY platform' }, $lst);
 
     my %cv;
     push $cv{$_->{img}{id}}->@*, $_ for @$lst;
 
-    enrich votes => id => id => sub { sql '
-        SELECT viv.img AS id,', sql_user(), '
+    fu->enrich(aoh => 'votes', sub { SQL '
+        SELECT viv.img,', USER, '
           FROM vn_image_votes viv
           JOIN users u ON u.id = viv.uid
-         WHERE viv.vid =', \$v->{id}, 'AND viv.img IN', $_, '
+         WHERE viv.vid =', $v->{id}, 'AND viv.img', IN $_, '
          ORDER BY viv.date DESC'
-    }, map $_->[0]{img}, values %cv;
+    }, [ map $_->[0]{img}, values %cv ]);
 
     my sub cover_ {
         my($l) = @_;
