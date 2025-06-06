@@ -95,7 +95,7 @@ js_api StaffEdit => $FORM_IN, sub {
 
     # For positive alias IDs: Make sure they exist and are (or were) owned by this entry.
     validate_dbid
-        SQL('SELECT aid FROM staff_alias_hist WHERE chid IN(SELECT id FROM changes WHERE itemid =', $e->{id}, ') AND aid'),
+        SQL('SELECT DISTINCT aid FROM staff_alias_hist WHERE chid IN(SELECT id FROM changes WHERE itemid =', $e->{id}, ') AND aid'),
         grep $_>=0, map $_->{aid}, $data->{alias}->@*;
 
     # For negative alias IDs: Assign a new ID.
