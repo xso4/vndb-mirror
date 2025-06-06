@@ -16,7 +16,7 @@ FU::get qr{/$RE{vid}/rg}, sub($id) {
 
     # Big list of { id0, id1, relation } hashes.
     # Each relation is included twice, with id0 and id1 reversed.
-    my $where = RAW $unoff ? '1=1' : 'vr.official';
+    my $where = RAW($unoff ? '1=1' : 'vr.official');
     my $rel = fu->SQL(q{
         WITH RECURSIVE rel(id0, id1, relation, official) AS (
             SELECT id, vid, relation, official FROM vn_relations vr WHERE id =}, $id, 'AND', $where, q{
