@@ -67,14 +67,14 @@ sub listing_($opt, $list, $count) {
 
 
 # Also used by VNWeb::TT::TraitPage
-sub enrich_listing {
-    enrich vn => id => cid => sub { sql '
-        SELECT DISTINCT cv.id AS cid, v.id, v.title, v.sorttitle
+sub enrich_listing($lst) {
+    fu->enrich(aoh => 'vn', sub { SQL '
+        SELECT DISTINCT cv.id, v.id, v.title, v.sorttitle
           FROM chars_vns cv
-          JOIN', vnt, 'v ON v.id = cv.vid
-         WHERE NOT v.hidden AND cv.spoil = 0 AND cv.id IN', $_, '
+          JOIN', VNT, 'v ON v.id = cv.vid
+         WHERE NOT v.hidden AND cv.spoil = 0 AND cv.id', IN $_, '
          ORDER BY v.sorttitle'
-    }, @_;
+    }, $lst);
 }
 
 

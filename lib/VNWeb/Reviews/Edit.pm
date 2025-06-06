@@ -71,8 +71,8 @@ js_api ReviewEdit => $FORM_IN, sub ($data) {
         $data->{modnote} = $review->{modnote}||'';
     }
 
-    validate_dbid 'SELECT id FROM vn WHERE id IN', $data->{vid};
-    validate_dbid 'SELECT id FROM releases WHERE id IN', $data->{rid} if defined $data->{rid};
+    validate_dbid 'SELECT id FROM vn WHERE id', $data->{vid};
+    validate_dbid 'SELECT id FROM releases WHERE id', $data->{rid} if defined $data->{rid};
 
     if($id) {
         $data->{lastmod} = RAW 'NOW()' if $review->{text} ne $data->{text};

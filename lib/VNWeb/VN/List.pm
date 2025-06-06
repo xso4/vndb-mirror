@@ -332,11 +332,11 @@ sub listing_($opt, $list, $count, $tagscore=undef, $labels=undef, $own=undef) {
 # Enrich some extra fields fields needed for listing_()
 # Also used by TT::TagPage and UList::List
 sub enrich_listing($widget, $opt, $lst) {
-    enrich developers => id => vid => sub { sql
-        'SELECT v.id AS vid, p.id, p.title
-           FROM vn v, unnest(v.c_developers) vp(id),', producerst, 'p
-          WHERE p.id = vp.id AND v.id IN', $_[0], 'ORDER BY p.sorttitle, p.id'
-    }, $lst if $opt->{s}->vis('developer');
+    fu->enrich(aoh => 'developers', sub { SQL
+        'SELECT v.id, p.id, p.title
+           FROM vn v, unnest(v.c_developers) vp(id),', PRODUCERST, 'p
+          WHERE p.id = vp.id AND v.id', IN $_, 'ORDER BY p.sorttitle, p.id'
+    }, $lst) if $opt->{s}->vis('developer');
 
     enrich_vnimage $lst if !$opt->{s}->rows;
     enrich_ulists_widget $lst if $widget;

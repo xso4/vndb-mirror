@@ -215,12 +215,11 @@ js_api ReleaseEdit => $FORM_IN, sub {
     }
 
     $data->{supersedes} = [] if $data->{hidden};
-    validate_dbid sub {
-        'SELECT id FROM releases WHERE', sql_and
-            'NOT hidden',
-            sql('id IN', $_[0]),
-            sql('id IN(SELECT id FROM releases_vn WHERE vid IN', [ map $_->{vid}, $data->{vn}->@* ], ')'),
-            $new ? () : sql('id NOT IN(WITH RECURSIVE s(id) AS (SELECT', \$data->{id}, '::vndbid UNION SELECT rs.id FROM releases_supersedes rs JOIN s ON s.id = rs.rid) SELECT id FROM s)'),
+    validate_dbid sub { SQL
+        'SELECT id FROM releases
+          WHERE NOT hidden AND id', IN $_, '
+            AND id IN(SELECT id FROM releases_vn WHERE vid', IN [ map $_->{vid}, $data->{vn}->@* ], ')',
+            $new ? () : SQL('AND id NOT IN(WITH RECURSIVE s(id) AS (SELECT', $data->{id}, '::vndbid UNION SELECT rs.id FROM releases_supersedes rs JOIN s ON s.id = rs.rid) SELECT id FROM s)'),
     }, map $_->{rid}, $data->{supersedes}->@*;
 
     VNDB::ExtLinks::normalize $e, $data;

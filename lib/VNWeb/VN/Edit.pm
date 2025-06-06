@@ -145,33 +145,33 @@ js_api VNEdit => $FORM_IN, sub($data) {
 
     $data->{length} = 0 if $data->{devstatus} == 1;
 
-    validate_dbid 'SELECT id FROM anime WHERE id IN', map $_->{aid}, $data->{anime}->@*;
-    validate_dbid 'SELECT id FROM images WHERE id IN', map $_->{scr}, $data->{screenshots}->@*;
-    validate_dbid 'SELECT aid FROM staff_alias WHERE aid IN', map $_->{aid}, $data->{staff}->@*;
-    validate_dbid 'SELECT aid FROM staff_alias WHERE aid IN', map $_->{aid}, $data->{seiyuu}->@*;
+    validate_dbid 'SELECT id FROM anime WHERE id', map $_->{aid}, $data->{anime}->@*;
+    validate_dbid 'SELECT id FROM images WHERE id', map $_->{scr}, $data->{screenshots}->@*;
+    validate_dbid 'SELECT aid FROM staff_alias WHERE aid', map $_->{aid}, $data->{staff}->@*;
+    validate_dbid 'SELECT aid FROM staff_alias WHERE aid', map $_->{aid}, $data->{seiyuu}->@*;
 
     # Drop unused staff editions
     my %editions = map defined $_->{eid} ? +($_->{eid},1) : (), $data->{staff}->@*;
     $data->{editions} = [ grep $editions{$_->{eid}}, $data->{editions}->@* ];
 
     $data->{relations} = [] if $data->{hidden};
-    validate_dbid 'SELECT id FROM vn WHERE id IN', map $_->{vid}, $data->{relations}->@*;
+    validate_dbid 'SELECT id FROM vn WHERE id', map $_->{vid}, $data->{relations}->@*;
     die "Relation with self" if grep $_->{vid} eq $e->{id}, $data->{relations}->@*;
 
     die "Screenshot without releases assigned" if grep !$_->{rid}, $data->{screenshots}->@*; # This is only the case for *very* old revisions, form disallows this now.
     # Allow linking to deleted or moved releases only if the previous revision also had that.
     # (The form really should encourage the user to fix that, but disallowing the edit seems a bit overkill)
-    validate_dbid sub { '
-        SELECT r.id FROM releases r JOIN releases_vn rv ON r.id = rv.id WHERE NOT r.hidden AND rv.vid =', \$e->{id}, ' AND r.id IN', $_, '
+    validate_dbid sub { SQL '
+        SELECT r.id FROM releases r JOIN releases_vn rv ON r.id = rv.id WHERE NOT r.hidden AND rv.vid =', $e->{id}, ' AND r.id', IN $_, '
          UNION
-        SELECT rid FROM vn_screenshots WHERE id =', \$e->{id}, 'AND rid IN', $_
+        SELECT rid FROM vn_screenshots WHERE id =', $e->{id}, 'AND rid', IN $_
     }, map $_->{rid}, $data->{screenshots}->@*;
 
     # Likewise, allow linking to deleted or moved characters.
-    validate_dbid sub { '
-        SELECT c.id FROM chars c JOIN chars_vns cv ON c.id = cv.id WHERE NOT c.hidden AND cv.vid =', \$e->{id}, ' AND c.id IN', $_, '
+    validate_dbid sub { SQL '
+        SELECT c.id FROM chars c JOIN chars_vns cv ON c.id = cv.id WHERE NOT c.hidden AND cv.vid =', $e->{id}, ' AND c.id', IN $_, '
          UNION
-        SELECT cid FROM vn_seiyuu WHERE id =', \$e->{id}, 'AND cid IN', $_
+        SELECT cid FROM vn_seiyuu WHERE id =', $e->{id}, 'AND cid', IN $_
     }, map $_->{cid}, $data->{seiyuu}->@*;
 
     $data->{image_nsfw} = $e->{image_nsfw}||0;

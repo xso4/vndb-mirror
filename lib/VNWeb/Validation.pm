@@ -261,20 +261,20 @@ sub form_compile {
 }
 
 
-# Validate identifiers against an SQL query. The query must end with a 'id IN'
-# clause, where the @ids array is appended. The query must return exactly 1
-# column, the id of each entry. This function throws an error if an id is
+# Validate identifiers against an SQL query. Similar to fu->enrich(), an IN()
+# clause is appended with the given identifiers.  The query must return exactly
+# 1 column, the id of each entry. This function throws an error if an id is
 # missing from the query. For example, to test for non-hidden VNs:
 #
-#   validate_dbid 'SELECT id FROM vn WHERE NOT hidden AND id IN', 2,3,5,7,...;
+#   validate_dbid 'SELECT id FROM vn WHERE NOT hidden AND id', 2,3,5,7,...;
 #
 # If any of those ids is hidden or not in the database, an error is thrown.
 sub validate_dbid {
-    my($sql, @ids) = @_;
-    return if !@ids;
-    $sql = ref $sql eq 'CODE' ? do { local $_ = \@ids; sql $sql->(\@ids) } : sql $sql, \@ids;
-    my %dbids = map +((values %$_)[0],1), fu->dbAlli($sql)->@*;
-    my @missing = grep !$dbids{$_}, @ids;
+    return if @_ < 2;
+    my @ids = @_[1..$#_];
+    my $sql = ref $_[0] eq 'CODE' ? do { local $_ = \@ids; SQL $_[0]->() } : SQL $_[0], IN \@ids;
+    my $dbids = fu->SQL($sql)->kvv;
+    my @missing = grep !$dbids->{$_}, @ids;
     return if !@missing;
     # If this is a js_api, return a more helpful error message
     fu->send_json({_err => "Invalid reference to ".join ', ', @missing}) if fu->path =~ /^\/js\//;

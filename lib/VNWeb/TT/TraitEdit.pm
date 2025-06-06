@@ -85,10 +85,9 @@ js_api TraitEdit => $FORM_IN, sub($data) {
 
     # Make sure parent IDs exists and are not a child trait of the current trait (i.e. don't allow cycles)
     my @parents = map $_->{parent}, $data->{parents}->@*;
-    validate_dbid sub {
-        'SELECT id FROM traits WHERE', sql_and
-            $new ? () : sql('id NOT IN(WITH RECURSIVE t(id) AS (SELECT', \$e->{id}, '::vndbid UNION SELECT tp.id FROM traits_parents tp JOIN t ON t.id = tp.parent) SELECT id FROM t)'),
-            sql 'id IN', $_[0]
+    validate_dbid sub { SQL
+        'SELECT id FROM traits WHERE id', IN $_,
+            $new ? () : SQL('AND id NOT IN(WITH RECURSIVE t(id) AS (SELECT', $e->{id}, '::vndbid UNION SELECT tp.id FROM traits_parents tp JOIN t ON t.id = tp.parent) SELECT id FROM t)'),
     }, @parents;
     die "No or multiple primary parents" if $data->{parents}->@* && 1 != grep $_->{main}, $data->{parents}->@*;
 

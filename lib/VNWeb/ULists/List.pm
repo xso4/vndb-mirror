@@ -212,8 +212,8 @@ sub listing_ {
           ORDER BY', $opt->{s}->sql_order(), 'NULLS LAST, v.sorttitle'
     );
 
-    enrich_merge id => sub { sql '
-        SELECT rv.vid AS id, ARRAY[
+    fu->enrich(set => 'rlist', sub { SQL '
+        SELECT rv.vid, ARRAY[
                   COUNT(*) FILTER(WHERE rl.status = 0),
                   COUNT(*) FILTER(WHERE rl.status = 1),
                   COUNT(*) FILTER(WHERE rl.status = 2),
@@ -222,10 +222,10 @@ sub listing_ {
                ] rlist
           FROM rlists rl
           JOIN releases_vn rv ON rv.id = rl.rid
-         WHERE rl.uid =', \$uid, '
-           AND rv.vid IN', $_, '
+         WHERE rl.uid =', $uid, '
+           AND rv.vid', IN $_, '
          GROUP BY rv.vid'
-    }, $lst if $opt->{s}->rows;
+    }, $lst) if $opt->{s}->rows;
     VNWeb::VN::List::enrich_listing($own, $opt, $lst);
 
     return VNWeb::VN::List::listing_($opt, $lst, $count, 0, $labels, $own) if !$opt->{s}->rows;

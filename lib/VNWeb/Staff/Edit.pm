@@ -85,7 +85,7 @@ js_api StaffEdit => $FORM_IN, sub {
     if ($data->{prod}) {
         return "Producer ($data->{prod}) is already linked to another staff entry."
             if fu->SQL('SELECT 1 FROM staff WHERE NOT hidden AND prod =', $data->{prod}, $new ? () : ('AND id <>', $e->{id}), 'LIMIT 1')->val;
-        validate_dbid sql('SELECT id FROM producers WHERE NOT hidden AND id IN'), $data->{prod};
+        validate_dbid 'SELECT id FROM producers WHERE NOT hidden AND id', $data->{prod};
     }
 
     # The form validation only checks for duplicate aid's, but the name+latin should also be unique.
@@ -95,7 +95,7 @@ js_api StaffEdit => $FORM_IN, sub {
 
     # For positive alias IDs: Make sure they exist and are (or were) owned by this entry.
     validate_dbid
-        sql('SELECT aid FROM staff_alias_hist WHERE chid IN(SELECT id FROM changes WHERE itemid =', \$e->{id}, ') AND aid IN'),
+        SQL('SELECT aid FROM staff_alias_hist WHERE chid IN(SELECT id FROM changes WHERE itemid =', $e->{id}, ') AND aid'),
         grep $_>=0, map $_->{aid}, $data->{alias}->@*;
 
     # For negative alias IDs: Assign a new ID.

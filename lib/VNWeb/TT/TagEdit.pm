@@ -98,10 +98,9 @@ js_api TagEdit => $FORM_IN, sub($data) {
     return +{ dups => $dups } if @$dups;
 
     # Make sure parent IDs exists and are not a child tag of the current tag (i.e. don't allow cycles)
-    validate_dbid sub {
-        'SELECT id FROM tags WHERE', sql_and
-            $new ? () : sql('id NOT IN(WITH RECURSIVE t(id) AS (SELECT', \$data->{id}, '::vndbid UNION SELECT tp.id FROM tags_parents tp JOIN t ON t.id = tp.parent) SELECT id FROM t)'),
-            sql 'id IN', $_[0]
+    validate_dbid sub { SQL
+        'SELECT id FROM tags WHERE id', IN $_,
+            $new ? () : SQL('AND id NOT IN(WITH RECURSIVE t(id) AS (SELECT', $data->{id}, '::vndbid UNION SELECT tp.id FROM tags_parents tp JOIN t ON t.id = tp.parent) SELECT id FROM t)'),
     }, map $_->{parent}, $data->{parents}->@*;
     die "No or multiple primary parents" if $data->{parents}->@* && 1 != grep $_->{main}, $data->{parents}->@*;
 

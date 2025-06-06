@@ -57,8 +57,8 @@ js_api DiscussionEdit => $FORM, sub ($data) {
 
     return 'Invalid boards' if !$data->{boards} || grep +(!$BOARD_TYPE{$_->{btype}}{dbitem})^(!$_->{iid}), $data->{boards}->@*;
 
-    validate_dbid 'SELECT id FROM vn        WHERE id IN', map $_->{btype} eq 'v' ? $_->{iid} : (), $data->{boards}->@*;
-    validate_dbid 'SELECT id FROM producers WHERE id IN', map $_->{btype} eq 'p' ? $_->{iid} : (), $data->{boards}->@*;
+    validate_dbid 'SELECT id FROM vn        WHERE id', map $_->{btype} eq 'v' ? $_->{iid} : (), $data->{boards}->@*;
+    validate_dbid 'SELECT id FROM producers WHERE id', map $_->{btype} eq 'p' ? $_->{iid} : (), $data->{boards}->@*;
     # Do not validate user boards here, it's possible to have threads assigned to deleted users.
 
     return 'Invalid max_options' if $data->{poll} && $data->{poll}{max_options} > $data->{poll}{options}->@*;

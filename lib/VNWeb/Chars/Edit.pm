@@ -148,14 +148,14 @@ js_api CharEdit => $FORM_IN, sub ($data,@) {
     $data->{main} = undef if $data->{main} && !fu->SQL('SELECT 1 FROM chars WHERE NOT hidden AND main IS NULL AND id =', $data->{main})->val;
     $data->{main_spoil} = 0 if !$data->{main};
 
-    validate_dbid 'SELECT id FROM images WHERE id IN', $data->{image} if $data->{image};
+    validate_dbid 'SELECT id FROM images WHERE id', $data->{image} if $data->{image};
 
     # Allow non-applicable or non-approved traits only when they were already applied to this character.
     validate_dbid
-        sql('SELECT id FROM traits t WHERE ((NOT hidden AND applicable) OR EXISTS(SELECT 1 FROM chars_traits ct WHERE ct.tid = t.id AND ct.id =', \$e->{id}, ')) AND id IN'),
+        SQL('SELECT id FROM traits t WHERE ((NOT hidden AND applicable) OR EXISTS(SELECT 1 FROM chars_traits ct WHERE ct.tid = t.id AND ct.id =', $e->{id}, ')) AND id'),
         map $_->{tid}, $data->{traits}->@*;
 
-    validate_dbid 'SELECT id FROM vn WHERE id IN', map $_->{vid}, $data->{vns}->@*;
+    validate_dbid 'SELECT id FROM vn WHERE id', map $_->{vid}, $data->{vns}->@*;
     for($data->{vns}->@*) {
         return "Invalid release for $_->{vid}: $_->{rid}\n" if defined $_->{rid} && !fu->SQL('
             SELECT 1

@@ -15,7 +15,6 @@ our @EXPORT = qw/
     global_settings
     sql_join sql_comma sql_and sql_or sql_array sql_func sql_fromtime sql_totime sql_like sql_user
     USER
-    enrich enrich_merge enrich_flatten enrich_obj
     db_maytimeout db_entry db_edit
 /;
 
@@ -138,108 +137,6 @@ sub global_settings {
 }
 
 
-
-# The enrich*() functions are based on https://dev.yorhel.nl/doc/sqlobject
-# See that article for general usage information, the following is purely
-# reference documentation:
-#
-# enrich $name, $key, $merge_col, $sql, @objects;
-#
-#   Add a $name field to each item in @objects,
-#   Its value is a (possibly empty) array of hashes with data from $sql,
-#
-# enrich_flatten $name, $key, $merge_col, $sql, @objects;
-#
-#   Add a $name field to each item in @objects,
-#   Its value is a (possibly empty) array of values from a single column from $sql,
-#
-# enrich_merge $key, $sql, @objects;
-#
-#   Merge all columns returned by $sql into @objects;
-#
-# enrich_obj $key, $merge_col, $sql, @objects;
-#
-#   Replace all non-undef $key fields in @objects with an object returned by $sql.
-#
-# Arguments:
-#
-#   $key is the field in @objects used in the IN clause of $sql,
-#
-#   $merge_col is the column name returned by $sql and compared against the
-#     values of the $key field.
-#     (enrich_merge() requires that the column name is equivalent to $key)
-#
-#   $sql is the query to be executed, can be either:
-#     - A string or sql() object, in which case it should end with ' IN' so
-#       that the list of identifiers can be appended to it.
-#     - A subroutine, in which case the array of identifiers is given as first
-#       argument. The sub should return an sql() object.
-#
-#   @objects is a list or array of hashrefs to be enriched.
-
-
-# Helper function for the enrich functions below.
-sub _enrich {
-    my($merge, $key, $sql, @array) = @_;
-
-    # 'flatten' the given array, so that you can also give arrayrefs as argument
-    @array = map +(ref $_ eq 'ARRAY' ? @$_ : $_), @array;
-
-    # Create a list of unique identifiers to fetch, do nothing if there's nothing to fetch
-    my %ids = map defined($_->{$key}) ? ($_->{$key},1) : (), @array;
-    return if !keys %ids;
-
-    # Fetch the data
-    $sql = ref $sql eq 'CODE' ? do { local $_ = [keys %ids]; sql $sql->($_) } : sql $sql, [keys %ids];
-    my $data = fu->dbAlli($sql);
-
-    # And merge
-    $merge->($data, \@array);
-}
-
-
-sub enrich {
-    my($name, $key, $merge_col, $sql, @array) = @_;
-    _enrich sub {
-        my($data, $array) = @_;
-        my %ids = ();
-        push $ids{ delete $_->{$merge_col} }->@*, $_ for @$data;
-        $_->{$name} = $ids{ $_->{$key} }||[] for @$array;
-    }, $key, $sql, @array;
-}
-
-
-sub enrich_merge {
-    my($key, $sql, @array) = @_;
-    _enrich sub {
-        my($data, $array) = @_;
-        my %ids = map +(delete($_->{$key}), $_), @$data;
-        %$_ = (%$_, ($ids{ $_->{$key} }||{})->%*) for @$array;
-    }, $key, $sql, @array;
-}
-
-
-sub enrich_flatten {
-    my($name, $key, $merge_col, $sql, @array) = @_;
-    _enrich sub {
-        my($data, $array) = @_;
-        my %ids = ();
-        push $ids{ delete $_->{$merge_col} }->@*, values %$_ for @$data;
-        $_->{$name} = $ids{ $_->{$key} }||[] for @$array;
-    }, $key, $sql, @array;
-}
-
-
-sub enrich_obj {
-    my($key, $merge_col, $sql, @array) = @_;
-    _enrich sub {
-        my($data, $array) = @_;
-        my %ids = map +($_->{$merge_col}, $_), @$data;
-        $_->{$key} = defined $_->{$key} ? $ids{ $_->{$key} } : undef for @$array;
-    }, $key, $sql, @array;
-}
-
-
 # fu->enrich(%opt, $sql, $list):
 #
 #   $list:
@@ -269,6 +166,8 @@ sub enrich_obj {
 #
 #   $opt{aov}:
 #       Write an array of values.
+#
+# Based on ideas described in https://dev.yorhel.nl/doc/sqlobject
 sub FU::obj::enrich {
     my $lst = pop;
     my $sql = pop;
