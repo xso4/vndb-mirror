@@ -65,7 +65,7 @@ js_api ProducerEdit => $FORM_IN, sub {
 
     $data->{relations} = [] if $data->{hidden};
     validate_dbid 'SELECT id FROM producers WHERE id', map $_->{pid}, $data->{relations}->@*;
-    die "Relation with self" if grep $_->{pid} eq $e->{id}, $data->{relations}->@*;
+    return 'Invalid relation with self.' if grep $_->{pid} eq $e->{id}, $data->{relations}->@*;
 
     VNDB::ExtLinks::normalize $e, $data;
 

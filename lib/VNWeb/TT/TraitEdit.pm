@@ -89,7 +89,7 @@ js_api TraitEdit => $FORM_IN, sub($data) {
         'SELECT id FROM traits WHERE id', IN $_,
             $new ? () : SQL('AND id NOT IN(WITH RECURSIVE t(id) AS (SELECT', $e->{id}, '::vndbid UNION SELECT tp.id FROM traits_parents tp JOIN t ON t.id = tp.parent) SELECT id FROM t)'),
     }, @parents;
-    die "No or multiple primary parents" if $data->{parents}->@* && 1 != grep $_->{main}, $data->{parents}->@*;
+    return 'There should be exactly one primary parent' if $data->{parents}->@* && 1 != grep $_->{main}, $data->{parents}->@*;
 
     my $group = fu->SQL('SELECT coalesce(gid,id) FROM traits WHERE id =', [grep $_->{main}, $data->{parents}->@*]->[0]{parent})->val;
 

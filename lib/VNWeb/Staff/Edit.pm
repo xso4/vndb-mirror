@@ -90,8 +90,8 @@ js_api StaffEdit => $FORM_IN, sub {
 
     # The form validation only checks for duplicate aid's, but the name+latin should also be unique.
     my %names;
-    die "Duplicate aliases" if grep $names{"$_->{name}\x00".($_->{latin}//'')}++, $data->{alias}->@*;
-    die "Latin = name" if grep $_->{latin} && $_->{name} eq $_->{latin}, $data->{alias}->@*;
+    return 'Duplicate aliases' if grep $names{"$_->{name}\x00".($_->{latin}//'')}++, $data->{alias}->@*;
+    return 'Romanization should not equal the name' if grep $_->{latin} && $_->{name} eq $_->{latin}, $data->{alias}->@*;
 
     # For positive alias IDs: Make sure they exist and are (or were) owned by this entry.
     validate_dbid

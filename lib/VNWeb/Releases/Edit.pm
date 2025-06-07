@@ -190,12 +190,12 @@ js_api ReleaseEdit => $FORM_IN, sub {
     $data->{images} = [] if !$data->{official};
     ani_compat($data, $e);
 
-    die "No title in main language" if !length [grep $_->{lang} eq $data->{olang}, $data->{titles}->@*]->[0]{title};
+    return 'No title in main language' if !length [grep $_->{lang} eq $data->{olang}, $data->{titles}->@*]->[0]{title};
 
     $_->{qty} = 0 for grep !$MEDIUM{$_->{medium}}{qty}, $data->{media}->@*;
     $data->{notes} = bb_subst_links $data->{notes};
-    die "No VNs selected" if !$data->{vn}->@*;
-    die "Invalid resolution: ($data->{reso_x},$data->{reso_y})" if (!$data->{reso_x} && $data->{reso_y} > 1) || ($data->{reso_x} && !$data->{reso_y});
+    return 'Release is not linked to any visual novels' if !$data->{vn}->@*;
+    return "Invalid resolution: $data->{reso_x}x$data->{reso_y}" if (!$data->{reso_x} && $data->{reso_y} > 1) || ($data->{reso_x} && !$data->{reso_y});
 
     my %vids = map +($_->{vid},1), $data->{vn}->@*;
     my %langs = map +($_->{lang},1), $data->{titles}->@*;

@@ -142,8 +142,9 @@ js_api CharEdit => $FORM_IN, sub ($data,@) {
     $data->{spoil_sex} = undef if !defined $data->{gender} && defined $data->{spoil_sex} && $data->{spoil_sex} eq $data->{sex};
 
     $data->{main} = undef if $data->{hidden};
-    die "Attempt to set main to self" if $data->{main} && $e->{id} && $data->{main} eq $e->{id};
-    die "Attempt to set main while this character is already referenced." if $data->{main} && fu->SQL('SELECT 1 FROM chars WHERE main =', $e->{id}, 'LIMIT 1')->val;
+    return '"Instance" should not point to the same character' if $data->{main} && $e->{id} && $data->{main} eq $e->{id};
+    return 'Attempt to set instance while this character is already referenced from another character.'
+        if $data->{main} && fu->SQL('SELECT 1 FROM chars WHERE main =', $e->{id}, 'LIMIT 1')->val;
     # It's possible that the referenced character has been deleted since it was added as main, so don't die() on this one, just unset main.
     $data->{main} = undef if $data->{main} && !fu->SQL('SELECT 1 FROM chars WHERE NOT hidden AND main IS NULL AND id =', $data->{main})->val;
     $data->{main_spoil} = 0 if !$data->{main};

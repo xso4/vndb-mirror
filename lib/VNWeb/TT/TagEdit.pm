@@ -102,7 +102,7 @@ js_api TagEdit => $FORM_IN, sub($data) {
         'SELECT id FROM tags WHERE id', IN $_,
             $new ? () : SQL('AND id NOT IN(WITH RECURSIVE t(id) AS (SELECT', $data->{id}, '::vndbid UNION SELECT tp.id FROM tags_parents tp JOIN t ON t.id = tp.parent) SELECT id FROM t)'),
     }, map $_->{parent}, $data->{parents}->@*;
-    die "No or multiple primary parents" if $data->{parents}->@* && 1 != grep $_->{main}, $data->{parents}->@*;
+    return 'There should be exactly one primary parent' if $data->{parents}->@* && 1 != grep $_->{main}, $data->{parents}->@*;
 
     $data->{description} = bb_subst_links($data->{description});
 

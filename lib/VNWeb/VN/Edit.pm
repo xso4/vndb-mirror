@@ -140,7 +140,7 @@ js_api VNEdit => $FORM_IN, sub($data) {
     $data->{alias} =~ s/\n\n+/\n/;
 
     my($otitle) = grep $_->{lang} eq $data->{olang}, $data->{titles}->@*;
-    die "No title in original language" if !$otitle;
+    return 'No title for the original language' if !$otitle;
     $otitle->{official} = 1;
 
     $data->{length} = 0 if $data->{devstatus} == 1;
@@ -156,9 +156,9 @@ js_api VNEdit => $FORM_IN, sub($data) {
 
     $data->{relations} = [] if $data->{hidden};
     validate_dbid 'SELECT id FROM vn WHERE id', map $_->{vid}, $data->{relations}->@*;
-    die "Relation with self" if grep $_->{vid} eq $e->{id}, $data->{relations}->@*;
+    return 'Invalid relation with self' if grep $_->{vid} eq $e->{id}, $data->{relations}->@*;
 
-    die "Screenshot without releases assigned" if grep !$_->{rid}, $data->{screenshots}->@*; # This is only the case for *very* old revisions, form disallows this now.
+    return 'Screenshot without releases assigned' if grep !$_->{rid}, $data->{screenshots}->@*; # This is only the case for *very* old revisions, form disallows this now.
     # Allow linking to deleted or moved releases only if the previous revision also had that.
     # (The form really should encourage the user to fix that, but disallowing the edit seems a bit overkill)
     validate_dbid sub { SQL '
