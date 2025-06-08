@@ -101,7 +101,7 @@ FU::get '/robots.txt', sub {
 
 
 FU::on_error 400 => sub {
-    VNWeb::API::err(400, 'Invalid request (most likely: invalid JSON or non-UTF8 data).') if VNWeb::Validation::is_api;
+    VNWeb::API::err(400, 'Invalid request (most likely: invalid JSON or non-UTF8 data).', $_[1]) if VNWeb::Validation::is_api;
     fu->_error_page(400, '400 - Bad Request', 'The server was not happy with your offer.');
 };
 

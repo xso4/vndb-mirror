@@ -87,7 +87,7 @@ sub logreq {
         fu->header('user-agent')||'';
 }
 
-sub err($status, $msg) {
+sub err($status, $msg, $logmsg='') {
     add_throttle;
     fu->status($status);
     fu->set_header('content-type', 'text');
@@ -95,7 +95,8 @@ sub err($status, $msg) {
     cors;
     utf8::encode($msg);
     fu->set_body("$msg\n");
-    logreq "$status $msg";
+    $logmsg &&= "; $logmsg";
+    logreq "$status $msg$logmsg";
     fu->done;
 }
 
@@ -137,12 +138,11 @@ sub api_patch($path, $req_schema, $sub) {
         if (!$req) {
             my $err = $@;
             if ($err isa 'FU::Validate::err') {
-                warn +($err->errors)[0]."\n";
-                err 400, $err->{keys} ? "Unknown member '$err->{keys}[0]'." : 'Invalid request body.' if !$err->{errors};
+                err 400, $err->{keys} ? "Unknown member '$err->{keys}[0]'." : 'Invalid request body.', +($err->errors)[0] if !$err->{errors};
                 $err = $err->{errors}[0]//{};
-                err 400, "Invalid '$err->{key}' member." if $err->{key};
+                err 400, "Invalid '$err->{key}' member.", +($err->errors)[0] if $err->{key};
             }
-            err 400, 'Invalid request body.';
+            err 400, 'Invalid request body.', "$err";
         }
 
         $sub->(@a, $req);
@@ -247,13 +247,13 @@ sub api_query($path, %opt) {
         $req = eval { $req_schema->validate($req) };
         if(!$req) {
             my $err = $@;
-            warn +($err->errors)[0]."\n";
-            err 400, $err->{keys} ? "Unknown member '$err->{keys}[0]'." : 'Missing request body.' if !$err->{errors};
+            my $fullerr = +($err->errors)[0];
+            err 400, $err->{keys} ? "Unknown member '$err->{keys}[0]'." : 'Missing request body.', $fullerr if !$err->{errors};
             $err = $err->{errors}[0]//{};
-            err 400, "Invalid '$err->{field}' filter: $err->{msg}." if $err->{key} eq 'filters' && $err->{msg} && $err->{field};
-            err 400, "Invalid '$err->{key}' member: $err->{msg}" if $err->{key} && $err->{msg};
-            err 400, "Invalid '$err->{key}' member." if $err->{key};
-            err 400, 'Invalid query.';
+            err 400, "Invalid '$err->{field}' filter: $err->{msg}.", $fullerr if $err->{key} eq 'filters' && $err->{msg} && $err->{field};
+            err 400, "Invalid '$err->{key}' member: $err->{msg}", $fullerr if $err->{key} && $err->{msg};
+            err 400, "Invalid '$err->{key}' member.", $fullerr if $err->{key};
+            err 400, 'Invalid query.', $fullerr;
         };
 
         my $numfields = count_fields($opt{fields}, $req->{fields}, $req->{results});
