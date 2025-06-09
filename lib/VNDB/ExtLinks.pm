@@ -213,7 +213,7 @@ our %LINKS = (
         { ent   => 'sp'
         , label => 'Fanbox'
         , fmt   => 'https://%s.fanbox.cc/'
-        , regex => qr{([a-z0-9]+)\.fanbox\.cc/.*}
+        , regex => qr{([a-z0-9-]+)\.fanbox\.cc/.*}
         },
     freegame =>
         { ent   => 'r'
