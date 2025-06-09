@@ -135,6 +135,15 @@ our %LINKS = (
         , fmt   => 'https://bsky.app/profile/%s'
         , regex => qr{bsky\.app/profile/([a-z0-9\.-]+)}
         },
+    cien =>
+        { ent   => 'sp'
+        , label => 'Ci-en'
+        , fmt   => 'https://ci-en.dlsite.com/creator/%d'
+          # Some creators are on the dlsite domain, others on ci-en.net. The
+          # site always redirects to the correct domain. Let's use dlsite as
+          # "main" here because that's where VN creators typically are.
+        , regex => qr{(?:ci-en\.dlsite\.com|ci-en\.net)/creator/([0-9]+)}
+        },
     denpa =>
         { ent   => 'r'
         , label => 'Denpasoft'
@@ -740,6 +749,7 @@ sub enrich_vislinks($type, $enabled, @obj) {
         l 'substar';
         l 'kofi';
         l 'boosty';
+        l 'cien';
         l 'youtube';
         l 'instagram';
         l 'deviantar';
@@ -767,6 +777,7 @@ sub enrich_vislinks($type, $enabled, @obj) {
         l 'patreon';
         l 'substar';
         l 'boosty';
+        l 'cien';
         l 'bilibili';
         l 'weibo';
         l 'youtube';
