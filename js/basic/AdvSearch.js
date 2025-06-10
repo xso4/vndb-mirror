@@ -811,8 +811,9 @@ const encodeQuery = (() => {
     // XXX: Bit silly to do this mapping when we can work directly with the integers.
     const ops = new Map([['=',0], ['!=',1], ['>=',2], ['>', 3], ['<=', 4], ['<', 5]]);
     const eint = v => {
+        if (!String(v).match(/^[0-9]+$/)) return null;
         const n = parseInt(v, 10);
-        if (n < 0 || n !== parseFloat(v)) return null;
+        if (n !== parseFloat(v)) return null;
         if (n < 49) return alpha[n];
         if (n < 689) return alpha[49 + Math.floor((n-49)/64)] + alpha[(n-49)%64];
         const r = (l,v) => (l > 1 ? r(l-1, Math.floor(v/64)) : '') + alpha[v%64];
