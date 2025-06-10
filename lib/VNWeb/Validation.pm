@@ -418,6 +418,7 @@ sub sendmail($body, %hs) {
 # Object returned by the 'searchquery' validation, has some handy methods for generating SQL.
 package VNWeb::Validate::SearchQuery {
     use FU;
+    use FU::SQL;
     use VNWeb::DB;
 
     sub TO_QUERY { $_[0][0] }
@@ -434,61 +435,55 @@ package VNWeb::Validate::SearchQuery {
 
     sub _isvndbid { my $l = $_[0]->words; @$l == 1 && $l->[0] =~ /^[vrpcsgi]$num$/ }
 
-    sub where {
-        my($self, $type, $nothid) = @_;
+    sub _WHERE($self, $type, $nothid=0) {
         my $lst = $self->words;
-        my @keywords = map sql('sc.label LIKE', \('%'.sql_like($_).'%')), @$lst;
-        +(
-            $type ? "sc.id BETWEEN '${type}1' AND vndbid_max('$type')" : (),
+        my @keywords = map SQL('sc.label LIKE', ('%'.sql_like($_).'%')), @$lst;
+        AND
+            $type ? RAW "sc.id BETWEEN '${type}1' AND vndbid_max('$type')" : (),
             $nothid ? 'sc.prio <> 4' : (),
             $self->_isvndbid()
-                ? (sql 'sc.id =', \$lst->[0], 'OR', sql_and(@keywords))
-                : @keywords
-        )
+                ? (SQL 'sc.id =', $lst->[0], 'OR', AND(@keywords))
+                : @keywords;
     }
 
-    sub sql_where {
-        my($self, $type, $id, $subid) = @_;
-        return '1=1' if !$self;
-        sql 'EXISTS(SELECT 1 FROM search_cache sc WHERE', sql_and(
-            sql('sc.id =', $id), $subid ? sql('sc.subid =', $subid) : (),
-            $self->where($type),
+    no warnings 'redefine';
+    sub WHERE($self, $type, $id, $subid=undef) {
+        return RAW '1=1' if !$self;
+        SQL 'EXISTS(SELECT 1 FROM search_cache sc WHERE', AND(
+            SQL('sc.id =', RAW $id), $subid ? SQL('sc.subid =', RAW $subid) : (),
+            $self->_WHERE($type),
         ), ')';
     }
 
     # Returns a subquery that can be joined to get the search score.
     # Columns (id, subid, score)
-    sub sql_score {
-        my($self, $type) = @_;
+    sub SCORE($self, $type) {
         my $lst = $self->words;
         my $q = join '', @$lst;
-        sql '(SELECT id, subid, max(sc.prio * (', VNWeb::DB::sql_join('+',
-                $self->_isvndbid() ? sql('CASE WHEN sc.id =', \$q, 'THEN 1+1 ELSE 0 END') : (),
-                sql('CASE WHEN sc.label LIKE', \(sql_like($q).'%'), 'THEN 1::float/(1+1) ELSE 0 END'),
-                sql('similarity(sc.label,', \$q, ')'),
+        SQL '(SELECT id, subid, max(sc.prio * (', INTERSPERSE('+',
+                $self->_isvndbid() ? SQL('CASE WHEN sc.id =', $q, 'THEN 2 ELSE 0 END') : (),
+                SQL('CASE WHEN sc.label LIKE', sql_like($q).'%', 'THEN 0.5 ELSE 0 END'),
+                SQL('similarity(sc.label,', $q, ')'),
             ), ')) AS score
             FROM search_cache sc
-           WHERE', sql_and($self->where($type)), '
+           WHERE', $self->_WHERE($type), '
            GROUP BY id, subid
         )';
     }
 
-    # Optionally returns a JOIN clause for sql_score, aliassed 'sc'
-    no warnings 'redefine';
-    sub sql_join {
-        my($self, $type, $id, $subid) = @_;
-        return '' if !$self;
-        sql 'JOIN', $self->sql_score($type), 'sc ON sc.id =', $id, $subid ? ('AND sc.subid =', $subid) : ();
+    # Optionally returns a JOIN clause for SCORE, aliassed 'sc'
+    sub JOIN($self, $type, $id, $subid=undef) {
+        return RAW '' if !$self;
+        SQL 'JOIN', $self->SCORE($type), 'sc ON sc.id =', RAW $id, $subid ? ('AND sc.subid =', RAW $subid) : ();
     }
 
-    # Same as sql_join(), but accepts an array of SearchQuery objects that are OR'ed together.
-    sub sql_joina {
-        my($lst, $type, $id, $subid) = @_;
-        sql 'JOIN (
+    # Same as JOIN(), but accepts an array of SearchQuery objects that are OR'ed together.
+    sub JOINA($lst, $type, $id, $subid=undef) {
+        SQL 'JOIN (
             SELECT id, subid, max(score) AS score
-              FROM (', VNWeb::DB::sql_join('UNION ALL', map sql('SELECT * FROM', $_->sql_score($type), 'x'), @$lst), ') x
+              FROM (', INTERSPERSE('UNION ALL', map SQL('SELECT * FROM', $_->SCORE($type), 'x'), @$lst), ') x
              GROUP BY id, subid
-          ) sc ON sc.id =', $id, $subid ? ('AND sc.subid =', $subid) : ();
+          ) sc ON sc.id =', RAW $id, $subid ? ('AND sc.subid =', RAW $subid) : ();
     }
 };
 

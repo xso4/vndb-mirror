@@ -189,12 +189,6 @@ sub txt_pref {
     /).')'
 }
 
-sub vnt :prototype()          { fu->{titleprefsold_v} //= gen_sql(1, 'vn',       'vn_titles',       'id') || 'vnt'       }
-sub releasest :prototype()    { fu->{titleprefsold_r} //= gen_sql(0, 'releases', 'releases_titles', 'id') || 'releasest' }
-sub producerst :prototype()   { fu->{titleprefsold_p} //= pref ? sql 'producerst(',   \txt_pref, ')' : 'producerst' }
-sub charst :prototype()       { fu->{titleprefsold_c} //= pref ? sql 'charst(',       \txt_pref, ')' : 'charst' }
-sub staff_aliast :prototype() { fu->{titleprefsold_s} //= pref ? sql 'staff_aliast(', \txt_pref, ')' : 'staff_aliast' }
-
 sub VNT :prototype()          { fu->{titleprefs_v} //= RAW(gen_sql(1, 'vn',       'vn_titles',       'id') || 'vnt')       }
 sub RELEASEST :prototype()    { fu->{titleprefs_r} //= RAW(gen_sql(0, 'releases', 'releases_titles', 'id') || 'releasest') }
 sub PRODUCERST :prototype()   { fu->{titleprefs_p} //= pref ? SQL 'producerst(',   pref, ')' : RAW 'producerst' }
@@ -205,8 +199,5 @@ sub ITEM_INFO                 { SQL 'item_info(', pref, ',', $_[0], ',', $_[1], 
 # (Not currently used)
 #sub vnt_hist { gen_sql 1, 'vn_hist', 'vn_titles_hist', 'chid' }
 #sub releasest_hist { gen_sql 0, 'releases_hist', 'releases_titles_hist', 'chid' }
-
-# Wrapper around SQL's item_info() with the user's preference applied.
-sub item_info { sql 'item_info(', \txt_pref, ',', $_[0], ',', $_[1], ')' }
 
 1;

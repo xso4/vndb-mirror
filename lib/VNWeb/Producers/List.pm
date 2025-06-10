@@ -34,19 +34,20 @@ FU::get qr{/p(?:/(all|[a-z0]))?}, sub($char=undef) {
 
     $opt->{f} = advsearch_default 'p' if !$opt->{f}{query} && !defined fu->query('f');
 
-    my $where = sql_and 'NOT p.hidden', $opt->{f}->sql_where(),
-        defined($opt->{ch}) ? sql 'match_firstchar(p.sorttitle, ', \$opt->{ch}, ')' : ();
+    my $where = AND 'NOT p.hidden', $opt->{f}->WHERE,
+        defined($opt->{ch}) ? SQL 'match_firstchar(p.sorttitle, ', $opt->{ch}, ')' : ();
 
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = fu->dbVali('SELECT COUNT(*) FROM', producerst, 'p WHERE', sql_and $where, $opt->{q}->sql_where('p', 'p.id'));
-        $list = $count ? fu->dbPagei({ results => 150, page => $opt->{p} },
-            'SELECT p.id, p.title, p.lang
-               FROM', producerst, 'p', $opt->{q}->sql_join('p', 'p.id'), '
-              WHERE', $where, '
-              ORDER BY', $opt->{q} ? 'sc.score DESC, ' : (), 'p.sorttitle'
-        ) : [];
+        $count = fu->SQL('SELECT COUNT(*) FROM', PRODUCERST, 'p WHERE', AND $where, $opt->{q}->WHERE('p', 'p.id'))->val;
+        $list = $count ? fu->SQL('
+            SELECT p.id, p.title, p.lang
+              FROM', PRODUCERST, 'p', $opt->{q}->JOIN('p', 'p.id'), '
+             WHERE', $where, '
+             ORDER BY', $opt->{q} ? 'sc.score DESC, ' : (), 'p.sorttitle', '
+             LIMIT 150 OFFSET', 150*($opt->{p}-1)
+        )->allh : [];
     } || (($count, $list) = (undef, []));
     $time = time - $time;
 

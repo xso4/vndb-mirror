@@ -31,6 +31,5 @@ RUN apk add --no-cache \
         AnyEvent::IRC \
         AnyEvent::Pg \
         Crypt::ScryptKDF \
-        SQL::Interp \
         Text::MultiMarkdown \
         git://g.blicky.net/fu.git

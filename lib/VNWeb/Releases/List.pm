@@ -51,26 +51,27 @@ FU::get '/r', sub {
 
     $opt->{f} = advsearch_default 'r' if !$opt->{f}{query} && !defined fu->query('f');
 
-    my $where = sql_and
+    my $where = AND
         'NOT r.hidden',
         'r.official OR EXISTS(SELECT 1 FROM releases_titles rt WHERE rt.id = r.id AND NOT rt.mtl)',
-        $opt->{f}->sql_where();
+        $opt->{f}->WHERE;
 
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = fu->dbVali('SELECT count(*) FROM releases r WHERE', sql_and $where, $opt->{q}->sql_where('r', 'r.id'));
-        $list = $count ? fu->dbPagei({results => 50, page => $opt->{p}}, '
+        $count = fu->SQL('SELECT count(*) FROM releases r WHERE', AND $where, $opt->{q}->WHERE('r', 'r.id'))->val;
+        $list = $count ? fu->SQL('
             SELECT r.id, r.patch, r.released
-              FROM', releasest, 'r', $opt->{q}->sql_join('r', 'r.id'), '
+              FROM', RELEASEST, 'r', $opt->{q}->JOIN('r', 'r.id'), '
              WHERE', $where, '
-             ORDER BY', sprintf {
+             ORDER BY', RAW(sprintf {
                  qscore   => '10 - sc.score %s, r.sorttitle %1$s',
                  title    => 'r.sorttitle %s, r.released %1$s',
                  minage   => 'r.minage %s, r.sorttitle %1$s, r.released %1$s',
                  released => 'r.released %s, r.sorttitle %1$s, r.id %1$s',
-             }->{$opt->{s}}, $opt->{o} eq 'a' ? 'ASC' : 'DESC'
-        ) : [];
+             }->{$opt->{s}}, $opt->{o} eq 'a' ? 'ASC' : 'DESC'), '
+             LIMIT 50 OFFSET', 50*($opt->{p}-1)
+        )->allh : [];
     } || (($count, $list) = (undef, []));
 
     enrich_vislinks r => 0, $list;

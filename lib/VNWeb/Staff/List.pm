@@ -47,21 +47,22 @@ FU::get qr{/s(?:/(?<char>all|[a-z0]))?}, sub($char=undef) {
 
     $opt->{f} = advsearch_default 's' if !$opt->{f}{query} && !defined fu->query('f');
 
-    my $where = sql_and
+    my $where = AND
         $opt->{n} ? 's.main = s.aid' : (),
-        'NOT s.hidden', $opt->{f}->sql_where(),
-        defined($opt->{ch}) ? sql 'match_firstchar(s.sorttitle, ', \$opt->{ch}, ')' : ();
+        'NOT s.hidden', $opt->{f}->WHERE,
+        defined($opt->{ch}) ? SQL 'match_firstchar(s.sorttitle, ', $opt->{ch}, ')' : ();
 
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = fu->dbVali('SELECT count(*) FROM', staff_aliast, 's WHERE', sql_and $where, $opt->{q}->sql_where('s', 's.id', 's.aid'));
-        $list = $count ? fu->dbPagei({results => 150, page => $opt->{p}}, '
+        $count = fu->SQL('SELECT count(*) FROM', STAFF_ALIAST, 's WHERE', AND $where, $opt->{q}->WHERE('s', 's.id', 's.aid'))->val;
+        $list = $count ? fu->SQL('
             SELECT s.id, s.title, s.lang
-              FROM', staff_aliast, 's', $opt->{q}->sql_join('s', 's.id', 's.aid'), '
-             WHERE', $where,
-            'ORDER BY', $opt->{q} ? 'sc.score DESC, ' : (), 's.sorttitle, s.aid'
-        ) : [];
+              FROM', STAFF_ALIAST, 's', $opt->{q}->JOIN('s', 's.id', 's.aid'), '
+             WHERE', $where, '
+             ORDER BY', $opt->{q} ? 'sc.score DESC, ' : (), 's.sorttitle, s.aid
+             LIMIT 150 OFFSET', 150*($opt->{p}-1)
+        )->allh : [];
     } || (($count, $list) = (undef, []));
     $time = time - $time;
 

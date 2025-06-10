@@ -12,18 +12,18 @@ sub screens {
 
     my $filt = advsearch_default 'v';
     my $start = time;
-    my $lst = $filt->{query} ? fu->dbAlli(
+    my $lst = $filt->{query} ? fu->SQL(
         # Assumption: If we randomly select 30 matching VNs, there'll be at least 4 VNs with qualified screenshots
         # (As of Sep 2020, over half of the VNs in the database have screenshots, so that assumption usually works)
         'SELECT * FROM (
             SELECT DISTINCT ON (v.id) i.id, i.width, i,height, v.id AS vid, v.title
-              FROM (SELECT id, title FROM', vnt, 'v WHERE NOT v.hidden AND ', $filt->sql_where(), ' ORDER BY random() LIMIT', \30, ') v
+              FROM (SELECT id, title FROM', VNT, 'v WHERE NOT v.hidden AND ', $filt->WHERE, ' ORDER BY random() LIMIT 30) v
               JOIN vn_screenshots vs ON v.id = vs.id
               JOIN images i ON i.id = vs.scr
-             WHERE ', $where, '
+             WHERE ', RAW($where), '
              ORDER BY v.id
-        ) x ORDER BY random() LIMIT', \4
-    ) : fu->SQL('
+        ) x ORDER BY random() LIMIT 4'
+    )->allh : fu->SQL('
         SELECT i.id, i.width, i.height, v.id AS vid, v.title
           FROM (SELECT id, width, height FROM images i TABLESAMPLE SYSTEM (', $sample, ') WHERE', RAW($where), ' ORDER BY random() LIMIT 4) i(id)
           JOIN vn_screenshots vs ON vs.scr = i.id
@@ -176,9 +176,7 @@ sub recent_vn_posts_ {
 
 
 
-sub releases {
-    my($released) = @_;
-
+sub releases($released) {
     my $filt = advsearch_default 'r';
 
     # Drop any top-level date filters
@@ -190,13 +188,13 @@ sub releases {
     $filt->{query} = [ 'and', [ released => $released ? '<=' : '>', 1 ], $filt->{query} || () ];
 
     my $start = time;
-    my $lst = fu->dbAlli('
+    my $lst = fu->SQL('
         SELECT id, title, released
-          FROM', releasest, 'r
-         WHERE NOT hidden AND ', $filt->sql_where(), '
+          FROM', RELEASEST, 'r
+         WHERE NOT hidden AND ', $filt->WHERE, '
            AND NOT EXISTS(SELECT 1 FROM releases_titles rt WHERE rt.id = r.id AND rt.mtl)
          ORDER BY released', $released ? 'DESC' : '', ', id LIMIT 10'
-    );
+    )->allh;
     my $end = time;
     fu->enrich(aov => 'plat', 'SELECT id, platform FROM releases_platforms WHERE id', $lst);
     fu->enrich(aov => 'lang', 'SELECT id, lang     FROM releases_titles    WHERE id', $lst);

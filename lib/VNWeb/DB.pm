@@ -3,7 +3,6 @@ package VNWeb::DB;
 use v5.36;
 use FU;
 use FU::SQL;
-use SQL::Interp ':all';
 use Carp 'confess';
 use Exporter 'import';
 use VNDB::Schema;
@@ -11,112 +10,23 @@ use VNDB::Config;
 use experimental 'builtin'; # for is_bool
 
 our @EXPORT = qw/
-    sql
     global_settings
-    sql_join sql_comma sql_and sql_or sql_array sql_func sql_fromtime sql_totime sql_like sql_user
-    USER
+    sql_like USER
     db_maytimeout db_entry db_edit
 /;
 
 
 
-# TUWF db* methods, should migrate to directly using fu->q() instead.
-sub _sqlhelper($type, $sql, @params) {
-    my $r;
-    for (@params) { $_ ||= 0 if builtin::is_bool($_) }
-    my $n = 0;
-    my $st = fu->sql($sql =~ s/\?/'$'.++$n/egr, @params)->cache(0)->text_params;
-    return $type == 1 ? $st->flat->[0] : # $st->val throws if the query returns multiple rows/columns
-           $type == 2 ? ($st->rowh || {}) :
-           $type == 3 ? $st->allh : $st->exec;
-}
-
-sub FU::obj::dbExec { shift; _sqlhelper(0, @_) }
-sub FU::obj::dbVal  { shift; _sqlhelper(1, @_) }
-sub FU::obj::dbRow  { shift; _sqlhelper(2, @_) }
-sub FU::obj::dbAll  { shift; _sqlhelper(3, @_) }
-sub FU::obj::dbPage($s, $o, $q, @a) {
-    my $r = $s->dbAll($q.' LIMIT ? OFFSET ?', @a, $o->{results}+(wantarray?1:0), $o->{results}*($o->{page}-1));
-    return $r if !wantarray;
-    return ($r, 0) if $#$r != $o->{results};
-    pop @$r;
-    return ($r, 1);
-}
-
-
-# Test for potential SQL injection and warn about it. This will cause some
-# false positives.
-# The heuristic is pretty simple: Just check if there's an integer in the SQL
-# statement. SQL injection through strings is likely to be caught much earlier,
-# since that will generate a syntax error if the string is not properly escaped
-# (and who'd put effort into escaping strings when placeholders are easier?).
-sub interp_warn {
-    my @r;
-    confess $@ if !eval { @r = sql_interp @_ };
-    # 0 and 1 aren't interesting, "SELECT 1" is a common pattern and so is "x > 0".
-    # '{7}' is commonly used in ulist filtering and r18/api2 are a valid database identifiers.
-    #warn "Possible SQL injection in '$r[0]'" if fu->debug && ($r[0] =~ s/(?:r18|\{7\}|api2)//rg) =~ /[2-9]/;
-    return @r;
-}
-
-# SQL::Interp wrappers around TUWF's db* methods.  These do not work with
-# sql_type(). Should migrate to FU::Pg instead.
-sub FU::obj::dbExeci { shift; _sqlhelper(0, interp_warn @_) }
-sub FU::obj::dbVali  { shift; _sqlhelper(1, interp_warn @_) }
-sub FU::obj::dbRowi  { shift; _sqlhelper(2, interp_warn @_) }
-sub FU::obj::dbAlli  { shift; _sqlhelper(3, interp_warn @_) }
-sub FU::obj::dbPagei { shift->dbPage(shift, interp_warn @_) }
-
-
-
-
-# sql_* are macros for SQL::Interp use
-
-# join(), but for sql objects.
-sub sql_join {
-    my $sep = shift;
-    my @args = map +($sep, $_), @_;
-    sql @args[1..$#args];
-}
-
-# Join multiple arguments together with a comma, for use in a SELECT or IN
-# clause or function arguments.
-sub sql_comma { sql_join ',', @_ }
-
-sub sql_and   { @_ ? sql_join 'AND', map sql('(', $_, ')'), @_ : sql '1=1' }
-sub sql_or    { @_ ? sql_join 'OR',  map sql('(', $_, ')'), @_ : sql '1=0' }
-
-# Construct a PostgreSQL array type from the function arguments.
-sub sql_array { 'ARRAY[', sql_comma(map \$_, @_), ']' }
-
-# Call an SQL function
-sub sql_func {
-    my($funcname, @args) = @_;
-    sql $funcname, '(', sql_comma(@args), ')';
-}
-
-# Convert a Perl time value (UNIX timestamp) into a Postgres timestamp
-sub sql_fromtime :prototype($) {
-    sql_func to_timestamp => \$_[0];
-}
-
-# Convert a Postgres timestamp into a Perl time value
-sub sql_totime :prototype($) {
-    sql "extract('epoch' from ", $_[0], ')::float8';
-}
 
 # Escape a string to be used as a literal match in a LIKE pattern.
-sub sql_like :prototype($) {
-    $_[0] =~ s/([%_\\])/\\$1/rg
-}
+sub sql_like :prototype($) { $_[0] =~ s/([%_\\])/\\$1/rg }
 
 # Returns a list of column names to fetch for displaying a username with HTML::user_().
 # Arguments: Name of the 'users' table (default: 'u'), prefix for the fetched fields (default: 'user_').
-# (This function returns a plain string so that old non-SQL-Interp functions can also use it)
-sub sql_user {
+sub USER {
     my $tbl = shift||'u';
     my $prefix = shift||'user_';
-    join ', ',
+    RAW join ', ',
        "$tbl.id              as ${prefix}id",
        "$tbl.username        as ${prefix}name",
        "$tbl.support_can     as ${prefix}support_can",
@@ -128,8 +38,6 @@ sub sql_user {
            "$tbl.perm_edit       as ${prefix}perm_edit"
        ) : (),
 }
-
-sub USER { RAW sql_user(@_) }
 
 # Returns a (potentially cached) version of the global_settings table.
 sub global_settings {

@@ -183,34 +183,32 @@ sub listing_ {
     my $voted = grep $_ == 7, $opt->{l}->@*;
 
     my @where_vns = (
-              @l ? sql('uv.labels &&', sql_array(@l), '::smallint[]') : (),
-      $unlabeled ? sql("uv.labels IN('{}','{7}')") : (),
-          $voted ? sql('uv.vote IS NOT NULL') : ()
+              @l ? SQL('uv.labels &&', \@l, '::smallint[]') : (),
+      $unlabeled ? SQL("uv.labels IN('{}','{7}')") : (),
+          $voted ? SQL('uv.vote IS NOT NULL') : ()
     );
 
-    my $where = sql_and
-        sql('uv.uid =', \$uid),
-        $opt->{f}->sql_where(),
-        $opt->{q}->sql_where('v', 'v.id'),
+    my $where = AND
+        SQL('uv.uid =', $uid),
+        $opt->{f}->WHERE(),
+        $opt->{q}->WHERE('v', 'v.id'),
         $priv ? () : 'NOT uv.c_private AND NOT v.hidden',
-        @where_vns ? sql_or(@where_vns) : (),
-        defined($opt->{ch}) ? sql 'match_firstchar(v.sorttitle, ', \$opt->{ch}, ')' : ();
+        @where_vns ? OR(@where_vns) : (),
+        defined($opt->{ch}) ? SQL 'match_firstchar(v.sorttitle, ', $opt->{ch}, ')' : ();
 
-    my $count = fu->dbVali('SELECT count(*) FROM ulist_vns uv JOIN', vnt, 'v ON v.id = uv.vid WHERE', $where);
+    my $count = fu->SQL('SELECT count(*) FROM ulist_vns uv JOIN', VNT, 'v ON v.id = uv.vid WHERE', $where)->val;
 
-    my $lst = fu->dbPagei({ page => $opt->{p}, results => $opt->{s}->results },
-        'SELECT v.id, v.title, uv.vote, uv.notes, uv.labels, uv.started, uv.finished
+    my $lst = fu->SQL(
+        'SELECT v.id, v.title, uv.vote, uv.notes, uv.labels, uv.started, uv.finished, uv.added, uv.lastmod, uv.vote_date
               , v.c_released, v.c_average, v.c_rating, v.c_votecount
-              , ', sql_vnimage, ', v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang
-              ,', sql_totime('uv.added'), ' as added
-              ,', sql_totime('uv.lastmod'), ' as lastmod
-              ,', sql_totime('uv.vote_date'), ' as vote_date',
+              , ', VNIMAGE, ', v.c_platforms AS platforms, v.c_languages AS lang',
                  $opt->{s}->vis('length') ? ', v.length, v.c_length, v.c_lengthnum' : (), '
            FROM ulist_vns uv
-           JOIN', vnt, 'v ON v.id = uv.vid
+           JOIN', VNT, 'v ON v.id = uv.vid
           WHERE', $where, '
-          ORDER BY', $opt->{s}->sql_order(), 'NULLS LAST, v.sorttitle'
-    );
+          ORDER BY', $opt->{s}->ORDER(), 'NULLS LAST, v.sorttitle
+          LIMIT', $opt->{s}->results, 'OFFSET', $opt->{s}->results*($opt->{p}-1)
+    )->allh;
 
     fu->enrich(set => 'rlist', sub { SQL '
         SELECT rv.vid, ARRAY[

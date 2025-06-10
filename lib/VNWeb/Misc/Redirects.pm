@@ -30,12 +30,12 @@ FU::get '/v/rand', sub {
     state $sample ||= 100*min 1, (1000 / $stats->{subset}) * ($stats->{total} / $stats->{subset});
 
     my $filt = advsearch_default 'v';
-    my $vn = fu->dbVali('
+    my $vn = fu->SQL('
         SELECT id
-          FROM vn v', $filt->{query} || config->{moe} ? '' : ('TABLESAMPLE SYSTEM (', \$sample, ')'), '
-         WHERE NOT hidden AND', $filt->sql_where(), '
+          FROM vn v', $filt->{query} || config->{moe} ? '' : ('TABLESAMPLE SYSTEM (', $sample, ')'), '
+         WHERE NOT hidden AND', $filt->WHERE, '
          ORDER BY random() LIMIT 1'
-    );
+    )->val;
     fu->notfound if !$vn;
     fu->redirect(temp => "/$vn");
 };

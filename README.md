@@ -142,7 +142,6 @@ General:
 
 util/vndb.pl (the web backend):
 - Algorithm::Diff::XS
-- SQL::Interp
 - Text::MultiMarkdown
 
 util/multi.pl (application server, optional):

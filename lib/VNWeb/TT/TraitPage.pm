@@ -76,24 +76,25 @@ sub chars_($t) {
 
     $opt->{f} = advsearch_default 'c' if !$opt->{f}{query} && !defined fu->query('f');
 
-    my $where = sql_and
+    my $where = AND
         'NOT c.hidden',
         $opt->{l} ? 'NOT tc.lie' : (),
-        sql('tc.tid =', \$t->{id}),
-        sql('tc.spoil <=', \$opt->{m}),
-        $opt->{f}->sql_where();
+        SQL('tc.tid =', $t->{id}),
+        SQL('tc.spoil <=', $opt->{m}),
+        $opt->{f}->WHERE;
 
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = fu->dbVali('SELECT count(*) FROM chars c JOIN traits_chars tc ON tc.cid = c.id WHERE', $where);
-        $list = $count ? fu->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
+        $count = fu->SQL('SELECT count(*) FROM chars c JOIN traits_chars tc ON tc.cid = c.id WHERE', $where)->val;
+        $list = $count ? fu->SQL('
             SELECT c.id, c.title, c.sex, c.gender, c.image
-              FROM', charst, 'c
+              FROM', CHARST, 'c
               JOIN traits_chars tc ON tc.cid = c.id
              WHERE', $where, '
-             ORDER BY c.sorttitle, c.id'
-        ) : [];
+             ORDER BY c.sorttitle, c.id
+             LIMIT', $opt->{s}->results(), 'OFFSET', $opt->{s}->results()*($opt->{p}-1)
+        )->allh : [];
     } || (($count, $list) = (undef, []));
 
     VNWeb::Chars::List::enrich_listing $list;

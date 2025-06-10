@@ -573,7 +573,7 @@ sub tabs_($v, $tab='') {
         };
         menu_ sub {
             if(auth && canvote $v) {
-                my $id = fu->dbVali('SELECT id FROM reviews WHERE vid =', \$v->{id}, 'AND uid =', \auth->uid);
+                my $id = fu->SQL('SELECT id FROM reviews WHERE vid =', $v->{id}, 'AND uid =', auth->uid)->val;
                 li_ sub { a_ href => "/$v->{id}/addreview", 'add review' } if !$id && can_edit w => {};
                 li_ sub { a_ href => "/$id/edit", 'edit review' } if $id;
             }

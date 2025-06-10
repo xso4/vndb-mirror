@@ -102,20 +102,21 @@ FU::get qr{/c(?:/(?<char>all|[a-z0]))?}, sub($char=undef) {
 
     $opt->{f} = advsearch_default 'c' if !$opt->{f}{query} && !defined fu->query('f');
 
-    my $where = sql_and
-        'NOT c.hidden', $opt->{f}->sql_where(),
-        defined($opt->{ch}) ? sql 'match_firstchar(c.sorttitle, ', \$opt->{ch}, ')' : ();
+    my $where = AND
+        'NOT c.hidden', $opt->{f}->WHERE(),
+        defined($opt->{ch}) ? SQL 'match_firstchar(c.sorttitle, ', $opt->{ch}, ')' : ();
 
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = fu->dbVali('SELECT count(*) FROM', charst, 'c WHERE', sql_and $where, $opt->{q}->sql_where('c', 'c.id'));
-        $list = $count ? fu->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
+        $count = fu->SQL('SELECT count(*) FROM', CHARST, 'c WHERE', AND $where, $opt->{q}->WHERE('c', 'c.id'))->val;
+        $list = $count ? fu->SQL('
             SELECT c.id, c.title, c.sex, c.gender, c.image
-              FROM', charst, 'c', $opt->{q}->sql_join('c', 'c.id'), '
+              FROM', CHARST, 'c', $opt->{q}->JOIN('c', 'c.id'), '
              WHERE', $where, '
-             ORDER BY', $opt->{q} ? 'sc.score DESC, ' : (), 'c.sorttitle, c.id'
-        ) : [];
+             ORDER BY', $opt->{q} ? 'sc.score DESC, ' : (), 'c.sorttitle, c.id', '
+             LIMIT', $opt->{s}->results(), 'OFFSET', $opt->{s}->results()*($opt->{p}-1)
+        )->allh : [];
     } || (($count, $list) = (undef, []));
 
     enrich_listing $list;

@@ -44,7 +44,7 @@ package VNWeb::TableOpts;
 #
 #   my $opts = fu->query(s => { tableopts => $config });
 #
-#   my $sql = sql('.... ORDER BY', $opts->sql_order);
+#   my $sql = SQL('.... ORDER BY', $opts->ORDER);
 #
 #   $opts->view;     # Current view, 'rows', 'cards' or 'grid'
 #   $opts->results;  # How many results to display
@@ -206,7 +206,7 @@ sub sort_param {
 }
 
 # Returns an SQL expression suitable for use in an ORDER BY clause.
-sub sql_order {
+sub ORDER {
     my($self) = @_;
     my($v,$o) = $self->@*;
     my $col = $o->{sort_ids}[ $self->sort_col_id ];
@@ -214,11 +214,8 @@ sub sql_order {
     my $order = $self->order ? 'DESC' : 'ASC';
     my $opposite_order = $self->order ? 'ASC' : 'DESC';
     my $sql = $col->{sort_sql};
-    $sql =~ /[?!]o/ ? ($sql =~ s/\?o/$order/rg =~ s/!o/$opposite_order/rg) : "$sql $order";
+    RAW($sql =~ /[?!]o/ ? ($sql =~ s/\?o/$order/rg =~ s/!o/$opposite_order/rg) : "$sql $order");
 }
-
-sub ORDER { RAW $_[0]->sql_order }
-
 
 # Returns whether the given column key is visible.
 sub vis { my $c = $_[0][1]{columns}{$_[1]}; $c && defined $c->{vis_id} && ($_[0][0] & (1 << (12+$c->{vis_id}))) }

@@ -67,7 +67,7 @@ sub TABLEOPTS($type) {
             },
             label => {
                 name => 'Labels',
-                sort_sql => sql('ARRAY(SELECT ul.label FROM unnest(uv.labels) l(id) JOIN ulist_labels ul ON ul.id = l.id WHERE ul.uid = uv.uid AND l.id <> ', \7, ')'),
+                sort_sql => 'ARRAY(SELECT ul.label FROM unnest(uv.labels) l(id) JOIN ulist_labels ul ON ul.id = l.id WHERE ul.uid = uv.uid AND l.id <> 7)',
                 sort_id => 4,
                 vis_id => 3,
                 compat => 'label'
@@ -379,37 +379,39 @@ FU::get qr{/v(?:/(all|[a-z0]))?}, sub($char=undef) {
 
     $opt->{f} = advsearch_default 'v' if !$opt->{f}{query} && !defined fu->query('f');
 
-    my $where = sql_and
-        'NOT v.hidden', $opt->{f}->sql_where(),
-        defined($opt->{ch}) ? sql 'match_firstchar(v.sorttitle, ', \$opt->{ch}, ')' : ();
+    my $where = AND
+        'NOT v.hidden',
+        $opt->{f}->WHERE(),
+        defined $opt->{ch} ? SQL 'match_firstchar(v.sorttitle, ', $opt->{ch}, ')' : ();
 
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = fu->dbVali('SELECT count(*) FROM', vnt, 'v WHERE', sql_and $where, $opt->{q}->sql_where('v', 'v.id'));
-        $list = $count ? fu->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
+        $count = fu->SQL('SELECT count(*) FROM', VNT, 'v WHERE', AND $where, $opt->{q}->WHERE('v', 'v.id'))->val;
+        $list = $count ? fu->SQL('
             SELECT v.id, v.title, v.c_released, v.c_votecount, v.c_rating, v.c_average
-                 , ', sql_vnimage, ', v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang',
+                 , ', VNIMAGE, ', v.c_platforms AS platforms, v.c_languages AS lang',
                    $opt->{s}->vis('length') ? ', v.length, v.c_length, v.c_lengthnum' : (), '
-              FROM', vnt, 'v', $opt->{q}->sql_join('v', 'v.id'), '
+              FROM', VNT, 'v', $opt->{q}->JOIN('v', 'v.id'), '
              WHERE', $where, '
-             ORDER BY', $opt->{s}->sql_order(),
-        ) : [];
+             ORDER BY', $opt->{s}->ORDER, '
+             LIMIT', $opt->{s}->results(), 'OFFSET', $opt->{s}->results()*($opt->{p}-1),
+        )->allh : [];
     } || (($count, $list) = (undef, []));
 
     my $fullq = join '', $opt->{q}->words->@*;
-    my $other = length $fullq && $opt->{s}->sorted('qscore') && $opt->{p} == 1 ? fu->dbAlli("
+    my $other = length $fullq && $opt->{s}->sorted('qscore') && $opt->{p} == 1 ? fu->SQL("
         SELECT x.id, i.title
           FROM (
             SELECT DISTINCT id
               FROM search_cache
              WHERE NOT (id BETWEEN 'v1' AND vndbid_max('v'))
                AND NOT (id BETWEEN 'r1' AND vndbid_max('r'))
-               AND label =", \$fullq, ') x,
-              ', item_info('id', 'null'), 'i
+               AND label =", $fullq, ') x,
+              ', ITEM_INFO('id', 'null'), 'i
          WHERE NOT i.hidden
-         ORDER BY vndbid_type(x.id) DESC, i.title[1+1]
-    ') : [];
+         ORDER BY vndbid_type(x.id) DESC, i.title[2]
+    ')->allh : [];
 
     fu->redirect(temp => "/$list->[0]{id}") if $count && $count == 1 && $opt->{p} == 1 && $opt->{q} && !defined $opt->{ch} && !@$other;
 

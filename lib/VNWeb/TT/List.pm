@@ -47,21 +47,22 @@ sub listpage($type) {
     $opt->{s} = 'name' if $opt->{s} eq 'qscore' && !$opt->{q};
     $opt->{t} = undef if $opt->{t} && $opt->{t} == -1; # for legacy URLs
 
-    my $where = sql_and
+    my $where = AND
         !defined $opt->{t} ? () :
             $opt->{t} == 0 ? 'hidden AND NOT locked' :
             $opt->{t} == 1 ? 'hidden AND locked' : 'NOT hidden',
-        defined $opt->{a} ? sql 'applicable =', \$opt->{a} : (),
-        defined $opt->{b} ? sql 'searchable =', \$opt->{b} : ();
+        defined $opt->{a} ? SQL 'applicable =', $opt->{a} : (),
+        defined $opt->{b} ? SQL 'searchable =', $opt->{b} : ();
 
     my $table = $type eq 'g' ? 'tags' : 'traits';
-    my $count = fu->dbVali("SELECT COUNT(*) FROM $table t WHERE", sql_and $where, $opt->{q}->sql_where($type, 't.id'));
-    my $list = fu->dbPagei({ results => 50, page => $opt->{p} },'
-        SELECT t.id, name, hidden, locked, searchable, applicable, c_items,', sql_totime('added'), "as added
-          FROM $table t", $opt->{q}->sql_join($type, 't.id'), '
-         WHERE ', $where, '
-         ORDER BY', {qscore => '10 - sc.score', qw|added t.id  name name  items c_items|}->{$opt->{s}}, {qw|a ASC d DESC|}->{$opt->{o}}, ', id'
-    );
+    my $count = fu->SQL('SELECT COUNT(*) FROM', RAW $table, 't WHERE', AND $where, $opt->{q}->WHERE($type, 't.id'))->val;
+    my $list = fu->SQL('
+        SELECT t.id, name, hidden, locked, searchable, applicable, c_items, added
+          FROM', RAW $table, 't', $opt->{q}->JOIN($type, 't.id'), '
+         WHERE', $where, '
+         ORDER BY', RAW {qscore => '10 - sc.score', qw|added t.id  name name  items c_items|}->{$opt->{s}}, RAW {qw|a ASC d DESC|}->{$opt->{o}}, ', id
+         LIMIT 50 OFFSET', 50*($opt->{p}-1)
+    )->allh;
 
     enrich_group $type, $list;
 

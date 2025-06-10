@@ -277,10 +277,10 @@ sub _enc_query {
 #                 Fields that don't occur often should use numbers above 50, for better encoding of common fields.
 #   $value     -> FU::Validate schema for value validation, or $query_type to accept a nested query.
 #   %options:
-#       $op      -> Operator definitions and sql() generation functions.
-#       sql      -> sql() generation function that is called for all operators.
+#       $op      -> Operator definitions and SQL generation functions.
+#       sql      -> SQL generation function that is called for all operators.
 #       sql_list -> Alternative to the '=' and '!=' $op definitions to optimize lists of (in)equality queries.
-#                   sql() generation function that is called with the following arguments:
+#                   SQL generation function that is called with the following arguments:
 #                   - negate, 1/0 - whether the entire query should be negated
 #                   - all, 1/0 - whether all values must match, 1=all, 0=any
 #                   - arrayref of values to compare for equality
@@ -301,7 +301,7 @@ sub f {
     );
     $f{'='}  = sub { $f{sql_list}->(0,0,[$_]) } if !$f{'='}  && $f{sql_list};
     $f{'!='} = sub { $f{sql_list}->(1,0,[$_]) } if !$f{'!='} && $f{sql_list};
-    $f{'!='} = sub { sql 'NOT (', $f{'='}->(@_), ')' } if $f{'='} && !$f{'!='};
+    $f{'!='} = sub { SQL 'NOT (', $f{'='}->(@_), ')' } if $f{'='} && !$f{'!='};
     $f{vndbid} = ref $v eq 'HASH' && $v->{vndbid} && !ref $v->{vndbid} && $v->{vndbid};
     $f{int} = ref $f{value} && ($v->{fuzzyrdate} || $f{value}{_scalartype});
     $FIELDS{$t}{$n} = \%f;
@@ -312,208 +312,203 @@ sub f {
 my @TYPE; # stack of query types, $TYPE[0] is the top-level query, $TYPE[$#TYPE] the query currently being processed.
 
 
-f v => 80 => 'id',        { vndbid => 'v' }, sql => sub { sql 'v.id', $_[0], \$_ };
-f v => 81 => 'search',    { searchquery => 1 }, '=' => sub { $_->sql_where('v', 'v.id') };
-f v =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 'v.c_languages && ARRAY', \$_, '::language[]' };
-f v =>  3 => 'olang',     { enum => \%LANGUAGE }, '=' => sub { sql 'v.olang =', \$_ };
-f v =>  4 => 'platform',  { enum => \%PLATFORM }, '=' => sub { sql 'v.c_platforms && ARRAY', \$_, '::platform[]' };
+f v => 80 => 'id',        { vndbid => 'v' }, sql => sub { SQL 'v.id', RAW $_[0], $_ };
+f v => 81 => 'search',    { searchquery => 1 }, '=' => sub { $_->WHERE('v', 'v.id') };
+f v =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { SQL $_, '= ANY(v.c_languages)' };
+f v =>  3 => 'olang',     { enum => \%LANGUAGE }, '=' => sub { SQL 'v.olang =', $_ };
+f v =>  4 => 'platform',  { enum => \%PLATFORM }, '=' => sub { SQL $_, '= ANY(v.c_platforms)' };
 f v =>  5 => 'length',    { uint => 1, enum => \%VN_LENGTH },
-    '=' => sub { sql 'COALESCE(v.c_length BETWEEN', \$VN_LENGTH{$_}{low}, 'AND', \$VN_LENGTH{$_}{high}, ', v.length =', \$_, ')' };
-f v =>  7 => 'released',  { fuzzyrdate => 1 }, sql => sub { sql 'v.c_released', $_[0], \($_ == 1 ? strftime('%Y%m%d', gmtime) : $_) };
-f v =>  9 => 'popularity',{ uint => 1, range => [ 0,  100] }, sql => sub { sql 'v.c_votecount', $_[0], \($_*150) }; # XXX: Deprecated
-f v => 10 => 'rating',    { uint => 1, range => [10,  100] }, sql => sub { sql 'v.c_rating', $_[0], \($_*10) };
-f v => 11 => 'votecount', { uint => 1, range => [ 0,1<<30] }, sql => sub { sql 'v.c_votecount', $_[0], \$_ };
-f v => 61 => 'has_description', { uint => 1, range => [1,1] }, '=' => sub { 'v.description <> \'\'' };
-f v => 62 => 'has_anime',       { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM vn_anime va WHERE va.id = v.id)' };
-f v => 63 => 'has_screenshot',  { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM vn_screenshots vs WHERE vs.id = v.id)' };
-f v => 64 => 'has_review',      { uint => 1, range => [1,1] }, '=' => sub { 'EXISTS(SELECT 1 FROM reviews r WHERE r.vid = v.id AND NOT r.c_flagged)' };
+    '=' => sub { SQL 'COALESCE(v.c_length BETWEEN', $VN_LENGTH{$_}{low}, 'AND', $VN_LENGTH{$_}{high}, ', v.length =', $_, ')' };
+f v =>  7 => 'released',  { fuzzyrdate => 1 }, sql => sub { SQL 'v.c_released', RAW $_[0], $_ == 1 ? strftime('%Y%m%d', gmtime) : $_ };
+f v =>  9 => 'popularity',{ uint => 1, range => [ 0,  100] }, sql => sub { SQL 'v.c_votecount', RAW $_[0], $_*150 }; # XXX: Deprecated
+f v => 10 => 'rating',    { uint => 1, range => [10,  100] }, sql => sub { SQL 'v.c_rating', RAW $_[0], $_*10 };
+f v => 11 => 'votecount', { uint => 1, range => [ 0,1<<30] }, sql => sub { SQL 'v.c_votecount', RAW $_[0], $_ };
+f v => 61 => 'has_description', { uint => 1, range => [1,1] }, '=' => sub { RAW 'v.description <> \'\'' };
+f v => 62 => 'has_anime',       { uint => 1, range => [1,1] }, '=' => sub { RAW 'EXISTS(SELECT 1 FROM vn_anime va WHERE va.id = v.id)' };
+f v => 63 => 'has_screenshot',  { uint => 1, range => [1,1] }, '=' => sub { RAW 'EXISTS(SELECT 1 FROM vn_screenshots vs WHERE vs.id = v.id)' };
+f v => 64 => 'has_review',      { uint => 1, range => [1,1] }, '=' => sub { RAW 'EXISTS(SELECT 1 FROM reviews r WHERE r.vid = v.id AND NOT r.c_flagged)' };
 f v => 65 => 'on_list',         { uint => 1, range => [1,1] },
-    '=' => sub { auth ? sql 'v.id IN(SELECT vid FROM ulist_vns WHERE uid =', \auth->uid, auth->api2Listread ? () : 'AND NOT c_private', ')' : '1=0' };
-f v => 66 => 'devstatus', { uint => 1, enum => \%DEVSTATUS }, '=' => sub { 'v.devstatus =', \$_ };
+    '=' => sub { auth ? SQL 'v.id IN(SELECT vid FROM ulist_vns WHERE uid =', auth->uid, auth->api2Listread ? () : 'AND NOT c_private', ')' : '1=0' };
+f v => 66 => 'devstatus', { uint => 1, enum => \%DEVSTATUS }, '=' => sub { SQL 'v.devstatus =', $_ };
 
-f v =>  8 => 'tag',      { type => 'any', func => \&_validate_tag }, compact => \&_compact_tag, sql_list => _sql_where_tag('tags_vn_inherit');
-f v => 14 => 'dtag',     { type => 'any', func => \&_validate_tag }, compact => \&_compact_tag, sql_list => _sql_where_tag('tags_vn_direct');
+f v =>  8 => 'tag',      { type => 'any', func => \&_validate_tag }, compact => \&_compact_tag, sql_list => _sql_tag('tags_vn_inherit');
+f v => 14 => 'dtag',     { type => 'any', func => \&_validate_tag }, compact => \&_compact_tag, sql_list => _sql_tag('tags_vn_direct');
 
 f v => 12 => 'label',    { type => 'any', func => \&_validate_label },
     compact => sub { [ ($_->[0] =~ s/^u//r)*1, $_->[1]*1 ] },
-    sql_list => \&_sql_where_label, sql_list_grp => sub { $_->[1] == 0 ? undef : $_->[0] };
+    sql_list => \&_sql_label, sql_list_grp => sub { $_->[1] == 0 ? undef : $_->[0] };
 
 f v => 13 => 'anime_id',  { id => 1 },
-    sql_list => sub {
-        my($neg, $all, $val) = @_;
-        sql 'v.id', $neg ? 'NOT' : '', 'IN(SELECT id FROM vn_anime WHERE aid IN', $val, $all && @$val > 1 ? ('GROUP BY id HAVING COUNT(aid) =', \scalar @$val) : (), ')';
+    sql_list => sub($neg, $all, $val) {
+        SQL 'v.id', $neg ? 'NOT' : '', 'IN(SELECT id FROM vn_anime WHERE aid', IN $val, $all && @$val > 1 ? ('GROUP BY id HAVING COUNT(aid) =', scalar @$val) : (), ')';
     };
 
-f v => 50 => 'release',  'r', '=' => sub { sql 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE NOT r.hidden AND', $_, ')' };
-f v => 51 => 'character','c', '=' => sub { sql 'v.id IN(SELECT cv.vid FROM chars c JOIN chars_vns cv ON cv.id = c.id WHERE NOT c.hidden AND', $_, ')' }; # TODO: Spoiler setting?
+f v => 50 => 'release',  'r', '=' => sub { SQL 'v.id IN(SELECT rv.vid FROM releases r JOIN releases_vn rv ON rv.id = r.id WHERE NOT r.hidden AND', $_, ')' };
+f v => 51 => 'character','c', '=' => sub { SQL 'v.id IN(SELECT cv.vid FROM chars c JOIN chars_vns cv ON cv.id = c.id WHERE NOT c.hidden AND', $_, ')' }; # TODO: Spoiler setting?
 f v => 52 => 'staff',    's', '=' => sub {
     # The "Staff" filter includes both vn_staff and vn_seiyuu. Union those tables together and filter on that.
-    sql 'v.id IN(SELECT vs.id
+    SQL 'v.id IN(SELECT vs.id
                    FROM (SELECT id, aid, role FROM vn_staff UNION ALL SELECT id, aid, NULL FROM vn_seiyuu) vs
                    JOIN staff_aliast s ON s.aid = vs.aid
                   WHERE NOT s.hidden AND', $_, ')' };
-f v => 55 => 'developer', 'p', '=' => sub { sql 'EXISTS(SELECT 1 FROM producers p, unnest(v.c_developers) vcd(x) WHERE p.id = vcd.x AND NOT p.hidden AND', $_, ')' };
+f v => 55 => 'developer', 'p', '=' => sub { SQL 'EXISTS(SELECT 1 FROM producers p, unnest(v.c_developers) vcd(x) WHERE p.id = vcd.x AND NOT p.hidden AND', $_, ')' };
 
 # Deprecated.
-f v =>  6 => 'developer_id', { vndbid => 'p' }, '=' => sub { sql 'v.c_developers && ARRAY', \$_, '::vndbid[]' };
+f v =>  6 => 'developer_id', { vndbid => 'p' }, '=' => sub { SQL $_, '= ANY(v.c_developers)' };
 
 
 
-f r => 80 => 'id',       { vndbid => 'r' }, sql => sub { sql 'r.id', $_[0], \$_ };
-f r => 81 => 'search',   { searchquery => 1 }, '=' => sub { $_->sql_where('r', 'r.id') };
+f r => 80 => 'id',       { vndbid => 'r' }, sql => sub { SQL 'r.id', RAW $_[0], $_ };
+f r => 81 => 'search',   { searchquery => 1 }, '=' => sub { $_->WHERE('r', 'r.id') };
 f r =>  2 => 'lang',     { enum => \%LANGUAGE },
-    sql_list => sub {
-        my($neg, $all, $val) = @_;
-        sql 'r.id', $neg ? 'NOT' : '', 'IN(SELECT id FROM releases_titles WHERE NOT mtl AND lang IN', $val, $all && @$val > 1 ? ('GROUP BY id HAVING COUNT(lang) =', \scalar @$val) : (), ')';
+    sql_list => sub($neg, $all, $val) {
+        SQL 'r.id', $neg ? 'NOT' : '', 'IN(SELECT id FROM releases_titles WHERE NOT mtl AND lang', IN $val, $all && @$val > 1 ? ('GROUP BY id HAVING COUNT(lang) =', scalar @$val) : (), ')';
     };
 
 f r =>  4 => 'platform', { default => undef, enum => \%PLATFORM },
     sql_list_grp => sub { defined $_ },
-    sql_list => sub {
-        my($neg, $all, $val) = @_;
-        return sql $neg ? '' : 'NOT', 'EXISTS(SELECT 1 FROM releases_platforms WHERE id = r.id)' if !defined $val->[0];
-        sql 'r.id', $neg ? 'NOT' : '', 'IN(SELECT id FROM releases_platforms WHERE platform IN', $val, $all && @$val > 1 ? ('GROUP BY id HAVING COUNT(platform) =', \scalar @$val) : (), ')';
+    sql_list => sub($neg, $all, $val) {
+        return SQL $neg ? '' : 'NOT', 'EXISTS(SELECT 1 FROM releases_platforms WHERE id = r.id)' if !defined $val->[0];
+        SQL 'r.id', $neg ? 'NOT' : '', 'IN(SELECT id FROM releases_platforms WHERE platform', IN $val, $all && @$val > 1 ? ('GROUP BY id HAVING COUNT(platform) =', scalar @$val) : (), ')';
     };
 
-f r =>  7 => 'released', { fuzzyrdate => 1 }, sql => sub { sql 'r.released', $_[0], \($_ == 1 ? strftime('%Y%m%d', gmtime) : $_) };
+f r =>  7 => 'released', { fuzzyrdate => 1 }, sql => sub { SQL 'r.released', RAW $_[0], $_ == 1 ? strftime('%Y%m%d', gmtime) : $_ };
 f r =>  8 => 'resolution',        { length => 2, elems => { uint => 1, max => 32767 } },
-    sql => sub { sql 'r.reso_x', $_[0], \$_->[0], 'AND r.reso_y', $_[0], \$_->[1], $_->[0] ? 'AND r.reso_x > 0' : () };
+    sql => sub { SQL 'r.reso_x', RAW $_[0], $_->[0], 'AND r.reso_y', RAW $_[0], $_->[1], $_->[0] ? 'AND r.reso_x > 0' : () };
 f r =>  9 => 'resolution_aspect', { length => 2, elems => { uint => 1, max => 32767 } },
-    sql => sub { sql 'r.reso_x', $_[0], \$_->[0], 'AND r.reso_y', $_[0], \$_->[1], 'AND r.reso_x*100000/GREATEST(1, r.reso_y) =', \(int ($_->[0]*100000/max(1,$_->[1]))), $_->[0] ? 'AND r.reso_x > 0' : () };
+    sql => sub { SQL 'r.reso_x', RAW $_[0], $_->[0], 'AND r.reso_y', RAW $_[0], $_->[1], 'AND r.reso_x*100000/GREATEST(1, r.reso_y) =', int($_->[0]*100000/max(1,$_->[1])), $_->[0] ? 'AND r.reso_x > 0' : () };
 f r => 10 => 'minage',   { default => undef, uint => 1, enum => \%AGE_RATING },
-    sql => sub { defined $_ ? sql 'r.minage', $_[0], \$_ : $_[0] eq '=' ? 'r.minage IS NULL' : 'r.minage IS NOT NULL' };
+    sql => sub { defined $_ ? SQL 'r.minage', RAW $_[0], $_ : $_[0] eq '=' ? RAW 'r.minage IS NULL' : RAW 'r.minage IS NOT NULL' };
 f r => 11 => 'medium',   { default => undef, enum => \%MEDIUM },
-    '=' => sub { !defined $_ ? 'NOT EXISTS(SELECT 1 FROM releases_media rm WHERE rm.id = r.id)' : sql 'EXISTS(SELECT 1 FROM releases_media rm WHERE rm.id = r.id AND rm.medium =', \$_, ')' };
-f r => 12 => 'voiced',   { default => 0, uint => 1, enum => \%VOICED }, '=' => sub { sql 'r.voiced =', \$_ };
-f r => 13 => 'animation_ero',   { uint => 1, enum => \%ANIMATED }, '=' => sub { sql 'NOT r.patch AND r.ani_ero =', \$_ };
-f r => 14 => 'animation_story', { uint => 1, enum => \%ANIMATED }, '=' => sub { sql 'NOT r.patch AND r.ani_story =', \$_ };
+    '=' => sub { !defined $_ ? RAW 'NOT EXISTS(SELECT 1 FROM releases_media rm WHERE rm.id = r.id)' : SQL 'EXISTS(SELECT 1 FROM releases_media rm WHERE rm.id = r.id AND rm.medium =', $_, ')' };
+f r => 12 => 'voiced',   { default => 0, uint => 1, enum => \%VOICED }, '=' => sub { SQL 'r.voiced =', $_ };
+f r => 13 => 'animation_ero',   { uint => 1, enum => \%ANIMATED }, '=' => sub { SQL 'NOT r.patch AND r.ani_ero =', $_ };
+f r => 14 => 'animation_story', { uint => 1, enum => \%ANIMATED }, '=' => sub { SQL 'NOT r.patch AND r.ani_story =', $_ };
 
 my %ANIFLAGS = (
-    ''     => 'IS NULL',
-    'no'   => '= 0',
-    'na'   => '= 1',
-    'hand' => '& 4 > 0',
-    'vect' => '& 8 > 0',
-    '3d'   => '& 16 > 0',
-    'live' => '& 32 > 0',
+    ''     => RAW 'IS NULL',
+    'no'   => RAW '= 0',
+    'na'   => RAW '= 1',
+    'hand' => RAW '& 4 > 0',
+    'vect' => RAW '& 8 > 0',
+    '3d'   => RAW '& 16 > 0',
+    'live' => RAW '& 32 > 0',
 );
-f r => 70 => 'ani_story_sp',  { default => undef, enum => \%ANIFLAGS }, '=' => sub { 'NOT r.patch AND r.ani_story_sp', $ANIFLAGS{ $_ // '' } };
-f r => 71 => 'ani_story_cg',  { default => undef, enum => \%ANIFLAGS }, '=' => sub { 'NOT r.patch AND r.ani_story_cg', $ANIFLAGS{ $_ // '' } };
-f r => 72 => 'ani_cutscene',  { default => undef, enum => [qw/na hand vect 3d live/] }, '=' => sub { 'NOT r.patch AND r.ani_cutscene', $ANIFLAGS{ $_ // '' } };
-f r => 73 => 'ani_ero_sp',    { default => undef, enum => \%ANIFLAGS }, '=' => sub { 'NOT r.patch AND r.ani_ero_sp', $ANIFLAGS{ $_ // '' } };
-f r => 74 => 'ani_ero_cg',    { default => undef, enum => \%ANIFLAGS }, '=' => sub { 'NOT r.patch AND r.ani_ero_cg', $ANIFLAGS{ $_ // '' } };
-f r => 75 => 'ani_bg',        { default => undef, uint => 1, enum => [0,1] }, '=' => sub { 'NOT r.patch AND r.ani_bg', $_ ? () : defined $_ ? '= false' : 'is null' };
-f r => 76 => 'ani_face',      { default => undef, uint => 1, enum => [0,1] }, '=' => sub { 'NOT r.patch AND r.ani_face', $_ ? () : defined $_ ? '= false' : 'is null' };
+f r => 70 => 'ani_story_sp',  { default => undef, enum => \%ANIFLAGS }, '=' => sub { SQL 'NOT r.patch AND r.ani_story_sp', $ANIFLAGS{ $_ // '' } };
+f r => 71 => 'ani_story_cg',  { default => undef, enum => \%ANIFLAGS }, '=' => sub { SQL 'NOT r.patch AND r.ani_story_cg', $ANIFLAGS{ $_ // '' } };
+f r => 72 => 'ani_cutscene',  { default => undef, enum => [qw/na hand vect 3d live/] }, '=' => sub { SQL 'NOT r.patch AND r.ani_cutscene', $ANIFLAGS{ $_ // '' } };
+f r => 73 => 'ani_ero_sp',    { default => undef, enum => \%ANIFLAGS }, '=' => sub { SQL 'NOT r.patch AND r.ani_ero_sp', $ANIFLAGS{ $_ // '' } };
+f r => 74 => 'ani_ero_cg',    { default => undef, enum => \%ANIFLAGS }, '=' => sub { SQL 'NOT r.patch AND r.ani_ero_cg', $ANIFLAGS{ $_ // '' } };
+f r => 75 => 'ani_bg',        { default => undef, uint => 1, enum => [0,1] }, '=' => sub { SQL 'NOT r.patch AND r.ani_bg', $_ ? () : defined $_ ? '= false' : 'is null' };
+f r => 76 => 'ani_face',      { default => undef, uint => 1, enum => [0,1] }, '=' => sub { SQL 'NOT r.patch AND r.ani_face', $_ ? () : defined $_ ? '= false' : 'is null' };
 
-f r => 15 => 'engine',   { default => '' }, '=' => sub { sql 'r.engine =', \$_ };
-f r => 16 => 'rtype',    { enum => \%RELEASE_TYPE }, '=' => sub { $#TYPE && $TYPE[$#TYPE-1] eq 'v' ? sql 'rv.rtype =', \$_ : sql 'r.id IN(SELECT id FROM releases_vn WHERE rtype =', \$_, ')' };
-f r => 18 => 'rlist',    { uint => 1, enum => \%RLIST_STATUS }, sql_list => sub {
-        my($neg, $all, $val) = @_;
+f r => 15 => 'engine',   { default => '' }, '=' => sub { SQL 'r.engine =', $_ };
+f r => 16 => 'rtype',    { enum => \%RELEASE_TYPE }, '=' => sub { $#TYPE && $TYPE[$#TYPE-1] eq 'v' ? SQL 'rv.rtype =', $_ : SQL 'r.id IN(SELECT id FROM releases_vn WHERE rtype =', $_, ')' };
+f r => 18 => 'rlist',    { uint => 1, enum => \%RLIST_STATUS }, sql_list => sub($neg, $all, $val) {
         return '1=0' if !auth;
-        sql 'r.id', $neg ? 'NOT' : '', 'IN(SELECT rid FROM rlists WHERE uid =', \auth->uid, 'AND status IN', $val, $all && @$val > 1 ? ('GROUP BY rid HAVING COUNT(status) =', \scalar @$val) : (), ')';
+        SQL 'r.id', $neg ? 'NOT' : '', 'IN(SELECT rid FROM rlists WHERE uid =', auth->uid, 'AND status', IN $val, $all && @$val > 1 ? ('GROUP BY rid HAVING COUNT(status) =', scalar @$val) : (), ')';
     };
 f r => 19 => 'extlink',  _extlink_filter('r', 'releases_extlinks');
-f r => 20 => 'drm',      { default => '' }, '=' => sub { sql 'EXISTS(SELECT 1 FROM drm JOIN releases_drm rd ON rd.drm = drm.id WHERE drm.name =', \$_, 'AND rd.id = r.id)' };
-f r => 61 => 'patch',    { uint => 1, range => [1,1] }, '=' => sub { 'r.patch' };
-f r => 62 => 'freeware', { uint => 1, range => [1,1] }, '=' => sub { 'r.freeware' };
-f r => 64 => 'uncensored',{uint => 1, range => [1,1] }, '=' => sub { 'r.uncensored' };
-f r => 65 => 'official', { uint => 1, range => [1,1] }, '=' => sub { 'r.official' };
-f r => 66 => 'has_ero',  { uint => 1, range => [1,1] }, '=' => sub { 'r.has_ero' };
-f r => 53 => 'vn',       'v', '=' => sub { sql 'r.id IN(SELECT rv.id FROM releases_vn rv JOIN vn v ON v.id = rv.vid WHERE NOT v.hidden AND', $_, ')' };
-f r => 55 => 'producer', 'p', '=' => sub { sql 'r.id IN(SELECT rp.id FROM releases_producers rp JOIN producers p ON p.id = rp.pid WHERE NOT p.hidden AND', $_, ')' };
+f r => 20 => 'drm',      { default => '' }, '=' => sub { SQL 'EXISTS(SELECT 1 FROM drm JOIN releases_drm rd ON rd.drm = drm.id WHERE drm.name =', $_, 'AND rd.id = r.id)' };
+f r => 61 => 'patch',    { uint => 1, range => [1,1] }, '=' => sub { RAW 'r.patch' };
+f r => 62 => 'freeware', { uint => 1, range => [1,1] }, '=' => sub { RAW 'r.freeware' };
+f r => 64 => 'uncensored',{uint => 1, range => [1,1] }, '=' => sub { RAW 'r.uncensored' };
+f r => 65 => 'official', { uint => 1, range => [1,1] }, '=' => sub { RAW 'r.official' };
+f r => 66 => 'has_ero',  { uint => 1, range => [1,1] }, '=' => sub { RAW 'r.has_ero' };
+f r => 53 => 'vn',       'v', '=' => sub { SQL 'r.id IN(SELECT rv.id FROM releases_vn rv JOIN vn v ON v.id = rv.vid WHERE NOT v.hidden AND', $_, ')' };
+f r => 55 => 'producer', 'p', '=' => sub { SQL 'r.id IN(SELECT rp.id FROM releases_producers rp JOIN producers p ON p.id = rp.pid WHERE NOT p.hidden AND', $_, ')' };
 
 # Deprecated.
-f r =>  6 => 'developer_id',{ vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE developer AND pid =', \$_, ')' }; # Does not have a new equivalent
-f r => 17 => 'producer_id', { vndbid => 'p' }, '=' => sub { sql 'r.id IN(SELECT id FROM releases_producers WHERE pid =', \$_, ')' };
-f r => 63 => 'doujin',      { uint => 1, range => [1,1] }, '=' => sub { 'r.doujin' };
+f r =>  6 => 'developer_id',{ vndbid => 'p' }, '=' => sub { SQL 'r.id IN(SELECT id FROM releases_producers WHERE developer AND pid =', $_, ')' }; # Does not have a new equivalent
+f r => 17 => 'producer_id', { vndbid => 'p' }, '=' => sub { SQL 'r.id IN(SELECT id FROM releases_producers WHERE pid =', $_, ')' };
+f r => 63 => 'doujin',      { uint => 1, range => [1,1] }, '=' => sub { RAW 'r.doujin' };
 
 
 
-f c => 80 => 'id',         { vndbid => 'c' }, sql => sub { sql 'c.id', $_[0], \$_ };
-f c => 81 => 'search',     { searchquery => 1 }, '=' => sub { $_->sql_where('c', 'c.id') };
-f c =>  2 => 'role',       { enum => \%CHAR_ROLE  }, '=' => sub { $#TYPE && $TYPE[$#TYPE-1] eq 'v' ? sql 'cv.role =', \$_ : sql 'c.id IN(SELECT id FROM chars_vns WHERE role =', \$_, ')' };
-f c =>  3 => 'blood_type', { enum => \%BLOOD_TYPE }, '=' => sub { sql 'c.bloodt =', \$_ };
-f c =>  4 => 'sex',        { default => '', func => sub { $_[0] = '' if $_[0] eq 'unknown'; 1 }, enum => {%CHAR_SEX, unknown => 1} }, '=' => sub { sql 'c.sex =', \$_ };
-f c =>  5 => 'sex_spoil',  { default => '', func => sub { $_[0] = '' if $_[0] eq 'unknown'; 1 }, enum => {%CHAR_SEX, unknown => 1} }, '=' => sub { sql '(c.sex =', \$_, 'AND c.spoil_sex IS NULL) OR c.spoil_sex IS NOT DISTINCT FROM', \$_ };
+f c => 80 => 'id',         { vndbid => 'c' }, sql => sub { SQL 'c.id', RAW $_[0], $_ };
+f c => 81 => 'search',     { searchquery => 1 }, '=' => sub { $_->WHERE('c', 'c.id') };
+f c =>  2 => 'role',       { enum => \%CHAR_ROLE  }, '=' => sub { $#TYPE && $TYPE[$#TYPE-1] eq 'v' ? SQL 'cv.role =', $_ : SQL 'c.id IN(SELECT id FROM chars_vns WHERE role =', $_, ')' };
+f c =>  3 => 'blood_type', { enum => \%BLOOD_TYPE }, '=' => sub { SQL 'c.bloodt =', $_ };
+f c =>  4 => 'sex',        { default => '', func => sub { $_[0] = '' if $_[0] eq 'unknown'; 1 }, enum => {%CHAR_SEX, unknown => 1} }, '=' => sub { SQL 'c.sex =', $_ };
+f c =>  5 => 'sex_spoil',  { default => '', func => sub { $_[0] = '' if $_[0] eq 'unknown'; 1 }, enum => {%CHAR_SEX, unknown => 1} }, '=' => sub { SQL '(c.sex =', $_, 'AND c.spoil_sex IS NULL) OR c.spoil_sex IS NOT DISTINCT FROM', $_ };
 f c => 16 => 'gender',     { default => '', func => sub { $_[0] = '' if $_[0] eq 'unknown'; 1 }, enum => {%CHAR_GENDER, unknown => 1} },
-    '=' => sub { sql 'c.gender =', \$_, /^(|m|f)$/ ? ('OR (c.gender IS NULL AND c.sex =', \$_, ')') : () };
-f c => 17 => 'gender_spoil',{default => '', func => sub { $_[0] = '' if $_[0] eq 'unknown'; 1 }, enum => {%CHAR_GENDER, unknown => 1} }, '=' => sub { sql_or
-        sql('c.gender =', \$_, 'AND c.spoil_gender IS NULL'),
-        sql('c.spoil_gender =', \$_),
-        /^(|m|f)$/ ? sql('c.spoil_gender IS NULL AND c.gender IS NULL AND (c.spoil_sex =', \$_, 'OR (c.spoil_sex IS NULL AND c.sex =', \$_, '))') : (),
+    '=' => sub { SQL 'c.gender =', $_, /^(|m|f)$/ ? ('OR (c.gender IS NULL AND c.sex =', $_, ')') : () };
+f c => 17 => 'gender_spoil',{default => '', func => sub { $_[0] = '' if $_[0] eq 'unknown'; 1 }, enum => {%CHAR_GENDER, unknown => 1} }, '=' => sub { OR
+        SQL('c.gender =', $_, 'AND c.spoil_gender IS NULL'),
+        SQL('c.spoil_gender =', $_),
+        /^(|m|f)$/ ? SQL('c.spoil_gender IS NULL AND c.gender IS NULL AND (c.spoil_sex =', $_, 'OR (c.spoil_sex IS NULL AND c.sex =', $_, '))') : (),
     };
 f c =>  6 => 'height',     { default => undef, uint => 1, max => 32767 },
-    sql => sub { !defined $_ ? sql 'c.height', $_[0], 0 : sql 'c.height <> 0 AND c.height', $_[0], \$_ };
+    sql => sub { !defined $_ ? SQL 'c.height', RAW $_[0], 0 : SQL 'c.height <> 0 AND c.height', RAW $_[0], $_ };
 f c =>  7 => 'weight',     { default => undef, uint => 1, max => 32767 },
-    sql => sub { !defined $_ ? sql('c.weight IS', $_[0] eq '=' ? '' : 'NOT', 'NULL') : sql 'c.weight', $_[0], \$_ };
+    sql => sub { !defined $_ ? SQL('c.weight IS', $_[0] eq '=' ? '' : 'NOT', 'NULL') : SQL 'c.weight', RAW $_[0], $_ };
 f c =>  8 => 'bust',       { default => undef, uint => 1, max => 32767 },
-    sql => sub { !defined $_ ? sql 'c.s_bust', $_[0], 0 : sql 'c.s_bust <> 0 AND c.s_bust', $_[0], \$_ };
+    sql => sub { !defined $_ ? SQL 'c.s_bust', RAW $_[0], 0 : SQL 'c.s_bust <> 0 AND c.s_bust', RAW $_[0], $_ };
 f c =>  9 => 'waist',      { default => undef, uint => 1, max => 32767 },
-    sql => sub { !defined $_ ? sql 'c.s_waist', $_[0], 0 : sql 'c.s_waist <> 0 AND c.s_waist', $_[0], \$_ };
+    sql => sub { !defined $_ ? SQL 'c.s_waist', RAW $_[0], 0 : SQL 'c.s_waist <> 0 AND c.s_waist', RAW $_[0], $_ };
 f c => 10 => 'hips',       { default => undef, uint => 1, max => 32767 },
-    sql => sub { !defined $_ ? sql 'c.s_hip', $_[0], 0 : sql 'c.s_hip <> 0 AND c.s_hip', $_[0], \$_ };
+    sql => sub { !defined $_ ? SQL 'c.s_hip', RAW $_[0], 0 : SQL 'c.s_hip <> 0 AND c.s_hip', RAW $_[0], $_ };
 f c => 11 => 'cup',        { default => undef, enum => \%CUP_SIZE },
-    sql => sub { !defined $_ ? sql 'c.cup_size', $_[0], "''" : sql 'c.cup_size <> \'\' AND c.cup_size', $_[0], \$_ };
+    sql => sub { !defined $_ ? SQL 'c.cup_size', RAW $_[0], "''" : SQL 'c.cup_size <> \'\' AND c.cup_size', RAW $_[0], $_ };
 f c => 12 => 'age',        { default => undef, uint => 1, max => 32767 },
-    sql => sub { !defined $_ ? sql('c.age IS', $_[0] eq '=' ? '' : 'NOT', 'NULL') : sql 'c.age', $_[0], \$_ };
-f c => 13 => 'trait',      { type => 'any', func => \&_validate_trait }, compact => \&_compact_trait, sql_list => _sql_where_trait('traits_chars', 'cid');
-f c => 15 => 'dtrait',     { type => 'any', func => \&_validate_trait }, compact => \&_compact_trait, sql_list => _sql_where_trait('chars_traits', 'id');
+    sql => sub { !defined $_ ? SQL('c.age IS', $_[0] eq '=' ? '' : 'NOT', 'NULL') : SQL 'c.age', RAW $_[0], $_ };
+f c => 13 => 'trait',      { type => 'any', func => \&_validate_trait }, compact => \&_compact_trait, sql_list => _sql_trait('traits_chars', 'cid');
+f c => 15 => 'dtrait',     { type => 'any', func => \&_validate_trait }, compact => \&_compact_trait, sql_list => _sql_trait('chars_traits', 'id');
 f c => 14 => 'birthday',   { default => [0,0], length => 2, elems => { uint => 1, max => 31 } },
-    '=' => sub { $_->[1] ? sql 'c.birthday =', \($_->[0]*100 + $_->[1]) : sql 'c.birthday BETWEEN', \($_->[0]*100), 'AND', \($_->[0]*100 + 99) };
+    '=' => sub { $_->[1] ? SQL 'c.birthday =', $_->[0]*100 + $_->[1] : SQL 'c.birthday BETWEEN', $_->[0]*100, 'AND', $_->[0]*100 + 99 };
 
 # XXX: When this field is nested inside a VN query, it may match seiyuu linked to other VNs.
 # This can be trivially fixed by adding an (AND vs.id = v.id) clause, but that results in extremely slow queries that I've no clue how to optimize.
-f c => 52 => 'seiyuu', 's', '=' => sub { sql 'c.id IN(SELECT vs.cid FROM vn_seiyuu vs JOIN staff_aliast s ON s.aid = vs.aid WHERE NOT s.hidden AND', $_, ')' };
-f c => 53 => 'vn',     'v', '=' => sub { sql 'c.id IN(SELECT cv.id FROM chars_vns cv JOIN vn v ON v.id = cv.vid WHERE NOT v.hidden AND', $_, ')' };
+f c => 52 => 'seiyuu', 's', '=' => sub { SQL 'c.id IN(SELECT vs.cid FROM vn_seiyuu vs JOIN staff_aliast s ON s.aid = vs.aid WHERE NOT s.hidden AND', $_, ')' };
+f c => 53 => 'vn',     'v', '=' => sub { SQL 'c.id IN(SELECT cv.id FROM chars_vns cv JOIN vn v ON v.id = cv.vid WHERE NOT v.hidden AND', $_, ')' };
 
 
 
 # Staff filters need 'staff_aliast s', aliases are treated as separate rows.
-f s =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 's.lang =', \$_ };
-f s =>  3 => 'id',        { vndbid => 's' }, sql => sub { sql 's.id', $_[0], \$_ };
-f s =>  4 => 'gender',    { default => '', func => sub { $_[0] = '' if $_[0] eq 'unknown'; 1 }, enum => {%STAFF_GENDER, unknown => 1} }, '=' => sub { sql 's.gender =', \$_ };
+f s =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { SQL 's.lang =', $_ };
+f s =>  3 => 'id',        { vndbid => 's' }, sql => sub { SQL 's.id', RAW $_[0], $_ };
+f s =>  4 => 'gender',    { default => '', func => sub { $_[0] = '' if $_[0] eq 'unknown'; 1 }, enum => {%STAFF_GENDER, unknown => 1} }, '=' => sub { SQL 's.gender =', $_ };
 f s =>  5 => 'role',      { enum => [ 'seiyuu', keys %CREDIT_TYPE ] },
     sql_list_grp => sub { $_ eq 'seiyuu' ? undef : '' },
-    sql_list => sub {
-        my($neg, $all, $val) = @_;
-        my @grp = $all && @$val > 1 ? ('GROUP BY vs.aid HAVING COUNT(vs.role) =', \scalar @$val) : ();
+    sql_list => sub($neg, $all, $val) {
+        my @grp = $all && @$val > 1 ? (SQL 'GROUP BY vs.aid HAVING COUNT(vs.role) =', scalar @$val) : ();
         if($#TYPE && $TYPE[$#TYPE-1] eq 'v') {
             # Shortcut referencing the vn_staff table we're already querying
-            return $val->[0] eq 'seiyuu' ? 'vs.role IS NULL' : sql 'vs.role IN', $val if !@grp && !$neg;
-            return sql $neg ? 'NOT' : '', 'EXISTS(SELECT 1 FROM vn_seiyuu vs WHERE vs.id = v.id AND vs.aid = s.aid)' if $val->[0] eq 'seiyuu';
-            sql 's.aid', $neg ? 'NOT' : '', 'IN(SELECT vs.aid FROM vn_staff vs WHERE vs.id = v.id AND vs.role IN', $val, @grp, ')';
+            return $val->[0] eq 'seiyuu' ? RAW 'vs.role IS NULL' : SQL 'vs.role', IN $val if !@grp && !$neg;
+            return SQL($neg ? 'NOT' : '', 'EXISTS(SELECT 1 FROM vn_seiyuu vs WHERE vs.id = v.id AND vs.aid = s.aid)') if $val->[0] eq 'seiyuu';
+            SQL 's.aid', $neg ? 'NOT' : '', 'IN(SELECT vs.aid FROM vn_staff vs WHERE vs.id = v.id AND vs.role', IN $val, @grp, ')';
         } else {
-            return sql $neg ? 'NOT' : '', 'EXISTS(SELECT 1 FROM vn_seiyuu vs JOIN vn v ON v.id = vs.id WHERE NOT v.hidden AND vs.aid = s.aid)' if $val->[0] eq 'seiyuu';
-            sql 's.aid', $neg ? 'NOT' : '', 'IN(SELECT vs.aid FROM vn_staff vs JOIN vn v ON v.id = vs.id WHERE NOT v.hidden AND vs.role IN', $val, @grp, ')';
+            return SQL($neg ? 'NOT' : '', 'EXISTS(SELECT 1 FROM vn_seiyuu vs JOIN vn v ON v.id = vs.id WHERE NOT v.hidden AND vs.aid = s.aid)') if $val->[0] eq 'seiyuu';
+            SQL 's.aid', $neg ? 'NOT' : '', 'IN(SELECT vs.aid FROM vn_staff vs JOIN vn v ON v.id = vs.id WHERE NOT v.hidden AND vs.role', IN $val, @grp, ')';
         }
     };
 f s =>  6 => 'extlink',   _extlink_filter('s', 'staff_extlinks');
-f s =>  7 => 'type',      { enum => \%STAFF_TYPE }, '=' => sub { sql 's.stype =', \$_ };
-f s => 61 => 'ismain',    { uint => 1, range => [1,1] }, '=' => sub { 's.aid = s.main' };
-f s => 80 => 'search',    { searchquery => 1 }, '=' => sub { $_->sql_where('s', 's.id', 's.aid') };
-f s => 81 => 'aid',       { id => 1 }, '=' => sub { sql 's.aid =', \$_ };
+f s =>  7 => 'type',      { enum => \%STAFF_TYPE }, '=' => sub { SQL 's.stype =', $_ };
+f s => 61 => 'ismain',    { uint => 1, range => [1,1] }, '=' => sub { RAW 's.aid = s.main' };
+f s => 80 => 'search',    { searchquery => 1 }, '=' => sub { $_->WHERE('s', 's.id', 's.aid') };
+f s => 81 => 'aid',       { id => 1 }, '=' => sub { SQL 's.aid =', $_ };
 
-f p =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { sql 'p.lang =', \$_ };
-f p =>  3 => 'id',        { vndbid => 'p' }, sql => sub { sql 'p.id', $_[0], \$_ };
-f p =>  4 => 'type',      { enum => \%PRODUCER_TYPE }, '=' => sub { sql 'p.type =', \$_ };
+f p =>  2 => 'lang',      { enum => \%LANGUAGE }, '=' => sub { SQL 'p.lang =', $_ };
+f p =>  3 => 'id',        { vndbid => 'p' }, sql => sub { SQL 'p.id', RAW $_[0], $_ };
+f p =>  4 => 'type',      { enum => \%PRODUCER_TYPE }, '=' => sub { SQL 'p.type =', $_ };
 f p =>  5 => 'extlink',   _extlink_filter('p', 'producers_extlinks');
-f p => 80 => 'search',    { searchquery => 1 }, '=' => sub { $_->sql_where('p', 'p.id') };
+f p => 80 => 'search',    { searchquery => 1 }, '=' => sub { $_->WHERE('p', 'p.id') };
 
 
-f g =>  2 => 'id',        { vndbid => 'g' }, sql => sub { sql 't.id', $_[0], \$_ };
-f g =>  3 => 'category',  { enum => \%TAG_CATEGORY }, '=' => sub { sql 't.cat =', \$_ };
-f g => 80 => 'search',    { searchquery => 1 }, '=' => sub { $_->sql_where('g', 't.id') };
+f g =>  2 => 'id',        { vndbid => 'g' }, sql => sub { SQL 't.id', RAW $_[0], $_ };
+f g =>  3 => 'category',  { enum => \%TAG_CATEGORY }, '=' => sub { SQL 't.cat =', $_ };
+f g => 80 => 'search',    { searchquery => 1 }, '=' => sub { $_->WHERE('g', 't.id') };
 
 
-f i =>  2 => 'id',        { vndbid => 'i' }, sql => sub { sql 't.id', $_[0], \$_ };
-f i => 80 => 'search',    { searchquery => 1 }, '=' => sub { $_->sql_where('i', 't.id') };
+f i =>  2 => 'id',        { vndbid => 'i' }, sql => sub { SQL 't.id', RAW $_[0], $_ };
+f i => 80 => 'search',    { searchquery => 1 }, '=' => sub { $_->WHERE('i', 't.id') };
 
 
-f q =>  2 => 'id',        { vndbid => 'q' }, sql => sub { sql 'q.id', $_[0], \$_ };
-f q => 53 => 'vn',        'v', '=' => sub { sql 'EXISTS(SELECT 1 FROM vn v WHERE NOT v.hidden AND q.vid = v.id AND', $_, ')' };
-f q => 54 => 'character', 'c', '=' => sub { sql 'EXISTS(SELECT 1 FROM chars c WHERE NOT c.hidden AND q.cid = c.id AND', $_, ')' };
+f q =>  2 => 'id',        { vndbid => 'q' }, sql => sub { SQL 'q.id', RAW $_[0], $_ };
+f q => 53 => 'vn',        'v', '=' => sub { SQL 'EXISTS(SELECT 1 FROM vn v WHERE NOT v.hidden AND q.vid = v.id AND', $_, ')' };
+f q => 54 => 'character', 'c', '=' => sub { SQL 'EXISTS(SELECT 1 FROM chars c WHERE NOT c.hidden AND q.cid = c.id AND', $_, ')' };
 f q => 81 => 'random',    { uint => 1, range => [1,1] },
-    '=' => sub { sql 'q.id = (SELECT id FROM quotes WHERE rand <= (SELECT random()) ORDER BY rand DESC LIMIT 1)' };
+    '=' => sub { RAW 'q.id = (SELECT id FROM quotes WHERE rand <= (SELECT random()) ORDER BY rand DESC LIMIT 1)' };
 
 
 
@@ -547,8 +542,8 @@ sub _extlink_filter($type, $tbl) {
     }
 
     my sub _sql {
-        return sql "EXISTS(SELECT 1 FROM $tbl ix WHERE ix.id = $type.id AND ix.c_site =", \"$_", ')' if !ref; # just name
-        sql "EXISTS(SELECT 1 FROM $tbl ix JOIN extlinks il ON il.id = ix.link AND il.site = ix.c_site WHERE ix.id = $type.id AND il.site =", \"$_->[0]", 'AND il.value =', \"$_->[1]", ')';
+        return SQL RAW("EXISTS(SELECT 1 FROM $tbl ix WHERE ix.id = $type.id AND ix.c_site ="), $_, ')' if !ref; # just name
+        SQL RAW("EXISTS(SELECT 1 FROM $tbl ix JOIN extlinks il ON il.id = ix.link AND il.site = ix.c_site WHERE ix.id = $type.id AND il.site ="), $_->[0], 'AND il.value =', $_->[1], ')';
     }
     my sub _comp { ref $_ ? $_->[0].','.$_->[1] : $_ }
     ({ type => 'any', func => \&_val }, '=' => \&_sql, compact => \&_comp)
@@ -710,51 +705,46 @@ sub _canon {
 
 
 # returns an sql_list function for tags
-sub _sql_where_tag {
-    my($table) = @_;
-    sub {
-        my($neg, $all, $val) = @_;
+sub _sql_tag($table) {
+    sub($neg, $all, $val) {
         my %f; # spoiler -> rating -> lie -> list
         my @l;
         push $f{$_->[1]*1}{$_->[2]*1}{$_->[3]?1:''}->@*, $_->[0] for @$val;
         for my $s (keys %f) {
             for my $r (keys $f{$s}->%*) {
                 for my $l (keys $f{$s}{$r}->%*) {
-                    push @l, sql_and
-                        $s < 2 ? sql('spoiler <=', \$s) : (),
-                        $r > 0 ? sql('rating >=', \$r) : (),
-                        $l ? ('NOT lie') : (),
-                        sql('tag IN', $f{$s}{$r}{$l});
+                    push @l, AND
+                        $s < 2 ? SQL 'spoiler <=', $s : (),
+                        $r > 0 ? SQL 'rating >=', $r : (),
+                        $l ? RAW 'NOT lie' : (),
+                        SQL('tag', IN $f{$s}{$r}{$l});
                 }
             }
         }
-        sql 'v.id', $neg ? 'NOT' : (), 'IN(SELECT vid FROM', $table, 'WHERE', sql_or(@l), $all && @$val > 1 ? ('GROUP BY vid HAVING COUNT(tag) =', \scalar @$val) : (), ')'
+        SQL 'v.id', $neg ? 'NOT' : (), 'IN(SELECT vid FROM', RAW $table, 'WHERE', OR(@l), $all && @$val > 1 ? ('GROUP BY vid HAVING COUNT(tag) =', scalar @$val) : (), ')'
     }
 }
 
-sub _sql_where_trait {
-    my($table, $cid) = @_;
-    sub {
-        my($neg, $all, $val) = @_;
+sub _sql_trait($table, $cid) {
+    sub($neg, $all, $val) {
         my %f; # spoiler -> list
         my @l;
         push $f{$_->[1]*1}{$_->[2]?1:''}->@*, $_->[0] for @$val;
         for my $s (keys %f) {
             for my $l (keys $f{$s}->%*) {
-                push @l, sql_and
-                    $s < 2 ? sql('spoil <=', \$s) : (),
-                    $l ? ('NOT lie') : (),
-                    sql('tid IN', $f{$s}{$l});
+                push @l, AND
+                    $s < 2 ? SQL 'spoil <=', $s : (),
+                    $l ? RAW 'NOT lie' : (),
+                    SQL('tid', IN $f{$s}{$l});
             }
         }
-        sql 'c.id', $neg ? 'NOT' : (), 'IN(SELECT', $cid, 'FROM', $table, 'WHERE', sql_or(@l), $all && @$val > 1 ? ('GROUP BY', $cid, 'HAVING COUNT(tid) =', \scalar @$val) : (), ')'
+        SQL 'c.id', $neg ? 'NOT' : (), 'IN(SELECT', RAW $cid, 'FROM', RAW $table, 'WHERE', OR(@l), $all && @$val > 1 ? ('GROUP BY', RAW $cid, 'HAVING COUNT(tid) =', scalar @$val) : (), ')'
     }
 }
 
 
 # Assumption: All labels in a group are for the same uid and label==0 has its own group.
-sub _sql_where_label {
-    my($neg, $all, $val) = @_;
+sub _sql_label($neg, $all, $val) {
     my $uid = $val->[0][0];
     require VNWeb::ULists::Lib;
     my $own = VNWeb::ULists::Lib::ulists_priv($uid);
@@ -762,8 +752,8 @@ sub _sql_where_label {
 
     # Unlabeled
     if($lbl[0] == 0) {
-        return '1=0' if !$own;
-        return sql $neg ? 'NOT' : (), 'EXISTS(SELECT 1 FROM ulist_vns WHERE vid = v.id AND uid =', \$uid, "AND labels IN('{}','{7}'))";
+        return RAW '1=0' if !$own;
+        return SQL $neg ? 'NOT' : (), 'EXISTS(SELECT 1 FROM ulist_vns WHERE vid = v.id AND uid =', $uid, "AND labels IN('{}','{7}'))";
     }
 
     if(!$own) {
@@ -773,24 +763,22 @@ sub _sql_where_label {
             $kv;
         };
         my $vis = fu->{lblvis}{$uid};
-        return $neg ? '1=1' : '1=0' if $all && grep !$vis->{$_}, @lbl; # AND query but one label is private -> no match
+        return RAW($neg ? '1=1' : '1=0') if $all && grep !$vis->{$_}, @lbl; # AND query but one label is private -> no match
         @lbl = grep $vis->{$_}, @lbl;
-        return $neg ? '1=1' : '1=0' if !@lbl; # All requested labels are private -> no match
+        return RAW($neg ? '1=1' : '1=0') if !@lbl; # All requested labels are private -> no match
     }
 
-    sql 'v.id', $neg ? 'NOT' : (), 'IN(
+    SQL 'v.id', $neg ? 'NOT' : (), 'IN(
         SELECT vid
           FROM ulist_vns
-         WHERE uid =', \$uid,
-          'AND labels', $all ? '@>' : '&&', sql_array(@lbl), '::smallint[]',
+         WHERE uid =', $uid,
+          'AND labels', $all ? '@>' : '&&', \@lbl, '::smallint[]',
                $own ? () : 'AND NOT c_private',
     ')'
 }
 
 
-sub _sql_where {
-    my($t, $q) = @_;
-
+sub _sql($t, $q) {
     if($q->[0] eq 'and' || $q->[0] eq 'or') {
         my %f; # For sql_list; field -> op -> group -> list of values
         my @l; # Remaining non-batched queries
@@ -802,7 +790,7 @@ sub _sql_where {
             if(defined $grp) {
                 push $f{$cq->[0]}{$cq->[1]}{$grp}->@*, $cq->[2];
             } else {
-                push @l, _sql_where($t, $cq);
+                push @l, _sql($t, $cq);
             }
         }
 
@@ -815,7 +803,7 @@ sub _sql_where {
             }
         }
 
-        return sql '(', ($q->[0] eq 'and' ? sql_and @l : sql_or @l), ')';
+        return SQL '(', ($q->[0] eq 'and' ? AND @l : OR @l), ')';
     }
 
     fu->{trace_filters}{"$t.$q->[0]"} = 1;
@@ -823,18 +811,19 @@ sub _sql_where {
     my $func = $f->{$q->[1]} || $f->{sql};
     local $_ = ref $f->{value} ? $q->[2] : do {
         push @TYPE, $f->{value};
-        my $v = _sql_where($f->{value}, $q->[2]);
+        my $v = _sql($f->{value}, $q->[2]);
         pop @TYPE;
         $v;
     };
-    sql '(', $func->($q->[1]), ')';
+    SQL '(', $func->($q->[1]), ')';
 }
 
 
-sub sql_where {
+no warnings 'redefine';
+sub WHERE {
     my($self) = @_;
     @TYPE = ($self->{type});
-    $self->{query} ? _sql_where $self->{type}, _canon $self->{type}, $self->{query} : '1=1';
+    $self->{query} ? _sql $self->{type}, _canon $self->{type}, $self->{query} : '1=1';
 }
 
 

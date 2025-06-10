@@ -155,7 +155,7 @@ sub api_patch($path, $req_schema, $sub) {
 
 # %opt:
 #   filters => AdvSearch query type
-#   sql => sub { sql 'SELECT id', $_[0], 'FROM x', $_[1], 'WHERE', $_[2] },
+#   sql => sub { SQL 'SELECT id', $_[0], 'FROM x', $_[1], 'WHERE', $_[2] },
 #       Main query to fetch items,
 #           $_[0] is the list of fields to fetch (including a preceding comma)
 #           $_[1] is a list of JOIN clauses
@@ -169,7 +169,7 @@ sub api_patch($path, $req_schema, $sub) {
 #       # These should always be 1-to-1 joins, i.e. no filtering or expansion may take place.
 #   },
 #   search => [ $type, $id, $subid ],
-#       Whether sorting on "searchrank" is available, arguments are same as SearchQuery::sql_join().
+#       Whether sorting on "searchrank" is available, arguments are same as SearchQuery::JOIN().
 #   fields => {
 #       $name => { %field_definition },
 #   },
@@ -202,7 +202,7 @@ sub api_patch($path, $req_schema, $sub) {
 #   subid    => 'SQL',  # SQL to match the ID in the other API object.
 #
 # %field_definition for nested 1-to-many objects:
-#   enrich   => sub { sql 'SELECT id', $_[0], 'FROM x', $_[1], 'WHERE id IN', $_[2] },
+#   enrich   => sub { SQL 'SELECT id', $_[0], 'FROM x', $_[1], 'WHERE id IN', $_[2] },
 #                # Subroutine that returns an SQL statement
 #                #    $_[0] is the list of fields to fetch
 #                #    $_[1] is a list of JOIN clauses
@@ -269,18 +269,23 @@ sub api_query($path, %opt) {
         $sort = $sort =~ /[?!]o/ ? ($sort =~ s/\?o/$order/rg =~ s/!o/$opposite_order/rg) : "$sort $order";
 
         my($select, $joins) = prepare_fields($opt{fields}, $opt{joins}, $req->{fields});
-        $joins = sql $joins, $searchquery->sql_join($opt{search}->@*) if $searchquery;
+        $joins = RAW $joins;
+        $joins = SQL $joins, $searchquery->JOIN($opt{search}->@*) if $searchquery;
 
         my($results,$more,$count);
         eval {
             local $SIG{ALRM} = sub { die "Timeout\n"; };
             alarm 3;
-            ($results, $more) = $req->{results} == 0 ? ([], 0) :
-                fu->dbPagei($req, $opt{sql}->($select, $joins, $filt->sql_where(), $req), 'ORDER BY', $sort);
+            $results = $req->{results} == 0 ? [] : fu->SQL(
+                $opt{sql}->(RAW $select, $joins, $filt->WHERE(), $req),
+                'ORDER BY', RAW $sort,
+                'LIMIT', $req->{results} + 1, 'OFFSET', $req->{results}*($req->{page}-1)
+            )->allh;
             $count = $req->{count} && (
-                !$more && $req->{results} && @$results <= $req->{results} ? ($req->{results}*($req->{page}-1))+@$results :
-                fu->dbVali('SELECT count(*) FROM (', $opt{sql}->('', '', $req->{filters}->sql_where), ') x')
+                $req->{results} && @$results <= $req->{results} ? ($req->{results}*($req->{page}-1))+@$results :
+                fu->SQL('SELECT count(*) FROM (', $opt{sql}->(RAW '', RAW '', $req->{filters}->WHERE), ') x')->val
             );
+            $more = @$results > $req->{results} && !!pop @$results;
             proc_results($opt{fields}, $req->{fields}, $req, $results);
             alarm 0;
             1;
@@ -411,7 +416,7 @@ sub proc_results {
             # DB::enrich() logic has been duplicated here to allow for
             # efficient handling of nested proc_results() and `atmostone`.
             my %ids = map defined($_->{$d->{key}}) ? ($_->{$d->{key}},[]) : (), @$results;
-            my $rows = keys %ids ? fu->dbAlli($d->{enrich}->($select, $join, [keys %ids], $req)) : [];
+            my $rows = keys %ids ? fu->SQL($d->{enrich}->(RAW $select, RAW $join, [keys %ids], $req))->allh : [];
             proc_results($d->{fields}, $enabled->{$f}, $req, $rows);
             push $ids{ delete $_->{$d->{col}} }->@*, $_ for @$rows;
             if($d->{atmostone}) {
@@ -430,9 +435,9 @@ sub proc_results {
             $select .= ",$d->{subid} AS $subidname";
             # This is enrich_obj()
             my %ids = map defined($_->{$f}) ? ($_->{$f},undef) : (), @$results;
-            my $rows = keys %ids ? fu->dbAlli(
-                $OBJS{$d->{object}}{sql}->($select, $join, sql($d->{subid}, 'IN', [keys %ids]), $req)
-            ) : [];
+            my $rows = keys %ids ? fu->SQL(
+                $OBJS{$d->{object}}{sql}->(RAW $select, RAW $join, SQL(RAW $d->{subid}, IN [keys %ids]), $req)
+            )->allh : [];
             proc_results($d->{fields}, $enabled->{$f}, $req, $rows);
             $ids{ delete $_->{$subidname} } = $_ for @$rows;
             $_->{$f} = defined $_->{$f} ? $ids{ $_->{$f} } : undef for @$results;
@@ -649,22 +654,22 @@ sub IMG {
 }
 
 # Extracts the alttitle from a 'vnt.titles'-like array column, returns null if equivalent to the main title.
-sub ALTTITLE { my($t,$col) = @_; +(select => "CASE WHEN $t"."[1+1] = $t"."[1+1+1+1] THEN NULL ELSE $t"."[1+1+1+1] END AS ".($col // 'alttitle')) }
+sub ALTTITLE { my($t,$col) = @_; +(select => "CASE WHEN $t"."[2] = $t"."[4] THEN NULL ELSE $t"."[4] END AS ".($col // 'alttitle')) }
 
 
 api_query '/vn',
     filters => 'v',
-    sql => sub { sql 'SELECT v.id', $_[0], 'FROM vnt v', $_[1], 'WHERE NOT v.hidden AND (', $_[2], ')' },
+    sql => sub { SQL 'SELECT v.id', $_[0], 'FROM vnt v', $_[1], 'WHERE NOT v.hidden AND (', $_[2], ')' },
     joins => {
         image => 'LEFT JOIN images i ON i.id = v.c_image',
     },
     search => [ 'v', 'v.id' ],
     fields => {
         id => {},
-        title => { select => 'v.title[1+1]' },
+        title => { select => 'v.title[2]' },
         alttitle => { ALTTITLE 'v.title' },
         titles => {
-            enrich => sub { sql 'SELECT vt.id', $_[0], 'FROM vn_titles vt', $_[1], 'WHERE vt.id IN', $_[2] },
+            enrich => sub { SQL 'SELECT vt.id', $_[0], 'FROM vn_titles vt', $_[1], 'WHERE vt.id', IN $_[2] },
             key => 'id', col => 'id', num => 3,
             joins => {
                 main => 'JOIN vn v ON v.id = vt.id',
@@ -704,7 +709,7 @@ api_query '/vn',
         popularity  => { select => 'v.c_votecount AS popularity', proc => sub { $_[0] = min(100, $_[0]/150) if defined $_[0] } },
         votecount   => { select => 'v.c_votecount AS votecount' },
         screenshots => {
-            enrich => sub { sql 'SELECT vs.id AS vid', $_[0], 'FROM vn_screenshots vs', $_[1], 'WHERE vs.id IN', $_[2] },
+            enrich => sub { SQL 'SELECT vs.id AS vid', $_[0], 'FROM vn_screenshots vs', $_[1], 'WHERE vs.id', IN $_[2] },
             key => 'id', col => 'vid', num => 10,
             joins => {
                 image => 'JOIN images i ON i.id = vs.scr',
@@ -717,14 +722,14 @@ api_query '/vn',
                                   , proc => sub { @{$_[0]} = imgsize @{$_[0]}, config->{scr_size}->@* } },
                 release => {
                     select => 'vs.rid AS screen_rid',
-                    enrich => sub { sql 'SELECT r.id AS screen_rid, r.id', $_[0], 'FROM releasest r', $_[1], 'WHERE NOT r.hidden AND r.id IN', $_[2] },
+                    enrich => sub { SQL 'SELECT r.id AS screen_rid, r.id', $_[0], 'FROM releasest r', $_[1], 'WHERE NOT r.hidden AND r.id', IN $_[2] },
                     key => 'screen_rid', col => 'screen_rid', atmostone => 1,
                     inherit => '/release',
                 }
             },
         },
         relations => {
-            enrich => sub { sql 'SELECT vr.id AS vid, v.id', $_[0], 'FROM vn_relations vr JOIN vnt v ON v.id = vr.vid', $_[1], 'WHERE vr.id IN', $_[2] },
+            enrich => sub { SQL 'SELECT vr.id AS vid, v.id', $_[0], 'FROM vn_relations vr JOIN vnt v ON v.id = vr.vid', $_[1], 'WHERE vr.id', IN $_[2] },
             key => 'id', col => 'vid', num => 3,
             inherit => '/vn',
             fields => {
@@ -733,7 +738,7 @@ api_query '/vn',
             },
         },
         tags => {
-            enrich => sub { sql 'SELECT tv.vid, t.id', $_[0], 'FROM tags_vn_direct tv JOIN tags t ON t.id = tv.tag', $_[1], 'WHERE NOT t.hidden AND tv.vid IN', $_[2] },
+            enrich => sub { SQL 'SELECT tv.vid, t.id', $_[0], 'FROM tags_vn_direct tv JOIN tags t ON t.id = tv.tag', $_[1], 'WHERE NOT t.hidden AND tv.vid', IN $_[2] },
             key => 'id', col => 'vid', num => 50,
             inherit => '/tag',
             fields => {
@@ -743,12 +748,12 @@ api_query '/vn',
             },
         },
         developers => {
-            enrich => sub { sql 'SELECT v.id AS vid, p.id', $_[0], 'FROM vn v, unnest(v.c_developers) vp(id), producerst p', $_[1], 'WHERE p.id = vp.id AND v.id IN', $_[2] },
+            enrich => sub { SQL 'SELECT v.id AS vid, p.id', $_[0], 'FROM vn v, unnest(v.c_developers) vp(id), producerst p', $_[1], 'WHERE p.id = vp.id AND v.id', IN $_[2] },
             key => 'id', col => 'vid', num => 2,
             inherit => '/producer',
         },
         editions => {
-            enrich => sub { sql 'SELECT id', $_[0], 'FROM vn_editions WHERE id IN', $_[2] },
+            enrich => sub { SQL 'SELECT id', $_[0], 'FROM vn_editions WHERE id', IN $_[2] },
             key => 'id', col => 'id', num => 3,
             fields => {
                 eid   => { select => 'eid' },
@@ -758,7 +763,7 @@ api_query '/vn',
             },
         },
         staff => {
-            enrich => sub { sql 'SELECT vs.id AS vid, s.id', $_[0], 'FROM vn_staff vs JOIN staff_aliast s ON s.aid = vs.aid', $_[1], 'WHERE NOT s.hidden AND vs.id IN', $_[2] },
+            enrich => sub { SQL 'SELECT vs.id AS vid, s.id', $_[0], 'FROM vn_staff vs JOIN staff_aliast s ON s.aid = vs.aid', $_[1], 'WHERE NOT s.hidden AND vs.id', IN $_[2] },
             key => 'id', col => 'vid', num => 20,
             inherit => '/staff',
             fields => {
@@ -768,7 +773,7 @@ api_query '/vn',
             },
         },
         va => {
-            enrich => sub { sql 'SELECT vs.id AS vid', $_[0], 'FROM vn_seiyuu vs JOIN staff_aliast s ON s.aid = vs.aid JOIN chars c ON c.id = vs.cid', $_[1], 'WHERE NOT s.hidden AND NOT c.hidden AND vs.id IN', $_[2] },
+            enrich => sub { SQL 'SELECT vs.id AS vid', $_[0], 'FROM vn_seiyuu vs JOIN staff_aliast s ON s.aid = vs.aid JOIN chars c ON c.id = vs.cid', $_[1], 'WHERE NOT s.hidden AND NOT c.hidden AND vs.id', IN $_[2] },
             key => 'id', col => 'vid', num => 10,
             fields => {
                 staff     => { object => '/staff',     select => 'vs.aid AS staff',     subid => 's.aid' },
@@ -790,14 +795,14 @@ api_query '/vn',
 
 api_query '/release',
     filters => 'r',
-    sql => sub { sql 'SELECT r.id', $_[0], 'FROM releasest r', $_[1], 'WHERE NOT r.hidden AND (', $_[2], ')' },
+    sql => sub { SQL 'SELECT r.id', $_[0], 'FROM releasest r', $_[1], 'WHERE NOT r.hidden AND (', $_[2], ')' },
     search => [ 'r', 'r.id' ],
     fields => {
         id       => {},
-        title    => { select => 'r.title[1+1]' },
+        title    => { select => 'r.title[2]' },
         alttitle => { ALTTITLE 'r.title' },
         languages => {
-            enrich => sub { sql 'SELECT rt.id', $_[0], 'FROM releases_titles rt', $_[1], 'WHERE rt.id IN', $_[2] },
+            enrich => sub { SQL 'SELECT rt.id', $_[0], 'FROM releases_titles rt', $_[1], 'WHERE rt.id', IN $_[2] },
             key => 'id', col => 'id', num => 3,
             joins => {
                 main => 'JOIN releases r ON r.id = rt.id',
@@ -811,11 +816,11 @@ api_query '/release',
             },
         },
         platforms => {
-            enrich => sub { sql 'SELECT id, platform FROM releases_platforms WHERE id IN', $_[2] },
+            enrich => sub { SQL 'SELECT id, platform FROM releases_platforms WHERE id', IN $_[2] },
             key => 'id', col => 'id', proc => sub { $_[0] = [ map $_->{platform}, $_[0]->@* ] },
         },
         media => {
-            enrich => sub { sql 'SELECT id', $_[0], 'FROM releases_media WHERE id IN', $_[2] },
+            enrich => sub { SQL 'SELECT id', $_[0], 'FROM releases_media WHERE id', IN $_[2] },
             key => 'id', col => 'id', num => 3,
             fields => {
                 medium => { select => 'medium' },
@@ -823,7 +828,7 @@ api_query '/release',
             },
         },
         vns => {
-            enrich => sub { sql 'SELECT rv.id AS rid, v.id', $_[0], 'FROM releases_vn rv JOIN vnt v ON v.id = rv.vid', $_[1], 'WHERE rv.id IN', $_[2] },
+            enrich => sub { SQL 'SELECT rv.id AS rid, v.id', $_[0], 'FROM releases_vn rv JOIN vnt v ON v.id = rv.vid', $_[1], 'WHERE rv.id', IN $_[2] },
             key => 'id', col => 'rid', num => 3,
             inherit => '/vn',
             fields => {
@@ -831,7 +836,7 @@ api_query '/release',
             },
         },
         producers  => {
-            enrich => sub { sql 'SELECT rp.id AS rid, p.id', $_[0], 'FROM releases_producers rp JOIN producerst p ON p.id = rp.pid', $_[1], 'WHERE rp.id IN', $_[2] },
+            enrich => sub { SQL 'SELECT rp.id AS rid, p.id', $_[0], 'FROM releases_producers rp JOIN producerst p ON p.id = rp.pid', $_[1], 'WHERE rp.id', IN $_[2] },
             key => 'id', col => 'rid', num => 3,
             inherit => '/producer',
             fields => {
@@ -840,7 +845,7 @@ api_query '/release',
             },
         },
         images => {
-            enrich => sub { sql 'SELECT ri.id AS rid', $_[0], 'FROM releases_images ri', $_[1], 'WHERE ri.id IN', $_[2] },
+            enrich => sub { SQL 'SELECT ri.id AS rid', $_[0], 'FROM releases_images ri', $_[1], 'WHERE ri.id', IN $_[2] },
             key => 'id', col => 'rid', num => 3,
             joins => {
                 image => 'JOIN images i ON i.id = ri.img',
@@ -882,11 +887,11 @@ api_query '/release',
 
 api_query '/producer',
     filters => 'p',
-    sql => sub { sql 'SELECT p.id', $_[0], 'FROM producerst p', $_[1], 'WHERE NOT p.hidden AND (', $_[2], ')' },
+    sql => sub { SQL 'SELECT p.id', $_[0], 'FROM producerst p', $_[1], 'WHERE NOT p.hidden AND (', $_[2], ')' },
     search => [ 'p', 'p.id' ],
     fields => {
         id       => {},
-        name     => { select => 'p.title[1+1] AS name' },
+        name     => { select => 'p.title[2] AS name' },
         original => { ALTTITLE 'p.title', 'original' },
         aliases  => { select => 'p.alias AS aliases', @MSTR },
         lang     => { select => 'p.lang' },
@@ -902,14 +907,14 @@ api_query '/producer',
 
 api_query '/character',
     filters => 'c',
-    sql => sub { sql 'SELECT c.id', $_[0], 'FROM charst c', $_[1], 'WHERE NOT c.hidden AND (', $_[2], ')' },
+    sql => sub { SQL 'SELECT c.id', $_[0], 'FROM charst c', $_[1], 'WHERE NOT c.hidden AND (', $_[2], ')' },
     search => [ 'c', 'c.id' ],
     joins => {
         image => 'LEFT JOIN images i ON i.id = c.image',
     },
     fields => {
         id       => {},
-        name     => { select => 'c.title[1+1] AS name' },
+        name     => { select => 'c.title[2] AS name' },
         original => { ALTTITLE 'c.title', 'original' },
         aliases  => { select => 'c.alias AS aliases', @MSTR },
         description => { select => 'c.description', @NSTR },
@@ -932,7 +937,7 @@ api_query '/character',
                 NULLIF(COALESCE(c.spoil_gender::text, c.gender::text, CASE WHEN COALESCE(c.spoil_sex, c.sex) IN('m','f') THEN COALESCE(c.spoil_sex, c.sex)::text ELSE NULL END), '')
             ]::text[], '{NULL,NULL}') AS gender" },
         vns      => {
-            enrich => sub { sql 'SELECT cv.id AS cid, v.id', $_[0], 'FROM chars_vns cv JOIN vnt v ON v.id = cv.vid', $_[1], 'WHERE NOT v.hidden AND cv.id IN', $_[2] },
+            enrich => sub { SQL 'SELECT cv.id AS cid, v.id', $_[0], 'FROM chars_vns cv JOIN vnt v ON v.id = cv.vid', $_[1], 'WHERE NOT v.hidden AND cv.id', IN $_[2] },
             key => 'id', col => 'cid', num => 3,
             inherit => '/vn',
             fields => {
@@ -940,14 +945,14 @@ api_query '/character',
                 role    => { select => 'cv.role' },
                 release => {
                     select => 'cv.rid',
-                    enrich => sub { sql 'SELECT r.id AS rid, r.id', $_[0], 'FROM releasest r', $_[1], 'WHERE NOT r.hidden AND r.id IN', $_[2] },
+                    enrich => sub { SQL 'SELECT r.id AS rid, r.id', $_[0], 'FROM releasest r', $_[1], 'WHERE NOT r.hidden AND r.id', IN $_[2] },
                     key => 'rid', col => 'rid', atmostone => 1,
                     inherit => '/release',
                 }
             },
         },
         traits   => {
-            enrich => sub { sql 'SELECT ct.id AS cid, t.id', $_[0], 'FROM chars_traits ct JOIN traits t ON t.id = ct.tid', $_[1], 'WHERE NOT t.hidden AND ct.id IN', $_[2] },
+            enrich => sub { SQL 'SELECT ct.id AS cid, t.id', $_[0], 'FROM chars_traits ct JOIN traits t ON t.id = ct.tid', $_[1], 'WHERE NOT t.hidden AND ct.id', IN $_[2] },
             key => 'id', col => 'cid', num => 30,
             inherit => '/trait',
             fields => {
@@ -964,20 +969,20 @@ api_query '/character',
 
 api_query '/staff',
     filters => 's',
-    sql => sub { sql 'SELECT s.id', $_[0], 'FROM staff_aliast s', $_[1], 'WHERE NOT s.hidden AND (', $_[2], ')' },
+    sql => sub { SQL 'SELECT s.id', $_[0], 'FROM staff_aliast s', $_[1], 'WHERE NOT s.hidden AND (', $_[2], ')' },
     search => [ 's', 's.id', 's.aid' ],
     fields => {
         id       => {},
         aid      => { select => 's.aid' },
         ismain   => { select => 's.main = s.aid AS ismain', @BOOL },
-        name     => { select => 's.title[1+1] AS name' },
+        name     => { select => 's.title[2] AS name' },
         original => { ALTTITLE 's.title', 'original' },
         lang     => { select => 's.lang' },
         gender   => { select => "NULLIF(s.gender, '') AS gender" },
         description => { select => 's.description', @NSTR },
         extlinks => { extlinks => 's' },
         aliases  => {
-            enrich => sub { sql 'SELECT sa.id', $_[0], 'FROM staff_alias sa', $_[1], 'WHERE sa.id IN', $_[2] },
+            enrich => sub { SQL 'SELECT sa.id', $_[0], 'FROM staff_alias sa', $_[1], 'WHERE sa.id', IN $_[2] },
             key => 'id', col => 'id', num => 3,
             joins => {
                 main => 'JOIN staff s ON s.id = sa.id',
@@ -998,7 +1003,7 @@ api_query '/staff',
 
 api_query '/tag',
     filters => 'g',
-    sql => sub { sql 'SELECT t.id', $_[0], 'FROM tags t', $_[1], 'WHERE NOT t.hidden AND (', $_[2], ')' },
+    sql => sub { SQL 'SELECT t.id', $_[0], 'FROM tags t', $_[1], 'WHERE NOT t.hidden AND (', $_[2], ')' },
     search => [ 'g', 't.id' ],
     fields => {
         id          => {},
@@ -1019,7 +1024,7 @@ api_query '/tag',
 
 api_query '/trait',
     filters => 'i',
-    sql => sub { sql 'SELECT t.id', $_[0], 'FROM traits t', $_[1], 'WHERE NOT t.hidden AND (', $_[2], ')' },
+    sql => sub { SQL 'SELECT t.id', $_[0], 'FROM traits t', $_[1], 'WHERE NOT t.hidden AND (', $_[2], ')' },
     search => [ 'i', 't.id' ],
     joins => {
         group => 'LEFT JOIN traits g ON g.id = t.gid',
@@ -1047,12 +1052,12 @@ api_query '/ulist',
     filters => 'v',
     sql => sub {
         err 400, 'Missing "user" parameter and not authenticated.' if !$_[3]{user};
-        sql 'SELECT v.id', $_[0], '
+        SQL 'SELECT v.id', $_[0], '
                FROM ulist_vns uv
-               JOIN vnt v ON v.id = uv.vid', $_[1], '
-              WHERE', sql_and
+               JOIN vnt v ON v.id = uv.vid', $_[1],
+              WHERE
                 'NOT v.hidden',
-                sql('uv.uid =', \$_[3]{user}),
+                SQL('uv.uid =', $_[3]{user}),
                 auth->api2Listread($_[3]{user}) ? () : 'NOT uv.c_private',
                 $_[2];
     },
@@ -1067,14 +1072,14 @@ api_query '/ulist',
         finished => { select => 'uv.finished' },
         notes    => { select => 'uv.notes', @NSTR },
         labels   => {
-            enrich => sub { sql 'SELECT uv.vid', $_[0], '
-                                   FROM ulist_vns uv, unnest(uv.labels) l(id), ulist_labels ul
-                                  WHERE', sql_and
-                                     sql('uv.uid =', \$_[3]{user}),
-                                     sql('ul.uid =', \$_[3]{user}),
+            enrich => sub { SQL 'SELECT uv.vid', $_[0], '
+                                   FROM ulist_vns uv, unnest(uv.labels) l(id), ulist_labels ul',
+                                  WHERE
+                                     SQL('uv.uid =', $_[3]{user}),
+                                     SQL('ul.uid =', $_[3]{user}),
                                      'ul.id = l.id',
                                      auth->api2Listread($_[3]{user}) ? () : 'NOT ul.private',
-                                     sql('uv.vid IN', $_[2]) },
+                                     SQL('uv.vid', IN $_[2]) },
             key => 'id', col => 'vid', num => 3,
             fields => {
                 id    => { select => 'l.id' },
@@ -1082,16 +1087,16 @@ api_query '/ulist',
             },
         },
         vn       => {
-            enrich => sub { sql 'SELECT v.id', $_[0], 'FROM vnt v', $_[1], 'WHERE v.id IN', $_[2] },
+            enrich => sub { SQL 'SELECT v.id', $_[0], 'FROM vnt v', $_[1], 'WHERE v.id', IN $_[2] },
             key => 'id', col => 'id', atmostone => 1, inherit => '/vn',
         },
         releases => {
-            enrich => sub { sql 'SELECT irv.vid, r.id', $_[0], '
+            enrich => sub { SQL 'SELECT irv.vid, r.id', $_[0], '
                                    FROM rlists rl
                                    JOIN releasest r ON rl.rid = r.id', $_[1], '
-                                   JOIN (SELECT DISTINCT id, vid FROM releases_vn rv WHERE rv.vid IN', $_[2], ') AS irv(id,vid) ON rl.rid = irv.id
+                                   JOIN (SELECT DISTINCT id, vid FROM releases_vn rv WHERE rv.vid', IN $_[2], ') AS irv(id,vid) ON rl.rid = irv.id
                                   WHERE NOT r.hidden
-                                    AND rl.uid =', \$_[3]{user} },
+                                    AND rl.uid =', $_[3]{user} },
             key => 'id', col => 'vid', num => 3, inherit => '/release',
             fields => {
                 list_status => { select => 'rl.status AS list_status' },
@@ -1116,7 +1121,7 @@ api_query '/ulist',
 
 api_query '/quote',
     filters => 'q',
-    sql => sub { sql 'SELECT q.id', $_[0], 'FROM quotes q', $_[1], 'WHERE NOT q.hidden AND (', $_[2], ')' },
+    sql => sub { SQL 'SELECT q.id', $_[0], 'FROM quotes q', $_[1], 'WHERE NOT q.hidden AND (', $_[2], ')' },
     fields => {
         id        => {},
         quote     => { select => 'q.quote' },

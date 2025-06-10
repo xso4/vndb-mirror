@@ -88,7 +88,7 @@ sub user_maybebanned_ {
 }
 
 
-# Display a user link, the given object must have the columns as fetched using DB::sql_user().
+# Display a user link, the given object must have the columns as fetched using DB::USER().
 # Args: $object, $prefix, $capital
 sub user_ {
     my $obj = shift;
@@ -907,23 +907,22 @@ sub searchbox_ {
       # Only fetch counts for queries that can use the trigram index
       # (This length requirement is not ideal for Kanji, but pg_trgm doesn't
       # discriminate between scripts)
-      my %counts = $q && (grep length($_)>=3, $q->words->@*) ?
-          map +($_->{type}, $_->{cnt}), fu->dbAlli('
-              SELECT vndbid_type(id) AS type, count(*) AS cnt
-                FROM (
-                  SELECT DISTINCT id
-                    FROM search_cache sc
-                   WHERE', sql_and($q->where(undef, 1)), "
-                     AND NOT (id BETWEEN '${sel}1' AND vndbid_max('$sel'))
-                ) x
-               GROUP BY vndbid_type(id)
-          ")->@* : ();
+      my $counts = $q && (grep length($_)>=3, $q->words->@*) && fu->SQL('
+          SELECT vndbid_type(id), count(*)
+            FROM (
+              SELECT DISTINCT id
+                FROM search_cache sc
+               WHERE', $q->_WHERE(undef, 1), RAW "
+                 AND NOT (id BETWEEN '${sel}1' AND vndbid_max('$sel'))
+            ) x
+           GROUP BY vndbid_type(id)
+      ")->kvv;
 
       my sub lnk_ {
           my($type, $label) = @_;
           a_ href => "/$type", $sel eq $type ? (class => 'sel') : (), sub {
               txt_ $label;
-              sup_ class => 'standout', $counts{$type} if $counts{$type};
+              sup_ class => 'standout', $counts->{$type} if $counts && $counts->{$type};
           };
       }
 

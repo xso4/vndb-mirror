@@ -6,17 +6,15 @@ use VNWeb::Prelude;
 js_api VN => {
     search => { elems => { searchquery => 1 } },
     hidden => { anybool => 1 },
-}, sub {
-    my($data) = @_;
+}, sub($data) {
     my @q = grep $_, $data->{search}->@*;
-
-    +{ results => @q ? fu->dbAlli(
-         'SELECT v.id, v.title[1+1] AS title, v.hidden
-           FROM', vnt, 'v', VNWeb::Validate::SearchQuery::sql_joina(\@q, 'v', 'v.id'),
+    +{ results => @q ? fu->SQL(
+         'SELECT v.id, v.title[2] AS title, v.hidden
+           FROM', VNT, 'v', VNWeb::Validate::SearchQuery::JOINA(\@q, 'v', 'v.id'),
           $data->{hidden} ? () : 'WHERE NOT v.hidden', '
           ORDER BY sc.score DESC, v.sorttitle
-          LIMIT', \50
-    ) : [] };
+          LIMIT 50'
+    )->allh : [] };
 };
 
 

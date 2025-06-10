@@ -84,26 +84,27 @@ sub vns_($t) {
 
     $opt->{f} = advsearch_default 'v' if !$opt->{f}{query} && !defined fu->query('f');
 
-    my $where = sql_and
+    my $where = AND
         'NOT v.hidden',
         $opt->{l} ? 'NOT tvi.lie' : (),
-        sql('tvi.tag =', \$t->{id}),
-        sql('tvi.spoiler <=', \$opt->{m}),
-        $opt->{f}->sql_where();
+        SQL('tvi.tag =', $t->{id}),
+        SQL('tvi.spoiler <=', $opt->{m}),
+        $opt->{f}->WHERE;
 
     my $time = time;
     my($count, $list);
     db_maytimeout {
-        $count = fu->dbVali('SELECT count(*) FROM vn v JOIN tags_vn_inherit tvi ON tvi.vid = v.id WHERE', $where);
-        $list = $count ? fu->dbPagei({results => $opt->{s}->results(), page => $opt->{p}}, '
+        $count = fu->SQL('SELECT count(*) FROM vn v JOIN tags_vn_inherit tvi ON tvi.vid = v.id WHERE', $where)->val;
+        $list = $count ? fu->SQL('
             SELECT tvi.rating AS tagscore, v.id, v.title, v.c_released, v.c_votecount, v.c_rating, v.c_average
-                 , ', sql_vnimage, ', v.c_platforms::text[] AS platforms, v.c_languages::text[] AS lang',
+                 , ', VNIMAGE, ', v.c_platforms AS platforms, v.c_languages AS lang',
                    $opt->{s}->vis('length') ? ', v.length, v.c_length, v.c_lengthnum' : (), '
-              FROM', vnt, 'v
+              FROM', VNT, 'v
               JOIN tags_vn_inherit tvi ON tvi.vid = v.id
              WHERE', $where, '
-             ORDER BY', $opt->{s}->sql_order(),
-        ) : [];
+             ORDER BY', $opt->{s}->ORDER, '
+             LIMIT', $opt->{s}->results(), 'OFFSET', $opt->{s}->results()*($opt->{p}-1)
+        )->allh : [];
     } || (($count, $list) = (undef, []));
 
     VNWeb::VN::List::enrich_listing 1, $opt, $list;
