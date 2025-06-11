@@ -823,7 +823,7 @@ no warnings 'redefine';
 sub WHERE {
     my($self) = @_;
     @TYPE = ($self->{type});
-    $self->{query} ? _sql $self->{type}, _canon $self->{type}, $self->{query} : '1=1';
+    $self->{query} ? _sql $self->{type}, _canon $self->{type}, $self->{query} : RAW '1=1';
 }
 
 
