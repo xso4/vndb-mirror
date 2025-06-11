@@ -328,7 +328,7 @@ f v => 62 => 'has_anime',       { uint => 1, range => [1,1] }, '=' => sub { RAW 
 f v => 63 => 'has_screenshot',  { uint => 1, range => [1,1] }, '=' => sub { RAW 'EXISTS(SELECT 1 FROM vn_screenshots vs WHERE vs.id = v.id)' };
 f v => 64 => 'has_review',      { uint => 1, range => [1,1] }, '=' => sub { RAW 'EXISTS(SELECT 1 FROM reviews r WHERE r.vid = v.id AND NOT r.c_flagged)' };
 f v => 65 => 'on_list',         { uint => 1, range => [1,1] },
-    '=' => sub { auth ? SQL 'v.id IN(SELECT vid FROM ulist_vns WHERE uid =', auth->uid, auth->api2Listread ? () : 'AND NOT c_private', ')' : '1=0' };
+    '=' => sub { auth ? SQL 'v.id IN(SELECT vid FROM ulist_vns WHERE uid =', auth->uid, auth->api2Listread ? () : 'AND NOT c_private', ')' : RAW '1=0' };
 f v => 66 => 'devstatus', { uint => 1, enum => \%DEVSTATUS }, '=' => sub { SQL 'v.devstatus =', $_ };
 
 f v =>  8 => 'tag',      { type => 'any', func => \&_validate_tag }, compact => \&_compact_tag, sql_list => _sql_tag('tags_vn_inherit');
@@ -405,7 +405,7 @@ f r => 76 => 'ani_face',      { default => undef, uint => 1, enum => [0,1] }, '=
 f r => 15 => 'engine',   { default => '' }, '=' => sub { SQL 'r.engine =', $_ };
 f r => 16 => 'rtype',    { enum => \%RELEASE_TYPE }, '=' => sub { $#TYPE && $TYPE[$#TYPE-1] eq 'v' ? SQL 'rv.rtype =', $_ : SQL 'r.id IN(SELECT id FROM releases_vn WHERE rtype =', $_, ')' };
 f r => 18 => 'rlist',    { uint => 1, enum => \%RLIST_STATUS }, sql_list => sub($neg, $all, $val) {
-        return '1=0' if !auth;
+        return RAW '1=0' if !auth;
         SQL 'r.id', $neg ? 'NOT' : '', 'IN(SELECT rid FROM rlists WHERE uid =', auth->uid, 'AND status', IN $val, $all && @$val > 1 ? ('GROUP BY rid HAVING COUNT(status) =', scalar @$val) : (), ')';
     };
 f r => 19 => 'extlink',  _extlink_filter('r', 'releases_extlinks');
