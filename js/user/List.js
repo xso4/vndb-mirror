@@ -194,7 +194,6 @@ const rstatusRender = (r, obj, empty) => [
 ];
 
 
-// TODO: Include play time vote
 const widgetRender = obj => {
     if (!obj.full_loading && !obj._releaseDs) obj._releaseDs = new DS(DS.Releases(obj.releases), {
         props: r => ({ selectable: !obj.rlist.find(l => l.id === r.id) }),
@@ -215,6 +214,9 @@ const widgetRender = obj => {
                 m('tr', m('td', 'Vote'), m('td.vote', voteRender(obj), reviewLink(obj))),
                 m('tr', m('td', 'Start date'), m('td', dateRender(obj, 'started'))),
                 m('tr', m('td', 'Finish date'), m('td', dateRender(obj, 'finished'))),
+                m('tr', m('td', 'Play time'), m('td',
+                    m('a[target=_blank]', { href: '/'+obj.vid+'/lengthvote' }, obj.length ? m.trust(obj.length) : 'Not set', ' ')
+                )),
                 m('tr', m('td', 'Notes'), m('td.notes', notesRender(obj))),
             ),
             !obj.releases.length ? null : [

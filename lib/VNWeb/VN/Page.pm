@@ -32,6 +32,8 @@ sub enrich_vn($v, $revonly=0) {
     )->allh;
     enrich_vislinks r => 0, $v->{releases};
 
+    $v->{myreview} = auth && fu->SQL('SELECT id FROM reviews WHERE uid =', auth->uid, 'AND vid =', $v->{id})->val;
+
     # short/medium/long are only used for Reviews::VNTab, but might as well get them here.
     $v->{reviews} = fu->SQL('
         SELECT COUNT(*) FILTER(WHERE length = 0) AS short
@@ -237,12 +239,11 @@ sub infobox_length_($v) {
         td_ sub {
             if (VNWeb::VN::Length::can_vote()) {
                 my $today = strftime '%Y%m%d', gmtime;
-                my $my = fu->SQL('SELECT count(*), sum(length::int) FROM vn_length_votes WHERE vid =', $v->{id}, 'AND uid =', auth->uid)->flat;
+                my $my = fu->SQL('SELECT sum(length::int), count(*) FROM vn_length_votes WHERE vid =', $v->{id}, 'AND uid =', auth->uid)->flat;
                 a_ class => 'mylengthvote', href => "/$v->{id}/lengthvote", sub {
-                    if ($my->[0]) {
+                    if ($my->[1]) {
                         lit_ 'Mine: ';
-                        vnlength_ $my->[1];
-                        small_ " ($my->[0])" if $my->[0] > 1;
+                        vnlength_ @$my;
                     } else {
                         lit_ 'Vote »';
                     }
@@ -574,9 +575,8 @@ sub tabs_($v, $tab='') {
         };
         menu_ sub {
             if(auth && canvote $v) {
-                my $id = fu->SQL('SELECT id FROM reviews WHERE vid =', $v->{id}, 'AND uid =', auth->uid)->val;
-                li_ sub { a_ href => "/$v->{id}/addreview", 'add review' } if !$id && can_edit w => {};
-                li_ sub { a_ href => "/$id/edit", 'edit review' } if $id;
+                li_ sub { a_ href => "/$v->{id}/addreview", 'add review' } if !$v->{myreview} && can_edit w => {};
+                li_ sub { a_ href => "/$v->{myreview}/edit", 'edit review' } if $v->{myreview};
             }
             if(auth->permEdit) {
                 li_ sub { a_ href => "/$v->{id}/add", 'add release' };

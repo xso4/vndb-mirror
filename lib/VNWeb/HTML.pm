@@ -127,13 +127,13 @@ sub rdate_ {
 }
 
 
-sub vnlength_ {
-    my($l) = @_;
+sub vnlength_($l, $c=1) {
     my $h = floor($l/60);
     my $m = $l % 60;
     txt_ "${h}h" if $h;
     span_ class => 'small', "${m}m" if $h && $m;
     txt_ "${m}m" if !$h && $m;
+    small_ " ($c)" if $c > 1;
 }
 
 

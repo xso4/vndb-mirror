@@ -81,7 +81,8 @@ sub ulists_widget_($v) {
 # Returns the full UListWidget data structure for the given VN.
 sub ulists_widget_full_data($v, $vnpage=0, $canvote=undef) {
     my $lst = fu->SQL('SELECT vid, vote, notes, started, finished, labels FROM ulist_vns WHERE uid =', auth->uid, 'AND vid =', $v->{id})->rowh;
-    my $review = fu->SQL('SELECT id FROM reviews WHERE uid =', auth->uid, 'AND vid =', $v->{id})->val;
+    my $review = exists $v->{myreview} ? $v->{myreview} : fu->SQL('SELECT id FROM reviews WHERE uid =', auth->uid, 'AND vid =', $v->{id})->val;
+    my $length = !$vnpage && fu->SQL('SELECT sum(length::int), count(*) FROM vn_length_votes WHERE vid =', $v->{id}, 'AND uid =', auth->uid)->rowa;
     my $rel = !$vnpage && releases_by_vn $v->{id};
     my $today = strftime '%Y%m%d', gmtime;
     $canvote //= grep $_->{released} && $_->{released} <= $today, @$rel if $rel;
@@ -99,6 +100,7 @@ sub ulists_widget_full_data($v, $vnpage=0, $canvote=undef) {
         finished  => int(($lst->{finished}||0) =~ s/-//rg),
         $vnpage ? () : (
             title     => $v->{title}[1],
+            length    => $length->[0] ? fragment { vnlength_ @$length } : undef,
             releases  => $rel,
             rlist     => fu->SQL('SELECT rid AS id, status FROM rlists WHERE uid =', auth->uid, 'AND rid IN(SELECT id FROM releases_vn WHERE vid =', $v->{id}, ')')->allh,
         ),
