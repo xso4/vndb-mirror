@@ -168,6 +168,11 @@ sub vn_ {
             txt_ $v->{finished}||'';
         } if $opt->{s}->vis('finished');
 
+        td_ class => 'tc_mylength', sub {
+            my $l = sub { !$v->{mylength_count} ? txt_ '-' : vnlength_ $v->{mylength_sum}, $v->{mylength_count} };
+            $own ? a_ href => "/$v->{id}/lengthvote", $l : $l->();
+        } if $opt->{s}->vis('mylength');
+
         td_ class => 'tc_rel', sub { rdate_ $v->{c_released} } if $opt->{s}->vis('released');
         td_ class => 'tc_length',sub { VNWeb::VN::List::len_($v) } if $opt->{s}->vis('length');
     };
@@ -202,9 +207,13 @@ sub listing_ {
         'SELECT v.id, v.title, uv.vote, uv.notes, uv.labels, uv.started, uv.finished, uv.added, uv.lastmod, uv.vote_date
               , v.c_released, v.c_average, v.c_rating, v.c_votecount
               , ', VNIMAGE, ', v.c_platforms AS platforms, v.c_languages AS lang',
-                 $opt->{s}->vis('length') ? ', v.length, v.c_length, v.c_lengthnum' : (), '
+                 $opt->{s}->vis('length') ? ', v.length, v.c_length, v.c_lengthnum' : (),
+                 $opt->{s}->vis('mylength') ? ', ul.sum AS mylength_sum, ul.count AS mylength_count' : (), '
            FROM ulist_vns uv
-           JOIN', VNT, 'v ON v.id = uv.vid
+           JOIN', VNT, 'v ON v.id = uv.vid',
+                  $opt->{s}->vis('mylength') || $opt->{s}->sorted('mylength')
+                  ? SQL 'LEFT JOIN (SELECT vid, SUM(length::int), COUNT(*) FROM vn_length_votes WHERE uid =', $uid, 'GROUP BY vid) ul(vid, sum, count) ON ul.vid = uv.vid'
+                  : (), '
           WHERE', $where, '
           ORDER BY', $opt->{s}->ORDER(), 'NULLS LAST, v.sorttitle
           LIMIT', $opt->{s}->results, 'OFFSET', $opt->{s}->results*($opt->{p}-1)
@@ -246,6 +255,7 @@ sub listing_ {
                 td_ class => 'tc_modified', sub { txt_ 'Modified';    sortable_ 'modified', $opt, $url } if $opt->{s}->vis('modified');
                 td_ class => 'tc_started',  sub { txt_ 'Start date';  sortable_ 'started',  $opt, $url } if $opt->{s}->vis('started');
                 td_ class => 'tc_finished', sub { txt_ 'Finish date'; sortable_ 'finished', $opt, $url } if $opt->{s}->vis('finished');
+                td_ class => 'tc_mylength', sub { txt_ 'Play time';   sortable_ 'mylength', $opt, $url } if $opt->{s}->vis('mylength');
                 td_ class => 'tc_rel',      sub { txt_ 'Release date';sortable_ 'released', $opt, $url } if $opt->{s}->vis('released');
                 td_ class => 'tc_length',   'Length' if $opt->{s}->vis('length');
             }};

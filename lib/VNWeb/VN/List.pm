@@ -104,6 +104,13 @@ sub TABLEOPTS($type) {
                 vis_id => 7,
                 compat => 'finished'
             },
+            mylength => {
+                name => 'Play time',
+                sort_sql => 'ul.sum',
+                sort_id => 15,
+                sort_num => 1,
+                vis_id => 14,
+            },
         ) : (),
         released => {
             name => 'Release date',
@@ -281,6 +288,13 @@ sub listing_($opt, $list, $count, $tagscore=undef, $labels=undef, $own=undef) {
                 td_ 'Finished:';
                 td_ id => $own ? "ulist_finished_$_->{id}" : undef, $_->{finished}||'-';
             } if $opt->{s}->vis('finished');
+            tr_ sub {
+                td_ 'Play time:';
+                td_ sub {
+                    my $l = sub { !$_->{mylength_count} ? txt_ '-' : vnlength_ $_->{mylength_sum}, $_->{mylength_count} };
+                    $own ? a_ href => "/$_->{id}/lengthvote", $l : $l->();
+                };
+            } if $opt->{s}->vis('mylength');
             tr_ sub {
                 td_ 'Rating:';
                 td_ sub {
