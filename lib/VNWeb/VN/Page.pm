@@ -237,11 +237,12 @@ sub infobox_length_($v) {
         td_ sub {
             if (VNWeb::VN::Length::can_vote()) {
                 my $today = strftime '%Y%m%d', gmtime;
-                my $my = fu->SQL('SELECT length FROM vn_length_votes WHERE vid =', $v->{id}, 'AND uid =', auth->uid)->val;
+                my $my = fu->SQL('SELECT count(*), sum(length::int) FROM vn_length_votes WHERE vid =', $v->{id}, 'AND uid =', auth->uid)->flat;
                 a_ class => 'mylengthvote', href => "/$v->{id}/lengthvote", sub {
-                    if ($my) {
+                    if ($my->[0]) {
                         lit_ 'Mine: ';
-                        vnlength_ $my;
+                        vnlength_ $my->[1];
+                        small_ " ($my->[0])" if $my->[0] > 1;
                     } else {
                         lit_ 'Vote »';
                     }

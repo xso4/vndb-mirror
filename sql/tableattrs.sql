@@ -54,7 +54,7 @@ CREATE        INDEX vn_seiyuu_cid          ON vn_seiyuu (cid); -- Only used on /
 CREATE UNIQUE INDEX vn_staff_pkey          ON vn_staff (id, eid, aid, role) NULLS NOT DISTINCT;
 CREATE UNIQUE INDEX vn_staff_hist_pkey     ON vn_staff_hist (chid, eid, aid, role) NULLS NOT DISTINCT;
 CREATE        INDEX vn_staff_aid           ON vn_staff (aid);
-CREATE UNIQUE INDEX vn_length_votes_vid_uid ON vn_length_votes (vid, uid);
+CREATE        INDEX vn_length_votes_vid    ON vn_length_votes (vid);
 CREATE        INDEX vn_length_votes_uid    ON vn_length_votes (uid);
 CREATE UNIQUE INDEX changes_itemrev        ON changes (itemid, rev);
 CREATE UNIQUE INDEX chars_vns_pkey         ON chars_vns (id, vid, rid) NULLS NOT DISTINCT;

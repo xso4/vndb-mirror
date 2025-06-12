@@ -32,7 +32,7 @@ sub data($uid) {
               FROM vn_length_votes l
               JOIN vnt v ON v.id = l.vid
              WHERE l.uid =', $uid, '
-             ORDER BY v.sorttitle')->allh,
+             ORDER BY v.sorttitle, l.id')->allh,
     };
     fu->enrich(aoh => 'releases', sub { SQL '
         SELECT rv.vid, r.id, r.title, r.released, rl.status, ', TZ('rl.added', 'added'), '

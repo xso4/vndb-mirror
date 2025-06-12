@@ -191,7 +191,8 @@ FU::post '/lengthvotes-edit', sub {
 
 my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     vid      => { vndbid => 'v' },
-    vote     => { type => 'hash', default => undef, keys => {
+    votes    => { sort_keys => 'id', aoh => {
+        id       => { int => 1 },
         rid      => { minlength => 1, elems => { vndbid => 'r' } },
         lang     => { minlength => 1, elems => { enum => \%LANGUAGE } },
         length   => { uint => 1, range => [1,26159] }, # 435h59m, largest round-ish number where the 'fast' speed adjustment doesn't overflow a smallint
@@ -217,14 +218,18 @@ FU::get qr{/$RE{vid}/lengthvote}, sub($id) {
     my $v = fu->SQL('SELECT id, title[2], devstatus FROM', VNT, 'v WHERE NOT hidden AND id =', $id)->rowh || fu->notfound;
     fu->denied if !can_vote;
 
-    my $my = fu->SQL('SELECT rid, lang, length, speed, private, notes FROM vn_length_votes WHERE vid =', $v->{id}, 'AND uid =', auth->uid)->rowh;
+    my $my = fu->SQL('
+        SELECT id, rid, lang, length, speed, private, notes
+          FROM vn_length_votes WHERE vid =', $v->{id}, 'AND uid =', auth->uid, '
+         ORDER BY id'
+    )->allh;
     my $rels = available_releases $v;
 
     framework_ title => "Edit play time for $v->{title}", sub {
         if (@$rels || $my) {
             div_ widget('VNLengthVote', $FORM_OUT, {
                 vid      => $v->{id},
-                vote     => $my,
+                votes    => $my,
                 title    => $v->{title},
                 maycount => $v->{devstatus} != 1,
                 releases => $rels,
@@ -244,31 +249,35 @@ FU::get qr{/$RE{vid}/lengthvote}, sub($id) {
 
 js_api VNLengthVote => $FORM_IN, sub ($data) {
     fu->denied if !can_vote;
-    my %where = ( uid => auth->uid, vid => $data->{vid} );
 
-    if (!$data->{vote}) {
-        fu->SQL('DELETE FROM vn_length_votes', WHERE \%where)->exec;
-        return {};
-    }
+    fu->SQL(
+        'DELETE FROM vn_length_votes WHERE uid=', auth->uid, 'AND vid=', $data->{vid},
+           'AND NOT id', IN [grep $_>0, map $_->{id}, $data->{votes}->@*]
+    )->exec;
 
     my $v = fu->SQL('SELECT id, devstatus FROM', VNT, 'v WHERE NOT hidden AND id =', $data->{vid})->rowh || fu->notfound;
     my $rels = available_releases $v;
     my %rels = map +($_->{id},$_), @$rels;
 
-    my %fields = $data->{vote}->%*;
-    $fields{rid} = [ grep $rels{$_}, $fields{rid}->@* ];
-    return 'No valid releases selected' if !$fields{rid}->@*;
+    for my $v ($data->{votes}->@*) {
+        my %fields = map +($_, $v->{$_}), qw/ length speed private notes /;
+        $fields{speed} = undef if $fields{private};
 
-    my %langs = map +($_,1), map $rels{$_}{lang}->@*, $fields{rid}->@*;
-    $fields{lang} = [ grep $langs{$_}, $fields{lang}->@* ];
-    return 'No valid language selected' if !$fields{lang}->@*;
+        $fields{rid} = [ grep $rels{$_}, $v->{rid}->@* ];
+        return 'No valid releases selected' if !$fields{rid}->@*;
 
-    $fields{speed} = undef if $fields{private};
+        my %langs = map +($_,1), map $rels{$_}{lang}->@*, $fields{rid}->@*;
+        $fields{lang} = [ grep $langs{$_}, $v->{lang}->@* ];
+        return 'No valid language selected' if !$fields{lang}->@*;
 
-    fu->SQL(
-        'INSERT INTO vn_length_votes', VALUES({ %where, %fields }),
-        'ON CONFLICT (uid, vid) DO UPDATE', SET \%fields
-    )->exec;
+        if ($v->{id} > 0) {
+            fu->SQL('UPDATE vn_length_votes', SET(\%fields), 'WHERE uid =', auth->uid, 'AND id =', $v->{id})->exec;
+        } else {
+            $fields{uid} = auth->uid;
+            $fields{vid} = $data->{vid};
+            fu->SQL('INSERT INTO vn_length_votes', VALUES \%fields)->exec;
+        }
+    }
     +{};
 };
 

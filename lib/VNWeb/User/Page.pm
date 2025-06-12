@@ -61,8 +61,8 @@ sub _info_table_ {
         td_ 'Play times';
         td_ sub {
             vnlength_ $lengthvotes->{sum};
-            txt_ sprintf ' from %d submitted play times. ', $lengthvotes->{count};
-            a_ href => "/$u->{id}/lengthvotes", 'Browse votes »' if $own || $lengthvotes->{haspub};
+            txt_ sprintf ' from %d playthroughs. ', $lengthvotes->{count};
+            a_ href => "/$u->{id}/lengthvotes", 'Browse play times »' if $own || $lengthvotes->{haspub};
         };
     } if $lengthvotes->{count};
     tr_ sub {
