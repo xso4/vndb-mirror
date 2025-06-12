@@ -108,6 +108,7 @@ CREATE TYPE extlink_site AS ENUM (
     'bilibili',
     'boosty',
     'booth',
+    'booth_pub',
     'bsky',
     'cien',
     'denpa',

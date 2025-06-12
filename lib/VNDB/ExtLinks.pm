@@ -129,6 +129,12 @@ our %LINKS = (
         , regex => qr{(?:[a-z0-9_-]+\.)?booth\.pm/(?:[a-z-]+\/)?items/$int.*}
         , patt  => 'https://booth.pm/<language>/items/<id>  OR  https://<publisher>.booth.pm/items/<id>'
         },
+    booth_pub =>
+        { ent   => 'sp'
+        , label => 'BOOTH'
+        , fmt   => 'https://%s.booth.pm/'
+        , regex => qr{([a-z0-9_-]+)\.booth\.pm/.*}
+        },
     bsky =>
         { ent   => 'sp'
         , label => 'Bluesky'
@@ -750,6 +756,7 @@ sub enrich_vislinks($type, $enabled, @obj) {
         l 'kofi';
         l 'boosty';
         l 'cien';
+        l 'booth_pub';
         l 'youtube';
         l 'instagram';
         l 'deviantar';
@@ -778,6 +785,7 @@ sub enrich_vislinks($type, $enabled, @obj) {
         l 'substar';
         l 'boosty';
         l 'cien';
+        l 'booth_pub';
         l 'bilibili';
         l 'weibo';
         l 'youtube';
