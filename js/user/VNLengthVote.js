@@ -94,8 +94,8 @@ widget('VNLengthVote', initVnode => {
                 m(Input, { class: 'sw', type: 'number', data: v, field: 'mins', oninput: () => setlength(v) }),
                 ' minutes',
                 v.length === 0 ? m('p.invalid', 'Please input a play time') :
-                length.hours > 435 ? m('p.invalid', "That's way too long.") :
-                length.mins >= 60 ? m('p.invalid', 'An hour only has 60 minutes.') : null,
+                v.hours > 435 ? m('p.invalid', "That's way too long.") :
+                v.mins >= 60 ? m('p.invalid', 'An hour only has 60 minutes.') : null,
             ),
         ),
 

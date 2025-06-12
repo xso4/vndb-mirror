@@ -191,7 +191,7 @@ FU::post '/lengthvotes-edit', sub {
 
 my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     vid      => { vndbid => 'v' },
-    votes    => { sort_keys => 'id', aoh => {
+    votes    => { sort_keys => 'id', maxlength => 5, aoh => {
         id       => { int => 1 },
         rid      => { minlength => 1, elems => { vndbid => 'r' } },
         lang     => { minlength => 1, elems => { enum => \%LANGUAGE } },
