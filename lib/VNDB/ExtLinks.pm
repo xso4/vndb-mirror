@@ -463,7 +463,7 @@ our %LINKS = (
         { ent   => 'sp'
         , label => 'Steam Curator'
         , fmt   => 'https://store.steampowered.com/curator/%d'
-        , regex => qr{store\.steampowered\.com/curator/$int(?:/.*)?}
+        , regex => qr{store\.steampowered\.com/curator/$int(?:[-/].*)?}
         },
     substar =>
         { ent   => 'rsp'

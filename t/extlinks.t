@@ -37,6 +37,9 @@ my @tests = qw{
     weibo   6589791262      https://www.weibo.com/u/6589791262
 
     fanbox  renoirzhang     https://renoirzhang.fanbox.cc/
+
+    steam_curator  29064054  https://store.steampowered.com/curator/29064054
+    steam_curator  29064054  https://store.steampowered.com/curator/29064054-7DOTS-games/
 };
 
 plan tests => @tests/3*2;
