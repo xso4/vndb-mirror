@@ -32,7 +32,7 @@ sub enrich_vn($v, $revonly=0) {
     )->allh;
     enrich_vislinks r => 0, $v->{releases};
 
-    $v->{myreview} = auth && fu->SQL('SELECT id FROM reviews WHERE uid =', auth->uid, 'AND vid =', $v->{id})->val;
+    $v->{myreview} = !!auth && fu->SQL('SELECT id FROM reviews WHERE uid =', auth->uid, 'AND vid =', $v->{id})->val;
 
     # short/medium/long are only used for Reviews::VNTab, but might as well get them here.
     $v->{reviews} = fu->SQL('
