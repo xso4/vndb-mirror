@@ -22,6 +22,8 @@
 --    hidden && !locked -> Awaiting approval (tags/traits only)
 --    hidden &&  locked -> Deleted
 -- The history of these flags is recorded as (ihid,ilock) in the changes table.
+-- Unreachable items are marked as "deleted" even if the respective 'ihid'
+-- column is false, see edit_item_reachable().
 -- (Yes, the state is better represented as an ENUM, but this way it's easier
 -- to filter out 'hidden' items in listings)
 --

@@ -42,7 +42,7 @@ sub editvars($item) {
 
     copymainfromtemp => sprintf(
         "  INSERT INTO %1\$s_hist (chid, %2\$s) SELECT nchid, %2\$s FROM edit_%1\$s;\n".
-        "  UPDATE %1\$s SET locked = (SELECT ilock FROM edit_revision), hidden = (SELECT ihid FROM edit_revision),\n".
+        "  UPDATE %1\$s SET locked = nlocked, hidden = nhidden,\n".
         "    %3\$s FROM edit_%1\$s x WHERE id = nitemid;",
         $item,
         join(', ', $ts{$item}->@*),
@@ -190,6 +190,10 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION edit_{itemtype}_commit(out nchid integer, out nitemid vndbid, out nrev integer) AS $$
 DECLARE
   chflags bigint;
+  ochid int;
+  ohidden bool := true;
+  nhidden bool := true;
+  nlocked bool := true;
 BEGIN
   IF (SELECT COUNT(*) FROM edit_{item}) <> 1 THEN
     RAISE 'edit_{item} must have exactly one row!';
@@ -197,19 +201,23 @@ BEGIN
   SELECT chflags_diff(edit_{itemtype}_chfields(NULL), edit_{itemtype}_chfields((SELECT chid FROM edit_revision))) INTO chflags;
   IF chflags = 0 THEN RETURN; END IF;
   SELECT itemid INTO nitemid FROM edit_revision;
-  -- figure out revision number
-  SELECT MAX(rev)+1 INTO nrev FROM changes WHERE itemid = nitemid;
-  SELECT COALESCE(nrev, 1) INTO nrev;
   -- insert DB item
   IF nitemid IS NULL THEN
     INSERT INTO {item} DEFAULT VALUES RETURNING id INTO nitemid;
+    nrev := 1;
+  ELSE
+    SELECT id, rev+1 INTO STRICT ochid, nrev FROM changes WHERE itemid = nitemid ORDER BY rev DESC LIMIT 1;
+    SELECT hidden INTO STRICT ohidden FROM {item} WHERE id = nitemid;
   END IF;
   -- insert change
   INSERT INTO changes (itemid, rev, requester, comments, ihid, ilock, c_chflags)
     SELECT nitemid, nrev, requester, comments, ihid, ilock, chflags FROM edit_revision RETURNING id INTO nchid;
   -- insert data
 {copyfromtemp}
+  IF edit_item_reachable(nitemid) THEN
+    SELECT ihid, ilock INTO nhidden, nlocked FROM edit_revision;
+  END IF;
 {copymainfromtemp}
-  PERFORM edit_committed(nchid, nitemid, nrev);
+  PERFORM edit_committed(nitemid, nchid, ochid, nhidden, ohidden);
 END;
 $$ LANGUAGE plpgsql;

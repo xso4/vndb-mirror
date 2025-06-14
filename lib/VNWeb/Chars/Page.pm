@@ -51,8 +51,6 @@ sub enrich_item($c) {
          ORDER BY q.score DESC, q.quote
     ')->allh;
     fu->enrich(set => 'vote', SQL('SELECT id, vote FROM quotes_votes WHERE uid =', auth->uid, 'AND id'), $c->{quotes}) if auth;
-
-    $c->{vns} = [ grep length $_->{title}, $c->{vns}->@* ];
 }
 
 
@@ -123,6 +121,7 @@ sub _rev_($c) {
                 txt_ ' ['; a_ href => "/$_->{rid}", $_->{rid}; txt_ ']';
             }
             txt_ " $CHAR_ROLE{$_->{role}}{txt} (".fmtspoil($_->{spoil}).')';
+            b_ ' (deleted)' if $_->{hidden};
         } ],
         [ traits => 'Traits', fmt => sub {
             small_ "$_->{groupname} / " if $_->{group} ne $_->{tid};
@@ -139,7 +138,7 @@ sub _rev_($c) {
 sub chartable_($c, $link=undef, $sep=undef, $vn=undef) {
     my $view = viewget;
 
-    my @visvns = grep $_->{spoil} <= $view->{spoilers}, $c->{vns}->@*;
+    my @visvns = grep !$_->{hidden} && $_->{spoil} <= $view->{spoilers}, $c->{vns}->@*;
 
     div_ class => 'chardetails', $sep ? ('+', 'charsep') : (), sub {
         div_ class => 'charimg', sub { image_ $c->{image}, alt => $c->{title}[1] };

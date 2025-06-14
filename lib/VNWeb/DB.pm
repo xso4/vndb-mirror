@@ -187,14 +187,14 @@ my %enrich = (
     staff_extlinks      => [ 'l.site, l.value, l.data, l.price', RAW('JOIN extlinks l ON l.id = x.link'), 'l.site, l.value' ],
 
     chars_vns           => [
-        'v.title, r.title AS rtitle',
+        'v.title, r.title AS rtitle, v.hidden',
         sub { SQL 'JOIN', VNWeb::TitlePrefs::VNT(), 'v ON v.id = x.vid LEFT JOIN', VNWeb::TitlePrefs::RELEASEST(), 'r ON r.id = x.rid' },
         'v.c_released, v.sorttitle, r.released, x.vid, x.rid' ],
 
     staff_alias         => [ undef, undef, 'x.aid' ],
 
     releases_producers  => [ 'p.title', sub { SQL 'JOIN', VNWeb::TitlePrefs::PRODUCERST(), 'p ON p.id = x.pid' }, 'p.sorttitle, x.pid' ],
-    releases_vn         => [ 'v.title', sub { SQL 'JOIN', VNWeb::TitlePrefs::VNT(), 'v ON v.id = x.vid' }, 'v.sorttitle, x.vid' ],
+    releases_vn         => [ 'v.title, v.hidden', sub { SQL 'JOIN', VNWeb::TitlePrefs::VNT(), 'v ON v.id = x.vid' }, 'v.sorttitle, x.vid' ],
     releases_supersedes => [ 'r.title, r.released, r.hidden', sub { SQL 'JOIN', VNWeb::TitlePrefs::RELEASEST(), 'r ON r.id = x.rid' }, 'r.released, x.rid' ],
     releases_drm        => [ 'd.name, '.join(',', keys %VNDB::Types::DRM_PROPERTY), RAW('JOIN drm d ON d.id = x.drm'), 'x.drm <> 0, d.name' ],
     releases_media      => [ undef, undef, 'x.medium, x.qty' ],
@@ -231,12 +231,13 @@ sub db_entry($id, $rev=0) {
     my $t = $entry_types->{ substr $id, 0, 1 }||confess;
 
     return undef if config->{moe} && $rev;
-    my $entry = fu->SQL('
-        WITH maxrev (iid, maxrev) AS (SELECT itemid, MAX(rev) FROM changes WHERE itemid =', $id, 'GROUP BY itemid)
-           , lastrev (entry_hidden, entry_locked) AS (SELECT ihid, ilock FROM maxrev, changes WHERE itemid = iid AND rev = maxrev)
-        SELECT itemid AS id, id AS chid, rev AS chrev, ihid AS hidden, ilock AS locked, maxrev, entry_hidden, entry_locked
-          FROM changes, maxrev, lastrev
-         WHERE itemid = iid AND rev = ', $rev || 'maxrev'
+    my $entry = fu->sql('
+        WITH maxrev (maxrev) AS (SELECT MAX(rev) FROM changes WHERE itemid = $1)
+        SELECT c.itemid AS id, c.id AS chid, c.rev AS chrev, c.ihid AS hidden, c.ilock AS locked
+             , x.hidden AS entry_hidden, x.locked AS entry_locked, maxrev
+          FROM maxrev, changes c, '.($t->{base}{name} =~ s/_hist$//r).' x
+         WHERE c.itemid = $1 AND x.id = $1 AND c.rev = '.($rev ? '$2' : 'maxrev'),
+         $id, $rev || ()
     )->rowh or return undef;
 
     # Fetch data from the main entry tables if rev == maxrev, from the _hist

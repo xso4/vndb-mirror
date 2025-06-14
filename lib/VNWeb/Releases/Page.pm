@@ -36,6 +36,7 @@ sub _rev_ {
             abbr_ class => "icon-rt$_->{rtype}", title => $_->{rtype}, ' ';
             a_ href => "/$_->{vid}", tattr $_;
             txt_ " ($_->{rtype})" if $_->{rtype} ne 'complete';
+            b_ ' (deleted)' if $_->{hidden};
         } ],
         [ official   => 'Official',        fmt => 'bool' ],
         [ patch      => 'Patch',           fmt => 'bool' ],
@@ -159,7 +160,7 @@ sub _infotable_ {
                     abbr_ class => "icon-rt$_->{rtype}", title => $_->{rtype}, ' ';
                     a_ href => "/$_->{vid}", tattr $_;
                     txt_ " ($_->{rtype})" if $_->{rtype} ne 'complete';
-                }, $r->{vn}->@*
+                }, grep !$_->{hidden}, $r->{vn}->@*
             }
         };
 

@@ -485,7 +485,7 @@ sub _hidden_msg_ {
 
     # Deleted.
     my $msg = fu->SQL(
-        'SELECT comments, rev
+        'SELECT comments, rev, ihid
            FROM changes
           WHERE itemid =', $o->{dbobj}{id},
          'ORDER BY id DESC LIMIT 1'
@@ -501,7 +501,13 @@ sub _hidden_msg_ {
                     txt_ '.';
                     br_;
                 }
-                if($msg->{rev} > 1) {
+                if($o->{dbobj}{id} =~ /^c/ && $o->{dbobj}{vns}) {
+                    txt_ 'This was a character entry for ';
+                    join_ ',', sub { a_ href => "/$_->{vid}", tattr $_ }, $o->{dbobj}{vns}->@*;
+                    txt_ '.';
+                    br_;
+                }
+                if($msg->{ihid} && $msg->{rev} > 1) {
                     lit_ bb_format $msg->{comments};
                 }
             }

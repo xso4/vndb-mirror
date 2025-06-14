@@ -843,62 +843,93 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Check for stuff to be done when an item has been changed
-CREATE OR REPLACE FUNCTION edit_committed(nchid integer, nitemid vndbid, nrev integer) RETURNS void AS $$
-DECLARE
-  xoldchid integer;
-BEGIN
-  SELECT id INTO xoldchid FROM changes WHERE itemid = nitemid AND rev = nrev-1;
+-- Returns whether an item is "reachable". This means:
+-- * For releases: that it is linked to at least one non-hidden VN
+-- * For characters: same
+-- * Everything else is always considered "reachable"
+CREATE OR REPLACE FUNCTION edit_item_reachable(itemid vndbid) RETURNS bool AS $$
+  SELECT CASE WHEN itemid ^= 'c' THEN EXISTS(SELECT 1 FROM chars_vns cv   JOIN vn v ON v.id = cv.vid WHERE NOT v.hidden AND cv.id = itemid)
+              WHEN itemid ^= 'r' THEN EXISTS(SELECT 1 FROM releases_vn rv JOIN vn v ON v.id = rv.vid WHERE NOT v.hidden AND rv.id = itemid)
+              ELSE true END;
+$$ LANGUAGE SQL;
 
-  -- Update search_cache
-  IF vndbid_type(nitemid) IN('v','r','c','p','s','g','i') THEN
-    PERFORM update_search(nitemid);
+
+CREATE OR REPLACE FUNCTION edit_update_reachable(nitemid vndbid) RETURNS void AS $$
+DECLARE
+  reachable bool;
+  ohidden bool;
+  nhidden bool;
+  nlocked bool;
+  nchid int;
+BEGIN
+  SELECT edit_item_reachable(nitemid) INTO reachable;
+  SELECT id, NOT reachable OR ilock, NOT reachable OR ihid INTO STRICT nchid, nlocked, nhidden FROM changes WHERE itemid = nitemid ORDER BY rev DESC LIMIT 1;
+  SELECT * INTO STRICT ohidden FROM (SELECT hidden FROM chars WHERE id = nitemid UNION SELECT hidden FROM releases WHERE id = nitemid);
+  IF ohidden <> nhidden THEN
+      UPDATE chars    SET locked = nlocked, hidden = nhidden WHERE id = nitemid;
+      UPDATE releases SET locked = nlocked, hidden = nhidden WHERE id = nitemid;
+      PERFORM edit_committed(nitemid, nchid, nchid, nhidden, ohidden);
   END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- Check for stuff to be done when an item has been changed.
+-- ochid is NULL when the entry has just been created.
+-- ochid and nchid are the same if the hidden flag has been changed without a proper "edit"
+--   (i.e. as the result of the item becoming unreachable)
+CREATE OR REPLACE FUNCTION edit_committed(nitemid vndbid, nchid integer, ochid integer, nhidden bool, ohidden bool) RETURNS void AS $$
+DECLARE
+  isedit bool := nchid IS DISTINCT FROM ochid;
+BEGIN
+  -- Update reachable state of linked characters and releases.
+  -- BUG: chars.main is not reset when hidden in this way.
+  IF nitemid ^= 'v' AND isedit AND nhidden <> ohidden THEN
+    PERFORM edit_update_reachable(id) FROM (SELECT DISTINCT id FROM chars_vns WHERE vid = nitemid) x(id);
+    PERFORM edit_update_reachable(id) FROM releases_vn WHERE vid = nitemid;
+  END IF;
+
+  PERFORM update_search(nitemid) WHERE ~nitemid IN('v','r','c','p','s','g','i');
 
   -- Update search_cache for related VNs when
   -- 1. A new release is created
   -- 2. A release has been hidden or unhidden
   -- 3. The releases_titles have changed
   -- 4. The releases_vn table differs from a previous revision
-  IF vndbid_type(nitemid) = 'r' THEN
-    IF -- 1.
-       xoldchid IS NULL OR
-       -- 2.
-       EXISTS(SELECT 1 FROM changes c1, changes c2 WHERE c1.ihid IS DISTINCT FROM c2.ihid AND c1.id = nchid AND c2.id = xoldchid) OR
+  IF nitemid ^= 'r' AND isedit THEN
+    IF ochid IS NULL OR -- 1.
+       ohidden <> nhidden OR -- 2.
        -- 3.
-       EXISTS(SELECT title, latin FROM releases_titles_hist WHERE chid = xoldchid EXCEPT SELECT title, latin FROM releases_titles_hist WHERE chid = nchid) OR
-       EXISTS(SELECT title, latin FROM releases_titles_hist WHERE chid = nchid    EXCEPT SELECT title, latin FROM releases_titles_hist WHERE chid = xoldchid) OR
+       EXISTS(SELECT title, latin FROM releases_titles_hist WHERE chid = ochid EXCEPT SELECT title, latin FROM releases_titles_hist WHERE chid = nchid) OR
+       EXISTS(SELECT title, latin FROM releases_titles_hist WHERE chid = nchid EXCEPT SELECT title, latin FROM releases_titles_hist WHERE chid = ochid) OR
        -- 4.
-       EXISTS(SELECT vid FROM releases_vn_hist WHERE chid = xoldchid EXCEPT SELECT vid FROM releases_vn_hist WHERE chid = nchid) OR
-       EXISTS(SELECT vid FROM releases_vn_hist WHERE chid = nchid    EXCEPT SELECT vid FROM releases_vn_hist WHERE chid = xoldchid)
+       EXISTS(SELECT vid FROM releases_vn_hist WHERE chid = ochid EXCEPT SELECT vid FROM releases_vn_hist WHERE chid = nchid) OR
+       EXISTS(SELECT vid FROM releases_vn_hist WHERE chid = nchid EXCEPT SELECT vid FROM releases_vn_hist WHERE chid = ochid)
     THEN
-      PERFORM update_search(vid) FROM releases_vn_hist WHERE chid IN(nchid, xoldchid);
+      PERFORM update_search(vid) FROM releases_vn_hist WHERE chid IN(nchid, ochid);
     END IF;
   END IF;
 
   -- Update releases.c_bundle
-  IF vndbid_type(nitemid) = 'r' THEN
-    UPDATE releases SET c_bundle = (SELECT COUNT(*) > 1 FROM releases_vn WHERE id = nitemid) WHERE id = nitemid;
-  END IF;
+  UPDATE releases SET c_bundle = (SELECT COUNT(*) > 1 FROM releases_vn WHERE id = nitemid)
+    WHERE nitemid ^= 'r' AND isedit AND id = nitemid;
 
   -- Update drm.c_ref
-  IF vndbid_type(nitemid) = 'r' THEN
+  IF nitemid ^= 'r' THEN
     WITH
-      old (id) AS (SELECT r.drm FROM releases_drm_hist r, changes c WHERE r.chid = xoldchid AND c.id = xoldchid AND NOT c.ihid),
-      new (id) AS (SELECT r.drm FROM releases_drm_hist r, changes c WHERE r.chid = nchid    AND c.id = nchid    AND NOT c.ihid),
+      old (id) AS (SELECT r.drm FROM releases_drm_hist r, changes c WHERE NOT ohidden AND r.chid = ochid AND c.id = ochid),
+      new (id) AS (SELECT r.drm FROM releases_drm_hist r, changes c WHERE NOT nhidden AND r.chid = nchid AND c.id = nchid),
       ins      AS (UPDATE drm SET c_ref = c_ref + 1 WHERE id IN(SELECT id FROM new EXCEPT SELECT id FROM old))
                    UPDATE drm SET c_ref = c_ref - 1 WHERE id IN(SELECT id FROM old EXCEPT SELECT id FROM new);
   END IF;
 
   -- Update tags_vn_* when the VN's hidden flag is changed
-  IF vndbid_type(nitemid) = 'v' AND EXISTS(SELECT 1 FROM changes c1, changes c2 WHERE c1.ihid IS DISTINCT FROM c2.ihid AND c1.id = nchid AND c2.id = xoldchid) THEN
-    PERFORM tag_vn_calc(nitemid);
-  END IF;
+  PERFORM tag_vn_calc(nitemid) WHERE nitemid ^= 'v' AND ohidden <> nhidden;
 
   -- Ensure chars.c_lang is updated when the related VN or char has been edited
   -- (the cache also depends on vn.c_released but isn't run when that is updated;
   -- not an issue, the c_released is only there as rare fallback)
-  IF vndbid_type(nitemid) IN('c','v') THEN
+  IF ~nitemid IN('c','v') AND isedit THEN
     WITH x(id,lang) AS (
       SELECT DISTINCT ON (cv.id) cv.id, v.olang
         FROM chars_vns cv
@@ -909,59 +940,36 @@ BEGIN
   END IF;
 
   -- Call update_vncache() and update_vn_image_votes() for related VNs when a release has been created or edited.
-  IF vndbid_type(nitemid) = 'r' THEN
+  IF nitemid ^= 'r' AND isedit THEN
     PERFORM update_vncache(vid), update_vn_image_votes(vid, NULL) FROM (
-      SELECT DISTINCT vid FROM releases_vn_hist WHERE chid IN(nchid, xoldchid)
+      SELECT DISTINCT vid FROM releases_vn_hist WHERE chid IN(nchid, ochid)
     ) AS v(vid);
-  END IF;
-
-  -- Call traits_chars_calc() for characters to update the traits cache
-  IF vndbid_type(nitemid) = 'c' THEN
-    PERFORM traits_chars_calc(nitemid);
   END IF;
 
   -- Create edit notifications
   INSERT INTO notifications (uid, ntype, iid, num)
-       SELECT n.uid, n.ntype, n.iid, n.num FROM changes c, notify(nitemid, c.rev, c.requester) n WHERE c.id = nchid;
+       SELECT n.uid, n.ntype, n.iid, n.num FROM changes c, notify(nitemid, c.rev, c.requester) n
+        WHERE isedit AND c.id = nchid;
 
   -- Make sure all visual novels linked to a release have a corresponding entry
   -- in ulist_vns for users who have the release in rlists. This is action (3) in
   -- update_vnlist_rlist().
-  IF vndbid_type(nitemid) = 'r' AND xoldchid IS NOT NULL
-  THEN
+  IF nitemid ^= 'r' AND ochid IS NOT NULL AND isedit THEN
     INSERT INTO ulist_vns (uid, vid)
       SELECT rl.uid, rv.vid FROM rlists rl JOIN releases_vn rv ON rv.id = rl.rid WHERE rl.rid = nitemid
     ON CONFLICT (uid, vid) DO NOTHING;
   END IF;
 
-  -- Update extlinks.c_ref
-  IF vndbid_type(nitemid) = 'r'
-  THEN
-    PERFORM update_extlinks_cache(link) FROM releases_extlinks_hist WHERE chid IN(xoldchid,nchid);
-  END IF;
-  IF vndbid_type(nitemid) = 's'
-  THEN
-    PERFORM update_extlinks_cache(link) FROM staff_extlinks_hist WHERE chid IN(xoldchid,nchid);
-  END IF;
-  IF vndbid_type(nitemid) = 'p'
-  THEN
-    PERFORM update_extlinks_cache(link) FROM producers_extlinks_hist WHERE chid IN(xoldchid,nchid);
-  END IF;
+  PERFORM traits_chars_calc(nitemid) WHERE nitemid ^= 'c';
 
-  -- Call update_images_cache() where appropriate
-  IF vndbid_type(nitemid) = 'c'
-  THEN
-    PERFORM update_images_cache(image) FROM chars_hist WHERE chid IN(xoldchid,nchid) AND image IS NOT NULL;
-  END IF;
-  IF vndbid_type(nitemid) = 'r'
-  THEN
-    PERFORM update_images_cache(img) FROM releases_images_hist WHERE chid IN(xoldchid,nchid);
-  END IF;
-  IF vndbid_type(nitemid) = 'v'
-  THEN
-    PERFORM update_images_cache(image) FROM vn_hist WHERE chid IN(xoldchid,nchid) AND image IS NOT NULL;
-    PERFORM update_images_cache(scr) FROM vn_screenshots_hist WHERE chid IN(xoldchid,nchid);
-  END IF;
+  PERFORM update_extlinks_cache(link) FROM releases_extlinks_hist  WHERE nitemid ^= 'r' AND chid IN(ochid,nchid);
+  PERFORM update_extlinks_cache(link) FROM staff_extlinks_hist     WHERE nitemid ^= 's' AND chid IN(ochid,nchid);
+  PERFORM update_extlinks_cache(link) FROM producers_extlinks_hist WHERE nitemid ^= 'p' AND chid IN(ochid,nchid);
+
+  PERFORM update_images_cache(image) FROM chars_hist           WHERE nitemid ^= 'c' AND chid IN(ochid,nchid) AND image IS NOT NULL;
+  PERFORM update_images_cache(img)   FROM releases_images_hist WHERE nitemid ^= 'r' AND chid IN(ochid,nchid);
+  PERFORM update_images_cache(image) FROM vn_hist              WHERE nitemid ^= 'v' AND chid IN(ochid,nchid) AND image IS NOT NULL;
+  PERFORM update_images_cache(scr)   FROM vn_screenshots_hist  WHERE nitemid ^= 'v' AND chid IN(ochid,nchid);
 END;
 $$ LANGUAGE plpgsql;
 
