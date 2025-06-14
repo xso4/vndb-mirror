@@ -145,6 +145,9 @@ js_api VNEdit => $FORM_IN, sub($data) {
 
     $data->{length} = 0 if $data->{devstatus} == 1;
 
+    # Prevent staff aliases from being "referenced" by deleted VNs.
+    $data->{staff} = $data->{seiyuu} = [] if $data->{hidden};
+
     validate_dbid 'SELECT id FROM anime WHERE id', map $_->{aid}, $data->{anime}->@*;
     validate_dbid 'SELECT id FROM images WHERE id', map $_->{scr}, $data->{screenshots}->@*;
     validate_dbid 'SELECT aid FROM staff_alias WHERE aid', map $_->{aid}, $data->{staff}->@*;
