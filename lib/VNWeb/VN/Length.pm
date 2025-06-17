@@ -20,6 +20,7 @@ my %TABLEOPTS = map +($_, opts $_), '', 'v', 'u';
 
 
 sub listing_($opt, $url, $count, $list, $mode) {
+    my $hasmy = grep $_->{my}, @$list;
     paginate_ $url, $opt->{p}, [$count, $opt->{s}->results], 't';
     article_ class => 'browse lengthlist', sub {
         table_ class => 'stripe', sub {
@@ -27,6 +28,7 @@ sub listing_($opt, $url, $count, $list, $mode) {
                 td_ class => 'tc1', sub { txt_ 'Date';   sortable_ 'date', $opt, $url };
                 td_ class => 'tc2', sub { txt_ 'User';   sortable_ 'username', $opt, $url } if $mode ne 'u';
                 td_ class => 'tc2', sub { txt_ 'Title';  sortable_ 'title', $opt, $url } if $mode ne 'v';
+                td_ class => 'tc3', sub { txt_ 'Mine' } if $hasmy;
                 td_ class => 'tc3', sub { txt_ 'Time';   sortable_ 'length', $opt, $url };
                 td_ class => 'tc4', sub { txt_ 'Speed';  sortable_ 'speed', $opt, $url };
                 td_ class => 'tc5', 'Rel';
@@ -41,6 +43,7 @@ sub listing_($opt, $url, $count, $list, $mode) {
                 td_ class => 'tc2', sub {
                     a_ href => "/$_->{vid}", tattr $_;
                 } if $mode ne 'v';
+                td_ class => 'tc3', sub { $_->{my} ? vnlength_ $_->{my}{sum}, $_->{my}{count} : lit_ '-' } if $hasmy;
                 td_ class => 'tc3'.($_->{ignore}?' grayedout':''), sub { vnlength_ $_->{length} };
                 td_ class => 'tc4'.($_->{ignore}?' grayedout':''), ['Slow','Normal','Fast','-']->[$_->{speed}//3];
                 td_ class => 'tc5', sub {
@@ -137,6 +140,10 @@ FU::get qr{/(?:$RE{vid}/|$RE{uid}/)?lengthvotes}, sub($vid=undef, $uid=undef) {
     )->allh;
     $_->{rel} = [ map +{ id => $_ }, $_->{rel}->@* ] for @$lst;
     fu->enrich(aov => 'lang', 'SELECT id, lang FROM releases_titles WHERE id', [ map $_->{rel}->@*, @$lst ]);
+
+    fu->enrich(seth => 'my', key => 'vid', sub { SQL
+        'SELECT vid, sum(length::int) AS sum, count(*) AS count FROM vn_length_votes WHERE uid =', auth->uid, 'AND vid', IN $_, 'GROUP BY vid'
+    }, $lst) if auth && $mode ne 'v' && $thing ne auth->uid;
 
     my $title = 'Length votes'.($mode ? ($mode eq 'v' ? ' for ' : ' by ').$o->{title}[1] : '');
     framework_ title => $title, dbobj => $o, sub {

@@ -1,4 +1,5 @@
 # This is for user-visible changes only and powers the list at https://vndb.org/changes
+20250617 Add own play time column to length vote browser (t950.1929)
 20250612 Support multiple playthroughs for play time voting and add play time column to user VN lists.
 20250612 Add support for BOOTH links for staff & producers.
 20250609 Add support for Ci-en links for staff & producers.
