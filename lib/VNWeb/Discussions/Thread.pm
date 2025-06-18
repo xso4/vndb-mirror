@@ -162,7 +162,7 @@ sub posts_ {
                             lit_ length $_->{hidden} ? ': '.bb_format $_->{hidden}, inline => 1 : '.';
                         };
                     } else {
-                        lit_ bb_format $_->{msg};
+                        lit_ bb_format $_->{msg}, lookup => $t->{id};
                         small_ class => 'lastmod', 'Last modified on '.fmtdate($_->{edited}, 'full') if $_->{edited};
                     }
                 };

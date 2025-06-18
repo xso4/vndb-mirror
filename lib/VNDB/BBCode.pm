@@ -51,25 +51,19 @@ sub _raw_end       { if(lc$_[1] eq '[/raw]'    ) { pop  @{$_[0]}; ('raw_end'    
 sub _url_end       { if(lc$_[1] eq '[/url]'    ) { pop  @{$_[0]}; ('url_end'    ) } else { () } }
 
 sub _url_start {
-  if($_[1] =~ m{^\[url=((https?://|/)[^\]>]+)\]$}i) {
-    push @{$_[0]}, 'url';
-    (url_start => $1)
-  } else { () }
+    if($_[1] =~ m{^\[url=((https?://|/)[^\]>]+)\]$}i) {
+        push @{$_[0]}, 'url';
+        (url_start => $1)
+    } else { () }
 }
 
-sub _link {
-  my(undef, $match, $char_pre, $char_post) = @_;
-
-  # Tags arent links
-  return () if $match =~ /^\[/;
-
-  # URLs (already "validated" in the parsing regex)
-  return ('link') if $match =~ /^[hf]t/;
-
-  # Now we're left with various forms of IDs, just need to make sure it's not surrounded by word characters
-  return ('dblink') if $char_pre !~ /[\w-]/ && $char_post !~ /[\w-]/;
-
-  ();
+sub _link($, $match, $char_pre, $char_post, @) {
+    return () if $match =~ /^\[/; # Tags arent links
+    # URLs (already "validated" in the parsing regex)
+    return ('link') if $match =~ /^[hf]t/;
+    # Now we're left with various forms of IDs, just need to make sure it's not surrounded by word characters
+    return ('dblink') if $char_pre !~ /[\w-]/ && $char_post !~ /[\w-]/;
+    ();
 }
 
 
@@ -78,16 +72,16 @@ sub _link {
 # The "current state" is the most recent tag in the stack, or '' if no tags are open.
 my @INLINE = (\&_link, \&_url_start, \&_raw_start, \&_b_start, \&_i_start, \&_u_start, \&_s_start, \&_spoiler_start);
 my %STATE = (
-  ''      => [                @INLINE, \&_quote_start, \&_code_start],
-  b       => [\&_b_end,       @INLINE],
-  i       => [\&_i_end,       @INLINE],
-  u       => [\&_u_end,       @INLINE],
-  s       => [\&_s_end,       @INLINE],
-  spoiler => [\&_spoiler_end, @INLINE],
-  quote   => [\&_quote_end,   @INLINE, \&_quote_start, \&_code_start],
-  code    => [\&_code_end     ],
-  url     => [\&_url_end,     \&_raw_start],
-  raw     => [\&_raw_end      ],
+    ''      => [                @INLINE, \&_quote_start, \&_code_start],
+    b       => [\&_b_end,       @INLINE],
+    i       => [\&_i_end,       @INLINE],
+    u       => [\&_u_end,       @INLINE],
+    s       => [\&_s_end,       @INLINE],
+    spoiler => [\&_spoiler_end, @INLINE],
+    quote   => [\&_quote_end,   @INLINE, \&_quote_start, \&_code_start],
+    code    => [\&_code_end     ],
+    url     => [\&_url_end,     \&_raw_start],
+    raw     => [\&_raw_end      ],
 );
 
 
@@ -97,8 +91,7 @@ sub xml_escape { $_[0] =~ s/([&<"])/$XML{$1}/gr }
 
 # Usage:
 #
-#   parse $input, sub {
-#     my($raw, $token, @arg) = @_;
+#   parse $input, sub($raw, $token, @arg) {
 #     return 1; # to continue processing, 0 to stop. (Note that _close tokens may still follow after stopping)
 #   };
 #
@@ -143,7 +136,7 @@ sub parse {
     d[1-9][0-9]* \# [1-9][0-9]* (?: \.[1-9][0-9]* )?             |  # d+#+[.+]
     [tdvprcswgi][1-9][0-9]*\.[1-9][0-9]*                         |  # v+.+
     [tdvprcsugiw][1-9][0-9]*                                     |  # v+
-    (?:https?|ftp)://[^><"\n\s\]\[]+[\d\w=/-]                       # link
+    https?://[^><"\n\s\]\[]+[\d\w=/-]                               # link
   )}xg) {
     my $token = $&;
     my $pre = substr $raw, $last, $-[0]-$last;
@@ -175,9 +168,24 @@ FINAL:
 }
 
 
+sub _format_postlink($link, $id, $num, $same) {
+    my $obj = FU::fu->SQL('SELECT title[2],', VNWeb::DB::USER(), 'FROM item_info(NULL,', $id, ',', $num, ') x LEFT JOIN users u ON u.id = x.uid WHERE NOT hidden')->rowh;
+    return if !length $obj->{title};
+    my $user = xml_escape VNWeb::HTML::user_displayname($obj);
+    my $title = xml_escape $obj->{title};
+
+    sprintf '<a href="/%s">%s</a>', $link,
+        $num && $same ? "#$num <small>by</small> $user" :
+        $num ? "#$num <small>by</small> $user <small>@</small> $title" :
+        $link =~ /^w/ ? "$title by $user" : $title;
+}
+
+
 # Options:
 #   maxlength    => 0/$n - truncate after $n visible characters
 #   inline       => 0/1  - don't insert line breaks and don't format block elements
+#   lookup       => $id  - lookup and format u+, t+, t+.+ and w+.+ links, assuming we're on review/thread $id.
+#                          (requires FU and does not work well with 'maxlength')
 #
 # One of:
 #   text         => 0/1  - format as plain text, no tags
@@ -189,132 +197,120 @@ FINAL:
 #   replacespoil => 0/1  - replace [spoiler] tags with a "hidden by spoiler settings" message
 #   keepsoil     => 0/1  - keep the contents of spoiler tags without any special formatting
 #   default: format as <span class="spoiler">..
-sub bb_format {
-  my($input, %opt) = @_;
-  $opt{delspoil} = 1 if $opt{text} && !$opt{keepspoil};
+sub bb_format($input, %opt) {
+    $opt{delspoil} = 1 if $opt{text} && !$opt{keepspoil};
 
-  my $incode = 0;
-  my $inspoil = 0;
-  my $rmnewline = 0;
-  my $length = 0;
-  my $ret = '';
+    my $incode = 0;
+    my $inspoil = 0;
+    my $rmnewline = 0;
+    my $length = 0;
+    my $ret = '';
 
-  # escapes, returns string, and takes care of $length and $maxlength; also
-  # takes care to remove newlines and double spaces when necessary
-  my sub e {
-    local $_ = shift;
+    # escapes, returns string, and takes care of $length and $maxlength; also
+    # takes care to remove newlines and double spaces when necessary
+    my sub e {
+        local $_ = shift;
 
-    s/^\n//         if $rmnewline && $rmnewline--;
-    s/\n{5,}/\n\n/g if !$incode;
-    s/  +/ /g       if !$incode;
-    $length += length $_;
-    if($opt{maxlength} && $length > $opt{maxlength}) {
-      $_ = substr($_, 0, $opt{maxlength}-$length);
-      s/\W+\w*$//; # cleanly cut off on word boundary
-    }
-    if(!$opt{text}) {
-      s/&/&amp;/g;
-      s/>/&gt;/g;
-      s/</&lt;/g;
-      s/\n/<br>/g if !$opt{inline};
-    }
-    s/\n/ /g    if $opt{inline};
-    $_;
-  };
+        s/^\n//         if $rmnewline && $rmnewline--;
+        s/\n{5,}/\n\n/g if !$incode;
+        s/  +/ /g       if !$incode;
+        $length += length $_;
+        if ($opt{maxlength} && $length > $opt{maxlength}) {
+            $_ = substr $_, 0, $opt{maxlength}-$length;
+            s/\W+\w*$//; # cleanly cut off on word boundary
+        }
+        if (!$opt{text}) {
+            s/&/&amp;/g;
+            s/>/&gt;/g;
+            s/</&lt;/g;
+            s/\n/<br>/g if !$opt{inline};
+        }
+        s/\n/ /g if $opt{inline};
+        $_;
+    };
 
-  parse $input, sub {
-    my($raw, $tag, @arg) = @_;
+    parse $input, sub($raw, $tag, @arg) {
+        return 1 if $inspoil && $tag ne 'spoiler_end' && ($opt{delspoil} || $opt{replacespoil});
 
-    return 1 if $inspoil && $tag ne 'spoiler_end' && ($opt{delspoil} || $opt{replacespoil});
+        if ($tag eq 'text') {
+            $ret .= e $raw;
 
-    if($tag eq 'text') {
-      $ret .= e $raw;
+        } elsif ($tag eq 'dblink') {
+            my $link = $raw =~ s/^d(\d+)\.(\d+)\.(\d+)$/d$1#$2.$3/r;
+            my $msg = $opt{lookup} && $link =~ /^([utw][0-9]{1,7})(?:\.([0-9]{1,5}))?$/ && _format_postlink $link, $1, $2, $1 eq $opt{lookup};
+            $ret .= $msg || ($opt{text} ? e $raw : sprintf '<a href="/%s">%s</a>', $link, e $raw);
 
-    } elsif($tag eq 'dblink') {
-      (my $link = $raw) =~ s/^d(\d+)\.(\d+)\.(\d+)$/d$1#$2.$3/;
-      $ret .= $opt{text} ? e $raw : sprintf '<a href="/%s">%s</a>', $link, e $raw;
+        } elsif ($opt{idonly}) {
+            $ret .= e $raw;
 
-    } elsif($opt{idonly}) {
-      $ret .= e $raw;
+        } elsif ($tag eq 'b_start') { $ret .= $opt{text} ? e '*' : '<strong>'
+        } elsif ($tag eq 'b_end')   { $ret .= $opt{text} ? e '*' : '</strong>'
+        } elsif ($tag eq 'i_start') { $ret .= $opt{text} ? e '/' : '<em>'
+        } elsif ($tag eq 'i_end')   { $ret .= $opt{text} ? e '/' : '</em>'
+        } elsif ($tag eq 'u_start') { $ret .= $opt{text} ? e '_' : '<span class="underline">'
+        } elsif ($tag eq 'u_end')   { $ret .= $opt{text} ? e '_' : '</span>'
+        } elsif ($tag eq 's_start') { $ret .= $opt{text} ? e '-' : '<s>'
+        } elsif ($tag eq 's_end')   { $ret .= $opt{text} ? e '-' : '</s>'
+        } elsif ($tag eq 'quote_start') {
+            $ret .= $opt{text} || $opt{inline} ? e '"' : '<div class="quote">';
+            $rmnewline = 1;
+        } elsif ($tag eq 'quote_end') {
+            $ret .= $opt{text} || $opt{inline} ? e '"' : '</div>';
+            $rmnewline = 1;
 
-    } elsif($tag eq 'b_start') { $ret .= $opt{text} ? e '*' : '<strong>'
-    } elsif($tag eq 'b_end')   { $ret .= $opt{text} ? e '*' : '</strong>'
-    } elsif($tag eq 'i_start') { $ret .= $opt{text} ? e '/' : '<em>'
-    } elsif($tag eq 'i_end')   { $ret .= $opt{text} ? e '/' : '</em>'
-    } elsif($tag eq 'u_start') { $ret .= $opt{text} ? e '_' : '<span class="underline">'
-    } elsif($tag eq 'u_end')   { $ret .= $opt{text} ? e '_' : '</span>'
-    } elsif($tag eq 's_start') { $ret .= $opt{text} ? e '-' : '<s>'
-    } elsif($tag eq 's_end')   { $ret .= $opt{text} ? e '-' : '</s>'
-    } elsif($tag eq 'quote_start') {
-      $ret .= $opt{text} || $opt{inline} ? e '"' : '<div class="quote">';
-      $rmnewline = 1;
-    } elsif($tag eq 'quote_end') {
-      $ret .= $opt{text} || $opt{inline} ? e '"' : '</div>';
-      $rmnewline = 1;
+        } elsif ($tag eq 'code_start') {
+            $ret .= $opt{text} || $opt{inline} ? e '`' : '<pre>';
+            $rmnewline = 1;
+            $incode = 1;
+        } elsif ($tag eq 'code_end') {
+            $ret .= $opt{text} || $opt{inline} ? e '`' : '</pre>';
+            $rmnewline = 1;
+            $incode = 0;
 
-    } elsif($tag eq 'code_start') {
-      $ret .= $opt{text} || $opt{inline} ? e '`' : '<pre>';
-      $rmnewline = 1;
-      $incode = 1;
-    } elsif($tag eq 'code_end') {
-      $ret .= $opt{text} || $opt{inline} ? e '`' : '</pre>';
-      $rmnewline = 1;
-      $incode = 0;
+        } elsif ($tag eq 'spoiler_start') {
+            $inspoil = 1;
+            $ret .= $opt{delspoil} || $opt{keepspoil} ? ''
+            : $opt{replacespoil} ? '<small>&lt;hidden by spoiler settings&gt;</small>'
+            : '<span class="spoiler">';
+        } elsif ($tag eq 'spoiler_end') {
+            $inspoil = 0;
+            $ret .= $opt{delspoil} || $opt{keepspoil} || $opt{replacespoil} ? '' : '</span>';
 
-    } elsif($tag eq 'spoiler_start') {
-      $inspoil = 1;
-      $ret .= $opt{delspoil} || $opt{keepspoil} ? ''
-        : $opt{replacespoil} ? '<small>&lt;hidden by spoiler settings&gt;</small>'
-        : '<span class="spoiler">';
-    } elsif($tag eq 'spoiler_end') {
-      $inspoil = 0;
-      $ret .= $opt{delspoil} || $opt{keepspoil} || $opt{replacespoil} ? '' : '</span>';
+        } elsif ($tag eq 'url_start') {
+            $ret .= $opt{text} ? '' : sprintf '<a href="%s" rel="nofollow">', xml_escape($arg[0]);
+        } elsif ($tag eq 'url_end') {
+            $ret .= $opt{text} ? '' : '</a>';
 
-    } elsif($tag eq 'url_start') {
-      $ret .= $opt{text} ? '' : sprintf '<a href="%s" rel="nofollow">', xml_escape($arg[0]);
-    } elsif($tag eq 'url_end') {
-      $ret .= $opt{text} ? '' : '</a>';
+        } elsif ($tag eq 'link') {
+            $ret .= $opt{text} ? e $raw : sprintf '<a href="%s" rel="nofollow">%s</a>', xml_escape($raw), e 'link';
+        }
 
-    } elsif($tag eq 'link') {
-      $ret .= $opt{text} ? e $raw : sprintf '<a href="%s" rel="nofollow">%s</a>', xml_escape($raw), e 'link';
-    }
-
-    !$opt{maxlength} || $length < $opt{maxlength};
-  };
-  $ret;
+        !$opt{maxlength} || $length < $opt{maxlength};
+    };
+    $ret;
 }
 
 
 # Turn (most) 'dblink's into [url=..] links. This function relies on FU to do
 # the database querying, so can't be used from Multi.
-# Doesn't handle:
-# - d+, t+, r+ and u+ links
-# - item revisions
-sub bb_subst_links {
-  my $msg = shift;
+# Doesn't handle u+, t+, d+, r+ and item revisions
+sub bb_subst_links($msg) {
+    my %lookup;
+    parse $msg, sub($code, $tag, @) {
+        $lookup{$1} = 1 if $tag eq 'dblink' && $code =~ /^([vcpgis][0-9]{1,7})$/;
+        1;
+    };
+    return $msg unless %lookup;
 
-  # Parse a message and create an index of links to resolve
-  my %lookup;
-  parse $msg, sub {
-    my($code, $tag) = @_;
-    $lookup{$1} = 1 if $tag eq 'dblink' && $code =~ /^([vcpgis]\d+)$/;
-    1;
-  };
-  return $msg unless %lookup;
+    my $links = FU::fu->sql('SELECT id, title[2] FROM unnest($1::vndbid[]) n(id), item_info(NULL, n.id, NULL)', [keys %lookup])->kvv;
+    return $msg unless %$links;
 
-  my $links = FU::fu->sql('SELECT id, title[2] FROM unnest($1::vndbid[]) n(id), item_info(NULL, n.id, NULL)', [keys %lookup])->kvv;
-  return $msg unless %$links;
-
-  # Now substitute
-  my $result = '';
-  parse $msg, sub {
-    my($code, $tag) = @_;
-    $result .= $tag eq 'dblink' && $links->{$code}
-      ? sprintf '[url=/%s]%s[/url]', $code, $links->{$code}
-      : $code;
-    1;
-  };
-  return $result;
+    my $result = '';
+    parse $msg, sub($code, $tag, @) {
+        $result .= $tag eq 'dblink' && $links->{$code} ? sprintf '[url=/%s]%s[/url]', $code, $links->{$code} : $code;
+        1;
+    };
+    $result;
 }
 
 

@@ -755,7 +755,7 @@ sub _revision_cmp_ {
                     strong_ "Edit summary for revision $new->{chrev}";
                     br_;
                     br_;
-                    lit_ bb_format $new->{rev_comments}||'-';
+                    lit_ bb_format $new->{rev_comments}||'-', lookup => 1;
                 };
             };
         };
