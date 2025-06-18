@@ -40,7 +40,7 @@ ul, ol        { margin-left: 35px; }
 p.itemmsg     { float: right; color: var(--standout); font-style: italic; margin: 0!important }
 small, .grayedout { color: var(--grayedout) }
 .underline    { text-decoration: underline }
-.monospace    { font-family: monospace!important }
+pre, .monospace    { font-family: monospace!important }
 p.description, div.description { margin: 10px auto!important; max-width: 800px; }
 .done         { color: var(--statok) }
 .todo         { color: var(--statnok) }
