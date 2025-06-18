@@ -127,6 +127,9 @@ sub posts_ {
         SQL('SELECT p.num,', USER, 'FROM posts_patrolled p JOIN users u ON u.id = p.uid WHERE p.id =', $t->{id}, 'AND p.num'), $posts
     ) if auth->permDbmod;
 
+    my $canreply = can_edit t => $t;
+    my $lastpage = ceil($t->{count}/25);
+
     paginate_ \&url, $page, [ $t->{count}, 25 ], 't';
     article_ class => 'thread', id => 'threadstart', sub {
         table_ class => 'stripe', sub {
@@ -149,6 +152,14 @@ sub posts_ {
                 td_ class => 'tc2', sub {
                     small_ class => 'edit', sub {
                         txt_ '< ';
+                        if($canreply) {
+                            if ($page == $lastpage) {
+                                a_ href => '#', class => 'js-post-reply', 'data-id' => "$t->{id}.$_->{num}", 'reply';
+                            } else {
+                                a_ href => "/$t->{id}/$lastpage#reply-$t->{id}.$_->{num}", 'reply';
+                            }
+                            lit_ ' - ';
+                        }
                         if(can_edit t => $_) {
                             a_ href => "/$t->{id}".($t->{id} =~ /^w/ || $_->{num} > 1 ? ".$_->{num}" : '').'/edit', 'edit';
                             txt_ ' - ';

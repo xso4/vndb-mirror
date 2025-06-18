@@ -153,7 +153,7 @@ FU::get qr{/$RE{wid}(?:([\./])($RE{num}))?}, sub($id, $sep='', $num=0) {
         } else {
             div_ id => 'threadstart', '';
         }
-        div_ widget(ReviewComment => $COMMENT, { id => $w->{id}, msg => '' }), '' if !$newreview && $w->{count} <= $page*25 && can_edit t => $w;
+        div_ widget(DiscussionReply => $COMMENT, { id => $w->{id}, msg => '' }), '' if !$newreview && $w->{count} <= $page*25 && can_edit t => $w;
     };
 };
 

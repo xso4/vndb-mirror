@@ -52,7 +52,6 @@ const EmailInput = initVnode => {
 @include DiscussionReply.js
 @include DiscussionEdit.js
 @include PostEdit.js
-@include ReviewComment.js
 @include ReviewEdit.js
 @include ReviewsVote.js
 @include QuoteEdit.js

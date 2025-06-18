@@ -241,7 +241,7 @@ window.FormTabs = initVnode => {
 //   The length is properly counted in Unicode points rather than UTF-16 digits.
 // - focus         -> Bool, set input focus on create
 // - rows / cols   -> For texarea
-// - onfocus / onblur
+// - onfocus / onblur / onupdate
 //
 // The HTML5 validity API has some annoying limitations and is not always
 // honored, so this component simply re-implements validation and reporting of
@@ -299,6 +299,7 @@ window.Input = () => {
                 a.oninput && a.oninput(v);
             },
             oncreate: a.focus ? v => v.dom.focus() : null,
+            onupdate: a.onupdate,
         };
         return [
             a.type === 'textarea'
