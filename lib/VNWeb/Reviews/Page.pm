@@ -17,6 +17,7 @@ js_api ReviewComment => $COMMENT, sub($data) {
     my $num = SQL 'COALESCE((SELECT MAX(num)+1 FROM reviews_posts WHERE id =', $data->{id}, '),1)';
     my $msg = bb_subst_links $data->{msg};
     $num = fu->SQL('INSERT INTO reviews_posts', VALUES({ id => $w->{id}, num => $num, uid => auth->uid, msg => $msg }), 'RETURNING num')->val;
+    VNWeb::Discussions::Lib::notify_mentions($w->{id}, $num, $data->{msg});
     +{ _redir => "/$w->{id}.$num#last" };
 };
 

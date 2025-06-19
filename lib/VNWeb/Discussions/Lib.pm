@@ -3,7 +3,7 @@ package VNWeb::Discussions::Lib;
 use VNWeb::Prelude;
 use Exporter 'import';
 
-our @EXPORT = qw/$BOARD_RE VISIBLE_THREADS enrich_boards threadlist_ boardsearch_ boardtypes_/;
+our @EXPORT = qw/$BOARD_RE VISIBLE_THREADS enrich_boards threadlist_ boardsearch_ boardtypes_ notify_mentions/;
 
 
 our $BOARD_RE = join '|', map $_.($BOARD_TYPE{$_}{dbitem}?'(?:[1-9][0-9]{0,5})?':''), keys %BOARD_TYPE;
@@ -125,6 +125,35 @@ sub boardtypes_ {
             map [ $_, $BOARD_TYPE{$_}{txt} ], keys %BOARD_TYPE
         );
     };
+}
+
+
+# Should be called after a new comment has been added.
+# Should NOT be called for private/hidden threads.
+sub notify_mentions($id, $num, $msg) {
+    my(%uids, %posts);
+    VNDB::BBCode::parse($msg, sub($raw, $token, @) {
+        $uids{$raw} = 1 if $token eq 'dblink' && $raw =~ /^$RE{uid}$/;
+        $posts{$raw} = 1 if $token eq 'dblink' && $raw =~ /^[tw]$RE{num}\.$RE{num}$/;
+        1;
+    });
+
+    my sub noti($type, $uid) {
+        fu->SQL("UPDATE notifications SET ntype = ntype ||", [$type], WHERE { uid => $uid, iid => $id, num => $num })->exec ||
+        fu->SQL('INSERT INTO notifications', VALUES { uid => $uid, iid => $id, num => $num, ntype => [$type]})->exec;
+    }
+
+    noti ment => $_ for keys %uids ? fu->SQL('SELECT id FROM users WHERE id', IN [keys %uids])->flat->@* : ();
+
+    my %postuids;
+    for (keys %posts) {
+        my $uid = fu->sql(
+            'SELECT uid FROM threads_posts WHERE tid = $1 AND num = $2 UNION SELECT uid FROM reviews_posts WHERE id = $1 AND num = $2',
+            /([tw]$RE{num})\.($RE{num})/
+        )->val;
+        $postuids{$uid} = 1 if $uid;
+    }
+    noti postment => $_ for keys %postuids;
 }
 
 

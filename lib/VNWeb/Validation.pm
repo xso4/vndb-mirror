@@ -57,8 +57,6 @@ our %RE = (
     drev => qr{(d$num)$rev?},
     grev => qr{(g$num)$rev?},
     irev => qr{(i$num)$rev?},
-    # Gives two captures
-    postid => qr{(t$num)\.($num)},
 );
 
 

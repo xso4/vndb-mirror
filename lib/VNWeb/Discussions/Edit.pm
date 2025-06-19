@@ -104,6 +104,7 @@ js_api DiscussionEdit => $FORM, sub ($data) {
     };
     fu->SQL('INSERT INTO threads_posts', VALUES $post)->exec if !$data->{tid};
     fu->SQL('UPDATE threads_posts', SET($post), WHERE { tid => $tid, num => 1 })->exec if $data->{tid};
+    notify_mentions $tid, 1, $data->{msg} if !$thread->{hidden} && !$thread->{locked};
 
     +{ _redir => "/$tid.1" };
 };

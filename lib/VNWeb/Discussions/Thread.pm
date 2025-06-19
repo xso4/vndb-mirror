@@ -13,7 +13,7 @@ my $REPLY = form_compile {
 
 js_api DiscussionReply => $REPLY, sub($data) {
     my $t = fu->SQL(
-        'SELECT id, locked FROM threads t WHERE id =', $data->{tid}, 'AND', VISIBLE_THREADS
+        'SELECT id, locked, hidden, private FROM threads t WHERE id =', $data->{tid}, 'AND', VISIBLE_THREADS
     )->rowh or fu->notfound;
     fu->denied if !can_edit t => $t;
 
@@ -23,6 +23,7 @@ js_api DiscussionReply => $REPLY, sub($data) {
         uid => auth->uid,
         msg => bb_subst_links($data->{msg}),
     }), 'RETURNING num')->val;
+    notify_mentions $t->{id}, $num, $data->{msg} if !$t->{hidden} && !$t->{private};
     +{ _redir => "/$t->{id}.$num#last" };
 };
 

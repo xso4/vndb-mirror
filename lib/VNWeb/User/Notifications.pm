@@ -4,6 +4,8 @@ use VNWeb::Prelude;
 
 my %ntypes = (
     pm        => 'Message on your board',
+    ment      => 'You were mentioned',
+    postment  => 'Your post was mentioned',
     dbdel     => 'Entry you contributed to has been deleted',
     listdel   => 'VN in your list has been deleted',
     dbedit    => 'Entry you contributed to has been edited',
