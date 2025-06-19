@@ -269,13 +269,17 @@ sub _menu_ {
 
     article_ sub {
         my $uid = '/'.auth->uid;
-        h2_ sub { user_ auth->user, 'user_', 1 };
+        h2_ sub {
+            a_ href => "$uid/notifies",
+                $o->{unread_noti} ? (class => 'notifygot', title => "$o->{unread_noti} new notifications", "$o->{unread_noti}🔔")
+                                  : (class => 'notifies',  title => 'No notifications', '🔔');
+            user_ auth->user, 'user_', 1;
+        };
         div_ sub {
             a_ href => "$uid/edit", 'My Profile'; txt_ '⭐' if auth->pref('nodistract_can') && !auth->pref('nodistract_nofancy'); br_;
             a_ href => "$uid/ulist?vnlist=1", 'My Visual Novel List'; br_;
             a_ href => "$uid/ulist?votes=1",'My Votes'; br_;
             a_ href => "$uid/ulist?wishlist=1", 'My Wishlist'; br_;
-            a_ href => "$uid/notifies", $o->{unread_noti} ? (class => 'notifyget') : (), 'My Notifications'.($o->{unread_noti}?" ($o->{unread_noti})":''); br_;
             a_ href => "$uid/hist", 'My Recent Changes'; br_;
             a_ href => '/g/links?u='.auth->uid, 'My Tags'; br_;
             br_;

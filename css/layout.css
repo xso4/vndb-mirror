@@ -50,8 +50,9 @@ body > nav {
     a             { color: var(--maintext) }
     a:hover       { border-bottom: 1px dotted var(--maintext); }
     h2            { border-bottom: 1px solid var(--border); background: var(--boxbg); padding: 1px 3px; }
+    .notifies     { float: right; color: transparent; text-shadow: 0 0 var(--grayedout); font-weight: normal; font-size: 10px }
+    .notifygot    { float: right; color: transparent; text-shadow: 0 0 var(--standout) }
     input.text    { width: 100% }
-    .notifyget    { display: inline-block; width: 95%; padding: 4px; background: var(--warnbg); border: 1px solid var(--warnborder); }
     .logout       { border: 0; border-bottom: 1px solid transparent; background: none; cursor: pointer; font: inherit; padding: 0; margin: 0 }
     .logout:hover { border-bottom: 1px dotted var(--maintext) }
 
