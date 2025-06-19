@@ -608,7 +608,6 @@ sub enrich_vislinks_old($type, $enabled, @obj) {
         w 'lutris';
         w 'wine';
         l 'l_renai';
-        c 'vnstat', 'VNStat', 'https://vnstat.net/novel/%d', $obj->{id} =~ s/^.//r if ($obj->{c_votecount}||0) >= 20;
 
         $obj->{vislinks} = \@links;
     }
@@ -796,7 +795,6 @@ sub enrich_vislinks($type, $enabled, @obj) {
         l 'vk';
         l 'itch_dev';
         l 'steam_curator';
-        c 'vnstat', 'VNStat', $o->{id} =~ s/^.//r, sprintf 'https://vnstat.net/developer/%d', $o->{id} =~ s/^.//r;
     }
 
     delete $_->{_l} for @obj;
