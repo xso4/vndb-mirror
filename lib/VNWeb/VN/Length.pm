@@ -107,7 +107,7 @@ sub stats_($o) {
 
 
 FU::get qr{/(?:$RE{vid}/|$RE{uid}/)?lengthvotes}, sub($vid=undef, $uid=undef) {
-    my $thing = $vid || $uid;
+    my $thing = $vid || $uid || '';
     my $o = $thing && dbobj $thing;
     fu->notfound if $thing && (!$o->{id} || ($o->{entry_hidden} && !auth->isMod));
     my $mode = $vid ? 'v' : $uid ? 'u' : '';
