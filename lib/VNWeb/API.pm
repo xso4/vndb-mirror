@@ -344,8 +344,8 @@ sub parse_fields {
                 $of = $of->{$t};
             }
         }
-        return { msg => "The '$ln' object requires specifying sub-field(s)." } if $nf;
-        return $lvl > 0 ? { msg => "Unmatched '{'" } : 1;
+        return { msg => "The '$ln' object requires specifying sub-field(s)." } if $nf && $ln;
+        return $lvl > 0 || $nf ? { msg => "Unmatched '{'" } : 1;
     })->(0, $_[0], $_[1]);
 }
 
