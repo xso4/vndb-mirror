@@ -175,7 +175,7 @@ sub copy_entry($tables, $ids) {
     # Update some caches
     print "SELECT tag_vn_calc(NULL);\n";
     print "SELECT traits_chars_calc(NULL);\n";
-    print "SELECT count(*) FROM (SELECT update_vncache(id) FROM vn) x;\n";
+    print "SELECT update_vncache(NULL);\n";
     print "SELECT update_stats_cache_full();\n";
     print "SELECT update_vnvotestats();\n";
     print "SELECT update_users_ulist_stats(NULL);\n";
