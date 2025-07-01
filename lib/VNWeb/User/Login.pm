@@ -35,7 +35,13 @@ js_api UserLogin => {
             ? 'id IN(SELECT uid FROM user_emailtoid($1))'
             : 'lower(username) = lower($1)'
         ), $data->{username}
-    )->rowh;
+    )->allh;
+
+    # Receiving more than one row only possible when logging in with email.
+    # Address normalization has changed over time, so sign-up with a now-duplicate address was possible.
+    return 'Multiple accounts exist with that email address, please login with username instead.' if @$u > 1;
+    $u = $u->[0];
+
     # When logging in with an email, make sure we don't disclose whether or not an account with that email exists.
     if ($ismail && !$u) {
         auth->wasteTime; # make timing attacks a bit harder (not 100% perfect, DB lookups & different scrypt args can still influence timing)
