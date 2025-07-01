@@ -18,8 +18,8 @@ js_api Boards => {search => { searchquery => 1 }}, sub {
                      grep $qs eq $_ || $BOARD_TYPE{$_}{txt} =~ /\Q$qs/i,
                      grep !$BOARD_TYPE{$_}{dbitem} && ($BOARD_TYPE{$_}{post_perm} eq 'board' || auth->permBoardmod),
                      keys %BOARD_TYPE),
-                 SQL('SELECT score, \'v\', v.id, title[2] FROM', VNT, 'v', $q->JOIN('v', 'v.id'), 'WHERE NOT v.hidden'),
-                 SQL('SELECT score, \'p\', p.id, title[2] FROM', PRODUCERST, 'p', $q->JOIN('p', 'p.id'), 'WHERE NOT p.hidden'),
+                 SQL('SELECT score, \'v\', v.id, title[2] FROM', VNT, 'v', $q->JOIN('v', 'v.id')),
+                 SQL('SELECT score, \'p\', p.id, title[2] FROM', PRODUCERST, 'p', $q->JOIN('p', 'p.id')),
                  SQL('SELECT', $uscore, ', \'u\', id, username FROM users WHERE lower(username) LIKE', lc "%$qs%",
                     $qs =~ /^u$RE{num}$/ ? ('OR id =', $qs) : ())
              ), ') x(score, btype, iid, title)
