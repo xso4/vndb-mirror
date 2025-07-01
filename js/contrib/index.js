@@ -85,9 +85,16 @@ const EditSum = vnode => {
                 : null,
             ]
         }),
-        m('input[type=submit][value=Submit]'),
-        api.Status(),
-        api.error ? null : m('p.formerror', 'The form contains errors'),
+        api.error === 'maxrev' ? m('div.warning',
+            m('h2', 'Edit conflict'),
+            m('p', 'Unable to submit the form: someone has made an edit to this entry while you had this form open in your browser.'),
+            m('p', 'Please check the ', m('a', { href: '/'+data.id+'/hist' }, 'edit history'), ' to see what has been changed and, if necessary, reload this form to continue editing.'),
+            m('p', '(The changes you have made so far will be lost)'),
+        ) : [
+            m('input[type=submit][value=Submit]'),
+            api.Status(),
+            api.error ? null : m('p.formerror', 'The form contains errors')
+        ]
     );
     return {view};
 };

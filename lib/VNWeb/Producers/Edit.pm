@@ -20,6 +20,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     hidden      => { anybool => 1 },
     locked      => { anybool => 1 },
     editsum     => { editsum => 1 },
+    maxrev      => { default => undef, uint => 1 },
 };
 
 
@@ -56,6 +57,7 @@ js_api ProducerEdit => $FORM_IN, sub {
     my $e = $new ? { id => 0 } : db_entry $data->{id} or fu->notfound;
     fu->denied if !can_edit p => $e;
 
+    validate_maxrev $data, $e;
     if(!auth->permDbmod) {
         $data->{hidden} = $e->{hidden}||0;
         $data->{locked} = $e->{locked}||0;

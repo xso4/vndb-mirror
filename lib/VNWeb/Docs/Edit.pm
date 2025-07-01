@@ -12,6 +12,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     locked  => { anybool => 1 },
 
     editsum => { editsum => 1 },
+    maxrev  => { default => undef, uint => 1 },
 };
 
 
@@ -33,6 +34,7 @@ js_api DocEdit => $FORM_IN, sub {
     my $doc = db_entry $data->{id} or fu->notfound;
 
     fu->denied if !can_edit d => $doc;
+    validate_maxrev $data, $doc;
     $data->{html} = md2html $data->{content};
 
     my $c = db_edit d => $doc->{id}, $data;

@@ -23,6 +23,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
 
     authmod      => { _when => 'out', anybool => 1 },
     editsum      => { editsum => 1 },
+    maxrev       => { default => undef, uint => 1 },
 };
 
 
@@ -77,6 +78,7 @@ js_api TraitEdit => $FORM_IN, sub($data) {
     fu->notfound if !$new && !$e->{id};
     fu->denied if !can_edit i => $e;
 
+    validate_maxrev $data, $e;
     if(!auth->permTagmod) {
         $data->{hidden} = $e->{hidden}//1;
         $data->{locked} = $e->{locked}//0;

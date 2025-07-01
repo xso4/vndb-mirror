@@ -24,7 +24,7 @@ tr:target, tr.target { outline: 1px dashed var(--standout) }
 
 
 /* Warning/Notice Box */
-div.warning, div.notice       { margin: 5px 10%; padding: 15px; background-color: var(--warnbg); border: 1px solid var(--warnborder); }
+div.warning, div.notice       { margin: 5px 10%; padding: 15px; background-color: var(--warnbg); border: 1px solid var(--warnborder); text-align: left }
 div.notice                    { background-color: var(--noticebg); border: 1px solid var(--noticeborder); }
 div.warning ul, div.notice ul { margin-left: 0; }
 div.warning li, div.notice li { margin-left: 20px; }

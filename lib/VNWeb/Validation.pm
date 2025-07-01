@@ -22,7 +22,7 @@ our @EXPORT = qw/
     is_unique_username
     ipinfo
     form_compile
-    validate_dbid
+    validate_dbid validate_maxrev
     can_edit
     viewget viewset
 /;
@@ -277,6 +277,12 @@ sub validate_dbid {
     # If this is a js_api, return a more helpful error message
     fu->send_json({_err => "Invalid reference to ".join ', ', @missing}) if fu->path =~ /^\/js\//;
     croak "Invalid database IDs: ".join ',', @missing;
+}
+
+
+# Used from JS entry edit APIs to prevent edit conflicts.
+sub validate_maxrev($o, $n) {
+    fu->send_json({_err => 'maxrev'}) if $o->{maxrev} && $n->{maxrev} && $o->{maxrev} != $n->{maxrev};
 }
 
 

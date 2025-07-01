@@ -50,6 +50,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     locked     => { anybool => 1 },
 
     editsum    => { editsum => 1 },
+    maxrev     => { default => undef, uint => 1 },
     vnstate    => { _when => 'out', aoh => {
         id      => { vndbid => 'v' },
         rels    => { aoh => $RELSCHEMA },
@@ -129,6 +130,7 @@ js_api CharEdit => $FORM_IN, sub ($data,@) {
     my $e = $new ? {} : db_entry $data->{id} or fu->notfound;
     fu->denied if !can_edit c => $e;
 
+    validate_maxrev $data, $e;
     if(!auth->permDbmod) {
         $data->{hidden} = $e->{hidden}||0;
         $data->{locked} = $e->{locked}||0;
