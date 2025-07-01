@@ -111,7 +111,7 @@ class DS {
         this.source = source;
         if (source && source.opts) Object.assign(this, source.opts);
         if (opts) Object.assign(this, opts);
-        if (!('keep' in this)) this.keep = this.checked;
+        if (!('keep' in this) && ('checked' in this)) this.keep = this.checked;
         this.open = this.open.bind(this);
         this.list = [];
     }
