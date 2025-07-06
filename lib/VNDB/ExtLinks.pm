@@ -139,7 +139,7 @@ our %LINKS = (
         { ent   => 'sp'
         , label => 'Bluesky'
         , fmt   => 'https://bsky.app/profile/%s'
-        , regex => qr{bsky\.app/profile/([a-z0-9\.-]+)}
+        , regex => qr{(?:([a-z0-9-]+\.bsky\.social)|bsky\.app/profile/([a-z0-9\.-]+))/?}
         },
     cien =>
         { ent   => 'sp'
