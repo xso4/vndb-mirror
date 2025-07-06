@@ -120,7 +120,7 @@ our %LINKS = (
         { ent   => 'sp'
         , label => 'Boosty'
         , fmt   => 'https://boosty.to/%s'
-        , regex => qr{boosty\.to/([a-z0-9_.]+)/?}
+        , regex => qr{boosty\.to/([a-z0-9_.-]+)/?}
         },
     booth =>
         { ent   => 'r'
