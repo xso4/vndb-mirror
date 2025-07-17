@@ -1127,6 +1127,17 @@ CREATE TABLE tags_vn_inherit (
   PRIMARY KEY(tag, vid)
 );
 
+-- tasks
+CREATE TABLE tasks (
+  id         text NOT NULL PRIMARY KEY,
+  nextrun    timestamptz NOT NULL,
+  lastrun    timestamptz,
+  delay      interval NOT NULL, -- Minimum delay between runs; nextrun >= lastrun + delay
+  align_div  interval DEFAULT '1ms', -- Align 'nextrun' to be divisible by this interval
+  align_add  interval DEFAULT '0', -- Add delay after settling on a divisible timestamp
+  data       jsonb
+);
+
 -- threads
 CREATE TABLE threads (
   id               vndbid(t) PRIMARY KEY DEFAULT vndbid('t', nextval('threads_id_seq')),

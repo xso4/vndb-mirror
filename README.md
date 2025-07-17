@@ -144,6 +144,10 @@ util/vndb.pl (the web backend):
 - Algorithm::Diff::XS
 - Text::MultiMarkdown
 
+util/task.pl (task queue, optional, eventually replaces multi.pl):
+- LWP::UserAgent (libwww-perl)
+- LWP::Protocol::https
+
 util/multi.pl (application server, optional):
 - AnyEvent::HTTP
 - AnyEvent::IRC

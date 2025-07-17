@@ -18,6 +18,7 @@ my $config = {
     url               => 'http://localhost:3000',
 
     db_site           => 'dbname=vndb user=vndb_site',
+    db_task           => 'dbname=vndb user=vndb',
     statement_timeout => 10,
 
     fu_debug_path     => '/fu-debug',
@@ -29,6 +30,7 @@ my $config = {
 
     logfile           => "$VAR/log/fu.log",
     api_logfile       => "$VAR/log/api.log",
+    task_logfile      => "$VAR/log/task.log",
     log_slow_pages    => 0,
 
     skin_default      => 'angel',
