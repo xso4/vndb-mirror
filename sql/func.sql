@@ -1344,9 +1344,3 @@ BEGIN
   END IF;
 END
 $$ LANGUAGE plpgsql;
-
-
--- Should be called from a cron, deletes user accounts with a delete_at in the past.
-CREATE OR REPLACE FUNCTION user_delete() RETURNS int AS $$
-  SELECT COUNT(*) FROM (SELECT user_delete(id, null) FROM users_shadow WHERE delete_at < NOW()) x
-$$ LANGUAGE SQL SECURITY DEFINER;

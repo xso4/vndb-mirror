@@ -60,8 +60,10 @@ daily '07:30:04', imagecache => 'SELECT update_images_cache(NULL)';
 daily '07:30:05', reviewcache => 'SELECT update_reviews_votes_cache(NULL)';
 daily '07:30:06', quotescache => 'SELECT quotes_rand_calc()';
 
-daily '07:30:07', deleteusers => 'SELECT user_delete()';
-daily '07:30:08', rmunconfirmusers => "DELETE FROM users WHERE registered < NOW()-'1 week'::interval AND NOT email_confirmed";
+daily '07:30:07', deleteusers => q{
+    SELECT user_delete(id, null) FROM users_shadow WHERE delete_at < NOW();
+    DELETE FROM users WHERE registered < NOW()-'1 week'::interval AND NOT email_confirmed;
+};
 daily '07:30:09', cleansessions => "DELETE FROM sessions WHERE expires < NOW() AND type <> 'api2'";
 
 daily '07:30:10', cleannotifications => q{
