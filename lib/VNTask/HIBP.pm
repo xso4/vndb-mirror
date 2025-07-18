@@ -25,6 +25,8 @@ use v5.36;
 use VNTask::Core;
 use LWP::UserAgent;
 
+return 1 if !config->{hibp_download};
+
 my $api = 'https://api.pwnedpasswords.com/range/';
 my $dir = config->{var_path}.'/hibp';
 

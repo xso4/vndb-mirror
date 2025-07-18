@@ -1130,11 +1130,12 @@ CREATE TABLE tags_vn_inherit (
 -- tasks
 CREATE TABLE tasks (
   id         text NOT NULL PRIMARY KEY,
-  nextrun    timestamptz NOT NULL,
+  sched      timestamptz GENERATED ALWAYS AS (task_schedule(nextrun, lastrun, delay, align_div, align_add)) STORED,
+  nextrun    timestamptz, -- NULL to disable this task
   lastrun    timestamptz,
-  delay      interval NOT NULL, -- Minimum delay between runs; nextrun >= lastrun + delay
-  align_div  interval DEFAULT '1ms', -- Align 'nextrun' to be divisible by this interval
-  align_add  interval DEFAULT '0', -- Add delay after settling on a divisible timestamp
+  delay      interval NOT NULL, -- Minimum delay between runs
+  align_div  interval, -- Align next scheduled run to be divisible by this interval
+  align_add  interval, -- Add delay after settling on a divisible timestamp
   data       jsonb
 );
 

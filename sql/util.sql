@@ -155,3 +155,19 @@ $$ LANGUAGE SQL IMMUTABLE;
 --     , norm_email('somename@hello.4email.net') = 'hello@4email.net';
 
 CREATE OR REPLACE FUNCTION hash_email(email text) RETURNS uuid LANGUAGE SQL IMMUTABLE RETURN md5(norm_email(email))::uuid;
+
+
+
+-- Task scheduling algorithm.
+-- Implemented as a function here because it needs to be marked as IMMUTABLE,
+-- but extract() lacks that marking. (Because, depending on its arguments, its
+-- output may depend on the timezone setting. It doesn't in the use below)
+CREATE OR REPLACE FUNCTION task_schedule(nextrun timestamptz, lastrun timestamptz, delay interval, align_div interval, align_add interval) RETURNS timestamptz AS $$
+  SELECT CASE WHEN nextrun IS NULL THEN NULL ELSE
+    coalesce(align_add, '0') + to_timestamp(
+      ceil(
+           extract('epoch' from greatest(nextrun, lastrun + delay) - coalesce(align_add, '0'))
+         / extract('epoch' from coalesce(align_div, '1ms'))
+      ) * extract('epoch' from coalesce(align_div, '1ms'))
+  ) END
+$$ LANGUAGE SQL IMMUTABLE;

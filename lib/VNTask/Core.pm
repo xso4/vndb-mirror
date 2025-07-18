@@ -28,7 +28,6 @@ my %tasks;
 # Register a task:
 #   task queuename => %opts, sub($task) {
 #       ...
-#       $task->done;
 #   }
 sub task {
     my $name = shift;
@@ -36,15 +35,21 @@ sub task {
     my %opt = @_;
     $tasks{$name} = $sub;
 
-    my %data = (
-        delay => $opt{delay},
-        align_div => $opt{align_div} || SQL('DEFAULT'),
-        align_add => $opt{align_add} || SQL('DEFAULT'),
-    );
     db->Q(
-        'INSERT INTO tasks',
-        VALUES({ id => $name, nextrun => SQL('NOW()'), %data }),
-        'ON CONFLICT (id) DO UPDATE', SET \%data
+        'INSERT INTO tasks', VALUES({
+            id        => $name,
+            nextrun   => SQL('NOW()'),
+            delay     => $opt{delay},
+            align_div => $opt{align_div},
+            align_add => $opt{align_add},
+        }),
+        'ON CONFLICT (id) DO UPDATE SET
+            delay     = EXCLUDED.delay,
+            align_div = EXCLUDED.align_div,
+            align_add = EXCLUDED.align_add
+         WHERE tasks.delay     IS DISTINCT FROM excluded.delay
+           AND tasks.align_div IS DISTINCT FROM excluded.align_div
+           AND tasks.align_add IS DISTINCT FROM excluded.align_add'
     )->text_params->exec;
 }
 
@@ -56,9 +61,16 @@ sub run_task($txn, $task) {
     $task->item('');
     local $cur_task = $task;
 
+    my $sub = $tasks{$task->{id}};
+    if (!$sub) {
+        warn "Task '$task->{id}' has no implementation or has been disabled.\n";
+        $txn->q('UPDATE tasks SET nextrun = NULL WHERE id = $1', $task->{id})->exec;
+        $txn->commit;
+        return;
+    }
+
     $task->{txn} = $txn->txn;
     my $ok = eval {
-        my $sub = $tasks{$task->{id}} or die "Unknown task id: $task->{id}\n";
         $sub->($task);
         $task->{txn}->commit;
         1;
@@ -73,13 +85,9 @@ sub run_task($txn, $task) {
 
     my $nextrun = $txn->Q('UPDATE tasks', SET({
         lastrun => SQL('NOW()'),
-        nextrun => SQL("to_timestamp(
-                ceil(
-                    extract('epoch' from NOW() + delay) / extract('epoch' from align_div)
-                ) * extract('epoch' from align_div)
-            ) + align_add"),
+        nextrun => SQL('NOW()'), # Should be set by the task
         $ok ? (data => $task->{data}) : (),
-    }), 'WHERE id =', $task->{id}, 'RETURNING nextrun')->val;
+    }), 'WHERE id =', $task->{id}, 'RETURNING sched')->val;
     warn sprintf "Task completed in %.1fms, next @ %sZ\n", (time-$start)*1000, strftime '%Y-%m-%d %H:%M:%S', gmtime $nextrun;
     $txn->commit;
 }
@@ -89,7 +97,7 @@ sub loop {
     while (1) {
         $0 = 'vntask idle';
         my $txn = db->txn;
-        my $task = $txn->q('SELECT id, data FROM tasks WHERE nextrun <= NOW() ORDER BY nextrun NULLS FIRST LIMIT 1 FOR UPDATE SKIP LOCKED')->rowh;
+        my $task = $txn->q('SELECT id, data FROM tasks WHERE sched <= NOW() ORDER BY sched LIMIT 1 FOR UPDATE SKIP LOCKED')->rowh;
         if (!$task) {
             undef $txn;
             # Yup, just poll every few sec.
