@@ -3,6 +3,7 @@ package VNTask::Maintenance;
 use v5.36;
 use VNTask::Core;
 use POSIX 'strftime';
+use File::Find 'find';
 
 
 sub cron($delay, $div, $off, $name, $sub) {
@@ -12,6 +13,7 @@ sub cron($delay, $div, $off, $name, $sub) {
 }
 #sub hourly { cron '45m',  '1h', @_ }
 sub daily  { cron '20h', '24h', @_ }
+sub weekly { cron  '6d',  '7d', @_ }
 
 
 daily '00:01:00', logrotate => sub {
@@ -77,5 +79,88 @@ daily '07:30:11', cleanthrottle => q{
 
 # Shouldn't be necessary, but it's fast anyway
 daily '07:30:12', statcache => 'SELECT update_stats_cache_full()';
+
+
+
+
+
+weekly '1d 06:10:00', cleanimages => sub($task) {
+    my $dirmatch = '/(cv|ch|sf|st)(?:\.orig|\.t)?/';
+    my $fnmatch = $dirmatch.'[0-9][0-9]/([1-9][0-9]{0,6})\.(?:jpg|webp|png|avif|jxl)?';
+
+    # Delete all images from the `images` table that are not referenced from
+    # *anywhere* in the database, including old revisions and links found in
+    # comments, descriptions and docs.
+    # The 30 (100, in the case of screenshots) most recently uploaded images of
+    # each type are also kept because there's a good chance they will get
+    # referenced from somewhere, soon.
+    my $rmrows = $task->sql(q{
+    DELETE FROM images WHERE id IN(
+      SELECT id FROM images
+       WHERE id NOT IN(SELECT id FROM images WHERE id ^= 'ch' ORDER BY id DESC LIMIT  30)
+         AND id NOT IN(SELECT id FROM images WHERE id ^= 'cv' ORDER BY id DESC LIMIT  30)
+         AND id NOT IN(SELECT id FROM images WHERE id ^= 'sf' ORDER BY id DESC LIMIT 100)
+      EXCEPT
+      SELECT * FROM (
+              SELECT scr   FROM vn_screenshots
+        UNION SELECT scr   FROM vn_screenshots_hist
+        UNION SELECT img   FROM releases_images
+        UNION SELECT img   FROM releases_images_hist
+        UNION SELECT image FROM vn         WHERE image IS NOT NULL
+        UNION SELECT image FROM vn_hist    WHERE image IS NOT NULL
+        UNION SELECT image FROM chars      WHERE image IS NOT NULL
+        UNION SELECT image FROM chars_hist WHERE image IS NOT NULL
+        UNION (
+          SELECT vndbid(case when img[1] = 'st' then 'sf' else img[1] end::vndbtag, img[2]::int)
+            FROM (      SELECT content FROM docs
+              UNION ALL SELECT content FROM docs_hist
+              UNION ALL SELECT description FROM vn
+              UNION ALL SELECT description FROM vn_hist
+              UNION ALL SELECT description FROM chars
+              UNION ALL SELECT description FROM chars_hist
+              UNION ALL SELECT description FROM producers
+              UNION ALL SELECT description FROM producers_hist
+              UNION ALL SELECT notes  FROM releases
+              UNION ALL SELECT notes  FROM releases_hist
+              UNION ALL SELECT description FROM staff
+              UNION ALL SELECT description FROM staff_hist
+              UNION ALL SELECT description FROM tags
+              UNION ALL SELECT description FROM tags_hist
+              UNION ALL SELECT description FROM traits
+              UNION ALL SELECT description FROM traits_hist
+              UNION ALL SELECT comments FROM changes
+              UNION ALL SELECT msg FROM threads_posts
+              UNION ALL SELECT msg FROM reviews_posts
+              UNION ALL SELECT text FROM reviews
+            ) x(text), regexp_matches(text, '}.$fnmatch.q{', 'g') as y(img)
+        )
+      ) x
+    )
+    })->exec;
+
+    my $imgs = $task->sql('SELECT id FROM images')->kvv;
+    my($size, $rmsize, $files, $rmfiles) = (0,0,0,0);
+    find {
+        no_chdir => 1,
+        wanted => sub {
+            return if -d;
+            if($File::Find::name !~ /$fnmatch$/) {
+                warn "Unknown file: $File::Find::name\n" if $File::Find::name =~ /$dirmatch/;
+            } elsif(!$imgs->{$1.$2}) {
+                $rmsize += -s;
+                $rmfiles++;
+                unlink $File::Find::name;
+            } else {
+                $size += -s;
+                $files++;
+            }
+        }
+    }, config->{var_path}."/static";
+
+    warn sprintf "Deleted %d/%d rows and %d/%d files (%.0f/%.0f KiB)\n",
+        $rmrows, scalar keys %$imgs,
+        $rmfiles, $files,
+        $rmsize/1024, $size/1024;
+};
 
 1;

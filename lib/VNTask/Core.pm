@@ -129,8 +129,8 @@ package VNTask::Core::Task;
 
 use v5.36;
 
-sub sql { $_[0]{txn}->q(@_) }
-sub SQL { $_[0]{txn}->Q(@_) }
+sub sql { shift->{txn}->q(@_) }
+sub SQL { shift->{txn}->Q(@_) }
 
 # CLI argument when called from the CLI, otherwise undef.
 sub arg { $_[0]{arg} }
