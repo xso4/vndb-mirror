@@ -52,6 +52,7 @@ FU::monitor_check {
 FU::init_db sub {
     my $db = FU::Pg->connect(config->{db_site}//'');
     $db->set_type(date => '$date_str');
+    $db->exec('SET timezone=UTC');
     $db->exec(sprintf 'SET statement_timeout = %d', config->{statement_timeout}*1000) if config->{statement_timeout};
     $db->exec('SET search_path TO moe, public') if config->{moe};
     $db->exec('SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY') if config->{read_only};

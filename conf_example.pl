@@ -15,6 +15,7 @@
     #imgproc_path      => "$ROOT/imgproc/imgproc-custom",
 
     db_site         => 'dbname=vndb user=vndb_site password=xyz',
+    db_task         => 'dbname=vndb user=vndb password=abc',
     debug           => 1,
     cookie_prefix   => 'vndb_',
     cookie_defaults => { domain => 'localhost', path => '/' },

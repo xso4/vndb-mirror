@@ -20,7 +20,11 @@ FU::Log::set_fmt(sub($msg) {
 });
 
 
-sub db { state $db = FU::Pg->connect(config->{db_task}//''); }
+sub db { state $db = do {
+    my $db = FU::Pg->connect(config->{db_task}//'');
+    $db->exec('SET timezone=UTC');
+    $db;
+} }
 
 
 my %tasks;
@@ -48,8 +52,8 @@ sub task {
             align_div = EXCLUDED.align_div,
             align_add = EXCLUDED.align_add
          WHERE tasks.delay     IS DISTINCT FROM excluded.delay
-           AND tasks.align_div IS DISTINCT FROM excluded.align_div
-           AND tasks.align_add IS DISTINCT FROM excluded.align_add'
+            OR tasks.align_div IS DISTINCT FROM excluded.align_div
+            OR tasks.align_add IS DISTINCT FROM excluded.align_add'
     )->text_params->exec;
 }
 

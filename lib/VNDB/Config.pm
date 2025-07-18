@@ -62,7 +62,6 @@ my $config = {
 
     Multi => {
         Core        => {},
-        Maintenance => {},
     },
 };
 
