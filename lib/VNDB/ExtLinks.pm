@@ -230,6 +230,12 @@ our %LINKS = (
         , fmt   => 'https://%s.fanbox.cc/'
         , regex => qr{([a-z0-9-]+)\.fanbox\.cc/.*}
         },
+    fantia =>
+        { ent   => 'sp'
+        , label => 'Fantia'
+        , fmt   => 'https://fantia.jp/fanclubs/%d'
+        , regex => qr{fantia\.jp/fanclubs/$int(\?.*)?}
+        },
     freegame =>
         { ent   => 'r'
         , label => 'Freegame Mugen'
@@ -367,6 +373,12 @@ our %LINKS = (
         , label => 'MobyGames'
         , fmt   => 'https://www.mobygames.com/company/%d'
         , regex => qr{(?:www\.)?mobygames\.com/company/$int(?:[?/].*)?}
+        },
+    nijie =>
+        { ent   => 'sp'
+        , label => 'Nijie'
+        , fmt   => 'https://nijie.info/members.php?id=%d'
+        , regex => qr{nijie\.info/members(?:_illust)?\.php\?id=$int}
         },
     nintendo =>
         { ent   => 'r'
@@ -756,6 +768,8 @@ sub enrich_vislinks($type, $enabled, @obj) {
         l 'boosty';
         l 'cien';
         l 'booth_pub';
+        l 'fantia';
+        l 'nijie';
         l 'youtube';
         l 'instagram';
         l 'deviantar';
@@ -784,6 +798,8 @@ sub enrich_vislinks($type, $enabled, @obj) {
         l 'substar';
         l 'boosty';
         l 'cien';
+        l 'fantia';
+        l 'nijie';
         l 'booth_pub';
         l 'bilibili';
         l 'weibo';
