@@ -23,7 +23,6 @@ package VNTask::HIBP;
 
 use v5.36;
 use VNTask::Core;
-use LWP::UserAgent;
 
 return 1 if !config->{hibp_download};
 
@@ -40,23 +39,13 @@ task hibp => delay => '2m', sub($task) {
     }
     $task->item(sprintf '%04X', $num);
 
-    my $ua = LWP::UserAgent->new(
-        timeout      => 60,
-        max_redirect => 0,
-        keep_alive   => 1,
-        max_size     => 1024*1024,
-        agent        => 'VNDB.org HIBP fetcher ('.config->{admin_email}.')'
-    );
-
     my($data, $count) = ('', 0);
     for my $n (0..15) {
         my $uri = sprintf '%s%04X%X', $api, $num, $n;
-        my $res = $ua->get($uri);
-        die sprintf "Error status for %s: %s\n", $uri, $res->status_line if !$res->is_success;
-        die "Error fetching $uri: Client aborted\n" if $res->header('Client-Aborted');
-        my $body = $res->decoded_content(raise_error => 1);
-
-        for (split /\r?\n/, $body) {
+        my $res = http_get $uri, task => 'HIBP Fetcher';
+        die "Unexpected response from $uri: $res->{Reason}\n" if $res->{Status} != 200;
+        die "Empty response from $uri\n" if !length $res->{Body};
+        for (split /\r?\n/, $res->{Body}) {
             # 40-5 -> 35 hex chars per hash; 16 of which we discard so 19 we grab.
             warn "Unrecognized line in $uri: $_\n" if !/^([a-fA-F0-9]{19})[a-fA-F0-9]{16}:[0-9]+$/;
             $count++;

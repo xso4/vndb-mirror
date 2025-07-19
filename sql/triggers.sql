@@ -95,20 +95,6 @@ CREATE TRIGGER anime_fetch_notify AFTER INSERT OR UPDATE ON anime FOR EACH ROW W
 
 
 
--- insert row into wikidata for new extlinks
-
-CREATE OR REPLACE FUNCTION wikidata_extlink_insert() RETURNS trigger AS $$
-BEGIN
-  INSERT INTO wikidata (id) VALUES (NEW.value::int) ON CONFLICT (id) DO NOTHING;
-  RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER extlinks_wikidata_new AFTER INSERT ON extlinks FOR EACH ROW WHEN (NEW.site = 'wikidata') EXECUTE PROCEDURE wikidata_extlink_insert();
-
-
-
-
 -- For each row in rlists, there should be at least one corresponding row in
 -- ulist_vns for each VN linked to that release.
 -- 1. When a row is deleted from ulist_vns, also remove all rows from rlists

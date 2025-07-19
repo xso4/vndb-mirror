@@ -7,9 +7,11 @@ use FU::SQL;
 use FU::Log;
 use Time::HiRes 'time';
 use POSIX 'strftime';
+use LWP::UserAgent;
+use LWP::ConnCache;
 use Exporter 'import';
 
-our @EXPORT = ('task', 'config');
+our @EXPORT = ('task', 'config', 'http_get');
 
 
 our $cur_task;
@@ -69,7 +71,7 @@ sub run_task($txn, $task) {
 
     my $sub = $tasks{$task->{id}};
     if (!$sub) {
-        warn "Task '$task->{id}' has no implementation or has been disabled.\n";
+        warn "ERROR: Task '$task->{id}' has no implementation or has been disabled.\n";
         $txn->q('UPDATE tasks SET nextrun = NULL WHERE id = $1', $task->{id})->exec;
         $txn->commit;
         return;
@@ -127,6 +129,49 @@ sub one($name, $arg=undef) {
 }
 
 
+# Simple wrapper around LWP for GET requests, with some inspiration from
+# AnyEvent::HTTP.
+# Doesn't follow redirects, returns an object with:
+# {
+#     Status => $code || 6xx on internal error
+#     Reason => $status_line || internal error message
+#     Body => Decoded body || '' on error
+#     Obj => HTTP::Response object
+#     %lowercase_response_headers
+# }
+sub http_get($uri, %opt) {
+    my $lwp = LWP::UserAgent->new(
+        timeout      => 60,
+        max_redirect => 0,
+        max_size     => 1024*1024,
+        conn_cache   => $cur_task && ($cur_task->{lwpcache} ||= LWP::ConnCache->new(total_capacity => 5)),
+        from         => config->{admin_email},
+        agent        => sprintf('VNDB.org %s (%s)', delete($opt{task})||'Task Processor', config->{admin_email}),
+    );
+    my $res = $lwp->get($uri);
+
+    my $body = $res->decoded_content;
+    my($code, $reason) =
+        $res->header('Client-Aborted') ? (600, 'Client aborted') :
+        $res->header('X-Died') ? (600, 'Died') :
+        $res->header('Client-Warning') ? (600, $res->message) :
+        !defined $body ? (600, 'Error decoding body') :
+        ($res->code, $res->message);
+
+    my %hdr;
+    for my ($k,$v) ($res->headers->flatten) {
+        push $hdr{lc $k}->@*, $v;
+    }
+
+    +{
+        (map +($_, join ', ', $hdr{$_}->@*), keys %hdr),
+        Status => $code,
+        Reason => $reason,
+        Body => $body // '',
+        Obj => $res,
+    }
+}
+
 package VNTask::Core::Task;
 
 use v5.36;
@@ -139,7 +184,7 @@ sub SQL { shift->{txn}->Q(@_) }
 sub arg { $_[0]{arg} }
 
 # Current item being processed, used for logging and monitoring
-sub item { $_[0]{item} = $_[1]; $0 = "vntask $_[0]{id} $_[1]" }
+sub item { $_[0]{item} = $_[1]||''; $0 = "vntask $_[0]{id} $_[0]{item}" }
 
 # JSON data associated with the queue,
 # modifications are saved to the database when ->done is called.

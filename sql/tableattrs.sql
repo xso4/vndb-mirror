@@ -6,6 +6,7 @@ CREATE        INDEX chars_image            ON chars (image);
 CREATE        INDEX chars_traits_tid       ON chars_traits (tid);
 CREATE UNIQUE INDEX drm_name               ON drm (name);
 CREATE UNIQUE INDEX extlinks_url           ON extlinks (site, value);
+CREATE        INDEX extlinks_wikidata_fetch ON extlinks (lastfetch NULLS FIRST) WHERE site = 'wikidata' AND c_ref;
 CREATE UNIQUE INDEX image_votes_pkey       ON image_votes (uid, id);
 CREATE        INDEX image_votes_id         ON image_votes (id);
 CREATE        INDEX notifications_uid_iid  ON notifications (uid,iid);

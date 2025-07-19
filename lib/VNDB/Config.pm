@@ -53,6 +53,7 @@ my $config = {
 
     location_db       => undef, # Optional path to a libloc database for IP geolocation
     hibp_download     => 0,  # Enable the HIBP database downloader
+    wikidata_fetcher  => 0,  # Enable Wikidata fetcher
 
     scr_size          => [ 136, 102 ], # w*h of screenshot thumbnails
     ch_size           => [ 256, 300 ], # max. w*h of char images

@@ -1649,7 +1649,6 @@ CREATE TABLE vn_image_votes (
 
 -- wikidata
 CREATE TABLE wikidata ( -- Information fetched from Wikidata
-  lastfetch          timestamptz,
   id                 integer NOT NULL PRIMARY KEY, -- [pub] Q-number
   enwiki             text,      -- [pub]
   jawiki             text,      -- [pub]
