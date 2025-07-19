@@ -207,6 +207,11 @@ our %LINKS = (
         , fmt   => 'https://erogamescape.dyndns.org/~ap2/ero/toukei_kaiseki/creater.php?creater=%d'
         , regex => qr{erogamescape\.dyndns\.org/~ap2/ero/toukei_kaiseki/(?:before_)?creater\.php\?(?:.*&)?creater=$int(?:&.*)?}
         },
+    encubed => # Deprecated, site is long dead
+        { ent   => 'v'
+        , label => 'Novelnews'
+        , fmt   => 'http://novelnews.net/tag/%s/'
+        },
     erotrail => # Deprecated, site has been unavailable since early 2022.
         { ent   => 'r'
         , label => 'ErogeTrailers'
@@ -453,10 +458,11 @@ our %LINKS = (
         , fmt => 'https://store.playstation.com/en-us/product/%s'
         , regex => qr{store\.playstation\.com/(?:[-a-z]+\/)?product\/(UP\d{4}-[A-Z]{4}\d{5}_00-[\dA-Z_]{16})}
         },
-    renai => # Not in SQL extlink_site enum, VN entries don't use that (yet)
+    renai =>
         { ent   => 'v'
         , label => 'Renai.us'
         , fmt   => 'https://renai.us/game/%s'
+        , regex => qr{renai\.us/game/([^/]+)}
         },
     scloud =>
         { ent   => 'sp'
@@ -541,15 +547,15 @@ our %LINKS = (
         , regex => qr{(?:www\.)?weibo\.com/u/$int}
         },
     wikidata =>
-        { ent   => 'sp'
+        { ent   => 'vsp'
         , label => 'Wikidata'
         , fmt   => 'https://www.wikidata.org/wiki/Q%d'
         , regex => qr{(?:www\.)?wikidata\.org/wiki/(?:Special:EntityPage/)?Q$int}
         },
     wp => # Deprecated, replaced with wikidata
-        { ent => 'sp'
+        { ent   => 'vsp'
         , label => 'Wikipedia'
-        , fmt => 'https://en.wikipedia.org/wiki/%s'
+        , fmt   => 'https://en.wikipedia.org/wiki/%s'
         },
     youtube =>
         { ent   => 'sp'
@@ -564,68 +570,6 @@ our %LINKS = (
 $_->{full_regex} = qr{^(?:https?://)?$_->{regex}(?:\#.*)?$} for grep $_->{regex}, values %LINKS;
 
 
-# For VN entries, which have visible links but no proper extlinks table yet.
-sub enrich_vislinks_old($type, $enabled, @obj) {
-    my @w_ids = grep $_, map $_->{l_wikidata}, @obj;
-    my $w = @w_ids ? FU::fu->SQL('SELECT id, * FROM wikidata WHERE id', FU::SQL::IN(\@w_ids))->kvh : {};
-
-    for my $obj (@obj) {
-        my @links;
-        my sub w {
-            return if !$obj->{l_wikidata};
-            my($v, $fmt, $label) = ($w->{$obj->{l_wikidata}}{$_[0]}, @{$WIKIDATA{$_[0]}}{'fmt', 'label'});
-            push @links, map +{
-                $enabled->{name}  ? (name  => $_[0]) : (),
-                $enabled->{label} ? (label => $label) : (),
-                $enabled->{id}    ? (id    => $_) : (),
-                $enabled->{url}   ? (url   => ref $fmt ? $fmt->($_) : sprintf $fmt, $_) : (),
-                $enabled->{url2}  ? (url2  => ref $fmt ? $fmt->($_) : sprintf $fmt, $_) : (),
-            }, ref $v ? @$v : $v ? $v : ()
-        }
-        my sub l {
-            my($f, $price) = @_;
-            my($v, $fmt, $fmt2, $label) = ($obj->{$f}, @{$LINKS{ $f =~ s/^l_//r }}{'fmt', 'fmt2', 'label'});
-            push @links, map +{
-                $enabled->{name}  ? (name  => $f =~ s/^l_//r) : (),
-                $enabled->{label} ? (label => $label) : (),
-                $enabled->{id}    ? (id    => $_) : (),
-                $enabled->{url}   ? (url   => sprintf($fmt, $_)) : (),
-                $enabled->{url2}  ? (url2  => sprintf((ref $fmt2 ? $fmt2->($obj) : $fmt2) || $fmt, $_)) : (),
-                $enabled->{price} && length $price ? (price => $price) : (),
-            }, ref $v ? @$v : $v ? $v : ()
-        }
-        my sub c {
-            my($name, $label, $fmt, $id, $price) = @_;
-            push @links, {
-                $enabled->{name}  ? (name  => $name) : (),
-                $enabled->{label} ? (label => $label) : (),
-                $enabled->{id}    ? (id    => $id) : (),
-                $enabled->{url}   ? (url   => sprintf($fmt, $id)) : (),
-                $enabled->{url2}  ? (url2  => sprintf($fmt, $id)) : (),
-                $enabled->{price} && length $price ? (price => $price) : (),
-            }
-        }
-
-        w 'enwiki';
-        w 'jawiki';
-        l 'l_wikidata';
-        w 'mobygames';
-        w 'gamefaqs_game';
-        w 'vgmdb_product';
-        w 'acdb_source';
-        w 'indiedb_game';
-        w 'howlongtobeat';
-        w 'igdb_game';
-        w 'pcgamingwiki';
-        w 'lutris';
-        w 'wine';
-        l 'l_renai';
-
-        $obj->{vislinks} = \@links;
-    }
-}
-
-
 # Fetch a list of links to display at the given database entries, adds the
 # following field to each object:
 #
@@ -637,8 +581,6 @@ sub enrich_vislinks($type, $enabled, @obj) {
     $enabled ||= { name => 1, label => 1, url2 => 1, price => 1 };
     @obj = map ref $_ eq 'ARRAY' ? @$_ : ($_), @obj;
     return if !@obj;
-
-    return enrich_vislinks_old $type, $enabled, @obj if $type =~ /v/;
 
     my @w_ids;
     my %ids = map {
@@ -656,7 +598,7 @@ sub enrich_vislinks($type, $enabled, @obj) {
     my @ids_ne = grep !$ids{$_}{extlinks}, @ids;
     for my $s (@ids_ne ? FU::fu->SQL('
         SELECT e.id, l.site, l.value, l.data, l.price
-          FROM', FU::SQL::RAW({qw/r releases_extlinks  s staff_extlinks  p producers_extlinks/}->{$type}), 'e
+          FROM', FU::SQL::RAW({qw/r releases_extlinks  s staff_extlinks  p producers_extlinks  v vn_extlinks/}->{$type}), 'e
           JOIN extlinks l ON l.id = e.link
          WHERE e.id', FU::SQL::IN(\@ids_ne)
     )->allh->@* : ()) {
@@ -693,6 +635,23 @@ sub enrich_vislinks($type, $enabled, @obj) {
         my $l = $WIKIDATA{$f};
         c $f, $l->{label}, $_, ref $l->{fmt} ? $l->{fmt}->($_) : sprintf($l->{fmt}, $_)
             for ref $v ? @$v : $v ? $v : ();
+    }
+
+    for ($type eq 'v' ? @obj : ()) {$o=$_;
+        w 'enwiki';
+        w 'jawiki';
+        l 'wikidata';
+        w 'mobygames';
+        w 'gamefaqs_game';
+        w 'vgmdb_product';
+        w 'acdb_source';
+        w 'indiedb_game';
+        w 'howlongtobeat';
+        w 'igdb_game';
+        w 'pcgamingwiki';
+        w 'lutris';
+        w 'wine';
+        l 'renai';
     }
 
     for ($type eq 'r' ? @obj : ()) {$o=$_;

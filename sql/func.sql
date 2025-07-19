@@ -518,6 +518,7 @@ BEGIN
     SELECT id, EXISTS(SELECT 1 FROM releases_extlinks  e JOIN releases  r ON r.id = e.id WHERE NOT r.hidden AND e.c_site = l.site AND e.link = l.id)
             OR EXISTS(SELECT 1 FROM staff_extlinks     e JOIN staff     s ON s.id = e.id WHERE NOT s.hidden AND e.c_site = l.site AND e.link = l.id)
             OR EXISTS(SELECT 1 FROM producers_extlinks e JOIN producers p ON p.id = e.id WHERE NOT p.hidden AND e.c_site = l.site AND e.link = l.id)
+            OR EXISTS(SELECT 1 FROM vn_extlinks e        JOIN vn        v ON v.id = e.id WHERE NOT v.hidden AND e.c_site = l.site AND e.link = l.id)
       FROM extlinks l
      WHERE $1 IS NULL OR id = $1
   ) UPDATE extlinks SET c_ref = ref FROM ref WHERE extlinks.id = ref.id AND c_ref <> ref;
@@ -965,6 +966,7 @@ BEGIN
   PERFORM update_extlinks_cache(link) FROM releases_extlinks_hist  WHERE nitemid ^= 'r' AND chid IN(ochid,nchid);
   PERFORM update_extlinks_cache(link) FROM staff_extlinks_hist     WHERE nitemid ^= 's' AND chid IN(ochid,nchid);
   PERFORM update_extlinks_cache(link) FROM producers_extlinks_hist WHERE nitemid ^= 'p' AND chid IN(ochid,nchid);
+  PERFORM update_extlinks_cache(link) FROM vn_extlinks_hist        WHERE nitemid ^= 'v' AND chid IN(ochid,nchid);
 
   PERFORM update_images_cache(image) FROM chars_hist           WHERE nitemid ^= 'c' AND chid IN(ochid,nchid) AND image IS NOT NULL;
   PERFORM update_images_cache(img)   FROM releases_images_hist WHERE nitemid ^= 'r' AND chid IN(ochid,nchid);

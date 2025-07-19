@@ -48,6 +48,7 @@ CREATE        INDEX threads_posts_ts       ON threads_posts USING gin(bb_tsvecto
 CREATE        INDEX threads_posts_uid      ON threads_posts (uid); -- Only really used on /u+ pages to get stats
 CREATE        INDEX traits_chars_cid       ON traits_chars (cid);
 CREATE        INDEX vn_image               ON vn (image);
+CREATE        INDEX vn_extlinks_site       ON vn_extlinks (c_site, link, id);
 CREATE        INDEX vn_screenshots_scr     ON vn_screenshots (scr);
 CREATE        INDEX vn_seiyuu_aid          ON vn_seiyuu (aid); -- Only used on /s+?
 CREATE        INDEX vn_seiyuu_cid          ON vn_seiyuu (cid); -- Only used on /c+?
@@ -199,16 +200,18 @@ ALTER TABLE users_traits             ADD CONSTRAINT users_traits_id_fkey        
 ALTER TABLE users_traits             ADD CONSTRAINT users_traits_tid_fkey              FOREIGN KEY (tid)       REFERENCES traits        (id);
 ALTER TABLE users_username_hist      ADD CONSTRAINT users_username_hist_id_fkey        FOREIGN KEY (id)        REFERENCES users         (id) ON DELETE CASCADE;
 ALTER TABLE vn                       ADD CONSTRAINT vn_image_fkey                      FOREIGN KEY (image)     REFERENCES images        (id);
-ALTER TABLE vn                       ADD CONSTRAINT vn_l_wikidata_fkey                 FOREIGN KEY (l_wikidata)REFERENCES wikidata      (id);
 ALTER TABLE vn                       ADD CONSTRAINT vn_olang_fkey                      FOREIGN KEY (id,olang)  REFERENCES vn_titles     (id,lang)   DEFERRABLE INITIALLY DEFERRED;
 ALTER TABLE vn_hist                  ADD CONSTRAINT vn_hist_chid_fkey                  FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE vn_hist                  ADD CONSTRAINT vn_hist_image_fkey                 FOREIGN KEY (image)     REFERENCES images        (id);
-ALTER TABLE vn_hist                  ADD CONSTRAINT vn_hist_l_wikidata_fkey            FOREIGN KEY (l_wikidata)REFERENCES wikidata      (id);
 ALTER TABLE vn_hist                  ADD CONSTRAINT vn_hist_olang_fkey                 FOREIGN KEY (chid,olang)REFERENCES vn_titles_hist(chid,lang) DEFERRABLE INITIALLY DEFERRED;
 ALTER TABLE vn_anime                 ADD CONSTRAINT vn_anime_id_fkey                   FOREIGN KEY (id)        REFERENCES vn            (id);
 ALTER TABLE vn_anime                 ADD CONSTRAINT vn_anime_aid_fkey                  FOREIGN KEY (aid)       REFERENCES anime         (id);
 ALTER TABLE vn_anime_hist            ADD CONSTRAINT vn_anime_hist_chid_fkey            FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE vn_anime_hist            ADD CONSTRAINT vn_anime_hist_aid_fkey             FOREIGN KEY (aid)       REFERENCES anime         (id);
+ALTER TABLE vn_extlinks              ADD CONSTRAINT vn_extlinks_id_fkey                FOREIGN KEY (id)        REFERENCES vn            (id);
+ALTER TABLE vn_extlinks              ADD CONSTRAINT vn_extlinks_link_fkey              FOREIGN KEY (link)      REFERENCES extlinks      (id);
+ALTER TABLE vn_extlinks_hist         ADD CONSTRAINT vn_extlinks_hist_chid_fkey         FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
+ALTER TABLE vn_extlinks_hist         ADD CONSTRAINT vn_extlinks_hist_link_fkey         FOREIGN KEY (link)      REFERENCES extlinks      (id);
 ALTER TABLE vn_relations             ADD CONSTRAINT vn_relations_id_fkey               FOREIGN KEY (id)        REFERENCES vn            (id);
 ALTER TABLE vn_relations             ADD CONSTRAINT vn_relations_vid_fkey              FOREIGN KEY (vid)       REFERENCES vn            (id);
 ALTER TABLE vn_relations_hist        ADD CONSTRAINT vn_relations_chid_fkey             FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;

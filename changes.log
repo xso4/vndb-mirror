@@ -1,4 +1,5 @@
 # This is for user-visible changes only and powers the list at https://vndb.org/changes
+20250719 Migrate VN entries to the new external links system; minor UI differences.
 20250719 Add support for Fantia & Nijie links for staff & producers.
 20250701 Detect edit conflicts and display an error when attempting to submit the form
 20250619 Replaced the "My notifications" link with a bell icon

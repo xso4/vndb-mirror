@@ -18,8 +18,6 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     devstatus  => { uint => 1, enum => \%DEVSTATUS },
     olang      => { default => 'ja', enum => \%LANGUAGE },
     length     => { uint => 1, enum => \%VN_LENGTH },
-    l_wikidata => { default => undef, uint => 1, max => (1<<31)-1 },
-    l_renai    => { default => '', sl => 1, maxlength => 100 },
     relations  => { sort_keys => 'vid', aoh => {
         vid      => { vndbid => 'v' },
         relation => { enum => \%VN_RELATION },
@@ -60,6 +58,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
         rid      => { default => undef, vndbid => 'r' },
         info     => { _when => 'out', type => 'hash', keys => $IMGSCHEMA },
     } },
+    extlinks   => { extlinks => 'v' },
     hidden     => { anybool => 1 },
     locked     => { anybool => 1 },
 
@@ -183,6 +182,8 @@ js_api VNEdit => $FORM_IN, sub($data) {
     $data->{image} = $e->{image}||undef;
     my %oldscr = map +($_->{scr}, $_->{nsfw}), @{ $e->{screenshots}||[] };
     $_->{nsfw} = $oldscr{$_->{scr}}||0 for $data->{screenshots}->@*;
+
+    VNDB::ExtLinks::normalize $e, $data;
 
     my $ch = db_edit v => $e->{id}, $data;
     return 'No changes' if !$ch->{nitemid};

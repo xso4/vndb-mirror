@@ -185,6 +185,7 @@ my %enrich = (
     releases_extlinks   => [ 'l.site, l.value, l.data, l.price', RAW('JOIN extlinks l ON l.id = x.link'), 'l.site, l.value' ],
     producers_extlinks  => [ 'l.site, l.value, l.data, l.price', RAW('JOIN extlinks l ON l.id = x.link'), 'l.site, l.value' ],
     staff_extlinks      => [ 'l.site, l.value, l.data, l.price', RAW('JOIN extlinks l ON l.id = x.link'), 'l.site, l.value' ],
+    vn_extlinks         => [ 'l.site, l.value, l.data, l.price', RAW('JOIN extlinks l ON l.id = x.link'), 'l.site, l.value' ],
 
     chars_vns           => [
         'v.title, r.title AS rtitle, v.hidden',
