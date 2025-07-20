@@ -195,10 +195,7 @@ sub rev_($v) {
         }],
         [ image       => 'Image',         fmt => sub { image_ $_, thumb => 1 } ],
         [ img_nsfw    => 'Image NSFW (unused)', fmt => sub { txt_ $_ ? 'Not safe' : 'Safe' } ],
-        [ l_renai     => 'Renai.us',      fmt => sub { a_ href => "https://renai.us/game/$_", $_ } ],
-        [ l_wikidata  => 'Wikidata',      fmt => sub { a_ href => "https://www.wikidata.org/wiki/Q$_", $_ } ],
-        [ l_wp        => 'Wikipedia',     fmt => sub { a_ href => "https://en.wikipedia.org/wiki/$_", $_ } ],
-        [ l_encubed   => 'Novelnews',     fmt => sub { a_ href => "http://novelnews.net/tag/$_/", $_ } ],
+        $VNDB::ExtLinks::REVISION
 }
 
 

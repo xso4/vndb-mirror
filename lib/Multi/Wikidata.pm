@@ -34,9 +34,7 @@ sub fetch {
   pg_cmd q{
     SELECT id
       FROM wikidata
-     WHERE id IN(
-              SELECT l_wikidata FROM vn        WHERE l_wikidata IS NOT NULL AND NOT hidden
-        UNION SELECT value::int FROM extlinks WHERE site = 'wikidata' AND c_ref)
+     WHERE id IN(SELECT value::int FROM extlinks WHERE site = 'wikidata' AND c_ref)
        AND (lastfetch IS NULL OR lastfetch < date_trunc('hour', now()-($1 * '1 second'::interval)))
      ORDER BY lastfetch NULLS FIRST
      LIMIT $2

@@ -449,7 +449,11 @@ sub image_flagging {
 # }
 # filters => filters args for get_filters() (TODO: Document)
 my %GET_VN = (
-  sql     => 'SELECT %s FROM vnt v LEFT JOIN images i ON i.id = v.c_image WHERE NOT v.hidden AND (%s) %s',
+  sql     => "SELECT %s FROM vnt v
+     LEFT JOIN images i ON i.id = v.c_image
+     LEFT JOIN vn_extlinks vrl ON vrl.id = v.id AND vrl.c_site = 'renai'    LEFT JOIN extlinks vre ON vre.id = vrl.link
+     LEFT JOIN vn_extlinks vdl ON vdl.id = v.id AND vdl.c_site = 'wikidata' LEFT JOIN extlinks vde ON vde.id = vdl.link
+     WHERE NOT v.hidden AND (%s) %s",
   select  => 'v.id',
   proc    => sub {
     $_[0]{id} = idnum $_[0]{id};
@@ -476,7 +480,7 @@ my %GET_VN = (
     },
     details => {
       select => 'v.c_image AS image, i.c_sexual_avg, i.c_violence_avg, i.c_votecount, i.width AS image_width, i.height AS image_height, v.alias AS aliases,
-            v.length, v.c_length AS length_minutes, v.c_lengthnum AS length_votes, v.description, v.l_wp, v.l_encubed, v.l_renai, l_wikidata',
+            v.length, v.c_length AS length_minutes, v.c_lengthnum AS length_votes, v.description, vre.value AS l_renai, vde.value AS l_wikidata',
       proc   => sub {
         $_[0]{aliases}     ||= undef;
         $_[0]{length}      *= 1;
@@ -485,9 +489,8 @@ my %GET_VN = (
         $_[0]{length_minutes}*=1 if defined $_[0]{length_minutes};
         $_[0]{description} ||= undef;
         $_[0]{links} = {
-          wikipedia => delete($_[0]{l_wp})     ||undef,
-          encubed   => delete($_[0]{l_encubed})||undef,
-          renai     => delete($_[0]{l_renai})  ||undef,
+          wikipedia => undef, encubed => undef,  # Old and deprecated, no need to bother fetching
+          renai     => delete($_[0]{l_renai})||undef,
           wikidata  => formatwd(delete $_[0]{l_wikidata}),
         };
         if ($_[0]{image}) {

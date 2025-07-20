@@ -364,7 +364,6 @@ widget('VNEdit', initVnode => {
 
     const hasCompleteRelease = data.releases.find(r => r.rtype === 'complete' && r.released <= RDate.today);
 
-    const wikidata = { v: data.l_wikidata === null ? '' : 'Q'+data.l_wikidata };
     const geninfo = () => [
         m('h1', 'General info'),
         m(Titles, {data}),
@@ -399,20 +398,7 @@ widget('VNEdit', initVnode => {
                 m(Select, { id: 'length', class: 'mw', data, field: 'length', options: vndbTypes.vnLength }),
                 ' (only displayed if there are no length votes)',
             ) : null,
-            m('fieldset',
-                m('label[for=wikidata]', 'Wikidata ID'),
-                m(Input, { id: 'wikidata', class: 'mw',
-                    data: wikidata, field: 'v',
-                    pattern: '^Q?[1-9][0-9]{0,8}$',
-                    oninput: v => { v = v.replace(/[^0-9]/g, ''); data.l_wikidata = v?v:null; wikidata.v = v?'Q'+v:''; },
-                }),
-            ),
-            m('fieldset',
-                m('label[for=renai]', 'Renai.us link'),
-                'https://renai.us/game/',
-                m(Input, { id: 'renai', class: 'mw', data, field: 'l_renai', maxlength: 100 }),
-                '.shtml',
-            ),
+            m(ExtLinks, {type: 'v', links: data.extlinks}),
         ),
         m('fieldset.form',
             m('legend', 'Database relations'),

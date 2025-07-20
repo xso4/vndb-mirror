@@ -122,10 +122,12 @@ CREATE TYPE extlink_site AS ENUM (
     'dmm',
     'egs',
     'egs_creator',
+    'encubed',
     'erotrail',
     'facebook',
     'fakku',
     'fanbox',
+    'fantia',
     'freegame',
     'freem',
     'gamefaqs_comp',
@@ -148,6 +150,7 @@ CREATE TYPE extlink_site AS ENUM (
     'mg',
     'mobygames',
     'mobygames_comp',
+    'nijie',
     'nintendo',
     'nintendo_hk',
     'nintendo_jp',
@@ -160,6 +163,7 @@ CREATE TYPE extlink_site AS ENUM (
     'playstation_hk',
     'playstation_jp',
     'playstation_na',
+    'renai',
     'scloud',
     'steam',
     'steam_curator',
@@ -1445,7 +1449,6 @@ CREATE TABLE vn ( -- dbentry_type=v
   c_imgfirst    vndbid(cv),
   c_imglast     vndbid(cv),
   olang         language NOT NULL DEFAULT 'ja', -- [pub] Original language
-  l_wikidata    integer, -- [pub]
   c_votecount   integer NOT NULL DEFAULT 0, -- [pub]
   c_pop_rank    integer NOT NULL DEFAULT 10000000,
   c_rat_rank    integer,
@@ -1460,9 +1463,6 @@ CREATE TABLE vn ( -- dbentry_type=v
   locked        boolean NOT NULL DEFAULT FALSE,
   hidden        boolean NOT NULL DEFAULT FALSE,
   alias         text NOT NULL DEFAULT '', -- [pub]
-  l_wp          text NOT NULL DEFAULT '', -- (deprecated)
-  l_encubed     text NOT NULL DEFAULT '', -- (deprecated)
-  l_renai       text NOT NULL DEFAULT '', -- [pub] Renai.us identifier
   description   text NOT NULL DEFAULT '', -- [pub]
   c_languages   language[] NOT NULL DEFAULT '{}',
   c_platforms   platform[] NOT NULL DEFAULT '{}',
@@ -1475,14 +1475,10 @@ CREATE TABLE vn_hist (
   chid         integer NOT NULL PRIMARY KEY,
   image        vndbid(cv), -- cf=Image
   olang        language NOT NULL DEFAULT 'ja', -- cf=Language
-  l_wikidata   integer, -- cf=Links
   length       smallint NOT NULL DEFAULT 0, -- cf=Length
   devstatus    smallint NOT NULL DEFAULT 0, -- cf=Status
   img_nsfw     boolean NOT NULL DEFAULT FALSE, -- cf=Image
   alias        text NOT NULL DEFAULT '', -- cf=Title
-  l_wp         text NOT NULL DEFAULT '', -- cf=Links
-  l_encubed    text NOT NULL DEFAULT '', -- cf=Links
-  l_renai      text NOT NULL DEFAULT '', -- cf=Links
   description  text NOT NULL DEFAULT '' -- cf=Description
 );
 
@@ -1518,6 +1514,21 @@ CREATE TABLE vn_editions_hist ( -- cf=Staff
   official   boolean NOT NULL DEFAULT TRUE,
   name       text NOT NULL,
   PRIMARY KEY(chid, eid)
+);
+
+-- vn_extlinks
+CREATE TABLE vn_extlinks (
+  id      vndbid(v) NOT NULL, -- [pub]
+  c_site  extlink_site NOT NULL,
+  link    integer NOT NULL, -- [pub]
+  PRIMARY KEY(id, link)
+);
+
+-- vn_extlinks_hist
+CREATE TABLE vn_extlinks_hist ( -- cf=Links
+  chid    integer NOT NULL,
+  link    integer NOT NULL,
+  PRIMARY KEY(chid, link)
 );
 
 -- vn_relations

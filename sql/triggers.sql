@@ -95,19 +95,7 @@ CREATE TRIGGER anime_fetch_notify AFTER INSERT OR UPDATE ON anime FOR EACH ROW W
 
 
 
--- insert rows into wikidata for new l_wikidata items
-
-CREATE OR REPLACE FUNCTION wikidata_insert() RETURNS trigger AS $$
-BEGIN
-  INSERT INTO wikidata (id) VALUES (NEW.l_wikidata) ON CONFLICT (id) DO NOTHING;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER vn_wikidata_new              BEFORE INSERT ON vn             FOR EACH ROW WHEN (NEW.l_wikidata IS NOT NULL)                                                    EXECUTE PROCEDURE wikidata_insert();
-CREATE TRIGGER vn_wikidata_edit             BEFORE UPDATE ON vn             FOR EACH ROW WHEN (NEW.l_wikidata IS NOT NULL AND OLD.l_wikidata IS DISTINCT FROM NEW.l_wikidata) EXECUTE PROCEDURE wikidata_insert();
-CREATE TRIGGER vn_hist_wikidata_new         BEFORE INSERT ON vn_hist        FOR EACH ROW WHEN (NEW.l_wikidata IS NOT NULL)                                                    EXECUTE PROCEDURE wikidata_insert();
-CREATE TRIGGER vn_hist_wikidata_edit        BEFORE UPDATE ON vn_hist        FOR EACH ROW WHEN (NEW.l_wikidata IS NOT NULL AND OLD.l_wikidata IS DISTINCT FROM NEW.l_wikidata) EXECUTE PROCEDURE wikidata_insert();
+-- insert row into wikidata for new extlinks
 
 CREATE OR REPLACE FUNCTION wikidata_extlink_insert() RETURNS trigger AS $$
 BEGIN

@@ -379,7 +379,6 @@ sub prepare_fields {
             $join{$d->{join}} = 1 if $d->{join};
             push @select, $d->{select} if $d->{select};
             push @select, $d->{nullif} if $d->{nullif};
-            push @select, 'v.l_wikidata, v.l_renai' if $d->{extlinks} && $d->{extlinks} eq 'v';
             __SUB__->($d->{fields}, $_[1]{$f}) if $d->{fields} && !($d->{enrich} || $d->{object});
         }
     })->($fields, $enabled);
@@ -406,9 +405,6 @@ sub proc_results {
         if($d->{extlinks}) {
             enrich_vislinks $d->{extlinks}, $enabled->{$f}, $results;
             $_->{extlinks} = delete $_->{vislinks} for @$results;
-            if ($d->{extlinks} eq 'v') {
-                delete @{$_}{ qw/l_renai l_wikidata/ } for @$results;
-            }
 
         # nested 1-to-many objects
         } elsif($d->{enrich}) {
