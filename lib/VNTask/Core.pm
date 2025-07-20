@@ -50,10 +50,12 @@ sub task {
         'ON CONFLICT (id) DO UPDATE SET
             delay     = EXCLUDED.delay,
             align_div = EXCLUDED.align_div,
-            align_add = EXCLUDED.align_add
+            align_add = EXCLUDED.align_add,
+            nextrun   = COALESCE(tasks.nextrun, NOW())
          WHERE tasks.delay     IS DISTINCT FROM excluded.delay
             OR tasks.align_div IS DISTINCT FROM excluded.align_div
-            OR tasks.align_add IS DISTINCT FROM excluded.align_add'
+            OR tasks.align_add IS DISTINCT FROM excluded.align_add
+            OR tasks.nextrun   IS NULL'
     )->text_params->exec;
 }
 
@@ -129,6 +131,7 @@ package VNTask::Core::Task;
 
 use v5.36;
 
+sub exec {shift->{txn}->exec(@_) }
 sub sql { shift->{txn}->q(@_) }
 sub SQL { shift->{txn}->Q(@_) }
 
