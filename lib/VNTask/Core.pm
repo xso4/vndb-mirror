@@ -18,7 +18,7 @@ our $cur_task;
 FU::Log::capture_warn(1);
 FU::Log::set_file(config->{task_logfile}) if config->{task_logfile};
 FU::Log::set_fmt(sub($msg) {
-    FU::Log::default_fmt($msg, $cur_task ? "[$cur_task->{id}".($cur_task->{item}?" $cur_task->{item}":'').']' : '[global]');
+    FU::Log::default_fmt($msg, $$, $cur_task ? "[$cur_task->{id}".($cur_task->{item}?" $cur_task->{item}":'').']' : '[global]');
 });
 
 
@@ -143,7 +143,7 @@ sub http_get($uri, %opt) {
     my $lwp = LWP::UserAgent->new(
         timeout      => 60,
         max_redirect => 0,
-        max_size     => 1024*1024,
+        max_size     => 10*1024*1024,
         conn_cache   => $cur_task && ($cur_task->{lwpcache} ||= LWP::ConnCache->new(total_capacity => 5)),
         from         => config->{admin_email},
         agent        => sprintf('VNDB.org %s (%s)', delete($opt{task})||'Task Processor', config->{admin_email}),
