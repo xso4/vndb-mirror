@@ -6,7 +6,6 @@ use FU::Pg;
 use FU::SQL;
 use FU::Log;
 use Time::HiRes 'time';
-use POSIX 'strftime';
 use LWP::UserAgent;
 use LWP::ConnCache;
 use Exporter 'import';
@@ -22,9 +21,14 @@ FU::Log::set_fmt(sub($msg) {
 });
 
 
+my %sqltrace;
 sub db { state $db = do {
     my $db = FU::Pg->connect(config->{db_task}//'');
     $db->exec('SET timezone=UTC');
+    $db->query_trace(sub($st,@) {
+        $sqltrace{n}++;
+        $sqltrace{t} += $st->exec_time + ($st->prepare_time||0);
+    });
     $db;
 } }
 
@@ -91,20 +95,35 @@ sub run_task($txn, $task) {
 
     $task->{data} = undef if $task->{data} && !keys $task->{data}->%*;
 
-    my $nextrun = $txn->Q('UPDATE tasks', SET({
-        lastrun => SQL('NOW()'),
-        nextrun => SQL('NOW()'), # Should be set by the task
-        $ok ? (data => $task->{data}) : (),
-    }), 'WHERE id =', $task->{id}, 'RETURNING sched')->val;
-    warn sprintf "Task completed in %.1fms, next @ %sZ\n", (time-$start)*1000, strftime '%Y-%m-%d %H:%M:%S', gmtime $nextrun;
+    my $nextrun = $txn->Q('
+        UPDATE tasks',
+        SET({
+            lastrun => SQL('NOW()'),
+            nextrun => SQL('NOW()'), # Should be set by the task
+            $ok ? (data => $task->{data}) : (),
+        }), 'WHERE id =', $task->{id},
+        "RETURNING date_trunc('seconds', (sched-NOW()))::text"
+    )->val;
     $txn->commit;
+    warn sprintf "%.0fms (%.0fms %dq), next in %s%s\n",
+        (time-$start)*1000,
+        ($sqltrace{t}||0)*1000, $sqltrace{n}||0,
+        $nextrun =~ s/ days? /d/r,
+        $task->{done} ? "; $task->{done}" : '';
 }
 
 
 sub loop {
+    my $prog = $0;
+    my $restart;
+    $SIG{HUP} = sub { $restart = 1 };
+
     while (1) {
-        $0 = 'vntask idle';
+        exec $^X, $prog if $restart;
+        $0 = 'vndb-task: idle';
+
         my $txn = db->txn;
+        %sqltrace = ();
         my $task = $txn->q('SELECT id, data FROM tasks WHERE sched <= NOW() ORDER BY sched LIMIT 1 FOR UPDATE SKIP LOCKED')->rowh;
         if (!$task) {
             undef $txn;
@@ -112,7 +131,7 @@ sub loop {
             # We Could use LISTEN/NOTIFY to be more responsive to database
             # changes, but none of the current tasks require low-ish latency,
             # so this is simpler and works fine.
-            sleep 3;
+            sleep 5;
         } else {
             run_task $txn, $task;
         }
@@ -122,6 +141,7 @@ sub loop {
 
 sub one($name, $arg=undef) {
     my $txn = db->txn;
+    %sqltrace = ();
     my $task = $txn->q('SELECT id, data FROM tasks WHERE id = $1 FOR UPDATE', $name)->rowh;
     die "Unknown task '$name'\n" if !$task;
     $task->{arg} = $arg;
@@ -184,10 +204,13 @@ sub SQL { shift->{txn}->Q(@_) }
 sub arg { $_[0]{arg} }
 
 # Current item being processed, used for logging and monitoring
-sub item { $_[0]{item} = $_[1]||''; $0 = "vntask $_[0]{id} $_[0]{item}" }
+sub item { $_[0]{item} = $_[1]||''; $0 = "vndb-task: $_[0]{id} $_[0]{item}" }
 
 # JSON data associated with the queue,
 # modifications are saved to the database when ->done is called.
 sub data { $_[0]{data} ||= {} }
+
+# Append a status string to the final log message for this task.
+sub done { $_[0]{done} = @_ > 2 ? sprintf($_[1], @_[2..$#_]) : $_[1] }
 
 1;

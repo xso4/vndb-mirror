@@ -60,9 +60,9 @@ task hibp => delay => '2m', sub($task) {
         print $OUT $data;
     }
     rename "$file~", $file or die $!;
-    warn sprintf "%d hashes, %.0f -> %.0f KiB\n", $count, $old/1024, length($data)/1024;
 
     $task->data->{next} = $num >= 0xffff ? 0 : $num+1 if !defined $task->arg;
+    $task->done('%d hashes, %.0f -> %.0f KiB', $count, $old/1024, length($data)/1024);
 };
 
 1;

@@ -18,7 +18,7 @@ my %props =
     grep $VNDB::ExtLinks::WIKIDATA{$_}{property}, keys %VNDB::ExtLinks::WIKIDATA;
 
 
-sub entity($task, $id, $data) {
+sub entity($task, $id, $data, $n, $upd) {
     $task->item("Q$id");
     my %set = (
         enwiki => $data->{sitelinks}{enwiki}{title},
@@ -38,11 +38,14 @@ sub entity($task, $id, $data) {
             push $set{$col}->@*, $v if defined $v;
         }
     }
-
-    warn "has ".join(', ', sort keys %set)."\n";
+    $$n += grep $_, values %set;
     $set{$_} ||= undef for values %props;
 
-    $task->SQL('INSERT INTO wikidata', VALUES({ id => $id, %set }), 'ON CONFLICT (id) DO UPDATE', SET \%set)->exec;
+    $$upd += $task->SQL(
+        'INSERT INTO wikidata', VALUES({ id => $id, %set }),
+        'ON CONFLICT (id) DO UPDATE', SET(\%set),
+        'WHERE', OR(map RAW("wikidata.$_ IS DISTINCT FROM EXCLUDED.$_"), sort keys %set)
+    )->exec;
     $task->sql(q{UPDATE extlinks SET lastfetch = NOW(), deadsince = NULL WHERE site = 'wikidata' AND value = $1}, $id)->exec;
 }
 
@@ -76,8 +79,10 @@ task wikidata => delay => '5m', sub($task) {
     # Other error?
     die "$err->{info}\n" if $err;
 
-    entity $task, $_, $data->{entities}{"Q$_"} for @$lst;
+    my($n,$upd);
+    entity $task, $_, $data->{entities}{"Q$_"}, \$n, \$upd for @$lst;
     $task->item;
+    $task->done('%d/%d updated, %d properties', $upd, scalar @$lst, $n);
 };
 
 1;
