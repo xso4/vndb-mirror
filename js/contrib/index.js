@@ -219,7 +219,8 @@ const ImageFlag = initVnode => {
             ? m('span', 'Not yet flagged.')
             : sex[img.sexual] + ' / ' + vio[img.violence] + ' (' + img.votecount + ' vote' + (img.votecount === 1 ? '' : 's') + ').'
         ),
-        api.error ? m('p.standout', api.error) : null,
+        api.error ? m('p.standout', api.error) :
+        editing && img.votecount === 0 ? m('p.invalid', 'Please rate this image') : null,
         !editing ? null : m('table[style=margin-left:30px]',
             m('thead', m('tr',
                 m('td', 'Sexual'),
