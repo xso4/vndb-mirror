@@ -477,9 +477,7 @@ const Images = initVnode => {
     const addImg = nfo => {
         const vns = nfo.entries.filter(e => e.id.match(/^v/));
         const vid = data.vn.length > 1 && vns.length === 1 ? vns[0].id : null;
-        const typ = imgTypes(null);
-        const itype = typ.length === 1 ? typ[0][0] : vns.length > 0 && typ.find(([t]) => t === 'pkgfront') ? 'pkgfront' : null;
-        data.images.push({img: nfo.id, nfo, vid, itype, lang: []});
+        data.images.push({img: nfo.id, nfo, vid, itype: null, lang: []});
         addsrc = null;
     };
 
@@ -520,15 +518,18 @@ const Images = initVnode => {
                     ' ', m('small', e.img, ' / '), e.nfo.width, 'x', e.nfo.height,
                 ),
                 data.media.length === 0 ?  m('p.invalid', 'Please set a medium for this release in the "General info" tab.') : m('div',
-                    m(Select, { data: e, field: 'itype', class: 'lw', options: [[null, '-- Type --']].concat(imgTypes(e.itype)) }),
+                    m(Select, { data: e, field: 'itype', class: 'lw', options: [[null, '-- Type --'], ['scr', 'Screenshot']].concat(imgTypes(e.itype)) }),
                     typeof e.itype !== 'string'
                     ? m('p.invalid', 'Type is required.')
+                    : e.itype === 'scr'
+                    ? [ m('p.standout', 'This section is only intended for package and promo art. To upload screenshots, edit the visual novel entry.'),
+                        m('p.invalid', 'Please do not upload screenshots here.') ]
                     : !imgTypes(null).find(([x]) => x === e.itype)
                     ? m('p.invalid', data.released <= RDate.today ? 'Invalid type for the release medium.' : 'Packaging images are not accepted for unreleased titles') : null,
-                    e.itype === 'dig' ? [] : [ m('br'), m('label.check',
+                    e.itype && e.itype.match(/^pkg/) ? [ m('br'), m('label.check',
                         m('input[type=checkbox]', { checked: e.photo, oninput: ev => e.photo = ev.target.checked }),
                         ' This is a photo.',
-                    ) ],
+                    ) ] : null,
                 ),
                 data.vn.length <= 1 ? [] : [
                     m('br'),
