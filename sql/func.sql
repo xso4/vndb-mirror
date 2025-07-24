@@ -492,10 +492,10 @@ BEGIN
              ELSE 0 END AS weight
         FROM (
             SELECT i.id, count(iv.id) AS votecount
-                 , round(avg(sexual)   FILTER(WHERE NOT iv.ignore), 2) AS sexual_avg
-                 , round(avg(violence) FILTER(WHERE NOT iv.ignore), 2) AS violence_avg
-                 , round(stddev_pop(sexual)   FILTER(WHERE NOT iv.ignore), 2) AS sexual_stddev
-                 , round(stddev_pop(violence) FILTER(WHERE NOT iv.ignore), 2) AS violence_stddev
+                 , round(coalesce(avg(sexual)   FILTER(WHERE NOT iv.ignore AND u.c_imgvotes > 30), avg(sexual)   FILTER(WHERE NOT iv.ignore)), 2) AS sexual_avg
+                 , round(coalesce(avg(violence) FILTER(WHERE NOT iv.ignore AND u.c_imgvotes > 30), avg(violence) FILTER(WHERE NOT iv.ignore)), 2) AS violence_avg
+                 , round(coalesce(stddev_pop(sexual)   FILTER(WHERE NOT iv.ignore AND u.c_imgvotes > 30), stddev_pop(sexual)   FILTER(WHERE NOT iv.ignore)), 2) AS sexual_stddev
+                 , round(coalesce(stddev_pop(violence) FILTER(WHERE NOT iv.ignore AND u.c_imgvotes > 30), stddev_pop(violence) FILTER(WHERE NOT iv.ignore)), 2) AS violence_stddev
                  , coalesce(array_agg(u.id) FILTER(WHERE u.id IS NOT NULL), '{}') AS uids
               FROM images i
               LEFT JOIN image_votes iv ON iv.id = i.id

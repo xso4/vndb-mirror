@@ -93,7 +93,7 @@ sub enrich_image($canvote, $l) {
     }, $l);
 
     fu->enrich(aoh => 'votes', sub { SQL '
-        SELECT iv.id, iv.uid, iv.sexual, iv.violence, iv.ignore OR (u.id IS NOT NULL AND NOT u.perm_imgvote) AS ignore, ', USER, '
+        SELECT iv.id, iv.uid, iv.sexual, iv.violence, iv.ignore OR (u.id IS NOT NULL AND (NOT u.perm_imgvote OR u.c_imgvotes <= 30)) AS ignore, ', USER, '
           FROM image_votes iv
           LEFT JOIN users u ON u.id = iv.uid
          WHERE iv.id', IN $_,
