@@ -525,11 +525,7 @@ BEGIN
   ), updtask AS (
     UPDATE tasks SET nextrun = NOW()
      WHERE EXISTS(SELECT 1 FROM ref WHERE ref AND NOT oldref)
-       AND id = (
-        SELECT id FROM tasks
-         WHERE id = 'el-triage' AND (nextrun IS NULL OR nextrun > NOW())
-           FOR UPDATE SKIP LOCKED
-       )
+       AND id = 'el-triage' AND (nextrun IS NULL OR nextrun > NOW())
   ) UPDATE extlinks
        SET c_ref = ref
            -- Add to 'el-triage' queue when this link is being referenced,
