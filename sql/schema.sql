@@ -465,7 +465,9 @@ CREATE TABLE extlinks (
   data       text,
   price      text,
   lastfetch  timestamptz,
-  deadsince  timestamptz
+  deadsince  timestamptz,
+  nextfetch  timestamptz,
+  queue      text -- tasks.id, or NULL if this link isn't being checked
 );
 
 -- global_settings

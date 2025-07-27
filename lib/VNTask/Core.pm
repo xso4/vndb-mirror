@@ -6,11 +6,14 @@ use FU::Pg;
 use FU::SQL;
 use FU::Log;
 use Time::HiRes 'time';
+use List::Util 'first';
+use Carp 'confess';
+use POSIX 'fmod';
 use LWP::UserAgent;
 use LWP::ConnCache;
 use Exporter 'import';
 
-our @EXPORT = ('task', 'config', 'http_get');
+our @EXPORT = ('task', 'task_insert', 'config', 'http_get');
 
 
 our $cur_task;
@@ -21,19 +24,72 @@ FU::Log::set_fmt(sub($msg) {
 });
 
 
+# All intervals used within VNTask are essentially just a fancy wrapper around
+# 'positive seconds'. This makes it easy to calculate time offets and such, but
+# doesn't support the full range or functionality of the Postgres interval type.
+sub interval2seconds($s) {
+    local $_ = $s;
+    my $v = 0;
+    $v += $1 * 24*3600 if s/^\s*([0-9]+)\s*(?:d|days?)\s*//;
+    if (s/^\s*([0-9]+):([0-9]+)(?::([0-9]+(?:\.[0-9]+)?))?\s*//) {
+        $v += ($1 * 3600) + ($2 * 60) + ($3 // 0);
+    } else {
+        $v += $1 * 3600 if s/^\s*([0-9]+)\s*(?:h|hours?)\s*//;
+        $v += $1 * 60 if s/^\s*([0-9]+)\s*(?:m|mins?|minutes?)\s*//;
+        $v += $1 if s/^\s*([0-9]+(?:\.[0-9]+)?)\s*(?:s|secs?|seconds?)?\s*//;
+    }
+    confess "Unrecognized interval format '$s'" if length $_;
+    $v
+}
+
+
 my %sqltrace;
 sub db { state $db = do {
     my $db = FU::Pg->connect(config->{db_task}//'');
+    $db->set_type(interval =>
+        send => sub($s) {
+            my $v = interval2seconds($s);
+            pack 'q>NN', int(fmod($v, 24*3600) * 1000_000), int($v / 24 / 3600), 0
+        },
+        recv => sub($b) {
+            my($time, $day, $mon) = unpack 'q>NN', $b;
+            confess "Can't deal with interval values containing 'month' numbers" if $mon;
+            ($time / 1000_000) + ($day * 24 * 3600)
+        },
+    );
     $db->exec('SET timezone=UTC');
     $db->query_trace(sub($st,@) {
         $sqltrace{n}++;
         $sqltrace{t} += $st->exec_time + ($st->prepare_time||0);
+        #warn sprintf "%f  %s\n", $st->exec_time, $st->query;
     });
     $db;
 } }
 
 
-my %tasks;
+sub task_insert($txn, $name, %opt) {
+    $txn->Q(
+        'INSERT INTO tasks', VALUES({
+            id        => $name,
+            nextrun   => exists $opt{nextrun} ? $opt{nextrun} : SQL('NOW()'),
+            delay     => $opt{delay},
+            align_div => $opt{align_div},
+            align_add => $opt{align_add},
+        }),
+        'ON CONFLICT (id) DO UPDATE SET
+            delay     = EXCLUDED.delay,
+            align_div = EXCLUDED.align_div,
+            align_add = EXCLUDED.align_add,
+            nextrun   = ', exists $opt{nextrun} ? 'LEAST(tasks.nextrun, excluded.nextrun)' : 'COALESCE(tasks.nextrun, NOW())', '
+         WHERE tasks.delay     IS DISTINCT FROM excluded.delay
+            OR tasks.align_div IS DISTINCT FROM excluded.align_div
+            OR tasks.align_add IS DISTINCT FROM excluded.align_add
+            OR tasks.nextrun   IS NULL',
+            exists $opt{nextrun} ? 'OR tasks.nextrun > excluded.nextrun' : (),
+    )->exec;
+}
+
+my(%tasks, @re_tasks);
 
 # Register a task:
 #   task queuename => %opts, sub($task) {
@@ -43,26 +99,13 @@ sub task {
     my $name = shift;
     my $sub = pop;
     my %opt = @_;
-    $tasks{$name} = $sub;
-
-    db->Q(
-        'INSERT INTO tasks', VALUES({
-            id        => $name,
-            nextrun   => SQL('NOW()'),
-            delay     => $opt{delay},
-            align_div => $opt{align_div},
-            align_add => $opt{align_add},
-        }),
-        'ON CONFLICT (id) DO UPDATE SET
-            delay     = EXCLUDED.delay,
-            align_div = EXCLUDED.align_div,
-            align_add = EXCLUDED.align_add,
-            nextrun   = COALESCE(tasks.nextrun, NOW())
-         WHERE tasks.delay     IS DISTINCT FROM excluded.delay
-            OR tasks.align_div IS DISTINCT FROM excluded.align_div
-            OR tasks.align_add IS DISTINCT FROM excluded.align_add
-            OR tasks.nextrun   IS NULL'
-    )->text_params->exec;
+    if (ref $name) {
+        die "No options supported for regexp tasks ($name)\n" if keys %opt;
+        push @re_tasks, [ $name, $sub ];
+    } else {
+        $tasks{$name} = $sub;
+        task_insert db, $name, %opt;
+    }
 }
 
 
@@ -75,6 +118,10 @@ sub run_task($txn, $task) {
 
     my $sub = $tasks{$task->{id}};
     if (!$sub) {
+        $sub = first { $task->{id} =~ /^$_->[0]$/ } @re_tasks;
+        $sub &&= $sub->[1];
+    }
+    if (!$sub) {
         warn "ERROR: Task '$task->{id}' has no implementation or has been disabled.\n";
         $txn->q('UPDATE tasks SET nextrun = NULL WHERE id = $1', $task->{id})->exec;
         $txn->commit;
@@ -82,6 +129,7 @@ sub run_task($txn, $task) {
     }
 
     $task->{txn} = $txn->txn;
+    $task->{nextrun} = time;
     my $ok = eval {
         $sub->($task);
         $task->{txn}->commit;
@@ -99,7 +147,7 @@ sub run_task($txn, $task) {
         UPDATE tasks',
         SET({
             lastrun => SQL('NOW()'),
-            nextrun => SQL('NOW()'), # Should be set by the task
+            nextrun => $task->{nextrun},
             $ok ? (data => $task->{data}) : (),
         }), 'WHERE id =', $task->{id},
         "RETURNING date_trunc('seconds', (sched-NOW()))::text"
@@ -108,7 +156,7 @@ sub run_task($txn, $task) {
     warn sprintf "%.0fms (%.0fms %dq), next in %s%s\n",
         (time-$start)*1000,
         ($sqltrace{t}||0)*1000, $sqltrace{n}||0,
-        $nextrun =~ s/ days? /d/r,
+        ($nextrun||'never') =~ s/ days? /d/r,
         $task->{done} ? "; $task->{done}" : '';
 }
 
@@ -167,6 +215,7 @@ sub http_get($uri, %opt) {
         conn_cache   => $cur_task && ($cur_task->{lwpcache} ||= LWP::ConnCache->new(total_capacity => 5)),
         from         => config->{admin_email},
         agent        => sprintf('VNDB.org %s (%s)', delete($opt{task})||'Task Processor', config->{admin_email}),
+        protocols_allowed => ['http', 'https'],
     );
     my $res = $lwp->get($uri);
 
@@ -199,6 +248,8 @@ use v5.36;
 sub exec {shift->{txn}->exec(@_) }
 sub sql { shift->{txn}->q(@_) }
 sub SQL { shift->{txn}->Q(@_) }
+
+sub id { $_[0]{id} }
 
 # CLI argument when called from the CLI, otherwise undef.
 sub arg { $_[0]{arg} }

@@ -1,16 +1,13 @@
-package VNTask::Wikidata;
+package VNTask::EL::Wikidata;
 
 use v5.36;
 use VNTask::Core;
+use VNTask::ExtLinks;
 use VNDB::ExtLinks ();
 use FU::SQL;
 use FU::Util 'json_parse';
 
-return 1 if !config->{wikidata_fetcher};
-
 my $api = 'https://www.wikidata.org/w/api.php';
-my $fetch_num = 50;  # Maximum number of entries to fetch in a single API call
-my $fetch_target = '1d'; # Minimum delay between fetching the same entry
 
 # property_id -> column name
 my %props =
@@ -18,8 +15,10 @@ my %props =
     grep $VNDB::ExtLinks::WIKIDATA{$_}{property}, keys %VNDB::ExtLinks::WIKIDATA;
 
 
-sub entity($task, $id, $data, $n, $upd) {
-    $task->item("Q$id");
+sub entity($task, $lnk, $data, $n, $upd) {
+    return $lnk->save(dead => 1) if exists $data->{missing};
+
+    $task->item('Q'.$lnk->{value});
     my %set = (
         enwiki => $data->{sitelinks}{enwiki}{title},
         jawiki => $data->{sitelinks}{jawiki}{title},
@@ -42,26 +41,17 @@ sub entity($task, $id, $data, $n, $upd) {
     $set{$_} ||= undef for values %props;
 
     $$upd += $task->SQL(
-        'INSERT INTO wikidata', VALUES({ id => $id, %set }),
+        'INSERT INTO wikidata', VALUES({ id => $lnk->{value}, %set }),
         'ON CONFLICT (id) DO UPDATE', SET(\%set),
         'WHERE', OR(map RAW("wikidata.$_ IS DISTINCT FROM EXCLUDED.$_"), sort keys %set)
     )->exec;
-    $task->sql(q{UPDATE extlinks SET lastfetch = NOW(), deadsince = NULL WHERE site = 'wikidata' AND value = $1}, $id)->exec;
+    $lnk->save;
 }
 
 
-task wikidata => delay => '5m', sub($task) {
-    my $lst = $task->arg ? [map s/^Q//r, split /,/, $task->arg] : $task->sql("
-        SELECT value FROM extlinks
-         WHERE site = 'wikidata' AND c_ref
-           AND (lastfetch IS NULL OR lastfetch < now() - interval '$fetch_target')
-         ORDER BY lastfetch NULLS FIRST
-         LIMIT $fetch_num
-    ")->flat;
-    return if !@$lst;
-
+sub fetch($task, @links) {
     my $uri = "$api?action=wbgetentities&format=json&props=sitelinks|claims&sitefilter=enwiki|jawiki&ids="
-        .join '|', map "Q$_", @$lst;
+        .join '|', map "Q$_->{value}", @links;
 
     my $res = http_get $uri, task => 'Wikidata Fetcher';
     die "Unexpected API response: $res->{Status} $res->{Reason}\n" if $res->{Status} != 200;
@@ -72,17 +62,26 @@ task wikidata => delay => '5m', sub($task) {
     # other IDs get re-fetched next time.
     my $err = $data->{error};
     if ($err && $err->{id}) {
-        $task->sql(q{UPDATE extlinks SET lastfetch = NOW(), deadsince = NOW() WHERE site = 'wikidata' AND value = $1}, $err->{id} =~ s/^Q//r)->exec;
+        my $id = $err->{id} =~ s/^Q//r;
+        $_->save(dead => 1) for grep $_->value eq $id, @links;
         warn +($err->{info} || "$err->{id}: $err->{code}")."\n";
         return;
     }
     # Other error?
     die "$err->{info}\n" if $err;
 
-    my($n,$upd);
-    entity $task, $_, $data->{entities}{"Q$_"}, \$n, \$upd for @$lst;
+    my($n,$upd) = (0,0);
+    entity $task, $_, $data->{entities}{'Q'.$_->value}, \$n, \$upd for @links;
     $task->item;
-    $task->done('%d/%d updated, %d properties', $upd, scalar @$lst, $n);
-};
+    $task->done('%d/%d updated, %d properties', $upd, scalar @links, $n);
+}
+
+
+el_queue 'el/wikidata',
+    delay  => '5m',
+    batch  => 50,
+    freq   => '1d',
+    triage => sub($lnk) { $lnk->site eq 'wikidata' },
+    \&fetch;
 
 1;

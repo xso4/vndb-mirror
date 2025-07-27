@@ -514,14 +514,29 @@ END; $$ LANGUAGE plpgsql;
 -- Updates extlinks.c_ref
 CREATE OR REPLACE FUNCTION update_extlinks_cache(int) RETURNS void AS $$
 BEGIN
-  WITH ref(id, ref) AS (
-    SELECT id, EXISTS(SELECT 1 FROM releases_extlinks  e JOIN releases  r ON r.id = e.id WHERE NOT r.hidden AND e.c_site = l.site AND e.link = l.id)
-            OR EXISTS(SELECT 1 FROM staff_extlinks     e JOIN staff     s ON s.id = e.id WHERE NOT s.hidden AND e.c_site = l.site AND e.link = l.id)
-            OR EXISTS(SELECT 1 FROM producers_extlinks e JOIN producers p ON p.id = e.id WHERE NOT p.hidden AND e.c_site = l.site AND e.link = l.id)
-            OR EXISTS(SELECT 1 FROM vn_extlinks e        JOIN vn        v ON v.id = e.id WHERE NOT v.hidden AND e.c_site = l.site AND e.link = l.id)
+  WITH ref(id, oldref, ref) AS (
+    SELECT id, c_ref
+         , EXISTS(SELECT 1 FROM releases_extlinks  e JOIN releases  r ON r.id = e.id WHERE NOT r.hidden AND e.c_site = l.site AND e.link = l.id)
+        OR EXISTS(SELECT 1 FROM staff_extlinks     e JOIN staff     s ON s.id = e.id WHERE NOT s.hidden AND e.c_site = l.site AND e.link = l.id)
+        OR EXISTS(SELECT 1 FROM producers_extlinks e JOIN producers p ON p.id = e.id WHERE NOT p.hidden AND e.c_site = l.site AND e.link = l.id)
+        OR EXISTS(SELECT 1 FROM vn_extlinks e        JOIN vn        v ON v.id = e.id WHERE NOT v.hidden AND e.c_site = l.site AND e.link = l.id)
       FROM extlinks l
      WHERE $1 IS NULL OR id = $1
-  ) UPDATE extlinks SET c_ref = ref FROM ref WHERE extlinks.id = ref.id AND c_ref <> ref;
+  ), updtask AS (
+    UPDATE tasks SET nextrun = NOW()
+     WHERE EXISTS(SELECT 1 FROM ref WHERE ref AND NOT oldref)
+       AND id = (
+        SELECT id FROM tasks
+         WHERE id = 'el-triage' AND (nextrun IS NULL OR nextrun > NOW())
+           FOR UPDATE SKIP LOCKED
+       )
+  ) UPDATE extlinks
+       SET c_ref = ref
+           -- Add to 'el-triage' queue when this link is being referenced,
+           -- remove from queues when it's no longer being referenced.
+         , nextfetch = CASE WHEN ref THEN NOW() ELSE NULL END
+         , queue = CASE WHEN ref THEN 'el-triage' ELSE NULL END
+      FROM ref WHERE extlinks.id = ref.id AND oldref <> ref;
 END;
 $$ LANGUAGE plpgsql;
 
