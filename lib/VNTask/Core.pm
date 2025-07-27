@@ -153,11 +153,11 @@ sub run_task($txn, $task) {
         "RETURNING date_trunc('seconds', (sched-NOW()))::text"
     )->val;
     $txn->commit;
-    warn sprintf "%.0fms (%.0fms %dq), next in %s%s\n",
+    warn sprintf "%.0fms (%.0fms %dq)%s%s\n",
         (time-$start)*1000,
         ($sqltrace{t}||0)*1000, $sqltrace{n}||0,
-        ($nextrun||'never') =~ s/ days? /d/r,
-        $task->{done} ? "; $task->{done}" : '';
+        $nextrun ? ', next in '.($nextrun =~ s/ days? /d/r) : '',
+        $task->{done} ? " # $task->{done}" : '';
 }
 
 
