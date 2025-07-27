@@ -223,7 +223,7 @@ sub http_get($uri, %opt) {
     my($code, $reason) =
         $res->header('Client-Aborted') ? (600, 'Client aborted') :
         $res->header('X-Died') ? (600, 'Died') :
-        $res->header('Client-Warning') ? (600, $res->message) :
+        $res->header('Client-Warning') && $res->header('Client-Warning') !~ /^Redirect loop/ ? (600, $res->message) :
         !defined $body ? (600, 'Error decoding body') :
         ($res->code, $res->message);
 
@@ -231,6 +231,9 @@ sub http_get($uri, %opt) {
     for my ($k,$v) ($res->headers->flatten) {
         push $hdr{lc $k}->@*, $v;
     }
+
+    warn "GET $uri\n$code $reason\n".join('', map "$_: ".join(', ', $hdr{$_}->@*)."\n", sort keys %hdr)."\n".$body
+        if $ENV{VNTASK_DEBUG_HTTP};
 
     +{
         (map +($_, join ', ', $hdr{$_}->@*), keys %hdr),

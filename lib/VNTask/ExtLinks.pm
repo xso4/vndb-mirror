@@ -16,7 +16,7 @@ our @EXPORT = ('el_queue');
 #       batch  => $n,  # Number of links to fetch in one run, default 1
 #       sub($task, @links) {
 #       ..
-#       $_->done(...) for @links;
+#       $_->save(...) for @links;
 #   };
 #
 our %queues;
@@ -111,13 +111,13 @@ sub nextfetch($l) {
 sub save($l, %opt) {
     $l->{lastfetch} = time if !$opt{didnotfetch};
     my $q = $l->triage;
-    my %set = (
+    $l->{task}->SQL('UPDATE extlinks', SET({
         queue     => $q ? $q->{id} : undef,
         lastfetch => $l->{lastfetch},
         nextfetch => $l->nextfetch(),
         $opt{didnotfetch} ? () : (deadsince => $opt{dead} ? SQL 'COALESCE(deadsince, NOW())' : undef),
-    );
-    $l->{task}->SQL('UPDATE extlinks', SET(\%set), 'WHERE id =', $l->{id})->exec;
+        map exists($opt{$_}) ? ($_, $opt{$_}) : (), qw/data price/
+    }), 'WHERE id =', $l->{id})->exec;
 }
 
 1;
