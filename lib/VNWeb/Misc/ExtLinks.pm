@@ -104,13 +104,14 @@ FU::get '/el', sub {
 
     my $opt = fu->query(
         s => { onerror => 'fetch', enum => ['fetch', 'dead'] },
-        o => { onerror => 'a', enum => ['a', 'd'] },
+        o => { onerror => 'd', enum => ['a', 'd'] },
         p  => { upage => 1 },
         qu => { onerror => '' },
         de => { undefbool => 1 },
     );
 
     my $where = AND
+        'lastfetch < NOW()',
         $opt->{qu} ? SQL 'queue =', $opt->{qu} : 'queue IS NOT NULL',
         $opt->{de} ? 'deadsince IS NOT NULL' : defined $opt->{de} ? 'deadsince IS NULL' : ();
 
@@ -124,10 +125,10 @@ FU::get '/el', sub {
     )->allh;
 
     fu->enrich(aov => entry => sub { SQL '
-                 SELECT link, id FROM producers_extlinks WHERE link', IN($_), '
-       UNION ALL SELECT link, id FROM vn_extlinks        WHERE link', IN($_), '
-       UNION ALL SELECT link, id FROM staff_extlinks     WHERE link', IN($_), '
-       UNION ALL SELECT link, id FROM releases_extlinks  WHERE link', IN($_)
+                 SELECT l.link, l.id FROM releases_extlinks  l JOIN releases  e ON e.id = l.id WHERE NOT e.hidden AND l.link', IN($_), '
+       UNION ALL SELECT l.link, l.id FROM producers_extlinks l JOIN producers e ON e.id = l.id WHERE NOT e.hidden AND l.link', IN($_), '
+       UNION ALL SELECT l.link, l.id FROM staff_extlinks     l JOIN staff     e ON e.id = l.id WHERE NOT e.hidden AND l.link', IN($_), '
+       UNION ALL SELECT l.link, l.id FROM vn_extlinks        l JOIN vn        e ON e.id = l.id WHERE NOT e.hidden AND l.link', IN($_)
     }, $list) if $count;
 
     framework_ title => 'Link Fetching Status', sub {
