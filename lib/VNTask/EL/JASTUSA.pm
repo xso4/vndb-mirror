@@ -8,15 +8,11 @@ sub fetch($task, $lnk) {
     my $res = http_get 'https://jastusa.com/games/'.$lnk->value, task => 'Affiliate Crawler';
     warn "ERROR: Unexpected response: $res->{Status} $res->{Reason}\n" if $res->{Status} !~ /^(3|404)/;
 
-    if ($res->{Status} !~ /^3/) {
-        $lnk->save(dead => 1);
-        return $task->done('Not found');
-    }
-
-    my $slug = ($res->{location}||'') =~ m{/games/\Q$lnk->{value}\E/(.+)$} && $1;
+    my $loc = $res->{location}||'';
+    my $slug = $loc =~ m{/games/\Q$lnk->{value}\E/(.+)$} && $1;
     if (!$slug) {
         $lnk->save(dead => 1);
-        return $task->done("ERROR: Unexpected redirect to $res->{location}");
+        return $task->done($loc eq '/' || $res->{Status} eq 404 ? 'Not found' : "ERROR: Unexpected redirect to $loc");
     }
 
     $res = http_get 'https://jastusa.com/games/'.$lnk->value.'/'.$slug, task => 'Affiliate Crawler';
