@@ -112,9 +112,9 @@ sub save($l, %opt) {
     $l->{lastfetch} = time if !$opt{didnotfetch};
     my $q = $l->triage;
     $l->{task}->SQL('UPDATE extlinks', SET({
-        queue     => $q ? $q->{id} : undef,
+        queue     => $q ? SQL('CASE WHEN c_ref THEN', $q->{id}, 'ELSE NULL END') : undef,
+        nextfetch => SQL('CASE WHEN c_ref THEN', $l->nextfetch(), '::timestamptz ELSE NULL END'),
         lastfetch => $l->{lastfetch},
-        nextfetch => $l->nextfetch(),
         $opt{didnotfetch} ? () : (deadsince => $opt{dead} ? SQL 'COALESCE(deadsince, NOW())' : undef),
         map exists($opt{$_}) ? ($_, $opt{$_}) : (), qw/data price/
     }), 'WHERE id =', $l->{id})->exec;

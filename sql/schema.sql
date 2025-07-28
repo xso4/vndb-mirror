@@ -467,7 +467,8 @@ CREATE TABLE extlinks (
   lastfetch  timestamptz,
   deadsince  timestamptz,
   nextfetch  timestamptz,
-  queue      text -- tasks.id, or NULL if this link isn't being checked
+  queue      text, -- tasks.id, or NULL if this link isn't being checked
+  CONSTRAINT extlinks_queue CHECK((c_ref AND queue IS NOT NULL AND nextfetch IS NOT NULL) OR (queue IS NULL AND nextfetch IS NULL))
 );
 
 -- global_settings
