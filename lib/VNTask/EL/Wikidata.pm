@@ -1,9 +1,7 @@
 package VNTask::EL::Wikidata;
 
 use v5.36;
-use VNTask::Core;
 use VNTask::ExtLinks;
-use VNDB::ExtLinks ();
 use FU::SQL;
 use FU::Util 'json_parse';
 

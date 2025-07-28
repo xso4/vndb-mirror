@@ -2,10 +2,11 @@ package VNTask::ExtLinks;
 
 use v5.36;
 use VNTask::Core;
+use VNDB::ExtLinks '%LINKS';
 use FU::SQL;
 use Exporter 'import';
 
-our @EXPORT = ('el_queue');
+our @EXPORT = ('el_queue', 'http_get', '%LINKS');
 
 # Register an ExtLink queue handler, usage:
 #

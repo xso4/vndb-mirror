@@ -331,7 +331,7 @@ our %LINKS = (
     jlist =>
         { ent   => 'r'
         , label => 'J-List'
-        , fmt   => 'https://www.jlist.com/shop/product/%s'
+        , fmt   => 'https://jlist.com/shop/product/%s'
         , fmt2  => config->{jlist_url},
         , regex => qr{(?:www\.)?(?:jlist|jbox)\.com/shop/product/([^/#?]+).*}
         },

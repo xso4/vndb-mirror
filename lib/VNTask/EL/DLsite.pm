@@ -2,13 +2,11 @@ package VNTask::EL::DLsite;
 
 use v5.36;
 use utf8;
-use VNTask::Core;
 use VNTask::ExtLinks;
-use VNDB::ExtLinks;
 
 sub fetch($task, $lnk) {
     my $id = $lnk->value;
-    my $uri = sprintf $VNDB::ExtLinks::LINKS{dlsite}{fmt}, $id;
+    my $uri = sprintf $LINKS{dlsite}{fmt}, $id;
 
     my $res = http_get $uri, task => 'Affiliate Crawler';
     warn "ERROR: Unexpected response: $res->{Status} $res->{Reason}\n" if $res->{Status} !~ /^(2|3|404)/;
