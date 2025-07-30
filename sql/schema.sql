@@ -159,6 +159,7 @@ CREATE TYPE extlink_site AS ENUM (
     'patreon',
     'patreonp',
     'pixiv',
+    'playasia',
     'playstation_eu',
     'playstation_hk',
     'playstation_jp',
@@ -977,21 +978,6 @@ CREATE TABLE sessions (
   listread   boolean NOT NULL DEFAULT false,
   listwrite  boolean NOT NULL DEFAULT false,
   PRIMARY KEY (uid, token)
-);
-
--- shop_playasia
-CREATE TABLE shop_playasia (
-  gtin       bigint NOT NULL,
-  lastfetch  timestamptz,
-  pax        text NOT NULL PRIMARY KEY,
-  url        text NOT NULL DEFAULT '',
-  price      text NOT NULL DEFAULT ''
-);
-
--- shop_playasia_gtin
-CREATE TABLE shop_playasia_gtin (
-  gtin       bigint NOT NULL PRIMARY KEY,
-  lastfetch  timestamptz
 );
 
 -- staff

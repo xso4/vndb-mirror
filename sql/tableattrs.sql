@@ -42,7 +42,6 @@ CREATE        INDEX tasks_sched            ON tasks (sched) WHERE sched IS NOT N
 CREATE UNIQUE INDEX threads_boards_pkey    ON threads_boards (tid,type,iid) NULLS NOT DISTINCT;
 CREATE        INDEX search_cache_id        ON search_cache (id);
 CREATE        INDEX search_cache_label     ON search_cache USING GIN (label gin_trgm_ops);
-CREATE        INDEX shop_playasia__gtin    ON shop_playasia (gtin);
 CREATE        INDEX staff_prod             ON staff (prod) WHERE prod IS NOT NULL;
 CREATE        INDEX staff_extlinks_site    ON staff_extlinks (c_site, link, id);
 CREATE        INDEX threads_posts_date     ON threads_posts (date);

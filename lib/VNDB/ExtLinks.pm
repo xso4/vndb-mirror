@@ -433,10 +433,18 @@ our %LINKS = (
         , fmt   => 'https://www.pixiv.net/member.php?id=%d'
         , regex => qr{www\.pixiv\.net/(?:member\.php\?id=|en/users/|users/)$int}
         },
+    playasia =>
+        { ent   => 'R'
+        , label => 'PlayAsia'
+        , fmt   => 'https://www.play-asia.com/vndb/13/70%s'
+        , fmt2  => sub { 'https://www.play-asia.com/'.($_[0]{data}||'vndb').'/13/70%s'.(config->{playasia_tagid} ? '?tagid='.config->{playasia_tagid} : '') }
+        , regex => qr{www\.play-asia\.com/[^/]+/13/70([1-9a-z][0-9a-z]+)(?:[?#/].*)?}
+        , patt  => 'https://www.play-asia.com/<title>/13/<code>'
+        },
     playstation_eu =>
         { ent   => 'r'
         , label => 'PlayStation Store (EU)'
-        , fmt => 'https://store.playstation.com/en-gb/product/%s'
+        , fmt   => 'https://store.playstation.com/en-gb/product/%s'
         , regex => qr{store\.playstation\.com/(?:[-a-z]+\/)?product\/(EP\d{4}-[A-Z]{4}\d{5}_00-[\dA-Z_]{16})}
         },
     playstation_hk =>
@@ -607,10 +615,6 @@ sub enrich_vislinks($type, $enabled, @obj) {
 
     my $w = @w_ids ? FU::fu->SQL('SELECT id, * FROM wikidata WHERE id', FU::SQL::IN(\@w_ids))->kvh : {};
 
-    push $ids{$_->{id}}{_l}{_playasia}->@*, $_ for ($type eq 'r' ? FU::fu->SQL(
-        "SELECT r.id, s.price, s.url FROM releases r JOIN shop_playasia s ON s.gtin = r.gtin WHERE s.price <> '' AND r.id", FU::SQL::IN(\@ids)
-    )->allh->@* : ());
-
     my $o;
     my sub c($name, $label, $id, $url, $url2=undef, $price=undef) {
         push $o->{vislinks}->@*, {
@@ -686,6 +690,7 @@ sub enrich_vislinks($type, $enabled, @obj) {
         l 'dmm';
         l 'toranoana';
         l 'booth';
+        l 'playasia';
         l 'playstation_jp';
         l 'playstation_na';
         l 'playstation_eu';
@@ -693,7 +698,6 @@ sub enrich_vislinks($type, $enabled, @obj) {
         l 'nintendo';
         l 'nintendo_jp';
         l 'nintendo_hk';
-        c 'playasia', 'PlayAsia', $_->{url}, $_->{url}, undef, $_->{price} for $o->{_l}{_playasia}->@*;
     }
 
     for ($type eq 's' ? @obj : ()) {$o=$_;

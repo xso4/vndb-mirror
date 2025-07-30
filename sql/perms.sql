@@ -79,7 +79,6 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON rlists                   TO vndb_site;
 GRANT SELECT, INSERT, UPDATE, DELETE ON saved_queries            TO vndb_site;
 GRANT SELECT, INSERT, UPDATE, DELETE ON search_cache             TO vndb_site;
 -- No access to the 'sessions' table, managed by the user_* functions.
-GRANT SELECT                         ON shop_playasia            TO vndb_site;
 GRANT SELECT, INSERT, UPDATE         ON staff                    TO vndb_site;
 GRANT SELECT, INSERT,         DELETE ON staff_alias              TO vndb_site;
 GRANT SELECT, INSERT                 ON staff_alias_hist         TO vndb_site;
@@ -191,8 +190,6 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON rlists                   TO vndb_multi;
 GRANT SELECT                         ON search_cache             TO vndb_multi;
 GRANT SELECT (expires, type)         ON sessions                 TO vndb_multi;
 GRANT                         DELETE ON sessions                 TO vndb_multi;
-GRANT SELECT, INSERT, UPDATE, DELETE ON shop_playasia            TO vndb_multi;
-GRANT SELECT, INSERT, UPDATE, DELETE ON shop_playasia_gtin       TO vndb_multi;
 GRANT SELECT                         ON staff                    TO vndb_multi;
 GRANT SELECT                         ON staff_alias              TO vndb_multi;
 GRANT SELECT                         ON staff_alias_hist         TO vndb_multi;
