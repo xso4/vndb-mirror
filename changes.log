@@ -1,5 +1,7 @@
 # This is for user-visible changes only and powers the list at https://vndb.org/changes
-20250730 PlayAsia links can now be added to releases, automatic JAN code lookup have been disabled.
+20250730 PlayAsia links can now be added to releases, automatic JAN/EAN/UPC lookup has been disabled.
+20250724 Reduce image flagging vote weight for users fewer than 30 flagged images.
+20250724 Require newly uploaded images to be flagged before submitting the edit form.
 20250724 Attempt to catch and prevent adding screenshots to release entries.
 20250719 Migrate VN entries to the new external links system; minor UI differences.
 20250719 Add support for Fantia & Nijie links for staff & producers.
