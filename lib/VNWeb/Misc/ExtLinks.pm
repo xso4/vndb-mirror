@@ -30,7 +30,10 @@ FU::get '/el/queues', sub {
     fu->denied if !auth;
 
     my $lst = fu->sql('
-        SELECT queue, count(*) cnt, count(*) filter (where deadsince is not null) dead, min(lastfetch) oldest
+        SELECT queue, count(*) cnt
+             , count(*) filter (where deadsince is not null) dead
+             , count(*) filter (where nextfetch < now()) backlog
+             , min(lastfetch) oldest
           FROM extlinks
          WHERE queue IS NOT NULL
          GROUP BY queue
@@ -48,6 +51,7 @@ FU::get '/el/queues', sub {
                     td_ '#Links';
                     td_ '#Dead';
                     td_ 'Lag';
+                    td_ 'Backlog';
                 } };
                 tr_ sub {
                     td_ class => 'tc1', sub {
@@ -60,6 +64,7 @@ FU::get '/el/queues', sub {
                             sprintf '%d (%.1f%%)', $_->{dead}, $_->{dead}/$_->{cnt}*100 if $_->{dead};
                     };
                     td_ fmtage2 $_->{oldest};
+                    td_ $_->{backlog};
                 } for @$lst;
             }
         };
