@@ -118,6 +118,7 @@ const ExtLinks = initVnode => {
     const isdup = o => o.parsed && links.find(l => l.site === o.parsed.site && l.value === o.parsed.value);
 
     const add = (o,p,force) => {
+        if (p && !extlinksMap[p.site]) p = null;
         o.parsed = p;
         o.lnk = p ? extlinks.find(e => e.site === p.site) : null;
         if (!p) {
