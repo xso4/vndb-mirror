@@ -108,7 +108,7 @@ sub triage($l) {
 
 sub nextfetch($l) {
     return undef if !$l->triage;
-    $l->{lastfetch} ? $l->{lastfetch} + VNTask::Core::interval2seconds($l->triage->{freq}) : time
+    $l->{lastfetch} ? $l->{lastfetch} + VNTask::Core::interval2seconds($l->triage->{freq}) : time - 365*24*3600
 }
 
 sub save($l, %opt) {

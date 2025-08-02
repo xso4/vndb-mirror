@@ -5,7 +5,7 @@ use VNTask::Core;
 use IO::Uncompress::Gunzip;
 
 
-task 'anidb-titles', delay => '36h', align_div => '2d', sub($task) {
+task 'anidb-titles', delay => '36h', align_div => '1d', align_add => '4h', sub($task) {
     my %titles; # id => [ romaji, kanji ]
     {
         my $res = http_get 'https://anidb.net/api/anime-titles.dat.gz', task => 'Anime Fetcher';
