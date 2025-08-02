@@ -123,6 +123,10 @@ self-explanatory.
 This information does not change very often and can safely be used for code
 generation or dynamic API introspection.
 
+The `url_format` attribute of external links is purely informational and should
+not be used to construct URLs. The API has custom URL formatting rules for
+various sites that may not match this `url_format`.
+
 ## GET /stats
 
 Returns a few overall database statistics.
@@ -963,9 +967,9 @@ extlinks
 :   Array, links to external websites. This list is equivalent to the links
     displayed on the release pages on the site, so it may include redundant
     entries (e.g. if a Steam ID is known, links to both Steam and SteamDB are
-    included) and links that are automatically fetched from external resources
-    (e.g. PlayAsia, for which a GTIN lookup is performed). These extra sites
-    are not listed in the `extlinks` list of [the schema](#get-schema).
+    included) and links that are automatically fetched from external resources.
+    These extra sites are not listed in the `extlinks` list of [the
+    schema](#get-schema).
 
 extlinks.url
 :   String, URL.

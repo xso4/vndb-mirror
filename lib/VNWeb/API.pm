@@ -8,7 +8,7 @@ use POSIX 'strftime';
 use List::Util 'min';
 use VNDB::Config;
 use VNDB::Func;
-use VNDB::ExtLinks;
+use VNDB::ExtLinks 'enrich_vislinks', 'extlink_printf';
 use VNDB::Types;
 use VNWeb::Auth;
 use VNWeb::DB;
@@ -462,8 +462,11 @@ api_get '/schema', {}, sub {
     # XXX: This only lists direct extlink fields of the object, not wikidata-derived or custom links.
     my sub el($t) {
         my $L = \%VNDB::ExtLinks::LINKS;
-        [ map +{ name => $_, label => $L->{$_}{label}, url_format => $L->{$_}{fmt} },
-            grep $L->{$_}{regex} && $L->{$_}{ent} =~ /$t/i, keys %$L ]
+        [ map +{
+            name => $_,
+            label => $L->{$_}{label},
+            url_format => (extlink_printf($_, 0))[0]
+        }, grep $L->{$_}{parse} && $L->{$_}{ent} =~ /$t/i, keys %$L ]
     }
     state $s = {
         enums => {

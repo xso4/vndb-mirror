@@ -6,12 +6,12 @@ use FU::Validate;
 use FU::Util 'json_format';
 use VNWeb::Validation ();
 use VNWeb::TimeZone;
-use VNDB::ExtLinks '%LINKS';
+use VNDB::ExtLinks '%LINKS', 'extlink_printf';
 use VNDB::Skins;
 use VNDB::Types;
 use VNDB::Func 'fmtrating';
 
-my @LINKS = grep $_ eq 'website' || $LINKS{$_}{regex}, sort keys %LINKS;
+my @LINKS = grep $_ eq 'website' || $LINKS{$_}{parse}, sort keys %LINKS;
 
 
 # Attempts to convert a stringified Perl regex into something that is compatible with JS.
@@ -71,11 +71,10 @@ sub vskins {
 }
 
 sub extlinks {
-    print 'window.extLinksExt = '.tojson([ map [
-        $_->{fmt},
-        [ split /(<[^>]+>)/, $_->{patt} || ($_->{fmt} =~ s/%s/<code>/rg =~ s/%[0-9]*d/<number>/rg) ],
-        $_->{regex} ? re_compat($_->{full_regex}) : undef,
-    ], map $LINKS{$_}, @LINKS ])."\n";
+    print 'window.extLinksPatt = '.tojson([
+        map $LINKS{$_}{parse} ? [ split /(<[^>]+>)/, $LINKS{$_}{patt} || ((extlink_printf($_, 0))[0] =~ s/%s/<code>/rg =~ s/%[0-9]*d/<number>/rg) ] : undef,
+        @LINKS
+    ])."\n";
 }
 
 if ($ARGV[0] eq 'types') { validations; types; }

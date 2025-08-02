@@ -116,6 +116,7 @@ FU::get qr{/$RE{rrev}/(edit|copy)} => sub($id, $rev, $action) {
 
     $_->{title} = $_->{title}[1] for $e->{vn}->@*;
     $_->{name} = $_->{title}[1] for $e->{producers}->@*;
+    extlink_form_pre $e;
 
     my $title = ($copy ? 'Copy ' : 'Edit ').titleprefs_obj($e->{olang}, $e->{titles})->[1];
     framework_ title => $title, dbobj => $e, tab => $action,
@@ -224,7 +225,7 @@ js_api ReleaseEdit => $FORM_IN, sub {
             $new ? () : SQL('AND id NOT IN(WITH RECURSIVE s(id) AS (SELECT', $data->{id}, '::vndbid UNION SELECT rs.id FROM releases_supersedes rs JOIN s ON s.id = rs.rid) SELECT id FROM s)'),
     }, map $_->{rid}, $data->{supersedes}->@*;
 
-    VNDB::ExtLinks::normalize $e, $data;
+    extlink_form_post $e, $data;
 
     my $ch = db_edit r => $e->{id}, $data;
     return 'No changes' if !$ch->{nitemid};

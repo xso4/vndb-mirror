@@ -46,6 +46,7 @@ FU::get qr{/$RE{srev}/edit} => sub($id, $rev=0) {
     )->allh->@* if $e->{chrev} != $e->{maxrev};
 
     $e->{alias} = [ sort { ($a->{latin}//$a->{name}) cmp ($b->{latin}//$b->{name}) } $e->{alias}->@* ];
+    extlink_form_pre $e;
 
     my $name = titleprefs_swap($e->{lang}, @{ (grep $_->{aid} == $e->{main}, @{$e->{alias}})[0] }{qw/ name latin /})->[1];
     framework_ title => "Edit $name", dbobj => $e, tab => 'edit',
@@ -108,7 +109,7 @@ js_api StaffEdit => $FORM_IN, sub {
     }
     # We rely on Postgres to throw an error if we attempt to delete an alias that is still being referenced.
 
-    VNDB::ExtLinks::normalize $e, $data;
+    extlink_form_post $e, $data;
 
     my $ch = db_edit s => $e->{id}, $data;
     return 'No changes.' if !$ch->{nitemid};

@@ -781,15 +781,15 @@ my %GET_RELEASE = (
       ]],
     },
     links => {
-      fetch => [[ 'id', 'SELECT re.id, el.site, el.value FROM releases_extlinks re JOIN extlinks el ON el.id = re.link WHERE re.id IN(%s)',
+      fetch => [[ 'id', 'SELECT re.id, el.site, el.value, el.data FROM releases_extlinks re JOIN extlinks el ON el.id = re.link WHERE re.id IN(%s)',
         sub { my($n, $r) = @_;
           for my $i (@$n) {
             $i->{links} = [ grep $i->{id} eq $_->{id}, @$r ];
           }
           for (@$r) {
             $_->{label} = $VNDB::ExtLinks::LINKS{$_->{site}}{label};
-            $_->{url} = sprintf $VNDB::ExtLinks::LINKS{$_->{site}}{fmt}, $_->{value};
-            delete @{$_}{qw/ id site value /};
+            $_->{url} = VNDB::ExtLinks::extlink_fmt($_->{site}, $_->{value}, $_->{data});
+            delete @{$_}{qw/ id site value data /};
           }
         }
       ]],

@@ -6,12 +6,10 @@ use VNTask::ExtLinks;
 
 sub fetch($task, $lnk) {
     my $id = $lnk->value;
-    my $uri = sprintf $LINKS{dlsite}{fmt}, $id;
-
-    my $res = http_get $uri, task => 'Affiliate Crawler';
+    my $res = http_get $lnk->url, task => 'Affiliate Crawler';
     warn "ERROR: Unexpected response: $res->{Status} $res->{Reason}\n" if $res->{Status} !~ /^(2|3|404)/;
 
-    my $shop = 'home';
+    my $shop = $lnk->data;
     if ($res->{Status} =~ /^3/) {
         if ($res->{location} =~ m{^https://www\.dlsite\.com/([a-z]+)/work/=/product_id/\Q$id\E\.html$}) {
             $shop = $1;

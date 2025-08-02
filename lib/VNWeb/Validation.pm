@@ -6,7 +6,7 @@ use FU::Util 'uri_escape', 'query_encode';
 use FU::SQL;
 use VNDB::Types;
 use VNDB::Config;
-use VNDB::ExtLinks ();
+use VNDB::ExtLinks 'extlink_parse', 'extlink_fmt';
 use VNWeb::Auth;
 use VNWeb::DB;
 use VNDB::Func 'gtintype';
@@ -151,15 +151,19 @@ sub _validate_extlinks($t) {
     my $L = \%VNDB::ExtLinks::LINKS;
     my %sites = map +($_, $L->{$_}), grep $L->{$_}{ent} =~ /$t/i, keys %$L;
     +{ default => [], unique => sub {
-        $sites{$_[0]{site}}{ent} =~ /\U$t/ ? "$_[0]{site}$_[0]{value}" : $_[0]{site}
+        $sites{$_[0]{site}}{ent} =~ /\U$t/ ? "$_[0]{site} $_[0]{value}" : $_[0]{site}
     }, elems => {
-        keys => { site => { enum => \%sites }, value => { maxlength => 512 } },
+        keys => {
+            site  => { enum => \%sites },
+            value => { maxlength => 512 },
+            data  => { default => '', maxlength => 512 },
+            split => { default => [], type => 'array' },
+        },
         func => sub {
-            my $re = $sites{$_[0]{site}}{full_regex};
-            return 1 if !$re;
-            return 0 if sprintf($sites{$_[0]{site}}{fmt}, $_[0]{value}) !~ $re;
-            $_[0]{value} = (grep defined, @{^CAPTURE})[0];
-            1
+            return 1 if !$sites{$_[0]{site}}{parse};
+            my $url = extlink_fmt @{$_[0]}{qw/site value data/} or return 0;
+            @{$_[0]}{qw/site value data/} = extlink_parse $url;
+            $_[0]{site} && $sites{$_[0]{site}} ? 1 : 0
         }
     } };
 }

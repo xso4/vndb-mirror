@@ -30,6 +30,7 @@ FU::get qr{/$RE{prev}/edit} => sub($id, $rev=0) {
 
     $e->{editsum} = $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
     $_->{name} = $_->{title}[1] for $e->{relations}->@*;
+    extlink_form_pre $e;
 
     my $title = titleprefs_swap @{$e}{qw/ lang name latin /};
     framework_ title => "Edit $title->[1]", dbobj => $e, tab => 'edit',
@@ -69,7 +70,7 @@ js_api ProducerEdit => $FORM_IN, sub {
     validate_dbid 'SELECT id FROM producers WHERE id', map $_->{pid}, $data->{relations}->@*;
     return 'Invalid relation with self.' if grep $_->{pid} eq $e->{id}, $data->{relations}->@*;
 
-    VNDB::ExtLinks::normalize $e, $data;
+    extlink_form_post $e, $data;
 
     my $ch = db_edit p => $e->{id}, $data;
     return 'No changes.' if !$ch->{nitemid};

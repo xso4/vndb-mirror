@@ -30,7 +30,7 @@ sub el_queue {
 
 sub grablinks($task, $batch) {
     my $lst = $task->SQL('
-        SELECT id, site, value, queue, lastfetch
+        SELECT id, site, value, data, queue, lastfetch
           FROM extlinks
          WHERE ', $task->arg ? ('id =', $task->arg) : ('queue =', $task->id, 'AND nextfetch < NOW()'), '
          ORDER BY nextfetch LIMIT', $batch,
@@ -99,6 +99,8 @@ use FU::SQL;
 sub id { $_[0]{id} }
 sub site { $_[0]{site} }
 sub value { $_[0]{value} }
+sub data { $_[0]{data} }
+sub url($s, $data=undef) { VNDB::ExtLinks::extlink_fmt($s->{site}, $s->{value}, $data//$s->data//'') }
 
 sub triage($l) {
     $l->{triage} ||= first { $_->{triage}->($l) } values %VNTask::ExtLinks::queues;

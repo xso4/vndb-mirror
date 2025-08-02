@@ -22,7 +22,7 @@ use VNWeb::DB;
 use VNWeb::Validation;
 use VNWeb::HTML ();
 use VNDB::Types;
-use VNDB::ExtLinks ();
+use VNDB::ExtLinks;
 use Exporter 'import';
 our @EXPORT = qw/advsearch_default/;
 
@@ -519,25 +519,19 @@ f q => 81 => 'random',    { uint => 1, range => [1,1] },
 # - "http://..."     - Auto-detect version of [$name,$val]
 # TODO: This only handles links defined in %LINKS, but it would be nice to also support links from Wikidata & PlayAsia.
 sub _extlink_filter($type, $tbl) {
-    my $L = \%VNDB::ExtLinks::LINKS;
-    my %links = map +($_, $L->{$_}), grep $L->{$_}{ent} =~ /$type/i, keys %$L;
-
-    my sub _val {
-        return 1 if !ref $_[0] && $links{$_[0]}; # just $name
+    sub _val {
+        my $L = \%VNDB::ExtLinks::LINKS;
+        return 1 if !ref $_[0] && $L->{$_[0]}; # just $name
         if(!ref $_[0] && $_[0] =~ /^https?:/) { # URL
-            for (keys %links) {
-                if($links{$_}{full_regex} && $_[0] =~ $links{$_}{full_regex}) {
-                    $_[0] = [ $_, (grep defined, @{^CAPTURE})[0] ];
-                    last;
-                }
-            }
-            return { msg => 'Unrecognized URL format' } if !ref $_[0];
+            my($site, $val) = VNDB::ExtLinks::extlink_parse($_[0]);
+            return { msg => 'Unrecognized URL format' } if !$site;
+            $_[0] = [ $site, $val ];
         }
         $_[0] = [ split /,/, $_[0], 2 ] if !ref $_[0]; # compact $name,$val form
 
         # normalized $name,$val form
         return 0 if ref $_[0] ne 'ARRAY' || $_[0]->@* != 2 || ref $_[0][0] || ref $_[0][1] || !defined $_[0][1];
-        return { msg => "Unknown site '$_[0][0]'" } if !$links{$_[0][0]};
+        return { msg => "Unknown site '$_[0][0]'" } if !$L->{$_[0][0]};
         1
     }
 

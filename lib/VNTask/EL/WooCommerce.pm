@@ -6,8 +6,8 @@ package VNTask::EL::WooCommerce;
 use v5.36;
 use VNTask::ExtLinks;
 
-sub fetch($task, $lnk, $uri) {
-    my $res = http_get $uri, task => 'Affiliate Crawler';
+sub fetch($task, $lnk) {
+    my $res = http_get $lnk->url, task => 'Affiliate Crawler';
     warn "ERROR: Unexpected response: $res->{Status} $res->{Reason}\n" if $res->{Status} !~ /^(2|404)/;
 
     # JSON-LD
@@ -32,12 +32,12 @@ el_queue 'el/denpasoft',
     delay  => '5m',
     freq   => '3d',
     triage => sub($lnk) { $lnk->site eq 'denpa' },
-    sub($task, $lnk) { fetch $task, $lnk, sprintf $LINKS{denpa}{fmt}, $lnk->value };
+    sub($task, $lnk) { fetch $task, $lnk };
 
 el_queue 'el/jlist',
     delay  => '10m',
     freq   => '3d',
     triage => sub($lnk) { $lnk->site eq 'jlist' },
-    sub($task, $lnk) { fetch $task, $lnk, sprintf $LINKS{jlist}{fmt}, $lnk->value };
+    sub($task, $lnk) { fetch $task, $lnk };
 
 1;

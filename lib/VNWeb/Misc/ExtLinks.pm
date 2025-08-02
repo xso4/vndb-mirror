@@ -1,7 +1,14 @@
 package VNWeb::Misc::ExtLinks;
 
 use VNWeb::Prelude;
+use VNDB::ExtLinks 'extlink_parse', 'extlink_split', 'extlink_fmt';
 use FU::Util 'uri_escape';
+
+
+js_api ExtlinkParse => { url => {} }, sub($data) {
+    my($s,$v,$d) = extlink_parse $data->{url};
+    +{ res => $s ? { site => $s, value => $v, data => $d, split => extlink_split($s,$v,$d) } : undef }
+};
 
 
 sub fmtage2($t) { fmtage($t) =~ s/ ago//r }
@@ -85,11 +92,10 @@ sub listing_($opt, $list, $count) {
                 td_ 'Entry';
             } };
             tr_ sub {
-                my $l = $VNDB::ExtLinks::LINKS{$_->{site}};
                 td_ class => 'tc1', sub {
-                    txt_ $l->{label};
+                    txt_ $VNDB::ExtLinks::LINKS{$_->{site}}{label};
                     txt_ ' » ';
-                    a_ href => sprintf($l->{fmt}, $_->{value}), $_->{value};
+                    a_ href => extlink_fmt($_->{site}, $_->{value}, $_->{data}), $_->{value};
                 };
                 td_ $_->{lastfetch} ? fmtage $_->{lastfetch} : 'never';
                 td_ $_->{deadsince} ? fmtage2 $_->{deadsince} : '-';
@@ -122,7 +128,7 @@ FU::get '/el', sub {
 
     my $count = fu->SQL('SELECT count(*) FROM extlinks WHERE', $where)->val;
     my $list = $count && fu->SQL('
-        SELECT id, site, value, lastfetch, deadsince
+        SELECT id, site, value, data, lastfetch, deadsince
           FROM extlinks
          WHERE', $where, '
          ORDER BY', RAW {fetch => 'lastfetch', dead => 'deadsince'}->{$opt->{s}}, RAW {qw|a ASC d DESC|}->{$opt->{o}}, ' NULLS LAST, id

@@ -17,7 +17,7 @@
 #  use VNDB::Types;
 #  use VNDB::Config;
 #  use VNDB::Func;
-#  use VNDB::ExtLinks;
+#  use VNDB::ExtLinks 'enrich_vislinks', 'extlink_form_pre', 'extlink_form_post';
 #  use VNWeb::Auth;
 #  use VNWeb::HTML;
 #  use VNWeb::DB;
@@ -73,7 +73,7 @@ sub import {
     use VNDB::Types;
     use VNDB::Config;
     use VNDB::Func;
-    use VNDB::ExtLinks;
+    use VNDB::ExtLinks 'enrich_vislinks', 'extlink_form_pre', 'extlink_form_post';
     use VNWeb::Auth;
     use VNWeb::HTML;
     use VNWeb::DB;

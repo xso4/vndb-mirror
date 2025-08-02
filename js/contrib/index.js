@@ -107,67 +107,81 @@ const ExtLinks = initVnode => {
         ([site,ent,label],i) => ent.toLowerCase().includes(initVnode.attrs.type) ? [{
             site, label,
             multi: ent.includes(initVnode.attrs.type.toUpperCase()),
-            fmt: extLinksExt[i][0],
-            patt: extLinksExt[i][1],
-            regex: extLinksExt[i][2],
+            patt: extLinksPatt[i],
         }] : []);
     const extlinksMap = Object.fromEntries(extlinks.map(x => [x.site,x]));
-    const split = (fmt,v) => fmt.split(/(%[0-9]*[sd])/)
-        .map((p,i) => i !== 1 ? p : String(v).padStart(p.match(/%(?:0([0-9]+))?/)[1]||0, '0'));
 
-    let inp = {str: ''};
-    let web = {str: (l => l ? l.value : '')(links.find(l => l.site === 'website'))};
-    const add = o => {
-        if (o.lnk.multi || !links.find(l => l.site === o.lnk.site))
-            links.push({ site: o.lnk.site, value: o.val });
-        else links.forEach(l => { if(l.site === o.lnk.site) l.value = o.val });
+    const parsed = new Map();
+    let inp = {str: '', api: new Api('ExtlinkParse')};
+    let web = {str: (l => l ? l.value : '')(links.find(l => l.site === 'website')), api: new Api('ExtlinkParse')};
+
+    const isdup = o => o.parsed && links.find(l => l.site === o.parsed.site && l.value === o.parsed.value);
+
+    const add = (o,p,force) => {
+        o.parsed = p;
+        o.lnk = p ? extlinks.find(e => e.site === p.site) : null;
+        if (!p) {
+            if (o === web) links.push({ site: 'website', value: o.str });
+            return;
+        }
+        if (isdup(o)) return;
+        const dupsite = links.find(l => l.site === o.lnk.site);
+        if (!o.lnk.multi && !force && dupsite) return;
+        if (o.lnk.multi || !dupsite) links.push(p);
+        else links.forEach(l => { if(l.site === p.site) Object.assign(l, p) });
         o.str = '';
-        o.lnk = o.val = null;
-        o.dup = false;
+        o.parsed = o.lnk = null;
     };
+
     const set = (o,v) => {
-        if (v !== null) o.str = v;
-        o.lnk = extlinks.find(l => l.regex && new RegExp(l.regex).test(o.str));
-        o.val = o.lnk && o.str.match(new RegExp(o.lnk.regex)).filter(x => x !== undefined)[1];
-        o.dup = o.lnk && links.find(l => l.site === o.lnk.site && l.value === o.val);
-        if (o.lnk && !o.dup && (o.lnk.multi || !links.find(l => l.site === o.lnk.site))) add(o);
+        o.str = v.trim();
+        o.parsed = o.lnk = null;
+        o.api.abort();
+        if (o.str.length === 0) {}
+        else if (parsed.has(v)) add(o, parsed.get(v));
+        else o.api.call({url: v}, ({res}) => {
+            parsed.set(v, res);
+            add(o, res);
+        });
     };
+
     const Msg = (o,isinp) =>
-        isinp && o.str.length > 0 && !o.lnk ? [ m('p', ('small', '>>> '), m('b.invalid', 'Invalid or unrecognized URL.')) ] :
-        o.dup ? [ m('p', m('small', '>>> '), m('b.invalid', ' URL already listed.')) ] :
-        o.lnk ? [
-            m('p', m('input[type=button][value=Update]', { onclick: () => add(o) }), m('span.invalid', ' URL recognized as: ', o.lnk.label)),
+        o.api.loading() || o.api.error ? o.api.Status() :
+        isinp && o.str.length > 0 && !o.parsed ? [ m('p', ('small', '>>> '), m('b.invalid', 'Invalid or unrecognized URL.')) ] :
+        isdup(o) ? [ m('p', m('small', '>>> '), m('b.invalid', ' URL already listed.')) ] :
+        o.parsed ? [
+            m('p', m('input[type=button][value=Update]', { onclick: () => add(o, o.parsed, true) }), m('span.invalid', ' URL recognized as: ', o.lnk.label)),
             m('p.invalid', 'Did you mean to update the URL?'),
         ] : null;
+
     const Website = () => extlinksMap.website ? m('fieldset',
         m('label[for=website]', 'Website'),
         m(Input, { id: 'website', class: 'xw', type: 'weburl', data: web, field: 'str', oninput: v => {
             const l = links.find(l => l.site === 'website');
             if(l) links.splice(links.indexOf(l), 1);
             set(web,v);
-            if(!web.lnk && web.str.length > 0) links.push({ site: 'website', value: v });
         }}),
         Msg(web),
     ) : null;
 
     const view = () => [ Website(), m('fieldset',
         m('label[for=extlinks]', 'External links', HelpButton('extlinks')),
-        m('table', links.filter(l => extlinksMap[l.site] && extlinksMap[l.site].regex).map(l => m('tr', {key: l.site+'-'+l.value},
-            m('td', m(Button.Del, {onclick: () => { links.splice(links.indexOf(l), 1); set(inp,null)}})),
-            m('td', m('a[target=_blank]', { href: split(extlinksMap[l.site].fmt, l.value).join('') }, extlinksMap[l.site].label)),
-            m('td', split(extlinksMap[l.site].fmt, l.value).map((p,i) => m(i === 1 ? 'span' : 'small', p))),
+        m('table', links.filter(l => extlinksMap[l.site] && extlinksMap[l.site].patt).map(l => m('tr', {key: l.site+'-'+l.value},
+            m('td', m(Button.Del, {onclick: () => links.splice(links.indexOf(l), 1)})),
+            m('td', m('a[target=_blank]', { href: l.split.join('') }, extlinksMap[l.site].label)),
+            m('td', l.split.map((p,i) => m(i % 2 ? 'span' : 'small', p))),
         ))),
-        m('form', { onsubmit: ev => { ev.preventDefault(); if (inp.lnk && !inp.dup) add(inp); } },
+        m('form', { onsubmit: ev => { ev.preventDefault(); add(inp, inp.parsed, true); } },
             m('input#extlinks.xw[type=text][placeholder=Add URL...]', { value: inp.str, oninput: ev => set(inp, ev.target.value)}),
             Msg(inp,1),
         ),
         Help('extlinks',
             m('p', 'Links to external websites. The following sites and URL formats are supported:'),
-            m('dl', extlinks.filter(l => extlinksMap[l.site] && extlinksMap[l.site].regex).flatMap(e => [
+            m('dl', extlinks.filter(e => e.patt).flatMap(e => [
                 m('dt', e.label),
                 m('dd', e.patt.map((p,i) => m(i % 2 ? 'strong' : 'span', p))),
             ])),
-            m('p', 'Links to sites that are not in the above list can still be added in the notes field below.'),
+            m('p', 'Links to sites that are not in the above list can still be added as notes or in the description field.'),
         ),
     )];
     return {view};

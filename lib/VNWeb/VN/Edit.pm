@@ -106,6 +106,7 @@ FU::get qr{/$RE{vrev}/edit} => sub($id, $rev=0) {
          WHERE NOT hidden AND id IN(SELECT id FROM chars_vns WHERE vid =', $e->{id},')
          ORDER BY sorttitle, id'
     )->allh;
+    extlink_form_pre $e;
 
     my $title = titleprefs_obj $e->{olang}, $e->{titles};
     framework_ title => "Edit $title->[1]", dbobj => $e, tab => 'edit',
@@ -183,7 +184,7 @@ js_api VNEdit => $FORM_IN, sub($data) {
     my %oldscr = map +($_->{scr}, $_->{nsfw}), @{ $e->{screenshots}||[] };
     $_->{nsfw} = $oldscr{$_->{scr}}||0 for $data->{screenshots}->@*;
 
-    VNDB::ExtLinks::normalize $e, $data;
+    extlink_form_post $e, $data;
 
     my $ch = db_edit v => $e->{id}, $data;
     return 'No changes' if !$ch->{nitemid};
