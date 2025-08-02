@@ -10,7 +10,6 @@ use Multi::Core;
 use AnyEvent::Socket;
 use AnyEvent::Util;
 use AnyEvent::HTTP;
-use Compress::Zlib;
 use VNDB::Types;
 use VNDB::Config;
 
@@ -36,7 +35,6 @@ my @handled_codes = (
 
 
 my %O = (
-  titlesurl => 'https://anidb.net/api/anime-titles.dat.gz',
   apihost => 'api.anidb.net',
   apiport => 9000,
   # AniDB UDP API options
@@ -49,7 +47,6 @@ my %O = (
   maxtimeoutdelay => 2*3600,
   check_delay => 600,
   resolve_delay => 3*3600,
-  titles_delay => 48*3600,
   cachetime => '1 month',
 );
 
@@ -72,7 +69,6 @@ sub run {
   %O = (%O, @_);
   die "No AniDB user/pass configured!" if !$O{user} || !$O{pass};
 
-  push_watcher schedule 0, $O{titles_delay}, \&titles_import;
   push_watcher schedule 0, $O{resolve_delay}, \&resolve;
   resolve();
 }
@@ -81,67 +77,6 @@ sub run {
 sub unload {
   undef $C{tw};
 }
-
-
-
-# BUGs, kind of:
-# - If the 'ja' title is not present in the titles dump, the title_kanji column will not be set to NULL.
-# - This doesn't attempt to delete rows from the anime table that aren't present in the titles dump.
-# Both can be 'solved' by periodically pruning unreferenced rows from the anime
-# table and setting all title_kanji columns to NULL.
-
-my %T;
-
-sub titles_import {
-  %T = (
-    titles => 0,
-    updates => 0,
-    start_dl => AE::now(),
-  );
-  http_get $O{titlesurl}, headers => {'User-Agent' => $O{ua} }, timeout => 60, sub {
-    my($body, $hdr) = @_;
-    return AE::log warn => "Error fetching titles dump: $hdr->{Status} $hdr->{Reason}" if $hdr->{Status} !~ /^2/;
-
-    $T{start_insert} = AE::now();
-    $T{data} = [ split /\r?\n/, Compress::Zlib::memGunzip($body) || return AE::log warn => 'Error decoding titles dump' ];
-    titles_insert();
-  };
-}
-
-sub titles_next {
-  while(local $_ = pop $T{data}->@*) {
-    chomp;
-    next if /^#/;
-    utf8::decode($_);
-    my($id,$type,$lang,$title) = split /\|/, $_, 4;
-    return (0, $id, $title) if $type eq '1';
-    return (1, $id, $title) if $type eq '4' && $lang eq 'ja';
-  }
-  ()
-}
-
-sub titles_insert {
-  my($orig, $id, $title) = titles_next();
-
-  if(!defined $orig) {
-    AE::log info => sprintf 'AniDB title import: %d titles, %d updates in %.1fs (fetch) + %.1fs (insert)',
-      $T{titles}, $T{updates}, $T{start_insert}-$T{start_dl}, AE::now()-$T{start_insert};
-    %T = ();
-    return;
-  }
-
-  my $col = $orig ? 'title_kanji' : 'title_romaji';
-  pg_cmd "INSERT INTO anime (id, $col) VALUES (\$1, \$2) ON CONFLICT (id) DO UPDATE SET $col = excluded.$col WHERE anime.$col IS DISTINCT FROM excluded.$col", [ $id, $title ], sub {
-    my($res) = @_;
-    return if pg_expect $res, 0;
-    $T{titles}++;
-    $T{updates} += $res->cmdRows;
-    titles_insert();
-  }
-}
-
-
-
 
 
 sub resolve {
