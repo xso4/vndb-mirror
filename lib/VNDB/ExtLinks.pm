@@ -322,14 +322,14 @@ our %LINKS = (
         { ent   => 'r'
         , label => 'Itch.io'
         , fmt   => 'https://%s'
-        , parse => qr{([a-z0-9_-]+\.itch\.io/[a-z0-9_-]+)}
+        , parse => qr{([a-z0-9_-]+\.itch\.io/[a-z0-9_-]+)/?}
         , patt  => 'https://<artist>.itch.io/<product>'
         },
     itch_dev =>
         { ent   => 'sp'
         , label => 'Itch.io'
         , fmt   => 'https://%s.itch.io/'
-        , parse => qr{(?:([a-z0-9_-]+)\.itch\.io/.*|itch\.io/profile/([a-z0-9_-]+))}
+        , parse => qr{(?:([a-z0-9_-]+)\.itch\.io/?|itch\.io/profile/([a-z0-9_-]+))}
         },
     jastusa =>
         { ent   => 'r'
