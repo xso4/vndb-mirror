@@ -74,23 +74,13 @@ CREATE TRIGGER stats_cache_edit AFTER  UPDATE           ON traits        FOR EAC
 CREATE OR REPLACE FUNCTION vn_anime_aid() RETURNS trigger AS $$
 BEGIN
   INSERT INTO anime (id) VALUES (NEW.aid) ON CONFLICT (id) DO NOTHING;
+  UPDATE tasks SET nextrun = NOW() WHERE id = 'anidb-info' AND (nextrun IS NULL OR nextrun > NOW());
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER vn_anime_aid_new  BEFORE INSERT ON vn_anime FOR EACH ROW EXECUTE PROCEDURE vn_anime_aid();
 CREATE TRIGGER vn_anime_aid_edit BEFORE UPDATE ON vn_anime FOR EACH ROW WHEN (OLD.aid IS DISTINCT FROM NEW.aid) EXECUTE PROCEDURE vn_anime_aid();
-
-
-
-
--- Send a notify whenever anime info should be fetched
-
-CREATE OR REPLACE FUNCTION anime_fetch_notify() RETURNS trigger AS $$
-  BEGIN NOTIFY anime; RETURN NULL; END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER anime_fetch_notify AFTER INSERT OR UPDATE ON anime FOR EACH ROW WHEN (NEW.lastfetch IS NULL) EXECUTE PROCEDURE anime_fetch_notify();
 
 
 

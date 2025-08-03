@@ -1,4 +1,5 @@
 # This is for user-visible changes only and powers the list at https://vndb.org/changes
+20250803 Anime info fetched from AniDB now includes links to MyAnimeList (takes a month before all entries have been updated)
 20250802 Add new framework for parsing and normalizing external links; Some links now have better formatting and there's a few minor differences in edit form behavior.
 20250730 PlayAsia links can now be added to releases, automatic JAN/EAN/UPC lookup has been disabled.
 20250724 Reduce image flagging vote weight for users fewer than 30 flagged images.

@@ -527,7 +527,7 @@ my %GET_VN = (
       ]],
     },
     anime => {
-      fetch => [[ 'id', 'SELECT va.id AS vid, a.id, a.year, a.ann_id, a.nfo_id, a.type, a.title_romaji, a.title_kanji
+      fetch => [[ 'id', 'SELECT va.id AS vid, a.id, a.year, a.type, a.title_romaji, a.title_kanji
                      FROM anime a JOIN vn_anime va ON va.aid = a.id WHERE va.id IN(%s)',
         sub { my($r, $n) = @_;
           # link
@@ -538,7 +538,7 @@ my %GET_VN = (
           for (@$n) {
             $_->{id}     *= 1;
             $_->{year}   *= 1 if defined $_->{year};
-            $_->{ann_id} *= 1 if defined $_->{ann_id};
+            $_->{ann_id} = $_->{nfo_id} = undef;
             delete $_->{vid};
           }
         }

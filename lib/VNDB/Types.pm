@@ -208,14 +208,14 @@ hash VN_LENGTH =>
 
 
 # SQL: ENUM anime_type
-hash ANIME_TYPE => # anidb = what the UDP API returns, lowercased
-    tv  => { txt => 'TV Series',    anidb => 'tv series'   },
-    ova => { txt => 'OVA',          anidb => 'ova'         },
-    mov => { txt => 'Movie',        anidb => 'movie'       },
-    oth => { txt => 'Other',        anidb => 'other'       },
-    web => { txt => 'Web',          anidb => 'web'         },
-    spe => { txt => 'TV Special',   anidb => 'tv special'  },
-    mv  => { txt => 'Music Video',  anidb => 'music video' };
+hash ANIME_TYPE =>
+    tv  => 'TV Series',
+    ova => 'OVA',
+    mov => 'Movie',
+    oth => 'Other',
+    web => 'Web',
+    spe => 'TV Special',
+    mv  => 'Music Video';
 
 
 

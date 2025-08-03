@@ -203,7 +203,7 @@ my %enrich = (
     releases_images     => [ undef, undef, 'x.itype, x.lang, x.vid, x.img' ],
     releases_platforms  => [ undef, undef, 'x.platform' ],
 
-    vn_anime            => [ 'a.title_romaji, a.title_kanji, a.year, a.type, a.ann_id, a.lastfetch', RAW('JOIN anime a ON a.id = x.aid'), 'a.year, a.title_romaji, x.aid' ],
+    vn_anime            => [ 'a.title_romaji, a.title_kanji, a.year, a.type, a.ann_id, a.mal_id, a.lastfetch', RAW('JOIN anime a ON a.id = x.aid'), 'a.year, a.title_romaji, x.aid' ],
     vn_staff            => [ 's.id AS sid, s.title', sub { SQL 'LEFT JOIN', VNWeb::TitlePrefs::STAFF_ALIAST(), 's ON s.aid = x.aid' }, 'x.eid NULLS FIRST, s.sorttitle, x.aid, x.role' ],
     vn_seiyuu           => [
         's.id AS sid, s.title, c.title AS char_title',

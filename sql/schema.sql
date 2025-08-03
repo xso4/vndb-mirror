@@ -272,13 +272,13 @@ CREATE SEQUENCE users_id_seq;
 -- anime
 CREATE TABLE anime ( -- Anime information fetched from AniDB, only used for linking with visual novels.
   id           integer NOT NULL PRIMARY KEY, -- [pub] AniDB identifier
-  ann_id       integer, -- [pub] Anime News Network identifier
+  ann_id       integer[], -- [pub] Anime News Network identifiers
   lastfetch    timestamptz,
   type         anime_type, -- [pub]
   year         smallint, -- [pub]
-  nfo_id       text, -- [pub] AnimeNFO identifier (unused, site is long dead)
   title_romaji text, -- [pub]
-  title_kanji  text -- [pub]
+  title_kanji  text, -- [pub]
+  mal_id       integer[] -- [pub] MyAnimeList identifiers
 );
 
 -- audit_log

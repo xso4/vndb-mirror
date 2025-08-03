@@ -371,7 +371,7 @@ sub infobox_anime_($v) {
     tr_ sub {
         td_ 'Related anime';
         td_ class => 'anime', sub { join_ \&br_, sub {
-            if(!$_->{lastfetch} || !$_->{year} || !$_->{title_romaji}) {
+            if(!$_->{lastfetch} || !$_->{title_romaji}) {
                 span_ sub {
                     txt_ '[no information available at this time: ';
                     a_ href => 'https://anidb.net/anime/'.$_->{aid}, "a$_->{aid}";
@@ -381,14 +381,22 @@ sub infobox_anime_($v) {
                 span_ sub {
                     txt_ '[';
                     a_ href => "https://anidb.net/anime/$_->{aid}", title => 'AniDB', 'DB';
-                    if($_->{ann_id}) {
+                    for ($_->{ann_id} ? $_->{ann_id}->@* : ()) {
                         txt_ '-';
-                        a_ href => "http://www.animenewsnetwork.com/encyclopedia/anime.php?id=$_->{ann_id}", title => 'Anime News Network', 'ANN';
+                        a_ href => "https://www.animenewsnetwork.com/encyclopedia/anime.php?id=$_", title => 'Anime News Network', 'ANN';
+                    }
+                    for ($_->{mal_id} ? $_->{mal_id}->@* : ()) {
+                        txt_ '-';
+                        a_ href => "https://myanimelist.net/anime/$_", title => 'MyAnimeList', 'MAL';
                     }
                     txt_ '] ';
                 };
                 abbr_ title => $_->{title_kanji}||$_->{title_romaji}, shorten $_->{title_romaji}, 50;
-                span_ ' ('.(defined $_->{type} ? $ANIME_TYPE{$_->{type}}{txt}.', ' : '').$_->{year}.')';
+                my @nfo = (
+                    defined $_->{type} ? $ANIME_TYPE{$_->{type}} : (),
+                    $_->{year} ? $_->{year} : ()
+                );
+                span_ ' ('.join(', ', @nfo).')';
             }
         }, $v->{anime}->@* }
     }
