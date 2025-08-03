@@ -148,7 +148,9 @@ const labelField = {
     loggedin: true,
     // Assumption: backend always normalizes to [uid,label]
     ...setField(12, 'set', DS.Labels(pageVars.labels||[]),
-        q => q[0] === 12 && typeof q[2] === 'object' && q[2][0] === Math.floor(globalData.uid.replace(/^u/, '')) ? {key:q[2][1], op:q[1]} : null
+        q => q[0] === 12 && typeof q[2] === 'object'
+            && q[2][0] === Math.floor(globalData.uid.replace(/^u/, ''))
+            && pageVars.labels.find(([id]) => id === q[2][1]) ? {key:q[2][1], op:q[1]} : null
     ),
     button: inst => inst.values.size === 0 ? m('small', 'My Labels') : [
         opFmt(inst.op, true), ' ',
