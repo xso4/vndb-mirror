@@ -125,11 +125,11 @@ sub copy_entry($tables, $ids) {
     # Wikidata (TODO: This could be a lot more selective)
     copy 'wikidata';
 
-    copy extlinks => "SELECT id, site, c_ref, value FROM extlinks WHERE id IN(
+    copy extlinks => "SELECT id, site, c_ref, value, data FROM extlinks WHERE id IN(
              SELECT link FROM releases_extlinks_hist  re JOIN changes c ON c.id = re.chid WHERE c.itemid IN($releases)
        UNION SELECT link FROM staff_extlinks_hist     se JOIN changes c ON c.id = se.chid WHERE c.itemid IN($staff)
        UNION SELECT link FROM producers_extlinks_hist pe JOIN changes c ON c.id = pe.chid WHERE c.itemid IN($producers)
-       UNION SELECT link FROM vn_extlinks_hist        ve JOIN changes c ON c.id = ve.chid WHERE c.itemid IN($producers)
+       UNION SELECT link FROM vn_extlinks_hist        ve JOIN changes c ON c.id = ve.chid WHERE c.itemid IN($vids)
     )";
 
     # Image metadata

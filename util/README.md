@@ -9,19 +9,13 @@ devdump.pl
 :   Generates a tarball containing a [small subset of the
     database](https://vndb.org/d8#3) for development purposes.
 
-hibp-dl.pl
-:   Utility to fetch the [Pwned
-    Passwords](https://haveibeenpwned.com/Passwords) database and store it in
-    `$VNDB_VAR/hibp`. The web backend can use this to warn about compromised
-    passwords.
-
 multi.pl
-:   Runs the background service for the old API and various maintenance tasks.
-    The actual code for the service lives in */lib/Multi/*.
+:   Runs the old API and/or IRC client. Requires configuration in
+    */var/conf.pl* to do anything useful.  The actual code for the service
+    lives in */lib/Multi/*.
 
-unusedimages.pl
-:   Purges unreferenced images from the database and scans `$VNDB_VAR/static/`
-    for files to be deleted.
+task.pl
+:   The background task runner. The code lives in */lib/VNTask/*.
 
 vndb.pl
 :   This is the main entry point of the web backend. This script does some

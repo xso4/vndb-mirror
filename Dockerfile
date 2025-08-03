@@ -14,12 +14,12 @@ RUN apk add --no-cache \
         vips-dev \
         perl-algorithm-diff-xs \
         perl-anyevent \
-        perl-anyevent-http \
         perl-app-cpanminus \
         perl-crypt-urandom \
         perl-dbd-pg \
         perl-dev \
         perl-json-xs \
+        perl-lwp-protocol-https \
         perl-module-build \
         postgresql17 \
         postgresql17-contrib \

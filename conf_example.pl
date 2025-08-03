@@ -20,20 +20,4 @@
     cookie_prefix   => 'vndb_',
     cookie_defaults => { domain => 'localhost', path => '/' },
     mail_sendmail   => 'log',
-
-    # Options for Multi, the background server.
-    Multi => {
-        # Each module in lib/Multi/ can be enabled and configured here.
-        Core => {
-            db_login => { dbname => 'vndb', user => 'vndb_multi', password => 'vndb_multi' },
-        },
-        #API => {},
-        #IRC => {
-        #    nick      => 'MyVNDBBot',
-        #    server    => 'irc.synirc.net',
-        #    channels  => [ '#vndb' ],
-        #    pass      => '<nickserv-password>',
-        #    masters   => [ 'yorhel!~Ayo@your.hell' ],
-        #},
-    },
 }

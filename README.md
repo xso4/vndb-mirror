@@ -35,13 +35,16 @@ js/
 lib/
 :   This is where all the backend Perl code lives. Notable subdirectories:
 
-    Multi/
-    :   Single-process event-based application that runs the old API and
-        various background services.
+    Multi/ and POE/
+    :   Legacy crap: these host the old API server and an IRC bot. They still
+        work but their future is uncertain.
 
     VNDB/
     :   General utility modules shared between *Multi*, *VNWeb* and some
         tools in *util/*.
+
+    VNTask/
+    :   Job queue for various background tasks.
 
     VNWeb/
     :   The VNDB website backend.
@@ -108,10 +111,10 @@ docker exec -ti vndb su -l devuser  # development shell (files are at /vndb)
 docker exec -ti vndb psql -U vndb   # postgres shell
 ```
 
-To start Multi, the optional application server:
+To start the task server:
 
 ```
-docker exec -ti vndb su -l devuser -c /vndb/util/multi.pl
+docker exec -ti vndb su -l devuser -c /vndb/util/task.pl
 ```
 
 All data is stored in the *docker/* directory. The `$VNDB_GEN` and `$VNDB_VAR`
@@ -129,27 +132,24 @@ Global requirements:
 - PostgreSQL 17+ (including -dev and -contrib packages, if your distro has them)
 - Perl 5.36+ (untested, might need 5.40+ instead)
 - Graphviz
+- curl
 - libvips
 - sassc
 
 **Perl modules** (core modules are not listed):
 
 General:
+- Algorithm::Diff::XS
 - AnyEvent
 - Crypt::ScryptKDF
 - Crypt::URandom
 - FU
-
-util/vndb.pl (the web backend):
-- Algorithm::Diff::XS
+- LWP::Protocol::https
+- LWP::UserAgent (libwww-perl)
+- Location (from [libloc](https://www.ipfire.org/location), optional)
 - Text::MultiMarkdown
 
-util/task.pl (task queue, optional, eventually replaces multi.pl):
-- LWP::UserAgent (libwww-perl)
-- LWP::Protocol::https
-
-util/multi.pl (application server, optional):
-- AnyEvent::HTTP
+util/multi.pl (legacy crap, optional):
 - AnyEvent::IRC
 - AnyEvent::Pg
 - JSON::XS
@@ -192,7 +192,6 @@ psql -U postgres vndb -f sql/vndbid.sql
 # Set a password for each database role:
 echo "ALTER ROLE vndb       LOGIN PASSWORD 'pwd1'" | psql -U postgres
 echo "ALTER ROLE vndb_site  LOGIN PASSWORD 'pwd2'" | psql -U postgres
-echo "ALTER ROLE vndb_multi LOGIN PASSWORD 'pwd3'" | psql -U postgres
 
 # OPTION 1: Create an empty database:
 psql -U vndb -f sql/all.sql
@@ -203,18 +202,17 @@ psql -U vndb -f var/dump.sql
 rm var/dump.sql
 ```
 
-- Update *var/conf.pl* with the proper credentials for *vndb_site* and
-  *vndb_multi*.
+- Update *var/conf.pl* with the proper credentials for *db_site* and *db_task*.
 - Now simply run:
 
 ```
 util/vndb-dev-server.pl
 ```
 
-- (Optional) To run Multi, the application server:
+- (Optional) To run the background task thingy:
 
 ```
-util/multi.pl
+util/task.pl
 ```
 
 
