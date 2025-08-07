@@ -44,6 +44,7 @@ my @tests = qw{
     steam_curator  29064054  - https://store.steampowered.com/curator/29064054-7DOTS-games/
 
     playasia 8nt9 12-ji-no-kane-to-cinderella-cinderella-series-triple-pack https://www.play-asia.com/12-ji-no-kane-to-cinderella-cinderella-series-triple-pack/13/708nt9?tagid=969338
+    playasia 2623 - https://www.play-asia.com/13/702623
 
     jastusa srvn068 meteor-world-actor https://jastusa.com/games/srvn068/meteor-world-actor
 

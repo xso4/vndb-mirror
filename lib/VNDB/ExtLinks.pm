@@ -455,10 +455,12 @@ our %LINKS = (
         , label => 'PlayAsia'
         , fmt   => sub($v,$d,$a) {
             $a &&= config->{playasia_tagid};
-            ('https://www.play-asia.com/%s/13/70%s'.($a?"?tagid=$a":''), $d||'vndb', $v)
+            $a = $a ? "?tagid=$a" : '';
+            length $d ? ("https://www.play-asia.com/%s/13/70%s$a", $d, $v)
+                      : ("https://www.play-asia.com/13/70%s$a", $v)
           }
         , parse => sub($u) {
-            $u =~ qr{www\.play-asia\.com/([^/]+)/13/70([1-9a-z][0-9a-z]+)(?:[?#/].*)?} ? ($2, $1) : ()
+            $u =~ qr{www\.play-asia\.com/(?:([^/]+)/)?13/70([1-9a-z][0-9a-z]+)(?:[?#/].*)?} ? ($2, $1//'') : ()
           }
         , patt  => 'https://www.play-asia.com/<title>/13/<code>'
         },

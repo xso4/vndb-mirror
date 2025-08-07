@@ -29,7 +29,6 @@ sub fetch($task, $lnk) {
     my $price = $onsale && $res->{Body} =~ /<price>\s*(\d+(?:\.\d+)?)\s*<\/price>/ && $1 ? sprintf('US$ %.2f', $1) : '';
 
     $err ||= 'ERROR: no URL found' if !$url;
-    $err ||= "ERROR: unknown URL format: $url" if !$slug;
 
     if ($err) {
         $lnk->save(dead => 1);
