@@ -51,6 +51,9 @@ my @tests = qw{
     dlsite VJ010808 pro    https://www.dlsite.com/pro/work/=/product_id/VJ010808.html
     dlsite RJ151743 maniax https://www.dlsite.com/maniax/dlaf/=/link/work/aid/vndb/id/RJ151743.html
     dlsite RJ151743 maniax https://www.dlsite.com/maniax/work/=/product_id/RJ151743.html/?unique_op=af
+
+    appstore 1071310449 us https://apps.apple.com/us/app/choices-stories-you-play/id1071310449
+    appstore 1071310449 -  https://itunes.apple.com/app/id1071310449?ok
 };
 
 plan tests => @tests/4*6;

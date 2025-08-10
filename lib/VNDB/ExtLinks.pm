@@ -100,11 +100,13 @@ our %LINKS = (
     appstore =>
         { ent   => 'r'
         , label => 'App Store'
-          # TODO: The region part of the URL is required for some entries,
-          # should extract that to into 'data' and have a link fetcher verify
-          # the available regions.
-        , fmt   => 'https://apps.apple.com/%s'
-        , parse => qr{(?:itunes|apps)\.apple\.com/((?:[^/]+/)?app/(?:[^/]+/)?id$int)(?:[/\?].*)?}
+        , fmt   => sub($v,$d,$a) {
+            $d ? ('https://apps.apple.com/%s/app/id%d', $d, $v)
+               : ('https://apps.apple.com/app/id%d', $v)
+          },
+        , parse => sub($u) {
+            $u =~ qr{(?:itunes|apps)\.apple\.com/(?:([^/]+)/)?app/(?:[^/]+/)?id$int(?:[/\?].*)?} ? ($2, $1||'') : (),
+          }
         },
     bgmtv =>
         { ent   => 's'
