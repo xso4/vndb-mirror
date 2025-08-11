@@ -32,6 +32,7 @@ hash LANGUAGE =>
     nl       => { latin => 1, rank => 0, txt => 'Dutch' },
     en       => { latin => 1, rank => 3, txt => 'English' },
     eo       => { latin => 1, rank => 0, txt => 'Esperanto' },
+    et       => { latin => 1, rank => 0, txt => 'Estonian' },
     fi       => { latin => 1, rank => 0, txt => 'Finnish' },
     fr       => { latin => 1, rank => 1, txt => 'French' },
     gl       => { latin => 1, rank => 0, txt => 'Galician' },
