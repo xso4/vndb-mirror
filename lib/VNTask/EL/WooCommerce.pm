@@ -9,6 +9,7 @@ use VNTask::ExtLinks;
 sub fetch($task, $lnk) {
     my $res = http_get $lnk->url, task => 'Affiliate Crawler';
     $res->dead('Not found') if $res->code eq 404;
+    $res->dead('Redirect') if $res->location;
     $res->expect(200);
 
     # JSON-LD

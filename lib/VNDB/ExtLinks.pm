@@ -72,6 +72,7 @@ my $int = qr/0*([1-9][0-9]*)/;
 #             In both cases the URL to be matched has the ^https?:// prefix and the optional URL fragment removed.
 #             (Only set for links that should be autodetected in the edit form)
 #   patt      Human-readable URL pattern that corresponds to 'fmt' and 'parse'; Automatically derived from 'fmt' if not set.
+#   affil     Whether these links should show up in the affiliate links box (when they have a known price).
 our %LINKS = (
     afdian =>
         { ent   => 'sp'
@@ -162,6 +163,7 @@ our %LINKS = (
             ('https://denpasoft.com/product/%s/'.($a||''), $v)
           }
         , parse => qr{(?:www\.)?denpasoft\.com/products?/([^/&#?:]+).*}
+        , affil => !!config->{denpa_affiliate}
         },
     deviantar =>
         { ent   => 's'
@@ -192,6 +194,7 @@ our %LINKS = (
             $u =~ qr{(?:www\.)?dlsite\.com/([^/]+)/(?:dlaf/=/link/work/aid/.*/id|work/=/product_id)/([VR]J[0-9]{6,8}).*} ? ($2,$1) : ()
           }
         , patt  => 'https://www.dlsite.com/<store>/work/=/product_id/<VJ or RJ-code>'
+        , affil => !!config->{dlsite_affiliate}
         },
     dlsiteen => # Deprecated, stores have been merged.
         { ent   => 'r'
@@ -342,6 +345,7 @@ our %LINKS = (
           }
         , parse => sub($u) { $u =~ qr{(?:www\.)?jastusa\.com/games/([a-z0-9_-]+)/([^/]+)} }
         , patt  => 'https://jastusa.com/games/<code>/<title>'
+        , affil => !!config->{jastusa_affiliate}
         },
     jlist =>
         { ent   => 'r'
@@ -351,6 +355,7 @@ our %LINKS = (
             ('https://'.($a ? "a.jlist.com/moe.php?acc=$a&pg=" : 'jlist.com').'/shop/product/%s', $v)
           }
         , parse => qr{(?:www\.)?(?:jlist|jbox)\.com/shop/product/([^/#?]+).*}
+        , affil => !!config->{jlist_affiliate}
         },
     kofi =>
         { ent   => 's'
@@ -384,6 +389,7 @@ our %LINKS = (
             ('https://www.mangagamer.com'.($d?'':'/r18').'/detail.php?product_code=%d'.($a?"&af=$a":''), $v)
           }
         , parse => qr{(?:www\.)?mangagamer\.com/.*product_code=$int.*}
+        , affil => !!config->{mg_affiliate}
         },
     mobygames =>
         { ent   => 'sp'
@@ -465,6 +471,7 @@ our %LINKS = (
             $u =~ qr{www\.play-asia\.com/(?:([^/]+)/)?13/70([1-9a-z][0-9a-z]+)(?:[?#/].*)?} ? ($2, $1//'') : ()
           }
         , patt  => 'https://www.play-asia.com/<title>/13/<code>'
+        , affil => !!config->{playasia_tagid}
         },
     playstation_eu =>
         { ent   => 'r'

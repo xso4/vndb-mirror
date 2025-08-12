@@ -30,7 +30,7 @@ sub el_queue {
 
 sub grablinks($task, $batch) {
     my $lst = $task->SQL('
-        SELECT id, site, value, data, queue, lastfetch
+        SELECT id, site, value, data, price, queue, lastfetch
           FROM extlinks
          WHERE ', $task->arg ? ('id =', $task->arg) : ('queue =', $task->id, 'AND nextfetch < NOW()'), '
          ORDER BY nextfetch LIMIT', $batch,
@@ -91,14 +91,18 @@ task qr{el/.+}, sub($task) {
         $queue->{fetch}->($task, $lnk);
         1;
     };
-    my($msg, $fatal) = ($@, 1);
-    if (ref $msg eq 'VNTask::Core::HTTPResponse') {
-        # TODO: Extract and store some response info.
-        $fatal = 0 if $@->{Dead};
+    my($msg, $detail) = ($@);
+    if (ref $@ eq 'VNTask::Core::HTTPResponse') {
         $msg = $@->{ErrorMsg};
+        $detail = {
+            error => $msg,
+            !$@->{Dead}  ? (unrecognized => !!1         ) : (),
+            $@->code     ? (code         => $@->code    ) : (),
+            $@->location ? (location     => $@->location) : (),
+        };
     }
-    $lnk->save(dead => 1);
-    $task->done("%s: %s", $fatal ? 'ERROR' : 'dead', $msg);
+    $lnk->save(dead => 1, price => undef, detail => $detail);
+    $task->done("%s: %s", $detail && !$detail->{unrecognized} ? 'dead' : 'ERROR', $msg);
 };
 
 
@@ -126,13 +130,27 @@ sub nextfetch($l) {
 sub save($l, %opt) {
     $l->{lastfetch} = time if !$opt{didnotfetch};
     my $q = $l->triage;
+
+    $opt{detail} = undef if ref $opt{detail} eq 'HASH' && !keys $opt{detail}->%*;
+
     $l->{task}->SQL('UPDATE extlinks', SET({
         queue     => $q ? SQL('CASE WHEN c_ref THEN', $q->{id}, 'ELSE NULL END') : undef,
         nextfetch => SQL('CASE WHEN c_ref THEN', $l->nextfetch(), '::timestamptz ELSE NULL END'),
         lastfetch => $l->{lastfetch},
-        $opt{didnotfetch} ? () : (deadsince => $opt{dead} ? SQL 'COALESCE(deadsince, NOW())' : undef),
+        $opt{didnotfetch} ? () : (
+            deadsince => $opt{dead} ? SQL 'COALESCE(deadsince, NOW())' : undef,
+            deadcount => $opt{dead} ? SQL 'COALESCE(deadcount, 0)+1' : undef,
+        ),
         map exists($opt{$_}) ? ($_, $opt{$_}) : (), qw/data price/
     }), 'WHERE id =', $l->{id})->exec;
+
+    $l->{task}->SQL('INSERT INTO extlinks_fetch', VALUES {
+        id     => $l->{id},
+        dead   => !!$opt{dead},
+        data   => exists $opt{data}  ? $opt{data}  : $l->{data},
+        price  => exists $opt{price} ? $opt{price} : $l->{price},
+        detail => $opt{detail},
+    })->exec if !$opt{didnotfetch};
 }
 
 1;

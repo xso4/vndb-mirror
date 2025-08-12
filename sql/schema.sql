@@ -469,7 +469,18 @@ CREATE TABLE extlinks (
   deadsince  timestamptz,
   nextfetch  timestamptz,
   queue      text, -- tasks.id, or NULL if this link isn't being checked
+  deadcount  integer,
   CONSTRAINT extlinks_queue CHECK((c_ref AND queue IS NOT NULL AND nextfetch IS NOT NULL) OR (queue IS NULL AND nextfetch IS NULL))
+);
+
+-- extlinks_fetch
+CREATE TABLE extlinks_fetch (
+  id      integer NOT NULL,
+  date    timestamptz NOT NULL DEFAULT NOW(),
+  dead    boolean NOT NULL,
+  data    text,
+  price   text,
+  detail  jsonb
 );
 
 -- global_settings

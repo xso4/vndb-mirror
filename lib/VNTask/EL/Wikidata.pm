@@ -42,12 +42,16 @@ sub entity($task, $lnk, $data, $n, $upd) {
         'ON CONFLICT (id) DO UPDATE', SET(\%set),
         'WHERE', OR(map RAW("wikidata.$_ IS DISTINCT FROM EXCLUDED.$_"), sort keys %set)
     )->exec;
-    $lnk->save;
+
+    $lnk->save(detail => {
+        $data->{labels}{en}       ? (label       => $data->{labels}{en}{value}      ) : (),
+        $data->{descriptions}{en} ? (description => $data->{descriptions}{en}{value}) : (),
+    });
 }
 
 
 sub fetch($task, @links) {
-    my $uri = "$api?action=wbgetentities&format=json&props=sitelinks|claims&sitefilter=enwiki|jawiki&ids="
+    my $uri = "$api?action=wbgetentities&format=json&props=sitelinks|claims|labels|descriptions&languages=en&sitefilter=enwiki|jawiki&ids="
         .join '|', map "Q$_->{value}", @links;
 
     my $res = http_get $uri, task => 'Wikidata Fetcher';

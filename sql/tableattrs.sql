@@ -7,6 +7,7 @@ CREATE        INDEX chars_traits_tid       ON chars_traits (tid);
 CREATE UNIQUE INDEX drm_name               ON drm (name);
 CREATE UNIQUE INDEX extlinks_url           ON extlinks (site, value);
 CREATE        INDEX extlinks_queue_fetch   ON extlinks (queue, nextfetch) WHERE queue IS NOT NULL;
+CREATE        INDEX extlinks_fetch_id      ON extlinks_fetch (id);
 CREATE UNIQUE INDEX image_votes_pkey       ON image_votes (uid, id);
 CREATE        INDEX image_votes_id         ON image_votes (id);
 CREATE        INDEX notifications_uid_iid  ON notifications (uid,iid);
@@ -90,6 +91,7 @@ ALTER TABLE chars_vns                ADD CONSTRAINT chars_vns_rid_fkey          
 ALTER TABLE chars_vns_hist           ADD CONSTRAINT chars_vns_hist_chid_fkey           FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE chars_vns_hist           ADD CONSTRAINT chars_vns_hist_vid_fkey            FOREIGN KEY (vid)       REFERENCES vn            (id);
 ALTER TABLE chars_vns_hist           ADD CONSTRAINT chars_vns_hist_rid_fkey            FOREIGN KEY (rid)       REFERENCES releases      (id);
+ALTER TABLE extlinks_fetch           ADD CONSTRAINT exlinks_fetch_id_fkey              FOREIGN KEY (id)        REFERENCES extlinks      (id) ON DELETE CASCADE;
 ALTER TABLE images                   ADD CONSTRAINT images_uploader_fkey               FOREIGN KEY (uploader)  REFERENCES users         (id) ON DELETE SET DEFAULT;
 ALTER TABLE image_votes              ADD CONSTRAINT image_votes_id_fkey                FOREIGN KEY (id)        REFERENCES images        (id) ON DELETE CASCADE;
 ALTER TABLE image_votes              ADD CONSTRAINT image_votes_uid_fkey               FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE SET DEFAULT;

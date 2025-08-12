@@ -8,26 +8,31 @@ sub try($task, $lnk, $region=0) {
     my $res = http_get 'https://itunes.apple.com/lookup?id='.$lnk->value . ($region ? '&country='.$lnk->data : '');
     $res->expect(200);
     my $data = $res->json;
+    $res->dead('Not found') if !$data->{resultCount};
 
-    if ($data->{resultCount} >= 1) {
-        # API includes some pretty useful information, may be worth storing somewhere...
-        $lnk->save($region ? () : (data => ''));
-        $task->done('Found at %s', $region ? $lnk->data : 'regionless');
-        return 1;
-    } elsif ($region || !$lnk->data) {
-        $lnk->save(dead => 1);
-        $task->done('Not found');
-        return 1;
-    } else {
-        return 0;
-    }
+    $data = $data->{results}[0];
+    $lnk->save(
+        data   => $region ? $lnk->data : '',
+        price  => $data->{formattedPrice},
+        detail => {
+            developer => $data->{artistName},
+            version   => $data->{version},
+            bundleid  => $data->{bundleId},
+            agerating => $data->{trackContentRating},
+            released  => $data->{releaseDate},
+        },
+    );
+    $task->done('Found at %s', $region ? $lnk->data : 'regionless');
 }
 
 el_queue 'el/appstore',
     delay  => '30m',
     freq   => '60d',
     triage => sub($lnk) { $lnk->site eq 'appstore' },
-    # Try fetching without the region first, most products aren't region-locked.
-    sub($task, $lnk) { try $task, $lnk or try $task, $lnk, 1 };
+    sub($task, $lnk) {
+        # Try fetching without the region first, most products aren't region-locked.
+        return if eval { try $task, $lnk, 0; 1 };
+        try $task, $lnk, 1;
+    };
 
 1;

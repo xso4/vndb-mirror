@@ -344,7 +344,8 @@ sub infobox_affiliates_($v) {
           $rel->{rtype} eq 'partial' ? 2 :
                     $rel->{c_bundle} ? 0 : 1;
 
-        $links{$_->{url2}} = [ @{$_}{qw/label url2 price/}, min $type, $links{$_->{url2}}[3]||9 ] for grep $_->{price}, $rel->{vislinks}->@*;
+        $links{$_->{url2}} = [ @{$_}{qw/label url2 price/}, min $type, $links{$_->{url2}}[3]||9 ]
+            for grep $_->{price} && $VNDB::ExtLinks::LINKS{$_->{name}}{affil}, $rel->{vislinks}->@*;
     }
     return if !keys %links;
 
