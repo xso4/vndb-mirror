@@ -7,6 +7,8 @@ my $reportsperday = 5;
 my @STATUS = qw/new busy done dismissed/;
 my $STATUSRE = '(?:'.join('|', @STATUS).')';
 
+my %OBJ = qw/v VN r Release p Producer c Character s Staff d Doc g Tag i Trait w Review t Thread u User/;
+
 
 # Returns the object associated with the vndbid.num; Returns false if the object can't be reported.
 sub obj($id, $num=undef) {
@@ -34,7 +36,7 @@ sub obj_ {
         user_ $o;
 
     } else {
-        txt_ {qw/v VN r Release p Producer c Character s Staff d Doc g Tag i Trait w Review t Thread u User/}->{substr $o->{object}, 0, 1};
+        txt_ $OBJ{substr $o->{object}, 0, 1};
         txt_ ': ';
         a_ href => "/$lnk", tattr $o;
         if($o->{user_name}) {
@@ -112,6 +114,7 @@ sub report_ {
         }
         br_;
         obj_ $r;
+        txt_ ' ('; a_ href => "?obj=$r->{object}", 'all'; txt_ ')';
         br_;
         if($r->{message} && $r->{reason} =~ /spoilers/i) {
             details_ sub {
@@ -159,11 +162,13 @@ FU::get '/report/list', sub {
         s      => { default => 'id', enum => ['id','lastmod'] },
         status => { default => undef, enum => \@STATUS},
         id     => { default => undef, id => 1 },
+        obj    => { default => undef, vndbid => [keys %OBJ] },
     );
 
     my $where = AND
         $opt->{id} ? SQL 'r.id =', $opt->{id} : (),
         $opt->{status} ? SQL 'r.status =', $opt->{status} : (),
+        $opt->{obj} ? SQL 'r.object =', $opt->{obj} : (),
         $opt->{s} eq 'lastmod' ? 'r.lastmod IS NOT NULL' : ();
 
     my $cnt = fu->SQL('SELECT count(*) FROM reports r WHERE', $where)->val;
