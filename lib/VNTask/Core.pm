@@ -9,8 +9,7 @@ use Time::HiRes 'time';
 use List::Util 'first';
 use Carp 'confess';
 use POSIX 'fmod';
-use LWP::UserAgent;
-use LWP::ConnCache;
+use Digest::SHA 'sha1_hex';
 use Exporter 'import';
 
 our @EXPORT = ('task', 'task_insert', 'config', 'http_get');
@@ -197,52 +196,116 @@ sub one($name, $arg=undef) {
 }
 
 
-# Simple wrapper around LWP for GET requests, with some inspiration from
-# AnyEvent::HTTP.
-# Doesn't follow redirects, returns an object with:
-# {
-#     Status => $code || 6xx on internal error
-#     Reason => $status_line || internal error message
-#     Body => Decoded body || '' on error
-#     Obj => HTTP::Response object
-#     %lowercase_response_headers
-# }
+# Wrapper around curl. Usage:
+#
+#   my $res = http_get $uri, %opt;
+#   OR:
+#   my ($a, $b) = http_get [$uri_a, $uri_b], %opt;
+#
+#   $res->expect(200); # throw error if code isn't 200
+#   $res->code; # response code
+#   $res->body; # raw data
+#   $res->text; # decoded character data (assumes body is UTF-8, for now)
+#   $res->json; # decoded JSON
+#
+# All methods throw on error.
+#
+# While I'm not a fan of shelling out and writing to the filesystem just to do
+# HTTP requests, this approach does have some advantages over using
+# LWP::UserAgent or similar. For one, LWP::UserAgent mangles client headers
+# into the response object and tries to be too clever with respect to content
+# decoding, in ways that aren't always useful. Curl also has the advantage of
+# being a more common dependency, more actively maintained and having a ton of
+# options that may be useful down the road (proxying, certificate inspection,
+# etc). Using the filesystem happens to simplify caching and debugging.
 sub http_get($uri, %opt) {
-    my $lwp = LWP::UserAgent->new(
-        timeout      => 60,
-        max_redirect => 0,
-        max_size     => 10*1024*1024,
-        conn_cache   => $cur_task && ($cur_task->{lwpcache} ||= LWP::ConnCache->new(total_capacity => 5)),
-        from         => config->{admin_email},
-        agent        => sprintf('VNDB.org %s (%s)', delete($opt{task})||'Task Processor', config->{admin_email}),
-        protocols_allowed => ['http', 'https'],
-    );
-    my $res = $lwp->get($uri);
+    my $path = config->{var_path}.'/tmp/task-http';
+    mkdir $path;
+    my @uri = ref $uri ? @$uri : ($uri);
+    my $fn = substr($uri[0] =~ s{^https?://}{}r =~ s/[^a-zA-Z0-9_-]+/-/rg, 0, 50).'-'.substr(sha1_hex(join "\n", @uri), 0, 8);
 
-    my $body = $res->decoded_content;
-    my($code, $reason) =
-        $res->header('Client-Aborted') ? (600, 'Client aborted') :
-        $res->header('X-Died') ? (600, 'Died') :
-        $res->header('Client-Warning') && $res->header('Client-Warning') !~ /^Redirect loop/ ? (600, $res->message) :
-        !defined $body ? (600, 'Error decoding body') :
-        ($res->code, $res->message);
+    my @resp = map +{
+        ExitCode => -1,
+        Code => 0,
+        ErrorMsg => 'failed to run curl',
+        Uri => $uri[$_],
+        Index => $_,
+        Path => "$path/$fn"
+    }, 0..$#uri;
 
-    my %hdr;
-    for my ($k,$v) ($res->headers->flatten) {
-        push $hdr{lc $k}->@*, $v;
-    }
+    no warnings 'qw';
+    system('curl',
+       qw/--silent --fail-early --globoff --include --compressed --proto =http,https --max-time 60 --max-filesize 10M/,
+       '-w', '%output{>>'.$path.'/'.$fn.'}%{exitcode} %{response_code} %{errormsg}%{redirect_url}\n',
+       '--user-agent', sprintf('VNDB.org %s (%s)', delete($opt{task})||'link checker', config->{admin_email}),
+       map +($_->{Uri}, '-o', "$_->{Path}-$_->{Index}"), @resp
+    ) if !-f "$path/$fn";
 
-    warn "GET $uri\n$code $reason\n".join('', map "$_: ".join(', ', $hdr{$_}->@*)."\n", sort keys %hdr)."\n".$body
-        if $ENV{VNTASK_DEBUG_HTTP};
-
-    +{
-        (map +($_, join ', ', $hdr{$_}->@*), keys %hdr),
-        Status => $code,
-        Reason => $reason,
-        Body => $body // '',
-        Obj => $res,
-    }
+    bless($_, 'VNTask::Core::HTTPResponse')->_read for @resp;
+    @resp == 1 ? $resp[0] : @resp
 }
+
+
+package VNTask::Core::HTTPResponse;
+
+use v5.36;
+use overload '""' => sub($r,@) { "$r->{Uri}: ". ($r->{ErrorMsg} || "Unexpected response ($r->{Code})")."\n" };
+use FU::Util 'json_parse';
+
+sub _read($r) {
+    local $_;
+    {
+        open my $F, '<', $r->{Path} or die "Unable to read $r->{Path}: $!\n";
+        my $i = 0;
+        while (<$F>) {
+            next if $i++ != $r->{Index};
+            chomp;
+            ($r->{ExitCode}, $r->{Code}, $r->{ErrorMsg}) = split / /, $_, 3;
+            ($r->{Location}, $r->{ErrorMsg}) = ($r->{ErrorMsg}, '') if $r->{ExitCode} == 0 && $r->{Code} =~ /^3/;
+            last;
+        }
+    }
+    die $r if $r->{ExitCode};
+
+    my $fn = "$r->{Path}-$r->{Index}";
+    open my $F, '<', $fn or die "Unable to read $fn: $!\n";
+    scalar <$F>; # First line is protocol + status code; ignore
+    while (<$F>) {
+        s/\r?\n$//;
+        last if !/^([^:\s]+)\s*:\s*(.+)$/;
+        my($k, $v) = (lc $1, $2);
+        $r->{$k} = length $r->{$k} ? "$r->{$k}; $v" : $v;
+    }
+    local $/ = undef;
+    $r->{Body} = <$F>;
+}
+
+# Throw an error with the request object as context.
+sub err($r, $msg) { $r->{ErrorMsg} = $msg; die $r; }
+
+# Same as err() but also sets a flag. Used by ExtLinks.pm to mark the link as
+# dead without logging a critical error. So err() is for when we get an
+# unexpected response that may need investigation, dead() for an
+# expected-but-confirmed-dead response.
+sub dead($r, $msg) { $r->{Dead} = 1; $r->err($msg); }
+
+sub expect($r, $code) {
+    $r->err("Unexpected status code: $r->{Code}".($r->{Location} ? " $r->{Location}" : ''))
+        if $r->{Code} !~ /^(?:$code)/;
+}
+
+sub code($r) { $r->{Code} }
+sub location($r) { $r->{Location}||'' }
+sub body($r) { $r->{Body} }
+sub text($r) {
+    $r->err("Invalid UTF-8") if !utf8::decode(my $v = $r->{Body});
+    $v;
+}
+sub json($r) {
+    eval { json_parse $r->{Body}, utf8 => 1 } || $r->err("Invalid JSON")
+}
+
+
 
 package VNTask::Core::Task;
 

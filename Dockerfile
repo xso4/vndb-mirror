@@ -19,7 +19,6 @@ RUN apk add --no-cache \
         perl-dbd-pg \
         perl-dev \
         perl-json-xs \
-        perl-lwp-protocol-https \
         perl-module-build \
         postgresql17 \
         postgresql17-contrib \

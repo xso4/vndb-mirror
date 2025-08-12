@@ -79,14 +79,26 @@ task qr{el/.+}, sub($task) {
         return;
     }
     my $lst = grablinks $task, $queue->{batch};
+    return $task->done('nothing to do') if !@$lst;
 
-    # TODO: Not relevant yet, but it may be worth re-triaging fetched links
-    # before fetching them, to ensure they're still in the right queue and
-    # properly normalized.
-    if (@$lst) {
-        $task->item($lst->[0]{value}) if $queue->{batch} == 1;
-        $queue->{fetch}->($task, @$lst);
+    # Batch fetching needs its own error handling
+    return $queue->{fetch}->($task, @$lst) if $queue->{batch} > 1;
+
+    # For single-link fetches, we catch errors and update the link state.
+    my($lnk) = @$lst;
+    $task->item($lnk->{value});
+    return if eval {
+        $queue->{fetch}->($task, $lnk);
+        1;
+    };
+    my($msg, $fatal) = ($@, 1);
+    if (ref $msg eq 'VNTask::Core::HTTPResponse') {
+        # TODO: Extract and store some response info.
+        $fatal = 0 if $@->{Dead};
+        $msg = $@->{ErrorMsg};
     }
+    $lnk->save(dead => 1);
+    $task->done("%s: %s", $fatal ? 'ERROR' : 'dead', $msg);
 };
 
 

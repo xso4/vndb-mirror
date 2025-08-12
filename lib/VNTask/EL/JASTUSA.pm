@@ -6,29 +6,24 @@ use VNTask::ExtLinks;
 sub fetch($task, $lnk) {
     # Requesting /games/$id without slug redirects to the page with the slug
     my $res = http_get 'https://jastusa.com/games/'.$lnk->value, task => 'Affiliate Crawler';
-    warn "ERROR: Unexpected response: $res->{Status} $res->{Reason}\n" if $res->{Status} !~ /^(3|404)/;
+    $res->dead('Not found') if $res->code eq 404;
 
-    my $loc = $res->{location}||'';
-    my $slug = $loc =~ m{/games/\Q$lnk->{value}\E/(.+)$} && $1;
-    if (!$slug) {
-        $lnk->save(dead => 1);
-        return $task->done($loc eq '/' || $res->{Status} eq 404 ? 'Not found' : "ERROR: Unexpected redirect to $loc");
-    }
+    $res->expect(3);
+    my $loc = $res->location;
+    $res->dead('Redirect to /') if $loc eq 'https://jastusa.com/';
+    $res->err("Unexpected redirect to $loc") if $loc !~ m{/games/\Q$lnk->{value}\E/(.+)$};
+    my $slug = $1;
 
-    $res = http_get 'https://jastusa.com/games/'.$lnk->value.'/'.$slug, task => 'Affiliate Crawler';
-    warn "ERROR: Unexpected response: $res->{Status} $res->{Reason}\n" if $res->{Status} ne 200;
+    $res = http_get $loc, task => 'Affiliate Crawler';
+    $res->expect(200);
 
     my $price =
         $res->{Body} =~ m{<div class="price-box__hld">.*<span class="price-box__value">\s*([0-9.]+)\s*</span>}s ? "US\$ $1" :
-        $res->{Body} =~ m{<span class="sidebar-main__info">\s*Free item} ? 'free' : '';
+        $res->{Body} =~ m{<span class="sidebar-main__info">\s*Free item} ? 'free' :
+        $res->err('No price information found');
 
-    if ($price) {
-        $lnk->save(price => $price, data => $slug);
-        $task->done('Available at /%s for %s', $slug, $price);
-    } else {
-        $lnk->save(dead => 1);
-        $task->done('ERROR: No price information found');
-    }
+    $lnk->save(price => $price, data => $slug);
+    $task->done('Available at /%s for %s', $slug, $price);
 }
 
 el_queue 'el/jastusa',

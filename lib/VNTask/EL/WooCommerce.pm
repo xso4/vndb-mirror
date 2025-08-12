@@ -8,36 +8,30 @@ use VNTask::ExtLinks;
 
 sub fetch($task, $lnk) {
     my $res = http_get $lnk->url, task => 'Affiliate Crawler';
-    warn "ERROR: Unexpected response: $res->{Status} $res->{Reason}\n" if $res->{Status} !~ /^(2|404)/;
+    $res->dead('Not found') if $res->code eq 404;
+    $res->expect(200);
 
     # JSON-LD
-    my $found = $res->{Status} eq 200 && $res->{Body} =~ /"\@type":"Product"/;
-    my $outofstock = $res->{Body} !~ m{"availability":"https?:\\?/\\?/schema\.org\\?/InStock"};
-    my $price = $res->{Body} =~ /"price":"([0-9\.]+)"/ ? ($1 eq '0.00' ? 'free' : sprintf('US$ %.2f', $1)) : '';
+    $res->dead('Not found') if $res->body !~ /"\@type":"Product"/;
+    my $price =
+        $res->body !~ m{"availability":"https?:\\?/\\?/schema\.org\\?/InStock"} ? '' :
+        $res->body =~ /"price":"([0-9\.]+)"/ ? ($1 eq '0.00' ? 'free' : sprintf('US$ %.2f', $1)) :
+        $res->err('No price information found');
 
-    if ($outofstock) {
-        $lnk->save(price => '');
-        $task->done('Out of stock');
-    } elsif ($price) {
-        $lnk->save(price => $price);
-        $task->done('Available for %s', $price);
-    } else {
-        warn "ERROR: Product found but no price\n" if $found;
-        $lnk->save(dead => 1);
-        $task->done('Not found');
-    }
+    $lnk->save(price => $price);
+    $task->done($price ? "Available for $price" : 'Out of stock');
 }
 
 el_queue 'el/denpasoft',
     delay  => '5m',
     freq   => '3d',
     triage => sub($lnk) { $lnk->site eq 'denpa' },
-    sub($task, $lnk) { fetch $task, $lnk };
+    \&fetch;
 
 el_queue 'el/jlist',
     delay  => '10m',
     freq   => '3d',
     triage => sub($lnk) { $lnk->site eq 'jlist' },
-    sub($task, $lnk) { fetch $task, $lnk };
+    \&fetch;
 
 1;

@@ -10,9 +10,9 @@ task 'anidb-titles', delay => '36h', align_div => '1d', align_add => '4h', sub($
     my %titles; # id => [ romaji, kanji ]
     {
         my $res = http_get 'https://anidb.net/api/anime-titles.dat.gz', task => 'Anime Fetcher';
-        die "ERROR fetching dump: $res->{Status} $res->{Reason}\n" if $res->{Status} ne 200;
+        $res->expect(200);
 
-        my $rd = IO::Uncompress::Gunzip->new(\$res->{Body});
+        my $rd = IO::Uncompress::Gunzip->new(\$res->body);
         while (my $line = $rd->getline) {
             chomp $line;
             next if $line =~ /^#/ || !length $line;
@@ -69,17 +69,18 @@ task 'anidb-info', delay => '10m', sub($task) {
 
     my $uri = sprintf 'http://api.anidb.net:9001/httpapi?request=anime&client=vnmulti&clientver=1&protover=1&aid=%d', $id;
     my $res = http_get $uri, task => 'Anime Fetcher';
-    die "Unexpected response: $res->{Status} $res->{Reason}\n" if $res->{Status} ne 200;
+    $res->expect(200);
 
     # Meh, I don't want to use a proper XML parser.
-    my $error = $res->{Body} =~ m{<error[^>]*>(.+?)</error>} ? $1 : '';
-    my $type = $res->{Body} =~ m{<type[^>]*>(.+?)</type>} ? $1 : '';
+    my $body = $res->text;
+    my $error = $body =~ m{<error[^>]*>(.+?)</error>} ? $1 : '';
+    my $type = $body =~ m{<type[^>]*>(.+?)</type>} ? $1 : '';
     ($type) = (grep $ANIME_TYPE{$_} eq $type, keys %ANIME_TYPE)[0];
-    my $year = $res->{Body} =~ m{<startdate[^>]*>([0-9]{4})-} ? $1 : undef;
+    my $year = $body =~ m{<startdate[^>]*>([0-9]{4})-} ? $1 : undef;
 
     # Dumb way to extract <identifier>s for a given type. Doesn't handle cases where an entity can have multiple identifiers or a <url>.
     my sub extractids($n) {
-         return () if $res->{Body} !~ m{<resource[^>]+type="$n">(.+?)</resource>}s;
+         return () if $body !~ m{<resource[^>]+type="$n">(.+?)</resource>}s;
          $1 =~ m{<identifier>(.+?)</identifier>}g;
     }
     my @ann = extractids 1;

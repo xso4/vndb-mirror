@@ -2,13 +2,12 @@ package VNTask::EL::AppStore;
 
 use v5.36;
 use VNTask::ExtLinks;
-use FU::Util 'json_parse';
 
 
 sub try($task, $lnk, $region=0) {
     my $res = http_get 'https://itunes.apple.com/lookup?id='.$lnk->value . ($region ? '&country='.$lnk->data : '');
-    die "Unexpected API response: $res->{Status} $res->{Reason}\n" if $res->{Status} != 200;
-    my $data = eval { json_parse $res->{Body} } || die "Invalid JSON: $res->{Body}\n";
+    $res->expect(200);
+    my $data = $res->json;
 
     if ($data->{resultCount} >= 1) {
         # API includes some pretty useful information, may be worth storing somewhere...

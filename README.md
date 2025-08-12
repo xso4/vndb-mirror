@@ -144,8 +144,6 @@ General:
 - Crypt::ScryptKDF
 - Crypt::URandom
 - FU
-- LWP::Protocol::https
-- LWP::UserAgent (libwww-perl)
 - Location (from [libloc](https://www.ipfire.org/location), optional)
 - Text::MultiMarkdown
 

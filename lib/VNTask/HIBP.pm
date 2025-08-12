@@ -40,14 +40,13 @@ task hibp => delay => '2m', sub($task) {
     $task->item(sprintf '%04X', $num);
 
     my($data, $count) = ('', 0);
-    for my $n (0..15) {
-        my $uri = sprintf '%s%04X%X', $api, $num, $n;
-        my $res = http_get $uri, task => 'HIBP Fetcher';
-        die "Unexpected response from $uri: $res->{Reason}\n" if $res->{Status} != 200;
-        die "Empty response from $uri\n" if !length $res->{Body};
+    my @res = http_get [map sprintf('%s%04X%X', $api, $num, $_), 0..15 ], task => 'HIBP Fetcher';
+    for my ($n, $res) (builtin::indexed(@res)) {
+        $res->expect(200);
+        $res->err("Empty response") if !length $res->body;
         for (split /\r?\n/, $res->{Body}) {
             # 40-5 -> 35 hex chars per hash; 16 of which we discard so 19 we grab.
-            warn "Unrecognized line in $uri: $_\n" if !/^([a-fA-F0-9]{19})[a-fA-F0-9]{16}:[0-9]+$/;
+            $res->err("Unrecognized line: $_") if !/^([a-fA-F0-9]{19})[a-fA-F0-9]{16}:[0-9]+$/;
             $count++;
             $data .= pack 'H*', $n.$1;
         }

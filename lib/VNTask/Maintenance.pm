@@ -24,6 +24,21 @@ task logrotate => delay => '23h', align_div => '24h', align_add => '1m', sub {
 };
 
 
+task httpcache => delay => '40m', align_div => '1h', align_add => '10m', sub($task) {
+    my $dir = config->{var_path}.'/tmp/task-http';
+    opendir my $D, $dir or return;
+    my($count, $size) = (0,0);
+    while (local $_ = readdir $D) {
+        $_ = "$dir/$_";
+        next if !-f || (stat)[10] > time-60;
+        $count++;
+        $size += -s;
+        unlink or warn "Unable to rm $_: $!";
+    }
+    $task->done('%d files %.0f KiB', $count, $size/1024);
+};
+
+
 # VN cache uses current date to determine which releases have been "released", so should be updated daily.
 # (Can be limited to only update VNs with releases around the current date, but this is fast enough)
 task vncache => delay => '23h', align_div => '24h', align_add => '10m', sub($task) {

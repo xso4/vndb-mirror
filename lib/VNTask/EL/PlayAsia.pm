@@ -20,23 +20,17 @@ sub value2pax($s) {
 sub fetch($task, $lnk) {
     my $uri = config->{playasia_api}.'&query=info&pax='.value2pax($lnk->value).'&mask=aps';
     my $res = http_get $uri, task => 'Affiliate Crawler';
-    die "Unexpected response: $res->{Status} $res->{Reason}\n" if $res->{Status} ne 200;
+    $res->expect(200);
 
-    my $err = $res->{Body} =~ /<errorstring>\s*([^<]+)\s*<\/errorstring>/ ? $1 : '';
-    my $url = $res->{Body} =~ /<affiliate_url>\s*([^<]+)\s*<\/affiliate_url>/ ? $1 : '';
-    my $slug = $url =~ m{^https://www\.play-asia\.com/([^/]+)/13/.*} ? $1 : '';
-    my $onsale = $res->{Body} =~ /<on_sale>\s*yes/ ? 1 : 0;
-    my $price = $onsale && $res->{Body} =~ /<price>\s*(\d+(?:\.\d+)?)\s*<\/price>/ && $1 ? sprintf('US$ %.2f', $1) : '';
+    my $text = $res->text;
+    $res->err($1) if $text =~ /<errorstring>\s*([^<]+)\s*<\/errorstring>/;
+    $res->err('no URL found') if $text !~ /<affiliate_url>\s*([^<]+)\s*<\/affiliate_url>/;
+    my $slug = $1 =~ m{^https://www\.play-asia\.com/([^/]+)/13/.*} ? $1 : '';
+    my $onsale = $text =~ /<on_sale>\s*yes/ ? 1 : 0;
+    my $price = $onsale && $text =~ /<price>\s*(\d+(?:\.\d+)?)\s*<\/price>/ && $1 ? sprintf('US$ %.2f', $1) : '';
 
-    $err ||= 'ERROR: no URL found' if !$url;
-
-    if ($err) {
-        $lnk->save(dead => 1);
-        $task->done($err);
-    } else {
-        $lnk->save(price => $price, data => $slug);
-        $task->done('Available at /%s/ for %s', $slug, $price);
-    }
+    $lnk->save(price => $price, data => $slug);
+    $task->done('Available at /%s/ for %s', $slug, $price);
 }
 
 # PlayAsia API has pretty strict rate limits, we'll need a long update frequency.

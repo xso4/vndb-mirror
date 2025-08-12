@@ -3,7 +3,6 @@ package VNTask::EL::Wikidata;
 use v5.36;
 use VNTask::ExtLinks;
 use FU::SQL;
-use FU::Util 'json_parse';
 
 my $api = 'https://www.wikidata.org/w/api.php';
 
@@ -52,12 +51,10 @@ sub fetch($task, @links) {
         .join '|', map "Q$_->{value}", @links;
 
     my $res = http_get $uri, task => 'Wikidata Fetcher';
-    die "Unexpected API response: $res->{Status} $res->{Reason}\n" if $res->{Status} != 200;
-    my $data = eval { json_parse $res->{Body}, utf8 => 1 } || die "Invalid JSON: $res->{Body}\n";
+    $res->expect(200);
+    my $data = $res->json;
 
-    # Unfortunately, if even a single ID does not exist, the entire response is
-    # an error for just that ID. Best we can do is mark it as dead and let the
-    # other IDs get re-fetched next time.
+    # An invalid ID can cause the entire response to be an error for that ID.
     my $err = $data->{error};
     if ($err && $err->{id}) {
         my $id = $err->{id} =~ s/^Q//r;
