@@ -3,12 +3,8 @@ package VNTask::EL::MangaGamer;
 use v5.36;
 use VNTask::ExtLinks;
 
-my $r18url  = 'https://www.mangagamer.com/r18/detail.php?product_code=';
-my $mainurl = 'https://www.mangagamer.com/detail.php?product_code=';
-
 sub trysite($task, $lnk, $main) {
-    my $uri = +($main ? $mainurl : $r18url).$lnk->value;
-    my $res = http_get $uri, task => 'Affiliate Crawler';
+    my $res = http_get $lnk->url($main), task => 'Affiliate Crawler';
 
     $res->dead('Not found') if $res->code eq 404 || $res->location =~ qr{/r18/index\.php$};
     $res->expect(200);

@@ -222,7 +222,7 @@ sub http_get($uri, %opt) {
     my $path = config->{var_path}.'/tmp/task-http';
     mkdir $path;
     my @uri = ref $uri ? @$uri : ($uri);
-    my $fn = substr($uri[0] =~ s{^https?://}{}r =~ s/[^a-zA-Z0-9_-]+/-/rg, 0, 50).'-'.substr(sha1_hex(join "\n", @uri), 0, 8);
+    my $fn = substr($uri[0] =~ s{^https?://}{}r =~ s/[^a-zA-Z0-9_.-]+/-/rg, 0, 80).'-'.substr(sha1_hex(join "\n", @uri), 0, 8);
 
     my @resp = map +{
         ExitCode => -1,

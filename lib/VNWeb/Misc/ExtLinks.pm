@@ -102,7 +102,8 @@ sub listing_($opt, $list, $count) {
                 td_ sub {
                     join_ ',', sub {
                         a_ href => "/$_", $_;
-                    }, $_->{entry}->@*;
+                    }, @{$_->{entry}}[0..min 4, $#{$_->{entry}}];
+                    txt_ ',+'.($_->{entry}->@*-5) if $_->{entry}->@* > 5;
                 };
             } for @$list;
         };

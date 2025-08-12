@@ -30,7 +30,7 @@ sub fetch($task, $lnk) {
     my $price = $onsale && $text =~ /<price>\s*(\d+(?:\.\d+)?)\s*<\/price>/ && $1 ? sprintf('US$ %.2f', $1) : '';
 
     $lnk->save(price => $price, data => $slug);
-    $task->done('Available at /%s/ for %s', $slug, $price);
+    $task->done('%s at /%s/', $price ? "Available for $price" : 'Out of stock', $slug);
 }
 
 # PlayAsia API has pretty strict rate limits, we'll need a long update frequency.
