@@ -1,8 +1,9 @@
 package VNWeb::Misc::ExtLinks;
 
 use VNWeb::Prelude;
-use VNDB::ExtLinks 'extlink_parse', 'extlink_split', 'extlink_fmt';
+use VNDB::ExtLinks 'extlink_parse', 'extlink_split', 'extlink_fmt', '%LINKS';
 use FU::Util 'uri_escape';
+use experimental 'builtin';
 
 
 js_api ExtlinkParse => { url => {} }, sub($data) {
@@ -11,6 +12,7 @@ js_api ExtlinkParse => { url => {} }, sub($data) {
 };
 
 
+# TODO: All ages and intervals should have the full timestamp as title.
 sub fmtage2($t) { fmtage($t) =~ s/ ago//r }
 
 sub heading_ {
@@ -93,12 +95,11 @@ sub listing_($opt, $list, $count) {
             } };
             tr_ sub {
                 td_ class => 'tc1', sub {
-                    txt_ $VNDB::ExtLinks::LINKS{$_->{site}}{label};
-                    txt_ ' » ';
-                    a_ href => extlink_fmt($_->{site}, $_->{value}, $_->{data}), $_->{value};
+                    a_ href => "/el$_->{id}", "$LINKS{$_->{site}}{label} » $_->{value}";
+                    #a_ href => extlink_fmt($_->{site}, $_->{value}, $_->{data}), $_->{value};
                 };
                 td_ $_->{lastfetch} ? fmtage $_->{lastfetch} : 'never';
-                td_ $_->{deadsince} ? fmtage2 $_->{deadsince} : '-';
+                td_ $_->{deadsince} ? sub { txt_ sprintf '%s (%d)', fmtage2($_->{deadsince}), $_->{deadcount} } : '-';
                 td_ sub {
                     join_ ',', sub {
                         a_ href => "/$_", $_;
@@ -129,7 +130,7 @@ FU::get '/el', sub {
 
     my $count = fu->SQL('SELECT count(*) FROM extlinks WHERE', $where)->val;
     my $list = $count && fu->SQL('
-        SELECT id, site, value, data, lastfetch, deadsince
+        SELECT id, site, value, data, lastfetch, deadsince, deadcount
           FROM extlinks
          WHERE', $where, '
          ORDER BY', RAW {fetch => 'lastfetch', dead => 'deadsince'}->{$opt->{s}}, RAW {qw|a ASC d DESC|}->{$opt->{o}}, ' NULLS LAST, id
@@ -148,6 +149,110 @@ FU::get '/el', sub {
             heading_;
         };
         listing_ $opt, $list, $count if $count;
+    };
+};
+
+
+FU::get qr{/el($RE{num})}, sub($id) {
+    fu->denied if !auth;
+
+    my $lnk = fu->sql('
+        SELECT id, site, value, data, price, queue, lastfetch, nextfetch, deadsince, deadcount
+          FROM extlinks
+         WHERE c_ref AND id = $1', $id
+    )->rowh || fu->notfound;
+
+    my $entries = fu->sql('
+                 SELECT l.link, l.id, e.title FROM releases_extlinks  l JOIN releasest    e ON e.id = l.id WHERE NOT e.hidden AND l.link = $1
+       UNION ALL SELECT l.link, l.id, e.title FROM producers_extlinks l JOIN producerst   e ON e.id = l.id WHERE NOT e.hidden AND l.link = $1
+       UNION ALL SELECT l.link, l.id, e.title FROM staff_extlinks     l JOIN staff_aliast e ON e.id = l.id WHERE NOT e.hidden AND l.link = $1 AND e.main = e.aid
+       UNION ALL SELECT l.link, l.id, e.title FROM vn_extlinks        l JOIN vnt          e ON e.id = l.id WHERE NOT e.hidden AND l.link = $1
+       ORDER BY id
+    ', $id)->allh;
+
+    my $fetch = fu->sql('SELECT id, date, dead, detail FROM extlinks_fetch WHERE id = $1 ORDER BY date DESC LIMIT 50', $id)->allh;
+
+    my $title = "$LINKS{$lnk->{site}}{label} » $lnk->{value}";
+    framework_ title => $title, sub {
+        article_ sub {
+            h1_ $title;
+            table_ class => 'stripe', sub {
+                tr_ sub {
+                    td_ 'Type';
+                    td_ $LINKS{$lnk->{site}}{label};
+                };
+                tr_ sub {
+                    td_ 'URL';
+                    td_ sub {
+                        a_ href => extlink_fmt($lnk->{site}, $lnk->{value}, $lnk->{data}), sub {
+                            my $i = 0;
+                            join_ '', sub {
+                                small_ $_ if $i % 2 == 0;
+                                txt_ $_ if $i % 2 == 1;
+                                $i++;
+                            }, extlink_split($lnk->{site}, $lnk->{value}, $lnk->{data})->@*;
+                        };
+                    };
+                };
+                tr_ sub {
+                    td_ 'Price';
+                    td_ $lnk->{price};
+                } if $lnk->{price};
+                tr_ sub {
+                    td_ 'Status';
+                    td_ !$lnk->{lastfetch} ? 'Unknown' :
+                        !$lnk->{deadsince} ? 'Active' :
+                        sprintf 'Dead for %d checks in the past %s', $lnk->{deadcount}, fmtage2($lnk->{deadsince});
+                };
+                tr_ sub {
+                    td_ 'Last check';
+                    td_ $lnk->{lastfetch} ? fmtage $lnk->{lastfetch} : 'Never';
+                };
+                tr_ sub {
+                    td_ 'Next check';
+                    td_ $lnk->{queue} ? sub {
+                        txt_ 'Queued in ';
+                        a_ href => "/el?qu=$lnk->{queue}", $lnk->{queue};
+                        txt_ ' in ~'.fmtinterval($lnk->{nextfetch} - time);
+                    } : 'Not queued';
+                };
+                tr_ sub {
+                    td_ 'Linked from';
+                    td_ sub {
+                        join_ \&br_, sub {
+                            small_ $_->{id}.':';
+                            a_ href => "/$_->{id}", tattr $_;
+                        }, @$entries;
+                    };
+                };
+            };
+        };
+
+        return if !@$fetch;
+        nav_ sub {
+            h1_ 'Check history';
+        };
+        article_ class => 'browse', sub {
+            table_ class => 'stripe', sub {
+                tr_ sub {
+                    my $f = $_;
+                    td_ class => 'tc1', fmtdate $f->{date}, 1;
+                    td_ $f->{dead} ? 'Dead' : 'Active';
+                    td_ sub {
+                        join_ ' ', sub {
+                            my($k, $v) = ($_, $f->{detail}{$_});
+                            if (builtin::is_bool($v)) {
+                                strong_ $k if $v;
+                                small_ $k if !$v;
+                            } else {
+                                strong_ "$k=";
+                                txt_ ref $v ? json_fmt($v) : $v;
+                            }
+                        }, sort keys $f->{detail}->%*
+                    };
+                } for @$fetch;
+            }
+        }
     };
 };
 

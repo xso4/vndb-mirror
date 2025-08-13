@@ -20,7 +20,7 @@ our @EXPORT = (qw|
     imgsize
     norm_ip
     minage
-    fmtvote fmtmedia fmtage fmtdate fmtrating fmtspoil fmtanimation fmtbirthday
+    fmtvote fmtmedia fmtinterval fmtage fmtdate fmtrating fmtspoil fmtanimation fmtbirthday
     rdate
     imgpath imgurl thumburl imgiv
     tlang tattr
@@ -180,9 +180,8 @@ sub fmtmedia($med, $qty) {
         $med->{ $qty > 1 ? 'plural' : 'txt' };
 }
 
-# Formats a UNIX timestamp as a '<number> <unit> ago' string
-sub fmtage($ts) {
-    my $a = time - $ts;
+# Formats a (positive) number of seconds as an interval.
+sub fmtinterval($a) {
     my($t, $single, $plural) =
         $a > 60*60*24*365*2       ? ( $a/60/60/24/365,      'year',  'years'  ) :
         $a > 60*60*24*(365/12)*2  ? ( $a/60/60/24/(365/12), 'month', 'months' ) :
@@ -191,9 +190,12 @@ sub fmtage($ts) {
         $a > 60*60*2              ? ( $a/60/60,             'hour',  'hours'  ) :
         $a > 60*2                 ? ( $a/60,                'min',   'min'    ) :
                                     ( $a,                   'sec',   'sec'    );
-    $t = sprintf '%d', $t;
-    sprintf '%d %s ago', $t, $t == 1 ? $single : $plural;
+    $t = sprintf '%.0f', $t;
+    sprintf '%.0f %s', $t, $t == 1 ? $single : $plural;
 }
+
+# Formats a UNIX timestamp as a '<number> <unit> ago' string
+sub fmtage($ts) { fmtinterval(time - $ts) . ' ago' }
 
 
 # argument: unix timestamp and optional format (compact/full)
