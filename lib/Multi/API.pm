@@ -940,7 +940,7 @@ my %GET_CHARACTER = (
         $_[0]{original} = undef if $_[0]{original} eq $_[0]{name};
         $_[0]{gender}   = undef if !$_[0]{gender};
         $_[0]{bloodt}   = undef if $_[0]{bloodt} eq 'unknown';
-        $_[0]{birthday} = [ int($_[0]{birthday}/100)||undef, ($_[0]{birthday}%100)||undef ];
+        $_[0]{birthday} = [ ($_[0]{birthday}%100)||undef, int($_[0]{birthday}/100)||undef ];
       },
     },
     details => {
