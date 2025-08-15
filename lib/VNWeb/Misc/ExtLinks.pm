@@ -15,25 +15,8 @@ js_api ExtlinkParse => { url => {} }, sub($data) {
 # TODO: All ages and intervals should have the full timestamp as title.
 sub fmtage2($t) { fmtage($t) =~ s/ ago//r }
 
-sub heading_ {
-    h1_ 'Link Fetching Status';
-    p_ sub {
-        strong_ 'EXPERIMENTAL!';
-        ul_ sub {
-            li_ 'This feature is still in development, a lot of functionality is still missing.';
-            li_ 'Only a few known websites are being checked for now, this list is likely to expand in the future.';
-            li_ 'Link checking is inherently messy and relies on shitty heuristics, links may get flagged as dead even if they are still alive and vice versa.';
-            li_ 'Always manually verify a link before editing the database.';
-        };
-    };
-    p_ class => 'center', sub {
-        strong_ 'Queues' if fu->path eq '/el/queues';
-        a_ href => '/el/queues', 'Queues' if fu->path ne '/el/queues';
-        small_ ' | ';
-        strong_ 'Links' if fu->path eq '/el';
-        a_ href => '/el', 'Links' if fu->path ne '/el';
-    };
-}
+my @FLAGS = qw/redirect unrecognized serverror/;
+
 
 FU::get '/el/queues', sub {
     fu->denied if !auth;
@@ -49,9 +32,9 @@ FU::get '/el/queues', sub {
          ORDER BY queue
     ')->allh;
 
-    framework_ title => 'Link Fetching Status', sub {
+    framework_ title => 'Link Fetching Queues', sub {
         article_ sub {
-            heading_;
+            h1_ 'Link Fetching Queues';
         };
         article_ class => 'browse', sub {
             table_ class => 'stripe', sub {
@@ -94,17 +77,21 @@ sub listing_($opt, $list, $count) {
                 td_ 'Entry';
             } };
             tr_ sub {
+                my $l = $_;
                 td_ class => 'tc1', sub {
-                    a_ href => "/el$_->{id}", "$LINKS{$_->{site}}{label} » $_->{value}";
-                    #a_ href => extlink_fmt($_->{site}, $_->{value}, $_->{data}), $_->{value};
+                    a_ href => "/el$l->{id}", "$LINKS{$l->{site}}{label} » $l->{value}";
                 };
-                td_ $_->{lastfetch} ? fmtage $_->{lastfetch} : 'never';
-                td_ $_->{deadsince} ? sub { txt_ sprintf '%s (%d)', fmtage2($_->{deadsince}), $_->{deadcount} } : '-';
+                td_ $l->{lastfetch} ? fmtage $l->{lastfetch} : 'never';
+                my @dead = (
+                    $l->{deadsince} ? sprintf '%s (%d)', fmtage2($l->{deadsince}), $l->{deadcount} : (),
+                    grep $l->{$_}, @FLAGS
+                );
+                td_ @dead ? join ', ', @dead : '-';
                 td_ sub {
                     join_ ',', sub {
                         a_ href => "/$_", $_;
-                    }, @{$_->{entry}}[0..min 4, $#{$_->{entry}}];
-                    txt_ ',+'.($_->{entry}->@*-5) if $_->{entry}->@* > 5;
+                    }, @{$l->{entry}}[0..min 4, $#{$l->{entry}}];
+                    txt_ ',+'.($l->{entry}->@*-5) if $l->{entry}->@* > 5;
                 };
             } for @$list;
         };
@@ -120,17 +107,21 @@ FU::get '/el', sub {
         o => { onerror => 'd', enum => ['a', 'd'] },
         p  => { upage => 1 },
         qu => { onerror => '' },
-        de => { undefbool => 1 },
+        ty => { onerror => '', enum => \%LINKS },
+        de => { onerror => '', enum => [0,1,2,3] },
+        (map +($_ => { onerror => '', enum => [1] }), @FLAGS),
     );
 
     my $where = AND
         'lastfetch < NOW()',
         $opt->{qu} ? SQL 'queue =', $opt->{qu} : 'queue IS NOT NULL',
-        $opt->{de} ? 'deadsince IS NOT NULL' : defined $opt->{de} ? 'deadsince IS NULL' : ();
+        $opt->{ty} ? SQL 'site =', $opt->{ty} : (),
+        !length $opt->{de} ? () : $opt->{de} ? SQL 'deadcount >=', $opt->{de} : 'deadcount IS NULL',
+        (grep $opt->{$_}, @FLAGS) ? OR(map RAW($_), grep $opt->{$_}, @FLAGS) : ();
 
     my $count = fu->SQL('SELECT count(*) FROM extlinks WHERE', $where)->val;
     my $list = $count && fu->SQL('
-        SELECT id, site, value, data, lastfetch, deadsince, deadcount
+        SELECT id, site, value, data, lastfetch, deadsince, deadcount,', COMMA(map RAW($_), @FLAGS), '
           FROM extlinks
          WHERE', $where, '
          ORDER BY', RAW {fetch => 'lastfetch', dead => 'deadsince'}->{$opt->{s}}, RAW {qw|a ASC d DESC|}->{$opt->{o}}, ' NULLS LAST, id
@@ -144,9 +135,64 @@ FU::get '/el', sub {
        UNION ALL SELECT l.link, l.id FROM vn_extlinks        l JOIN vn        e ON e.id = l.id WHERE NOT e.hidden AND l.link', IN($_)
     }, $list) if $count;
 
+    my sub opt_($type, $key, $val, $label) {
+        input_ type => $type, name => $key, id => "form_${key}{$val}", value => $val, $opt->{$key} eq $val ? (checked => 'checked') : ();
+        label_ for => "form_${key}{$val}", ' '.$label;
+    };
+
     framework_ title => 'Link Fetching Status', sub {
         article_ sub {
-            heading_;
+            h1_ 'Link Fetching Status';
+            p_ sub {
+                strong_ 'EXPERIMENTAL!';
+                ul_ sub {
+                    li_ 'This feature is still in development, a lot of functionality is still missing.';
+                    li_ 'Only a few known websites are being checked for now, this list is likely to expand in the future.';
+                    li_ 'Link checking is inherently messy and relies on shitty heuristics, links may get flagged as dead even if they are still alive and vice versa.';
+                    li_ 'Always manually verify a link before editing the database.';
+                };
+            };
+            form_ sub {
+                table_ style => 'margin: auto', sub {
+                    tr_ sub {
+                        td_ 'Queue';
+                        td_ sub {
+                            input_ type => 'text', name => 'qu', value => $opt->{qu};
+                            txt_ ' ';
+                            a_ href => '/el/queues', 'Queue list';
+                        }
+                    };
+                    tr_ sub {
+                        td_ 'Type';
+                        td_ sub {
+                            select_ name => 'ty', sub {
+                                option_ value => '', selected => 'selected', '-- all --';
+                                option_ value => $_, selected => $opt->{ty} eq $_ ? 'selected' : undef, $LINKS{$_}{label} for sort keys %LINKS;
+                            };
+                        };
+                    };
+                    tr_ sub {
+                        td_ 'State';
+                        td_ sub {
+                            opt_ radio => de => '', 'Any'; small_ ' / ';
+                            opt_ radio => de => 0, 'Active'; small_ ' / ';
+                            opt_ radio => de => 1, 'Dead (1+)'; small_ ' / ';
+                            opt_ radio => de => 2, 'Dead (2+)'; small_ ' / ';
+                            opt_ radio => de => 3, 'Dead (3+)';
+                        };
+                    };
+                    tr_ sub {
+                        td_ 'Flags';
+                        td_ sub {
+                            join_ sub { small_ ' / ' }, sub { opt_ checkbox => $_ => 1, $_ }, @FLAGS;
+                        };
+                    };
+                    tr_ sub {
+                        td_ '';
+                        td_ sub { input_ type => 'submit', class => 'submit', value => 'Update' };
+                    }
+                };
+            }
         };
         listing_ $opt, $list, $count if $count;
     };

@@ -470,6 +470,9 @@ CREATE TABLE extlinks (
   nextfetch  timestamptz,
   queue      text, -- tasks.id, or NULL if this link isn't being checked
   deadcount  integer,
+  redirect   boolean NOT NULL DEFAULT FALSE,
+  unrecognized boolean NOT NULL DEFAULT FALSE,
+  serverror  boolean NOT NULL DEFAULT FALSE,
   CONSTRAINT extlinks_queue CHECK((c_ref AND queue IS NOT NULL AND nextfetch IS NOT NULL) OR (queue IS NULL AND nextfetch IS NULL))
 );
 

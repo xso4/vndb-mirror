@@ -132,16 +132,20 @@ sub save($l, %opt) {
     my $q = $l->triage;
 
     $opt{detail} = undef if ref $opt{detail} eq 'HASH' && !keys $opt{detail}->%*;
+    my $d = $opt{detail} || {};
 
     $l->{task}->SQL('UPDATE extlinks', SET({
         queue     => $q ? SQL('CASE WHEN c_ref THEN', $q->{id}, 'ELSE NULL END') : undef,
         nextfetch => SQL('CASE WHEN c_ref THEN', $l->nextfetch(), '::timestamptz ELSE NULL END'),
         lastfetch => $l->{lastfetch},
         $opt{didnotfetch} ? () : (
-            deadsince => $opt{dead} ? SQL 'COALESCE(deadsince, NOW())' : undef,
-            deadcount => $opt{dead} ? SQL 'COALESCE(deadcount, 0)+1' : undef,
+            deadsince    => $opt{dead} ? SQL 'COALESCE(deadsince, NOW())' : undef,
+            deadcount    => $opt{dead} ? SQL 'COALESCE(deadcount, 0)+1' : undef,
+            redirect     => exists $d->{location},
+            unrecognized => !!$d->{unregonized},
+            serverror    => !!($d->{code} && $d->{code} >= 500),
+            map exists($opt{$_}) ? ($_, $opt{$_}) : (), qw/data price/,
         ),
-        map exists($opt{$_}) ? ($_, $opt{$_}) : (), qw/data price/
     }), 'WHERE id =', $l->{id})->exec;
 
     $l->{task}->SQL('INSERT INTO extlinks_fetch', VALUES {
