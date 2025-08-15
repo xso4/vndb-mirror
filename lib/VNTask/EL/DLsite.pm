@@ -24,7 +24,7 @@ sub fetch($task, $lnk) {
         }
     }
 
-    my $body = $res->text;
+    my $body = $res->text(1);
     $res->dead('Not found') if $res->code eq 404 or $body !~ /"id":"\Q$id\E",/;
 
     my $price =

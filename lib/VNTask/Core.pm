@@ -250,6 +250,7 @@ package VNTask::Core::HTTPResponse;
 
 use v5.36;
 use overload '""' => sub($r,@) { "$r->{Uri}: ". ($r->{ErrorMsg} || "Unexpected response ($r->{Code})")."\n" };
+use Encode ();
 use FU::Util 'json_parse';
 
 sub _read($r) {
@@ -297,9 +298,10 @@ sub expect($r, $code) {
 sub code($r) { $r->{Code} }
 sub location($r) { $r->{Location}||'' }
 sub body($r) { $r->{Body} }
-sub text($r) {
-    $r->err("Invalid UTF-8") if !utf8::decode(my $v = $r->{Body});
-    $v;
+sub text($r,$lax=0) {
+    eval {
+        Encode::decode('UTF-8', $r->{Body}, ($lax ? Encode::FB_DEFAULT : Encode::FB_CROAK) | Encode::LEAVE_SRC);
+    } // $r->err('Invalid UTF-8');
 }
 sub json($r) {
     eval { json_parse $r->{Body}, utf8 => 1 } || $r->err("Invalid JSON")
