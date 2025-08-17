@@ -19,7 +19,8 @@ widget('ImageFlagging', initvnode => {
         if (load_done) return;
         loadApi.call({excl_voted}, r => {
             load_done = r.results.length < 30;
-            data.images.push(...r.results);
+            const has = new Set(data.images.map(i => i.id));
+            data.images.push(...r.results.filter(i => !has.has(i.id)));
             if (data.images.length > 1000) {
                 data.images.splice(0, 100);
                 img_idx -= 100;
