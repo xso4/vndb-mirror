@@ -247,7 +247,7 @@ our %LINKS = (
         { ent   => 'sp'
         , label => 'Fanbox'
         , fmt   => 'https://%s.fanbox.cc/'
-        , parse => qr{([a-z0-9-]+)\.fanbox\.cc/.*}
+        , parse => qr{(?:www\.fanbox\.cc/@([a-z0-9-]+)|([a-z0-9-]+)\.fanbox\.cc/.*)}
         },
     fantia =>
         { ent   => 'sp'
