@@ -138,9 +138,10 @@ sub api_patch($path, $req_schema, $sub) {
         if (!$req) {
             my $err = $@;
             if ($err isa 'FU::Validate::err') {
-                err 400, $err->{keys} ? "Unknown member '$err->{keys}[0]'." : 'Invalid request body.', +($err->errors)[0] if !$err->{errors};
+                my $fullerr = +($err->errors)[0];
+                err 400, $err->{keys} ? "Unknown member '$err->{keys}[0]'." : 'Invalid request body.', $fullerr if !$err->{errors};
                 $err = $err->{errors}[0]//{};
-                err 400, "Invalid '$err->{key}' member.", +($err->errors)[0] if $err->{key};
+                err 400, "Invalid '$err->{key}' member.", $fullerr if $err->{key};
             }
             err 400, 'Invalid request body.', "$err";
         }
