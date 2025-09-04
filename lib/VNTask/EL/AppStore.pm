@@ -32,6 +32,7 @@ el_queue 'el/appstore',
     sub($task, $lnk) {
         # Try fetching without the region first, most products aren't region-locked.
         return if eval { try $task, $lnk, 0; 1 };
+        die $@ if !length $lnk->data;
         try $task, $lnk, 1;
     };
 
