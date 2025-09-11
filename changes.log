@@ -1,4 +1,5 @@
 # This is for user-visible changes only and powers the list at https://vndb.org/changes
+20250911 Add button to override the other edit when an edit conflict has been detected.
 20250811 Add Estonian language (t950.1964)
 20250810 Improve normalization for Apple App Store links and add link checker
 20250803 Anime info fetched from AniDB now includes links to MyAnimeList (takes a month before all entries have been updated)

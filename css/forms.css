@@ -133,7 +133,7 @@ form.invalid-form {
 /* Form submit box, with optional edit summmary */
 article.submit {
     text-align: center;
-    input[type=submit] { width: 150px }
+    > input[type=submit] { width: 150px }
     .textpreview, textarea { text-align: left; margin: 0 auto; width: 600px }
 }
 
