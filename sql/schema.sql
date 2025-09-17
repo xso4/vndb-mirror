@@ -143,6 +143,8 @@ CREATE TYPE extlink_site AS ENUM (
     'itch_dev',
     'jastusa',
     'jlist',
+    'johren',
+    'kagura',
     'kofi',
     'mbrainz',
     'melon',

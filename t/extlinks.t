@@ -55,6 +55,13 @@ my @tests = qw{
 
     appstore 1071310449 us https://apps.apple.com/us/app/choices-stories-you-play/id1071310449
     appstore 1071310449 -  https://itunes.apple.com/app/id1071310449?ok
+
+    johren dawnofkaguranatsu-ch - https://www.johren.net/games/download/dawnofkaguranatsu-ch/
+    johren alphanighthawk-en    - https://www.johren.games/games/download/alphanighthawk-en/
+
+    kagura scars-of-summer-patch        - https://kaguragamer.com/product/scars-of-summer-patch/
+    kagura forsaken-quartet-patch       - https://kaguragamesjp.com/product/forsaken-quartet-patch/
+    kagura lessons-with-chii-chan-patch - https://kaguragames.com/lessons-with-chii-chan-patch/
 };
 
 plan tests => @tests/4*6;

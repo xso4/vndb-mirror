@@ -357,6 +357,18 @@ our %LINKS = (
         , parse => qr{(?:www\.)?(?:jlist|jbox)\.com/shop/product/([^/#?]+).*}
         , affil => !!config->{jlist_affiliate}
         },
+    johren =>
+        { ent   => 'R'
+        , label => 'Johren'
+        , fmt   => 'https://www.johren.games/games/download/%s/'
+        , parse => qr{www\.johren\.(?:net|games)/games/download/([^/#?]+).*}
+        },
+    kagura =>
+        { ent   => 'r'
+        , label => 'Kagura Games'
+        , fmt   => 'https://www.kaguragames.com/product/%s/'
+        , parse => qr{(?:www\.)?kaguragame(?:r|s|sjp)\.com/(?:product/)?([^/#?]+).*}
+        },
     kofi =>
         { ent   => 's'
         , label => 'Ko-fi'
@@ -732,8 +744,10 @@ sub enrich_vislinks($type, $enabled, @obj) {
         l 'substar';
         l 'gamejolt';
         l 'denpa';
-        l 'jlist';
         l 'jastusa';
+        l 'jlist';
+        l 'johren';
+        l 'kagura';
         l 'fakku';
         l 'appstore';
         l 'googplay';
