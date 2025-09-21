@@ -519,7 +519,7 @@ our %LINKS = (
         { ent   => 'sp'
         , label => 'SoundCloud'
         , fmt   => 'https://soundcloud.com/%s'
-        , parse => qr{soundcloud\.com/([a-z0-9_-]+)}
+        , parse => qr{soundcloud\.com/([A-Za-z0-9_-]+)}
         },
     steam =>
         { ent   => 'r'
