@@ -7,7 +7,7 @@ use v5.36;
 use VNTask::ExtLinks;
 
 sub fetch($task, $lnk) {
-    my $res = http_get $lnk->url;
+    my $res = http_get $lnk->url.'?wcpbc-manual-country=US';
     $res->dead('Not found') if $res->code eq 404;
     $res->dead('Redirect') if $res->location;
     $res->expect(200);
