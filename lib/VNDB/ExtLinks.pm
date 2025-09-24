@@ -367,7 +367,7 @@ our %LINKS = (
         { ent   => 'r'
         , label => 'Kagura Games'
         , fmt   => 'https://www.kaguragames.com/product/%s/'
-        , parse => qr{(?:www\.)?kaguragame(?:r|s|sjp)\.com/(?:product/)?([^/#?]+).*}
+        , parse => qr{(?:www\.)?kaguragames\.com/(?:product/)?([^/#?]+).*}
         },
     kofi =>
         { ent   => 's'

@@ -1,13 +1,13 @@
 package VNTask::EL::WooCommerce;
 
-# Fetcher for WooCommerce-based shops: Denpasoft & J-List.
+# Fetcher for WooCommerce-based shops: Denpasoft, J-List & Kagura Games.
 # Assumes the store currency is USD.
 
 use v5.36;
 use VNTask::ExtLinks;
 
 sub fetch($task, $lnk) {
-    my $res = http_get $lnk->url, task => 'Affiliate Crawler';
+    my $res = http_get $lnk->url;
     $res->dead('Not found') if $res->code eq 404;
     $res->dead('Redirect') if $res->location;
     $res->expect(200);
@@ -33,6 +33,12 @@ el_queue 'el/jlist',
     delay  => '10m',
     freq   => '3d',
     triage => sub($lnk) { $lnk->site eq 'jlist' },
+    \&fetch;
+
+el_queue 'el/kagura',
+    delay  => '10m',
+    freq   => '3d',
+    triage => sub($lnk) { $lnk->site eq 'kagura' },
     \&fetch;
 
 1;

@@ -59,8 +59,6 @@ my @tests = qw{
     johren dawnofkaguranatsu-ch - https://www.johren.net/games/download/dawnofkaguranatsu-ch/
     johren alphanighthawk-en    - https://www.johren.games/games/download/alphanighthawk-en/
 
-    kagura scars-of-summer-patch        - https://kaguragamer.com/product/scars-of-summer-patch/
-    kagura forsaken-quartet-patch       - https://kaguragamesjp.com/product/forsaken-quartet-patch/
     kagura lessons-with-chii-chan-patch - https://kaguragames.com/lessons-with-chii-chan-patch/
 };
 
