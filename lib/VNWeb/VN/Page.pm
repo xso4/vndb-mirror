@@ -863,8 +863,9 @@ sub screenshots_($v) {
     my @vio = (0,0,0);
     for (@$s) { $sex[$_->{scr}{sexual}]++; $vio[$_->{scr}{violence}]++ }
 
+    my %allrel = map +($_->{id}, 1), $v->{releases}->@*;
     my %rel;
-    push $rel{$_->{rid}}->@*, $_ for grep $_->{rid}, @$s;
+    push $rel{ $_->{rid} && $allrel{$_->{rid}} ? $_->{rid} : ''}->@*, $_ for @$s;
 
     input_ name => 'scrhide_s', id => "scrhide_s$_", type => 'radio', class => 'hidden', $sexs == $_ ? (checked => 'checked') : () for 0..2;
     input_ name => 'scrhide_v', id => "scrhide_v$_", type => 'radio', class => 'hidden', $vios == $_ ? (checked => 'checked') : () for 0..2;
@@ -886,12 +887,12 @@ sub screenshots_($v) {
 
         h1_ 'Screenshots';
 
-        for my $r (grep $rel{$_->{id}}, $v->{releases}->@*) {
+        for my $r ('', grep $rel{$_->{id}}, $v->{releases}->@*) {
             p_ class => 'rel', sub {
                 abbr_ class => "icon-lang-$_->{lang}", title => $LANGUAGE{$_->{lang}}{txt}, '' for $r->{titles}->@*;
                 platform_ $_ for $r->{platforms}->@*;
                 a_ href => "/$r->{id}", tattr $r;
-            };
+            } if $r;
             div_ class => 'scr', sub {
                 a_ href => imgurl($_->{scr}{id}),
                     'data-iv' => "$_->{scr}{width}x$_->{scr}{height}:scr:$_->{scr}{sexual}$_->{scr}{violence}$_->{scr}{votecount}",
@@ -904,7 +905,7 @@ sub screenshots_($v) {
                 sub {
                     my($w, $h) = imgsize $_->{scr}{width}, $_->{scr}{height}, config->{scr_size}->@*;
                     img_ src => imgurl($_->{scr}{id}, 't'), width => $w, height => $h, alt => "Screenshot $_->{scr}{id}";
-                } for $rel{$r->{id}}->@*;
+                } for $rel{$r && $r->{id}}->@*;
             }
         }
     }
