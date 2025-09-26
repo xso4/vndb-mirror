@@ -113,15 +113,15 @@ task cleanimages => delay => '6d', align_div => '7d', align_add => '1d 06:10:00'
     # Delete all images from the `images` table that are not referenced from
     # *anywhere* in the database, including old revisions and links found in
     # comments, descriptions and docs.
-    # The 30 (100, in the case of screenshots) most recently uploaded images of
-    # each type are also kept because there's a good chance they will get
-    # referenced from somewhere, soon.
+    # The 500 most recently uploaded images of each type are kept because
+    # there's still a chance they will get referenced from somewhere in the
+    # near future.
     my $rmrows = $task->sql(q{
     DELETE FROM images WHERE id IN(
       SELECT id FROM images
-       WHERE id NOT IN(SELECT id FROM images WHERE id ^= 'ch' ORDER BY id DESC LIMIT  30)
-         AND id NOT IN(SELECT id FROM images WHERE id ^= 'cv' ORDER BY id DESC LIMIT  30)
-         AND id NOT IN(SELECT id FROM images WHERE id ^= 'sf' ORDER BY id DESC LIMIT 100)
+       WHERE id NOT IN(SELECT id FROM images WHERE id ^= 'ch' ORDER BY id DESC LIMIT 500)
+         AND id NOT IN(SELECT id FROM images WHERE id ^= 'cv' ORDER BY id DESC LIMIT 500)
+         AND id NOT IN(SELECT id FROM images WHERE id ^= 'sf' ORDER BY id DESC LIMIT 500)
       EXCEPT
       SELECT * FROM (
               SELECT scr   FROM vn_screenshots
@@ -168,7 +168,7 @@ task cleanimages => delay => '6d', align_div => '7d', align_add => '1d 06:10:00'
             return if -d;
             if($File::Find::name !~ /$fnmatch$/) {
                 warn "Unknown file: $File::Find::name\n" if $File::Find::name =~ /$dirmatch/;
-            } elsif(!$imgs->{$1.$2}) {
+            } elsif(!$imgs->{$1.$2} && (stat)[9] < time - 86400) {
                 $rmsize += -s;
                 $rmfiles++;
                 unlink $File::Find::name;
