@@ -28,10 +28,11 @@ sub fetch($task, $lnk) {
     $res->dead('Not found') if $res->code eq 404 or $body !~ /"id":"\Q$id\E",/;
 
     my $price =
-        $body =~ m{<div class="work_buy_content"><span class="price">([0-9,]+)<i>円</i></span></div>} ? sprintf('JP¥ %d', $1 =~ s/,//gr) :
-        $body =~ m{<i class="work_jpy">([0-9,]+) JPY</i></span>} ? sprintf('JP¥ %d', $1 =~ s/,//gr) :
-        $body =~ m{"price_with_tax":([0-9]+)} ? sprintf('JP¥ %d', $1) : # <- still included on the page for geo-blocked products
+        $body =~ m{<div class="work_buy_content"><span class="price">([0-9,]+)<i>円</i></span></div>} ? $1 :
+        $body =~ m{<i class="work_jpy">([0-9,]+) JPY</i></span>} ? $1 :
+        $body =~ m{"price_with_tax":([0-9]+)} ? $1 : # <- still included on the page for geo-blocked products
         $res->err('Unable to extract price information');
+    $price = $price eq 0 ? 'free' : sprintf 'JP¥ %d', $price =~ s/,//gr;
 
     $lnk->save(data => $shop, price => $price);
     $task->done("Available at /$shop/ for $price");
