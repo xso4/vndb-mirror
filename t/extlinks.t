@@ -60,6 +60,9 @@ my @tests = qw{
     johren alphanighthawk-en    - https://www.johren.games/games/download/alphanighthawk-en/
 
     kagura lessons-with-chii-chan-patch - https://kaguragames.com/lessons-with-chii-chan-patch/
+
+    patreon mircom - https://www.patreon.com/mircom
+    patreon mircom - https://www.patreon.com/cw/mircom
 };
 
 plan tests => @tests/4*6;

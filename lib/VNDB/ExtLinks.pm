@@ -456,7 +456,7 @@ our %LINKS = (
         { ent   => 'rsp'
         , label => 'Patreon'
         , fmt   => 'https://www.patreon.com/%s'
-        , parse => qr{(?:www\.)?patreon\.com/(?:c/)?(?!user[\?/]|posts[\?/]|join[\?/])([^/?]+).*}
+        , parse => qr{(?:www\.)?patreon\.com/(?:cw?/)?(?!user[\?/]|posts[\?/]|join[\?/])([^/?]+).*}
         },
     patreonp =>
         { ent   => 'r'
