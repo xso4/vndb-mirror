@@ -446,6 +446,15 @@ CREATE TABLE email_optout (
   PRIMARY KEY (mail)
 );
 
+-- engines
+CREATE TABLE engines ( -- List of VN engines, for use with release info
+  id          serial PRIMARY KEY, -- [pub]
+  c_ref       integer NOT NULL DEFAULT 0, -- [pub]
+  state       smallint NOT NULL DEFAULT 0,
+  name        text NOT NULL, -- [pub]
+  description text NOT NULL DEFAULT '' -- [pub]
+);
+
 -- entry_meta
 -- This table is empty and unused in the production database, it mainly serves
 -- to aggregate some useful information from the 'changes' table for the public
@@ -689,8 +698,8 @@ CREATE TABLE releases ( -- dbentry_type=r
   hidden       boolean NOT NULL DEFAULT FALSE,
   c_bundle     boolean NOT NULL DEFAULT FALSE,
   catalog      text NOT NULL DEFAULT '', -- [pub]
-  engine       text NOT NULL DEFAULT '', -- [pub]
-  notes        text NOT NULL DEFAULT '' -- [pub]
+  notes        text NOT NULL DEFAULT '', -- [pub]
+  engine       integer -- [pub]
 );
 
 -- releases_hist
@@ -719,8 +728,8 @@ CREATE TABLE releases_hist (
   uncensored   boolean, -- cf=Ero
   official     boolean NOT NULL DEFAULT TRUE, -- cf=Publication
   catalog      text NOT NULL DEFAULT '', -- cf=Identifiers
-  engine       text NOT NULL DEFAULT '', -- cf=Engine
-  notes        text NOT NULL DEFAULT '' -- cf=Notes
+  notes        text NOT NULL DEFAULT '', -- cf=Notes
+  engine       integer -- cf=Engine
 );
 
 -- releases_drm

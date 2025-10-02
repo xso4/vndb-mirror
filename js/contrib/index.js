@@ -262,6 +262,7 @@ const ImageFlag = initVnode => {
 @include VNEdit.js
 @include Tagmod.js
 @include DRMEdit.js
+@include EngineEdit.js
 @include ProducerEdit.js
 @include StaffEdit.js
 @include DocEdit.js

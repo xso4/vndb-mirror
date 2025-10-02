@@ -29,6 +29,7 @@ GRANT SELECT, INSERT                 ON chars_vns_hist           TO vndb_site;
 GRANT SELECT, INSERT, UPDATE         ON docs                     TO vndb_site;
 GRANT SELECT, INSERT                 ON docs_hist                TO vndb_site;
 GRANT SELECT, INSERT, UPDATE         ON drm                      TO vndb_site;
+GRANT SELECT, INSERT, UPDATE         ON engines                  TO vndb_site;
 GRANT SELECT, INSERT, UPDATE         ON extlinks                 TO vndb_site;
 GRANT SELECT                         ON extlinks_fetch           TO vndb_site;
 GRANT SELECT        , UPDATE         ON global_settings          TO vndb_site;

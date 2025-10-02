@@ -10,6 +10,7 @@ sub enrich_item($r,@) {
     fu->enrich(aoh => 'lang', key => 'rid', sub { SQL('SELECT id, lang, mtl FROM releases_titles WHERE id', IN $_, 'ORDER BY lang') }, $r->{supersedes});
     enrich_image_obj img => $r->{images};
 
+    $r->{engine}    &&= fu->sql('SELECT name FROM engines WHERE id = $1', $r->{engine})->val;
     $r->{titles}    = [ sort { ($b->{lang} eq $r->{olang}) cmp ($a->{lang} eq $r->{olang}) || ($a->{mtl}?1:0) <=> ($b->{mtl}?1:0) || $a->{lang} cmp $b->{lang} } $r->{titles}->@* ];
     $r->{platforms} = [ map $_->{platform}, $r->{platforms}->@* ];
     $r->{resolution} = resolution $r;
@@ -68,7 +69,7 @@ sub _rev_ {
         [ ani_ero_cg => 'Ero animation/cg',    fmt => sub { txt_ fmtanimation $_, 'CGs' } ],
         [ ani_face   => 'Lip/eye animation',   fmt => 'bool' ],
         [ ani_bg     => 'Background effects',  fmt => 'bool' ],
-        [ engine     => 'Engine' ],
+        [ engine     => 'Engine',              fmt => sub { a_ href => '/r/engines?m='.uri_escape($_), $_ } ],
         [ producers  => 'Producers',       fmt => sub {
             a_ href => "/$_->{pid}", tattr $_;
             txt_ ' (';
@@ -76,7 +77,7 @@ sub _rev_ {
             txt_ ')';
         } ],
         [ drm        => 'DRM', fmt => sub {
-            a_ href => '/r/drm?s='.uri_escape($_->{name}), $_->{name};
+            a_ href => '/r/drm?m='.uri_escape($_->{name}), $_->{name};
             txt_ " ($_->{notes})" if length $_->{notes};
         } ],
         [ images     => 'Images', fmt => sub {
@@ -231,7 +232,7 @@ sub _infotable_ {
         tr_ sub {
             td_ 'Engine';
             td_ sub {
-                a_ href => '/r?f='.FU::Validate->compile({advsearch => 'r'})->validate(['engine', '=', $r->{engine}])->enc_query, $r->{engine};
+                a_ href => '/r/engines?m='.uri_escape($r->{engine}), $r->{engine};
             }
         } if length $r->{engine};
 
@@ -242,7 +243,7 @@ sub _infotable_ {
                 my @prop = grep $d->{$_}, keys %DRM_PROPERTY;
                 abbr_ class => "icon-drm-$_", title => $DRM_PROPERTY{$_}, '' for @prop;
                 abbr_ class => 'icon-drm-free', title => 'DRM-free', '' if !@prop;
-                a_ href => '/r/drm?s='.uri_escape($d->{name}), $d->{name};
+                a_ href => '/r/drm?m='.uri_escape($d->{name}), $d->{name};
                 lit_ ' ('.bb_format($d->{notes}, inline => 1).')' if length $d->{notes};
             }, $r->{drm}->@* };
         } if $r->{drm}->@*;

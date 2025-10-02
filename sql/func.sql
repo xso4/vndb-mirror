@@ -926,13 +926,18 @@ BEGIN
   UPDATE releases SET c_bundle = (SELECT COUNT(*) > 1 FROM releases_vn WHERE id = nitemid)
     WHERE nitemid ^= 'r' AND isedit AND id = nitemid;
 
-  -- Update drm.c_ref
+  -- Update drm.c_ref & engines.c_ref
   IF nitemid ^= 'r' THEN
     WITH
       old (id) AS (SELECT r.drm FROM releases_drm_hist r, changes c WHERE NOT ohidden AND r.chid = ochid AND c.id = ochid),
       new (id) AS (SELECT r.drm FROM releases_drm_hist r, changes c WHERE NOT nhidden AND r.chid = nchid AND c.id = nchid),
       ins      AS (UPDATE drm SET c_ref = c_ref + 1 WHERE id IN(SELECT id FROM new EXCEPT SELECT id FROM old))
                    UPDATE drm SET c_ref = c_ref - 1 WHERE id IN(SELECT id FROM old EXCEPT SELECT id FROM new);
+    WITH
+      old (id) AS (SELECT r.engine FROM releases_hist r, changes c WHERE NOT ohidden AND r.chid = ochid AND c.id = ochid),
+      new (id) AS (SELECT r.engine FROM releases_hist r, changes c WHERE NOT nhidden AND r.chid = nchid AND c.id = nchid),
+      ins      AS (UPDATE engines SET c_ref = c_ref + 1 WHERE id IN(SELECT id FROM new EXCEPT SELECT id FROM old))
+                   UPDATE engines SET c_ref = c_ref - 1 WHERE id IN(SELECT id FROM old EXCEPT SELECT id FROM new);
   END IF;
 
   -- Update tags_vn_* when the VN's hidden flag is changed

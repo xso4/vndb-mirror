@@ -7,10 +7,12 @@ FU::get '/r/drm', sub {
     my $opt = fu->query(
         n => { onerror => '' },
         s => { onerror => '' },
+        m => { onerror => '' },
         t => { onerror => undef, enum => [0,1,2] },
         u => { anybool => 1 },
     );
     my $where = AND
+        $opt->{m} ? SQL 'name =', $opt->{m} : (),
         $opt->{s} ? SQL 'name ILIKE', '%'.sql_like($opt->{s}).'%' : (),
         defined $opt->{t} ? SQL 'state =', $opt->{t} : ();
 
@@ -45,7 +47,7 @@ FU::get '/r/drm', sub {
             section_ class => 'drmlist', sub {
                 my $d = $_;
                 h2_ !$d->{c_ref} && !$unused++ ? (id => 'unused') : (), sub {
-                    span_ class => 'strikethrough', $d->{name} if $d->{state} == 2;
+                    span_ class => 'linethrough', $d->{name} if $d->{state} == 2;
                     txt_ $d->{name} if $d->{state} != 2;
                     a_ href => '/r?f='.FU::Validate->compile({advsearch => 'r'})->validate(['drm','=',$d->{name}])->enc_query, " ($d->{c_ref})";
                     b_ ' (new)' if $d->{state} == 0;

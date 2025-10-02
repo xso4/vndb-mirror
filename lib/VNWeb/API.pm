@@ -797,6 +797,9 @@ api_query '/release',
     filters => 'r',
     sql => sub { SQL 'SELECT r.id', $_[0], 'FROM releasest r', $_[1], 'WHERE NOT r.hidden AND (', $_[2], ')' },
     search => [ 'r', 'r.id' ],
+    joins => {
+        engine => 'LEFT JOIN engines e ON e.id = r.engine',
+    },
     fields => {
         id       => {},
         title    => { select => 'r.title[2]' },
@@ -871,7 +874,7 @@ api_query '/release',
         has_ero    => { select => 'r.has_ero', @BOOL },
         resolution => { select => 'ARRAY[r.reso_x,r.reso_y] AS resolution'
                       , proc => sub { $_[0] = $_[0][1] == 0 ? undef : 'non-standard' if $_[0][0] == 0 } },
-        engine     => { select => 'r.engine', @NSTR },
+        engine     => { join => 'engine', select => 'e.name AS engine' },
         voiced     => { select => 'r.voiced', @NINT },
         notes      => { select => 'r.notes', @NSTR },
         gtin       => { select => 'r.gtin', proc => sub { $_[0] = undef if !gtintype $_[0] } },

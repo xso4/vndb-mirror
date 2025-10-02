@@ -17,10 +17,7 @@ js_api Resolutions => {}, sub {
 
 
 js_api Engines => {}, sub {
-    +{ results => fu->sql(q{
-        SELECT engine AS id, count(*) AS count FROM releases WHERE NOT hidden AND engine <> ''
-         GROUP BY engine ORDER BY count(*) DESC, engine
-    })->allh };
+    +{ results => fu->sql('SELECT name AS id, c_ref AS count, state FROM engines ORDER BY state = 2, c_ref DESC, name')->allh };
 };
 
 

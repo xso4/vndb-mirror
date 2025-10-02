@@ -53,7 +53,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     ani_ero_cg   => { default => undef, uint => 1, range => [0,32767] },
     ani_face   => { undefbool => 1 },
     ani_bg     => { undefbool => 1 },
-    engine     => { default => '', sl => 1, maxlength => 50 },
+    engine     => { default => undef, sl => 1, maxlength => 50 },
     notes      => { default => '', maxlength => 10240 },
     extlinks   => { extlinks => 'r' },
     vn         => { sort_keys => 'vid', aoh => {
@@ -109,6 +109,8 @@ FU::get qr{/$RE{rrev}/(edit|copy)} => sub($id, $rev, $action) {
     $e->{editsum} = $copy ? "Copied from $e->{id}.$e->{chrev}" : $e->{chrev} == $e->{maxrev} ? '' : "Reverted to revision $e->{id}.$e->{chrev}";
 
     $e->{vntitles} = $e->{vn}->@* == 1 ? fu->sql('SELECT lang, title, latin FROM vn_titles WHERE id = $1', $e->{vn}[0]{vid})->allh : [];
+
+    $e->{engine} &&= fu->sql('SELECT name FROM engines WHERE id = $1', $e->{engine})->val;
 
     enrich_image 0, [map { $_->{lang} //= []; $_->{nfo}{id} = $_->{img}; $_->{nfo} } $e->{images}->@*];
     $e->{vnimages} = vnimages $e->{id}, map $_->{vid}, $e->{vn}->@*;
@@ -216,6 +218,11 @@ js_api ReleaseEdit => $FORM_IN, sub {
         $d->{drm} = fu->SQL('INSERT INTO drm', VALUES({map +($_,$d->{$_}), 'name', 'description', keys %DRM_PROPERTY}), 'RETURNING id')->val
             if !defined $d->{drm};
     }
+
+    $data->{engine} &&= fu->sql('
+        WITH ins(id) AS (INSERT INTO engines (name) VALUES ($1) ON CONFLICT (name) DO NOTHING RETURNING id)
+        SELECT id FROM engines WHERE name = $1 UNION ALL SELECT id FROM ins
+    ', $data->{engine})->val;
 
     $data->{supersedes} = [] if $data->{hidden};
     validate_dbid sub { SQL

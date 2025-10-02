@@ -445,7 +445,7 @@ DS.Engines = {
     opts: { width: 250 },
     init: (src, cb) => src.api.call({}, res => cb(src.res = res.results, src.api = null)),
     list: (src, str, cb) => cb(src.res.filter(e => e.id.toLowerCase().includes(str.toLowerCase())).slice(0,30)),
-    view: obj => [ obj.id, m('small', ' ('+obj.count+')') ],
+    view: obj => [ obj.id, m('small', obj.state === 2 ? ' (deleted)' : ' ('+obj.count+')') ],
 };
 
 DS.DRM = {
