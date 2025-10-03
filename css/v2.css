@@ -553,7 +553,31 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid var
 
 /***** DRM & Engine List ****/
 
-.drmlist > div { margin: 3px 20px 10px 20px }
+.drmlist {
+    margin: 0 auto; max-width: 900px;
+    > div { margin: 3px 20px 10px 20px }
+}
+
+
+/***** Misc::Extlinks *****/
+
+.extlinks-status td:not(.tc1) { width: 100px; white-space: nowrap }
+
+.extlink-queues tr {
+    td { white-space: nowrap }
+    .tc1 { width: 100px }
+    td:nth-child(2), td:nth-child(4) { width: 70px; text-align: right }
+    td:nth-child(3) { width: 100px; text-align: right }
+}
+
+.extlink-info {
+    margin: 0 auto; min-width: 500px;
+    tr > td:first-child { width: 100px }
+}
+.extlink-history {
+    .tc1 { width: 180px; white-space: nowrap }
+    abbr { text-decoration: none }
+}
 
 
 /***** Image hover thingy (VNWeb::Images::Lib::images_) ****/

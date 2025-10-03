@@ -11,9 +11,11 @@ js_api ExtlinkParse => { url => {} }, sub($data) {
     +{ res => $s ? { site => $s, value => $v, data => $d, split => extlink_split($s,$v,$d) } : undef }
 };
 
+sub fmtage2 {}
 
-# TODO: All ages and intervals should have the full timestamp as title.
-sub fmtage2($t) { fmtage($t) =~ s/ ago//r }
+sub age_($t)  { abbr_ title => fmtdate($t, 1), fmtage $t }
+sub age2_($t) { abbr_ title => fmtdate($t, 1), fmtage($t) =~ s/ ago//r }
+sub eta_($t)  { abbr_ title => fmtdate($t, 1), fmtinterval($t - time) }
 
 my @FLAGS = qw/redirect unrecognized serverror/;
 
@@ -37,7 +39,7 @@ FU::get '/el/queues', sub {
             h1_ 'Link Fetching Queues';
         };
         article_ class => 'browse', sub {
-            table_ class => 'stripe', sub {
+            table_ class => 'stripe extlink-queues', sub {
                 thead_ sub { tr_ sub {
                     td_ class => 'tc1', 'Queue';
                     td_ '#Links';
@@ -55,8 +57,8 @@ FU::get '/el/queues', sub {
                         a_ href => '/el?de=1&qu='.uri_escape($_->{queue}),
                             sprintf '%d (%.1f%%)', $_->{dead}, $_->{dead}/$_->{cnt}*100 if $_->{dead};
                     };
-                    td_ fmtage2 $_->{oldest};
                     td_ $_->{backlog};
+                    td_ sub { age2_ $_->{oldest} };
                 } for @$lst;
             }
         };
@@ -68,7 +70,7 @@ sub listing_($opt, $list, $count) {
     my sub url { '?'.query_encode({%$opt, @_}) }
 
     paginate_ \&url, $opt->{p}, [$count, 50], 't';
-    article_ class => 'browse', sub {
+    article_ class => 'browse extlinks-status', sub {
         table_ class => 'stripe', sub {
             thead_ sub { tr_ sub { 
                 td_ class => 'tc1', 'Link';
@@ -81,12 +83,15 @@ sub listing_($opt, $list, $count) {
                 td_ class => 'tc1', sub {
                     a_ href => "/el$l->{id}", "$LINKS{$l->{site}}{label} » $l->{value}";
                 };
-                td_ $l->{lastfetch} ? fmtage $l->{lastfetch} : 'never';
+                td_ $l->{lastfetch} ? sub { age_ $l->{lastfetch} } : 'never';
                 my @dead = (
-                    $l->{deadsince} ? sprintf '%s (%d)', fmtage2($l->{deadsince}), $l->{deadcount} : (),
-                    grep $l->{$_}, @FLAGS
+                    $l->{deadsince} ? sub {
+                        age2_ $l->{deadsince};
+                        txt_ " ($l->{deadcount})";
+                    } : (),
+                    map { my $x = $_; sub { txt_ $x } } grep $l->{$_}, @FLAGS
                 );
-                td_ @dead ? join ', ', @dead : '-';
+                td_ @dead ? sub { join_ ', ', sub { $_->() }, @dead } : '-';
                 td_ sub {
                     join_ ',', sub {
                         a_ href => "/$_", $_;
@@ -202,10 +207,13 @@ FU::get '/el', sub {
 FU::get qr{/el($RE{num})}, sub($id) {
     fu->denied if !auth;
 
-    my $lnk = fu->sql('
-        SELECT id, site, value, data, price, queue, lastfetch, nextfetch, deadsince, deadcount
-          FROM extlinks
-         WHERE c_ref AND id = $1', $id
+    my $lnk = fu->sql(q{
+        SELECT e.id, e.site, e.value, e.data, e.price, e.queue, e.lastfetch, e.nextfetch, e.deadsince, e.deadcount
+             , (SELECT COUNT(*) FROM extlinks e2 WHERE e2.queue = e.queue AND e2.nextfetch <= e.nextfetch) AS pos
+             , t.sched AS q_sched, extract('epoch' from t.delay)::int AS q_delay
+          FROM extlinks e
+          LEFT JOIN tasks t ON t.id = e.queue
+         WHERE e.c_ref AND e.id = $1}, $id
     )->rowh || fu->notfound;
 
     my $entries = fu->sql('
@@ -222,7 +230,7 @@ FU::get qr{/el($RE{num})}, sub($id) {
     framework_ title => $title, sub {
         article_ sub {
             h1_ $title;
-            table_ class => 'stripe', sub {
+            table_ class => 'extlink-info stripe', sub {
                 tr_ sub {
                     td_ 'Type';
                     td_ $LINKS{$lnk->{site}}{label};
@@ -248,18 +256,24 @@ FU::get qr{/el($RE{num})}, sub($id) {
                     td_ 'Status';
                     td_ !$lnk->{lastfetch} ? 'Unknown' :
                         !$lnk->{deadsince} ? 'Active' :
-                        sprintf 'Dead for %d checks in the past %s', $lnk->{deadcount}, fmtage2($lnk->{deadsince});
+                        sprintf 'Dead for %d checks in the past %s', $lnk->{deadcount}, fmtinterval(time - $lnk->{deadsince});
                 };
                 tr_ sub {
                     td_ 'Last check';
-                    td_ $lnk->{lastfetch} ? fmtage $lnk->{lastfetch} : 'Never';
+                    td_ $lnk->{lastfetch} ? sub { age_ $lnk->{lastfetch} } : 'Never';
                 };
                 tr_ sub {
                     td_ 'Next check';
                     td_ $lnk->{queue} ? sub {
-                        txt_ 'Queued in ';
+                        txt_ "Queued at #$lnk->{pos} in ";
                         a_ href => "/el?qu=$lnk->{queue}", $lnk->{queue};
-                        txt_ ' in ~'.fmtinterval($lnk->{nextfetch} - time);
+                        if ($lnk->{q_sched}) {
+                            txt_ ' (~';
+                            eta_ max $lnk->{nextfetch}, max(time, $lnk->{q_sched}) + max(0, $lnk->{pos}) * $lnk->{q_delay};
+                            txt_ ')';
+                        } else {
+                            txt_ ' (not scheduled)';
+                        }
                     } : 'Not queued';
                 };
                 tr_ sub {
@@ -279,11 +293,13 @@ FU::get qr{/el($RE{num})}, sub($id) {
             h1_ 'Check history';
         };
         article_ class => 'browse', sub {
-            table_ class => 'stripe', sub {
+            table_ class => 'stripe extlink-history', sub {
                 tr_ sub {
                     my $f = $_;
-                    td_ class => 'tc1', fmtdate $f->{date}, 1;
-                    td_ $f->{dead} ? 'Dead' : 'Active';
+                    td_ class => 'tc1', sub {
+                        abbr_ title => $f->{dead} ? ('Dead', '❌ ') : ('Active', '✅ ');
+                        txt_ fmtdate $f->{date}, 1;
+                    };
                     td_ sub {
                         join_ ' ', sub {
                             my($k, $v) = ($_, $f->{detail}{$_});
