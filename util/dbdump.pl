@@ -89,6 +89,8 @@ my %tables = (
                                 .' AND (x.rid IS NULL OR x.rid IN(SELECT id FROM releases WHERE NOT hidden))'
                            , order => 'x.id, x.vid, x.rid' },
     docs                => { where => 'NOT x.hidden' },
+    drm                 => { where => 'c_ref > 0' },
+    engines             => { where => 'c_ref > 0' },
     entry_meta          => { sql => "SELECT itemid, min(added)::date AS created, max(added)::date AS lastmod, max(rev) AS revision
                                           , count(*) filter (where requester <> 'u1') AS num_edits
                                           , count(distinct requester) filter (where requester <> 'u1') AS num_users
@@ -102,6 +104,7 @@ my %tables = (
     producers_relations => { where => 'x.id IN(SELECT id FROM producers WHERE NOT hidden)' },
     quotes              => { where => 'NOT hidden AND x.vid IN(SELECT id FROM vn WHERE NOT hidden)' },
     releases            => { where => 'NOT x.hidden' },
+    releases_drm        => { where => 'x.id IN(SELECT id FROM releases WHERE NOT hidden)' },
     releases_extlinks   => { where => 'x.id IN(SELECT id FROM releases WHERE NOT hidden)' },
     releases_images     => { where => 'x.id IN(SELECT id FROM releases WHERE NOT hidden)' },
     releases_media      => { where => 'x.id IN(SELECT id FROM releases WHERE NOT hidden)' },

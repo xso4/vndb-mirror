@@ -425,7 +425,7 @@ CREATE TABLE docs_hist (
 -- drm
 CREATE TABLE drm ( -- DRM types, for use with release info
   id          serial PRIMARY KEY, -- [pub]
-  c_ref       integer NOT NULL DEFAULT 0, -- [pub] How many release entries use this DRM type
+  c_ref       integer NOT NULL DEFAULT 0, -- How many release entries use this DRM type
   state       smallint NOT NULL DEFAULT 0, -- 0 = new, 1 = approved, 2 = deleted
   disc        boolean NOT NULL, -- [pub]
   cdkey       boolean NOT NULL, -- [pub]
@@ -449,7 +449,7 @@ CREATE TABLE email_optout (
 -- engines
 CREATE TABLE engines ( -- List of VN engines, for use with release info
   id          serial PRIMARY KEY, -- [pub]
-  c_ref       integer NOT NULL DEFAULT 0, -- [pub]
+  c_ref       integer NOT NULL DEFAULT 0,
   state       smallint NOT NULL DEFAULT 0,
   name        text NOT NULL, -- [pub]
   description text NOT NULL DEFAULT '' -- [pub]
