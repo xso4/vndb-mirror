@@ -11,8 +11,6 @@ js_api ExtlinkParse => { url => {} }, sub($data) {
     +{ res => $s ? { site => $s, value => $v, data => $d, split => extlink_split($s,$v,$d) } : undef }
 };
 
-sub fmtage2 {}
-
 sub age_($t)  { abbr_ title => fmtdate($t, 1), fmtage $t }
 sub age2_($t) { abbr_ title => fmtdate($t, 1), fmtage($t) =~ s/ ago//r }
 sub eta_($t)  { abbr_ title => fmtdate($t, 1), fmtinterval($t - time) }

@@ -175,19 +175,6 @@ sub gen_sql($has_official, $tbl_main, $tbl_titles, $join_col) {
     $sql;
 }
 
-# Temporary hash-to-postgres-text conversion, so they work with the old text-param methods.
-sub txt_pref {
-    my $p = pref;
-    return undef if !$p || titleprefs_is_default $p;
-    '('.join(',', map !defined $p->{$_} ? '' : !$p->{$_} ? 'f' : $p->{$_} eq '1' ? 't' : $p->{$_}, qw/
-        t1_lang t2_lang t3_lang t4_lang
-        a1_lang a2_lang a3_lang a4_lang
-        t1_latin t2_latin t3_latin t4_latin to_latin
-        a1_latin a2_latin a3_latin a4_latin ao_latin
-        t1_official t2_official t3_official t4_official
-        a1_official a2_official a3_official a4_official
-    /).')'
-}
 
 sub VNT :prototype()          { fu->{titleprefs_v} //= RAW(gen_sql(1, 'vn',       'vn_titles',       'id') || 'vnt')       }
 sub RELEASEST :prototype()    { fu->{titleprefs_r} //= RAW(gen_sql(0, 'releases', 'releases_titles', 'id') || 'releasest') }
@@ -195,9 +182,5 @@ sub PRODUCERST :prototype()   { fu->{titleprefs_p} //= pref ? SQL 'producerst(',
 sub CHARST :prototype()       { fu->{titleprefs_c} //= pref ? SQL 'charst(',       pref, ')' : RAW 'charst' }
 sub STAFF_ALIAST :prototype() { fu->{titleprefs_s} //= pref ? SQL 'staff_aliast(', pref, ')' : RAW 'staff_aliast' }
 sub ITEM_INFO                 { SQL 'item_info(', pref, ',', $_[0], ',', $_[1], ')' }
-
-# (Not currently used)
-#sub vnt_hist { gen_sql 1, 'vn_hist', 'vn_titles_hist', 'chid' }
-#sub releasest_hist { gen_sql 0, 'releases_hist', 'releases_titles_hist', 'chid' }
 
 1;
