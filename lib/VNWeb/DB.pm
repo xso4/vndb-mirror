@@ -187,6 +187,8 @@ my %enrich = (
     staff_extlinks      => [ 'l.site, l.value, l.data, l.price', RAW('JOIN extlinks l ON l.id = x.link'), 'l.site, l.value' ],
     vn_extlinks         => [ 'l.site, l.value, l.data, l.price', RAW('JOIN extlinks l ON l.id = x.link'), 'l.site, l.value' ],
 
+    chars_names         => [ undef, undef, 'x.lang' ],
+    chars_alias         => [ undef, undef, 'COALESCE(x.latin, x.name)' ],
     chars_vns           => [
         'v.title, r.title AS rtitle, v.hidden',
         sub { SQL 'JOIN', VNWeb::TitlePrefs::VNT(), 'v ON v.id = x.vid LEFT JOIN', VNWeb::TitlePrefs::RELEASEST(), 'r ON r.id = x.rid' },

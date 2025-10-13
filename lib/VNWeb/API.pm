@@ -914,12 +914,13 @@ api_query '/character',
     search => [ 'c', 'c.id' ],
     joins => {
         image => 'LEFT JOIN images i ON i.id = c.image',
+        alias => "LEFT JOIN (SELECT id, string_agg(name || coalesce(E'\\n'||latin, ''), E'\\n') FROM chars_alias GROUP BY id) ca(id,aliases) ON ca.id = c.id",
     },
     fields => {
         id       => {},
         name     => { select => 'c.title[2] AS name' },
         original => { ALTTITLE 'c.title', 'original' },
-        aliases  => { select => 'c.alias AS aliases', @MSTR },
+        aliases  => { join => 'alias', select => "coalesce(ca.aliases, '') AS aliases", @MSTR },
         description => { select => 'c.description', @NSTR },
         image => {
             fields => { IMG 'c.image', 'image', 'i.' },

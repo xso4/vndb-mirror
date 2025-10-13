@@ -58,11 +58,18 @@ sub enrich_item($c) {
 # Also used by Chars::VNTab.
 sub fetch_chars($vid, $where) {
     my $l = fu->SQL('
-        SELECT id, title, alias, description, sex, spoil_sex, gender, spoil_gender, birthday
+        SELECT id, title, description, sex, spoil_sex, gender, spoil_gender, birthday
              , s_bust, s_waist, s_hip, height, weight, bloodt, cup_size, age, image
           FROM', CHARST, 'c WHERE NOT hidden AND (', $where, ')
          ORDER BY sorttitle
     ')->allh;
+
+    fu->enrich(aoh => 'names', sub {
+        SQL 'SELECT id, lang, name, latin FROM chars_names WHERE id', IN $_, 'ORDER BY lang'
+    }, $l);
+    fu->enrich(aoh => 'alias', sub {
+        SQL 'SELECT id, name, latin, spoil FROM chars_alias WHERE id', IN $_, 'ORDER BY COALESCE(latin, name)'
+    }, $l);
 
     fu->enrich(aoh => 'vns', sub { SQL '
         SELECT cv.id, cv.vid, cv.rid, cv.spoil, cv.role, v.title, r.title AS rtitle
@@ -92,9 +99,11 @@ sub fetch_chars($vid, $where) {
 
 sub _rev_($c) {
     revision_ $c, \&enrich_item,
-        [ name       => 'Name'           ],
-        [ latin      => 'Name (latin)'   ],
-        [ alias      => 'Aliases'        ],
+        [ names      => 'Name',          txt => sub { "[$_->{lang}] $_->{name}".(length $_->{latin} ? " / $_->{latin}" : '') } ],
+        [ alias      => 'Aliases',       txt => sub {
+            $_->{name}.(length $_->{latin} ? " / $_->{latin}" : '')
+            .['', ' [minor spoiler]', ' [major spoiler]']->[$_->{spoil}]
+        } ],
         [ description=> 'Description'    ],
         [ sex        => 'Sex',           fmt => \%CHAR_SEX ],
         [ spoil_sex  => 'Sex (spoiler)', empty => undef, fmt => \%CHAR_SEX ],
@@ -161,9 +170,26 @@ sub chartable_($c, $link=undef, $sep=undef, $vn=undef) {
             }}};
 
             tr_ sub {
-                td_ class => 'key', 'Aliases';
-                td_ $c->{alias} =~ s/\n/, /rg;
-            } if $c->{alias};
+                td_ class => 'key', 'Names';
+                td_ sub { table_ class => 'names', sub {
+                    tr_ class => 'nostripe', sub {
+                        td_ sub { abbr_ class => "icon-lang-$_->{lang}", title => $LANGUAGE{$_->{lang}}{txt}, '' };
+                        td_ tlang($_->{lang}, $_->{name}), $_->{name};
+                        td_ $_->{latin} // '';
+                    } for $c->{names}->@*;
+                } }
+            } if $c->{names}->@* > 1;
+
+            my @alias = grep $_->{spoil} <= $view->{spoilers}, $c->{alias}->@*;
+            tr_ sub {
+                td_ class => 'key', @alias == 1 ? 'Alias' : 'Aliases';
+                td_ sub { table_ class => 'names', sub {
+                    tr_ class => 'nostripe', sub {
+                        td_ sub { txt_ $_->{name}; spoil_ $_->{spoil} };
+                        td_ $_->{latin} // '';
+                    } for @alias;
+                } };
+            } if @alias;
 
             tr_ sub {
                 td_ class => 'key', 'Measurements';
@@ -292,13 +318,14 @@ FU::get qr{/$RE{crev}} => sub($id, $rev=0) {
         $inst_maxspoil||0,
         (map $_->{override}//($_->{lie}?2:$_->{spoil}), grep !$_->{hidden} && !(($_->{override}//0) == 3), $c->{traits}->@*),
         (map $_->{spoil}, $c->{vns}->@*),
+        (map $_->{spoil}, $c->{alias}->@*),
         defined $c->{spoil_sex} || defined $c->{spoil_gender} ? 2 : 0,
         $c->{description} =~ /\[spoiler\]/i ? 2 : 0, # crude
     );
     # Only display the sexual traits toggle when there are sexual traits within the current spoiler level.
     my $has_sex = grep !$_->{hidden} && $_->{sexual} && ($_->{override}//$_->{spoil}) <= $view->{spoilers}, map $_->{traits}->@*, $c, @$inst;
 
-    $c->{title} = titleprefs_swap fu->SQL('SELECT c_lang FROM chars WHERE id =', $c->{id})->val, @{$c}{qw/ name latin /};
+    $c->{title} = titleprefs_obj fu->SQL('SELECT c_lang FROM chars WHERE id =', $c->{id})->val, $c->{names};
     framework_ title => $c->{title}[1], index => !$rev, dbobj => $c, hiddenmsg => 1,
         og => {
             description => bb_format($c->{description}, text => 1),

@@ -59,9 +59,10 @@ BEGIN
     UNION ALL SELECT e, 1, search_norm_term(catalog) FROM releases WHERE id = objid AND catalog <> '';
 
   WHEN 'c' THEN RETURN QUERY
-              SELECT e, 3, search_norm_term(name)  FROM chars WHERE id = objid
-    UNION ALL SELECT e, 3, search_norm_term(latin) FROM chars WHERE id = objid
-    UNION ALL SELECT e, 2, search_norm_term(a) FROM chars, regexp_split_to_table(alias, E'\n') a(a) WHERE id = objid;
+              SELECT e, 3, search_norm_term(name)  FROM chars_names WHERE id = objid
+    UNION ALL SELECT e, 3, search_norm_term(latin) FROM chars_names WHERE id = objid
+    UNION ALL SELECT e, 2, search_norm_term(name)  FROM chars_alias WHERE id = objid
+    UNION ALL SELECT e, 2, search_norm_term(latin) FROM chars_alias WHERE id = objid;
 
   WHEN 'p' THEN RETURN QUERY
               SELECT e, 3, search_norm_term(name)  FROM producers WHERE id = objid
@@ -163,13 +164,13 @@ $$ LANGUAGE SQL STABLE;
 CREATE OR REPLACE FUNCTION vnt(p titleprefs) RETURNS SETOF vnt AS $$
   -- The language selection logic below is specially written so that the planner can remove references to joined tables corresponding to NULL languages.
   SELECT v.*, (CASE
-      WHEN p.t1_lang = t1.lang AND (NOT p.t1_official OR t1.official) AND (p.t1_official IS NOT NULL OR p.t1_lang = v.olang) THEN ARRAY[t1.lang::text, COALESCE(CASE WHEN p.t1_latin THEN t1.latin ELSE NULL END, t1.title)] 
+      WHEN p.t1_lang = t1.lang AND (NOT p.t1_official OR t1.official) AND (p.t1_official IS NOT NULL OR p.t1_lang = v.olang) THEN ARRAY[t1.lang::text, COALESCE(CASE WHEN p.t1_latin THEN t1.latin ELSE NULL END, t1.title)]
       WHEN p.t2_lang = t2.lang AND (NOT p.t2_official OR t2.official) AND (p.t2_official IS NOT NULL OR p.t2_lang = v.olang) THEN ARRAY[t2.lang::text, COALESCE(CASE WHEN p.t2_latin THEN t2.latin ELSE NULL END, t2.title)]
       WHEN p.t3_lang = t3.lang AND (NOT p.t3_official OR t3.official) AND (p.t3_official IS NOT NULL OR p.t3_lang = v.olang) THEN ARRAY[t3.lang::text, COALESCE(CASE WHEN p.t3_latin THEN t3.latin ELSE NULL END, t3.title)]
       WHEN p.t4_lang = t4.lang AND (NOT p.t4_official OR t4.official) AND (p.t4_official IS NOT NULL OR p.t4_lang = v.olang) THEN ARRAY[t4.lang::text, COALESCE(CASE WHEN p.t4_latin THEN t4.latin ELSE NULL END, t4.title)]
       ELSE ARRAY[v.olang::text, COALESCE(CASE WHEN p IS NULL OR p.to_latin THEN ol.latin ELSE NULL END, ol.title)] END
       ) || (CASE
-      WHEN p.a1_lang = a1.lang AND (NOT p.a1_official OR a1.official) AND (p.a1_official IS NOT NULL OR p.a1_lang = v.olang) THEN ARRAY[a1.lang::text, COALESCE(CASE WHEN p.a1_latin THEN a1.latin ELSE NULL END, a1.title)] 
+      WHEN p.a1_lang = a1.lang AND (NOT p.a1_official OR a1.official) AND (p.a1_official IS NOT NULL OR p.a1_lang = v.olang) THEN ARRAY[a1.lang::text, COALESCE(CASE WHEN p.a1_latin THEN a1.latin ELSE NULL END, a1.title)]
       WHEN p.a2_lang = a2.lang AND (NOT p.a2_official OR a2.official) AND (p.a2_official IS NOT NULL OR p.a2_lang = v.olang) THEN ARRAY[a2.lang::text, COALESCE(CASE WHEN p.a2_latin THEN a2.latin ELSE NULL END, a2.title)]
       WHEN p.a3_lang = a3.lang AND (NOT p.a3_official OR a3.official) AND (p.a3_official IS NOT NULL OR p.a3_lang = v.olang) THEN ARRAY[a3.lang::text, COALESCE(CASE WHEN p.a3_latin THEN a3.latin ELSE NULL END, a3.title)]
       WHEN p.a4_lang = a4.lang AND (NOT p.a4_official OR a4.official) AND (p.a4_official IS NOT NULL OR p.a4_lang = v.olang) THEN ARRAY[a4.lang::text, COALESCE(CASE WHEN p.a4_latin THEN a4.latin ELSE NULL END, a4.title)]
@@ -198,13 +199,13 @@ $$ LANGUAGE SQL STABLE;
 -- Same thing as vnt()
 CREATE OR REPLACE FUNCTION releasest(p titleprefs) RETURNS SETOF releasest AS $$
   SELECT r.*, (CASE
-      WHEN p.t1_lang = t1.lang AND (p.t1_official IS NOT NULL OR p.t1_lang = r.olang) THEN ARRAY[t1.lang::text, COALESCE(CASE WHEN p.t1_latin THEN t1.latin ELSE NULL END, t1.title)] 
+      WHEN p.t1_lang = t1.lang AND (p.t1_official IS NOT NULL OR p.t1_lang = r.olang) THEN ARRAY[t1.lang::text, COALESCE(CASE WHEN p.t1_latin THEN t1.latin ELSE NULL END, t1.title)]
       WHEN p.t2_lang = t2.lang AND (p.t2_official IS NOT NULL OR p.t2_lang = r.olang) THEN ARRAY[t2.lang::text, COALESCE(CASE WHEN p.t2_latin THEN t2.latin ELSE NULL END, t2.title)]
       WHEN p.t3_lang = t3.lang AND (p.t3_official IS NOT NULL OR p.t3_lang = r.olang) THEN ARRAY[t3.lang::text, COALESCE(CASE WHEN p.t3_latin THEN t3.latin ELSE NULL END, t3.title)]
       WHEN p.t4_lang = t4.lang AND (p.t4_official IS NOT NULL OR p.t4_lang = r.olang) THEN ARRAY[t4.lang::text, COALESCE(CASE WHEN p.t4_latin THEN t4.latin ELSE NULL END, t4.title)]
       ELSE ARRAY[r.olang::text, COALESCE(CASE WHEN p IS NULL OR p.to_latin THEN ol.latin ELSE NULL END, ol.title)] END
       ) || (CASE
-      WHEN p.a1_lang = a1.lang AND (p.a1_official IS NOT NULL OR p.a1_lang = r.olang) THEN ARRAY[a1.lang::text, COALESCE(CASE WHEN p.a1_latin THEN a1.latin ELSE NULL END, a1.title)] 
+      WHEN p.a1_lang = a1.lang AND (p.a1_official IS NOT NULL OR p.a1_lang = r.olang) THEN ARRAY[a1.lang::text, COALESCE(CASE WHEN p.a1_latin THEN a1.latin ELSE NULL END, a1.title)]
       WHEN p.a2_lang = a2.lang AND (p.a2_official IS NOT NULL OR p.a2_lang = r.olang) THEN ARRAY[a2.lang::text, COALESCE(CASE WHEN p.a2_latin THEN a2.latin ELSE NULL END, a2.title)]
       WHEN p.a3_lang = a3.lang AND (p.a3_official IS NOT NULL OR p.a3_lang = r.olang) THEN ARRAY[a3.lang::text, COALESCE(CASE WHEN p.a3_latin THEN a3.latin ELSE NULL END, a3.title)]
       WHEN p.a4_lang = a4.lang AND (p.a4_official IS NOT NULL OR p.a4_lang = r.olang) THEN ARRAY[a4.lang::text, COALESCE(CASE WHEN p.a4_latin THEN a4.latin ELSE NULL END, a4.title)]
@@ -229,17 +230,43 @@ $$ LANGUAGE SQL STABLE;
 
 
 
--- This one just flips the name/original columns around depending on
--- preferences, so is fast enough to use directly.
-CREATE OR REPLACE FUNCTION producerst(p titleprefs) RETURNS SETOF producerst AS $$
-  SELECT *, titleprefs_swap(p, lang, name, latin), COALESCE(latin, name) FROM producers
+CREATE OR REPLACE FUNCTION charst(p titleprefs) RETURNS SETOF charst AS $$
+  SELECT c.*, (CASE
+      WHEN p.t1_lang = t1.lang THEN ARRAY[t1.lang::text, COALESCE(CASE WHEN p.t1_latin THEN t1.latin ELSE NULL END, t1.name)]
+      WHEN p.t2_lang = t2.lang THEN ARRAY[t2.lang::text, COALESCE(CASE WHEN p.t2_latin THEN t2.latin ELSE NULL END, t2.name)]
+      WHEN p.t3_lang = t3.lang THEN ARRAY[t3.lang::text, COALESCE(CASE WHEN p.t3_latin THEN t3.latin ELSE NULL END, t3.name)]
+      WHEN p.t4_lang = t4.lang THEN ARRAY[t4.lang::text, COALESCE(CASE WHEN p.t4_latin THEN t4.latin ELSE NULL END, t4.name)]
+      ELSE ARRAY[c.c_lang::text, COALESCE(CASE WHEN p IS NULL OR p.to_latin THEN ol.latin ELSE NULL END, ol.name)] END
+      ) || (CASE
+      WHEN p.a1_lang = a1.lang THEN ARRAY[a1.lang::text, COALESCE(CASE WHEN p.a1_latin THEN a1.latin ELSE NULL END, a1.name)]
+      WHEN p.a2_lang = a2.lang THEN ARRAY[a2.lang::text, COALESCE(CASE WHEN p.a2_latin THEN a2.latin ELSE NULL END, a2.name)]
+      WHEN p.a3_lang = a3.lang THEN ARRAY[a3.lang::text, COALESCE(CASE WHEN p.a3_latin THEN a3.latin ELSE NULL END, a3.name)]
+      WHEN p.a4_lang = a4.lang THEN ARRAY[a4.lang::text, COALESCE(CASE WHEN p.a4_latin THEN a4.latin ELSE NULL END, a4.name)]
+      ELSE ARRAY[c.c_lang::text, COALESCE(CASE WHEN p.ao_latin THEN ol.latin ELSE NULL END, ol.name)] END)
+    , CASE
+      WHEN p.t1_lang = t1.lang THEN COALESCE(t1.latin, t1.name)
+      WHEN p.t2_lang = t2.lang THEN COALESCE(t2.latin, t2.name)
+      WHEN p.t3_lang = t3.lang THEN COALESCE(t3.latin, t3.name)
+      WHEN p.t4_lang = t4.lang THEN COALESCE(t4.latin, t4.name)
+      ELSE COALESCE(ol.latin, ol.name) END
+    FROM chars c
+    JOIN chars_names ol ON ol.id = c.id AND ol.lang = c.c_lang
+    LEFT JOIN chars_names t1 ON t1.id = c.id AND t1.lang = COALESCE(p.t1_lang, 'en')
+    LEFT JOIN chars_names t2 ON t2.id = c.id AND t2.lang = COALESCE(p.t2_lang, 'en')
+    LEFT JOIN chars_names t3 ON t3.id = c.id AND t3.lang = COALESCE(p.t3_lang, 'en')
+    LEFT JOIN chars_names t4 ON t4.id = c.id AND t4.lang = COALESCE(p.t4_lang, 'en')
+    LEFT JOIN chars_names a1 ON a1.id = c.id AND a1.lang = COALESCE(p.a1_lang, 'en')
+    LEFT JOIN chars_names a2 ON a2.id = c.id AND a2.lang = COALESCE(p.a2_lang, 'en')
+    LEFT JOIN chars_names a3 ON a3.id = c.id AND a3.lang = COALESCE(p.a3_lang, 'en')
+    LEFT JOIN chars_names a4 ON a4.id = c.id AND a4.lang = COALESCE(p.a4_lang, 'en')
 $$ LANGUAGE SQL STABLE;
 
 
 
--- Same for charst
-CREATE OR REPLACE FUNCTION charst(p titleprefs) RETURNS SETOF charst AS $$
-  SELECT *, titleprefs_swap(p, c_lang, name, latin), COALESCE(latin, name) FROM chars
+-- This one just flips the name/original columns around depending on
+-- preferences, so is fast enough to use directly.
+CREATE OR REPLACE FUNCTION producerst(p titleprefs) RETURNS SETOF producerst AS $$
+  SELECT *, titleprefs_swap(p, lang, name, latin), COALESCE(latin, name) FROM producers
 $$ LANGUAGE SQL STABLE;
 
 
@@ -805,7 +832,7 @@ BEGIN
     WHEN 'r' THEN SELECT ARRAY[r.olang::text, COALESCE(ro.latin, ro.title), r.olang::text, CASE WHEN ro.latin IS NULL THEN '' ELSE ro.title END], h.requester, h.ihid, h.ilock INTO ret
                     FROM changes h JOIN releases_hist r ON h.id = r.chid JOIN releases_titles_hist ro ON h.id = ro.chid AND ro.lang = r.olang WHERE h.itemid = $2 AND h.rev = $3;
     WHEN 'p' THEN SELECT ARRAY[p.lang::text, COALESCE(p.latin, p.name), p.lang::text, p.name], h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN producers_hist p ON h.id = p.chid WHERE h.itemid = $2 AND h.rev = $3;
-    WHEN 'c' THEN SELECT ARRAY[cm.c_lang::text, COALESCE(c.latin, c.name), cm.c_lang::text, c.name], h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN chars cm ON cm.id = h.itemid JOIN chars_hist c ON h.id = c.chid WHERE h.itemid = $2 AND h.rev = $3;
+    WHEN 'c' THEN SELECT ARRAY[cm.c_lang::text, COALESCE(cn.latin, cn.name), cm.c_lang::text, cn.name], h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN chars cm ON cm.id = h.itemid JOIN chars_names_hist cn ON h.id = cn.chid WHERE h.itemid = $2 AND h.rev = $3 ORDER BY cn.lang <> cm.c_lang, cn.lang LIMIT 1;
     WHEN 'd' THEN SELECT ARRAY[NULL, d.title, NULL, d.title   ],  h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN docs_hist d   ON h.id = d.chid WHERE h.itemid = $2 AND h.rev = $3;
     WHEN 'g' THEN SELECT ARRAY[NULL, g.name,  NULL, g.name    ],  h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN tags_hist g   ON h.id = g.chid WHERE h.itemid = $2 AND h.rev = $3;
     WHEN 'i' THEN SELECT ARRAY[NULL, i.name,  NULL, i.name    ],  h.requester, h.ihid, h.ilock INTO ret FROM changes h JOIN traits_hist i ON h.id = i.chid WHERE h.itemid = $2 AND h.rev = $3;
@@ -946,13 +973,17 @@ BEGIN
   -- Ensure chars.c_lang is updated when the related VN or char has been edited
   -- (the cache also depends on vn.c_released but isn't run when that is updated;
   -- not an issue, the c_released is only there as rare fallback)
+  -- (Characters that do not have a name for the VNs olang do not get their
+  -- c_lang updated, this makes the c_lang dependent edit order but that's not
+  -- too much of an issue)
   IF ~nitemid IN('c','v') AND isedit THEN
     WITH x(id,lang) AS (
-      SELECT DISTINCT ON (cv.id) cv.id, v.olang
+      SELECT DISTINCT ON (cv.id) cv.id, cn.lang
         FROM chars_vns cv
+        JOIN chars_names cn ON cn.id = cv.id
         JOIN vn v ON v.id = cv.vid
        WHERE cv.vid = nitemid OR cv.id = nitemid
-       ORDER BY cv.id, v.hidden, v.c_released
+       ORDER BY cv.id, v.olang <> cn.lang, cv.id, v.hidden, v.c_released
     ) UPDATE chars c SET c_lang = x.lang FROM x WHERE c.id = x.id AND c.c_lang <> x.lang;
   END IF;
 

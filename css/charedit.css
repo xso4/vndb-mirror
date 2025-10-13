@@ -20,3 +20,7 @@
     tr:not(:first-child).top td { padding-top: 15px }
     tr.opt td { padding-left: 60px }
 }
+
+.chare_names {
+    .tc_name, .tc_name input { width: 200px }
+}

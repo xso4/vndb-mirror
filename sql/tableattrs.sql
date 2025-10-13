@@ -1,8 +1,8 @@
 -- Indices
 
 CREATE        INDEX chars_main             ON chars (main) WHERE main IS NOT NULL AND NOT hidden; -- Only used on /c+
-CREATE        INDEX chars_vns_vid          ON chars_vns (vid);
 CREATE        INDEX chars_image            ON chars (image);
+CREATE        INDEX chars_vns_vid          ON chars_vns (vid);
 CREATE        INDEX chars_traits_tid       ON chars_traits (tid);
 CREATE UNIQUE INDEX drm_name               ON drm (name);
 CREATE UNIQUE INDEX engines_name           ON engines (name);
@@ -79,9 +79,14 @@ ALTER TABLE changes_patrolled        ADD CONSTRAINT changes_patrolled_id_fkey   
 ALTER TABLE changes_patrolled        ADD CONSTRAINT changes_patrolled_uid_fkey         FOREIGN KEY (uid)       REFERENCES users         (id) ON DELETE CASCADE;
 ALTER TABLE chars                    ADD CONSTRAINT chars_main_fkey                    FOREIGN KEY (main)      REFERENCES chars         (id);
 ALTER TABLE chars                    ADD CONSTRAINT chars_image_fkey                   FOREIGN KEY (image)     REFERENCES images        (id);
+ALTER TABLE chars                    ADD CONSTRAINT chars_c_olang_fkey                 FOREIGN KEY (id,c_lang) REFERENCES chars_names (id,lang) DEFERRABLE INITIALLY DEFERRED;
 ALTER TABLE chars_hist               ADD CONSTRAINT chars_hist_chid_fkey               FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE chars_hist               ADD CONSTRAINT chars_hist_main_fkey               FOREIGN KEY (main)      REFERENCES chars         (id);
 ALTER TABLE chars_hist               ADD CONSTRAINT chars_hist_image_fkey              FOREIGN KEY (image)     REFERENCES images        (id);
+ALTER TABLE chars_alias              ADD CONSTRAINT chars_alias_id_fkey                FOREIGN KEY (id)        REFERENCES chars         (id);
+ALTER TABLE chars_alias_hist         ADD CONSTRAINT chars_alias_hist_chid_fkey         FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
+ALTER TABLE chars_names              ADD CONSTRAINT chars_names_id_fkey                FOREIGN KEY (id)        REFERENCES chars         (id);
+ALTER TABLE chars_names_hist         ADD CONSTRAINT chars_names_hist_chid_fkey         FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;
 ALTER TABLE chars_traits             ADD CONSTRAINT chars_traits_id_fkey               FOREIGN KEY (id)        REFERENCES chars         (id);
 ALTER TABLE chars_traits             ADD CONSTRAINT chars_traits_tid_fkey              FOREIGN KEY (tid)       REFERENCES traits        (id);
 ALTER TABLE chars_traits_hist        ADD CONSTRAINT chars_traits_hist_chid_fkey        FOREIGN KEY (chid)      REFERENCES changes       (id) ON DELETE CASCADE;

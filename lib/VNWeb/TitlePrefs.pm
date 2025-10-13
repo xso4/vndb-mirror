@@ -84,18 +84,19 @@ sub titleprefs_obj($olang, $titles) {
     my $p = pref;
     my %l = map +($_->{lang},$_), @$titles;
 
+    my $col = exists $titles->[0]{title} ? 'title' : 'name';
     my @title = (
-        $olang, (!$p || $p->{to_latin}) && length $l{$olang}{latin} ? $l{$olang}{latin} : $l{$olang}{title},
-        $olang, ( $p && $p->{ao_latin}) && length $l{$olang}{latin} ? $l{$olang}{latin} : $l{$olang}{title},
+        $olang, (!$p || $p->{to_latin}) && length $l{$olang}{latin} ? $l{$olang}{latin} : $l{$olang}{$col},
+        $olang, ( $p && $p->{ao_latin}) && length $l{$olang}{latin} ? $l{$olang}{latin} : $l{$olang}{$col},
     );
     for my $t ($p ? ('t','a') : ()) {
         for (1..4) {
             my $o = $l{ $p->{"$t${_}_lang"}||'' } or next;
             next if !defined $p->{"$t${_}_official"} && $o->{lang} ne $olang;
             next if $p->{"$t${_}_official"} && exists $o->{official} && !$o->{official};
-            next if !defined $o->{title};
+            next if !defined $o->{$col};
             $title[$t eq 't' ? 0 : 2] = $o->{lang};
-            $title[$t eq 't' ? 1 : 3] = $p->{"$t${_}_latin"} && length $o->{latin} ? $o->{latin} : $o->{title};
+            $title[$t eq 't' ? 1 : 3] = $p->{"$t${_}_latin"} && length $o->{latin} ? $o->{latin} : $o->{$col};
             last;
         }
     }
@@ -123,7 +124,7 @@ sub titleprefs_swap($olang, $title, $latin) {
 }
 
 
-sub gen_sql($has_official, $tbl_main, $tbl_titles, $join_col) {
+sub gen_sql($has_official, $tbl_main, $tbl_titles, $join_col, $title_col, $olang_col) {
     my $p = pref;
     return undef if !$p || titleprefs_is_default $p;
 
@@ -137,7 +138,7 @@ sub gen_sql($has_official, $tbl_main, $tbl_titles, $join_col) {
 
     for my $t ('t', 'a') {
         $sql .= '||' if $t eq 'a';
-        my $orig = 'ARRAY[xo.lang::text,' . ($p->{"${t}o_latin"} ? 'COALESCE(xo.latin, xo.title)' : 'xo.title') . ']';
+        my $orig = 'ARRAY[xo.lang::text,' . ($p->{"${t}o_latin"} ? "COALESCE(xo.latin, xo.$title_col)" : "xo.$title_col") . ']';
         if (!$p->{"${t}1_lang"}) {
             $sql .= $orig;
             next;
@@ -146,7 +147,7 @@ sub gen_sql($has_official, $tbl_main, $tbl_titles, $join_col) {
         for (1..4) {
             last if !$p->{"$t${_}_lang"};
             my $id = id $t, $_;
-            $sql .= " WHEN $id.title IS NOT NULL THEN ARRAY['".$p->{"$t${_}_lang"}."'," . ($p->{"$t${_}_latin"} ? "COALESCE($id.latin, $id.title)" : "$id.title") . ']';
+            $sql .= " WHEN $id.$title_col IS NOT NULL THEN ARRAY['".$p->{"$t${_}_lang"}."'," . ($p->{"$t${_}_latin"} ? "COALESCE($id.latin, $id.$title_col)" : "$id.$title_col") . ']';
         }
         $sql .= " ELSE $orig END";
     }
@@ -155,10 +156,10 @@ sub gen_sql($has_official, $tbl_main, $tbl_titles, $join_col) {
     for (1..4) {
         last if !$p->{"t${_}_lang"};
         my $id = id 't', $_;
-        $sql .= "$id.latin, $id.title, ";
+        $sql .= "$id.latin, $id.$title_col, ";
     }
 
-    $sql .= "xo.latin, xo.title) sorttitle FROM $tbl_main x JOIN $tbl_titles xo ON xo.$join_col = x.$join_col AND xo.lang = x.olang";
+    $sql .= "xo.latin, xo.$title_col) sorttitle FROM $tbl_main x JOIN $tbl_titles xo ON xo.$join_col = x.$join_col AND xo.lang = x.$olang_col";
 
     my %joins;
     for my $t ('t', 'a') {
@@ -167,7 +168,7 @@ sub gen_sql($has_official, $tbl_main, $tbl_titles, $join_col) {
             my $id = id $t, $_;
             next if $joins{$id}++;
             $sql .= " LEFT JOIN $tbl_titles $id ON $id.$join_col = x.$join_col AND $id.lang = '".$p->{"$t${_}_lang"}."'"
-                .(!defined $p->{"$t${_}_official"} ? " AND $id.lang = x.olang" : $has_official && $p->{"$t${_}_official"} ? " AND $id.official" : '');
+                .(!defined $p->{"$t${_}_official"} ? " AND $id.lang = x.$olang_col" : $has_official && $p->{"$t${_}_official"} ? " AND $id.official" : '');
         }
     }
 
@@ -176,10 +177,10 @@ sub gen_sql($has_official, $tbl_main, $tbl_titles, $join_col) {
 }
 
 
-sub VNT :prototype()          { fu->{titleprefs_v} //= RAW(gen_sql(1, 'vn',       'vn_titles',       'id') || 'vnt')       }
-sub RELEASEST :prototype()    { fu->{titleprefs_r} //= RAW(gen_sql(0, 'releases', 'releases_titles', 'id') || 'releasest') }
+sub VNT :prototype()          { fu->{titleprefs_v} //= RAW(gen_sql(1, 'vn',       'vn_titles',       'id', 'title', 'olang' ) || 'vnt')       }
+sub RELEASEST :prototype()    { fu->{titleprefs_r} //= RAW(gen_sql(0, 'releases', 'releases_titles', 'id', 'title', 'olang' ) || 'releasest') }
+sub CHARST :prototype()       { fu->{titleprefs_c} //= RAW(gen_sql(0, 'chars',    'chars_names',     'id', 'name',  'c_lang') || 'charst')    }
 sub PRODUCERST :prototype()   { fu->{titleprefs_p} //= pref ? SQL 'producerst(',   pref, ')' : RAW 'producerst' }
-sub CHARST :prototype()       { fu->{titleprefs_c} //= pref ? SQL 'charst(',       pref, ')' : RAW 'charst' }
 sub STAFF_ALIAST :prototype() { fu->{titleprefs_s} //= pref ? SQL 'staff_aliast(', pref, ')' : RAW 'staff_aliast' }
 sub ITEM_INFO                 { SQL 'item_info(', pref, ',', $_[0], ',', $_[1], ')' }
 

@@ -152,7 +152,7 @@ sub copy_entry($tables, $ids) {
     copy_entry [qw/producers producers_extlinks/], $producers;
 
     # Characters
-    copy_entry [qw/chars chars_traits chars_vns/], $characters;
+    copy_entry [qw/chars chars_alias chars_names chars_traits chars_vns/], $characters;
 
     # Visual novels
     copy anime => "SELECT DISTINCT a.* FROM anime a JOIN vn_anime_hist v ON v.aid = a.id JOIN changes c ON c.id = v.chid WHERE c.itemid IN($vids)";

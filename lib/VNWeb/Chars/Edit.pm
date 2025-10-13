@@ -7,9 +7,16 @@ use VNWeb::Releases::Lib;
 
 my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     id         => { default => undef, vndbid => 'c' },
-    name       => { sl => 1, maxlength => 200 },
-    latin      => { default => undef, sl => 1, maxlength => 200 },
-    alias      => { default => '', maxlength => 500 },
+    names      => { sort_keys => 'lang', minlength => 1, aoh => {
+        lang    => { enum => \%LANGUAGE },
+        name    => { sl => 1, maxlength => 100 },
+        latin   => { default => undef, sl => 1, maxlength => 100 },
+    } },
+    alias      => { sort_keys => 'name', maxlength => 25, aoh => {
+        spoil   => { uint => 1, range => [0,2] },
+        name    => { sl => 1, maxlength => 100 },
+        latin   => { default => undef, sl => 1, maxlength => 100 },
+    } },
     description=> { default => '', maxlength => 5000 },
     sex        => { default => '', enum => \%CHAR_SEX },
     spoil_sex  => { default => sub { $_[0] }, enum => \%CHAR_SEX },
@@ -105,10 +112,11 @@ FU::get qr{/$RE{crev}/(edit|copy)} => sub($id, $rev, $action) {
 
 FU::get qr{/$RE{vid}/addchar}, sub($vid) {
     fu->denied if !can_edit c => undef;
-    my $title = fu->SQL('SELECT title[2] FROM', VNT, 'WHERE NOT hidden AND id =', $vid)->val;
+    my($title, $olang) = fu->SQL('SELECT title[2], olang FROM', VNT, 'WHERE NOT hidden AND id =', $vid)->rowl;
     fu->notfound if !length $title;
 
     my $e = $FORM_OUT->empty;
+    $e->{names} = [{ name => '', latin => '', lang => $olang }];
     $e->{vns} = [{ vid => $vid, rid => undef, spoil => 0, role => 'primary' }];
     $e->{vnstate} = [{
         id => $vid,

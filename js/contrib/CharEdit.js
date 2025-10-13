@@ -1,3 +1,85 @@
+const Names = vnode => {
+    const data = vnode.attrs.data;
+    let idx = 0;
+    data.names.forEach(a => a._idx = ++idx);
+    // XXX: Doesn't update when VNs are added/removed in the form, but that's not a common action.
+    const langs = new Set(data.vnstate.flatMap(v => v.rels.flatMap(r => r.lang)));
+
+    const add = new DS(
+        {
+            opts: { width: 250 },
+            list: (src, str, cb) => DS.ScriptLang.list(src, str, lst => cb(lst.filter(o => langs.has(o.id)))),
+            view: DS.ScriptLang.view
+        }, {
+            onselect: obj => data.names.push({ lang: obj.id, name: '', latin: '', _new: true, _idx: ++idx }),
+            props: obj => data.names.some(n => n.lang === obj.id) ? { selectable: false, append: m('small', ' (already listed)') } : {},
+        }
+    );
+    return { view: vnode => m('fieldset',
+        m('label', 'Name(s)'),
+        m('table.chare_names',
+            m('thead', m('tr',
+                m('td'),
+                m('td.tc_name', 'Name (original script)'),
+                m('td.tc_name', 'Romanization'),
+                m('td'),
+            )),
+            m('tbody', data.names.map(a => m('tr', {key: a._idx},
+                m('td', LangIcon(a.lang)),
+                m('td.tc_name', m(Input, { data: a, field: 'name', maxlength: 100, required: true, focus: a._new })),
+                m('td.tc_name', !a.latin && !mayRomanize.test(a.name) ? null : m(Input, {
+                    data: a, field: 'latin', required: mustRomanize.test(a.name), maxlength: 100,
+                    invalid: a.latin === a.name || mustRomanize.test(a.latin) ? 'Romanization should only contain characters in the latin alphabet.' : null,
+                })),
+                m('td',
+                    // Empty 'langs' can happen when the VN has no releases. The default olang name entry is still usable.
+                    langs.size ? m(Button.Del, { onclick: () => data.names = data.names.filter(x => x !== a) }) : null
+                ),
+            ))),
+            [...langs.values()].some(l => !data.names.some(n => n.lang === l))
+            ?  m('tfoot', m('tr', m('td[colspan=3]', m(DS.Button, { ds: add }, 'Add name')))) : null
+        )
+    )};
+};
+
+const Alias = vnode => {
+    const data = vnode.attrs.data;
+    let idx = 0;
+    data.alias.forEach(a => a._idx = ++idx);
+    return { view: vnode => m('fieldset',
+        m('label', 'Aliases'),
+        m('table.chare_names',
+            m('thead', m('tr',
+                m('td.tc_name', 'Name (original script)'),
+                m('td.tc_name', 'Romanization'),
+                m('td', ''),
+            )),
+            m('tbody', data.alias.map(a => m('tr', {key: a._idx},
+                m('td.tc_name',
+                    m(Input, { data: a, field: 'name', maxlength: 100, required: true, focus: a._new }),
+                    a.name !== '' && data.names.some(n => n.name === a.name || n.latin === a.name) ? m('p.invalid', 'Already listed under Name(s)') : null,
+                ),
+                m('td.tc_name', !a.latin && !mayRomanize.test(a.name) ? null : m(Input, {
+                    /* Many old entries are missing romanization - let's not force people to romanize existing aliases */
+                    data: a, field: 'latin', required: a._new && mustRomanize.test(a.name), maxlength: 100,
+                    invalid: a.latin === a.name || mustRomanize.test(a.latin) ? 'Romanization should only contain characters in the latin alphabet.' : null,
+                })),
+                m('td',
+                    m(Select, { data: a, field: 'spoil', options: spoilLevels }),
+                    m(Button.Del, { onclick: () => data.alias = data.alias.filter(x => x !== a) }),
+                ),
+            ))),
+            m('tfoot', m('tr', m('td[colspan=3]',
+                data.alias.anyDup(({name,latin}) => [name,latin===''?null:latin])
+                ? m('p.invalid', 'There are duplicate aliases.') : null,
+                data.alias.length > 25 ? null : m('button[type=button]', { onclick: () => data.alias.push({
+                    name: '', latin: '', spoil: 0, _idx: ++idx, _new: true
+                }) }, 'Add alias'),
+            )))
+        )
+    )};
+};
+
 const GenInfo = vnode => {
     const data = vnode.attrs.data;
 
@@ -19,28 +101,8 @@ const GenInfo = vnode => {
     });
 
     const view = () => [ m('fieldset.form',
-        m('fieldset',
-            m('label[for=name]', 'Name (original)'),
-            m(Input, {
-                id: 'name', class: 'lw', maxlength: 200, required: true, data, field: 'name',
-            }),
-        ),
-        !data.latin && !mayRomanize.test(data.name) ? null : m('fieldset',
-            m('label[for=latin]', 'Name (latin)'),
-            m(Input, {
-                id: 'latin', class: 'lw', maxlength: 200, data, field: 'latin', placeholder: 'Romanization',
-                required: mustRomanize.test(data.name),
-                invalid: data.latin === data.name || mustRomanize.test(data.latin) ? 'Romanization should only contain characters in the latin alphabet.' : null,
-            }),
-        ),
-        m('fieldset',
-            m('label[for=alias]', 'Aliases'),
-            m(Input, {
-                id: 'alias', class: 'lw', maxlength: 500, data, field: 'alias', type: 'textarea', rows: 3,
-            }),
-            data.alias.match(/,/) ? m('p', 'Reminder: one alias per line!') : null,
-            m('p', '(Un)official aliases, separated by a newline. Must not include spoilers!'),
-        ),
+        m(Names, {data}),
+        m(Alias, {data}),
         m('fieldset',
             m('label[for=description]', 'Description'),
             m(TextPreview, {

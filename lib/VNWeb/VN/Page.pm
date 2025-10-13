@@ -728,7 +728,7 @@ sub charsum_($v) {
           FROM', CHARST, 'c
           JOIN (SELECT id, MIN(role) FROM chars_vns WHERE role <> \'appears\' AND spoil <=', $spoil, 'AND vid =', $v->{id}, 'GROUP BY id) v(id,role) ON c.id = v.id
          WHERE NOT c.hidden
-         ORDER BY v.role, c.name, c.id'
+         ORDER BY v.role, c.sorttitle, c.id'
     )->allh;
     return if !@$c;
     fu->enrich(aoh => 'seiyuu', sub { SQL('

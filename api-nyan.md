@@ -528,7 +528,7 @@ gender | basic | string | yes | Character's sex (not gender); "m" (male), "f" (f
 spoil\_gender | basic | string | yes | Actual sex, if this is a spoiler. Can also be "unknown" if their actual sex is not known but different from their apparent sex.
 bloodt | basic | string | yes | Blood type, "a", "b", "ab" or "o"
 birthday | basic | array | no | Array of two numbers: day of the month (1-31) and the month (1-12). Either can be null.
-aliases | details | string | yes | Alternative names, separated with a newline.
+aliases | details | string | yes | Deprecated, always null.
 description | details | string | yes | Description/notes, can contain formatting codes as described in [d9#3](https://vndb.org/d9#3). May also include [spoiler] tags!
 age | details | int | yes | years
 image | details | string | yes | HTTP link to the character image.

@@ -83,6 +83,8 @@ my $sql_ulist_vns = qq{
 my %tables = (
     anime               => { where => 'x.id IN(SELECT va.aid FROM vn_anime va JOIN vn v ON v.id = va.id WHERE NOT v.hidden)' },
     chars               => { where => 'NOT x.hidden' },
+    chars_alias         => { where => 'x.id IN(SELECT id FROM chars WHERE NOT hidden)' },
+    chars_names         => { where => 'x.id IN(SELECT id FROM chars WHERE NOT hidden)' },
     chars_traits        => { where => 'x.id IN(SELECT id FROM chars WHERE NOT hidden) AND tid IN(SELECT id FROM traits WHERE NOT hidden)' },
     chars_vns           => { where => 'x.id IN(SELECT id FROM chars WHERE NOT hidden)'
                                 .' AND x.vid IN(SELECT id FROM vn WHERE NOT hidden)'

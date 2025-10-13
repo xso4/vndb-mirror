@@ -337,9 +337,6 @@ CREATE TABLE chars ( -- dbentry_type=c
   age          smallint, -- [pub] years
   locked       boolean NOT NULL DEFAULT FALSE,
   hidden       boolean NOT NULL DEFAULT FALSE,
-  name         text NOT NULL DEFAULT '', -- [pub]
-  latin        text, -- [pub]
-  alias        text NOT NULL DEFAULT '', -- [pub]
   description  text NOT NULL DEFAULT '' -- [pub]
 );
 
@@ -362,10 +359,43 @@ CREATE TABLE chars_hist (
   height       smallint NOT NULL DEFAULT 0, -- cf=Measurements
   weight       smallint, -- cf=Measurements
   age          smallint, -- cf=Age
-  name         text NOT NULL DEFAULT '', -- cf=Name
-  latin        text, -- cf=Name
-  alias        text NOT NULL DEFAULT '', -- cf=Name
   description  text NOT NULL DEFAULT '' -- cf=Description
+);
+
+-- chars_alias
+CREATE TABLE chars_alias (
+  id         vndbid(c) NOT NULL, -- [pub]
+  spoil      smallint NOT NULL, -- [pub]
+  name       text NOT NULL, -- [pub]
+  latin      text, -- [pub]
+  PRIMARY KEY(id, name)
+);
+
+-- chars_alias_hist
+CREATE TABLE chars_alias_hist ( -- cf=Name
+  chid       integer NOT NULL,
+  spoil      smallint NOT NULL,
+  name       text NOT NULL,
+  latin      text,
+  PRIMARY KEY(chid, name)
+);
+
+-- chars_names
+CREATE TABLE chars_names (
+  id         vndbid(c) NOT NULL, -- [pub]
+  lang       language NOT NULL, -- [pub]
+  name       text NOT NULL, -- [pub]
+  latin      text, -- [pub]
+  PRIMARY KEY(id, lang)
+);
+
+-- chars_names_hist
+CREATE TABLE chars_names_hist ( -- cf=Name
+  chid       integer NOT NULL,
+  lang       language NOT NULL,
+  name       text NOT NULL,
+  latin      text,
+  PRIMARY KEY(chid, lang)
 );
 
 -- chars_traits
@@ -1738,11 +1768,12 @@ CREATE VIEW producerst AS
 
 -- And chars
 CREATE VIEW charst AS
-    SELECT *
-         , ARRAY [ c_lang::text, COALESCE(latin, name)
-                 , c_lang::text, name ] AS title
-         , COALESCE(latin, name) AS sorttitle
-      FROM chars;
+    SELECT c.*
+         , ARRAY [ c.c_lang::text, COALESCE(cn.latin, cn.name)
+                 , c.c_lang::text, cn.name ] AS title
+         , COALESCE(cn.latin, cn.name) AS sorttitle
+      FROM chars c
+      JOIN chars_names cn ON cn.id = c.id AND cn.lang = c.c_lang;
 
 -- This joins staff & staff_alias and adds the title + sorttitle fields.
 CREATE VIEW staff_aliast AS
@@ -1787,8 +1818,9 @@ CREATE VIEW moe.releasest AS
       JOIN releases_titles ro ON ro.id = r.id AND ro.lang = r.olang;
 
 CREATE VIEW moe.charst AS
-    SELECT *
-         , ARRAY [ c_lang::text, COALESCE(latin, name)
-                 , c_lang::text, name ] AS title
-         , COALESCE(latin, name) AS sorttitle
-      FROM chars;
+    SELECT c.*
+         , ARRAY [ c.c_lang::text, COALESCE(cn.latin, cn.name)
+                 , c.c_lang::text, cn.name ] AS title
+         , COALESCE(cn.latin, cn.name) AS sorttitle
+      FROM chars c
+      JOIN chars_names cn ON cn.id = c.id AND cn.lang = c.c_lang;

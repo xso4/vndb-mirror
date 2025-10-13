@@ -944,9 +944,9 @@ my %GET_CHARACTER = (
       },
     },
     details => {
-      select => 'c.alias AS aliases, c.image, i.c_sexual_avg, i.c_violence_avg, i.c_votecount, i.width AS image_width, i.height AS image_height, c.description, c.age',
+      select => 'c.image, i.c_sexual_avg, i.c_violence_avg, i.c_votecount, i.width AS image_width, i.height AS image_height, c.description, c.age',
       proc => sub {
-        $_[0]{aliases}     ||= undef;
+        $_[0]{aliases}     = undef;
         $_[0]{description} ||= undef;
         $_[0]{image}       = $_[0]{image} ? imgurl $_[0]{image} : undef;
         $_[0]{image_flagging} = image_flagging $_[0]{image}, $_[0];
