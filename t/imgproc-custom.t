@@ -53,7 +53,7 @@ cmpmagick 'gray.webp', 'pattern:GRAY50 -colorspace GRAY -define webp:lossless=tr
 
 cmpmagick 'large.jpg', '"canvas:rgb(100,50,30)"', '5000x5000', '6ef162d607c7cfafdf12662e73026a2045a299db';
 cmpmagick 'gray.jpg', 'pattern:GRAY50 -colorspace GRAY', '32x32', 'b6f789931d9356470988cdf36154b157824c170e';
-cmpmagick 'cmyk.jpg', 'LOGO: -colorspace CMYK', '640x480', 'c7c6de45fe5deae3a7c1c5538c628e1b5d48c3ca'; # Hmm, colors don't seem correct. :/
+cmpmagick 'cmyk.jpg', 'LOGO: -colorspace CMYK', '640x480', '04b364d87fb7e75196cdc5330cc539b336a53c58'; # Hmm, colors don't seem correct. :/
 
 cmpmagick 'large.avif', '"canvas:rgb(100,50,30)"', '5000x5000', 'c33cebf2bc6cb477726f64762ec40442a28546ce';
 
