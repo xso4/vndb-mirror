@@ -163,6 +163,7 @@ GRANT SELECT                         ON charst                   TO vndb_multi;
 GRANT SELECT                         ON chars_hist               TO vndb_multi;
 GRANT SELECT                         ON chars_alias              TO vndb_multi;
 GRANT SELECT                         ON chars_names              TO vndb_multi;
+GRANT SELECT                         ON chars_names_hist         TO vndb_multi;
 GRANT SELECT                         ON chars_traits             TO vndb_multi;
 GRANT SELECT                         ON chars_vns                TO vndb_multi;
 GRANT SELECT                         ON docs                     TO vndb_multi;
