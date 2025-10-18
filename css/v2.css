@@ -620,7 +620,7 @@ div.chardetails {
     &.charsep     { margin-top: 30px }
     > table       { float: left; width: 525px; }
     td.key        { width: 106px; }
-    .names td     { padding: 0 5px }
+    .names td     { padding: 0 5px; vertical-align: bottom }
     .names td:first-child { padding-left: 0 }
     .lie          { text-decoration: line-through }
 }
