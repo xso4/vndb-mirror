@@ -64,7 +64,21 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
         prods   => { aoh => { id => { vndbid => 'p' }, title => {} } },
         title   => {},
     } },
+    langs      => { _when => 'out', elems => { enum => \%LANGUAGE } },
 };
+
+
+sub _langs {
+    fu->SQL('
+        SELECT DISTINCT rt.lang
+          FROM releases_vn rv
+          JOIN releases r ON r.id = rv.id
+          JOIN releases_titles rt ON rt.id = rv.id
+         WHERE NOT r.hidden
+           AND (r.official OR NOT rt.mtl)
+           AND rv.vid', IN($_[0])
+    )->flat;
+}
 
 
 FU::get qr{/$RE{crev}/(edit|copy)} => sub($id, $rev, $action) {
@@ -74,6 +88,7 @@ FU::get qr{/$RE{crev}/(edit|copy)} => sub($id, $rev, $action) {
 
     $e->{main_name} = $e->{main} ? fu->SQL('SELECT title[2] FROM', CHARST, 'c WHERE id =', $e->{main})->val : '';
     $e->{main_ref} = !!fu->SQL('SELECT 1 FROM chars WHERE main =', $e->{id}, 'LIMIT 1')->val;
+    $e->{langs} = _langs [map $_->{vid}, $e->{vns}->@*];
 
     fu->enrich(merge => 1, key => 'tid', SQL(
         'SELECT t.id AS tid, t.name, t.hidden, t.locked, t.applicable, g.name AS group, g.gorder AS order, false AS new
@@ -118,6 +133,7 @@ FU::get qr{/$RE{vid}/addchar}, sub($vid) {
     my $e = $FORM_OUT->empty;
     $e->{names} = [{ name => '', latin => '', lang => $olang }];
     $e->{vns} = [{ vid => $vid, rid => undef, spoil => 0, role => 'primary' }];
+    $e->{langs} = _langs [$vid];
     $e->{vnstate} = [{
         id => $vid,
         title => $title,

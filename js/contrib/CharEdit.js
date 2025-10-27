@@ -3,7 +3,7 @@ const Names = vnode => {
     let idx = 0;
     data.names.forEach(a => a._idx = ++idx);
     // XXX: Doesn't update when VNs are added/removed in the form, but that's not a common action.
-    const langs = new Set(data.vnstate.flatMap(v => v.rels.flatMap(r => r.lang)));
+    const langs = new Set(data.langs);
 
     const add = new DS(
         {
