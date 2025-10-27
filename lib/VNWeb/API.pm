@@ -967,7 +967,7 @@ api_query '/character',
     },
     sort => [
         id       => 'c.id',
-        name     => 'c.name ?o, c.id',
+        name     => 'c.sorttitle ?o, c.id',
     ];
 
 
