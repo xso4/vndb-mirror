@@ -402,7 +402,7 @@ f r => 74 => 'ani_ero_cg',    { default => undef, enum => \%ANIFLAGS }, '=' => s
 f r => 75 => 'ani_bg',        { default => undef, uint => 1, enum => [0,1] }, '=' => sub { SQL 'NOT r.patch AND r.ani_bg', $_ ? () : defined $_ ? '= false' : 'is null' };
 f r => 76 => 'ani_face',      { default => undef, uint => 1, enum => [0,1] }, '=' => sub { SQL 'NOT r.patch AND r.ani_face', $_ ? () : defined $_ ? '= false' : 'is null' };
 
-f r => 15 => 'engine',   { default => '' }, '=' => sub { SQL 'EXISTS(SELECT 1 FROM engines WHERE engines.name =', $_, 'AND engines.id = r.engine)' };
+f r => 15 => 'engine',   { default => '' }, '=' => sub { length $_ ? SQL 'EXISTS(SELECT 1 FROM engines WHERE engines.name =', $_, 'AND engines.id = r.engine)' : SQL 'r.engine IS NULL' };
 f r => 16 => 'rtype',    { enum => \%RELEASE_TYPE }, '=' => sub { $#TYPE && $TYPE[$#TYPE-1] eq 'v' ? SQL 'rv.rtype =', $_ : SQL 'r.id IN(SELECT id FROM releases_vn WHERE rtype =', $_, ')' };
 f r => 18 => 'rlist',    { uint => 1, enum => \%RLIST_STATUS }, sql_list => sub($neg, $all, $val) {
         return RAW '1=0' if !auth;
