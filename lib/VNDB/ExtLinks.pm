@@ -366,8 +366,11 @@ our %LINKS = (
     kagura =>
         { ent   => 'r'
         , label => 'Kagura Games'
-        , fmt   => 'https://www.kaguragames.com/product/%s/'
+        , fmt   => sub($v,$d,$a) {
+            ('https://www.kaguragames.com/product/%s/'.(($a && config->{kagura_affiliate})||''), $v)
+          }
         , parse => qr{(?:www\.)?kaguragames\.com/(?:product/)?([^/#?]+).*}
+        , affil => !!config->{kagura_affiliate}
         },
     kofi =>
         { ent   => 's'
