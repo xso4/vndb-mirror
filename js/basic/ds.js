@@ -232,7 +232,6 @@ class DS {
         src.list(src, str, res => {
             this.loadingStr = null;
             this.setList(res);
-            if (src.cache) src.cache[str] = res;
         });
     }
 
@@ -343,7 +342,8 @@ DS.Input = {view: vnode => {
 
 // Source interface:
 // - cache
-//     Optional cache object, will be used to memoize calls to list()
+//     Optional cache object, calls to list() are bypassed when the search
+//     string is present in the object.
 // - opts
 //     Default DS constructor options.
 // - api
