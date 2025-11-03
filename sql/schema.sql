@@ -1730,7 +1730,8 @@ CREATE TABLE wikidata ( -- Information fetched from Wikidata
   playstation_na     text[],    -- [pub] P5944
   playstation_eu     text[],    -- [pub] P5971
   lutris             text[],    -- [pub] P7597
-  wine               integer[]  -- [pub] P600
+  wine               integer[], -- [pub] P600
+  mobygames_game     integer[]  -- [pub] P11688
 );
 
 

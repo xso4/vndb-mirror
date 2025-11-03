@@ -19,6 +19,7 @@ our %WIKIDATA = (
     website            => { property => 'P856',  label => undef,            fmt => undef },
     vndb               => { property => 'P3180', label => undef,            fmt => undef },
     mobygames          => { property => 'P1933', label => 'MobyGames',      fmt => 'https://www.mobygames.com/game/%s' },
+    mobygames_game     => { property => 'P11688',label => 'MobyGames',      fmt => 'https://www.mobygames.com/game/%d/' },
     mobygames_company  => { property => 'P4773', label => 'MobyGames',      fmt => 'https://www.mobygames.com/company/%s' },
     gamefaqs_game      => { property => 'P4769', label => 'GameFAQs',       fmt => 'https://gamefaqs.gamespot.com/-/%s-' },
     gamefaqs_company   => { property => 'P6182', label => 'GameFAQs',       fmt => 'https://gamefaqs.gamespot.com/company/%s-' },
@@ -721,7 +722,8 @@ sub enrich_vislinks($type, $enabled, @obj) {
         w 'enwiki';
         w 'jawiki';
         l 'wikidata';
-        w 'mobygames';
+        w 'mobygames' if $o->{_l}{wikidata} && !$w->{ $o->{_l}{wikidata}[0]{value} }{mobygames_game};
+        w 'mobygames_game';
         w 'gamefaqs_game';
         w 'vgmdb_product';
         w 'acdb_source';
