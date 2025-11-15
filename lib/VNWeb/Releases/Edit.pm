@@ -192,7 +192,10 @@ js_api ReleaseEdit => $FORM_IN, sub {
         $data->{ani_ero} = 0;
         $data->{ani_ero_sp} = $data->{ani_ero_cg} = undef;
     }
-    $data->{images} = [] if !$data->{official};
+    if(!$data->{official}) {
+        $data->{images} = [];
+        ($_->{developer}, $_->{publisher}) = (0,1) for $data->{producers}->@*;
+    }
     ani_compat($data, $e);
 
     return 'No title in main language' if !length [grep $_->{lang} eq $data->{olang}, $data->{titles}->@*]->[0]{title};

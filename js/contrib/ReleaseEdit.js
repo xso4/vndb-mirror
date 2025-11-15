@@ -403,7 +403,7 @@ const Producers = initVnode => {
         m('table', data.producers.map(p => m('tr', {key: p.pid},
             m('td',
                 m(Button.Del, { onclick: () => data.producers = data.producers.filter(x => x !== p) }), ' ',
-                !(data.official || p.developer) ? null : m(Select, {
+                !data.official ? null : m(Select, {
                     oninput: v => { p.developer = v[0]; p.publisher = v[1] },
                     value: [p.developer,p.publisher],
                     options: [
