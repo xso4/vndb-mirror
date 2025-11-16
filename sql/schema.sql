@@ -1499,8 +1499,8 @@ CREATE TABLE vn ( -- dbentry_type=v
   c_released    integer NOT NULL DEFAULT 0,
   c_rating      smallint, -- [pub] decimal vote*100, i.e. 100 - 1000
   c_average     smallint, -- [pub] decimal vote*100, i.e. 100 - 1000
-  c_length      smallint,
-  c_lengthnum   smallint NOT NULL DEFAULT 0,
+  c_length      smallint, -- [pub]
+  c_lengthnum   smallint NOT NULL DEFAULT 0, -- [pub]
   length        smallint NOT NULL DEFAULT 0, -- [pub] Old length field, 0 = unknown, 1 = very short [..] 5 = very long
   devstatus     smallint NOT NULL DEFAULT 0, -- [pub] 0 = finished, 1 = ongoing, 2 = cancelled
   img_nsfw      boolean NOT NULL DEFAULT FALSE, -- (deprecated)
