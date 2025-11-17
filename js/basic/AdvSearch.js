@@ -406,7 +406,8 @@ const resolutionField = (() => {
             inst.ds.setInput(o.id);
         },
     });
-    const button = inst => [ rangeOp.get(inst.op), ' ', resoFmt(inst.x, inst.y) || 'Unknown resolution' ];
+    const butlbl = inst => inst.x === 0 ? 'Unknown resolution' : resoFmt(inst.x, inst.y).replace('x', inst.aspect ? ':' : 'x');
+    const button = inst => [ rangeOp.get(inst.op), ' ', butlbl(inst) ];
     return {label: 'Resolution', init, toquery, ds, button};
 })();
 
