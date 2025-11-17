@@ -37,7 +37,10 @@ const Names = vnode => {
                 ),
             ))),
             [...langs.values()].some(l => !data.names.some(n => n.lang === l))
-            ?  m('tfoot', m('tr', m('td[colspan=3]', m(DS.Button, { ds: add }, 'Add name')))) : null
+            ?  m('tfoot', m('tr', m('td[colspan=4]',
+                m(DS.Button, { ds: add }, 'Add name'),
+                data.names.length === 0 ? m('p.invalid', 'Please add at least 1 name.') : null,
+            ))) : null
         )
     )};
 };
