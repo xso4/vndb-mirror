@@ -146,7 +146,7 @@ FU::get qr{/$RE{wid}(?:([\./])($RE{num}))?}, sub($id, $sep='', $num=0) {
             } if $newreview;
             review_ $w;
         };
-        if(grep !defined $_->{hidden}, @$posts) {
+        if(@$posts) {
             nav_ sub {
                 h1_ 'Comments';
             };
