@@ -578,7 +578,7 @@ CREATE TABLE notification_subs (
   iid         vndbid NOT NULL,
   -- Indicates a subscription on the creation of a new 'num' for the item, i.e. new post, new comment, new edit.
   -- Affects the following ntypes: dbedit, subedit, pm, post, comment, subpost. Does not affect: dbdel, listdel.
-  --   NULL  = Default behavior as if this entry did not have a row; i.e. use users.notify_post / users.notify_comment / users.notify_dbedit settings.
+  --   NULL  = Default behavior as if this entry did not have a row; i.e. use users.notifyopts settings.
   --   true  = Default behavior + get subedit/subpost notifications for this entry.
   --   false = Disable all affected ntypes for this entry.
   subnum      boolean,
@@ -1370,10 +1370,6 @@ CREATE TABLE users (
   c_imgvotes          integer NOT NULL DEFAULT 0,
   ign_votes           boolean NOT NULL DEFAULT false, -- [pub] Set when user's votes are ignored
   email_confirmed     boolean NOT NULL DEFAULT false,
-  notify_dbedit       boolean NOT NULL DEFAULT true,
-  notify_announce     boolean NOT NULL DEFAULT false,
-  notify_post         boolean NOT NULL DEFAULT true,
-  notify_comment      boolean NOT NULL DEFAULT true,
   nodistract_can      boolean NOT NULL DEFAULT false,
   nodistract_noads    boolean NOT NULL DEFAULT false,
   nodistract_nofancy  boolean NOT NULL DEFAULT false,
@@ -1392,7 +1388,8 @@ CREATE TABLE users (
   perm_review         boolean NOT NULL DEFAULT true,
   perm_lengthvote     boolean NOT NULL DEFAULT true, -- [pub] User's length votes don't count when false
   username            text, -- [pub]
-  uniname             text NOT NULL DEFAULT ''
+  uniname             text NOT NULL DEFAULT '',
+  notifyopts          integer NOT NULL DEFAULT 44694140
 );
 
 -- Additional, less frequently accessed fields for the 'users' table.

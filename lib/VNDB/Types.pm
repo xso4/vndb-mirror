@@ -389,6 +389,23 @@ hash CHAR_ROLE =>
     appears => { txt => 'Makes an appearance', plural => 'Make an appearance' };
 
 
+# SQL: ENUM notification_ntype
+# 'opt' determines the offset in users.notifyopts and must be 0<=opt<=15.
+hash NTYPE =>
+    announce  => { opt =>  0, mute => 1, txt => 'Site announcement' },
+    listdel   => { opt =>  1, mute => 0, txt => 'List item deleted',    desc => 'VN in your list has been deleted' },
+    dbdel     => { opt =>  2, mute => 0, txt => 'Contribution deleted', desc => 'Deletion of a database entry that you have created or edited' },
+    dbedit    => { opt =>  3, mute => 1, txt => 'Contribution edited',  desc => 'Change to a database entry that you have created or edited' },
+    subedit   => { opt =>  4, mute => 0, txt => 'Database edit',        desc => 'Change to a database entry that you have subscribed to' },
+    subapply  => { opt =>  5, mute => 0, txt => 'Trait application',    desc => 'Trait you subscribed to has been applied to or removed from a character' },
+    pm        => { opt =>  6, mute => 0, txt => 'Direct message',       desc => 'Message on your board' },
+    ment      => { opt =>  7, mute => 0, txt => 'Mention',              desc => 'Someone mentioned you on the forums' },
+    postment  => { opt =>  8, mute => 1, txt => 'Post mention',         desc => 'Someone linked to your post on the forums' },
+    post      => { opt =>  9, mute => 1, txt => 'Forum reply',          desc => 'New comment on a thread that you have participated in' },
+    subpost   => { opt => 10, mute => 0, txt => 'Forum post',           desc => 'New comment on a thread that you have subscribed to' },
+    comment   => { opt => 11, mute => 1, txt => 'Review comment',       desc => 'New comment on your review' },
+    subreview => { opt => 12, mute => 0, txt => 'New review',           desc => 'New review for a visual novel that you subscribed to' };
+
 
 # Change flags for database entries, up to 63 categories can be listed per type.
 # The first category is hardcoded to refer to the hidden/locked flags.

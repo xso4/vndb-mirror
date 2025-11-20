@@ -12,6 +12,7 @@ use VNDB::BBCode;
 our @EXPORT = (qw|
     bb_format
     in
+    notifyopt
     hex2bin bin2hex
     idcmp
     shorten
@@ -39,6 +40,9 @@ sub in($q, @a) {
     $_ eq $q && return 1 for map ref $_ eq 'ARRAY' ? @$_ : ($_), @a;
     0
 }
+
+
+sub notifyopt($t, $v) { ($v >> ($NTYPE{$t}{opt}*2)) & 3 }
 
 
 # Because I can never remember when to use 'pack' or 'unpack'

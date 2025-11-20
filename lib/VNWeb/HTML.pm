@@ -18,7 +18,7 @@ use VNDB::Types;
 use VNWeb::Auth;
 use VNWeb::Validation;
 use VNWeb::DB;
-use VNDB::Func 'fmtdate', 'rdate', 'tattr';
+use VNDB::Func 'notifyopt', 'fmtdate', 'rdate', 'tattr';
 
 our @EXPORT = qw/
     clearfloat_
@@ -375,16 +375,16 @@ sub _maintabs_subscribe_ {
 
     my $noti =
         $id =~ /^t/ ? fu->sql('SELECT SUM(x) FROM (
-                 SELECT 1 FROM threads_posts tp, users u WHERE u.id = $1 AND tp.uid = $1 AND tp.tid = $2 AND u.notify_post
+                 SELECT 1 FROM threads_posts tp, users u WHERE u.id = $1 AND tp.uid = $1 AND tp.tid = $2 AND notifyopt_post(u.notifyopts) > 0
            UNION SELECT 1+1 FROM threads_boards tb WHERE tb.tid = $2 AND tb.type = \'u\' AND tb.iid = $1
            ) x(x)', auth->uid, $id)->val
 
-      : $id =~ /^w/ ? (auth->pref('notify_post') || auth->pref('notify_comment')) && fu->sql('SELECT SUM(x) FROM (
-                 SELECT 1 FROM reviews_posts wp, users u WHERE u.id = $1 AND wp.uid = $1 AND wp.id = $2 AND u.notify_post
-           UNION SELECT 1+1 FROM reviews w, users u WHERE u.id = $1 AND w.uid = $1 AND w.id = $2 AND u.notify_comment
+      : $id =~ /^w/ ? (notifyopt(post => auth->pref('notifyopts')) || notifyopt(comment => auth->pref('notifyopts'))) && fu->sql('SELECT SUM(x) FROM (
+                 SELECT 1 FROM reviews_posts wp, users u WHERE u.id = $1 AND wp.uid = $1 AND wp.id = $2 AND notifyopt_post(u.notifyopts) > 0
+           UNION SELECT 1+1 FROM reviews w, users u WHERE u.id = $1 AND w.uid = $1 AND w.id = $2 AND notifyopt_comment(u.notifyopts) > 0
            ) x(x)', auth->uid, $id)->val
 
-      : $id =~ /^[vrpcsdgi]/ && auth->pref('notify_dbedit') && fu->SQL('
+      : $id =~ /^[vrpcsdgi]/ && notifyopt(dbedit => auth->pref('notifyopts')) && fu->SQL('
            SELECT 1 FROM changes WHERE itemid =', $id, 'AND requester =', auth->uid, 'LIMIT 1')->val;
 
     my $sub = fu->SQL('SELECT subnum, subreview, subapply FROM notification_subs WHERE uid =', auth->uid, 'AND iid =', $id)->rowh || {};

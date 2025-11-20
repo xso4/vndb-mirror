@@ -2,52 +2,29 @@ package VNWeb::User::Notifications;
 
 use VNWeb::Prelude;
 
-my %ntypes = (
-    pm        => 'Message on your board',
-    ment      => 'You were mentioned',
-    postment  => 'Your post was mentioned',
-    dbdel     => 'Entry you contributed to has been deleted',
-    listdel   => 'VN in your list has been deleted',
-    dbedit    => 'Entry you contributed to has been edited',
-    announce  => 'Site announcement',
-    post      => 'Reply to a thread you posted in',
-    comment   => 'Comment on your review',
-    subpost   => 'Reply to a thread you subscribed to',
-    subedit   => 'Entry you subscribed to has been edited',
-    subreview => 'New review for a VN you subscribed to',
-    subapply  => 'Trait you subscribed to has been (un)applied',
-);
-
-
 sub settings_($id) {
-    my $u = fu->sql('SELECT notify_dbedit, notify_post, notify_comment, notify_announce FROM users WHERE id = $1', $id)->rowh;
-
-    h1_ 'Settings';
+    h1_ 'Notification Settings';
     form_ action => "/$id/notify_options", method => 'POST', sub {
         input_ type => 'hidden', class => 'hidden', name => 'csrf', value => auth->csrftoken;
-        p_ sub {
-            label_ sub {
-                input_ type => 'checkbox', name => 'dbedit', $u->{notify_dbedit} ? (checked => 'checked') : ();
-                txt_ ' Notify me about edits of database entries I contributed to.';
-            };
-            br_;
-            label_ sub {
-                input_ type => 'checkbox', name => 'post', $u->{notify_post} ? (checked => 'checked') : ();
-                txt_ ' Notify me about replies to threads I posted in.';
-            };
-            br_;
-            label_ sub {
-                input_ type => 'checkbox', name => 'comment', $u->{notify_comment} ? (checked => 'checked') : ();
-                txt_ ' Notify me about comments to my reviews.';
-            };
-            br_;
-            label_ sub {
-                input_ type => 'checkbox', name => 'announce', $u->{notify_announce} ? (checked => 'checked') : ();
-                txt_ ' Notify me about site announcements.';
-            };
-            br_;
-            input_ type => 'submit', class => 'submit', value => 'Save';
-        }
+
+        my $opt = auth->pref('notifyopts');
+        table_ class => 'notifysettings', sub {
+            for my ($id, $v) (%NTYPE) {
+                tr_ class => 'hdr', sub { td_ colspan => 5, sub { strong_ 'Database' } } if $id eq 'listdel';
+                tr_ class => 'hdr', sub { td_ colspan => 5, sub { strong_ 'Community' } } if $id eq 'pm';
+                tr_ class => $id eq 'announce' ? undef : 'sub', sub {
+                    my $o = notifyopt $id => $opt;
+                    td_ sub { $v->{desc} ? abbr_ title => $v->{desc}, $v->{txt} : txt_ $v->{txt} };
+                    td_ sub { label_ sub { input_ type => 'radio', name => "opt_$id", value => 0, checked => $o == 0 ? 'checked' : undef; txt_ ' mute' } if $v->{mute} };
+                    td_ sub { label_ sub { input_ type => 'radio', name => "opt_$id", value => 1, checked => $o == 1 ? 'checked' : undef; txt_ ' low' } };
+                    td_ sub { label_ sub { input_ type => 'radio', name => "opt_$id", value => 2, checked => $o == 2 ? 'checked' : undef; txt_ ' medium' } };
+                    td_ sub { label_ sub { input_ type => 'radio', name => "opt_$id", value => 3, checked => $o == 3 ? 'checked' : undef; txt_ ' high' } };
+                };
+            }
+            tfoot_ sub { tr_ sub { td_ sub {
+                input_ type => 'submit', class => 'submit', value => 'Save';
+            }}};
+        };
     };
 }
 
@@ -64,7 +41,7 @@ sub stats_($stats, $opt, $url) {
             tr_ class => $nsel ? 'sel' : undef, sub {
                 td_ sub {
                     em_ 'All types' if !$_->{ntype};
-                    txt_ $ntypes{$_->{ntype}} if $_->{ntype};
+                    txt_ $NTYPE{$_->{ntype}}{txt} if $_->{ntype};
                 };
                 td_ class => $nsel && !$opt->{r} ? 'sel' : undef, sub {
                     txt_ 0 if !$_->{unread};
@@ -109,7 +86,7 @@ sub listing_($id, $opt, $count, $list, $url) {
                 delete $t{post}    if $t{pm};
                 delete $t{subedit} if $t{dbedit};
                 delete $t{dbedit} if $t{dbdel};
-                join_ \&br_, sub { txt_ $ntypes{$_} }, sort keys %t;
+                join_ \&br_, sub { txt_ $NTYPE{$_}{txt} }, sort keys %t;
             };
             td_ class => 'tc3', fmtage $l->{date};
             td_ class => 'tc4', sub { a_ href => "/$lid", $lid };
@@ -146,7 +123,7 @@ FU::get qr{/$RE{uid}/notifies}, sub($id) {
     my $opt = fu->query(
         p => { page => 1 },
         r => { anybool => 1 },
-        n => { default => undef, enum => \%ntypes },
+        n => { default => undef, enum => \%NTYPE },
     );
 
     my $stats = fu->sql('
@@ -192,19 +169,15 @@ FU::post qr{/$RE{uid}/notify_options}, sub($id) {
 
     my $frm = fu->formdata(
         csrf     => {},
-        dbedit   => { anybool => 1 },
-        announce => { anybool => 1 },
-        post     => { anybool => 1 },
-        comment  => { anybool => 1 },
+        map +("opt_$_" => { range => [0,3] }), keys %NTYPE
     );
     fu->notfound if !auth->csrfcheck($frm->{csrf});
 
-    fu->SQL('UPDATE users', SET({
-        notify_dbedit   => $frm->{dbedit},
-        notify_announce => $frm->{announce},
-        notify_post     => $frm->{post},
-        notify_comment  => $frm->{comment},
-    }), 'WHERE id =', $id)->exec;
+    my $opt = 0;
+    for my ($id,$v) (%NTYPE) {
+        $opt |= ($frm->{"opt_$id"} || ($v->{mute} ? 0 : 1)) << ($v->{opt}*2)
+    }
+    fu->SQL('UPDATE users SET notifyopts =', $opt, 'WHERE id =', $id)->exec;
     fu->redirect(tempget => "/$id/notifies");
 };
 

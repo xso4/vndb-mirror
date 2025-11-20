@@ -1031,128 +1031,135 @@ $$ LANGUAGE plpgsql;
 
 
 -- Called after a certain event has occurred (new edit, post, etc).
---  'iid' and 'num' identify the item that has been created.
---  'uid' indicates who created the item, providing an easy method of not creating a notification for that user.
+--  newiid.newnum identifies the item that has been created.
+--  newuser indicates who created the item, providing an easy method of not creating a notification for that user.
 --     (can technically be fetched with a DB lookup, too)
-CREATE OR REPLACE FUNCTION notify(iid vndbid, num integer, uid vndbid) RETURNS TABLE (uid vndbid, ntype notification_ntype[], iid vndbid, num int) AS $$
-  SELECT uid, array_agg(ntype), $1, $2
+CREATE OR REPLACE FUNCTION notify(newiid vndbid, newnum integer, newuid vndbid) RETURNS TABLE (uid vndbid, ntype notification_ntype[], iid vndbid, num int) AS $$
+BEGIN
+  RETURN QUERY SELECT n.uid, array_agg(n.ntype), newiid, newnum
     FROM (
 
       -- pm
-      SELECT 'pm'::notification_ntype, u.id
+      SELECT 'pm'::notification_ntype, u.id, notifyopt_pm(u.notifyopts)
         FROM threads_boards tb
         JOIN users u ON u.id = tb.iid
-       WHERE vndbid_type($1) = 't' AND tb.tid = $1 AND tb.type = 'u'
-         AND NOT EXISTS(SELECT 1 FROM notification_subs ns WHERE ns.iid = $1 AND ns.uid = tb.iid AND ns.subnum = false)
+       WHERE vndbid_type(newiid) = 't' AND tb.tid = newiid AND tb.type = 'u'
+         AND NOT EXISTS(SELECT 1 FROM notification_subs ns WHERE ns.iid = newiid AND ns.uid = tb.iid AND ns.subnum = false)
 
       -- dbdel
       UNION
-      SELECT 'dbdel', c_all.requester
-        FROM changes c_cur, changes c_all, changes c_pre
-       WHERE c_cur.itemid = $1 AND c_cur.rev = $2   -- Current edit
-         AND c_pre.itemid = $1 AND c_pre.rev = $2-1 -- Previous edit, to check if .ihid changed
-         AND c_all.itemid = $1 -- All edits on this entry, to see whom to notify
+      SELECT 'dbdel', u.id, notifyopt_dbdel(u.notifyopts)
+        FROM changes c_cur, changes c_all, changes c_pre, users u
+       WHERE c_cur.itemid = newiid AND c_cur.rev = newnum   -- Current edit
+         AND c_pre.itemid = newiid AND c_pre.rev = newnum-1 -- Previous edit, to check if .ihid changed
+         AND c_all.itemid = newiid -- All edits on this entry, to see whom to notify
          AND c_cur.ihid AND NOT c_pre.ihid
-         AND $2 > 1 AND vndbid_type($1) IN('v', 'r', 'p', 'c', 's', 'd', 'g', 'i')
+         AND u.id = c_all.requester
+         AND newnum > 1 AND vndbid_type(newiid) IN('v', 'r', 'p', 'c', 's', 'd', 'g', 'i')
 
       -- listdel
       UNION
-      SELECT 'listdel', u.uid
-        FROM changes c_cur, changes c_pre,
-             ( SELECT uid FROM ulist_vns WHERE vndbid_type($1) = 'v' AND vid = $1 -- TODO: Could use an index on ulist_vns.vid
+      SELECT 'listdel', u.id, notifyopt_listdel(u.notifyopts)
+        FROM changes c_cur, changes c_pre, users u,
+             ( SELECT l.uid FROM ulist_vns l WHERE vndbid_type(newiid) = 'v' AND vid = newiid -- TODO: Could use an index on ulist_vns.vid
                UNION ALL
-               SELECT uid FROM rlists    WHERE vndbid_type($1) = 'r' AND rid = $1 -- TODO: Could also use an index, but the rlists table isn't that large so it's still okay
-             ) u(uid)
-       WHERE c_cur.itemid = $1 AND c_cur.rev = $2   -- Current edit
-         AND c_pre.itemid = $1 AND c_pre.rev = $2-1 -- Previous edit, to check if .ihid changed
+               SELECT l.uid FROM rlists l    WHERE vndbid_type(newiid) = 'r' AND rid = newiid -- TODO: Could also use an index, but the rlists table isn't that large so it's still okay
+             ) lst(uid)
+       WHERE c_cur.itemid = newiid AND c_cur.rev = newnum   -- Current edit
+         AND c_pre.itemid = newiid AND c_pre.rev = newnum-1 -- Previous edit, to check if .ihid changed
          AND c_cur.ihid AND NOT c_pre.ihid
-         AND $2 > 1 AND vndbid_type($1) IN('v','r')
+         AND u.id = lst.uid
+         AND newnum > 1 AND vndbid_type(newiid) IN('v','r')
 
       -- dbedit
       UNION
-      SELECT 'dbedit', c.requester
+      SELECT 'dbedit', u.id, notifyopt_dbedit(u.notifyopts)
         FROM changes c
         JOIN users u ON u.id = c.requester
-       WHERE c.itemid = $1
-         AND $2 > 1 AND vndbid_type($1) IN('v', 'r', 'p', 'c', 's', 'd', 'g', 'i')
-         AND $3 <> 'u1' -- Exclude edits by Multi
-         AND u.notify_dbedit
-         AND NOT EXISTS(SELECT 1 FROM notification_subs ns WHERE ns.iid = $1 AND ns.uid = c.requester AND ns.subnum = false)
+       WHERE c.itemid = newiid
+         AND newnum > 1 AND vndbid_type(newiid) IN('v', 'r', 'p', 'c', 's', 'd', 'g', 'i')
+         AND newuid <> 'u1' -- Exclude edits by Multi
+         AND NOT EXISTS(SELECT 1 FROM notification_subs ns WHERE ns.iid = newiid AND ns.uid = c.requester AND ns.subnum = false)
 
       -- subedit
       UNION
-      SELECT 'subedit', ns.uid
+      SELECT 'subedit', u.id, notifyopt_subedit(u.notifyopts)
         FROM notification_subs ns
-       WHERE $2 > 1 AND vndbid_type($1) IN('v', 'r', 'p', 'c', 's', 'd', 'g', 'i')
-         AND $3 <> 'u1' -- Exclude edits by Multi
-         AND ns.iid = $1 AND ns.subnum
+        JOIN users u ON u.id = ns.uid
+       WHERE newnum > 1 AND vndbid_type(newiid) IN('v', 'r', 'p', 'c', 's', 'd', 'g', 'i')
+         AND newuid <> 'u1' -- Exclude edits by Multi
+         AND ns.iid = newiid AND ns.subnum
 
       -- announce
       UNION
-      SELECT 'announce', u.id
+      SELECT 'announce', u.id, notifyopt_announce(u.notifyopts)
         FROM threads t
         JOIN threads_boards tb ON tb.tid = t.id
-        JOIN users u ON u.notify_announce
-       WHERE vndbid_type($1) = 't' AND $2 = 1 AND t.id = $1 AND tb.type = 'an'
+        JOIN users u ON notifyopt_announce(u.notifyopts) > 0
+       WHERE vndbid_type(newiid) = 't' AND newnum = 1 AND t.id = newiid AND tb.type = 'an'
 
       -- post (threads_posts)
       UNION
-      SELECT 'post', u.id
+      SELECT 'post', u.id, notifyopt_post(u.notifyopts)
         FROM threads t, threads_posts tp
         JOIN users u ON tp.uid = u.id
-       WHERE t.id = $1 AND tp.tid = $1 AND vndbid_type($1) = 't' AND $2 > 1 AND NOT t.private AND NOT t.hidden AND u.notify_post
-         AND NOT EXISTS(SELECT 1 FROM notification_subs ns WHERE ns.iid = $1 AND ns.uid = tp.uid AND ns.subnum = false)
+       WHERE t.id = newiid AND tp.tid = newiid AND vndbid_type(newiid) = 't' AND newnum > 1 AND NOT t.private AND NOT t.hidden
+         AND NOT EXISTS(SELECT 1 FROM notification_subs ns WHERE ns.iid = newiid AND ns.uid = tp.uid AND ns.subnum = false)
 
       -- post (reviews_posts)
       UNION
-      SELECT 'post', u.id
+      SELECT 'post', u.id, notifyopt_post(u.notifyopts)
         FROM reviews_posts wp
         JOIN users u ON wp.uid = u.id
-       WHERE wp.id = $1 AND vndbid_type($1) = 'w' AND $2 IS NOT NULL AND u.notify_post
-         AND NOT EXISTS(SELECT 1 FROM notification_subs ns WHERE ns.iid = $1 AND ns.uid = wp.uid AND ns.subnum = false)
+       WHERE wp.id = newiid AND vndbid_type(newiid) = 'w' AND newnum IS NOT NULL
+         AND NOT EXISTS(SELECT 1 FROM notification_subs ns WHERE ns.iid = newiid AND ns.uid = wp.uid AND ns.subnum = false)
 
       -- subpost (threads_posts)
       UNION
-      SELECT 'subpost', ns.uid
-        FROM threads t, notification_subs ns
-       WHERE t.id = $1 AND ns.iid = $1 AND vndbid_type($1) = 't' AND $2 > 1 AND NOT t.private AND NOT t.hidden AND ns.subnum
+      SELECT 'subpost', u.id, notifyopt_subpost(u.notifyopts)
+        FROM threads t, notification_subs ns, users u
+       WHERE t.id = newiid AND ns.iid = newiid AND vndbid_type(newiid) = 't' AND newnum > 1 AND u.id = ns.uid AND NOT t.private AND NOT t.hidden AND ns.subnum
 
       -- subpost (reviews_posts)
       UNION
-      SELECT 'subpost', ns.uid
+      SELECT 'subpost', u.id, notifyopt_subpost(u.notifyopts)
         FROM notification_subs ns
-       WHERE ns.iid = $1 AND vndbid_type($1) = 'w' AND $2 IS NOT NULL AND ns.subnum
+        JOIN users u ON ns.uid = u.id
+       WHERE ns.iid = newiid AND vndbid_type(newiid) = 'w' AND newnum IS NOT NULL AND u.id = ns.uid AND ns.subnum
 
       -- comment
       UNION
-      SELECT 'comment', u.id
+      SELECT 'comment', u.id, notifyopt_comment(u.notifyopts)
         FROM reviews w
         JOIN users u ON w.uid = u.id
-       WHERE w.id = $1 AND vndbid_type($1) = 'w' AND $2 IS NOT NULL AND u.notify_comment
-         AND NOT EXISTS(SELECT 1 FROM notification_subs ns WHERE ns.iid = $1 AND ns.uid = w.uid AND NOT ns.subnum)
+       WHERE w.id = newiid AND vndbid_type(newiid) = 'w' AND newnum IS NOT NULL
+         AND NOT EXISTS(SELECT 1 FROM notification_subs ns WHERE ns.iid = newiid AND ns.uid = w.uid AND NOT ns.subnum)
 
       -- subreview
       UNION
-      SELECT 'subreview', ns.uid
-        FROM reviews w, notification_subs ns
-       WHERE w.id = $1 AND vndbid_type($1) = 'w' AND $2 IS NULL AND ns.iid = w.vid AND ns.subreview
+      SELECT 'subreview', u.id, notifyopt_subreview(u.notifyopts)
+        FROM reviews w, notification_subs ns, users u
+       WHERE w.id = newiid AND vndbid_type(newiid) = 'w' AND newnum IS NULL AND u.id = ns.uid AND ns.iid = w.vid AND ns.subreview
 
       -- subapply
       UNION
-      SELECT 'subapply', uid
-        FROM notification_subs
-       WHERE subapply AND vndbid_type($1) = 'c' AND $2 IS NOT NULL
-         AND iid IN(
-              WITH new(tid) AS (SELECT tid FROM chars_traits_hist WHERE chid = (SELECT id FROM changes WHERE itemid = $1 AND rev = $2)),
-                   old(tid) AS (SELECT tid FROM chars_traits_hist WHERE chid = (SELECT id FROM changes WHERE itemid = $1 AND $2 > 1 AND rev = $2-1))
+      SELECT 'subapply', u.id, notifyopt_subapply(u.notifyopts)
+        FROM notification_subs ns
+        JOIN users u ON u.id = ns.uid
+       WHERE ns.subapply AND vndbid_type(newiid) = 'c' AND newnum IS NOT NULL
+         AND ns.iid IN(
+              WITH new(tid) AS (SELECT tid FROM chars_traits_hist WHERE chid = (SELECT id FROM changes WHERE itemid = newiid AND rev = newnum)),
+                   old(tid) AS (SELECT tid FROM chars_traits_hist WHERE chid = (SELECT id FROM changes WHERE itemid = newiid AND newnum > 1 AND rev = newnum-1))
               (SELECT tid FROM old EXCEPT SELECT tid FROM new) UNION (SELECT tid FROM new EXCEPT SELECT tid FROM old)
             )
 
-    ) AS noti(ntype, uid)
-   WHERE uid <> $3
-     AND uid <> 'u1' -- No announcements for Multi
-   GROUP BY uid;
-$$ LANGUAGE SQL;
+    ) AS n(ntype, uid, prio)
+   WHERE n.prio > 0
+     AND n.uid <> newuid
+     AND n.uid <> 'u1' -- No announcements for Multi
+   GROUP BY n.uid;
+END;
+$$ LANGUAGE plpgsql;
 
 
 
