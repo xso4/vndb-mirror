@@ -94,11 +94,10 @@ sub user_maybebanned_ {
 
 
 # Display a user link, the given object must have the columns as fetched using DB::USER().
-# Args: $object, $prefix, $capital
+# Args: $object, $prefix
 sub user_ {
     my $obj = shift;
     my $prefix = shift||'user_';
-    my $capital = shift;
     my sub f :prototype($) { $obj->{"${prefix}$_[0]"} }
 
     my $softdel = !defined f 'name';
@@ -108,7 +107,7 @@ sub user_ {
     a_ href => '/'.f('id'),
         $softdel ? (class => 'grayedout') : (),
         $fancy && $uniname ? (title => f('name'), $uniname) :
-        (!$fancy && $uniname ? (title => $uniname) : (), ($capital ? f 'name' : f 'name') // f 'id');
+        (!$fancy && $uniname ? (title => $uniname) : (), f('name') // f 'id');
     txt_ '⭐' if $fancy && f 'support_can' && f 'support_enabled';
     user_maybebanned_ $obj, $prefix;
 }
@@ -275,10 +274,16 @@ sub _menu_ {
     article_ sub {
         my $uid = '/'.auth->uid;
         h2_ sub {
-            a_ href => "$uid/notifies",
-                $o->{unread_noti} ? (class => 'notifygot', title => "$o->{unread_noti} new notifications", "$o->{unread_noti}🔔")
-                                  : (class => 'notifies',  title => 'No notifications', '🔔');
-            user_ auth->user, 'user_', 1;
+            span_ sub { user_ auth->user, 'user_' };
+
+            my ($low, $mid, $high) = $o->{unread_noti}->@*;
+            my $title = join ', ', $low ? "$low low" : (), $mid ? "$mid medium" : (), $high ? "$high high" : ();
+            a_ href => "$uid/notifies", class => 'notifies', title => $title ? "$title priority notifications" : "No notifications", sub {
+                small_ sub { txt_ $low; lit_ ' / ' if $mid || $high } if $low;
+                txt_ $mid if $mid; lit_ ' / ' if $mid && $high;
+                b_ $high if $high;
+                span_ class => "bell".($high?3:$mid?2:$low?1:0), '🔔';
+            };
         };
         div_ sub {
             a_ href => "$uid/edit", 'My Profile'; txt_ '⭐' if auth->pref('nodistract_can') && !auth->pref('nodistract_nofancy'); br_;
@@ -423,7 +428,12 @@ sub _maintabs_ {
     nav_ sub {
         label_ for => 'mainmenu', sub {
             lit_ 'Menu';
-            b_ " ($opt->{unread_noti})" if $opt->{unread_noti};
+            if (auth) {
+                my $noti = List::Util::sum($opt->{unread_noti}->@*);
+                if ($opt->{unread_noti}[2]) { b_ " ($noti)" }
+                elsif ($opt->{unread_noti}[1]) { txt_ " ($noti)" }
+                elsif ($opt->{unread_noti}[0]) { small_ " ($noti)" }
+            }
         };
         menu_ sub {
             t '' => "/$id", $id if $o && $t ne 't';
@@ -543,7 +553,12 @@ sub framework_ {
     my $cont = pop;
     my %o = @_;
     fu->{pagevars} = { fu->{pagevars} ? fu->{pagevars}->%* : (), $o{pagevars}->%* } if $o{pagevars};
-    $o{unread_noti} = auth && fu->SQL('SELECT count(*) FROM notifications WHERE uid =', auth->uid, 'AND read IS NULL')->val;
+    $o{unread_noti} = auth && fu->SQL('
+        SELECT count(*) FILTER (WHERE prio = 1)
+             , count(*) FILTER (WHERE prio = 2)
+             , count(*) FILTER (WHERE prio = 3)
+         FROM notifications WHERE uid =', auth->uid, 'AND read IS NULL'
+    )->rowa;
 
     my $html = html_ lang => 'en', sub {
         lit_ "\n<!--\n"

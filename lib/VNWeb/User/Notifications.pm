@@ -84,7 +84,7 @@ sub listing_($id, $opt, $count, $list, $url) {
             my $l = $_;
             my $lid = $l->{iid}.($l->{num}?'.'.$l->{num}:'');
             td_ class => 'tc1', sub { input_ type => 'checkbox', name => 'notifysel', value => $l->{id}; };
-            td_ class => 'tc2', sub {
+            td_ class => 'tc2', '+' => $l->{prio} == 3 ? 'standout' : $l->{prio} == 1 ? 'grayedout' : undef, sub {
                 # Hide some not very interesting overlapping notification types
                 my %t = map +($_,1), $l->{ntype}->@*;
                 delete $t{subpost} if $t{post} || $t{comment} || $t{pm};
@@ -142,7 +142,7 @@ FU::get qr{/$RE{uid}/notifies}, sub($id) {
     my($count) = map $_->{ $opt->{r} ? 'all' : 'unread'}, grep +($_->{ntype}||'') eq ($opt->{n}||''), @$stats;
     $count ||= 0;
     my $list = $count && fu->SQL(
-       'SELECT n.id, n.ntype, n.iid, n.num, n.date, n.read, t.title, ', USER, '
+       'SELECT n.id, n.ntype, n.iid, n.num, n.prio, n.date, n.read, t.title, ', USER, '
           FROM notifications n,', ITEM_INFO('n.iid', 'n.num'), 't
           LEFT JOIN users u ON u.id = t.uid
          WHERE ', AND(

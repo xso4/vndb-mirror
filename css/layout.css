@@ -49,9 +49,12 @@ body > nav {
     fieldset      { padding: 0 7px 3px 6px }
     a             { color: var(--maintext) }
     a:hover       { border-bottom: 1px dotted var(--maintext); }
-    h2            { border-bottom: 1px solid var(--border); background: var(--boxbg); padding: 1px 3px; }
-    .notifies     { float: right; color: transparent; text-shadow: 0 0 var(--grayedout); font-weight: normal; font-size: 10px }
-    .notifygot    { float: right; color: transparent; text-shadow: 0 0 var(--standout) }
+    h2            { border-bottom: 1px solid var(--border); background: var(--boxbg); padding: 1px 3px; display: flex; flex-wrap: wrap; justify-content: space-between }
+    .notifies     { font-weight: normal; flex-grow: 1; text-align: right }
+    .bell3        { color: transparent; text-shadow: 0 0 var(--standout) }
+    .bell2        { color: transparent; text-shadow: 0 0 var(--maintext) }
+    .bell1        { color: transparent; text-shadow: 0 0 var(--grayedout) }
+    .bell0        { color: transparent; text-shadow: 0 0 var(--grayedout); font-size: 10px }
     input.text    { width: 100% }
     .logout       { border: 0; border-bottom: 1px solid transparent; background: none; cursor: pointer; font: inherit; padding: 0; margin: 0 }
     .logout:hover { border-bottom: 1px dotted var(--maintext) }

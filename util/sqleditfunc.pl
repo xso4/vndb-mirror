@@ -144,7 +144,7 @@ print gensql $_ for sort grep $schema->{$_}{dbentry_type}, keys %$schema;
 
 # Nothing to do with DB editing, but useful functions for accessing the notifyopt column.
 say "";
-say "CREATE OR REPLACE FUNCTION notifyopt_$_(integer) RETURNS integer AS 'SELECT (\$1 >> ($NTYPE{$_}{opt}*2)) & 3' LANGUAGE SQL IMMUTABLE;"
+say "CREATE OR REPLACE FUNCTION notifyopt_$_(integer) RETURNS smallint AS 'SELECT (\$1 >> ($NTYPE{$_}{opt}*2)) & 3' LANGUAGE SQL IMMUTABLE;"
     for keys %NTYPE;
 
 

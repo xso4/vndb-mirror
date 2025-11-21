@@ -169,7 +169,7 @@ CREATE TRIGGER insert_notify AFTER INSERT ON reviews       FOR EACH STATEMENT EX
 
 CREATE OR REPLACE FUNCTION notify_post() RETURNS trigger AS $$
 BEGIN
-  INSERT INTO notifications (uid, ntype, iid, num) SELECT uid, ntype, iid, num FROM notify(NEW.tid, NEW.num, NEW.uid) n;
+  INSERT INTO notifications (uid, ntype, iid, num, prio) SELECT uid, ntype, iid, num, prio FROM notify(NEW.tid, NEW.num, NEW.uid) n;
   RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
@@ -183,7 +183,7 @@ CREATE TRIGGER notify_post AFTER INSERT ON threads_posts FOR EACH ROW EXECUTE PR
 
 CREATE OR REPLACE FUNCTION notify_comment() RETURNS trigger AS $$
 BEGIN
-  INSERT INTO notifications (uid, ntype, iid, num) SELECT uid, ntype, iid, num FROM notify(NEW.id, NEW.num, NEW.uid) n;
+  INSERT INTO notifications (uid, ntype, iid, num, prio) SELECT uid, ntype, iid, num, prio FROM notify(NEW.id, NEW.num, NEW.uid) n;
   RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
@@ -197,7 +197,7 @@ CREATE TRIGGER notify_comment AFTER INSERT ON reviews_posts FOR EACH ROW EXECUTE
 
 CREATE OR REPLACE FUNCTION notify_review() RETURNS trigger AS $$
 BEGIN
-  INSERT INTO notifications (uid, ntype, iid, num) SELECT uid, ntype, iid, num FROM notify(NEW.id, NULL, NEW.uid) n;
+  INSERT INTO notifications (uid, ntype, iid, num, prio) SELECT uid, ntype, iid, num, prio FROM notify(NEW.id, NULL, NEW.uid) n;
   RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;

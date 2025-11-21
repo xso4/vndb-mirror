@@ -595,7 +595,8 @@ CREATE TABLE notifications (
   iid      vndbid NOT NULL,
   id       serial PRIMARY KEY,
   num      integer,
-  ntype    notification_ntype[] NOT NULL
+  ntype    notification_ntype[] NOT NULL,
+  prio     smallint NOT NULL DEFAULT 2
 );
 
 -- posts_patrolled

@@ -995,8 +995,9 @@ BEGIN
   END IF;
 
   -- Create edit notifications
-  INSERT INTO notifications (uid, ntype, iid, num)
-       SELECT n.uid, n.ntype, n.iid, n.num FROM changes c, notify(nitemid, c.rev, c.requester) n
+  INSERT INTO notifications (uid, ntype, iid, num, prio)
+       SELECT n.uid, n.ntype, n.iid, n.num, n.prio
+         FROM changes c, notify(nitemid, c.rev, c.requester) n
         WHERE isedit AND c.id = nchid;
 
   -- Make sure all visual novels linked to a release have a corresponding entry
@@ -1034,9 +1035,9 @@ $$ LANGUAGE plpgsql;
 --  newiid.newnum identifies the item that has been created.
 --  newuser indicates who created the item, providing an easy method of not creating a notification for that user.
 --     (can technically be fetched with a DB lookup, too)
-CREATE OR REPLACE FUNCTION notify(newiid vndbid, newnum integer, newuid vndbid) RETURNS TABLE (uid vndbid, ntype notification_ntype[], iid vndbid, num int) AS $$
+CREATE OR REPLACE FUNCTION notify(newiid vndbid, newnum integer, newuid vndbid) RETURNS TABLE (uid vndbid, ntype notification_ntype[], iid vndbid, num int, prio smallint) AS $$
 BEGIN
-  RETURN QUERY SELECT n.uid, array_agg(n.ntype), newiid, newnum
+  RETURN QUERY SELECT n.uid, array_agg(n.ntype), newiid, newnum, MAX(n.prio)
     FROM (
 
       -- pm
