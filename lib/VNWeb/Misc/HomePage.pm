@@ -113,7 +113,8 @@ sub recent_db_posts_ {
         li_ sub {
             my $boards = join ', ', map $BOARD_TYPE{$_->{btype}}{txt}.($_->{iid}?' > '.$_->{title}[1]:''), $_->{boards}->@*;
             span_ sub {
-                txt_ fmtage($_->{date}).' ';
+                age_ $_->{date};
+                lit_ ' ';
                 a_ href => "/$_->{id}.$_->{num}#last", title => "Posted in $boards", $_->{title};
             };
             span_ sub {
@@ -163,7 +164,8 @@ sub recent_vn_posts_ {
         li_ sub {
             span_ sub {
                 my $boards = join ', ', map $BOARD_TYPE{$_->{btype}}{txt}.($_->{iid}?' > '.$_->{title}[1]:''), $_->{boards}->@*;
-                txt_ fmtage($_->{date}).' ';
+                age_ $_->{date};
+                lit_ ' ';
                 a_ href => "/$_->{id}.$_->{num}#last", title => $boards ? "Posted in $boards" : 'Review', tlang(@{$_->{title}}[0,1]), $_->{title}[1];
             };
             span_ sub {
@@ -242,7 +244,8 @@ sub reviews_ {
     ul_ sub {
         li_ sub {
             span_ sub {
-                txt_ fmtage($_->{date}).' ';
+                age_ $_->{date};
+                lit_ ' ';
                 small_ ['Short ', 'Med ', 'Long ']->[$_->{length}];
                 a_ href => "/$_->{id}", tattr $_;
             };

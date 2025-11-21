@@ -21,12 +21,16 @@ our @EXPORT = (qw|
     imgsize
     norm_ip
     minage
-    fmtvote fmtmedia fmtinterval fmtage fmtdate fmtrating fmtspoil fmtanimation fmtbirthday
+    fmtvote fmtmedia fmtdate fmtrating fmtspoil fmtanimation fmtbirthday
     rdate
     imgpath imgurl thumburl imgiv
     tlang tattr
     md2html
     is_insecurepass
+|);
+
+our @EXPORT_OK = (qw|
+    fmtinterval fmtage
 |);
 
 

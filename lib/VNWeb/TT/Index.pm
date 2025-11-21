@@ -13,7 +13,7 @@ sub recent_($type) {
     h1_ 'Recently added';
     ul_ sub {
         li_ sub {
-            txt_ fmtage $_->{added};
+            age_ $_->{added};
             txt_ ' ';
             small_ "$_->{group} / " if $_->{group};
             a_ href => "/$_->{id}", $_->{name};
@@ -46,7 +46,7 @@ sub moderation_($type) {
     ul_ sub {
         li_ 'The moderation queue is empty!' if !@$lst;
         li_ sub {
-            txt_ fmtage $_->{added};
+            age_ $_->{added};
             txt_ ' ';
             small_ "$_->{group} / " if $_->{group};
             a_ href => "/$_->{id}", $_->{name};

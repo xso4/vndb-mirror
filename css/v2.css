@@ -820,17 +820,22 @@ div.charsum_list .charsum_bubble {
     tr.sel td:first-child, td.sel { font-weight: bold }
 }
 
-.browse.notifies td.tc1       { width: 14px }
-.browse.notifies td.tc3       { width: 100px }
-.browse.notifies td.tc4       { width: 75px }
-.browse.notifies tbody td.tc5 a { color: var(--grayedout) }
-.browse.notifies td.tc5 span  { color: var(--maintext) }
-.browse.notifies .unread td   { font-weight: bold }
-.browse.notifies tfoot td     { padding: 0 0 0 25px }
+.browse.notifies {
+    .tc1       { width: 14px }
+    .tc2       { white-space: nowrap; width: 150px }
+    .tc3       { width: 100px }
+    .tc4       { width: 80px }
+    tbody .tc5 a { color: var(--grayedout) }
+    .tc5 span  { color: var(--maintext) }
+    .unread td { font-weight: bold }
+    tfoot td   { padding: 0 0 0 25px }
+}
 
 .notifysettings {
     margin-left: 20px;
+    tr td:not(:last-child) { white-space: nowrap; width: 10px }
     .hdr td { padding-top: 10px }
+    .hdr small { color: transparent; text-shadow: 0 0 var(--grayedout) }
     .sub td:first-child { padding-left: 15px }
 }
 

@@ -18,10 +18,11 @@ use VNDB::Types;
 use VNWeb::Auth;
 use VNWeb::Validation;
 use VNWeb::DB;
-use VNDB::Func 'notifyopt', 'fmtdate', 'rdate', 'tattr';
+use VNDB::Func 'notifyopt', 'fmtdate', 'rdate', 'tattr', 'fmtage', 'fmtinterval';
 
 our @EXPORT = qw/
     clearfloat_
+    age_ age2_ eta_
     platform_
     debug_
     join_
@@ -47,6 +48,10 @@ sub html_escape { xml_escape($_[0]) =~ s/\n/<br \/>/rg }
 
 # Ugly hack to move rendering down below the float object.
 sub clearfloat_ { div_ class => 'clearfloat', '' }
+
+sub age_($t)  { abbr_ title => fmtdate($t, 1), fmtage $t }
+sub age2_($t) { abbr_ title => fmtdate($t, 1), fmtage($t) =~ s/ ago//r }
+sub eta_($t)  { abbr_ title => fmtdate($t, 1), fmtinterval($t - time) }
 
 
 # Platform icon

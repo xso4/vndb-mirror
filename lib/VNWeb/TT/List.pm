@@ -16,7 +16,7 @@ sub listing_($type, $opt, $list, $count) {
                 td_ class => 'tc3', sub { txt_ 'Name';    sortable_ 'name',  $opt, \&url };
             } };
             tr_ sub {
-                td_ class => 'tc1', fmtage $_->{added};
+                td_ class => 'tc1', sub { age_ $_->{added} };
                 td_ class => 'tc2', $_->{c_items}||'-';
                 td_ class => 'tc3', sub {
                     small_ "$_->{group} / " if $_->{group};

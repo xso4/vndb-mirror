@@ -2,6 +2,7 @@ package VNWeb::Misc::ExtLinks;
 
 use VNWeb::Prelude;
 use VNDB::ExtLinks 'extlink_parse', 'extlink_split', 'extlink_fmt', '%LINKS';
+use VNDB::Func 'fmtinterval';
 use FU::Util 'uri_escape';
 use experimental 'builtin';
 
@@ -10,10 +11,6 @@ js_api ExtlinkParse => { url => {} }, sub($data) {
     my($s,$v,$d) = extlink_parse $data->{url};
     +{ res => $s ? { site => $s, value => $v, data => $d, split => extlink_split($s,$v,$d) } : undef }
 };
-
-sub age_($t)  { abbr_ title => fmtdate($t, 1), fmtage $t }
-sub age2_($t) { abbr_ title => fmtdate($t, 1), fmtage($t) =~ s/ ago//r }
-sub eta_($t)  { abbr_ title => fmtdate($t, 1), fmtinterval($t - time) }
 
 my @FLAGS = qw/redirect unrecognized serverror/;
 

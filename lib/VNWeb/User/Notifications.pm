@@ -12,6 +12,10 @@ sub settings_($id) {
             for my ($id, $v) (%NTYPE) {
                 tr_ class => 'hdr', sub { td_ colspan => 5, sub { strong_ 'Database' } } if $id eq 'listdel';
                 tr_ class => 'hdr', sub { td_ colspan => 5, sub { strong_ 'Community' } } if $id eq 'pm';
+                tr_ class => 'hdr', sub { td_ colspan => 5, sub {
+                    strong_ 'Subscriptions';
+                    small_ ' (These are managed with the 🔔 icon at the top of database, forum and review pages)';
+                } } if $id eq 'subedit';
                 tr_ class => $id eq 'announce' ? undef : 'sub', sub {
                     my $o = notifyopt $id => $opt;
                     td_ sub { $v->{desc} ? abbr_ title => $v->{desc}, $v->{txt} : txt_ $v->{txt} };
@@ -21,8 +25,9 @@ sub settings_($id) {
                     td_ sub { label_ sub { input_ type => 'radio', name => "opt_$id", value => 3, checked => $o == 3 ? 'checked' : undef; txt_ ' high' } };
                 };
             }
-            tfoot_ sub { tr_ sub { td_ sub {
+            tfoot_ sub { tr_ sub { td_ colspan => 5, sub {
                 input_ type => 'submit', class => 'submit', value => 'Save';
+                small_ ' (Settings are applied to new notifications)';
             }}};
         };
     };
@@ -88,7 +93,7 @@ sub listing_($id, $opt, $count, $list, $url) {
                 delete $t{dbedit} if $t{dbdel};
                 join_ \&br_, sub { txt_ $NTYPE{$_}{txt} }, sort keys %t;
             };
-            td_ class => 'tc3', fmtage $l->{date};
+            td_ class => 'tc3', sub { age_ $l->{date} };
             td_ class => 'tc4', sub { a_ href => "/$lid", $lid };
             td_ class => 'tc5', sub {
                 a_ href => "/$lid", sub {
