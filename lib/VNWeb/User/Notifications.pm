@@ -3,7 +3,7 @@ package VNWeb::User::Notifications;
 use VNWeb::Prelude;
 
 sub settings_($id) {
-    h1_ 'Notification Settings';
+    h1_ 'Settings';
     form_ action => "/$id/notify_options", method => 'POST', sub {
         input_ type => 'hidden', class => 'hidden', name => 'csrf', value => auth->csrftoken;
 
@@ -14,7 +14,7 @@ sub settings_($id) {
                 tr_ class => 'hdr', sub { td_ colspan => 5, sub { strong_ 'Community' } } if $id eq 'pm';
                 tr_ class => 'hdr', sub { td_ colspan => 5, sub {
                     strong_ 'Subscriptions';
-                    small_ ' (These are managed with the 🔔 icon at the top of database, forum and review pages)';
+                    small_ ' (Managed with the 🔔 icon at the top of database, forum and review pages)';
                 } } if $id eq 'subedit';
                 tr_ class => $id eq 'announce' ? undef : 'sub', sub {
                     my $o = notifyopt $id => $opt;
@@ -34,53 +34,25 @@ sub settings_($id) {
 }
 
 
-sub stats_($stats, $opt, $url) {
-    table_ class => 'usernotifies', sub {
-        thead_ sub { tr_ sub {
-            td_ '';
-            td_ 'Unread';
-            td_ 'Total';
-        }};
-        for (@$stats) {
-            my $nsel = +($_->{ntype}||'') eq ($opt->{n}||'');
-            tr_ class => $nsel ? 'sel' : undef, sub {
-                td_ sub {
-                    em_ 'All types' if !$_->{ntype};
-                    txt_ $NTYPE{$_->{ntype}}{txt} if $_->{ntype};
-                };
-                td_ class => $nsel && !$opt->{r} ? 'sel' : undef, sub {
-                    txt_ 0 if !$_->{unread};
-                    a_ href => $url->(p=>undef,r=>undef,n=>$_->{ntype}), $_->{unread} if $_->{unread};
-                };
-                td_ class => $nsel && $opt->{r} ? 'sel' : undef, sub {
-                    txt_ 0 if !$_->{all};
-                    a_ href => $url->(p=>undef,r=>1,n=>$_->{ntype}), $_->{all} if $_->{all};
-                };
-            }
-        };
-    };
-}
-
-
-sub listing_($id, $opt, $count, $list, $url) {
+sub listing_($id, $opt, $count, $list, $page, $url) {
     my sub tbl_ {
         thead_ sub { tr_ sub {
             td_ '';
             td_ 'Type';
             td_ 'Age';
-            td_ 'ID';
+            td_ colspan => 2, 'ID';
             td_ 'Action';
         }};
         tfoot_ sub { tr_ sub {
-            td_ colspan => 5, sub {
+            td_ colspan => 6, sub {
                 input_ type => 'checkbox', class => 'checkall', name => 'notifysel', value => 0;
                 txt_ ' ';
-                input_ type => 'submit', class => 'submit', name => 'markread', value => 'mark selected read';
+                input_ type => 'submit', class => 'submit', name => 'markread', value => 'mark selected read' if $page eq 'unread';
                 input_ type => 'submit', class => 'submit', name => 'remove', value => 'remove selected';
-                small_ ' (Read notifications are automatically removed after one month)';
+                small_ ' (Read notifications are automatically removed after one month)' if $page eq 'read';
             }
         }};
-        tr_ $_->{read} ? () : (class => 'unread'), sub {
+        tr_ sub {
             my $l = $_;
             my $lid = $l->{iid}.($l->{num}?'.'.$l->{num}:'');
             td_ class => 'tc1', sub { input_ type => 'checkbox', name => 'notifysel', value => $l->{id}; };
@@ -94,8 +66,9 @@ sub listing_($id, $opt, $count, $list, $url) {
                 join_ \&br_, sub { txt_ $NTYPE{$_}{txt} }, sort keys %t;
             };
             td_ class => 'tc3', sub { age_ $l->{date} };
-            td_ class => 'tc4', sub { a_ href => "/$lid", $lid };
-            td_ class => 'tc5', sub {
+            td_ class => 'tc4', sub { a_ href => "/$lid", $l->{iid} };
+            td_ class => 'tc5', sub { a_ href => "/$lid", '.'.$l->{num} if $l->{num} };
+            td_ class => 'tc6', sub {
                 a_ href => "/$lid", sub {
                     txt_ $l->{iid} =~ /^w/ ? ($l->{num} ? 'Comment on ' : 'Review of ') :
                          $l->{iid} =~ /^t/ ? ($l->{num} == 1 ? 'New thread ' : 'Reply to ') : 'Edit of ';
@@ -109,11 +82,10 @@ sub listing_($id, $opt, $count, $list, $url) {
 
     form_ action => "/$id/notify_update", method => 'POST', sub {
         input_ type => 'hidden', class => 'hidden', name => 'url', value => $url->();
-        paginate_ $url, $opt->{p}, [$count, 25], 't';
         article_ class => 'browse notifies', sub {
             table_ class => 'stripe', \&tbl_;
         };
-        paginate_ $url, $opt->{p}, [$count, 25], 'b';
+        paginate_ $url, $opt->{p}, [$count, 100], 'b';
     } if $count;
 }
 
@@ -122,49 +94,57 @@ sub listing_($id, $opt, $count, $list, $url) {
 FU::get '/u/notifies', sub { auth ? fu->redirect(temp => '/'.auth->uid.'/notifies') : fu->notfound };
 
 
-FU::get qr{/$RE{uid}/notifies}, sub($id) {
+FU::get qr{/$RE{uid}/notifies(?:/(read|settings))?}, sub($id, $page='unread') {
     fu->notfound if !auth || $id ne auth->uid;
 
     my $opt = fu->query(
         p => { page => 1 },
-        r => { anybool => 1 },
-        n => { default => undef, enum => \%NTYPE },
+        l => { onerror => 0, range => [0,3] },
     );
 
-    my $stats = fu->sql('
-        SELECT x.ntype, count(*) filter (where n.read IS NULL) AS unread, count(*) AS all
-          FROM notifications n, unnest(n.ntype) x(ntype)
-         WHERE n.uid = $1
-         GROUP BY GROUPING SETS ((), (x.ntype))
-         ORDER BY count(*) DESC', $id
-    )->allh;
-
-    my($count) = map $_->{ $opt->{r} ? 'all' : 'unread'}, grep +($_->{ntype}||'') eq ($opt->{n}||''), @$stats;
-    $count ||= 0;
-    my $list = $count && fu->SQL(
-       'SELECT n.id, n.ntype, n.iid, n.num, n.prio, n.date, n.read, t.title, ', USER, '
+    my $where = $page ne 'settings' && SQL 'n.uid =', $id, 'AND n.read IS', $page eq 'read' ? 'NOT NULL' : 'NULL';
+    my $count = !$where ? [0] : fu->SQL('
+        SELECT count(*)
+             , count(*) FILTER (WHERE prio = 1)
+             , count(*) FILTER (WHERE prio = 2)
+             , count(*) FILTER (WHERE prio = 3)
+          FROM notifications n WHERE', $where
+    )->rowa;
+    my $list = $count->[0] && fu->SQL(
+       'SELECT n.id, n.ntype, n.iid, n.num, n.prio, n.date, t.title, ', USER, '
           FROM notifications n,', ITEM_INFO('n.iid', 'n.num'), 't
           LEFT JOIN users u ON u.id = t.uid
-         WHERE ', AND(
-             SQL('n.uid =', $id),
-             $opt->{r} ? () : 'n.read IS NULL',
-             $opt->{n} ? SQL('n.ntype && ARRAY[', $opt->{n}, '::notification_ntype]') : (),
-         ),
-        'ORDER BY n.id', $opt->{r} ? 'DESC' : 'ASC',
-        'LIMIT 25 OFFSET', 25*($opt->{p}-1)
+         WHERE ', $where, $opt->{l} ? ('AND n.prio =', $opt->{l}) : (),
+        'ORDER BY ', $page eq 'read' ? 'n.id DESC' : 'n.prio DESC, n.id DESC',
+        'LIMIT 100 OFFSET', 100*($opt->{p}-1)
     )->allh;
 
-    my sub url { "/$id/notifies?".query_encode({%$opt, @_}) }
+    my sub url { "/$id/notifies".($page eq 'read' ? '/read' : '').'?'.query_encode({%$opt, @_}) }
 
     framework_ title => 'My notifications', js => 1,
     sub {
-        article_ sub {
-            h1_ 'My notifications';
-            stats_ $stats, $opt, \&url if grep $_->{all}, @$stats;
-            p_ 'No notifications!' if !$count;
+        article_ sub { h1_ 'My notifications'; };
+        nav_ sub {
+            menu_ sub {
+                my $pre = '/'.auth->uid.'/notifies';
+                li_ sub { a_ href => $pre,            class => $page eq 'unread'   ? 'highlightselected' : undef, 'Unread' };
+                li_ sub { a_ href => "$pre/read",     class => $page eq 'read'     ? 'highlightselected' : undef, 'Read' };
+                li_ sub { a_ href => "$pre/settings", class => $page eq 'settings' ? 'highlightselected' : undef, 'Settings' };
+            };
+            menu_ sub {
+                li_ sub { a_ href => url(p => 0, l => 1), class => $opt->{l} == 1 ? 'highlightselected' : undef, "Low ($count->[1])" } if $count->[1];
+                li_ sub { a_ href => url(p => 0, l => 2), class => $opt->{l} == 2 ? 'highlightselected' : undef, "Medium ($count->[2])" } if $count->[2];
+                li_ sub { a_ href => url(p => 0, l => 3), class => $opt->{l} == 3 ? 'highlightselected' : undef, "High ($count->[3])" } if $count->[3];
+                li_ sub { a_ href => url(p => 0, l => 0), class => $opt->{l} == 0 ? 'highlightselected' : undef, 'All' };
+            } if $count->[0];
         };
-        listing_ $id, $opt, $count, $list, \&url;
-        article_ sub { settings_ $id };
+        if ($page eq 'settings') {
+            article_ sub { settings_ $id }
+        } elsif ($count) {
+            listing_ $id, $opt, $count->[$opt->{l}], $list, $page, \&url;
+        } else {
+            article_ sub { p_ 'No notifications.' };
+        }
     };
 };
 
@@ -183,7 +163,7 @@ FU::post qr{/$RE{uid}/notify_options}, sub($id) {
         $opt |= ($frm->{"opt_$id"} || ($v->{mute} ? 0 : 1)) << ($v->{opt}*2)
     }
     fu->SQL('UPDATE users SET notifyopts =', $opt, 'WHERE id =', $id)->exec;
-    fu->redirect(tempget => "/$id/notifies");
+    fu->redirect(tempget => "/$id/notifies/settings");
 };
 
 

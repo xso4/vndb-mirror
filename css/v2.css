@@ -821,13 +821,15 @@ div.charsum_list .charsum_bubble {
 }
 
 .browse.notifies {
+    td { vertical-align: middle; }
     .tc1       { width: 14px }
     .tc2       { white-space: nowrap; width: 150px }
     .tc3       { width: 100px }
-    .tc4       { width: 80px }
-    tbody .tc5 a { color: var(--grayedout) }
-    .tc5 span  { color: var(--maintext) }
-    .unread td { font-weight: bold }
+    .tc4       { padding-right: 0; width: 60px; text-align: right }
+    .tc5       { padding-left: 0; width: 10px }
+    .tc6       { padding-left: 10px }
+    .tc6 a     { color: var(--grayedout) }
+    .tc6 span  { color: var(--maintext) }
     tfoot td   { padding: 0 0 0 25px }
 }
 
