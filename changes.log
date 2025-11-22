@@ -1,4 +1,6 @@
 # This is for user-visible changes only and powers the list at https://vndb.org/changes
+20251122 Add notification priorities, more advanced settings and revamped UI
+20251122 Add timestamp tooltips to ".. ago" columns
 20251017 Add multilanguage character names + romanized & spoiler aliases (t24112)
 20251008 Add Bosnian language (t950.1988)
 20251002 Add [url=/r/engines]searchable engine list[/url] with (mod-editable) description and status fields.

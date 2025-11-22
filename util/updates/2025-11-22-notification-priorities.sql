@@ -12,6 +12,9 @@ ALTER TABLE users DROP COLUMN notify_comment;
 
 ALTER TABLE notifications ADD COLUMN prio smallint NOT NULL DEFAULT 2;
 
+UPDATE notifications SET prio = 3 WHERE ntype && '{pm,dbdel,listdel}';
+UPDATE notifications SET prio = 1 WHERE ntype IN('{postment}', '{dbedit}');
+
 DROP FUNCTION notify(vndbid,integer,vndbid);
 
 \i sql/func.sql

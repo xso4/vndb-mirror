@@ -139,8 +139,18 @@ sub notify_mentions($id, $num, $msg) {
     });
 
     my sub noti($type, $uid) {
-        fu->SQL("UPDATE notifications SET ntype = ntype ||", [$type], WHERE { uid => $uid, iid => $id, num => $num })->exec ||
-        fu->SQL('INSERT INTO notifications', VALUES { uid => $uid, iid => $id, num => $num, ntype => [$type]})->exec;
+        fu->sql('
+            WITH usr(prio) AS (SELECT notifyopt_ment(notifyopts) FROM users WHERE id = $1),
+                 upd(id) AS (
+                    UPDATE notifications
+                       SET ntype = ntype || ARRAY[$2::notification_ntype]
+                         , prio = GREATEST(prio, (SELECT prio FROM usr))
+                     WHERE uid = $1 AND iid = $3 AND num = $4
+                 RETURNING id
+            ) INSERT INTO notifications (uid, iid, num, ntype, prio)
+              SELECT $1, $3, $4, ARRAY[$2], (SELECT prio FROM usr)
+               WHERE NOT EXISTS(SELECT 1 FROM upd)
+        ', $uid, $type, $id, $num)->exec;
     }
 
     noti ment => $_ for keys %uids ? fu->SQL('SELECT id FROM users WHERE id', IN [keys %uids])->flat->@* : ();
