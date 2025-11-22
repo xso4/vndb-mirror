@@ -1386,10 +1386,7 @@ BEGIN
     INSERT INTO audit_log (affected_uid, action) VALUES (userid, 'hard delete');
   ELSE
     UPDATE users SET
-        notify_dbedit = DEFAULT,
-        notify_announce = DEFAULT,
-        notify_post = DEFAULT,
-        notify_comment = DEFAULT,
+        notifyopts = DEFAULT,
         nodistract_noads = DEFAULT,
         nodistract_nofancy = DEFAULT,
         support_enabled = DEFAULT,
