@@ -140,7 +140,7 @@ FU::get qr{/$RE{uid}/notifies(?:/(read|settings))?}, sub($id, $page='unread') {
         };
         if ($page eq 'settings') {
             article_ sub { settings_ $id }
-        } elsif ($count) {
+        } elsif ($count->[0]) {
             listing_ $id, $opt, $count->[$opt->{l}], $list, $page, \&url;
         } else {
             article_ sub { p_ 'No notifications.' };
