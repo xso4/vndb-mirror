@@ -1,6 +1,6 @@
 INSERT INTO global_settings (id) VALUES (TRUE);
 
-INSERT INTO users (id, username, notify_dbedit) VALUES ('u1', 'multi', FALSE);
+INSERT INTO users (id, username, notifyopts) VALUES ('u1', 'multi', 0);
 SELECT setval('users_id_seq', 2);
 
 INSERT INTO stats_cache (section, count) VALUES
