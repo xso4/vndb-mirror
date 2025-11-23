@@ -278,12 +278,14 @@ sub _menu_ {
 
             my ($low, $mid, $high) = $o->{unread_noti}->@*;
             my $title = join ', ', $low ? "$low low" : (), $mid ? "$mid medium" : (), $high ? "$high high" : ();
-            a_ href => "$uid/notifies", class => 'notifies', title => $title ? "$title priority notifications" : "No notifications", sub {
-                small_ sub { txt_ $low; lit_ ' / ' if $mid || $high } if $low;
-                txt_ $mid if $mid; lit_ ' / ' if $mid && $high;
-                b_ $high if $high;
-                span_ class => "bell".($high?3:$mid?2:$low?1:0), '🔔';
-            };
+            span_ class => 'notifies', sub {
+                a_ href => "$uid/notifies", title => $title ? "$title priority notifications" : "No notifications", sub {
+                    small_ sub { txt_ $low; lit_ ' / ' if $mid || $high } if $low;
+                    txt_ $mid if $mid; lit_ ' / ' if $mid && $high;
+                    b_ $high if $high;
+                    span_ class => "bell".($high?3:$mid?2:$low?1:0), '🔔';
+                };
+            }
         };
         div_ sub {
             a_ href => "$uid/edit", 'My Profile'; txt_ '⭐' if auth->pref('nodistract_can') && !auth->pref('nodistract_nofancy'); br_;
