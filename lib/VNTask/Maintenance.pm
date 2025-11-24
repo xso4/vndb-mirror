@@ -76,7 +76,7 @@ my @daily = (
     cleannotifications => q{
         DELETE FROM notifications WHERE read < NOW()-'1 month'::interval;
         DELETE FROM notifications WHERE id IN (
-            SELECT id FROM (SELECT id, row_number() OVER (PARTITION BY uid ORDER BY id DESC) > 500 from notifications) AS x(id,del) WHERE x.del
+            SELECT id FROM (SELECT id, row_number() OVER (PARTITION BY uid ORDER BY id DESC) > 10000 from notifications) AS x(id,del) WHERE x.del
         );
     },
 

@@ -86,6 +86,7 @@ for my $perm (@perms) {
 # be accessed through auth->pref().
 my @pref_columns = qw/
     timezone skin customcss_csum titles notifyopts
+    c_noti_low c_noti_mid c_noti_high
     vnimage tags_all tags_cont tags_ero tags_tech
     spoilers traits_sexual max_sexual max_violence
     tableopts_c tableopts_v tableopts_vt
@@ -268,10 +269,12 @@ sub pref($self, $key) {
 # Arguments: $vndbid, $num||[@nums]||<missing>
 sub notiRead {
     my($self, $id, $num) = @_;
-    fu->SQL('
+    return if !$self->uid;
+    my $upd = fu->SQL('
         UPDATE notifications SET read = NOW() WHERE read IS NULL AND uid =', $self->uid, 'AND iid =', $id,
         @_ == 2 ? () : !defined $num ? 'AND num IS NULL' : !ref $num ? ('AND num =', $num) : ('AND num', IN $num)
-    )->exec if $self->uid;
+    )->exec;
+    $self->{user}{c_noti_low} = undef if $upd; # Force updating the cached counts
 }
 
 

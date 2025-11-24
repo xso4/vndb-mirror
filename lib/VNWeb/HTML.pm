@@ -555,12 +555,22 @@ sub framework_ {
     my $cont = pop;
     my %o = @_;
     fu->{pagevars} = { fu->{pagevars} ? fu->{pagevars}->%* : (), $o{pagevars}->%* } if $o{pagevars};
-    $o{unread_noti} = auth && fu->SQL('
-        SELECT count(*) FILTER (WHERE prio = 1)
-             , count(*) FILTER (WHERE prio = 2)
-             , count(*) FILTER (WHERE prio = 3)
-         FROM notifications WHERE uid =', auth->uid, 'AND read IS NULL'
-    )->rowa;
+
+    $o{unread_noti} = defined auth->pref('c_noti_low')
+        ? [map auth->pref("c_noti_$_"), 'low', 'mid', 'high']
+        : auth ? fu->sql('
+            UPDATE users_prefs
+               SET c_noti_low = l1, c_noti_mid = l2, c_noti_high = l3
+              FROM (
+                SELECT count(*) FILTER (WHERE prio = 1)
+                     , count(*) FILTER (WHERE prio = 2)
+                     , count(*) FILTER (WHERE prio = 3)
+                  FROM notifications
+                 WHERE uid = $1 AND read IS NULL
+              ) x(l1,l2,l3)
+             WHERE id = $1
+             RETURNING l1, l2, l3
+        ', auth->uid)->rowa : undef;
 
     my $html = html_ lang => 'en', sub {
         lit_ "\n<!--\n"

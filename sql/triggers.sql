@@ -241,6 +241,22 @@ CREATE TRIGGER update_reviews_cache AFTER INSERT OR UPDATE OR DELETE ON reviews_
 
 
 
+-- Clear user's cached unread notification counts on change
+
+CREATE OR REPLACE FUNCTION update_notification_cache() RETURNS trigger AS $$
+BEGIN
+  UPDATE users_prefs
+     SET c_noti_low = NULL, c_noti_mid = NULL, c_noti_high = NULL
+   WHERE id IN(OLD.uid, NEW.uid) AND c_noti_low IS NOT NULL;
+  RETURN NULL;
+END
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_notification_cache AFTER INSERT OR UPDATE OR DELETE ON notifications FOR EACH ROW EXECUTE PROCEDURE update_notification_cache();
+
+
+
+
 -- Call update_vn_length_cache() for every change on vn_length_votes
 
 CREATE OR REPLACE FUNCTION update_vn_length_cache() RETURNS trigger AS $$

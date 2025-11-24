@@ -1424,7 +1424,10 @@ CREATE TABLE users_prefs (
   ulist_wish          jsonb,
   vnrel_langs         language[], -- NULL meaning "show all languages"
   staffed_langs       language[],
-  titles              titleprefs
+  titles              titleprefs,
+  c_noti_low          smallint,
+  c_noti_mid          smallint,
+  c_noti_high         smallint
 );
 
 -- users_prefs_tags
