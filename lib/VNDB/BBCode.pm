@@ -172,8 +172,7 @@ sub _format_postlink($link, $id, $num, $same) {
     my $obj = FU::fu->SQL('
         SELECT title[2],', VNWeb::DB::USER(), '
           FROM item_info(NULL,', $id, ',', $num, ') x
-          LEFT JOIN users u ON u.id = x.uid',
-               $same ? () : 'WHERE NOT hidden'
+          LEFT JOIN users u ON u.id = x.uid WHERE NOT hidden'
     )->rowh;
     return if !length $obj->{title};
     my $user = xml_escape VNWeb::HTML::user_displayname($obj);
