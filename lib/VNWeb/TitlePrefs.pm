@@ -83,6 +83,7 @@ sub pref { !is_api() && auth->pref('titles') }
 sub titleprefs_obj($olang, $titles) {
     my $p = pref;
     my %l = map +($_->{lang},$_), @$titles;
+    ($olang) = sort keys %l if !$l{$olang}; # Make sure we have a title even if $olang is wrong (can happen for old character revisions)
 
     my $col = exists $titles->[0]{title} ? 'title' : 'name';
     my @title = (
