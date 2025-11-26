@@ -140,7 +140,7 @@ sub notify_mentions($id, $num, $msg) {
 
     my sub noti($type, $uid) {
         fu->sql('
-            WITH usr(prio) AS (SELECT notifyopt_ment(notifyopts) FROM users WHERE id = $1),
+            WITH usr(prio) AS (SELECT notifyopt_'.$type.'(notifyopts) FROM users WHERE id = $1),
                  upd(id) AS (
                     UPDATE notifications
                        SET ntype = ntype || ARRAY[$2::notification_ntype]
