@@ -199,7 +199,7 @@ widget('ImageFlagging', initvnode => {
         ]),
         m('div',
             i.votes.length === 0 ? m('p.center', 'No other votes on this image yet.') :
-            show_votes !== i.id && i.my_sexual === null && i.my_violence === null ? m('p.center',
+            show_votes !== i.id && (i.my_sexual === null || i.my_violence === null) ? m('p.center',
                 i.votes.length, i.votes.length === 1 ? ' vote' : ' votes', ', ',
                 m('a[href=#]', { onclick: ev => { ev.preventDefault(); show_votes = i.id; } }, 'show »'),
             ) : [
