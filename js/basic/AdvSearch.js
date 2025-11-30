@@ -893,7 +893,7 @@ widget('AdvSearch', initvnode => {
         const lst = data.saved.filter(o => o.id && o.id.toLowerCase().includes(str.toLowerCase()));
         cb((str && !lst.find(o => o.id === str) ? [{id:str,n:1}] : []).concat(lst));
         dsSave.selId = null;
-    }, view: o => [ o.id, o.n ? m('small', ' (new filter)') : null ] };
+    }, view: o => o.id.length > 50 ? m('b', 'Input too long') : [ o.id, o.n ? m('small', ' (new filter)') : null ] };
 
     const dsLoad = new DS(savedSrc, {
         width: 300, nosearch: true,
