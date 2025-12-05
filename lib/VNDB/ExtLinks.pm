@@ -297,7 +297,7 @@ our %LINKS = (
     gog =>
         { ent   => 'r'
         , label => 'GOG',
-        , fmt   => 'https://www.gog.com/game/%s'
+        , fmt   => 'https://www.gog.com/en/game/%s'
         , parse => qr{(?:www\.)?gog\.com/(?:[a-z]{2}/)?game/([a-z0-9_]+).*}
         },
     googplay =>
@@ -743,6 +743,7 @@ sub enrich_vislinks($type, $enabled, @obj) {
         c 'steamdb', 'SteamDB', $_->{value}, sprintf('https://steamdb.info/app/%d/info/', $_->{value}) for $o->{_l}{steam}->@*;
         l 'dlsite';
         l 'gog';
+        c 'gogdb', 'GOG DB', $_->{data}, sprintf('https://gogdb.org/product/%d', $_->{data}) for grep $_->{data}, $o->{_l}{gog}->@*;
         l 'itch';
         l 'patreonp';
         l 'patreon';
