@@ -14,7 +14,7 @@ sub fetch($task, $lnk) {
 
     my $sku = ref $json eq 'HASH' && $json->{sku} && $json->{sku} =~ /^[0-9]+$/ ? $json->{sku} : $res->err('No SKU found');
     my($price) = grep $_->{availability} eq 'https://schema.org/InStock' && $_->{areaServed} =~ /^(US|REST)$/ && $_->{priceCurrency} eq 'USD', $json->{offers}->@*;
-    $price = !$price ? undef : $price->{price} ? sprintf '%.02f USD', $price->{price} : 'free';
+    $price = !$price ? undef : $price->{price} && $price->{price} ne '0.00' ? sprintf 'US$ %.02f', $price->{price} : 'free';
 
     $lnk->save(data => $sku, price => $price, detail => { name => $json->{name} });
     $task->done("%s at %d", $price || 'Unavailable', $sku);
