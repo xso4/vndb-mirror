@@ -658,11 +658,12 @@ sub extlink_split {
 # following field to each object:
 #
 #   vislinks => [
-#     { name, label, id, url, url2, price },  # depending on which fields are $enabled
+#     # depending on which fields are $enabled
+#     { name, label, id, url, url2, price, linkid, deadcount, lastfetch },
 #     ..
 #   ]
 sub enrich_vislinks($type, $enabled, @obj) {
-    $enabled ||= { name => 1, label => 1, url2 => 1, price => 1 };
+    $enabled ||= { name => 1, label => 1, url2 => 1, price => 1, linkid => 1, deadcount => 1, lastfetch => 1 };
     @obj = map ref $_ eq 'ARRAY' ? @$_ : ($_), @obj;
     return if !@obj;
 
@@ -681,7 +682,7 @@ sub enrich_vislinks($type, $enabled, @obj) {
     # Fetch extlinks for objects that do not already have an 'extlinks' field
     my @ids_ne = grep !$ids{$_}{extlinks}, @ids;
     for my $s (@ids_ne ? FU::fu->SQL('
-        SELECT e.id, l.site, l.value, l.data, l.price
+        SELECT e.id, e.link AS linkid, l.site, l.value, l.data, l.price, l.deadcount, l.lastfetch
           FROM', FU::SQL::RAW({qw/r releases_extlinks  s staff_extlinks  p producers_extlinks  v vn_extlinks/}->{$type}), 'e
           JOIN extlinks l ON l.id = e.link
          WHERE e.id', FU::SQL::IN(\@ids_ne)
@@ -693,7 +694,7 @@ sub enrich_vislinks($type, $enabled, @obj) {
     my $w = @w_ids ? FU::fu->SQL('SELECT id, * FROM wikidata WHERE id', FU::SQL::IN(\@w_ids))->kvh : {};
 
     my $o;
-    my sub c($name, $label, $id, $url, $url2=undef, $price=undef) {
+    my sub c($name, $label, $id, $url, $url2=undef, $price=undef, %xtra) {
         push $o->{vislinks}->@*, {
             $enabled->{name}  ? (name  => $name ) : (),
             $enabled->{label} ? (label => $label) : (),
@@ -701,6 +702,7 @@ sub enrich_vislinks($type, $enabled, @obj) {
             $enabled->{url}   ? (url   => $url  ) : (),
             $enabled->{url2}  ? (url2  => $url2 || $url) : (),
             $enabled->{price} && length $price ? (price => $price) : (),
+            map $enabled->{$_} ? ($_, $xtra{$_}) : (), keys %xtra
         }
     }
     my sub l($f) {
@@ -708,7 +710,11 @@ sub enrich_vislinks($type, $enabled, @obj) {
         c $f, $l->{label}, $_->{value},
             extlink_fmt($f, $_->{value}, $_->{data}),
             extlink_fmt($f, $_->{value}, $_->{data}, 1),
-            $_->{price} for $o->{_l}{$f} ? $o->{_l}{$f}->@* : ();
+            $_->{price},
+            linkid => $_->{linkid},
+            deadcount => $_->{deadcount},
+            lastfetch => $_->{lastfetch}
+            for $o->{_l}{$f} ? $o->{_l}{$f}->@* : ();
     }
     my sub w($f) {
         return if !$o->{_l}{wikidata};

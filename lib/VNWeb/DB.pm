@@ -182,10 +182,10 @@ my $entry_types = do {
 # Automatically enrich selected tables, arg is: [ $select, $joins, $orderby ]
 # (Enriching the main entry's table is not yet supported, just data tables for now)
 my %enrich = (
-    releases_extlinks   => [ 'l.site, l.value, l.data, l.price', RAW('JOIN extlinks l ON l.id = x.link'), 'l.site, l.value' ],
-    producers_extlinks  => [ 'l.site, l.value, l.data, l.price', RAW('JOIN extlinks l ON l.id = x.link'), 'l.site, l.value' ],
-    staff_extlinks      => [ 'l.site, l.value, l.data, l.price', RAW('JOIN extlinks l ON l.id = x.link'), 'l.site, l.value' ],
-    vn_extlinks         => [ 'l.site, l.value, l.data, l.price', RAW('JOIN extlinks l ON l.id = x.link'), 'l.site, l.value' ],
+    releases_extlinks   => [ 'l.site, l.value, l.data, l.price, l.id AS linkid, l.deadcount, l.lastfetch', RAW('JOIN extlinks l ON l.id = x.link'), 'l.site, l.value' ],
+    producers_extlinks  => [ 'l.site, l.value, l.data, l.price, l.id AS linkid, l.deadcount, l.lastfetch', RAW('JOIN extlinks l ON l.id = x.link'), 'l.site, l.value' ],
+    staff_extlinks      => [ 'l.site, l.value, l.data, l.price, l.id AS linkid, l.deadcount, l.lastfetch', RAW('JOIN extlinks l ON l.id = x.link'), 'l.site, l.value' ],
+    vn_extlinks         => [ 'l.site, l.value, l.data, l.price, l.id AS linkid, l.deadcount, l.lastfetch', RAW('JOIN extlinks l ON l.id = x.link'), 'l.site, l.value' ],
 
     chars_names         => [ undef, undef, 'x.lang' ],
     chars_alias         => [ undef, undef, 'COALESCE(x.latin, x.name)' ],

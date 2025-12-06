@@ -313,7 +313,10 @@ sub _infotable_ {
             td_ 'Links';
             td_ sub {
                 if ($r->{patch} || $r->{official} || !grep $_->{mtl}, $r->{titles}->@*) {
-                    join_ ', ', sub { a_ href => $_->{url2}, $_->{label} }, $r->{vislinks}->@*;
+                    join_ ', ', sub {
+                        a_ href => $_->{url2}, $_->{label};
+                        vislink_ $_;
+                    }, $r->{vislinks}->@*;
                 } else {
                     small_ 'piracy link hidden';
                 }

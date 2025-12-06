@@ -96,6 +96,7 @@ sub release_vislinks_($r) {
                 a_ href => $_->{url2}, sub {
                     span_ $_->{price} if length $_->{price};
                     txt_ $_->{label};
+                    vislink_status_ $_;
                 }
             } for $r->{vislinks}->@*;
         }

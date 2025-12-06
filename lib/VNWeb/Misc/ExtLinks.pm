@@ -292,7 +292,7 @@ FU::get qr{/el($RE{num})}, sub($id) {
                 tr_ sub {
                     my $f = $_;
                     td_ class => 'tc1', sub {
-                        abbr_ title => $f->{dead} ? ('Dead', '❌ ') : ('Active', '✅ ');
+                        abbr_ $f->{dead} ? (class => 'icon-el-dead', title => 'Dead') : (class => 'icon-el-ok', title => 'Active'), '';
                         txt_ fmtdate $f->{date}, 1;
                     };
                     td_ sub {

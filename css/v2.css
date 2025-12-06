@@ -576,7 +576,6 @@ div#vntags                    { margin: 0 30px 0 30px; border-top: 1px solid var
 }
 .extlink-history {
     .tc1 { width: 180px; white-space: nowrap }
-    abbr { text-decoration: none }
 }
 
 
@@ -1134,6 +1133,7 @@ div#iv_view {
 [class^=icon-drm-],
 [class^=icon-rel-],
 [class^=icon-list-],
+[class^=icon-el-],
 .icon-rss { background-image: url(/icons.svg?#{$svg-version}) }
 
 [class^=icon-lang-] { opacity: 0.5 }

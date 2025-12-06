@@ -24,6 +24,7 @@ our @EXPORT = qw/
     clearfloat_
     age_ age2_ eta_
     platform_
+    vislink_status_ vislink_
     debug_
     join_
     user_maybebanned_ user_ user_displayname
@@ -57,6 +58,24 @@ sub eta_($t)  { abbr_ title => fmtdate($t, 1), fmtinterval($t - time) }
 # Platform icon
 sub platform_ {
     abbr_ class => "icon-plat-$_[0]", title => $PLATFORM{$_[0]}, '';
+}
+
+
+# Status icon for a vislink, expects an object from enrich_vislinks()
+sub vislink_status_($l) {
+    return if !$l->{lastfetch};
+    my($icon, $lbl) =
+             !$l->{deadcount} ? ('ok', 'Working link')
+        : $l->{deadcount} < 3 ? ('warn', 'Link might be dead')
+                              : ('dead', 'Broken link');
+    abbr_ class => "icon-el-$icon", title => $lbl.', last checked '.fmtage($l->{lastfetch}), '';
+}
+
+# Status icon with a link
+sub vislink_($l) {
+    return if !$l->{lastfetch};
+    return vislink_status_ $l if !auth;
+    a_ href => "/el$_->{linkid}", sub { vislink_status_ $l };
 }
 
 
