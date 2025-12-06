@@ -10,7 +10,7 @@ sub fetch($task, $lnk) {
     $res->expect(200);
 
     my $ldjson = $res->body =~ m{<script type="application/ld\+json">(.*?)</script>}s ? $1 : $res->err('No embedded json metadata found');
-    my $json = json_parse $ldjson;
+    my $json = json_parse $ldjson, utf8 => 1;
 
     my $sku = ref $json eq 'HASH' && $json->{sku} && $json->{sku} =~ /^[0-9]+$/ ? $json->{sku} : $res->err('No SKU found');
     my($price) = grep $_->{availability} eq 'https://schema.org/InStock' && $_->{areaServed} =~ /^(US|REST)$/ && $_->{priceCurrency} eq 'USD', $json->{offers}->@*;

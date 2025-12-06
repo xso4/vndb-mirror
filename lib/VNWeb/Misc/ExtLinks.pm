@@ -3,7 +3,7 @@ package VNWeb::Misc::ExtLinks;
 use VNWeb::Prelude;
 use VNDB::ExtLinks 'extlink_parse', 'extlink_split', 'extlink_fmt', '%LINKS';
 use VNDB::Func 'fmtinterval';
-use FU::Util 'uri_escape';
+use FU::Util 'uri_escape', 'json_format';
 use experimental 'builtin';
 
 
@@ -303,7 +303,7 @@ FU::get qr{/el($RE{num})}, sub($id) {
                                 small_ $k if !$v;
                             } else {
                                 strong_ "$k=";
-                                txt_ ref $v ? json_fmt($v) : $v;
+                                txt_ ref $v ? json_format($v) : $v;
                             }
                         }, sort keys $f->{detail}->%*
                     };
