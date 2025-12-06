@@ -30,7 +30,7 @@ sub el_queue {
 
 sub grablinks($task, $batch) {
     my $lst = $task->SQL('
-        SELECT id, site, value, data, price, queue, lastfetch
+        SELECT id, site, value, data, price, queue, lastfetch, deadcount
           FROM extlinks
          WHERE ', $task->arg ? ('id =', $task->arg) : ('queue =', $task->id, 'AND nextfetch < NOW()'), '
          ORDER BY nextfetch LIMIT', $batch,
@@ -109,7 +109,7 @@ task qr{el/.+}, sub($task) {
 package VNTask::ExtLinks::Link;
 
 use v5.36;
-use List::Util 'first';
+use List::Util 'first', 'min', 'max';
 use FU::SQL;
 
 sub id { $_[0]{id} }
@@ -124,11 +124,29 @@ sub triage($l) {
 
 sub nextfetch($l) {
     return undef if !$l->triage;
-    $l->{lastfetch} ? $l->{lastfetch} + VNTask::Core::interval2seconds($l->triage->{freq}) : time - 365*24*3600
+    return time - 365*24*3600 if !$l->{lastfetch};
+    my $delay = VNTask::Core::interval2seconds($l->triage->{freq});
+
+    # Adjust the delay if the last fetch determined that the link is dead.
+    # If it's been observed dead fewer than 3 times, schedule the next fetch
+    # faster than the normal delay, so we get faster feedback on whether this
+    # was a temporary error or more likely to be permanent.
+    # If it's been observed dead for a while, then it likely won't come back
+    # anytime soon and we can use exponential backoff to stop hammering the
+    # site with useless requests.
+    if (!$l->{deadcount}) { }
+    elsif ($l->{deadcount} == 1) { $delay = max 24*3600, $delay / 3 }
+    elsif ($l->{deadcount} <= 3) { $delay = max 24*3600, $delay / 2 }
+    else { $delay = min 365*24*3600, $delay * (1.5 ** ($l->{deadcount}-4)) }
+
+    $l->{lastfetch} + $delay;
 }
 
 sub save($l, %opt) {
-    $l->{lastfetch} = time if !$opt{didnotfetch};
+    if (!$opt{didnotfetch}) {
+        $l->{lastfetch} = time;
+        $l->{deadcount} = $opt{dead} ? ($l->{deadcount}||0)+1 : undef;
+    }
     my $q = $l->triage;
 
     $opt{detail} = undef if ref $opt{detail} eq 'HASH' && !keys $opt{detail}->%*;
@@ -140,7 +158,7 @@ sub save($l, %opt) {
         lastfetch => $l->{lastfetch},
         $opt{didnotfetch} ? () : (
             deadsince    => $opt{dead} ? SQL 'COALESCE(deadsince, NOW())' : undef,
-            deadcount    => $opt{dead} ? SQL 'COALESCE(deadcount, 0)+1' : undef,
+            deadcount    => $l->{deadcount},
             redirect     => exists $d->{location},
             unrecognized => !!$d->{unregonized},
             serverror    => !!($d->{code} && $d->{code} >= 500),
