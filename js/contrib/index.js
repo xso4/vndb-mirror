@@ -135,8 +135,8 @@ const ExtLinks = initVnode => {
         if (isdup(o)) return;
         const dupsite = links.find(l => l.site === o.lnk.site);
         if (!o.lnk.multi && !force && dupsite) return;
-        if (o.lnk.multi || !dupsite) links.push(p);
-        else links.forEach(l => { if(l.site === p.site) Object.assign(l, p) });
+        if (o.lnk.multi || !dupsite) links.push({...p, _new: true });
+        else links.forEach(l => { if(l.site === p.site) { delete l._del; Object.assign(l, p) } });
         o.str = '';
         o.parsed = o.lnk = null;
     };
@@ -174,11 +174,24 @@ const ExtLinks = initVnode => {
 
     const view = () => [ Website(), m('fieldset',
         m('label[for=extlinks]', 'External links', HelpButton('extlinks')),
-        m('table', links.filter(l => extlinksMap[l.site] && extlinksMap[l.site].patt).map(l => m('tr', {key: l.site+'-'+l.value},
-            m('td', m(Button.Del, {onclick: () => links.splice(links.indexOf(l), 1)})),
-            m('td', m('a[target=_blank]', { href: l.split.join('') }, extlinksMap[l.site].label)),
-            m('td', l.split.map((p,i) => m(i % 2 ? 'span' : 'small', p))),
-        ))),
+        m('table', links.filter(l => extlinksMap[l.site] && extlinksMap[l.site].patt).flatMap(l =>
+            [ m('tr', {key: 'l-'+l.site+'-'+l.value},
+                m('td', m(Button.Del, {onclick: () => {
+                    if (l._new || initVnode.attrs.type != 'r') links.splice(links.indexOf(l), 1);
+                    else l._del = !l._del;
+                }})),
+                m('td', m('a[target=_blank]', { href: l.split.join('') }, extlinksMap[l.site].label)),
+                m('td', l.split.map((p,i) => m(i % 2 ? 'span' : 'small', p))),
+            ) ].concat( !l._del ? [] : [ m('tr', {key: 'd-'+l.site+'-'+l.value},
+                m('td'),
+                m('td', { colspan: 2 },
+                    'Do not delete dead links! Replace with a working link if one is available, otherwise keep it as is.', m('br'),
+                    'Only remove links if they have been transferred to a different release or if they never represented this release in the first place.', m('br'),
+                    m('button[type=button]', { onclick: () => links.splice(links.indexOf(l), 1) }, 'Delete link'),
+                    m('button[type=button]', { onclick: () => delete l._del }, 'Keep link'),
+                ),
+            ) ])
+        )),
         m('form', { onsubmit: ev => { ev.preventDefault(); add(inp, inp.parsed, true); } },
             m('input#extlinks.xw[type=text][placeholder=Add URL...]', { value: inp.str, oninput: ev => set(inp, ev.target.value)}),
             Msg(inp,1),

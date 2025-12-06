@@ -1,4 +1,6 @@
 # This is for user-visible changes only and powers the list at https://vndb.org/changes
+20251206 Add status icons for supported external links on release pages
+20251206 Add message to keep dead shop links when editing a release
 20251205 Add [url=https://www.gogdb.org/]GOG DB[/url] links for releases (requires crawling, will take a few days for all links to show up)
 20251124 Increase maximum number of notifications from 500 to 10k
 20251122 Add notification priorities, more advanced settings and revamped UI
