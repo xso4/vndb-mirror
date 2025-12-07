@@ -77,9 +77,8 @@ sub fetch($task, @links) {
 
 
 el_queue 'el/wikidata',
-    delay  => '5m',
     batch  => 50,
-    freq   => '1d',
+    freq   => '2d',
     triage => sub($lnk) { $lnk->site eq 'wikidata' },
     \&fetch;
 

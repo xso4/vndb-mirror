@@ -71,20 +71,20 @@ sub task_insert($txn, $name, %opt) {
         'INSERT INTO tasks', VALUES({
             id        => $name,
             nextrun   => exists $opt{nextrun} ? $opt{nextrun} : SQL('NOW()'),
-            delay     => $opt{delay},
+            delay     => $opt{delay} // $opt{default_delay},
             align_div => $opt{align_div},
             align_add => $opt{align_add},
         }),
-        'ON CONFLICT (id) DO UPDATE SET
-            delay     = EXCLUDED.delay,
+        'ON CONFLICT (id) DO UPDATE SET',
+            defined $opt{delay} ? 'delay = EXCLUDED.delay,' : (), '
             align_div = EXCLUDED.align_div,
             align_add = EXCLUDED.align_add,
             nextrun   = ', exists $opt{nextrun} ? 'LEAST(tasks.nextrun, excluded.nextrun)' : 'COALESCE(tasks.nextrun, NOW())', '
-         WHERE tasks.delay     IS DISTINCT FROM excluded.delay
-            OR tasks.align_div IS DISTINCT FROM excluded.align_div
+         WHERE tasks.align_div IS DISTINCT FROM excluded.align_div
             OR tasks.align_add IS DISTINCT FROM excluded.align_add
             OR tasks.nextrun   IS NULL',
             exists $opt{nextrun} ? 'OR tasks.nextrun > excluded.nextrun' : (),
+            defined $opt{delay} ? 'OR tasks.delay IS DISTINCT FROM excluded.delay' : (),
     )->exec;
 }
 

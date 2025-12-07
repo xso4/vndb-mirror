@@ -26,7 +26,6 @@ sub try($task, $lnk, $region=0) {
 }
 
 el_queue 'el/appstore',
-    delay  => '30m',
     freq   => '60d',
     triage => sub($lnk) { $lnk->site eq 'appstore' },
     sub($task, $lnk) {

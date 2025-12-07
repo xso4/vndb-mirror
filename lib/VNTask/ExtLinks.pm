@@ -5,13 +5,13 @@ use VNTask::Core;
 use VNDB::ExtLinks '%LINKS';
 use FU::SQL;
 use Exporter 'import';
+use List::Util 'min', 'max';
 
 our @EXPORT = ('config', 'el_queue', 'http_get', '%LINKS');
 
 # Register an ExtLink queue handler, usage:
 #
 #   el_queue 'el/queue-name',
-#       %{task() options},
 #       freq   => Update frequency for each link (delay between updates)
 #       triage => sub{$lnk} { return true if $lnk belongs to this queue }
 #       batch  => $n,  # Number of links to fetch in one run, default 1
@@ -59,16 +59,34 @@ task 'el-triage', delay => '30s', sub($task) {
     my $lst = grablinks $task, 500;
     for my $lnk (@$lst) {
         my $q = $lnk->triage;
-        task_insert $task->{txn}, $q->{id}, nextrun => $task->arg ? time : $lnk->nextfetch(), map +($_, $q->{$_}), qw/delay align_div align_add/ if $q;
+        task_insert $task->{txn}, $q->{id}, nextrun => $task->arg ? time : $lnk->nextfetch(), default_delay => '30m' if $q;
         $lnk->save(didnotfetch => 1);
     }
     $task->done('%d links', scalar @$lst);
 };
 
 
-# TODO: Task to periodically check the 'tasks' table for 'el/*' rows and
-# disable ones that don't have any extlinks queued or dynamically adjust the
-# delay based on configured freq & number of links.
+# Periodically go through all queues and adjust the crawl delay based on the
+# configured frequency and number of queued links.
+task 'el-queuedelays', delay => '40m', align_div => '1h', align_add => '5m', sub($task) {
+    my $queues = $task->sql("
+        SELECT queue, count(*), min(nextfetch)
+          FROM extlinks
+         WHERE c_ref AND queue IS NOT NULL AND queue <> 'el-triage'
+         GROUP BY queue
+    ")->flat;
+    my $updated = 0;
+    for my ($queue, $count, $nextfetch) (@$queues) {
+        my $q = $queues{$queue} or next;
+        my $freq = VNTask::Core::interval2seconds($q->{freq});
+
+        # Clamp delay between 1m and 30m,
+        # Shorten the "optimal" delay by 25% to keep some headroom.
+        my $delay = int max 60, min 30*60, $freq / $count * $q->{batch} * 0.75;
+        $updated++ if task_insert $task->{txn}, $queue, nextrun => $nextfetch, delay => $delay;
+    }
+    $task->done('%d/%d queues adjusted', $updated, scalar @$queues);
+};
 
 
 task qr{el/.+}, sub($task) {
@@ -125,21 +143,26 @@ sub triage($l) {
 sub nextfetch($l) {
     return undef if !$l->triage;
     return time - 365*24*3600 if !$l->{lastfetch};
-    my $delay = VNTask::Core::interval2seconds($l->triage->{freq});
+    $l->{nextfetch} ||= do {
+        my $delay = VNTask::Core::interval2seconds($l->triage->{freq});
 
-    # Adjust the delay if the last fetch determined that the link is dead.
-    # If it's been observed dead fewer than 3 times, schedule the next fetch
-    # faster than the normal delay, so we get faster feedback on whether this
-    # was a temporary error or more likely to be permanent.
-    # If it's been observed dead for a while, then it likely won't come back
-    # anytime soon and we can use exponential backoff to stop hammering the
-    # site with useless requests.
-    if (!$l->{deadcount}) { }
-    elsif ($l->{deadcount} == 1) { $delay = max 24*3600, $delay / 3 }
-    elsif ($l->{deadcount} <= 3) { $delay = max 24*3600, $delay / 2 }
-    else { $delay = min 365*24*3600, $delay * (1.5 ** ($l->{deadcount}-4)) }
+        # Adjust the delay if the last fetch determined that the link is dead.
+        # If it's been observed dead fewer than 3 times, schedule the next fetch
+        # faster than the normal delay, so we get faster feedback on whether this
+        # was a temporary error or more likely to be permanent.
+        # If it's been observed dead for a while, then it likely won't come back
+        # anytime soon and we can use exponential backoff to stop hammering the
+        # site with useless requests.
+        if (!$l->{deadcount}) { }
+        elsif ($l->{deadcount} == 1) { $delay = max 24*3600, $delay / 3 }
+        elsif ($l->{deadcount} <= 3) { $delay = max 24*3600, $delay / 2 }
+        else { $delay = min 365*24*3600, $delay * (1.5 ** ($l->{deadcount}-4)) }
 
-    $l->{lastfetch} + $delay;
+        # +/- random 5%
+        $delay *= 1.05 - rand 0.1;
+
+        $l->{lastfetch} + $delay;
+    };
 }
 
 sub save($l, %opt) {

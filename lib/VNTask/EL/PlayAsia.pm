@@ -35,7 +35,6 @@ sub fetch($task, $lnk) {
 
 # PlayAsia API has pretty strict rate limits, we'll need a long update frequency.
 el_queue 'el/playasia',
-    delay  => '10m',
     freq   => '60d',
     triage => sub($lnk) { $lnk->site eq 'playasia' },
     \&fetch;

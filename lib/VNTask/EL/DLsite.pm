@@ -39,7 +39,6 @@ sub fetch($task, $lnk) {
 }
 
 el_queue 'el/dlsite',
-    delay  => '1m',
     freq   => '14d',
     triage => sub($lnk) { $lnk->site eq 'dlsite' },
     \&fetch;

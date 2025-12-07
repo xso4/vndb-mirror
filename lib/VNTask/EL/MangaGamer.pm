@@ -19,7 +19,6 @@ sub trysite($task, $lnk, $main) {
 }
 
 el_queue 'el/mangagamer',
-    delay  => '5m',
     freq   => '3d',
     triage => sub($lnk) { $lnk->site eq 'mg' },
     sub($task, $lnk) {

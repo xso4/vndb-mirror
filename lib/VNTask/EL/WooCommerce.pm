@@ -24,19 +24,16 @@ sub fetch($task, $lnk) {
 }
 
 el_queue 'el/denpasoft',
-    delay  => '5m',
     freq   => '3d',
     triage => sub($lnk) { $lnk->site eq 'denpa' },
     \&fetch;
 
 el_queue 'el/jlist',
-    delay  => '10m',
     freq   => '3d',
     triage => sub($lnk) { $lnk->site eq 'jlist' },
     \&fetch;
 
 el_queue 'el/kagura',
-    delay  => '10m',
     freq   => '3d',
     triage => sub($lnk) { $lnk->site eq 'kagura' },
     \&fetch;
