@@ -85,7 +85,7 @@ task 'el-queuedelays', delay => '40m', align_div => '1h', align_add => '5m', sub
         my $delay = int max 60, min 30*60, $freq / $count * $q->{batch} * 0.75;
         $updated++ if task_insert $task->{txn}, $queue, nextrun => $nextfetch, delay => $delay;
     }
-    $task->done('%d/%d queues adjusted', $updated, scalar @$queues);
+    $task->done('%d/%d queues adjusted', $updated, @$queues/3);
 };
 
 

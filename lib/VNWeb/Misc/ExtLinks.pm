@@ -18,16 +18,20 @@ my @FLAGS = qw/redirect unrecognized serverror/;
 FU::get '/el/queues', sub {
     fu->denied if !auth;
 
-    my $lst = fu->sql('
-        SELECT queue, count(*) cnt
-             , count(*) filter (where deadsince is not null) dead
-             , count(*) filter (where nextfetch < now()) backlog
-             , min(lastfetch) filter (where deadcount is null or deadcount <= 3) oldest
-          FROM extlinks
-         WHERE queue IS NOT NULL
-         GROUP BY queue
-         ORDER BY queue
-    ')->allh;
+    my $lst = fu->sql(q{
+        WITH queues(queue, cnt, dead, backlog, oldest) AS (
+            SELECT queue, count(*)
+                 , count(*) filter (where deadsince is not null)
+                 , count(*) filter (where nextfetch < now())
+                 , min(lastfetch) filter (where deadcount is null or deadcount <= 3)
+              FROM extlinks
+             WHERE queue IS NOT NULL
+             GROUP BY queue
+         ) SELECT queues.*, extract('epoch' from tasks.delay)::bigint AS delay
+             FROM queues
+             LEFT JOIN tasks ON tasks.id = queues.queue
+            ORDER BY queues.queue
+    })->allh;
 
     framework_ title => 'Link Fetching Queues', sub {
         article_ sub {
@@ -40,6 +44,7 @@ FU::get '/el/queues', sub {
                     td_ '#Links';
                     td_ '#Dead';
                     td_ 'Backlog';
+                    td_ 'Delay';
                     td_ 'Oldest active';
                 } };
                 tr_ sub {
@@ -53,6 +58,7 @@ FU::get '/el/queues', sub {
                             sprintf '%d (%.1f%%)', $_->{dead}, $_->{dead}/$_->{cnt}*100 if $_->{dead};
                     };
                     td_ $_->{backlog};
+                    td_ $_->{delay} ? fmtinterval($_->{delay}) : '-';
                     td_ sub { $_->{oldest} ? age2_ $_->{oldest} : lit_ '-' };
                 } for @$lst;
             }

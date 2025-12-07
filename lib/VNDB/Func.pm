@@ -191,9 +191,8 @@ sub fmtmedia($med, $qty) {
 # Formats a (positive) number of seconds as an interval.
 sub fmtinterval($a) {
     my($t, $single, $plural) =
-        $a > 60*60*24*365*2       ? ( $a/60/60/24/365,      'year',  'years'  ) :
-        $a > 60*60*24*(365/12)*2  ? ( $a/60/60/24/(365/12), 'month', 'months' ) :
-        $a > 60*60*24*7*2         ? ( $a/60/60/24/7,        'week',  'weeks'  ) :
+        $a > 60*60*24*365*3       ? ( $a/60/60/24/365,      'year',  'years'  ) :
+        $a > 60*60*24*(365/12)*3  ? ( $a/60/60/24/(365/12), 'month', 'months' ) :
         $a > 60*60*24*2           ? ( $a/60/60/24,          'day',   'days'   ) :
         $a > 60*60*2              ? ( $a/60/60,             'hour',  'hours'  ) :
         $a > 60*2                 ? ( $a/60,                'min',   'min'    ) :
