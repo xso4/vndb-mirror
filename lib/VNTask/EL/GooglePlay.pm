@@ -42,7 +42,10 @@ sub fetch($task, $lnk) {
     die "No title or developer\n" if !length $title || !length $developer;
 
     $price //= $originalPrice;
-    $price = !defined $price ? undef : !$price ? 'free' : $currency ? sprintf '%.2f %s', $price/1000000, $currency : undef;
+    $price = !$available || !defined $price ? undef
+        : !$price ? 'free'
+        : $currency ? sprintf '%s %.2f', $currency =~ s/USD/US\$/r, $price/1000000
+        : undef;
 
     $updated &&= fmtdate $updated;
 

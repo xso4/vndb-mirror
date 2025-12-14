@@ -306,7 +306,7 @@ FU::get qr{/el($RE{num})}, sub($id) {
                             my($k, $v) = ($_, $f->{detail}{$_});
                             if (builtin::is_bool($v)) {
                                 strong_ $k if $v;
-                                small_ $k if !$v;
+                                small_ class => 'linethrough', $k if !$v;
                             } else {
                                 strong_ "$k=";
                                 txt_ ref $v ? json_format($v) : $v;
