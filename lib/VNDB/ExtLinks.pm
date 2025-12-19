@@ -327,8 +327,8 @@ our %LINKS = (
     itch =>
         { ent   => 'r'
         , label => 'Itch.io'
-        , fmt   => 'https://%s'
-        , parse => qr{([a-z0-9_-]+\.itch\.io/[a-z0-9_-]+)/?}
+        , fmt   => sub($v,$d,$a) { ('https://%s.itch.io/%s', split /\//, $v) },
+        , parse => sub($u) { $u =~ qr{([a-z0-9_-]+)\.itch\.io/([a-z0-9_-]+)/?} ? ("$1/$2", '') : () },
         , patt  => 'https://<artist>.itch.io/<product>'
         },
     itch_dev =>

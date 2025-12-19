@@ -58,7 +58,6 @@ sub fetch($task, $lnk) {
         $updated ? (updated => $updated) : (),
         $version ? (version => $version) : (),
         $contentRating ? (rating => $contentRating) : (),
-        available => $available,
     });
     $task->done;
 }

@@ -9,7 +9,7 @@ my @tests = qw{
     itch_dev   nuar-games  - https://itch.io/profile/nuar-games
     itch_dev   nuar-games  - https://nuar-games.itch.io/
 
-    itch  rokuth.itch.io/seasidecollege - https://rokuth.itch.io/seasidecollege/
+    itch  rokuth/seasidecollege - https://rokuth.itch.io/seasidecollege/
 
     wikidata   106518103   - https://www.wikidata.org/wiki/Q106518103
     wikidata   106518103   - https://wikidata.org/wiki/Special:EntityPage/Q106518103#sitelinks-wikipedia
