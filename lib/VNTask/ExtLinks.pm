@@ -183,7 +183,7 @@ sub save($l, %opt) {
             deadsince    => $opt{dead} ? SQL 'COALESCE(deadsince, NOW())' : undef,
             deadcount    => $l->{deadcount},
             redirect     => exists $d->{location},
-            unrecognized => !!$d->{unregonized},
+            unrecognized => !!$d->{unrecognized},
             serverror    => !!($d->{code} && $d->{code} >= 500),
             map exists($opt{$_}) ? ($_, $opt{$_}) : (), qw/data price/,
         ),
