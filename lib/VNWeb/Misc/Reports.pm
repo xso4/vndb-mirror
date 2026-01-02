@@ -47,6 +47,11 @@ sub obj_ {
 }
 
 
+sub can_report {
+    return 1 if !auth;
+    return auth->permEdit || auth->permBoard;
+}
+
 sub is_throttled {
     fu->SQL("SELECT COUNT(*) FROM reports WHERE date > NOW()-'1 day'::interval AND", auth ? ('uid =', auth->uid) : ('(ip).ip =', fu->ip))->val >= $reportsperday
 }
@@ -62,7 +67,7 @@ my $FORM = form_compile {
 };
 
 js_api Report => $FORM, sub($data) {
-    fu->denied if is_throttled;
+    fu->denied if is_throttled || !can_report;
     my $obj = obj $data->{object}, $data->{objectnum};
     return 'Invalid object' if !$obj;
 
@@ -87,6 +92,11 @@ FU::get qr{/report/([vrpcsdgitwu]$RE{num})(?:\.($RE{num}))?}, sub($id,$num=undef
             article_ sub {
                 h1_ 'Submit report';
                 p_ "Sorry, you can only submit $reportsperday reports per day. If you wish to report more, you can do so by sending an email to ".config->{admin_email}
+            }
+        } elsif (!can_report) {
+            article_ sub {
+                h1_ 'Submit report';
+                p_ "Sorry, the report form is current disabled. Feel free to send an email to ".config->{admin_email}." instead.";
             }
         } else {
             my $title = fragment sub { obj_ $obj };
