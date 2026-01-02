@@ -332,7 +332,9 @@ sub _menu_ {
                 small_ ' | ';
                 a_ href => '/report/list?s=lastmod', sprintf '%d upd', $stats->{upd};
                 br_;
-                a_ global_settings->{lockdown_edit} || global_settings->{lockdown_board} || global_settings->{lockdown_registration} ? (class => 'standout') : (), href => '/lockdown', 'Lockdown';
+                a_ global_settings->{lockdown_edit} || global_settings->{lockdown_board}
+                    || global_settings->{lockdown_registration} || global_settings->{lockdown_anonreport}
+                    ? (class => 'standout') : (), href => '/lockdown', 'Lockdown';
                 br_;
             }
             br_;

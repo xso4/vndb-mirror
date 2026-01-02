@@ -32,6 +32,7 @@ FU::get '/lockdown', sub {
                 chk_ lockdown_registration => ' Disable account creation.';
                 chk_ lockdown_edit => ' Disable database editing globally. Also disables image and tag voting.';
                 chk_ lockdown_board => ' Disable forum and review posting globally.';
+                chk_ lockdown_anonreport => ' Disable anonymous reports.';
                 input_ type => 'submit', name => 'submit', class => 'submit', value => 'Submit';
             };
         };
@@ -45,6 +46,7 @@ FU::post '/lockdown', sub {
         lockdown_registration => { anybool => 1 },
         lockdown_edit         => { anybool => 1 },
         lockdown_board        => { anybool => 1 },
+        lockdown_anonreport   => { anybool => 1 },
     );
     fu->SQL('UPDATE global_settings', SET $frm)->cache(0)->exec;
     auth->audit(0, 'lockdown', FU::Util::json_format($frm));

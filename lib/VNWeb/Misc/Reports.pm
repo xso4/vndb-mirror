@@ -48,7 +48,7 @@ sub obj_ {
 
 
 sub can_report {
-    return 1 if !auth;
+    return !global_settings->{lockdown_anonreport} if !auth;
     return auth->permEdit || auth->permBoard;
 }
 

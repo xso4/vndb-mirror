@@ -535,7 +535,8 @@ CREATE TABLE global_settings (
   lockdown_edit         boolean NOT NULL DEFAULT FALSE,
   -- locks down any forum & review posting
   lockdown_board        boolean NOT NULL DEFAULT FALSE,
-  lockdown_registration boolean NOT NULL DEFAULT FALSE
+  lockdown_registration boolean NOT NULL DEFAULT FALSE,
+  lockdown_anonreport   boolean NOT NULL DEFAULT FALSE
 );
 
 -- images
