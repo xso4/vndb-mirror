@@ -224,7 +224,7 @@ sub _dec_query {
     my($s, $i) = @_;
     my $c1 = _dec_int($s, $i) // return;
     my $c2 = _dec_int($s, $i) // return;
-    return [ $c1, map +(_dec_query($s, $i) // return), 1..$c2 ] if $c1 <= 1;
+    return $c2 > 10000 ? undef : [ $c1, map +(_dec_query($s, $i) // return), 1..$c2 ] if $c1 <= 1;
     my($op, $type) = ($c2 % 8, int ($c2 / 8));
     [ $c1, $ops[$op],
         $type == 0 ? (_dec_int($s, $i) // return) :
