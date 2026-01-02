@@ -309,7 +309,7 @@ FU::get qr{/el($RE{num})}, sub($id) {
                                 small_ class => 'linethrough', $k if !$v;
                             } else {
                                 strong_ "$k=";
-                                txt_ ref $v ? json_format($v) : $v;
+                                txt_ ref $v ? json_format($v) : $v//'';
                             }
                         }, sort keys $f->{detail}->%*
                     };
