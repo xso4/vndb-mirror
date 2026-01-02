@@ -11,6 +11,7 @@ sub enrich_seiyuu($vid, $l) {
           ', $vid ? () : ('JOIN vn v ON v.id = vs.id'), '
           JOIN', STAFF_ALIAST, 'sa ON sa.aid = vs.aid
          WHERE ', $vid ? ('vs.id =', $vid) : ('NOT v.hidden'), 'AND vs.cid', IN $_, '
+           AND EXISTS(SELECT 1 FROM chars_vns cv WHERE cv.id = vs.cid AND cv.vid = vs.id)
          ORDER BY sa.sorttitle'
     }, $l);
 }
