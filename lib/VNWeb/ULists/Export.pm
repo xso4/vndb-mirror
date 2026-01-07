@@ -33,6 +33,12 @@ sub data($uid) {
               JOIN vnt v ON v.id = l.vid
              WHERE l.uid =', $uid, '
              ORDER BY v.sorttitle, l.id')->allh,
+         reviews => fu->SQL('
+            SELECT w.id, w.vid, v.title, w.rid, w.text, ', TZ('w.date', 'date'), ',', TZ('w.lastmod', 'lastmod'), '
+              FROM reviews w
+              JOIN vnt v ON v.id = w.vid
+             WHERE w.uid =', $uid, '
+            ORDER BY w.id')->allh,
     };
     fu->enrich(aoh => 'releases', sub { SQL '
         SELECT rv.vid, r.id, r.title, r.released, rl.status, ', TZ('rl.added', 'added'), '
@@ -118,6 +124,18 @@ FU::get qr{/$RE{uid}/list-export/xml}, sub($uid) {
                 } for $_->{releases}->@*;
                 lit_ "\n";
             } for $d->{'length-votes'}->@*;
+        };
+        lit_ "\n";
+        tag_ 'reviews', sub {
+            lit_ "\n";
+            tag_ review => id => $_->{id}, spoiler => $_->{spoiler}?'true':'false', sub {
+                tag_ vn => id => $_->{vid}, title($_->{title});
+                tag_ release => id => $_->{rid}, '' if $_->{rid};
+                tag_ added => $_->{date};
+                tag_ modified => $_->{lastmod} if $_->{lastmod} && $_->{date} ne $_->{lastmod};
+                tag_ text => $_->{text};
+                lit_ "\n";
+            } for $d->{reviews}->@*;
         };
     }});
 };

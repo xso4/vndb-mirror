@@ -282,8 +282,11 @@ sub ownlistopts_($u) {
     div_ class => 'hidden exportlist', sub {
         strong_ 'Export your list';
         br_;
-        txt_ 'This function will export all visual novels and releases in your list, even those marked as private ';
-        txt_ '(there is currently no import function, more export options may be added later).';
+        txt_ 'This function will export all visual novels and releases in your list, even those marked as private.';
+        br_;
+        txt_ 'This export also includes your play time votes and reviews.';
+        br_;
+        txt_ '(There is currently no import function, more export options may be added later)';
         br_;
         br_;
         a_ href => "/$u->{id}/list-export/xml", "Download XML export.";
