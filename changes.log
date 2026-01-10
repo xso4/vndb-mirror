@@ -1,4 +1,5 @@
 # This is for user-visible changes only and powers the list at https://vndb.org/changes
+20260110 Add "Has image" filter to [url=/r]release search[/url]
 20260107 VN list export function now also exports reviews
 20251206 Add status icons for supported external links on release pages
 20251206 Add message to keep dead shop links when editing a release

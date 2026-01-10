@@ -701,6 +701,7 @@ regType('r', 'Release', [ 'Language', 'Platform', 'Type' ], [
     engineField,
     drmField,
     extlinksField(19, 'r'),
+    simpleSetField(67, 'set', [['', 'No image']].concat(vndbTypes.releaseImageType), 'Has image'),
     { ...simpleSetField(18, 'eq', vndbTypes.rlistStatus.map((v,i) => [i,v,i===0?'List: unknown':v]), 'My List'), loggedin: true },
 ]),
 

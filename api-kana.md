@@ -795,6 +795,10 @@ Name                [F]   Description
 
 `extlink`           m     Match on external links, see below for details.
 
+`drm`               m     String, match on DRM implementation.
+
+`image`             m,n   String, see `images.type` field.
+
 `patch`                   Integer, only accepts the value `1`.
 
 `freeware`                See `patch`.
@@ -1804,6 +1808,10 @@ bias in its selection due to the presence of id gaps, but you most likely don't
 need perfect uniform random selection anyway.
 
 # Change Log
+
+**2026-01-10**
+
+- Add `image` filter to [POST /release](#post-release).
 
 **2025-06-02**
 
