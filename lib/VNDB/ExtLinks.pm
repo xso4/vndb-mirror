@@ -332,7 +332,7 @@ our %LINKS = (
         , patt  => 'https://<artist>.itch.io/<product>'
         },
     itch_dev =>
-        { ent   => 'sp'
+        { ent   => 'sP'
         , label => 'Itch.io'
         , fmt   => 'https://%s.itch.io/'
         , parse => qr{(?:([a-z0-9_-]+)\.itch\.io/?|itch\.io/profile/([a-z0-9_-]+))}
