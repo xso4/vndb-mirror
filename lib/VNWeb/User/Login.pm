@@ -85,8 +85,8 @@ js_api UserChangePass => {
     newpass  => { password => 1 },
 }, sub {
     my $data = shift;
-    return +{ _err => 'Your new password has also been leaked.' } if is_insecurepass $data->{newpass};
-    die if !auth->setpass($data->{uid}, undef, $data->{oldpass}, $data->{newpass}); # oldpass should already have been verified.
+    return 'Your new password has also been leaked.' if is_insecurepass $data->{newpass};
+    return 'Your session has expired.' if !auth->setpass($data->{uid}, undef, $data->{oldpass}, $data->{newpass}); # oldpass should already have been verified.
     auth->audit($data->{uid}, 'password change', 'after login with an insecure password');
     {}
 };
