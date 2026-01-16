@@ -937,7 +937,7 @@ div.charsum_list .charsum_bubble {
 .revision          { padding-bottom: 10px; }
 .revision table thead tr td { background-color: transparent!important; text-align: center; font-weight: normal; }
 .revision table td { border-right: 1px solid var(--border); padding: 5px; }
-.revision td.tcval { width: 44%; }
+.revision td.tcval { width: 44%; overflow-wrap: anywhere; }
 .revision div.rev  { padding: 5px; text-align: center; }
 .diff_add             { background-color: var(--diffadd); }
 .diff_del             { background-color: var(--diffdel); }
