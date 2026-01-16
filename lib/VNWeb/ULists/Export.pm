@@ -34,7 +34,7 @@ sub data($uid) {
              WHERE l.uid =', $uid, '
              ORDER BY v.sorttitle, l.id')->allh,
          reviews => fu->SQL('
-            SELECT w.id, w.vid, v.title, w.rid, w.text, ', TZ('w.date', 'date'), ',', TZ('w.lastmod', 'lastmod'), '
+            SELECT w.id, w.vid, v.title, w.rid, w.spoiler, w.text, ', TZ('w.date', 'date'), ',', TZ('w.lastmod', 'lastmod'), '
               FROM reviews w
               JOIN vnt v ON v.id = w.vid
              WHERE w.uid =', $uid, '
