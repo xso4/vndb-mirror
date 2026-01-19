@@ -43,6 +43,8 @@ sub cmpmagick {
 cmphash 'basn4a08', 't/data/basn4a08.png', '32x32', '446ceb47d7cfd058a69b0a8f0fcd993489658d2c';
 cmphash 'basn6a16', 't/data/basn6a16.png', '32x32', 'a4d073bcafd9de6990cb5e723a27e979188cffaa';
 
+cmphash 'PCS', 't/data/PCS.png', '536x425', 'eaee84a18edd53194cdc3994a104a71dac4ff016';
+
 # Large images are tested to see if extra memory or thread pool use triggers more unique system calls.
 # (it does, and yes it varies per input format)
 cmpmagick 'large.png', '"canvas:rgb(100,50,30)"', '5000x5000', 'd469c876ca4a737bd0973aaf682b64d524e27602';

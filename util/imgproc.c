@@ -11,6 +11,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -99,6 +100,8 @@ err:
  * detection and other unnecessary crap that complicates parsing and sandboxing. */
 static void log_func(const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data) {
     if (g_log_writer_default_would_drop(log_level, log_domain)) return;
+    /* Pointless libpng warning for some images */
+    if (strstr(message, "PCS illuminant is not D50")) return;
     fprintf(stderr, "[%s#%d] %s\n", log_domain, (int)log_level, message);
 }
 
