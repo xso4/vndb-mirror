@@ -224,7 +224,9 @@ const widgetRender = obj => {
                 m('table.rel',
                     obj.rlist.map(l => m('tr', {key: l.id},
                         m('td', rstatusRender(l, obj)),
-                        m('td', Release(obj.releases.find(r => r.id === l.id))),
+                        m('td', (r =>
+                            r ? Release(r) : m('small', '(deleted release: ', m('a', { href: '/'+l.id }, l.id), ')')
+                        )(obj.releases.find(r => r.id === l.id))),
                     )),
                     m('tfoot', m('tr', m('td'), m('td[colspan=2]',
                         m(DS.Button, { ds: obj._releaseDs }, '- add release -'),
