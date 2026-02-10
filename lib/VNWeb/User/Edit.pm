@@ -59,7 +59,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
     customcss       => { default => '', maxlength => 256*1024 },
     customcss_csum  => { anybool => 1 },
 
-    tagprefs        => { sort_keys => 'tid', maxlength => 500, aoh => {
+    tagprefs        => { sort_keys => 'tid', maxlength => 1000, aoh => {
         tid     => { vndbid => 'g' },
         spoil   => { default => undef, int => 1, range => [ 0, 3 ] },
         color   => { default => undef, regex => qr/^(standout|grayedout|#[a-fA-F0-9]{6})$/ },
@@ -67,7 +67,7 @@ my($FORM_IN, $FORM_OUT) = form_compile 'in', 'out', {
         name    => {},
     } },
 
-    traitprefs      => { sort_keys => 'tid', maxlength => 500, aoh => {
+    traitprefs      => { sort_keys => 'tid', maxlength => 1000, aoh => {
         tid     => { vndbid => 'i' },
         spoil   => { default => undef, int => 1, range => [ 0, 3 ] },
         color   => { default => undef, regex => qr/^(standout|grayedout|#[a-fA-F0-9]{6})$/ },

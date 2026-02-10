@@ -418,10 +418,14 @@ const display = data => {
 
 const TTPrefs = initVnode => {
     const {data,prefix} = initVnode.attrs;
+    const maxnum = 1000;
     const pref = prefix === 'g' ? 'tagprefs' : 'traitprefs';
     const ds = new DS(prefix === 'g' ? DS.Tags : DS.Traits, {
         keep: true,
-        onselect: obj => data[pref].push({tid: obj.id, name: obj.name, group: obj.group_name, spoil: null, color: null, childs: true }),
+        onselect: obj => {
+            data[pref].push({tid: obj.id, name: obj.name, group: obj.group_name, spoil: null, color: null, childs: true });
+            if (data[pref].length >= maxnum) DS.close();
+        },
         props: obj => data[pref].find(o => obj.id === o.tid) ? { selectable: false, append: m('small', ' (already listed)') } : {},
     });
     return {view: () => m('fieldset.form',
@@ -455,7 +459,7 @@ const TTPrefs = initVnode => {
                 )),
             ))),
             m('tfoot', m('tr', m('td[colspan=6]',
-                data[pref].length >= 500 ? null
+                data[pref].length >= maxnum ? null
                 : m(DS.Button, {ds}, prefix === 'g' ? 'Add tag' : 'Add trait')
             ))),
         ),
