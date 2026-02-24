@@ -192,7 +192,7 @@ our %LINKS = (
             ('https://www.dlsite.com/%s/' . ($a ? "dlaf/=/link/work/aid/$a/id" : 'work/=/product_id') . '/%s.html', $d||'home', $v)
           }
         , parse => sub($u) {
-            $u =~ qr{(?:www\.)?dlsite\.com/((?:aix|app|appx|bl|ecchi|girls|home|maniax|pro|soft)(?:-touch)?)/(?:dlaf/=/link/work/aid/.*/id|work/=/product_id)/([VR]J[0-9]{6,8}).*} ? ($2,$1) : ()
+            $u =~ qr{^(?:www\.)?dlsite\.com/((?:aix|app|appx|bl|ecchi|girls|home|maniax|pro|soft)(?:-touch)?)/(?:dlaf/=/link/work/aid/.*/id|work/=/product_id)/([VR]J[0-9]{6,8})} ? ($2,$1) : ()
           }
         , patt  => 'https://www.dlsite.com/<store>/work/=/product_id/<VJ or RJ-code>'
         , affil => !!config->{dlsite_affiliate}
@@ -328,7 +328,7 @@ our %LINKS = (
         { ent   => 'r'
         , label => 'Itch.io'
         , fmt   => sub($v,$d,$a) { ('https://%s.itch.io/%s', split /\//, $v) },
-        , parse => sub($u) { $u =~ qr{([a-z0-9_-]+)\.itch\.io/([a-z0-9_-]+)/?} ? ("$1/$2", '') : () },
+        , parse => sub($u) { $u =~ qr{^([a-z0-9_-]+)\.itch\.io/([a-z0-9_-]+)/?$} ? ("$1/$2", '') : () },
         , patt  => 'https://<artist>.itch.io/<product>'
         },
     itch_dev =>
@@ -344,7 +344,7 @@ our %LINKS = (
             $a &&= config->{jastusa_affiliate};
             ('https://jastusa.com/games/%s/%s'.($a ? "?via=$a" : ''), $v, $d||'vndb')
           }
-        , parse => sub($u) { $u =~ qr{(?:www\.)?jastusa\.com/games/([a-z0-9_-]+)/([^/]+)} }
+        , parse => sub($u) { $u =~ qr{^(?:www\.)?jastusa\.com/games/([a-z0-9_-]+)/([^/]+)$} }
         , patt  => 'https://jastusa.com/games/<code>/<title>'
         , affil => !!config->{jastusa_affiliate}
         },
@@ -484,7 +484,7 @@ our %LINKS = (
                       : ("https://www.play-asia.com/13/70%s$a", $v)
           }
         , parse => sub($u) {
-            $u =~ qr{www\.play-asia\.com/(?:([^/]+)/)?13/70([1-9a-z][0-9a-z]+)(?:[?#/].*)?} ? ($2, $1//'') : ()
+            $u =~ qr{^www\.play-asia\.com/(?:([^/]+)/)?13/70([1-9a-z][0-9a-z]+)(?:[?#/].*)?$} ? ($2, $1//'') : ()
           }
         , patt  => 'https://www.play-asia.com/<title>/13/<code>'
         , affil => !!config->{playasia_tagid}

@@ -10,6 +10,7 @@ my @tests = qw{
     itch_dev   nuar-games  - https://nuar-games.itch.io/
 
     itch  rokuth/seasidecollege - https://rokuth.itch.io/seasidecollege/
+    -     -                     - https://web.archive.org/web/20240819161005/https://niceed.itch.io/eternal-dream
 
     wikidata   106518103   - https://www.wikidata.org/wiki/Q106518103
     wikidata   106518103   - https://wikidata.org/wiki/Special:EntityPage/Q106518103#sitelinks-wikipedia
