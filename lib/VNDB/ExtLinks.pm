@@ -192,7 +192,7 @@ our %LINKS = (
             ('https://www.dlsite.com/%s/' . ($a ? "dlaf/=/link/work/aid/$a/id" : 'work/=/product_id') . '/%s.html', $d||'home', $v)
           }
         , parse => sub($u) {
-            $u =~ qr{(?:www\.)?dlsite\.com/([^/]+)/(?:dlaf/=/link/work/aid/.*/id|work/=/product_id)/([VR]J[0-9]{6,8}).*} ? ($2,$1) : ()
+            $u =~ qr{(?:www\.)?dlsite\.com/((?:aix|app|appx|bl|ecchi|girls|home|maniax|pro|soft)(?:-touch)?)/(?:dlaf/=/link/work/aid/.*/id|work/=/product_id)/([VR]J[0-9]{6,8}).*} ? ($2,$1) : ()
           }
         , patt  => 'https://www.dlsite.com/<store>/work/=/product_id/<VJ or RJ-code>'
         , affil => !!config->{dlsite_affiliate}

@@ -52,6 +52,7 @@ my @tests = qw{
     dlsite VJ010808 pro    https://www.dlsite.com/pro/work/=/product_id/VJ010808.html
     dlsite RJ151743 maniax https://www.dlsite.com/maniax/dlaf/=/link/work/aid/vndb/id/RJ151743.html
     dlsite RJ151743 maniax https://www.dlsite.com/maniax/work/=/product_id/RJ151743.html/?unique_op=af
+    -      -        -      https://www.dlsite.com/nothing/work/=/product_id/RJ151743.html
 
     appstore 1071310449 us https://apps.apple.com/us/app/choices-stories-you-play/id1071310449
     appstore 1071310449 -  https://itunes.apple.com/app/id1071310449?ok
@@ -65,11 +66,13 @@ my @tests = qw{
     patreon mircom - https://www.patreon.com/cw/mircom
 };
 
-plan tests => @tests/4*6;
-
 for my ($site, $value, $data, $url) (@tests) {
     $data = '' if $data eq '-';
     my ($psite, $pvalue, $pdata) = extlink_parse $url;
+    if ($site eq '-') {
+        fail $url if $psite;
+        next;
+    }
     fail $url if !$psite;
     is $psite, $site, $url;
     is $pvalue, $value, $url;
@@ -83,3 +86,5 @@ for my ($site, $value, $data, $url) (@tests) {
     is $nvalue, $value, "round-trip $url";
     is $ndata, $data, "round-trip $url";
 }
+
+done_testing;
