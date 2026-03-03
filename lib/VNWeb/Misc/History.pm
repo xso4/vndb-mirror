@@ -52,7 +52,7 @@ sub tablebox_ {
 
     my($lst, $np) = fetch $id, $filt, \%opt;
 
-    my %newuser = $opt{nouser} ? () : map +($_->{user_id}, 0), @$lst;
+    my %newuser = $opt{nouser} ? () : map +($_->{user_id}, 0), grep $_->{user_id}, @$lst;
     $newuser{$_} = 1 for !keys %newuser ? () : fu->SQL(
         "SELECT id FROM users u WHERE id", IN([keys %newuser]), "
            AND (c_changes < 50 OR NOT EXISTS(SELECT 1 FROM changes c WHERE c.requester = u.id AND c.added < NOW() - '1 week'::interval))"
