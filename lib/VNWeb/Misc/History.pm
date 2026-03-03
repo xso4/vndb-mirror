@@ -52,6 +52,12 @@ sub tablebox_ {
 
     my($lst, $np) = fetch $id, $filt, \%opt;
 
+    my %newuser = $opt{nouser} ? () : map +($_->{user_id}, 0), @$lst;
+    $newuser{$_} = 1 for !keys %newuser ? () : fu->SQL(
+        "SELECT id FROM users u WHERE id", IN([keys %newuser]), "
+           AND (c_changes < 50 OR NOT EXISTS(SELECT 1 FROM changes c WHERE c.requester = u.id AND c.added < NOW() - '1 week'::interval))"
+    )->flat->@*;
+
     my sub url { '?'.query_encode({%$filt, p => $_}) }
 
     paginate_ \&url, $filt->{p}, $np, 't' unless $opt{nopage};
@@ -77,7 +83,7 @@ sub tablebox_ {
                 td_ class => 'tc1_1', sub { a_ href => $revurl, $i->{itemid} };
                 td_ class => 'tc1_2', sub { a_ href => $revurl, ".$i->{rev}" };
                 td_ class => 'tc2', fmtdate $i->{added}, 'full';
-                td_ class => 'tc3', sub { user_ $i } unless $opt{nouser};
+                td_ class => 'tc3', '+' => $newuser{$i->{user_id}} ? 'newuser' : undef, sub { user_ $i } unless $opt{nouser};
                 td_ class => 'tc4', sub {
                     a_ href => $revurl, tattr $i;
                     small_ sub { lit_ bb_format $i->{comments}, maxlength => 150, inline => 1 };

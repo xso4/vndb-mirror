@@ -169,6 +169,7 @@ fieldset.search .submit         { padding: 0 1px; }
 .history td.tc2   { width: 140px }
 .history td.tc4   { width: 100% }
 .history td.tc4 small { margin-left: 10px }
+.history td.newuser a { color: var(--statok) }
 
 
 
