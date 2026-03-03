@@ -4,7 +4,7 @@ use VNWeb::Prelude;
 use VNWeb::Releases::Lib;
 
 # Also used from VN::Page
-sub can_vote { auth->permDbmod || (auth->permLengthvote && !global_settings->{lockdown_edit}) }
+sub can_vote { auth->permDbmod || (auth && !global_settings->{lockdown_edit}) }
 
 sub opts($mode) {
     tableopts
