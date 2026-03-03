@@ -83,7 +83,7 @@ sub tablebox_ {
                 td_ class => 'tc1_1', sub { a_ href => $revurl, $i->{itemid} };
                 td_ class => 'tc1_2', sub { a_ href => $revurl, ".$i->{rev}" };
                 td_ class => 'tc2', fmtdate $i->{added}, 'full';
-                td_ class => 'tc3', '+' => $newuser{$i->{user_id}} ? 'newuser' : undef, sub { user_ $i } unless $opt{nouser};
+                td_ class => 'tc3', '+' => $newuser{$i->{user_id} || ''} ? 'newuser' : undef, sub { user_ $i } unless $opt{nouser};
                 td_ class => 'tc4', sub {
                     a_ href => $revurl, tattr $i;
                     small_ sub { lit_ bb_format $i->{comments}, maxlength => 150, inline => 1 };
