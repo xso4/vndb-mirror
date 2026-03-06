@@ -16,7 +16,7 @@ sub fetch($task, $lnk) {
     $res->dead('Not found') if $res->body !~ /"\@type":"Product"/;
     my $price =
         $res->body !~ m{"availability":"https?:\\?/\\?/schema\.org\\?/InStock"} ? '' :
-        $res->body =~ /"price":"([0-9\.]+)"/ ? ($1 eq '0.00' ? 'free' : sprintf('US$ %.2f', $1)) :
+        $res->body =~ m{"offers":[^>]*"price":"([0-9\.]+)"}s ? ($1 eq '0.00' ? 'free' : sprintf('US$ %.2f', $1)) :
         $res->err('No price information found');
 
     $lnk->save(price => $price);
