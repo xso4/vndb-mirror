@@ -55,6 +55,7 @@ static void setup_seccomp() {
     if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mremap), 0)) goto err;
     if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(munmap), 0)) goto err;
     if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(madvise), 1, SCMP_A2_32(SCMP_CMP_EQ, MADV_DONTNEED))) goto err;
+    if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(madvise), 1, SCMP_A2_32(SCMP_CMP_EQ, MADV_GUARD_INSTALL))) goto err;
 
     /* (nearly) impossible to prevent glibc from trying to read /proc and /sys
      * stuff, just block the attempts and have it use fallback code instead. */
@@ -74,6 +75,8 @@ static void setup_seccomp() {
         SCMP_A4_32(SCMP_CMP_EQ, -1)
     )) goto err;
     if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mprotect), 1, SCMP_A2_32(SCMP_CMP_EQ, PROT_READ|PROT_WRITE))) goto err;
+    if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mprotect), 1, SCMP_A2_32(SCMP_CMP_EQ, PROT_NONE))) goto err;
+
     if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(prctl), 1, SCMP_A0_32(SCMP_CMP_EQ, PR_SET_NAME))) goto err;
     if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(sched_getaffinity), 0)) goto err;
 
