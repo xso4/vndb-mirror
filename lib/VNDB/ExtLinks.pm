@@ -285,8 +285,8 @@ our %LINKS = (
     getchu =>
         { ent   => 'r'
         , label => 'Getchu'
-        , fmt   => 'http://www.getchu.com/soft.phtml?id=%d'
-        , parse => qr{(?:www\.)?getchu\.com/soft\.phtml\?id=$int.*}
+        , fmt   => 'http://www.getchu.com/item/%d'
+        , parse => qr{(?:www\.)?getchu\.com/(?:soft\.phtml\?id=|item/)$int.*}
         },
     getchudl =>
         { ent   => 'r'

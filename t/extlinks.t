@@ -66,6 +66,10 @@ my @tests = qw{
 
     patreon mircom - https://www.patreon.com/mircom
     patreon mircom - https://www.patreon.com/cw/mircom
+
+    getchu  1300996   -   https://www.getchu.com/soft.phtml?id=1300996
+    getchu  1300996   -   https://www.getchu.com/item/1300996/
+    getchu  1300996   -   https://www.getchu.com/item/1300996
 };
 
 for my ($site, $value, $data, $url) (@tests) {
