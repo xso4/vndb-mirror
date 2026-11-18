@@ -66,7 +66,7 @@ const reasons = [
     [ 'Duplicate entry', editable, true, () => 'Please include a link to the entry that this is a duplicate of.' ],
     [ 'Personal information removal request', editable, false, () => [
         "If the page contains personal information about you (as a developer, translator or otherwise) ",
-        "that you're not comfortable with, please contact us at contact@vndb.org."
+        "that you're not comfortable with, please contact us at vndb@gmail.com."
     ] ],
     [ 'Engages in vote manipulation', /^u/, true ],
     [ 'Other', null, true, id => editable.test(id) ? [

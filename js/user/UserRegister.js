@@ -14,7 +14,7 @@ widget('UserRegister', vnode => {
             'Check your inbox for an email with instructions to activate your account.', m('br'),
             "(also make sure to check your spam box if it doesn't seem to be arriving)", m('br'),
             m('br'),
-            "If the email does not arrive within a few hours, please send a mail to contact@vndb.org so we can investigate.",
+            "If the email does not arrive within a few hours, please send a mail to vndb@gmail.com so we can investigate.",
         ))
     );
     const view = () => success ? donemsg : m(Form, {onsubmit, api}, m('article',

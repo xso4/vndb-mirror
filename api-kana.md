@@ -48,7 +48,7 @@ nobody has asked for it yet. If you need anything not yet provided by the API
 or if you have any other questions, feel free to post on [the
 forums](https://vndb.org/t/db), [the issue
 tracker](https://code.blicky.net/yorhel/vndb/issues) or mail
-[contact@vndb.org](mailto:contact@vndb.org).
+[vndb@gmail.com](mailto:vndb@gmail.com).
 
 
 # Common Data Types
