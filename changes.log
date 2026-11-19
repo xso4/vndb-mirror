@@ -1,5 +1,6 @@
 # This is for user-visible changes only and powers the list at https://vndb.org/changes
-20261104 External links to JAST USA (jastusa.com) are now handled as JAST Store (jaststore.com), with region USA
+20261119 The new format for links to [url=https://www.getchu.com/item/1300996/]Getchu.com[/url] are now recognized; also changed the contact email address.
+20261104 External links to JAST USA (jastusa.com) are now handled as JAST Store (jaststore.com), with region USA.
 20260303 New-ish contributors are now marked as a green link in edit histories
 20260110 Add "Has image" filter to [url=/r]release search[/url]
 20260107 VN list export function now also exports reviews
