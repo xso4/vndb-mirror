@@ -70,6 +70,11 @@ my @tests = qw{
     getchu  1300996   -   https://www.getchu.com/soft.phtml?id=1300996
     getchu  1300996   -   https://www.getchu.com/item/1300996/
     getchu  1300996   -   https://www.getchu.com/item/1300996
+
+    substar  com/doc5252     -    https://subscribestar.com/doc5252
+    substar  art/lusthunter  -    https://subscribestar.art/lusthunter
+    substar  adult/eggsov    -    https://subscribestar.adult/eggsov
+    substar  art/eggsov      -    https://subscribestar.art/eggsov
 };
 
 for my ($site, $value, $data, $url) (@tests) {

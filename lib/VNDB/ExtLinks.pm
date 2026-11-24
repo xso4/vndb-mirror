@@ -541,8 +541,8 @@ our %LINKS = (
         { ent   => 'rsp'
         , label => 'SubscribeStar'
         , fmt   => 'https://subscribestar.%s'
-        , parse => qr{(?:www\.)?subscribestar\.((?:adult|com)/[^/?]+).*}
-        , patt  => 'https://subscribestar.<adult or com>/<name>'
+        , parse => qr{(?:www\.)?subscribestar\.((?:adult|art|com)/[^/?]+).*}
+        , patt  => 'https://subscribestar.<adult, art or com>/<name>'
         },
     toranoana =>
         { ent   => 'r'
