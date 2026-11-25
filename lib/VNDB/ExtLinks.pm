@@ -460,13 +460,13 @@ our %LINKS = (
         { ent   => 'rsp'
         , label => 'Patreon'
         , fmt   => 'https://www.patreon.com/%s'
-        , parse => qr{(?:www\.)?patreon\.com/(?:cw?/)?(?!user[\?/]|posts[\?/]|join[\?/])([^/?]+).*}
+        , parse => qr{(?:www\.)?patreon\.com/(?:cw?/)?(?!user[\?/]|(?:[^/?]+/)?posts[\?/]|join[\?/])([^/?]+).*}
         },
     patreonp =>
         { ent   => 'r'
         , label => 'Patreon post'
         , fmt   => 'https://www.patreon.com/posts/%d'
-        , parse => qr{(?:www\.)?patreon\.com/posts/(?:[^/?]+-)?$int.*}
+        , parse => qr{(?:www\.)?patreon\.com/(?:[^/?]+/)?posts/(?:[^/?]+-)?$int.*}
         },
     pixiv =>
         { ent   => 'sp'

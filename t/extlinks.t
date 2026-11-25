@@ -64,8 +64,16 @@ my @tests = qw{
 
     kagura lessons-with-chii-chan-patch - https://kaguragames.com/lessons-with-chii-chan-patch/
 
-    patreon mircom - https://www.patreon.com/mircom
-    patreon mircom - https://www.patreon.com/cw/mircom
+    patreon mircom        -  https://www.patreon.com/mircom
+    patreon mircom        -  https://www.patreon.com/c/mircom
+    patreon mircom        -  https://www.patreon.com/cw/mircom
+    patreon %3Cfapple%3E  -  https://www.patreon.com/%3Cfapple%3E
+
+    patreonp 166621091  -  https://www.patreon.com/posts/166621091
+    patreonp 166621091  -  https://www.patreon.com/posts/toxicity-0-21-0-166621091
+    patreonp 166621091  -  https://www.patreon.com/ilsproductions/posts/166621091
+    patreonp 166621091  -  https://www.patreon.com/ilsproductions/posts/toxicity-0-21-0-166621091
+    patreonp 166621091  -  https://www.patreon.com/cw/posts/toxicity-0-21-0-166621091
 
     getchu  1300996   -   https://www.getchu.com/soft.phtml?id=1300996
     getchu  1300996   -   https://www.getchu.com/item/1300996/
