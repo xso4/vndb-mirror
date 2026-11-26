@@ -1,0 +1,62 @@
+name: Sync Upstream Repository
+
+on:
+  schedule:
+    - cron: '11 18 * * 3'  # UTC 时间： 周二 18:11
+  workflow_dispatch:
+
+# 设置权限，允许 Action 推送代码
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Backup GitHub Actions workflows
+        run: |
+          # 备份本仓库的 GitHub Action 配置文件
+          mkdir -p /tmp/backup
+          cp -r .github/workflows/* /tmp/backup/ 2>/dev/null || true
+
+      - name: Configure Git
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Fetch upstream changes
+        run: |
+          # 添加上游仓库并拉取
+          git remote add upstream https://code.blicky.net/yorhel/vndb.git || true
+          git fetch upstream
+
+      - name: Reset to upstream
+        run: |
+          # 检测上游默认分支
+          UPSTREAM_BRANCH=$(git remote show upstream | sed -n '/HEAD branch/s/.*: //p')
+          
+          # 完全重置到上游状态，丢弃所有本地修改
+          git reset --hard upstream/$UPSTREAM_BRANCH
+
+      - name: Restore GitHub Actions workflows
+        run: |
+          # 恢复本仓库的 GitHub Action 配置文件
+          mkdir -p .github/workflows
+          cp -r /tmp/backup/* .github/workflows/ 2>/dev/null || true
+          
+          # 如果有文件被恢复，则提交更改
+          if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "Restore GitHub Actions workflows"
+          fi
+
+      - name: Push changes
+        run: |
+          # 强制推送到本仓库
+          git push origin master --force
